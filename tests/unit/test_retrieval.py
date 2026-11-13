@@ -74,9 +74,9 @@ def test_semantic_ranks_by_cosine(chunks: List[Chunk]) -> None:
     assert len(results[0]) == 4
 
 
-@pytest.mark.parametrize("fusion", ["linear", "rrf"])
+@pytest.mark.parametrize("fusion", ["linear", "rrf", "convex", "dbsf"])
 def test_hybrid_fusions(chunks: List[Chunk], fusion: str) -> None:
-    """Both fusions rank the lexically and semantically best chunk first."""
+    """Every fusion ranks the lexically and semantically best chunk first."""
     embedder = FakeEmbedder()
     snapshot = make_snapshot(chunks, embedder)
     hybrid = HybridRetriever(

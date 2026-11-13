@@ -19,7 +19,9 @@ from src.domain.ranking import (
     FUSIONS,
     Ranked,
     apply_priors,
+    NORMALISED_FUSIONS,
     linear_scores,
+    normalised_fusion,
     ranked,
     rerank_fusion,
     rrf_fusion,
@@ -198,7 +200,9 @@ class HybridRetriever:
 
     ``linear`` fusion (default) adds max-normalised BM25 and a weighted
     cosine; ``rrf`` applies Reciprocal Rank Fusion to the top ``depth``
-    results of each ranking.
+    results of each ranking; ``convex`` and ``dbsf`` normalise both
+    scores over those candidates before adding them (see
+    :func:`~src.domain.ranking.normalised_fusion`).
     """
 
     def __init__(
@@ -241,6 +245,13 @@ class HybridRetriever:
                     lexical_row, dense_row, self.semantic_weight
                 ))
                 best = ranked(fused, k)
+            elif self.fusion in NORMALISED_FUSIONS:
+                best = normalised_fusion(
+                    self._adjust(query, lexical_row),
+                    self._adjust(query, dense_row),
+                    self.semantic_weight, max(self.depth, k), k,
+                    self.fusion,
+                )
             else:
                 depth = max(self.depth, k)
                 lexical_row = self._adjust(query, lexical_row)
