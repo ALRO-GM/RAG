@@ -7,8 +7,10 @@ used. The theory behind the rubric is in [`THEORY.md`](THEORY.md); how
 to build reference data is in
 [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md).
 
-Audio capture, speech recognition and diarization are upstream of this
-module: it starts from a diarized transcript.
+Recordings are transcribed and diarized by the stage described in
+[`AUDIO.md`](AUDIO.md) (`skills transcribe`), which also splits turns
+into sentences and proposes candidate tags per sentence. This document
+starts from the diarized transcript, however it was produced.
 
 ## 1. Pipeline
 
@@ -188,7 +190,7 @@ Recommended by `THEORY.md` and not implemented yet:
 | Quality flag per incident (basic / clear / exemplary) | Not recorded |
 | Opportunity gating: no disagreement or feedback episode in the session → insufficient evidence for everybody | Left to the judge and the evidence rules |
 | Frequency normalised by opportunity and capped | Only the minimum-evidence and breadth rules |
-| Low-confidence evidence from transcription confidence and overlap | Transcripts carry no confidence yet |
+| Low-confidence evidence from transcription confidence and overlap | Turns can carry a confidence and timed words (`AUDIO.md`); the Whisper adapter reports none yet and overlap is not detected |
 | Person-level profile from ≥ 3 sessions (median and range), commitments log across sessions | Session level only |
 | Team interaction profile (Bales / act4teams categories), leadership profile | Participation counts only |
 | Validation with assessors, fairness checks | Tooling ready (§8), no data |
