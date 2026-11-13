@@ -26,6 +26,8 @@ from transcriber.domain.errors import ContractError
 SCHEMA = "transcript.v1"
 
 SESSION_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+# An enrolled user id: the same safe shape as a session id.
+SPEAKER_ID_PATTERN = SESSION_ID_PATTERN
 UTTERANCE_ID_PATTERN = r"^t[0-9]+\.s[0-9]+$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
 
@@ -168,12 +170,17 @@ class Voiceprint(BaseModel):
 
 
 class SessionState(str, enum.Enum):
-    """Where a session is in its life, from recording to transcript."""
+    """Where a session is in its life, from recording to transcript.
+
+    ``recording → uploaded → queued → running → done | failed``; the
+    allowed moves are in :data:`transcriber.domain.sessions.TRANSITIONS`.
+    """
 
     RECORDING = "recording"
-    RECORDED = "recorded"
-    TRANSCRIBING = "transcribing"
-    TRANSCRIBED = "transcribed"
+    UPLOADED = "uploaded"
+    QUEUED = "queued"
+    RUNNING = "running"
+    DONE = "done"
     FAILED = "failed"
 
 
@@ -181,7 +188,11 @@ class Session(BaseModel):
     """One recorded meeting.
 
     ``duration`` is in seconds; ``audio_sha256`` identifies the audio
-    the transcript was made from, without carrying it.
+    the transcript was made from, without carrying it. ``chunks`` counts
+    the audio chunks accepted while recording and ``last_chunk_sha256``
+    identifies the last one, so a retried upload can be recognised.
+    ``failure`` says why the last transcription failed (only in state
+    ``failed``).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -193,6 +204,28 @@ class Session(BaseModel):
     duration: float = _seconds(default=0.0)
     state: SessionState = SessionState.RECORDING
     audio_sha256: Optional[str] = Field(default=None, pattern=SHA256_PATTERN)
+    chunks: int = Field(default=0, ge=0)
+    last_chunk_sha256: Optional[str] = Field(
+        default=None, pattern=SHA256_PATTERN
+    )
+    failure: Optional[str] = None
+
+
+class ConsentRecord(BaseModel):
+    """The consent a person gave when enrolling their voice.
+
+    ``consent_version`` is the version of the consent statement agreed
+    to, ``text_version`` the version of the enrolment text read and
+    ``given_at`` when. ``name`` is the display name the person gave.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    speaker_id: str = Field(pattern=SPEAKER_ID_PATTERN)
+    name: Optional[str] = None
+    consent_version: str = Field(min_length=1)
+    text_version: str = Field(min_length=1)
+    given_at: AwareDatetime
 
 
 class Pipeline(BaseModel):
@@ -298,7 +331,7 @@ class Transcript(BaseModel):
     def from_contract(cls, document: Mapping[str, Any]) -> "Transcript":
         """Build a transcript from a ``transcript.v1`` document.
 
-        The session of a published transcript is ``transcribed``.
+        The session of a published transcript is ``done``.
         Raises :class:`ContractError` when the document does not follow
         the contract or breaks a rule of the model.
         """
@@ -330,7 +363,7 @@ class Transcript(BaseModel):
             # still reads an ISO date-time string as a datetime.
             text = json.dumps({
                 "session": {
-                    **session, "state": SessionState.TRANSCRIBED.value,
+                    **session, "state": SessionState.DONE.value,
                 },
                 "speakers": speakers,
                 "utterances": utterances,

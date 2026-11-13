@@ -16,7 +16,15 @@ here are parameters with untuned defaults for the same reason.
 """
 
 import math
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -141,6 +149,62 @@ def nearest_voice(vectors: FloatArray, centroids: FloatArray) -> List[int]:
     if vectors.shape[0] == 0 or centroids.shape[0] == 0:
         return []
     return [int(i) for i in np.argmax(vectors @ centroids.T, axis=1)]
+
+
+class VoiceGroups(NamedTuple):
+    """The voices of a recording found by :func:`group_voices`.
+
+    ``coarse`` and ``fine`` hold the group of each long and each short
+    window (``fine`` is empty without short windows) and ``vectors``
+    one raw unit-length mean per group (row ``i`` is group ``i``), the
+    vector compared with enrolled voiceprints.
+    """
+
+    coarse: List[int]
+    fine: List[int]
+    vectors: FloatArray
+
+
+def group_voices(
+    coarse: FloatArray,
+    fine: FloatArray,
+    num_speakers: Optional[int] = None,
+    threshold: float = 0.5,
+    max_speakers: int = 10,
+    centre_windows: bool = True,
+) -> VoiceGroups:
+    """Find the voices of a recording in two passes.
+
+    1. *Who is there*: the long-window embeddings ``coarse`` are
+       clustered (:func:`cluster_speakers` with ``num_speakers``,
+       ``threshold`` and ``max_speakers``).
+    2. *Who speaks when*: each short-window embedding of ``fine`` goes
+       to the nearest group centroid, which keeps the time resolution
+       long windows lack.
+
+    With ``centre_windows`` both passes work on vectors centred on the
+    mean of the long windows (:func:`centre`), as the analyzer's
+    diarizer does. The group vectors returned for matching are not
+    centred: they are the means of the raw unit long-window vectors, so
+    a normalisation can be chosen when they meet voiceprints.
+    """
+    if coarse.ndim != 2 or fine.ndim != 2:
+        raise InvalidInputError("Window embeddings must be 2-D arrays.")
+    if coarse.shape[0] == 0:
+        width = int(coarse.shape[1])
+        return VoiceGroups([], [], np.zeros((0, width), dtype=np.float32))
+    if fine.shape[0] and fine.shape[1] != coarse.shape[1]:
+        raise InvalidInputError("Long and short windows differ in size.")
+    if centre_windows:
+        mean: FloatArray = coarse.mean(axis=0).astype(np.float32)
+        long, short = centre(coarse, mean), centre(fine, mean)
+    else:
+        long, short = unit_rows(coarse), unit_rows(fine)
+    labels = cluster_speakers(long, num_speakers, threshold, max_speakers)
+    assigned = nearest_voice(short, voice_centroids(long, labels))
+    return VoiceGroups(
+        labels, assigned, voice_centroids(unit_rows(coarse), labels)
+    )
 
 
 def unit_vectors(

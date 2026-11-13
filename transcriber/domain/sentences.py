@@ -165,6 +165,47 @@ def build_utterances(turns: Sequence[Turn]) -> List[Utterance]:
     return utterances
 
 
+def regroup_utterances(utterances: Sequence[Utterance]) -> List[Utterance]:
+    """Recompute turns, ids and previous speakers after a speaker edit.
+
+    ``utterances`` are in transcript order and some may have changed
+    speaker. Sentences are kept as they are (text, times, words and
+    confidences); consecutive sentences of one speaker form one turn,
+    and every turn is renumbered with its ``previous_speaker`` and
+    ``previous_utterance`` as :func:`build_utterances` sets them. The
+    words of each sentence take its speaker.
+    """
+    out: List[Utterance] = []
+    turn = -1
+    index = 0
+    previous_speaker: Optional[str] = None
+    previous_utterance: Optional[str] = None
+    current: Optional[str] = None
+    for utterance in utterances:
+        if utterance.speaker != current:
+            if out:
+                previous_speaker = current
+                previous_utterance = out[-1].id
+            current = utterance.speaker
+            turn += 1
+            index = 0
+        out.append(Utterance(
+            id=utterance_id(turn, index), turn=turn, index=index,
+            speaker=utterance.speaker, start=utterance.start,
+            end=utterance.end, text=utterance.text,
+            previous_speaker=previous_speaker,
+            previous_utterance=previous_utterance,
+            confidence=utterance.confidence,
+            speaker_confidence=utterance.speaker_confidence,
+            words=[
+                w.model_copy(update={"speaker": utterance.speaker})
+                for w in utterance.words
+            ],
+        ))
+        index += 1
+    return out
+
+
 # One token of a turn's text: its start, its end and the recognised
 # word it came from (``None`` when its time is interpolated).
 _Token = Tuple[float, float, Optional[Word]]

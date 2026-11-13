@@ -52,7 +52,7 @@ class TestContract:
     def test_round_trip(self) -> None:
         source = document()
         transcript = Transcript.from_contract(source)
-        assert transcript.session.state is SessionState.TRANSCRIBED
+        assert transcript.session.state is SessionState.DONE
         assert transcript.to_contract() == source
 
     def test_words_are_not_in_the_contract(self) -> None:

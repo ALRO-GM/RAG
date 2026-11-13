@@ -13,6 +13,18 @@ class InvalidInputError(TranscriberError):
     """A value given to the transcriber is invalid."""
 
 
+class NotFoundError(TranscriberError):
+    """A session, transcript, utterance or speaker does not exist."""
+
+
+class StateError(TranscriberError):
+    """An action is not allowed in the current state of a session."""
+
+
+class ConsentRequiredError(InvalidInputError):
+    """A voice cannot be enrolled without the person's explicit consent."""
+
+
 class ContractError(TranscriberError):
     """A document does not follow the ``transcript.v1`` contract."""
 
