@@ -8,6 +8,7 @@ import pytest
 from src.domain.errors import InvalidInputError
 from src.domain.skills.speech import (
     UNKNOWN_SPEAKER,
+    FloatArray,
     SpeakerSpan,
     analysis_windows,
     assign_speakers,
@@ -189,11 +190,13 @@ class TestRenameSpeakers:
             )
 
 
-def voices() -> np.ndarray:
+def voices() -> FloatArray:
     """Six embeddings: three voices, two windows each, first-seen order."""
     a, b, c = np.eye(3, dtype=np.float32)
-    return np.stack([a, b, a * 0.9 + b * 0.1, c, b * 0.95 + c * 0.05,
-                     c]).astype(np.float32)
+    stacked: FloatArray = np.stack(
+        [a, b, a * 0.9 + b * 0.1, c, b * 0.95 + c * 0.05, c]
+    ).astype(np.float32)
+    return stacked
 
 
 class TestClusterSpeakers:
