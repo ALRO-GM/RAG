@@ -108,6 +108,75 @@ class TestUtteranceTimes:
         assert out[0].start == 0.0
         assert out[1].end == pytest.approx(4.0)
 
+    def test_empty_words_are_ignored_when_aligning(self) -> None:
+        """Recognisers emit words with no text; they hold no token."""
+        out = build_utterances([Turn(
+            speaker="a", text="Hola. Vale.", start=0.0, end=3.7,
+            words=words((" Hola.", 0.0, 0.4), (" Vale.", 3.0, 3.5),
+                        ("", 3.6, 3.7)),
+        )])
+        assert [(u.start, u.end) for u in out] == [(0.0, 0.4), (3.0, 3.5)]
+        assert [[w.text for w in u.words] for u in out] == [
+            [" Hola."], [" Vale."],
+        ]
+
+    def test_a_word_holding_several_tokens(self) -> None:
+        out = build_utterances([Turn(
+            speaker="a", text="Otra vez de nuevo. Bien.", start=0.0,
+            end=2.0, words=words(("Otra", 0.0, 0.2), ("vez", 0.3, 0.5),
+                                 ("de nuevo.", 0.6, 1.0),
+                                 ("Bien.", 1.5, 2.0)),
+        )])
+        assert [(u.start, u.end, len(u.words)) for u in out] == [
+            (0.0, 1.0, 3), (1.5, 2.0, 1),
+        ]
+
+    def test_merged_piece_with_words_keeps_its_times(self) -> None:
+        """Only the piece without words is interpolated."""
+        out = build_utterances([
+            Turn(speaker="a", text="Hola Ana.", start=0.0, end=1.0,
+                 words=words(("Hola", 0.0, 0.4), ("Ana.", 0.5, 0.9))),
+            Turn(speaker="a", text="Vale. Sigo.", start=5.0, end=7.0),
+        ])
+        assert [(u.text, u.start, u.end, len(u.words)) for u in out] == [
+            ("Hola Ana.", 0.0, 0.9, 2),
+            ("Vale.", 5.0, 6.0, 0),
+            ("Sigo.", 6.0, 7.0, 0),
+        ]
+
+    def test_merged_piece_without_words_first(self) -> None:
+        out = build_utterances([
+            Turn(speaker="a", text="Vale.", start=0.0, end=1.0),
+            Turn(speaker="a", text="Hola Ana.", start=2.0, end=3.0,
+                 words=words(("Hola", 2.1, 2.4), ("Ana.", 2.5, 2.8))),
+        ])
+        assert [(u.start, u.end, len(u.words)) for u in out] == [
+            (0.0, 1.0, 0), (2.1, 2.8, 2),
+        ]
+
+    def test_sentence_across_pieces_spans_both(self) -> None:
+        out = build_utterances([
+            Turn(speaker="a", text="Pero no", start=0.0, end=0.6,
+                 words=words(("Pero", 0.0, 0.3), ("no", 0.4, 0.6))),
+            Turn(speaker="a", text="estoy segura.", start=2.0, end=3.0),
+        ])
+        assert [(u.text, u.start, u.end, len(u.words)) for u in out] == [
+            ("Pero no estoy segura.", 0.0, 3.0, 2),
+        ]
+
+    def test_turns_given_out_of_order_run_forward(self) -> None:
+        out = build_utterances([
+            turn("luis", "Tres.", 4.0, 5.0),
+            turn("marta", "Uno.", 0.0, 1.0),
+            turn("marta", "Dos.", 2.0, 3.0),
+        ])
+        assert [(u.id, u.text, u.previous_speaker) for u in out] == [
+            ("t0.s0", "Uno.", None), ("t0.s1", "Dos.", None),
+            ("t1.s0", "Tres.", "marta"),
+        ]
+        starts = [u.start for u in out]
+        assert starts == sorted(starts)
+
     def test_utterance_id(self) -> None:
         assert utterance_id(12, 3) == "t12.s3"
 
@@ -174,6 +243,23 @@ class TestMergeTurns:
         assert (merged.start, merged.end) == (1.0, 3.0)
         assert [w.text for w in merged.words] == ["Uno.", "Dos."]
         assert merged.speaker_confidence == 0.6
+
+    def test_different_speakers_are_not_merged(self) -> None:
+        out = merge_turns([turn("b", " Dos. ", 1, 2), turn("a", "Uno.", 0, 1)])
+        assert [(t.speaker, t.text) for t in out] == [
+            ("a", "Uno."), ("b", "Dos."),
+        ]
+
+    def test_merge_puts_pieces_in_time_order(self) -> None:
+        late = Turn(speaker="a", text="Dos.", start=2.5, end=3.0,
+                    words=words(("Dos.", 2.5, 3.0)))
+        early = Turn(speaker="a", text="Uno.", start=1.0, end=2.0,
+                     words=words(("Uno.", 1.0, 2.0)))
+        (merged,) = merge_turns([late, early])
+        assert merged.text == "Uno. Dos."
+        assert [w.text for w in merged.words] == ["Uno.", "Dos."]
+        (first, second) = build_utterances([late, early])
+        assert first.end <= second.start
 
     @pytest.mark.parametrize("first, second, expected", [
         (None, None, None), (0.5, None, 0.5), (None, 0.4, 0.4),

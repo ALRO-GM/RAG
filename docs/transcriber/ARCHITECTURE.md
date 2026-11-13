@@ -115,8 +115,10 @@ marked `slow`.
 - An **utterance** is one sentence of one turn. Its id (`t<turn>.s<n>`)
   is the one the analyzer already uses for sentence tags.
 - `start`/`end` are seconds from the start of the session audio: the
-  link to the recording. They come from word times, not from
-  interpolation.
+  link to the recording. They come from word times; only text with no
+  usable word times (no words, or words that do not match the text) is
+  given times interpolated from its turn, in proportion to its
+  characters.
 - `previous_speaker` is the speaker of the turn before this one (the
   same for every sentence of a turn; `null` in the first turn), and
   `previous_utterance` the last sentence of that turn. It lets a

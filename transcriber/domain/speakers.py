@@ -27,8 +27,8 @@ class SpeakerSpan(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     speaker: str
-    start: float = Field(ge=0)
-    end: float = Field(ge=0)
+    start: float = Field(ge=0, allow_inf_nan=False)
+    end: float = Field(ge=0, allow_inf_nan=False)
 
 
 def _middle(word: Word) -> float:

@@ -1,8 +1,9 @@
 """Transcriber domain model and its ``transcript.v1`` translation."""
 
 import copy
+import math
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import pytest
 from pydantic import ValidationError
@@ -20,6 +21,7 @@ from transcriber.domain.models import (
     Word,
 )
 from transcriber.domain.sentences import build_utterances
+from transcriber.domain.speakers import SpeakerSpan
 
 
 def document() -> Dict[str, Any]:
@@ -59,7 +61,7 @@ class TestContract:
             words=[Word(text="Hola.", start=0, end=1)],
         )])
         transcript = Transcript(
-            session=Session(id="s", language="es"),
+            session=Session(id="s", language="es", duration=1.0),
             speakers=[Speaker(id="ana", enrolled=True)],
             utterances=utterances,
             pipeline=Pipeline(recogniser="r", voice_model="v",
@@ -104,6 +106,43 @@ class TestContract:
         with pytest.raises(ContractError, match=message):
             Transcript.from_contract(broken)
 
+    @pytest.mark.parametrize("end", [3.0, 3.5])
+    def test_end_within_the_session_tolerance(self, end: float) -> None:
+        source = document()
+        source["utterances"][1]["end"] = end
+        assert Transcript.from_contract(source).utterances[1].end == end
+
+    @pytest.mark.parametrize("end", [3.51, 30.0])
+    def test_end_after_the_session_is_rejected(self, end: float) -> None:
+        broken = document()
+        broken["utterances"][1]["end"] = end
+        with pytest.raises(ContractError, match="after the session"):
+            Transcript.from_contract(broken)
+
+    @pytest.mark.parametrize("value", [math.inf, -math.inf, math.nan])
+    @pytest.mark.parametrize("place", [
+        ("session", None, "duration"),
+        ("utterances", 0, "start"),
+        ("utterances", 1, "end"),
+        ("utterances", 0, "confidence"),
+        ("utterances", 0, "speaker_confidence"),
+    ])
+    def test_non_finite_numbers_are_rejected(
+        self, place: Tuple[str, Optional[int], str], value: float,
+    ) -> None:
+        broken = document()
+        section, item, key = place
+        target = broken[section] if item is None else broken[section][item]
+        target[key] = value
+        with pytest.raises(ContractError):
+            Transcript.from_contract(broken)
+
+    def test_not_json_data_is_rejected(self) -> None:
+        broken = document()
+        broken["session"]["title"] = object()
+        with pytest.raises(ContractError, match="not JSON data"):
+            Transcript.from_contract(broken)
+
     def test_not_an_object(self) -> None:
         with pytest.raises(ContractError):
             Transcript.from_contract([])  # type: ignore[arg-type]
@@ -124,6 +163,23 @@ class TestModels:
             Utterance(id="t0.s0", turn=0, index=0, speaker="a", start=2,
                       end=1, text="x", previous_speaker=None,
                       previous_utterance=None)
+
+    @pytest.mark.parametrize("value", [math.inf, math.nan])
+    def test_times_must_be_finite(self, value: float) -> None:
+        with pytest.raises(ValidationError, match="finite"):
+            Word(text="x", start=0, end=value)
+        with pytest.raises(ValidationError, match="finite"):
+            Word(text="x", start=0, end=1, probability=value)
+        with pytest.raises(ValidationError, match="finite"):
+            Turn(speaker="a", text="x", start=0, end=value)
+        with pytest.raises(ValidationError, match="finite"):
+            Utterance(id="t0.s0", turn=0, index=0, speaker="a", start=0,
+                      end=value, text="x", previous_speaker=None,
+                      previous_utterance=None)
+        with pytest.raises(ValidationError, match="finite"):
+            Session(id="x", language="es", duration=value)
+        with pytest.raises(ValidationError, match="finite"):
+            SpeakerSpan(speaker="a", start=value, end=value)
 
     def test_session_defaults_and_rules(self) -> None:
         session = Session(id="2026-11-14-equipo-a", language="es")

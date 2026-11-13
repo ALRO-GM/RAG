@@ -9,7 +9,8 @@ contract shared with the RAG (``contracts/transcript.v1.schema.json``).
 """
 
 import enum
-from typing import Any, Dict, List, Mapping, Optional
+import json
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from pydantic import (
     AwareDatetime,
@@ -28,6 +29,18 @@ SESSION_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
 UTTERANCE_ID_PATTERN = r"^t[0-9]+\.s[0-9]+$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
 
+# How far past ``session.duration`` an utterance may end. Recogniser
+# timestamps are quantised (Whisper uses 20 ms steps) and the duration
+# read from a container can differ from the decoded audio by a frame or
+# a padded chunk; half a second absorbs that without letting a sentence
+# point at audio that does not exist.
+END_TOLERANCE = 0.5
+
+
+def _seconds(**kwargs: Any) -> Any:
+    """A finite, non-negative number of seconds (no inf, no NaN)."""
+    return Field(ge=0, allow_inf_nan=False, **kwargs)
+
 
 class Word(BaseModel):
     """A recognised word with its time span in seconds.
@@ -40,10 +53,12 @@ class Word(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     text: str
-    start: float = Field(ge=0)
-    end: float = Field(ge=0)
+    start: float = _seconds()
+    end: float = _seconds()
     speaker: Optional[str] = None
-    probability: Optional[float] = Field(default=None, ge=0, le=1)
+    probability: Optional[float] = Field(
+        default=None, ge=0, le=1, allow_inf_nan=False
+    )
 
     @model_validator(mode="after")
     def _ordered(self) -> "Word":
@@ -65,10 +80,12 @@ class Turn(BaseModel):
 
     speaker: str = Field(min_length=1)
     text: str
-    start: float = Field(ge=0)
-    end: float = Field(ge=0)
+    start: float = _seconds()
+    end: float = _seconds()
     words: List[Word] = Field(default_factory=list)
-    speaker_confidence: Optional[float] = Field(default=None, ge=-1, le=1)
+    speaker_confidence: Optional[float] = Field(
+        default=None, ge=-1, le=1, allow_inf_nan=False
+    )
 
     @model_validator(mode="after")
     def _ordered(self) -> "Turn":
@@ -93,13 +110,17 @@ class Utterance(BaseModel):
     turn: int = Field(ge=0)
     index: int = Field(ge=0)
     speaker: str = Field(min_length=1)
-    start: float = Field(ge=0)
-    end: float = Field(ge=0)
+    start: float = _seconds()
+    end: float = _seconds()
     text: str = Field(min_length=1)
     previous_speaker: Optional[str]
     previous_utterance: Optional[str] = Field(pattern=UTTERANCE_ID_PATTERN)
-    confidence: Optional[float] = Field(default=None, ge=0, le=1)
-    speaker_confidence: Optional[float] = Field(default=None, ge=-1, le=1)
+    confidence: Optional[float] = Field(
+        default=None, ge=0, le=1, allow_inf_nan=False
+    )
+    speaker_confidence: Optional[float] = Field(
+        default=None, ge=-1, le=1, allow_inf_nan=False
+    )
     words: List[Word] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -169,7 +190,7 @@ class Session(BaseModel):
     title: Optional[str] = None
     language: str = Field(min_length=2)
     started_at: Optional[AwareDatetime] = None
-    duration: float = Field(default=0.0, ge=0)
+    duration: float = _seconds(default=0.0)
     state: SessionState = SessionState.RECORDING
     audio_sha256: Optional[str] = Field(default=None, pattern=SHA256_PATTERN)
 
@@ -216,7 +237,7 @@ class Transcript(BaseModel):
 
     @model_validator(mode="after")
     def _consistent(self) -> "Transcript":
-        """Check ids are unique and every speaker referenced is listed."""
+        """Check ids, speakers, the turn structure of §4 and the times."""
         known = [s.id for s in self.speakers]
         if len(set(known)) != len(known):
             raise ValueError("speaker ids must be unique")
@@ -238,6 +259,14 @@ class Transcript(BaseModel):
                 raise ValueError(
                     f"utterance {utterance.id} follows an unknown"
                     f" utterance {utterance.previous_utterance}"
+                )
+        _check_turns(self.utterances)
+        limit = self.session.duration + END_TOLERANCE
+        for utterance in self.utterances:
+            if utterance.end > limit:
+                raise ValueError(
+                    f"utterance {utterance.id} ends at {utterance.end} s,"
+                    f" after the session ({self.session.duration} s)"
                 )
         return self
 
@@ -295,18 +324,102 @@ class Transcript(BaseModel):
             document, "pipeline", _PIPELINE_FIELDS, _PIPELINE_FIELDS
         )
         try:
-            return cls.model_validate({
-                "session": {**session, "state": SessionState.TRANSCRIBED},
+            # Through JSON text in strict mode, so nothing is coerced:
+            # "14.2" is not a number, "true" not a boolean, 0.0 not an
+            # integer, and inf or NaN not JSON at all. Strict JSON mode
+            # still reads an ISO date-time string as a datetime.
+            text = json.dumps({
+                "session": {
+                    **session, "state": SessionState.TRANSCRIBED.value,
+                },
                 "speakers": speakers,
                 "utterances": utterances,
                 "pipeline": pipeline,
-            })
+            }, allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ContractError(
+                f"Invalid transcript: not JSON data: {exc}"
+            ) from exc
+        try:
+            return cls.model_validate_json(text, strict=True)
         except ValidationError as exc:
             first = exc.errors()[0]
             where = ".".join(str(p) for p in first.get("loc", ()))
             raise ContractError(
                 f"Invalid transcript: {where}: {first.get('msg', '')}"
             ) from exc
+
+
+def _check_turns(utterances: Sequence[Utterance]) -> None:
+    """Check the turn structure of ``transcript.v1`` (§4).
+
+    Utterances come in order: turns ``0, 1, 2, ...`` with no gap, and
+    inside a turn indices ``0, 1, 2, ...`` with no gap. Every sentence
+    of a turn has the same speaker and the same previous pair. Turn 0
+    has no previous speaker or utterance; turn ``n`` points at the last
+    sentence of turn ``n - 1`` and at its speaker, who is someone else
+    (consecutive turns of one speaker are one turn).
+    Raises :class:`ValueError` on the first rule broken.
+    """
+    turns: List[List[Utterance]] = []
+    for utterance in utterances:
+        if turns and utterance.turn == turns[-1][0].turn:
+            turns[-1].append(utterance)
+            continue
+        expected = len(turns)
+        if utterance.turn != expected:
+            raise ValueError(
+                f"utterance {utterance.id} is out of order: expected"
+                f" turn {expected}"
+            )
+        turns.append([utterance])
+    for number, sentences in enumerate(turns):
+        first = sentences[0]
+        for index, utterance in enumerate(sentences):
+            if utterance.index != index:
+                raise ValueError(
+                    f"utterance {utterance.id} is out of order: expected"
+                    f" index {index} in turn {number}"
+                )
+            if utterance.speaker != first.speaker:
+                raise ValueError(
+                    f"turn {number} has two speakers:"
+                    f" {first.speaker} and {utterance.speaker}"
+                )
+            if (
+                utterance.previous_speaker != first.previous_speaker
+                or utterance.previous_utterance != first.previous_utterance
+            ):
+                raise ValueError(
+                    f"utterance {utterance.id} does not share the previous"
+                    f" speaker and utterance of turn {number}"
+                )
+        if number == 0:
+            if (
+                first.previous_speaker is not None
+                or first.previous_utterance is not None
+            ):
+                raise ValueError(
+                    "the first turn has no previous speaker or utterance"
+                )
+            continue
+        before = turns[number - 1]
+        if first.speaker == before[0].speaker:
+            raise ValueError(
+                f"turns {number - 1} and {number} have the same speaker"
+                f" {first.speaker}; they are one turn"
+            )
+        if first.previous_utterance != before[-1].id:
+            raise ValueError(
+                f"turn {number} must follow {before[-1].id}, the last"
+                f" sentence of turn {number - 1},"
+                f" not {first.previous_utterance}"
+            )
+        if first.previous_speaker != before[0].speaker:
+            raise ValueError(
+                f"turn {number} must have previous speaker"
+                f" {before[0].speaker}, not {first.previous_speaker}"
+            )
 
 
 def _only(

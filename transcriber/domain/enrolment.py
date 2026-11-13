@@ -121,7 +121,7 @@ class SampleRules(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    min_duration: float = Field(default=20.0, ge=0)
+    min_duration: float = Field(default=20.0, ge=0, allow_inf_nan=False)
     min_speech_ratio: float = Field(default=0.5, ge=0, le=1)
     same_voice_threshold: float = Field(default=0.5, ge=-1, le=1)
     max_other_voice_share: float = Field(default=0.2, ge=0, le=1)

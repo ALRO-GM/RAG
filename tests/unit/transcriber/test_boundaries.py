@@ -1,4 +1,8 @@
-"""Import rules: ``src`` and ``transcriber`` stay apart; the domain is pure.
+"""Import rules: ``src`` and ``transcriber`` stay apart; inner layers stay in.
+
+The domain is pure and imports no other transcriber layer; the
+application (use cases and ports) imports neither the adapters, the
+composition root nor the libraries only adapters may use.
 
 The rules are read from the source with :mod:`ast`, so a forbidden
 import fails here even when it sits in a branch no test runs.
@@ -22,10 +26,22 @@ DOMAIN_FORBIDDEN = frozenset({
     "fire", "os", "pathlib", "io", "shutil", "subprocess", "tempfile",
     "sqlite3", "glob", "pickle", "threading", "multiprocessing", "anthropic",
 })
-# Layers of the transcriber the domain may not reach.
+# Layers of the transcriber the domain may not reach. The domain may
+# only import ``transcriber.domain``; these are named for the messages,
+# the rule below rejects any other ``transcriber`` module too.
 DOMAIN_FORBIDDEN_INTERNAL = (
     "transcriber.application", "transcriber.adapters",
     "transcriber.config", "transcriber.bootstrap", "transcriber.__main__",
+)
+# What use cases and ports may not import: the adapters that implement
+# the ports, the composition root that wires them, and the model, web
+# and audio libraries only adapters use.
+APPLICATION_FORBIDDEN = frozenset({
+    "torch", "torchaudio", "transformers", "fastapi", "starlette",
+    "uvicorn", "av", "soundfile",
+})
+APPLICATION_FORBIDDEN_INTERNAL = (
+    "transcriber.adapters", "transcriber.bootstrap", "transcriber.__main__",
 )
 
 
@@ -110,11 +126,28 @@ def impure_domain(root: Path) -> List[str]:
         where = path.relative_to(root)
         for line, module in imports_of(path, root):
             top = module.split(".")[0]
-            if top in DOMAIN_FORBIDDEN or any(
+            outside = _within(module, "transcriber") and not _within(
+                module, "transcriber.domain"
+            )
+            if top in DOMAIN_FORBIDDEN or outside or any(
                 _within(module, layer) for layer in DOMAIN_FORBIDDEN_INTERNAL
             ):
                 found.append(f"{where}:{line} {module}")
         found.extend(f"{where}:{line} open()" for line in opens_files(path))
+    return found
+
+
+def leaky_application(root: Path) -> List[str]:
+    """Return the violations of the application rules under ``root``."""
+    found = []
+    for path in sorted((root / "transcriber" / "application").rglob("*.py")):
+        where = path.relative_to(root)
+        for line, module in imports_of(path, root):
+            if module.split(".")[0] in APPLICATION_FORBIDDEN or any(
+                _within(module, layer)
+                for layer in APPLICATION_FORBIDDEN_INTERNAL
+            ):
+                found.append(f"{where}:{line} {module}")
     return found
 
 
@@ -128,10 +161,14 @@ class TestRealTree:
     def test_transcriber_domain_is_pure(self) -> None:
         assert impure_domain(REPO) == []
 
+    def test_transcriber_application_stays_inside(self) -> None:
+        assert leaky_application(REPO) == []
+
     def test_the_rules_see_the_real_packages(self) -> None:
         """Guard against a vacuous pass (wrong root, no files found)."""
         domain = list((REPO / "transcriber" / "domain").rglob("*.py"))
         assert len(domain) >= 3
+        assert any((REPO / "transcriber" / "application").rglob("*.py"))
         assert any((REPO / "src" / "domain").rglob("*.py"))
 
 
@@ -176,6 +213,9 @@ class TestRulesCatchViolations:
         "from transcriber.adapters.inbound import cli\n",
         "from ..application import ports\n",
         "from .. import config\n",
+        "from transcriber import bootstrap\n",
+        "import transcriber.config\n",
+        "from transcriber.application.ports import Recogniser\n",
         "data = open('x').read()\n",
     ])
     def test_impure_domain(self, tmp_path: Path, text: str) -> None:
@@ -194,3 +234,38 @@ class TestRulesCatchViolations:
         write(tmp_path, "transcriber/domain/__init__.py", "")
         write(tmp_path, "transcriber/domain/x.py", text)
         assert impure_domain(tmp_path) == []
+
+
+class TestApplicationRulesCatchViolations:
+    @pytest.mark.parametrize("text", [
+        "import torch\n",
+        "import torchaudio\n",
+        "from transformers import pipeline\n",
+        "from fastapi import FastAPI\n",
+        "import av\n",
+        "import soundfile as sf\n",
+        "from transcriber.adapters.outbound import recogniser\n",
+        "from ..adapters.inbound import cli\n",
+        "from transcriber import bootstrap\n",
+        "from transcriber.bootstrap import build\n",
+        "from .. import bootstrap\n",
+        "import importlib\nimportlib.import_module('transcriber.adapters')\n",
+    ])
+    def test_leaky_application(self, tmp_path: Path, text: str) -> None:
+        write(tmp_path, "transcriber/application/__init__.py", "")
+        write(tmp_path, "transcriber/application/x.py", text)
+        assert leaky_application(tmp_path)
+
+    @pytest.mark.parametrize("text", [
+        "from typing import Protocol\n",
+        "from transcriber.domain.models import Transcript\n",
+        "from ..domain.errors import ContractError\n",
+        "from .ports import Recogniser\n",
+        "import numpy as np\n",
+    ])
+    def test_allowed_in_application(
+        self, tmp_path: Path, text: str
+    ) -> None:
+        write(tmp_path, "transcriber/application/__init__.py", "")
+        write(tmp_path, "transcriber/application/x.py", text)
+        assert leaky_application(tmp_path) == []
