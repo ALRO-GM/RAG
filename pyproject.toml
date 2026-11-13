@@ -23,6 +23,9 @@ api = [
 bench = [
     "pyarrow>=25.0.1",
 ]
+audio = [
+    "soundfile>=0.13",
+]
 cpu = [
     "torch>=2.3",
 ]
@@ -41,7 +44,7 @@ dev = [
 
 [tool.uv]
 package = false
-default-groups = ["dev", "cpu", "api", "bench"]
+default-groups = ["dev", "cpu", "api", "bench", "audio"]
 conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
 
 [tool.uv.sources]
@@ -72,7 +75,7 @@ markers = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["fire", "fire.*", "pyarrow", "pyarrow.*"]
+module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
