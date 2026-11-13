@@ -214,8 +214,11 @@ class TestClusterSpeakers:
 
     def test_max_speakers_caps_an_unknown_count(self) -> None:
         distinct = np.eye(5, dtype=np.float32)
+        distinct[1, 0] = 0.4  # voices 0 and 1 are the closest pair
+        distinct[3, 2] = 0.3  # then voices 2 and 3
+        assert len(set(cluster_speakers(distinct, threshold=0.5))) == 5
         labels = cluster_speakers(distinct, threshold=0.5, max_speakers=3)
-        assert len(set(labels)) == 3
+        assert labels == [0, 0, 1, 1, 2]
 
     def test_empty_and_invalid(self) -> None:
         assert cluster_speakers(np.zeros((0, 4), dtype=np.float32)) == []

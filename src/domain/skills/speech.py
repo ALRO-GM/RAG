@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, Field
+from scipy.cluster.hierarchy import fcluster, linkage
 
 from src.domain.errors import InvalidInputError
 from src.domain.skills.transcript import Transcript, Turn, Word
@@ -127,6 +128,31 @@ def assign_speakers(
             speaker = best.speaker
         labelled.append(word.model_copy(update={"speaker": speaker}))
     return labelled
+
+
+def smooth_speakers(words: Sequence[Word], max_run: int = 1) -> List[Word]:
+    """Undo implausibly short speaker changes.
+
+    A run of at most ``max_run`` words whose neighbours on both sides
+    belong to one other speaker takes that speaker: a diarizer window
+    boundary in the middle of a sentence otherwise credits a stray word
+    to the wrong person. Runs at the very start or end are kept.
+    """
+    out = list(words)
+    runs: List[Tuple[int, int]] = []
+    for i, word in enumerate(out):
+        if runs and out[runs[-1][0]].speaker == word.speaker:
+            runs[-1] = (runs[-1][0], i + 1)
+        else:
+            runs.append((i, i + 1))
+    for n in range(1, len(runs) - 1):
+        start, end = runs[n]
+        before = out[runs[n - 1][0]].speaker
+        after = out[runs[n + 1][0]].speaker
+        if end - start <= max_run and before == after:
+            for i in range(start, end):
+                out[i] = out[i].model_copy(update={"speaker": before})
+    return out
 
 
 def segments_from_words(
@@ -250,44 +276,38 @@ def cluster_speakers(
 ) -> List[int]:
     """Group voice embeddings into speakers (agglomerative, cosine).
 
-    Clusters are merged by average similarity until ``num_speakers``
-    remain or, when the number is unknown, until no two clusters are
-    more similar than ``threshold`` (at most ``max_speakers`` remain).
+    Average-linkage clustering: clusters are merged by mean similarity
+    until ``num_speakers`` remain or, when the number is unknown, until
+    no two clusters are more similar than ``threshold`` (at most
+    ``max_speakers`` remain).
     Labels are numbered by first appearance, so the first voice heard
     is speaker 0.
     """
     count = int(vectors.shape[0])
-    if count == 0:
-        return []
     if num_speakers is not None and num_speakers < 1:
         raise InvalidInputError("num_speakers must be at least 1.")
+    if count == 0:
+        return []
+    if count == 1:
+        return [0]
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    unit = vectors / np.where(norms > 0, norms, 1.0)
-    similarity = (unit @ unit.T).astype(np.float64)
-    clusters: Dict[int, List[int]] = {i: [i] for i in range(count)}
-    target = num_speakers if num_speakers is not None else 1
-    while len(clusters) > target:
-        keys = sorted(clusters)
-        best: Tuple[float, int, int] = (-2.0, -1, -1)
-        for i, a in enumerate(keys):
-            for b in keys[i + 1:]:
-                value = float(
-                    similarity[np.ix_(clusters[a], clusters[b])].mean()
-                )
-                if value > best[0]:
-                    best = (value, a, b)
-        value, a, b = best
-        if (
-            num_speakers is None and value < threshold
-            and len(clusters) <= max_speakers
-        ):
-            break
-        clusters[a] = clusters[a] + clusters.pop(b)
-    labels = [0] * count
-    order = sorted(clusters.values(), key=min)
-    for label, members in enumerate(order):
-        for member in members:
-            labels[member] = label
+    unit = (vectors / np.where(norms > 0, norms, 1.0)).astype(np.float64)
+    # Cosine distance, computed here so that zero vectors (silence) are
+    # simply far from everything instead of undefined.
+    distance = np.clip(1.0 - unit @ unit.T, 0.0, 2.0)
+    tree = linkage(
+        distance[np.triu_indices(count, k=1)], method="average"
+    )
+    if num_speakers is not None:
+        raw = fcluster(tree, t=num_speakers, criterion="maxclust")
+    else:
+        raw = fcluster(tree, t=1.0 - threshold, criterion="distance")
+        if len(set(raw.tolist())) > max_speakers:
+            raw = fcluster(tree, t=max_speakers, criterion="maxclust")
+    first_seen: Dict[int, int] = {}
+    labels: List[int] = []
+    for value in raw.tolist():
+        labels.append(first_seen.setdefault(int(value), len(first_seen)))
     return labels
 
 
@@ -367,3 +387,25 @@ def speech_regions(
         else:
             regions.append((word.start, word.end))
     return regions
+
+
+def transcript_document(transcript: Transcript) -> Dict[str, Any]:
+    """Return ``transcript`` as the JSON document the analyzer reads.
+
+    Besides the turns (with their timed words when known) the document
+    lists every sentence with its speaker and time, for tools that tag
+    or display sentences without re-deriving them.
+    """
+    return {
+        "session_id": transcript.session_id,
+        "language": transcript.language,
+        "speakers": transcript.speakers(),
+        "turns": [
+            turn.model_dump(exclude_none=True, exclude_defaults=False)
+            for turn in transcript.turns
+        ],
+        "sentences": [
+            s.model_dump(exclude_none=True)
+            for s in transcript_sentences(transcript)
+        ],
+    }

@@ -348,3 +348,44 @@ def test_example_lab_dataset_matches_the_example_reference() -> None:
         (q.question, [s.model_dump() for s in getattr(q, "sources", [])])
         for q in built.rag_questions
     )
+
+
+def test_saved_transcript_is_found_again(tmp_path: Path) -> None:
+    """A transcript made from audio is stored where ``find`` looks."""
+    from src.domain.skills.speech import transcript_sentences
+    from src.domain.skills.transcript import build_transcript
+
+    repository = FileSystemTranscriptRepository(str(tmp_path / "sessions"))
+    transcript = build_transcript("standup", [{
+        "speaker": "Ana", "text": "Hola a todos. ¿Empezamos?",
+        "start": 0.0, "end": 1.8,
+        "words": [
+            {"text": "Hola", "start": 0.0, "end": 0.4},
+            {"text": "a", "start": 0.5, "end": 0.6},
+            {"text": "todos.", "start": 0.6, "end": 1.0},
+            {"text": "¿Empezamos?", "start": 1.1, "end": 1.8},
+        ],
+    }], language="es")
+    path = repository.save(transcript)
+    assert path.endswith("sessions/standup.json")
+    found = repository.find("standup")
+    assert found.language == "es"
+    assert found.turns[0].words[3].start == 1.1
+    assert [s.end for s in transcript_sentences(found)] == [1.0, 1.8]
+    assert repository.sessions() == ["standup"]
+    elsewhere = repository.save(transcript, str(tmp_path / "x" / "t.json"))
+    assert Path(elsewhere).is_file()
+
+
+def test_save_reports_an_unwritable_target(tmp_path: Path) -> None:
+    """A path that cannot be created is a clean error."""
+    from src.domain.errors import RagError
+    from src.domain.skills.transcript import build_transcript
+
+    blocker = tmp_path / "file"
+    blocker.write_text("x")
+    transcript = build_transcript("s", [{"speaker": "A", "text": "Hola."}])
+    with pytest.raises(RagError, match="Cannot write"):
+        FileSystemTranscriptRepository(str(tmp_path)).save(
+            transcript, str(blocker / "sub" / "t.json")
+        )
