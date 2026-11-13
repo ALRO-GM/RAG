@@ -15,3 +15,16 @@ class InvalidInputError(TranscriberError):
 
 class ContractError(TranscriberError):
     """A document does not follow the ``transcript.v1`` contract."""
+
+
+class SampleRejectedError(InvalidInputError):
+    """An enrolment sample cannot give a reliable voiceprint.
+
+    ``reason`` is a :class:`~transcriber.domain.enrolment.Rejection`
+    value, so a caller can show the person what to do differently.
+    """
+
+    def __init__(self, reason: str, message: str) -> None:
+        """Keep the machine-readable ``reason`` beside the message."""
+        super().__init__(message)
+        self.reason = reason

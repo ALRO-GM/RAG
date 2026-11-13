@@ -15,8 +15,12 @@ from transcriber.domain.models import Turn, Utterance, Word
 ABBREVIATIONS = frozenset({
     "sr", "sra", "srta", "dr", "dra", "d", "dª", "ud", "uds", "vd", "etc",
     "pág", "pag", "p", "ej", "art", "núm", "num", "nº", "aprox", "tel",
-    "mr", "mrs", "ms", "prof", "vs", "e.g", "i.e", "no", "fig", "st",
+    "mr", "mrs", "ms", "prof", "vs", "e.g", "i.e", "fig", "st",
 })
+
+# Abbreviations that are also words and only abbreviate before a
+# number: "No. 5" is "number 5", but "Creo que no. Pero sigo." ends.
+NUMBER_ABBREVIATIONS = frozenset({"no"})
 
 # A sentence ends at . ! ? … (possibly repeated, possibly followed by a
 # closing quote or bracket) when whitespace and a plausible sentence
@@ -31,7 +35,8 @@ def split_sentences(text: str) -> List[str]:
 
     A period after a known abbreviation ("Sr.", "etc.", "e.g.") or a
     single capital letter (an initial) does not end a sentence, and
-    neither does one inside a number ("3.5"). Text without final
+    neither does one inside a number ("3.5"). "No." is an abbreviation
+    only when a digit follows ("No. 5"). Text without final
     punctuation is one sentence: speech recognisers often omit it.
     """
     clean = " ".join(text.split())
@@ -41,7 +46,9 @@ def split_sentences(text: str) -> List[str]:
     start = 0
     for match in _END.finditer(clean):
         head = clean[start:match.end(1)]
-        if match.group(1).startswith(".") and _is_abbreviation(head):
+        if match.group(1).startswith(".") and _is_abbreviation(
+            head, clean[match.end():]
+        ):
             continue
         sentences.append(head.strip())
         start = match.end()
@@ -51,12 +58,17 @@ def split_sentences(text: str) -> List[str]:
     return sentences
 
 
-def _is_abbreviation(head: str) -> bool:
-    """Tell whether ``head`` ends with an abbreviation and its period."""
+def _is_abbreviation(head: str, following: str) -> bool:
+    """Tell whether ``head`` ends with an abbreviation and its period.
+
+    ``following`` is the text after the period and its whitespace.
+    """
     stripped = head.rstrip("\"'»”’)]")
     if stripped.endswith(".."):  # an ellipsis ends the sentence
         return False
     last = stripped[:-1].split(" ")[-1].lstrip("\"'«“‘([¿¡").lower()
+    if last in NUMBER_ABBREVIATIONS:
+        return following[:1].isdigit()
     return last in ABBREVIATIONS or (len(last) == 1 and last.isalpha())
 
 

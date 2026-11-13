@@ -56,6 +56,21 @@ class TestSplitSentences:
         """Recognisers put stray periods; a lower-case follow-up joins."""
         assert split_sentences("vale. pero no.") == ["vale. pero no."]
 
+    def test_no_before_a_number_is_an_abbreviation(self) -> None:
+        assert split_sentences("Mira el No. 5 de la lista.") == [
+            "Mira el No. 5 de la lista."
+        ]
+
+    @pytest.mark.parametrize("text, expected", [
+        ("Creo que no. Pero sigo.", ["Creo que no.", "Pero sigo."]),
+        ("No. Eso no.", ["No.", "Eso no."]),
+        ("I said no. Then I left.", ["I said no.", "Then I left."]),
+    ])
+    def test_no_as_a_word_ends_a_sentence(
+        self, text: str, expected: List[str]
+    ) -> None:
+        assert split_sentences(text) == expected
+
 
 class TestUtteranceTimes:
     def test_ids_and_times_from_words(self) -> None:
