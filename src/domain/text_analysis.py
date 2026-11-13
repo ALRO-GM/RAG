@@ -65,3 +65,56 @@ def tokenize(text: str, bigrams: bool = False) -> List[str]:
     if bigrams:
         tokens.extend(f"{a}~{b}" for a, b in zip(stems, stems[1:]))
     return tokens
+
+
+_IDENTIFIER = re.compile(
+    r"[A-Za-z0-9]+_[A-Za-z0-9_]*"        # snake_case, FP8_MIN
+    r"|[a-z]+[A-Z][A-Za-z0-9]*"           # camelCase, vLLM
+    r"|[A-Z]+[a-z0-9]+[A-Z][A-Za-z0-9]*"  # PascalCase, KVCacheManager
+    r"|[A-Za-z_]\w*\.[A-Za-z_]\w*"        # module.attribute, file.py
+    r"|\w+\(\)?"                          # call()
+    r"|`[^`]+`"                           # `code`
+    r"|--[a-z][\w-]*"                     # --cli-flag
+    r"|[\w.-]*/[\w./-]+"                  # path/to/file
+)
+
+
+def _bare(word: str) -> str:
+    """Strip sentence punctuation and a possessive from a word."""
+    core = word.strip(".,;:!?\"')]}>[{<")
+    for suffix in ("'s", "\u2019s"):
+        if core.endswith(suffix):
+            return core[:-2]
+    return core
+
+
+def identifier_share(text: str) -> float:
+    """Share of the words of ``text`` that look like code identifiers.
+
+    Identifiers (``snake_case``, ``camelCase``, ``module.attr``,
+    ``call()``, flags, paths, back-quoted code) are tokens a reader
+    expects to match *exactly*: for them a lexical match is strong
+    evidence, while an embedding only knows them approximately. Plain
+    prose scores 0.
+    """
+    words = text.split()
+    if not words:
+        return 0.0
+    hits = sum(1 for word in words if _IDENTIFIER.fullmatch(_bare(word)))
+    return hits / len(words)
+
+
+def adaptive_weight(
+    weight: float, identifier_weight: float, share: float,
+    saturation: float,
+) -> float:
+    """Semantic weight for a query, given its identifier share.
+
+    Interpolates from ``weight`` (prose, share 0) to
+    ``identifier_weight`` (share at or above ``saturation``): the more
+    exact tokens a query carries, the more the lexical ranking counts.
+    """
+    if saturation <= 0:
+        return identifier_weight if share > 0 else weight
+    mix = min(max(share / saturation, 0.0), 1.0)
+    return weight + (identifier_weight - weight) * mix

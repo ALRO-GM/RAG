@@ -271,6 +271,8 @@ class Container:
             test_weight=s.test_weight,
             file_boost=s.file_boost,
             query_prefix=s.query_prefix,
+            identifier_weight=s.identifier_weight,
+            identifier_saturation=s.identifier_saturation,
         )
 
     @cached_property

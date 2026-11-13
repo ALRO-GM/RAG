@@ -35,6 +35,8 @@ class Settings(BaseModel):
     mode: str = "auto"
     semantic_weight: float = 0.4
     fusion: str = "linear"
+    identifier_weight: Optional[float] = Field(default=None, ge=0.0)
+    identifier_saturation: float = Field(default=0.15, ge=0.0, le=1.0)
     route_strength: float = Field(default=0.1, ge=0.0)
     router_path: str = "models/query_router.json"
     test_weight: float = Field(default=0.6, ge=0.0)

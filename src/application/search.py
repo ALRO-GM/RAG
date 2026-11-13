@@ -60,6 +60,8 @@ class SearchService:
         test_weight: float = 1.0,
         file_boost: float = 0.0,
         query_prefix: str = "",
+        identifier_weight: Optional[float] = None,
+        identifier_saturation: float = 0.15,
     ):
         """Configure the service; nothing heavy is loaded yet."""
         if mode not in MODES + (AUTO,):
@@ -85,6 +87,8 @@ class SearchService:
         self.test_weight = test_weight
         self.file_boost = file_boost
         self.query_prefix = query_prefix
+        self.identifier_weight = identifier_weight
+        self.identifier_saturation = identifier_saturation
         self._snapshot: Optional[IndexSnapshot] = None
         self._retriever: Optional[Retriever] = None
         self._lock = threading.RLock()
@@ -141,6 +145,8 @@ class SearchService:
                 snapshot, self.embedder, query_prefix=self.query_prefix
             ),
             self.semantic_weight, self.fusion, adjuster=adjuster,
+            identifier_weight=self.identifier_weight,
+            identifier_saturation=self.identifier_saturation,
         )
 
     def _key(self, query: str, k: int) -> str:
@@ -151,7 +157,9 @@ class SearchService:
             self._rerank_signature(),
             [self.route_strength, self.test_weight, self.file_boost,
              self.query_prefix,
-             self.router.model_dump() if self.router else None],
+             self.router.model_dump() if self.router else None,
+             *([self.identifier_weight, self.identifier_saturation]
+               if self.identifier_weight is not None else [])],
         )
 
     def _rerank_signature(self) -> Optional[List[object]]:

@@ -15,6 +15,7 @@ from src.application.ports import (
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.models import ScoredChunk
 from src.domain.priors import RouterModel, is_test_path
+from src.domain.text_analysis import adaptive_weight, identifier_share
 from src.domain.ranking import (
     FUSIONS,
     Ranked,
@@ -213,8 +214,17 @@ class HybridRetriever:
         fusion: str = "linear",
         depth: int = 100,
         adjuster: Optional[ScoreAdjuster] = None,
+        identifier_weight: Optional[float] = None,
+        identifier_saturation: float = 0.15,
     ):
-        """Combine two retrievers over the same snapshot."""
+        """Combine two retrievers over the same snapshot.
+
+        With ``identifier_weight`` the semantic weight depends on the
+        query: ``semantic_weight`` for prose, sliding to
+        ``identifier_weight`` as code identifiers make up
+        ``identifier_saturation`` of its words (see
+        :func:`~src.domain.text_analysis.adaptive_weight`).
+        """
         if fusion not in FUSIONS:
             raise InvalidInputError(
                 f"Unknown fusion {fusion!r}; use one of {', '.join(FUSIONS)}."
@@ -225,6 +235,17 @@ class HybridRetriever:
         self.fusion = fusion
         self.depth = depth
         self.adjuster = adjuster
+        self.identifier_weight = identifier_weight
+        self.identifier_saturation = identifier_saturation
+
+    def weight_for(self, query: str) -> float:
+        """Return the semantic weight used for ``query``."""
+        if self.identifier_weight is None:
+            return self.semantic_weight
+        return adaptive_weight(
+            self.semantic_weight, self.identifier_weight,
+            identifier_share(query), self.identifier_saturation,
+        )
 
     def _adjust(self, query: str, scores: FloatArray) -> FloatArray:
         """Apply the adjuster, if any."""
@@ -240,16 +261,17 @@ class HybridRetriever:
         results: List[List[ScoredChunk]] = []
         for query, dense_row in zip(queries, dense):
             lexical_row = self.lexical.scores(query)
+            weight = self.weight_for(query)
             if self.fusion == "linear":
                 fused = self._adjust(query, linear_scores(
-                    lexical_row, dense_row, self.semantic_weight
+                    lexical_row, dense_row, weight
                 ))
                 best = ranked(fused, k)
             elif self.fusion in NORMALISED_FUSIONS:
                 best = normalised_fusion(
                     self._adjust(query, lexical_row),
                     self._adjust(query, dense_row),
-                    self.semantic_weight, max(self.depth, k), k,
+                    weight, max(self.depth, k), k,
                     self.fusion,
                 )
             else:
@@ -261,7 +283,7 @@ class HybridRetriever:
                 ]
                 best = rrf_fusion(
                     [(1.0, lexical_rank),
-                     (self.semantic_weight, top_k(dense_row, depth))],
+                     (weight, top_k(dense_row, depth))],
                     k,
                 )
             results.append(_hits(self.lexical.snapshot, best))
