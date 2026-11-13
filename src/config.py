@@ -64,6 +64,7 @@ class Settings(BaseModel):
     torch_threads: Optional[int] = Field(default=None, ge=1)
     cpu_cores: Literal["auto", "all", "performance"] = "auto"
     runtime_plan_path: str = "data/runtime_plan.json"
+    runtime_history_path: str = "experiments/hardware/runtime.jsonl"
     benchmark_dir: str = "data/benchmarks"
 
 
