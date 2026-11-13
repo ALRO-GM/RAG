@@ -395,6 +395,23 @@ The rubric has not been validated with human assessors yet and the
 sample sessions are synthetic: the output is a draft for a human
 assessor.
 
+## Results site and CI/CD
+
+Every result of the project is published at **https://rag.peer4u.app**:
+the lab suites, the BEIR/CoIR benchmarks, the soft-skills lab and
+rubrics, the hardware runs and all the documents. The experiments run
+on the workstation GPU and their result files are committed; GitHub
+Actions lints (flake8, `mypy --strict`), runs the unit and integration
+tests with a branch-coverage gate, builds the static site
+(`python -m results_site build`) and, on every merge to `main`,
+deploys it. Workflow and conventions: `CONTRIBUTING.md`; architecture
+and operations: `docs/DEPLOYMENT.md`.
+
+```sh
+make ci           # what CI runs: lint-strict, coverage, site
+make site-serve   # preview the site at http://localhost:8765
+```
+
 ## Design decisions
 
 - **Runtime plan chosen from the hardware.** Before a model loads, the
@@ -413,8 +430,11 @@ assessor.
   build by default; `make install-cuda` installs the CUDA 12.6 build
   and `make <target> TORCH=cuda` runs with it. When a graphics card is
   present but unusable, `system` says which piece is missing (kernel
-  driver, PyTorch build). The GPU path has not been run yet: the
-  development machine's NVIDIA card was on the `nouveau` driver.
+  driver, PyTorch build). On the development machine's RTX 3070 Ti
+  the GPU wins: 93 tokens/s against 14.7 on the best CPU plan, and
+  embeddings in 0.08 s instead of 0.50 s (6.4× overall). Every
+  `system --benchmark` run is appended to
+  `experiments/hardware/runtime.jsonl`.
 
 - **BM25 implemented from scratch on scipy sparse matrices** rather than a
   library: precomputing the weights makes queries trivially fast, and the
