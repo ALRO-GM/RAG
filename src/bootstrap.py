@@ -130,18 +130,23 @@ class Container:
         )
 
     @cached_property
+    def benchmark_factory(self) -> "LabPipelineFactory":
+        """Pipelines of the public benchmarks, on their own directories."""
+        s = self.settings
+        return LabPipelineFactory(s.model_copy(update={
+            "lab_work_dir": f"{s.benchmark_dir}/work",
+        }))
+
+    @cached_property
     def benchmarks(self) -> BenchmarkService:
         """Public benchmark runner, on its own index directories."""
         s = self.settings
-        base = s.model_copy(update={
-            "lab_work_dir": f"{s.benchmark_dir}/work",
-        })
         return BenchmarkService(
             BenchmarkCatalogue(
                 BeirRepository(f"{s.benchmark_dir}/beir"),
                 CoirRepository(f"{s.benchmark_dir}/coir"),
             ),
-            LabPipelineFactory(base),
+            self.benchmark_factory,
         )
 
     @cached_property
@@ -397,6 +402,14 @@ class LabPipelineFactory:
                 settings, self._embedder(settings), self._reranker(settings)
             )
         return LabPipeline(self._containers[key])
+
+    def forget(self) -> None:
+        """Drop the cached pipelines (their index files may be deleted).
+
+        Loaded models stay shared: only containers, which hold index
+        snapshots, are released.
+        """
+        self._containers.clear()
 
     def _embedder(self, s: Settings) -> Embedder:
         """Return the shared embedder of a model configuration."""

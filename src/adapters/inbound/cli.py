@@ -7,6 +7,7 @@ all logic lives in the application layer.
 
 import functools
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import (
@@ -145,6 +146,12 @@ def completed_runs(path: Path, suite: str) -> Set[str]:
                 row.get("params") or {},
             ))
     return done
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a directory tree if it exists."""
+    if path.is_dir():
+        shutil.rmtree(path)
 
 
 def read_benchmark_rows(path: Path) -> List[BenchmarkResult]:
@@ -347,6 +354,7 @@ class RagCLI:
     def benchmark(
         self, datasets: str = "scifact", configs: str = "",
         max_queries: int = 0, output: str = "", suite: str = "",
+        clean_indexes: bool = False,
     ) -> None:
         """Score the pipeline on public BEIR datasets (downloaded once).
 
@@ -363,6 +371,9 @@ class RagCLI:
                 of the built-in configurations. Results already in
                 ``output`` for the same suite, trial, parameters and
                 dataset are skipped, so an interrupted run resumes.
+            clean_indexes: Delete the benchmark indexes after each
+                dataset (the results and the embedding cache are kept).
+                Large studies otherwise need tens of gigabytes.
         """
         app = self._app()
         if str(suite or "").strip():
@@ -403,6 +414,10 @@ class RagCLI:
                           f"{r.hit[1]:.2f}/{r.hit[3]:.2f}/{r.hit[5]:.2f}/"
                           f"{r.hit[10]:.2f}  index {r.index_seconds:.0f}s"
                           f"  search {r.search_seconds:.1f}s")
+            if clean_indexes:
+                app.benchmark_factory.forget()
+                remove_tree(Path(app.settings.benchmark_dir) / "work"
+                            / "indexes")
 
     @safe_command
     def general(

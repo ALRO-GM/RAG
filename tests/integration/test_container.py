@@ -482,3 +482,21 @@ def test_lab_cold_disables_every_reuse(project: Path) -> None:
     assert again.files_reindexed == first.files_total
     assert warm.index()[1] is True
     assert warm.index()[1] is False
+
+
+def test_lab_factory_forget_releases_pipelines(project: Path) -> None:
+    """After ``forget`` the same parameters build a fresh pipeline."""
+    factory = LabPipelineFactory(lab_settings())
+    first = factory.create({"file_boost": 0.3})
+    assert factory.create({"file_boost": 0.3}).container is first.container
+    factory.forget()
+    assert factory.create({"file_boost": 0.3}).container is not (
+        first.container
+    )
+
+
+def test_container_exposes_its_benchmark_factory(project: Path) -> None:
+    """The benchmark service uses the factory the container exposes."""
+    container = Container(lab_settings())
+    assert container.benchmarks.factory is container.benchmark_factory
+    assert container.benchmark_factory.base.lab_work_dir.endswith("/work")

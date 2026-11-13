@@ -8,6 +8,7 @@ import pytest
 from src.adapters.inbound.cli import (
     completed_runs,
     read_benchmark_rows,
+    remove_tree,
     run_key,
     select_configs,
 )
@@ -86,3 +87,12 @@ def test_read_benchmark_rows_reports_the_bad_line(tmp_path: Path) -> None:
                     encoding="utf-8")
     with pytest.raises(InvalidInputError, match="rows.jsonl:2"):
         read_benchmark_rows(path)
+
+
+def test_remove_tree(tmp_path: Path) -> None:
+    target = tmp_path / "work" / "indexes"
+    (target / "a").mkdir(parents=True)
+    (target / "a" / "f").write_text("x")
+    remove_tree(target)
+    assert not target.exists()
+    remove_tree(target)  # missing: no error
