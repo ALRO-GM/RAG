@@ -12,9 +12,14 @@ SCOPE       ?= UnansweredQuestions
 DATASETS    := docs code
 SUITE       ?= tune_all
 
+# Server that hosts the results site (the domain resolves to it).
+DEPLOY_TARGET ?= ubuntu@rag.peer4u.app
+REMOTE_DIR    := /opt/ragputin
+
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
-	install-cuda system
+	install-cuda system system-benchmark coverage ci site site-serve \
+	deploy-site infra-up infra-proxy
 
 install:
 	uv sync
@@ -29,6 +34,11 @@ install-cuda:
 ## system: hardware found, runtime plan and why a GPU is not used.
 system:
 	$(PYTHON) -m src system
+
+## system-benchmark: measure CPU plans against the GPU; the run is
+## appended to experiments/hardware/runtime.jsonl (shown on the site).
+system-benchmark:
+	$(PYTHON) -m src system --benchmark
 
 ## run: index the corpus and search both public datasets.
 run: index search
@@ -97,10 +107,41 @@ test:
 test-slow:
 	uv run pytest -q -m slow
 
+## coverage: fast tests with branch coverage (fails under the gate).
+coverage:
+	uv run pytest -q --cov --cov-report=term --cov-report=html
+
+## ci: what GitHub Actions runs, locally.
+ci: lint-strict coverage site
+
+## site: build the static results site into dist/site.
+site:
+	uv run --no-sync python -m results_site build --out dist/site
+
+## site-serve: preview the site at http://localhost:8765.
+site-serve: site
+	cd dist/site && python3 -m http.server 8765
+
+## deploy-site: manual upload (CI does this on every push to main).
+deploy-site: site
+	rsync -rlz --delete --delay-updates --chmod=D755,F644 dist/site/ \
+		$(DEPLOY_TARGET):$(REMOTE_DIR)/pruebas/
+
+## infra-up: upload infra/ and (re)start the RAGPutin web container.
+infra-up:
+	ssh $(DEPLOY_TARGET) 'mkdir -p $(REMOTE_DIR)/infra $(REMOTE_DIR)/pruebas'
+	rsync -rlz infra/Caddyfile infra/compose.yml $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
+	ssh $(DEPLOY_TARGET) 'cd $(REMOTE_DIR)/infra && docker compose up -d && docker compose ps'
+
+## infra-proxy: install the rag.peer4u.app block in the Peer4U Caddy
+## (validated first, rolled back on failure).
+infra-proxy:
+	infra/install-proxy.sh $(DEPLOY_TARGET)
+
 clean:
 	find . -name __pycache__ -type d -not -path "./.venv/*" -prune \
 		-exec rm -r {} +
-	rm -rf .mypy_cache .pytest_cache
+	rm -rf .mypy_cache .pytest_cache .coverage coverage.xml htmlcov dist
 
 lint:
 	uv run flake8 .

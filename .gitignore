@@ -24,3 +24,9 @@ SERVIDOR_ORACLE.md
 
 # Built static site (python -m src site build)
 dist/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

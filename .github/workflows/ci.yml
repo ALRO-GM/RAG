@@ -1,0 +1,131 @@
+# CI/CD: every pull request and every push to main is linted, tested
+# (with a coverage gate) and the results site is built. A push to main
+# then deploys that same build to https://rag.peer4u.app.
+#
+# The experiments themselves are NOT run here: they need the GPU of the
+# workstation. They are run there and their results committed; CI only
+# checks the code and publishes what is committed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  UV_FROZEN: "1"
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync
+      - name: flake8
+        run: uv run flake8 .
+      - name: mypy --strict
+        run: uv run mypy . --strict
+
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Fast tests must not need model downloads; fail loudly if one does.
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync
+      - name: Unit + integration tests with coverage gate
+        run: uv run pytest -q --cov --cov-report=term --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  site:
+    name: Build site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # The builder only needs the standard library: no project install.
+      - name: Build
+        run: uv run --no-project python -m results_site build --out dist/site --commit "${GITHUB_SHA::7}"
+      - name: Check the front end parses
+        run: node --check dist/site/app.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: dist/site
+          retention-days: 14
+
+  deploy:
+    name: Deploy site
+    needs: [lint, test, site]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://rag.peer4u.app
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+      - name: Install the deploy key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy ~/.ssh/known_hosts
+      # The key is locked on the server to `rrsync /opt/ragputin/pruebas`:
+      # it can only write files under that directory.
+      - name: Upload
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+        run: |
+          rsync -rlz --delete --delay-updates --chmod=D755,F644 \
+            -e "ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            site/ "ubuntu@${DEPLOY_HOST}:"
+      - name: Smoke test
+        run: |
+          expected="${GITHUB_SHA::7}"
+          for attempt in 1 2 3 4 5; do
+            got="$(curl -fsS https://rag.peer4u.app/data/manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])' || true)"
+            if [ "${got}" = "${expected}" ]; then echo "Live: ${got}"; exit 0; fi
+            echo "Live commit '${got}', expected '${expected}'; retrying"; sleep 5
+          done
+          exit 1
