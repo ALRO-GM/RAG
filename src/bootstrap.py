@@ -38,7 +38,10 @@ from src.adapters.outbound.parallel_processor import (
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.subprocess_benchmark import SubprocessBenchmark
 from src.adapters.outbound.system_probe import SystemProbe
-from src.adapters.outbound.torch_runtime import load_measured
+from src.adapters.outbound.torch_runtime import (
+    load_measured,
+    precision_tag,
+)
 from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.adapters.outbound.transformers_generator import (
     TransformersGenerator,
@@ -181,7 +184,8 @@ class Container:
             return self.embedder
         return CachingEmbedder(
             self.embedder, s.embedding_cache_dir,
-            f"{s.embedding_model}|{s.embedding_max_tokens}",
+            f"{s.embedding_model}|{s.embedding_max_tokens}"
+            f"{precision_tag(self.runtime.device)}",
         )
 
     @cached_property

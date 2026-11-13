@@ -1,8 +1,8 @@
-"""Reranking adapter: sentence-transformers cross-encoder on CPU."""
+"""Reranking adapter: sentence-transformers cross-encoder (CPU or GPU)."""
 
 from typing import Any, List, Optional, Sequence, Tuple
 
-from src.adapters.outbound.torch_runtime import prepare
+from src.adapters.outbound.torch_runtime import model_kwargs, prepare
 from src.domain.errors import ModelError
 from src.domain.runtime import RuntimePlan
 
@@ -48,6 +48,7 @@ class CrossEncoderReranker:
                     self._model_name,
                     max_length=self.max_length,
                     device=device,
+                    model_kwargs=model_kwargs(device),
                 )
             except (OSError, ValueError) as exc:
                 raise ModelError(

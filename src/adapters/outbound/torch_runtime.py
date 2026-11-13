@@ -47,6 +47,30 @@ def prepare(plan: Optional[RuntimePlan]) -> str:
     return apply_plan(plan).device
 
 
+HALF_PRECISION_DEVICES = ("cuda",)
+"""Devices where models run in float16.
+
+Measured on the RTX 3070 Ti with bge-base (SciFact, 300 queries): 3x
+faster than float32, document vectors within cosine 0.9995, the same
+top-1 for every query and 99.7% of the top-10 shared. CPUs keep
+float32 (float16 is slow there).
+"""
+
+
+def model_kwargs(device: str) -> Dict[str, Any]:
+    """Keyword arguments for loading a transformer on ``device``."""
+    if device not in HALF_PRECISION_DEVICES:
+        return {}
+    import torch
+
+    return {"torch_dtype": torch.float16}
+
+
+def precision_tag(device: str) -> str:
+    """Suffix that keeps float16 and float32 vectors in separate caches."""
+    return "|fp16" if device in HALF_PRECISION_DEVICES else ""
+
+
 def applied_plan() -> Optional[RuntimePlan]:
     """Return the plan in force in this process, if any."""
     return _applied

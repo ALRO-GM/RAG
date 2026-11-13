@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from tqdm import tqdm
 
-from src.adapters.outbound.torch_runtime import prepare
+from src.adapters.outbound.torch_runtime import model_kwargs, prepare
 from src.domain.errors import ModelError
 from src.domain.runtime import RuntimePlan
 
@@ -50,7 +50,10 @@ class SentenceTransformerEmbedder:
 
             device = prepare(self.plan)
             try:
-                model = SentenceTransformer(self._model_name, device=device)
+                model = SentenceTransformer(
+                    self._model_name, device=device,
+                    model_kwargs=model_kwargs(device),
+                )
             except (OSError, ValueError) as exc:
                 raise ModelError(
                     f"Cannot load embedding model {self._model_name}: {exc}"

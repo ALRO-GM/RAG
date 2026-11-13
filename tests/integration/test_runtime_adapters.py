@@ -294,3 +294,19 @@ def test_append_tuning_keeps_a_history(tmp_path: Path) -> None:
     first = json.loads(lines[0])
     assert first["results"][0]["tokens_per_second"] == 90.0
     assert first["torch"]
+
+
+def test_half_precision_only_on_cuda() -> None:
+    """float16 on CUDA (measured faster, same rankings); float32 elsewhere."""
+    import torch
+
+    from src.adapters.outbound.torch_runtime import (
+        model_kwargs,
+        precision_tag,
+    )
+
+    assert model_kwargs("cuda") == {"torch_dtype": torch.float16}
+    assert model_kwargs("cpu") == {}
+    assert model_kwargs("mps") == {}
+    assert precision_tag("cuda") == "|fp16"
+    assert precision_tag("cpu") == ""
