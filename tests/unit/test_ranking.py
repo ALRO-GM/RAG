@@ -9,6 +9,7 @@ from src.domain.ranking import (
     apply_priors,
     linear_fusion,
     linear_scores,
+    normalised_fusion,
     ranked,
     rerank_fusion,
     rrf_fusion,
@@ -207,3 +208,71 @@ def test_apply_priors_interleaved_files_and_empty_input() -> None:
     assert adjusted.tolist() == pytest.approx([0.6, 1.5, 0.2])
     empty = apply_priors(arr(), arr(), files(), 0.5)
     assert empty.shape == (0,)
+
+
+class TestNormalisedFusion:
+    """``convex`` and ``dbsf``: both rankings normalised, then added."""
+
+    def test_weight_is_independent_of_the_cosine_range(self) -> None:
+        """Squeezing the dense scores into a narrow band (as some models
+        do) changes nothing: only their order within the band matters."""
+        lexical = arr(3.0, 2.0, 1.0, 0.5)
+        wide = arr(0.1, 0.9, 0.5, 0.2)
+        narrow = (0.8 + wide / 10).astype(np.float32)
+        for method in ("convex", "dbsf"):
+            a = normalised_fusion(lexical, wide, 1.5, 4, 4, method)
+            b = normalised_fusion(lexical, narrow, 1.5, 4, 4, method)
+            assert [i for i, _ in a] == [i for i, _ in b]
+
+    def test_convex_values(self) -> None:
+        """Min-max on each list: best lexical 1 + weight * its dense."""
+        lexical = arr(4.0, 2.0, 0.0)
+        dense = arr(0.2, 0.6, 1.0)
+        fused = dict(normalised_fusion(lexical, dense, 1.0, 3, 3, "convex"))
+        # Candidates: lexical {0, 1} (zero scores excluded) U dense {0,1,2}
+        assert fused[0] == pytest.approx(1.0 + 0.0)
+        assert fused[1] == pytest.approx(0.5 + 0.5)
+        assert fused[2] == pytest.approx(0.0 + 1.0)
+
+    def test_ties_keep_lower_index_and_k_truncates(self) -> None:
+        """Equal fused scores keep the lower chunk index first."""
+        lexical = arr(4.0, 2.0, 0.0)
+        dense = arr(0.2, 0.6, 1.0)
+        best = normalised_fusion(lexical, dense, 1.0, 3, 2, "convex")
+        assert [i for i, _ in best] == [0, 1]
+
+    def test_candidates_limited_to_depth(self) -> None:
+        """Only the top ``depth`` of each list can be returned."""
+        lexical = arr(5.0, 4.0, 0.0, 0.0, 0.0)
+        dense = arr(0.0, 0.0, 0.1, 0.2, 0.9)
+        best = normalised_fusion(lexical, dense, 1.0, 1, 5, "convex")
+        assert sorted(i for i, _ in best) == [0, 4]
+
+    def test_dbsf_maps_three_deviations_to_the_unit_range(self) -> None:
+        """DBSF: ``mean - 3 sd`` -> 0 and ``mean + 3 sd`` -> 1."""
+        lexical = arr(3.0, 2.0, 1.0)
+        dense = arr(0.5, 0.5, 0.5)  # constant: contributes nothing
+        fused = dict(normalised_fusion(lexical, dense, 1.0, 3, 3, "dbsf"))
+        sd = float(np.std([3.0, 2.0, 1.0]))
+        low, high = 2.0 - 3 * sd, 2.0 + 3 * sd
+        for i, value in enumerate((3.0, 2.0, 1.0)):
+            assert fused[i] == pytest.approx((value - low) / (high - low))
+
+    def test_constant_lists_carry_no_information(self) -> None:
+        """A list with one value everywhere normalises to zeros."""
+        lexical = arr(1.0, 1.0, 1.0)
+        dense = arr(0.3, 0.3, 0.3)
+        for method in ("convex", "dbsf"):
+            best = normalised_fusion(lexical, dense, 1.0, 3, 3, method)
+            assert [s for _, s in best] == [0.0, 0.0, 0.0]
+            assert [i for i, _ in best] == [0, 1, 2]
+
+    def test_empty_inputs(self) -> None:
+        """No chunks: nothing to rank."""
+        empty = arr()
+        assert normalised_fusion(empty, empty, 1.0, 5, 5, "convex") == []
+
+    def test_unknown_method(self) -> None:
+        """Only the normalised fusions are accepted."""
+        with pytest.raises(ValueError, match="Unknown normalised fusion"):
+            normalised_fusion(arr(1.0), arr(1.0), 1.0, 1, 1, "rrf")

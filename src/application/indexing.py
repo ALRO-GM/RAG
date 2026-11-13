@@ -47,12 +47,15 @@ class IndexingService:
         progress: Optional[Progress] = None,
         embed_style: str = "full",
         extra_params: Optional[Mapping[str, object]] = None,
+        passage_prefix: str = "",
     ):
         """Wire the ports; ``embedder=None`` builds a lexical-only index.
 
         ``extra_params`` describes adapter settings that change what is
         indexed (field weights, BM25 constants...). They are part of
         the index fingerprint, so changing one rebuilds the index.
+        ``passage_prefix`` is prepended to every embedded chunk (models
+        such as E5 expect ``"passage: "``).
         """
         self.corpus = corpus
         self.processor = processor
@@ -62,6 +65,7 @@ class IndexingService:
         self.progress = progress or NoProgress()
         self.embed_style = embed_style
         self.extra_params = dict(extra_params or {})
+        self.passage_prefix = passage_prefix
 
     def params(
         self, max_chunk_size: int, target_chunk_size: Optional[int]
@@ -75,6 +79,9 @@ class IndexingService:
                 self.embedder.model_name if self.embedder else ""
             ),
             "embed_style": self.embed_style,
+            # Only when set, so that existing indexes keep their identity.
+            **({"passage_prefix": self.passage_prefix}
+               if self.passage_prefix else {}),
             **self.extra_params,
         }
 
@@ -139,7 +146,7 @@ class IndexingService:
         if self.embedder is None:
             return
         texts = [
-            c.embedding_text(self.embed_style)
+            self.passage_prefix + c.embedding_text(self.embed_style)
             for r in fresh.values() for c in r.chunks
         ]
         if not texts:

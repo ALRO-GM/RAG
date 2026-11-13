@@ -1,9 +1,11 @@
 """Transcript repository adapter: transcripts as files on disk."""
 
+import json
 from pathlib import Path
 from typing import List
 
 from src.domain.errors import CorruptedDataError, NotFoundError, RagError
+from src.domain.skills.speech import transcript_document
 from src.domain.skills.transcript import Transcript, parse_transcript
 
 EXTENSIONS = (".json", ".txt", ".md")
@@ -56,3 +58,25 @@ class FileSystemTranscriptRepository:
             file.stem for file in self.directory.iterdir()
             if file.is_file() and file.suffix in EXTENSIONS
         })
+
+    def save(self, transcript: Transcript, path: str = "") -> str:
+        """Write ``transcript`` as JSON and return the file path.
+
+        Without ``path`` the file is ``<directory>/<session_id>.json``,
+        where :meth:`find` looks it up.
+        """
+        target = Path(path) if path else (
+            self.directory / f"{transcript.session_id}.json"
+        )
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                json.dumps(
+                    transcript_document(transcript), ensure_ascii=False,
+                    indent=1,
+                ),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            raise RagError(f"Cannot write {target}: {exc}")
+        return str(target)

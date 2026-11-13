@@ -395,6 +395,22 @@ The rubric has not been validated with human assessors yet and the
 sample sessions are synthetic: the output is a draft for a human
 assessor.
 
+## Beyond the 42 corpus (GPU study)
+
+With the GPU, the retrieval was re-measured on nine datasets at once:
+the two 42 question sets and seven public ones (BEIR and CoIR), each
+configuration scored as a relative change against the shipped one and
+checked by leaving one dataset out (`make study SUITE=... TORCH=cuda`,
+`docs/benchmarks/GENERALIST.md`). The main result is that the fusion
+weight should depend on the **query**: prose leans on the embeddings,
+a query that names code identifiers leans on BM25. With that rule
+bge-large reaches +20.9% on average without losing on any dataset,
+where the best fixed weight gave +19.8% and lost 9.9% on the 42 code
+questions. The default now applies the rule on the existing index
+(42 docs recall@5 0.95 → 0.96, code unchanged at 0.919, seven public
+datasets up and one down); `--profile general`, `general-fast` and
+`general-cpu` select the larger configurations.
+
 ## Results site and CI/CD
 
 Every result of the project is published at **https://rag.peer4u.app**:
@@ -411,6 +427,19 @@ and operations: `docs/DEPLOYMENT.md`.
 make ci           # what CI runs: lint-strict, coverage, site
 make site-serve   # preview the site at http://localhost:8765
 ```
+
+### From a recording
+
+`skills transcribe --audio FILE --speakers N` turns a recording into
+that transcript on this machine: Whisper for the words and their
+times, voice embeddings for who spoke when. `skills sentences` and
+`skills tag` then split turns into sentences that keep speaker and
+time, and propose rubric indicators per sentence. On synthetic
+four-speaker meetings in Spanish: 5.4% word error rate and 91.5% of
+the words attributed to the right speaker, at about 22× real time on
+the GPU. Those figures are from read speech without overlap and are
+optimistic; see `docs/skills/AUDIO.md`, which also says what must be
+settled before recording real people.
 
 ## Design decisions
 

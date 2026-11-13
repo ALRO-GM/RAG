@@ -2,7 +2,12 @@
 
 import pytest
 
-from src.domain.text_analysis import STOPWORDS, tokenize
+from src.domain.text_analysis import (
+    STOPWORDS,
+    adaptive_weight,
+    identifier_share,
+    tokenize,
+)
 
 
 def test_snake_case_identifier_kept_and_split() -> None:
@@ -82,3 +87,37 @@ def test_bigrams_skip_stopwords_and_use_stems() -> None:
     """Pairs are built from the kept stems, across removed stopwords."""
     assert "load~adapter" in tokenize("loading the adapters", bigrams=True)
     assert tokenize("model", bigrams=True) == ["model"]
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("", 0.0),
+    ("How does the sampler work?", 0.0),
+    ("Is there any evidence that vitamin D helps?", 0.0),
+    ("What does KVCacheManager do?", 1 / 4),
+    ("call load_lora_adapter() in engine.py with --max-loras", 3 / 6),
+    ("defaults of FP8_MIN in vLLM's triton_flash_attention module?",
+     3 / 7),
+    ("see `max_tokens` here", 1 / 3),
+    ("open src/domain/ranking.py please", 1 / 3),
+    ("the camelCase name", 1 / 3),
+    ("A sentence. Another one, with commas; done!", 0.0),
+])
+def test_identifier_share(text: str, expected: float) -> None:
+    """Code-like tokens are counted; prose and punctuation are not."""
+    assert identifier_share(text) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("share, expected", [
+    (0.0, 4.0), (0.05, 3.0), (0.1, 2.0), (0.5, 2.0),
+])
+def test_adaptive_weight_slides_to_the_identifier_weight(
+    share: float, expected: float
+) -> None:
+    """Linear from the prose weight to the identifier weight."""
+    assert adaptive_weight(4.0, 2.0, share, 0.1) == pytest.approx(expected)
+
+
+def test_adaptive_weight_without_saturation_is_a_switch() -> None:
+    """Saturation 0: any identifier switches to the identifier weight."""
+    assert adaptive_weight(4.0, 1.0, 0.0, 0.0) == 4.0
+    assert adaptive_weight(4.0, 1.0, 0.01, 0.0) == 1.0

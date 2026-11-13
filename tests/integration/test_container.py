@@ -333,16 +333,18 @@ def test_lab_factory_index_dir_follows_index_parameters(
     assert base.startswith("work/indexes/")
     for search_only in ({"file_boost": 0.3}, {"test_weight": 0.5},
                         {"route_strength": 0.2}, {"mode": "bm25"},
-                        {"query_prefix": "q: "}, {"rerank": True}):
+                        {"query_prefix": "q: "}, {"rerank": True},
+                        {"fusion": "convex"}, {"passage_prefix": ""}):
         assert index_dir(search_only) == base
     index_dirs = {base} | {
         index_dir(p) for p in (
             {"path_weight": 2}, {"context_weight": 2}, {"bm25_k1": 0.9},
             {"table_context": True}, {"max_chunk_size": 500},
             {"target_chunk_size": 200}, {"embed_style": "body"},
+            {"passage_prefix": "passage: "},
         )
     }
-    assert len(index_dirs) == 8
+    assert len(index_dirs) == 9
     assert not (project / "work").exists(), "nothing is built yet"
 
 
@@ -480,3 +482,21 @@ def test_lab_cold_disables_every_reuse(project: Path) -> None:
     assert again.files_reindexed == first.files_total
     assert warm.index()[1] is True
     assert warm.index()[1] is False
+
+
+def test_lab_factory_forget_releases_pipelines(project: Path) -> None:
+    """After ``forget`` the same parameters build a fresh pipeline."""
+    factory = LabPipelineFactory(lab_settings())
+    first = factory.create({"file_boost": 0.3})
+    assert factory.create({"file_boost": 0.3}).container is first.container
+    factory.forget()
+    assert factory.create({"file_boost": 0.3}).container is not (
+        first.container
+    )
+
+
+def test_container_exposes_its_benchmark_factory(project: Path) -> None:
+    """The benchmark service uses the factory the container exposes."""
+    container = Container(lab_settings())
+    assert container.benchmarks.factory is container.benchmark_factory
+    assert container.benchmark_factory.base.lab_work_dir.endswith("/work")

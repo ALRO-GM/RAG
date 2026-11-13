@@ -38,7 +38,10 @@ from src.adapters.outbound.parallel_processor import (
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.subprocess_benchmark import SubprocessBenchmark
 from src.adapters.outbound.system_probe import SystemProbe
-from src.adapters.outbound.torch_runtime import load_measured
+from src.adapters.outbound.torch_runtime import (
+    load_measured,
+    precision_tag,
+)
 from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.adapters.outbound.transformers_generator import (
     TransformersGenerator,
@@ -127,18 +130,23 @@ class Container:
         )
 
     @cached_property
+    def benchmark_factory(self) -> "LabPipelineFactory":
+        """Pipelines of the public benchmarks, on their own directories."""
+        s = self.settings
+        return LabPipelineFactory(s.model_copy(update={
+            "lab_work_dir": f"{s.benchmark_dir}/work",
+        }))
+
+    @cached_property
     def benchmarks(self) -> BenchmarkService:
         """Public benchmark runner, on its own index directories."""
         s = self.settings
-        base = s.model_copy(update={
-            "lab_work_dir": f"{s.benchmark_dir}/work",
-        })
         return BenchmarkService(
             BenchmarkCatalogue(
                 BeirRepository(f"{s.benchmark_dir}/beir"),
                 CoirRepository(f"{s.benchmark_dir}/coir"),
             ),
-            LabPipelineFactory(base),
+            self.benchmark_factory,
         )
 
     @cached_property
@@ -181,7 +189,8 @@ class Container:
             return self.embedder
         return CachingEmbedder(
             self.embedder, s.embedding_cache_dir,
-            f"{s.embedding_model}|{s.embedding_max_tokens}",
+            f"{s.embedding_model}|{s.embedding_max_tokens}"
+            f"{precision_tag(self.runtime.device)}",
         )
 
     @cached_property
@@ -230,6 +239,7 @@ class Container:
             embedder=self.index_embedder if s.semantic else None,
             progress=self.progress,
             embed_style=s.embed_style,
+            passage_prefix=s.passage_prefix,
             extra_params={
                 "bm25_k1": s.bm25_k1, "bm25_b": s.bm25_b,
                 "path_weight": s.path_weight,
@@ -261,6 +271,8 @@ class Container:
             test_weight=s.test_weight,
             file_boost=s.file_boost,
             query_prefix=s.query_prefix,
+            identifier_weight=s.identifier_weight,
+            identifier_saturation=s.identifier_saturation,
         )
 
     @cached_property
@@ -367,7 +379,11 @@ class LabPipelineFactory:
                 f"Unknown parameter(s): {', '.join(unknown)}."
             )
         values = {**self.base.model_dump(), **params}
-        index_id = params_id({f: values[f] for f in INDEX_FIELDS})
+        index_id = params_id({
+            f: values[f] for f in INDEX_FIELDS
+            # A field added later with an empty value keeps old ids valid.
+            if not (f == "passage_prefix" and not values[f])
+        })
         work = self.base.lab_work_dir
         cold = bool(values.get("lab_cold"))
         values.update(
@@ -388,6 +404,14 @@ class LabPipelineFactory:
                 settings, self._embedder(settings), self._reranker(settings)
             )
         return LabPipeline(self._containers[key])
+
+    def forget(self) -> None:
+        """Drop the cached pipelines (their index files may be deleted).
+
+        Loaded models stay shared: only containers, which hold index
+        snapshots, are released.
+        """
+        self._containers.clear()
 
     def _embedder(self, s: Settings) -> Embedder:
         """Return the shared embedder of a model configuration."""

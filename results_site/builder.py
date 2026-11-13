@@ -142,6 +142,7 @@ class SiteBuilder:
         patterns = [
             catalog.LAB_TRIALS, catalog.LAB_TUNING, catalog.LAB_PROFILES,
             catalog.BEIR_ROWS, catalog.SKILLS_TRIALS, catalog.HARDWARE_RUNS,
+            catalog.GENERAL_ROWS, catalog.AUDIO_MEETINGS,
         ]
         published: List[str] = []
         for pattern in patterns:

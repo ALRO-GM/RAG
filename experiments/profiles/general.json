@@ -1,0 +1,9 @@
+{
+  "embedding_model": "BAAI/bge-large-en-v1.5",
+  "embedding_max_tokens": 512,
+  "query_prefix": "Represent this sentence for searching relevant passages: ",
+  "fusion": "convex",
+  "semantic_weight": 4.0,
+  "identifier_weight": 1.0,
+  "identifier_saturation": 0.2
+}

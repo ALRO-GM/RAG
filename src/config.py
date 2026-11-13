@@ -8,6 +8,8 @@ from src.adapters.outbound.cross_encoder_reranker import (
     DEFAULT_RERANK_MODEL,
 )
 from src.adapters.outbound.fs_corpus import DEFAULT_EXTENSIONS
+from src.adapters.outbound.whisper_recogniser import DEFAULT_SPEECH_MODEL
+from src.adapters.outbound.xvector_diarizer import DEFAULT_VOICE_MODEL
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_LLM = "Qwen/Qwen3-0.6B"
@@ -20,6 +22,15 @@ class Settings(BaseModel):
     prior, file boost, table context) are the consensus profile found
     by the experiment lab with 5-fold cross-validation; see
     ``experiments/REPORT.md``.
+
+    The fusion weight depends on the query (``experiments/general``):
+    ``semantic_weight`` applies to prose and slides to
+    ``identifier_weight`` when code identifiers make up
+    ``identifier_saturation`` of the words. Queries that name
+    identifiers, as the 42 questions do, are therefore ranked exactly
+    as with the fixed 0.4 tuned on the 42 corpus, while prose leans on
+    the embeddings, which is what seven public datasets reward. Set
+    ``identifier_weight`` to ``None`` for one fixed weight.
     """
 
     raw_dir: str = "data/raw"
@@ -31,13 +42,16 @@ class Settings(BaseModel):
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
     embedding_max_tokens: int = Field(default=64, ge=8)
     mode: str = "auto"
-    semantic_weight: float = 0.4
+    semantic_weight: float = 2.0
     fusion: str = "linear"
+    identifier_weight: Optional[float] = Field(default=0.4, ge=0.0)
+    identifier_saturation: float = Field(default=0.1, ge=0.0, le=1.0)
     route_strength: float = Field(default=0.1, ge=0.0)
     router_path: str = "models/query_router.json"
     test_weight: float = Field(default=0.6, ge=0.0)
     file_boost: float = Field(default=0.2, ge=0.0)
     query_prefix: str = ""
+    passage_prefix: str = ""
     path_weight: int = Field(default=3, ge=0)
     context_weight: int = Field(default=3, ge=0)
     table_context: bool = True
@@ -128,6 +142,7 @@ BENCHMARK_CONFIGS: Dict[str, Dict[str, Any]] = {
 INDEX_FIELDS = (
     "raw_dir", "extensions", "max_chunk_size", "target_chunk_size",
     "semantic", "embedding_model", "embedding_max_tokens", "embed_style",
+    "passage_prefix",
     "bm25_k1", "bm25_b", "path_weight", "context_weight", "table_context",
     "bigrams",
 )
@@ -167,6 +182,11 @@ class SkillsSettings(BaseModel):
     ``min_participant_words`` words is not rated at all. These rules
     follow ``docs/skills/THEORY.md`` §4.3.
 
+    ``speech_model`` transcribes recordings and ``voice_model`` tells
+    the speakers apart; ``voice_threshold`` (the cosine below which two
+    voices are different people) is only used when the number of
+    speakers is not given, and belongs to that voice model.
+
     Those thresholds, ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
     on synthetic sessions and must be tuned with ``skills lab`` once
@@ -199,6 +219,11 @@ class SkillsSettings(BaseModel):
     episode_gap: int = Field(default=3, ge=0)
     min_participant_words: int = Field(default=40, ge=0)
     min_similarity: float = Field(default=0.3, ge=-1.0, le=1.0)
+    speech_model: str = DEFAULT_SPEECH_MODEL
+    voice_model: str = DEFAULT_VOICE_MODEL
+    voice_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
+    turn_gap: float = Field(default=1.0, ge=0.0)
+    tags_per_sentence: int = Field(default=2, ge=1)
     max_new_tokens: int = Field(default=700, ge=16)
     use_cache: bool = True
     cache_dir: str = "data/skills_cache"

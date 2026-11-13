@@ -23,7 +23,9 @@ DOC_GROUPS: List[DocGroup] = [
         "docs/ARCHITECTURE.md", "docs/ROADMAP.md", "docs/TASKS.md",
         "docs/DEPLOYMENT.md",
     )),
-    DocGroup("lab", "Laboratorio", ("experiments/REPORT.md",)),
+    DocGroup("lab", "Laboratorio", (
+        "experiments/REPORT.md", "experiments/general/*.md",
+    )),
     DocGroup("benchmarks", "Benchmarks externos",
              ("docs/benchmarks/*.md",)),
     DocGroup("skills", "Soft skills", ("docs/skills/*.md",)),
@@ -41,5 +43,9 @@ BEIR_ROWS = "experiments/benchmarks/beir.jsonl"
 SKILLS_TRIALS = "experiments/skills/results/trials.jsonl"
 #: Runtime measurements (CPU plans against GPU), one run per line.
 HARDWARE_RUNS = "experiments/hardware/runtime.jsonl"
+#: Generalist study: benchmark rows of the suites (see GENERALIST.md).
+GENERAL_ROWS = "experiments/general/benchmarks.jsonl"
+#: Transcription and diarization on synthetic meetings.
+AUDIO_MEETINGS = "experiments/audio/meetings.jsonl"
 #: Competency rubrics.
 RUBRICS = "knowledge/rubrics/*.json"

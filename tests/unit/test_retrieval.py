@@ -74,9 +74,9 @@ def test_semantic_ranks_by_cosine(chunks: List[Chunk]) -> None:
     assert len(results[0]) == 4
 
 
-@pytest.mark.parametrize("fusion", ["linear", "rrf"])
+@pytest.mark.parametrize("fusion", ["linear", "rrf", "convex", "dbsf"])
 def test_hybrid_fusions(chunks: List[Chunk], fusion: str) -> None:
-    """Both fusions rank the lexically and semantically best chunk first."""
+    """Every fusion ranks the lexically and semantically best chunk first."""
     embedder = FakeEmbedder()
     snapshot = make_snapshot(chunks, embedder)
     hybrid = HybridRetriever(
@@ -477,3 +477,27 @@ def test_hybrid_without_adjuster_keeps_plain_fusion(
     )
     query = ["FP8 quantization"]
     assert neutral.search_batch(query, 4) == hybrid.search_batch(query, 4)
+
+
+def test_hybrid_weight_adapts_to_identifiers(chunks: List[Chunk]) -> None:
+    """Prose keeps the semantic weight; identifiers slide towards lexical."""
+    embedder = FakeEmbedder()
+    snapshot = make_snapshot(chunks, embedder)
+    hybrid = HybridRetriever(
+        LexicalRetriever(snapshot, tokenize),
+        SemanticRetriever(snapshot, embedder),
+        semantic_weight=4.0, fusion="convex",
+        identifier_weight=1.0, identifier_saturation=0.25,
+    )
+    assert hybrid.weight_for("how does quantization work") == 4.0
+    assert hybrid.weight_for("where is load_lora_adapter defined") == 1.0
+    assert hybrid.weight_for(
+        "tell me in detail where load_lora_adapter is"
+    ) == pytest.approx(4.0 - 3.0 * (1 / 7) / 0.25)
+    fixed = HybridRetriever(
+        LexicalRetriever(snapshot, tokenize),
+        SemanticRetriever(snapshot, embedder), semantic_weight=4.0,
+    )
+    assert fixed.weight_for("where is load_lora_adapter defined") == 4.0
+    results = hybrid.search_batch(["load_lora_adapter", "FP8 quantization"], 1)
+    assert [r[0].chunk for r in results] == [chunks[0], chunks[2]]

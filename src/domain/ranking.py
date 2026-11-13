@@ -8,7 +8,14 @@ import numpy.typing as npt
 FloatArray = npt.NDArray[np.float32]
 Ranked = List[Tuple[int, float]]
 
-FUSIONS = ("linear", "rrf")
+FUSIONS = ("linear", "rrf", "convex", "dbsf")
+"""``linear``: max-scaled BM25 + weight x raw cosine. ``rrf``: reciprocal
+rank fusion. ``convex`` and ``dbsf``: both scores normalised over the
+candidates first (min-max, or mean +/- 3 standard deviations), so the
+weight means the same thing whatever the embedding model's cosine range.
+"""
+
+NORMALISED_FUSIONS = ("convex", "dbsf")
 
 
 def top_k(scores: FloatArray, k: int) -> List[int]:
@@ -106,3 +113,57 @@ def rerank_fusion(
         for a, b in zip(_min_max(first), _min_max(second))
     ]
     return sorted(enumerate(fused), key=lambda kv: (-kv[1], kv[0]))
+
+
+def _normalise(values: FloatArray, method: str) -> FloatArray:
+    """Scale candidate scores for fusion.
+
+    ``convex``: min-max to [0, 1]. ``dbsf`` (distribution-based score
+    fusion): ``mean - 3 sd`` maps to 0 and ``mean + 3 sd`` to 1, a scale
+    set by the whole candidate distribution rather than its two
+    extremes. A constant list maps to zeros (it carries no ranking
+    information).
+    """
+    if values.size == 0:
+        return values
+    if method == "dbsf":
+        mean_, spread = float(values.mean()), float(values.std())
+        low, high = mean_ - 3 * spread, mean_ + 3 * spread
+    else:
+        low, high = float(values.min()), float(values.max())
+    if high <= low:
+        return np.zeros_like(values)
+    scaled: FloatArray = ((values - low) / (high - low)).astype(np.float32)
+    return scaled
+
+
+def normalised_fusion(
+    lexical: FloatArray,
+    dense: FloatArray,
+    weight: float,
+    depth: int,
+    k: int,
+    method: str = "convex",
+) -> Ranked:
+    """Fuse the top ``depth`` of each ranking after normalising both.
+
+    Candidates are the union of the ``depth`` best chunks of each list
+    (BM25 candidates need a positive score). Each score is normalised
+    over the candidates, then ``lexical + weight * dense`` ranks them.
+    Ties keep the lower chunk index first.
+    """
+    if method not in NORMALISED_FUSIONS:
+        raise ValueError(f"Unknown normalised fusion {method!r}.")
+    lexical_top = [i for i in top_k(lexical, depth) if lexical[i] > 0]
+    candidates = np.array(
+        sorted(set(lexical_top) | set(top_k(dense, depth))), dtype=np.int64
+    )
+    if candidates.size == 0:
+        return []
+    fused = _normalise(lexical[candidates], method) + np.float32(
+        weight
+    ) * _normalise(dense[candidates], method)
+    order = sorted(
+        range(candidates.size), key=lambda j: (-float(fused[j]), j)
+    )[:k]
+    return [(int(candidates[j]), float(fused[j])) for j in order]

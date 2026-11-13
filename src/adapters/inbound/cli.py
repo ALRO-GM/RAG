@@ -7,21 +7,30 @@ all logic lives in the application layer.
 
 import functools
 import json
+import shutil
 import sys
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import (
+    Any, Callable, Dict, List, Mapping, Optional, Set, TypeVar, cast,
+)
 
-from src.adapters.inbound.lab_cli import LabCLI
+from src.adapters.inbound.lab_cli import LabCLI, load_suite
 from src.adapters.inbound.skills_cli import SkillsCLI
 from src.adapters.outbound.torch_runtime import (
     append_tuning,
     save_measured,
+)
+from src.application.benchmarking import BenchmarkResult
+from src.application.generalist import (
+    GeneralistAnalysis,
+    render_generalist,
 )
 from src.config import BENCHMARK_CONFIGS, SkillsSettings
 from src.skills_bootstrap import SkillsContainer
 from src.bootstrap import Container
 from src.config import Settings
 from src.domain.errors import InvalidInputError, RagError, short_reason
+from src.domain.experiments import params_id
 from src.domain.models import MinimalSearchResults
 from src.domain.runtime import gpu_diagnosis
 from src.domain.validation import validate_k, validate_query
@@ -90,6 +99,82 @@ def parse_extensions(value: Any) -> tuple[str, ...]:
     if not exts:
         raise InvalidInputError("--extensions must list an extension.")
     return exts
+
+
+def select_configs(
+    available: Mapping[str, Mapping[str, Any]], wanted: Any
+) -> Dict[str, Dict[str, Any]]:
+    """Keep the configurations whose name contains a wanted substring.
+
+    ``wanted`` is a comma-separated string or a sequence (Fire passes
+    one for ``a,b``); empty keeps everything.
+    """
+    parts = wanted if isinstance(wanted, (tuple, list)) else (
+        str(wanted or "").split(",")
+    )
+    keys = [str(c).strip().lower() for c in parts if str(c).strip()]
+    return {
+        name: dict(params) for name, params in available.items()
+        if not keys or any(k in name.lower() for k in keys)
+    }
+
+
+def run_key(
+    dataset: str, suite: str, config: str, params: Mapping[str, Any]
+) -> str:
+    """Identity of one benchmark run, for resuming."""
+    return f"{dataset}|{suite}|{config}|{params_id(params)}"
+
+
+def completed_runs(path: Path, suite: str) -> Set[str]:
+    """Run keys already stored in ``path`` for ``suite``.
+
+    Only suite runs resume: the built-in configurations (suite ``""``)
+    are always measured again, as before. Unreadable lines are ignored.
+    """
+    if not suite or not path.is_file():
+        return set()
+    done: Set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and row.get("suite") == suite:
+            done.add(run_key(
+                str(row.get("dataset")), suite, str(row.get("config")),
+                row.get("params") or {},
+            ))
+    return done
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a directory tree if it exists."""
+    if path.is_dir():
+        shutil.rmtree(path)
+
+
+def read_benchmark_rows(path: Path) -> List[BenchmarkResult]:
+    """Benchmark rows stored as JSON Lines; a missing file has none.
+
+    Raises:
+        InvalidInputError: a line is not a valid benchmark row.
+    """
+    if not path.is_file():
+        return []
+    rows: List[BenchmarkResult] = []
+    for number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        if not line.strip():
+            continue
+        try:
+            rows.append(BenchmarkResult.model_validate_json(line))
+        except ValueError as exc:
+            raise InvalidInputError(
+                f"{path}:{number}: {short_reason(exc)}"
+            )
+    return rows
 
 
 class RagCLI:
@@ -230,6 +315,10 @@ class RagCLI:
         min_participant_words: Optional[int] = None,
         min_similarity: Optional[float] = None,
         lab_dir: Optional[str] = None,
+        speech_model: Optional[str] = None,
+        voice_model: Optional[str] = None,
+        voice_threshold: Optional[float] = None,
+        tags_per_sentence: Optional[int] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -256,6 +345,11 @@ class RagCLI:
             min_similarity: Drop quotes whose cosine with their
                 indicator is below this value (0 keeps all).
             lab_dir: Directory of the skills lab (experiments/skills).
+            speech_model: Speech-recognition model for ``transcribe``.
+            voice_model: Voice-embedding model that tells speakers apart.
+            voice_threshold: Cosine below which two voices are different
+                people (used when --speakers is not given).
+            tags_per_sentence: Most candidate tags kept per sentence.
         """
         options = dict(locals())
         options.pop("self")
@@ -268,48 +362,118 @@ class RagCLI:
     @safe_command
     def benchmark(
         self, datasets: str = "scifact", configs: str = "",
-        max_queries: int = 0, output: str = "",
+        max_queries: int = 0, output: str = "", suite: str = "",
+        clean_indexes: bool = False,
     ) -> None:
         """Score the pipeline on public BEIR datasets (downloaded once).
 
         Args:
             datasets: Comma-separated BEIR names (scifact, nfcorpus,
-                fiqa, arguana, scidocs, ...).
+                fiqa, arguana, scidocs, ...) or CoIR ones (coir:cosqa,
+                coir:stackoverflow-qa).
             configs: Comma-separated substrings selecting the
                 configurations to run (default: all).
             max_queries: Use only the first N test queries (0 = all).
             output: JSON file to append the results to (default:
                 experiments/benchmarks/beir.jsonl).
+            suite: Run the trials of a lab suite (name or path) instead
+                of the built-in configurations. Results already in
+                ``output`` for the same suite, trial, parameters and
+                dataset are skipped, so an interrupted run resumes.
+            clean_indexes: Delete the benchmark indexes after each
+                dataset (the results and the embedding cache are kept).
+                Large studies otherwise need tens of gigabytes.
         """
         app = self._app()
-        parts = configs if isinstance(configs, (tuple, list)) else (
-            str(configs).split(",")
-        )
-        wanted = [str(c).strip().lower() for c in parts if str(c).strip()]
-        chosen = {
-            name: params for name, params in BENCHMARK_CONFIGS.items()
-            if not wanted or any(w in name.lower() for w in wanted)
-        }
+        if str(suite or "").strip():
+            spec = load_suite(suite, app.settings.lab_dir)
+            available = {t.name: t.params for t in spec.expand()}
+            suite_name = spec.name
+        else:
+            available, suite_name = dict(BENCHMARK_CONFIGS), ""
+        chosen = select_configs(available, configs)
         target = Path(str(output) or "experiments/benchmarks/beir.jsonl")
+        done = completed_runs(target, suite_name)
         raw = datasets if isinstance(datasets, (tuple, list)) else (
             str(datasets).split(",")
         )
         for dataset in [str(d).strip() for d in raw if str(d).strip()]:
+            pending = {
+                name: params for name, params in chosen.items()
+                if run_key(dataset, suite_name, name, params) not in done
+            }
+            skipped = len(chosen) - len(pending)
+            if not pending:
+                print(f"{dataset}: all {skipped} configurations done")
+                continue
             results = app.benchmarks.run(
-                dataset, chosen, as_int(max_queries, "max_queries")
+                dataset, pending, as_int(max_queries, "max_queries")
             )
             first = results[0]
             print(f"{dataset}: {first.documents} documents, "
-                  f"{first.queries} queries")
+                  f"{first.queries} queries"
+                  + (f" ({skipped} already done)" if skipped else ""))
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "a", encoding="utf-8") as handle:
                 for r in results:
+                    r = r.model_copy(update={"suite": suite_name})
                     handle.write(r.model_dump_json() + "\n")
                     print(f"  {r.config:<52} nDCG@10 {r.ndcg10:.3f}  "
                           f"R@100 {r.recall100:.3f}  hit@1/3/5/10 "
                           f"{r.hit[1]:.2f}/{r.hit[3]:.2f}/{r.hit[5]:.2f}/"
                           f"{r.hit[10]:.2f}  index {r.index_seconds:.0f}s"
                           f"  search {r.search_seconds:.1f}s")
+            if clean_indexes:
+                app.benchmark_factory.forget()
+                remove_tree(Path(app.settings.benchmark_dir) / "work"
+                            / "indexes")
+
+    @safe_command
+    def general(
+        self, suite: str,
+        benchmarks: str = "experiments/general/benchmarks.jsonl",
+        output: str = "", max_loss: float = 0.02,
+    ) -> None:
+        """Rank a suite's configurations across the 42 lab and benchmarks.
+
+        Run ``lab experiment --suite S`` and ``benchmark --suite S
+        --output <benchmarks>`` first; this combines both.
+
+        Args:
+            suite: Suite name or path.
+            benchmarks: JSON Lines file with the suite's benchmark rows.
+            output: Markdown report (default:
+                experiments/general/<suite>.md).
+            max_loss: Largest relative loss on any dataset allowed for
+                the robust choice.
+        """
+        app = self._app()
+        spec = load_suite(suite, app.settings.lab_dir)
+        rows = read_benchmark_rows(Path(str(benchmarks)))
+        report = GeneralistAnalysis(
+            max_loss=as_float(max_loss, "max_loss")
+        ).analyse(
+            spec.name, app.trial_store.all(), rows,
+            order=[t.name for t in spec.expand()],
+        )
+        target = Path(
+            str(output) or f"{app.settings.lab_dir}/general/{spec.name}.md"
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(render_generalist(report), encoding="utf-8")
+        missing = [c.name for c in report.configs if not c.complete]
+        print(f"{spec.name}: {len(report.configs)} configurations on "
+              f"{len(report.datasets)} datasets "
+              f"({', '.join(report.datasets)})")
+        for c in sorted(report.configs_complete(),
+                        key=lambda c: -(c.mean_relative or 0.0)):
+            print(f"  {c.name:<44} mean {100 * (c.mean_relative or 0):+5.1f}%"
+                  f"  worst {100 * (c.worst_relative or 0):+5.1f}%"
+                  f"  W/L {c.wins}/{c.losses}")
+        if missing:
+            print(f"  partial (not ranked): {', '.join(missing)}")
+        print(f"Best mean: {report.best}; robust: {report.robust}")
+        print(f"Report: {target}")
 
     @safe_command
     def system(self, benchmark: bool = False, repeats: int = 2) -> None:

@@ -680,3 +680,22 @@ def test_skills_lab_needs_an_explicit_dataset(project: Path) -> None:
                project),
         "File not found",
     )
+
+
+def test_sentences_lists_speaker_time_and_text(project: Path) -> None:
+    """``sentences`` needs no model: one line per sentence."""
+    write_rubrics(project)
+    write_transcripts(project)
+    result = skills(["sentences", "--transcript", EN], project)
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.strip().splitlines()
+    assert lines[0].startswith("[00:00:")
+    assert " t0.s0 Maya: What do you mean exactly" in lines[0]
+    assert len(lines) >= 8
+
+
+def test_transcribe_missing_recording_is_a_clean_error(project: Path) -> None:
+    """The file is checked before any model is loaded."""
+    write_rubrics(project)
+    result = skills(["transcribe", "--audio", "nope.wav"], project)
+    assert_error(result, "Audio file not found: nope.wav")

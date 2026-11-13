@@ -1,0 +1,7 @@
+{
+  "embedding_max_tokens": 256,
+  "fusion": "linear",
+  "semantic_weight": 2.0,
+  "identifier_weight": 0.4,
+  "identifier_saturation": 0.1
+}
