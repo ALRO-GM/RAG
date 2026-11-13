@@ -58,7 +58,9 @@ uv run python -m src skills annotation_template \
     --transcript data/transcripts/s01.json --annotator A1
 
 # 2. The annotator fills rating and evidence (turn + indicator id),
-#    working from the transcript with turn numbers.
+#    working from the transcript with turn numbers. An evidence entry
+#    may add "sentence": "t3.s0" (ids from `skills sentences`) to say
+#    which sentence of the turn shows the indicator.
 
 # 3. Check the form: unknown turns, turns of another speaker,
 #    indicators of another competency, ratings without evidence

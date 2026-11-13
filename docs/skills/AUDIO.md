@@ -144,8 +144,44 @@ that sees the context. Tags therefore have three states:
 | State | Made by | Meaning |
 |---|---|---|
 | candidate | retrieval (`skills tag`, done) | worth a look: which competencies this sentence may bear on |
-| confirmed / rejected | the judge or an annotator (next step) | which indicator of that competency, if any, the sentence shows |
+| confirmed / rejected | the judge (`skills tag --confirm`, below) or an annotator | which indicator of that competency, if any, the sentence shows |
 | counted | the existing evidence rules | enough confirmed tags from enough separate exchanges to support a rating |
+
+### Confirmation by the judge (call 1), and what it is worth today
+
+`skills --judge local tag --transcript FILE --confirm=True` asks the
+judge, for each sentence with candidates, which indicator of the
+candidate competencies the sentence shows, or none. It sees the three
+sentences said just before it, with their speakers, and the full indicator
+list of those competencies (not only the retrieved candidates). The
+reply is one line, parsed strictly; an indicator outside the list
+counts as not understood. Decisions are cached and written next to the
+candidates (`[+ID]`, `[-ID]`, `[none]`, `[?]` in the timeline).
+
+Run on the Spanish demo session with the local judge this machine
+selects (Qwen3-1.7B), 49 s on the GPU: 64 sentences with candidates,
+40 confirmed, 23 rejected, 1 not understood. **The result is not
+usable**:
+
+- 35 of the 40 confirmed tags are the *first* indicator of their
+  competency (`P1`), whatever the sentence says: "En la página cuatro."
+  became `LISTEN.P1`. That is position bias, not reading.
+- No negative indicator was confirmed in a session written to contain
+  several. "Eso es una tontería, Marta, con un proceso sobra."
+  (`CONFL.N2`) came back as none.
+- "Espera, Luis, déjala terminar." came back as `LISTEN.P1` instead of
+  `INCL.P2`.
+- About five look right on reading, all of them explicit: `INCL.P1`
+  for "Irene, no has dicho nada todavía, ¿cómo lo ves tú?",
+  `COORD.P5` for the closing summary, `CONFL.P1` for the apology,
+  `COLLAB.P2` for asking for help in advance.
+
+So the mechanism works and a 1.7 B model cannot do the task. What
+would: a larger judge (the next local step, Qwen3-4B, does not fit in
+8 GB at float16 without quantisation; the API judge sends text to a
+third party, see §5), indicators shown in shuffled order to measure and
+cancel position bias, and above all reference annotations to measure
+any of it (T-36). No rating should be computed from these tags.
 
 ### What the research requires of the next step
 
@@ -155,20 +191,21 @@ that sees the context. Tags therefore have three states:
 | A behaviour is defined in context ("lets the other finish", "builds on a previous idea") | The judge must see the sentences around the candidate and who said them; a sentence alone is not enough. Sentence ids make that window explicit. |
 | A rating needs ≥ 3 incidents from ≥ 2 exchanges | Already enforced on turns; with sentences, two tags in one turn must still count as one exchange (`episode_gap` in sentence units needs re-setting). |
 | Opportunity: no disagreement episode, no evidence on handling disagreement | Tags of *other* speakers define opportunities: a `CONFL` candidate by A opens an opportunity for B. Needs tags per sentence, which now exist. |
-| Interaction measures: interruptions, question asking, uptake, share of speech | Times per word make them computable: overlap of spans, latency between turns, speaking time. Not implemented; overlap needs a diarizer that detects it. |
+| Interaction measures: interruptions, question asking, uptake, share of speech | Speaking rate (words per minute) and median response latency are computed from turn times (`skills interaction`). Interruptions need a diarizer that detects overlap. |
 | ASR errors lower automatic coding (AUROC .91 on human transcripts vs .80 on ASR ones) | Each turn keeps the recogniser's confidence when available (not with the current Whisper adapter, which reports none); low-confidence sentences should be flagged, not scored. |
 | Diarization errors credit the wrong person | Show the speaker and the time with every tag so that a person can check it against the audio; never rate from a session whose speakers were not verified. |
 | Developmental feedback with a human in the loop | Tags are shown as a timeline to the participant and the assessor; a rating is a summary of confirmed tags, each traceable to a sentence and a time. |
 
 ### Three ways to confirm tags, in order of cost
 
-1. **Judge per candidate** (no new data): reuse the existing judge and
-   grounding checks on the sentence transcript. Works today for the
-   quote-and-verify part; the two-call split is the missing piece
-   (`DESIGN.md` §9).
-2. **Annotators** (needs people): the annotation forms already point at
-   turns; pointing at sentence ids is a format change. This produces
-   the reference data everything else needs (T-36).
+1. **Judge per candidate** (no new data): implemented as call 1 above;
+   not reliable with the small local judge. Call 2 (rating from
+   confirmed tags only) is not built and should wait for a call 1 that
+   can be trusted.
+2. **Annotators** (needs people): an evidence entry of an annotation
+   form may now carry a `sentence` id besides its turn (validated
+   against the transcript; forms with and without it can be mixed).
+   This produces the reference data everything else needs (T-36).
 3. **A trained classifier** (needs that data): once a few thousand
    sentences are annotated, a small supervised model per indicator
    family is cheaper and steadier than a judge, as in the CPS
@@ -198,6 +235,5 @@ recorded**, because audio changes the picture:
 | Measure on real meetings (overlap, noise, accents) | Every number above is from read speech |
 | A diarizer that handles overlap (for example pyannote; its models are licence-gated) behind the same port | Interruptions are both an error source and a behaviour the rubric cares about |
 | Word confidence (Whisper reports none through this adapter) | Flagging unreliable evidence |
-| Two-call judge on sentence tags | Turns candidates into confirmed tags |
-| Sentence ids in the annotation forms | Reference data at the granularity of the tags |
-| Interaction measures from times | Speaking time, latency, interruptions |
+| A judge that can do call 1 (larger model, shuffled indicator order), then call 2 | The 1.7 B local judge picks the first indicator of the list |
+| Interruptions and overlap | Needs the overlap-aware diarizer |

@@ -7,7 +7,7 @@ questions it was tuned on?
 
 Reports with every number: `experiments/general/general_models.md`
 (G1), `general_fusion.md` (G2), `general_adaptive.md` (G3),
-`general_cpu.md` (G4). Raw rows: `experiments/general/benchmarks.jsonl`
+`general_cpu.md` (G4), `general_rerank.md` (G5). Raw rows: `experiments/general/benchmarks.jsonl`
 and `experiments/results/trials.jsonl`.
 
 ## Method
@@ -77,6 +77,29 @@ better than bge-large there).
 | **64 tokens, adaptive 2.0 → 0.4** | +6.0% | −5.3% (ArguAna) | 0.960 / 0.919 | 34 s (same index) |
 | 256 tokens, adaptive 2.0 → 0.4 | +10.4% | −1.1% | 0.950 / 0.909 | 133 s |
 
+**G5, cross-encoder rerankers on the GPU.** Three rerankers on the 30
+best candidates of the `general` profile, blended with the first-stage
+score (weight 0.5) or replacing it (1.0). This suite ran after the
+default changed, so its baseline is the *new* default and its figures
+are not comparable with G1–G4 (`general` is +14.0% here and +20.9%
+against the old default; the absolute scores are identical).
+
+| On top of `general` | mean | worst | 42 docs / code | FiQA | search time |
+|---|---|---|---|---|---|
+| **no reranker** | **+14.0%** | **0.0%** | 0.0% / 0.0% | +37.0% | 1× |
+| bge-reranker-v2-m3, weight 0.5 | +13.4% | −6.6% | 0.0% / −6.6% | +40.9% | 15× |
+| ms-marco-MiniLM-L-6, weight 0.5 | +11.0% | −3.3% | −2.1% / −3.3% | +34.4% | 4× |
+| bge-reranker-base, weight 0.5 | +9.8% | −5.5% | −3.2% / −5.5% | +33.2% | 6× |
+| bge-reranker-v2-m3, weight 1.0 | −0.8% | −38.5% | −11.6% / −38.5% | +31.3% | 15× |
+
+No reranker beats the first stage on the mean, and none is robust. The
+largest one helps on FiQA, CosQA (+13.5% against +8.3%) and SciFact and
+loses on the 42 code questions, SCIDOCS, ArguAna and StackOverflowQA.
+Letting a reranker decide alone (weight 1.0) is the worst option in
+every case: it discards the lexical evidence the 42 questions depend
+on. A stronger first stage leaves a general-purpose reranker little to
+add; reranking stays off in every profile.
+
 ## Decisions
 
 1. **Default** (`Settings`): adaptive weight on the existing index
@@ -108,9 +131,9 @@ better than bge-large there).
 - Nine datasets, all in English, two of them written from the same
   codebase. FiQA and CosQA show that the best model still depends on
   the corpus.
-- Rerankers were not rerun on the GPU. On CPU the cross-encoder gave
-  +0.8 points of mean nDCG@10 for 15–30× the search time; larger
-  rerankers are the natural next suite.
+- G5 tried one depth (30) and two blend weights; a reranker trained on
+  the target domain, or a weight that adapts to the query as the
+  fusion weight does, was not tried.
 - The identifier detector is a set of regular expressions for code
   conventions. A corpus with other exact-match tokens (part numbers,
   legal references) needs its own patterns.

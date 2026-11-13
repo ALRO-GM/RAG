@@ -186,7 +186,7 @@ Recommended by `THEORY.md` and not implemented yet:
 
 | Recommendation | Status |
 |---|---|
-| Classify and evaluate in two separate model calls, the second seeing only the classified incidents (limits halo) | One call does both |
+| Classify and evaluate in two separate model calls, the second seeing only the classified incidents (limits halo) | Call 1 exists per sentence (`skills tag --confirm`, `AUDIO.md` §4) but the 1.7 B local judge is unreliable at it; the scorecard still uses one call |
 | Quality flag per incident (basic / clear / exemplary) | Not recorded |
 | Opportunity gating: no disagreement or feedback episode in the session → insufficient evidence for everybody | Left to the judge and the evidence rules |
 | Frequency normalised by opportunity and capped | Only the minimum-evidence and breadth rules |
