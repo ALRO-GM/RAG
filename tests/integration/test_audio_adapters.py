@@ -150,13 +150,16 @@ class TestWhisperChunks:
 
 
 class FakeVoices(XVectorDiarizer):
-    """A diarizer whose embedding is the mean level of each clip."""
+    """A diarizer whose embedding is the mean level of each clip.
+
+    A small shared component stands for what centring removes.
+    """
 
     def embed(self, clips: Sequence[FloatArray], rate: int) -> FloatArray:
         rows: List[List[float]] = []
         for clip in clips:
             level = float(np.mean(clip)) if clip.size else 0.0
-            rows.append([1.0, 0.0] if level > 0 else [0.0, 1.0])
+            rows.append([1.0, 0.2, 5.0] if level > 0 else [0.2, 1.0, 5.0])
         return np.asarray(rows, dtype=np.float32)
 
 
@@ -171,7 +174,9 @@ class TestDiarizer:
         return Audio(samples, rate)
 
     def test_spans_follow_the_voices(self) -> None:
-        diarizer = FakeVoices(window=1.0, step=1.0)
+        diarizer = FakeVoices(
+            window=1.0, step=1.0, fine_window=1.0, fine_step=1.0
+        )
         spans = diarizer.diarize(
             self.audio(), [(0.0, 3.0), (3.0, 6.0), (6.0, 8.0)], 2
         )
@@ -182,7 +187,7 @@ class TestDiarizer:
         ]
 
     def test_number_of_speakers_found_by_threshold(self) -> None:
-        diarizer = FakeVoices(window=1.0, step=1.0, threshold=0.5)
+        diarizer = FakeVoices(window=2.0, step=1.0, threshold=0.5)
         spans = diarizer.diarize(self.audio(), [(0.0, 8.0)])
         assert {s.speaker for s in spans} == {"SPEAKER_01", "SPEAKER_02"}
 

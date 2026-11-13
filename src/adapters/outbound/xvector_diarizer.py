@@ -12,8 +12,11 @@ from src.domain.runtime import RuntimePlan
 from src.domain.skills.speech import (
     SpeakerSpan,
     analysis_windows,
+    centre,
     cluster_speakers,
+    nearest_voice,
     spans_from_windows,
+    voice_centroids,
 )
 
 FloatArray = npt.NDArray[np.float32]
@@ -25,24 +28,33 @@ DEFAULT_VOICE_MODEL = "microsoft/wavlm-base-plus-sv"
 class XVectorDiarizer:
     """Tell who spoke when by clustering voice embeddings.
 
-    Speech regions are cut into overlapping windows; each window gets
-    a voice embedding and the embeddings are clustered into speakers.
+    Two passes over the speech regions, both with embeddings centred
+    on the recording's mean voice:
+
+    1. *Who is there*: long windows (``window`` seconds) give reliable
+       embeddings; clustering them finds the speakers.
+    2. *Who speaks when*: short windows (``fine_window`` seconds) are
+       each given to the nearest speaker found in pass 1, which keeps
+       the time resolution that long windows lack.
+
     The model is public (no licence gate) and needs no extra package.
     It does not detect overlapping speech: when two people talk at
     once the window goes to one of them.
 
     Args:
-        threshold: Cosine similarity below which two groups of windows
-            are different people, used when the number of speakers is
-            not given. It depends on the model and must be re-measured
-            if the model changes.
+        threshold: Cosine (after centring) below which two groups of
+            windows are different people, used when the number of
+            speakers is not given. It belongs to the model and the
+            window length and must be re-measured if either changes.
     """
 
     def __init__(
         self,
         model_name: str = DEFAULT_VOICE_MODEL,
-        window: float = 1.5,
-        step: float = 0.75,
+        window: float = 5.0,
+        step: float = 2.5,
+        fine_window: float = 1.5,
+        fine_step: float = 0.75,
         threshold: float = 0.5,
         batch_size: int = 32,
         plan: Optional[RuntimePlan] = None,
@@ -51,6 +63,8 @@ class XVectorDiarizer:
         self._model_name = model_name
         self.window = window
         self.step = step
+        self.fine_window = fine_window
+        self.fine_step = fine_step
         self.threshold = threshold
         self.batch_size = batch_size
         self.plan = plan
@@ -103,6 +117,22 @@ class XVectorDiarizer:
             return np.zeros((0, 0), dtype=np.float32)
         return np.vstack(rows)
 
+    def voices(
+        self,
+        audio: Audio,
+        regions: Sequence[Tuple[float, float]],
+        length: float,
+        step: float,
+    ) -> Tuple[List[Tuple[float, float]], FloatArray]:
+        """Return analysis windows over ``regions`` and their embeddings."""
+        windows = analysis_windows(regions, length, step)
+        if not windows:
+            return [], np.zeros((0, 0), dtype=np.float32)
+        return windows, self.embed(
+            [audio.cut(start, end) for start, end in windows],
+            audio.sample_rate,
+        )
+
     def diarize(
         self,
         audio: Audio,
@@ -110,12 +140,20 @@ class XVectorDiarizer:
         num_speakers: Optional[int] = None,
     ) -> List[SpeakerSpan]:
         """Return speaker spans over the speech ``regions`` of ``audio``."""
-        windows = analysis_windows(regions, self.window, self.step)
-        if not windows:
-            return []
-        vectors = self.embed(
-            [audio.cut(start, end) for start, end in windows],
-            audio.sample_rate,
+        coarse_windows, coarse = self.voices(
+            audio, regions, self.window, self.step
         )
-        labels = cluster_speakers(vectors, num_speakers, self.threshold)
-        return spans_from_windows(windows, labels)
+        if not coarse_windows:
+            return []
+        mean = coarse.mean(axis=0)
+        coarse = centre(coarse, mean)
+        labels = cluster_speakers(coarse, num_speakers, self.threshold)
+        fine_windows, fine = self.voices(
+            audio, regions, self.fine_window, self.fine_step
+        )
+        if not fine_windows:
+            return spans_from_windows(coarse_windows, labels)
+        assigned = nearest_voice(
+            centre(fine, mean), voice_centroids(coarse, labels)
+        )
+        return spans_from_windows(fine_windows, assigned)

@@ -65,13 +65,15 @@ class WhisperRecogniser:
     """Transcribe audio with word timestamps.
 
     The model is loaded lazily. Long recordings are processed in
-    30-second windows, ``batch_size`` at a time.
+    30-second windows, ``batch_size`` at a time (measured on an 8 GB
+    GPU with large-v3-turbo in float16: 2 windows need 3.3 GB and run
+    at about 24x real time; 1 window needs 1.9 GB).
     """
 
     def __init__(
         self,
         model_name: str = DEFAULT_SPEECH_MODEL,
-        batch_size: int = 8,
+        batch_size: int = 2,
         plan: Optional[RuntimePlan] = None,
     ):
         """Configure the recogniser without loading the model yet."""
@@ -113,7 +115,9 @@ class WhisperRecogniser:
         With ``language=None`` Whisper detects the language of each
         window; the reported language is then detected from the text.
         """
-        generate: Dict[str, Any] = {"task": "transcribe"}
+        # Greedy decoding: beam search multiplies memory with the
+        # attention maps that word timestamps need.
+        generate: Dict[str, Any] = {"task": "transcribe", "num_beams": 1}
         if language:
             generate["language"] = language
         result = self._load()(

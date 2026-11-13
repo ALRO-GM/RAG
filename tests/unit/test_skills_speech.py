@@ -12,7 +12,9 @@ from src.domain.skills.speech import (
     SpeakerSpan,
     analysis_windows,
     assign_speakers,
+    centre,
     cluster_speakers,
+    nearest_voice,
     rename_speakers,
     segments_from_words,
     spans_from_windows,
@@ -21,6 +23,7 @@ from src.domain.skills.speech import (
     split_sentences,
     transcript_sentences,
     turn_sentences,
+    voice_centroids,
 )
 from src.domain.skills.transcript import Turn, Word, build_transcript
 
@@ -268,3 +271,44 @@ class TestSpansAndWindows:
         w = words(("c", 5.0, 5.5), ("a", 0.0, 0.4), ("b", 0.6, 1.0))
         assert speech_regions(w, max_gap=0.5) == [(0.0, 1.0), (5.0, 5.5)]
         assert speech_regions([]) == []
+
+
+class TestCentredVoices:
+    def test_centring_removes_the_common_component(self) -> None:
+        """Two voices that differ slightly around a large shared part."""
+        shared = np.array([10.0, 0.0, 0.0], dtype=np.float32)
+        a = shared + np.array([0.0, 1.0, 0.0], dtype=np.float32)
+        b = shared + np.array([0.0, -1.0, 0.0], dtype=np.float32)
+        raw = np.stack([a, b, a, b]).astype(np.float32)
+        unit = raw / np.linalg.norm(raw, axis=1, keepdims=True)
+        assert float(unit[0] @ unit[1]) > 0.97      # indistinguishable
+        centred = centre(raw)
+        assert float(centred[0] @ centred[1]) == pytest.approx(-1.0)
+        assert float(centred[0] @ centred[2]) == pytest.approx(1.0)
+        assert cluster_speakers(centred, threshold=0.5) == [0, 1, 0, 1]
+
+    def test_given_mean_and_degenerate_inputs(self) -> None:
+        raw = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
+        moved = centre(raw, np.array([1.0, 1.0], dtype=np.float32))
+        assert np.allclose(moved, [[0.7071, -0.7071], [-0.7071, 0.7071]],
+                           atol=1e-3)
+        assert centre(np.zeros((0, 3), dtype=np.float32)).shape == (0, 3)
+        same = centre(np.ones((2, 2), dtype=np.float32))
+        assert np.allclose(same, 0.0)               # no information left
+
+    def test_centroids_and_nearest_voice(self) -> None:
+        vectors = np.array(
+            [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0]], dtype=np.float32
+        )
+        centroids = voice_centroids(vectors, [0, 0, 1])
+        assert centroids.shape == (2, 2)
+        assert np.allclose(np.linalg.norm(centroids, axis=1), 1.0)
+        fine = np.array([[0.9, 0.1], [0.1, 0.9], [0.6, 0.4]],
+                        dtype=np.float32)
+        assert nearest_voice(fine, centroids) == [0, 1, 0]
+
+    def test_empty_inputs(self) -> None:
+        none = np.zeros((0, 2), dtype=np.float32)
+        assert voice_centroids(none, []).shape == (0, 2)
+        assert nearest_voice(none, np.eye(2, dtype=np.float32)) == []
+        assert nearest_voice(np.eye(2, dtype=np.float32), none) == []
