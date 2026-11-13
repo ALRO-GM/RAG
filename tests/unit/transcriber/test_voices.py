@@ -13,6 +13,7 @@ import pytest
 from transcriber.domain.errors import InvalidInputError
 from transcriber.domain.models import Voiceprint
 from transcriber.domain.voices import (
+    MIN_GROUPS_TO_CENTRE,
     Attribution,
     FloatArray,
     anonymous_label,
@@ -205,7 +206,9 @@ class TestMatchVoices:
         assert labels(out) == [("S1", False), ("ana", True), ("S2", False)]
 
     def test_empty_inputs(self) -> None:
-        assert match_voices(groups(), [print_of("ana", 1.0)]) == []
+        assert match_voices(
+            np.zeros((0, 1), dtype=np.float32), [print_of("ana", 1.0)]
+        ) == []
         assert match_voices(np.zeros((0, 2), dtype=np.float32), []) == []
         out = match_voices(groups((1.0, 0.0), (0.0, 1.0)), [])
         assert labels(out) == [("S1", False), ("S2", False)]
@@ -245,6 +248,60 @@ class TestMatchVoices:
                             [print_of("ana", 1.0, 0.0)], model="m")
         assert labels(same) == [("ana", True)]
 
+    @pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+    def test_non_finite_group_vectors_are_invalid_input(
+        self, bad: float
+    ) -> None:
+        with pytest.raises(InvalidInputError, match="finite"):
+            match_voices(groups((bad, 0.0)), [print_of("ana", 1.0, 0.0)])
+        with pytest.raises(InvalidInputError, match="finite"):
+            match_voices(groups((bad, 0.0)), [])
+
+    def test_non_finite_voiceprints_are_invalid_input(self) -> None:
+        with pytest.raises(InvalidInputError, match="finite"):
+            match_voices(groups((1.0, 0.0)),
+                         [print_of("ana", float("nan"), 0.0)])
+
+    def test_a_normalisation_giving_nan_is_invalid_input(self) -> None:
+        def broken(
+            session: FloatArray, enrolled: FloatArray
+        ) -> Tuple[FloatArray, FloatArray]:
+            return session * np.float32(np.nan), enrolled
+
+        with pytest.raises(InvalidInputError, match="normalisation"):
+            match_voices(groups((1.0, 0.0)), [print_of("ana", 1.0, 0.0)],
+                         normalisation=broken)
+
+    @pytest.mark.parametrize("prints", [[], [1.0, 0.0]])
+    def test_groups_must_be_two_dimensional(
+        self, prints: List[float]
+    ) -> None:
+        voiceprints = [print_of("ana", *prints)] if prints else []
+        with pytest.raises(InvalidInputError, match="2-D"):
+            match_voices(np.array([1.0, 0.0], dtype=np.float32), voiceprints)
+        with pytest.raises(InvalidInputError, match="2-D"):
+            match_voices(np.zeros((0,), dtype=np.float32), voiceprints)
+
+    def test_total_similarity_rule_not_greedy(self) -> None:
+        """The architect's rule (issue #9): best total of accepted pairs.
+
+        g0: P 0.75, Q 0.65; g1: P 0.70, Q 0.10; threshold 0.5. Greedy
+        would give P to g0 and leave g1 unnamed (Q 0.10 is below the
+        threshold); the total of accepted pairs is higher with g0-Q
+        (0.65) and g1-P (0.70), so both are named.
+        """
+        g0 = (0.75, 0.65, float(np.sqrt(1 - 0.75 ** 2 - 0.65 ** 2)))
+        g1 = (0.70, 0.10, float(np.sqrt(1 - 0.70 ** 2 - 0.10 ** 2)))
+        out = match_voices(
+            groups(g0, g1),
+            [print_of("P", 1.0, 0.0, 0.0), print_of("Q", 0.0, 1.0, 0.0)],
+            threshold=0.5,
+        )
+        assert labels(out) == [("Q", True), ("P", True)]
+        assert out[0].similarity == pytest.approx(0.65, abs=1e-6)
+        assert out[1].similarity == pytest.approx(0.70, abs=1e-6)
+        assert out[0].nearest == "P"
+
 
 class TestNormalisation:
     def test_unit_vectors_is_the_default(self) -> None:
@@ -255,30 +312,52 @@ class TestNormalisation:
         assert np.allclose(enrolled, [[0.0, 1.0]])
 
     def test_the_caller_chooses_the_normalisation(self) -> None:
-        """A shared component makes two people look alike as raw units."""
-        session = groups((10.0, 1.0, 0.0), (10.0, -1.0, 0.0))
+        """A shared component makes three people look alike as raw units."""
+        session = groups((10.0, 1.0, 0.0), (10.0, -1.0, 1.0),
+                         (10.0, -1.0, -1.0))
         prints = [print_of("ana", 10.0, 1.0, 0.0),
-                  print_of("luis", 10.0, -1.0, 0.0)]
-        enrolled = groups((10.0, 1.0, 0.0), (10.0, -1.0, 0.0))
+                  print_of("luis", 10.0, -1.0, 1.0)]
+        enrolled = groups((10.0, 1.0, 0.0), (10.0, -1.0, 1.0))
         raw_session, raw_prints = unit_vectors(session, enrolled)
         assert float(raw_session[0] @ raw_prints[1]) > 0.97
         centred_session, centred_prints = centre_on_session(
             session, enrolled
         )
-        assert float(centred_session[0] @ centred_prints[1]) == (
-            pytest.approx(-1.0)
+        assert float(centred_session[0] @ centred_prints[1]) < 0.0
+        assert float(centred_session[0] @ centred_prints[0]) == (
+            pytest.approx(1.0)
         )
         # With a threshold above the cross similarity, raw unit vectors
         # still separate them here; centring widens the margin.
         for normalisation in (unit_vectors, centre_on_session):
             out = match_voices(session, prints, threshold=0.99,
                                normalisation=normalisation)
-            assert labels(out) == [("ana", True), ("luis", True)]
+            assert labels(out) == [
+                ("ana", True), ("luis", True), ("S1", False),
+            ]
         swapped = match_voices(
             session, list(reversed(prints)), threshold=0.99,
             normalisation=centre_on_session,
         )
-        assert labels(swapped) == [("ana", True), ("luis", True)]
+        assert labels(swapped) == [
+            ("ana", True), ("luis", True), ("S1", False),
+        ]
+
+    @pytest.mark.parametrize("count", [1, 2])
+    def test_too_few_groups_are_not_centred(self, count: int) -> None:
+        """One group centred on itself is zero; two become opposites."""
+        session = groups(*[(1.0, 0.2 * n, 0.0) for n in range(count)])
+        enrolled = groups((1.0, 0.0, 0.0))
+        assert all(
+            np.allclose(a, b) for a, b in zip(
+                centre_on_session(session, enrolled),
+                unit_vectors(session, enrolled),
+            )
+        )
+        out = match_voices(session[:1], [print_of("ana", 1.0, 0.0, 0.0)],
+                           normalisation=centre_on_session)
+        assert labels(out) == [("ana", True)]
+        assert MIN_GROUPS_TO_CENTRE == 3
 
     def test_centre_on_session_without_session_vectors(self) -> None:
         session, enrolled = centre_on_session(

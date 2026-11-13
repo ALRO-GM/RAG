@@ -18,8 +18,10 @@ ABBREVIATIONS = frozenset({
     "mr", "mrs", "ms", "prof", "vs", "e.g", "i.e", "fig", "st",
 })
 
-# Abbreviations that are also words and only abbreviate before a
-# number: "No. 5" is "number 5", but "Creo que no. Pero sigo." ends.
+# Abbreviations that are also words and only abbreviate when written
+# with a capital and followed by a number: "No. 5" is "number 5", but
+# "Creo que no. Pero sigo." and "Dije que no. 5 personas vinieron."
+# end at the period.
 NUMBER_ABBREVIATIONS = frozenset({"no"})
 
 # A sentence ends at . ! ? … (possibly repeated, possibly followed by a
@@ -36,8 +38,9 @@ def split_sentences(text: str) -> List[str]:
     A period after a known abbreviation ("Sr.", "etc.", "e.g.") or a
     single capital letter (an initial) does not end a sentence, and
     neither does one inside a number ("3.5"). "No." is an abbreviation
-    only when a digit follows ("No. 5"). Text without final
-    punctuation is one sentence: speech recognisers often omit it.
+    only when it is capitalised and a digit follows ("No. 5"); "no. 5"
+    ends a sentence. Text without final punctuation is one sentence:
+    speech recognisers often omit it.
     """
     clean = " ".join(text.split())
     if not clean:
@@ -66,9 +69,10 @@ def _is_abbreviation(head: str, following: str) -> bool:
     stripped = head.rstrip("\"'»”’)]")
     if stripped.endswith(".."):  # an ellipsis ends the sentence
         return False
-    last = stripped[:-1].split(" ")[-1].lstrip("\"'«“‘([¿¡").lower()
+    word = stripped[:-1].split(" ")[-1].lstrip("\"'«“‘([¿¡")
+    last = word.lower()
     if last in NUMBER_ABBREVIATIONS:
-        return following[:1].isdigit()
+        return word[:1].isupper() and following[:1].isdigit()
     return last in ABBREVIATIONS or (len(last) == 1 and last.isalpha())
 
 

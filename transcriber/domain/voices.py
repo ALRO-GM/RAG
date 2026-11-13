@@ -15,6 +15,7 @@ sample, and the right choice across recordings is still to be measured
 here are parameters with untuned defaults for the same reason.
 """
 
+import math
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -38,6 +39,13 @@ Normalisation = Callable[
 # Cosine similarity a group needs to take an enrolled id. A starting
 # value, not a measured one: ticket TR-05 measures and sets it.
 DEFAULT_MATCH_THRESHOLD = 0.5
+
+# Fewest session groups whose mean :func:`centre_on_session` subtracts.
+# Below it the mean says nothing about the room: one group minus its own
+# mean is the zero vector, and two groups centred on their mean become
+# exact opposites, so every voiceprint's cosine with one is minus its
+# cosine with the other. A rule of the arithmetic, not a measurement.
+MIN_GROUPS_TO_CENTRE = 3
 
 ANONYMOUS_PREFIX = "S"
 
@@ -101,9 +109,10 @@ def centre(
 
     Voice embeddings of one recording share a large common component
     (the room, the microphone, the model's own bias). Removing it is
-    what makes cosines between different people small: measured on
-    synthetic four-speaker meetings, attribution rose from 55% to 78%
-    with 1.5 s windows and thresholds became stable across meetings.
+    what makes cosines between different people small: measured in
+    ``src`` on synthetic four-speaker meetings (not re-measured here),
+    attribution rose from 55% to 78% with 1.5 s windows and thresholds
+    became stable across meetings.
     """
     if vectors.shape[0] == 0:
         return vectors
@@ -148,10 +157,14 @@ def centre_on_session(
 
     The mean of the session vectors is subtracted from the session and
     from the voiceprints alike, then every row is re-normalised. With
-    few session groups the mean is a poor estimate of the room; this is
-    one of the options TR-05 compares, not a recommendation.
+    fewer than :data:`MIN_GROUPS_TO_CENTRE` groups nothing is centred
+    and the raw unit vectors are compared (:func:`unit_vectors`): one
+    group centred on itself is a zero vector that matches nobody, and
+    two groups become exact opposites. Even with more groups the mean
+    is a poor estimate of the room; this is one of the options TR-05
+    compares, not a recommendation.
     """
-    if session.shape[0] == 0:
+    if session.shape[0] < MIN_GROUPS_TO_CENTRE:
         return unit_vectors(session, enrolled)
     mean: FloatArray = session.mean(axis=0).astype(np.float32)
     return centre(session, mean), centre(enrolled, mean)
@@ -186,16 +199,32 @@ def match_voices(
 ) -> List[Attribution]:
     """Attribute the voice groups of a session to enrolled people.
 
-    ``groups`` has one vector per group (row ``i`` is group ``i``,
-    numbered by first appearance, as :func:`cluster_speakers` does).
-    Both sides go through ``normalisation`` and are compared by cosine.
-    The one-to-one assignment maximises the summed similarity of the
-    pairs at or above ``threshold`` (``linear_sum_assignment``); pairs
-    below it bring nothing, so they never displace an accepted pair.
-    A person is given to at most one group. Groups left without a
-    voiceprint are labelled ``S1``, ``S2``, ... in group order, skipping
-    labels that are enrolled ids. When ``model`` is given, every
-    voiceprint must come from that voice model.
+    ``groups`` is a 2-D array with one finite vector per group (row
+    ``i`` is group ``i``). Anonymous labels are numbered in row order,
+    so the caller must pass the groups in order of first appearance
+    (in the final, attributed words) for ``S1`` to be the first unknown
+    voice heard. Both sides go through ``normalisation`` and are
+    compared by cosine.
+
+    The rule: the one-to-one assignment maximises the *total*
+    similarity of the accepted pairs, those at or above ``threshold``
+    (``linear_sum_assignment`` on similarities with the pairs below the
+    threshold set to zero), so a pair below the threshold never
+    displaces an accepted one. It is not greedy: when two groups are
+    near the same voiceprint and one of them also has an acceptable
+    second voiceprint, both get an id even if that means the group
+    most similar to the first voiceprint takes its second choice
+    (g0: P 0.75, Q 0.65; g1: P 0.70 gives g0 Q, g1 P). When there is
+    no acceptable alternative only the better group gets the id. A
+    person is given to at most one group. TR-05 compares this rule with
+    a greedy one.
+
+    Groups left without a voiceprint are labelled ``S1``, ``S2``, ...
+    in group order, skipping labels that are enrolled ids. When
+    ``model`` is given, every voiceprint must come from that voice
+    model. Raises :class:`InvalidInputError` for a ``groups`` array
+    that is not 2-D, a vector that is not finite, or voiceprints that
+    do not fit.
     """
     ids = [v.speaker_id for v in voiceprints]
     if len(set(ids)) != len(ids):
@@ -207,8 +236,16 @@ def match_voices(
                 f"Voiceprints of model {', '.join(other)} cannot be"
                 f" compared with {model}."
             )
+    if groups.ndim != 2:
+        raise InvalidInputError(
+            "Session voices must be a 2-D array, one row per group."
+        )
+    if not bool(np.isfinite(groups).all()) or not all(
+        math.isfinite(x) for v in voiceprints for x in v.vector
+    ):
+        raise InvalidInputError("Voice vectors must be finite numbers.")
     count = int(groups.shape[0])
-    width = int(groups.shape[1]) if groups.ndim == 2 else 0
+    width = int(groups.shape[1])
     if any(len(v.vector) != width for v in voiceprints) and count:
         raise InvalidInputError(
             "Voiceprints and session voices have different sizes."
@@ -221,6 +258,10 @@ def match_voices(
         enrolled = np.array([v.vector for v in voiceprints], dtype=np.float32)
         session, prints = normalisation(groups.astype(np.float32), enrolled)
         similarity = np.clip(session @ prints.T, -1.0, 1.0).astype(np.float64)
+        if not bool(np.isfinite(similarity).all()):
+            raise InvalidInputError(
+                "The normalisation gave voice vectors that are not finite."
+            )
         for group in range(count):
             best = int(np.argmax(similarity[group]))
             nearest[group] = (ids[best], float(similarity[group, best]))

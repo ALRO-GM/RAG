@@ -65,6 +65,9 @@ class TestSplitSentences:
         ("Creo que no. Pero sigo.", ["Creo que no.", "Pero sigo."]),
         ("No. Eso no.", ["No.", "Eso no."]),
         ("I said no. Then I left.", ["I said no.", "Then I left."]),
+        ("Dije que no. 5 personas vinieron.",
+         ["Dije que no.", "5 personas vinieron."]),
+        ("Te dije no. 3 veces.", ["Te dije no.", "3 veces."]),
     ])
     def test_no_as_a_word_ends_a_sentence(
         self, text: str, expected: List[str]

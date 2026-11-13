@@ -15,6 +15,7 @@ yet (ticket TR-05).
 """
 
 import enum
+import math
 from collections import Counter
 from datetime import datetime
 from typing import List, Optional, Sequence, Tuple
@@ -110,51 +111,130 @@ class Rejection(str, enum.Enum):
 class SampleRules(BaseModel):
     """Limits an enrolment sample must meet. Defaults are not tuned.
 
+    Every default is a starting value chosen by reasoning, not by
+    measurement; ticket TR-05 measures and sets them.
+
     ``min_duration``: seconds of recording. ``min_speech_ratio``: share
-    of the recording covered by speech. ``same_voice_threshold``: the
-    clustering threshold (:func:`cluster_speakers`) under which windows
-    count as another voice. ``max_other_voice_share``: share of windows
-    that may fall outside the main voice (a cough, a word from someone
-    nearby) before the sample counts as several voices; those windows
-    are left out of the voiceprint.
+    of the recording covered by speech regions. ``min_windows``: windows
+    that must carry a voice (a zero or near-zero embedding, norm at or
+    below ``min_window_norm``, counts as non-speech). ``min_window_
+    seconds``: seconds of the recording those voiced windows must cover,
+    so a voiceprint never rests on one or two windows whatever the
+    regions claim. ``same_voice_threshold``: the clustering threshold
+    (:func:`cluster_speakers`) under which windows count as another
+    voice. ``max_other_voice_share``: share of voiced windows that may
+    fall outside the main voice (a cough, a word from someone nearby)
+    before the sample counts as several voices; those windows are left
+    out of the voiceprint.
     """
 
     model_config = ConfigDict(frozen=True)
 
     min_duration: float = Field(default=20.0, ge=0, allow_inf_nan=False)
     min_speech_ratio: float = Field(default=0.5, ge=0, le=1)
+    min_windows: int = Field(default=5, ge=1)
+    min_window_seconds: float = Field(default=10.0, ge=0, allow_inf_nan=False)
+    min_window_norm: float = Field(default=1e-6, ge=0, allow_inf_nan=False)
     same_voice_threshold: float = Field(default=0.5, ge=-1, le=1)
     max_other_voice_share: float = Field(default=0.2, ge=0, le=1)
 
 
+def clip_spans(
+    spans: Sequence[Tuple[float, float]], duration: float, what: str
+) -> List[Tuple[float, float]]:
+    """Return ``spans`` (seconds) clipped to ``[0, duration]``.
+
+    Every bound must be a finite number and no span may end before it
+    starts; :class:`InvalidInputError` names ``what`` otherwise. Spans
+    left empty by the clipping are kept with zero length, so the result
+    stays parallel to the input.
+    """
+    clipped: List[Tuple[float, float]] = []
+    for start, end in spans:
+        if not (math.isfinite(start) and math.isfinite(end)):
+            raise InvalidInputError(
+                f"A {what} needs finite times, got ({start}, {end})."
+            )
+        if end < start:
+            raise InvalidInputError(
+                f"A {what} cannot end before it starts: ({start}, {end})."
+            )
+        low = min(max(start, 0.0), duration)
+        clipped.append((low, min(max(end, low), duration)))
+    return clipped
+
+
 def enrolment_vector(
     vectors: FloatArray,
+    windows: Sequence[Tuple[float, float]],
     regions: Sequence[Tuple[float, float]],
     duration: float,
     rules: SampleRules = SampleRules(),
 ) -> List[float]:
     """Return the voiceprint vector of an enrolment sample.
 
-    ``vectors`` are the embeddings of the sample's analysis windows,
-    ``regions`` the stretches of speech (seconds) and ``duration`` the
-    length of the recording. The checks run in order: too short, mostly
-    silent, several voices. The vector is the mean of the unit window
-    vectors of the main voice, re-normalised. Raises
-    :class:`SampleRejectedError` with the :class:`Rejection` reason.
+    ``vectors`` are the embeddings of the sample's analysis windows
+    (one row per window, a 2-D array), ``windows`` their times in
+    seconds, ``regions`` the stretches of speech (seconds) and
+    ``duration`` the length of the recording. Regions and windows are
+    clipped to the recording. Windows whose embedding is (nearly) zero
+    carry no voice and count as non-speech.
+
+    The checks run in order: too short; mostly silent (too little
+    speech in the regions, too few voiced windows, or voiced windows
+    covering too little of the recording); several voices. Voiced
+    windows are clustered with no cap on the number of clusters: a cap
+    would merge the closest clusters first, which in a two-voice sample
+    with stray windows are the two real voices. The vector is the mean
+    of the unit window vectors of the main voice, re-normalised.
+
+    Raises :class:`InvalidInputError` for malformed input (a duration
+    that is not a finite non-negative number, a reversed or non-finite
+    span, a vector array that is not 2-D or does not match
+    ``windows``) and :class:`SampleRejectedError` with the
+    :class:`Rejection` reason for a sample that is well formed but
+    unfit.
     """
+    if not math.isfinite(duration) or duration < 0:
+        raise InvalidInputError(
+            f"The duration must be a finite number of seconds, got"
+            f" {duration}."
+        )
+    if vectors.ndim != 2 or vectors.shape[0] != len(windows):
+        raise InvalidInputError(
+            "One embedding row is needed per analysis window."
+        )
+    if not bool(np.isfinite(vectors).all()):
+        raise InvalidInputError("Window embeddings must be finite.")
+    spoken = clip_spans(regions, duration, "speech region")
+    timed = clip_spans(windows, duration, "window")
     if duration < rules.min_duration:
         raise SampleRejectedError(
             Rejection.TOO_SHORT.value,
             f"The sample lasts {duration:.1f} s; at least"
             f" {rules.min_duration:.1f} s are needed.",
         )
-    speech = speech_seconds(regions)
-    if vectors.shape[0] == 0 or speech < rules.min_speech_ratio * duration:
+    speech = speech_seconds(spoken)
+    if speech < rules.min_speech_ratio * duration:
         raise SampleRejectedError(
             Rejection.MOSTLY_SILENT.value,
             f"Only {speech:.1f} s of {duration:.1f} s contain speech.",
         )
-    labels = cluster_speakers(vectors, threshold=rules.same_voice_threshold)
+    norms = np.linalg.norm(vectors, axis=1)
+    voiced = [i for i in range(len(timed))
+              if float(norms[i]) > rules.min_window_norm]
+    covered = speech_seconds([timed[i] for i in voiced])
+    if len(voiced) < rules.min_windows or covered < rules.min_window_seconds:
+        raise SampleRejectedError(
+            Rejection.MOSTLY_SILENT.value,
+            f"Only {len(voiced)} windows ({covered:.1f} s) carry a voice;"
+            f" at least {rules.min_windows} covering"
+            f" {rules.min_window_seconds:.1f} s are needed.",
+        )
+    kept = vectors[voiced]
+    labels = cluster_speakers(
+        kept, threshold=rules.same_voice_threshold, max_speakers=len(voiced),
+    )
     counts = Counter(labels)
     main = min(counts, key=lambda label: (-counts[label], label))
     other = 1.0 - counts[main] / len(labels)
@@ -163,11 +243,10 @@ def enrolment_vector(
             Rejection.SEVERAL_VOICES.value,
             f"{other:.0%} of the sample sounds like another voice.",
         )
-    members = unit_rows(vectors)[[i for i, v in enumerate(labels)
-                                  if v == main]]
+    members = unit_rows(kept)[[i for i, v in enumerate(labels) if v == main]]
     mean = members.mean(axis=0)
     norm = float(np.linalg.norm(mean))
-    if norm == 0:
+    if norm <= rules.min_window_norm:
         raise SampleRejectedError(
             Rejection.MOSTLY_SILENT.value,
             "The sample carries no voice information.",
@@ -181,6 +260,7 @@ def build_voiceprint(
     consent_version: str,
     enrolled_at: datetime,
     vectors: FloatArray,
+    windows: Sequence[Tuple[float, float]],
     regions: Sequence[Tuple[float, float]],
     duration: float,
     rules: SampleRules = SampleRules(),
@@ -193,7 +273,7 @@ def build_voiceprint(
     return Voiceprint(
         speaker_id=speaker_id,
         model=model,
-        vector=enrolment_vector(vectors, regions, duration, rules),
+        vector=enrolment_vector(vectors, windows, regions, duration, rules),
         consent_version=consent_version,
         enrolled_at=enrolled_at,
     )
