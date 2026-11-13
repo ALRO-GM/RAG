@@ -155,6 +155,10 @@ class SkillsCLI:
             extra = (
                 "" if s.seconds is None
                 else f"  {s.seconds:.0f}s  overlaps {s.overlapping_starts}"
+                + ("" if s.words_per_minute is None
+                   else f"  {s.words_per_minute:.0f} words/min")
+                + ("" if s.median_response_seconds is None
+                   else f"  responds in {s.median_response_seconds:.1f}s")
             )
             print(f"  {s.speaker:<16} turns {s.turns:>3}  words "
                   f"{s.words:>5} ({s.word_share:.0%})  questions "
