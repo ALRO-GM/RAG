@@ -27,6 +27,7 @@ def wire(
     repository: Optional[InMemoryIndexRepository] = None,
     embed_style: str = "full",
     extra_params: Optional[Mapping[str, object]] = None,
+    passage_prefix: str = "",
 ) -> Wired:
     """Build a service over fakes and return it with its fakes."""
     corpus = FakeCorpus(files)
@@ -41,6 +42,7 @@ def wire(
         progress=RecordingProgress(),
         embed_style=embed_style,
         extra_params=extra_params,
+        passage_prefix=passage_prefix,
     )
     return service, corpus, processor, repo
 
@@ -345,3 +347,24 @@ def test_same_extra_params_reuse_records(corpus_files: Dict[str, str]) -> None:
     assert (report.files_reused, report.incremental) == (3, True)
     assert processor.calls == [[]]
     assert fingerprint(repo) == before
+
+
+def test_passage_prefix_is_embedded_and_fingerprinted(
+    corpus_files: Dict[str, str],
+) -> None:
+    """Every embedded text starts with the prefix; it changes the index."""
+    embedder = FakeEmbedder()
+    service, _, _, _ = wire(corpus_files, embedder, passage_prefix="passage: ")
+    service.run(max_chunk_size=500)
+    assert embedder.encoded
+    assert all(t.startswith("passage: ") for t in embedder.encoded)
+    params = service.params(500, None)
+    assert params["passage_prefix"] == "passage: "
+
+
+def test_empty_passage_prefix_keeps_the_old_fingerprint(
+    corpus_files: Dict[str, str],
+) -> None:
+    """Indexes built before the option existed stay valid."""
+    service, _, _, _ = wire(corpus_files, FakeEmbedder())
+    assert "passage_prefix" not in service.params(500, None)

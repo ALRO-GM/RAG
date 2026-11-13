@@ -230,6 +230,7 @@ class Container:
             embedder=self.index_embedder if s.semantic else None,
             progress=self.progress,
             embed_style=s.embed_style,
+            passage_prefix=s.passage_prefix,
             extra_params={
                 "bm25_k1": s.bm25_k1, "bm25_b": s.bm25_b,
                 "path_weight": s.path_weight,
@@ -367,7 +368,11 @@ class LabPipelineFactory:
                 f"Unknown parameter(s): {', '.join(unknown)}."
             )
         values = {**self.base.model_dump(), **params}
-        index_id = params_id({f: values[f] for f in INDEX_FIELDS})
+        index_id = params_id({
+            f: values[f] for f in INDEX_FIELDS
+            # A field added later with an empty value keeps old ids valid.
+            if not (f == "passage_prefix" and not values[f])
+        })
         work = self.base.lab_work_dir
         cold = bool(values.get("lab_cold"))
         values.update(

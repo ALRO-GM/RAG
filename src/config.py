@@ -38,6 +38,7 @@ class Settings(BaseModel):
     test_weight: float = Field(default=0.6, ge=0.0)
     file_boost: float = Field(default=0.2, ge=0.0)
     query_prefix: str = ""
+    passage_prefix: str = ""
     path_weight: int = Field(default=3, ge=0)
     context_weight: int = Field(default=3, ge=0)
     table_context: bool = True
@@ -128,6 +129,7 @@ BENCHMARK_CONFIGS: Dict[str, Dict[str, Any]] = {
 INDEX_FIELDS = (
     "raw_dir", "extensions", "max_chunk_size", "target_chunk_size",
     "semantic", "embedding_model", "embedding_max_tokens", "embed_style",
+    "passage_prefix",
     "bm25_k1", "bm25_b", "path_weight", "context_weight", "table_context",
     "bigrams",
 )
