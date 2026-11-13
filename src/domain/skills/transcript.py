@@ -16,11 +16,31 @@ _LINE = re.compile(
 _WORDS = re.compile(r"\w+", re.UNICODE)
 
 
+class Word(BaseModel):
+    """A recognised word with its time span in seconds.
+
+    ``probability`` is the recogniser's confidence in the word, when it
+    reports one.
+    """
+
+    text: str
+    start: float = Field(ge=0)
+    end: float = Field(ge=0)
+    speaker: Optional[str] = None
+    probability: Optional[float] = None
+
+    def middle(self) -> float:
+        """Return the midpoint of the word."""
+        return (self.start + self.end) / 2
+
+
 class Turn(BaseModel):
     """One uninterrupted contribution of a speaker.
 
     ``start`` and ``end`` are seconds from the start of the recording,
-    when the source has timestamps.
+    when the source has timestamps. Transcripts made from audio also
+    keep the timed ``words`` of the turn and the recogniser's mean
+    ``confidence`` in them; hand-written transcripts have neither.
     """
 
     index: int = Field(ge=0)
@@ -28,6 +48,8 @@ class Turn(BaseModel):
     text: str
     start: Optional[float] = None
     end: Optional[float] = None
+    words: List[Word] = Field(default_factory=list)
+    confidence: Optional[float] = None
 
     def n_words(self) -> int:
         """Return the number of words of the turn."""
@@ -75,6 +97,35 @@ def _seconds(value: Any) -> Optional[float]:
     return seconds if math.isfinite(seconds) else None
 
 
+def _words(value: Any) -> List[Word]:
+    """Return the timed words of a segment, or none if they are unusable.
+
+    Words are optional detail: a segment whose ``words`` are missing or
+    malformed (some diarizers drop the times of a few words) is kept
+    without them rather than rejected.
+    """
+    if not isinstance(value, list) or not value:
+        return []
+    try:
+        return [
+            w if isinstance(w, Word) else Word.model_validate({
+                "text": w.get("text", w.get("word", "")),
+                "start": w["start"], "end": w["end"],
+                "speaker": w.get("speaker"),
+                "probability": w.get("probability", w.get("score")),
+            })
+            for w in value
+        ]
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return []
+
+
+def _mean_confidence(words: Sequence[Word]) -> Optional[float]:
+    """Mean recogniser confidence of ``words``, when they report it."""
+    known = [w.probability for w in words if w.probability is not None]
+    return round(sum(known) / len(known), 4) if known else None
+
+
 def build_transcript(
     session_id: str,
     segments: Sequence[Dict[str, Any]],
@@ -102,13 +153,18 @@ def build_transcript(
             and (start is None or last.end is None
                  or start - last.end <= merge_gap)
         )
+        words = _words(segment.get("words"))
         if last is not None and last.speaker == speaker and close:
             last.text = f"{last.text} {text}"
             last.end = end if end is not None else last.end
+            # Word times only stay usable if every merged part has them.
+            last.words = last.words + words if last.words and words else []
+            last.confidence = _mean_confidence(last.words)
             continue
         turns.append(Turn(
             index=len(turns), speaker=speaker, text=text,
-            start=start, end=end,
+            start=start, end=end, words=words,
+            confidence=_mean_confidence(words),
         ))
     if not turns:
         raise InvalidInputError(
