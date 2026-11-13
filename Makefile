@@ -93,7 +93,7 @@ study:
 	$(PYTHON) -m src lab experiment --suite $(SUITE)
 	$(PYTHON) -m src benchmark --suite $(SUITE) \
 		--datasets $(GENERAL_DATASETS) \
-		--output experiments/general/benchmarks.jsonl
+		--output experiments/general/benchmarks.jsonl --clean_indexes
 	$(PYTHON) -m src general --suite $(SUITE)
 
 ## tune: cross-validated tuning of the factors of a suite.
