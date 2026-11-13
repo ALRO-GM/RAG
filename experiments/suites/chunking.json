@@ -1,0 +1,10 @@
+{
+  "name": "chunking",
+  "description": "S6: chunk size. Smaller chunks are more focused but there are more of them to embed.",
+  "base": {"max_chunk_size": 2000, "target_chunk_size": null},
+  "strategy": "one_at_a_time",
+  "factors": {
+    "target_chunk_size": [600, 900, 1200, 1500],
+    "max_chunk_size": [1000, 1500]
+  }
+}

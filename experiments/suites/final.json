@@ -1,0 +1,18 @@
+{
+  "name": "final",
+  "description": "Speed/precision ends around the consensus profile: without embeddings, and with the cross-encoder on top.",
+  "base": {"path_weight": 3, "context_weight": 3, "bm25_b": 0.5,
+           "table_context": true, "route_strength": 0.1,
+           "file_boost": 0.2, "test_weight": 0.6,
+           "mode": "auto", "semantic": true, "rerank": false,
+           "rerank_depth": 10, "rerank_weight": 0.3},
+  "strategy": "list",
+  "trials": [
+    {"name": "previous defaults", "params": {"path_weight": 1, "context_weight": 1, "bm25_b": 0.75, "table_context": false, "route_strength": 0.0, "file_boost": 0.0, "test_weight": 1.0}},
+    {"name": "lexical only (no embeddings)", "params": {"semantic": false, "mode": "bm25"}},
+    {"name": "rerank depth=5", "params": {"rerank": true, "rerank_depth": 5}},
+    {"name": "rerank depth=10", "params": {"rerank": true}},
+    {"name": "rerank depth=10 weight=0.5", "params": {"rerank": true, "rerank_weight": 0.5}},
+    {"name": "rerank depth=20", "params": {"rerank": true, "rerank_depth": 20}}
+  ]
+}

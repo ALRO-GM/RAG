@@ -1,0 +1,64 @@
+# Task board
+
+Live tracking of the work. Each task says **what** is being done and
+**why**. States: `TODO` → `IN PROGRESS` → `DONE` (or `BLOCKED`).
+
+## In progress
+
+| ID | Task | What is being done |
+|---|---|---|
+| — | — | Nothing running. |
+
+## To do
+
+| ID | Task | What will be done |
+|---|---|---|
+| T-17 | 42 login in the README | Replace `<login>` in the first line of `README.md` (mandatory format). Needs the author's login. |
+| T-18 | First commit | `git add` + commit on a branch once the author has reviewed the code (`data/`, `moulinette*` and the PDF are gitignored). |
+| T-36 | Skills: human reference data | Record or collect real sessions, train 3 annotators (`docs/skills/ANNOTATION_GUIDE.md`), reach the agreement thresholds, then tune and evaluate. Needs people; nothing in the analyzer is validated until this is done. |
+| T-37 | Skills: API judge live test | Run `skills --judge api assess` with Anthropic credentials and compare with the local judge on the reference data. Needs credentials and consent for external processing. |
+| T-38 | Skills: expert review of the rubric | I/O psychologist or assessor panel rates each indicator for relevance and observability (THEORY §5.3); check the †-marked details against the sources. |
+| T-39 | Skills: remaining design items | Two-call classify/evaluate, opportunity gating, cross-session profile, team interaction profile (`docs/skills/DESIGN.md` §9). |
+| T-41 | Enable the GPU (RTX 3070 Ti) | Needs the author (sudo + reboot): `sudo apt install nvidia-driver-595-open`, reboot, `make install-cuda`, `make system TORCH=cuda`, then `uv run --group cuda --no-group cpu python -m src system --benchmark` to measure GPU against CPU. Detection, diagnosis and the measured choice are implemented; the GPU path itself has never run. |
+| T-19 | Defense preparation | Walk through every layer and be ready for the live recode: e.g. change the hybrid weight, add a field to `MinimalSource`, add a CLI flag. Be able to explain the lab: why defaults come from the consensus of the folds and not from the best public score. |
+
+## Done
+
+| ID | Task | Result |
+|---|---|---|
+| T-43 | External benchmark, second round | CoIR code retrieval (CosQA, StackOverflowQA), bge-small, reranker on the tuned hybrid, and the best published same-model results (`docs/benchmarks/BEST_COMPARABLE.md`). Each stage reproduces its published reference within about a point; the tuned MiniLM hybrid is within 0.003 of the best published fixed-weight hybrid; bge-small alone (0.450) equals MiniLM hybrid + reranker (0.448). The fusion weight does not transfer between models or domains. |
+| T-42 | External benchmark (BEIR) | `benchmark` command, `BenchmarkService`, BEIR adapter, nDCG/recall metrics (+8 tests). Five datasets, 3 377 queries, 100 785 documents. Our BM25 and embedding stages reproduce the published BM25 and all-MiniLM-L6-v2 results within 2 points; the shipped hybrid averages nDCG@10 0.397 (published BM25 0.357, MiniLM 0.410); with 256 tokens and semantic weight 2.0 it reaches 0.440. Finding: the 64-token and weight-0.4 settings are specific to the 42 corpus. `docs/benchmarks/BEIR_RESULTS.md`. |
+| T-40 | Runtime plan from the hardware | Probe (cores, performance/efficiency classes, memory, GPUs), planner (GPU if usable, else one pinned thread per performance core), measured benchmark (`system --benchmark` → `data/runtime_plan.json`), automatic local judge model by memory and estimated speed. Measured here: generation 14.7 tok/s on the 8 performance cores vs 10.6 on all 20 threads; full index 34 s (was ~60 s), recall unchanged (0.95 / 0.919). GPU path untested for lack of a GPU. +29 tests (1400 fast, 11 slow). |
+| T-35 | Skills: docs | `docs/skills/THEORY.md` (frameworks, evidence appraisal, 118 references), `DESIGN.md` (pipeline, checks, formats, metrics, open items), `ANNOTATION_GUIDE.md` (protocol for reference data). README and ARCHITECTURE updated. |
+| T-34 | Skills: reference data and evaluation | Annotation forms, validation, inter-annotator agreement (Krippendorff's alpha, ICC(2,1)/(2,k), kappa, evidence F1; checked against published examples), consensus, `skills evaluate` (evidence P/R/F1, rating agreement, abstention, quote verification). Evidence retrieval runs in the experiment lab (`skills lab ...`): `SkillsLabPipeline` implements the `Pipeline` port, `LabCLI` is now host-agnostic. Synthetic sample: 2 sessions × 2 annotators under `examples/skills/`. |
+| T-33 | Skills: assessment and grounding | `AssessmentService`: retrieve → judge → verify. Quotes must be verbatim in the participant's own turns; indicator must belong to the competency; second opinion by embedding similarity; rating needs 3 incidents from 2 exchanges; breadth rule at the extremes; participation floor. Judges: local `Qwen3-1.7B` (tested: verbatim quotes, weak classification, ~60 s per competency) and Claude via the Anthropic SDK (adapter tested with a fake client only). |
+| T-32 | Skills: rubric catalogue | `knowledge/rubrics/core.{en,es}.json`: 11 competencies, 110 indicators (6 positive + 4 negative each), anchors at 1/3/5, sources and limits per competency, 12 exclusions with reasons. Spanish written natively, same ids. Not yet reviewed by assessors. |
+| T-31 | Skills: language | Spanish analyzer (accent folding, stopwords, light stemmer), language detection, multilingual embeddings (`paraphrase-multilingual-MiniLM-L12-v2`), rubric per language with English fallback. |
+| T-30 | Skills: theory research | Subagent reviewed competency frameworks (SHL Great Eight, UK Success Profiles, OECD, UN, SHRM, LifeComp, PISA/ATC21S), teamwork models (Marks, Salas, Stevens & Campion, CATME, act4teams), rating methods (BARS/BOS, assessment centres, FOR training) and automatic scoring. Belbin, MBTI, DISC excluded from scoring; Tuckman only as context. |
+| T-29 | Adopt the best profile | New defaults = cross-validated consensus + 64-token embeddings. Official moulinette: docs R@5 **0.95** (was 0.91), code R@5 **0.919** (was 0.879); R@10 0.97 / 0.94. Full index **58 s** (was 92 s), 100 questions in 3.8 s. Answers regenerated. 731 tests (724 fast + 7 slow), flake8 and mypy `--strict` clean. |
+| T-28 | Suites, interactions, tuning | 347 trials in `experiments/results/trials.jsonl`, report in `experiments/REPORT.md`. Single changes: +0.5 to +2.0 points, none significant alone. Grid: gains overlap (negative synergy). Tuner: +6.0 objective points in-sample, +2.8 held-out, consensus +3.7. Rejected with numbers: smaller chunks, 256-token embeddings, `bge-small`, `multi-qa-MiniLM`, bigrams, RRF; reranker worth 0 to +0.5 after tuning for +14 s. Results per strategy in `docs/ROADMAP.md` §5. |
+| T-27b | Fixes from the lab test review | Subagent wrote 369 test cases and found 5 bugs, all fixed: resumed trials kept a stale suite/baseline; `index --profile` ignored chunk sizes; empty `vectors.npy` crashed the embedding cache; `folds < 2` and empty factor lists raised raw exceptions. Also: explicit CLI options now always win over a profile, one-line validation errors, trial ids hash the dataset content, profiles only come from curated suites (not from tuner steps). |
+| T-27 | Tuner | `Tuner`: coordinate descent over the factors of a suite with 5-fold cross-validation (`lab tune`), reporting in-sample and held-out objective. `RouterTrainer` (`lab train_router`). |
+| T-26 | Chunk size and embeddings (code) | `CachingEmbedder` (vectors keyed by text hash, indexing only), `embed_style`, `query_prefix`, shared models between trials. |
+| T-25 | Lexical index strategies (code) | `path_weight` / `context_weight` field weights, BM25 constants and `table_context` in the index fingerprint. |
+| T-24 | Search-time strategies (code) | `ScoreAdjuster` port + `PriorAdjuster`: query router (logistic regression on surface features + frequent words, 93.5% cross-validated accuracy), test-file prior, file aggregation. All off by default until measured. |
+| T-23 | Analysis module | `AnalysisService` + `render_markdown` (`lab analyze`): cost/benefit table per suite, paired bootstrap CI, interactions, Pareto front, precision/balanced/speed profiles. |
+| T-22 | Experiment lab | `ExperimentService`, `Suite` (one-at-a-time, grid, list) as JSON in `experiments/suites/`, `JsonlTrialStore`, `LabPipelineFactory` (one index dir per index-parameter set), `python -m src lab ...`. |
+| T-21 | Span narrowing (rejected) | Prototype narrowing each returned chunk to the window of lines that best matches the query (300–1200 chars). Rejected: the median reference span is ~950 chars, so code R@5 fell 0.88 → 0.79–0.86 and docs did not improve. Documented in the README. |
+| T-20 | Cross-encoder reranker | `Reranker` port, `CrossEncoderReranker` adapter (`ms-marco-MiniLM-L-6-v2`, 256 tokens), `RerankingRetriever` decorator, `rerank_fusion` in the domain, `--rerank/--rerank_depth/--rerank_weight` options. Sweep: depth 10, weight 0.3. Moulinette: code R@5 0.879 → **0.909**, docs 0.91 → 0.91 (R@1 0.69 → 0.73), code R@1 0.63 → 0.58. 18 s per 100 questions instead of 4 s, so **off by default**. Depth 30 with 512 tokens (90 s per 100 questions) and bge-reranker-base (160 s) were not better. +25 tests (23 unit/integration, 2 slow with the real model). |
+| T-16 | Code answers | 99/99 answers, valid JSON, 11 "not enough information" (code questions are harder for a 0.6B model). The generator now collapses a repeated refusal into one sentence. 16 min. |
+| T-15 | README update | Hexagonal architecture diagram, layer table, test strategy, `make test-slow`. |
+| T-14 | Re-validation after the refactor | Idle machine: full index **92 s** (limit 300 s). Moulinette: docs R@5 **0.91**, code R@5 **0.879** (identical before/after). 100 questions in 3.7 s. flake8 + mypy `--strict` clean (70 files). |
+| T-13b | Fixes from the test review | Stemmer `-sses`→`-ss` and `-ies`→`-y` (`classes`≡`class`), `INDEX_FORMAT_VERSION` 3 so stale records rebuild. `SqliteCache` no longer creates a missing index dir. `BadZipFile` → `CorruptedDataError`. Deprecated sentence-transformers call avoided. Docstring of `list_files` corrected. |
+| T-12/T-13 | Unit + integration tests | 186 unit (fakes of every port), 134 integration (real adapters in tmp dirs, CLI subprocess with 26 degenerate inputs, FastAPI TestClient), 5 slow (real MiniLM/Qwen). The subagent also fixed 2 bugs: a lone-`\r` Python file crashing the AST chunker, and an `OSError` in the SQLite cache init. |
+| T-11 | Hexagonal refactor | `domain/`, `application/` (ports + use cases), `adapters/inbound`, `adapters/outbound`, `bootstrap.py` + `config.py`. Dependency rule verified (domain imports nothing outside, application imports no adapters). See `docs/ARCHITECTURE.md`. |
+| T-10 | Docs answers | 100/100 answers, valid JSON, 5 "not enough information". Spot-checked against the references: exact identifiers, citations `[n]`. |
+| T-09 | CLI, generation, evaluation | Fire CLI with all required commands + `serve` + `clear_cache`, grounded Qwen3 prompt, recall@k. |
+| T-08 | Bonus 5: HTTP API | FastAPI: `/health`, `GET/POST /search`, `POST /answer`, OpenAPI docs at `/docs`. |
+| T-07 | Bonus 4: caching | Index cached in-process per fingerprint + SQLite cache for searches and answers (5.4 s → 0.6 s for a repeated query). |
+| T-06 | Bonus 3: incremental | SHA-256 per file. Chunks, term counts and embeddings reused. 1 changed file → 7 s instead of 92 s. |
+| T-05 | Bonus 2: hybrid | Linear fusion `bm25/max + 0.4·cos` by default, RRF optional. Tuned with sweeps. |
+| T-04 | Bonus 1: semantic | MiniLM-L6-v2 with 128 input tokens: 1.8× faster indexing, no recall loss. |
+| T-03 | BM25 | Hand-written BM25 on a precomputed sparse matrix, code-aware tokenizer. |
+| T-02 | Chunking | Python AST chunker and Markdown/text chunker. Exact offsets, ≤ 2000 chars. |
+| T-01 | Project layout | `data/raw`, `data/datasets`, uv + CPU torch, `.flake8`, mypy config. |

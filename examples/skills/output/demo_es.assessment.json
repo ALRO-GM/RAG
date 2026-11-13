@@ -1,0 +1,2066 @@
+{
+  "session_id": "demo_es",
+  "language": "es",
+  "catalogue": "core",
+  "catalogue_version": "0.1.0",
+  "judge_model": "Qwen/Qwen3-1.7B",
+  "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "min_incidents": 3,
+  "team": {
+    "speakers": 5,
+    "turns": 39,
+    "words": 777,
+    "participation_equality": 0.7606177606177604,
+    "dominant_speaker": "Ana",
+    "dominant_share": 0.2908622908622909,
+    "has_timestamps": true,
+    "per_speaker": [
+      {
+        "speaker": "Ana",
+        "turns": 10,
+        "words": 226,
+        "word_share": 0.2908622908622909,
+        "turn_share": 0.2564102564102564,
+        "mean_words_per_turn": 22.6,
+        "questions": 9,
+        "seconds": 95.0,
+        "overlapping_starts": 0
+      },
+      {
+        "speaker": "Luis",
+        "turns": 10,
+        "words": 170,
+        "word_share": 0.2187902187902188,
+        "turn_share": 0.2564102564102564,
+        "mean_words_per_turn": 17.0,
+        "questions": 0,
+        "seconds": 77.0,
+        "overlapping_starts": 0
+      },
+      {
+        "speaker": "Marta",
+        "turns": 9,
+        "words": 179,
+        "word_share": 0.23037323037323038,
+        "turn_share": 0.23076923076923078,
+        "mean_words_per_turn": 19.88888888888889,
+        "questions": 0,
+        "seconds": 90.0,
+        "overlapping_starts": 0
+      },
+      {
+        "speaker": "Pablo",
+        "turns": 6,
+        "words": 145,
+        "word_share": 0.1866151866151866,
+        "turn_share": 0.15384615384615385,
+        "mean_words_per_turn": 24.166666666666668,
+        "questions": 4,
+        "seconds": 63.0,
+        "overlapping_starts": 0
+      },
+      {
+        "speaker": "Irene",
+        "turns": 4,
+        "words": 57,
+        "word_share": 0.07335907335907337,
+        "turn_share": 0.10256410256410256,
+        "mean_words_per_turn": 14.25,
+        "questions": 0,
+        "seconds": 31.0,
+        "overlapping_starts": 0
+      }
+    ]
+  },
+  "scorecards": [
+    {
+      "participant": "Ana",
+      "interaction": {
+        "speaker": "Ana",
+        "turns": 10,
+        "words": 226,
+        "word_share": 0.2908622908622909,
+        "turn_share": 0.2564102564102564,
+        "mean_words_per_turn": 22.6,
+        "questions": 9,
+        "seconds": 95.0,
+        "overlapping_starts": 0
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "Y Luis, luego nos explicas cómo lo resolviste tú las otras veces, que seguro que nos sirve.",
+              "indicator_id": "COMM.P6",
+              "polarity": "positive",
+              "similarity": 0.4109
+            }
+          ],
+          "rationale": "Ana estructura su intervención de forma clara, mencionando a Luis y explicando el propósito de la intervención. También cierra el circuito al preguntar si la información es útil para todos.",
+          "candidate_turns": [
+            0,
+            6,
+            16,
+            18,
+            28,
+            30,
+            33,
+            38
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "Sí, léelo, por favor.",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": 0.6408
+            },
+            {
+              "turn": 30,
+              "quote": "Cierto, buena observación, se me había pasado.",
+              "indicator_id": "LISTEN.P6",
+              "polarity": "positive",
+              "similarity": 0.6919
+            }
+          ],
+          "rationale": "Ana parafrasea, hace preguntas de seguimiento y construye sobre ideas de compañeros concretos durante toda la sesión.",
+          "candidate_turns": [
+            0,
+            6,
+            16,
+            22,
+            28,
+            30,
+            33,
+            38
+          ],
+          "proposed": 5,
+          "rejected": 1,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "Sí, léelo, por favor.",
+              "indicator_id": "INFLU.P1",
+              "polarity": "positive",
+              "similarity": 0.3281
+            },
+            {
+              "turn": 10,
+              "quote": "Eso es. Gracias por resumirlo, Pablo. Marta, ¿tú qué propones para organizar el código?",
+              "indicator_id": "INFLU.P2",
+              "polarity": "positive",
+              "similarity": 0.371
+            },
+            {
+              "turn": 22,
+              "quote": "Vamos justos de tiempo. Cerramos esto en cinco minutos y nos ponemos. ¿Para cuándo puedes tener el análisis?",
+              "indicator_id": "INFLU.P6",
+              "polarity": "positive",
+              "similarity": 0.3077
+            },
+            {
+              "turn": 30,
+              "quote": "Cierto, buena observación, se me había pasado. ¿Quién puede cogerlo?",
+              "indicator_id": "INFLU.P3",
+              "polarity": "positive",
+              "similarity": 0.4043
+            }
+          ],
+          "rationale": "Ana argumenta con razones ligadas a los objetivos del grupo, responde a las objeciones y ajusta la propuesta en consecuencia. Propone soluciones conjuntas y se mantiene abierto a las opiniones de los demás.",
+          "candidate_turns": [
+            6,
+            10,
+            16,
+            22,
+            28,
+            30,
+            33,
+            38
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 22,
+              "quote": "Te entiendo, Luis, vamos justos de tiempo.",
+              "indicator_id": "COLLAB.P6",
+              "polarity": "positive",
+              "similarity": 0.3478
+            }
+          ],
+          "rationale": "Ana ofrece ayuda concreta (COLLAB.P1), pide ayuda u opinión cuando se atasca (COLLAB.P2), comparte información sin que se lo pidan (COLLAB.P3), reconoce a un compañero concreto (COLLAB.P4), y se ofrece para una tarea común (COLLAB.P6). Su comportamiento muestra un alto nivel de colaboración y apoyo mutuo.",
+          "candidate_turns": [
+            0,
+            10,
+            16,
+            18,
+            22,
+            28,
+            30,
+            38
+          ],
+          "proposed": 4,
+          "rejected": 1,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 16,
+              "quote": "¿Alguien no está de acuerdo? Irene, no has dicho nada todavía, ¿cómo lo ves tú?",
+              "indicator_id": "INCL.P4",
+              "polarity": "positive",
+              "similarity": 0.4674
+            },
+            {
+              "turn": 30,
+              "quote": "Cierto, buena observación, se me había pasado. ¿Quién puede cogerlo?",
+              "indicator_id": "INCL.P5",
+              "polarity": "positive",
+              "similarity": 0.431
+            }
+          ],
+          "rationale": "Ana invita a Marta a proponer una solución, consulta el acuerdo del grupo y permite que Irene exprese su opinión. Propone un plan claro y respetuoso, dejando espacio a todos los participantes.",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            22,
+            28,
+            30,
+            38
+          ],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "Y Luis, luego nos explicas cómo lo resolviste tú las otras veces, que seguro que nos sirve.",
+              "indicator_id": "CONFL.P3",
+              "polarity": "positive",
+              "similarity": 0.3575
+            }
+          ],
+          "rationale": "Ana expresa el desacuerdo con razones (P3), reconoce la parte válida de la postura de Luis y propone una forma de decidir (votación).",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            18,
+            28,
+            30,
+            38
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "Sí, léelo, por favor.",
+              "indicator_id": "FEEDB.P1",
+              "polarity": "positive",
+              "similarity": 0.4417
+            },
+            {
+              "turn": 10,
+              "quote": "Eso es. Gracias por resumirlo, Pablo. Marta, ¿tú qué propones para organizar el código?",
+              "indicator_id": "FEEDB.P2",
+              "polarity": "positive",
+              "similarity": 0.4016
+            }
+          ],
+          "rationale": "Ana da feedback concreto, pide feedback sobre su trabajo y explica el porqué de las sugerencias. Acompaña la crítica con sugerencias y pide feedback en varias ocasiones. El feedback es claro, específico y orientado a la mejora.",
+          "candidate_turns": [
+            6,
+            10,
+            16,
+            18,
+            22,
+            28,
+            30,
+            38
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COORD",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 0,
+              "quote": "Vale, empezamos. Tenemos una hora para decidir cómo repartimos el proyecto del servidor y qué entregamos el viernes. ¿Os parece si primero cada uno cuenta qué ha mirado y luego decidimos?",
+              "indicator_id": "COORD.P1",
+              "polarity": "positive",
+              "similarity": 0.556
+            },
+            {
+              "turn": 6,
+              "quote": "Sí, léelo, por favor. Y Luis, luego nos explicas cómo lo resolviste tú las otras veces, que seguro que nos sirve.",
+              "indicator_id": "COORD.P3",
+              "polarity": "positive",
+              "similarity": 0.5015
+            },
+            {
+              "turn": 10,
+              "quote": "Eso es. Gracias por resumirlo, Pablo. Marta, ¿tú qué propones para organizar el código?",
+              "indicator_id": "COORD.P3",
+              "polarity": "positive",
+              "similarity": 0.5193
+            },
+            {
+              "turn": 22,
+              "quote": "Cerramos esto en cinco minutos y nos ponemos. ¿Para cuándo puedes tener el análisis?",
+              "indicator_id": "COORD.P4",
+              "polarity": "positive",
+              "similarity": 0.682
+            },
+            {
+              "turn": 28,
+              "quote": "Resumo para que quede claro: Pablo el bucle para el miércoles con ayuda de Marta, Luis el análisis para el jueves con la lista de Marta, Irene las pruebas, y yo me encargo de las respuestas y de juntar todo el jueves por la tarde. ¿Me dejo algo?",
+              "indicator_id": "COORD.P3",
+              "polarity": "positive",
+              "similarity": 0.7651
+            }
+          ],
+          "rationale": "Ana fija objetivos y método, acuerda quién hace qué y para cuándo, vigila el tiempo y resume las decisiones y lo pendiente. Propone un orden del día, acuerda tareas y plazos, y sigue el avance del trabajo del grupo.",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            22,
+            28,
+            33,
+            38
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Ana pide datos o supuestos antes de valorar una opción (SOLVE.P2), lo que es un indicador positivo. Sin embargo, el análisis no muestra una clara definición del problema ni una evaluación de opciones, lo que limita el puntaje.",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            18,
+            22,
+            30,
+            38
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 22,
+              "quote": "Cerramos esto en cinco minutos y nos ponemos. ¿Para cuándo puedes tener el análisis?",
+              "indicator_id": "INIT.P2",
+              "polarity": "positive",
+              "similarity": 0.4557
+            },
+            {
+              "turn": 30,
+              "quote": "Cierto, buena observación, se me había pasado. ¿Quién puede cogerlo?",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": 0.3151
+            }
+          ],
+          "rationale": "Ana ofrece con entregables y fechas (INIT.P1), propone los siguientes pasos (INIT.P2), y informa del estado de un compromiso anterior (INIT.P3). Además, muestra iniciativa al replanificar el trabajo cuando se retrasa (INIT.P4).",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            22,
+            28,
+            30,
+            38
+          ],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Ana reconoce con claridad lagunas y errores, cambia de postura explicando por qué, adapta el plan y reflexiona sobre qué hacer distinto.",
+          "candidate_turns": [
+            0,
+            6,
+            10,
+            16,
+            22,
+            30,
+            33,
+            38
+          ],
+          "proposed": 4,
+          "rejected": 1,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "participant": "Luis",
+      "interaction": {
+        "speaker": "Luis",
+        "turns": 10,
+        "words": 170,
+        "word_share": 0.2187902187902188,
+        "turn_share": 0.2564102564102564,
+        "mean_words_per_turn": 17.0,
+        "questions": 0,
+        "seconds": 77.0,
+        "overlapping_starts": 0
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Yo ya lo tengo claro, hacemos todo en un solo proceso y listo, no hay que darle más vueltas.",
+              "indicator_id": "COMM.P1",
+              "polarity": "positive",
+              "similarity": 0.3969
+            }
+          ],
+          "rationale": "Luis comienza por enunciar la idea principal (hacer todo en un solo proceso) y luego la apoya con un ejemplo (lo he hecho mil veces).",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            21,
+            23,
+            29,
+            31
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Eso es una tontería, Marta, con un proceso sobra. Lo he hecho mil veces.",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": 0.4128
+            },
+            {
+              "turn": 8,
+              "quote": "Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.",
+              "indicator_id": "LISTEN.P6",
+              "polarity": "positive",
+              "similarity": 0.5524
+            },
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "LISTEN.P3",
+              "polarity": "positive",
+              "similarity": 0.3773
+            },
+            {
+              "turn": 23,
+              "quote": "El jueves por la mañana. Si Marta me pasa los casos raros del enunciado, antes.",
+              "indicator_id": "LISTEN.P4",
+              "polarity": "positive",
+              "similarity": 0.3714
+            },
+            {
+              "turn": 31,
+              "quote": "Lo cojo yo, va con el análisis. Pero entonces el jueves por la mañana no llego, sería el jueves por la tarde.",
+              "indicator_id": "LISTEN.P6",
+              "polarity": "positive",
+              "similarity": 0.3727
+            }
+          ],
+          "rationale": "Luis parafrasea, hace preguntas que dependen de lo dicho y construye sobre ideas de compañeros concretos durante toda la sesión.",
+          "candidate_turns": [
+            3,
+            8,
+            14,
+            21,
+            23,
+            29,
+            31,
+            36
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "INFLU.P4",
+              "polarity": "positive",
+              "similarity": 0.4712
+            }
+          ],
+          "rationale": "Luis argumenta con razones ligadas a los objetivos del grupo, responde a las objeciones y ajusta la propuesta en consecuencia. Propone soluciones conjuntas y pide información necesaria. Su participación es constructiva y se adapta a las críticas del grupo.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            14,
+            21,
+            23,
+            36
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 6,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Eso es una tontería, Marta, con un proceso sobra. Lo he hecho mil veces.",
+              "indicator_id": "COLLAB.P1",
+              "polarity": "positive",
+              "similarity": 0.3259
+            },
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "COLLAB.P6",
+              "polarity": "positive",
+              "similarity": 0.3951
+            }
+          ],
+          "rationale": "Luis ofrece ayuda concreta (COLLAB.P1), pide ayuda u opinión cuando se atasca (COLLAB.P2), y se ofrece para una tarea común poco lucida (COLLAB.P6). Además, plantea los objetivos y problemas en términos del grupo (COLLAB.P5). Su comportamiento muestra colaboración y apoyo mutuo, aunque no es constante.",
+          "candidate_turns": [
+            3,
+            8,
+            12,
+            14,
+            21,
+            23,
+            31,
+            36
+          ],
+          "proposed": 5,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "INCL.P6",
+              "polarity": "positive",
+              "similarity": 0.4204
+            },
+            {
+              "turn": 36,
+              "quote": "De acuerdo. Y perdona por lo de antes, Marta, tenías razón con lo del bloqueo.",
+              "indicator_id": "INCL.N3",
+              "polarity": "negative",
+              "similarity": 0.3083
+            }
+          ],
+          "rationale": "Luis invita a quien no ha hablado (turn 1), devuelve la palabra a quien fue interrumpido (turn 3), pide opiniones contrarias (turn 12), y consulta el acuerdo del grupo (turn 29). Sin embargo, se dirige a una sola persona (turn 12, 21, 31) y da por hecho un acuerdo (turn 29).",
+          "candidate_turns": [
+            1,
+            3,
+            12,
+            14,
+            21,
+            29,
+            31,
+            36
+          ],
+          "proposed": 8,
+          "rejected": 0,
+          "unsupported": 6,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Eso es una tontería, Marta, con un proceso sobra. Lo he hecho mil veces.",
+              "indicator_id": "CONFL.N1",
+              "polarity": "negative",
+              "similarity": 0.3068
+            },
+            {
+              "turn": 8,
+              "quote": "Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.",
+              "indicator_id": "CONFL.P6",
+              "polarity": "positive",
+              "similarity": 0.3567
+            },
+            {
+              "turn": 12,
+              "quote": "A mí me parece demasiado. Tres partes para un servidor pequeño es complicarse la vida.",
+              "indicator_id": "CONFL.N2",
+              "polarity": "negative",
+              "similarity": 0.3074
+            },
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "CONFL.P5",
+              "polarity": "positive",
+              "similarity": 0.4768
+            }
+          ],
+          "rationale": "Luis expresó el desacuerdo con razones (CONFL.P1), reconoció la parte válida de la postura de Marta (CONFL.P2), propuso un punto intermedio (CONFL.P5), y rebajó la tensión (CONFL.P6). Sin embargo, su crítica personal (CONFL.N1) y su rechazo en bloque (CONFL.N2) indican un nivel de desacuerdo moderado.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            14,
+            21,
+            29,
+            36
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Yo ya lo tengo claro, hacemos todo en un solo proceso y listo, no hay que darle más vueltas.",
+              "indicator_id": "FEEDB.P1",
+              "polarity": "positive",
+              "similarity": 0.3918
+            },
+            {
+              "turn": 8,
+              "quote": "Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.",
+              "indicator_id": "FEEDB.P4",
+              "polarity": "positive",
+              "similarity": 0.3582
+            },
+            {
+              "turn": 36,
+              "quote": "De acuerdo. Y perdona por lo de antes, Marta, tenías razón con lo del bloqueo.",
+              "indicator_id": "FEEDB.P6",
+              "polarity": "positive",
+              "similarity": 0.3147
+            }
+          ],
+          "rationale": "Luis da feedback concreto, pide feedback sobre su trabajo, explica el porqué y reconoce una mejora. Aunque no hay un episodio de feedback directo, sus comentarios muestran un nivel alto de feedback concreto y útil, con sugerencias y explicaciones claras.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            14,
+            21,
+            23,
+            36
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Luis estructura el trabajo del grupo, propone el método, acuerda quién hace qué y para cuándo, vigila el tiempo y resume las decisiones y lo pendiente. Su participación es clara y organizada, con un enfoque en la coordinación y el seguimiento del trabajo.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            14,
+            21,
+            23,
+            31,
+            36
+          ],
+          "proposed": 7,
+          "rejected": 7,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Eso es una tontería, Marta, con un proceso sobra. Lo he hecho mil veces.",
+              "indicator_id": "SOLVE.N1",
+              "polarity": "negative",
+              "similarity": 0.4351
+            },
+            {
+              "turn": 14,
+              "quote": "El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.",
+              "indicator_id": "SOLVE.P3",
+              "polarity": "positive",
+              "similarity": 0.3524
+            },
+            {
+              "turn": 21,
+              "quote": "Yo hago el análisis de peticiones. Pero que conste que sigo pensando que vamos lentos, deberíamos estar ya programando.",
+              "indicator_id": "SOLVE.P4",
+              "polarity": "positive",
+              "similarity": 0.3284
+            }
+          ],
+          "rationale": "Luis contribuye a definir el problema y a generar opciones, pero su enfoque es limitado. Aporta información relevante y valora las opciones, pero no explicita criterios claros ni contrasta las decisiones con el objetivo. Su participación es constructiva, pero no alcanza el nivel máximo de la rúbrica.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            14,
+            21,
+            31,
+            36
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 4,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Yo ya lo tengo claro, hacemos todo en un solo proceso y listo, no hay que darle más vueltas.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": 0.3269
+            },
+            {
+              "turn": 8,
+              "quote": "Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.",
+              "indicator_id": "INIT.P3",
+              "polarity": "positive",
+              "similarity": 0.3688
+            },
+            {
+              "turn": 21,
+              "quote": "Yo hago el análisis de peticiones. Pero que conste que sigo pensando que vamos lentos, deberíamos estar ya programando.",
+              "indicator_id": "INIT.P5",
+              "polarity": "positive",
+              "similarity": 0.4124
+            },
+            {
+              "turn": 23,
+              "quote": "El jueves por la mañana. Si Marta me pasa los casos raros del enunciado, antes.",
+              "indicator_id": "INIT.P4",
+              "polarity": "positive",
+              "similarity": 0.3906
+            }
+          ],
+          "rationale": "Luis ofrece entregables con fechas claras (INIT.P1), propone pasos cuando el grupo se atasca (INIT.P2), informa del estado de sus compromisos (INIT.P3), replanifica cuando hay retrasos (INIT.P4), y sube el nivel de exigencia con un criterio concreto (INIT.P5).",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            14,
+            21,
+            23,
+            29,
+            31
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 8,
+              "quote": "Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.",
+              "indicator_id": "ADAPT.N3",
+              "polarity": "negative",
+              "similarity": 0.3668
+            }
+          ],
+          "rationale": "Luis reconoce errores y cambia de postura, pero su ajuste del plan y su reflexión sobre qué hacer distinto son limitadas. Acepta el feedback y dice qué ha cambiado, pero no lo hace con frecuencia.",
+          "candidate_turns": [
+            1,
+            3,
+            8,
+            12,
+            14,
+            21,
+            31,
+            36
+          ],
+          "proposed": 8,
+          "rejected": 0,
+          "unsupported": 7,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "participant": "Marta",
+      "interaction": {
+        "speaker": "Marta",
+        "turns": 9,
+        "words": 179,
+        "word_share": 0.23037323037323038,
+        "turn_share": 0.23076923076923078,
+        "mean_words_per_turn": 19.88888888888889,
+        "questions": 0,
+        "seconds": 90.0,
+        "overlapping_starts": 0
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.",
+              "indicator_id": "COMM.P2",
+              "polarity": "positive",
+              "similarity": 0.5722
+            }
+          ],
+          "rationale": "Marta empieza por la idea principal, estructura sus intervenciones de forma explícita, aclara ante la confusión y cierra el circuito al preguntar por la comprensión del grupo.",
+          "candidate_turns": [
+            2,
+            5,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 15,
+              "quote": "Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.",
+              "indicator_id": "LISTEN.P2",
+              "polarity": "positive",
+              "similarity": 0.3524
+            }
+          ],
+          "rationale": "Marta parafrasea, hace preguntas de seguimiento y construye sobre ideas de compañeros durante toda la sesión. Utiliza el lenguaje de la discusión y participa activamente en la toma de decisiones.",
+          "candidate_turns": [
+            2,
+            7,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas.",
+              "indicator_id": "INFLU.P1",
+              "polarity": "positive",
+              "similarity": 0.4086
+            },
+            {
+              "turn": 24,
+              "quote": "Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.",
+              "indicator_id": "INFLU.P6",
+              "polarity": "positive",
+              "similarity": 0.3042
+            },
+            {
+              "turn": 26,
+              "quote": "Yo puedo echarte una mano el miércoles por la tarde, ya he mirado cómo funciona poll.",
+              "indicator_id": "INFLU.P4",
+              "polarity": "positive",
+              "similarity": 0.3544
+            },
+            {
+              "turn": 34,
+              "quote": "Me parece mejor, así si algo no encaja lo arreglamos entre todos.",
+              "indicator_id": "INFLU.P5",
+              "polarity": "positive",
+              "similarity": 0.4703
+            }
+          ],
+          "rationale": "Marta argumenta con razones ligadas a los objetivos del grupo, responde a las objeciones y ajusta la propuesta en consecuencia.",
+          "candidate_turns": [
+            5,
+            7,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.",
+              "indicator_id": "COLLAB.P1",
+              "polarity": "positive",
+              "similarity": 0.4765
+            },
+            {
+              "turn": 24,
+              "quote": "Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.",
+              "indicator_id": "COLLAB.P2",
+              "polarity": "positive",
+              "similarity": 0.3058
+            }
+          ],
+          "rationale": "Marta ofrece ayuda concreta (COLLAB.P1), pide ayuda cuando se atasca (COLLAB.P2), comparte información sin ser pida (COLLAB.P3), reconoce a su compañero (COLLAB.P4), y se ofrece para una tarea común (COLLAB.P6). Su comportamiento refleja un alto nivel de colaboración y apoyo mutuo.",
+          "candidate_turns": [
+            2,
+            5,
+            7,
+            11,
+            15,
+            24,
+            26,
+            37
+          ],
+          "proposed": 5,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 15,
+              "quote": "Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.",
+              "indicator_id": "INCL.P6",
+              "polarity": "positive",
+              "similarity": 0.3423
+            },
+            {
+              "turn": 34,
+              "quote": "Me parece mejor, así si algo no encaja lo arreglamos entre todos.",
+              "indicator_id": "INCL.P3",
+              "polarity": "positive",
+              "similarity": 0.5097
+            }
+          ],
+          "rationale": "Marta invita a quien no ha hablado (INCL.P1), devuelve la palabra a quien fue interrumpido (INCL.P2), pide opiniones contrarias antes de cerrar un tema (INCL.P3), y colabora en la organización del trabajo (INCL.P4). Su participación es activa y colaborativa, con un enfoque inclusivo y respetuoso hacia todos los participantes.",
+          "candidate_turns": [
+            2,
+            7,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 5,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 15,
+              "quote": "Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.",
+              "indicator_id": "CONFL.P3",
+              "polarity": "positive",
+              "similarity": 0.3278
+            },
+            {
+              "turn": 34,
+              "quote": "Me parece mejor, así si algo no encaja lo arreglamos entre todos.",
+              "indicator_id": "CONFL.P3",
+              "polarity": "positive",
+              "similarity": 0.3324
+            }
+          ],
+          "rationale": "Marta expresa el desacuerdo con razones (CONFL.P1), reconoce la parte válida de la otra postura (CONFL.P2) y propone una solución (CONFL.P3) en múltiples ocasiones. Además, rebaja la tensión al final al agradecer las observaciones.",
+          "candidate_turns": [
+            2,
+            5,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 15,
+              "quote": "Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.",
+              "indicator_id": "FEEDB.P5",
+              "polarity": "positive",
+              "similarity": 0.4399
+            },
+            {
+              "turn": 24,
+              "quote": "Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.",
+              "indicator_id": "FEEDB.P6",
+              "polarity": "positive",
+              "similarity": 0.3121
+            }
+          ],
+          "rationale": "Marta da feedback concreto, pide feedback sobre su trabajo y explica el porqué de sus sugerencias. Comprueba que ha servido y pide feedback sobre su propia aportación. El feedback es específico, con sugerencias y se ajusta a las indicaciones del competencia.",
+          "candidate_turns": [
+            2,
+            5,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 5,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COORD",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 15,
+              "quote": "Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.",
+              "indicator_id": "COORD.P6",
+              "polarity": "positive",
+              "similarity": 0.4932
+            },
+            {
+              "turn": 24,
+              "quote": "Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.",
+              "indicator_id": "COORD.P4",
+              "polarity": "positive",
+              "similarity": 0.4051
+            },
+            {
+              "turn": 26,
+              "quote": "Yo puedo echarte una mano el miércoles por la tarde, ya he mirado cómo funciona poll.",
+              "indicator_id": "COORD.P3",
+              "polarity": "positive",
+              "similarity": 0.5027
+            },
+            {
+              "turn": 34,
+              "quote": "Me parece mejor, así si algo no encaja lo arreglamos entre todos.",
+              "indicator_id": "COORD.P5",
+              "polarity": "positive",
+              "similarity": 0.5697
+            }
+          ],
+          "rationale": "Marta fija objetivos y método, acuerda quién hace qué y para cuándo, vigila el tiempo y resume las decisiones y lo pendiente. Propone un orden del día, acuerda el reparto de tareas y sigue el avance del trabajo del grupo.",
+          "candidate_turns": [
+            2,
+            5,
+            7,
+            11,
+            15,
+            24,
+            26,
+            34
+          ],
+          "proposed": 7,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.",
+              "indicator_id": "SOLVE.P3",
+              "polarity": "positive",
+              "similarity": 0.3219
+            }
+          ],
+          "rationale": "Marta define el problema (SOLVE.P1), pide información (SOLVE.P2), propone alternativas (SOLVE.P3), valora opciones con criterios (SOLVE.P4), y contrasta la decisión con el objetivo (SOLVE.P6). Su participación es clara, estructurada y contribuye al proceso de toma de decisiones en grupo.",
+          "candidate_turns": [
+            2,
+            5,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 5,
+          "rejected": 0,
+          "unsupported": 4,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.",
+              "indicator_id": "INIT.P2",
+              "polarity": "positive",
+              "similarity": 0.3942
+            },
+            {
+              "turn": 24,
+              "quote": "Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": 0.4792
+            }
+          ],
+          "rationale": "Marta ofrece entregables con fechas claras (turn 2, 24), propone pasos concretos (turn 11), informa del estado de sus compromisos (turn 5, 34), y replanifica cuando se retrasa (turn 34). Su comportamiento muestra iniciativa, compromiso y colaboración activa.",
+          "candidate_turns": [
+            2,
+            5,
+            7,
+            11,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 6,
+          "rejected": 0,
+          "unsupported": 4,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 11,
+              "quote": "Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.",
+              "indicator_id": "ADAPT.P4",
+              "polarity": "positive",
+              "similarity": 0.4012
+            },
+            {
+              "turn": 26,
+              "quote": "Yo puedo echarte una mano el miércoles por la tarde, ya he mirado cómo funciona poll.",
+              "indicator_id": "ADAPT.P6",
+              "polarity": "positive",
+              "similarity": 0.3876
+            },
+            {
+              "turn": 34,
+              "quote": "Me parece mejor, así si algo no encaja lo arreglamos entre todos.",
+              "indicator_id": "ADAPT.P4",
+              "polarity": "positive",
+              "similarity": 0.3547
+            }
+          ],
+          "rationale": "Marta reconoce con claridad lagunas y errores (ADAPT.P1), cambia de postura explicando por qué (ADAPT.P2), propone ajustar el plan (ADAPT.P4), y acepta el feedback (ADAPT.P6). Además, reflexiona sobre cómo ajustar el plan en el futuro (ADAPT.P5).",
+          "candidate_turns": [
+            5,
+            7,
+            11,
+            15,
+            24,
+            26,
+            34,
+            37
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "participant": "Pablo",
+      "interaction": {
+        "speaker": "Pablo",
+        "turns": 6,
+        "words": 145,
+        "word_share": 0.1866151866151866,
+        "turn_share": 0.15384615384615385,
+        "mean_words_per_turn": 24.166666666666668,
+        "questions": 4,
+        "seconds": 63.0,
+        "overlapping_starts": 0
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Pablo estructura sus intervenciones de forma clara, cierra el circuito de las peticiones y confirma lo que ha oído. Su participación es organizada y adaptada al contexto del grupo.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 4,
+          "rejected": 4,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.",
+              "indicator_id": "LISTEN.P2",
+              "polarity": "positive",
+              "similarity": 0.5516
+            },
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "LISTEN.P5",
+              "polarity": "positive",
+              "similarity": 0.3606
+            },
+            {
+              "turn": 13,
+              "quote": "Entiendo que te preocupe que sea complicado, Luis. ¿Qué parte te parece que sobra? A lo mejor podemos juntar dos.",
+              "indicator_id": "LISTEN.P3",
+              "polarity": "positive",
+              "similarity": 0.3363
+            }
+          ],
+          "rationale": "Pablo parafrasea, hace preguntas de seguimiento y construye sobre ideas de compañeros concretos durante toda la sesión.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código.",
+              "indicator_id": "INFLU.P2",
+              "polarity": "positive",
+              "similarity": 0.3397
+            }
+          ],
+          "rationale": "Pablo argumenta con razones ligadas a los objetivos del grupo, responde a las objeciones y ajusta la propuesta en consecuencia.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 5,
+          "rejected": 1,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.",
+              "indicator_id": "COLLAB.P1",
+              "polarity": "positive",
+              "similarity": 0.3089
+            },
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "COLLAB.P5",
+              "polarity": "positive",
+              "similarity": 0.3228
+            },
+            {
+              "turn": 20,
+              "quote": "Eso nos viene muy bien, porque nadie se había acordado de las pruebas. Yo me comprometo a tener el bucle de eventos funcionando el miércoles por la tarde.",
+              "indicator_id": "COLLAB.P3",
+              "polarity": "positive",
+              "similarity": 0.4076
+            },
+            {
+              "turn": 25,
+              "quote": "Una cosa: el miércoles tengo examen por la mañana, así que si me atasco con el bucle voy a necesitar ayuda. Prefiero avisarlo ahora que el jueves.",
+              "indicator_id": "COLLAB.P2",
+              "polarity": "positive",
+              "similarity": 0.3451
+            },
+            {
+              "turn": 32,
+              "quote": "A mí me vale, siempre que lo sepamos. Ana, ¿a ti te da tiempo a juntarlo todo si Luis entrega por la tarde?",
+              "indicator_id": "COLLAB.P1",
+              "polarity": "positive",
+              "similarity": 0.3251
+            }
+          ],
+          "rationale": "Pablo ofrece ayuda específica (COLLAB.P1), pide ayuda cuando se atasca (COLLAB.P2), comparte información (COLLAB.P3), reconoce a otros (COLLAB.P4) y colabora en la resolución del problema (COLLAB.P5). Su comportamiento muestra un nivel alto de colaboración y apoyo mutuo.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 6,
+          "rejected": 1,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.",
+              "indicator_id": "INCL.P1",
+              "polarity": "positive",
+              "similarity": 0.3934
+            },
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "INCL.P3",
+              "polarity": "positive",
+              "similarity": 0.366
+            },
+            {
+              "turn": 20,
+              "quote": "Eso nos viene muy bien, porque nadie se había acordado de las pruebas. Yo me comprometo a tener el bucle de eventos funcionando el miércoles por la tarde.",
+              "indicator_id": "INCL.P4",
+              "polarity": "positive",
+              "similarity": 0.3633
+            },
+            {
+              "turn": 32,
+              "quote": "A mí me vale, siempre que lo sepamos. Ana, ¿a ti te da tiempo a juntarlo todo si Luis entrega por la tarde?",
+              "indicator_id": "INCL.P5",
+              "polarity": "positive",
+              "similarity": 0.4124
+            }
+          ],
+          "rationale": "Pablo invita a Marta a hablar, devuelve la palabra a Luis, pide opiniones contrarias y consulta al grupo sobre el tema. Su comportamiento muestra un alto nivel de facilitación inclusiva, respetando el espacio de todos los participantes.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 6,
+          "rejected": 1,
+          "unsupported": 1,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.",
+              "indicator_id": "CONFL.P1",
+              "polarity": "positive",
+              "similarity": 0.423
+            },
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "CONFL.P3",
+              "polarity": "positive",
+              "similarity": 0.4546
+            }
+          ],
+          "rationale": "Pablo expresa el desacuerdo con razones, reconoce la parte válida de la otra postura y propone una forma de decidir (un punto intermedio). Además, rebaja la tensión al pedir ayuda y menciona un compromiso. El comportamiento muestra un manejo constructivo del conflicto.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 4,
+          "rejected": 1,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "FEEDB.P2",
+              "polarity": "positive",
+              "similarity": 0.3931
+            }
+          ],
+          "rationale": "Pablo da feedback concreto, pide feedback sobre su trabajo y explica el porqué de sus sugerencias. Comprueba que ha servido y pide feedback sobre su propio trabajo. El feedback es específico, con sugerencias y se centra en el porqué de las decisiones.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 5,
+          "rejected": 1,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COORD",
+          "status": "rated",
+          "rating": 5,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.",
+              "indicator_id": "COORD.P1",
+              "polarity": "positive",
+              "similarity": 0.3828
+            },
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "COORD.P2",
+              "polarity": "positive",
+              "similarity": 0.4164
+            },
+            {
+              "turn": 20,
+              "quote": "Eso nos viene muy bien, porque nadie se había acordado de las pruebas. Yo me comprometo a tener el bucle de eventos funcionando el miércoles por la tarde.",
+              "indicator_id": "COORD.P3",
+              "polarity": "positive",
+              "similarity": 0.4128
+            },
+            {
+              "turn": 25,
+              "quote": "Una cosa: el miércoles tengo examen por la mañana, así que si me atasco con el bucle voy a necesitar ayuda. Prefiero avisarlo ahora que el jueves.",
+              "indicator_id": "COORD.P4",
+              "polarity": "positive",
+              "similarity": 0.4548
+            },
+            {
+              "turn": 32,
+              "quote": "A mí me vale, siempre que lo sepamos. Ana, ¿a ti te da tiempo a juntarlo todo si Luis entrega por la tarde?",
+              "indicator_id": "COORD.P5",
+              "polarity": "positive",
+              "similarity": 0.3641
+            }
+          ],
+          "rationale": "Pablo fija objetivos y método, acuerda quién hace qué y para cuándo, vigila el tiempo y resume las decisiones y lo pendiente. Propone un orden del día, acuerda tareas y plazos, y sigue el avance del trabajo del grupo.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 6,
+          "rejected": 1,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "SOLVE.P3",
+              "polarity": "positive",
+              "similarity": 0.3015
+            }
+          ],
+          "rationale": "Pablo define el problema (SOLVE.P3), pide información (SOLVE.P2), valora opciones (SOLVE.P4), y contrasta la decisión con el objetivo (SOLVE.P6). Aunque hay algunos errores en la toma de decisiones (SOLVE.N1), su contribución al proceso es clara y coherente.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 5,
+          "rejected": 1,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 9,
+              "quote": "Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?",
+              "indicator_id": "INIT.P2",
+              "polarity": "positive",
+              "similarity": 0.306
+            },
+            {
+              "turn": 25,
+              "quote": "Una cosa: el miércoles tengo examen por la mañana, así que si me atasco con el bucle voy a necesitar ayuda. Prefiero avisarlo ahora que el jueves.",
+              "indicator_id": "INIT.P4",
+              "polarity": "positive",
+              "similarity": 0.5187
+            }
+          ],
+          "rationale": "Pablo ofrece entregables y fechas (miércoles por la tarde), propone pasos cuando el grupo se atasca (replantea el bucle de eventos), informa del estado de un compromiso anterior (avisar del examen), y replanifica cuando algo se retrasa. Su comportamiento cumple todos los indicadores de la competencia INIT.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Pablo reconoce con claridad lagunas y errores (turn 4, 9, 20, 25), cambia de postura explicando por qué (turn 4, 9), propone ajustar el plan (turn 20) y acepta el feedback (turn 25). Además, muestra disposición a adaptarse a nuevas condiciones y a pedir ayuda.",
+          "candidate_turns": [
+            4,
+            9,
+            13,
+            20,
+            25,
+            32
+          ],
+          "proposed": 4,
+          "rejected": 4,
+          "unsupported": 0,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "participant": "Irene",
+      "interaction": {
+        "speaker": "Irene",
+        "turns": 4,
+        "words": 57,
+        "word_share": 0.07335907335907337,
+        "turn_share": 0.10256410256410256,
+        "mean_words_per_turn": 14.25,
+        "questions": 0,
+        "seconds": 31.0,
+        "overlapping_starts": 0
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene comienza por la idea principal ('me parece bien') y luego apoya con una respuesta concisa. Además, cierra el circuito al preguntar si alguien no está de acuerdo y confirma lo que ha oído.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 17,
+              "quote": "Bien, me parece bien.",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": 0.3287
+            }
+          ],
+          "rationale": "Irene parafrasea, hace preguntas de seguimiento y construye sobre las aportaciones de otros durante toda la sesión.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 27,
+              "quote": "Yo también puedo, si me explicáis un poco. Y así voy entendiendo qué tengo que probar.",
+              "indicator_id": "INFLU.P3",
+              "polarity": "positive",
+              "similarity": 0.3258
+            }
+          ],
+          "rationale": "Irene proporciona razones para su propuesta (INFLU.P1, P2, P3, P4), vincula la propuesta a un objetivo común (P2), anticipa y responde a las objeciones (P3), y ajusta la propuesta (P4) en consecuencia. Su participación es constructiva y colaborativa.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene ofrece ayuda concreta al comentar que puede hacer las pruebas y que ha hecho algunas con un script en el proyecto anterior, lo que muestra que ofrece ayuda concreta con la tarea de un compañero.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 27,
+              "quote": "Yo también puedo, si me explicáis un poco. Y así voy entendiendo qué tengo que probar.",
+              "indicator_id": "INCL.P5",
+              "polarity": "positive",
+              "similarity": 0.3548
+            }
+          ],
+          "rationale": "Irene invita a participar, devuelve la palabra a quien fue interrumpido y pide opiniones contrarias antes de cerrar un tema durante toda la sesión.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene expresa el desacuerdo con razones (menciona que ha hecho pruebas en el proyecto anterior), pero no reconoce la parte válida de la otra postura ni propone una solución.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 27,
+              "quote": "Yo también puedo, si me explicáis un poco. Y así voy entendiendo qué tengo que probar.",
+              "indicator_id": "FEEDB.P2",
+              "polarity": "positive",
+              "similarity": 0.4286
+            }
+          ],
+          "rationale": "Irene da feedback concreto, pide ayuda para entender el trabajo y explica el porqué de sus acciones. Acompaña la crítica con sugerencias y muestra interés en aprender. No hay evidencia de errores o falta de concreción.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 2,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene claramente enuncia el objetivo de la sesión al decir 'Bien, me parece bien' y propone un enfoque para la sesión. Aunque no dice nada más, su respuesta muestra que entiende el objetivo y el propósito de la actividad.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene proporciona información relevante y pide ayuda, pero no define claramente el problema ni propone alternativas. Su contribución se centra en la colaboración y la preparación de pruebas, sin evidencia de un análisis profundo del problema o de una evaluación de opciones.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 4,
+          "rejected": 1,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "Irene ofrece una perspectiva clara sobre la tarea y se compromete a hacer las pruebas con un script del proyecto anterior, lo que confirma INIT.P1 y INIT.P2.",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 1,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 27,
+              "quote": "Yo también puedo, si me explicáis un poco. Y así voy entendiendo qué tengo que probar.",
+              "indicator_id": "ADAPT.P3",
+              "polarity": "positive",
+              "similarity": 0.3258
+            }
+          ],
+          "rationale": "Irene reconoce con claridad lagunas y errores (ADAPT.P2), cambia de postura explicando por qué (ADAPT.P3), propone ajustar el plan (ADAPT.P4) y muestra disposición a revisar su trabajo. Además, acepta el feedback y dice qué va a cambiar (ADAPT.P6).",
+          "candidate_turns": [
+            17,
+            19,
+            27,
+            35
+          ],
+          "proposed": 4,
+          "rejected": 0,
+          "unsupported": 3,
+          "flags": [
+            "below_minimum_evidence"
+          ]
+        }
+      ]
+    }
+  ],
+  "seconds": 3506.398
+}

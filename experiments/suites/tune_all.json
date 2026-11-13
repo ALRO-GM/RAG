@@ -1,0 +1,21 @@
+{
+  "name": "tune_all",
+  "description": "Search space of the tuner: every factor that was not harmful alone. Used by 'lab tune' with 5-fold cross-validation.",
+  "base": {"path_weight": 1, "context_weight": 1, "bm25_k1": 1.2,
+           "bm25_b": 0.75, "table_context": false, "max_chunk_size": 2000,
+           "semantic_weight": 0.4, "route_strength": 0.0,
+           "file_boost": 0.0, "test_weight": 1.0},
+  "strategy": "one_at_a_time",
+  "factors": {
+    "path_weight": [1, 2, 3],
+    "context_weight": [1, 2, 3],
+    "bm25_k1": [1.2, 0.9, 0.6],
+    "bm25_b": [0.75, 0.5, 0.3],
+    "table_context": [false, true],
+    "max_chunk_size": [2000, 1500],
+    "semantic_weight": [0.4, 0.3, 0.5, 0.6],
+    "route_strength": [0.0, 0.1, 0.2, 0.3],
+    "file_boost": [0.0, 0.1, 0.2],
+    "test_weight": [1.0, 0.6]
+  }
+}

@@ -1,0 +1,604 @@
+{
+ "session_id": "demo_es",
+ "annotator": "A2",
+ "catalogue": "core",
+ "catalogue_version": "0.1.0",
+ "annotations": [
+  {
+   "participant": "Ana",
+   "competency_id": "COMM",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "LISTEN",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "INFLU",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "COLLAB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "INCL",
+   "rating": 4,
+   "evidence": [
+    {
+     "turn": 10,
+     "indicator_id": "INCL.P1"
+    },
+    {
+     "turn": 16,
+     "indicator_id": "INCL.P4"
+    },
+    {
+     "turn": 18,
+     "indicator_id": "INCL.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "CONFL",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 22,
+     "indicator_id": "CONFL.P2"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "FEEDB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "COORD",
+   "rating": 5,
+   "evidence": [
+    {
+     "turn": 0,
+     "indicator_id": "COORD.P2"
+    },
+    {
+     "turn": 16,
+     "indicator_id": "COORD.P5"
+    },
+    {
+     "turn": 22,
+     "indicator_id": "COORD.P3"
+    },
+    {
+     "turn": 28,
+     "indicator_id": "COORD.P5"
+    },
+    {
+     "turn": 38,
+     "indicator_id": "COORD.P5"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "SOLVE",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "INIT",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Ana",
+   "competency_id": "ADAPT",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 30,
+     "indicator_id": "ADAPT.P1"
+    },
+    {
+     "turn": 33,
+     "indicator_id": "ADAPT.P4"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "COMM",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "LISTEN",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "INFLU",
+   "rating": 1,
+   "evidence": [
+    {
+     "turn": 1,
+     "indicator_id": "INFLU.N3"
+    },
+    {
+     "turn": 3,
+     "indicator_id": "INFLU.N2"
+    },
+    {
+     "turn": 12,
+     "indicator_id": "INFLU.N4"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "COLLAB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "INCL",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "CONFL",
+   "rating": 2,
+   "evidence": [
+    {
+     "turn": 3,
+     "indicator_id": "CONFL.N1"
+    },
+    {
+     "turn": 12,
+     "indicator_id": "CONFL.N2"
+    },
+    {
+     "turn": 21,
+     "indicator_id": "CONFL.N3"
+    },
+    {
+     "turn": 36,
+     "indicator_id": "CONFL.P6"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "FEEDB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "COORD",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "SOLVE",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 1,
+     "indicator_id": "SOLVE.N1"
+    },
+    {
+     "turn": 29,
+     "indicator_id": "SOLVE.P6"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "INIT",
+   "rating": 4,
+   "evidence": [
+    {
+     "turn": 21,
+     "indicator_id": "INIT.P1"
+    },
+    {
+     "turn": 23,
+     "indicator_id": "INIT.P1"
+    },
+    {
+     "turn": 31,
+     "indicator_id": "INIT.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Luis",
+   "competency_id": "ADAPT",
+   "rating": 4,
+   "evidence": [
+    {
+     "turn": 8,
+     "indicator_id": "ADAPT.P1"
+    },
+    {
+     "turn": 14,
+     "indicator_id": "ADAPT.P2"
+    },
+    {
+     "turn": 36,
+     "indicator_id": "ADAPT.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "COMM",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "LISTEN",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 15,
+     "indicator_id": "LISTEN.P3"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "INFLU",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 7,
+     "indicator_id": "INFLU.P1"
+    },
+    {
+     "turn": 11,
+     "indicator_id": "INFLU.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "COLLAB",
+   "rating": 5,
+   "evidence": [
+    {
+     "turn": 5,
+     "indicator_id": "COLLAB.P3"
+    },
+    {
+     "turn": 24,
+     "indicator_id": "COLLAB.P3"
+    },
+    {
+     "turn": 26,
+     "indicator_id": "COLLAB.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "INCL",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "CONFL",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "FEEDB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "COORD",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "SOLVE",
+   "rating": 4,
+   "evidence": [
+    {
+     "turn": 2,
+     "indicator_id": "SOLVE.P2"
+    },
+    {
+     "turn": 7,
+     "indicator_id": "SOLVE.P5"
+    },
+    {
+     "turn": 11,
+     "indicator_id": "SOLVE.P3"
+    },
+    {
+     "turn": 15,
+     "indicator_id": "SOLVE.P3"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "INIT",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Marta",
+   "competency_id": "ADAPT",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "COMM",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "LISTEN",
+   "rating": 5,
+   "evidence": [
+    {
+     "turn": 4,
+     "indicator_id": "LISTEN.P5"
+    },
+    {
+     "turn": 9,
+     "indicator_id": "LISTEN.P1"
+    },
+    {
+     "turn": 13,
+     "indicator_id": "LISTEN.P2"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "INFLU",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "COLLAB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "INCL",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 4,
+     "indicator_id": "INCL.P2"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "CONFL",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 4,
+     "indicator_id": "CONFL.P3"
+    },
+    {
+     "turn": 13,
+     "indicator_id": "CONFL.P2"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "FEEDB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "COORD",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "SOLVE",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "INIT",
+   "rating": 4,
+   "evidence": [
+    {
+     "turn": 20,
+     "indicator_id": "INIT.P1"
+    },
+    {
+     "turn": 25,
+     "indicator_id": "INIT.P4"
+    },
+    {
+     "turn": 32,
+     "indicator_id": "INIT.P4"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Pablo",
+   "competency_id": "ADAPT",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "COMM",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "LISTEN",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "INFLU",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "COLLAB",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 27,
+     "indicator_id": "COLLAB.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "INCL",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "CONFL",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "FEEDB",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "COORD",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "SOLVE",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "INIT",
+   "rating": null,
+   "evidence": [
+    {
+     "turn": 19,
+     "indicator_id": "INIT.P1"
+    },
+    {
+     "turn": 35,
+     "indicator_id": "INIT.P1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "participant": "Irene",
+   "competency_id": "ADAPT",
+   "rating": null,
+   "evidence": [],
+   "notes": ""
+  }
+ ]
+}

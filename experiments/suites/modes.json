@@ -1,0 +1,11 @@
+{
+  "name": "modes",
+  "description": "Retrieval modes with the adopted defaults (for the README table).",
+  "base": {"mode": "hybrid", "rerank": false},
+  "strategy": "list",
+  "trials": [
+    {"name": "bm25", "params": {"mode": "bm25"}},
+    {"name": "semantic", "params": {"mode": "semantic"}},
+    {"name": "hybrid + rerank", "params": {"rerank": true}}
+  ]
+}

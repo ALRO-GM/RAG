@@ -1,0 +1,14 @@
+{
+  "name": "search_priors",
+  "description": "S1-S3 and S9: search-time strategies, one at a time. No index change.",
+  "base": {"route_strength": 0.0, "test_weight": 1.0, "file_boost": 0.0,
+           "semantic_weight": 0.4, "fusion": "linear"},
+  "strategy": "one_at_a_time",
+  "factors": {
+    "route_strength": [0.1, 0.2, 0.3, 0.5, 0.8],
+    "test_weight": [0.9, 0.8, 0.6, 0.4, 0.2],
+    "file_boost": [0.05, 0.1, 0.2, 0.3, 0.5],
+    "semantic_weight": [0.0, 0.2, 0.3, 0.5, 0.6, 0.8],
+    "fusion": ["rrf"]
+  }
+}

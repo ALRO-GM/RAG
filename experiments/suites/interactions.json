@@ -1,0 +1,13 @@
+{
+  "name": "interactions",
+  "description": "Do the best single changes add up? Full grid of four of them.",
+  "base": {"path_weight": 1, "context_weight": 1, "bm25_k1": 1.2,
+           "route_strength": 0.0},
+  "strategy": "grid",
+  "factors": {
+    "path_weight": [1, 2],
+    "context_weight": [1, 2],
+    "bm25_k1": [1.2, 0.9],
+    "route_strength": [0.0, 0.2]
+  }
+}

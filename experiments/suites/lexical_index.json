@@ -1,0 +1,14 @@
+{
+  "name": "lexical_index",
+  "description": "S4, S5, S7: field weights, BM25 constants, table context. Lexical statistics change, embeddings are reused.",
+  "base": {"path_weight": 1, "context_weight": 1, "bm25_k1": 1.2,
+           "bm25_b": 0.75, "table_context": false},
+  "strategy": "one_at_a_time",
+  "factors": {
+    "path_weight": [0, 2, 3],
+    "context_weight": [0, 2, 3, 4],
+    "bm25_k1": [0.6, 0.9, 1.5, 2.0],
+    "bm25_b": [0.3, 0.5, 0.6, 0.9],
+    "table_context": [true]
+  }
+}

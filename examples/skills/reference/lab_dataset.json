@@ -1,0 +1,647 @@
+{
+  "rag_questions": [
+    {
+      "question_id": "demo_es/Ana/INCL",
+      "question": "demo_es\tAna\tINCL",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 10,
+          "last_character_index": 11
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 16,
+          "last_character_index": 17
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 18,
+          "last_character_index": 19
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_es/Ana/CONFL",
+      "question": "demo_es\tAna\tCONFL",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 22,
+          "last_character_index": 23
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Ana/COORD",
+      "question": "demo_es\tAna\tCOORD",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 0,
+          "last_character_index": 1
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 16,
+          "last_character_index": 17
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 22,
+          "last_character_index": 23
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 28,
+          "last_character_index": 29
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 38,
+          "last_character_index": 39
+        }
+      ],
+      "answer": "5"
+    },
+    {
+      "question_id": "demo_es/Ana/ADAPT",
+      "question": "demo_es\tAna\tADAPT",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 30,
+          "last_character_index": 31
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 33,
+          "last_character_index": 34
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Luis/INFLU",
+      "question": "demo_es\tLuis\tINFLU",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 1,
+          "last_character_index": 2
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 3,
+          "last_character_index": 4
+        }
+      ],
+      "answer": "1"
+    },
+    {
+      "question_id": "demo_es/Luis/CONFL",
+      "question": "demo_es\tLuis\tCONFL",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 3,
+          "last_character_index": 4
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 12,
+          "last_character_index": 13
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 36,
+          "last_character_index": 37
+        }
+      ],
+      "answer": "2"
+    },
+    {
+      "question_id": "demo_es/Luis/SOLVE",
+      "question": "demo_es\tLuis\tSOLVE",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 1,
+          "last_character_index": 2
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 29,
+          "last_character_index": 30
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Luis/INIT",
+      "question": "demo_es\tLuis\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 21,
+          "last_character_index": 22
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 23,
+          "last_character_index": 24
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 31,
+          "last_character_index": 32
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_es/Luis/ADAPT",
+      "question": "demo_es\tLuis\tADAPT",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 8,
+          "last_character_index": 9
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 14,
+          "last_character_index": 15
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 36,
+          "last_character_index": 37
+        }
+      ],
+      "answer": "3"
+    },
+    {
+      "question_id": "demo_es/Marta/LISTEN",
+      "question": "demo_es\tMarta\tLISTEN",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 15,
+          "last_character_index": 16
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Marta/INFLU",
+      "question": "demo_es\tMarta\tINFLU",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 7,
+          "last_character_index": 8
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 11,
+          "last_character_index": 12
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Marta/COLLAB",
+      "question": "demo_es\tMarta\tCOLLAB",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 5,
+          "last_character_index": 6
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 24,
+          "last_character_index": 25
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 26,
+          "last_character_index": 27
+        }
+      ],
+      "answer": "5"
+    },
+    {
+      "question_id": "demo_es/Marta/SOLVE",
+      "question": "demo_es\tMarta\tSOLVE",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 2,
+          "last_character_index": 3
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 7,
+          "last_character_index": 8
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 11,
+          "last_character_index": 12
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_es/Pablo/LISTEN",
+      "question": "demo_es\tPablo\tLISTEN",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 4,
+          "last_character_index": 5
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 9,
+          "last_character_index": 10
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 13,
+          "last_character_index": 14
+        }
+      ],
+      "answer": "5"
+    },
+    {
+      "question_id": "demo_es/Pablo/INCL",
+      "question": "demo_es\tPablo\tINCL",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 4,
+          "last_character_index": 5
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Pablo/CONFL",
+      "question": "demo_es\tPablo\tCONFL",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 4,
+          "last_character_index": 5
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 13,
+          "last_character_index": 14
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Pablo/INIT",
+      "question": "demo_es\tPablo\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 20,
+          "last_character_index": 21
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 25,
+          "last_character_index": 26
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Irene/COLLAB",
+      "question": "demo_es\tIrene\tCOLLAB",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 27,
+          "last_character_index": 28
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_es/Irene/INIT",
+      "question": "demo_es\tIrene\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_es",
+          "first_character_index": 19,
+          "last_character_index": 20
+        },
+        {
+          "file_path": "demo_es",
+          "first_character_index": 35,
+          "last_character_index": 36
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Maya/INCL",
+      "question": "demo_en\tMaya\tINCL",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 9,
+          "last_character_index": 10
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 15,
+          "last_character_index": 16
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 17,
+          "last_character_index": 18
+        }
+      ],
+      "answer": "5"
+    },
+    {
+      "question_id": "demo_en/Maya/COORD",
+      "question": "demo_en\tMaya\tCOORD",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 0,
+          "last_character_index": 1
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 15,
+          "last_character_index": 16
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 21,
+          "last_character_index": 22
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 26,
+          "last_character_index": 27
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 31,
+          "last_character_index": 32
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_en/Tom/INFLU",
+      "question": "demo_en\tTom\tINFLU",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 1,
+          "last_character_index": 2
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 3,
+          "last_character_index": 4
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 13,
+          "last_character_index": 14
+        }
+      ],
+      "answer": "2"
+    },
+    {
+      "question_id": "demo_en/Tom/CONFL",
+      "question": "demo_en\tTom\tCONFL",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 3,
+          "last_character_index": 4
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 11,
+          "last_character_index": 12
+        }
+      ],
+      "answer": "1"
+    },
+    {
+      "question_id": "demo_en/Tom/SOLVE",
+      "question": "demo_en\tTom\tSOLVE",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 1,
+          "last_character_index": 2
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 27,
+          "last_character_index": 28
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Tom/INIT",
+      "question": "demo_en\tTom\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 20,
+          "last_character_index": 21
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 22,
+          "last_character_index": 23
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 29,
+          "last_character_index": 30
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_en/Tom/ADAPT",
+      "question": "demo_en\tTom\tADAPT",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 7,
+          "last_character_index": 8
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 29,
+          "last_character_index": 30
+        }
+      ],
+      "answer": "3"
+    },
+    {
+      "question_id": "demo_en/Priya/LISTEN",
+      "question": "demo_en\tPriya\tLISTEN",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 14,
+          "last_character_index": 15
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Priya/INFLU",
+      "question": "demo_en\tPriya\tINFLU",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 2,
+          "last_character_index": 3
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 10,
+          "last_character_index": 11
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Priya/COLLAB",
+      "question": "demo_en\tPriya\tCOLLAB",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 5,
+          "last_character_index": 6
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 23,
+          "last_character_index": 24
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 25,
+          "last_character_index": 26
+        }
+      ],
+      "answer": "5"
+    },
+    {
+      "question_id": "demo_en/Priya/SOLVE",
+      "question": "demo_en\tPriya\tSOLVE",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 2,
+          "last_character_index": 3
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 10,
+          "last_character_index": 11
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 14,
+          "last_character_index": 15
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_en/Sam/LISTEN",
+      "question": "demo_en\tSam\tLISTEN",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 4,
+          "last_character_index": 5
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 8,
+          "last_character_index": 9
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 12,
+          "last_character_index": 13
+        }
+      ],
+      "answer": "4"
+    },
+    {
+      "question_id": "demo_en/Sam/CONFL",
+      "question": "demo_en\tSam\tCONFL",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 4,
+          "last_character_index": 5
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 12,
+          "last_character_index": 13
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Sam/INIT",
+      "question": "demo_en\tSam\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 19,
+          "last_character_index": 20
+        },
+        {
+          "file_path": "demo_en",
+          "first_character_index": 24,
+          "last_character_index": 25
+        }
+      ],
+      "answer": ""
+    },
+    {
+      "question_id": "demo_en/Lena/INIT",
+      "question": "demo_en\tLena\tINIT",
+      "sources": [
+        {
+          "file_path": "demo_en",
+          "first_character_index": 18,
+          "last_character_index": 19
+        }
+      ],
+      "answer": ""
+    }
+  ]
+}

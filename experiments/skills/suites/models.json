@@ -1,0 +1,11 @@
+{
+  "name": "models",
+  "description": "Embedding models for evidence retrieval.",
+  "base": {"semantic": true, "semantic_weight": 1.0},
+  "strategy": "list",
+  "trials": [
+    {"name": "multilingual-e5-small", "params": {"embedding_model": "intfloat/multilingual-e5-small", "query_prefix": "query: ", "passage_prefix": "query: "}},
+    {"name": "all-MiniLM-L6-v2 (English only)", "params": {"embedding_model": "sentence-transformers/all-MiniLM-L6-v2"}},
+    {"name": "dense only (weight 100)", "params": {"semantic_weight": 100.0}}
+  ]
+}

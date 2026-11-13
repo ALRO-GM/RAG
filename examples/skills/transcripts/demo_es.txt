@@ -1,0 +1,39 @@
+[00:00:05] Ana: Vale, empezamos. Tenemos una hora para decidir cómo repartimos el proyecto del servidor y qué entregamos el viernes. ¿Os parece si primero cada uno cuenta qué ha mirado y luego decidimos?
+[00:00:21] Luis: Yo ya lo tengo claro, hacemos todo en un solo proceso y listo, no hay que darle más vueltas.
+[00:00:29] Marta: Yo he estado leyendo la parte del enunciado sobre las conexiones simultáneas. Creo que con un solo proceso no cumplimos el requisito de las cien conexiones, pero no estoy segura.
+[00:00:44] Luis: Eso es una tontería, Marta, con un proceso sobra. Lo he hecho mil veces.
+[00:00:51] Pablo: Espera, Luis, déjala terminar. Marta, ¿en qué parte del enunciado has visto eso? Así lo comprobamos entre todos.
+[00:01:02] Marta: En la página cuatro. Dice que el servidor no puede bloquearse mientras atiende a un cliente. Si queréis lo leo en voz alta.
+[00:01:13] Ana: Sí, léelo, por favor. Y Luis, luego nos explicas cómo lo resolviste tú las otras veces, que seguro que nos sirve.
+[00:01:22] Marta: "El servidor debe permanecer disponible y no bloquearse en ninguna operación de lectura o escritura". Por eso pensaba en usar poll.
+[00:01:35] Luis: Bueno, vale, puede ser. Yo lo hacía con hilos, pero aquí no nos dejan. No me había fijado en esa frase.
+[00:01:44] Pablo: Entonces, si lo he entendido bien, estamos de acuerdo en que hace falta entrada y salida no bloqueante, y la duda es solo cómo organizamos el código. ¿Es así?
+[00:01:56] Ana: Eso es. Gracias por resumirlo, Pablo. Marta, ¿tú qué propones para organizar el código?
+[00:02:04] Marta: Propongo separar tres partes: el bucle de eventos, el análisis de las peticiones y las respuestas. Así podemos trabajar en paralelo sin pisarnos.
+[00:02:17] Luis: A mí me parece demasiado. Tres partes para un servidor pequeño es complicarse la vida.
+[00:02:24] Pablo: Entiendo que te preocupe que sea complicado, Luis. ¿Qué parte te parece que sobra? A lo mejor podemos juntar dos.
+[00:02:33] Luis: El análisis y las respuestas podrían ir juntos, la verdad. Lo del bucle sí lo veo aparte.
+[00:02:41] Marta: Me parece bien juntarlas al principio. Sobre la idea de Luis, podríamos dejar una interfaz clara por si luego hay que separarlas.
+[00:02:52] Ana: Perfecto, entonces dos partes y una interfaz clara entre ellas. ¿Alguien no está de acuerdo? Irene, no has dicho nada todavía, ¿cómo lo ves tú?
+[00:03:03] Irene: Bien, me parece bien.
+[00:03:06] Ana: ¿Hay alguna parte que te apetezca más o en la que te sientas más cómoda?
+[00:03:12] Irene: Puedo hacer las pruebas, creo. He hecho algunas con un script en el proyecto anterior y me funcionó bien para encontrar fallos.
+[00:03:24] Pablo: Eso nos viene muy bien, porque nadie se había acordado de las pruebas. Yo me comprometo a tener el bucle de eventos funcionando el miércoles por la tarde.
+[00:03:36] Luis: Yo hago el análisis de peticiones. Pero que conste que sigo pensando que vamos lentos, deberíamos estar ya programando.
+[00:03:45] Ana: Te entiendo, Luis, vamos justos de tiempo. Cerramos esto en cinco minutos y nos ponemos. ¿Para cuándo puedes tener el análisis?
+[00:03:54] Luis: El jueves por la mañana. Si Marta me pasa los casos raros del enunciado, antes.
+[00:04:01] Marta: Te los paso hoy mismo. Tengo una lista con los que he ido apuntando, y si ves alguno que falte me lo dices y lo añado.
+[00:04:11] Pablo: Una cosa: el miércoles tengo examen por la mañana, así que si me atasco con el bucle voy a necesitar ayuda. Prefiero avisarlo ahora que el jueves.
+[00:04:22] Marta: Yo puedo echarte una mano el miércoles por la tarde, ya he mirado cómo funciona poll.
+[00:04:29] Irene: Yo también puedo, si me explicáis un poco. Y así voy entendiendo qué tengo que probar.
+[00:04:37] Ana: Genial. Resumo para que quede claro: Pablo el bucle para el miércoles con ayuda de Marta, Luis el análisis para el jueves con la lista de Marta, Irene las pruebas, y yo me encargo de las respuestas y de juntar todo el jueves por la tarde. ¿Me dejo algo?
+[00:04:58] Luis: Lo de la configuración. Nadie ha dicho quién lee el fichero de configuración.
+[00:05:04] Ana: Cierto, buena observación, se me había pasado. ¿Quién puede cogerlo?
+[00:05:10] Luis: Lo cojo yo, va con el análisis. Pero entonces el jueves por la mañana no llego, sería el jueves por la tarde.
+[00:05:19] Pablo: A mí me vale, siempre que lo sepamos. Ana, ¿a ti te da tiempo a juntarlo todo si Luis entrega por la tarde?
+[00:05:27] Ana: Iría muy justa. ¿Y si juntamos el viernes a primera hora todos juntos en vez de hacerlo yo sola el jueves?
+[00:05:36] Marta: Me parece mejor, así si algo no encaja lo arreglamos entre todos.
+[00:05:42] Irene: Vale. Yo puedo traer las pruebas preparadas el viernes para pasarlas en cuanto esté junto.
+[00:05:50] Luis: De acuerdo. Y perdona por lo de antes, Marta, tenías razón con lo del bloqueo.
+[00:05:57] Marta: No pasa nada. Gracias por decirlo.
+[00:06:01] Ana: Pues quedamos así. Lo apunto en el tablero y os paso el resumen por el chat. Gracias a todos.

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+
+# Data, model outputs and provided binaries (rebuilt at evaluation)
+data/
+moulinette/
+moulinette
+moulinette_bin
+moulinette-*
+en.subject.pdf
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Private: production server access (IP, DNS zone). Never in the public repo.
+SERVIDOR_ORACLE.md
+
+# Built static site (python -m src site build)
+dist/

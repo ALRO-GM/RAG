@@ -1,0 +1,5 @@
+{
+  "semantic": false,
+  "mode": "bm25",
+  "rerank": false
+}

@@ -1,0 +1,6 @@
+{
+  "semantic": true,
+  "mode": "auto",
+  "rerank": false,
+  "embedding_max_tokens": 64
+}

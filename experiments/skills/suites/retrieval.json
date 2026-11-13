@@ -1,0 +1,13 @@
+{
+  "name": "retrieval",
+  "description": "Evidence retrieval: fusion weight, eligible turn length and rubric language, one at a time.",
+  "base": {"semantic": true, "semantic_weight": 1.0, "min_words": 4,
+           "rubric_language": "auto"},
+  "strategy": "one_at_a_time",
+  "factors": {
+    "semantic_weight": [0.25, 0.5, 2.0, 4.0],
+    "semantic": [false],
+    "min_words": [1, 6, 8],
+    "rubric_language": ["en", "es"]
+  }
+}

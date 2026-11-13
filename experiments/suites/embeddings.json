@@ -1,0 +1,15 @@
+{
+  "name": "embeddings",
+  "description": "S8: embedding input length, input text and model.",
+  "base": {"embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+           "embedding_max_tokens": 128, "embed_style": "full",
+           "query_prefix": ""},
+  "strategy": "list",
+  "trials": [
+    {"name": "tokens=64", "params": {"embedding_max_tokens": 64}},
+    {"name": "tokens=256", "params": {"embedding_max_tokens": 256}},
+    {"name": "style=body", "params": {"embed_style": "body"}},
+    {"name": "multi-qa-MiniLM", "params": {"embedding_model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"}},
+    {"name": "bge-small", "params": {"embedding_model": "BAAI/bge-small-en-v1.5", "query_prefix": "Represent this sentence for searching relevant passages: "}}
+  ]
+}

@@ -1,0 +1,75 @@
+[project]
+name = "rag-against-the-machine"
+version = "1.0.0"
+description = "Retrieval-Augmented Generation over the vLLM codebase (42 project)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.7",
+    "fire>=0.6",
+    "tqdm>=4.66",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "transformers>=4.51",
+    "sentence-transformers>=3.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+[dependency-groups]
+api = [
+    "anthropic>=1.0",
+]
+bench = [
+    "pyarrow>=25.0.1",
+]
+cpu = [
+    "torch>=2.3",
+]
+cuda = [
+    "torch>=2.3",
+]
+dev = [
+    "flake8>=7.0",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "types-tqdm",
+    "scipy-stubs>=1.15.3.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "cpu", "api", "bench"]
+conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", group = "cpu" },
+    { index = "pytorch-cuda", group = "cuda" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.mypy]
+python_version = "3.10"
+exclude = ["^data/", "^\\.venv/", "^moulinette/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: loads real ML models (deselected by default; run with -m slow)",
+]
+
+[[tool.mypy.overrides]]
+module = ["fire", "fire.*", "pyarrow", "pyarrow.*"]
+ignore_missing_imports = true

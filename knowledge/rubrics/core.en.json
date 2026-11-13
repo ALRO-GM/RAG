@@ -1,0 +1,1122 @@
+{
+  "name": "core",
+  "version": "0.1.0",
+  "language": "en",
+  "scale": {
+    "minimum": 1,
+    "maximum": 5,
+    "labels": {
+      "1": "Negative behaviours predominate",
+      "2": "Between 1 and 3",
+      "3": "Positive behaviours present but narrow or mixed",
+      "4": "Between 3 and 5",
+      "5": "Varied positive behaviours across the session"
+    }
+  },
+  "competencies": [
+    {
+      "id": "COMM",
+      "name": "Communicating clearly",
+      "definition": "Expresses ideas, information and reasoning so that others in the group can understand and use them, adapting to the audience.",
+      "indicators": [
+        {
+          "id": "COMM.P1",
+          "text": "States the point first, then supports it",
+          "polarity": "positive",
+          "examples": [
+            "In short, what I'm proposing is"
+          ]
+        },
+        {
+          "id": "COMM.P2",
+          "text": "Structures a longer contribution explicitly by signposting or enumerating",
+          "polarity": "positive",
+          "examples": [
+            "There are two options: first, second"
+          ]
+        },
+        {
+          "id": "COMM.P3",
+          "text": "Explains a term or gives an example when others signal confusion",
+          "polarity": "positive",
+          "examples": [
+            "Let me put that differently",
+            "For example"
+          ]
+        },
+        {
+          "id": "COMM.P4",
+          "text": "Summarises own position concisely when asked",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "COMM.P5",
+          "text": "Checks that the message was understood",
+          "polarity": "positive",
+          "examples": [
+            "Does that make sense?"
+          ]
+        },
+        {
+          "id": "COMM.P6",
+          "text": "Closes the loop on a request: confirms what was heard and what will be done",
+          "polarity": "positive",
+          "examples": [
+            "So you need it by Friday, I'll send it Thursday"
+          ]
+        },
+        {
+          "id": "COMM.N1",
+          "text": "Gives a long, unstructured turn after which others ask what was meant",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COMM.N2",
+          "text": "Uses unexplained jargon and does not clarify when asked",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COMM.N3",
+          "text": "Repeatedly restarts or contradicts own statements without resolving them",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COMM.N4",
+          "text": "Leaves a direct question unanswered",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Contributions are hard to follow and are not repaired when others ask; direct questions stay unanswered.",
+        "3": "Usually understandable, but structure, examples or checks appear only occasionally or only when asked.",
+        "5": "Leads with the point, structures longer contributions, clarifies on confusion and closes the loop, across the session."
+      },
+      "sources": [
+        "SHL Great Eight: Interacting and Presenting",
+        "UK Success Profiles: Communicating and Influencing",
+        "SHRM BASK: Communication",
+        "LifeComp: S2 Communication",
+        "Assessment-centre dimension: Communication (Arthur et al. 2003)",
+        "Salas, Sims & Burke 2005: closed-loop communication"
+      ],
+      "limits": "Vocal delivery, pace and prosody; visual aids; written communication; whether the content was correct. Do not use disfluencies, grammar or accent."
+    },
+    {
+      "id": "LISTEN",
+      "name": "Active listening and uptake",
+      "definition": "Attends to what others say and demonstrably uses it: paraphrases, asks follow-up questions and builds on others' contributions.",
+      "indicators": [
+        {
+          "id": "LISTEN.P1",
+          "text": "Paraphrases or summarises another speaker before responding",
+          "polarity": "positive",
+          "examples": [
+            "If I understood you, you're saying"
+          ]
+        },
+        {
+          "id": "LISTEN.P2",
+          "text": "Asks a follow-up question that depends on the content of the previous turn",
+          "polarity": "positive",
+          "examples": [
+            "What did you mean by"
+          ]
+        },
+        {
+          "id": "LISTEN.P3",
+          "text": "Explicitly builds on a named colleague's idea",
+          "polarity": "positive",
+          "examples": [
+            "Building on what Ana said"
+          ]
+        },
+        {
+          "id": "LISTEN.P4",
+          "text": "Refers back to something said earlier by someone else",
+          "polarity": "positive",
+          "examples": [
+            "Going back to Luis's point about"
+          ]
+        },
+        {
+          "id": "LISTEN.P5",
+          "text": "Asks a clarifying question instead of assuming",
+          "polarity": "positive",
+          "examples": [
+            "Where does that number come from?"
+          ]
+        },
+        {
+          "id": "LISTEN.P6",
+          "text": "Corrects own understanding after an answer",
+          "polarity": "positive",
+          "examples": [
+            "Ah, I had understood something else"
+          ]
+        },
+        {
+          "id": "LISTEN.N1",
+          "text": "Responds with an unrelated point right after a direct contribution",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "LISTEN.N2",
+          "text": "Repeats a proposal someone else already made without acknowledging it",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "LISTEN.N3",
+          "text": "Asks for information that was just given",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "LISTEN.N4",
+          "text": "Cuts in to finish another's sentence with a different meaning, and the speaker has to repair it",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Responds beside the point, repeats others' proposals without acknowledging them or asks for what was just said.",
+        "3": "Responds to others' content, but rarely paraphrases, asks follow-up questions or builds on it.",
+        "5": "Paraphrases, asks content-dependent questions and builds on named colleagues' ideas throughout the session."
+      },
+      "sources": [
+        "UK Success Profiles: Communicating and Influencing; Working Together",
+        "OECD Competency Framework: Diplomatic Sensitivity",
+        "SHRM BASK: Communication (listening)",
+        "LifeComp: S1 Empathy; S2 Communication",
+        "PISA 2015 CPS: Establishing and maintaining shared understanding",
+        "CATME: Interacting with teammates",
+        "SHL Great Eight: Supporting and Cooperating"
+      ],
+      "limits": "Silent attention, eye contact, note-taking; whether the understanding was real. Do not score back-channels (\"mm-hm\"): transcription drops them and they vary by culture."
+    },
+    {
+      "id": "INFLU",
+      "name": "Influencing with reasons",
+      "definition": "Gains others' agreement through evidence, argument and appeal to shared goals, while remaining open to counter-argument.",
+      "indicators": [
+        {
+          "id": "INFLU.P1",
+          "text": "Gives a reason, a fact or an example together with a proposal",
+          "polarity": "positive",
+          "examples": [
+            "I'd go with B because"
+          ]
+        },
+        {
+          "id": "INFLU.P2",
+          "text": "Links the proposal to a goal the group has stated",
+          "polarity": "positive",
+          "examples": [
+            "Given we agreed the priority is"
+          ]
+        },
+        {
+          "id": "INFLU.P3",
+          "text": "Anticipates and addresses an objection",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "INFLU.P4",
+          "text": "Adjusts the proposal after a counter-argument and says so",
+          "polarity": "positive",
+          "examples": [
+            "You're right about the cost; what if we"
+          ]
+        },
+        {
+          "id": "INFLU.P5",
+          "text": "Proposes a trade-off or package that incorporates others' interests",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "INFLU.P6",
+          "text": "Asks what others would need in order to agree",
+          "polarity": "positive",
+          "examples": [
+            "What would convince you?"
+          ]
+        },
+        {
+          "id": "INFLU.N1",
+          "text": "Repeats the same assertion without new support",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "INFLU.N2",
+          "text": "Appeals to status, seniority or experience instead of reasons",
+          "polarity": "negative",
+          "examples": [
+            "I have been doing this for years"
+          ]
+        },
+        {
+          "id": "INFLU.N3",
+          "text": "Pushes for closure while objections are unanswered",
+          "polarity": "negative",
+          "examples": [
+            "There is nothing more to discuss"
+          ]
+        },
+        {
+          "id": "INFLU.N4",
+          "text": "Dismisses alternatives without engaging with their content",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Pushes by repetition, status or pressure to close; dismisses alternatives without engaging with them.",
+        "3": "Gives reasons for proposals, but rarely links them to shared goals or responds to objections.",
+        "5": "Argues with reasons tied to the group's goals, addresses objections and adjusts the proposal in response."
+      },
+      "sources": [
+        "SHL Great Eight: Interacting and Presenting; Leading and Deciding",
+        "UK Success Profiles: Communicating and Influencing",
+        "OECD Competency Framework: Influencing; Negotiating",
+        "SHRM BASK: Relationship Management (negotiation)",
+        "Assessment-centre dimension: Influencing others (Arthur et al. 2003)"
+      ],
+      "limits": "Whether minds changed beyond the meeting; lobbying outside it; the quality of the evidence cited; whether the group's choice was good. A proposal being adopted is NOT evidence: it rewards status and talk time."
+    },
+    {
+      "id": "COLLAB",
+      "name": "Collaboration and mutual support",
+      "definition": "Works toward shared goals: offers and asks for help, shares information, credits others and puts the team result ahead of personal position.",
+      "indicators": [
+        {
+          "id": "COLLAB.P1",
+          "text": "Offers concrete help with a teammate's task",
+          "polarity": "positive",
+          "examples": [
+            "I can take that off your plate"
+          ]
+        },
+        {
+          "id": "COLLAB.P2",
+          "text": "Asks for help or input when stuck",
+          "polarity": "positive",
+          "examples": [
+            "Could someone look at this with me?"
+          ]
+        },
+        {
+          "id": "COLLAB.P3",
+          "text": "Shares, unprompted, information that another member needs",
+          "polarity": "positive",
+          "examples": [
+            "You'll need the figures I got, I'll share them"
+          ]
+        },
+        {
+          "id": "COLLAB.P4",
+          "text": "Credits a named colleague for an idea or for work done",
+          "polarity": "positive",
+          "examples": [
+            "That was Marta's idea"
+          ]
+        },
+        {
+          "id": "COLLAB.P5",
+          "text": "Frames goals and problems collectively",
+          "polarity": "positive",
+          "examples": [
+            "What do we need"
+          ]
+        },
+        {
+          "id": "COLLAB.P6",
+          "text": "Volunteers for an unglamorous shared task",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "COLLAB.N1",
+          "text": "Withholds or deflects when asked for information",
+          "polarity": "negative",
+          "examples": [
+            "That's my part, don't worry about it"
+          ]
+        },
+        {
+          "id": "COLLAB.N2",
+          "text": "Disparages a teammate's contribution or competence",
+          "polarity": "negative",
+          "examples": [
+            "That makes no sense at all"
+          ]
+        },
+        {
+          "id": "COLLAB.N3",
+          "text": "Claims shared work as own",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COLLAB.N4",
+          "text": "Refuses a reasonable request for help without explanation",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Withholds information or help, disparages teammates or claims shared work as own.",
+        "3": "Cooperates when asked, but rarely offers help, shares information unprompted or credits others.",
+        "5": "Offers and asks for help, shares what others need and credits colleagues, repeatedly and unprompted."
+      },
+      "sources": [
+        "SHL Great Eight: Supporting and Cooperating",
+        "UK Success Profiles: Working Together",
+        "OECD Competency Framework: Teamwork and Team Leadership",
+        "UN Values and Behaviours Framework: Connect and Collaborate",
+        "SHRM BASK: Relationship Management (teamwork)",
+        "LifeComp: S3 Collaboration",
+        "Salas, Sims & Burke 2005: backup behaviour; team orientation",
+        "Marks, Mathieu & Zaccaro 2001: team monitoring and backup",
+        "CATME: Interacting with teammates",
+        "Stevens & Campion 1994: interpersonal KSAs"
+      ],
+      "limits": "Whether the help offered was delivered; the amount and quality of the work actually contributed; trust; behaviour outside the recorded session."
+    },
+    {
+      "id": "INCL",
+      "name": "Inclusive facilitation",
+      "definition": "Helps everyone contribute: invites quieter members, balances airtime, protects speakers from being talked over and makes room for different viewpoints.",
+      "indicators": [
+        {
+          "id": "INCL.P1",
+          "text": "Directly invites a member who has not spoken on the topic",
+          "polarity": "positive",
+          "examples": [
+            "Carlos, we haven't heard from you on this"
+          ]
+        },
+        {
+          "id": "INCL.P2",
+          "text": "Returns the floor to someone who was cut off",
+          "polarity": "positive",
+          "examples": [
+            "Hang on, Lucía was saying"
+          ]
+        },
+        {
+          "id": "INCL.P3",
+          "text": "Asks for dissenting or missing views before closing a topic",
+          "polarity": "positive",
+          "examples": [
+            "Does anyone see it differently?"
+          ]
+        },
+        {
+          "id": "INCL.P4",
+          "text": "Checks the whole group for agreement instead of assuming it",
+          "polarity": "positive",
+          "examples": [
+            "Is everyone OK with that, or just the three of us?"
+          ]
+        },
+        {
+          "id": "INCL.P5",
+          "text": "Limits own turn to make room for others",
+          "polarity": "positive",
+          "examples": [
+            "I've talked a lot, what do others think?"
+          ]
+        },
+        {
+          "id": "INCL.P6",
+          "text": "Rephrases a hesitant contribution so the group considers it",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "INCL.N1",
+          "text": "Talks over a member who is starting to speak, and that member gives up the turn",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "INCL.N2",
+          "text": "Addresses questions only to the same one or two members",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "INCL.N3",
+          "text": "Declares consensus when others have not spoken",
+          "polarity": "negative",
+          "examples": [
+            "So we all agree"
+          ]
+        },
+        {
+          "id": "INCL.N4",
+          "text": "Dismisses a contribution by referring to who said it",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Talks over others, addresses only the same one or two members or declares agreement nobody voiced.",
+        "3": "Leaves room for others, but seldom invites, protects a speaker or checks the whole group.",
+        "5": "Invites quiet members, returns the floor to interrupted speakers and asks for dissent before closing, throughout."
+      },
+      "sources": [
+        "UK Success Profiles: Working Together; Leadership",
+        "OECD Competency Framework: Teamwork and Team Leadership",
+        "UN Values and Behaviours Framework: Inclusion; Connect and Collaborate",
+        "ATC21S: Participation; Social regulation",
+        "PISA 2015 CPS: Establishing and maintaining team organisation",
+        "Salas, Sims & Burke 2005: team leadership",
+        "Woolley et al. 2010: equality of conversational turn-taking"
+      ],
+      "limits": "The intent behind overlapping speech (often cooperative, especially in Spanish); gaze and gesture; whether someone's silence is exclusion or choice. Talking-over evidence is low confidence when timing or speaker labels are unreliable."
+    },
+    {
+      "id": "CONFL",
+      "name": "Constructive disagreement and conflict handling",
+      "definition": "Raises and handles disagreement about tasks and ideas openly and respectfully, separates issues from persons and works toward resolution.",
+      "indicators": [
+        {
+          "id": "CONFL.P1",
+          "text": "States disagreement explicitly with a reason",
+          "polarity": "positive",
+          "examples": [
+            "I see it differently, because"
+          ]
+        },
+        {
+          "id": "CONFL.P2",
+          "text": "Acknowledges the valid part of the other view before differing",
+          "polarity": "positive",
+          "examples": [
+            "I agree on the goal, not on the timing"
+          ]
+        },
+        {
+          "id": "CONFL.P3",
+          "text": "Names the disagreement and proposes a way to resolve it: criteria, data, a test or a vote",
+          "polarity": "positive",
+          "examples": [
+            "Can we agree how to decide?"
+          ]
+        },
+        {
+          "id": "CONFL.P4",
+          "text": "Reframes a personal remark as an issue about the task",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "CONFL.P5",
+          "text": "Proposes a compromise or an option that integrates both views",
+          "polarity": "positive",
+          "examples": [
+            "We could combine both options"
+          ]
+        },
+        {
+          "id": "CONFL.P6",
+          "text": "De-escalates after tension: apologises or takes back wording",
+          "polarity": "positive",
+          "examples": [
+            "Sorry, that came out harsher than I meant"
+          ]
+        },
+        {
+          "id": "CONFL.N1",
+          "text": "Makes a personal criticism or a sarcastic remark aimed at a member",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "CONFL.N2",
+          "text": "Rejects an idea outright without giving reasons",
+          "polarity": "negative",
+          "examples": [
+            "That will never work"
+          ]
+        },
+        {
+          "id": "CONFL.N3",
+          "text": "Complains repeatedly without proposing anything",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "CONFL.N4",
+          "text": "Explicitly withdraws after a disagreement",
+          "polarity": "negative",
+          "examples": [
+            "Fine, do whatever you want"
+          ]
+        }
+      ],
+      "anchors": {
+        "1": "Disagrees through personal criticism, blanket rejection or withdrawal.",
+        "3": "States disagreement with reasons, but seldom acknowledges the other view or proposes how to resolve it.",
+        "5": "Disagrees with reasons, acknowledges the other view, proposes a way to decide or a compromise and de-escalates tension."
+      },
+      "sources": [
+        "Stevens & Campion 1994: conflict resolution KSAs",
+        "Marks, Mathieu & Zaccaro 2001: conflict management; affect management",
+        "OECD Competency Framework: Teamwork and Team Leadership; Diplomatic Sensitivity; Negotiating",
+        "UK Success Profiles: Communicating and Influencing; Making Effective Decisions",
+        "SHRM BASK: Relationship Management (conflict management)",
+        "LifeComp: S3 Collaboration; P1 Self-regulation",
+        "ATC21S: Social regulation"
+      ],
+      "limits": "Emotional state, tone and sarcasm; disagreement that was not voiced; conflict history outside the recording. A session without disagreement gives no evidence: insufficient evidence, not a high rating. Do not score politeness formulas or hedging."
+    },
+    {
+      "id": "FEEDB",
+      "name": "Feedback and developing others",
+      "definition": "Gives specific, usable feedback, asks for feedback on own work, and explains and teaches so that others can do the task.",
+      "indicators": [
+        {
+          "id": "FEEDB.P1",
+          "text": "Gives feedback that names the specific behaviour or piece of work and its effect",
+          "polarity": "positive",
+          "examples": [
+            "The intro works; the second section loses me at"
+          ]
+        },
+        {
+          "id": "FEEDB.P2",
+          "text": "Pairs a criticism with a concrete suggestion",
+          "polarity": "positive",
+          "examples": [
+            "Maybe move that part to the end"
+          ]
+        },
+        {
+          "id": "FEEDB.P3",
+          "text": "Asks for feedback on own contribution",
+          "polarity": "positive",
+          "examples": [
+            "Can you tell me what you'd change in my part?"
+          ]
+        },
+        {
+          "id": "FEEDB.P4",
+          "text": "Explains how or why, not only what, when a teammate lacks knowledge",
+          "polarity": "positive",
+          "examples": [
+            "The reason we do it this way is"
+          ]
+        },
+        {
+          "id": "FEEDB.P5",
+          "text": "Checks whether the explanation helped",
+          "polarity": "positive",
+          "examples": [
+            "Is that clearer now?"
+          ]
+        },
+        {
+          "id": "FEEDB.P6",
+          "text": "Recognises improvement or good work specifically",
+          "polarity": "positive",
+          "examples": [
+            "Nice work on the edge cases"
+          ]
+        },
+        {
+          "id": "FEEDB.N1",
+          "text": "Gives a global judgement without specifics",
+          "polarity": "negative",
+          "examples": [
+            "This is bad"
+          ]
+        },
+        {
+          "id": "FEEDB.N2",
+          "text": "Takes over a teammate's task instead of explaining, after being asked for help to learn",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "FEEDB.N3",
+          "text": "Rejects or argues with feedback received without considering it",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "FEEDB.N4",
+          "text": "Delivers feedback as a put-down in front of the group",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Judges globally without specifics, puts teammates down or rejects feedback received.",
+        "3": "Gives feedback or explanations when asked, with limited specifics; seldom asks for feedback.",
+        "5": "Gives specific feedback with suggestions, explains the why, checks it helped and asks for feedback on own work."
+      },
+      "sources": [
+        "UK Success Profiles: Developing Self and Others",
+        "OECD Competency Framework: Developing Talent",
+        "UN Values and Behaviours Framework: Learn and Develop",
+        "CATME: Keeping the team on track; Expecting quality",
+        "Salas, Sims & Burke 2005: mutual performance monitoring",
+        "Marks, Mathieu & Zaccaro 2001: team monitoring and backup",
+        "Edmondson 1999: team learning behaviours"
+      ],
+      "limits": "Whether the feedback was accurate; whether the recipient improved; private or written feedback. Many sessions contain no feedback episode: expect insufficient evidence often."
+    },
+    {
+      "id": "COORD",
+      "name": "Coordination and keeping the team on track",
+      "definition": "Structures the group's work: clarifies goals, proposes process, allocates tasks and time, monitors progress and summarises.",
+      "indicators": [
+        {
+          "id": "COORD.P1",
+          "text": "States or asks for the goal or output of the session",
+          "polarity": "positive",
+          "examples": [
+            "What do we need to have decided by the end?"
+          ]
+        },
+        {
+          "id": "COORD.P2",
+          "text": "Proposes an agenda, an order or a method",
+          "polarity": "positive",
+          "examples": [
+            "Let's do requirements first, then split tasks"
+          ]
+        },
+        {
+          "id": "COORD.P3",
+          "text": "Proposes or negotiates who does what by when",
+          "polarity": "positive",
+          "examples": [
+            "Pablo the draft by Wednesday, I review Thursday"
+          ]
+        },
+        {
+          "id": "COORD.P4",
+          "text": "Notes the time and redirects the group",
+          "polarity": "positive",
+          "examples": [
+            "Ten minutes left; let's decide this first"
+          ]
+        },
+        {
+          "id": "COORD.P5",
+          "text": "Summarises decisions and open points",
+          "polarity": "positive",
+          "examples": [
+            "To sum up, we agreed that"
+          ]
+        },
+        {
+          "id": "COORD.P6",
+          "text": "Brings the discussion back after a digression",
+          "polarity": "positive",
+          "examples": [
+            "We're drifting, back to the budget"
+          ]
+        },
+        {
+          "id": "COORD.N1",
+          "text": "Repeatedly introduces unrelated topics while a task is open",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COORD.N2",
+          "text": "Reopens settled decisions without new information",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "COORD.N3",
+          "text": "Leaves task ownership ambiguous when asked",
+          "polarity": "negative",
+          "examples": [
+            "Someone will do it"
+          ]
+        },
+        {
+          "id": "COORD.N4",
+          "text": "Dictates assignments without checking capacity or agreement",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Derails or reopens settled points, leaves ownership vague or dictates assignments without checking.",
+        "3": "Follows the structure others set and occasionally proposes a step, an owner or a deadline.",
+        "5": "Sets goals and method, negotiates who does what by when, watches the time and summarises decisions and open points."
+      },
+      "sources": [
+        "Marks, Mathieu & Zaccaro 2001: transition processes (goal specification, planning); action processes (monitoring progress, coordination)",
+        "Stevens & Campion 1994: goal setting; planning and task coordination",
+        "CATME: Keeping the team on track",
+        "SHL Great Eight: Organizing and Executing",
+        "Assessment-centre dimension: Organising and planning (Arthur et al. 2003)",
+        "UK Success Profiles: Delivering at Pace; Leadership",
+        "OECD Competency Framework: Teamwork and Team Leadership; Managing Resources",
+        "UN Values and Behaviours Framework: Analyse and Plan",
+        "PISA 2015 CPS: Establishing and maintaining team organisation",
+        "ATC21S: Task regulation"
+      ],
+      "limits": "Whether the plans were realistic or carried out; coordination done in tools (boards, chat). A designated facilitator showing these behaviours is fulfilling a role: the report must say so."
+    },
+    {
+      "id": "SOLVE",
+      "name": "Collaborative problem solving and decision making",
+      "definition": "Contributes to analysing problems and reaching decisions with the group: defines the problem, shares and requests relevant information, generates and evaluates options and makes the reasoning explicit.",
+      "indicators": [
+        {
+          "id": "SOLVE.P1",
+          "text": "Defines or reframes the problem; separates symptom from cause",
+          "polarity": "positive",
+          "examples": [
+            "What exactly is the problem we're solving?"
+          ]
+        },
+        {
+          "id": "SOLVE.P2",
+          "text": "Asks for facts or assumptions before judging an option",
+          "polarity": "positive",
+          "examples": [
+            "Do we know that, or are we assuming it?"
+          ]
+        },
+        {
+          "id": "SOLVE.P3",
+          "text": "Offers more than one option, or asks for alternatives",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "SOLVE.P4",
+          "text": "States criteria and weighs the options against them",
+          "polarity": "positive",
+          "examples": [
+            "Option A is cheaper but riskier because"
+          ]
+        },
+        {
+          "id": "SOLVE.P5",
+          "text": "Makes the chain of reasoning explicit",
+          "polarity": "positive",
+          "examples": [
+            "If we do this, then"
+          ]
+        },
+        {
+          "id": "SOLVE.P6",
+          "text": "Checks the decision against the goal and names remaining risks",
+          "polarity": "positive",
+          "examples": [
+            "What would have to be true for this to fail?"
+          ]
+        },
+        {
+          "id": "SOLVE.N1",
+          "text": "Jumps to a solution and resists examining the problem",
+          "polarity": "negative",
+          "examples": [
+            "I know what the solution is, let's just do it"
+          ]
+        },
+        {
+          "id": "SOLVE.N2",
+          "text": "Asserts conclusions with no stated basis when challenged",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "SOLVE.N3",
+          "text": "Ignores disconfirming information raised by others",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "SOLVE.N4",
+          "text": "Pushes to decide without stating what is being decided",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Jumps to a solution, asserts without basis when challenged or ignores information that contradicts it.",
+        "3": "Contributes facts and opinions, but seldom frames the problem, compares options or states criteria.",
+        "5": "Defines the problem, checks facts and assumptions, weighs options against criteria and tests the decision against the goal."
+      },
+      "sources": [
+        "PISA 2015 CPS: Taking appropriate action to solve the problem; Establishing and maintaining shared understanding",
+        "ATC21S: Task regulation; Knowledge building",
+        "Stevens & Campion 1994: collaborative problem solving KSAs",
+        "UK Success Profiles: Making Effective Decisions",
+        "OECD Competency Framework: Analytical Thinking; Flexible Thinking",
+        "UN Values and Behaviours Framework: Analyse and Plan",
+        "SHL Great Eight: Analyzing and Interpreting; Leading and Deciding",
+        "Assessment-centre dimension: Problem solving (Arthur et al. 2003)"
+      ],
+      "limits": "Whether the analysis was correct, technical expertise, thinking done silently or in writing, and the quality of the decision. The rubric rates the contribution to the process, not being right."
+    },
+    {
+      "id": "INIT",
+      "name": "Initiative and commitment to action",
+      "definition": "Moves the work forward: volunteers, proposes next steps, commits to concrete actions and reports on earlier commitments.",
+      "indicators": [
+        {
+          "id": "INIT.P1",
+          "text": "Volunteers for a task with a concrete deliverable or date",
+          "polarity": "positive",
+          "examples": [
+            "I'll take it, you'll have it Monday"
+          ]
+        },
+        {
+          "id": "INIT.P2",
+          "text": "Proposes a next step when the group stalls",
+          "polarity": "positive",
+          "examples": [
+            "Next step: I'll call the client today"
+          ]
+        },
+        {
+          "id": "INIT.P3",
+          "text": "Reports the status of an earlier commitment without being asked",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "INIT.P4",
+          "text": "Admits a missed or at-risk commitment and re-plans",
+          "polarity": "positive",
+          "examples": [
+            "I didn't finish the analysis; I'll have it tomorrow morning"
+          ]
+        },
+        {
+          "id": "INIT.P5",
+          "text": "Raises the quality bar with a specific standard",
+          "polarity": "positive",
+          "examples": [
+            "Let's test it with two users first"
+          ]
+        },
+        {
+          "id": "INIT.P6",
+          "text": "Expresses confidence in the team's ability to deliver, tied to a plan",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "INIT.N1",
+          "text": "Deflects responsibility",
+          "polarity": "negative",
+          "examples": [
+            "Not my job",
+            "Nobody told me"
+          ]
+        },
+        {
+          "id": "INIT.N2",
+          "text": "Gives a vague non-commitment when asked directly",
+          "polarity": "negative",
+          "examples": [
+            "I'll see"
+          ]
+        },
+        {
+          "id": "INIT.N3",
+          "text": "Is pessimistic about any change without offering an alternative",
+          "polarity": "negative",
+          "examples": [
+            "There's no point"
+          ]
+        },
+        {
+          "id": "INIT.N4",
+          "text": "Acknowledges repeated non-delivery without explanation",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Deflects responsibility, stays vague when asked to commit or is pessimistic without alternatives.",
+        "3": "Accepts tasks when they are assigned; commitments are sometimes concrete, rarely volunteered.",
+        "5": "Volunteers with deliverables and dates, proposes next steps, reports status and re-plans openly when something slips."
+      },
+      "sources": [
+        "CATME: Contributing to the team's work; Expecting quality",
+        "Assessment-centre dimension: Drive (Arthur et al. 2003; Meriac et al. 2014)",
+        "SHL Great Eight: Enterprising and Performing; Organizing and Executing",
+        "UK Success Profiles: Delivering at Pace",
+        "OECD Competency Framework: Achievement Focus",
+        "UN Values and Behaviours Framework: Deliver Results with Positive Impact",
+        "Marks, Mathieu & Zaccaro 2001: motivating and confidence building",
+        "Kauffeld & Lehmann-Willenbrock 2012 (act4teams): action-oriented statements"
+      ],
+      "limits": "Follow-through: a transcript shows commitments, not delivery. Effort, working hours and the quality of the output are not observable. Delivery can only be seen by linking sessions."
+    },
+    {
+      "id": "ADAPT",
+      "name": "Openness to learning and adaptability",
+      "definition": "Shows willingness to revise views and approach: admits gaps and mistakes, asks for help, incorporates new information and adjusts to changed constraints.",
+      "indicators": [
+        {
+          "id": "ADAPT.P1",
+          "text": "Says \"I don't know\" or \"I was wrong\" in plain terms",
+          "polarity": "positive",
+          "examples": [
+            "My mistake: I used last year's data",
+            "Honestly, I don't know"
+          ]
+        },
+        {
+          "id": "ADAPT.P2",
+          "text": "Changes position after an argument or new information and says why",
+          "polarity": "positive",
+          "examples": [
+            "Good point, I hadn't considered that; then I'd change"
+          ]
+        },
+        {
+          "id": "ADAPT.P3",
+          "text": "Asks how someone else would approach it",
+          "polarity": "positive",
+          "examples": [
+            "How would you do it?"
+          ]
+        },
+        {
+          "id": "ADAPT.P4",
+          "text": "Proposes adjusting the plan when a constraint changes",
+          "polarity": "positive",
+          "examples": [
+            "What if we change the plan and do it in two phases?"
+          ]
+        },
+        {
+          "id": "ADAPT.P5",
+          "text": "Reflects on what the team could do differently next time",
+          "polarity": "positive",
+          "examples": [
+            "Next time we should start with"
+          ]
+        },
+        {
+          "id": "ADAPT.P6",
+          "text": "Accepts feedback and states what will change",
+          "polarity": "positive",
+          "examples": []
+        },
+        {
+          "id": "ADAPT.N1",
+          "text": "Defends a position after it has been factually corrected",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "ADAPT.N2",
+          "text": "Blames others or circumstances for an error raised in the session",
+          "polarity": "negative",
+          "examples": []
+        },
+        {
+          "id": "ADAPT.N3",
+          "text": "Rejects a changed constraint without proposing how to cope",
+          "polarity": "negative",
+          "examples": [
+            "We've always done it this way"
+          ]
+        },
+        {
+          "id": "ADAPT.N4",
+          "text": "Dismisses a retrospective or feedback discussion as a waste of time",
+          "polarity": "negative",
+          "examples": []
+        }
+      ],
+      "anchors": {
+        "1": "Defends positions after being corrected, blames others or rejects change and feedback.",
+        "3": "Accepts corrections and new constraints, but seldom says what changed or asks how others would do it.",
+        "5": "Admits gaps and mistakes plainly, changes position with reasons, adapts the plan and reflects on what to do differently."
+      },
+      "sources": [
+        "Edmondson 1999: team learning behaviours",
+        "Salas, Sims & Burke 2005: adaptability",
+        "SHL Great Eight: Adapting and Coping",
+        "OECD Competency Framework: Flexible Thinking",
+        "UK Success Profiles: Changing and Improving; Developing Self and Others",
+        "UN Values and Behaviours Framework: Adapt and Innovate; Learn and Develop; Humility",
+        "LifeComp: P2 Flexibility; L1 Growth mindset",
+        "ATC21S: Social regulation"
+      ],
+      "limits": "Actual learning or later behaviour change; private reflection; resilience or stress tolerance. Admitting errors depends on the team climate: few admissions may reflect the team, not the person."
+    }
+  ],
+  "excluded": [
+    {
+      "name": "Integrity, honesty, ethics",
+      "reason": "Needs knowledge of facts and of behaviour when unobserved; a transcript only shows claims."
+    },
+    {
+      "name": "Technical expertise; correctness of ideas",
+      "reason": "Needs domain ground truth and work products."
+    },
+    {
+      "name": "Reliability, work quality, follow-through",
+      "reason": "Happen outside the conversation; only commitments are audible."
+    },
+    {
+      "name": "Results orientation",
+      "reason": "An outcome construct, not a conversational behaviour."
+    },
+    {
+      "name": "Strategic thinking, vision",
+      "reason": "Not sampled in peer work sessions; inference would rest on vocabulary."
+    },
+    {
+      "name": "Emotional intelligence, emotional state, stress tolerance",
+      "reason": "Internal states; text is a poor proxy, and inferring emotion from voice at work or in education is prohibited by the EU AI Act."
+    },
+    {
+      "name": "Psychological safety, trust, cohesion",
+      "reason": "Shared beliefs of the team, measured by survey."
+    },
+    {
+      "name": "Personality, Belbin roles, MBTI or DISC types, motivation",
+      "reason": "Dispositional constructs; the instruments have weak psychometric support and automated inference weak validity."
+    },
+    {
+      "name": "Creativity",
+      "reason": "Novelty needs domain judgement."
+    },
+    {
+      "name": "Written, presentation and non-verbal communication",
+      "reason": "Not in an audio transcript."
+    },
+    {
+      "name": "Cognitive ability",
+      "reason": "Not a behavioural competency; verbal fluency is a biased proxy."
+    },
+    {
+      "name": "Leadership as a separate score",
+      "reason": "Emergent and shared in peer groups, and perceptions of it follow speaking time; reported as a profile of INCL, COORD, INFLU, FEEDB and INIT evidence."
+    }
+  ],
+  "references": [
+    "docs/skills/THEORY.md"
+  ]
+}

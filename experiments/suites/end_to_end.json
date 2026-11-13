@@ -1,0 +1,11 @@
+{
+  "name": "end_to_end",
+  "description": "Real cost: cold indexing (no cache at all) plus search, for the configurations at the ends of the speed/precision range.",
+  "base": {"lab_cold": true, "semantic": true, "mode": "auto", "rerank": false},
+  "strategy": "list",
+  "trials": [
+    {"name": "lexical only (no embeddings)", "params": {"semantic": false, "mode": "bm25"}},
+    {"name": "hybrid + rerank depth=10", "params": {"rerank": true}},
+    {"name": "hybrid, 64-token embeddings", "params": {"embedding_max_tokens": 64}}
+  ]
+}

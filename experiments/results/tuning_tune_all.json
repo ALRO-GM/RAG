@@ -1,0 +1,165 @@
+{
+  "suite": "tune_all",
+  "best_params": {
+    "path_weight": 3,
+    "context_weight": 3,
+    "bm25_k1": 0.9,
+    "bm25_b": 0.5,
+    "table_context": true,
+    "max_chunk_size": 1500,
+    "semantic_weight": 0.5,
+    "route_strength": 0.1,
+    "file_boost": 0.1,
+    "test_weight": 0.6
+  },
+  "in_sample": 1.0300099326599312,
+  "baseline": 0.970359139009138,
+  "cv_estimate": 0.9982488408521306,
+  "cv_baseline": 0.9707411654135338,
+  "search_seconds_per_100": 0.27,
+  "folds": [
+    {
+      "params": {
+        "path_weight": 2,
+        "context_weight": 2,
+        "bm25_k1": 1.2,
+        "bm25_b": 0.75,
+        "table_context": true,
+        "max_chunk_size": 1500,
+        "semantic_weight": 0.4,
+        "route_strength": 0.1,
+        "file_boost": 0.1,
+        "test_weight": 0.6
+      },
+      "train": 1.0387139215390793,
+      "test": 0.9518154761904764,
+      "baseline_test": 0.9204166666666667
+    },
+    {
+      "params": {
+        "path_weight": 3,
+        "context_weight": 2,
+        "bm25_k1": 1.2,
+        "bm25_b": 0.3,
+        "table_context": true,
+        "max_chunk_size": 2000,
+        "semantic_weight": 0.6,
+        "route_strength": 0.1,
+        "file_boost": 0.2,
+        "test_weight": 0.6
+      },
+      "train": 1.0356881153305197,
+      "test": 0.9467708333333335,
+      "baseline_test": 0.9015000000000001
+    },
+    {
+      "params": {
+        "path_weight": 3,
+        "context_weight": 3,
+        "bm25_k1": 1.2,
+        "bm25_b": 0.5,
+        "table_context": true,
+        "max_chunk_size": 2000,
+        "semantic_weight": 0.5,
+        "route_strength": 0.1,
+        "file_boost": 0.2,
+        "test_weight": 0.6
+      },
+      "train": 1.0286520965189867,
+      "test": 1.002625,
+      "baseline_test": 1.0013333333333334
+    },
+    {
+      "params": {
+        "path_weight": 3,
+        "context_weight": 3,
+        "bm25_k1": 0.6,
+        "bm25_b": 0.5,
+        "table_context": true,
+        "max_chunk_size": 1500,
+        "semantic_weight": 0.3,
+        "route_strength": 0.2,
+        "file_boost": 0.2,
+        "test_weight": 0.6
+      },
+      "train": 1.0313744725738392,
+      "test": 1.026041666666667,
+      "baseline_test": 1.0256250000000002
+    },
+    {
+      "params": {
+        "path_weight": 3,
+        "context_weight": 3,
+        "bm25_k1": 0.6,
+        "bm25_b": 0.5,
+        "table_context": true,
+        "max_chunk_size": 1500,
+        "semantic_weight": 0.3,
+        "route_strength": 0.2,
+        "file_boost": 0.0,
+        "test_weight": 0.6
+      },
+      "train": 1.0223645833333328,
+      "test": 1.0639912280701753,
+      "baseline_test": 1.0048308270676691
+    }
+  ],
+  "trials_evaluated": 252,
+  "stability": {
+    "path_weight": {
+      "2": 1,
+      "3": 4
+    },
+    "context_weight": {
+      "2": 2,
+      "3": 3
+    },
+    "bm25_k1": {
+      "1.2": 3,
+      "0.6": 2
+    },
+    "bm25_b": {
+      "0.75": 1,
+      "0.3": 1,
+      "0.5": 3
+    },
+    "table_context": {
+      "True": 5
+    },
+    "max_chunk_size": {
+      "1500": 3,
+      "2000": 2
+    },
+    "semantic_weight": {
+      "0.4": 1,
+      "0.6": 1,
+      "0.5": 1,
+      "0.3": 2
+    },
+    "route_strength": {
+      "0.1": 3,
+      "0.2": 2
+    },
+    "file_boost": {
+      "0.1": 1,
+      "0.2": 3,
+      "0.0": 1
+    },
+    "test_weight": {
+      "0.6": 5
+    }
+  },
+  "consensus_params": {
+    "path_weight": 3,
+    "context_weight": 3,
+    "bm25_k1": 1.2,
+    "bm25_b": 0.5,
+    "table_context": true,
+    "max_chunk_size": 2000,
+    "semantic_weight": 0.4,
+    "route_strength": 0.1,
+    "file_boost": 0.2,
+    "test_weight": 0.6
+  },
+  "consensus_score": 1.0076980639730626
+}

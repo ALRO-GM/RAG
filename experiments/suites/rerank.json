@@ -1,0 +1,13 @@
+{
+  "name": "rerank",
+  "description": "S10: cross-encoder depth and weight.",
+  "base": {"rerank": false, "rerank_depth": 10, "rerank_weight": 0.3},
+  "strategy": "list",
+  "trials": [
+    {"name": "depth=5", "params": {"rerank": true, "rerank_depth": 5}},
+    {"name": "depth=10", "params": {"rerank": true}},
+    {"name": "depth=20", "params": {"rerank": true, "rerank_depth": 20}},
+    {"name": "depth=10,weight=0.2", "params": {"rerank": true, "rerank_weight": 0.2}},
+    {"name": "depth=10,weight=0.5", "params": {"rerank": true, "rerank_weight": 0.5}}
+  ]
+}

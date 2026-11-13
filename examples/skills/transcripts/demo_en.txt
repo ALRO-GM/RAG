@@ -1,0 +1,32 @@
+[00:00:04] Maya: Okay, let's start. We have forty minutes to agree on the data pipeline design. Can each of you say what you found, and then we decide?
+[00:00:15] Tom: I already know the answer. We load everything in memory, it's the fastest and I don't see any reason to discuss it.
+[00:00:24] Priya: I measured the input files yesterday. The largest one is twelve gigabytes, so loading everything in memory will not fit on the test machine.
+[00:00:36] Tom: That's nonsense, nobody will test with the big file.
+[00:00:41] Sam: Hold on, Tom, let her finish. Priya, where did you get the file size from? Then we can all check it.
+[00:00:50] Priya: From the dataset page, section two. I can share my screen if you want to see it.
+[00:00:58] Maya: Yes please. And Tom, afterwards tell us how the in-memory version worked for you before, that will help us compare.
+[00:01:09] Tom: Fine. I used it on small files. I had not looked at the sizes for this project, to be honest.
+[00:01:18] Sam: So if I understood correctly, we agree the big file must work, and the open question is whether we stream it or split it. Is that right?
+[00:01:29] Maya: Exactly, thanks for summing it up, Sam. Priya, what do you suggest?
+[00:01:36] Priya: I suggest reading in chunks of one hundred megabytes and writing partial results, so that a crash does not lose everything.
+[00:01:47] Tom: That sounds like too much work for a small project.
+[00:01:52] Sam: I understand you are worried about the extra work, Tom. Which part looks unnecessary to you? Maybe we can simplify it.
+[00:02:01] Tom: The partial results. Chunks are fine, but we can skip the checkpoints for the first version.
+[00:02:09] Priya: That works for me. Building on Tom's idea, we can keep the function signature ready so that checkpoints are easy to add later.
+[00:02:20] Maya: Great, so chunks first and checkpoints later. Does anyone disagree? Lena, we have not heard from you yet, what do you think?
+[00:02:30] Lena: It's fine.
+[00:02:33] Maya: Is there a part you would like to take?
+[00:02:38] Lena: I could write the tests. I wrote a small test script in the last project and it found two bugs before the deadline.
+[00:02:49] Sam: That helps a lot, nobody had thought about tests. I commit to having the chunk reader working by Wednesday evening.
+[00:03:00] Tom: I will do the parser. But I still think we are slow, we should be coding already.
+[00:03:08] Maya: I hear you, Tom, time is short. We close this in five minutes. When can you have the parser?
+[00:03:16] Tom: Thursday morning. Earlier if Priya sends me the odd cases.
+[00:03:22] Priya: I will send them today. I kept a list, and if you find one that is missing tell me and I will add it.
+[00:03:31] Sam: One thing: I have an exam on Wednesday morning, so if I get stuck I will need help. I prefer to say it now rather than on Thursday.
+[00:03:42] Priya: I can help you on Wednesday afternoon, I already read how the reader works.
+[00:03:49] Maya: Perfect. To sum up: Sam the reader by Wednesday with Priya's help, Tom the parser by Thursday with Priya's list, Lena the tests, and I take the output writer and the integration. Did I miss anything?
+[00:04:06] Tom: The configuration file. Nobody said who reads it.
+[00:04:11] Maya: Good catch, I had missed it. Who can take it?
+[00:04:16] Tom: I will, it goes with the parser. Sorry about earlier, Priya, you were right about the file size.
+[00:04:24] Priya: No problem. Thanks for saying so.
+[00:04:28] Maya: Then we are done. I will write this on the board and send the summary in the chat. Thank you all.

@@ -1,0 +1,12 @@
+{
+  "name": "bigrams",
+  "description": "S11: consecutive word pairs as extra lexical terms, alone and on top of the best field weight and routing.",
+  "base": {"bigrams": false, "path_weight": 1, "route_strength": 0.0},
+  "strategy": "list",
+  "trials": [
+    {"name": "bigrams", "params": {"bigrams": true}},
+    {"name": "path2+route", "params": {"path_weight": 2, "route_strength": 0.2}},
+    {"name": "bigrams+path2+route", "params": {"bigrams": true, "path_weight": 2, "route_strength": 0.2}},
+    {"name": "bigrams+path2+route+k1=0.9", "params": {"bigrams": true, "path_weight": 2, "route_strength": 0.2, "bm25_k1": 0.9}}
+  ]
+}
