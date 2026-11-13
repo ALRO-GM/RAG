@@ -1,4 +1,4 @@
-"""Embedding adapter: sentence-transformers model on CPU."""
+"""Embedding adapter: sentence-transformers model (CPU or GPU)."""
 
 from typing import Any, List, Optional, Sequence
 
@@ -13,6 +13,8 @@ from src.domain.runtime import RuntimePlan
 FloatArray = npt.NDArray[np.float32]
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+BLOCK_BATCHES = 32
+"""Batches handed to the model per call (it length-sorts within a call)."""
 
 
 class SentenceTransformerEmbedder:
@@ -69,12 +71,16 @@ class SentenceTransformerEmbedder:
             )
             dim = int(get_dim() or 0)
             return np.zeros((0, dim), dtype=np.float32)
+        # sentence-transformers sorts each call's texts by length, so
+        # passing large blocks (not single batches) wastes far less
+        # padding; blocks only exist to report progress.
+        block = self.batch_size * BLOCK_BATCHES
         batches: List[FloatArray] = []
-        starts = range(0, len(texts), self.batch_size)
+        starts = range(0, len(texts), block)
         for start in tqdm(
-            starts, desc="Embedding chunks", unit="batch", disable=not progress
+            starts, desc="Embedding chunks", unit="block", disable=not progress
         ):
-            batch = list(texts[start:start + self.batch_size])
+            batch = list(texts[start:start + block])
             vectors = model.encode(
                 batch,
                 batch_size=self.batch_size,
