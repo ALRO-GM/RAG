@@ -569,3 +569,37 @@ def test_consensus_rejects_the_same_annotator_twice() -> None:
             aset("a", {key: (5, [(0, "L1")])}),
             aset("b", {key: (None, [])}),
         ])
+
+
+def test_evidence_may_point_at_a_sentence_of_its_turn() -> None:
+    """A sentence id narrows the evidence; it must belong to the turn."""
+    form = blank_annotations(TRANSCRIPT, CATALOGUE, "A1")
+    cell = next(
+        a for a in form.annotations
+        if (a.participant, a.competency_id) == ("Tom", "listening")
+    )
+    cell.rating = 2
+    cell.evidence = [
+        AnnotatedEvidence(turn=1, indicator_id="L3", sentence="t1.s0"),
+    ]
+    assert validate_annotations(form, TRANSCRIPT, CATALOGUE) == []
+    assert cell.turns() == {1}
+    cell.evidence = [
+        AnnotatedEvidence(turn=1, indicator_id="L3", sentence="t4.s0"),
+        AnnotatedEvidence(turn=1, indicator_id="L3", sentence="t1.s9"),
+        AnnotatedEvidence(turn=1, indicator_id="L3", sentence="nonsense"),
+    ]
+    assert validate_annotations(form, TRANSCRIPT, CATALOGUE) == [
+        "Tom/listening: sentence 't4.s0' is not a sentence of turn 1",
+        "Tom/listening: sentence 't1.s9' is not a sentence of turn 1",
+        "Tom/listening: sentence 'nonsense' is not a sentence of turn 1",
+    ]
+
+
+def test_forms_without_sentences_stay_valid_and_serialise_as_before() -> None:
+    """The field is optional: existing forms are unchanged."""
+    evidence = AnnotatedEvidence(turn=1, indicator_id="L3")
+    assert evidence.sentence is None
+    assert AnnotatedEvidence.model_validate(
+        {"turn": 1, "indicator_id": "L3"}
+    ) == evidence

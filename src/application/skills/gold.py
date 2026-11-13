@@ -23,16 +23,24 @@ from src.domain.skills.agreement import (
     set_scores,
 )
 from src.domain.skills.rubric import RubricCatalogue, Scale
+from src.domain.skills.speech import transcript_sentences
 from src.domain.skills.transcript import Transcript
 
 Unit = Tuple[str, str, str]
 
 
 class AnnotatedEvidence(BaseModel):
-    """A turn marked by an annotator as evidence of an indicator."""
+    """A turn marked by an annotator as evidence of an indicator.
+
+    ``sentence`` optionally narrows it to one sentence of that turn
+    (its id, ``t<turn>.s<n>``, as ``skills sentences`` prints it), the
+    granularity of the automatic tags. Agreement is still computed on
+    turns, so forms with and without sentences can be mixed.
+    """
 
     turn: int = Field(ge=0)
     indicator_id: str
+    sentence: Optional[str] = None
 
 
 class Annotation(BaseModel):
@@ -156,6 +164,7 @@ def validate_annotations(
     speakers = set(transcript.speakers())
     competencies = {c.id: c for c in catalogue.competencies}
     points = set(catalogue.scale.points())
+    sentence_turn = {s.id: s.turn for s in transcript_sentences(transcript)}
     seen: Set[Tuple[str, str]] = set()
     for item in annotations.annotations:
         where = f"{item.participant}/{item.competency_id}"
@@ -179,6 +188,13 @@ def validate_annotations(
             elif transcript.turns[evidence.turn].speaker != item.participant:
                 problems.append(
                     f"{where}: turn {evidence.turn} is not theirs"
+                )
+            if evidence.sentence is not None and sentence_turn.get(
+                evidence.sentence
+            ) != evidence.turn:
+                problems.append(
+                    f"{where}: sentence {evidence.sentence!r} is not a "
+                    f"sentence of turn {evidence.turn}"
                 )
             if competency.indicator(evidence.indicator_id) is None:
                 problems.append(
