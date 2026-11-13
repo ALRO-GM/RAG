@@ -13,7 +13,10 @@ from typing import Any, Callable, Optional, TypeVar, cast
 
 from src.adapters.inbound.lab_cli import LabCLI
 from src.adapters.inbound.skills_cli import SkillsCLI
-from src.adapters.outbound.torch_runtime import save_measured
+from src.adapters.outbound.torch_runtime import (
+    append_tuning,
+    save_measured,
+)
 from src.config import BENCHMARK_CONFIGS, SkillsSettings
 from src.skills_bootstrap import SkillsContainer
 from src.bootstrap import Container
@@ -349,6 +352,10 @@ class RagCLI:
             save_measured(
                 app.settings.runtime_plan_path, profile, tuning.best()
             )
+            append_tuning(
+                app.settings.runtime_history_path, profile, tuning
+            )
+            print(f"History: {app.settings.runtime_history_path}")
             self._container = None
             profile, plan = self._app().hardware
             print(f"Saved to {app.settings.runtime_plan_path}")

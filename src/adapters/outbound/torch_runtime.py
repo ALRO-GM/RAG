@@ -2,9 +2,11 @@
 
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from src.application.runtime_tuning import RuntimeTuning
 from src.domain.runtime import HardwareProfile, RuntimePlan
 
 _applied: Optional[RuntimePlan] = None
@@ -81,3 +83,44 @@ def save_measured(
         "signature": profile.signature(),
         "plan": plan.model_dump(),
     }, indent=2), encoding="utf-8")
+
+
+def tuning_record(
+    profile: HardwareProfile,
+    tuning: RuntimeTuning,
+    torch_version: str = "",
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Describe one benchmark run as a JSON-ready record."""
+    return {
+        "created": (now or datetime.now(timezone.utc))
+        .replace(microsecond=0).isoformat(),
+        "signature": tuning.signature,
+        "gpus": [g.model_dump() for g in profile.gpus],
+        "driver": ", ".join(
+            f"{c.vendor}: {c.driver or 'none'}" for c in profile.cards
+        ),
+        "torch": torch_version,
+        "results": [r.model_dump() for r in tuning.results],
+    }
+
+
+def append_tuning(
+    path: str, profile: HardwareProfile, tuning: RuntimeTuning
+) -> None:
+    """Append a benchmark run to the JSON Lines history at ``path``.
+
+    The history is versioned with the experiments, so that the results
+    site can show how the hardware and its speed changed over time.
+    """
+    try:
+        import torch
+
+        version = str(torch.__version__)
+    except ImportError:  # pragma: no cover - torch is a dependency
+        version = ""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(tuning_record(profile, tuning, version)))
+        handle.write("\n")

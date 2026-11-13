@@ -1,8 +1,10 @@
 """Hardware probe, plan persistence and plan application."""
 
+import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Set
 
@@ -11,12 +13,15 @@ import pytest
 from src.adapters.outbound import torch_runtime
 from src.adapters.outbound.system_probe import SystemProbe, parse_cpu_list
 from src.adapters.outbound.torch_runtime import (
+    append_tuning,
     apply_plan,
     load_measured,
     prepare,
     save_measured,
+    tuning_record,
 )
-from src.domain.runtime import HardwareProfile, RuntimePlan
+from src.application.runtime_tuning import PlanResult, RuntimeTuning
+from src.domain.runtime import Gpu, GraphicsCard, HardwareProfile, RuntimePlan
 
 
 def fake_sysfs(
@@ -245,3 +250,47 @@ def test_probe_lists_graphics_cards_and_their_driver(tmp_path: Path) -> None:
     assert SystemProbe(
         detect_gpu=False, sysfs_pci=str(tmp_path / "none")
     ).cards() == []
+
+
+def tuning_of(profile: HardwareProfile) -> RuntimeTuning:
+    """A two-plan tuning result: GPU first, then CPU."""
+    return RuntimeTuning(signature=profile.signature(), results=[
+        PlanResult(plan=RuntimePlan(device="cuda", name="GPU (cuda)"),
+                   embed_seconds=0.1, tokens_per_second=90.0, cost=0.6),
+        PlanResult(plan=RuntimePlan(threads=4, name="cores"),
+                   embed_seconds=0.5, tokens_per_second=15.0, cost=3.7),
+    ])
+
+
+def test_tuning_record_describes_the_run() -> None:
+    """The history record carries hardware, versions and every plan."""
+    profile = profile_of(4).model_copy(update={
+        "gpus": [Gpu(name="RTX", memory_gb=8.0)],
+        "cards": [GraphicsCard(vendor="NVIDIA", driver="nvidia"),
+                  GraphicsCard(vendor="Intel", driver="")],
+    })
+    now = datetime(2026, 11, 13, 0, 0, 0, 123, tzinfo=timezone.utc)
+    record = tuning_record(profile, tuning_of(profile), "2.14", now)
+    assert record["created"] == "2026-11-13T00:00:00+00:00"
+    assert record["signature"] == profile.signature()
+    assert record["gpus"] == [
+        {"name": "RTX", "memory_gb": 8.0, "backend": "cuda"},
+    ]
+    assert record["driver"] == "NVIDIA: nvidia, Intel: none"
+    assert record["torch"] == "2.14"
+    assert [r["plan"]["device"] for r in record["results"]] == [
+        "cuda", "cpu",
+    ]
+
+
+def test_append_tuning_keeps_a_history(tmp_path: Path) -> None:
+    """Each benchmark run appends one JSON line; earlier runs stay."""
+    path = tmp_path / "hardware" / "runtime.jsonl"
+    profile = profile_of(4)
+    append_tuning(str(path), profile, tuning_of(profile))
+    append_tuning(str(path), profile, tuning_of(profile))
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2
+    first = json.loads(lines[0])
+    assert first["results"][0]["tokens_per_second"] == 90.0
+    assert first["torch"]
