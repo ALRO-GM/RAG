@@ -45,6 +45,7 @@ class BenchmarkResult(BaseModel):
     dataset: str
     config: str
     params: Dict[str, Any]
+    suite: str = ""
     documents: int
     chunks: int
     queries: int

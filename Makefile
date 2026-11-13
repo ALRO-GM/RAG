@@ -18,7 +18,7 @@ REMOTE_DIR    := /opt/ragputin
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
-	install-cuda system system-benchmark coverage ci site site-serve \
+	install-cuda system system-benchmark study coverage ci site site-serve \
 	deploy-site infra-up infra-proxy
 
 install:
@@ -84,6 +84,17 @@ serve:
 ## experiment: run a lab suite, e.g. make experiment SUITE=search_priors.
 experiment:
 	$(PYTHON) -m src lab experiment --suite $(SUITE)
+
+## study: generalist study of a suite on the GPU: 42 lab + 7 public
+## benchmarks + combined report (experiments/general/SUITE.md).
+## e.g. make study SUITE=general_models TORCH=cuda
+GENERAL_DATASETS ?= scifact,nfcorpus,arguana,scidocs,fiqa,coir:cosqa,coir:stackoverflow-qa
+study:
+	$(PYTHON) -m src lab experiment --suite $(SUITE)
+	$(PYTHON) -m src benchmark --suite $(SUITE) \
+		--datasets $(GENERAL_DATASETS) \
+		--output experiments/general/benchmarks.jsonl
+	$(PYTHON) -m src general --suite $(SUITE)
 
 ## tune: cross-validated tuning of the factors of a suite.
 tune:
