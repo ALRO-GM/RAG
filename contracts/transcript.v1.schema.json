@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "transcript.v1",
+  "title": "Attributed transcript of one recorded session",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "session", "speakers", "utterances", "pipeline"],
+  "properties": {
+    "schema": {"const": "transcript.v1"},
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "language", "duration"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
+        "title": {"type": ["string", "null"]},
+        "language": {"type": "string", "minLength": 2},
+        "started_at": {"type": ["string", "null"], "format": "date-time"},
+        "duration": {"type": "number", "minimum": 0},
+        "audio_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "speakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "enrolled"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "name": {"type": ["string", "null"]},
+          "enrolled": {"type": "boolean"}
+        }
+      }
+    },
+    "utterances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "turn", "index", "speaker", "start", "end", "text", "previous_speaker", "previous_utterance"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^t[0-9]+\\.s[0-9]+$"},
+          "turn": {"type": "integer", "minimum": 0},
+          "index": {"type": "integer", "minimum": 0},
+          "speaker": {"type": "string", "minLength": 1},
+          "start": {"type": "number", "minimum": 0},
+          "end": {"type": "number", "minimum": 0},
+          "text": {"type": "string", "minLength": 1},
+          "previous_speaker": {"type": ["string", "null"]},
+          "previous_utterance": {"type": ["string", "null"]},
+          "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "speaker_confidence": {"type": ["number", "null"], "minimum": -1, "maximum": 1}
+        }
+      }
+    },
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recogniser", "voice_model", "transcriber"],
+      "properties": {
+        "recogniser": {"type": "string"},
+        "voice_model": {"type": "string"},
+        "transcriber": {"type": "string"}
+      }
+    }
+  }
+}
