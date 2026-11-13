@@ -240,6 +240,38 @@ def transcript_sentences(transcript: Transcript) -> List[Sentence]:
     ]
 
 
+def sentence_transcript(
+    transcript: Transcript, sentences: Optional[Sequence[Sentence]] = None
+) -> Transcript:
+    """Return a transcript whose turns are the sentences of another.
+
+    Turn ``n`` of the result is sentence ``n`` (in order), so every
+    tool written for turns (evidence retrieval, the judge, grounding)
+    works at sentence granularity without change.
+    """
+    items = (
+        list(sentences) if sentences is not None
+        else transcript_sentences(transcript)
+    )
+    return Transcript(
+        session_id=transcript.session_id,
+        language=transcript.language,
+        turns=[
+            Turn(index=n, speaker=s.speaker, text=s.text,
+                 start=s.start, end=s.end)
+            for n, s in enumerate(items)
+        ],
+    )
+
+
+def clock(seconds: Optional[float]) -> str:
+    """Format seconds as ``hh:mm:ss`` (``--:--:--`` when unknown)."""
+    if seconds is None:
+        return "--:--:--"
+    total = int(max(seconds, 0.0))
+    return f"{total // 3600:02d}:{total % 3600 // 60:02d}:{total % 60:02d}"
+
+
 def rename_speakers(
     transcript: Transcript, names: Mapping[str, str]
 ) -> Transcript:
