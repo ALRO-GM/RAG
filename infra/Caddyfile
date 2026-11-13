@@ -1,0 +1,28 @@
+# Internal Caddy of RAGPutin (container ragputin-web). Plain HTTP: TLS is
+# terminated by the Peer4U Caddy, which proxies rag.peer4u.app here.
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+		-Server
+	}
+
+	# Data changes on every deploy: always revalidate. Assets: short cache.
+	@data path /data/* /docs/* /raw/* /index.html /
+	header @data Cache-Control "no-cache"
+	@assets path *.js *.css
+	header @assets Cache-Control "public, max-age=300"
+
+	root * /srv
+	file_server
+}

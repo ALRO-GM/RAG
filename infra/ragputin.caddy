@@ -1,0 +1,8 @@
+# RAGPutin block in the Peer4U Caddy (container sanatorio-caddy-1).
+# Installed as /opt/caddy-sitios/ragputin.caddy by `make infra-proxy`,
+# which validates the whole Peer4U config before reloading and rolls
+# back on failure. Never edited by CI.
+rag.peer4u.app {
+	encode zstd gzip
+	reverse_proxy ragputin-web:80
+}
