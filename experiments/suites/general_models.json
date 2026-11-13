@@ -1,0 +1,18 @@
+{
+  "name": "general_models",
+  "description": "G1 (GPU): fusion method and embedding model, scored on the 42 questions and 7 public datasets. Baseline = the shipped configuration.",
+  "base": {},
+  "strategy": "list",
+  "trials": [
+    {"name": "minilm-256 linear 0.4", "params": {"embedding_max_tokens": 256}},
+    {"name": "minilm-256 linear 2.0", "params": {"embedding_max_tokens": 256, "semantic_weight": 2.0}},
+    {"name": "minilm-256 rrf", "params": {"embedding_max_tokens": 256, "fusion": "rrf", "semantic_weight": 1.0}},
+    {"name": "minilm-256 convex 1.0", "params": {"embedding_max_tokens": 256, "fusion": "convex", "semantic_weight": 1.0}},
+    {"name": "minilm-256 dbsf 1.0", "params": {"embedding_max_tokens": 256, "fusion": "dbsf", "semantic_weight": 1.0}},
+    {"name": "bge-small-512 convex 1.0", "params": {"embedding_model": "BAAI/bge-small-en-v1.5", "embedding_max_tokens": 512, "query_prefix": "Represent this sentence for searching relevant passages: ", "fusion": "convex", "semantic_weight": 1.0}},
+    {"name": "bge-base-512 convex 1.0", "params": {"embedding_model": "BAAI/bge-base-en-v1.5", "embedding_max_tokens": 512, "query_prefix": "Represent this sentence for searching relevant passages: ", "fusion": "convex", "semantic_weight": 1.0}},
+    {"name": "e5-base-512 convex 1.0", "params": {"embedding_model": "intfloat/e5-base-v2", "embedding_max_tokens": 512, "query_prefix": "query: ", "passage_prefix": "passage: ", "fusion": "convex", "semantic_weight": 1.0}},
+    {"name": "arctic-m-512 convex 1.0", "params": {"embedding_model": "Snowflake/snowflake-arctic-embed-m-v1.5", "embedding_max_tokens": 512, "query_prefix": "Represent this sentence for searching relevant passages: ", "fusion": "convex", "semantic_weight": 1.0}},
+    {"name": "bge-large-512 convex 1.0", "params": {"embedding_model": "BAAI/bge-large-en-v1.5", "embedding_max_tokens": 512, "query_prefix": "Represent this sentence for searching relevant passages: ", "fusion": "convex", "semantic_weight": 1.0}}
+  ]
+}
