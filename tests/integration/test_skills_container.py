@@ -751,3 +751,35 @@ def test_container_builds_the_audio_services_lazily(
     assert isinstance(service.diarizer, XVectorDiarizer)
     assert service.diarizer.model_name == "a/voice"
     assert app.tagger.top == 2
+
+
+def test_tag_confirm_asks_the_judge_and_saves_decisions(
+    skills_project: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``tag --confirm`` adds a decision per candidate sentence."""
+    app = SkillsContainer(
+        settings(min_similarity=-1.0, tags_per_sentence=1),
+        embedder=FakeEmbedder(dim=256),
+        judge=FakeChatModel(responder=lambda system, user: json.dumps({
+            "indicator": "L3" if "nonsense" in user.split("TARGET")[1]
+            else None,
+            "reason": "said so",
+        })),
+    )
+    cli(app).tag(EN, confirm=True)
+    out = capsys.readouterr().out
+    assert "Judge (fake-judge): 1 confirmed" in out
+    assert "0 not understood" in out
+    assert "[-L3]" in out and "[none]" in out
+    saved = json.loads(Path("out/s1.tags.json").read_text(encoding="utf-8"))
+    decisions = [
+        s["decision"] for s in saved["sentences"] if "decision" in s
+    ]
+    confirmed = [d for d in decisions if d["status"] == "confirmed"]
+    assert confirmed == [{
+        "status": "confirmed", "indicator_id": "L3",
+        "competency_id": "listening", "polarity": "negative",
+        "reason": "said so", "model": "fake-judge",
+    }]
+    assert all(d["status"] == "rejected" for d in decisions
+               if d not in confirmed)

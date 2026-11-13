@@ -290,24 +290,32 @@ class SkillsCLI:
                   f"{s.speaker}: {s.text}")
 
     def _tag(
-        self, transcript: str, save_directory: str = "", show: bool = True
+        self, transcript: str, save_directory: str = "", show: bool = True,
+        confirm: bool = False,
     ) -> None:
         """Tag every sentence with the rubric indicators it may show.
 
-        Tags are candidates found by text similarity (no language model
-        is called): a short list for the judge or an annotator, not a
-        verdict.
+        Without ``--confirm`` the tags are candidates found by text
+        similarity (no language model is called): the competencies a
+        sentence may bear on, not a verdict. With it, the judge reads
+        each candidate sentence in context and names the indicator it
+        shows, or none.
 
         Args:
             transcript: Transcript file.
             save_directory: Where to write <session>.tags.json
                 (default: the configured output directory).
             show: Print the tagged timeline.
+            confirm: Ask the judge (``--judge local`` or ``api``) to
+                confirm or reject the candidates.
         """
         app = self._app()
         document = app.transcripts.read(str(transcript))
-        rubric = app.rubric(app.retriever.language_of(document))
+        language = app.retriever.language_of(document)
+        rubric = app.rubric(language)
         tagged = app.tagger.tag(document, rubric)
+        if confirm:
+            tagged = app.confirmer.confirm(tagged, rubric, language)
         directory = str(save_directory) or app.settings.output_dir
         path = str(Path(directory) / f"{document.session_id}.tags.json")
         write_text(path, json.dumps({
@@ -320,6 +328,18 @@ class SkillsCLI:
             print(render_timeline(tagged))
         with_tags = sum(1 for t in tagged if t.tags)
         print(f"{len(tagged)} sentences, {with_tags} with candidate tags")
+        if confirm:
+            counts = {
+                status: sum(
+                    1 for t in tagged
+                    if t.decision is not None and t.decision.status == status
+                )
+                for status in ("confirmed", "rejected", "unparsed")
+            }
+            print(f"Judge ({app.confirmer.judge.model_name}): "
+                  f"{counts['confirmed']} confirmed, "
+                  f"{counts['rejected']} rejected, "
+                  f"{counts['unparsed']} not understood")
         print(f"Saved {path}")
 
     def _annotation_template(

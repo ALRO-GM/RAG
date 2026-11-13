@@ -41,7 +41,7 @@ from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
 from src.application.skills.ports import ChatModel
-from src.application.skills.tagging import SentenceTagger
+from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.skills.transcription import TranscriptionService
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
@@ -158,6 +158,11 @@ class SkillsContainer:
             self.retriever, top=s.tags_per_sentence,
             min_similarity=s.min_similarity, per_competency=s.candidates,
         )
+
+    @cached_property
+    def confirmer(self) -> TagConfirmer:
+        """Classifier that confirms or rejects candidate tags."""
+        return TagConfirmer(self.judge, self.cache, self.progress)
 
     @cached_property
     def transcription(self) -> TranscriptionService:
