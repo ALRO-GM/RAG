@@ -22,6 +22,15 @@ class Settings(BaseModel):
     prior, file boost, table context) are the consensus profile found
     by the experiment lab with 5-fold cross-validation; see
     ``experiments/REPORT.md``.
+
+    The fusion weight depends on the query (``experiments/general``):
+    ``semantic_weight`` applies to prose and slides to
+    ``identifier_weight`` when code identifiers make up
+    ``identifier_saturation`` of the words. Queries that name
+    identifiers, as the 42 questions do, are therefore ranked exactly
+    as with the fixed 0.4 tuned on the 42 corpus, while prose leans on
+    the embeddings, which is what seven public datasets reward. Set
+    ``identifier_weight`` to ``None`` for one fixed weight.
     """
 
     raw_dir: str = "data/raw"
@@ -33,10 +42,10 @@ class Settings(BaseModel):
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
     embedding_max_tokens: int = Field(default=64, ge=8)
     mode: str = "auto"
-    semantic_weight: float = 0.4
+    semantic_weight: float = 2.0
     fusion: str = "linear"
-    identifier_weight: Optional[float] = Field(default=None, ge=0.0)
-    identifier_saturation: float = Field(default=0.15, ge=0.0, le=1.0)
+    identifier_weight: Optional[float] = Field(default=0.4, ge=0.0)
+    identifier_saturation: float = Field(default=0.1, ge=0.0, le=1.0)
     route_strength: float = Field(default=0.1, ge=0.0)
     router_path: str = "models/query_router.json"
     test_weight: float = Field(default=0.6, ge=0.0)
