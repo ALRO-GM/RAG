@@ -1,0 +1,152 @@
+{
+ "name": "general_fusion",
+ "description": "G2 (GPU): fusion method and weight for the two best embedding models of G1, with each stage alone for reference. Baseline = the shipped configuration.",
+ "base": {},
+ "strategy": "list",
+ "trials": [
+  {
+   "name": "bge-base convex 0.5",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 0.5
+   }
+  },
+  {
+   "name": "bge-base convex 1.0",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 1.0
+   }
+  },
+  {
+   "name": "bge-base convex 2.0",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-base convex 4.0",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0
+   }
+  },
+  {
+   "name": "bge-base dbsf 1.0",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 1.0
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-base embeddings only",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "mode": "semantic"
+   }
+  },
+  {
+   "name": "bge-large convex 0.5",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 0.5
+   }
+  },
+  {
+   "name": "bge-large convex 1.0",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 1.0
+   }
+  },
+  {
+   "name": "bge-large convex 2.0",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-large convex 4.0",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0
+   }
+  },
+  {
+   "name": "bge-large dbsf 1.0",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 1.0
+   }
+  },
+  {
+   "name": "bge-large dbsf 2.0",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-large embeddings only",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "mode": "semantic"
+   }
+  },
+  {
+   "name": "bm25 only",
+   "params": {
+    "mode": "bm25"
+   }
+  }
+ ]
+}

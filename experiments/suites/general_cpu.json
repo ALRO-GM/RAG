@@ -1,0 +1,88 @@
+{
+ "name": "general_cpu",
+ "description": "G4: the query-adaptive weight on the light CPU model (all-MiniLM-L6-v2), at the shipped 64 input tokens and at 256. Baseline = the shipped configuration.",
+ "base": {},
+ "strategy": "list",
+ "trials": [
+  {
+   "name": "minilm-64 linear 2.0 adaptive->0.4 sat 0.1",
+   "params": {
+    "embedding_max_tokens": 64,
+    "fusion": "linear",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.4,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "minilm-64 linear 2.0 adaptive->0.4 sat 0.2",
+   "params": {
+    "embedding_max_tokens": 64,
+    "fusion": "linear",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.4,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "minilm-64 convex 4.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_max_tokens": 64,
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "minilm-64 convex 4.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_max_tokens": 64,
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "minilm-256 linear 2.0 adaptive->0.4 sat 0.1",
+   "params": {
+    "embedding_max_tokens": 256,
+    "fusion": "linear",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.4,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "minilm-256 linear 2.0 adaptive->0.4 sat 0.2",
+   "params": {
+    "embedding_max_tokens": 256,
+    "fusion": "linear",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.4,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "minilm-256 convex 4.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_max_tokens": 256,
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "minilm-256 convex 4.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_max_tokens": 256,
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  }
+ ]
+}

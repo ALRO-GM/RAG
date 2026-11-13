@@ -194,3 +194,35 @@ class TestDiarizer:
         diarizer = XVectorDiarizer("some/voice-model")
         assert diarizer.model_name == "some/voice-model"
         assert diarizer._loaded is None
+
+
+def test_encoder_is_never_asked_for_attention_maps() -> None:
+    """Whatever the caller requests, the encoder gets ``False``."""
+    from typing import Any, Dict
+
+    from src.adapters.outbound.whisper_recogniser import (
+        without_encoder_attentions,
+    )
+
+    class Encoder:
+        def __init__(self) -> None:
+            self.seen: List[Dict[str, Any]] = []
+
+        def forward(self, *args: Any, **kwargs: Any) -> str:
+            self.seen.append(kwargs)
+            return "encoded"
+
+    class Model:
+        def __init__(self) -> None:
+            self.encoder = Encoder()
+
+        def get_encoder(self) -> Encoder:
+            return self.encoder
+
+    model = Model()
+    without_encoder_attentions(model)
+    assert model.encoder.forward(1, output_attentions=True, x=2) == "encoded"
+    assert model.encoder.forward(1) == "encoded"
+    assert model.encoder.seen == [
+        {"output_attentions": False, "x": 2}, {"output_attentions": False},
+    ]

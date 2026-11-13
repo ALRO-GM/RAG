@@ -1,0 +1,250 @@
+{
+ "name": "general_adaptive",
+ "description": "G3 (GPU): query-adaptive fusion weight (prose -> semantic, code identifiers -> lexical) against the best fixed weights of G2. Baseline = the shipped configuration.",
+ "base": {},
+ "strategy": "list",
+ "trials": [
+  {
+   "name": "bge-large dbsf 2.0 fixed",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-large dbsf 2.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-large dbsf 2.0 adaptive->0.5 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-large dbsf 2.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-large dbsf 2.0 adaptive->0.5 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-large convex 4.0 fixed",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0
+   }
+  },
+  {
+   "name": "bge-large convex 4.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-large convex 4.0 adaptive->0.5 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-large convex 4.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-large convex 4.0 adaptive->0.5 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0 fixed",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0 adaptive->0.5 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-base dbsf 2.0 adaptive->0.5 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 2.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-base convex 4.0 fixed",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0
+   }
+  },
+  {
+   "name": "bge-base convex 4.0 adaptive->1.0 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-base convex 4.0 adaptive->0.5 sat 0.1",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.1
+   }
+  },
+  {
+   "name": "bge-base convex 4.0 adaptive->1.0 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 1.0,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-base convex 4.0 adaptive->0.5 sat 0.2",
+   "params": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "convex",
+    "semantic_weight": 4.0,
+    "identifier_weight": 0.5,
+    "identifier_saturation": 0.2
+   }
+  },
+  {
+   "name": "bge-large dbsf 1.0 fixed",
+   "params": {
+    "embedding_model": "BAAI/bge-large-en-v1.5",
+    "embedding_max_tokens": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "fusion": "dbsf",
+    "semantic_weight": 1.0
+   }
+  }
+ ]
+}

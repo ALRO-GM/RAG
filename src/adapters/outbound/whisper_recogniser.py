@@ -42,6 +42,25 @@ def words_from_chunks(
     return words
 
 
+def without_encoder_attentions(model: Any) -> None:
+    """Stop the encoder from returning its attention maps.
+
+    Word timestamps come from the decoder's cross-attention. Asking
+    for them makes transformers request *every* attention map, and the
+    encoder's (32 layers x 20 heads x 1500 x 1500 for large-v3) take
+    about 3 GB per 30-second window for nothing. This keeps the request
+    away from the encoder only.
+    """
+    encoder = model.get_encoder()
+    forward = encoder.forward
+
+    def lean_forward(*args: Any, **kwargs: Any) -> Any:
+        kwargs["output_attentions"] = False
+        return forward(*args, **kwargs)
+
+    encoder.forward = lean_forward
+
+
 class WhisperRecogniser:
     """Transcribe audio with word timestamps.
 
@@ -83,6 +102,7 @@ class WhisperRecogniser:
                 raise ModelError(
                     f"Cannot load speech model {self._model_name}: {exc}"
                 )
+            without_encoder_attentions(self._pipeline.model)
         return self._pipeline
 
     def recognise(
