@@ -13,6 +13,7 @@ from src.adapters.inbound.cli import (
     select_configs,
 )
 from src.domain.errors import InvalidInputError
+from tests.integration.test_cli import run_cli
 
 ROW = {
     "dataset": "scifact", "config": "a", "params": {"x": 1},
@@ -96,3 +97,62 @@ def test_remove_tree(tmp_path: Path) -> None:
     remove_tree(target)
     assert not target.exists()
     remove_tree(target)  # missing: no error
+
+
+def test_general_command_combines_lab_and_benchmark_rows(
+    project: Path,
+) -> None:
+    """``general`` ranks a suite from stored trials and benchmark rows."""
+    suite = {
+        "name": "g", "base": {}, "strategy": "list",
+        "trials": [{"name": "more semantic",
+                    "params": {"semantic_weight": 1.0}}],
+    }
+    (project / "experiments" / "suites").mkdir(parents=True)
+    (project / "experiments" / "suites" / "g.json").write_text(
+        json.dumps(suite)
+    )
+
+    def trial(name: str, docs: float) -> str:
+        return json.dumps({
+            "trial_id": name, "suite": "g", "name": name, "params": {},
+            "baseline_id": "baseline", "ranks": {},
+            "metrics": {"docs": {"recall@5": docs}},
+            "search_seconds_per_100": 1.0, "index_seconds": 2.0,
+            "index_cold": False, "n_chunks": 3,
+        })
+
+    results = project / "experiments" / "results"
+    results.mkdir(parents=True)
+    (results / "trials.jsonl").write_text(
+        trial("baseline", 0.5) + "\n" + trial("more semantic", 0.55) + "\n"
+    )
+    rows = project / "rows.jsonl"
+    rows.write_text("\n".join(json.dumps({
+        **ROW, "suite": "g", "config": config, "ndcg10": score,
+    }) for config, score in (("baseline", 0.4), ("more semantic", 0.5))))
+    done = run_cli(
+        ["general", "--suite", "g", "--benchmarks", str(rows)], project
+    )
+    assert done.returncode == 0, done.stderr
+    assert "g: 2 configurations on 2 datasets (42:docs, scifact)" in (
+        done.stdout
+    )
+    assert "Best mean: more semantic; robust: more semantic" in done.stdout
+    report = (project / "experiments" / "general" / "g.md").read_text()
+    assert "more semantic **(robust)** **(best mean)**" in report
+    assert "+25.0%" in report and "+10.0%" in report
+
+
+def test_general_command_without_results_is_a_clean_error(
+    project: Path,
+) -> None:
+    """A suite that was never run has no baseline to compare with."""
+    (project / "experiments" / "suites").mkdir(parents=True)
+    (project / "experiments" / "suites" / "g.json").write_text(
+        json.dumps({"name": "g", "base": {}, "strategy": "list"})
+    )
+    done = run_cli(["general", "--suite", "g"], project)
+    assert done.returncode == 1
+    assert done.stderr.startswith("Error: ")
+    assert "no measured baseline" in done.stderr
