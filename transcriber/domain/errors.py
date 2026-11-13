@@ -40,3 +40,15 @@ class SampleRejectedError(InvalidInputError):
         """Keep the machine-readable ``reason`` beside the message."""
         super().__init__(message)
         self.reason = reason
+
+
+class VoiceModelMismatchError(InvalidInputError):
+    """A voiceprint was made with another voice model than the one in use.
+
+    Embeddings of different models are not comparable; the person has
+    to enrol again with the current model.
+    """
+
+
+class StorageError(TranscriberError):
+    """Stored data cannot be read back (a damaged or foreign file)."""

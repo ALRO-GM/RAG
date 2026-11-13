@@ -51,7 +51,7 @@ transcriber = [
 
 [tool.uv]
 package = false
-default-groups = ["dev", "cpu", "api", "bench", "audio"]
+default-groups = ["dev", "cpu", "api", "bench", "audio", "transcriber"]
 conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
 
 [tool.uv.sources]

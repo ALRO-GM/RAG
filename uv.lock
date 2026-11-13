@@ -3537,7 +3537,7 @@ wheels = [
 name = "rag-against-the-machine"
 version = "1.0.0"
 source = { virtual = "." }
-default-groups = ["api", "audio", "bench", "cpu", "dev"]
+default-groups = ["api", "audio", "bench", "cpu", "dev", "transcriber"]
 dependencies = [
     { name = "fastapi" },
     { name = "fire" },
