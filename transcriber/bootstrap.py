@@ -300,7 +300,8 @@ def build_lab(
     )
     status = LabRunStatus(sessions, repository, runner, processes)
     start = StartLabRun(
-        sessions, repository, catalogue, runner, execute, clock, processes
+        sessions, repository, catalogue, runner, execute, clock, processes,
+        decoder,
     )
     return LabUseCases(
         repository=repository,
@@ -309,11 +310,14 @@ def build_lab(
         status=status,
         runs=ListLabRuns(sessions, repository, status),
         cancel=CancelLabRun(repository, status),
-        resume=ResumeLabRun(repository, start, status, processes),
+        # a lock per run (keyed by its job key), apart from the sessions'
+        resume=ResumeLabRun(
+            repository, start, status, processes, ThreadSessionLocks()
+        ),
         results=LabResultsView(status, repository),
         labels=LabLabels(sessions, voiceprints, repository, decoder, clock),
         scores=LabScores(status, repository, comparison),
-        audio=LabAudio(status, repository, sessions, decoder),
+        audio=LabAudio(status, repository),
     )
 
 

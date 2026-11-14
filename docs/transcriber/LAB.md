@@ -359,7 +359,9 @@ some pipelines finished), `failed` (no pipeline finished), `cancelled`,
 
 Cancel: only a `queued` or `running` run (else 409 `wrong_state`);
 answers the status. Resume: only a run that is not queued or running;
-done steps stay, the others are tried again; answers the run.
+done steps stay, the others are tried again; answers the run. The check
+and the queueing hold the run's lock, so of two concurrent resumes one
+is 202 and the other 409 `wrong_state`.
 
 ### `GET …/runs/{run_id}/results`
 
@@ -462,6 +464,9 @@ The original (`none`) or that denoiser's output as WAV (16 kHz mono),
 whole or by one byte range (206), like the session audio; it also
 accepts the playback cookie of `POST /api/access/cookie`, so an
 `<audio>` element can play it. Play a fragment by seeking to its start.
+The route only reads: the original is stored when a run is started or
+resumed, and a missing one (or a denoiser's audio not made yet) is 404
+`not_found`.
 
 ### `GET /api/lab/sessions/{session_id}/labels`, `PUT` the same
 

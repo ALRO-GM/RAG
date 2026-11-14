@@ -13,9 +13,14 @@ named (:func:`~transcriber.application.lab_builtin.map_speakers`) and
 the comparison is computed and stored
 (:func:`~transcriber.application.lab_compare.compare_run`).
 
+The session's original audio is stored when a run is started or
+resumed (and again by the job), so the player's audio route only reads.
+
 A run can be cancelled (between steps, and a running subprocess is
-stopped) and resumed. Reference labels are per session; scores are
-computed on request from the stored results and the labels.
+stopped) and resumed; a resume checks and queues the run under the
+run's lock, so two concurrent resumes queue it once. Reference labels
+are per session; scores are computed on request from the stored
+results and the labels.
 """
 
 import hashlib
@@ -60,6 +65,7 @@ from transcriber.application.ports import (
     JobStatus,
     PlaybackAudio,
     Progress,
+    SessionLocks,
     SessionRepository,
     VoiceEncoder,
     VoiceprintRepository,
@@ -235,7 +241,7 @@ def plan_steps(request: LabRequest) -> List[Step]:
 
 
 class StartLabRun:
-    """Check a request, store the run and queue it."""
+    """Check a request, store the original audio and the run, queue it."""
 
     def __init__(
         self,
@@ -246,6 +252,7 @@ class StartLabRun:
         execute: "RunLab",
         clock: Clock,
         processes: ProcessTable,
+        decoder: AudioDecoder,
     ) -> None:
         """Wire the ports."""
         self._sessions = sessions
@@ -255,6 +262,7 @@ class StartLabRun:
         self._execute = execute
         self._clock = clock
         self._processes = processes
+        self._decoder = decoder
 
     def __call__(self, session_id: str, request: LabRequest) -> LabRun:
         """Store and queue a run of ``request`` on ``session_id``.
@@ -268,6 +276,7 @@ class StartLabRun:
             raise StateError("The session is still recording.")
         catalogue = self._catalogue.load()
         _check_request(catalogue, request)
+        self.store_original(session.id)
         run = LabRun(
             id=uuid.uuid4().hex, session_id=session.id,
             created_at=self._clock.now(), request=request,
@@ -277,6 +286,20 @@ class StartLabRun:
         self._repository.save_run(run)
         self.submit(run)
         return run
+
+    def store_original(self, session_id: str) -> str:
+        """Store the session's original audio unless stored; return its key.
+
+        The player's audio route reads it, so it is written here (a
+        request that starts or resumes a run) rather than on playback.
+        """
+        key = self._repository.original_key(session_id)
+        if key is None:
+            key = self._repository.store_original(
+                session_id,
+                self._decoder.decode(self._sessions.recording(session_id)),
+            )
+        return key
 
     def submit(self, run: LabRun) -> None:
         """Queue the run's job."""
@@ -320,38 +343,45 @@ class ResumeLabRun:
     """Queue a finished, cancelled or interrupted run again.
 
     Steps already done stay done; the others are tried again (their
-    results may also have been computed meanwhile by another run).
+    results may also have been computed meanwhile by another run). The
+    state check and the save happen under the run's lock (``locks``,
+    keyed by :func:`job_key`), so of two concurrent resumes one queues
+    the run and the other is refused.
     """
 
     def __init__(
         self, repository: LabRepository, start: StartLabRun,
         status: "LabRunStatus", processes: ProcessTable,
+        locks: SessionLocks,
     ) -> None:
         """Wire the ports."""
         self._repository = repository
         self._start = start
         self._status = status
         self._processes = processes
+        self._locks = locks
 
     def __call__(self, session_id: str, run_id: str) -> LabRun:
         """Queue the run again; a queued or running run is refused."""
-        view = self._status(session_id, run_id)
-        if view.state in ACTIVE:
-            raise StateError("The run is still queued or running.")
-        self._repository.clear_cancel(session_id, run_id)
-        run = view.run.model_copy(update={
-            "state": "queued", "finished_at": None, "message": None,
-            "worker_pid": self._processes.current(),
-            "steps": [
-                s if s.state == "done" else s.model_copy(update={
-                    "state": "pending", "error": None,
-                })
-                for s in view.run.steps
-            ],
-        })
-        self._repository.save_run(run)
-        self._start.submit(run)
-        return run
+        with self._locks.hold(job_key(check_run_id(run_id))):
+            view = self._status(session_id, run_id)
+            if view.state in ACTIVE:
+                raise StateError("The run is still queued or running.")
+            self._start.store_original(view.run.session_id)
+            self._repository.clear_cancel(session_id, run_id)
+            run = view.run.model_copy(update={
+                "state": "queued", "finished_at": None, "message": None,
+                "worker_pid": self._processes.current(),
+                "steps": [
+                    s if s.state == "done" else s.model_copy(update={
+                        "state": "pending", "error": None,
+                    })
+                    for s in view.run.steps
+                ],
+            })
+            self._repository.save_run(run)
+            self._start.submit(run)
+            return run
 
 
 class CancelLabRun:
@@ -1141,31 +1171,31 @@ class LabScores:
 
 
 class LabAudio:
-    """The original or a denoised audio of a run, for the player."""
+    """The original or a denoised audio of a run, for the player.
+
+    It only reads: the original is stored when a run is started or
+    resumed (:meth:`StartLabRun.store_original`).
+    """
 
     def __init__(
         self, status: LabRunStatus, repository: LabRepository,
-        sessions: SessionRepository, decoder: AudioDecoder,
     ) -> None:
         """Wire the ports."""
         self._status = status
         self._repository = repository
-        self._sessions = sessions
-        self._decoder = decoder
 
     def __call__(
         self, session_id: str, run_id: str, denoiser: str
     ) -> PlaybackAudio:
-        """Return the WAV the run's ``denoiser`` wrote (``none``: original)."""
+        """Return the WAV the run's ``denoiser`` wrote (``none``: original).
+
+        Raises :class:`NotFoundError` when that audio is not stored.
+        """
         run = self._status.run(session_id, run_id)
         if denoiser == NO_DENOISER:
             key = self._repository.original_key(session_id)
             if key is None:
-                key = self._repository.store_original(
-                    session_id, self._decoder.decode(
-                        self._sessions.recording(session_id)
-                    ),
-                )
+                raise NotFoundError("The original audio is not stored.")
             return self._repository.playback(session_id, key)
         step = run.step(f"denoise:{denoiser}")
         if step is None or step.state != "done" or step.key is None:
