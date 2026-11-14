@@ -3,6 +3,7 @@
 import io
 import json
 import time
+import wave
 from pathlib import Path
 from typing import Any, Dict, Iterator
 
@@ -21,6 +22,8 @@ from transcriber.adapters.inbound.lab_cli import (
 from transcriber.application.ports import RecordedAudio
 from transcriber.bootstrap import TranscriberContainer, build_container
 from transcriber.config import TranscriberSettings
+from transcriber.domain.lab import Segment
+from transcriber.domain.lab_reference import CORPORA, make_reference
 
 CODE = "a-long-enough-access-code"
 AUTH = {"X-Access-Code": CODE}
@@ -173,6 +176,78 @@ def test_audio_of_a_run(client: TestClient) -> None:
     assert played.status_code == 200
     assert plain.get(f"/api/lab/sessions/s1/runs/{run['id']}").status_code \
         == 401
+
+
+def test_overview_and_excerpts(client: TestClient) -> None:
+    assert client.get("/api/lab/overview").json() == {"sessions": []}
+    run = client.post("/api/lab/sessions/s1/runs", json={
+        "denoisers": ["none", "fake-denoise"], "diarizers": ["fake-diarize"],
+    }).json()
+    wait(client, run["id"])
+    entry, = client.get("/api/lab/overview").json()["sessions"]
+    assert (entry["session_id"], entry["corpus"], entry["run_id"]) == (
+        "s1", None, run["id"],
+    )
+    assert entry["run_state"] == "done" and entry["results_run"] == run["id"]
+    steps = entry["steps"]
+    assert steps["done"] == 3 and steps["failed"] == 0
+    assert steps["open"] == [] and steps["failed_codes"] == {}
+    base = f"/api/lab/sessions/s1/runs/{run['id']}/excerpt"
+    cut = client.get(f"{base}/none", params={"start": 1, "seconds": 2})
+    assert cut.status_code == 200, cut.text
+    assert cut.headers["content-type"] == "audio/wav"
+    with wave.open(io.BytesIO(cut.content)) as reader:
+        assert (reader.getframerate(), reader.getnframes()) == (16000, 32000)
+    end = client.get(f"{base}/fake-denoise", params={"start": 19})
+    with wave.open(io.BytesIO(end.content)) as reader:
+        assert reader.getnframes() == 16000 * 1.0
+    ranged = client.get(f"{base}/none", params={"start": 0},
+                        headers={"Range": "bytes=0-43"})
+    assert ranged.status_code == 206 and ranged.content[:4] == b"RIFF"
+    assert client.get(f"{base}/none", params={"start": 20}).json()[
+        "code"] == "invalid_input"
+    for params in ({}, {"start": -1}, {"start": 0, "seconds": 61},
+                   {"start": 0, "seconds": 0}):
+        assert client.get(f"{base}/none", params=params).status_code == 422
+    assert client.get(f"{base}/other", params={"start": 0}).status_code \
+        == 404
+    cookie = client.post("/api/access/cookie").headers["set-cookie"]
+    value = cookie.split(";")[0].split("=", 1)[1]
+    plain = TestClient(client.app)
+    assert plain.get(f"{base}/none", params={"start": 0}).status_code == 401
+    assert plain.get(
+        f"{base}/none", params={"start": 0},
+        headers={"Cookie": f"transcriber_playback={value}"},
+    ).status_code == 200
+    assert plain.get("/api/lab/overview").status_code == 401
+
+
+def test_reference_summary_route(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    assert client.get("/api/lab/sessions/s1/reference-turns").json()[
+        "code"] == "not_found"
+    empty = client.get("/api/lab/reference-summary").json()
+    assert empty["recordings"] == [] and empty["models"] == []
+    assert client.get("/api/lab/reference-summary",
+                      params={"corpus": "nope"}).json()["code"] \
+        == "invalid_input"
+    assert container.lab is not None
+    container.lab.repository.save_reference("s1", make_reference(
+        CORPORA["ami"], "test", "X1", 20.0,
+        [Segment(start=0, end=6, speaker="MEE1")], None,
+    ))
+    summary = client.get("/api/lab/reference-summary",
+                         params={"corpus": "ami"}).json()
+    assert summary["corpora"] == ["ami"] and summary["unscored"] == ["s1"]
+    assert client.get("/api/lab/reference-summary",
+                      params={"corpus": "callhome"}).json()["unscored"] \
+        == []
+    turns = client.get("/api/lab/sessions/s1/reference-turns").json()
+    assert turns == {"turns": [{"start": 0.0, "end": 6.0, "speaker": "MEE1"}]}
+    entry, = client.get("/api/lab/overview").json()["sessions"]
+    assert (entry["corpus"], entry["licence_commercial"]) == ("ami", True)
+    assert entry["run_id"] is None and entry["steps"] is None
 
 
 def test_the_audio_route_only_reads(

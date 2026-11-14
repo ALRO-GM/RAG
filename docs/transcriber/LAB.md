@@ -562,10 +562,79 @@ when missing.
              "text_labels": 12, "reference_tokens": 95, "wer": 0.08}]}
 ```
 
+### `GET /api/lab/overview`
+
+Every session with a lab run or a corpus reference (§13), by id, with
+its newest run's steps counted for the tab's progress view:
+
+```json
+{"sessions": [{"session_id": "ami-EN2002b", "title": "…", "duration": 1786.8,
+  "corpus": "ami", "licence": "CC BY 4.0", "licence_commercial": true,
+  "run_id": "8f…", "run_state": "partial", "created_at": "…",
+  "finished_at": "…", "message": null, "results_run": "8f…",
+  "steps": {"done": 15, "running": 0, "pending": 0, "failed": 14,
+            "failed_codes": {"failed": 10, "out_of_memory": 4},
+            "open": [{"name": "diarize:none+…", "stage": "diarize",
+                      "model": "…", "denoiser": "none", "state": "failed",
+                      "code": "out_of_memory", "message": "…"}]}}]}
+```
+
+`corpus` is `null` for an own recording; `run_*` and `steps` are `null`
+without a run; `results_run` is the newest `done` or `partial` run (the
+one with results). `run_state` is reported as in the runs list
+(`interrupted` when its process is gone). A step `running` in a run
+that is no longer queued or running counts as `pending`, and so does a
+`cancelled` step: a resume would try both again. `open` lists every
+step not done, with its error code and message when it failed.
+
+### `GET /api/lab/reference-summary?corpus=ami`
+
+The summary of §13.3 (`lab reference-summary --json`) over the
+imported sessions of one corpus (all when `corpus` is omitted; an
+unknown one is 400 `invalid_input`): `corpora`, `non_commercial`,
+`recordings`, `unscored` and `models` (`kind` `diarization`,
+`recognition` or `pipeline`; each metric's `n`, `mean`, `sd`, `min`,
+`max`).
+
+### `GET /api/lab/sessions/{session_id}/reference-turns`
+
+An imported session's reference speaker turns (anonymous corpus ids,
+overlap kept, no words): `{"turns": [{"start", "end", "speaker"}]}`;
+404 without a reference. The tab picks its audio samples from them.
+
+### `GET …/runs/{run_id}/excerpt/{denoiser}?start=120.5&seconds=20`
+
+A stretch of the original (`none`) or of a denoiser's output as a
+short WAV (16 kHz mono), cut on the server so the phone downloads only
+those seconds (20 s: 640 044 bytes). `start` ≥ 0 and before the end of
+the audio (else 400 `invalid_input`), `seconds` more than 0 and at
+most 60 (default 20; else 422); cut at the end of the audio. Read-only,
+with byte ranges, and like the audio route it accepts the playback
+cookie.
+
 ### The "Pruebas" tab
 
 The web pages have a tab for all of this (`#/lab`, behind the access
-code; texts in Spanish and English): pick a recording, choose models by
+code; texts in Spanish and English). It opens on an overview across
+sessions (`web/js/views/lab-progress.js`, pure logic in
+`web/js/lib/lab-progress.js`, tests in `tests/web/lab-progress.test.mjs`),
+refreshed every 10 s while a run is queued or running and the page is
+visible: totals (steps done and left, runs running) and one stacked bar
+per session grouped by corpus (own, AMI, CALLHOME), failures split by
+error code; the results so far (per corpus, plain-SVG charts of DER per
+diarizer on the chosen audio, mean with min-max over the recordings, and
+per denoiser, the mean over the diarizers that ran on every denoiser
+with the best-to-worst range; CALLHOME flagged non-commercial; for own
+recordings, on request, agreement with the consensus, flagged as
+agreement only); the pending and failed steps with their reasons and
+how to resume; and, per session, 20-second samples of the original and
+each denoised audio of its newest run with results, through the excerpt
+route, beside that audio's mean and best DER (corpus) or mean agreement
+(own). The stretch is the 20 s window with most overlapped speech
+(counted twice) plus speaker changes in the reference turns (corpus) or
+the consensus (own), else from 10 % in; on a corpus recording the
+consensus names nobody (no one is enrolled), so agreement is not shown
+there. Below the overview: pick a recording, choose models by
 stage (licence, non-commercial badge, token and installed state, VRAM),
 see how many pipelines and steps that is, start, follow the steps,
 cancel and resume; then for an ended run an overview (sortable pipeline

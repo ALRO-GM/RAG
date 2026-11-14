@@ -150,6 +150,15 @@ export class Api {
 
   labCatalogue() { return this.request("GET", "/lab/catalogue"); }
 
+  /** Every session's newest run: steps done, left and failed (§7). */
+  labOverview() { return this.request("GET", "/lab/overview"); }
+
+  /** Mean and spread of the reference scores over one corpus (§13.3). */
+  labReferenceSummary(corpus) { return this.request("GET", "/lab/reference-summary", { query: { corpus } }); }
+
+  /** An imported session's reference speaker turns (anonymous corpus ids). */
+  labReferenceTurns(session) { return this.request("GET", `/lab/sessions/${encodeURIComponent(session)}/reference-turns`); }
+
   labRuns(session) { return this.request("GET", `/lab/sessions/${encodeURIComponent(session)}/runs`); }
 
   labStart(session, body) { return this.request("POST", `/lab/sessions/${encodeURIComponent(session)}/runs`, { json: body }); }
@@ -182,6 +191,12 @@ export class Api {
 
   /** The address an <audio> element plays (it carries the playback cookie, not the code). */
   labAudioUrl(session, run, denoiser) { return `/api${this.labRunPath(session, run)}/audio/${encodeURIComponent(denoiser)}`; }
+
+  /** A short excerpt cut on the server (playback cookie), for the overview's samples. */
+  labExcerptUrl(session, run, denoiser, start, seconds) {
+    const query = new URLSearchParams({ start: String(start), seconds: String(seconds) });
+    return `/api${this.labRunPath(session, run)}/excerpt/${encodeURIComponent(denoiser)}?${query}`;
+  }
 
   /** `pcm` is 16 kHz mono 16-bit little-endian PCM (the API's default format). */
   enrol(id, { name, language, textVersion, pcm }) {

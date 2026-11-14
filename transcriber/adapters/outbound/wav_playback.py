@@ -17,7 +17,8 @@ memory; :class:`FilePlayback` serves a rendered file and
 :class:`LivePlayback` the raw PCM of a session still recording behind a
 WAV header made on the fly. Both read only the bytes asked for, from a
 file descriptor opened once, so a file replaced or removed meanwhile
-does not break a read in progress.
+does not break a read in progress. :class:`MemoryPlayback` serves a
+short excerpt already cut into memory (a lab sample, a few seconds).
 """
 
 import os
@@ -98,6 +99,22 @@ class FilePlayback:
         if self._fd >= 0:
             os.close(self._fd)
             self._fd = -1
+
+
+class MemoryPlayback:
+    """A short WAV already in memory (an excerpt), read by byte ranges."""
+
+    def __init__(self, data: bytes) -> None:
+        """Keep the whole file ``data``."""
+        self._data = data
+        self.size = len(data)
+
+    def read(self, offset: int, length: int) -> bytes:
+        """Return up to ``length`` bytes from ``offset``."""
+        return self._data[offset:offset + max(length, 0)]
+
+    def close(self) -> None:
+        """Nothing to release."""
 
 
 class LivePlayback:

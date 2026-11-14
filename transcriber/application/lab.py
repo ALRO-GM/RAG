@@ -31,6 +31,7 @@ results and the labels.
 
 import hashlib
 import json
+import math
 import uuid
 from typing import (
     Any,
@@ -120,6 +121,9 @@ ACTIVE = ("queued", "running")
 FINISHED = ("done", "partial", "failed", "cancelled", "interrupted")
 MAX_PIPELINES = 600
 MAX_PAGE = 200
+EXCERPT_SECONDS = 20.0
+"""Length of an audio sample of the overview, by default."""
+MAX_EXCERPT_SECONDS = 60.0
 
 CatalogueState = Literal["ready", "needs_token", "not_installed"]
 
@@ -1303,13 +1307,41 @@ class LabAudio:
 
         Raises :class:`NotFoundError` when that audio is not stored.
         """
+        return self._repository.playback(
+            session_id, self._key(session_id, run_id, denoiser)
+        )
+
+    def excerpt(
+        self, session_id: str, run_id: str, denoiser: str, start: float,
+        seconds: float = EXCERPT_SECONDS,
+    ) -> PlaybackAudio:
+        """Return ``seconds`` of that audio from ``start`` as a short WAV.
+
+        A sample to listen to beside the run's figures: ``start`` must
+        be at least 0 and before the end, ``seconds`` more than 0 and at
+        most :data:`MAX_EXCERPT_SECONDS` (:class:`InvalidInputError`).
+        """
+        if not math.isfinite(start) or start < 0:
+            raise InvalidInputError("The excerpt's start must be >= 0.")
+        if not math.isfinite(seconds) or not (
+            0 < seconds <= MAX_EXCERPT_SECONDS
+        ):
+            raise InvalidInputError(
+                "An excerpt lasts more than 0 and at most"
+                f" {MAX_EXCERPT_SECONDS:g} seconds."
+            )
+        key = self._key(session_id, run_id, denoiser)
+        return self._repository.excerpt(session_id, key, start, seconds)
+
+    def _key(self, session_id: str, run_id: str, denoiser: str) -> str:
+        """Return the key of the run's audio for ``denoiser``."""
         run = self._status.run(session_id, run_id)
         if denoiser == NO_DENOISER:
             key = self._repository.original_key(session_id)
             if key is None:
                 raise NotFoundError("The original audio is not stored.")
-            return self._repository.playback(session_id, key)
+            return key
         step = run.step(f"denoise:{denoiser}")
         if step is None or step.state != "done" or step.key is None:
             raise NotFoundError(f"No denoised audio of {denoiser!r}.")
-        return self._repository.playback(session_id, step.key)
+        return step.key

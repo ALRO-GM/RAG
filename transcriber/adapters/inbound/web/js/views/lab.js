@@ -1,4 +1,5 @@
-// "Pruebas": the model lab. #/lab picks a recording, #/lab/<session> chooses
+// "Pruebas": the model lab. #/lab shows how the tests are going across
+// sessions (lab-progress.js) and picks a recording, #/lab/<session> chooses
 // models, runs them and follows the runs, #/lab/<session>/<run>[/<section>]
 // shows a run's comparison, timeline, fragments to label and scores.
 
@@ -9,6 +10,7 @@ import { formatTime } from "../lib/text.js";
 import { sortSessions } from "../lib/sessions.js";
 import { STAGES, defaultSelection, groupCatalogue, planCounts, runRequest } from "../lib/lab.js";
 import { runView } from "./lab-run.js";
+import { progressPanel } from "./lab-progress.js";
 
 const POLL_MS = 2000;
 const ACTIVE = new Set(["queued", "running"]);
@@ -37,13 +39,16 @@ async function recordingsView(ctx, root) {
     root.append(h("p", { class: "notice" }, t("lab.no_recordings")));
     return null;
   }
+  const panel = progressPanel(ctx);
+  root.append(panel.element);
+  panel.start();
   root.append(h("h2", {}, t("lab.pick_recording")),
     h("ul", { class: "cards" }, sessions.map((s) => h("li", { class: "card" },
       h("h2", {}, h("a", { href: `#/lab/${encodeURIComponent(s.id)}` }, s.title || s.id)),
       h("p", { class: "meta" },
         s.started_at ? new Date(s.started_at).toLocaleString(lang) : s.id,
         s.duration > 0 ? ` · ${formatTime(s.duration)}` : "")))));
-  return null;
+  return () => panel.stop();
 }
 
 // ---- choose models, run, follow ------------------------------------------

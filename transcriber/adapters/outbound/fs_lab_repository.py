@@ -41,10 +41,13 @@ from transcriber.adapters.outbound.fs_storage import (
 from transcriber.adapters.outbound.wav_playback import (
     PCM_RATE,
     FilePlayback,
+    MemoryPlayback,
+    wav_header,
     write_wav,
 )
 from transcriber.application.ports import Audio, PlaybackAudio
 from transcriber.domain.errors import (
+    InvalidInputError,
     LabStepError,
     NotFoundError,
     StorageError,
@@ -133,6 +136,28 @@ class FileSystemLabRepository:
     def playback(self, session_id: str, audio_key: str) -> PlaybackAudio:
         """Return the WAV of ``audio_key`` for the player."""
         return FilePlayback(self.audio_path(session_id, audio_key))
+
+    def excerpt(
+        self, session_id: str, audio_key: str, start: float, seconds: float
+    ) -> PlaybackAudio:
+        """Return ``seconds`` of ``audio_key`` from ``start`` as a WAV.
+
+        Only the frames asked for are read; the excerpt keeps the
+        stored audio's rate (16 kHz mono 16-bit, checked on storing).
+        """
+        path = self.audio_path(session_id, audio_key)
+        with wave.open(str(path), "rb") as reader:
+            if (reader.getnchannels(), reader.getsampwidth()) != (1, 2):
+                raise StorageError("Lab audio must be mono 16-bit PCM.")
+            rate = reader.getframerate()
+            first = int(round(start * rate))
+            if first >= reader.getnframes():
+                raise InvalidInputError(
+                    "The excerpt starts after the end of the audio."
+                )
+            reader.setpos(first)
+            data = reader.readframes(max(1, int(round(seconds * rate))))
+        return MemoryPlayback(wav_header(len(data), rate) + data)
 
     # ---------------------------------------------------------- stages
 

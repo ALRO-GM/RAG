@@ -103,6 +103,7 @@ from transcriber.application.lab import (
 )
 from transcriber.application.lab_builtin import InProcessTools
 from transcriber.application.lab_ports import LabRepository
+from transcriber.application.lab_progress import LabOverview, ReferenceTurns
 from transcriber.application.lab_reference import (
     ImportReference,
     ReferenceSummary,
@@ -173,6 +174,8 @@ class LabUseCases:
     audio: LabAudio
     import_reference: ImportReference
     reference_summary: ReferenceSummary
+    overview: LabOverview
+    reference_turns: ReferenceTurns
 
 
 @dataclass(frozen=True)
@@ -340,6 +343,8 @@ def build_lab(
             locks, clock,
         ),
         reference_summary=ReferenceSummary(sessions, repository),
+        overview=LabOverview(sessions, repository, status),
+        reference_turns=ReferenceTurns(sessions, repository),
     )
 
 

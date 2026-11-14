@@ -478,6 +478,8 @@ QUERIES = {
     "/api/sessions/{session_id}/upload": "?filename=a.wav&language=es",
     "/api/enrolment/text": "?language=es",
     "/api/speakers/{speaker_id}/enrolment": "?name=A&language=es",
+    "/api/lab/sessions/{session_id}/runs/{run_id}/excerpt/{denoiser}":
+        "?start=0",
 }
 """Required query parameters, so that the request reaches the route."""
 
@@ -537,6 +539,9 @@ ROUTES = [
 
 AUDIO_ROUTE = ("GET", "/api/sessions/s1/audio")
 LAB_AUDIO_ROUTE = ("GET", f"/api/lab/sessions/s1/runs/{'0' * 32}/audio/none")
+LAB_EXCERPT_ROUTE = (
+    "GET", f"/api/lab/sessions/s1/runs/{'0' * 32}/excerpt/none?start=0",
+)
 """The routes that also take the playback cookie."""
 
 
@@ -576,6 +581,7 @@ class TestAccess:
         assert OPEN_ROUTES <= served
         assert len(ROUTES) == len(served) - len(OPEN_ROUTES) >= 17
         assert AUDIO_ROUTE in ROUTES and LAB_AUDIO_ROUTE in ROUTES
+        assert LAB_EXCERPT_ROUTE in ROUTES
         assert ("POST", "/api/access/cookie") in ROUTES
 
     @pytest.mark.parametrize("method, path", ROUTES)
@@ -659,7 +665,8 @@ class TestAccess:
 
     @pytest.mark.parametrize(
         "method, path",
-        [r for r in ROUTES if r not in (AUDIO_ROUTE, LAB_AUDIO_ROUTE)],
+        [r for r in ROUTES
+         if r not in (AUDIO_ROUTE, LAB_AUDIO_ROUTE, LAB_EXCERPT_ROUTE)],
     )
     def test_every_other_route_ignores_the_cookie(
         self, client: TestClient, method: str, path: str

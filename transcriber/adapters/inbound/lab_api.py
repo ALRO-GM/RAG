@@ -5,7 +5,8 @@ create_app` with the same access code, error format and body limits
 (``docs/transcriber/LAB.md`` §7 lists every route with examples). The
 audio of a run (the original or a denoiser's output) is served like a
 session's audio: WAV with byte ranges, and the playback cookie is
-accepted on that route only.
+accepted on that route and on a run's excerpts (a few seconds of one
+audio, cut on the server, for the overview's samples).
 """
 
 from typing import Any, Dict, List, Optional
@@ -20,7 +21,12 @@ from transcriber.adapters.inbound.http_api import (
     read_body,
     wav_response,
 )
-from transcriber.application.lab import MAX_PAGE, LabRunView
+from transcriber.application.lab import (
+    EXCERPT_SECONDS,
+    MAX_EXCERPT_SECONDS,
+    MAX_PAGE,
+    LabRunView,
+)
 from transcriber.bootstrap import LabUseCases
 from transcriber.config import TranscriberSettings
 from transcriber.domain.lab import (
@@ -85,6 +91,28 @@ def add_lab_routes(
                 for item in view.items
             ],
         }
+
+    @api.get("/lab/overview")
+    async def overview() -> Dict[str, Any]:
+        """Show every session's newest run: steps done, left and failed."""
+        found = await run_in_threadpool(lab.overview)
+        return {"sessions": [
+            entry.model_dump(mode="json") for entry in found
+        ]}
+
+    @api.get("/lab/reference-summary")
+    async def reference_summary(
+        corpus: Optional[str] = Query(default=None, max_length=32),
+    ) -> Dict[str, Any]:
+        """Mean and spread of the reference scores over a corpus."""
+        summary = await run_in_threadpool(lab.reference_summary, corpus)
+        return summary.model_dump(mode="json")
+
+    @api.get("/lab/sessions/{session_id}/reference-turns")
+    async def reference_turns(session_id: str) -> Dict[str, Any]:
+        """Return an imported session's reference speaker turns."""
+        turns = await run_in_threadpool(lab.reference_turns, session_id)
+        return {"turns": [turn.model_dump(mode="json") for turn in turns]}
 
     @api.get("/lab/sessions/{session_id}/runs")
     async def runs(session_id: str) -> Dict[str, Any]:
@@ -207,5 +235,21 @@ def add_lab_routes(
         """Serve the original (``none``) or a denoiser's audio as WAV."""
         rendering = await run_in_threadpool(
             lab.audio, session_id, run_id, denoiser
+        )
+        return wav_response(rendering, request.headers.get("range"))
+
+    @playback.get(
+        "/lab/sessions/{session_id}/runs/{run_id}/excerpt/{denoiser}"
+    )
+    async def excerpt(
+        session_id: str, run_id: str, denoiser: str, request: Request,
+        start: float = Query(ge=0),
+        seconds: float = Query(
+            default=EXCERPT_SECONDS, gt=0, le=MAX_EXCERPT_SECONDS
+        ),
+    ) -> Response:
+        """Serve a short stretch of the original or a denoiser's audio."""
+        rendering = await run_in_threadpool(
+            lab.audio.excerpt, session_id, run_id, denoiser, start, seconds
         )
         return wav_response(rendering, request.headers.get("range"))
