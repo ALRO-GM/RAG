@@ -21,6 +21,7 @@ job never overwrites or resurrects a session.
 """
 
 import hashlib
+import logging
 import uuid
 from typing import (
     AbstractSet,
@@ -66,6 +67,7 @@ from transcriber.domain.errors import (
     NotFoundError,
     VoiceModelMismatchError,
 )
+from transcriber.domain.languages import check_language, recognition_language
 from transcriber.domain.models import (
     Pipeline,
     Session,
@@ -97,6 +99,13 @@ from transcriber.domain.voices import (
     match_voices,
     name_seeded,
     seed_voices,
+)
+
+LOG = logging.getLogger(__name__)
+
+SCORING_FAILED_NOTE = (
+    "The recogniser could not score its words; the transcript has no"
+    " recognition confidence."
 )
 
 # Stages reported to Progress, with the share of the job done when each
@@ -233,6 +242,16 @@ class TranscribeSession:
         """Return the name of the voice model sessions are compared in."""
         return self._encoder.model_name
 
+    def check_language(self, language: str) -> str:
+        """Return ``language`` if the recogniser can transcribe it.
+
+        ``auto`` (detect) is always accepted; another code must be one
+        the recogniser knows (:class:`InvalidInputError` otherwise).
+        """
+        return check_language(
+            language, self._recogniser.supported_languages
+        )
+
     def __call__(
         self,
         session_id: str,
@@ -331,7 +350,8 @@ class TranscribeSession:
         recording = self._sessions.recording(running.id)
         audio = self._decoder.decode(recording)
         advance()  # recognise
-        speech = self._recogniser.recognise(audio, running.language)
+        language = recognition_language(running.language)
+        speech = self._recogniser.recognise(audio, language)
         # Recognisers invent words over silence: keep only the words
         # said where the audio has some energy. Passages returned twice
         # at the seams of the recogniser's windows go first.
@@ -345,6 +365,7 @@ class TranscribeSession:
         )
         if not words:
             raise InvalidInputError("No speech recognised.")
+        words = self._scored(audio, words, language, report)
         advance()  # voices
         regions = speech_regions(words, p.region_gap)
         coarse_windows = analysis_windows(regions, *p.coarse())
@@ -387,9 +408,12 @@ class TranscribeSession:
         words = assign_speakers(words, spans)
         if p.smoothing_run:
             words = smooth_speakers(words, p.smoothing_run)
-        words = keep_sentences_whole(
-            words, evidence, p.doubt_margin, p.turn_gap
-        )
+        moved: List[Tuple[float, float]] = []
+        if p.whole_sentences:
+            words, moved = keep_sentences_whole(
+                words, evidence, p.whole_sentence_margin, p.turn_gap,
+                p.whole_sentence_max_move,
+            )
         advance()  # identify
         if candidates.skipped:
             report.note(skipped_note(candidates.skipped))
@@ -421,7 +445,7 @@ class TranscribeSession:
                 for v in evidence.voices
             ])
         utterances = assess_utterances(
-            utterances, evidence, p.doubt_margin
+            utterances, evidence, p.doubt_margin, moved
         )
         advance()  # save
         done = move(running, SessionState.DONE).model_copy(update={
@@ -441,6 +465,32 @@ class TranscribeSession:
             ),
         )
         return _Result(transcript, words)
+
+    def _scored(
+        self, audio: Audio, words: List[Word], language: Optional[str],
+        report: Progress,
+    ) -> List[Word]:
+        """Return ``words`` with the recogniser's probability of each.
+
+        The scores are an extra: if the scoring fails (any
+        ``Exception``) the words are returned without probability, the
+        failure is logged and noted, and the job goes on.
+        """
+        try:
+            scored = self._recogniser.score_words(audio, words, language)
+        except Exception:
+            LOG.warning("Scoring the recognised words failed.", exc_info=True)
+            report.note(SCORING_FAILED_NOTE)
+            return [w.model_copy(update={"probability": None}) for w in words]
+        if len(scored.words) != len(words):
+            LOG.warning("The recogniser scored %d of %d words.",
+                        len(scored.words), len(words))
+            report.note(SCORING_FAILED_NOTE)
+            return [w.model_copy(update={"probability": None}) for w in words]
+        return [
+            w.model_copy(update={"probability": s.probability})
+            for w, s in zip(words, scored.words)
+        ]
 
     def _embed(
         self, audio: Audio, windows: Sequence[Tuple[float, float]]
@@ -591,6 +641,7 @@ class QueueTranscription:
             )
             if options.language is not None:
                 session = _with_language(session, options.language)
+            self._transcribe.check_language(session.language)
             run_id = self._run_ids()
             queued = move(session, SessionState.QUEUED).model_copy(
                 update={"run_id": run_id}

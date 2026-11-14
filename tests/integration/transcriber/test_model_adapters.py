@@ -24,8 +24,12 @@ from transcriber.adapters.outbound.whisper_recogniser import (
     WhisperRecogniser,
     mean_token_probabilities,
     scoring_windows,
+    whisper_language,
     without_encoder_attentions,
     words_from_chunks,
+)
+from transcriber.adapters.outbound.whisper_languages import (
+    WHISPER_LANGUAGES,
 )
 from transcriber.application.ports import Audio
 from transcriber.domain.errors import InvalidInputError
@@ -167,6 +171,21 @@ class TestTorchRuntime:
         torch_runtime.release("cuda")
 
 
+class TestWhisperLanguages:
+    def test_the_copied_codes_are_whisper_s(self) -> None:
+        from transformers.models.whisper.tokenization_whisper import (
+            LANGUAGES,
+        )
+
+        assert WHISPER_LANGUAGES == frozenset(LANGUAGES)
+
+    def test_a_code_is_mapped_to_its_token_or_refused(self) -> None:
+        assert whisper_language("es-ES") == "es"
+        assert whisper_language(None) is None
+        with pytest.raises(InvalidInputError):
+            whisper_language("xx")
+
+
 class TestFakeRecogniser:
     def test_words_follow_the_loud_slots(self) -> None:
         samples = scene([("220", 2.0), ("-", 1.2), ("440", 0.8)])
@@ -274,3 +293,11 @@ def test_two_first_uses_at_once_load_one_model(
     assert model.loaded
     model.release()
     assert not model.loaded
+
+
+def test_the_fake_recogniser_scores_nothing() -> None:
+    words = [Word(text="hola", start=0.0, end=0.4)]
+    audio = Audio(samples=silence(1.0), sample_rate=RATE)
+    scored = FakeSpeechRecogniser().score_words(audio, words, "es").words
+    assert scored == words
+    assert "es" in FakeSpeechRecogniser().supported_languages

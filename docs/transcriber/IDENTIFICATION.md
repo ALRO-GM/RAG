@@ -423,10 +423,16 @@ one value per speaker), its own `speaker_certainty`, `doubtful`,
   sentence is kept whole).
 - `doubtful` is a margin below `doubt_margin` (0.1). `overlap` is a
   window lying wholly inside the sentence that prefers another voice by
-  at least 0.1. `alternative_speaker` is the other voice the windows
-  over the sentence prefer most, given only when the sentence is
-  doubtful or an overlap.
-- With one voice in the session, or no window over a sentence, the four
+  at least 0.1. `alternative_speaker` is given only when the sentence
+  is doubtful (the other voice the windows over its weakest stretch
+  prefer most) or an overlap (the voice of the window that flagged it;
+  with three or more voices it can differ from the runner-up over the
+  whole sentence).
+- A sentence that holds a stretch `keep_sentences_whole` gave to its
+  speaker (below) takes the margin over that stretch when it is lower:
+  a moved stretch is never hidden behind a confident sentence. With no
+  window over the moved stretch the sentence is doubtful.
+- With one voice in the session, or no window over a sentence, the
   fields are absent (`null` in the model).
 
 What it is not: **a similarity margin, not a probability**. It was not
@@ -437,12 +443,78 @@ quick exchange inside one sentence, and a sentence shorter than one
 window (1.5 s) never has a window inside it. Separating simultaneous
 voices needs a dedicated model (TR-14).
 
-Why 0.1. On the first three real recordings (two people, one phone on
-the table; 871 short windows) 3.7% of the windows had their two closest
-voices within 0.1 of each other, and 10% within 0.198: a margin under
-0.1 means the sentence's windows are, on average, as undecided as the
-few windows that are near ties. It is a parameter
-(`TranscriptionParameters.doubt_margin`); with it, 12 of 187 sentences
-of those recordings were doubtful (6.4%) and 23 overlaps (12.3%). The
-same cut decides when a change of speaker inside a sentence is too
-weak to cut it (`keep_sentences_whole`).
+### Keeping a sentence whole (`whole_sentences`)
+
+A change of speaker inside a sentence often comes from one stray short
+window at a sentence's edge. `keep_sentences_whole` gives a stretch of
+words to the speaker of a neighbouring stretch of the same sentence
+when all of these hold: it lasts at most `whole_sentence_max_move`
+seconds; its own speaker has fewer than two windows preferring it or a
+margin below `whole_sentence_margin` (0.1); and the evidence favours
+the move (at most one window prefers its own speaker, or its own
+margin is at most 0, or the neighbour's margin over it is higher). A
+stretch whose windows prefer its own speaker, however weakly, stays,
+and the sentence is cut there (each part becomes its own turn). It has
+its own switch, independent of `doubt_margin`.
+
+Measured on the synthetic four-reader meetings of §3 (20 per split;
+the default pipeline: seams resolved, words over silence dropped,
+voiceprints as seeds at 0.95 on unit vectors, smoothing; the same
+cached windows with the rule off and on; words on the right id, mean
+of the four enrolment conditions):
+
+| Split | Speakers | Off | 1.5 s | 3 s | 6 s | Unbounded |
+|---|---|---|---|---|---|---|
+| dev (tuning) | given | 94.1% | 95.5% | 95.9% | 96.2% | 96.1% |
+| dev (tuning) | estimated | 89.0% | 92.5% | 93.5% | 93.7% | 91.3% |
+| test (held out) | given | 91.4% | 94.0% | 94.7% | 95.0% | 94.6% |
+| test (held out) | estimated | 81.8% | 85.9% | 87.2% | 88.1% | 84.1% |
+
+With any of the four bounds the rule on put more words on the right id
+than off in each of the 16 cells (two splits, four enrolment
+conditions, number given or estimated; `whole_sentences.jsonl`), so it
+stays on by default; 6 s was the best bound on every dev cell (tied
+with unbounded on three) and is the default `whole_sentence_max_move`. Without a bound the rule hands long
+stretches to the wrong neighbour when the number of speakers is
+estimated. The "off" column with the number given reproduces the
+91.4% of §3 for seeding. These are read speech meetings with clean
+turns; on a phone on a table the rule was not measured against labels.
+
+```sh
+# needs the TR-05 cache (prepare, §8; GPU); this step is CPU only
+PYTHONPATH=. python experiments/transcriber/identification_eval.py \
+    analyse --what sentences
+```
+
+### On the first real recordings
+
+Two people around one phone, three recordings R1–R3 (985 s; no ground
+truth). Rerun with the current pipeline and printed by
+`experiments/transcriber/real_sessions.py`, which copies the sessions
+and the voiceprints to a scratch directory and prints aggregate counts
+only (no audio, text, ids or names):
+
+```sh
+PYTHONPATH=. python experiments/transcriber/real_sessions.py \
+    --data-dir data/transcriber --work /tmp/real-sessions --first 3
+rm -r /tmp/real-sessions
+```
+
+| | R1 | R2 | R3 | All |
+|---|---|---|---|---|
+| Short windows | 405 | 205 | 269 | 879 |
+| Windows whose two closest voices are within 0.1 | 1.7% | 3.9% | 3.4% | 2.7% (24) |
+| 10% quantile of that gap | 0.374 | 0.192 | 0.185 | |
+| Sentences | 58 | 82 | 59 | 199 |
+| Doubtful | 13 | 10 | 4 | 27 (13.6%) |
+| Overlap | 11 | 5 | 8 | 24 (12.1%) |
+| Stretches moved by `keep_sentences_whole` | 17 | 6 | 3 | 26 |
+| Sentences out of time order | 0 | 0 | 0 | 0 |
+| Words returned / dropped by the seam step | 837 / 24 | 441 / 52 | 397 / 35 | 1675 / 111 |
+
+Why 0.1. Few windows are near ties (2.7% within 0.1): a sentence
+margin under 0.1 means its windows are, on average, as undecided as
+those few. It is a parameter (`TranscriptionParameters.doubt_margin`).
+With the sentences now cut where a supported change of speaker falls
+and moved stretches carried into the certainty, 13.6% of the sentences
+are doubtful (6.4% with the TR-16 rule, whose moves were silent).

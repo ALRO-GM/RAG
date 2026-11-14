@@ -224,6 +224,18 @@ class TestCertaintyUnderReview:
         out = renamer(w)("s1", "S2", merge_into="S1")
         assert {u.alternative_speaker for u in out.utterances} == {None}
 
+    def test_the_target_of_a_merge_loses_its_certainty(self) -> None:
+        """S1's margins were taken against S2, now the same person."""
+        w = doubtful()
+        before = stored(w)
+        assert all(u.speaker_certainty is not None
+                   for u in before.utterances)
+        out = renamer(w)("s1", "S2", merge_into="S1")
+        assert {u.speaker for u in out.utterances} == {"S1"}
+        for u in out.utterances:
+            assert (u.speaker_certainty, u.doubtful, u.overlap,
+                    u.alternative_speaker) == (None, None, None, None)
+
     def test_a_speaker_left_without_speech_is_no_alternative(self) -> None:
         w = doubtful()
         while any(u.speaker == "S2" for u in stored(w).utterances):

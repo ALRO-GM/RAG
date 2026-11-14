@@ -9,6 +9,7 @@ implement them in memory.
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
+    AbstractSet,
     Any,
     Callable,
     ContextManager,
@@ -104,6 +105,18 @@ class RecognisedSpeech(BaseModel):
     language: Optional[str] = None
 
 
+class WordScores(BaseModel):
+    """The recogniser's own probability of each word it was given.
+
+    ``words`` are the words given, in the same order, each with its
+    ``probability`` (``None`` where the model could not score it).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    words: List[Word]
+
+
 class JobStatus(BaseModel):
     """Where the job of a session is: its state, stage and progress.
 
@@ -137,10 +150,31 @@ class SpeechRecogniser(Protocol):
         """Return the identifier of the recognition model."""
         ...
 
+    @property
+    def supported_languages(self) -> AbstractSet[str]:
+        """Return the base language codes the recogniser knows."""
+        ...
+
     def recognise(
         self, audio: Audio, language: Optional[str] = None
     ) -> RecognisedSpeech:
-        """Return the words spoken in ``audio`` with their times."""
+        """Return the words spoken in ``audio`` with their times.
+
+        ``language`` is a base code of :attr:`supported_languages`, or
+        ``None`` to detect it. The words carry no probability yet.
+        """
+        ...
+
+    def score_words(
+        self, audio: Audio, words: Sequence[Word],
+        language: Optional[str] = None,
+    ) -> WordScores:
+        """Return how probable the model finds each of ``words``.
+
+        Called once the words are final (seams resolved, words over
+        silence dropped), so each is scored against the audio it was
+        heard in.
+        """
         ...
 
 

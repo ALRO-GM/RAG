@@ -240,10 +240,14 @@ def build_container(
         publisher=publisher,
         clock=clock,
         locks=locks,
-        open_session=OpenSession(sessions, clock, locks),
+        open_session=OpenSession(
+            sessions, clock, locks, recogniser.supported_languages
+        ),
         append_audio=AppendAudio(sessions, locks),
         close_session=CloseSession(sessions, locks),
-        import_recording=ImportRecording(sessions, locks),
+        import_recording=ImportRecording(
+            sessions, locks, recogniser.supported_languages
+        ),
         delete_session=DeleteSession(sessions, locks),
         enrol_speaker=EnrolSpeaker(
             decoder, recogniser, encoder, voiceprints, clock, runner,

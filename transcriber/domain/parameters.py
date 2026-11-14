@@ -13,7 +13,10 @@ from typing import Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from transcriber.domain.certainty import DEFAULT_DOUBT_MARGIN
+from transcriber.domain.certainty import (
+    DEFAULT_DOUBT_MARGIN,
+    DEFAULT_MAX_MOVE,
+)
 from transcriber.domain.voices import (
     DEFAULT_MATCH_THRESHOLD,
     Normalisation,
@@ -63,9 +66,18 @@ class TranscriptionParameters(BaseModel):
     cosine with its speaker minus that with the closest other voice;
     :mod:`transcriber.domain.certainty`) is below this is ``doubtful``;
     a window inside a sentence that prefers another voice by at least
-    this much makes it an ``overlap``; a speaker change inside a
-    sentence supported by less than this (or by a single window) is
-    undone.
+    this much makes it an ``overlap``.
+    ``whole_sentences``: undo weak speaker changes inside a sentence
+    (:func:`~transcriber.domain.certainty.keep_sentences_whole`): a run
+    of at most ``whole_sentence_max_move`` seconds whose speaker has a
+    margin below ``whole_sentence_margin`` (or a single window) goes to
+    a neighbouring speaker the windows favour; the sentences holding a
+    moved stretch carry its margin in their certainty. Measured in
+    TR-05's synthetic meetings (``docs/transcriber/IDENTIFICATION.md``,
+    appendix; held-out readers, mean of the four enrolment conditions,
+    seeded identification): with the rule on (6 s) 95.0% of words on
+    the right id against 91.4% off with the number of speakers given,
+    88.1% against 81.8% with it estimated.
 
     Measured in TR-05 (``docs/transcriber/IDENTIFICATION.md``; figures
     on the readers held out from the choice): ``match_threshold`` 0.95
@@ -113,6 +125,13 @@ class TranscriptionParameters(BaseModel):
     activity_threshold: float = Field(default=0.003, ge=0, le=1)
     doubt_margin: float = Field(
         default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
+    )
+    whole_sentences: bool = True
+    whole_sentence_margin: float = Field(
+        default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
+    )
+    whole_sentence_max_move: float = Field(
+        default=DEFAULT_MAX_MOVE, ge=0, allow_inf_nan=False
     )
 
     @model_validator(mode="after")

@@ -11,17 +11,19 @@ of their words can fail: the words of an overlap then come out twice,
 the second copy starting back at the window's start. The use case
 removes those copies (:func:`transcriber.domain.seams.resolve_seams`).
 
-The pipeline does not report how sure it is of each word, so the
-recogniser reads its own text again (:meth:`WhisperRecogniser.
-word_probabilities`): the audio around the words, cut into windows of
-at most 30 s, and the words' tokens are given to the model, which
-returns the probability it gives each token after the ones before it;
-a word's probability is the mean over its tokens (as openai-whisper
-computes it).
+The pipeline does not report how sure it is of each word, so the use
+case asks the recogniser to read the final words again
+(:meth:`WhisperRecogniser.score_words`, after the seams are resolved,
+so a doubled passage is never scored against audio that holds it
+once): the audio around the words, cut into windows of at most 30 s,
+and the words' tokens are given to the model, which returns the
+probability it gives each token after the ones before it; a word's
+probability is the mean over its tokens (as openai-whisper computes
+it).
 """
 
 import threading
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import AbstractSet, Any, Dict, List, Optional, Sequence, Tuple
 
 from transcriber.adapters.outbound.torch_runtime import (
     Device,
@@ -30,8 +32,13 @@ from transcriber.adapters.outbound.torch_runtime import (
     pick_device,
     release,
 )
-from transcriber.application.ports import Audio, RecognisedSpeech
+from transcriber.adapters.outbound.whisper_languages import (
+    WHISPER_LANGUAGES,
+)
+from transcriber.application.ports import Audio, RecognisedSpeech, WordScores
 from transcriber.config import DEFAULT_RECOGNISER
+from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.languages import base_code
 from transcriber.domain.models import Word
 
 
@@ -112,6 +119,23 @@ def mean_token_probabilities(
     return out
 
 
+def whisper_language(language: Optional[str]) -> Optional[str]:
+    """Return the Whisper code of ``language`` (``es-ES`` → ``es``).
+
+    ``None`` stays ``None`` (detect). A code Whisper has no token for is
+    an :class:`InvalidInputError`: it would otherwise become an unknown
+    token and score every word against nothing.
+    """
+    if language is None:
+        return None
+    code = base_code(language)
+    if code not in WHISPER_LANGUAGES:
+        raise InvalidInputError(
+            f"Whisper does not know language {language!r}."
+        )
+    return code
+
+
 def without_encoder_attentions(model: Any) -> None:
     """Stop the encoder from returning its attention maps.
 
@@ -161,6 +185,11 @@ class WhisperRecogniser:
         return self._model_name
 
     @property
+    def supported_languages(self) -> AbstractSet[str]:
+        """Return the base codes Whisper has a language token for."""
+        return WHISPER_LANGUAGES
+
+    @property
     def loaded(self) -> bool:
         """Tell whether the model is in memory."""
         return self._pipeline is not None
@@ -199,13 +228,15 @@ class WhisperRecogniser:
         """Return the words spoken in ``audio`` with their times.
 
         With ``language=None`` Whisper detects the language of each
-        window and the reported language is ``None``.
+        window and the reported language is ``None``. The words carry
+        no probability (:meth:`score_words` gives it).
         """
+        code = whisper_language(language)
         # Greedy decoding: beam search multiplies memory with the
         # attention maps that word timestamps need.
         generate: Dict[str, Any] = {"task": "transcribe", "num_beams": 1}
-        if language:
-            generate["language"] = language
+        if code:
+            generate["language"] = code
         result = self._load()(
             {"raw": audio.samples, "sampling_rate": audio.sample_rate},
             chunk_length_s=30,
@@ -216,23 +247,21 @@ class WhisperRecogniser:
         words = words_from_chunks(
             list(result.get("chunks") or []), audio.duration
         )
-        return RecognisedSpeech(
-            words=self.word_probabilities(audio, words, language),
-            language=language,
-        )
+        return RecognisedSpeech(words=words, language=code)
 
-    def word_probabilities(
+    def score_words(
         self, audio: Audio, words: Sequence[Word],
         language: Optional[str] = None,
-    ) -> List[Word]:  # pragma: no cover - runs a real model
+    ) -> WordScores:  # pragma: no cover - runs a real model
         """Return ``words`` with the model's probability of each.
 
-        ``words`` may come in any order (the pipeline's seams); each is
-        scored in a window of the words around it in time. Words the
-        model cannot score (past the decoder's length) keep ``None``.
+        ``words`` may come in any order; each is scored in a window of
+        the words around it in time. Words the model cannot score (past
+        the decoder's length) keep ``None``.
         """
         import torch
 
+        code = whisper_language(language)
         pipe = self._load()
         model, tokenizer = pipe.model, pipe.tokenizer
         order = sorted(range(len(words)), key=lambda n: words[n].start)
@@ -249,12 +278,13 @@ class WhisperRecogniser:
                 tokenizer(timed[n].text, add_special_tokens=False).input_ids
                 for n in positions
             ]
-            prompt = self._prompt(model, tokenizer, features, language)
-            ids = prompt + [t for word in tokens for t in word]
-            ids = ids[:MAX_DECODER_TOKENS]
             with torch.no_grad():
+                encoded = model.get_encoder()(features)
+                prompt = self._prompt(model, tokenizer, encoded, code)
+                ids = prompt + [t for word in tokens for t in word]
+                ids = ids[:MAX_DECODER_TOKENS]
                 logits = model(
-                    input_features=features,
+                    encoder_outputs=encoded,
                     decoder_input_ids=torch.tensor([ids], device=model.device),
                 ).logits[0].float()
             chances = torch.softmax(logits, dim=-1)
@@ -267,23 +297,24 @@ class WhisperRecogniser:
             )
             for n, value in zip(positions, means):
                 scored[order[n]] = value
-        return [
+        return WordScores(words=[
             w.model_copy(update={"probability": p})
             for w, p in zip(words, scored)
-        ]
+        ])
 
     @staticmethod
     def _prompt(
-        model: Any, tokenizer: Any, features: Any, language: Optional[str]
+        model: Any, tokenizer: Any, encoded: Any, language: Optional[str]
     ) -> List[int]:  # pragma: no cover - runs a real model
         """The decoder's start tokens: transcribe ``language``, no times.
 
-        Without a language, the one the model detects in ``features``.
+        Without a language, the one the model detects from the encoder's
+        output ``encoded`` (one decoder step, no second encoder pass).
         """
         if language:
             code = tokenizer.convert_tokens_to_ids(f"<|{language}|>")
         else:
-            code = int(model.detect_language(input_features=features)[0])
+            code = int(model.detect_language(encoder_outputs=encoded)[0])
         return [
             tokenizer.convert_tokens_to_ids("<|startoftranscript|>"), code,
             tokenizer.convert_tokens_to_ids("<|transcribe|>"),

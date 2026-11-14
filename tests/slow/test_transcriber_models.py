@@ -1,8 +1,11 @@
 """The transcriber's real models (Whisper, WavLM) on generated audio.
 
 There is no consented speech recording in the repository and nothing
-is downloaded, so these tests cannot check what Whisper hears. They
-check what generated audio can show: the models load from the local
+is downloaded. Where the machine has them, the spoken channel names
+that ALSA ships (``/usr/share/sounds/alsa``, alsa-utils, GPL-2: a voice
+saying "Front Center"...) give a few seconds of real speech to check
+that the word scores follow the audio; the rest checks what generated
+audio can show: the models load from the local
 cache (``HF_HUB_OFFLINE=1``), the output has the right shape and
 order, what silence gives, the voice embeddings are unit vectors
 that tell different sounds apart, and a whole job through the real
@@ -12,11 +15,13 @@ nothing about recognition accuracy or about telling real voices apart.
 
 import io
 from pathlib import Path
+from typing import List
 
 import numpy as np
 import pytest
 import soundfile
 
+from transcriber.adapters.outbound.av_audio_decoder import resample, to_mono
 from transcriber.adapters.outbound.wavlm_voice_encoder import (
     WavLMVoiceEncoder,
 )
@@ -86,7 +91,7 @@ def test_whisper_scores_words_it_is_given() -> None:
              Word(text=" buenos", start=1.0, end=1.4),
              Word(text=" días.", start=1.4, end=2.0)]
     recogniser = WhisperRecogniser()
-    scored = recogniser.word_probabilities(audio, given, "es")
+    scored = recogniser.score_words(audio, given, "es").words
     recogniser.release()
     assert [w.text for w in scored] == [w.text for w in given]
     for word in scored:
@@ -94,6 +99,65 @@ def test_whisper_scores_words_it_is_given() -> None:
         assert 0.0 <= word.probability <= 1.0
     print(f"\nwhisper word probabilities on noise:"
           f" {[round(w.probability or 0, 3) for w in scored]}")
+
+
+ALSA_SOUNDS = Path("/usr/share/sounds/alsa")
+CHANNELS = ("Front_Center", "Front_Left", "Rear_Right", "Side_Left")
+
+
+def channel_names() -> FloatArray:
+    """ALSA's spoken channel names, 1 s apart, then 40 s of silence."""
+    pieces: List[FloatArray] = [np.zeros(RATE, dtype=np.float32)]
+    for name in CHANNELS:
+        data, rate = soundfile.read(
+            str(ALSA_SOUNDS / f"{name}.wav"), dtype="float32",
+            always_2d=True,
+        )
+        pieces.append(resample(to_mono(data), rate, RATE))
+        pieces.append(np.zeros(RATE, dtype=np.float32))
+    pieces.append(np.zeros(40 * RATE, dtype=np.float32))
+    return np.concatenate(pieces).astype(np.float32)
+
+
+@pytest.mark.skipif(
+    not all((ALSA_SOUNDS / f"{n}.wav").exists() for n in CHANNELS),
+    reason="the ALSA test sounds are not installed",
+)
+def test_whisper_scores_follow_the_audio() -> None:
+    """Real words score high; the same times with wrong words, or the
+    real words moved onto silence, score low.
+
+    If the scores were taken against the wrong stretch of audio (as
+    before seams were resolved first), the real words would not stand
+    out from the wrong ones.
+    """
+    audio = Audio(channel_names(), RATE)
+    recogniser = WhisperRecogniser()
+    heard = recogniser.recognise(audio, "en").words
+    text = " ".join(w.text for w in heard).lower()
+    assert "front" in text and "rear" in text
+    wrong = [w.model_copy(update={"text": f" {o}"}) for w, o in zip(
+        heard, ["banana", "tractor", "umbrella", "violin", "pepper",
+                "garden", "winter", "candle"] * 4)]
+    later = audio.duration - 30.0
+    moved = [w.model_copy(update={"start": w.start + later,
+                                  "end": w.end + later}) for w in heard]
+    real = recogniser.score_words(audio, heard, "en").words
+    other = recogniser.score_words(audio, wrong, "en").words
+    silent = recogniser.score_words(audio, moved, "en").words
+    recogniser.release()
+
+    def mean(words: List[Word]) -> float:
+        """The mean probability of ``words`` (all must have one)."""
+        values = [w.probability for w in words if w.probability is not None]
+        assert len(values) == len(words)
+        return float(np.mean(values))
+
+    print(f"\nwhisper on {len(heard)} ALSA words: real {mean(real):.3f},"
+          f" wrong words {mean(other):.3f}, on silence {mean(silent):.3f}")
+    assert mean(real) > 0.5
+    assert mean(real) > mean(other) + 0.3
+    assert mean(real) > mean(silent) + 0.3
 
 
 def test_wavlm_embeds_windows_as_unit_vectors() -> None:

@@ -56,8 +56,9 @@ transcriber/
     sessions.py      session states and moves, chunk acceptance, interruption
     parameters.py    TranscriptionParameters: every threshold of a transcription
     activity.py      speech activity from frame energy; drops words over silence
-    seams.py         removes passages the recogniser returned twice at the
-                     seams of its windows; words back in time order
+    seams.py         keeps once the passages the recogniser returned twice
+                     at the seams of its windows; words back in time order
+    languages.py     a session's language code or "auto"; validation
     sentences.py     sentence splitting, utterance ids
     speakers.py      word→speaker assignment, smoothing, turns, previous speaker
     certainty.py     per-sentence speaker certainty, doubt, overlap and
@@ -76,9 +77,9 @@ transcriber/
     consent.py       ShowConsentNotice
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
-    transcribe.py    TranscribeSession (recognise → seams → diarize →
-                     sentences kept whole → identify → sentences →
-                     certainty),
+    transcribe.py    TranscribeSession (recognise → seams → score words →
+                     diarize → sentences kept whole → identify →
+                     sentences → certainty),
                      QueueTranscription, TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
@@ -169,7 +170,17 @@ marked `slow`.
   speaker). `confidence` is the recogniser's mean word probability
   (Whisper re-reads its own words against the audio, at most 30 s at a
   time, and gives each token a probability; a word's is the mean over
-  its tokens).
+  its tokens). The words are scored once they are final (seams
+  resolved, words over silence dropped: `SpeechRecogniser.score_words`,
+  a second port method the use case calls), so a doubled passage is
+  never scored against audio that holds it once. A failure of that
+  pass is logged and noted on the job, and the transcript is saved
+  with `confidence` `null`: the scores are an extra, not a reason to
+  fail the job.
+- A session's `language` must be a code the recogniser knows (Whisper:
+  the 100 codes it has a token for; `es-ES` is read as `es`) or `auto`.
+  Opening, importing and queueing a session check it, so a typo is a
+  `400` before any job runs, not a failed transcription.
 - Per sentence, from the short voice windows over it (optional fields,
   added compatibly; absent when there is one voice or no window):
   `speaker_certainty` is the mean margin of the sentence's speaker over
@@ -177,20 +188,42 @@ marked `slow`.
   probability**), `doubtful` a margin below `doubt_margin` (0.1),
   `overlap` a window inside the sentence that prefers another voice,
   and `alternative_speaker` that other voice when the sentence is
-  doubtful or an overlap. Definition, rationale and limits:
-  `IDENTIFICATION.md`, appendix. A sentence moved by hand loses them.
+  doubtful (the other voice the windows over its weakest stretch
+  prefer most) or an overlap (the voice of the window that flagged
+  it). Definition, rationale and limits: `IDENTIFICATION.md`,
+  appendix. A sentence moved by hand loses them, and so do the
+  sentences of the target of a merge (their margins may have been
+  taken against the voice merged into them).
 - Utterances are strictly in time order. The Whisper pipeline reads
   30 s windows that start every 20 s; when its join of two windows
   fails, the overlap comes out twice and the word stream jumps back to
   the later window's start (seen at 20, 80, 180, 240, 260 and 360 s on
-  the first real recordings). `domain/seams.py` keeps one copy: the
-  doubled stretch is cut at its middle, joined on a word both copies
-  share when there is one.
-- A change of speaker inside a sentence is undone when it is weak (at
-  most one short window prefers the new speaker, or its margin is below
-  `doubt_margin`): the words go to a neighbouring speaker of the same
-  sentence, shortest weak stretch first. A sentence ends at final
-  punctuation or at a pause longer than `turn_gap`.
+  the first real recordings). `domain/seams.py` keeps one copy. Only
+  a step back of more than 1 s is a seam; a smaller one is jitter of
+  the word times (seen: a few hundredths of a second) and the word's
+  start is clamped forward, in text order. At a seam the two copies of
+  the doubled stretch are aligned word by word (longest common
+  subsequence of the words' letters, with compatible times); a word in
+  both is kept once, from the window where it is farther from the
+  window's edge (the earlier window before the stretch's middle, the
+  later one after it). A word with no counterpart is kept, unless the
+  other copy has different words at the same moment, in which case the
+  copy from the window farther from its edge wins. The step is
+  idempotent and never drops a word said once.
+- A change of speaker inside a sentence is undone only when it is weak
+  *and* the evidence favours the move (`whole_sentences`, measured in
+  `IDENTIFICATION.md`, appendix): a stretch of at most
+  `whole_sentence_max_move` (6 s) whose own speaker has fewer than two
+  short windows or a margin below `whole_sentence_margin` (0.1) goes to
+  a neighbouring speaker of the same sentence if at most one window
+  prefers its own speaker, or its own margin is at most 0, or the
+  neighbour's margin over it is higher. A stretch whose windows prefer
+  its own speaker stays, and the sentence is then cut at the change
+  (each part is its own turn). A sentence holding a moved stretch
+  takes that stretch's margin as its `speaker_certainty` when lower
+  (doubtful when below the cut, or when no window covers the moved
+  stretch). A sentence ends at final punctuation or at a pause longer
+  than `turn_gap`.
 - Words are kept by the transcriber (for the player and for
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.

@@ -13,11 +13,14 @@ signal in a fixed, predictable way:
   different people and the same tone like the same person.
 """
 
-from typing import List, Optional, Sequence, Tuple
+from typing import AbstractSet, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from transcriber.application.ports import Audio, RecognisedSpeech
+from transcriber.adapters.outbound.whisper_languages import (
+    WHISPER_LANGUAGES,
+)
+from transcriber.application.ports import Audio, RecognisedSpeech, WordScores
 from transcriber.domain.models import Word
 from transcriber.domain.voices import FloatArray
 
@@ -48,6 +51,11 @@ class FakeSpeechRecogniser:
     """One word per loud 0.4-second slot; punctuation at pauses."""
 
     model_name = FAKE_RECOGNISER
+
+    @property
+    def supported_languages(self) -> AbstractSet[str]:
+        """Return the codes the real recogniser knows (Whisper's)."""
+        return WHISPER_LANGUAGES
 
     def recognise(
         self, audio: Audio, language: Optional[str] = None
@@ -81,6 +89,13 @@ class FakeSpeechRecogniser:
                 end=round((slot + 1) * WORD_SECONDS, 3),
             ))
         return RecognisedSpeech(words=words, language=language)
+
+    def score_words(
+        self, audio: Audio, words: Sequence[Word],
+        language: Optional[str] = None,
+    ) -> WordScores:
+        """Score nothing: every word keeps ``probability`` ``None``."""
+        return WordScores(words=list(words))
 
     def release(self) -> None:
         """Nothing to unload."""

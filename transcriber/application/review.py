@@ -130,18 +130,35 @@ def by_hand(utterance: Utterance, speaker: str) -> Utterance:
     })
 
 
-def _alternative_renamed(
+def _without_evidence(utterance: Utterance) -> Utterance:
+    """Return ``utterance`` without its voice-window certainty.
+
+    The speaker confidence (the group's similarity with a voiceprint)
+    stays; the margin, doubt, overlap and alternative are cleared.
+    """
+    return utterance.model_copy(update={
+        "speaker_certainty": None, "doubtful": None, "overlap": None,
+        "alternative_speaker": None,
+    })
+
+
+def _after_merge(
     utterance: Utterance, label: str, target: str
 ) -> Utterance:
-    """Point an alternative ``label`` at ``target`` after a merge.
+    """Return a sentence not of ``label`` once ``label`` is ``target``.
 
-    An utterance of ``target`` itself loses the alternative (it cannot
-    be its own alternative).
+    A sentence of ``target`` loses its certainty: its margin was taken
+    against the closest other voice, which may have been ``label``, now
+    the same person, and the windows cannot be compared again (they are
+    not kept). A sentence of anyone else keeps its margin (the closest
+    other voice was one of the two or someone else; either way a voice
+    of the transcript) and an alternative ``label`` becomes ``target``.
     """
+    if utterance.speaker == target:
+        return _without_evidence(utterance)
     if utterance.alternative_speaker != label:
         return utterance
-    alternative = None if utterance.speaker == target else target
-    return utterance.model_copy(update={"alternative_speaker": alternative})
+    return utterance.model_copy(update={"alternative_speaker": target})
 
 
 class RenameSpeaker(_Review):
@@ -160,8 +177,10 @@ class RenameSpeaker(_Review):
         name: the id stays the anonymous label. ``merge_into`` is a
         speaker of the transcript or an enrolled person; every sentence
         of ``label`` moves to them, with no speaker confidence or
-        certainty (the attribution is by hand); sentences that had
-        ``label`` as their alternative speaker get ``merge_into``.
+        certainty (the attribution is by hand); the sentences
+        ``merge_into`` already had lose their certainty (it may have
+        been measured against ``label``), and sentences of others that
+        had ``label`` as their alternative speaker get ``merge_into``.
         Enrolled ids cannot be renamed here.
         """
         if (name is None) == (merge_into is None):
@@ -204,7 +223,7 @@ class RenameSpeaker(_Review):
         target = self._target(transcript, merge_into)
         utterances = [
             by_hand(u, target.id) if u.speaker == label
-            else _alternative_renamed(u, label, target.id)
+            else _after_merge(u, label, target.id)
             for u in transcript.utterances
         ]
         return self._save(
