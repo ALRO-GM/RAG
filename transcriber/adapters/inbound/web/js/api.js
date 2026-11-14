@@ -146,6 +146,43 @@ export class Api {
     return this.request("GET", "/enrolment/text", { query: { language, name } });
   }
 
+  // ---- model lab (docs/transcriber/LAB.md §7) ----
+
+  labCatalogue() { return this.request("GET", "/lab/catalogue"); }
+
+  labRuns(session) { return this.request("GET", `/lab/sessions/${encodeURIComponent(session)}/runs`); }
+
+  labStart(session, body) { return this.request("POST", `/lab/sessions/${encodeURIComponent(session)}/runs`, { json: body }); }
+
+  labRunPath(session, run) { return `/lab/sessions/${encodeURIComponent(session)}/runs/${encodeURIComponent(run)}`; }
+
+  labStatus(session, run) { return this.request("GET", this.labRunPath(session, run)); }
+
+  labCancel(session, run) { return this.request("POST", `${this.labRunPath(session, run)}/cancel`); }
+
+  labResume(session, run) { return this.request("POST", `${this.labRunPath(session, run)}/resume`); }
+
+  labResults(session, run) { return this.request("GET", `${this.labRunPath(session, run)}/results`); }
+
+  labTracks(session, run) { return this.request("GET", `${this.labRunPath(session, run)}/tracks`); }
+
+  labSpans(session, run) { return this.request("GET", `${this.labRunPath(session, run)}/fragment-spans`); }
+
+  labFragments(session, run, { offset = 0, limit = 50, sort = "disagreement", unlabelled = false } = {}) {
+    return this.request("GET", `${this.labRunPath(session, run)}/fragments`, {
+      query: { offset, limit, sort, unlabelled: unlabelled ? "true" : null },
+    });
+  }
+
+  labScores(session, run) { return this.request("GET", `${this.labRunPath(session, run)}/scores`); }
+
+  labLabels(session) { return this.request("GET", `/lab/sessions/${encodeURIComponent(session)}/labels`); }
+
+  labPutLabels(session, body) { return this.request("PUT", `/lab/sessions/${encodeURIComponent(session)}/labels`, { json: body }); }
+
+  /** The address an <audio> element plays (it carries the playback cookie, not the code). */
+  labAudioUrl(session, run, denoiser) { return `/api${this.labRunPath(session, run)}/audio/${encodeURIComponent(denoiser)}`; }
+
   /** `pcm` is 16 kHz mono 16-bit little-endian PCM (the API's default format). */
   enrol(id, { name, language, textVersion, pcm }) {
     return this.request("POST", `/speakers/${encodeURIComponent(id)}/enrolment`, {
