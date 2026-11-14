@@ -6,14 +6,25 @@ an outbound adapter (:class:`LabTool`); the service's own models (the
 built-in diarization, the project's Whisper) run in process behind the
 same port. Stage results, runs, speaker mappings, comparison results
 and reference labels are stored by a :class:`LabRepository` under the
-data directory, never in the repository.
+data directory, never in the repository. A :class:`ReferenceCorpus`
+gives the recordings of a public labelled corpus to import.
 """
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+)
 
-from transcriber.application.ports import Audio, PlaybackAudio
+from transcriber.application.ports import Audio, PlaybackAudio, RecordedAudio
 from transcriber.domain.lab import (
     Catalogue,
     CatalogueEntry,
@@ -23,6 +34,8 @@ from transcriber.domain.lab import (
     Stage,
     StageOutcome,
 )
+from transcriber.domain.lab_reference import CorpusSpec, SessionReference
+from transcriber.domain.models import Word
 
 
 @dataclass(frozen=True)
@@ -214,6 +227,53 @@ class LabRepository(Protocol):
         """Replace the session's reference labels."""
         ...
 
+    def reference(self, session_id: str) -> Optional[SessionReference]:
+        """Return the session's corpus reference, if it was imported."""
+        ...
+
+    def save_reference(
+        self, session_id: str, reference: SessionReference
+    ) -> None:
+        """Store the corpus reference of an imported session."""
+        ...
+
     def delete_session(self, session_id: str) -> None:
         """Remove everything stored for the session (nothing: no error)."""
+        ...
+
+
+@dataclass(frozen=True)
+class CorpusRecording:
+    """One recording of a public corpus, as the corpus gives it.
+
+    ``recording`` is the corpus's id of it; ``audio`` its file (any
+    format the decoder reads, at the corpus's rate); ``starts``,
+    ``ends`` and ``speakers`` the reference's speaker turns, one value
+    per turn; ``words`` the reference transcript with times, ``None``
+    when the corpus has none.
+    """
+
+    recording: str
+    audio: RecordedAudio
+    starts: Sequence[float]
+    ends: Sequence[float]
+    speakers: Sequence[str]
+    words: Optional[Sequence[Word]] = None
+
+
+class ReferenceCorpus(Protocol):
+    """Where the recordings of a public corpus come from.
+
+    The adapter downloads only the shards it reads. A gated corpus
+    whose terms the account has not accepted raises
+    :class:`~transcriber.domain.errors.CorpusAccessError`.
+    """
+
+    def recordings(
+        self, spec: CorpusSpec, split: str, limit: Optional[int]
+    ) -> Iterator[CorpusRecording]:
+        """Yield the recordings of ``split`` in corpus order.
+
+        At most ``limit`` (every recording when ``None``).
+        """
         ...

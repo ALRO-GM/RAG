@@ -10,6 +10,10 @@
   download of weights the catalogue knows are absent).
 * ``lab runs SESSION`` lists the runs; ``lab summary SESSION RUN``
   prints a run's summary again; ``lab resume SESSION RUN`` resumes it.
+* ``lab import-reference CORPUS [--limit N] [--split S]`` imports
+  recordings of a labelled public corpus as sessions with a reference;
+  ``lab reference-summary [--corpus C]`` gives the mean and spread of
+  each reference metric per model over them.
 
 The run uses the GPU in this process: like ``import --wait``, do not
 start it while ``serve`` is working on a job. It writes only under
@@ -24,8 +28,13 @@ from typing import Any, Callable, Dict, List, Optional
 
 from transcriber.adapters.inbound.cli import Output, UsageError
 from transcriber.application.lab import ACTIVE
+from transcriber.application.lab_reference import (
+    CorpusSummary,
+    ImportedRecording,
+)
 from transcriber.bootstrap import LabUseCases
 from transcriber.domain.lab import NO_DENOISER, LabRequest, LabRun
+from transcriber.domain.lab_reference import CORPORA, MetricSpread
 
 
 def _ids(text: Optional[str]) -> Optional[List[str]]:
@@ -65,7 +74,63 @@ class LabCommands:
         if action == "resume":
             run = self.lab.resume(args.session_id, args.run_id)
             return self.wait(run, args.json)
+        if action == "import-reference":
+            return self.import_reference(
+                args.corpus, args.split, args.limit, args.json
+            )
+        if action == "reference-summary":
+            return self.reference_summary(args.corpus, args.json)
         return self.start(args)
+
+    def import_reference(
+        self, corpus: str, split: Optional[str], limit: Optional[int],
+        as_json: bool,
+    ) -> int:
+        """Import recordings of a public corpus as lab sessions."""
+        def report(item: ImportedRecording) -> None:
+            """Say what happened to one recording."""
+            if as_json:
+                return
+            if item.state == "exists":
+                self.output.line(f"{item.session_id}: already imported")
+                return
+            words = "no transcript" if item.words is None else (
+                f"{item.words} reference words"
+            )
+            self.output.line(
+                f"{item.session_id}: {_number(item.duration, 1)} s,"
+                f" {item.speakers} speakers, {item.turns} turns, {words}"
+            )
+
+        done = self.lab.import_reference(corpus, split, limit, report)
+        spec = CORPORA[corpus]
+        if as_json:
+            self.output.json({
+                "corpus": spec.id, "licence": spec.licence,
+                "licence_commercial": spec.licence_commercial,
+                "source_url": spec.source_url,
+                "recordings": [d.model_dump(mode="json") for d in done],
+            })
+            return 0
+        self.output.line(
+            f"{len(done)} recordings of {spec.display_name}"
+            f" ({spec.licence}, {spec.source_url})."
+        )
+        if not spec.licence_commercial:
+            self.output.note(
+                "Non-commercial corpus: internal evaluation only."
+            )
+        return 0
+
+    def reference_summary(self, corpus: Optional[str], as_json: bool) -> int:
+        """Print the mean and spread of each metric per model."""
+        summary = self.lab.reference_summary(corpus)
+        if as_json:
+            self.output.json(summary.model_dump(mode="json"))
+            return 0
+        for line in reference_summary_lines(summary):
+            self.output.line(line)
+        return 0
 
     def catalogue(self, as_json: bool) -> int:
         """Print the models with their state."""
@@ -272,6 +337,25 @@ def summarise(results: Dict[str, Any]) -> Dict[str, Any]:
         ],
         "denoiser_effect": results["denoiser_effect"],
         "fragments": results.get("fragment_count"),
+        "reference": _reference_figures(results.get("reference")),
+    }
+
+
+def _reference_figures(
+    block: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Return a run's reference scores without text (``None``: none)."""
+    if not block:
+        return None
+    return {
+        k: block[k] for k in (
+            "corpus", "recording", "licence", "licence_commercial",
+            "source_url", "collar", "speech_seconds", "overlap_seconds",
+            "reference_tokens",
+        )
+    } | {
+        "speakers": len(block["speakers"]),
+        "pipelines": block["pipelines"],
     }
 
 
@@ -308,11 +392,83 @@ def summary_lines(data: Dict[str, Any]) -> List[str]:
                 f"  WER {r['hypothesis']} against {r['reference']}:"
                 f" {_number(r['wer'])}"
             )
+        lines.extend(_reference_lines(data.get("reference")))
     for failure in data.get("failures", []):
         lines.append(
             f"Failed {failure['step']}: {failure['code']}:"
             f" {failure['message']}"
         )
+    return lines
+
+
+def _reference_lines(block: Optional[Dict[str, Any]]) -> List[str]:
+    """Return a run's reference scores as lines (none without one)."""
+    if not block:
+        return []
+    flag = "" if block["licence_commercial"] else (
+        " [non-commercial corpus: internal evaluation only]"
+    )
+    lines = [
+        f"Against the {block['corpus']} reference {block['recording']}"
+        f" ({block['licence']}){flag}: {block['speakers']} speakers,"
+        f" {_number(block['speech_seconds'], 1)} s of speech,"
+        f" {_number(block['overlap_seconds'], 1)} s of overlap,"
+        f" collar {block['collar']} s.",
+        "  pipeline | DER | JER | overlap P | overlap R |"
+        " speaker count error | WER",
+    ]
+    for p in block["pipelines"]:
+        count = p["speaker_count_error"]
+        shown = "-" if count is None else f"{count:+d}"
+        lines.append(
+            f"  {p['id']} | {_number(p['der'])} | {_number(p['jer'])} |"
+            f" {_number(p['overlap_precision'])} |"
+            f" {_number(p['overlap_recall'])} | {shown} |"
+            f" {_number(p['wer'])}"
+        )
+    return lines
+
+
+def _spread(value: Optional[MetricSpread]) -> str:
+    """Return ``mean ± sd`` of a metric (``-`` when missing)."""
+    if value is None or value.mean is None:
+        return "-"
+    sd = "" if value.sd is None else f" ± {value.sd:.3f}"
+    return f"{value.mean:.3f}{sd}"
+
+
+SUMMARY_TABLES = (
+    ("diarization",
+     "Diarization (mean ± SD over recordings): track | n | DER | missed"
+     " | false alarm | confusion | JER | overlap P | overlap R |"
+     " speaker count error",
+     ("der", "missed_rate", "false_alarm_rate", "confusion_rate", "jer",
+      "overlap_precision", "overlap_recall", "speaker_count_error")),
+    ("recognition", "Recognition: transcript | n | WER", ("wer",)),
+    ("pipeline", "Pipelines: id | n | DER | JER | WER",
+     ("der", "jer", "wer")),
+)
+
+
+def reference_summary_lines(summary: CorpusSummary) -> List[str]:
+    """Return the corpus summary as lines (aggregates only)."""
+    lines = [
+        f"{len(summary.recordings)} imported recordings"
+        f" ({', '.join(summary.corpora) or 'none'});"
+        f" {len(summary.unscored)} without a scored run."
+    ]
+    if summary.non_commercial:
+        lines.append(
+            "Non-commercial corpus included: internal evaluation only."
+        )
+    for kind, title, names in SUMMARY_TABLES:
+        rows = [m for m in summary.models if m.kind == kind]
+        if not rows:
+            continue
+        lines.append(title)
+        for model in rows:
+            cells = " | ".join(_spread(model.metrics.get(n)) for n in names)
+            lines.append(f"  {model.id} | {model.recordings} | {cells}")
     return lines
 
 
@@ -355,3 +511,26 @@ def add_lab_parser(
         sub.add_argument("session_id", metavar="SESSION")
         sub.add_argument("run_id", metavar="RUN")
         json_flag(sub)
+    imported = actions.add_parser(
+        "import-reference",
+        help="import recordings of a labelled public corpus as sessions",
+        description=(
+            "Download the shards needed into <data_dir>/lab-corpora and"
+            " create one session per recording with its reference"
+            " (speaker turns, licence, source). Runs on those sessions are"
+            " also scored against the reference."
+        ),
+    )
+    imported.add_argument("corpus", choices=sorted(CORPORA))
+    imported.add_argument("--limit", type=int,
+                          help="at most this many recordings")
+    imported.add_argument("--split", help="the corpus split (default: test"
+                          " for ami, data for callhome)")
+    json_flag(imported)
+    summary = actions.add_parser(
+        "reference-summary",
+        help="mean and spread of the reference scores per model",
+    )
+    summary.add_argument("--corpus", choices=sorted(CORPORA),
+                         help="only this corpus")
+    json_flag(summary)

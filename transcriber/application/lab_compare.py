@@ -33,6 +33,7 @@ from transcriber.domain.comparison import (
     fragments,
     summarise_track,
     text_of,
+    tokens_of,
     word_agreement,
     words_on_consensus,
 )
@@ -44,6 +45,15 @@ from transcriber.domain.lab import (
     SpeakerMapping,
     StageOutcome,
     track_id,
+)
+from transcriber.domain.lab_reference import (
+    REFERENCE_TRACK,
+    ReferencePipelineRow,
+    ReferenceResults,
+    ReferenceTrackRow,
+    ReferenceTranscriptRow,
+    SessionReference,
+    score_track,
 )
 from transcriber.domain.models import Word
 
@@ -204,6 +214,7 @@ class LabResults(BaseModel):
     consensus: ConsensusInfo
     denoiser_effect: List[DenoiserEffect]
     fragments: List[StoredFragment]
+    reference: Optional[ReferenceResults] = None
 
 
 class Diarization(BaseModel):
@@ -262,13 +273,17 @@ def compare_run(
     entries: Mapping[str, CatalogueEntry],
     denoise_costs: Mapping[str, StageOutcome],
     p: ComparisonParameters = ComparisonParameters(),
+    reference: Optional[SessionReference] = None,
 ) -> LabResults:
     """Compare everything a run produced (see the module).
 
     Only the ``pipelines`` whose diarization and recognition (when they
     have one) are among the finished ones are listed. ``denoise_costs``
     holds each denoiser's outcome (its time and memory count in every
-    pipeline that reads its audio).
+    pipeline that reads its audio). With the session's ``reference``
+    (a corpus recording) every track, transcript and pipeline is also
+    measured against it (``reference`` of the results); the reference
+    takes no part in the consensus or the fragments.
     """
     tracks = [
         Track(d.id, d.segments, d.entry.vote_group) for d in diarizations
@@ -326,6 +341,76 @@ def compare_run(
             diarizations, recognitions, rows, duration, p
         ),
         fragments=_fragments(tracks, recognitions, duration, p),
+        reference=None if reference is None else _reference_results(
+            reference, diarizations, recognitions, pipeline_rows, p,
+        ),
+    )
+
+
+def _reference_results(
+    reference: SessionReference,
+    diarizations: Sequence[Diarization],
+    recognitions: Sequence[Recognition],
+    pipelines: Sequence[PipelineRow],
+    p: ComparisonParameters,
+) -> ReferenceResults:
+    """Measure every track, transcript and pipeline against the reference.
+
+    The reference is one more track for :func:`score_track` (DER, JER,
+    overlap, speaker count) and one more transcript for
+    :func:`compare_transcripts` (WER with the lab's normalisation).
+    """
+    summary = summarise_track(reference.track(), reference.duration, p)
+    tracks = {
+        d.id: ReferenceTrackRow(
+            denoiser=d.denoiser, diarizer=d.entry.id,
+            **score_track(
+                reference, Track(d.id, d.segments, d.entry.vote_group), p,
+            ).model_dump(),
+        )
+        for d in diarizations
+    }
+    texts: Dict[str, ReferenceTranscriptRow] = {}
+    tokens = None
+    if reference.words is not None:
+        tokens = len(tokens_of(reference.words)[0])
+        for r in recognitions:
+            compared = compare_transcripts(
+                REFERENCE_TRACK, reference.words, r.id, r.outcome.words, p,
+            )
+            texts[r.id] = ReferenceTranscriptRow(
+                denoiser=r.denoiser, recogniser=r.entry.id,
+                **compared.model_dump(),
+            )
+    rows = []
+    for row in pipelines:
+        track = tracks.get(row.track or "")
+        text = texts.get(row.transcript or "")
+        rows.append(ReferencePipelineRow(
+            id=row.id, track=row.track, transcript=row.transcript,
+            der=track.der if track else None,
+            jer=track.jer if track else None,
+            overlap_precision=track.overlap_precision if track else None,
+            overlap_recall=track.overlap_recall if track else None,
+            speaker_count_error=(
+                track.speaker_count_error if track else None
+            ),
+            wer=_round(text.wer) if text else None,
+            licence_commercial=(
+                row.licence_commercial and reference.licence_commercial
+            ),
+        ))
+    return ReferenceResults(
+        corpus=reference.corpus, recording=reference.recording,
+        split=reference.split, licence=reference.licence,
+        licence_commercial=reference.licence_commercial,
+        source_url=reference.source_url, collar=p.collar,
+        speakers=reference.speakers(),
+        speech_seconds=round(summary.speech_seconds, 3),
+        overlap_seconds=round(summary.overlap_seconds, 3),
+        reference_tokens=tokens,
+        tracks=list(tracks.values()), transcripts=list(texts.values()),
+        pipelines=rows,
     )
 
 

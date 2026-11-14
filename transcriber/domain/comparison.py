@@ -11,6 +11,8 @@ holds a *set* of speakers (empty: nobody; two or more: overlap).
   labels and with the same names, the DER-style components (missed,
   false alarm, confusion), change points matched within a tolerance and
   the overlap each marks with its intersection over union.
+* :func:`jaccard_error`: the Jaccard error rate of two grids (used
+  against a corpus reference, :mod:`transcriber.domain.lab_reference`).
 * :func:`word_error` / :func:`compare_transcripts`: word error rate of
   one recogniser's words against another's, after normalisation, and
   the share of the matched words whose times agree.
@@ -371,6 +373,37 @@ def error_components(
         float(np.maximum(h - r, 0).sum()),
         float((np.minimum(r, h) - both).sum()),
     )
+
+
+def jaccard_error(
+    reference: BoolArray, hypothesis: BoolArray, scored: BoolArray
+) -> Optional[float]:
+    """Return the Jaccard error rate of two grids (``None``: no speaker).
+
+    The columns of each grid are its own speakers. Reference and
+    hypothesis speakers are paired one to one so that the sum of their
+    intersection over union (on the ``scored`` frames) is the largest;
+    a reference speaker's error is 1 minus the intersection over union
+    with its partner (1 without one), and the rate is the mean over the
+    reference speakers that speak on a scored frame. A hypothesis
+    speaker left without a partner adds nothing.
+    """
+    ref = reference[scored].astype(np.int64)
+    hyp = hypothesis[scored].astype(np.int64)
+    sizes = ref.sum(axis=0)
+    speaking = np.flatnonzero(sizes > 0)
+    if speaking.size == 0:
+        return None
+    ref = ref[:, speaking]
+    sizes = sizes[speaking]
+    errors = np.ones(speaking.size, dtype=np.float64)
+    if hyp.shape[1]:
+        shared = ref.T @ hyp
+        union = sizes[:, None] + hyp.sum(axis=0)[None, :] - shared
+        iou = shared / np.maximum(union, 1)
+        rows, cols = linear_sum_assignment(iou, maximize=True)
+        errors[rows] = 1.0 - iou[rows, cols]
+    return float(errors.mean())
 
 
 def compare_tracks(

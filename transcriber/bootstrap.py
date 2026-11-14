@@ -50,6 +50,10 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 from transcriber.adapters.outbound.http_transcript_publisher import (
     HttpTranscriptPublisher,
 )
+from transcriber.adapters.outbound.hf_reference_corpus import (
+    CORPORA_DIR,
+    HuggingFaceCorpus,
+)
 from transcriber.adapters.outbound.fs_lab_repository import (
     FileSystemLabRepository,
 )
@@ -99,6 +103,10 @@ from transcriber.application.lab import (
 )
 from transcriber.application.lab_builtin import InProcessTools
 from transcriber.application.lab_ports import LabRepository
+from transcriber.application.lab_reference import (
+    ImportReference,
+    ReferenceSummary,
+)
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
@@ -163,6 +171,8 @@ class LabUseCases:
     labels: LabLabels
     scores: LabScores
     audio: LabAudio
+    import_reference: ImportReference
+    reference_summary: ReferenceSummary
 
 
 @dataclass(frozen=True)
@@ -323,6 +333,13 @@ def build_lab(
         labels=LabLabels(sessions, voiceprints, repository, decoder, clock),
         scores=LabScores(status, repository, comparison),
         audio=LabAudio(status, repository),
+        import_reference=ImportReference(
+            sessions, repository,
+            HuggingFaceCorpus(settings.data_dir / CORPORA_DIR), decoder,
+            ImportRecording(sessions, locks, recogniser.supported_languages),
+            locks, clock,
+        ),
+        reference_summary=ReferenceSummary(sessions, repository),
     )
 
 

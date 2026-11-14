@@ -26,6 +26,9 @@ an accuracy (§4).
 | Catalogue, stage results, runs, labels, cache keys | `transcriber/domain/lab.py` |
 | Comparison (pure arithmetic) | `transcriber/domain/comparison.py` |
 | Scoring against labels | `transcriber/domain/lab_scoring.py` |
+| Public reference corpora, scoring against them (§13) | `transcriber/domain/lab_reference.py` |
+| Import of a corpus, corpus summary (`ImportReference`, `ReferenceSummary`) | `transcriber/application/lab_reference.py` |
+| Corpus shards from the Hugging Face Hub | `transcriber/adapters/outbound/hf_reference_corpus.py` |
 | Ports `LabTool`, `LabRepository`, `CatalogueSource`, `LabEnvironment`, `ProcessTable` | `transcriber/application/lab_ports.py` |
 | Use cases (`ShowCatalogue`, `StartLabRun`, `RunLab`, `LabRunStatus`, `ListLabRuns`, `CancelLabRun`, `ResumeLabRun`, `LabResultsView`, `LabLabels`, `LabScores`, `LabAudio`) | `transcriber/application/lab.py` |
 | In-process tools (built-in diarization, the project's Whisper) and speaker mapping | `transcriber/application/lab_builtin.py` |
@@ -279,6 +282,7 @@ labels): `person` (one enrolled id), `both` (two or more ids at once),
   mappings/<key>.json        speaker mappings
   runs/<run_id>.json         a run; .cancel asks it to stop; .results.json its comparison
   labels.json                the owner's labels
+  reference.json             a corpus recording's reference (§13)
   work/<random>/             stages being computed
 ```
 
@@ -449,8 +453,12 @@ The comparison of §4 without the fragments (404 until the run ended):
  "denoiser_effect": [{"denoiser": "deepfilternet3", "stage": "recognise",
                       "model": "whisper-large-v3-turbo", "wer": 0.05,
                       "time_agreement": 0.9, "agreement": null, …}],
- "fragment_count": 812}
+ "fragment_count": 812,
+ "reference": null}
 ```
+
+`reference` is `null` except on a session imported from a public
+corpus, where it holds the scores against the corpus's reference (§13).
 
 (The numbers above illustrate the shape; they are not measurements.)
 Ids: a track or transcript is `denoiser+model`, a pipeline
@@ -564,7 +572,11 @@ python -m transcriber lab run SESSION [--all] [--denoise a,b] [--diarize x,y] \
 python -m transcriber lab runs SESSION [--json]
 python -m transcriber lab summary SESSION RUN [--json]
 python -m transcriber lab resume SESSION RUN [--json]
+python -m transcriber lab import-reference ami|callhome [--limit N] [--split S] [--json]
+python -m transcriber lab reference-summary [--corpus ami|callhome] [--json]
 ```
+
+The last two are described in §13.
 
 `run` runs in the command's own process (its own job queue) and prints
 aggregate numbers only. It uses the GPU: do not start it while `serve`
@@ -916,3 +928,119 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
 
 The GPU must be free of other jobs (a resume after an out-of-memory
 only needs the other process to be gone).
+
+## 13. Scoring against a public reference (AMI, CALLHOME)
+
+Every figure of §4 is agreement between models. To get real error
+rates without waiting for our own labelled recording, the lab imports
+recordings of public corpora that come with a human reference and
+scores every pipeline against it.
+
+| Corpus | Hugging Face | Licence | Language, setting |
+|---|---|---|---|
+| `ami` | `diarizers-community/ami`, config `sdm`, splits `train`/`validation`/`test` (default `test`: 16 recordings in 3 shards, 313–331 MB each) | CC BY 4.0 (commercial use allowed) | English, 3–5 people, single distant microphone |
+| `callhome` | `diarizers-community/callhome`, config `spa`, split `data` (5 shards, 459–501 MB) | **CC BY-NC-SA 4.0: internal evaluation only** | Spanish telephone calls, 2+ speakers |
+
+Both datasets have one row per recording with the columns `audio`
+(`{bytes, path}`), `timestamps_start`, `timestamps_end` and `speakers`
+(one value per speaker turn; turns of different people overlap where
+they talk at once). Neither has a transcript, so for now no WER is
+measured on them; the reference format and the scoring take reference
+words with times when a corpus has them. CALLHOME is gated: the
+account whose token is used must accept its terms on the dataset's
+page first (`huggingface-cli login`, or `HF_TOKEN`).
+
+### 13.1 Import
+
+```sh
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab import-reference ami --limit 2
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab import-reference callhome --limit 5
+```
+
+- Only the shards that hold the recordings asked for are downloaded, in
+  order, into `<data_dir>/lab-corpora/<corpus>/` (under `data/`, ignored
+  by git); offline, the shards already there are read.
+- Each recording becomes a session `<corpus>-<recording>` (AMI:
+  `ami-ES2004a` from the file name; CALLHOME rows have no file name, so
+  `callhome-data-0001`... in corpus order), state `uploaded`, the
+  corpus's language (`en`, `es`), no expected speakers or count (the
+  diarizers estimate them), title `<corpus> <recording>`. The corpus's
+  audio is stored as given; the lab decodes it to 16 kHz mono like any
+  recording (§3).
+- Beside it, `lab/<session>/reference.json` (`lab.reference.v1`): the
+  speaker turns (anonymous corpus ids such as `MEE071`, or `A`/`B`;
+  turns past the end of the audio cut there), the reference words when
+  there are any, and `corpus`, `split`, `licence`, `licence_commercial`
+  and `source_url`. It goes with the session when the session is
+  deleted (§6).
+- A recording whose session exists is skipped, so an interrupted import
+  can simply be run again. A gated corpus whose terms were not accepted
+  fails before downloading anything, with the page where to accept them.
+
+No one is enrolled for these sessions: diarizers' labels stay
+anonymous (`~label`) unless a voice happens to match an enrolled one;
+the scores below do not depend on the names, since they pair labels
+with the reference's speakers themselves.
+
+### 13.2 Scores
+
+A run on an imported session is run and compared as any other (§4);
+its results gain `reference`, where the reference is treated as one
+more track and one more transcript (the same code as §4; it takes no
+part in the consensus or the fragments):
+
+| Field | Meaning |
+|---|---|
+| `tracks[].der` | `compare_tracks` with the reference as reference: missed + false alarm + confusion over the reference's speaker time, after the best one-to-one mapping of labels, frames within the collar (`collar`, 0.25 s) of the reference's boundaries not scored (`missed`, `false_alarm`, `confusion`, `reference_speech` in seconds) |
+| `tracks[].jer` | Jaccard error rate on the same frames: reference and track speakers paired one to one to maximise the sum of their intersection over union; per reference speaker 1 − IoU (1 without a partner), averaged over the reference speakers; a track speaker without a partner adds nothing |
+| `tracks[].overlap_precision`, `overlap_recall` | time both mark two or more speakers over the time the track marks it, over the time the reference marks it (all frames, no collar; `null` when the denominator is 0) |
+| `tracks[].speaker_count_error` | the track's speakers minus the reference's (each with at least 1 s of speech) |
+| `transcripts[].wer` | `compare_transcripts` against the reference words (same normalisation as §4); only when the corpus has words |
+| `pipelines[]` | each pipeline's `der`, `jer`, overlap, speaker-count error (its track's) and `wer` (its transcript's); `licence_commercial` false when a model **or the corpus** is non-commercial |
+| `licence`, `licence_commercial`, `source_url` | the corpus's; `licence_commercial: false` flags CALLHOME's scores as internal-only |
+
+The 10-second example of the tests (reference A 0–4 s, B 3–8 s; a track
+with three anonymous voices) gives by hand DER 3.2/9 without a collar
+and 2.5/7 with the 0.25 s collar, JER 0.275, overlap precision 1.0 and
+recall 0.3, and a speaker-count error of +1
+(`tests/unit/transcriber/test_lab_reference.py`).
+
+`lab summary` prints these per pipeline; the web overview adds DER, JER
+and WER columns (sorted by DER) and says which corpus and licence the
+recording comes from.
+
+### 13.3 Over the corpus
+
+```sh
+uv run --no-sync python -m transcriber lab reference-summary [--corpus ami] [--json]
+```
+
+takes, per imported session, its newest `done` or `partial` run with
+reference scores and gives the mean ± sample SD (with min and max in
+`--json`) over the recordings of: per track (denoiser + diarizer) DER,
+missed / false alarm / confusion as shares of the reference speech,
+JER, overlap precision and recall and the speaker-count error (signed
+and absolute); per transcript the WER; per pipeline DER, JER and WER.
+Sessions without a scored run are listed apart; a non-commercial corpus
+in the mix is flagged. Running the full suite on the corpus is a
+separate experiment.
+
+### 13.4 Smoke check (2026-11-14, one AMI recording)
+
+Not an experiment, only a check that import and scoring work on the
+real corpus. `lab import-reference ami --limit 1` downloaded the first
+test shard (328 MB) and imported `ami-EN2002b` (1786.8 s, 4 speakers,
+490 turns) in 75 s. A run with two diarizers on the original audio
+took 60 s in all. Against the reference (1476.8 s of speech, 389.9 s
+of overlap, collar 0.25 s):
+
+| Track | DER | missed | false alarm | confusion | JER | overlap P | overlap R | speaker count error |
+|---|---|---|---|---|---|---|---|---|
+| `pyannote-community-1` | 0.182 | 0.114 | 0.028 | 0.040 | 0.230 | 0.879 | 0.645 | 0 |
+| `sortformer-streaming-v2` | 0.291 | 0.225 | 0.036 | 0.030 | 0.327 | 0.894 | 0.481 | 0 |
+
+(missed, false alarm and confusion as shares of the reference speech.)
+One recording says nothing general; the corpus-wide run with every
+model is the follow-up experiment.

@@ -893,7 +893,11 @@ def build_results(
     duration: float,
     comparison: ComparisonParameters = ComparisonParameters(),
 ) -> LabResults:
-    """Return the comparison of ``run`` from its stored stage results."""
+    """Return the comparison of ``run`` from its stored stage results.
+
+    A session imported from a corpus is also measured against its
+    reference (``reference`` of the results).
+    """
     diarizations: List[Diarization] = []
     recognitions: List[Recognition] = []
     costs: Dict[str, StageOutcome] = {}
@@ -921,6 +925,7 @@ def build_results(
     return compare_run(
         run.id, run.session_id, duration, run.pipelines(), diarizations,
         recognitions, entries, costs, comparison,
+        repository.reference(run.session_id),
     )
 
 
