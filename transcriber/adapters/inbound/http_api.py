@@ -4,7 +4,9 @@ Every route lives under ``/api`` (``docs/transcriber/ARCHITECTURE.md``
 §5): the server's Caddy serves the pages and forwards ``/api/*``
 through the tunnel to this API, which listens on 127.0.0.1. Every route
 but ``GET /api/health`` needs the access code in the ``X-Access-Code``
-header (:mod:`transcriber.adapters.inbound.access`).
+header (:mod:`transcriber.adapters.inbound.access`). The audio route
+alone also accepts the playback cookie that ``POST /api/access/cookie``
+sets, because a browser's ``<audio>`` element cannot send a header.
 
 Bodies are raw bytes (audio) or JSON, read with a size limit that is
 enforced while the body streams in, so an oversized upload is refused
@@ -39,9 +41,12 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from transcriber.adapters.inbound.access import (
     ACCESS_HEADER,
     MIN_CODE_LENGTH,
+    PLAYBACK_COOKIE,
+    PLAYBACK_COOKIE_PATH,
     FailureLimiter,
     check_code,
     client_key,
+    new_playback_token,
 )
 from transcriber.adapters.inbound.playback import (
     WAV_TYPE,
@@ -300,6 +305,7 @@ def create_app(
 
     The code must be at least :data:`MIN_CODE_LENGTH` characters.
     ``now`` is the clock of the failed-code throttling (tests move it).
+    A new random playback token is made for every app built.
     """
     if len(access_code) < MIN_CODE_LENGTH:
         raise ValueError(
@@ -311,6 +317,7 @@ def create_app(
         limits.failed_code_cooldown, now,
     )
     renders = RenderCache(limits.audio_cache_bytes)
+    playback_token = new_playback_token()
     app = FastAPI(
         title="Transcriber",
         description="Recording, transcription and attribution of sessions.",
@@ -355,8 +362,13 @@ def create_app(
         LOG.error("Unexpected error on %s", request.url.path, exc_info=exc)
         return error_response(500, "internal_error", SERVER_MESSAGE)
 
-    async def authorise(request: Request) -> None:
-        """Let the request through only with the access code."""
+    def admit(request: Request, cookie_too: bool) -> None:
+        """Let the request through with the code (or, if allowed, cookie).
+
+        A throttled client is refused first; a request with neither a
+        valid code nor (with ``cookie_too``) a valid playback cookie
+        counts as one failure.
+        """
         peer = request.client.host if request.client is not None else None
         key = client_key(peer, request.headers)
         wait = limiter.retry_after(key)
@@ -366,12 +378,25 @@ def create_app(
                 "Too many wrong access codes; try again later.",
                 {"Retry-After": str(math.ceil(wait))},
             )
-        if not check_code(access_code, request.headers.get(ACCESS_HEADER)):
+        allowed = check_code(access_code, request.headers.get(ACCESS_HEADER))
+        if not allowed and cookie_too:
+            allowed = check_code(
+                playback_token, request.cookies.get(PLAYBACK_COOKIE)
+            )
+        if not allowed:
             limiter.failed(key)
             raise ApiError(
                 401, "unauthorized", "A valid access code is required."
             )
         limiter.succeeded(key)
+
+    async def authorise(request: Request) -> None:
+        """Let the request through only with the access code header."""
+        admit(request, cookie_too=False)
+
+    async def authorise_playback(request: Request) -> None:
+        """Let the request through with the code or the playback cookie."""
+        admit(request, cookie_too=True)
 
     @app.get("/api/health")
     async def health() -> Dict[str, str]:
@@ -379,7 +404,25 @@ def create_app(
         return {"status": "ok"}
 
     api = APIRouter(prefix="/api", dependencies=[Depends(authorise)])
+    playback = APIRouter(
+        prefix="/api", dependencies=[Depends(authorise_playback)]
+    )
     c = container
+
+    @api.post("/access/cookie", status_code=204)
+    async def playback_cookie() -> Response:
+        """Set the cookie that lets the audio player in (needs the code).
+
+        The cookie holds the playback token, not the access code; it is
+        ``HttpOnly``, ``SameSite=Strict``, limited to ``/api`` and
+        ``Secure`` unless the settings turn that off for local http.
+        """
+        response = Response(status_code=204)
+        response.set_cookie(
+            PLAYBACK_COOKIE, playback_token, path=PLAYBACK_COOKIE_PATH,
+            httponly=True, secure=limits.cookie_secure, samesite="strict",
+        )
+        return response
 
     @api.post("/sessions", status_code=201)
     async def open_session(request: Request) -> Dict[str, Any]:
@@ -477,9 +520,12 @@ def create_app(
             key, lambda: wav_bytes(c.session_audio.decode(recording))
         )
 
-    @api.get("/sessions/{session_id}/audio")
+    @playback.get("/sessions/{session_id}/audio")
     async def audio(session_id: str, request: Request) -> Response:
-        """Serve the audio as WAV, whole or as one byte range."""
+        """Serve the audio as WAV, whole or as one byte range.
+
+        The only route that also takes the playback cookie.
+        """
         body = await run_in_threadpool(rendered, session_id)
         size = len(body)
         headers = {"Accept-Ranges": "bytes"}
@@ -598,6 +644,7 @@ def create_app(
         return Response(status_code=204)
 
     app.include_router(api)
+    app.include_router(playback)
     if limits.static_dir is not None:
         app.mount(
             "/", StaticFiles(directory=limits.static_dir, html=True),

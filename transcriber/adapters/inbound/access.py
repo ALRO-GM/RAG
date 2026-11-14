@@ -13,10 +13,16 @@ the local end of the SSH forward, so the client is the left-most
 ``X-Forwarded-For`` address when the direct peer is loopback (or a unix
 socket, which has no address); otherwise it is the peer
 (:func:`client_key`).
+
+A browser ``<audio>`` element cannot send a header, so the audio route
+also accepts a playback cookie (:data:`PLAYBACK_COOKIE`): a random
+token made when the API starts (:func:`new_playback_token`), never the
+access code, handed out by a request that carries the code.
 """
 
 import hmac
 import ipaddress
+import secrets
 import threading
 import time
 from collections import deque
@@ -31,6 +37,17 @@ MAX_CLIENTS = 10000
 """Clients tracked at most; the oldest are forgotten beyond it."""
 
 UNKNOWN_CLIENT = "unknown"
+
+PLAYBACK_COOKIE = "transcriber_playback"
+"""Name of the cookie that lets the audio player in."""
+
+PLAYBACK_COOKIE_PATH = "/api"
+PLAYBACK_TOKEN_BYTES = 32
+
+
+def new_playback_token() -> str:
+    """Return a fresh random playback token (URL-safe, 43 characters)."""
+    return secrets.token_urlsafe(PLAYBACK_TOKEN_BYTES)
 
 
 def check_code(expected: str, given: Optional[str]) -> bool:

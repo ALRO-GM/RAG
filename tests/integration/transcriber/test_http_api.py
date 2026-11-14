@@ -10,7 +10,7 @@ import io
 import time
 import wave
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Tuple
 
 import numpy as np
 import pytest
@@ -23,6 +23,7 @@ from tests.integration.transcriber.audio import (
     tone,
 )
 from transcriber.adapters.inbound.access import (
+    PLAYBACK_COOKIE,
     FailureLimiter,
     check_code,
     client_key,
@@ -285,6 +286,50 @@ class TestChunks:
                                 content=b"\x01\x00"), 409, "wrong_state")
 
 
+ROUTES = [
+    ("GET", "/api/sessions"),
+    ("POST", "/api/sessions"),
+    ("GET", "/api/sessions/s1"),
+    ("PUT", "/api/sessions/s1/chunks/0"),
+    ("POST", "/api/sessions/s1/close"),
+    ("POST", "/api/sessions/s1/upload?filename=a.wav&language=es"),
+    ("POST", "/api/sessions/s1/transcription"),
+    ("GET", "/api/sessions/s1/transcript"),
+    ("GET", "/api/sessions/s1/audio"),
+    ("PATCH", "/api/sessions/s1/speakers/S1"),
+    ("PATCH", "/api/sessions/s1/utterances/t0.s0"),
+    ("DELETE", "/api/sessions/s1"),
+    ("POST", "/api/sessions/s1/publish"),
+    ("GET", "/api/speakers"),
+    ("GET", "/api/enrolment/text?language=es"),
+    ("POST", "/api/speakers/ana/enrolment?name=A&language=es"),
+    ("DELETE", "/api/speakers/ana"),
+    ("POST", "/api/access/cookie"),
+]
+"""Every route but the health check, with a request that reaches it."""
+
+AUDIO_ROUTE = ("GET", "/api/sessions/s1/audio")
+
+
+def playback_cookie(client: TestClient) -> Tuple[str, str]:
+    """Ask for the playback cookie; return its value and its header."""
+    answer = client.post("/api/access/cookie")
+    assert answer.status_code == 204, answer.text
+    header = answer.headers["set-cookie"]
+    name, _, rest = header.partition("=")
+    assert name == PLAYBACK_COOKIE
+    return rest.split(";")[0], header
+
+
+def with_cookie(value: str) -> Dict[str, str]:
+    """Headers that send the playback cookie and no access code.
+
+    Sent by hand: the client's cookie jar would hold back a ``Secure``
+    cookie over the test client's plain http.
+    """
+    return {"Cookie": f"{PLAYBACK_COOKIE}={value}"}
+
+
 class TestAccess:
     def test_health_needs_no_code_and_says_nothing_else(
         self, container: TranscriberContainer
@@ -294,25 +339,27 @@ class TestAccess:
         assert answer.status_code == 200
         assert answer.json() == {"status": "ok"}
 
-    @pytest.mark.parametrize("method, path", [
-        ("GET", "/api/sessions"),
-        ("POST", "/api/sessions"),
-        ("GET", "/api/sessions/s1"),
-        ("PUT", "/api/sessions/s1/chunks/0"),
-        ("POST", "/api/sessions/s1/close"),
-        ("POST", "/api/sessions/s1/upload?filename=a.wav&language=es"),
-        ("POST", "/api/sessions/s1/transcription"),
-        ("GET", "/api/sessions/s1/transcript"),
-        ("GET", "/api/sessions/s1/audio"),
-        ("PATCH", "/api/sessions/s1/speakers/S1"),
-        ("PATCH", "/api/sessions/s1/utterances/t0.s0"),
-        ("DELETE", "/api/sessions/s1"),
-        ("POST", "/api/sessions/s1/publish"),
-        ("GET", "/api/speakers"),
-        ("GET", "/api/enrolment/text?language=es"),
-        ("POST", "/api/speakers/ana/enrolment?name=A&language=es"),
-        ("DELETE", "/api/speakers/ana"),
-    ])
+    def test_the_route_list_is_complete(
+        self, container: TranscriberContainer
+    ) -> None:
+        app = create_app(container, CODE)
+        served = {
+            (method.upper(), path)
+            for path, item in app.openapi()["paths"].items()
+            for method in item
+        }
+        listed = {
+            (method, path.split("?")[0]
+             .replace("/s1", "/{session_id}")
+             .replace("/ana", "/{speaker_id}")
+             .replace("/0", "/{number}")
+             .replace("/S1", "/{label}")
+             .replace("/t0.s0", "/{utterance_id}"))
+            for method, path in ROUTES
+        }
+        assert served == listed | {("GET", "/api/health")}
+
+    @pytest.mark.parametrize("method, path", ROUTES)
     def test_every_route_needs_the_code(
         self, container: TranscriberContainer, method: str, path: str
     ) -> None:
@@ -324,6 +371,95 @@ class TestAccess:
                                    content=b"\x00\x00")
             assert_error(answer, 401, "unauthorized")
         assert container.sessions.get("s1") is not None  # untouched
+
+    def test_the_playback_cookie_is_a_token_not_the_code(
+        self, client: TestClient
+    ) -> None:
+        value, header = playback_cookie(client)
+        assert value != CODE and CODE not in header
+        assert len(value) >= 32
+        attributes = {
+            part.strip().lower() for part in header.split(";")[1:]
+        }
+        assert {"httponly", "secure", "samesite=strict", "path=/api"} <= (
+            attributes
+        )
+        assert playback_cookie(client)[0] == value  # one token per start
+
+    def test_secure_can_be_dropped_for_local_http(
+        self, tmp_path: Path
+    ) -> None:
+        container = make_container(tmp_path, cookie_secure=False)
+        client = TestClient(create_app(container, CODE), headers=AUTH)
+        _, header = playback_cookie(client)
+        attributes = [p.strip().lower() for p in header.split(";")[1:]]
+        assert "secure" not in attributes and "httponly" in attributes
+        container.runner.close(WAIT)
+
+    def test_a_new_start_makes_a_new_token(
+        self, container: TranscriberContainer
+    ) -> None:
+        first = TestClient(create_app(container, CODE), headers=AUTH)
+        second = TestClient(create_app(container, CODE), headers=AUTH)
+        old, _ = playback_cookie(first)
+        assert playback_cookie(second)[0] != old
+        record(second, "s1", pcm_bytes(tone(1.0)))
+        plain = TestClient(second.app)
+        assert_error(plain.get("/api/sessions/s1/audio",
+                               headers=with_cookie(old)),
+                     401, "unauthorized")
+
+    def test_the_audio_plays_with_the_cookie_alone(
+        self, client: TestClient
+    ) -> None:
+        record(client, "s1", pcm_bytes(tone(1.0)))
+        client.post("/api/sessions/s1/close")
+        value, _ = playback_cookie(client)
+        plain = TestClient(client.app)
+        whole = plain.get("/api/sessions/s1/audio",
+                          headers=with_cookie(value))
+        assert whole.status_code == 200
+        assert whole.content == client.get("/api/sessions/s1/audio").content
+        part = plain.get("/api/sessions/s1/audio", headers={
+            **with_cookie(value), "Range": "bytes=0-99",
+        })
+        assert part.status_code == 206 and len(part.content) == 100
+        for wrong in ("", "nope", value + "x", CODE):
+            assert_error(plain.get("/api/sessions/s1/audio",
+                                   headers=with_cookie(wrong)),
+                         401, "unauthorized")
+
+    @pytest.mark.parametrize(
+        "method, path", [r for r in ROUTES if r != AUDIO_ROUTE]
+    )
+    def test_every_other_route_ignores_the_cookie(
+        self, client: TestClient, method: str, path: str
+    ) -> None:
+        value, _ = playback_cookie(client)
+        client.post("/api/sessions", json={"id": "s1", "language": "es"})
+        plain = TestClient(client.app)
+        answer = plain.request(method, path, headers=with_cookie(value),
+                               content=b"\x00\x00")
+        assert_error(answer, 401, "unauthorized")
+        assert client.get("/api/sessions/s1").status_code == 200
+
+    def test_wrong_cookies_are_throttled(self, tmp_path: Path) -> None:
+        container = make_container(
+            tmp_path, failed_code_limit=3, failed_code_cooldown=120.0,
+        )
+        app = create_app(container, CODE, now=Clock())
+        owner = TestClient(app, headers=AUTH)
+        value, _ = playback_cookie(owner)
+        record(owner, "s1", pcm_bytes(tone(1.0)))
+        attacker = TestClient(app, client=("203.0.113.9", 4000))
+        for _ in range(3):
+            assert_error(attacker.get("/api/sessions/s1/audio",
+                                      headers=with_cookie("guess")),
+                         401, "unauthorized")
+        assert_error(attacker.get("/api/sessions/s1/audio",
+                                  headers=with_cookie(value)),
+                     429, "too_many_attempts")
+        container.runner.close(WAIT)
 
     def test_the_code_is_never_taken_from_the_url(
         self, container: TranscriberContainer

@@ -220,7 +220,12 @@ click sets the audio to `start − lead` and plays on from there; `lead`
 (seconds of context before the sentence, default 3) is a number field
 kept in the browser. The sentence being heard is highlighted while the
 audio runs. The audio is served by the transcriber with HTTP range
-requests, so seeking does not download the file.
+requests, so seeking does not download the file. An `<audio>` element
+cannot send the access-code header, so the page first calls
+`POST /api/access/cookie` (with the header): it sets an `HttpOnly`,
+`Secure`, `SameSite=Strict` cookie, limited to `/api`, that holds a
+random playback token made when the service starts (not the access
+code). Only the audio route accepts that cookie.
 
 ## 8. Privacy defaults
 

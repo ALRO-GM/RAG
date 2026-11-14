@@ -36,6 +36,9 @@ class ApiSettings(BaseModel):
     ``audio_cache_bytes`` bounds the memory kept for audio rendered for
     the player. ``static_dir`` serves the pages at ``/`` (development
     only; in production the server's Caddy serves them).
+    ``cookie_secure`` marks the playback cookie ``Secure``; turn it off
+    only for local development over plain http (a browser does not
+    send a ``Secure`` cookie to ``http://127.0.0.1``).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -50,6 +53,7 @@ class ApiSettings(BaseModel):
     consent_version: str = Field(default="consent-1", min_length=1)
     audio_cache_bytes: int = Field(default=256 * MIB, ge=0)
     static_dir: Optional[Path] = None
+    cookie_secure: bool = True
 
 
 class TranscriberSettings(BaseModel):
