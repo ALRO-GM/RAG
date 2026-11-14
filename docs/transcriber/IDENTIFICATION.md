@@ -398,3 +398,51 @@ rm -r data/tr05   # the audio is not kept
 
 `recognition.jsonl` gets one row per recording the first time it is
 recognised; delete it to time a fresh run.
+
+## Appendix: the speaker certainty of a sentence (TR-16)
+
+Every utterance of a transcript carries, besides `speaker_confidence`
+(the cosine of the speaker's whole voice group with their voiceprint,
+one value per speaker), its own `speaker_certainty`, `doubtful`,
+`overlap` and `alternative_speaker`
+(`transcriber/domain/certainty.py`). How they are computed:
+
+- Each short analysis window (1.5 s every 0.75 s) has a cosine with
+  each voice group's centroid, in the space the voices were grouped in
+  (unit vectors centred on the recording's mean, as the grouping does
+  by default). The window goes to
+  the group it scores best; those cosines are kept.
+- The **margin** of a speaker over a stretch of audio is the mean, over
+  the short windows that overlap the stretch (each weighted by the
+  seconds it shares with it), of the window's cosine with that speaker
+  minus its cosine with the closest other voice heard in the
+  transcript. `speaker_certainty` is the margin of the sentence's
+  speaker over `[start, end]`. It lies in [-2, 2]: positive when the
+  windows prefer the speaker, near 0 when they cannot tell, negative
+  when they prefer someone else (possible after smoothing or after a
+  sentence is kept whole).
+- `doubtful` is a margin below `doubt_margin` (0.1). `overlap` is a
+  window lying wholly inside the sentence that prefers another voice by
+  at least 0.1. `alternative_speaker` is the other voice the windows
+  over the sentence prefer most, given only when the sentence is
+  doubtful or an overlap.
+- With one voice in the session, or no window over a sentence, the four
+  fields are absent (`null` in the model).
+
+What it is not: **a similarity margin, not a probability**. It was not
+calibrated against sentences whose speaker is known on real speech, so
+a margin of 0.5 does not mean "50% sure" and no error rate goes with
+the 0.1 cut. `overlap` cannot tell two people speaking at once from a
+quick exchange inside one sentence, and a sentence shorter than one
+window (1.5 s) never has a window inside it. Separating simultaneous
+voices needs a dedicated model (TR-14).
+
+Why 0.1. On the first three real recordings (two people, one phone on
+the table; 871 short windows) 3.7% of the windows had their two closest
+voices within 0.1 of each other, and 10% within 0.198: a margin under
+0.1 means the sentence's windows are, on average, as undecided as the
+few windows that are near ties. It is a parameter
+(`TranscriptionParameters.doubt_margin`); with it, 12 of 187 sentences
+of those recordings were doubtful (6.4%) and 23 overlaps (12.3%). The
+same cut decides when a change of speaker inside a sentence is too
+weak to cut it (`keep_sentences_whole`).

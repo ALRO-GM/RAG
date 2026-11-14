@@ -56,6 +56,36 @@ export function filterBySpeaker(utterances, speakerId) {
   return speakerId ? utterances.filter((u) => u.speaker === speakerId) : utterances;
 }
 
+/**
+ * True when the attribution of an utterance should be checked: the voice
+ * evidence called it doubtful, or heard two voices in it. Older
+ * transcripts lack both fields: never doubtful.
+ */
+export function needsReview(utterance) {
+  return utterance.doubtful === true || utterance.overlap === true;
+}
+
+/** Utterances to show: everybody's or one speaker's, optionally only doubtful ones. */
+export function filterUtterances(utterances, speakerId, onlyDoubtful = false) {
+  const bySpeaker = filterBySpeaker(utterances, speakerId);
+  return onlyDoubtful ? bySpeaker.filter(needsReview) : bySpeaker;
+}
+
+/**
+ * What to tell about an utterance's attribution, or null when nothing:
+ * { doubtful, overlap, alternative (a display name or null), certainty }.
+ */
+export function doubtNote(utterance, speakers) {
+  if (!needsReview(utterance)) return null;
+  const alt = utterance.alternative_speaker;
+  return {
+    doubtful: utterance.doubtful === true,
+    overlap: utterance.overlap === true,
+    alternative: alt ? speakerName(speakers, alt) : null,
+    certainty: Number.isFinite(utterance.speaker_certainty) ? utterance.speaker_certainty : null,
+  };
+}
+
 /** True for a voice the person can still name or merge (S1, S2... not enrolled). */
 export function isAnonymous(speaker) {
   return !speaker.enrolled && ANONYMOUS.test(speaker.id);

@@ -5,10 +5,23 @@ decoding, the encoder's attention maps switched off, word timestamps,
 30-second windows two at a time, float16 on CUDA. The model is loaded
 on first use and :meth:`WhisperRecogniser.release` unloads it after a
 job.
+
+The pipeline's windows overlap (30 s long, one every 20 s) and its join
+of their words can fail: the words of an overlap then come out twice,
+the second copy starting back at the window's start. The use case
+removes those copies (:func:`transcriber.domain.seams.resolve_seams`).
+
+The pipeline does not report how sure it is of each word, so the
+recogniser reads its own text again (:meth:`WhisperRecogniser.
+word_probabilities`): the audio around the words, cut into windows of
+at most 30 s, and the words' tokens are given to the model, which
+returns the probability it gives each token after the ones before it;
+a word's probability is the mean over its tokens (as openai-whisper
+computes it).
 """
 
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from transcriber.adapters.outbound.torch_runtime import (
     Device,
@@ -49,6 +62,54 @@ def words_from_chunks(
         end = min(max(float(end), start), max(duration, start))
         words.append(Word(text=text, start=start, end=end))
     return words
+
+
+# Seconds of audio Whisper reads at once, and the most tokens its
+# decoder takes (prompt included).
+WINDOW_SECONDS = 30.0
+MAX_DECODER_TOKENS = 448
+
+
+def scoring_windows(
+    words: Sequence[Word], length: float = WINDOW_SECONDS
+) -> List[Tuple[float, List[int]]]:
+    """Cut ``words`` (in time order) into windows of ``length`` seconds.
+
+    Returns ``(start, positions)`` per window: a window starts at its
+    first word and takes the following words while they end within
+    ``length`` seconds of that start. A word longer than ``length`` is
+    alone in its window.
+    """
+    windows: List[Tuple[float, List[int]]] = []
+    for position, word in enumerate(words):
+        if windows and word.end <= windows[-1][0] + length:
+            windows[-1][1].append(position)
+        else:
+            windows.append((word.start, [position]))
+    return windows
+
+
+def mean_token_probabilities(
+    counts: Sequence[int], probabilities: Sequence[float]
+) -> List[Optional[float]]:
+    """Return the mean probability of each word's tokens.
+
+    ``counts`` is the number of tokens of each word, in order, and
+    ``probabilities`` the probability of each token. A word with no
+    token, or whose tokens run past the probabilities given (the text
+    was cut to fit the decoder), gets ``None``. Values are kept inside
+    ``[0, 1]``.
+    """
+    out: List[Optional[float]] = []
+    position = 0
+    for count in counts:
+        part = probabilities[position:position + count]
+        position += count
+        if count == 0 or len(part) < count:
+            out.append(None)
+            continue
+        out.append(min(max(sum(part) / count, 0.0), 1.0))
+    return out
 
 
 def without_encoder_attentions(model: Any) -> None:
@@ -155,7 +216,79 @@ class WhisperRecogniser:
         words = words_from_chunks(
             list(result.get("chunks") or []), audio.duration
         )
-        return RecognisedSpeech(words=words, language=language)
+        return RecognisedSpeech(
+            words=self.word_probabilities(audio, words, language),
+            language=language,
+        )
+
+    def word_probabilities(
+        self, audio: Audio, words: Sequence[Word],
+        language: Optional[str] = None,
+    ) -> List[Word]:  # pragma: no cover - runs a real model
+        """Return ``words`` with the model's probability of each.
+
+        ``words`` may come in any order (the pipeline's seams); each is
+        scored in a window of the words around it in time. Words the
+        model cannot score (past the decoder's length) keep ``None``.
+        """
+        import torch
+
+        pipe = self._load()
+        model, tokenizer = pipe.model, pipe.tokenizer
+        order = sorted(range(len(words)), key=lambda n: words[n].start)
+        timed = [words[n] for n in order]
+        scored: List[Optional[float]] = [None] * len(words)
+        rate = audio.sample_rate
+        for start, positions in scoring_windows(timed):
+            first = int(start * rate)
+            samples = audio.samples[first:first + int(WINDOW_SECONDS * rate)]
+            features = pipe.feature_extractor(
+                samples, sampling_rate=rate, return_tensors="pt"
+            ).input_features.to(model.device, dtype=model.dtype)
+            tokens = [
+                tokenizer(timed[n].text, add_special_tokens=False).input_ids
+                for n in positions
+            ]
+            prompt = self._prompt(model, tokenizer, features, language)
+            ids = prompt + [t for word in tokens for t in word]
+            ids = ids[:MAX_DECODER_TOKENS]
+            with torch.no_grad():
+                logits = model(
+                    input_features=features,
+                    decoder_input_ids=torch.tensor([ids], device=model.device),
+                ).logits[0].float()
+            chances = torch.softmax(logits, dim=-1)
+            given = [
+                float(chances[k - 1, ids[k]])
+                for k in range(len(prompt), len(ids))
+            ]
+            means = mean_token_probabilities(
+                [len(word) for word in tokens], given
+            )
+            for n, value in zip(positions, means):
+                scored[order[n]] = value
+        return [
+            w.model_copy(update={"probability": p})
+            for w, p in zip(words, scored)
+        ]
+
+    @staticmethod
+    def _prompt(
+        model: Any, tokenizer: Any, features: Any, language: Optional[str]
+    ) -> List[int]:  # pragma: no cover - runs a real model
+        """The decoder's start tokens: transcribe ``language``, no times.
+
+        Without a language, the one the model detects in ``features``.
+        """
+        if language:
+            code = tokenizer.convert_tokens_to_ids(f"<|{language}|>")
+        else:
+            code = int(model.detect_language(input_features=features)[0])
+        return [
+            tokenizer.convert_tokens_to_ids("<|startoftranscript|>"), code,
+            tokenizer.convert_tokens_to_ids("<|transcribe|>"),
+            tokenizer.convert_tokens_to_ids("<|notimestamps|>"),
+        ]
 
     def release(self) -> None:
         """Unload the model and give its memory back."""

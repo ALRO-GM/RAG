@@ -13,6 +13,7 @@ from typing import Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from transcriber.domain.certainty import DEFAULT_DOUBT_MARGIN
 from transcriber.domain.voices import (
     DEFAULT_MATCH_THRESHOLD,
     Normalisation,
@@ -58,6 +59,13 @@ class TranscriptionParameters(BaseModel):
     (seconds) and a frame whose RMS level reaches the threshold (full
     scale is 1) is speech; a recognised word with no such frame in its
     span is dropped (recognisers invent words over silence).
+    ``doubt_margin``: a sentence whose speaker margin (the voice windows'
+    cosine with its speaker minus that with the closest other voice;
+    :mod:`transcriber.domain.certainty`) is below this is ``doubtful``;
+    a window inside a sentence that prefers another voice by at least
+    this much makes it an ``overlap``; a speaker change inside a
+    sentence supported by less than this (or by a single window) is
+    undone.
 
     Measured in TR-05 (``docs/transcriber/IDENTIFICATION.md``; figures
     on the readers held out from the choice): ``match_threshold`` 0.95
@@ -103,6 +111,9 @@ class TranscriptionParameters(BaseModel):
     turn_gap: float = Field(default=1.0, ge=0, allow_inf_nan=False)
     activity_frame: float = Field(default=0.025, gt=0, allow_inf_nan=False)
     activity_threshold: float = Field(default=0.003, ge=0, le=1)
+    doubt_margin: float = Field(
+        default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
+    )
 
     @model_validator(mode="after")
     def _windows(self) -> "TranscriptionParameters":

@@ -65,7 +65,13 @@ class ContractSpeaker(_Strict):
 
 
 class ContractUtterance(_Strict):
-    """One sentence of one turn, with its place in the audio."""
+    """One sentence of one turn, with its place in the audio.
+
+    ``speaker_certainty`` (a similarity margin in [-2, 2], not a
+    probability), ``doubtful``, ``overlap`` and ``alternative_speaker``
+    describe how well the voice evidence supports this sentence's
+    speaker; they are optional (older transcripts lack them).
+    """
 
     id: str = Field(pattern=UTTERANCE_ID_PATTERN)
     turn: int = Field(ge=0)
@@ -82,6 +88,12 @@ class ContractUtterance(_Strict):
     speaker_confidence: Optional[float] = Field(
         default=None, ge=-1, le=1, allow_inf_nan=False
     )
+    speaker_certainty: Optional[float] = Field(
+        default=None, ge=-2, le=2, allow_inf_nan=False
+    )
+    doubtful: Optional[bool] = None
+    overlap: Optional[bool] = None
+    alternative_speaker: Optional[str] = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def _consistent(self) -> "ContractUtterance":
@@ -93,6 +105,10 @@ class ContractUtterance(_Strict):
             )
         if self.end < self.start:
             raise ValueError(f"utterance {self.id} ends before it starts")
+        if self.alternative_speaker == self.speaker:
+            raise ValueError(
+                f"utterance {self.id} has itself as alternative speaker"
+            )
         return self
 
 
@@ -121,7 +137,10 @@ class ContractTranscript(_Strict):
             raise ValueError("speaker ids must be unique")
         listed = set(ids)
         for utterance in self.utterances:
-            for who in (utterance.speaker, utterance.previous_speaker):
+            for who in (
+                utterance.speaker, utterance.previous_speaker,
+                utterance.alternative_speaker,
+            ):
                 if who is not None and who not in listed:
                     raise ValueError(
                         f"utterance {utterance.id} names an unlisted "

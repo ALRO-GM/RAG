@@ -26,7 +26,7 @@ from transcriber.adapters.outbound.whisper_recogniser import (
 from transcriber.application.ports import Audio, RecordedAudio
 from transcriber.bootstrap import build_container
 from transcriber.config import TranscriberSettings
-from transcriber.domain.models import SessionState
+from transcriber.domain.models import SessionState, Word
 from transcriber.domain.voices import FloatArray
 
 pytestmark = pytest.mark.slow
@@ -76,6 +76,24 @@ def test_whisper_word_times_stay_ordered_and_inside_the_audio() -> None:
         assert 0.0 <= word.start <= word.end <= audio.duration
     starts = [w.start for w in words]
     assert starts == sorted(starts)
+
+
+def test_whisper_scores_words_it_is_given() -> None:
+    """Every word gets a probability, also out of time order."""
+    rng = np.random.default_rng(4)
+    audio = Audio(rng.normal(0, 0.05, 40 * RATE).astype(np.float32), RATE)
+    given = [Word(text=" hola", start=31.0, end=31.5),
+             Word(text=" buenos", start=1.0, end=1.4),
+             Word(text=" días.", start=1.4, end=2.0)]
+    recogniser = WhisperRecogniser()
+    scored = recogniser.word_probabilities(audio, given, "es")
+    recogniser.release()
+    assert [w.text for w in scored] == [w.text for w in given]
+    for word in scored:
+        assert word.probability is not None
+        assert 0.0 <= word.probability <= 1.0
+    print(f"\nwhisper word probabilities on noise:"
+          f" {[round(w.probability or 0, 3) for w in scored]}")
 
 
 def test_wavlm_embeds_windows_as_unit_vectors() -> None:

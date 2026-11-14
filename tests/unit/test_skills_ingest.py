@@ -79,6 +79,23 @@ def test_the_example_is_accepted(validator: Draft202012Validator) -> None:
     assert transcript.session.started_at.utcoffset() is not None
 
 
+def test_the_certainty_fields_are_read_and_optional(
+    validator: Draft202012Validator,
+) -> None:
+    document = example()
+    doubtful = read_contract(document).utterances[2]
+    assert (doubtful.speaker_certainty, doubtful.doubtful,
+            doubtful.overlap, doubtful.alternative_speaker) == (
+        0.04, True, False, "S1")
+    for item in document["utterances"]:
+        for key in ("speaker_certainty", "doubtful", "overlap",
+                    "alternative_speaker"):
+            item.pop(key, None)
+    validator.validate(document)
+    plain = read_contract(document).utterances[2]
+    assert plain.speaker_certainty is None and plain.doubtful is None
+
+
 def test_whole_numbers_are_valid_times() -> None:
     document = example()
     document["session"]["duration"] = 15
@@ -140,6 +157,14 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
      set_in(["utterances", 0, "speaker_confidence"], "0.74")),
     ("previous speaker as a number",
      set_in(["utterances", 2, "previous_speaker"], 7)),
+    ("speaker certainty below -2",
+     set_in(["utterances", 0, "speaker_certainty"], -2.5)),
+    ("speaker certainty as a string",
+     set_in(["utterances", 0, "speaker_certainty"], "0.8")),
+    ("doubtful as a number", set_in(["utterances", 0, "doubtful"], 1)),
+    ("overlap as a string", set_in(["utterances", 0, "overlap"], "true")),
+    ("empty alternative speaker",
+     set_in(["utterances", 2, "alternative_speaker"], "")),
     ("recogniser as a number", set_in(["pipeline", "recogniser"], 1)),
     ("utterances as an object", set_in(["utterances"], {})),
     ("speakers as a string", set_in(["speakers"], "marta")),
@@ -181,6 +206,12 @@ STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
      lambda d: d["speakers"].append(dict(d["speakers"][0])), "unique"),
     ("unlisted speaker",
      lambda d: [utterance(d, 3).update(speaker="nadie")], "unlisted"),
+    ("unlisted alternative speaker",
+     lambda d: utterance(d, 2).update(alternative_speaker="nadie"),
+     "unlisted"),
+    ("the speaker as its own alternative",
+     lambda d: utterance(d, 2).update(alternative_speaker="luis"),
+     "itself as alternative"),
     ("utterances out of order", swap_turns, "out of order"),
     ("gap in turn numbers",
      lambda d: utterance(d, 3).update(id="t3.s0", turn=3), "expected turn 2"),

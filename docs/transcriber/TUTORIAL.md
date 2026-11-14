@@ -320,6 +320,13 @@ sin transcribir» o «Ha fallado», pulsa «Transcribir».
 - el **texto**;
 - «**tras X**»: quién habló justo antes. Sale cuando cambia el que habla;
   ayuda a ver quién responde a quién.
+- una marca amarilla cuando la atribución es **dudosa**: «hablante
+  dudoso: ¿quizá X?» si la voz de esa frase se parece casi tanto a la
+  de otra persona, o «dos voces» si dentro de la frase se oye a otra
+  persona (hablar a la vez, o un cambio rápido). Al pasar el ratón se
+  ve el «margen de la voz»: cuánto se parece más a quien se le atribuye
+  que a la siguiente persona. **No es una probabilidad**; solo sirve
+  para saber qué frases revisar. Si es una persona sola, no hay marcas.
 
 **Escuchar una frase.** Pulsa una frase y suena. La frase que suena se
 marca, y la lista la sigue (se puede desmarcar «Seguir la frase que
@@ -332,6 +339,8 @@ suena»).
 - «Velocidad»: de 0.75× a 2×.
 - «Mostrar a»: elige una persona para ver solo sus frases. «Todos» las
   muestra todas.
+- «Solo frases dudosas»: deja solo las frases marcadas, para revisarlas
+  de una en una (escucharlas y, si hace falta, «Cambiar hablante»).
 
 **Corregir.**
 

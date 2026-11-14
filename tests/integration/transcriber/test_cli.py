@@ -500,6 +500,9 @@ def test_serve_refuses_a_kept_code_others_can_read(tmp_path: Path) -> None:
     kept = data / "access_code"
     kept.write_text("x" * 43)
     kept.chmod(0o644)
-    result = run(data, "serve", "--no-tunnel", "--keep-code")
+    # A port of its own, so a serve running on this machine does not
+    # answer first with "could not listen".
+    result = run(data, "serve", "--no-tunnel", "--keep-code",
+                 "--port", str(free_port()))
     assert result.returncode == 1
     assert "readable by others" in result.stderr

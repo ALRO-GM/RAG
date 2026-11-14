@@ -138,6 +138,12 @@ export const es = {
   "player.filter": "Mostrar a",
   "player.everyone": "Todos",
   "player.follow": "Seguir la frase que suena",
+  "player.only_doubtful": "Solo frases dudosas",
+  "transcript.doubtful": "hablante dudoso",
+  "transcript.doubtful_or": "hablante dudoso: ¿quizá {name}?",
+  "transcript.overlap": "dos voces",
+  "transcript.overlap_with": "dos voces: también {name}",
+  "transcript.certainty": "Margen de la voz: {value} (no es una probabilidad)",
   "player.no_audio": "No se puede reproducir el audio de esta sesión.",
 
   "transcript.not_ready": "Esta sesión todavía no tiene transcripción (estado: {state}).",

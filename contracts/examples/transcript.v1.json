@@ -10,13 +10,15 @@
   "utterances": [
     {"id": "t0.s0", "turn": 0, "index": 0, "speaker": "marta", "start": 0.4, "end": 4.9,
      "text": "Creo que con un solo proceso no cumplimos el requisito.",
-     "previous_speaker": null, "previous_utterance": null, "confidence": null, "speaker_confidence": 0.74},
+     "previous_speaker": null, "previous_utterance": null, "confidence": null, "speaker_confidence": 0.74,
+     "speaker_certainty": 0.82, "doubtful": false, "overlap": false},
     {"id": "t0.s1", "turn": 0, "index": 1, "speaker": "marta", "start": 5.0, "end": 6.3,
      "text": "Pero no estoy segura.",
      "previous_speaker": null, "previous_utterance": null, "confidence": null, "speaker_confidence": 0.74},
     {"id": "t1.s0", "turn": 1, "index": 0, "speaker": "luis", "start": 6.9, "end": 9.8,
      "text": "Eso es una tontería, Marta, con un proceso sobra.",
-     "previous_speaker": "marta", "previous_utterance": "t0.s1", "confidence": null, "speaker_confidence": 0.69},
+     "previous_speaker": "marta", "previous_utterance": "t0.s1", "confidence": null, "speaker_confidence": 0.69,
+     "speaker_certainty": 0.04, "doubtful": true, "overlap": false, "alternative_speaker": "S1"},
     {"id": "t2.s0", "turn": 2, "index": 0, "speaker": "S1", "start": 10.5, "end": 14.2,
      "text": "Espera, Luis, déjala terminar.",
      "previous_speaker": "luis", "previous_utterance": "t1.s0", "confidence": null, "speaker_confidence": null}

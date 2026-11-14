@@ -4,7 +4,10 @@
 ARCHITECTURE.md`` §3: decode → recognise (timed words) → speech regions
 and analysis windows → voice embeddings → voice groups (two passes, in
 the domain) → identification against the enrolled voiceprints →
-speakers on the words, smoothing, turns → sentences → transcript. Each
+speakers on the words, smoothing, sentences kept whole (weak changes of
+speaker undone) → turns → sentences → certainty of each sentence's
+speaker → transcript. Passages the recogniser returned twice at its
+window seams are removed before anything else. Each
 stage is reported to :class:`~transcriber.application.ports.Progress`.
 A stage that fails leaves the session ``failed`` with the stage and the
 reason; queueing it again (:class:`QueueTranscription`) retries.
@@ -53,6 +56,11 @@ from transcriber.application.ports import (
     VoiceprintRepository,
 )
 from transcriber.domain.activity import heard_words, speech_activity
+from transcriber.domain.certainty import (
+    VoiceEvidence,
+    assess_utterances,
+    keep_sentences_whole,
+)
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
@@ -68,6 +76,7 @@ from transcriber.domain.models import (
     Word,
 )
 from transcriber.domain.parameters import TranscriptionParameters
+from transcriber.domain.seams import resolve_seams
 from transcriber.domain.sentences import build_utterances
 from transcriber.domain.sessions import move, require_state
 from transcriber.domain.speakers import (
@@ -324,13 +333,15 @@ class TranscribeSession:
         advance()  # recognise
         speech = self._recogniser.recognise(audio, running.language)
         # Recognisers invent words over silence: keep only the words
-        # said where the audio has some energy.
+        # said where the audio has some energy. Passages returned twice
+        # at the seams of the recogniser's windows go first.
         activity = speech_activity(
             audio.samples, audio.sample_rate, p.activity_frame,
             p.activity_threshold,
         )
         words = heard_words(
-            [w for w in speech.words if w.text.strip()], activity
+            [w for w in resolve_seams(speech.words) if w.text.strip()],
+            activity,
         )
         if not words:
             raise InvalidInputError("No speech recognised.")
@@ -355,7 +366,7 @@ class TranscribeSession:
                 p.max_speakers, self._one_voice,
             )
             coarse_labels, fine_labels = seeded.coarse, seeded.fine
-            vectors = seeded.vectors
+            vectors, scores = seeded.vectors, seeded.fine_scores
         else:
             groups = group_voices(
                 coarse, fine, options.num_speakers, p.group_threshold,
@@ -363,14 +374,22 @@ class TranscribeSession:
                 p.single_voice_quantile,
             )
             coarse_labels, fine_labels = groups.coarse, groups.fine
-            vectors = groups.vectors
+            vectors, scores = groups.vectors, groups.fine_scores
+        evidence: Optional[VoiceEvidence] = None
         if fine_windows:
             spans = spans_from_windows(fine_windows, fine_labels)
+            if scores is not None:
+                evidence = VoiceEvidence(fine_windows, scores, [
+                    speaker_label(n) for n in range(scores.shape[1])
+                ])
         else:
             spans = spans_from_windows(coarse_windows, coarse_labels)
         words = assign_speakers(words, spans)
         if p.smoothing_run:
             words = smooth_speakers(words, p.smoothing_run)
+        words = keep_sentences_whole(
+            words, evidence, p.doubt_margin, p.turn_gap
+        )
         advance()  # identify
         if candidates.skipped:
             report.note(skipped_note(candidates.skipped))
@@ -396,6 +415,14 @@ class TranscribeSession:
             for t in turns_from_words(words, p.turn_gap)
         ]
         utterances = build_utterances(turns)
+        if evidence is not None:
+            evidence = evidence._replace(voices=[
+                names[v].speaker if v is not None and v in names else None
+                for v in evidence.voices
+            ])
+        utterances = assess_utterances(
+            utterances, evidence, p.doubt_margin
+        )
         advance()  # save
         done = move(running, SessionState.DONE).model_copy(update={
             "duration": audio.duration,

@@ -5,7 +5,9 @@ directory. It appends its arguments, and whether ``AUTH`` was set, to
 the log file named at install time (``<log>.env``); the first client
 refuses like a wrong credential and exits 1; every later client writes
 chisel's ``Connected`` line and runs until it gets SIGTERM, which it
-records in ``<log>.term``. The log's path is written into the script
+records in ``<log>.term``, or until the process that started it is
+gone: a ``serve`` killed by a failing test does not leave it running
+forever. The log's path is written into the script
 because the tunnel passes the client only a few environment variables.
 """
 
@@ -24,7 +26,8 @@ if [ "$runs" -le 1 ]; then
 fi
 trap 'echo terminated >> "$FAKE_CHISEL_LOG.term"; exit 0' TERM
 echo "2026/11/14 08:22:15 client: Connected (Latency 171us)" >&2
-while true; do sleep 0.05; done
+parent=$PPID
+while kill -0 "$parent" 2>/dev/null; do sleep 0.05; done
 """
 
 

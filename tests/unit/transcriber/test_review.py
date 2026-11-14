@@ -14,6 +14,7 @@ from transcriber.domain.errors import (
     StateError,
 )
 from transcriber.domain.models import SessionState, Transcript
+from transcriber.domain.parameters import TranscriptionParameters
 
 
 def finished(enrol_luis: bool = False) -> World:
@@ -190,3 +191,45 @@ class TestPublishTranscript:
         w.sessions.transcripts.clear()
         with pytest.raises(NotFoundError, match="no transcript"):
             PublishTranscript(w.sessions, RecordingPublisher())("s1")
+
+
+def doubtful() -> World:
+    """A finished world where every sentence is doubtful (S1/S2)."""
+    w = world(parameters=TranscriptionParameters(doubt_margin=2.0))
+    w.run()
+    return w
+
+
+class TestCertaintyUnderReview:
+    def test_a_sentence_moved_by_hand_loses_its_evidence(self) -> None:
+        w = doubtful()
+        first = stored(w).utterances[0]
+        assert first.doubtful is True
+        out = reassigner(w)("s1", first.id, "S2")
+        moved = out.utterances[0]
+        assert moved.speaker == "S2"
+        assert (moved.speaker_certainty, moved.doubtful, moved.overlap,
+                moved.alternative_speaker) == (None, None, None, None)
+        assert out.utterances[1].doubtful is True  # the others keep it
+
+    def test_a_merge_points_alternatives_at_the_target(self) -> None:
+        w = doubtful()
+        w.voiceprints.enrol("luis", voice(1), name="Luis")
+        out = renamer(w)("s1", "S2", merge_into="luis")
+        kept = [u for u in out.utterances if u.speaker == "S1"]
+        assert {u.alternative_speaker for u in kept} == {"luis"}
+
+    def test_merging_into_the_alternative_clears_it(self) -> None:
+        w = doubtful()
+        out = renamer(w)("s1", "S2", merge_into="S1")
+        assert {u.alternative_speaker for u in out.utterances} == {None}
+
+    def test_a_speaker_left_without_speech_is_no_alternative(self) -> None:
+        w = doubtful()
+        while any(u.speaker == "S2" for u in stored(w).utterances):
+            target = next(u for u in stored(w).utterances
+                          if u.speaker == "S2")
+            reassigner(w)("s1", target.id, "S1")
+        out = stored(w)
+        assert [s.id for s in out.speakers] == ["S1"]
+        assert {u.alternative_speaker for u in out.utterances} == {None}

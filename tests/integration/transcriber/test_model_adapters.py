@@ -22,11 +22,41 @@ from transcriber.adapters.outbound.wavlm_voice_encoder import (
 )
 from transcriber.adapters.outbound.whisper_recogniser import (
     WhisperRecogniser,
+    mean_token_probabilities,
+    scoring_windows,
     without_encoder_attentions,
     words_from_chunks,
 )
 from transcriber.application.ports import Audio
 from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.models import Word
+
+
+class TestWordProbabilities:
+    def test_windows_start_at_a_word_and_hold_what_ends_within(self) -> None:
+        words = [Word(text=" a", start=s, end=s + 1.0)
+                 for s in (0.0, 10.0, 28.0, 29.5, 45.0)]
+        assert scoring_windows(words, 30.0) == [
+            (0.0, [0, 1, 2]), (29.5, [3, 4]),
+        ]
+
+    def test_a_word_longer_than_a_window_is_alone(self) -> None:
+        words = [Word(text=" a", start=0.0, end=40.0),
+                 Word(text=" b", start=40.0, end=41.0)]
+        assert scoring_windows(words, 30.0) == [(0.0, [0]), (40.0, [1])]
+
+    def test_a_word_is_the_mean_of_its_tokens(self) -> None:
+        assert mean_token_probabilities([1, 2, 0], [0.9, 0.5, 0.7]) == [
+            0.9, pytest.approx(0.6), None,
+        ]
+
+    def test_tokens_cut_off_leave_the_word_unknown(self) -> None:
+        assert mean_token_probabilities([2, 2], [0.4, 0.6, 0.8]) == [
+            pytest.approx(0.5), None,
+        ]
+
+    def test_values_stay_probabilities(self) -> None:
+        assert mean_token_probabilities([1], [1.0000001]) == [1.0]
 
 
 class TestWhisperChunks:

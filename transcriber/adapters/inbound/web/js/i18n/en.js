@@ -138,6 +138,12 @@ export const en = {
   "player.filter": "Show",
   "player.everyone": "Everybody",
   "player.follow": "Follow the sentence being heard",
+  "player.only_doubtful": "Only doubtful sentences",
+  "transcript.doubtful": "doubtful speaker",
+  "transcript.doubtful_or": "doubtful speaker: perhaps {name}?",
+  "transcript.overlap": "two voices",
+  "transcript.overlap_with": "two voices: also {name}",
+  "transcript.certainty": "Voice margin: {value} (not a probability)",
   "player.no_audio": "The audio of this session cannot be played.",
 
   "transcript.not_ready": "This session has no transcript yet (state: {state}).",

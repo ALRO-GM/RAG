@@ -6,7 +6,7 @@ import {
 import { pickLanguage, translate } from "../../transcriber/adapters/inbound/web/js/lib/i18n.js";
 import {
   seekTime, parseLead, activeIndex, sortUtterances, speakerName, filterBySpeaker,
-  isAnonymous, mergeTargets, previousHint,
+  isAnonymous, mergeTargets, previousHint, needsReview, filterUtterances, doubtNote,
 } from "../../transcriber/adapters/inbound/web/js/lib/transcript.js";
 import {
   classifyFailure, isRetryable, nextPollMs, codeFromFragment, fragmentWithoutCode,
@@ -155,6 +155,26 @@ test("speaker helpers", () => {
   assert.equal(previousHint({ speaker: "ana", previous_speaker: "S2" }, speakers), "Luis");
   assert.equal(previousHint({ speaker: "ana", previous_speaker: null }, speakers), null);
   assert.equal(previousHint({ speaker: "ana", previous_speaker: "ana" }, speakers), null);
+});
+
+test("doubtful attributions are marked and can be shown alone", () => {
+  const speakers = [{ id: "ana", name: "Ana", enrolled: true }, { id: "S1", name: null, enrolled: false }];
+  const sure = { speaker: "ana", speaker_certainty: 0.8, doubtful: false, overlap: false };
+  const doubt = { speaker: "ana", speaker_certainty: 0.04, doubtful: true, overlap: false, alternative_speaker: "S1" };
+  const mixed = { speaker: "S1", speaker_certainty: 0.5, doubtful: false, overlap: true, alternative_speaker: "ana" };
+  const old = { speaker: "S1" }; // a transcript made before the fields existed
+  const us = [sure, doubt, mixed, old];
+  assert.deepEqual(us.map(needsReview), [false, true, true, false]);
+  assert.deepEqual(filterUtterances(us, "", true), [doubt, mixed]);
+  assert.deepEqual(filterUtterances(us, "ana", true), [doubt]);
+  assert.deepEqual(filterUtterances(us, "ana"), [sure, doubt]);
+  assert.equal(doubtNote(sure, speakers), null);
+  assert.equal(doubtNote(old, speakers), null);
+  assert.deepEqual(doubtNote(doubt, speakers),
+    { doubtful: true, overlap: false, alternative: "S1", certainty: 0.04 });
+  assert.deepEqual(doubtNote(mixed, speakers),
+    { doubtful: false, overlap: true, alternative: "Ana", certainty: 0.5 });
+  assert.equal(doubtNote({ ...doubt, speaker_certainty: null, alternative_speaker: null }, speakers).certainty, null);
 });
 
 test("classifyFailure", () => {

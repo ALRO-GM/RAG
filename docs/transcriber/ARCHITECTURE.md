@@ -56,8 +56,13 @@ transcriber/
     sessions.py      session states and moves, chunk acceptance, interruption
     parameters.py    TranscriptionParameters: every threshold of a transcription
     activity.py      speech activity from frame energy; drops words over silence
+    seams.py         removes passages the recogniser returned twice at the
+                     seams of its windows; words back in time order
     sentences.py     sentence splitting, utterance ids
     speakers.py      word→speaker assignment, smoothing, turns, previous speaker
+    certainty.py     per-sentence speaker certainty, doubt, overlap and
+                     alternative speaker from the short windows' cosines;
+                     keeps a sentence whole on a weak change of speaker
     voices.py        single-voice test, clustering, centroids, matching to voiceprints
     enrolment.py     the text a person reads, checks on an enrolment sample
     consent.py       the versioned consent notices (enrolment, recording)
@@ -71,7 +76,9 @@ transcriber/
     consent.py       ShowConsentNotice
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
-    transcribe.py    TranscribeSession (recognise → diarize → identify → sentences),
+    transcribe.py    TranscribeSession (recognise → seams → diarize →
+                     sentences kept whole → identify → sentences →
+                     certainty),
                      QueueTranscription, TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
@@ -132,7 +139,9 @@ marked `slow`.
       "speaker": "ana", "start": 44.12, "end": 47.90,
       "text": "Eso no lo habíamos mirado.",
       "previous_speaker": "S1", "previous_utterance": "t2.s1",
-      "confidence": null, "speaker_confidence": 0.71
+      "confidence": 0.93, "speaker_confidence": 0.71,
+      "speaker_certainty": 0.04, "doubtful": true, "overlap": false,
+      "alternative_speaker": "S1"
     }
   ],
   "pipeline": {"recogniser": "openai/whisper-large-v3-turbo",
@@ -155,7 +164,33 @@ marked `slow`.
   chunks that keep the exchange together.
 - `speaker` is an enrolled user id when the voice was recognised, or
   an anonymous label (`S1`, `S2`, …) that is stable inside the session.
-  `speaker_confidence` is the similarity that supports the attribution.
+  `speaker_confidence` is the similarity of the speaker's whole voice
+  group with their voiceprint (the same for every sentence of a
+  speaker). `confidence` is the recogniser's mean word probability
+  (Whisper re-reads its own words against the audio, at most 30 s at a
+  time, and gives each token a probability; a word's is the mean over
+  its tokens).
+- Per sentence, from the short voice windows over it (optional fields,
+  added compatibly; absent when there is one voice or no window):
+  `speaker_certainty` is the mean margin of the sentence's speaker over
+  the closest other voice (a difference of cosines in [-2, 2], **not a
+  probability**), `doubtful` a margin below `doubt_margin` (0.1),
+  `overlap` a window inside the sentence that prefers another voice,
+  and `alternative_speaker` that other voice when the sentence is
+  doubtful or an overlap. Definition, rationale and limits:
+  `IDENTIFICATION.md`, appendix. A sentence moved by hand loses them.
+- Utterances are strictly in time order. The Whisper pipeline reads
+  30 s windows that start every 20 s; when its join of two windows
+  fails, the overlap comes out twice and the word stream jumps back to
+  the later window's start (seen at 20, 80, 180, 240, 260 and 360 s on
+  the first real recordings). `domain/seams.py` keeps one copy: the
+  doubled stretch is cut at its middle, joined on a word both copies
+  share when there is one.
+- A change of speaker inside a sentence is undone when it is weak (at
+  most one short window prefers the new speaker, or its margin is below
+  `doubt_margin`): the words go to a neighbouring speaker of the same
+  sentence, shortest weak stretch first. A sentence ends at final
+  punctuation or at a pause longer than `turn_gap`.
 - Words are kept by the transcriber (for the player and for
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.

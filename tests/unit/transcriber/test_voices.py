@@ -403,6 +403,8 @@ class TestSeedVoices:
         assert seeded.coarse == [0, 0, 1, 0]
         assert seeded.fine == [0, 1, 1, 0]
         assert seeded.people == {0: "ana", 1: "luis"}
+        assert seeded.fine_scores is not None
+        assert list(seeded.fine_scores.argmax(axis=1)) == seeded.fine
         named = name_seeded([0, 1], seeded, prints)
         assert [(a.speaker, a.enrolled) for a in named] == [
             ("ana", True), ("luis", True),
@@ -417,6 +419,7 @@ class TestSeedVoices:
         assert seeded.people == {0: "ana"}
         assert seeded.coarse == [0, 1, 1, 0]
         assert seeded.fine == []
+        assert seeded.fine_scores is None
         named = name_seeded([0, 1], seeded, prints, taken={"S1"})
         assert [(a.speaker, a.enrolled) for a in named] == [
             ("ana", True), ("S2", False),

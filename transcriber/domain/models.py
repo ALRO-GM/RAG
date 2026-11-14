@@ -108,6 +108,15 @@ class Utterance(BaseModel):
     of the turn before this one and ``previous_utterance`` the last
     sentence of that turn (both ``None`` in the first turn; the same for
     every sentence of a turn). ``words`` are not part of the contract.
+
+    ``confidence`` is the recogniser's mean word probability.
+    ``speaker_confidence`` is the similarity of the speaker's whole voice
+    group with their voiceprint (one value per speaker).
+    ``speaker_certainty``, ``doubtful``, ``overlap`` and
+    ``alternative_speaker`` describe this sentence's own attribution,
+    from the voice windows over it
+    (:func:`~transcriber.domain.certainty.assess_utterances`); ``None``
+    when they were not computed.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -127,6 +136,12 @@ class Utterance(BaseModel):
     speaker_confidence: Optional[float] = Field(
         default=None, ge=-1, le=1, allow_inf_nan=False
     )
+    speaker_certainty: Optional[float] = Field(
+        default=None, ge=-2, le=2, allow_inf_nan=False
+    )
+    doubtful: Optional[bool] = None
+    overlap: Optional[bool] = None
+    alternative_speaker: Optional[str] = Field(default=None, min_length=1)
     words: List[Word] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -139,6 +154,10 @@ class Utterance(BaseModel):
             )
         if self.end < self.start:
             raise ValueError("an utterance cannot end before it starts")
+        if self.alternative_speaker == self.speaker:
+            raise ValueError(
+                "the alternative speaker must be someone else"
+            )
         return self
 
 
@@ -262,7 +281,8 @@ _SPEAKER_FIELDS = frozenset({"id", "name", "enrolled"})
 _UTTERANCE_FIELDS = frozenset({
     "id", "turn", "index", "speaker", "start", "end", "text",
     "previous_speaker", "previous_utterance", "confidence",
-    "speaker_confidence",
+    "speaker_confidence", "speaker_certainty", "doubtful", "overlap",
+    "alternative_speaker",
 })
 _PIPELINE_FIELDS = frozenset({"recogniser", "voice_model", "transcriber"})
 _TOP_FIELDS = frozenset({
@@ -270,9 +290,26 @@ _TOP_FIELDS = frozenset({
 })
 _SESSION_REQUIRED = frozenset({"id", "language", "duration"})
 _SPEAKER_REQUIRED = frozenset({"id", "enrolled"})
-_UTTERANCE_REQUIRED = _UTTERANCE_FIELDS - {
-    "confidence", "speaker_confidence",
-}
+# Fields a transcript.v1 document may leave out (added compatibly).
+_UTTERANCE_OPTIONAL = frozenset({
+    "confidence", "speaker_confidence", "speaker_certainty", "doubtful",
+    "overlap", "alternative_speaker",
+})
+_UTTERANCE_REQUIRED = _UTTERANCE_FIELDS - _UTTERANCE_OPTIONAL
+# Fields added to transcript.v1 after its first version: written only
+# when they hold a value, so a transcript without them reads as before.
+_UTTERANCE_ADDED = frozenset({
+    "speaker_certainty", "doubtful", "overlap", "alternative_speaker",
+})
+
+
+def _utterance_contract(utterance: "Utterance") -> Dict[str, Any]:
+    """Return ``utterance`` as a ``transcript.v1`` utterance object."""
+    out = utterance.model_dump(include=set(_UTTERANCE_FIELDS))
+    for key in _UTTERANCE_ADDED:
+        if out[key] is None:
+            del out[key]
+    return out
 
 
 class Transcript(BaseModel):
@@ -296,7 +333,10 @@ class Transcript(BaseModel):
             raise ValueError("utterance ids must be unique")
         listed = set(known)
         for utterance in self.utterances:
-            for who in (utterance.speaker, utterance.previous_speaker):
+            for who in (
+                utterance.speaker, utterance.previous_speaker,
+                utterance.alternative_speaker,
+            ):
                 if who is not None and who not in listed:
                     raise ValueError(
                         f"utterance {utterance.id} names an unlisted"
@@ -337,10 +377,7 @@ class Transcript(BaseModel):
                 "audio_sha256": session.audio_sha256,
             },
             "speakers": [s.model_dump() for s in self.speakers],
-            "utterances": [
-                u.model_dump(include=set(_UTTERANCE_FIELDS))
-                for u in self.utterances
-            ],
+            "utterances": [_utterance_contract(u) for u in self.utterances],
             "pipeline": self.pipeline.model_dump(),
         }
 
