@@ -18,14 +18,19 @@ Branch `feat/model-lab`. Updated as work goes; a new session resumes from here.
   unlabelled filter; scores table, best per stage, JSON export via Blob).
 - Nav entry, route `#/lab[/<session>[/<run>[/<section>]]]`, es/en texts, CSS.
 
-## Left
-- Try it in headless Chrome under the production CSP with fake data
-  (dev instance from tests/integration/transcriber/lab_sandbox.py,
-  runtime fake, other port and data dir); fix what breaks.
-- Extend tests/integration/transcriber/test_web_pages.py / test_bundle.py
-  for the new files.
-- TUTORIAL.md section (Spanish), LAB.md section on the tab.
-- Full gate.
+- Tried in headless Chrome (CDP script, scratch only) against a dev
+  instance (fake runtime, sandbox lab, port 8791, own data dir) under the
+  production CSP header: no console errors or CSP violations on every
+  section; keyboard labelling (1, 2, N, U, K, X, B) saved 4 labels on the
+  server; timeline click started playback and moved the cursor.
+- Tests extended (test_web_pages, test_bundle); TUTORIAL.md §6, LAB.md tab section.
+
+## Left / known gaps
+- Not checked against the real 168-pipeline run (private data; only fake
+  data used). Heat map is per denoiser or per diarizer by design.
+- Scores table does not show the NC flag (score rows carry no licence).
+- Not checked: screen readers, Firefox/Safari, real audio playback with
+  the denoised WAV of real models.
 
 ## How to continue
 Gate: `uv run --no-sync flake8 .`, `uv run --no-sync mypy . --strict`,
