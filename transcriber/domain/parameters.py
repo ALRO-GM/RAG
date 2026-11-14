@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from transcriber.domain.certainty import (
     DEFAULT_DOUBT_MARGIN,
     DEFAULT_MAX_MOVE,
+    DEFAULT_MAX_MOVED,
     DEFAULT_OVERLAP_SECONDS,
 )
 from transcriber.domain.voices import (
@@ -70,10 +71,15 @@ class TranscriptionParameters(BaseModel):
     this much makes it an ``overlap``.
     ``whole_sentences``: undo weak speaker changes inside a sentence
     (:func:`~transcriber.domain.certainty.keep_sentences_whole`): a run
-    of at most ``whole_sentence_max_move`` seconds whose speaker has a
-    margin below ``whole_sentence_margin`` (or a single window) goes to
-    a neighbouring speaker the windows favour; the sentences holding a
-    moved stretch carry its margin in their certainty. Measured in
+    of at most ``whole_sentence_max_move`` seconds whose speaker the
+    windows do not support (margin at most 0, or below
+    ``whole_sentence_margin`` with a single window preferring it) goes
+    to a neighbouring speaker; one sentence gives away at most
+    ``whole_sentence_max_moved`` seconds in all (a judgement, the same
+    6 s; beyond it the sentence is cut at the changes). The sentences
+    holding a moved stretch carry its margin in their certainty.
+    Measured, before the per-sentence bound and the single-window
+    condition existed, in
     TR-05's synthetic meetings (``docs/transcriber/IDENTIFICATION.md``,
     appendix; held-out readers, mean of the four enrolment conditions,
     seeded identification): with the rule on (6 s) 95.0% of words on
@@ -144,6 +150,9 @@ class TranscriptionParameters(BaseModel):
     )
     whole_sentence_max_move: float = Field(
         default=DEFAULT_MAX_MOVE, ge=0, allow_inf_nan=False
+    )
+    whole_sentence_max_moved: float = Field(
+        default=DEFAULT_MAX_MOVED, ge=0, allow_inf_nan=False
     )
     expected_floor: float = Field(default=0.8, ge=-1, le=1)
     overlap_seconds: float = Field(

@@ -268,6 +268,20 @@ class TranscriberSettings(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def _no_fake_detector_on_real_models(self) -> "TranscriberSettings":
+        """Refuse ``overlap_detector: "fake"`` with ``runtime: "real"``.
+
+        The fake detector reports made-up overlaps: on real recordings
+        it would flag sentences that nobody spoke over.
+        """
+        if self.overlap_detector == "fake" and self.runtime == "real":
+            raise ValueError(
+                'overlap_detector "fake" is only for runtime "fake"; '
+                'use "off" with real models'
+            )
+        return self
+
     def published(self) -> Path:
         """Return the directory published transcripts are written to."""
         if self.publish_dir is not None:

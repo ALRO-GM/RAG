@@ -273,6 +273,18 @@ otra vez.
    que protege los nombres: no marques a quien no está, y si viene
    alguien sin registrar, no escribas el número de las marcadas.
 
+   **Cuidado: marca solo a quien de verdad está.** Con la lista, una
+   persona que habla sin estar marcada **recibirá el nombre de alguien
+   de la lista** si su voz se parece lo bastante (0,8) a la huella de
+   esa persona: por ejemplo, si marcas a alguien que no vino y cuya
+   voz registrada es débil, las frases de quien sí vino saldrán con el
+   nombre del ausente. El sistema no puede notarlo con las voces; solo
+   lo avisa marcando a esa persona como **identificación menos
+   segura** y cada una de sus frases. Con la lista, el método agrupa
+   primero las voces y después las empareja con las huellas; **su
+   precisión con ese umbral de 0,8 no se ha medido con datos
+   etiquetados**.
+
    «Idioma de la reunión»: «Español», «English» o **«Automático /
    mezcla»** si se habla en más de un idioma. Con un idioma fijo, las
    frases donde se detecta otro idioma salen marcadas («idioma
@@ -350,8 +362,11 @@ sin transcribir» o «Ha fallado», pulsa «Transcribir».
   ve el «margen de la voz»: cuánto se parece más a quien se le atribuye
   que a la siguiente persona. **No es una probabilidad**; solo sirve
   para saber qué frases revisar. Si es una persona sola, no hay marcas.
-- el nombre en cursiva y con «?» cuando esa persona se reconoció **solo
-  por estar en la lista** de presentes (identificación menos segura).
+- el nombre en cursiva y con «?», y la marca «nombre asignado solo por
+  la lista de presentes», cuando esa persona se reconoció **solo por
+  estar en la lista** de presentes (identificación menos segura): puede
+  ser otra persona que habló sin estar en la lista. Esas frases también
+  salen con «Solo frases dudosas».
   Arriba aparece entonces el aviso «Reconocimiento débil» con un enlace
   a «Registrar voz»: conviene volver a registrar esa voz con el
   teléfono donde está en las conversaciones.

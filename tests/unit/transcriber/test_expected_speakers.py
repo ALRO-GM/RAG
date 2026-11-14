@@ -1,6 +1,6 @@
 """TR-17: the expected-speakers rule, languages and the overlap detector."""
 
-from typing import Optional
+from typing import Optional, Sequence
 
 import numpy as np
 import pytest
@@ -14,12 +14,13 @@ from tests.unit.transcriber.fakes import (
     voice,
 )
 from tests.unit.transcriber.test_transcribe import World, world
+from transcriber.application.ports import Audio, LanguageSpan, WordScores
 from transcriber.application.transcribe import (
     QueueTranscription,
     TranscribeSession,
     TranscriptionOptions,
 )
-from transcriber.domain.models import Transcript
+from transcriber.domain.models import Transcript, Word
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.voices import FloatArray
 
@@ -127,6 +128,33 @@ class TestExpectedSpeakers:
         ids = [s.id for s in transcript.speakers]
         assert len(ids) == len(set(ids)) == 2
 
+    def test_an_unlisted_person_is_given_a_listed_name(self) -> None:
+        """Known failure, pinned: it cannot be solved from the voices.
+
+        Ana and Luis speak; the list says Ana and Eva. Luis is not
+        enrolled and Eva's voiceprint is weak, 0.85 from Luis's voice:
+        above the 0.8 floor. The list makes two groups and gives them
+        to Ana and Eva, so every sentence of Luis is attributed to Eva.
+        Only the speaker-level ``expected_floor`` says the name is a
+        guess; readers derive it per sentence from it.
+        """
+        w = world()  # meeting(): ana and luis speak
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        w.voiceprints.enrol("eva", weak(1, 0.85), name="Eva")
+        transcript = w.run(options("ana", "eva"))
+        assert speakers(transcript) == {
+            "ana": "threshold", "eva": "expected_floor",
+        }
+        said = {(u.start < 12.5, u.speaker) for u in transcript.utterances
+                if 13.0 <= u.start < 25.0 or u.start < 12.5}
+        assert said == {(True, "ana"), (False, "eva")}
+        document = transcript.to_contract()
+        floor = {s["id"] for s in document["speakers"]
+                 if s.get("identification") == "expected_floor"}
+        luis = [u for u in document["utterances"]
+                if 13.0 <= u["start"] < 25.0]
+        assert luis and all(u["speaker"] in floor for u in luis)
+
     def test_a_voiceprint_close_to_both_voices_names_one(self) -> None:
         """Ana's voiceprint is near both voices, Luis's near his only.
 
@@ -182,7 +210,75 @@ class TestOverlapDetector:
         assert "overlap detector failed" in (status.message or "")
 
 
+class Interrupted(Scene):
+    """The meeting with Luis's voice heard for a moment inside Ana's turn.
+
+    Only the window whose middle falls in 8.0-8.3 s hears Luis: too
+    little to take any of Ana's words, enough to flag her sentence as
+    an overlap through the voice windows.
+    """
+
+    def speaker_at(self, time: float) -> Optional[str]:
+        """Luis at 8.0-8.3 s, otherwise as the scene says."""
+        if 8.0 <= time <= 8.3:
+            return "luis"
+        return super().speaker_at(time)
+
+
+def interrupted() -> Interrupted:
+    """:func:`meeting` with Luis's moment inside Ana's first turn."""
+    plain = meeting()
+    return Interrupted(lines=plain.lines, voices=plain.voices)
+
+
+class TestDetectorFailure:
+    def test_a_failed_detector_keeps_the_voice_flags(self) -> None:
+        plain = world(interrupted()).run()
+        flags = [(u.overlap, u.overlap_source) for u in plain.utterances]
+        assert (True, "voices") in flags
+        detector = FakeOverlapDetector([(30.0, 32.0)])
+        detector.failures.append(RuntimeError("no GPU"))
+        failed = with_detector(world(interrupted()), detector).run()
+        assert [(u.overlap, u.overlap_source)
+                for u in failed.utterances] == flags
+
+    def test_a_working_detector_adds_to_the_voice_flags(self) -> None:
+        detector = FakeOverlapDetector([(30.0, 32.0)])
+        found = with_detector(world(interrupted()), detector).run()
+        sources = [u.overlap_source for u in found.utterances]
+        assert "voices" in sources and "detector" in sources
+
+
 class TestLanguages:
+    def test_a_failed_scoring_sets_no_language(self) -> None:
+        w = world()
+        w.recogniser.detected = [(0.0, 12.5, "es"), (12.5, 40.0, "en")]
+        w.recogniser.score_failures.append(RuntimeError("out of memory"))
+        transcript = w.run()
+        assert {(u.language, u.language_differs)
+                for u in transcript.utterances} == {(None, None)}
+
+    def test_scores_for_other_words_set_no_language(self) -> None:
+        """The recogniser scored fewer words than it was given."""
+        w = world()
+        w.recogniser.detected = [(0.0, 40.0, "en")]
+        score = w.recogniser.score_words
+
+        def short(audio: Audio, words: Sequence[Word],
+                  language: Optional[str] = None) -> WordScores:
+            """Score all but the last word, with the languages."""
+            full = score(audio, words, language)
+            assert full.languages == [
+                LanguageSpan(start=0.0, end=40.0, language="en")]
+            return WordScores(words=full.words[:-1],
+                              languages=full.languages)
+
+        w.recogniser.score_words = short  # type: ignore[method-assign]
+        transcript = w.run()
+        assert {(u.language, u.language_differs)
+                for u in transcript.utterances} == {(None, None)}
+        assert {u.confidence for u in transcript.utterances} == {None}
+
     def test_auto_detects_and_records_the_language(self) -> None:
         w = world()
         w.recogniser.detected = [(0.0, 12.5, "es"), (12.5, 40.0, "en")]

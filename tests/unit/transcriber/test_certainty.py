@@ -409,3 +409,180 @@ class TestDetectedOverlaps:
             [utterance("ana", 0.0, 2.0)], [(1.0, 1.3), (1.0, 1.3)],
         )
         assert one.overlap is False
+
+
+def halves(change: float, end: float = 45.0) -> VoiceEvidence:
+    """Windows of 1.5 s every 0.75 s: ana before ``change``, luis after.
+
+    A window is ana's ([0.9, 0.2]) when its midpoint is before
+    ``change`` and luis's ([0.2, 0.9]) otherwise.
+    """
+    def score(left: float) -> Sequence[float]:
+        return [0.9, 0.2] if left + 0.75 < change else [0.2, 0.9]
+
+    return scored(end, score, length=1.5, step=0.75)
+
+
+def assessed(
+    words: Sequence[Word], ev: VoiceEvidence, **settings: float
+) -> Tuple[List[Tuple[float, float]], List[Utterance]]:
+    """Run the rule, build the sentences and assess them."""
+    kept = keep_sentences_whole(words, ev, **settings)
+    utterances = build_utterances(turns_from_words(kept.words, 1.0))
+    return kept.moved, assess_utterances(utterances, ev, moved=kept.moved)
+
+
+class TestSecondReview:
+    """The second review of the certainty rule."""
+
+    def test_a_move_ending_where_the_next_sentence_starts_is_not_in_it(
+        self,
+    ) -> None:
+        """8-10 s goes back to ana; luis's next sentence starts at 10 s.
+
+        The moved stretch only touches luis's sentence: it is not part
+        of it and must not make it doubtful.
+        """
+        words = spoken(
+            ("a", 0.0, 4.0, "ana"), ("b", 4.0, 8.0, "ana"),
+            ("c.", 8.0, 10.0, "luis"), ("next", 10.0, 12.0, "luis"),
+            ("one.", 12.0, 14.0, "luis"),
+        )
+        moved, found = assessed(words, halves(10.0))
+        assert moved == [(8.0, 10.0)]
+        assert [(u.speaker, u.start, u.end) for u in found] == [
+            ("ana", 0.0, 10.0), ("luis", 10.0, 14.0),
+        ]
+        assert found[1].doubtful is False
+        assert found[1].alternative_speaker is None
+        assert found[1].speaker_certainty == pytest.approx(0.6125)
+
+    def test_only_a_part_of_positive_length_counts(self) -> None:
+        """A moved 2-4 s whose windows prefer luis.
+
+        It weighs on a sentence of ana that holds part of it, not on
+        one that starts where it ends; a one-instant sentence inside it
+        holds it.
+        """
+        ev = evidence([(1.5, 3.5, 0.9)])
+        moved = [(2.0, 4.0)]
+        [holding] = assess_utterances(
+            [utterance("ana", 3.5, 6.0)], ev, moved=moved)
+        [touching] = assess_utterances(
+            [utterance("ana", 4.0, 6.0)], ev, moved=moved)
+        [plain] = assess_utterances([utterance("ana", 4.0, 6.0)], ev)
+        assert holding.doubtful is True
+        assert touching == plain
+        [instant] = assess_utterances(
+            [utterance("ana", 3.0, 3.0)], ev, moved=moved)
+        assert instant.doubtful is True
+
+    def test_one_window_that_prefers_the_run_by_the_cut_keeps_it(
+        self,
+    ) -> None:
+        """Luis's 0.3 s 'yes' in ana's sentence: one window, margin 0.325.
+
+        Only one window prefers luis over the run, but it does so by
+        more than the cut: well-supported speech is not moved.
+        """
+        def score(left: float) -> Sequence[float]:
+            middle = left + 0.75
+            if abs(middle - 10.5) < 0.01:
+                return [0.2, 0.9]
+            if abs(middle - 9.75) < 0.01:
+                return [0.5, 0.45]
+            return [0.9, 0.2]
+
+        ev = scored(45.0, score, length=1.5, step=0.75)
+        words = spoken(
+            ("a", 0.0, 2.0, "ana"), ("b", 2.0, 5.0, "ana"),
+            ("c", 5.0, 10.0, "ana"), ("yes", 10.0, 10.3, "luis"),
+            ("d", 10.3, 12.0, "ana"), ("e.", 12.0, 14.0, "ana"),
+        )
+        held = support(ev, 10.0, 10.3, "luis")
+        assert held is not None
+        assert held.votes == 1
+        assert held.margin == pytest.approx(0.325)
+        moved, found = assessed(words, ev)
+        assert moved == []
+        assert [u.speaker for u in found] == ["ana", "luis", "ana"]
+
+    def test_a_single_stray_window_below_the_cut_moves(self) -> None:
+        """The same run, its one window preferring luis by only 0.05."""
+        def score(left: float) -> Sequence[float]:
+            middle = left + 0.75
+            if abs(middle - 10.5) < 0.01:
+                return [0.5, 0.65]
+            if abs(middle - 9.75) < 0.01:
+                return [0.5, 0.45]
+            return [0.9, 0.2]
+
+        ev = scored(45.0, score, length=1.5, step=0.75)
+        words = spoken(
+            ("a", 0.0, 5.0, "ana"), ("c", 5.0, 10.0, "ana"),
+            ("yes", 10.0, 10.3, "luis"), ("d", 10.3, 12.0, "ana"),
+            ("e.", 12.0, 14.0, "ana"),
+        )
+        held = support(ev, 10.0, 10.3, "luis")
+        assert held is not None and held.votes == 1
+        assert 0 < held.margin < DEFAULT_DOUBT_MARGIN
+        moved, found = assessed(words, ev)
+        assert moved == [(10.0, 10.3)]
+        assert [u.speaker for u in found] == ["ana"]
+
+    def test_the_seconds_moved_in_one_sentence_are_bounded(self) -> None:
+        """Alternating weak runs: without a bound 13.2 s of 19 s move."""
+        ev = scored(20.0, lambda left: [0.6, 0.55])
+        words = spoken(
+            ("a", 0.0, 4.0, "ana"), ("b", 4.0, 8.0, "luis"),
+            ("c", 8.0, 8.4, "ana"), ("d", 8.4, 13.0, "luis"),
+            ("e", 13.0, 13.4, "ana"), ("f", 13.4, 18.0, "luis"),
+            ("g.", 18.0, 19.0, "ana"),
+        )
+        free = keep_sentences_whole(words, ev, max_moved=float("inf"))
+        assert sum(b - a for a, b in free.moved) == pytest.approx(13.2)
+        moved, found = assessed(words, ev)
+        assert moved == [(4.0, 8.0)]
+        assert [(u.speaker, u.start) for u in found] == [
+            ("ana", 0.0), ("luis", 8.4), ("ana", 13.0), ("luis", 13.4),
+            ("ana", 18.0),
+        ]
+        bounded = keep_sentences_whole(words, ev, max_moved=9.0)
+        assert sum(b - a for a, b in bounded.moved) <= 9.0
+        assert len(bounded.moved) == 2
+
+    def test_the_budget_is_per_sentence(self) -> None:
+        ev = scored(40.0, lambda left: [0.6, 0.55])
+        words = spoken(
+            ("a", 0.0, 4.0, "ana"), ("b", 4.0, 8.0, "luis"),
+            ("c.", 8.0, 9.0, "ana"), ("d", 9.0, 13.0, "ana"),
+            ("e", 13.0, 17.0, "luis"), ("f.", 17.0, 18.0, "ana"),
+        )
+        kept = keep_sentences_whole(words, ev, max_moved=4.0)
+        assert kept.moved == [(4.0, 8.0), (13.0, 17.0)]
+
+    def test_two_voices_never_both_have_a_positive_margin(self) -> None:
+        """Why no neighbour can beat a run's own positive margin.
+
+        In each window the margin of one voice is at most its cosine
+        minus the other's and the margin of the other at most the
+        reverse, so the two margins add up to 0 or less: when the run's
+        own margin is positive, every neighbour's is negative.
+        """
+        rng = np.random.default_rng(3)
+        for _ in range(200):
+            voices = ("ana", "luis", "eva")
+            ev = VoiceEvidence(
+                WINDOWS, rng.uniform(-1, 1, (len(WINDOWS), 3)).astype(
+                    np.float32), voices,
+            )
+            start = float(rng.uniform(0, 8))
+            stop = start + float(rng.uniform(0.1, 2))
+            for one in voices:
+                for other in voices:
+                    if one == other:
+                        continue
+                    a = support(ev, start, stop, one)
+                    b = support(ev, start, stop, other)
+                    assert a is not None and b is not None
+                    assert a.margin + b.margin <= 1e-3

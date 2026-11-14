@@ -13,9 +13,18 @@ first real recordings the stream jumped back to exactly 20, 80, 180,
 times also wobble by a few hundredths of a second (a word starting
 just before the end of the previous one); that is not a seam.
 
-:func:`resolve_seams` keeps one copy of each doubled passage and never
-drops a word that was said once. Plain arithmetic on word times and
-letters, no model.
+A recogniser also returns, now and then, one word with an impossible
+span (a 15 s ``um``, or a word from 0 s to the end of the recording);
+left as it is, it looks like a jump back over everything it spans.
+Such a word is shortened to a plausible length first
+(:data:`MAX_WORD_SECONDS`, :data:`MAX_SECONDS_PER_LETTER`).
+
+:func:`resolve_seams` keeps one copy of each doubled passage. A word
+without a counterpart in the other copy is dropped only when the other
+copy has more different words at the same moment, or as many and comes
+from the window where that moment is farther from its edge; so one
+word never displaces two. Plain arithmetic on word times and letters,
+no model.
 """
 
 import re
@@ -34,6 +43,15 @@ DEFAULT_MIN_STEP = 1.0
 # the two windows time the same word differently by fractions of a
 # second.
 SAME_TIME = 1.0
+
+# The longest a word can plausibly last (seconds): MAX_WORD_SECONDS (a
+# drawn-out "mmm" or "eh"), or MAX_SECONDS_PER_LETTER times its letters
+# when that is more. Speech runs at roughly ten to
+# fifteen letters a second, so 0.4 s a letter is several times slower
+# than slow speech. A judgement: a longer span is a timing error, not a
+# word, and the word is shortened to this (_plausible).
+MAX_WORD_SECONDS = 3.0
+MAX_SECONDS_PER_LETTER = 0.4
 
 _LETTERS = re.compile(r"\W+")
 
@@ -62,6 +80,32 @@ def _same(left: Word, right: Word) -> bool:
     )
 
 
+def longest_plausible(word: Word) -> float:
+    """Return the most seconds ``word`` can last (see the constants)."""
+    return max(MAX_WORD_SECONDS, MAX_SECONDS_PER_LETTER * len(_letters(word)))
+
+
+def _plausible(words: Sequence[Word], min_step: float) -> List[Word]:
+    """Return ``words`` with every word longer than it can last shortened.
+
+    A word that jumps back by more than ``min_step`` from the start of
+    the word before it keeps its end (its start is what jumped; a
+    recogniser also glues a window's first word to the window's start)
+    and any other keeps its start. The text order is unchanged.
+    """
+    out: List[Word] = []
+    for word in words:
+        bound = longest_plausible(word)
+        if word.end - word.start > bound:
+            jumped = bool(out) and word.start < out[-1].start - min_step
+            word = word.model_copy(update=(
+                {"start": word.end - bound} if jumped
+                else {"end": word.start + bound}
+            ))
+        out.append(word)
+    return out
+
+
 def _overlap(left: Word, right: Word) -> bool:
     """Tell whether two words share some time."""
     return min(left.end, right.end) > max(left.start, right.start)
@@ -84,16 +128,42 @@ def _forward(words: Sequence[Word]) -> List[Word]:
     return out
 
 
+def _repeats(run: Sequence[Word], word: Word, min_step: float) -> bool:
+    """Tell whether ``word`` is :func:`_same` as one of ``run`` it re-covers.
+
+    Only the words of ``run`` that end after ``word`` starts count (the
+    stretch a step back covers again). The run is scanned from its end
+    and the scan stops where no earlier word can be the same: the
+    starts of a run never fall more than ``min_step`` below the latest
+    one, and a same word starts at most :data:`SAME_TIME` plus its
+    longest plausible length before ``word``.
+    """
+    floor = word.start - SAME_TIME - longest_plausible(word) - min_step
+    for other in reversed(run):
+        if other.start < floor:
+            return False
+        if other.end > word.start and _same(other, word):
+            return True
+    return False
+
+
 def _runs(words: Sequence[Word], min_step: float) -> List[List[Word]]:
     """Cut ``words`` where they jump back by more than ``min_step``.
 
-    Each run is in the recogniser's order with its small steps back
-    clamped (:func:`_forward`).
+    A smaller step back also starts a new run when the word is the
+    same word as one it steps back over (:func:`_repeats`): the
+    recogniser said it again, as at a seam, and :func:`_join` keeps it
+    once. Words that do not step back are never compared, so a
+    repetition said in order ("no no no") stays whole. Each run is in
+    the recogniser's order with its small steps back clamped
+    (:func:`_forward`).
     """
     runs: List[List[Word]] = []
     latest = 0.0
     for word in words:
-        if not runs or word.start < latest - min_step:
+        if not runs or word.start < latest - min_step or (
+            word.start < latest and _repeats(runs[-1], word, min_step)
+        ):
             runs.append([word])
             latest = word.start
         else:
@@ -139,10 +209,13 @@ def _settle(
 
     Words of the two copies that share time are different words heard
     at the same moment: of each such group (words linked by shared
-    time) only the copy from the window where the moment is farther
-    from the window's edge stays, the earlier window before
-    ``middle`` and the later one from it on. A word that shares no
-    time with the other copy stays. Survivors come sorted by start.
+    time) only one copy stays. The copy with more words in the group
+    stays (a copy never displaces more words than it has: one word
+    with a wrong span must not erase a passage); with as many on each
+    side, the copy from the window where the moment is farther from
+    the window's edge, the earlier window before ``middle`` and the
+    later one from it on. A word that shares no time with the other
+    copy stays. Survivors come sorted by start.
     """
     group: Dict[int, int] = {}
 
@@ -167,8 +240,12 @@ def _settle(
         if all(k < count for k in items) or all(k >= count for k in items):
             kept.extend(words)
             continue
+        firsts = sum(1 for k in items if k < count)
         centre = (min(w.start for w in words) + max(w.end for w in words)) / 2
-        from_earlier = centre < middle
+        from_earlier = (
+            centre < middle if 2 * firsts == len(items)
+            else 2 * firsts > len(items)
+        )
         kept.extend(
             word for k, word in zip(items, words)
             if (k < count) == from_earlier
@@ -180,7 +257,10 @@ def _join(kept: List[Word], run: List[Word]) -> List[Word]:
     """Join a run that went back in time to the words kept so far.
 
     The doubled stretch runs from the run's first start to the end of
-    what is kept. The two copies of it are aligned by their words
+    what is kept; the run's words starting up to :data:`SAME_TIME`
+    after that end are compared too (the later window may time the
+    last doubled word just past it). The two copies are aligned by
+    their words
     (:func:`_common`): a word found in both is kept once, from the
     window where it is farther from the edge (the earlier window before
     the stretch's middle, the later one from it on); the words between
@@ -197,7 +277,8 @@ def _join(kept: List[Word], run: List[Word]) -> List[Word]:
     )
     head, doubled = kept[:split], kept[split:]
     stop = next(
-        (n for n, w in enumerate(run) if w.start >= reach), len(run)
+        (n for n, w in enumerate(run) if w.start >= reach + SAME_TIME),
+        len(run),
     )
     again, tail = run[:stop], run[stop:]
     middle = (start + reach) / 2
@@ -223,16 +304,20 @@ def resolve_seams(
     of the words before it begins a new *run* (the recogniser went back
     to a window's start: a seam); a smaller step back is jitter and the
     word's start is clamped to the previous start, so it stays in text
-    order. Runs are joined one by one (:func:`_join`): the stretch the
-    two runs both cover is aligned word by word; a word without a
-    counterpart is dropped only when the other copy has different words
-    at the same moment and that copy comes from the window where the
-    moment is farther from its edge.
+    order, unless it is the same word as one it steps back over (then
+    it begins a run too, and the word is kept once). Before that, a word
+    longer than :func:`longest_plausible` is shortened to it
+    (:func:`_plausible`). Runs are joined one by one (:func:`_join`):
+    the stretch the two runs both cover is aligned word by word; a word
+    without a counterpart is dropped only when the other copy has more
+    different words at the same moment, or as many and comes from the
+    window where the moment is farther from its edge.
 
-    Words already in time order come back unchanged, and the function
-    is idempotent: its result has no step back to resolve.
+    Words already in time order and of plausible lengths come back
+    unchanged, and the function is idempotent: its result has no step
+    back to resolve.
     """
-    runs = _runs(words, min_step)
+    runs = _runs(_plausible(words, min_step), min_step)
     if not runs:
         return []
     kept = runs[0]

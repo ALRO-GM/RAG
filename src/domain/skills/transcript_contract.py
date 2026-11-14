@@ -56,18 +56,22 @@ class ContractSession(_Strict):
     )
 
 
+Identification = Literal["threshold", "expected_floor"]
+
+
 class ContractSpeaker(_Strict):
     """A voice of the session: an enrolled person or an anonymous label.
 
     ``identification`` (optional) says how an enrolled person was
     recognised: ``threshold``, or ``expected_floor`` (listed as present
-    and only above the lower floor: a weaker identification).
+    and only above the lower floor: a weaker identification; a person
+    who spoke without being listed is given a listed name this way).
     """
 
     id: str = Field(min_length=1)
     name: Optional[str] = None
     enrolled: bool
-    identification: Optional[Literal["threshold", "expected_floor"]] = None
+    identification: Optional[Identification] = None
 
     @model_validator(mode="after")
     def _identified(self) -> "ContractSpeaker":
@@ -168,6 +172,29 @@ class ContractTranscript(_Strict):
                     )
         check_turns(self.utterances)
         return self
+
+    def identification_of(
+        self, utterance: ContractUtterance
+    ) -> Optional[Identification]:
+        """Return how the speaker of ``utterance`` was identified.
+
+        Derived from the speaker list (the contract says it once per
+        speaker): ``None`` for an anonymous voice or an older document.
+        """
+        for speaker in self.speakers:
+            if speaker.id == utterance.speaker:
+                return speaker.identification
+        return None
+
+    def named_through_floor(self, utterance: ContractUtterance) -> bool:
+        """Tell whether the speaker of ``utterance`` is only a listed guess.
+
+        ``True`` when that speaker was named through the expected
+        speakers floor: the name may belong to someone else who spoke
+        without being listed, so an analysis should down-weight or skip
+        the sentence's attribution.
+        """
+        return self.identification_of(utterance) == "expected_floor"
 
     def turns(self) -> List[List[ContractUtterance]]:
         """Return the utterances grouped by turn, in order."""

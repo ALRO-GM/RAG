@@ -332,6 +332,27 @@ a regression either.
 | `activity_frame` / `activity_threshold` | 0.025 / 0.003 | kept | drops no real word on `dev` (§5) |
 | `group_threshold` | 0.5 | kept | no value suits both two-voice recordings and meetings (§2) |
 
+**With a list of who is present (the expected-speakers rule).** When a
+session lists who is present and the number of speakers equals the
+list, the pipeline does not seed: it clusters the voices into that
+many groups and then matches them one to one to the listed voiceprints
+(cluster-then-match), accepting a pair at `expected_floor` (0.8)
+instead of 0.95. Cluster-then-match was measured here only at 0.95
+(86.1% of words on the right id on the held-out readers, number given,
+against 91.4% seeded); **its accuracy with the 0.8 floor has not been
+measured on labelled data** (the floor is a judgement from three
+unlabelled real sessions, `OVERLAP.md` §2.6). Its known failure mode
+cannot be fixed from the voices alone: **a person who speaks without
+being listed is given a listed name** whenever a listed voiceprint is
+within the floor of their voice (an absent person with a weak
+enrolment, for example; `test_an_unlisted_person_is_given_a_listed_name`
+pins it). The transcript says so only through the speaker's
+`identification: "expected_floor"`; the player marks every sentence of
+such a speaker and shows it under "only doubtful sentences", and the
+analyzer's sentences expose `named_through_floor()` so their
+attribution can be down-weighted or left out. List only the people
+really present.
+
 **What the pipeline uses now.** Voiceprints as seeds is the default
 of `TranscriptionParameters.identification` (`"seeded"`;
 `"cluster_then_match"` keeps the previous method). It applies whenever
@@ -449,13 +470,28 @@ A change of speaker inside a sentence often comes from one stray short
 window at a sentence's edge. `keep_sentences_whole` gives a stretch of
 words to the speaker of a neighbouring stretch of the same sentence
 when all of these hold: it lasts at most `whole_sentence_max_move`
-seconds; its own speaker has fewer than two windows preferring it or a
-margin below `whole_sentence_margin` (0.1); and the evidence favours
-the move (at most one window prefers its own speaker, or its own
-margin is at most 0, or the neighbour's margin over it is higher). A
-stretch whose windows prefer its own speaker, however weakly, stays,
-and the sentence is cut there (each part becomes its own turn). It has
+seconds; the seconds the sentence already gave away plus its own are
+at most `whole_sentence_max_moved` (6 s, a judgement: the same as one
+stretch, so short moves cannot chain into a long one; a constructed
+test sentence had 13.2 s of its 19 s moved without it); and the windows do
+not support its own speaker: its margin is unknown (no window), at
+most 0, or below `whole_sentence_margin` (0.1) with at most one window
+preferring it (a single stray window). A stretch whose windows prefer
+its own speaker by 0.1 or more, even through one window, or whose
+margin is positive and two or more windows prefer it, however weakly,
+stays, and the sentence is cut
+there (each part becomes its own turn). The neighbour is the one whose
+margin over the stretch is best. (An earlier wording also moved a
+stretch when "the neighbour's margin over it is higher" than its
+own; that clause never fired, because the margins of two voices over
+the same windows add up to 0 or less, so it was removed.) It has
 its own switch, independent of `doubt_margin`.
+
+The table below was measured before two changes of the second review
+of #24: the per-sentence bound and the condition that a single window
+must also prefer its speaker by less than 0.1 to let it move. Their
+effect on these figures has not been measured (the TR-05 cache was not available when
+they were made).
 
 Measured on the synthetic four-reader meetings of §3 (20 per split;
 the default pipeline: seams resolved, words over silence dropped,
@@ -491,13 +527,14 @@ PYTHONPATH=. python experiments/transcriber/identification_eval.py \
 Two people around one phone, three recordings R1–R3 (985 s; no ground
 truth). Rerun with the current pipeline and printed by
 `experiments/transcriber/real_sessions.py`, which copies the sessions
-and the voiceprints to a scratch directory and prints aggregate counts
-only (no audio, text, ids or names):
+and the voiceprints to a new scratch directory (deleted on exit unless
+`--keep-work`) and prints aggregate counts only (no audio, text, ids or
+names). The table was printed before the second review of #24 changed
+the seam step and the whole-sentence rule; it has not been rerun since:
 
 ```sh
 PYTHONPATH=. python experiments/transcriber/real_sessions.py \
     --data-dir data/transcriber --work /tmp/real-sessions --first 3
-rm -r /tmp/real-sessions
 ```
 
 | | R1 | R2 | R3 | All |

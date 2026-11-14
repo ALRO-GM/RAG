@@ -199,27 +199,36 @@ marked `slow`.
   30 s windows that start every 20 s; when its join of two windows
   fails, the overlap comes out twice and the word stream jumps back to
   the later window's start (seen at 20, 80, 180, 240, 260 and 360 s on
-  the first real recordings). `domain/seams.py` keeps one copy. Only
+  the first real recordings). `domain/seams.py` keeps one copy. First,
+  a word longer than it can plausibly last (3 s, or 0.4 s per letter
+  for long words; a judgement) is shortened to that, keeping its end
+  when its start jumped back and its start otherwise: one word with an
+  impossible span must not look like a seam over a whole passage. Only
   a step back of more than 1 s is a seam; a smaller one is jitter of
   the word times (seen: a few hundredths of a second) and the word's
-  start is clamped forward, in text order. At a seam the two copies of
-  the doubled stretch are aligned word by word (longest common
-  subsequence of the words' letters, with compatible times); a word in
-  both is kept once, from the window where it is farther from the
-  window's edge (the earlier window before the stretch's middle, the
-  later one after it). A word with no counterpart is kept, unless the
-  other copy has different words at the same moment, in which case the
-  copy from the window farther from its edge wins. The step is
-  idempotent and never drops a word said once.
-- A change of speaker inside a sentence is undone only when it is weak
-  *and* the evidence favours the move (`whole_sentences`, measured in
+  start is clamped forward, in text order, unless the word is the same
+  word as one it steps back over (then it is treated as a seam too).
+  At a seam the two copies of the doubled stretch (plus the later
+  copy's words up to 1 s past it) are aligned word by word (longest
+  common subsequence of the words' letters, with compatible times); a
+  word in both is kept once, from the window where it is farther from
+  the window's edge (the earlier window before the stretch's middle,
+  the later one after it). A word with no counterpart is kept, unless
+  the other copy has different words at the same moment: then the copy
+  with more words there wins, and with as many, the copy from the
+  window farther from its edge. The step is idempotent; it drops a
+  word said once only in favour of at least as many other words heard
+  at the same moment, so one word never erases two.
+- A change of speaker inside a sentence is undone only when the
+  windows do not support it (`whole_sentences`, measured in
   `IDENTIFICATION.md`, appendix): a stretch of at most
-  `whole_sentence_max_move` (6 s) whose own speaker has fewer than two
-  short windows or a margin below `whole_sentence_margin` (0.1) goes to
-  a neighbouring speaker of the same sentence if at most one window
-  prefers its own speaker, or its own margin is at most 0, or the
-  neighbour's margin over it is higher. A stretch whose windows prefer
-  its own speaker stays, and the sentence is then cut at the change
+  `whole_sentence_max_move` (6 s) goes to a neighbouring speaker of the
+  same sentence when its own margin is unknown (no window), at most 0,
+  or below `whole_sentence_margin` (0.1) with at most one window
+  preferring its own speaker; and one sentence gives away at most
+  `whole_sentence_max_moved` (6 s, a judgement) in all. A stretch whose
+  windows prefer its own speaker by the cut, or with a positive margin
+  that two windows prefer, stays, and the sentence is then cut at the change
   (each part is its own turn). A sentence holding a moved stretch
   takes that stretch's margin as its `speaker_certainty` when lower
   (doubtful when below the cut, or when no window covers the moved

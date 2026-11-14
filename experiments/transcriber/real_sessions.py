@@ -2,8 +2,9 @@
 
 The recordings are private. This script copies the first ``--first``
 finished sessions (in the order of their ids) and the voiceprints from
-``--data-dir`` into ``--work`` (a scratch directory outside the
-repository, deleted by the caller afterwards), queues each copy again
+``--data-dir`` into ``--work`` (a new scratch directory outside the
+repository; the script deletes it on exit, even after an error, unless
+``--keep-work`` is given), queues each copy again
 with the options it was started with and runs the current pipeline on
 it with the real models. It prints aggregate counts only: sessions are
 ``R1``, ``R2``... in the order of their ids and enrolled people ``A``,
@@ -34,7 +35,6 @@ Usage (the source directory is only read)::
 
     PYTHONPATH=. python experiments/transcriber/real_sessions.py \\
         --data-dir data/transcriber --work /tmp/real-sessions --first 3
-    rm -r /tmp/real-sessions
 
 ``--set name=value`` overrides a transcription parameter (repeatable),
 ``--language`` the sessions' language. The script may import
@@ -44,10 +44,12 @@ Usage (the source directory is only read)::
 import argparse
 import json
 import shutil
+import sys
 import time
 from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -147,6 +149,29 @@ def watch_certainty(watched: Watched) -> None:
         return original(*args, **kwargs)
 
     setattr(transcribe_module, "assess_utterances", assess)
+
+
+@contextmanager
+def scratch_copy(
+    source: Path, work: Path, first: int, keep: bool = False
+) -> Iterator[List[str]]:
+    """Copy the sessions into ``work`` and delete the copy afterwards.
+
+    Yields the ids copied (:func:`copy_sessions`). ``work`` must not
+    exist: a directory the script did not create is never deleted. The
+    copy holds private recordings, so it is removed on exit, also after
+    an error or an interruption, unless ``keep``.
+    """
+    if work.exists():
+        raise SystemExit(f"{work} exists; give a new scratch directory.")
+    try:
+        yield copy_sessions(source, work, first)
+    finally:
+        if keep:
+            print(f"kept the private copy in {work}; delete it when done",
+                  file=sys.stderr)
+        else:
+            shutil.rmtree(work, ignore_errors=True)
 
 
 def copy_sessions(source: Path, work: Path, first: int) -> List[str]:
@@ -293,9 +318,19 @@ def parameters_of(settings: Sequence[str]) -> TranscriptionParameters:
 
 def main() -> None:
     """Copy, rerun and print the aggregates of each session."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--data-dir", type=Path, required=True)
-    parser.add_argument("--work", type=Path, required=True)
+    parser.add_argument(
+        "--work", type=Path, required=True,
+        help="new scratch directory for the copy of the private "
+             "recordings; deleted on exit unless --keep-work")
+    parser.add_argument(
+        "--keep-work", action="store_true",
+        help="keep the copy in --work (it holds private recordings: "
+             "delete it yourself)")
     parser.add_argument("--first", type=int, default=3)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--language", default=None)
@@ -304,7 +339,14 @@ def main() -> None:
                         help="do not detect languages with a fixed one")
     args = parser.parse_args()
     parameters = parameters_of(args.set)
-    chosen = copy_sessions(args.data_dir, args.work, args.first)
+    with scratch_copy(args.data_dir, args.work, args.first,
+                      args.keep_work) as chosen:
+        run(args, parameters, chosen)
+
+
+def run(args: argparse.Namespace, parameters: TranscriptionParameters,
+        chosen: Sequence[str]) -> None:
+    """Rerun the copied sessions ``chosen`` and print their aggregates."""
     watched = Watched()
     watch_certainty(watched)
     encoder = WavLMVoiceEncoder(device=args.device)

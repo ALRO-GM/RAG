@@ -57,30 +57,44 @@ export function filterBySpeaker(utterances, speakerId) {
 }
 
 /**
- * True when the attribution of an utterance should be checked: the voice
- * evidence called it doubtful, or heard two voices in it. Older
- * transcripts lack both fields: never doubtful.
+ * True when the speaker of an utterance was named only through the
+ * expected-speakers floor (derived from the speaker list: the contract
+ * keeps it once per speaker). Such a name is a guess forced by the list
+ * of who is present: an unlisted person who spoke gets a listed name.
  */
-export function needsReview(utterance) {
-  return utterance.doubtful === true || utterance.overlap === true;
+export function sentenceNamedByFloor(utterance, speakers = []) {
+  if (!Array.isArray(speakers)) return false; // e.g. an index from Array.map
+  return namedByFloor(speakers.find((s) => s.id === utterance.speaker));
+}
+
+/**
+ * True when the attribution of an utterance should be checked: the voice
+ * evidence called it doubtful, heard two voices in it, or its speaker
+ * was named only through the floor. Older transcripts lack the fields:
+ * never doubtful.
+ */
+export function needsReview(utterance, speakers = []) {
+  return utterance.doubtful === true || utterance.overlap === true
+    || sentenceNamedByFloor(utterance, speakers);
 }
 
 /** Utterances to show: everybody's or one speaker's, optionally only doubtful ones. */
-export function filterUtterances(utterances, speakerId, onlyDoubtful = false) {
+export function filterUtterances(utterances, speakerId, onlyDoubtful = false, speakers = []) {
   const bySpeaker = filterBySpeaker(utterances, speakerId);
-  return onlyDoubtful ? bySpeaker.filter(needsReview) : bySpeaker;
+  return onlyDoubtful ? bySpeaker.filter((u) => needsReview(u, speakers)) : bySpeaker;
 }
 
 /**
  * What to tell about an utterance's attribution, or null when nothing:
- * { doubtful, overlap, alternative (a display name or null), certainty }.
+ * { doubtful, overlap, floor, alternative (a display name or null), certainty }.
  */
 export function doubtNote(utterance, speakers) {
-  if (!needsReview(utterance)) return null;
+  if (!needsReview(utterance, speakers)) return null;
   const alt = utterance.alternative_speaker;
   return {
     doubtful: utterance.doubtful === true,
     overlap: utterance.overlap === true,
+    floor: sentenceNamedByFloor(utterance, speakers),
     alternative: alt ? speakerName(speakers, alt) : null,
     certainty: Number.isFinite(utterance.speaker_certainty) ? utterance.speaker_certainty : null,
   };

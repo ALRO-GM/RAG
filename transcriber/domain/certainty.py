@@ -53,6 +53,14 @@ DEFAULT_DOUBT_MARGIN = 0.1
 # of speakers estimated.
 DEFAULT_MAX_MOVE = 6.0
 
+# The most seconds keep_sentences_whole may give away inside one
+# sentence, all its moves together. Without it, short moves chain: a
+# constructed test sentence of alternating weak runs had 13.2 s of its
+# 19 s reassigned one stretch at a time. A judgement, not tuned: the
+# same as one stretch, so a sentence never has more reassigned than the
+# longest single move. The TR-05 table in IDENTIFICATION.md predates it.
+DEFAULT_MAX_MOVED = 6.0
+
 # A word that ends a sentence: final . ! ? … possibly repeated and
 # followed by a closing quote or bracket.
 _SENTENCE_END = re.compile(r"[.!?…]+[\"'»”’)\]]*$")
@@ -226,6 +234,7 @@ class _Rule(NamedTuple):
     windows: WindowIndex
     cut: float
     max_move: float
+    max_moved: float
 
 
 def keep_sentences_whole(
@@ -234,6 +243,7 @@ def keep_sentences_whole(
     cut: float = DEFAULT_DOUBT_MARGIN,
     gap: float = 1.0,
     max_move: float = DEFAULT_MAX_MOVE,
+    max_moved: float = DEFAULT_MAX_MOVED,
 ) -> WholeSentences:
     """Undo weakly supported speaker changes inside a sentence.
 
@@ -245,44 +255,50 @@ def keep_sentences_whole(
     time, and a run moves only when all of these hold:
 
     - it lasts at most ``max_move`` seconds;
-    - its own speaker is weak over it: fewer than two windows prefer
-      that speaker, or its :func:`support` margin is below ``cut`` (or
-      unknown);
-    - the evidence favours the move: at most one window prefers the
-      run's speaker (a single stray window), or the run's own margin
-      is at most 0, or the neighbour's margin over the run is above the
-      run's own. A run whose windows prefer its speaker, even by less
-      than ``cut``, does not go to a neighbour they prefer less.
+    - the seconds already moved in the sentence plus its own are at
+      most ``max_moved`` (short moves cannot chain into a long one);
+    - its own speaker is not supported over it: its :func:`support`
+      margin is unknown (no window), or at most 0 (the windows prefer
+      someone else), or below ``cut`` with at most one window
+      preferring the speaker (a single stray window).
 
-    The neighbour is the one with the best margin over the run, or
-    without windows the speaker of the longer neighbouring run. A run
-    that does not move keeps its speaker, and the sentence is then cut
-    at the change (each part becomes its own turn). Without evidence
-    nothing changes. The stretches moved are returned so the
-    sentences holding them can say so (:func:`assess_utterances`).
+    So a run whose windows prefer its speaker by ``cut`` or more stays,
+    however few they are, and so does one with a positive margin that
+    two or more windows prefer, even by less than ``cut``. The
+    neighbour is the one with the best margin over the run, or without
+    windows the speaker of the longer neighbouring run. A run that does
+    not move keeps its speaker, and the sentence is then cut at the
+    change (each part becomes its own turn). Without evidence nothing
+    changes. The stretches moved are returned so the sentences holding
+    them can say so (:func:`assess_utterances`).
     """
     out = list(words)
     moved: List[Tuple[float, float]] = []
     if evidence is None:
         return WholeSentences(out, moved)
-    rule = _Rule(evidence, WindowIndex(evidence.windows), cut, max_move)
+    rule = _Rule(
+        evidence, WindowIndex(evidence.windows), cut, max_move, max_moved
+    )
     for first, end in _sentences(out, gap):
+        spent = 0.0
         while True:
-            span = _merge_weakest(out, first, end, rule)
+            span = _merge_weakest(out, first, end, rule, spent)
             if span is None:
                 break
             moved.append(span)
+            spent += span[1] - span[0]
     return WholeSentences(out, moved)
 
 
 def _merge_weakest(
-    words: List[Word], first: int, end: int, rule: _Rule
+    words: List[Word], first: int, end: int, rule: _Rule, spent: float
 ) -> Optional[Tuple[float, float]]:
     """Give the shortest movable run of a sentence to a neighbour.
 
     Changes ``words`` in place and returns the stretch that moved, or
-    ``None``. Shortest first, so a long run is never handed to a short
-    weak neighbour. Every move joins two runs, so repeating it ends.
+    ``None``. ``spent`` is the seconds the sentence already gave away.
+    Shortest first, so a long run is never handed to a short weak
+    neighbour. Every move joins two runs, so repeating it ends.
     """
     runs = _runs(words, first, end)
     if len(runs) < 2:
@@ -295,20 +311,18 @@ def _merge_weakest(
         run = runs[k]
         start, stop = words[run[0]].start, words[run[-1]].end
         speaker = words[run[0]].speaker
-        if speaker is None or stop - start > rule.max_move:
+        if speaker is None or stop - start > rule.max_move \
+                or spent + (stop - start) > rule.max_moved:
             continue
         own = support(rule.evidence, start, stop, speaker, rule.windows)
-        if own is not None and own.votes >= 2 and own.margin >= rule.cut:
+        weak = (
+            own is None or own.margin <= 0
+            or (own.votes <= 1 and own.margin < rule.cut)
+        )
+        if not weak:
             continue
         target = _neighbour(words, runs, k, rule, start, stop)
         if target is None or target == speaker:
-            continue
-        theirs = support(rule.evidence, start, stop, target, rule.windows)
-        favoured = (
-            own is None or own.votes <= 1 or own.margin <= 0
-            or (theirs is not None and theirs.margin > own.margin)
-        )
-        if not favoured:
             continue
         for n in run:
             words[n] = words[n].model_copy(update={"speaker": target})
@@ -477,14 +491,20 @@ class _Spans:
         self._longest = max((r - left for left, r in self._spans), default=0.0)
 
     def inside(self, start: float, end: float) -> List[Tuple[float, float]]:
-        """Return the parts of the stretches inside ``[start, end]``."""
+        """Return the parts of the stretches inside ``[start, end]``.
+
+        Only parts of positive length count: a stretch that merely
+        touches the interval (ends where it starts, or starts where it
+        ends) is not in it. An interval of no length (a one-instant
+        sentence) holds the stretches that contain its instant.
+        """
         first = bisect.bisect_left(self._lefts, start - self._longest)
         parts: List[Tuple[float, float]] = []
         for left, right in self._spans[first:]:
             if left > end:
                 break
             low, high = max(left, start), min(right, end)
-            if high > low or (high == low and left <= high <= right):
+            if high > low or (start == end and left <= start <= right):
                 parts.append((low, high))
         return parts
 

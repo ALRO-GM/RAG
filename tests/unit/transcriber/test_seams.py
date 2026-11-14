@@ -3,7 +3,13 @@
 import random
 from typing import List, Tuple
 
-from transcriber.domain.seams import resolve_seams
+import pytest
+
+from transcriber.domain.seams import (
+    MAX_WORD_SECONDS,
+    longest_plausible,
+    resolve_seams,
+)
 from transcriber.domain.models import Word
 
 
@@ -153,12 +159,19 @@ class TestReviewOf24:
         ]
 
     def test_the_step_that_makes_a_seam_is_a_parameter(self) -> None:
+        """Another word at 10.2 s: a seam at 1 s, jitter at 5 s."""
+        given = words(("a", 10, 11), ("b", 12, 13), ("x", 10.2, 11),
+                      ("c", 14, 15))
+        assert texts(resolve_seams(given)) == ["a", "b", "c"]
+        assert texts(resolve_seams(given, min_step=5.0)) == [
+            "a", "b", "x", "c",
+        ]
+
+    def test_the_same_words_again_are_a_seam_at_any_step(self) -> None:
         given = words(("a", 10, 11), ("b", 12, 13), ("a", 10.2, 11),
                       ("b", 12, 13), ("c", 14, 15))
         assert texts(resolve_seams(given)) == ["a", "b", "c"]
-        assert texts(resolve_seams(given, min_step=5.0)) == [
-            "a", "b", "a", "b", "c",
-        ]
+        assert texts(resolve_seams(given, min_step=5.0)) == ["a", "b", "c"]
 
 
 def random_words(rng: random.Random, count: int) -> List[Word]:
@@ -217,3 +230,109 @@ class TestProperties:
                       for n in range(rng.randint(1, 8))]
             found = resolve_seams(first + second)
             assert sorted(texts(found)) == sorted(texts(first + second))
+
+
+class TestSecondReview:
+    """The inputs the second review found erasing or doubling words."""
+
+    @staticmethod
+    def clean(count: int = 100) -> List[Word]:
+        """``w0``, ``w1``... at ``i`` to ``i + 0.9`` s."""
+        return [Word(text=f"w{i}", start=float(i), end=i + 0.9)
+                for i in range(count)]
+
+    def test_one_long_word_stepping_back_erases_nothing_else(self) -> None:
+        given = self.clean() + words(("um", 85.0, 100.9),
+                                     ("next", 101.0, 101.5))
+        found = texts(resolve_seams(given))
+        assert [t for t in found if t != "um"] == [
+            f"w{i}" for i in range(100)] + ["next"]
+
+    def test_a_word_over_the_whole_recording_erases_nothing_else(
+        self,
+    ) -> None:
+        given = self.clean() + words(("bad", 0.0, 100.95),
+                                     ("next", 101.0, 101.5))
+        found = texts(resolve_seams(given))
+        assert [t for t in found if t != "bad"] == [
+            f"w{i}" for i in range(100)] + ["next"]
+
+    def test_an_implausible_span_is_shortened(self) -> None:
+        """A word that jumped back keeps its end, any other its start."""
+        assert longest_plausible(Word(text="um", start=0, end=1)) == \
+            MAX_WORD_SECONDS
+        assert longest_plausible(
+            Word(text="responsabilidades", start=0, end=1)
+        ) == pytest.approx(6.8)
+        found = resolve_seams(words(("a", 10.0, 10.5), ("um", 10.5, 40.0),
+                                    ("b", 41.0, 41.5)))
+        assert [(w.text, w.start, w.end) for w in found] == [
+            ("a", 10.0, 10.5), ("um", 10.5, 13.5), ("b", 41.0, 41.5),
+        ]
+        jumped = resolve_seams(words(("a", 50.0, 50.5), ("b", 52.0, 52.5),
+                                     ("eh", 0.0, 60.0), ("c", 61.0, 61.5)))
+        assert [(w.text, w.start, w.end) for w in jumped] == [
+            ("a", 50.0, 50.5), ("b", 52.0, 52.5), ("eh", 57.0, 60.0),
+            ("c", 61.0, 61.5),
+        ]
+
+    def test_one_word_never_displaces_two(self) -> None:
+        """The later copy has one word where the earlier has two.
+
+        The doubled stretch runs 19-22.5 s (middle 20.75 s); ``eh``
+        shares time with ``tres`` and ``y``, past the middle, where the
+        later window would otherwise win.
+        """
+        first = words(("x", 10.0, 11.0), ("uno", 20.0, 20.5),
+                      ("dos", 20.6, 21.0), ("tres", 21.1, 21.5),
+                      ("y", 22.0, 22.5))
+        second = words(("z0", 19.0, 19.2), ("eh", 21.0, 22.4),
+                       ("z", 24.0, 24.5))
+        assert texts(resolve_seams(first + second)) == [
+            "x", "z0", "uno", "dos", "tres", "y", "z",
+        ]
+
+    def test_a_word_said_again_one_second_back_is_kept_once(self) -> None:
+        given = words(("one", 0.0, 0.5), ("two", 9.0, 10.0),
+                      ("three", 10.0, 10.5), ("two", 9.0, 9.5),
+                      ("four", 11.0, 11.5))
+        assert texts(resolve_seams(given)) == ["one", "two", "three", "four"]
+
+    def test_the_last_word_just_past_the_reach_is_compared(self) -> None:
+        pre = words(("x", 15.0, 16.0), ("y", 16.5, 17.5))
+        first = words(("the", 18.0, 18.2), ("cat", 18.5, 18.7),
+                      ("sat", 19.0, 19.2), ("down", 19.5, 19.7))
+        second = words(("the", 18.05, 18.25), ("cat", 18.55, 18.75),
+                       ("sat", 19.05, 19.25), ("down", 19.75, 19.95),
+                       ("ok", 20.5, 21.0))
+        assert texts(resolve_seams(pre + first + second)) == [
+            "x", "y", "the", "cat", "sat", "down", "ok",
+        ]
+
+    def test_a_repetition_said_in_order_stays_whole(self) -> None:
+        given = words(("no", 1.0, 1.3), ("no", 1.29, 1.6), ("no", 1.55, 1.9),
+                      ("vale", 2.0, 2.4))
+        assert texts(resolve_seams(given)) == ["no", "no", "no", "vale"]
+
+    def test_one_long_word_anywhere_loses_at_most_itself(self) -> None:
+        """Property: insert one word of any span into a clean stream."""
+        rng = random.Random(27)
+        for _ in range(500):
+            clean = self.clean(rng.randint(2, 60))
+            at = rng.randint(0, len(clean))
+            start = rng.uniform(0, len(clean) + 2)
+            length = rng.choice([
+                rng.uniform(0, 3), rng.uniform(3, 20),
+                rng.uniform(20, 120),
+            ])
+            text = rng.choice(["um", "eh", "bad", "w5", "palabra"])
+            odd = Word(text=text, start=start, end=start + length)
+            given = clean[:at] + [odd] + clean[at:]
+            found = resolve_seams(given)
+            assert len(found) >= len(clean)
+            kept = [w.text for w in found]
+            for word in clean:
+                assert word.text in kept, (at, odd)
+            starts = [w.start for w in found]
+            assert starts == sorted(starts)
+            assert resolve_seams(found) == found

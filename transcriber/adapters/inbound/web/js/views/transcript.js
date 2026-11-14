@@ -6,8 +6,8 @@ import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import {
   DEFAULT_LEAD, activeIndex, doubtNote, filterUtterances, isAnonymous, mergeTargets,
-  namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sortUtterances, speakerName,
-  weakSpeakers,
+  namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
+  speakerName, weakSpeakers,
 } from "../lib/transcript.js";
 
 const LEAD_KEY = "transcriber.lead";
@@ -134,7 +134,7 @@ export async function transcriptView(ctx, root, params) {
     rows = utterances.map((u, index) => {
       const hint = previousHint(u, speakers);
       const note = doubtNote(u, speakers);
-      const weak = namedByFloor(speakers.find((s) => s.id === u.speaker));
+      const weak = sentenceNamedByFloor(u, speakers);
       const language = otherLanguage(u);
       const button = h("button", {
         type: "button", class: "row-button", "data-index": index,
@@ -156,6 +156,7 @@ export async function transcriptView(ctx, root, params) {
   // Text only (h() makes text nodes): names and values never become HTML.
   function doubtBadge(note, language = null) {
     const parts = [];
+    if (note?.floor) parts.push(t("transcript.floor_sentence"));
     if (note?.doubtful) parts.push(note.alternative ? t("transcript.doubtful_or", { name: note.alternative }) : t("transcript.doubtful"));
     if (note?.overlap) parts.push(note.alternative && !note.doubtful ? t("transcript.overlap_with", { name: note.alternative }) : t("transcript.overlap"));
     if (language) parts.push(t("transcript.other_language", { code: language }));
@@ -206,7 +207,7 @@ export async function transcriptView(ctx, root, params) {
   }
 
   function applyFilter() {
-    const shown = new Set(filterUtterances(utterances, filter, onlyDoubtful));
+    const shown = new Set(filterUtterances(utterances, filter, onlyDoubtful, transcript.speakers));
     utterances.forEach((u, i) => { rows[i].hidden = !shown.has(u); });
   }
 

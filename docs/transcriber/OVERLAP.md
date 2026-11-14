@@ -408,14 +408,25 @@ A second `analyse` run wrote a byte-identical `overlap.jsonl`.
   rate). A person it names below 0.95 is marked
   `identification: "expected_floor"` in the transcript (optional field
   of `transcript.v1`); the player shows it as a less certain
-  identification and recommends re-enrolling. Open sessions keep the
-  seeding at 0.95.
+  identification, marks every sentence of that speaker (and lists them
+  under "only doubtful sentences") and recommends re-enrolling; the
+  analyzer's sentences expose it as `named_through_floor()`. Open
+  sessions keep the seeding at 0.95. With the list the method is
+  cluster-then-match, whose accuracy with the 0.8 floor **has not been
+  measured on labelled data** (TR-05 measured it at 0.95 only;
+  `IDENTIFICATION.md`). **Failure mode: list only people who are
+  really present. An unlisted person who speaks will be given a listed
+  name** when a listed voiceprint has a cosine of 0.8 or more with
+  their voice (for
+  example a listed, absent person with a weak enrolment); nothing in
+  the voices can tell, and only `expected_floor` on that speaker says
+  the name is a guess.
 - **Overlap detector port** (§5 point 2): `OverlapDetector.overlaps
   (audio) → [(start, end)]`, used only to set `overlap` (at least
   `overlap_seconds`, 0.5 s, on a detected stretch) with
   `overlap_source` telling which source fired. Settings:
   `overlap_detector: "off"` (default) or `"fake"` (a deterministic
-  stand-in for tests). **No real adapter ships.** Sortformer v2 could
+  stand-in for tests; refused unless `runtime` is `"fake"`). **No real adapter ships.** Sortformer v2 could
   not be loaded with what the project's environment has: its `.nemo`
   checkpoint is a NeMo model (FastConformer encoder, Transformer
   encoder, streaming speaker cache) with no transformers port, and a
@@ -457,7 +468,7 @@ Ti; aggregates printed by `experiments/transcriber/real_sessions.py`
 PYTHONPATH=. python experiments/transcriber/real_sessions.py \
     --data-dir data/transcriber --work /tmp/tr17 --first 3
 # the same with --no-detect-languages (timing) and --language auto
-rm -r /tmp/tr17
+# the copy in --work is deleted on exit (--keep-work keeps it)
 ```
 
 Recorded language (`es`, as the sessions were started):

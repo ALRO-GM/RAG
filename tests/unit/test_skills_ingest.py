@@ -22,6 +22,8 @@ from src.application.skills.ingest import (
     ShowIngestedTranscript,
 )
 from src.domain.errors import InvalidInputError, NotFoundError
+from src.domain.skills.speech import sentence_transcript, transcript_sentences
+from src.domain.skills.transcript import from_contract
 from src.domain.skills.transcript_contract import (
     is_session_id,
     read_contract,
@@ -104,6 +106,35 @@ def test_the_certainty_fields_are_read_and_optional(
     plain = read_contract(document).utterances[2]
     assert plain.speaker_certainty is None and plain.doubtful is None
     assert plain.language is None and plain.overlap_source is None
+
+
+def test_every_sentence_of_a_floor_name_says_so() -> None:
+    """Luis was named through the floor: each of his sentences tells.
+
+    The contract keeps it once per speaker; the readers derive it per
+    utterance, per turn and per sentence, so the analyzer can
+    down-weight or leave out those attributions.
+    """
+    contract = read_contract(example())
+    assert [contract.identification_of(u) for u in contract.utterances] == [
+        "threshold", "threshold", "expected_floor", None]
+    assert [contract.named_through_floor(u)
+            for u in contract.utterances] == [False, False, True, False]
+    transcript = from_contract(contract)
+    assert [t.named_through_floor() for t in transcript.turns] == [
+        False, True, False]
+    sentences = transcript_sentences(transcript)
+    assert [(s.id, s.named_through_floor()) for s in sentences] == [
+        ("t0.s0", False), ("t0.s1", False), ("t1.s0", True),
+        ("t2.s0", False)]
+    flat = sentence_transcript(transcript, sentences)
+    assert [t.named_through_floor() for t in flat.turns] == [
+        False, False, True, False]
+    older = example()
+    for item in older["speakers"]:
+        item.pop("identification", None)
+    plain = transcript_sentences(from_contract(read_contract(older)))
+    assert not any(s.named_through_floor() for s in plain)
 
 
 def test_whole_numbers_are_valid_times() -> None:

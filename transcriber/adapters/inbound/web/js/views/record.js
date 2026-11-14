@@ -59,6 +59,7 @@ export async function recordView(ctx, root, params) {
       h("div", { class: "field" }, h("label", { for: "rec-lang" }, t("record.language")), language),
       h("fieldset", { class: "field" },
         h("legend", {}, t("record.who")),
+        h("p", { class: "hint" }, t("record.who_hint")),
         people.length
           ? people.map((p) => h("label", { class: "check" }, p.box, h("span", {}, p.name)))
           : h("p", { class: "hint" }, t("record.nobody_enrolled")),

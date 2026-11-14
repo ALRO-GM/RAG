@@ -452,7 +452,7 @@ class TranscribeSession:
         if p.whole_sentences:
             words, moved = keep_sentences_whole(
                 words, evidence, p.whole_sentence_margin, p.turn_gap,
-                p.whole_sentence_max_move,
+                p.whole_sentence_max_move, p.whole_sentence_max_moved,
             )
         advance()  # identify
         if candidates.skipped:
