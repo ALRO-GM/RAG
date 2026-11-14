@@ -495,3 +495,254 @@ python -m transcriber lab resume SESSION RUN [--json]
 aggregate numbers only. It uses the GPU: do not start it while `serve`
 is working on a job. It does not take `serve.lock` and writes only under
 `<data_dir>/lab`, so it may run beside a running service.
+
+## 9. Catalogue on this machine (2026-11-14)
+
+`lab/catalogue.json` is written by `lab/make_catalogue.py`; licences,
+gating and sizes were read from the model cards and the Hugging Face API
+on 2026-11-14. "Peak MB" is the runner process's peak (torch reserved or
+`nvidia-smi`, the larger) on R1; in-process models are not measured.
+
+| Stage | Id | Family | Licence | State | Peak MB on R1 |
+|---|---|---|---|---|---|
+| denoise | `none` | project | – | ran | – |
+| denoise | `deepfilternet3` | enhance | MIT / Apache-2.0 | ran | (1.9 GB on the test clip) |
+| denoise | `mossformer2-se-48k` (ClearerVoice-Studio) | enhance | Apache-2.0 | ran | (0.46 GB, test clip) |
+| denoise | `mossformergan-se-16k` (ClearerVoice-Studio) | enhance | Apache-2.0 | ran | (6.3 GB, test clip) |
+| denoise | `sepformer-dns4` (SpeechBrain) | speechbrain | Apache-2.0 | ran (revision 2) | (1.8 GB, test clip) |
+| denoise | `metricgan-plus` (SpeechBrain) | speechbrain | Apache-2.0 | ran (revision 2) | (0.3 GB, test clip) |
+| denoise | `rnnoise` | enhance | BSD-3-Clause | ran (CPU) | – |
+| diarize | `builtin` | project | – | ran | – |
+| diarize | `pyannote-3.1` | pyannote | MIT, **gated** | ran (owner's token) | 2216 |
+| diarize | `pyannote-community-1` | pyannote | CC BY 4.0, **gated** | ran (owner's token) | 2216 |
+| diarize | `sortformer-streaming-v2` | nemo | CC BY 4.0 | ran | 1260–1454 |
+| diarize | `nemotron-3-diarization` | transformers | OpenMDW 1.1 | ran | 618 |
+| diarize | `diarizen-wavlm-large-s80-md-v2` | diarizen | **CC BY-NC 4.0 (non-commercial)** | ran | 3742 |
+| diarize | `ecapa-spectral` (SpeechBrain ECAPA + spectral clustering, written here) | speechbrain | Apache-2.0 | ran | 1612–1616 |
+| diarize | `nemo-clustering` (NeMo clustering diarizer, TitaNet-L) | nemo | CC BY 4.0 | ran | 2904–2982 |
+| recognise | `whisper-large-v3-turbo` | project | MIT | ran | – |
+| recognise | `whisper-large-v3` | project | Apache-2.0 | **not installed: disk** (3.1 GB of weights) | – |
+| recognise | `faster-whisper-large-v3-turbo` (CTranslate2 int8, converted here from the cached turbo) | ctranslate2 | MIT | ran | 1362–1394 |
+| recognise | `parakeet-tdt-0.6b-v3` (NVIDIA, 25 European languages incl. Spanish) | nemo | CC BY 4.0 | ran | 6346 |
+
+Nemotron-3 diarization did not need NeMo's development branch: the
+project's transformers 5.20.2 has the model, so it runs in the
+`transformers` family (Python 3.10). The environments take 0.93 GB in
+all (hard-linked files shared), the converted and ClearerVoice models
+1.1 GB, the downloaded weights about 4 GB (parakeet 2.5 GB). Postponed
+for disk: `whisper-large-v3` (3.1 GB); optional DiariZen v1 or base
+variants (0.28 / 0.10 GB). `--all` never selects a model whose weights
+are known to be missing.
+
+To enable the gated pyannote pipelines on another machine: accept the
+conditions at https://huggingface.co/pyannote/speaker-diarization-3.1,
+https://huggingface.co/pyannote/segmentation-3.0 and
+https://huggingface.co/pyannote/speaker-diarization-community-1, then
+`huggingface-cli login` (or set `HF_TOKEN` for the service). No further
+gated dependency was needed on R1.
+
+## 10. Future work: speech separation
+
+ClearerVoice-Studio's `MossFormer2_SS_16K` (Apache-2.0, 670 MB) splits
+a mixture into two speaker streams. That is two WAVs, which does not fit
+the one-WAV denoise contract honestly: mixing the streams back gives the
+input again, and keeping one drops a person. It needs a stage of its
+own: separate, then diarize and recognise each stream, then match the
+streams to the voiceprints. It only helps where voices overlap and may
+invent a second voice in single-speaker stretches, so it should run on
+the overlap regions the diarizers mark. The `enhance` environment
+already has ClearerVoice; no new environment is needed.
+
+## 11. Results on R1 (first run, 2026-11-14)
+
+R1 is the first real session (388 s, two enrolled people A and B,
+listed as expected, count 2; recorded with language `es`), chosen by the
+owner because the two talk over each other. One suite: 7 denoisers
+(`none` and six) × 8 diarizers × 3 recognisers = **168 pipelines** from
+83 steps (6 denoise, 56 diarize, 21 recognise), every step finished.
+The results stay in `data/transcriber/lab/` for the web tab; below are
+aggregates only. Every figure is **agreement between models**: nothing
+here says which model is right (§11.6).
+
+Two runs were made. In the first, `sepformer-dns4` wrote audio at about
+17 times the input's RMS level (clipped) and `metricgan-plus` at twice
+it; on the SepFormer audio no diarizer's voice matched a voiceprint and
+DiariZen found no speech at all. The runner now scales each piece back
+to its input's level (revision 2, §3.2 cache key); the second run
+recomputed only those two denoisers and their 22 dependent steps. The
+numbers below are the second run.
+
+### 11.1 Cost (seconds of processing without model loading; R1 = 388 s)
+
+| Denoiser | s | | Diarizer on the original | s | peak MB | | Recogniser on the original | s | peak MB | words |
+|---|---|---|---|---|---|---|---|---|---|---|
+| deepfilternet3 | 3.2 | | builtin (incl. its recognition) | 53.8 | – | | whisper-large-v3-turbo (project) | 13.6 | – | 825 |
+| mossformer2-se-48k | 13.2 | | pyannote-3.1 | 8.1 | 2216 | | faster-whisper-large-v3-turbo | 9.2 | 1362 | 867 |
+| mossformergan-se-16k | 68.3 | | pyannote-community-1 | 6.6 | 2216 | | parakeet-tdt-0.6b-v3 | 1.3 | 6346 | 654 |
+| sepformer-dns4 | 15.7 | | sortformer-streaming-v2 | 1.7 | 1454 | | | | | |
+| metricgan-plus | 1.7 | | nemotron-3-diarization | 10.3 | 618 | | | | | |
+| rnnoise (CPU) | 12.2 | | diarizen-wavlm-large-s80-md-v2 | 20.2 | 3742 | | | | | |
+| | | | ecapa-spectral | 1.9 | 1612 | | | | | |
+| | | | nemo-clustering | 17.0 | 2982 | | | | | |
+
+The built-in diarization's time includes its own recognition; it took
+53.8 s on the original (the first in-process step of the job) and
+14–19 s on the denoised versions (60.8 s on `mossformergan-se-16k`; the
+reason was not investigated). The comparison of the whole suite
+took 27.8 s on the CPU; a page of 50 fragments 0.8 s; the stored
+results are 6.8 MB.
+
+### 11.2 What each diarizer found (original audio)
+
+| Diarizer | labels | people named | speech s | overlap s | agreement with consensus |
+|---|---|---|---|---|---|
+| builtin | 2 | A, B (itself) | 332.0 | 0.0 | 0.765 |
+| pyannote-3.1 | 2 | A, B | 303.9 | 31.6 | 0.855 |
+| pyannote-community-1 | 2 | A, B | 303.9 | 31.6 | 0.853 |
+| sortformer-streaming-v2 | 4 | A, B + 2 anonymous (5 and 22 s) | 297.2 | 37.6 | 0.739 |
+| nemotron-3-diarization | 4 | A, B + 2 anonymous (44 and 4 s) | 280.3 | 24.6 | 0.666 |
+| diarizen-wavlm-large-s80-md-v2 | 2 | A, B | 296.1 | 30.7 | 0.859 |
+| ecapa-spectral | 2 | A, B | 288.6 | 0.0 | 0.843 |
+| nemo-clustering | 2 | A, B | 336.3 | 0.0 | 0.801 |
+
+Every diarizer's two main labels were named A and B by their own voice
+(`voiceprint`, cosine 0.98–0.99 for A and 0.92–0.95 for B on the
+original); the built-in names them itself. The labels left anonymous
+are the extra voices Sortformer and Nemotron split off (§11.6).
+Consensus: 7 vote groups (the two pyannote pipelines share one), a
+consensus on 99.6% of the frames.
+
+### 11.3 Diarizers against each other (original audio)
+
+Agreement after the best label mapping (`name_agreement` is the same
+except Nemotron, 0.74–0.77, because of its anonymous voice):
+
+| | builtin | pya-3.1 | pya-c1 | sortformer | nemotron | diarizen | ecapa | nemo-cl. |
+|---|---|---|---|---|---|---|---|---|
+| builtin | – | 0.82 | 0.82 | 0.71 | 0.70 | 0.82 | 0.85 | 0.88 |
+| pyannote-3.1 | | – | 1.00 | 0.82 | 0.85 | 0.99 | 0.87 | 0.87 |
+| pyannote-community-1 | | | – | 0.82 | 0.85 | 0.99 | 0.87 | 0.87 |
+| sortformer-streaming-v2 | | | | – | 0.85 | 0.83 | 0.78 | 0.77 |
+| nemotron-3-diarization | | | | | – | 0.86 | 0.77 | 0.76 |
+| diarizen | | | | | | – | 0.89 | 0.87 |
+| ecapa-spectral | | | | | | | – | 0.93 |
+
+- The two pyannote pipelines agree on 99.5% or more and mark the same
+  speech and overlap (both use `segmentation-3.0`); DiariZen (a
+  pyannote fork with WavLM) agrees with them at 0.99 and an error rate
+  of 0.01–0.04 against either.
+- Overlap: the overlap-aware models agree with each other on where it
+  is (IoU 0.60–0.74 between pyannote, Sortformer, Nemotron and DiariZen;
+  they mark 25–38 s); the built-in, ECAPA and NeMo clustering mark none.
+- Change points within 0.5 s: F1 0.67–0.87 among the overlap-aware
+  models, 0.62–0.70 between them and ECAPA, 0.34–0.50 between them and
+  the built-in or NeMo clustering.
+- Over all 3080 ordered pairs of the 56 tracks the agreement has a mean
+  of 0.861 (0.545 to 1.000).
+
+### 11.4 Recognisers against each other (original audio)
+
+WER of the row's words with the column's as reference (time agreement of
+the matched words in brackets):
+
+| | whisper-turbo (project) | faster-whisper-turbo | parakeet-v3 |
+|---|---|---|---|
+| hypothesis whisper-turbo | – | 0.165 (0.73) | 0.494 (0.62) |
+| hypothesis faster-whisper | 0.173 (0.73) | – | 0.569 (0.64) |
+| hypothesis parakeet | 0.392 (0.62) | 0.429 (0.65) | – |
+
+(read: with whisper-turbo as reference, faster-whisper's words have a
+WER of 0.173.) Parakeet returned 654 words against 825 and 867; the
+two Whisper builds of the same weights differ on about one word in six.
+R1 is mostly Spanish; parakeet detects the language itself (it reports
+none).
+
+### 11.5 Effect of each denoiser (against the same model on the original)
+
+| Denoiser | WER whisper-turbo | WER faster-whisper | WER parakeet | diarizer agreement (8 diarizers, min–max) | change of agreement with consensus (min–max) |
+|---|---|---|---|---|---|
+| deepfilternet3 | 0.108 | 0.152 | 0.456 | 0.85–0.99 | −0.03 … +0.19 |
+| mossformer2-se-48k | 0.091 | 0.140 | 0.431 | 0.80–0.97 | −0.02 … +0.24 |
+| mossformergan-se-16k | 0.142 | 0.149 | 0.450 | 0.82–0.97 | −0.04 … +0.21 |
+| sepformer-dns4 (rev. 2) | 0.115 | 0.134 | 0.304 | 0.85–1.00 | −0.03 … +0.21 |
+| metricgan-plus (rev. 2) | 0.355 | 0.393 | 0.454 | 0.71–0.90 | −0.17 … +0.14 |
+| rnnoise | 0.133 | 0.205 | 0.485 | 0.84–0.97 | −0.05 … +0.18 |
+
+- Every denoiser changes the recognisers' words (WER 0.09–0.21 for the
+  Whisper builds, 0.30–0.49 for parakeet, which heard 654 words on the
+  original and 773–785 on the denoised versions, except SepFormer's 590
+  and MetricGAN+'s 640). Whether for better or worse is not known
+  without corrected text.
+- On the denoised audio the overlap-aware diarizers mark much less
+  overlap (pyannote 6–19 s instead of 32 s; Sortformer 7–28 instead of
+  38) and most agree more with the consensus (Sortformer +0.12 to +0.17,
+  except +0.02 on SepFormer and −0.09 on MetricGAN+; Nemotron +0.14 to
+  +0.24, splitting off less anonymous speech). Whether the removed overlap was real or noise is the first
+  thing the labels must decide.
+- MetricGAN+ (trained on read speech with synthetic noise) is the
+  outlier: the Whisper builds hear 577 and 601 words on it instead of
+  765–867 on the other versions, every diarizer finds 20–81 s less
+  speech than on the original, and 7 of 8 diarizers agree less with the
+  consensus.
+- The pipelines with the highest agreement are all on denoised audio:
+  `mossformer2-se-48k` with pyannote (0.923 / 0.919), DiariZen (0.910)
+  or Nemotron (0.904); on the original the best is DiariZen (0.859).
+  This is agreement with a consensus the same denoised tracks vote in,
+  not evidence that they are right.
+
+### 11.6 What cannot be concluded without the owner's labels
+
+- **Which diarization is right.** The consensus is a majority of
+  models; correlated models (the pyannote family and DiariZen) agree
+  with one another by construction. 395 fragments (mean 0.98 s); 319
+  have some disagreement, 6 (7.5 s) have half or more of the vote
+  against the most common answer. The disputed fragments are listed
+  first by the API: labelling them is the cheapest way to settle it.
+- **How much overlap there is.** 0 s (built-in, clustering models),
+  25–38 s (overlap-aware models on the original), 7–28 s on denoised
+  audio. Only `both` labels (§5) can tell.
+- **Whether the extra voices are real.** Sortformer and Nemotron give
+  a third and fourth anonymous voice on the original (up to 44 s); only
+  two people are enrolled and listed, but a third sound (a laugh, a
+  television) is possible.
+- **Which recogniser is right**, and whether a denoiser helps the
+  text: there is no reference transcript; the WERs above are
+  disagreements. A few `text` corrections on labelled fragments give a
+  real WER (§5).
+- **Generality.** One session of two people and one phone; every
+  figure can move with another recording.
+
+## 12. Status and how to resume (2026-11-14, branch `feat/model-lab`)
+
+Done: domain, use cases, adapters, API, CLI, make targets, tests (gate
+green before the last docs commit), seven environments built and
+self-tested, the R1 suite run twice (results of the second run in
+`data/transcriber/lab/<R1>/runs/`, the newest run). Every model of §9
+ran except `whisper-large-v3` (postponed for disk: 3.1 GB of weights).
+Optional when space allows: DiariZen v1 / base variants.
+
+Resumability was checked on R1: the second run of the same suite found
+59 of its 83 steps in the cache and recomputed only the 24 that
+depended on the two revised denoisers. A stage becomes visible only
+when its directory is renamed into `stages/` with its `outcome.json`
+(written atomically); an interrupted stage leaves a directory under
+`work/`, which is never read as a result. A run stopped by a reboot is
+reported `interrupted`.
+
+To resume after a reboot (from the repository root):
+
+```sh
+make lab-selftest                                  # environments still ready
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab runs <session>
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab resume <session> <run>
+# or the whole suite again (cached steps are skipped):
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab run <session> --all \
+  --diarize builtin,pyannote-3.1,pyannote-community-1,sortformer-streaming-v2,nemotron-3-diarization,diarizen-wavlm-large-s80-md-v2,ecapa-spectral,nemo-clustering
+# once there is disk: name whisper-large-v3 with --recognise to download it
+```
+
+Left for later: the web tab "Pruebas" on the API of §7; owner labels
+on the disputed fragments (§11.6); `whisper-large-v3`.

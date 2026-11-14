@@ -158,13 +158,14 @@ ENTRIES: List[Dict[str, Any]] = [
         weights=["pyannote/speaker-diarization-3.1",
                  "pyannote/segmentation-3.0",
                  "pyannote/wespeaker-voxceleb-resnet34-LM"],
-        weights_mb=33,
+        vram_gb=2.2, weights_mb=33,
         notes="Gated: accept the conditions of"
               " pyannote/speaker-diarization-3.1 and"
               " pyannote/segmentation-3.0, then log in. Run through"
               " pyannote.audio 4.0.7 with audio in memory (torchcodec"
-              " cannot load without FFmpeg). Not run: no token on this"
-              " machine (the runner stops with needs_token).",
+              " cannot load without FFmpeg). Ran on R1 (388 s) once the"
+              " owner's token was present: 6.5-8.1 s, peak 2216 MB"
+              " (without a token the runner stops with needs_token).",
     ),
     entry(
         id="pyannote-community-1", stage="diarize", family="pyannote",
@@ -178,11 +179,12 @@ ENTRIES: List[Dict[str, Any]] = [
         parameters={"num_speakers": None, "min_speakers": None,
                     "max_speakers": None},
         weights=["pyannote/speaker-diarization-community-1"],
-        weights_mb=34,
+        vram_gb=2.2, weights_mb=34,
         notes="Gated (accept the conditions, log in). pyannote.audio"
               " 4.0.7; the overlapping speaker_diarization output is the"
-              " result, the exclusive one is kept under 'exclusive'. Not"
-              " run: no token on this machine.",
+              " result, the exclusive one is kept under 'exclusive'."
+              " Ran on R1 (388 s) with the owner's token: 6.5-6.6 s, peak"
+              " 2216 MB.",
     ),
     entry(
         id="sortformer-streaming-v2", stage="diarize", family="nemo",
