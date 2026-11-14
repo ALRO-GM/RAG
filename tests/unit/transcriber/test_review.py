@@ -166,7 +166,7 @@ class TestPublishTranscript:
     def test_publishes_the_contract_of_a_done_session(self) -> None:
         w = finished(enrol_luis=True)
         publisher = RecordingPublisher()
-        document = PublishTranscript(w.sessions, publisher)("s1")
+        document = PublishTranscript(w.sessions, publisher, w.locks)("s1")
         assert publisher.documents == [document]
         assert document == stored(w).to_contract()
         assert document["schema"] == "transcript.v1"
@@ -183,14 +183,14 @@ class TestPublishTranscript:
         ))
         publisher = RecordingPublisher()
         with pytest.raises(StateError, match="done"):
-            PublishTranscript(w.sessions, publisher)("s1")
+            PublishTranscript(w.sessions, publisher, w.locks)("s1")
         assert publisher.documents == []
 
     def test_a_done_session_without_transcript(self) -> None:
         w = finished()
         w.sessions.transcripts.clear()
         with pytest.raises(NotFoundError, match="no transcript"):
-            PublishTranscript(w.sessions, RecordingPublisher())("s1")
+            PublishTranscript(w.sessions, RecordingPublisher(), w.locks)("s1")
 
 
 def doubtful() -> World:

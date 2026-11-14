@@ -397,6 +397,24 @@ def test_serve_without_a_tunnel_client_says_how_to_get_one(
     assert "--no-tunnel" in result.stderr
 
 
+def test_serve_says_when_the_local_rag_is_not_used(tmp_path: Path) -> None:
+    config = tmp_path / "settings.json"
+    config.write_text(json.dumps({
+        "rag_token_file": str(tmp_path / "no-token"),
+        "tunnel": {
+            "chisel": str(tmp_path / "missing"),
+            "credential_file": str(tmp_path / "credential"),
+        },
+    }))
+    result = run(tmp_path / "data", "serve", "--port", str(free_port()),
+                 TRANSCRIBER_CONFIG=str(config), TRANSCRIBER_LOCAL_RAG="1")
+    assert result.returncode != 0
+    assert (
+        f"Local RAG not used: {tmp_path / 'no-token'} does not exist"
+        " (make rag-token)"
+    ) in result.stderr
+
+
 def test_serve_refuses_a_taken_port(
     tmp_path: Path, services: List[Service]
 ) -> None:

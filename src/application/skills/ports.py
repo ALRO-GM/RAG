@@ -52,6 +52,10 @@ class TranscriptStore(Protocol):
         """
         ...
 
+    def delete(self, session_id: str) -> bool:
+        """Remove the document of ``session_id``; tell whether it existed."""
+        ...
+
 
 class CatalogueRepository(Protocol):
     """Read rubric catalogues."""

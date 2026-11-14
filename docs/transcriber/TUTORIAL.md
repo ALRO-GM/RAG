@@ -143,14 +143,51 @@ servicio en marcha. Todos aceptan `--help`.
 | Listar las sesiones | `python -m transcriber sessions` (una línea por sesión: id, estado, duración, idioma, título) |
 | Ver las frases de una sesión | `python -m transcriber show ID` (añade `--lead 3` para ver cada hora 3 s antes; la cabecera lo avisa) |
 | Exportar la transcripción | `python -m transcriber export ID --output ARCHIVO.json` (sin `--output` la escribe en la terminal) |
-| Entregarla al RAG | `python -m transcriber publish ID` (la escribe en `data/transcriber/published/`) |
+| Entregarla al RAG | `python -m transcriber publish ID` (la escribe en `data/transcriber/published/`, o la envía al RAG de este ordenador: ver abajo) |
 | Borrar una sesión | `python -m transcriber sessions delete ID` |
 | Listar las voces registradas | `python -m transcriber speakers` |
 | Olvidar una voz | `python -m transcriber speakers forget ID` |
 
-Borrar una sesión elimina su audio y su transcripción. Olvidar una voz
+Borrar una sesión elimina su audio y su transcripción (y la copia del
+RAG si se entregó a él, ver abajo). Olvidar una voz
 elimina su huella y su consentimiento. Ninguna de las dos acciones se
 puede deshacer.
+
+### Entregar las transcripciones al RAG de este ordenador
+
+Por defecto `publish` deja el archivo en `data/transcriber/published/`.
+Para que vaya directamente al RAG, que también corre en este ordenador
+(nunca en el servidor), arranca los dos servicios así, cada uno en su
+terminal:
+
+```sh
+make rag-token                     # una vez: crea ~/.config/ragputin/rag-token (modo 600)
+make rag-serve TORCH=cuda          # el RAG, solo en 127.0.0.1:8000
+TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-code'
+```
+
+Con `TRANSCRIBER_LOCAL_RAG=1`, si existe el archivo del token y no hay
+otro `publisher` en el archivo de configuración, «Entregar al RAG» (en
+la web o con `python -m transcriber publish ID`) envía la transcripción
+a `http://127.0.0.1:8000` con ese token. Si falta el archivo, todo sigue
+como antes y `transcriber serve` lo dice al arrancar. Pon la misma
+variable delante de los comandos de terminal
+(`TRANSCRIBER_LOCAL_RAG=1 python -m transcriber publish ID`).
+
+Para comprobar que llegó:
+
+```sh
+ls data/transcripts/               # ID.transcript.v1.json
+printf 'Authorization: Bearer %s\n' "$(cat ~/.config/ragputin/rag-token)" |
+  curl -s -H @- http://127.0.0.1:8000/transcripts/ID | head -c 300
+```
+
+La copia del RAG se queda hasta que borras la sesión en el transcriptor:
+entonces se le pide al RAG que la borre también. Si el RAG está parado
+en ese momento, la sesión se borra igual, el registro del servicio lo
+avisa (solo el id, nunca el texto) y hay que borrar a mano
+`data/transcripts/ID.transcript.v1.json`. El RAG no se ve desde
+internet: el túnel solo lleva al transcriptor.
 
 Hay otros dos comandos que cargan los modelos **en ese mismo
 proceso**: `enrol` (registrar una voz desde un archivo) e `import --wait`

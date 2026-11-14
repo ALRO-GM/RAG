@@ -21,7 +21,13 @@ from src.adapters.outbound.fs_transcript_store import (
 )
 from src.application.answering import AnswerService
 from src.application.search import SearchService
+from src.adapters.outbound.token_file import (
+    main,
+    make_token_file,
+    read_token_file,
+)
 from src.application.skills.ingest import (
+    ForgetIngestedTranscript,
     IngestTranscript,
     ShowIngestedTranscript,
 )
@@ -118,7 +124,7 @@ def app_for(
     store = FileSystemTranscriptStore(str(folder / "transcripts"))
     routes = TranscriptRoutes(
         IngestTranscript(store), ShowIngestedTranscript(store), token,
-        max_bytes,
+        max_bytes, ForgetIngestedTranscript(store),
     )
     return TestClient(create_app(
         search, AnswerService(search, FakeGenerator()),
@@ -136,6 +142,9 @@ def test_without_a_token_the_routes_do_not_exist(
         "/transcripts", json=example(), headers={"Authorization": "Bearer "}
     ).status_code == 404
     assert client.get("/transcripts/demo-es").status_code == 404
+    assert client.delete(
+        "/transcripts/demo-es", headers=AUTH
+    ).status_code == 404
     assert not (tmp_path / "transcripts").exists()
 
 
@@ -153,6 +162,9 @@ def test_a_wrong_token_is_refused(
     assert posted.headers["www-authenticate"] == "Bearer"
     assert TOKEN not in posted.text
     assert client.get(
+        "/transcripts/demo-es", headers=headers
+    ).status_code == 401
+    assert client.delete(
         "/transcripts/demo-es", headers=headers
     ).status_code == 401
     assert not (tmp_path / "transcripts").exists()
@@ -281,3 +293,210 @@ def test_the_store_reads_a_document_as_a_transcript(tmp_path: Path) -> None:
         store.find("old")
     with pytest.raises(InvalidInputError):
         store.find("../x")
+
+
+# -- deleting -----------------------------------------------------------
+
+def test_store_deletes_once(tmp_path: Path) -> None:
+    store = FileSystemTranscriptStore(str(tmp_path / "in"))
+    assert store.delete("demo-es") is False
+    store.put("demo-es", example())
+    assert store.delete("demo-es") is True
+    assert list((tmp_path / "in").iterdir()) == []
+    assert store.delete("demo-es") is False
+    with pytest.raises(InvalidInputError):
+        store.delete("../demo-es")
+
+
+def test_store_reports_a_failed_delete(tmp_path: Path) -> None:
+    store = FileSystemTranscriptStore(str(tmp_path))
+    (tmp_path / "demo-es.transcript.v1.json").mkdir()
+    with pytest.raises(RagError, match="Cannot delete"):
+        store.delete("demo-es")
+
+
+def test_delete_removes_the_copy(tmp_path: Path) -> None:
+    client = app_for(tmp_path)
+    client.post("/transcripts", json=example(), headers=AUTH)
+    deleted = client.delete("/transcripts/demo-es", headers=AUTH)
+    assert deleted.status_code == 204 and deleted.content == b""
+    assert list((tmp_path / "transcripts").iterdir()) == []
+    assert client.get(
+        "/transcripts/demo-es", headers=AUTH
+    ).status_code == 404
+    again = client.delete("/transcripts/demo-es", headers=AUTH)
+    assert again.status_code == 404
+    assert again.json()["code"] == "transcript_not_found"
+    assert client.delete(
+        "/transcripts/-bad", headers=AUTH
+    ).status_code == 400
+
+
+def test_a_failed_delete_is_a_server_error(tmp_path: Path) -> None:
+    client = app_for(tmp_path)
+    (tmp_path / "transcripts" / "demo-es.transcript.v1.json").mkdir(
+        parents=True
+    )
+    answer = client.delete("/transcripts/demo-es", headers=AUTH)
+    assert answer.status_code == 500
+    assert "Cannot delete" in answer.json()["detail"]
+
+
+def test_without_forget_there_is_no_delete_route(tmp_path: Path) -> None:
+    search = SearchService(
+        FileSystemIndexRepository(str(tmp_path / "index")), tokenize,
+        FakeEmbedder(),
+    )
+    store = FileSystemTranscriptStore(str(tmp_path / "transcripts"))
+    client = TestClient(create_app(
+        search, AnswerService(search, FakeGenerator()),
+        TranscriptRoutes(
+            IngestTranscript(store), ShowIngestedTranscript(store), TOKEN
+        ),
+    ))
+    client.post("/transcripts", json=example(), headers=AUTH)
+    assert client.delete(
+        "/transcripts/demo-es", headers=AUTH
+    ).status_code == 405
+    assert store.get("demo-es") == example()
+
+
+# -- the token file and the workstation's serve ---------------------------
+
+FILE_TOKEN = "f" * 43
+
+
+def private_token(folder: Path, text: str = FILE_TOKEN) -> Path:
+    """Write ``text`` to a file only its owner may read."""
+    path = folder / "rag-token"
+    path.write_text(text + "\n", encoding="utf-8")
+    path.chmod(0o600)
+    return path
+
+
+def test_the_token_file_is_read_when_private(tmp_path: Path) -> None:
+    assert read_token_file(private_token(tmp_path)) == FILE_TOKEN
+
+
+def test_the_token_file_is_refused_unless_safe(tmp_path: Path) -> None:
+    with pytest.raises(InvalidInputError, match="make rag-token"):
+        read_token_file(tmp_path / "missing")
+    with pytest.raises(InvalidInputError, match="not a regular file"):
+        read_token_file(tmp_path)
+    shared = private_token(tmp_path)
+    shared.chmod(0o640)
+    with pytest.raises(InvalidInputError, match="chmod 600") as caught:
+        read_token_file(shared)
+    assert FILE_TOKEN not in str(caught.value)
+    short = private_token(tmp_path, "short")
+    with pytest.raises(InvalidInputError, match="does not hold a token"):
+        read_token_file(short)
+    link = tmp_path / "link"
+    link.symlink_to(short)
+    with pytest.raises(InvalidInputError, match="not a regular file"):
+        read_token_file(link)
+
+
+@pytest.mark.parametrize("host, loopback", [
+    ("127.0.0.1", True), ("127.0.0.2", True), ("::1", True),
+    ("localhost", True), ("0.0.0.0", False), ("::", False),
+    ("192.168.1.10", False), ("rag.example", False), (" 127.0.0.1", False),
+])
+def test_is_loopback(host: str, loopback: bool) -> None:
+    from src.adapters.inbound.cli import is_loopback
+
+    assert is_loopback(host) is loopback
+
+
+def test_serve_reads_the_token_file(
+    indexed_project: Path, monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    import uvicorn
+
+    from src.adapters.inbound.cli import RagCLI
+
+    served: Dict[str, Any] = {}
+    monkeypatch.setattr(
+        uvicorn, "run", lambda app, **kw: served.update(app=app, **kw)
+    )
+    monkeypatch.delenv("RAG_TRANSCRIPTS_TOKEN", raising=False)
+    token_file = private_token(indexed_project)
+    RagCLI(mode="bm25").serve(host=" 127.0.0.1 ", token_file=str(token_file))
+    out = capsys.readouterr().out
+    assert (served["host"], served["port"]) == ("127.0.0.1", 8000)
+    assert f"token from file {token_file}" in out
+    assert FILE_TOKEN not in out
+    client = TestClient(served["app"])
+    auth = {"Authorization": f"Bearer {FILE_TOKEN}"}
+    assert client.post(
+        "/transcripts", json=example(), headers=auth
+    ).status_code == 201
+    assert client.delete(
+        "/transcripts/demo-es", headers=auth
+    ).status_code == 204
+    assert not Path("data/transcripts/demo-es.transcript.v1.json").exists()
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.10", "::"])
+def test_serve_with_a_token_file_stays_on_loopback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str], host: str,
+) -> None:
+    import uvicorn
+
+    from src.adapters.inbound.cli import RagCLI
+
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kw: None)
+    with pytest.raises(SystemExit) as stopped:
+        RagCLI(mode="bm25").serve(
+            host=host, token_file=str(private_token(tmp_path))
+        )
+    assert stopped.value.code == 1
+    assert "--host 127.0.0.1" in capsys.readouterr().err
+
+
+def test_serve_refuses_an_unsafe_token_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    from src.adapters.inbound.cli import RagCLI
+
+    shared = private_token(tmp_path)
+    shared.chmod(0o644)
+    with pytest.raises(SystemExit):
+        RagCLI(mode="bm25").serve(token_file=str(shared))
+    err = capsys.readouterr().err
+    assert "chmod 600" in err and FILE_TOKEN not in err
+
+
+def test_the_token_file_is_made_once_private(tmp_path: Path) -> None:
+    path = tmp_path / "config" / "rag-token"
+    assert make_token_file(path) is True
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert path.parent.stat().st_mode & 0o777 == 0o700
+    token = read_token_file(path)
+    assert len(token) == 43
+    assert make_token_file(path) is False
+    assert read_token_file(path) == token
+    path.chmod(0o644)
+    with pytest.raises(InvalidInputError, match="chmod 600"):
+        make_token_file(path)
+
+
+def test_the_token_command_never_prints_the_token(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = tmp_path / "rag-token"
+    assert main([str(path)]) == 0
+    assert main([str(path)]) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines() == [
+        f"Made the RAG token in {path} (mode 600).",
+        f"Kept the RAG token in {path} (mode 600).",
+    ]
+    assert read_token_file(path) not in out
+    path.chmod(0o604)
+    assert main([str(path)]) == 1
+    assert main([]) == 2
+    err = capsys.readouterr().err
+    assert "chmod 600" in err and "usage:" in err

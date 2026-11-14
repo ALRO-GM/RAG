@@ -40,6 +40,7 @@ from transcriber.application.ports import (
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
+    PublishError,
     StorageError,
 )
 from transcriber.domain.models import (
@@ -626,3 +627,22 @@ class FakeLabData:
     def delete(self, session_id: str) -> None:
         """Remember the deletion."""
         self.deleted.append(session_id)
+
+
+class FakePublishedTranscripts:
+    """The RAG's copies: records retractions, fails when told to.
+
+    ``retracted`` lists the sessions whose copy was deleted, in order;
+    ``failure`` is raised by every retraction when set.
+    """
+
+    def __init__(self, failure: Optional[PublishError] = None) -> None:
+        """Start with no retraction (failing with ``failure`` if given)."""
+        self.retracted: List[str] = []
+        self.failure = failure
+
+    def retract(self, session_id: str) -> None:
+        """Remember the retraction, or raise ``failure``."""
+        if self.failure is not None:
+            raise self.failure
+        self.retracted.append(session_id)

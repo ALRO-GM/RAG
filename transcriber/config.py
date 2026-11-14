@@ -4,7 +4,11 @@
 named by ``TRANSCRIBER_CONFIG`` (any field of
 :class:`TranscriberSettings`, nested as in the model), then the
 variables ``TRANSCRIBER_DATA_DIR``, ``TRANSCRIBER_RUNTIME`` and
-``TRANSCRIBER_DEVICE``, which win over the file.
+``TRANSCRIBER_DEVICE`` and ``TRANSCRIBER_LOCAL_RAG``, which win over
+the file. With ``TRANSCRIBER_LOCAL_RAG=1`` (``local_rag``), no
+``publisher`` in the file and the token file ``rag_token_file`` present
+(``make rag-token``), transcripts are posted to the RAG of this machine
+(``make rag-serve``) instead of written to a directory.
 """
 
 import json
@@ -30,6 +34,11 @@ MIB = 1024 * 1024
 
 DEFAULT_PORT = 8770
 
+LOCAL_RAG_URL = "http://127.0.0.1:8000"
+"""The RAG of this machine as ``make rag-serve`` starts it (loopback)."""
+DEFAULT_RAG_TOKEN_FILE = Path("~/.config/ragputin/rag-token")
+"""The ingest token ``make rag-token`` writes (mode 600)."""
+
 UPLOAD_FORMATS: Tuple[str, ...] = (
     "wav", "flac", "ogg", "opus", "mp3", "m4a", "mp4", "aac", "webm",
     "mov", "3gp", "amr", "wma",
@@ -42,6 +51,7 @@ ENVIRONMENT_FIELDS = {
     "TRANSCRIBER_DATA_DIR": "data_dir",
     "TRANSCRIBER_RUNTIME": "runtime",
     "TRANSCRIBER_DEVICE": "device",
+    "TRANSCRIBER_LOCAL_RAG": "local_rag",
 }
 """Environment variable → top-level setting it overrides."""
 
@@ -196,6 +206,14 @@ class TunnelSettings(BaseModel):
         return f"{scheme}://{rest.split('/', 1)[0]}/api/health"
 
 
+def check_absolute(path: Path, name: str) -> None:
+    """Raise :class:`ValueError` unless ``path`` is absolute or ``~/...``."""
+    if not str(path).startswith(("/", "~/")):
+        raise ValueError(
+            f"{name} must be an absolute path (or start with ~/)"
+        )
+
+
 class HttpPublishSettings(BaseModel):
     """Where and how ``publisher: "http"`` sends transcripts.
 
@@ -206,7 +224,10 @@ class HttpPublishSettings(BaseModel):
     seconds at most; a network error, a time-out or a ``5xx`` answer is
     retried ``retries`` times, after ``backoff_initial`` seconds
     multiplied by ``backoff_factor`` after every retry. A ``4xx``
-    answer is final.
+    answer is final. With ``token_file`` (an absolute path, or one
+    starting with ``~/``) the token is read from that private file
+    instead of ``token_env``. Deleting the RAG's copy of a deleted
+    session waits ``retract_timeout`` seconds at most, once.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -220,6 +241,15 @@ class HttpPublishSettings(BaseModel):
     retries: int = Field(default=3, ge=0, le=10)
     backoff_initial: float = Field(default=1.0, ge=0)
     backoff_factor: float = Field(default=2.0, ge=1)
+    token_file: Optional[Path] = None
+    retract_timeout: float = Field(default=5.0, gt=0)
+
+    @model_validator(mode="after")
+    def _absolute_token_file(self) -> "HttpPublishSettings":
+        """Refuse a relative token file (it would follow the cwd)."""
+        if self.token_file is not None:
+            check_absolute(self.token_file, "publish_http.token_file")
+        return self
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -271,8 +301,11 @@ class TranscriberSettings(BaseModel):
     ``publisher`` chooses how ``publish`` hands a transcript over:
     ``directory`` (the default) writes it to ``publish_dir`` (default
     ``<data_dir>/published``), ``http`` posts it to the RAG as
-    ``publish_http`` says. ``api`` holds the HTTP API's limits and
-    ``tunnel`` the tunnel of ``transcriber serve``.
+    ``publish_http`` says. ``local_rag`` asks :func:`load_settings`
+    to post to the RAG of this machine (:meth:`with_local_rag`) when
+    ``publisher`` is not set and ``rag_token_file`` exists. ``api``
+    holds the HTTP API's limits and ``tunnel`` the tunnel of
+    ``transcriber serve``.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -287,10 +320,18 @@ class TranscriberSettings(BaseModel):
     publish_dir: Optional[Path] = None
     publisher: Publisher = "directory"
     publish_http: HttpPublishSettings = HttpPublishSettings()
+    local_rag: bool = False
+    rag_token_file: Path = DEFAULT_RAG_TOKEN_FILE
     api: ApiSettings = ApiSettings()
     tunnel: TunnelSettings = TunnelSettings()
     overlap_detector: OverlapDetectorName = "off"
     lab: LabSettings = LabSettings()
+
+    @model_validator(mode="after")
+    def _absolute_rag_token_file(self) -> "TranscriberSettings":
+        """Refuse a relative ``rag_token_file``."""
+        check_absolute(self.rag_token_file, "rag_token_file")
+        return self
 
     @model_validator(mode="after")
     def _http_needs_a_url(self) -> "TranscriberSettings":
@@ -315,6 +356,21 @@ class TranscriberSettings(BaseModel):
             )
         return self
 
+    def with_local_rag(self) -> "TranscriberSettings":
+        """Return these settings publishing to the RAG of this machine.
+
+        ``publisher: "http"`` to :data:`LOCAL_RAG_URL`, with the token
+        read from ``rag_token_file``; the other ``publish_http`` values
+        (time-out, retries) are kept.
+        """
+        http = HttpPublishSettings.model_validate({
+            **self.publish_http.model_dump(),
+            "url": LOCAL_RAG_URL, "token_file": self.rag_token_file,
+        })
+        return TranscriberSettings.model_validate({
+            **dict(self), "publisher": "http", "publish_http": http,
+        })
+
     def published(self) -> Path:
         """Return the directory published transcripts are written to."""
         if self.publish_dir is not None:
@@ -331,7 +387,10 @@ class TranscriberSettings(BaseModel):
 def load_settings(environ: Mapping[str, str]) -> TranscriberSettings:
     """Return the settings the environment ``environ`` describes.
 
-    Without any of the variables the defaults are returned. Raises
+    Without any of the variables the defaults are returned. With
+    ``local_rag`` on, no ``publisher`` given and ``rag_token_file``
+    present, the result publishes to the RAG of this machine
+    (:meth:`TranscriberSettings.with_local_rag`). Raises
     :class:`OSError` if the config file cannot be read and
     :class:`ValueError` (pydantic's ``ValidationError`` included) if it
     is not a JSON object or a value is invalid.
@@ -347,4 +406,10 @@ def load_settings(environ: Mapping[str, str]) -> TranscriberSettings:
         value = environ.get(variable)
         if value:
             fields[field] = value
-    return TranscriberSettings.model_validate(fields)
+    settings = TranscriberSettings.model_validate(fields)
+    if (
+        settings.local_rag and "publisher" not in fields
+        and settings.rag_token_file.expanduser().is_file()
+    ):
+        return settings.with_local_rag()
+    return settings

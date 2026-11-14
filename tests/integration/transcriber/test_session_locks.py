@@ -10,11 +10,16 @@ the serial ones.
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import pytest
 
 from tests.integration.transcriber.audio import sound_file, tone
+from tests.integration.transcriber.test_pipeline import (
+    enrol_ana,
+    record,
+    transcribe,
+)
 from tests.unit.transcriber.fakes import FakeLabData
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
 from transcriber.adapters.outbound.fake_models import (
@@ -37,8 +42,9 @@ from transcriber.application.record import (
     ImportRecording,
     OpenSession,
 )
+from transcriber.application.publish import PublishTranscript
 from transcriber.application.transcribe import TranscribeSession
-from transcriber.bootstrap import start_container
+from transcriber.bootstrap import build_container, start_container
 from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import StateError, TranscriberError
 from transcriber.domain.models import Session, SessionState, Transcript
@@ -238,3 +244,56 @@ def test_start_container_fails_interrupted_sessions(tmp_path: Path) -> None:
     assert container.sessions.get("running") is None
     with pytest.raises(TranscriberError):
         container.delete_session("running")
+
+
+class BlockingRag:
+    """The RAG's copies; ``publish`` waits until it is released."""
+
+    def __init__(self) -> None:
+        """Start empty, with the publish held."""
+        self.copies: Dict[str, Mapping[str, Any]] = {}
+        self.entered = threading.Event()
+        self.release = threading.Event()
+
+    def publish(self, document: Mapping[str, Any]) -> None:
+        """Say the POST is in flight, wait, then keep the copy."""
+        self.entered.set()
+        assert self.release.wait(WAIT)
+        self.copies[document["session"]["id"]] = document
+
+    def retract(self, session_id: str) -> None:
+        """Delete the copy (none is fine)."""
+        self.copies.pop(session_id, None)
+
+
+def test_a_delete_waits_for_a_publish_in_flight(tmp_path: Path) -> None:
+    """Without the lock the delete would retract first and the late
+    publish would leave a copy in the RAG of a session that is gone."""
+    container = build_container(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+    ))
+    try:
+        enrol_ana(container)
+        record(container, "equipo-a")
+        transcribe(container, "equipo-a")
+    finally:
+        container.runner.close(5.0)
+    rag = BlockingRag()
+    publish = PublishTranscript(container.sessions, rag, container.locks)
+    delete = DeleteSession(
+        container.sessions, container.locks, FakeLabData(), rag
+    )
+    publishing = threading.Thread(target=publish, args=("equipo-a",))
+    publishing.start()
+    assert rag.entered.wait(WAIT)
+    deleting = threading.Thread(target=delete, args=("equipo-a",))
+    deleting.start()
+    deleting.join(MEET)
+    assert deleting.is_alive()  # held back by the publish's lock
+    assert container.sessions.get("equipo-a") is not None
+    rag.release.set()
+    publishing.join(WAIT)
+    deleting.join(WAIT)
+    assert not publishing.is_alive() and not deleting.is_alive()
+    assert container.sessions.get("equipo-a") is None
+    assert rag.copies == {}

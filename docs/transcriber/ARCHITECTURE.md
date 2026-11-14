@@ -38,7 +38,7 @@ click it and hear it, starting a chosen number of seconds earlier.
 |---|---|
 | Two top-level packages in one repository: `src/` (RAG and analyzer) and `transcriber/` | Each is hexagonal on its own and can be tested, audited and reused alone; one repository keeps the contract, the CI and the history together. A test forbids imports between them in both directions. |
 | They share only `contracts/transcript.v1.schema.json` | A versioned data contract is the whole coupling. Each side validates against it in its own tests (contract tests). |
-| Asynchronous hand-over, started by the workstation | The workstation is behind NAT and often off; the server cannot call it. The transcriber *pushes* a finished transcript (`POST /transcripts` on the RAG) or writes it to a directory the RAG reads. No synchronous call from the RAG to the transcriber exists, so neither needs the other to be up. |
+| Asynchronous hand-over, started by the workstation | The workstation is behind NAT and often off; the server cannot call it. The transcriber *pushes* a finished transcript (`POST /transcripts` on the RAG) or writes it to a directory the RAG reads. No synchronous call from the RAG to the transcriber exists, so neither needs the other to be up. Deleting a session asks the RAG to delete its copy (`DELETE /transcripts/{id}`, best effort). Since TR-13 both run on the workstation and the hand-over goes over loopback (`docs/DEPLOYMENT.md`). |
 | Audio and voiceprints are stored only on the workstation | They are personal (voice is biometric) data. The contract carries text, times and ids. The player gets the audio from the transcriber's API; through rag.peer4u.app it crosses the server in transit and is not kept there (§5). |
 | One environment, dependency group `transcriber` | A second virtual environment would duplicate 5 GB of torch on a disk that is nearly full. The import ban keeps the packages independent anyway. |
 
@@ -72,7 +72,8 @@ transcriber/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
                      OverlapDetector,
                      SessionRepository, VoiceprintRepository,
-                     TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
+                     TranscriptPublisher, PublishedTranscripts, JobRunner,
+                     Progress, SessionLocks, Clock
     common.py        id checks and lookups shared by the use cases
     enrol.py         EnrolSpeaker, ForgetSpeaker, ShowEnrolmentText
     consent.py       ShowConsentNotice

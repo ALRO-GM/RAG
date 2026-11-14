@@ -30,6 +30,10 @@ repository (`docs/benchmarks/`, `experiments/`).
  workstation: python -m transcriber serve
               chisel client: R:0.0.0.0:9000 → 127.0.0.1:8770
               API on 127.0.0.1:8770, GPU, data/transcriber/ (audio, voiceprints, transcripts)
+              │ POST/DELETE /transcripts (loopback, bearer token)
+              ▼
+            python -m src serve (make rag-serve): RAG API on 127.0.0.1:8000,
+              data/transcripts/; not behind the tunnel, nothing of it on the server
 ```
 
 | Piece | Where | Who changes it |
@@ -42,6 +46,8 @@ repository (`docs/benchmarks/`, `experiments/`).
 | chisel client | `~/.local/share/ragputin/bin/chisel` (workstation) | `make tunnel-client` |
 | Tunnel credential | `~/.config/ragputin/tunnel-credential` (workstation, mode 600) | `make tunnel-secret` |
 | API, models, data | workstation | `make transcriber-serve` |
+| RAG API and its transcripts (`data/transcripts/`) | workstation, 127.0.0.1:8000 | `make rag-serve` |
+| RAG ingest token | `~/.config/ragputin/rag-token` (workstation, mode 600) | `make rag-token` |
 
 What the inner Caddy does for `/api/*`: it sets `X-Client-IP` to the
 caller's address (computed from the `X-Forwarded-For` the Peer4U Caddy
@@ -208,6 +214,67 @@ keeps the code across restarts; `SERVE_ARGS='--no-tunnel --dev-pages'`
 serves everything locally for development. Without the client or the
 credential, `serve` stops at once and says which `make` target to run.
 
+### The RAG on the workstation
+
+The RAG runs on the workstation too, never on the server (owner's
+decision of 2026-11-14): the server keeps only the pages and the
+tunnel. The transcriber hands transcripts to it over loopback.
+
+```sh
+make rag-token                     # once: ~/.config/ragputin/rag-token, mode 600
+make rag-serve TORCH=cuda          # RAG API on 127.0.0.1:8000
+TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-code'
+```
+
+- `make rag-token` makes the ingest token if it is missing (43 random
+  URL-safe characters, file mode 600, directory 700) and checks it if it
+  exists; it never prints it. Both services read it from that file, so
+  it never appears on a command line, in a log or in a setting.
+- `make rag-serve` runs `python -m src serve --host 127.0.0.1 --port
+  8000 --token_file ~/.config/ragputin/rag-token`. With `--token_file`
+  `serve` refuses any host that is not a loopback address, and refuses a
+  token file others may read. It needs the index (`make index`) like any
+  `serve`. It mounts `POST /transcripts`, `GET /transcripts/{id}` and
+  `DELETE /transcripts/{id}`, all behind the bearer token.
+- `TRANSCRIBER_LOCAL_RAG=1` makes the transcriber publish to
+  `http://127.0.0.1:8000` with the token from the same file, when that
+  file exists and the config file (`TRANSCRIBER_CONFIG`) sets no
+  `publisher`; otherwise the directory publisher stays the default and
+  `transcriber serve` says why on its first lines. Set it for the
+  terminal commands too (`publish`, `sessions delete`), since each reads
+  its own settings. Another RAG address or token file is set
+  explicitly: `"publisher": "http"`, `"publish_http": {"url": ...,
+  "token_file": "/abs/path"}`.
+- Retention: a transcript stays in `data/transcripts/` until its
+  session is deleted in the transcriber; a new publish of the same
+  session replaces it. Deleting a session (web or `sessions delete`)
+  with the HTTP publisher active then sends `DELETE
+  /transcripts/{id}` once (5 s at most, `publish_http.retract_timeout`)
+  while still holding the session's lock, which a publish also holds
+  until the RAG answers, so a publish in flight cannot leave a copy
+  behind. The RAG's `404` with `"code": "transcript_not_found"` (no
+  copy) is fine; any other `404` (a RAG without its transcript routes,
+  another service on the port) and every other failure (RAG stopped,
+  wrong token) is logged with the session id and the reason, never the
+  transcript, and does not undo the deletion; delete the file by hand
+  then. The directory publisher's files are not
+  touched by a deletion.
+- The tunnel forwards only `127.0.0.1:8770` (the transcriber); the RAG
+  listens on another port and on loopback only, so nothing reaches it
+  from outside the workstation (`tests/integration/test_rag_workstation.py`
+  checks the ports, the Makefile recipe and the bind guard).
+
+Check that a publish reached the RAG, on the workstation:
+
+```sh
+printf 'Authorization: Bearer %s\n' "$(cat ~/.config/ragputin/rag-token)" |
+  curl -s -H @- http://127.0.0.1:8000/transcripts/<session id> | head -c 300
+ls data/transcripts/            # <session id>.transcript.v1.json
+```
+
+(`printf` is a shell built-in and curl reads the header from its
+input, so the token is in no process's arguments.)
+
 ## Checking each hop
 
 | Hop | Check | Expected |
@@ -219,6 +286,7 @@ credential, `serve` stops at once and says which `make` target to run.
 | chisel server | `docker compose exec web wget -qO- http://tunnel:8080/health` | `OK` |
 | API through everything | `curl -s https://rag.peer4u.app/api/health` | `{"status":"ok"}` (502 `workstation_unavailable` when the workstation is off) |
 | Access code | open the join link | the sessions list |
+| RAG on the workstation | `curl -s http://127.0.0.1:8000/health` | `{"status":"ok",...}` |
 
 Locally, `python infra/tests/docker_proof.py` (also run by the tests
 when docker is available) builds the shape of `compose.yml` from local

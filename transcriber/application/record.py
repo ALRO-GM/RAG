@@ -4,13 +4,16 @@ A session recorded from the phone is opened, receives numbered audio
 chunks (:class:`AppendAudio`) and is closed, which makes it ready to
 transcribe. A recording made with another app is imported whole
 (:class:`ImportRecording`). :class:`DeleteSession` removes a session
-with everything derived from it, the model lab's data included. Each
+with everything derived from it, the model lab's data included, and
+asks the RAG to delete its copy when transcripts are published to it.
+Each
 use case reads and writes the session while holding its lock
 (:class:`~transcriber.application.ports.SessionLocks`), so concurrent
 requests and the job never interleave.
 """
 
 import hashlib
+import logging
 from typing import AbstractSet, Any, Dict, Optional, Sequence
 
 from pydantic import ValidationError
@@ -19,13 +22,18 @@ from transcriber.application.common import check_speaker_id, require_session
 from transcriber.application.ports import (
     PCM_SAMPLE_WIDTH,
     Clock,
+    PublishedTranscripts,
     RecordedAudio,
     SessionLabData,
     SessionLocks,
     SessionRepository,
 )
 from transcriber.domain.consent import NoticeKind, check_consent_version
-from transcriber.domain.errors import InvalidInputError, StateError
+from transcriber.domain.errors import (
+    InvalidInputError,
+    PublishError,
+    StateError,
+)
 from transcriber.domain.languages import check_language
 from transcriber.domain.models import Session, SessionState
 from transcriber.domain.sessions import (
@@ -35,6 +43,8 @@ from transcriber.domain.sessions import (
     move,
     with_chunk,
 )
+
+LOG = logging.getLogger(__name__)
 
 
 def _make_session(**fields: Any) -> Session:
@@ -258,11 +268,18 @@ class DeleteSession:
     def __init__(
         self, sessions: SessionRepository, locks: SessionLocks,
         lab: SessionLabData,
+        published: Optional[PublishedTranscripts] = None,
     ) -> None:
-        """Wire the ports; ``lab`` is what the model lab stored."""
+        """Wire the ports; ``lab`` is what the model lab stored.
+
+        ``published`` is the RAG's copy of the transcripts, when they
+        are published to it (``publisher: "http"``); ``None`` leaves
+        published transcripts where they are.
+        """
         self._sessions = sessions
         self._locks = locks
         self._lab = lab
+        self._published = published
 
     def __call__(self, session_id: str) -> None:
         """Delete the session in any state but ``running``.
@@ -273,6 +290,12 @@ class DeleteSession:
         run first). The lab's data goes first, so a failure leaves the
         session to delete again rather than lab data without a session
         (a new session with the same id would inherit it).
+
+        Once the session is gone, still holding its lock (so no publish
+        of the same id runs meanwhile), the RAG's copy of its transcript
+        is deleted too, on a best-effort basis: a failure is logged (the
+        session id and the reason, never the transcript) and the
+        deletion here stands.
         """
         with self._locks.hold(session_id):
             session = require_session(self._sessions, session_id)
@@ -289,3 +312,16 @@ class DeleteSession:
                 )
             self._lab.delete(session_id)
             self._sessions.delete(session_id)
+            if self._published is not None:
+                self._retract(session_id)
+
+    def _retract(self, session_id: str) -> None:
+        """Delete the RAG's copy; log (never raise) a failure."""
+        assert self._published is not None
+        try:
+            self._published.retract(session_id)
+        except PublishError as exc:
+            LOG.warning(
+                "Session %s was deleted, but not the RAG's copy: %s",
+                session_id, exc,
+            )

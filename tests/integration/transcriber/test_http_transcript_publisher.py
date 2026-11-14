@@ -54,6 +54,7 @@ class Received:
     def __init__(self, answers: List[Answer]) -> None:
         """Answer with ``answers`` in order, then always 201."""
         self.answers = list(answers)
+        self.extra: Dict[str, Any] = {}
         self.requests: List[Dict[str, Any]] = []
         self.lock = threading.Lock()
 
@@ -75,6 +76,7 @@ def handler_for(received: Received) -> type:
             body = self.rfile.read(length)
             with received.lock:
                 received.requests.append({
+                    "method": self.command,
                     "path": self.path,
                     "headers": dict(self.headers.items()),
                     "body": body,
@@ -82,7 +84,9 @@ def handler_for(received: Received) -> type:
             status, delay = received.next_answer()
             if delay:
                 time.sleep(delay)
-            reply = json.dumps({"detail": f"answer {status}"}).encode()
+            reply = json.dumps(
+                {"detail": f"answer {status}", **received.extra}
+            ).encode()
             try:
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
@@ -91,6 +95,10 @@ def handler_for(received: Received) -> type:
                 self.wfile.write(reply)
             except OSError:  # the client gave up waiting
                 pass
+
+        def do_DELETE(self) -> None:  # noqa: N802 - http.server's name
+            """Record a deletion like a POST (without a body)."""
+            self.do_POST()
 
         def log_message(self, *args: Any) -> None:
             """Keep the test output clean."""
@@ -307,3 +315,143 @@ def test_settings_choose_the_publisher(tmp_path: Path) -> None:
         HttpPublishSettings(url="rag.example")
     with pytest.raises(ValueError):
         HttpPublishSettings(token_env="A B")
+
+
+# -- deleting the RAG's copy ----------------------------------------------
+
+def test_retract_deletes_the_sessions_copy_once(rag: StandIn) -> None:
+    rag.answer((204, 0.0))
+    sender, waits = publisher(rag.url, retries=3)
+    sender.retract("demo-es")
+    [sent] = rag.received.requests
+    assert (sent["method"], sent["path"]) == (
+        "DELETE", "/rag/transcripts/demo-es"
+    )
+    assert sent["headers"]["Authorization"] == f"Bearer {TOKEN}"
+    assert sent["body"] == b"" and "Content-Type" not in sent["headers"]
+    assert waits == []
+
+
+def test_retracting_a_copy_the_rag_lacks_is_fine(rag: StandIn) -> None:
+    rag.answer((404, 0.0))
+    rag.received.extra = {"code": "transcript_not_found"}
+    sender, _ = publisher(rag.url)
+    sender.retract("demo-es")
+    assert len(rag.received.requests) == 1
+
+
+@pytest.mark.parametrize("extra", [{}, {"code": "something_else"}])
+def test_a_404_that_is_not_the_rags_is_a_failure(
+    rag: StandIn, extra: Dict[str, Any],
+) -> None:
+    """A route that does not exist (RAG without token, another service)."""
+    rag.answer((404, 0.0))
+    rag.received.extra = extra
+    sender, waits = publisher(rag.url, retries=3)
+    with pytest.raises(PublishError, match="answered 404 without saying"):
+        sender.retract("demo-es")
+    assert len(rag.received.requests) == 1 and waits == []
+
+
+def test_retract_waits_its_own_short_time(rag: StandIn) -> None:
+    rag.answer((204, 1.5))
+    sender, _ = publisher(rag.url, timeout=30.0, retract_timeout=0.3)
+    with pytest.raises(PublishError, match="no answer within 0.3 s"):
+        sender.retract("demo-es")
+
+
+@pytest.mark.parametrize("status, message", [
+    (401, r"\$RAG_TOKEN \(401\)"), (400, r"refused .*\(400\)"),
+    (503, "answered 503"),
+])
+def test_a_failed_retraction_is_reported_without_retries(
+    rag: StandIn, status: int, message: str,
+) -> None:
+    rag.answer((status, 0.0))
+    sender, waits = publisher(rag.url, retries=3)
+    with pytest.raises(PublishError, match=message) as error:
+        sender.retract("demo-es")
+    assert TOKEN not in str(error.value)
+    assert len(rag.received.requests) == 1
+    assert waits == []
+
+
+def test_retract_refuses_an_unreachable_rag_or_a_bad_id(
+    rag: StandIn,
+) -> None:
+    sender, _ = publisher(f"http://127.0.0.1:{free_port()}", retries=2)
+    with pytest.raises(PublishError, match="cannot reach"):
+        sender.retract("demo-es")
+    sender, _ = publisher(rag.url)
+    with pytest.raises(PublishError, match="Invalid session id"):
+        sender.retract("../demo-es")
+    sender, _ = publisher(rag.url, environ={})
+    with pytest.raises(PublishError, match=r"set \$RAG_TOKEN"):
+        sender.retract("demo-es")
+    assert rag.received.requests == []
+
+
+# -- the token from a private file ----------------------------------------
+
+FILE_TOKEN = "s3cret-token-for-tests-" * 2
+"""A token as ``make rag-token`` would write it (32+ safe characters)."""
+
+
+def token_file(
+    folder: Path, text: str = FILE_TOKEN, mode: int = 0o600
+) -> Path:
+    """Write ``text`` to ``folder/rag-token`` with ``mode``."""
+    path = folder / "rag-token"
+    path.write_text(text + "\n", encoding="utf-8")
+    path.chmod(mode)
+    return path
+
+
+def test_the_token_is_read_from_the_file(
+    rag: StandIn, tmp_path: Path,
+) -> None:
+    path = token_file(tmp_path)
+    sender, _ = publisher(rag.url, environ={}, token_file=path)
+    assert f"token from file {path}" in repr(sender)
+    sender.publish(example())
+    sender.retract("demo-es")
+    assert [r["headers"]["Authorization"] for r in rag.received.requests] \
+        == [f"Bearer {FILE_TOKEN}"] * 2
+
+
+def test_an_unsafe_token_file_sends_nothing(
+    rag: StandIn, tmp_path: Path,
+) -> None:
+    cases = [
+        (tmp_path / "missing", "make rag-token"),
+        (tmp_path, "not a regular file"),
+        (token_file(tmp_path, mode=0o640), "chmod 600"),
+    ]
+    for path, message in cases:
+        sender, _ = publisher(rag.url, token_file=path)
+        with pytest.raises(PublishError, match=message) as error:
+            sender.publish(example())
+        assert FILE_TOKEN not in str(error.value)
+    for text in ("", "short", "two words " * 4, "t\u00f6ken" * 8):
+        bad = token_file(tmp_path, text)
+        sender, _ = publisher(rag.url, token_file=bad)
+        with pytest.raises(PublishError, match="does not hold a token"):
+            sender.retract("demo-es")
+    assert rag.received.requests == []
+
+
+def test_the_settings_pass_the_token_file(tmp_path: Path) -> None:
+    http = TranscriberSettings(
+        data_dir=tmp_path, publisher="http",
+        publish_http=HttpPublishSettings(
+            url="http://127.0.0.1:8000", token_file=Path("~/t"),
+        ),
+    )
+    built = build_publisher(http, {})
+    assert isinstance(built, HttpTranscriptPublisher)
+    assert built.token_file == Path("~/t")
+    assert built.retract_timeout == 5.0
+    with pytest.raises(ValueError, match="token_file must be an absolute"):
+        HttpPublishSettings(token_file=Path("relative/t"))
+    with pytest.raises(ValueError, match="rag_token_file must be"):
+        TranscriberSettings(rag_token_file=Path("relative/t"))

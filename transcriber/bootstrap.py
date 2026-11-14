@@ -7,7 +7,8 @@ publisher) into every use case. Building it does no I/O and
 loads no model: directories are created on the first write and models
 on the first job, and the job runner unloads the models after every
 job. The publisher is the directory one or, with ``publisher:
-"http"``, the one that posts to the RAG (:func:`build_publisher`).
+"http"``, the one that posts to the RAG (:func:`build_publisher`); that
+one also deletes the RAG's copy when a session is deleted.
 :func:`start_container` is for the process that runs the jobs
 (the service): it builds the container and then fails the sessions a
 previous process left queued or running (:class:`RecoverSessions`).
@@ -342,6 +343,8 @@ def build_publisher(
             timeout=http.timeout, retries=http.retries,
             backoff_initial=http.backoff_initial,
             backoff_factor=http.backoff_factor,
+            token_file=http.token_file,
+            retract_timeout=http.retract_timeout,
         )
     return DirectoryTranscriptPublisher(settings.published())
 
@@ -405,7 +408,9 @@ def build_container(
             sessions, locks, recogniser.supported_languages
         ),
         delete_session=DeleteSession(
-            sessions, locks, LabSessionData(lab.repository, lab.status)
+            sessions, locks, LabSessionData(lab.repository, lab.status),
+            publisher if isinstance(publisher, HttpTranscriptPublisher)
+            else None,
         ),
         enrol_speaker=EnrolSpeaker(
             decoder, recogniser, encoder, voiceprints, clock, runner,
@@ -419,7 +424,7 @@ def build_container(
             sessions, voiceprints, runner, transcribe, locks
         ),
         transcription_status=status,
-        publish=PublishTranscript(sessions, publisher),
+        publish=PublishTranscript(sessions, publisher, locks),
         rename_speaker=RenameSpeaker(sessions, voiceprints, locks),
         reassign_utterance=ReassignUtterance(sessions, voiceprints, locks),
         recover_sessions=RecoverSessions(sessions, locks),

@@ -6,6 +6,7 @@ all logic lives in the application layer.
 """
 
 import functools
+import ipaddress
 import json
 import shutil
 import sys
@@ -71,6 +72,20 @@ def as_text(value: Any, name: str) -> str:
     if isinstance(value, tuple):
         return " ".join(str(v) for v in value)
     return str(value)
+
+
+def is_loopback(host: str) -> bool:
+    """Tell whether ``host`` is an address of this machine only.
+
+    ``host`` is taken as it is (no spaces stripped): it must be the very
+    value the server is given.
+    """
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def as_int(value: Any, name: str) -> int:
@@ -690,34 +705,60 @@ class RagCLI:
               f"(without results: {report.n_missing})")
 
     @safe_command
-    def serve(self, host: str = "127.0.0.1", port: int = 8000) -> None:
-        """Start the local HTTP API (OpenAPI docs at /docs)."""
+    def serve(
+        self, host: str = "127.0.0.1", port: int = 8000,
+        token_file: Optional[str] = None,
+    ) -> None:
+        """Start the local HTTP API (OpenAPI docs at /docs).
+
+        Args:
+            host: Address to listen on (default 127.0.0.1, this machine).
+            port: Port to listen on (default 8000).
+            token_file: File holding the ingest token of the transcript
+                routes (``make rag-token``; mode 600). Instead of
+                ``$RAG_TRANSCRIPTS_TOKEN``; the API then listens on a
+                loopback address only (the workstation's set-up).
+        """
         import os
 
         import uvicorn
 
         from src.adapters.inbound.http_api import TranscriptRoutes, create_app
+        from src.adapters.outbound.token_file import read_token_file
 
         port = as_int(port, "port")
         if not 0 < port < 65536:
             raise InvalidInputError("--port must be between 1 and 65535.")
+        host = as_text(host, "host").strip()
+        file_token = ""
+        if token_file is not None:
+            if not is_loopback(host):
+                raise InvalidInputError(
+                    f"With --token_file the API listens on this machine"
+                    f" only: use --host 127.0.0.1, not {host}."
+                )
+            file_token = read_token_file(
+                Path(as_text(token_file, "token_file"))
+            )
         app = self._app()
         snapshot = app.search.snapshot
         print(f"Index ready: {len(snapshot.chunks)} chunks, "
               f"mode {app.search.mode}")
-        token = app.transcripts_token(os.environ)
+        token = file_token or app.transcripts_token(os.environ)
         variable = app.settings.transcripts_token_env
+        source = f"file {token_file}" if file_token else f"${variable}"
         if token:
             print(f"Transcripts: POST /transcripts into "
-                  f"{app.settings.transcripts_dir} (token from ${variable})")
+                  f"{app.settings.transcripts_dir} (token from {source})")
         else:
-            print(f"Transcripts: routes off (set ${variable} to receive "
-                  "them)")
+            print(f"Transcripts: routes off (set ${variable} or "
+                  "--token_file to receive them)")
         routes = TranscriptRoutes(
-            app.ingest_transcript, app.show_transcript, token
+            app.ingest_transcript, app.show_transcript, token,
+            forget=app.forget_transcript,
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
-                    host=as_text(host, "host"), port=port)
+                    host=host, port=port)
 
     @safe_command
     def clear_cache(self) -> None:
