@@ -21,6 +21,7 @@ from transcriber.domain.voices import (
 )
 
 NormalisationName = Literal["unit", "centre_on_session"]
+IdentificationName = Literal["seeded", "cluster_then_match"]
 
 
 class TranscriptionParameters(BaseModel):
@@ -41,7 +42,15 @@ class TranscriptionParameters(BaseModel):
     not clustered (centring one voice would leave only its own
     variation to split).
     ``group_threshold``/``max_speakers``: clustering when the number of
-    people is unknown. ``match_threshold``/``normalisation``: matching
+    people is unknown. ``identification``: how voices get names when the
+    session has at least one voiceprint to compare with. ``seeded``
+    (:func:`~transcriber.domain.voices.seed_voices`): the voiceprints
+    claim the long windows at ``match_threshold`` first and only the
+    unclaimed windows are clustered, into anonymous voices;
+    ``cluster_then_match``: the voices are found first
+    (:func:`~transcriber.domain.voices.group_voices`) and each group is
+    then matched to a voiceprint. Without voiceprints the voices are
+    always found by clustering. ``match_threshold``/``normalisation``: matching
     groups to voiceprints. ``smoothing_run``: longest run of words
     flipped back to its neighbours' speaker. ``turn_gap``: silence
     (seconds) that starts a new turn. ``activity_frame``/
@@ -63,7 +72,13 @@ class TranscriptionParameters(BaseModel):
     0.003 (about -50 dBFS) were kept: they dropped 5 of 22,379 words
     said by a reader and 7 of the 56 words Whisper timed entirely
     inside a pause (clean read speech with digital silence between
-    turns, unlike a phone on a table).
+    turns, unlike a phone on a table). ``identification`` ``seeded``:
+    on the held-out readers, mean of the four enrolment conditions, it
+    put 91.4% of words on the right id against 86.1% for
+    cluster-then-match with the number of speakers given (both at 0.95,
+    the default ``match_threshold``, unit vectors); with it estimated
+    88.2% (at 0.92) against 82.6% (at 0.94), each at its own best
+    threshold on the tuning readers.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -83,6 +98,7 @@ class TranscriptionParameters(BaseModel):
         default=DEFAULT_MATCH_THRESHOLD, ge=-1, le=1
     )
     normalisation: NormalisationName = "unit"
+    identification: IdentificationName = "seeded"
     smoothing_run: int = Field(default=1, ge=0)
     turn_gap: float = Field(default=1.0, ge=0, allow_inf_nan=False)
     activity_frame: float = Field(default=0.025, gt=0, allow_inf_nan=False)

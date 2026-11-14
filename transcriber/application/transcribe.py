@@ -82,8 +82,12 @@ from transcriber.domain.speakers import (
 from transcriber.domain.voices import (
     Attribution,
     FloatArray,
+    SeededVoices,
     group_voices,
+    is_single_voice,
     match_voices,
+    name_seeded,
+    seed_voices,
 )
 
 # Stages reported to Progress, with the share of the job done when each
@@ -334,33 +338,53 @@ class TranscribeSession:
         regions = speech_regions(words, p.region_gap)
         coarse_windows = analysis_windows(regions, *p.coarse())
         fine_windows = analysis_windows(regions, *p.fine())
-        groups = group_voices(
-            self._embed(audio, coarse_windows),
-            self._embed(audio, fine_windows),
-            options.num_speakers, p.group_threshold, p.max_speakers,
-            p.centre_windows, p.single_voice_threshold,
-            p.single_voice_quantile,
-        )
-        if fine_windows:
-            spans = spans_from_windows(fine_windows, groups.fine)
-        else:
-            spans = spans_from_windows(coarse_windows, groups.coarse)
-        words = assign_speakers(words, spans)
-        if p.smoothing_run:
-            words = smooth_speakers(words, p.smoothing_run)
-        advance()  # identify
+        coarse = self._embed(audio, coarse_windows)
+        fine = self._embed(audio, fine_windows)
         # Only voiceprints of this voice model can be compared.
         candidates = expected_voiceprints(
             self._voiceprints, options, self.voice_model
         )
+        seeded: Optional[SeededVoices] = None
+        if (
+            p.identification == "seeded" and candidates.voiceprints
+            and coarse.shape[0]
+        ):
+            seeded = seed_voices(
+                coarse, fine, candidates.voiceprints, options.num_speakers,
+                p.match_threshold, p.normaliser(), p.group_threshold,
+                p.max_speakers, self._one_voice,
+            )
+            coarse_labels, fine_labels = seeded.coarse, seeded.fine
+            vectors = seeded.vectors
+        else:
+            groups = group_voices(
+                coarse, fine, options.num_speakers, p.group_threshold,
+                p.max_speakers, p.centre_windows, p.single_voice_threshold,
+                p.single_voice_quantile,
+            )
+            coarse_labels, fine_labels = groups.coarse, groups.fine
+            vectors = groups.vectors
+        if fine_windows:
+            spans = spans_from_windows(fine_windows, fine_labels)
+        else:
+            spans = spans_from_windows(coarse_windows, coarse_labels)
+        words = assign_speakers(words, spans)
+        if p.smoothing_run:
+            words = smooth_speakers(words, p.smoothing_run)
+        advance()  # identify
         if candidates.skipped:
             report.note(skipped_note(candidates.skipped))
         # Every enrolled id, compared or not, is kept off anonymous
         # labels.
         taken = {v.speaker_id for v in self._voiceprints.all()}
-        names = self._identify(
-            words, groups.vectors, candidates.voiceprints, taken
-        )
+        if seeded is not None:
+            names = self._name_seeded(
+                words, seeded, candidates.voiceprints, taken
+            )
+        else:
+            names = self._identify(
+                words, vectors, candidates.voiceprints, taken
+            )
         words = [
             w.model_copy(update={"speaker": names[w.speaker or ""].speaker})
             for w in words
@@ -398,6 +422,35 @@ class TranscribeSession:
         if not windows:
             return np.zeros((0, 0), dtype=np.float32)
         return self._encoder.embed(audio, windows)
+
+    def _one_voice(self, vectors: FloatArray) -> bool:
+        """The single-voice rule of the parameters (raw long windows)."""
+        p = self._parameters
+        return is_single_voice(
+            vectors, p.single_voice_threshold, p.single_voice_quantile
+        )
+
+    def _name_seeded(
+        self,
+        words: Sequence[Word],
+        seeded: SeededVoices,
+        candidates: Sequence[Voiceprint],
+        taken: AbstractSet[str],
+    ) -> Dict[str, Attribution]:
+        """Return the attribution of each label of ``words`` (seeded).
+
+        As in :meth:`_identify`, anonymous labels are numbered in order
+        of first appearance in the final words.
+        """
+        order = list(dict.fromkeys(w.speaker or "" for w in words))
+        group = {
+            speaker_label(n): n for n in range(seeded.vectors.shape[0])
+        }
+        named = name_seeded(
+            [group[label] for label in order], seeded, candidates,
+            self._parameters.normaliser(), taken,
+        )
+        return dict(zip(order, named))
 
     def _identify(
         self,

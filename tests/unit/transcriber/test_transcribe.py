@@ -354,6 +354,76 @@ class TestTranscribeSession:
         assert words[0].speaker == "S1"
 
 
+class TestSeededIdentification:
+    """The default: voiceprints seed the voices when there are any."""
+
+    def test_the_default_is_the_measured_better_method(self) -> None:
+        assert TranscriptionParameters().identification == "seeded"
+
+    def test_all_enrolled(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        w.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = w.run()
+        assert turns(transcript) == [
+            ("ana", None), ("luis", "ana"), ("ana", "luis"),
+        ]
+        assert all(u.speaker_confidence is not None
+                   and u.speaker_confidence > 0.9
+                   for u in transcript.utterances)
+
+    def test_one_unenrolled_voice_stays_anonymous(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        transcript = w.run()
+        assert turns(transcript) == [
+            ("ana", None), ("S1", "ana"), ("ana", "S1"),
+        ]
+        assert [(s.id, s.enrolled) for s in transcript.speakers] == [
+            ("ana", True), ("S1", False),
+        ]
+        assert {u.speaker_confidence for u in transcript.utterances
+                if u.speaker == "S1"} == {None}
+
+    def test_an_enrolled_person_absent_gets_no_words(self) -> None:
+        w = world()
+        for name, index in (("ana", 0), ("luis", 1), ("eva", 4)):
+            w.voiceprints.enrol(name, voice(index))
+        transcript = w.run(TranscriptionOptions(
+            expected_speakers=["ana", "luis", "eva"], num_speakers=3,
+        ))
+        assert {wd.speaker for wd in w.sessions.words("s1")} == {
+            "ana", "luis",
+        }
+        assert "eva" not in [s.id for s in transcript.speakers]
+
+    def test_one_enrolled_speaker_alone(self) -> None:
+        w = world(monologue())
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        transcript = w.run()
+        assert turns(transcript) == [("ana", None)]
+        assert {wd.speaker for wd in w.sessions.words("s1")} == {"ana"}
+
+    def test_the_voiceprints_win_over_a_wrong_count(self) -> None:
+        """What tells the strategies apart: seeding does not let a count
+        of one merge two enrolled people."""
+        w = world()
+        w.voiceprints.enrol("ana", voice(0))
+        w.voiceprints.enrol("luis", voice(1))
+        seeded = w.run(TranscriptionOptions(num_speakers=1))
+        assert [s.id for s in seeded.speakers] == ["ana", "luis"]
+        old = world(parameters=TranscriptionParameters(
+            identification="cluster_then_match"))
+        old.voiceprints.enrol("ana", voice(0))
+        old.voiceprints.enrol("luis", voice(1))
+        merged = old.run(TranscriptionOptions(num_speakers=1))
+        assert len(merged.speakers) == 1
+
+    def test_without_voiceprints_the_voices_are_clustered(self) -> None:
+        w = world()
+        assert turns(w.run()) == [("S1", None), ("S2", "S1"), ("S1", "S2")]
+
+
 class TestSingleSpeaker:
     def test_a_monologue_is_one_anonymous_speaker(self) -> None:
         w = world(monologue())
@@ -543,8 +613,10 @@ class TestFailures:
         w.queue("s1", TranscriptionOptions(expected_speakers=["ana"]))
         w.voiceprints.delete("ana")
         w.runner.run_all()
+        # The voiceprints are read where the voices are found (they seed
+        # them), so the voices stage notices.
         assert w.sessions.sessions["s1"].failure == (
-            "identify: No enrolled speaker ana."
+            "voices: No enrolled speaker ana."
         )
 
     def test_a_refused_job_fails_the_session(self) -> None:

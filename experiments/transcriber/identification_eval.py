@@ -44,6 +44,7 @@ import time
 import unicodedata
 import urllib.request
 from collections import Counter, defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import (
     Any,
@@ -70,7 +71,7 @@ from transcriber.application.ports import Audio
 from transcriber.domain.activity import heard_words, speech_activity
 from transcriber.domain.enrolment import SampleRules, enrolment_vector
 from transcriber.domain.errors import SampleRejectedError
-from transcriber.domain.models import Word
+from transcriber.domain.models import Voiceprint, Word
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.speakers import (
     SpeakerSpan,
@@ -90,7 +91,7 @@ from transcriber.domain.voices import (
     cluster_speakers,
     group_voices,
     match_voices,
-    nearest_voice,
+    seed_voices,
     unit_rows,
     unit_vectors,
     voice_centroids,
@@ -754,23 +755,25 @@ def name_words(labelled: Labelled, prints: Dict[str, FloatArray],
                threshold: float, normalisation: Normalisation,
                taken: Set[str]) -> List[str]:
     """Return the final speaker of each word (cluster then match)."""
-    from transcriber.domain.models import Voiceprint
-    from datetime import datetime, timezone
-
     order = list(dict.fromkeys(w.speaker or "" for w in labelled.words))
     rows = {speaker_label(n): n for n in range(labelled.vectors.shape[0])}
-    voiceprints = [
-        Voiceprint(speaker_id=k, model="m", vector=[float(x) for x in v],
-                   consent_version="1",
-                   enrolled_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
-        for k, v in prints.items()
-    ]
+    voiceprints = voiceprints_of(prints)
     matched = match_voices(
         labelled.vectors[[rows[label] for label in order]], voiceprints,
         threshold, normalisation, taken=taken,
     )
     names = dict(zip(order, [m.speaker for m in matched]))
     return [names[w.speaker or ""] for w in labelled.words]
+
+
+def voiceprints_of(prints: Dict[str, FloatArray]) -> List[Voiceprint]:
+    """Wrap the study's enrolment vectors as domain voiceprints."""
+    return [
+        Voiceprint(speaker_id=k, model="m", vector=[float(x) for x in v],
+                   consent_version="1",
+                   enrolled_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
+        for k, v in prints.items()
+    ]
 
 
 def guided_words(rec: Recording, prints: Dict[str, FloatArray],
@@ -780,58 +783,22 @@ def guided_words(rec: Recording, prints: Dict[str, FloatArray],
                  taken: Set[str]) -> List[str]:
     """Return the final speaker of each word, voiceprints as seeds.
 
-    Each long window takes the enrolled person it is most similar to
-    when the cosine (after ``normalisation`` of windows and voiceprints)
-    reaches ``threshold``. The windows nobody claims are clustered as
-    the pipeline does (centred on the recording's mean) into the
-    people still missing when ``count`` is known, or by the clustering
-    threshold (and the single-voice rule) when it is not; with no
-    people missing they go to the nearest claimed person. Short windows
-    then take the nearest group, as in the pipeline's second pass.
+    The voices come from the pipeline's own
+    :func:`~transcriber.domain.voices.seed_voices` (the method this
+    study measured; it was a private copy here before): each long window
+    takes the enrolled person it is most similar to when the cosine
+    (after ``normalisation``) reaches ``threshold``, the windows nobody
+    claims are clustered into anonymous voices, and the short windows
+    take the nearest group.
     """
-    ids = list(prints)
-    matrix = np.vstack([prints[i] for i in ids]).astype(np.float32)
-    windows, enrolled = normalisation(rec.coarse, matrix)
-    similarity = windows @ enrolled.T
-    best = similarity.argmax(axis=1)
-    claimed = similarity.max(axis=1) >= threshold
-    people = sorted({int(b) for b, c in zip(best, claimed) if c})
-    labels = [-1] * rec.coarse.shape[0]
-    for i, (b, c) in enumerate(zip(best.tolist(), claimed.tolist())):
-        if c:
-            labels[i] = people.index(int(b))
-    free = [i for i, c in enumerate(claimed.tolist()) if not c]
-    mean = rec.coarse.mean(axis=0).astype(np.float32)
-    centred = centre(rec.coarse, mean)
-    if free:
-        missing = None if count is None else count - len(people)
-        if missing is not None and missing <= 0 and people:
-            anchor = np.vstack([
-                centred[[i for i, v in enumerate(labels) if v == k]].mean(
-                    axis=0) for k in range(len(people))])
-            near = nearest_voice(centred[free], unit_rows(anchor))
-            for i, k in zip(free, near):
-                labels[i] = k
-        else:
-            sub = rec.coarse[free]
-            if missing is None and single(sub):
-                anon = [0] * len(free)
-            elif missing is None:
-                anon = cluster_speakers(centred[free], None,
-                                        p.group_threshold, p.max_speakers)
-            else:
-                anon = cluster_speakers(centred[free],
-                                        max(missing, 1), p.group_threshold,
-                                        p.max_speakers)
-            for i, a in zip(free, anon):
-                labels[i] = len(people) + a
-    names_of = {k: ids[people[k]] for k in range(len(people))}
-    centroids = voice_centroids(centred, labels)
+    seeded = seed_voices(
+        rec.coarse, rec.fine, voiceprints_of(prints), count, threshold,
+        normalisation, p.group_threshold, p.max_speakers, single,
+    )
     if rec.fine_windows:
-        fine = nearest_voice(centre(rec.fine, mean), centroids)
-        spans = spans_from_windows(rec.fine_windows, fine)
+        spans = spans_from_windows(rec.fine_windows, seeded.fine)
     else:
-        spans = spans_from_windows(rec.coarse_windows, labels)
+        spans = spans_from_windows(rec.coarse_windows, seeded.coarse)
     words = assign_speakers(rec.words, spans)
     if p.smoothing_run:
         words = smooth_speakers(words, p.smoothing_run)
@@ -840,8 +807,8 @@ def guided_words(rec: Recording, prints: Dict[str, FloatArray],
     anon_number = 1
     for label in order:
         number = int(label.split("_")[1]) - 1
-        if number in names_of:
-            final[label] = names_of[number]
+        if number in seeded.people:
+            final[label] = seeded.people[number]
         else:
             while f"S{anon_number}" in taken:
                 anon_number += 1

@@ -21,7 +21,9 @@ from transcriber.domain.voices import (
     centre_on_session,
     cluster_speakers,
     match_voices,
+    name_seeded,
     nearest_voice,
+    seed_voices,
     unit_rows,
     unit_vectors,
     voice_centroids,
@@ -372,3 +374,130 @@ class TestNormalisation:
         )
         assert session.shape == (0, 2)
         assert np.allclose(enrolled, [[0.0, 1.0]])
+
+
+def axis(index: int, width: int = 4, wobble: float = 0.0) -> List[float]:
+    """A voice along one axis, with a little of the next one."""
+    vector = [0.0] * width
+    vector[index] = 1.0
+    vector[(index + 1) % width] = wobble
+    return vector
+
+
+def windows(*rows: Sequence[float]) -> FloatArray:
+    """Window embeddings, one per row (none: no windows of width 4)."""
+    if not rows:
+        return np.zeros((0, 4), dtype=np.float32)
+    out: FloatArray = np.array(rows, dtype=np.float32)
+    return out
+
+
+class TestSeedVoices:
+    """Voiceprints as seeds (TR-05's better method)."""
+
+    def test_every_voice_enrolled(self) -> None:
+        coarse = windows(axis(0), axis(0, wobble=0.1), axis(1), axis(0))
+        fine = windows(axis(0), axis(1), axis(1, wobble=0.1), axis(0))
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1))]
+        seeded = seed_voices(coarse, fine, prints, threshold=0.9)
+        assert seeded.coarse == [0, 0, 1, 0]
+        assert seeded.fine == [0, 1, 1, 0]
+        assert seeded.people == {0: "ana", 1: "luis"}
+        named = name_seeded([0, 1], seeded, prints)
+        assert [(a.speaker, a.enrolled) for a in named] == [
+            ("ana", True), ("luis", True),
+        ]
+        assert named[0].similarity is not None
+        assert named[0].similarity > 0.99
+
+    def test_an_unenrolled_voice_stays_anonymous(self) -> None:
+        coarse = windows(axis(0), axis(2), axis(2, wobble=0.05), axis(0))
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1))]
+        seeded = seed_voices(coarse, windows(), prints, threshold=0.9)
+        assert seeded.people == {0: "ana"}
+        assert seeded.coarse == [0, 1, 1, 0]
+        assert seeded.fine == []
+        named = name_seeded([0, 1], seeded, prints, taken={"S1"})
+        assert [(a.speaker, a.enrolled) for a in named] == [
+            ("ana", True), ("S2", False),
+        ]
+        assert named[1].similarity is None
+        assert named[1].nearest is not None
+
+    def test_an_absent_enrolled_person_gets_nothing(self) -> None:
+        coarse = windows(axis(0), axis(1), axis(0))
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1)),
+                  print_of("eva", *axis(3))]
+        seeded = seed_voices(coarse, windows(), prints, num_speakers=3,
+                             threshold=0.9)
+        assert set(seeded.people.values()) == {"ana", "luis"}
+        assert "eva" not in seeded.people.values()
+
+    def test_one_enrolled_speaker_alone(self) -> None:
+        coarse = windows(*[axis(0, wobble=w) for w in (0.0, 0.05, 0.1)])
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1))]
+        seeded = seed_voices(coarse, windows(), prints, threshold=0.9)
+        assert seeded.coarse == [0, 0, 0]
+        assert seeded.people == {0: "ana"}
+
+    def test_with_nobody_missing_unclaimed_windows_join_the_nearest(
+        self,
+    ) -> None:
+        # A window nobody claims (a cough) when both present are known.
+        coarse = windows(axis(0), axis(1), axis(0), [0.6, 0.1, 0.6, 0.0])
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1))]
+        seeded = seed_voices(coarse, windows(), prints, num_speakers=2,
+                             threshold=0.95)
+        assert seeded.people == {0: "ana", 1: "luis"}
+        assert seeded.coarse[:3] == [0, 1, 0]
+        assert seeded.coarse[3] in (0, 1)
+        assert seeded.vectors.shape == (2, 4)
+
+    def test_the_one_voice_rule_keeps_unclaimed_windows_together(
+        self,
+    ) -> None:
+        coarse = windows(axis(0), axis(2), axis(3), axis(2))
+        prints = [print_of("ana", *axis(0))]
+        asked: List[int] = []
+
+        def one_voice(vectors: FloatArray) -> bool:
+            asked.append(int(vectors.shape[0]))
+            return True
+
+        seeded = seed_voices(coarse, windows(), prints, threshold=0.9,
+                             one_voice=one_voice)
+        assert asked == [3]
+        assert seeded.coarse == [0, 1, 1, 1]
+        apart = seed_voices(coarse, windows(), prints, threshold=0.9,
+                            group_threshold=0.5)
+        assert len(set(apart.coarse)) == 3
+
+    def test_a_count_splits_the_unclaimed_windows(self) -> None:
+        coarse = windows(axis(0), axis(2), axis(3), axis(2))
+        prints = [print_of("ana", *axis(0))]
+        seeded = seed_voices(coarse, windows(), prints, num_speakers=2,
+                             threshold=0.9)
+        assert seeded.coarse == [0, 1, 1, 1]
+
+    def test_nothing_to_seed(self) -> None:
+        prints = [print_of("ana", *axis(0))]
+        empty = seed_voices(np.zeros((0, 4), np.float32),
+                            np.zeros((0, 4), np.float32), prints)
+        assert empty.coarse == [] and empty.people == {}
+        with pytest.raises(InvalidInputError, match="at least one"):
+            seed_voices(windows(axis(0)), windows(), [])
+
+    @pytest.mark.parametrize("coarse, fine, count, message", [
+        (np.zeros(4, np.float32), np.zeros((0, 4), np.float32), None,
+         "2-D"),
+        (windows(axis(0)), windows([1.0, 0.0]), None, "differ"),
+        (windows(axis(0)), windows(), 0, "at least 1"),
+        (windows([1.0, 0.0]), windows(), None, "different sizes"),
+    ])
+    def test_wrong_input(
+        self, coarse: FloatArray, fine: FloatArray, count: object,
+        message: str,
+    ) -> None:
+        with pytest.raises(InvalidInputError, match=message):
+            seed_voices(coarse, fine, [print_of("ana", *axis(0))],
+                        num_speakers=count)  # type: ignore[arg-type]

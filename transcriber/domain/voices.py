@@ -6,6 +6,10 @@ anonymous voices (:func:`cluster_speakers`, :func:`voice_centroids`,
 :func:`match_voices` then pairs each group with at most one enrolled
 :class:`~transcriber.domain.models.Voiceprint`; the groups left over get
 anonymous labels ``S1``, ``S2``, ...
+When voiceprints are available, :func:`seed_voices` is the other way
+(measured better in TR-05): the voiceprints claim windows first and only
+the unclaimed windows are clustered, into anonymous voices
+(:func:`name_seeded` names the groups).
 
 How embeddings are normalised before they are compared is a parameter
 (:data:`Normalisation`): centring on the mean of a recording, which
@@ -407,6 +411,158 @@ def match_voices(
         else:
             attributions.append(Attribution(
                 group=group, speaker=anonymous.pop(0), enrolled=False,
+                nearest=near_id, nearest_similarity=near_sim,
+            ))
+    return attributions
+
+
+class SeededVoices(NamedTuple):
+    """The voices of a recording found by :func:`seed_voices`.
+
+    ``coarse``, ``fine`` and ``vectors`` are as in :class:`VoiceGroups`
+    (group ``i`` is row ``i`` of ``vectors``). ``people`` gives the
+    enrolled id of each group a voiceprint claimed; the other groups are
+    voices nobody enrolled.
+    """
+
+    coarse: List[int]
+    fine: List[int]
+    vectors: FloatArray
+    people: Dict[int, str]
+
+
+def seed_voices(
+    coarse: FloatArray,
+    fine: FloatArray,
+    voiceprints: Sequence[Voiceprint],
+    num_speakers: Optional[int] = None,
+    threshold: float = DEFAULT_MATCH_THRESHOLD,
+    normalisation: Normalisation = unit_vectors,
+    group_threshold: float = 0.5,
+    max_speakers: int = 10,
+    one_voice: Optional[Callable[[FloatArray], bool]] = None,
+) -> SeededVoices:
+    """Find the voices of a recording with the voiceprints as seeds.
+
+    The method TR-05 measured best (``docs/transcriber/
+    IDENTIFICATION.md``, "voiceprints as seeds"):
+
+    1. each long window (``coarse``) takes the enrolled person it is
+       most similar to, when the cosine after ``normalisation`` (of the
+       windows and the voiceprints) reaches ``threshold``; every person
+       claimed by at least one window is a group;
+    2. the windows nobody claims are clustered as :func:`group_voices`
+       does, on vectors centred on the recording's mean: into the
+       people still missing when ``num_speakers`` is known, else by
+       ``group_threshold`` (at most ``max_speakers``), or as one voice
+       when ``one_voice`` says so. With nobody missing (``num_speakers``
+       known and reached) they go to the nearest claimed person;
+    3. each short window (``fine``) takes the nearest group centroid.
+
+    Groups are numbered claimed people first (in voiceprint order),
+    then the unclaimed voices. ``vectors`` are the raw unit means of the
+    groups' long windows. Raises :class:`InvalidInputError` like
+    :func:`group_voices`, or without any voiceprint.
+    """
+    if not voiceprints:
+        raise InvalidInputError("Seeding needs at least one voiceprint.")
+    if coarse.ndim != 2 or fine.ndim != 2:
+        raise InvalidInputError("Window embeddings must be 2-D arrays.")
+    if num_speakers is not None and num_speakers < 1:
+        raise InvalidInputError("num_speakers must be at least 1.")
+    width = int(coarse.shape[1])
+    if coarse.shape[0] == 0:
+        return SeededVoices([], [], np.zeros((0, width), np.float32), {})
+    if fine.shape[0] and fine.shape[1] != width:
+        raise InvalidInputError("Long and short windows differ in size.")
+    if any(len(v.vector) != width for v in voiceprints):
+        raise InvalidInputError(
+            "Voiceprints and session voices have different sizes."
+        )
+    ids = [v.speaker_id for v in voiceprints]
+    matrix = np.array([v.vector for v in voiceprints], dtype=np.float32)
+    windows, enrolled = normalisation(coarse.astype(np.float32), matrix)
+    similarity = windows @ enrolled.T
+    best = similarity.argmax(axis=1).tolist()
+    claimed = (similarity.max(axis=1) >= threshold).tolist()
+    people = sorted({int(b) for b, c in zip(best, claimed) if c})
+    labels = [people.index(int(b)) if c else -1
+              for b, c in zip(best, claimed)]
+    free = [i for i, c in enumerate(claimed) if not c]
+    mean: FloatArray = coarse.mean(axis=0).astype(np.float32)
+    centred = centre(coarse, mean)
+    if free:
+        missing = None if num_speakers is None else num_speakers - len(people)
+        if missing is not None and missing <= 0 and people:
+            anchors = np.vstack([
+                centred[[i for i, v in enumerate(labels) if v == k]].mean(
+                    axis=0) for k in range(len(people))
+            ])
+            for i, k in zip(free, nearest_voice(centred[free],
+                                                unit_rows(anchors))):
+                labels[i] = k
+        else:
+            if missing is None and one_voice is not None and one_voice(
+                    coarse[free]):
+                others = [0] * len(free)
+            else:
+                others = cluster_speakers(
+                    centred[free],
+                    None if missing is None else max(missing, 1),
+                    group_threshold, max_speakers,
+                )
+            for i, a in zip(free, others):
+                labels[i] = len(people) + a
+    centroids = voice_centroids(centred, labels)
+    short = nearest_voice(centre(fine, mean), centroids) if fine.shape[0] \
+        else []
+    return SeededVoices(
+        labels, short, voice_centroids(unit_rows(coarse), labels),
+        {k: ids[people[k]] for k in range(len(people))},
+    )
+
+
+def name_seeded(
+    order: Sequence[int],
+    seeded: SeededVoices,
+    voiceprints: Sequence[Voiceprint],
+    normalisation: Normalisation = unit_vectors,
+    taken: AbstractSet[str] = frozenset(),
+) -> List[Attribution]:
+    """Attribute the groups of :func:`seed_voices` in ``order``.
+
+    ``order`` lists group numbers in order of first appearance in the
+    final words; attribution ``i`` is for ``order[i]`` (its ``group``
+    is ``i``, as with :func:`match_voices`). A group a voiceprint
+    claimed gets that person, with the cosine between the group's
+    vector and the voiceprint (after ``normalisation``) as its
+    similarity; the others get ``S1``, ``S2``, ... in order, skipping
+    the ids of ``voiceprints`` and ``taken``.
+    """
+    ids = [v.speaker_id for v in voiceprints]
+    anonymous = _anonymous_labels(
+        sum(1 for g in order if g not in seeded.people), set(ids) | taken
+    )
+    similarity = np.zeros((len(order), len(ids)), dtype=np.float64)
+    if order and ids:
+        matrix = np.array([v.vector for v in voiceprints], dtype=np.float32)
+        groups, prints = normalisation(seeded.vectors[list(order)], matrix)
+        similarity = np.clip(groups @ prints.T, -1.0, 1.0).astype(np.float64)
+    attributions: List[Attribution] = []
+    for row, group in enumerate(order):
+        near = int(np.argmax(similarity[row])) if ids else None
+        near_id = ids[near] if near is not None else None
+        near_sim = float(similarity[row, near]) if near is not None else None
+        person = seeded.people.get(group)
+        if person is not None:
+            attributions.append(Attribution(
+                group=row, speaker=person, enrolled=True,
+                similarity=float(similarity[row, ids.index(person)]),
+                nearest=near_id, nearest_similarity=near_sim,
+            ))
+        else:
+            attributions.append(Attribution(
+                group=row, speaker=anonymous.pop(0), enrolled=False,
                 nearest=near_id, nearest_similarity=near_sim,
             ))
     return attributions

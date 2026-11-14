@@ -393,12 +393,23 @@ fáciles. Las cifras salen de `docs/skills/AUDIO.md`, sección 2:
 - Esas cifras son **optimistas**: voz leída, limpia, una persona cada
   vez, con pausas, sin interrupciones. Un teléfono en una mesa, con
   distancia, ruido y gente hablando a la vez, será peor.
-- **Aún no se ha medido en una reunión real** ni con el registro de voz
-  (el reconocimiento de personas por voz registrada). Hay un estudio
-  con registro de voz en marcha, pero aún no hay resultados: no hay
-  todavía cifras para decir cuánto acierta con
-  personas registradas. Hasta entonces, trata los nombres como una
-  propuesta.
+- **Con voces registradas** hay un estudio (`docs/transcriber/IDENTIFICATION.md`),
+  también con voz leída: 20 reuniones sintéticas de cuatro lectores
+  reservadas para medir (no se usaron para elegir nada). Con el método
+  que usa ahora el programa (las voces registradas sirven de punto de
+  partida para separar las voces), el **91,4 %** de las palabras quedó
+  con la persona correcta cuando se dice cuántas personas hay (86,1 %
+  con el método anterior), y el **88,2 %** si lo tiene que estimar
+  (medido con el umbral 0,92; el programa usa 0,95).
+- Cuando una persona **sin registrar** está en la reunión, el 17,5 % de
+  sus palabras acabó con el nombre de alguien registrado (40,8 % con el
+  método anterior), contando las veces en que se dijo cuántas personas
+  había.
+- **Aún no se ha medido en una reunión real.** Las mismas reservas de
+  arriba valen aquí, y una más: en el estudio cada lector tenía su
+  propio micrófono, y eso ayuda a distinguir las voces; alrededor de un
+  solo teléfono será más difícil. Trata los nombres como una propuesta
+  y compruébalos con el audio.
 
 ---
 

@@ -332,11 +332,26 @@ a regression either.
 | `activity_frame` / `activity_threshold` | 0.025 / 0.003 | kept | drops no real word on `dev` (§5) |
 | `group_threshold` | 0.5 | kept | no value suits both two-voice recordings and meetings (§2) |
 
-**Recommended next step (not done here):** voiceprints as seeds beat
-cluster then match by 5–6 points on held-out readers and named far
-fewer strangers when the count is given (§3.2, §3.3). It changes the
-voice stage of `TranscribeSession`, so it belongs in its own ticket,
-with this script as its measurement.
+**What the pipeline uses now.** Voiceprints as seeds is the default
+of `TranscriptionParameters.identification` (`"seeded"`;
+`"cluster_then_match"` keeps the previous method). It applies whenever
+the session has at least one voiceprint to compare with (the expected
+people, or everyone enrolled with the same voice model); with none, the
+voices are clustered as before. The pipeline calls
+`transcriber.domain.voices.seed_voices` (and `name_seeded` for the
+labels), and so does this script now, instead of its own copy, with
+the same `match_threshold` (0.95 by default) and `unit` vectors: the
+"given" row above (91.4% on `test`) is the default's setting; the
+"estimated" row (88.2%) is at 0.92, its best on `dev`, not at the
+default. Unclaimed windows are clustered into anonymous voices (`S1`,
+`S2`, ...) on vectors centred on the recording's mean, whatever
+`centre_windows` says.
+
+After the switch to the domain function the cache was rebuilt
+(`prepare`, on the GPU) and `analyse --what identification` rerun
+(18 min 37 s on the workstation): `identification.jsonl` came out
+byte-identical (6,922 rows), so every figure above stands for the
+pipeline's own code.
 
 ## 7. Limits
 
