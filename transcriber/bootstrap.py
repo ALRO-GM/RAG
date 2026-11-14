@@ -9,6 +9,8 @@ on the first job, and the job runner unloads the models after every
 job. :func:`start_container` is for the process that runs the jobs
 (the service): it builds the container and then fails the sessions a
 previous process left queued or running (:class:`RecoverSessions`).
+:func:`build_tunnel` and :func:`access_code` give ``transcriber serve``
+its SSH tunnel and its access code.
 """
 
 import logging
@@ -16,6 +18,11 @@ from dataclasses import dataclass
 from typing import Optional, Protocol, Tuple
 
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
+from transcriber.adapters.outbound.fs_access_code import (
+    code_file,
+    kept_access_code,
+    new_access_code,
+)
 from transcriber.adapters.outbound.fake_models import (
     FakeSpeechRecogniser,
     FakeVoiceEncoder,
@@ -29,6 +36,7 @@ from transcriber.adapters.outbound.fs_transcript_publisher import (
 from transcriber.adapters.outbound.fs_voiceprint_repository import (
     FileSystemVoiceprintRepository,
 )
+from transcriber.adapters.outbound.ssh_tunnel import SshTunnel
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
 from transcriber.adapters.outbound.thread_session_locks import (
@@ -55,6 +63,7 @@ from transcriber.application.ports import (
     SessionRepository,
     SpeechRecogniser,
     TranscriptPublisher,
+    Tunnel,
     VoiceEncoder,
     VoiceprintRepository,
 )
@@ -231,3 +240,21 @@ def start_container(
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)
     return container
+
+
+def build_tunnel(settings: TranscriberSettings, port: int) -> Tunnel:
+    """Return the SSH tunnel to the server for the API on ``port``."""
+    return SshTunnel(settings.tunnel, port)
+
+
+def access_code(settings: TranscriberSettings, keep: bool) -> str:
+    """Return a fresh access code, or with ``keep`` the kept one.
+
+    The kept code lives in ``<data_dir>/access_code`` (mode 600) and is
+    made on first use; see
+    :func:`~transcriber.adapters.outbound.fs_access_code.kept_access_code`
+    for when it is refused.
+    """
+    if keep:
+        return kept_access_code(code_file(settings.data_dir))
+    return new_access_code()

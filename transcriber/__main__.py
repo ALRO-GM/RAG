@@ -1,13 +1,13 @@
-"""Entry point: ``uv run python -m transcriber <command> [options]``."""
+"""Entry point: ``uv run --no-sync python -m transcriber <command> ...``."""
+
+import sys
 
 
 def main() -> None:
-    """Run the Fire CLI."""
-    import fire
+    """Run the command line and exit with its code."""
+    from transcriber.adapters.inbound.cli import main as run
 
-    from transcriber.adapters.inbound.cli import TranscriberCLI
-
-    fire.Fire(TranscriberCLI(), name="transcriber")
+    sys.exit(run())
 
 
 if __name__ == "__main__":

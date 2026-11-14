@@ -11,6 +11,7 @@ K           ?= 10
 SCOPE       ?= UnansweredQuestions
 DATASETS    := docs code
 SUITE       ?= tune_all
+SERVE_ARGS  ?=
 
 # Server that hosts the results site (the domain resolves to it).
 DEPLOY_TARGET ?= ubuntu@rag.peer4u.app
@@ -19,7 +20,7 @@ REMOTE_DIR    := /opt/ragputin
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
 	install-cuda system system-benchmark study coverage ci site site-serve \
-	deploy-site infra-up infra-proxy
+	deploy-site infra-up infra-proxy transcriber-serve transcriber-test
 
 install:
 	uv sync
@@ -117,6 +118,17 @@ test:
 
 test-slow:
 	uv run pytest -q -m slow
+
+## transcriber-serve: the transcriber API, the tunnel to the server and
+## the join link with a QR code, e.g. make transcriber-serve TORCH=cuda
+## SERVE_ARGS='--keep-code' (or SERVE_ARGS='--no-tunnel' for local use).
+transcriber-serve:
+	$(PYTHON) -m transcriber serve $(SERVE_ARGS)
+
+## transcriber-test: the fast transcriber tests (fake models, no network).
+transcriber-test:
+	uv run pytest -q tests/unit/transcriber \
+		tests/integration/transcriber
 
 ## coverage: fast tests with branch coverage (fails under the gate).
 coverage:

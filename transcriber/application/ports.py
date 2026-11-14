@@ -13,6 +13,7 @@ from typing import (
     Callable,
     ContextManager,
     List,
+    Literal,
     Mapping,
     Optional,
     Protocol,
@@ -301,4 +302,42 @@ class Clock(Protocol):
 
     def now(self) -> datetime:
         """Return the current, timezone-aware time."""
+        ...
+
+
+TunnelState = Literal["stopped", "connecting", "connected", "reconnecting"]
+
+
+class TunnelStatus(BaseModel):
+    """Where the tunnel to the server is, and why it is not up.
+
+    ``reason`` says why the last connection ended (while
+    ``reconnecting``) or what the last clean-up reported.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    state: TunnelState = "stopped"
+    reason: Optional[str] = None
+
+    def describe(self) -> str:
+        """Return the status as one line: ``reconnecting (why)``."""
+        if self.reason and self.state == "reconnecting":
+            return f"{self.state} ({self.reason})"
+        return self.state
+
+
+class Tunnel(Protocol):
+    """The connection that makes the local API reachable from outside."""
+
+    def start(self) -> None:
+        """Open the tunnel and keep it open until :meth:`stop`."""
+        ...
+
+    def stop(self) -> None:
+        """Close the tunnel and stop reopening it."""
+        ...
+
+    def status(self) -> TunnelStatus:
+        """Return where the tunnel is now."""
         ...

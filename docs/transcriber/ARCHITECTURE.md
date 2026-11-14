@@ -173,6 +173,20 @@ supervises the SSH reverse forward that creates the socket on the
 server, and prints the join link and a QR code. The phone opens the
 link in its browser; nothing is installed.
 
+The tunnel is the system `ssh` client run by a supervisor thread
+(`adapters/outbound/ssh_tunnel.py`, settings `tunnel.*`): a clean-up
+connection `ssh <target> true` (the key's forced command removes a
+stale socket), then `ssh -N -R <socket>:127.0.0.1:<port>` with
+`ExitOnForwardFailure`, strict host-key checking and the dedicated key;
+when it ends it is reopened with capped exponential back-off. The
+access code is new at every start, or kept in
+`data/transcriber/access_code` (mode 600) with `serve --keep-code` so a
+printed QR keeps working. `--no-tunnel` prints an
+`http://127.0.0.1:<port>/#k=<code>` link for local development. Settings
+come from `TRANSCRIBER_CONFIG` (a JSON file), `TRANSCRIBER_DATA_DIR`,
+`TRANSCRIBER_RUNTIME` (`fake` runs every command without torch) and
+`TRANSCRIBER_DEVICE`.
+
 | Concern | Decision |
 |---|---|
 | Microphone access needs HTTPS | The domain's real certificate. No self-signed certificate, no browser warning. |
