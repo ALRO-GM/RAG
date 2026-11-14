@@ -30,7 +30,7 @@ def entry(**fields: Any) -> Dict[str, Any]:
         "id": None, "stage": None, "family": None, "display_name": None,
         "source_url": None, "licence": None, "licence_commercial": True,
         "gated": False, "token_url": None, "languages": ["any"],
-        "vram_gb": None, "parameters": {}, "weights": [],
+        "vram_gb": None, "parameters": {}, "minimums": {}, "weights": [],
         "weights_mb": None, "notes": "", "lineage": None, "revision": 1,
     }
     unknown = set(fields) - set(base)
@@ -246,6 +246,7 @@ ENTRIES: List[Dict[str, Any]] = [
         vram_gb=1.4,
         parameters={"num_speakers": None, "max_speakers": None,
                     "window": 1.5, "hop": 0.75},
+        minimums={"window": 0.01, "hop": 0.01},
         weights=["speechbrain/spkrec-ecapa-voxceleb"], weights_mb=89,
         notes="The lab's own simple diarizer, not a published recipe:"
               " energy speech mask, 1.5 s ECAPA windows every 0.75 s,"

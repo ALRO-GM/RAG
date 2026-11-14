@@ -604,3 +604,25 @@ class FixedClock:
     def now(self) -> datetime:
         """Return the stopped time."""
         return self.when
+
+
+class FakeLabData:
+    """The lab's data of sessions: active run ids and deletions.
+
+    ``active`` maps a session id to the runs reported queued or
+    running; ``deleted`` lists the sessions whose data was removed, in
+    order.
+    """
+
+    def __init__(self, active: Optional[Dict[str, List[str]]] = None) -> None:
+        """Start with ``active`` runs (none by default)."""
+        self.active: Dict[str, List[str]] = dict(active or {})
+        self.deleted: List[str] = []
+
+    def active_runs(self, session_id: str) -> List[str]:
+        """Return the session's active runs."""
+        return list(self.active.get(session_id, []))
+
+    def delete(self, session_id: str) -> None:
+        """Remember the deletion."""
+        self.deleted.append(session_id)

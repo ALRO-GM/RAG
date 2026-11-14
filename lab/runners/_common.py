@@ -135,7 +135,15 @@ def resample(samples: np.ndarray, source: int, target: int) -> np.ndarray:
 
 
 def pieces(samples: Any, piece: int, rate: int, run: Any) -> Any:
-    """Apply ``run`` to overlapping pieces and cross-fade them (1 s)."""
+    """Apply ``run`` to overlapping pieces and cross-fade them (1 s).
+
+    ``piece`` is the step between pieces in samples; one below 1 would
+    never reach the end, so it is a ``bad_input`` error.
+    """
+    if piece < 1:
+        raise RunnerError(
+            "bad_input", f"a piece must hold at least one sample, not {piece}"
+        )
     fade = rate
     out = np.zeros(len(samples), dtype=np.float32)
     weight = np.zeros(len(samples), dtype=np.float32)

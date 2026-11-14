@@ -210,6 +210,13 @@ def test_refusals(client: TestClient) -> None:
                             json={"diarizers": ["nope"]})) == "invalid_input"
     assert code(client.post("/api/lab/sessions/s1/runs",
                             json={"diarizers": []})) == "invalid_request"
+    for value in (0, -1, {"n": 2}):
+        bad = client.post("/api/lab/sessions/s1/runs", json={
+            "diarizers": ["fake-diarize"],
+            "params": {"fake-diarize": {"num_speakers": value}},
+        })
+        assert (bad.status_code, code(bad)) == (400, "invalid_input")
+    assert client.get("/api/lab/sessions/s1/runs").json()["runs"] == []
     assert code(client.post("/api/lab/sessions/zz/runs", json={})) \
         == "not_found"
     assert code(client.get("/api/lab/sessions/s1/runs/bad")) \
@@ -243,6 +250,56 @@ def test_a_failing_and_a_cancelled_run(client: TestClient,
     cancelled = client.post(f"/api/lab/sessions/s1/runs/{slow['id']}/cancel")
     assert cancelled.status_code == 200
     assert wait(client, slow["id"])["state"] == "cancelled"
+
+
+def recording() -> RecordedAudio:
+    """A short recording to import as a session."""
+    return RecordedAudio(sound_file(tone(5.0), 16000, "wav"), "wav")
+
+
+def test_deleting_a_session_deletes_its_lab_data(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    run = client.post("/api/lab/sessions/s1/runs", json={
+        "denoisers": ["none", "fake-denoise"], "diarizers": ["fake-diarize"],
+        "recognisers": ["fake-asr"],
+    }).json()
+    assert wait(client, run["id"])["state"] == "done"
+    labelled = client.put("/api/lab/sessions/s1/labels", json={"labels": [
+        {"start": 0, "end": 6, "kind": "person", "speakers": ["ana"]},
+    ]})
+    assert labelled.status_code == 200, labelled.text
+    audio = f"/api/lab/sessions/s1/runs/{run['id']}/audio/none"
+    assert client.get(audio).status_code == 200
+    lab_dir = container.settings.data_dir / "lab" / "s1"
+    assert (lab_dir / "original.json").is_file()
+    assert client.delete("/api/sessions/s1").status_code == 204
+    assert not lab_dir.exists()
+    container.import_recording("s1", "es", recording())
+    assert client.get("/api/lab/sessions/s1/runs").json()["runs"] == []
+    assert client.get("/api/lab/sessions/s1/labels").json()["labels"] == []
+    assert client.get(audio).status_code == 404
+    assert client.get(
+        f"/api/lab/sessions/s1/runs/{run['id']}/results"
+    ).status_code == 404
+
+
+def test_a_session_with_an_active_lab_run_is_not_deleted(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    slow = client.post("/api/lab/sessions/s1/runs",
+                       json={"diarizers": ["fake-slow"]}).json()
+    refused = client.delete("/api/sessions/s1")
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "wrong_state"
+    assert "lab run" in refused.json()["message"]
+    assert client.get(f"/api/lab/sessions/s1/runs/{slow['id']}").json()[
+        "state"
+    ] in ("queued", "running")
+    client.post(f"/api/lab/sessions/s1/runs/{slow['id']}/cancel")
+    assert wait(client, slow["id"])["state"] == "cancelled"
+    assert client.delete("/api/sessions/s1").status_code == 204
+    assert not (container.settings.data_dir / "lab" / "s1").exists()
 
 
 class TestCli:

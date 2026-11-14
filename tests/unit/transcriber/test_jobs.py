@@ -5,6 +5,7 @@ from typing import Optional
 import pytest
 
 from tests.unit.transcriber.fakes import (
+    FakeLabData,
     FakeSessionLocks,
     FakeSessionRepository,
     FixedClock,
@@ -60,7 +61,7 @@ class TestRunIds:
         w = world()
         w.upload("s")
         w.queue("s", TranscriptionOptions(num_speakers=5))
-        DeleteSession(w.sessions, w.locks)("s")
+        DeleteSession(w.sessions, w.locks, FakeLabData())("s")
         w.upload("s")
         w.queue("s", TranscriptionOptions(num_speakers=2))
         assert len(w.runner.pending) == 2
@@ -181,7 +182,7 @@ class TestRecoverSessions:
         w.queue("s1")
         w.runner.run_all()
         assert w.sessions.sessions["s1"].state is S.DONE
-        DeleteSession(w.sessions, w.locks)("s1")
+        DeleteSession(w.sessions, w.locks, FakeLabData())("s1")
         assert w.sessions.get("s1") is None
 
     def test_other_sessions_are_left_alone(self) -> None:
@@ -246,7 +247,7 @@ class TestDeleteSession:
         w = world()
         w.upload()
         session_in(w, state)
-        DeleteSession(w.sessions, w.locks)("s1")
+        DeleteSession(w.sessions, w.locks, FakeLabData())("s1")
         assert w.sessions.get("s1") is None
 
     def test_not_while_running(self) -> None:
@@ -254,7 +255,7 @@ class TestDeleteSession:
         w.upload()
         session_in(w, S.RUNNING)
         with pytest.raises(StateError, match="being transcribed"):
-            DeleteSession(w.sessions, w.locks)("s1")
+            DeleteSession(w.sessions, w.locks, FakeLabData())("s1")
         assert w.sessions.get("s1") is not None
 
 
@@ -283,8 +284,8 @@ class TestLocks:
         )
         w.queue("rec")
         RecoverSessions(sessions, locks)()
-        DeleteSession(sessions, locks)("rec")
-        DeleteSession(sessions, locks)("s1")
+        DeleteSession(sessions, locks, FakeLabData())("rec")
+        DeleteSession(sessions, locks, FakeLabData())("s1")
         assert sessions.unlocked_writes == []
         assert locks.held == {}
         assert {"rec", "s1"} <= set(locks.taken)

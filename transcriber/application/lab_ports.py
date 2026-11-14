@@ -213,3 +213,7 @@ class LabRepository(Protocol):
     ) -> None:
         """Replace the session's reference labels."""
         ...
+
+    def delete_session(self, session_id: str) -> None:
+        """Remove everything stored for the session (nothing: no error)."""
+        ...

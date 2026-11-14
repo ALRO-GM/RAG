@@ -306,6 +306,22 @@ class FileSystemLabRepository:
         write_json(self._session(session_id) / "labels.json",
                    [label.model_dump(mode="json") for label in labels])
 
+    # --------------------------------------------------------- session
+
+    def delete_session(self, session_id: str) -> None:
+        """Remove the session's lab directory (absent: nothing to do).
+
+        The id is checked before the path is made. A file written
+        meanwhile (a stage finishing) may survive the first pass: the
+        tree is removed once more, and then any error is raised.
+        """
+        directory = child_path(self._root, session_id, SESSION_ID_PATTERN,
+                               "session")
+        if directory.is_dir():
+            shutil.rmtree(directory, ignore_errors=True)
+            if directory.exists():
+                shutil.rmtree(directory)
+
 
 def _pcm(audio: Audio) -> "np.ndarray[Any, np.dtype[np.int16]]":
     """Return ``audio`` as 16-bit PCM at 16 kHz (resampled if needed)."""

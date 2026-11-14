@@ -166,6 +166,19 @@ class FakeLabRepository:
         """Keep the labels."""
         self.stored_labels[session_id] = list(labels)
 
+    def delete_session(self, session_id: str) -> None:
+        """Forget the session's original, runs, results and labels.
+
+        Stage outcomes, mappings and audio are keyed by content here,
+        not by session, so they stay (the fake shares them).
+        """
+        self.originals.pop(session_id, None)
+        self.stored_labels.pop(session_id, None)
+        for run_id in [r.id for r in self.runs(session_id)]:
+            del self.stored_runs[run_id]
+            self.stored_results.pop(run_id, None)
+            self.cancels.discard(run_id)
+
 
 Answer = Callable[[ToolRequest], StageOutcome]
 

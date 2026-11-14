@@ -22,6 +22,7 @@ on, so a result is computed once and reused by every run that needs it.
 
 import hashlib
 import json
+import math
 import re
 from datetime import datetime
 from typing import (
@@ -118,7 +119,10 @@ class CatalogueEntry(BaseModel):
     non-commercial use only: they may be evaluated, and every result
     shows the flag. ``gated`` models need the owner's Hugging Face
     token after accepting their conditions at ``token_url``.
-    ``parameters`` are the defaults a run may override. ``lineage``
+    ``parameters`` are the defaults a run may override (see
+    :func:`check_override` for what an override may be);
+    ``minimums`` gives a numeric parameter an inclusive lower bound in
+    place of the default rule "greater than 0". ``lineage``
     groups near-duplicates (same method, other weights) for the
     consensus vote; it defaults to the id. ``revision`` is raised when
     the runner's output for this model changes (a fix): from 2 on it is
@@ -139,11 +143,25 @@ class CatalogueEntry(BaseModel):
     languages: List[str] = Field(default_factory=list)
     vram_gb: Optional[float] = Field(default=None, ge=0)
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    minimums: Dict[str, float] = Field(default_factory=dict)
     weights: List[str] = Field(default_factory=list)
     weights_mb: Optional[float] = Field(default=None, ge=0)
     notes: str = ""
     lineage: Optional[str] = None
     revision: int = Field(default=1, ge=1)
+
+    @model_validator(mode="after")
+    def _known_minimums(self) -> "CatalogueEntry":
+        """Reject a minimum that is not finite or of no declared parameter."""
+        unknown = sorted(set(self.minimums) - set(self.parameters))
+        if unknown:
+            raise ValueError(
+                f"minimum of undeclared parameter {', '.join(unknown)}"
+            )
+        for name, value in self.minimums.items():
+            if not math.isfinite(value):
+                raise ValueError(f"the minimum of {name} must be finite")
+        return self
 
     @property
     def vote_group(self) -> str:
@@ -467,6 +485,83 @@ def stage_key(
     return hashlib.sha1(document.encode("utf-8")).hexdigest()
 
 
+def _is_number(value: Any) -> bool:
+    """Tell whether ``value`` is an int or a float (a bool is not)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _kind(value: Any) -> str:
+    """Return the JSON type of ``value`` in words, for a message."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "a boolean"
+    if isinstance(value, int):
+        return "an integer"
+    if isinstance(value, float):
+        return "a number"
+    if isinstance(value, str):
+        return "a string"
+    if isinstance(value, list):
+        return "a list"
+    return "an object"
+
+
+def _type_fits(default: Any, value: Any) -> bool:
+    """Tell whether ``value`` has the type of the catalogue ``default``.
+
+    A bool is not a number; an int fits a float default (JSON may write
+    ``10`` for ``10.0``) but a float never fits an int default. A
+    ``null`` default (the model chooses) takes ``null``, a bool, a
+    number, a string or a list of strings. A list or object default
+    cannot be overridden.
+    """
+    if default is None:
+        if isinstance(value, list):
+            return all(isinstance(item, str) for item in value)
+        return value is None or isinstance(value, (bool, int, float, str))
+    if isinstance(default, bool):
+        return isinstance(value, bool)
+    if isinstance(default, int):
+        return isinstance(value, int) and not isinstance(value, bool)
+    if isinstance(default, float):
+        return _is_number(value)
+    if isinstance(default, str):
+        return isinstance(value, str)
+    return False
+
+
+def check_override(entry: CatalogueEntry, name: str, value: Any) -> Any:
+    """Return ``value`` if it may override ``entry``'s parameter ``name``.
+
+    The parameter must be declared and the value must have the type of
+    its catalogue default (:func:`_type_fits`). A number must be finite
+    and greater than 0, or at least the catalogue's minimum for it when
+    one is declared (``entry.minimums``): a zero step or piece would
+    make a runner loop forever. Anything else is an
+    :class:`InvalidInputError`.
+    """
+    if name not in entry.parameters:
+        raise InvalidInputError(f"Model {entry.id} has no parameter {name}.")
+    default = entry.parameters[name]
+    where = f"Parameter {name} of {entry.id}"
+    if not _type_fits(default, value):
+        if default is None:
+            raise InvalidInputError(f"{where} cannot be {_kind(value)}.")
+        raise InvalidInputError(
+            f"{where} must be {_kind(default)}, not {_kind(value)}."
+        )
+    if _is_number(value):
+        minimum = entry.minimums.get(name)
+        if not math.isfinite(value):
+            raise InvalidInputError(f"{where} must be finite.")
+        if minimum is None and value <= 0:
+            raise InvalidInputError(f"{where} must be greater than 0.")
+        if minimum is not None and value < minimum:
+            raise InvalidInputError(f"{where} must be at least {minimum:g}.")
+    return value
+
+
 def merged_params(
     entry: CatalogueEntry, overrides: Mapping[str, Any],
     standard: Mapping[str, Any],
@@ -476,13 +571,16 @@ def merged_params(
     The catalogue defaults, then the standard values the service
     passes (``language``, ``num_speakers``) where the model declares
     them, then the run's overrides of declared parameters. An override
-    of an undeclared parameter is an :class:`InvalidInputError`.
+    of an undeclared parameter, or one :func:`check_override` refuses,
+    is an :class:`InvalidInputError`.
     """
     unknown = sorted(set(overrides) - set(entry.parameters))
     if unknown:
         raise InvalidInputError(
             f"Model {entry.id} has no parameter {', '.join(unknown)}."
         )
+    for name, value in overrides.items():
+        check_override(entry, name, value)
     values = dict(entry.parameters)
     for key, value in standard.items():
         if key in values and value is not None:

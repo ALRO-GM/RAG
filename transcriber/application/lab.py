@@ -511,6 +511,36 @@ class ListLabRuns:
         ]
 
 
+class LabSessionData:
+    """What the lab stored for a session, as ``ports.SessionLabData``.
+
+    :class:`~transcriber.application.record.DeleteSession` uses it to
+    refuse while a run is active and to delete the lab's data.
+    """
+
+    def __init__(
+        self, repository: LabRepository, status: LabRunStatus
+    ) -> None:
+        """Wire the ports."""
+        self._repository = repository
+        self._status = status
+
+    def active_runs(self, session_id: str) -> List[str]:
+        """Return the ids of runs that are queued or running.
+
+        The state is the reported one: a run whose process died is
+        ``interrupted``, not active, so it never blocks a deletion.
+        """
+        return [
+            run.id for run in self._repository.runs(session_id)
+            if self._status.state(run) in ACTIVE
+        ]
+
+    def delete(self, session_id: str) -> None:
+        """Remove the session's lab directory."""
+        self._repository.delete_session(session_id)
+
+
 def voiceprint_fingerprint(voiceprints: Sequence[Voiceprint]) -> str:
     """Return a short hash of the voiceprints (ids, models, vectors)."""
     data = json.dumps(
