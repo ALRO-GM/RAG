@@ -64,3 +64,16 @@ class ModelLoadError(TranscriberError):
 
 class AccessCodeError(TranscriberError):
     """The kept access code cannot be used."""
+
+
+class LabStepError(TranscriberError):
+    """A lab tool could not produce its stage result.
+
+    ``code`` is one of :data:`transcriber.domain.lab.ErrorCode`
+    (``needs_token``, ``out_of_memory``...), stable for the pages.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        """Keep the code with the message."""
+        super().__init__(message)
+        self.code = code

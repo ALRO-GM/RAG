@@ -1,0 +1,11 @@
+# speechbrain: `uv pip freeze` of the built environment (layered on
+# the project's; the project's packages are not listed).
+charset-normalizer==3.5.2
+hyperpyyaml==1.2.3
+requests==2.34.2
+ruamel-yaml==0.18.17
+ruamel-yaml-clib==0.2.15
+sentencepiece==0.2.3
+speechbrain==1.1.2
+torchaudio==2.11.1
+urllib3==2.8.0

@@ -1,0 +1,2 @@
+speechbrain==1.1.2
+torchaudio==2.11.1

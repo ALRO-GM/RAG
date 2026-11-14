@@ -38,3 +38,23 @@ export function keepFocus(root, render) {
   render();
   if (key) root.querySelector(`[data-focus-key="${CSS.escape(key)}"]`)?.focus();
 }
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Create an SVG element: attributes are set as presentation attributes (never `style`). */
+export function svg(tag, attrs = {}, ...children) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined || value === null || value === false) continue;
+    if (key.length > 2 && key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
+    else el.setAttribute(key, String(value));
+  }
+  append(el, children);
+  return el;
+}
+
+/** Replace an element's children (strings, nodes, arrays; null and false skipped). */
+export function fill(el, ...children) {
+  el.replaceChildren();
+  append(el, children);
+}

@@ -1,0 +1,12 @@
+# speechbrain: packages beyond the project's environment.
+# Written by `python3 lab/envs/build.py --compile`; installed
+# with --no-deps into an env layered on the project's.
+charset-normalizer==3.5.2
+hyperpyyaml==1.2.3
+requests==2.34.2
+ruamel-yaml==0.18.17
+ruamel-yaml-clib==0.2.15
+sentencepiece==0.2.3
+speechbrain==1.1.2
+torchaudio==2.11.1
+urllib3==2.8.0

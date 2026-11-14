@@ -26,7 +26,8 @@ TUNNEL_USERS      ?= $(HOME)/.config/ragputin/tunnel-users.json
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
 	install-cuda system system-benchmark study coverage ci site \
-	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test
+	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test \
+	lab-env lab-envs lab-selftest
 
 install:
 	uv sync
@@ -171,6 +172,29 @@ tunnel-client:
 tunnel-secret:
 	python3 -I infra/tunnel_setup.py secret --credential $(TUNNEL_CREDENTIAL) \
 		--users $(TUNNEL_USERS)
+
+# The model lab's environments (docs/transcriber/LAB.md): one per tool
+# family, outside the repository, layered on the project's .venv (which
+# is only read, never changed).
+LAB_ENVS ?= $(HOME)/.local/share/ragputin/lab-envs
+FAMILY   ?=
+
+## lab-env: create or update one lab environment, e.g. make lab-env
+## FAMILY=nemo (installs lab/envs/<family>/requirements.txt with uv,
+## records requirements.lock, runs the runner's --selftest).
+lab-env:
+	@test -n "$(FAMILY)" || { echo "make lab-env FAMILY=<name>"; exit 2; }
+	python3 -I lab/envs/build.py $(FAMILY) --envs-dir $(LAB_ENVS)
+
+## lab-envs: create or update every lab environment; a family that
+## fails is reported and the others go on.
+lab-envs:
+	python3 -I lab/envs/build.py --all --envs-dir $(LAB_ENVS)
+
+## lab-selftest: run each built lab environment's runner --selftest
+## (imports only: no weights, no network) and refresh its ready marker.
+lab-selftest:
+	python3 -I lab/envs/build.py --selftest --all --envs-dir $(LAB_ENVS)
 
 clean:
 	find . -name __pycache__ -type d -not -path "./.venv/*" -prune \

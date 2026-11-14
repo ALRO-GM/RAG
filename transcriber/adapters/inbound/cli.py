@@ -492,6 +492,15 @@ class Commands:
             self.output.line(guide.reading or chosen.template)
         return 0
 
+    def lab(self, args: argparse.Namespace) -> int:
+        """List the lab's models, run a suite, list or summarise runs."""
+        from transcriber.adapters.inbound.lab_cli import LabCommands
+
+        lab = self.container.lab
+        if lab is None:  # pragma: no cover - always built
+            raise UsageError("The lab is not available.")
+        return LabCommands(lab, self.output, WAIT_POLL_SECONDS).run(args)
+
 
 def _json_flag(parser: argparse.ArgumentParser) -> None:
     """Add ``--json`` to ``parser``."""
@@ -619,6 +628,10 @@ def build_parser() -> argparse.ArgumentParser:
                       help="language of the text (default: es)")
     text.add_argument("--name", help="fill the text with this name")
     _json_flag(text)
+
+    from transcriber.adapters.inbound.lab_cli import add_lab_parser
+
+    add_lab_parser(commands, _json_flag)
     return parser
 
 
@@ -634,6 +647,7 @@ HANDLERS: Dict[str, Callable[[Commands, argparse.Namespace], int]] = {
     "publish": Commands.publish,
     "speakers": Commands.speakers,
     "enrolment-text": Commands.enrolment_text,
+    "lab": Commands.lab,
 }
 
 

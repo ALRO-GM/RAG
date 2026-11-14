@@ -1,0 +1,15 @@
+# ClearerVoice-Studio (clearvoice, installed unresolved: it pins numpy<2,
+# soundfile 0.12 and pulls torchvision/opencv for its video models) needs:
+librosa==0.11.0
+einops==0.8.2
+rotary-embedding-torch==0.8.3
+torchinfo==1.8.0
+yamlargparse==1.31.1
+pydub==0.25.1
+# DeepFilterNet (deepfilternet, installed unresolved: it pins numpy<2) needs:
+deepfilterlib==0.5.6
+loguru==0.7.3
+appdirs==1.4.4
+torchaudio==2.11.1
+# RNNoise
+pyrnnoise==0.4.5

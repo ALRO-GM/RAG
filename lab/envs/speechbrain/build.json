@@ -1,0 +1,11 @@
+{
+  "comment": "torchaudio 2.11.1's compiled extension is built for torch 2.11 and does not load with the project's torch 2.14.1; without the .so files torchaudio falls back to its pure-Python code (its _load_lib returns False when the file is absent), which is all pyannote needs.",
+  "post_install": [
+    [
+      "{python}",
+      "-I",
+      "-c",
+      "import importlib.util, pathlib; s = importlib.util.find_spec('torchaudio'); d = pathlib.Path(list(s.submodule_search_locations)[0]) / 'lib'; [p.unlink() for p in d.glob('*.so')]; print('removed the torchaudio extension')"
+    ]
+  ]
+}

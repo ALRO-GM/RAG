@@ -1,0 +1,10 @@
+# ctranslate2: packages beyond the project's environment.
+# Written by `python3 lab/envs/build.py --compile`; installed
+# with --no-deps into an env layered on the project's.
+coloredlogs==15.0.1
+ctranslate2==4.9.0
+faster-whisper==1.2.1
+flatbuffers==25.12.19
+humanfriendly==10.0
+onnxruntime==1.23.2
+protobuf==7.36.2

@@ -1,0 +1,3 @@
+# Nemotron-3-Diarization is in the project's transformers (5.20.2, model
+# type nemotron3_diarization); its feature extractor needs librosa.
+librosa==0.11.0

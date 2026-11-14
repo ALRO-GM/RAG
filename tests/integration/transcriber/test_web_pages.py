@@ -110,7 +110,9 @@ def parse(path: Path) -> Page:
 def test_the_web_directory_has_the_pages() -> None:
     names = {p.relative_to(WEB).as_posix() for p in web_files()}
     for needed in ("index.html", "style.css", "js/main.js",
-                   "js/worklet/recorder-processor.js"):
+                   "js/worklet/recorder-processor.js", "js/lib/lab.js",
+                   "js/views/lab.js", "js/views/lab-run.js",
+                   "js/views/lab-timeline.js", "js/views/lab-review.js"):
         assert needed in names
 
 
@@ -245,3 +247,16 @@ def test_the_pure_logic_passes_its_node_tests() -> None:
         cwd=ROOT, capture_output=True, text=True, check=False, timeout=300,
     )
     assert done.returncode == 0, done.stdout[-3000:] + done.stderr[-2000:]
+
+
+def test_the_lab_tab_is_reachable_and_keeps_the_code_out_of_urls() -> None:
+    """The nav links to the tab; the lab views never put the code in a URL.
+
+    The audio address carries only the playback cookie (set by
+    ``POST /api/access/cookie``), never the access code.
+    """
+    assert 'href="#/lab"' in (WEB / "index.html").read_text(encoding="utf-8")
+    assert "labView" in (WEB / "js" / "main.js").read_text(encoding="utf-8")
+    for path in sorted((WEB / "js" / "views").glob("lab*.js")):
+        text = path.read_text(encoding="utf-8")
+        assert "getCode" not in text and "X-Access-Code" not in text, path
