@@ -72,7 +72,7 @@ explicit = true
 
 [tool.mypy]
 python_version = "3.10"
-exclude = ["^data/", "^\\.venv/", "^moulinette/"]
+exclude = ["^data/", "^\\.venv/", "^moulinette/", "^\\.claude/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
