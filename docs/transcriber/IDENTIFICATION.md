@@ -518,3 +518,9 @@ those few. It is a parameter (`TranscriptionParameters.doubt_margin`).
 With the sentences now cut where a supported change of speaker falls
 and moved stretches carried into the certainty, 13.6% of the sentences
 are doubtful (6.4% with the TR-16 rule, whose moves were silent).
+
+The table above is the open-session pipeline (seeding at 0.95), as
+TR-16 left it: B is anonymous on R2 and R3. With the TR-17
+expected-speakers rule (these sessions list both people and give the
+count 2) the same recordings give other groups and both people named;
+those figures are in `OVERLAP.md` §9.1.

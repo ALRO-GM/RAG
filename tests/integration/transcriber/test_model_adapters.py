@@ -3,17 +3,25 @@
 import sys
 import threading
 import types
+from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
 import pytest
 
-from tests.integration.transcriber.audio import RATE, noise, scene, silence
+from tests.integration.transcriber.audio import (
+    RATE,
+    noise,
+    scene,
+    silence,
+    tone,
+)
 from transcriber.adapters.outbound import torch_runtime
 from transcriber.adapters.outbound.fake_models import (
     FAKE_RECOGNISER,
     FAKE_VOICE_MODEL,
     SENTENCE_WORDS,
+    FakeOverlapDetector,
     FakeSpeechRecogniser,
     FakeVoiceEncoder,
 )
@@ -32,6 +40,8 @@ from transcriber.adapters.outbound.whisper_languages import (
     WHISPER_LANGUAGES,
 )
 from transcriber.application.ports import Audio
+from transcriber.bootstrap import build_container
+from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import InvalidInputError
 from transcriber.domain.models import Word
 
@@ -301,3 +311,24 @@ def test_the_fake_recogniser_scores_nothing() -> None:
     scored = FakeSpeechRecogniser().score_words(audio, words, "es").words
     assert scored == words
     assert "es" in FakeSpeechRecogniser().supported_languages
+
+
+class TestFakeOverlapDetector:
+    def test_two_tones_at_once_are_an_overlap(self) -> None:
+        both = (tone(1.0, hz=220.0, level=0.3)
+                + tone(1.0, hz=660.0, level=0.3)).astype(np.float32)
+        samples = np.concatenate([tone(1.0), silence(1.0), both])
+        found = FakeOverlapDetector().overlaps(
+            Audio(samples=samples, sample_rate=RATE))
+        assert found == [(2.0, 2.5), (2.5, 3.0)]
+        FakeOverlapDetector().release()
+
+
+def test_the_settings_pick_the_overlap_detector(tmp_path: Path) -> None:
+    off = build_container(TranscriberSettings(data_dir=tmp_path,
+                                              runtime="fake"))
+    assert off.overlaps is None
+    on = build_container(TranscriberSettings(
+        data_dir=tmp_path, runtime="fake", overlap_detector="fake"))
+    assert isinstance(on.overlaps, FakeOverlapDetector)
+    on.release_models()

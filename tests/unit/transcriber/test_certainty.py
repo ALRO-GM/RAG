@@ -9,6 +9,7 @@ import pytest
 from transcriber.domain.certainty import (
     DEFAULT_DOUBT_MARGIN,
     VoiceEvidence,
+    add_detected_overlaps,
     assess_utterances,
     keep_sentences_whole,
     support,
@@ -383,3 +384,28 @@ class TestScale:
         keep_sentences_whole(words, ev)
         assert time.perf_counter() - began < 20.0
         assert len(assessed) == 10_000
+
+
+class TestDetectedOverlaps:
+    def test_sources_combine(self) -> None:
+        voices_only = utterance("ana", 0.0, 2.0).model_copy(
+            update={"overlap": True, "overlap_source": "voices"})
+        both = utterance("ana", 3.0, 5.0, 1).model_copy(
+            update={"overlap": True, "overlap_source": "voices"})
+        detector_only = utterance("ana", 6.0, 8.0, 2).model_copy(
+            update={"overlap": False})
+        unjudged = utterance("ana", 9.0, 10.0, 3)
+        found = add_detected_overlaps(
+            [voices_only, both, detector_only, unjudged],
+            [(3.5, 3.8), (3.7, 4.2), (6.0, 7.0)],
+        )
+        assert [(u.overlap, u.overlap_source) for u in found] == [
+            (True, "voices"), (True, "both"), (True, "detector"),
+            (False, None),
+        ]
+
+    def test_overlapping_spans_are_not_counted_twice(self) -> None:
+        [one] = add_detected_overlaps(
+            [utterance("ana", 0.0, 2.0)], [(1.0, 1.3), (1.0, 1.3)],
+        )
+        assert one.overlap is False

@@ -6,7 +6,8 @@ import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import {
   DEFAULT_LEAD, activeIndex, doubtNote, filterUtterances, isAnonymous, mergeTargets,
-  parseLead, previousHint, seekTime, sortUtterances, speakerName,
+  namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sortUtterances, speakerName,
+  weakSpeakers,
 } from "../lib/transcript.js";
 
 const LEAD_KEY = "transcriber.lead";
@@ -88,6 +89,7 @@ export async function transcriptView(ctx, root, params) {
   const doubtBox = h("input", { id: "pl-doubtful", type: "checkbox", onChange: () => { onlyDoubtful = doubtBox.checked; applyFilter(); } });
   const message = h("p", { class: "notice", role: "status", hidden: true });
   const speakersPanel = h("div", { class: "stack" });
+  const weakNotice = h("div", { class: "notice warn", role: "note", hidden: true });
   const list = h("ol", { class: "utterances" });
 
   const bar = h("div", { class: "player" },
@@ -102,7 +104,7 @@ export async function transcriptView(ctx, root, params) {
   root.append(
     h("h1", {}, transcript.session.title || id),
     h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/" }, t("nav.sessions"))),
-    bar, options, audio, message,
+    bar, options, audio, message, weakNotice,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
     list,
     h("button", { type: "button", onClick: download }, t("transcript.download")));
@@ -132,14 +134,17 @@ export async function transcriptView(ctx, root, params) {
     rows = utterances.map((u, index) => {
       const hint = previousHint(u, speakers);
       const note = doubtNote(u, speakers);
+      const weak = namedByFloor(speakers.find((s) => s.id === u.speaker));
+      const language = otherLanguage(u);
       const button = h("button", {
         type: "button", class: "row-button", "data-index": index,
         onClick: () => playFrom(index),
       },
       h("span", { class: "time" }, formatTime(u.start)),
-      h("span", { class: "who" }, speakerName(speakers, u.speaker)),
+      h("span", { class: weak ? "who weak" : "who", title: weak ? t("transcript.weak_speaker") : null },
+        speakerName(speakers, u.speaker), weak ? " ?" : ""),
       h("span", { class: "text" }, u.text),
-      note ? doubtBadge(note) : null,
+      note || language ? doubtBadge(note, language) : null,
       hint ? h("span", { class: "after" }, t("transcript.after", { name: hint })) : null);
       return h("li", { class: note ? "utterance doubtful" : "utterance", "data-speaker": u.speaker }, button, changeButton(u));
     });
@@ -149,11 +154,12 @@ export async function transcriptView(ctx, root, params) {
   }
 
   // Text only (h() makes text nodes): names and values never become HTML.
-  function doubtBadge(note) {
+  function doubtBadge(note, language = null) {
     const parts = [];
-    if (note.doubtful) parts.push(note.alternative ? t("transcript.doubtful_or", { name: note.alternative }) : t("transcript.doubtful"));
-    if (note.overlap) parts.push(note.alternative && !note.doubtful ? t("transcript.overlap_with", { name: note.alternative }) : t("transcript.overlap"));
-    const title = note.certainty === null ? null : t("transcript.certainty", { value: note.certainty.toFixed(2) });
+    if (note?.doubtful) parts.push(note.alternative ? t("transcript.doubtful_or", { name: note.alternative }) : t("transcript.doubtful"));
+    if (note?.overlap) parts.push(note.alternative && !note.doubtful ? t("transcript.overlap_with", { name: note.alternative }) : t("transcript.overlap"));
+    if (language) parts.push(t("transcript.other_language", { code: language }));
+    const title = note?.certainty == null ? null : t("transcript.certainty", { value: note.certainty.toFixed(2) });
     return h("span", { class: "doubt", title }, parts.join(" · "));
   }
 
@@ -212,11 +218,19 @@ export async function transcriptView(ctx, root, params) {
     filterSelect.value = transcript.speakers.some((s) => s.id === previous) ? previous : "";
     filter = filterSelect.value;
     speakersPanel.replaceChildren(...transcript.speakers.map((s) => speakerRow(s)));
+    const weak = weakSpeakers(transcript.speakers);
+    weakNotice.hidden = weak.length === 0;
+    weakNotice.replaceChildren(...(weak.length ? [
+      h("strong", {}, t("transcript.weak_title")), " ",
+      t("transcript.weak_note", { names: weak.map((s) => speakerName(transcript.speakers, s.id)).join(", ") }), " ",
+      h("a", { href: "#/enrol" }, t("nav.enrol")),
+    ] : []));
   }
 
   function speakerRow(s) {
     const label = h("strong", {}, speakerName(transcript.speakers, s.id));
-    if (!isAnonymous(s)) return h("div", { class: "line" }, label, h("span", { class: "hint" }, s.enrolled ? t("speakers.enrolled") : ""));
+    const status = namedByFloor(s) ? t("speakers.floor") : s.enrolled ? t("speakers.enrolled") : "";
+    if (!isAnonymous(s)) return h("div", { class: "line" }, label, h("span", { class: "hint" }, status));
     const name = h("input", { type: "text", maxLength: 100, autocomplete: "off", value: s.name ?? "", "aria-label": t("speakers.name_for", { label: s.id }) });
     const save = h("button", { type: "button", onClick: () => {
       if (name.value.trim()) edit(() => ctx.api.renameSpeaker(id, s.id, { name: name.value.trim() }));

@@ -24,6 +24,7 @@ PUBLISHED_DIR = "published"
 Runtime = Literal["real", "fake"]
 Publisher = Literal["directory", "http"]
 Device = Literal["auto", "cpu", "cuda"]
+OverlapDetectorName = Literal["off", "fake"]
 
 MIB = 1024 * 1024
 
@@ -256,6 +257,7 @@ class TranscriberSettings(BaseModel):
     publish_http: HttpPublishSettings = HttpPublishSettings()
     api: ApiSettings = ApiSettings()
     tunnel: TunnelSettings = TunnelSettings()
+    overlap_detector: OverlapDetectorName = "off"
 
     @model_validator(mode="after")
     def _http_needs_a_url(self) -> "TranscriberSettings":

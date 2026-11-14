@@ -86,6 +86,28 @@ export function doubtNote(utterance, speakers) {
   };
 }
 
+/**
+ * True for an enrolled person named only because the session listed them
+ * (the expected-speakers floor, below the usual threshold): a weaker
+ * identification. Older transcripts lack the field: false.
+ */
+export function namedByFloor(speaker) {
+  return speaker?.enrolled === true && speaker.identification === "expected_floor";
+}
+
+/** Speakers of a transcript named through the floor (they should re-enrol). */
+export function weakSpeakers(speakers) {
+  return speakers.filter(namedByFloor);
+}
+
+/**
+ * The language to point out for an utterance, or null: the detected code
+ * when the session's fixed language is another one.
+ */
+export function otherLanguage(utterance) {
+  return utterance.language_differs === true && utterance.language ? utterance.language : null;
+}
+
 /** True for a voice the person can still name or merge (S1, S2... not enrolled). */
 export function isAnonymous(speaker) {
   return !speaker.enrolled && ANONYMOUS.test(speaker.id);

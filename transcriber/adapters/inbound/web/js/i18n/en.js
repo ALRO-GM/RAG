@@ -154,6 +154,13 @@ export const en = {
   "transcript.reassign_pick": "Choose who speaks",
   "transcript.saved": "Change saved.",
 
+  "enrol.advice": "Tip: record with the phone where it will lie during conversations (for example on the table, at the same distance) and speak naturally, as you talk to others. Your voiceprint then sounds like you in meetings.",
+  "record.language_auto": "Automatic / mixed",
+  "speakers.floor": "enrolled voice, recognised only because it was listed (less certain): re-enrolling is recommended",
+  "transcript.weak_title": "Weak recognition",
+  "transcript.weak_note": "{names}: recognised only because they were listed as present, with a lower similarity than usual. Re-enrolling the voice is recommended (with the phone where it lies during conversations).",
+  "transcript.weak_speaker": "less certain identification",
+  "transcript.other_language": "detected language: {code}",
   "speakers.title": "People in this session",
   "speakers.enrolled": "enrolled voice",
   "speakers.name_for": "Name for {label}",

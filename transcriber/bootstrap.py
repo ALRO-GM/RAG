@@ -33,6 +33,7 @@ from transcriber.adapters.outbound.fs_access_code import (
     new_access_code,
 )
 from transcriber.adapters.outbound.fake_models import (
+    FakeOverlapDetector,
     FakeSpeechRecogniser,
     FakeVoiceEncoder,
 )
@@ -75,6 +76,7 @@ from transcriber.application.enrol import (
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
+    OverlapDetector,
     SessionLocks,
     SessionRepository,
     SpeechRecogniser,
@@ -154,11 +156,30 @@ class TranscriberContainer:
     show_session: ShowSession
     session_audio: SessionAudio
     show_transcript: ShowTranscript
+    overlaps: Optional[OverlapDetector] = None
 
     def release_models(self) -> None:
-        """Unload the speech and voice models (after a job)."""
+        """Unload the speech, voice and overlap models (after a job)."""
         self.recogniser.release()
         self.encoder.release()
+        if self.overlaps is not None:
+            self.overlaps.release()
+
+
+def build_overlap_detector(
+    settings: TranscriberSettings,
+) -> Optional[OverlapDetector]:
+    """Return the overlap detector ``settings.overlap_detector`` picks.
+
+    ``off`` (the default) gives none: overlaps are flagged from the
+    voice windows only. ``fake`` is the deterministic stand-in (tests,
+    demonstrations). No real detector ships yet: the candidate measured
+    in ``docs/transcriber/OVERLAP.md`` needs a runtime the project's
+    environment does not have (§3 there).
+    """
+    if settings.overlap_detector == "fake":
+        return FakeOverlapDetector()
+    return None
 
 
 def build_models(
@@ -208,11 +229,14 @@ def build_container(
     """
     settings = settings or TranscriberSettings()
     recogniser, encoder = build_models(settings)
+    overlaps = build_overlap_detector(settings)
 
     def release_models() -> None:
-        """Unload both models; the runner calls it after every job."""
+        """Unload the models; the runner calls it after every job."""
         recogniser.release()
         encoder.release()
+        if overlaps is not None:
+            overlaps.release()
 
     sessions = FileSystemSessionRepository(settings.data_dir)
     voiceprints = FileSystemVoiceprintRepository(
@@ -226,7 +250,7 @@ def build_container(
     parameters = settings.transcription
     transcribe = TranscribeSession(
         sessions, voiceprints, decoder, recogniser, encoder, locks,
-        parameters,
+        parameters, overlaps,
     )
     status = TranscriptionStatus(sessions, runner)
     return TranscriberContainer(
@@ -270,6 +294,7 @@ def build_container(
         show_session=ShowSession(sessions, status),
         session_audio=SessionAudio(sessions),
         show_transcript=ShowTranscript(sessions),
+        overlaps=overlaps,
     )
 
 

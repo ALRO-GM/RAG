@@ -154,6 +154,13 @@ export const es = {
   "transcript.reassign_pick": "Elige quién habla",
   "transcript.saved": "Cambio guardado.",
 
+  "enrol.advice": "Consejo: graba con el móvil donde estará durante las conversaciones (por ejemplo, sobre la mesa, a la misma distancia) y habla con naturalidad, como hablas con los demás. Así tu huella se parece a tu voz en las reuniones.",
+  "record.language_auto": "Automático / mezcla",
+  "speakers.floor": "voz registrada, reconocida solo por estar en la lista (menos segura): conviene volver a registrarla",
+  "transcript.weak_title": "Reconocimiento débil",
+  "transcript.weak_note": "{names}: reconocido solo porque estaba en la lista de presentes, con una similitud menor de la habitual. Se recomienda volver a registrar la voz (con el móvil donde está en las conversaciones).",
+  "transcript.weak_speaker": "identificación menos segura",
+  "transcript.other_language": "idioma detectado: {code}",
   "speakers.title": "Personas de esta sesión",
   "speakers.enrolled": "voz registrada",
   "speakers.name_for": "Nombre de {label}",

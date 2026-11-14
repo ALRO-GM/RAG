@@ -393,6 +393,7 @@ def assess_utterances(
             out.append(utterance.model_copy(update={
                 "speaker_certainty": None, "doubtful": None,
                 "overlap": None, "alternative_speaker": None,
+                "overlap_source": None,
             }))
             continue
         weakest, unjudged = held, False
@@ -412,7 +413,56 @@ def assess_utterances(
             "speaker_certainty": weakest.margin,
             "doubtful": doubtful,
             "overlap": intruder is not None,
+            "overlap_source": "voices" if intruder is not None else None,
             "alternative_speaker": alternative,
+        }))
+    return out
+
+
+# Seconds of an utterance on detected overlap that flag it (TR-14: the
+# share of utterances with at least this much was measured in
+# docs/transcriber/OVERLAP.md, section 4.3; the value is a judgement).
+DEFAULT_OVERLAP_SECONDS = 0.5
+
+
+def add_detected_overlaps(
+    utterances: Sequence[Utterance],
+    detected: Sequence[Tuple[float, float]],
+    min_seconds: float = DEFAULT_OVERLAP_SECONDS,
+) -> List[Utterance]:
+    """Flag the utterances an overlap detector heard two voices in.
+
+    ``detected`` are the ``(start, end)`` stretches where the detector
+    heard at least two voices at once. An utterance with at least
+    ``min_seconds`` on them is an ``overlap``; ``overlap_source`` says
+    whether the voice windows flagged it too (``both``), only the
+    detector (``detector``) or only the windows (``voices``). An
+    utterance the detector heard no overlap in keeps the windows'
+    verdict, and one without any (no voice evidence) becomes ``False``:
+    the detector listened to it.
+    """
+    merged: List[Tuple[float, float]] = []
+    for left, right in sorted(detected):
+        if merged and left <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], right))
+        else:
+            merged.append((left, right))
+    spans = _Spans(merged)
+    out: List[Utterance] = []
+    for utterance in utterances:
+        seconds = sum(
+            right - left
+            for left, right in spans.inside(utterance.start, utterance.end)
+        )
+        heard = seconds >= min_seconds and seconds > 0
+        windows = utterance.overlap is True
+        source = (
+            "both" if heard and windows else "detector" if heard
+            else "voices" if windows else None
+        )
+        out.append(utterance.model_copy(update={
+            "overlap": heard or windows,
+            "overlap_source": source,
         }))
     return out
 

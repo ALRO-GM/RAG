@@ -126,7 +126,7 @@ def by_hand(utterance: Utterance, speaker: str) -> Utterance:
     return utterance.model_copy(update={
         "speaker": speaker, "speaker_confidence": None,
         "speaker_certainty": None, "doubtful": None, "overlap": None,
-        "alternative_speaker": None,
+        "alternative_speaker": None, "overlap_source": None,
     })
 
 
@@ -138,7 +138,7 @@ def _without_evidence(utterance: Utterance) -> Utterance:
     """
     return utterance.model_copy(update={
         "speaker_certainty": None, "doubtful": None, "overlap": None,
-        "alternative_speaker": None,
+        "alternative_speaker": None, "overlap_source": None,
     })
 
 

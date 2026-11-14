@@ -32,6 +32,7 @@ from transcriber.application.ports import (
     Audio,
     Job,
     JobStatus,
+    LanguageSpan,
     RecognisedSpeech,
     RecordedAudio,
     WordScores,
@@ -188,6 +189,7 @@ class FakeRecogniser:
         self.languages: List[Optional[str]] = []
         self.scored: List[List[Word]] = []
         self.extra: List[Word] = []
+        self.detected: List[Tuple[float, float, str]] = []
 
     def recognise(
         self, audio: Audio, language: Optional[str] = None
@@ -209,13 +211,42 @@ class FakeRecogniser:
         self, audio: Audio, words: Sequence[Word],
         language: Optional[str] = None,
     ) -> WordScores:
-        """Give every word 0.9, or raise the next queued failure."""
+        """Give every word 0.9, or raise the next queued failure.
+
+        The languages detected are the ``detected`` stretches.
+        """
         self.scored.append(list(words))
         if self.score_failures:
             raise self.score_failures.pop(0)
-        return WordScores(words=[
-            w.model_copy(update={"probability": 0.9}) for w in words
-        ])
+        return WordScores(
+            words=[w.model_copy(update={"probability": 0.9}) for w in words],
+            languages=[LanguageSpan(start=a, end=b, language=c)
+                       for a, b, c in self.detected],
+        )
+
+
+class FakeOverlapDetector:
+    """Hear two voices at once in the given stretches; can fail."""
+
+    model_name = "fake-overlap"
+
+    def __init__(self, spans: Sequence[Tuple[float, float]] = ()) -> None:
+        """Remember the stretches to report."""
+        self.spans = list(spans)
+        self.failures: List[Exception] = []
+        self.calls = 0
+        self.released = 0
+
+    def overlaps(self, audio: Audio) -> List[Tuple[float, float]]:
+        """Return the stretches, or raise the next queued failure."""
+        self.calls += 1
+        if self.failures:
+            raise self.failures.pop(0)
+        return list(self.spans)
+
+    def release(self) -> None:
+        """Count the unloads."""
+        self.released += 1
 
 
 class FakeVoiceEncoder:

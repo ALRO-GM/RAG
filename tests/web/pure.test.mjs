@@ -7,6 +7,7 @@ import { pickLanguage, translate } from "../../transcriber/adapters/inbound/web/
 import {
   seekTime, parseLead, activeIndex, sortUtterances, speakerName, filterBySpeaker,
   isAnonymous, mergeTargets, previousHint, needsReview, filterUtterances, doubtNote,
+  namedByFloor, weakSpeakers, otherLanguage,
 } from "../../transcriber/adapters/inbound/web/js/lib/transcript.js";
 import {
   classifyFailure, isRetryable, nextPollMs, codeFromFragment, fragmentWithoutCode,
@@ -175,6 +176,23 @@ test("doubtful attributions are marked and can be shown alone", () => {
   assert.deepEqual(doubtNote(mixed, speakers),
     { doubtful: false, overlap: true, alternative: "Ana", certainty: 0.5 });
   assert.equal(doubtNote({ ...doubt, speaker_certainty: null, alternative_speaker: null }, speakers).certainty, null);
+});
+
+test("people named through the floor are pointed out", () => {
+  const strong = { id: "ana", name: "Ana", enrolled: true, identification: "threshold" };
+  const weak = { id: "luis", name: "Luis", enrolled: true, identification: "expected_floor" };
+  const old = { id: "eva", name: "Eva", enrolled: true }; // before the field existed
+  const anon = { id: "S1", name: null, enrolled: false };
+  assert.deepEqual([strong, weak, old, anon].map(namedByFloor), [false, true, false, false]);
+  assert.equal(namedByFloor(undefined), false);
+  assert.deepEqual(weakSpeakers([strong, weak, old, anon]), [weak]);
+});
+
+test("another language than the session's is pointed out", () => {
+  assert.equal(otherLanguage({ language: "en", language_differs: true }), "en");
+  assert.equal(otherLanguage({ language: "es", language_differs: false }), null);
+  assert.equal(otherLanguage({ language: "en", language_differs: null }), null);
+  assert.equal(otherLanguage({}), null);
 });
 
 test("classifyFailure", () => {

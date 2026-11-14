@@ -17,11 +17,18 @@ Per recording it prints:
 * utterances, the doubtful and overlap shares, sentences holding a
   stretch ``keep_sentences_whole`` moved and how many stretches moved;
 * utterances out of time order (a start before the previous one);
-* words the recogniser returned, and how many the seam step dropped;
+* words the recogniser returned, the seams (steps back of more than
+  1 s), how many words the seam step dropped and how many of those
+  have a kept copy (same letters, within a second): the rest were
+  replaced by different words of the other window;
 * the short voice windows: how many, the share whose two closest
   voices are within the doubt margin, and the 10% quantile of that gap;
 * recognition: the share of words with a probability, and the seconds
-  spent recognising and scoring.
+  spent recognising and scoring (``--no-detect-languages`` scores
+  without detecting the language of each window, to time detection);
+* the languages detected per utterance (codes only), the utterances
+  flagged as another language than the session's, and what flagged
+  the overlaps.
 
 Usage (the source directory is only read)::
 
@@ -38,6 +45,7 @@ import argparse
 import json
 import shutil
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -73,7 +81,11 @@ from transcriber.application.transcribe import (
 from transcriber.domain.certainty import VoiceEvidence
 from transcriber.domain.models import Session, SessionState, Transcript, Word
 from transcriber.domain.parameters import TranscriptionParameters
-from transcriber.domain.seams import resolve_seams
+from transcriber.domain.seams import (
+    DEFAULT_MIN_STEP,
+    SAME_TIME,
+    resolve_seams,
+)
 from transcriber.domain.sessions import move
 
 Row = Dict[str, Any]
@@ -94,9 +106,13 @@ class Watched:
 class WatchedRecogniser(WhisperRecogniser):
     """Whisper that keeps the raw words and times its two passes."""
 
-    def __init__(self, watched: Watched, device: str) -> None:
+    def __init__(
+        self, watched: Watched, device: str, detect: bool = True
+    ) -> None:
         """Remember where to keep what is seen."""
-        super().__init__(device=device)  # type: ignore[arg-type]
+        super().__init__(
+            device=device, detect_languages=detect,  # type: ignore[arg-type]
+        )
         self.watched = watched
 
     def recognise(
@@ -154,6 +170,41 @@ def copy_sessions(source: Path, work: Path, first: int) -> List[str]:
     return chosen
 
 
+def dropped_copies(raw: Sequence[Word], kept: Sequence[Word]) -> Tuple[
+        int, int]:
+    """Count dropped words with a kept copy, and the seams in ``raw``.
+
+    A dropped word (one more of its letters in ``raw`` than in ``kept``)
+    has a kept copy when a kept word has the same letters with its
+    middle within :data:`~transcriber.domain.seams.SAME_TIME`. Seams are
+    the steps back of more than the default minimum.
+    """
+    def letters(word: Word) -> str:
+        """Lower-case letters of ``word``."""
+        return "".join(c for c in word.text.lower() if c.isalnum())
+
+    left = Counter(letters(w) for w in raw)
+    left.subtract(Counter(letters(w) for w in kept))
+    copies = 0
+    for word in raw:
+        key = letters(word)
+        if left[key] <= 0:
+            continue
+        middle = (word.start + word.end) / 2
+        if any(letters(k) == key
+               and abs((k.start + k.end) / 2 - middle) <= SAME_TIME
+               for k in kept):
+            copies += 1
+            left[key] -= 1
+    latest, seams = 0.0, 0
+    for word in raw:
+        if word.start < latest - DEFAULT_MIN_STEP:
+            seams += 1
+            latest = word.start
+        latest = max(latest, word.start)
+    return copies, seams
+
+
 def window_gaps(evidence: Optional[VoiceEvidence]) -> List[float]:
     """Return, per short window, the gap between its two closest voices."""
     if evidence is None:
@@ -174,10 +225,12 @@ def summary(transcript: Transcript, watched: Watched,
     named: Dict[str, str] = {}
     for speaker in transcript.speakers:
         if speaker.enrolled:
-            how = "floor" if getattr(speaker, "named_by", None) == \
+            how = "floor" if speaker.identification == \
                 "expected_floor" else "threshold"
             named[letters.get(speaker.id, "?")] = how
     raw = [w for w in watched.raw if w.text.strip()]
+    kept = resolve_seams(raw)
+    copies, seams = dropped_copies(raw, kept)
     gaps = window_gaps(watched.evidence)
     moved_in = sum(
         1 for u in utterances if any(
@@ -204,7 +257,9 @@ def summary(transcript: Transcript, watched: Watched,
             1 for a, b in zip(utterances, utterances[1:])
             if b.start < a.start),
         "words_returned": len(raw),
-        "words_dropped_by_seams": len(raw) - len(resolve_seams(raw)),
+        "words_dropped_by_seams": len(raw) - len(kept),
+        "dropped_with_a_kept_copy": copies,
+        "seams": seams,
         "short_windows": len(gaps),
         "windows_gap_below_margin_share": round(
             sum(1 for g in gaps if g < margin) / len(gaps), 4)
@@ -216,6 +271,13 @@ def summary(transcript: Transcript, watched: Watched,
             / max(len(words), 1), 4),
         "recognise_seconds": round(watched.recognise_seconds, 1),
         "score_seconds": round(watched.score_seconds, 1),
+        "languages": dict(sorted(Counter(
+            u.language or "none" for u in utterances).items())),
+        "language_differs": sum(
+            1 for u in utterances if u.language_differs),
+        "overlap_sources": dict(sorted(Counter(
+            u.overlap_source for u in utterances
+            if u.overlap_source).items())),
     }
     return row
 
@@ -238,6 +300,8 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--language", default=None)
     parser.add_argument("--set", action="append", default=[])
+    parser.add_argument("--no-detect-languages", action="store_true",
+                        help="do not detect languages with a fixed one")
     args = parser.parse_args()
     parameters = parameters_of(args.set)
     chosen = copy_sessions(args.data_dir, args.work, args.first)
@@ -252,7 +316,8 @@ def main() -> None:
         for n, v in enumerate(sorted(voiceprints.all(),
                                      key=lambda v: v.speaker_id))
     }
-    recogniser = WatchedRecogniser(watched, args.device)
+    recogniser = WatchedRecogniser(watched, args.device,
+                                   not args.no_detect_languages)
     use_case = TranscribeSession(
         sessions, voiceprints, AvAudioDecoder(), recogniser, encoder,
         ThreadSessionLocks(), parameters,

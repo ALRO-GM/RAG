@@ -225,8 +225,15 @@ reunión.
 
 **Para que salga bien:**
 
-- Usa **el mismo teléfono** y **la misma sala** que en la reunión, si
-  puedes. Así la voz suena igual y el reconocimiento es mejor.
+- Registra con **el teléfono donde va a estar durante las
+  conversaciones**: el mismo teléfono, en la misma sala, **sobre la
+  mesa y a la misma distancia** que en una reunión, no pegado a la boca.
+- **Habla con naturalidad**, como hablas con los demás, aunque estés
+  leyendo: ni más alto ni más despacio. En las tres primeras
+  grabaciones reales, la huella de una persona registrada en otras
+  condiciones se parecía menos a su voz en la mesa que su voz en otra
+  reunión (`docs/transcriber/OVERLAP.md` §2.2–2.3), y por eso no se la
+  reconocía con seguridad.
 - Busca un sitio sin ruido y donde nadie más hable.
 - Si no sale, la página explica por qué: grabación demasiado corta,
   casi sin voz (acerca el teléfono) o más de una voz. Pulsa «Grabar otra
@@ -255,6 +262,22 @@ otra vez.
    seguridad sale con su nombre aunque así haya más personas que el
    número escrito; el número solo decide en cuántas voces se separa el
    resto.
+
+   **Si marcas exactamente quién está y escribes ese mismo número**
+   (por ejemplo, dos personas marcadas y «2»), el sistema separa las
+   voces en ese número y reparte los nombres de la lista uno a uno,
+   aceptando una voz que se parezca algo menos a su huella de lo que
+   exigiría sin lista. Quien sale con su nombre solo por estar en la
+   lista se marca como **identificación menos segura**, y la
+   transcripción recomienda volver a registrar su voz. La lista es lo
+   que protege los nombres: no marques a quien no está, y si viene
+   alguien sin registrar, no escribas el número de las marcadas.
+
+   «Idioma de la reunión»: «Español», «English» o **«Automático /
+   mezcla»** si se habla en más de un idioma. Con un idioma fijo, las
+   frases donde se detecta otro idioma salen marcadas («idioma
+   detectado: en»); con «Automático» cada parte se transcribe en el
+   idioma que se oye.
 3. Lee el aviso «Antes de empezar», con todas las personas delante. La
    casilla dice que **las personas presentes lo saben y están de acuerdo
    en que se grabe**. Márcala solo si es verdad.
@@ -327,6 +350,13 @@ sin transcribir» o «Ha fallado», pulsa «Transcribir».
   ve el «margen de la voz»: cuánto se parece más a quien se le atribuye
   que a la siguiente persona. **No es una probabilidad**; solo sirve
   para saber qué frases revisar. Si es una persona sola, no hay marcas.
+- el nombre en cursiva y con «?» cuando esa persona se reconoció **solo
+  por estar en la lista** de presentes (identificación menos segura).
+  Arriba aparece entonces el aviso «Reconocimiento débil» con un enlace
+  a «Registrar voz»: conviene volver a registrar esa voz con el
+  teléfono donde está en las conversaciones.
+- «idioma detectado: X» cuando la reunión tenía un idioma fijo y en esa
+  frase se oye otro.
 
 **Escuchar una frase.** Pulsa una frase y suena. La frase que suena se
 marca, y la lista la sigue (se puede desmarcar «Seguir la frase que

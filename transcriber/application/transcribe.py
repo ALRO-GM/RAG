@@ -1,13 +1,17 @@
 """Transcription use cases: queue a session, transcribe it, report on it.
 
 :class:`TranscribeSession` is the pipeline of ``docs/transcriber/
-ARCHITECTURE.md`` §3: decode → recognise (timed words) → speech regions
-and analysis windows → voice embeddings → voice groups (two passes, in
-the domain) → identification against the enrolled voiceprints →
+ARCHITECTURE.md`` §3: decode → recognise (timed words) → seams resolved,
+words over silence dropped → words scored (and the language of each
+window detected) → speech regions and analysis windows → voice
+embeddings → voice groups (two passes, in the domain) → identification
+against the enrolled voiceprints (seeded at the match threshold, or,
+when the session lists exactly who is present, clustered into that
+many voices and assigned one to one above ``expected_floor``) →
 speakers on the words, smoothing, sentences kept whole (weak changes of
 speaker undone) → turns → sentences → certainty of each sentence's
-speaker → transcript. Passages the recogniser returned twice at its
-window seams are removed before anything else. Each
+speaker, overlaps (voice windows and, if configured, the overlap
+detector) and language → transcript. Each
 stage is reported to :class:`~transcriber.application.ports.Progress`.
 A stage that fails leaves the session ``failed`` with the stage and the
 reason; queueing it again (:class:`QueueTranscription`) retries.
@@ -48,6 +52,8 @@ from transcriber.application.ports import (
     AudioDecoder,
     JobRunner,
     JobStatus,
+    LanguageSpan,
+    OverlapDetector,
     Progress,
     RecordedAudio,
     SessionLocks,
@@ -59,6 +65,7 @@ from transcriber.application.ports import (
 from transcriber.domain.activity import heard_words, speech_activity
 from transcriber.domain.certainty import (
     VoiceEvidence,
+    add_detected_overlaps,
     assess_utterances,
     keep_sentences_whole,
 )
@@ -67,13 +74,19 @@ from transcriber.domain.errors import (
     NotFoundError,
     VoiceModelMismatchError,
 )
-from transcriber.domain.languages import check_language, recognition_language
+from transcriber.domain.languages import (
+    check_language,
+    recognition_language,
+    tag_languages,
+)
 from transcriber.domain.models import (
+    Identification,
     Pipeline,
     Session,
     SessionState,
     Speaker,
     Transcript,
+    Utterance,
     Voiceprint,
     Word,
 )
@@ -106,6 +119,10 @@ LOG = logging.getLogger(__name__)
 SCORING_FAILED_NOTE = (
     "The recogniser could not score its words; the transcript has no"
     " recognition confidence."
+)
+OVERLAP_FAILED_NOTE = (
+    "The overlap detector failed; overlaps are flagged from the voice"
+    " windows only."
 )
 
 # Stages reported to Progress, with the share of the job done when each
@@ -195,6 +212,22 @@ def expected_voiceprints(
     return Candidates(chosen, 0)
 
 
+def expected_rule(
+    options: TranscriptionOptions, listed: Sequence[Voiceprint]
+) -> bool:
+    """Tell whether the expected-speakers rule applies.
+
+    The session lists who is present (``expected_speakers``, each
+    enrolled with the voice model in use: ``listed``) and the number of
+    speakers given equals the length of that list.
+    """
+    expected = options.expected_speakers
+    return (
+        expected is not None and bool(listed)
+        and options.num_speakers == len(set(expected)) == len(listed)
+    )
+
+
 def skipped_note(count: int) -> str:
     """Return the note telling that ``count`` voiceprints were skipped."""
     return (
@@ -227,8 +260,13 @@ class TranscribeSession:
         encoder: VoiceEncoder,
         locks: SessionLocks,
         parameters: TranscriptionParameters = TranscriptionParameters(),
+        overlaps: Optional[OverlapDetector] = None,
     ) -> None:
-        """Wire the ports and take the thresholds from the settings."""
+        """Wire the ports and take the thresholds from the settings.
+
+        ``overlaps`` is the optional overlap detector; without it
+        overlaps are flagged from the voice windows only.
+        """
         self._sessions = sessions
         self._voiceprints = voiceprints
         self._decoder = decoder
@@ -236,6 +274,7 @@ class TranscribeSession:
         self._encoder = encoder
         self._locks = locks
         self._parameters = parameters
+        self._overlaps = overlaps
 
     @property
     def voice_model(self) -> str:
@@ -365,7 +404,7 @@ class TranscribeSession:
         )
         if not words:
             raise InvalidInputError("No speech recognised.")
-        words = self._scored(audio, words, language, report)
+        words, languages = self._scored(audio, words, language, report)
         advance()  # voices
         regions = speech_regions(words, p.region_gap)
         coarse_windows = analysis_windows(regions, *p.coarse())
@@ -377,9 +416,10 @@ class TranscribeSession:
             self._voiceprints, options, self.voice_model
         )
         seeded: Optional[SeededVoices] = None
+        listed = expected_rule(options, candidates.voiceprints)
         if (
             p.identification == "seeded" and candidates.voiceprints
-            and coarse.shape[0]
+            and coarse.shape[0] and not listed
         ):
             seeded = seed_voices(
                 coarse, fine, candidates.voiceprints, options.num_speakers,
@@ -426,7 +466,8 @@ class TranscribeSession:
             )
         else:
             names = self._identify(
-                words, vectors, candidates.voiceprints, taken
+                words, vectors, candidates.voiceprints, taken,
+                p.expected_floor if listed else p.match_threshold,
             )
         words = [
             w.model_copy(update={"speaker": names[w.speaker or ""].speaker})
@@ -447,6 +488,13 @@ class TranscribeSession:
         utterances = assess_utterances(
             utterances, evidence, p.doubt_margin, moved
         )
+        if self._overlaps is not None:
+            utterances = self._detected(audio, utterances, report)
+        if languages:
+            utterances = tag_languages(
+                utterances, [(s.start, s.end, s.language) for s in languages],
+                running.language,
+            )
         advance()  # save
         done = move(running, SessionState.DONE).model_copy(update={
             "duration": audio.duration,
@@ -455,7 +503,7 @@ class TranscribeSession:
         transcript = Transcript(
             session=done,
             speakers=self._speakers(
-                [u.speaker for u in utterances], names.values()
+                [u.speaker for u in utterances], names.values(), listed
             ),
             utterances=utterances,
             pipeline=Pipeline(
@@ -469,28 +517,50 @@ class TranscribeSession:
     def _scored(
         self, audio: Audio, words: List[Word], language: Optional[str],
         report: Progress,
-    ) -> List[Word]:
+    ) -> Tuple[List[Word], List[LanguageSpan]]:
         """Return ``words`` with the recogniser's probability of each.
 
-        The scores are an extra: if the scoring fails (any
-        ``Exception``) the words are returned without probability, the
-        failure is logged and noted, and the job goes on.
+        Also the stretches whose language the recogniser detected while
+        scoring. The scores are an extra: if the scoring fails (any
+        ``Exception``) the words are returned without probability and
+        no language, the failure is logged and noted, and the job goes
+        on.
         """
+        unscored = [w.model_copy(update={"probability": None}) for w in words]
         try:
             scored = self._recogniser.score_words(audio, words, language)
         except Exception:
             LOG.warning("Scoring the recognised words failed.", exc_info=True)
             report.note(SCORING_FAILED_NOTE)
-            return [w.model_copy(update={"probability": None}) for w in words]
+            return unscored, []
         if len(scored.words) != len(words):
             LOG.warning("The recogniser scored %d of %d words.",
                         len(scored.words), len(words))
             report.note(SCORING_FAILED_NOTE)
-            return [w.model_copy(update={"probability": None}) for w in words]
+            return unscored, []
         return [
             w.model_copy(update={"probability": s.probability})
             for w, s in zip(words, scored.words)
-        ]
+        ], list(scored.languages)
+
+    def _detected(
+        self, audio: Audio, utterances: List[Utterance], report: Progress,
+    ) -> List[Utterance]:
+        """Flag the utterances the overlap detector hears two voices in.
+
+        A failure of the detector (any ``Exception``) is logged and
+        noted; the windows' flags stay and the job goes on.
+        """
+        assert self._overlaps is not None
+        try:
+            detected = self._overlaps.overlaps(audio)
+        except Exception:
+            LOG.warning("The overlap detector failed.", exc_info=True)
+            report.note(OVERLAP_FAILED_NOTE)
+            return utterances
+        return add_detected_overlaps(
+            utterances, detected, self._parameters.overlap_seconds
+        )
 
     def _embed(
         self, audio: Audio, windows: Sequence[Tuple[float, float]]
@@ -535,8 +605,12 @@ class TranscribeSession:
         vectors: FloatArray,
         candidates: Sequence[Voiceprint],
         taken: AbstractSet[str],
+        threshold: float,
     ) -> Dict[str, Attribution]:
         """Return the attribution of each diarizer label of ``words``.
+
+        A group takes a voiceprint at ``threshold`` or more (the match
+        threshold, or the floor of the expected-speakers rule).
 
         Groups are passed to the matching in order of first appearance
         in the final words, so ``S1`` is the first unknown voice heard;
@@ -555,27 +629,40 @@ class TranscribeSession:
             rows = {speaker_label(n): n for n in range(vectors.shape[0])}
             matched = match_voices(
                 vectors[[rows[label] for label in order]], candidates,
-                self._parameters.match_threshold,
-                self._parameters.normaliser(), taken=taken,
+                threshold, self._parameters.normaliser(), taken=taken,
             )
         return dict(zip(order, matched))
 
     def _speakers(
-        self, heard: Sequence[str], attributions: Iterable[Attribution]
+        self, heard: Sequence[str], attributions: Iterable[Attribution],
+        listed: bool = False,
     ) -> List[Speaker]:
         """Return the speakers of ``heard`` in order of first appearance.
 
-        Enrolled people carry the name of their consent record.
+        Enrolled people carry the name of their consent record and how
+        they were identified: ``expected_floor`` when the
+        expected-speakers rule named them (``listed``) with a similarity
+        below the match threshold, else ``threshold``.
         """
-        enrolled = {a.speaker for a in attributions if a.enrolled}
+        similarity = {
+            a.speaker: a.similarity for a in attributions if a.enrolled
+        }
         speakers: List[Speaker] = []
         for speaker_id in dict.fromkeys(heard):
             name = None
-            if speaker_id in enrolled:
+            identification: Optional[Identification] = None
+            if speaker_id in similarity:
                 consent = self._voiceprints.consent(speaker_id)
                 name = consent.name if consent is not None else None
+                value = similarity[speaker_id]
+                identification = (
+                    "expected_floor" if listed and value is not None
+                    and value < self._parameters.match_threshold
+                    else "threshold"
+                )
             speakers.append(Speaker(
-                id=speaker_id, name=name, enrolled=speaker_id in enrolled,
+                id=speaker_id, name=name, enrolled=speaker_id in similarity,
+                identification=identification,
             ))
         return speakers
 

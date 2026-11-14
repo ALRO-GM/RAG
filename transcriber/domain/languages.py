@@ -5,11 +5,14 @@ A session's ``language`` is a language code (``es``, ``en-GB``...) or
 windows: a mixed-language conversation). The recogniser only knows
 some base codes; :func:`check_language` refuses any other before a job
 runs, so a typo is an input error and not a failed transcription.
+:func:`tag_languages` gives each sentence the language detected where
+it was said, and flags it when that is not the session's fixed one.
 """
 
-from typing import AbstractSet, Optional
+from typing import AbstractSet, Dict, List, Optional, Sequence, Tuple
 
 from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.models import Utterance
 
 AUTO = "auto"
 
@@ -48,3 +51,44 @@ def check_language(
         f"Unknown language {language!r}: give a code the recogniser knows"
         f" (for example es or en) or {AUTO!r} to detect it."
     )
+
+
+def tag_languages(
+    utterances: Sequence[Utterance],
+    detected: Sequence[Tuple[float, float, str]],
+    session_language: str,
+) -> List[Utterance]:
+    """Give each utterance the language detected where it was said.
+
+    ``detected`` are ``(start, end, code)`` stretches the recogniser
+    told the language of. An utterance takes the code of the stretches
+    it shares the most seconds with (an utterance of no length: the
+    stretch holding it); none, and its ``language`` stays ``None``.
+    ``language_differs`` is set only when ``session_language`` is a
+    fixed code: ``True`` when the detected base code is another one.
+    """
+    fixed = None if is_auto(session_language) else base_code(
+        session_language)
+    out: List[Utterance] = []
+    for utterance in utterances:
+        shares: Dict[str, float] = {}
+        for start, end, code in detected:
+            shared = min(end, utterance.end) - max(start, utterance.start)
+            if shared > 0 or (
+                utterance.end <= utterance.start
+                and start <= utterance.start <= end
+            ):
+                shares[code] = shares.get(code, 0.0) + max(shared, 0.0)
+        if not shares:
+            out.append(utterance.model_copy(update={
+                "language": None, "language_differs": None,
+            }))
+            continue
+        language = max(shares, key=lambda code: shares[code])
+        out.append(utterance.model_copy(update={
+            "language": language,
+            "language_differs": (
+                None if fixed is None else base_code(language) != fixed
+            ),
+        }))
+    return out

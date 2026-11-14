@@ -232,6 +232,7 @@ details[open] > summary { margin-bottom: 0.5rem; }
 
 .row-button .time { grid-area: time; color: var(--muted); font-variant-numeric: tabular-nums; }
 .row-button .who { grid-area: who; font-weight: 700; }
+.row-button .who.weak { font-style: italic; text-decoration: underline dotted; }
 .row-button .text { grid-area: text; }
 .row-button .after { grid-area: after; color: var(--muted); font-size: 0.85rem; }
 .row-button .doubt { grid-area: doubt; justify-self: start; background: var(--warn-bg); color: var(--warn-text); font-size: 0.85rem; padding: 0.05rem 0.4rem; border-radius: 4px; }

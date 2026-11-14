@@ -70,6 +70,7 @@ transcriber/
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
+                     OverlapDetector,
                      SessionRepository, VoiceprintRepository,
                      TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
     common.py        id checks and lookups shared by the use cases
@@ -224,6 +225,23 @@ marked `slow`.
   (doubtful when below the cut, or when no window covers the moved
   stretch). A sentence ends at final punctuation or at a pause longer
   than `turn_gap`.
+- `overlap` combines two sources when an overlap detector is
+  configured (`overlap_detector`, port `OverlapDetector`; used only to
+  flag sentences, never to group voices): a sentence with at least
+  `overlap_seconds` (0.5 s) on stretches the detector hears two voices
+  in is an overlap, and `overlap_source` says which fired (`voices`,
+  `detector`, `both`). The candidate measured in `OVERLAP.md` §3
+  (NVIDIA's streaming Sortformer v2, CC BY 4.0) needs NeMo, which the
+  project's environment cannot take without resolving pins (`OVERLAP.md`
+  §9); the switch defaults to `off` and only a deterministic `fake`
+  ships.
+- `language` of a sentence is the language Whisper detects in the
+  scoring window it was said in (one decoder step on the encoder output
+  the scoring pass already has). With a session language of `auto`
+  Whisper detects the language of every window when it transcribes and
+  the session keeps `auto`; with a fixed one, a sentence detected in
+  another language gets `language_differs: true`. The speaker's
+  `identification` is described in §6.
 - Words are kept by the transcriber (for the player and for
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.
@@ -333,6 +351,18 @@ lets a human check the sample.
   raw unit vectors at cosine 0.95; enrolled voiceprints used as seeds
   of the grouping did better than cluster-then-match and are the
   recommended next step.
+- **Expected speakers** (TR-17, from `OVERLAP.md` §2.5–2.6). When a
+  session lists who is present and the number of speakers equals the
+  list, the voices are clustered into that many groups and assigned to
+  the listed voiceprints one to one (maximum total cosine), each pair
+  accepted at `expected_floor` (0.8) or more. 0.8 is a judgement from
+  three real sessions of two people (lowest true pair 0.899, highest
+  cross pair 0.730), not a measured error rate; the list is what
+  guards the names. A person named below the open threshold (0.95) is
+  marked `identification: "expected_floor"` in the transcript and the
+  player shows it as a less certain identification and recommends
+  re-enrolling. Open sessions (no list, or a count other than the
+  list) keep the measured seeding at 0.95, unchanged.
 
 Without enrolment everything still works with anonymous labels.
 

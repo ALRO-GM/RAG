@@ -13,7 +13,7 @@ previous speaker and utterance of every turn).
 
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import (
     AwareDatetime,
@@ -57,11 +57,24 @@ class ContractSession(_Strict):
 
 
 class ContractSpeaker(_Strict):
-    """A voice of the session: an enrolled person or an anonymous label."""
+    """A voice of the session: an enrolled person or an anonymous label.
+
+    ``identification`` (optional) says how an enrolled person was
+    recognised: ``threshold``, or ``expected_floor`` (listed as present
+    and only above the lower floor: a weaker identification).
+    """
 
     id: str = Field(min_length=1)
     name: Optional[str] = None
     enrolled: bool
+    identification: Optional[Literal["threshold", "expected_floor"]] = None
+
+    @model_validator(mode="after")
+    def _identified(self) -> "ContractSpeaker":
+        """Only an enrolled person has a way of identification."""
+        if self.identification is not None and not self.enrolled:
+            raise ValueError(f"anonymous speaker {self.id} is identified")
+        return self
 
 
 class ContractUtterance(_Strict):
@@ -70,7 +83,11 @@ class ContractUtterance(_Strict):
     ``speaker_certainty`` (a similarity margin in [-2, 2], not a
     probability), ``doubtful``, ``overlap`` and ``alternative_speaker``
     describe how well the voice evidence supports this sentence's
-    speaker; they are optional (older transcripts lack them).
+    speaker; ``overlap_source`` says what flagged an overlap
+    (``voices``, ``detector`` or ``both``); ``language`` is the language
+    detected where the sentence was said and ``language_differs`` tells
+    it is not the session's fixed one. All are optional (older
+    transcripts lack them).
     """
 
     id: str = Field(pattern=UTTERANCE_ID_PATTERN)
@@ -94,6 +111,9 @@ class ContractUtterance(_Strict):
     doubtful: Optional[bool] = None
     overlap: Optional[bool] = None
     alternative_speaker: Optional[str] = Field(default=None, min_length=1)
+    overlap_source: Optional[Literal["voices", "detector", "both"]] = None
+    language: Optional[str] = Field(default=None, min_length=2)
+    language_differs: Optional[bool] = None
 
     @model_validator(mode="after")
     def _consistent(self) -> "ContractUtterance":

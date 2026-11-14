@@ -84,16 +84,26 @@ def test_the_certainty_fields_are_read_and_optional(
 ) -> None:
     document = example()
     doubtful = read_contract(document).utterances[2]
+    transcript = read_contract(document)
+    doubtful = transcript.utterances[2]
     assert (doubtful.speaker_certainty, doubtful.doubtful,
-            doubtful.overlap, doubtful.alternative_speaker) == (
-        0.04, True, False, "S1")
+            doubtful.overlap, doubtful.alternative_speaker,
+            doubtful.overlap_source) == (0.04, True, True, "S1", "detector")
+    first = transcript.utterances[0]
+    assert (first.language, first.language_differs) == ("es", False)
+    assert [s.identification for s in transcript.speakers] == [
+        "threshold", "expected_floor", None]
     for item in document["utterances"]:
         for key in ("speaker_certainty", "doubtful", "overlap",
-                    "alternative_speaker"):
+                    "alternative_speaker", "overlap_source", "language",
+                    "language_differs"):
             item.pop(key, None)
+    for item in document["speakers"]:
+        item.pop("identification", None)
     validator.validate(document)
     plain = read_contract(document).utterances[2]
     assert plain.speaker_certainty is None and plain.doubtful is None
+    assert plain.language is None and plain.overlap_source is None
 
 
 def test_whole_numbers_are_valid_times() -> None:
@@ -165,6 +175,13 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
     ("overlap as a string", set_in(["utterances", 0, "overlap"], "true")),
     ("empty alternative speaker",
      set_in(["utterances", 2, "alternative_speaker"], "")),
+    ("unknown identification",
+     set_in(["speakers", 0, "identification"], "guess")),
+    ("unknown overlap source",
+     set_in(["utterances", 0, "overlap_source"], "ears")),
+    ("language too short", set_in(["utterances", 0, "language"], "e")),
+    ("language differs as a string",
+     set_in(["utterances", 0, "language_differs"], "yes")),
     ("recogniser as a number", set_in(["pipeline", "recogniser"], 1)),
     ("utterances as an object", set_in(["utterances"], {})),
     ("speakers as a string", set_in(["speakers"], "marta")),
@@ -198,6 +215,9 @@ def swap_turns(document: Dict[str, Any]) -> None:
 
 # Each breaks a rule of §4 the JSON schema cannot express.
 STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
+    ("an anonymous voice identified",
+     lambda d: d["speakers"][2].update(identification="threshold"),
+     "identified"),
     ("id does not match turn and index",
      lambda d: utterance(d, 1).update(id="t0.s5"), "does not match"),
     ("utterance ends before it starts",

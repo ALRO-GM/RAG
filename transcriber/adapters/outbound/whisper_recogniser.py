@@ -19,7 +19,10 @@ once): the audio around the words, cut into windows of at most 30 s,
 and the words' tokens are given to the model, which returns the
 probability it gives each token after the ones before it; a word's
 probability is the mean over its tokens (as openai-whisper computes
-it).
+it). While it scores, the recogniser also notes the language it
+detects in each scoring window (one decoder step on the encoder output
+it already has: no second pass over the audio), so a mixed-language
+session can be told apart window by window.
 """
 
 import threading
@@ -35,7 +38,12 @@ from transcriber.adapters.outbound.torch_runtime import (
 from transcriber.adapters.outbound.whisper_languages import (
     WHISPER_LANGUAGES,
 )
-from transcriber.application.ports import Audio, RecognisedSpeech, WordScores
+from transcriber.application.ports import (
+    Audio,
+    LanguageSpan,
+    RecognisedSpeech,
+    WordScores,
+)
 from transcriber.config import DEFAULT_RECOGNISER
 from transcriber.domain.errors import InvalidInputError
 from transcriber.domain.languages import base_code
@@ -170,11 +178,17 @@ class WhisperRecogniser:
         model_name: str = DEFAULT_RECOGNISER,
         batch_size: int = 2,
         device: Device = "auto",
+        detect_languages: bool = True,
     ) -> None:
-        """Configure the recogniser without loading the model yet."""
+        """Configure the recogniser without loading the model yet.
+
+        ``detect_languages`` makes :meth:`score_words` report the
+        language of each scoring window also when a language is given.
+        """
         self._model_name = model_name
         self.batch_size = batch_size
         self.device = device
+        self.detect_languages = detect_languages
         self._pipeline: Optional[Any] = None
         self._device = "cpu"
         self._lock = threading.Lock()
@@ -257,7 +271,10 @@ class WhisperRecogniser:
 
         ``words`` may come in any order; each is scored in a window of
         the words around it in time. Words the model cannot score (past
-        the decoder's length) keep ``None``.
+        the decoder's length) keep ``None``. Each window's detected
+        language is reported (with ``language=None`` it is the one the
+        words are scored in; with a language, only when
+        ``detect_languages``).
         """
         import torch
 
@@ -267,6 +284,7 @@ class WhisperRecogniser:
         order = sorted(range(len(words)), key=lambda n: words[n].start)
         timed = [words[n] for n in order]
         scored: List[Optional[float]] = [None] * len(words)
+        languages: List[LanguageSpan] = []
         rate = audio.sample_rate
         for start, positions in scoring_windows(timed):
             first = int(start * rate)
@@ -280,7 +298,10 @@ class WhisperRecogniser:
             ]
             with torch.no_grad():
                 encoded = model.get_encoder()(features)
-                prompt = self._prompt(model, tokenizer, encoded, code)
+                detected: Optional[str] = None
+                if code is None or self.detect_languages:
+                    detected = self._detect(model, tokenizer, encoded)
+                prompt = self._prompt(tokenizer, code or detected)
                 ids = prompt + [t for word in tokens for t in word]
                 ids = ids[:MAX_DECODER_TOKENS]
                 logits = model(
@@ -297,26 +318,45 @@ class WhisperRecogniser:
             )
             for n, value in zip(positions, means):
                 scored[order[n]] = value
+            if detected is not None:
+                last = max(timed[n].end for n in positions)
+                languages.append(LanguageSpan(
+                    start=start, end=max(min(last, start + WINDOW_SECONDS),
+                                         start),
+                    language=detected,
+                ))
         return WordScores(words=[
             w.model_copy(update={"probability": p})
             for w, p in zip(words, scored)
-        ])
+        ], languages=languages)
+
+    @staticmethod
+    def _detect(
+        model: Any, tokenizer: Any, encoded: Any
+    ) -> Optional[str]:  # pragma: no cover - runs a real model
+        """Return the language the model hears in ``encoded`` (a code).
+
+        One decoder step on the encoder's output (no second pass over
+        the audio). ``None`` if the token is not a language token.
+        """
+        token = int(model.detect_language(encoder_outputs=encoded)[0])
+        text = str(tokenizer.convert_ids_to_tokens(token))
+        code = text.strip("<|>")
+        return code if code in WHISPER_LANGUAGES else None
 
     @staticmethod
     def _prompt(
-        model: Any, tokenizer: Any, encoded: Any, language: Optional[str]
+        tokenizer: Any, language: Optional[str]
     ) -> List[int]:  # pragma: no cover - runs a real model
         """The decoder's start tokens: transcribe ``language``, no times.
 
-        Without a language, the one the model detects from the encoder's
-        output ``encoded`` (one decoder step, no second encoder pass).
+        Without a language (none given, none detected) the language
+        token is left out and the model picks it itself.
         """
+        head = [tokenizer.convert_tokens_to_ids("<|startoftranscript|>")]
         if language:
-            code = tokenizer.convert_tokens_to_ids(f"<|{language}|>")
-        else:
-            code = int(model.detect_language(encoder_outputs=encoded)[0])
-        return [
-            tokenizer.convert_tokens_to_ids("<|startoftranscript|>"), code,
+            head.append(tokenizer.convert_tokens_to_ids(f"<|{language}|>"))
+        return head + [
             tokenizer.convert_tokens_to_ids("<|transcribe|>"),
             tokenizer.convert_tokens_to_ids("<|notimestamps|>"),
         ]

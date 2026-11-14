@@ -60,11 +60,14 @@ def test_a_document_without_the_certainty_fields_still_reads(
 ) -> None:
     """The fields added to transcript.v1 are optional both ways."""
     added = ("speaker_certainty", "doubtful", "overlap",
-             "alternative_speaker")
+             "alternative_speaker", "overlap_source", "language",
+             "language_differs")
     old = load(EXAMPLE_PATH)
     for item in old["utterances"]:
         for key in added:
             item.pop(key, None)
+    for item in old["speakers"]:
+        item.pop("identification", None)
     validator.validate(old)
     transcript = Transcript.from_contract(old)
     assert all(u.speaker_certainty is None for u in transcript.utterances)
@@ -126,6 +129,9 @@ def swap_turns(document: Dict[str, Any]) -> None:
 
 # Each breaks a rule of §4 that the JSON schema cannot express.
 STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
+    ("an anonymous voice identified",
+     lambda d: d["speakers"][2].update(identification="threshold"),
+     "not identified"),
     ("previous differs inside a turn", split_luis_turn,
      "does not share the previous"),
     ("first turn has a previous",
@@ -224,6 +230,15 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
      set_in(["utterances", 2, "alternative_speaker"], "")),
     ("alternative speaker as a number",
      set_in(["utterances", 2, "alternative_speaker"], 1)),
+    ("unknown identification",
+     set_in(["speakers", 0, "identification"], "guess")),
+    ("identification as a number",
+     set_in(["speakers", 0, "identification"], 1)),
+    ("unknown overlap source",
+     set_in(["utterances", 0, "overlap_source"], "ears")),
+    ("language too short", set_in(["utterances", 0, "language"], "e")),
+    ("language differs as a string",
+     set_in(["utterances", 0, "language_differs"], "yes")),
     ("recogniser as a number", set_in(["pipeline", "recogniser"], 1)),
     ("schema as another version", set_in(["schema"], "transcript.v2")),
     ("utterances as an object", set_in(["utterances"], {})),

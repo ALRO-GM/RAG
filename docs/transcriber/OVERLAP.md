@@ -1,6 +1,7 @@
 # Two people around one phone: identification and overlapped speech
 
-Status: TR-14 (issue #21), experiment only, 2026-11-14. Nothing in
+Status: TR-14 (issue #21), experiment, 2026-11-14; what TR-17 built on
+it is in §9. When this study ran nothing in
 `transcriber/` changed. Every figure below is a row of
 `experiments/transcriber/overlap.jsonl`, written by
 `experiments/transcriber/overlap_study.py` (the row `kind` is given
@@ -399,3 +400,97 @@ A second `analyse` run wrote a byte-identical `overlap.jsonl`.
   `speed` rows: 16.0 s for WavLM-SD, its download included; 0.9 s for
   Sortformer, already in the local cache). The Sortformer timings
   follow one warm-up call.
+
+## 9. What TR-17 (#25) built on this study
+
+- **Expected-speakers rule** (§2.6 point 1): `TranscriptionParameters.
+  expected_floor` (0.8, the judgement above; not a measured error
+  rate). A person it names below 0.95 is marked
+  `identification: "expected_floor"` in the transcript (optional field
+  of `transcript.v1`); the player shows it as a less certain
+  identification and recommends re-enrolling. Open sessions keep the
+  seeding at 0.95.
+- **Overlap detector port** (§5 point 2): `OverlapDetector.overlaps
+  (audio) → [(start, end)]`, used only to set `overlap` (at least
+  `overlap_seconds`, 0.5 s, on a detected stretch) with
+  `overlap_source` telling which source fired. Settings:
+  `overlap_detector: "off"` (default) or `"fake"` (a deterministic
+  stand-in for tests). **No real adapter ships.** Sortformer v2 could
+  not be loaded with what the project's environment has: its `.nemo`
+  checkpoint is a NeMo model (FastConformer encoder, Transformer
+  encoder, streaming speaker cache) with no transformers port, and a
+  pure-Python reimplementation was not attempted. To ship it, one of:
+  1. a second virtual environment with `nemo_toolkit[asr]==3.0.0`
+     layered on the project's (as in §6), and an adapter that runs a
+     small worker script in it as a subprocess (audio in, overlap
+     stretches out as JSON), so the project's own environment keeps
+     its pins; or
+  2. adding NeMo to the project, which first needs the conflicts of
+     §3 resolved: NeMo 3.0.0 pins `packaging` 24.2 (project 26.3) and
+     `fsspec` 2025.12.0 (project 2026.9.0), and brings about 100
+     packages (592 MB).
+  Either way the torch, torchaudio, transformers and numpy of the
+  project must stay as they are; the licence (CC BY 4.0) needs the
+  attribution in the docs.
+- **Language** (§2.4, §2.6 point 4): a session's language may be
+  `auto` (Whisper detects each window; the web app offers
+  "Automático / mezcla"); every sentence carries the language detected
+  in its scoring window, and with a fixed language a sentence detected
+  in another gets `language_differs: true`. The detection reuses the
+  encoder output of the scoring pass (one decoder step per scoring
+  window, no second pass over the audio), so it is on by default; its
+  cost, measured below, was within the run-to-run noise.
+- **Enrolment advice** (§2.6 point 3) in the tutorial and on the enrol
+  page.
+- Not done: the owner labelling of §7, which is still what any
+  accuracy claim needs.
+
+### 9.1 R1–R3 rerun with TR-17
+
+The three sessions copied to a scratch directory and transcribed again
+with the TR-17 pipeline (both people listed, count 2, so the
+expected-speakers rule applies; no overlap detector), on the RTX 3070
+Ti; aggregates printed by `experiments/transcriber/real_sessions.py`
+(people A/B as in §1; no audio, text, ids or names):
+
+```sh
+PYTHONPATH=. python experiments/transcriber/real_sessions.py \
+    --data-dir data/transcriber --work /tmp/tr17 --first 3
+# the same with --no-detect-languages (timing) and --language auto
+rm -r /tmp/tr17
+```
+
+Recorded language (`es`, as the sessions were started):
+
+| | R1 | R2 | R3 |
+|---|---|---|---|
+| A named by | threshold | floor | floor |
+| B named by | floor | floor | floor |
+| Anonymous voices | 0 | 0 | 0 |
+| Sentences | 58 | 82 | 53 |
+| Doubtful | 13 (22.4%) | 11 (13.4%) | 3 (5.7%) |
+| Overlap (voice windows) | 11 (19.0%) | 4 (4.9%) | 3 (5.7%) |
+| Sentences out of time order | 0 | 0 | 0 |
+| Seams (steps back over 1 s) | 2 | 5 | 4 |
+| Words returned / dropped by the seam step | 837 / 24 | 441 / 52 | 397 / 35 |
+| … of the dropped, with a kept copy | 16 | 44 | 30 |
+| Sentences detected in another language | 0 | 49 | 52 |
+| Scoring seconds, with / without language detection | 3.1 / 1.8 | 1.3 / 1.3 | 1.5 / 1.5 |
+| Recognition seconds | 12.7 | 6.4 | 7.0 |
+
+Before TR-17 B was anonymous on R2 and R3 (§2.1); now both people are
+named on all three, B always through the floor, A through the floor on
+R2 and R3 (A's whole voice there is 0.942 and 0.935 from A's
+voiceprint, §2.2). Whether every sentence went to the right person is
+not known: there are no labels (§7). The dropped words without a kept
+copy (8, 8 and 5) are words of one window replaced by different words
+of the other at the same moment; which window heard right is not
+known either. The R1 scoring time with detection is the first scoring
+call of the process; on R2 and R3 detection cost nothing measurable.
+
+With `--language auto`: R1 58 sentences, all detected as Spanish; R2
+79 sentences, 47 English and 32 Spanish; R3 55 sentences, all English.
+Doubtful 13 / 9 / 6, overlaps 11 / 8 / 7, out of order 0 / 0 / 0; seams
+2 / 7 / 1 with 24 / 77 / 11 words dropped (16 / 58 / 11 with a kept
+copy). Names as above. What forcing Spanish did to the English text
+was not measured (no reference transcript).
