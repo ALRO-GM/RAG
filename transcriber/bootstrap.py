@@ -105,6 +105,7 @@ from transcriber.application.lab_builtin import InProcessTools
 from transcriber.application.lab_ports import LabRepository
 from transcriber.application.lab_progress import LabOverview, ReferenceTurns
 from transcriber.application.lab_reference import (
+    CheckReferenceSpeech,
     ImportReference,
     ReferenceSummary,
 )
@@ -173,6 +174,7 @@ class LabUseCases:
     scores: LabScores
     audio: LabAudio
     import_reference: ImportReference
+    check_reference: CheckReferenceSpeech
     reference_summary: ReferenceSummary
     overview: LabOverview
     reference_turns: ReferenceTurns
@@ -341,6 +343,9 @@ def build_lab(
             HuggingFaceCorpus(settings.data_dir / CORPORA_DIR), decoder,
             ImportRecording(sessions, locks, recogniser.supported_languages),
             locks, clock,
+        ),
+        check_reference=CheckReferenceSpeech(
+            sessions, repository, decoder, locks
         ),
         reference_summary=ReferenceSummary(sessions, repository),
         overview=LabOverview(sessions, repository, status),

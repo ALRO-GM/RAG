@@ -11,13 +11,20 @@ import { formatTime } from "../lib/text.js";
 import {
   ACTIVE_RUNS, EXCERPT_SECONDS, OWN, POLL_MS, agreementByDiarizer, anyActive, axisTicks, barSegments, chooseExcerpt,
   corpusOf, derByDenoiser, derByDiarizer, groupByCorpus, linearScale, niceMax, overviewTotals, pendingGroups,
-  sampleRows, stepTotal, summaryDenoisers, tallyOf, turnsToSpans,
+  sampleRows, splitExcluded, stepTotal, summaryDenoisers, tallyOf, turnsToSpans,
 } from "../lib/lab-progress.js";
 import { num, pct } from "./lab-run.js";
 import { stepLabel } from "./lab.js";
 
 function corpusName(corpus) {
   return ["own", "ami", "callhome"].includes(corpus) ? t(`lab.corpus.${corpus}`) : corpus;
+}
+
+const NO_SPEECH = "no speech in the audio";
+
+function excludedNotes(excluded) {
+  return excluded.map(({ reason, n }) => h("p", { class: "hint" },
+    t("lab.progress.excluded", { n, reason: reason === NO_SPEECH ? t("lab.excluded.no_speech") : reason })));
 }
 
 function sessionLink(entry) {
@@ -58,13 +65,14 @@ function legend(entries) {
     segmentLabel(item))));
 }
 
-function progressBlock(entries, updated) {
-  if (!entries.length) return [h("p", { class: "hint" }, t("lab.progress.empty"))];
+function progressBlock(entries, updated, excluded = []) {
+  if (!entries.length) return [h("p", { class: "hint" }, t("lab.progress.empty")), ...excludedNotes(excluded)];
   const totals = overviewTotals(entries);
   const active = anyActive(entries);
   return [
     h("p", { class: "totals" }, t("lab.progress.totals", { done: totals.done, left: totals.left, failed: totals.failed, running: totals.runsRunning })),
     h("p", { class: "hint" }, t("lab.progress.updated", { time: updated.toLocaleTimeString(lang) }), active ? ` · ${t("lab.progress.auto")}` : ""),
+    ...excludedNotes(excluded),
     legend(entries),
     groupByCorpus(entries).map(({ corpus, sessions }) => h("section", { class: "stack tight" },
       h("h3", {}, corpusName(corpus)),
@@ -136,6 +144,7 @@ function corpusResults(corpus, summary) {
   draw();
   return h("section", { class: "stack tight" }, h("h3", {}, corpusName(corpus)),
     h("p", { class: "meta" }, t("lab.results.corpus_meta", { scored, recordings: summary.recordings.length })),
+    ...excludedNotes(splitExcluded((summary.excluded || []).map((e) => ({ excluded: e.reason }))).excluded),
     summary.non_commercial ? h("p", { class: "notice warn", role: "note" }, t("lab.results.note_nc")) : null,
     denoisers.length > 1 ? h("span", { class: "row tight" }, h("label", { for: `lab-res-${corpus}` }, t("lab.denoiser")), select) : null,
     denoisers.length ? out : h("p", { class: "hint" }, t("lab.results.none")));
@@ -197,6 +206,7 @@ export function progressPanel(ctx) {
   const results = new Map(); // run id -> promise of its results
   const summaries = new Map(); // corpus -> summary
   let entries = [];
+  let excluded = [];
   let timer = null;
   let stopped = false;
   let summaryKey = null;
@@ -309,7 +319,7 @@ export function progressPanel(ctx) {
     clearTimeout(timer);
     timer = null;
     try {
-      entries = (await ctx.api.labOverview()).sessions;
+      ({ kept: entries, excluded } = splitExcluded((await ctx.api.labOverview()).sessions));
       message.hidden = true;
       loadFailed = false;
     } catch (error) {
@@ -321,7 +331,7 @@ export function progressPanel(ctx) {
       return;
     }
     if (stopped) return;
-    fill(progress, progressBlock(entries, new Date()));
+    fill(progress, progressBlock(entries, new Date(), excluded));
     fill(pending, pendingBlock(entries));
     const samplesKey = JSON.stringify(entries.map((e) => e.results_run));
     if (samples.dataset.key !== samplesKey) {

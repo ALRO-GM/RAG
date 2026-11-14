@@ -27,6 +27,7 @@ from transcriber.domain.lab_progress import (
 )
 from transcriber.domain.lab_reference import CORPORA, make_reference
 from transcriber.domain.models import Session, SessionState
+from transcriber.domain.speech_check import NO_SPEECH, SpeechCheck
 
 T0 = datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)
 RUN_A = "a" * 32
@@ -150,6 +151,18 @@ class TestOverview:
         assert imported.duration == 12.5
         assert imported.run_id is None and imported.steps is None
         assert imported.results_run is None
+        assert imported.excluded is None and own.excluded is None
+
+    def test_a_recording_without_speech_says_so(self, lab: Fixture) -> None:
+        noise = SpeechCheck(autocorrelation=0.68, flatness=0.39, frames=9,
+                            speech=False)
+        reference = make_reference(
+            CORPORA["callhome"], "data", "0001", 12.5,
+            [Segment(start=0, end=5, speaker="A")], None, speech=noise,
+        )
+        lab.repository.save_reference("ami-X", reference)
+        (entry,) = lab.overview()
+        assert entry.excluded == NO_SPEECH
 
     def test_an_interrupted_run_is_not_running(self, lab: Fixture) -> None:
         lab.repository.save_run(

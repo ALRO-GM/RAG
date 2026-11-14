@@ -372,6 +372,8 @@ export const es = {
   "lab.progress.auto": "se actualiza cada 10 s mientras haya algo en marcha",
   "lab.progress.empty": "Todavía no hay pruebas.",
   "lab.progress.not_started": "sin ejecución todavía",
+  "lab.progress.excluded": "{n} grabaciones importadas descartadas: {reason}",
+  "lab.excluded.no_speech": "su audio no tiene voz (ruido en lugar de las voces que describe la referencia)",
   "lab.progress.counts": "{done}/{total} pasos",
   "lab.progress.bar": "{session}: {done} hechos, {running} en marcha, {pending} pendientes, {failed} con fallo",
   "lab.progress.legend.done": "hecho",
