@@ -459,6 +459,14 @@ def seed_voices(
        known and reached) they go to the nearest claimed person;
     3. each short window (``fine``) takes the nearest group centroid.
 
+    ``num_speakers`` is a lower bound here, not a cap: every enrolled
+    person at least one window claims is a group, so more people than
+    ``num_speakers`` can be named (two voiceprints that clear
+    ``threshold`` with ``num_speakers=1`` give two named groups). The
+    count only says how many voices the unclaimed windows make. This is
+    the method TR-05 measured; the voiceprints winning over a wrong
+    count is what makes it better there.
+
     Groups are numbered claimed people first (in voiceprint order),
     then the unclaimed voices. ``vectors`` are the raw unit means of the
     groups' long windows. Raises :class:`InvalidInputError` like

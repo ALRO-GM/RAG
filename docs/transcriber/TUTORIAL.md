@@ -68,7 +68,7 @@ Después la terminal escribe una línea cada vez que algo cambia:
 |---|---|
 | `HH:MM:SS  tunnel  connected` | El túnel con el servidor está abierto y se ha comprobado que `https://rag.peer4u.app/api/health` llega a tu ordenador. Las personas pueden entrar. |
 | `HH:MM:SS  tunnel  connecting` | Se está abriendo. Si sigue un motivo entre paréntesis, chisel ya está conectado pero la comprobación aún falla. |
-| `HH:MM:SS  tunnel  reconnecting (motivo)` | Se ha cortado y se reintenta solo, con esperas cada vez más largas. Mientras tanto la web dice que el ordenador no está disponible. |
+| `HH:MM:SS  tunnel  reconnecting (motivo)` | Se ha cortado y se reintenta solo, con esperas cada vez más largas. Mientras tanto la web dice que el ordenador no está disponible. También sale si chisel sigue conectado pero la comprobación falla 3 veces seguidas (se repite cada 5 s): entonces se reinicia el cliente. |
 | `HH:MM:SS  <sesión>  queued` | Una sesión espera su turno (el ordenador transcribe de una en una). |
 | `HH:MM:SS  <sesión>  running  recognise 5%` | Está transcribiendo. Se escribe una línea por cada etapa y cada 10 %. Las etapas son `decode`, `recognise`, `voices`, `identify`, `sentences` y `save` (en la web aparecen traducidas: «leyendo el audio», «reconociendo el habla», «separando las voces», «poniendo nombres», «formando frases», «guardando»). |
 | `HH:MM:SS  <sesión>  done` | Terminada. |
@@ -250,7 +250,11 @@ otra vez.
 2. Rellena, si quiere: «Título (opcional)», «Idioma de la reunión»,
    «Quién está presente» (marca a las personas con voz registrada) y
    «Número de personas (opcional)». Si sabes cuántas hablan, escríbelo:
-   ayuda a separar las voces.
+   ayuda a separar las voces. Con voces registradas, ese número es un
+   mínimo, no un tope: cada persona registrada cuya voz se reconoce con
+   seguridad sale con su nombre aunque así haya más personas que el
+   número escrito; el número solo decide en cuántas voces se separa el
+   resto.
 3. Lee el aviso «Antes de empezar», con todas las personas delante. La
    casilla dice que **las personas presentes lo saben y están de acuerdo
    en que se grabe**. Márcala solo si es verdad.

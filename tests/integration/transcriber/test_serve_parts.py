@@ -3,6 +3,7 @@ settings from the environment and the progress lines."""
 
 import io
 import json
+import socket
 import time
 from pathlib import Path
 from typing import Iterator, List
@@ -21,6 +22,7 @@ from transcriber.adapters.inbound.cli import (
 from transcriber.adapters.inbound.serve import (
     WEB_DIR,
     ProgressLines,
+    bind_port,
     dev_settings,
 )
 from transcriber.adapters.outbound.fs_access_code import (
@@ -261,3 +263,18 @@ class TestDevPages:
             out=io.StringIO(), err=err,
         )
         assert code == 2 and "no pages" in err.getvalue()
+
+
+class TestBindPort:
+    def test_the_port_is_reserved_at_once(self) -> None:
+        """A second serve (another data directory, same port) is stopped
+        by bind_port itself, not later by uvicorn after its recovery."""
+        first = bind_port(0)
+        try:
+            port = first.getsockname()[1]
+            with pytest.raises(OSError):
+                bind_port(port).close()
+            with socket.create_connection(("127.0.0.1", port), timeout=5):
+                pass  # it listens: a connection waits in its queue
+        finally:
+            first.close()

@@ -347,6 +347,15 @@ default. Unclaimed windows are clustered into anonymous voices (`S1`,
 `S2`, ...) on vectors centred on the recording's mean, whatever
 `centre_windows` says.
 
+With seeding, a given number of speakers is a lower bound, not a cap:
+every enrolled person whose voiceprint clears the threshold on at least
+one 5 s window is named, even when that makes more people than the
+count (two enrolled voices with a count of one give two named people);
+the count only decides how many voices the unclaimed windows are split
+into. That is the method measured above, and it is what lets the
+voiceprints win over a wrong count; `seed_voices`'s docstring and
+`test_a_count_is_a_lower_bound_for_the_voiceprints` pin it.
+
 After the switch to the domain function the cache was rebuilt
 (`prepare`, on the GPU) and `analyse --what identification` rerun
 (18 min 37 s on the workstation): `identification.jsonl` came out

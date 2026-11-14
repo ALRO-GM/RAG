@@ -6,9 +6,11 @@ it through a reverse port that this client opens in the server's
 ``docs/DEPLOYMENT.md``). :class:`ChiselTunnel` keeps the client running
 from a supervisor thread:
 
-1. at start, a client left running by a ``serve`` that crashed (its pid
-   is in ``<data_dir>/tunnel.pid``) is ended, after checking that the
-   pid really is that chisel client;
+1. at start, a client left running by a ``serve`` that crashed is
+   ended. ``<data_dir>/tunnel.pid`` holds its pid, the exact arguments
+   it was started with and its start time; the process is signalled
+   only when all three still match (a reused pid, even one of another
+   ``serve``'s chisel client, is left alone);
 2. the client ``chisel client --keepalive <n>s --max-retry-count 0
    <server> R:0.0.0.0:<remote port>:127.0.0.1:<port>`` runs with the
    credential in its ``AUTH`` environment variable (never on the command
@@ -16,7 +18,11 @@ from a supervisor thread:
 3. it is reported ``connected`` once it writes chisel's ``Connected``
    line and the injected probe (``/api/health`` through the server)
    succeeds;
-4. when it ends, it is started again after a delay that doubles with
+4. while connected the probe goes on every ``probe_interval`` seconds:
+   after :data:`PROBE_FAILURES` failures in a row the tunnel is
+   reported ``reconnecting`` and the client is ended and started again
+   (chisel itself may stay up while the server's path is broken);
+5. when it ends, it is started again after a delay that doubles with
    every failure up to a cap (a connection that lasted long enough
    resets it).
 
@@ -25,6 +31,7 @@ in them comes from validated settings. The process runner, the probe
 and the process inspection are injected: unit tests pass fakes.
 """
 
+import json
 import logging
 import os
 import re
@@ -36,6 +43,7 @@ import time
 import urllib.error
 import urllib.request
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Callable,
@@ -64,6 +72,15 @@ POLL_SECONDS = 0.2
 
 CONNECTED_MARK = "client: Connected"
 """What chisel writes once the server accepted it and its remotes."""
+
+PROBE_FAILURES = 3
+"""Failed probes in a row, while connected, that restart the client.
+
+With the default ``probe_interval`` (5 s, counted from the end of a
+probe) and ``probe_timeout`` (10 s) a broken path is acted on 10 to 45
+seconds after it broke (3 probes that fail at once, or 3 that time
+out), and one lost answer (a slow request, a restart of the server's
+Caddy) does not cut a working tunnel."""
 
 PID_FILE = "tunnel.pid"
 
@@ -110,6 +127,9 @@ Probe = Callable[[], Optional[str]]
 
 CommandLine = Callable[[int], Optional[List[str]]]
 """The arguments of a running process, or None if there is none."""
+
+StartTime = Callable[[int], Optional[str]]
+"""When a running process started (an opaque token), or None."""
 
 
 class _PopenProcess:
@@ -301,38 +321,129 @@ def command_line(pid: int) -> Optional[List[str]]:
     return text.split() if done.returncode == 0 and text else None
 
 
-def is_our_client(arguments: Optional[List[str]], executable: Path) -> bool:
-    """Tell whether ``arguments`` are those of a client we started."""
+def process_start(pid: int) -> Optional[str]:
+    """Return when process ``pid`` started, or None if there is none.
+
+    The token only means something compared with another one of the
+    same machine: the start time in clock ticks after boot from
+    ``/proc/<pid>/stat`` where there is one, else ``ps``'s ``lstart``.
+    """
+    if Path("/proc/self").exists():
+        try:
+            raw = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
+        # Fields after the command name in parentheses: the 22nd field
+        # of the line (starttime) is the 20th after it.
+        fields = raw.rsplit(")", 1)[-1].split()
+        return fields[19] if len(fields) > 19 else None
+    done = subprocess.run(
+        ["ps", "-o", "lstart=", "-p", str(pid)],
+        capture_output=True, text=True, check=False,
+    )
+    text = done.stdout.strip()
+    return text if done.returncode == 0 and text else None
+
+
+def pid_record(pid: int, command: Sequence[str],
+               started: Optional[str]) -> str:
+    """Return the pid file's content for a client: JSON, one line."""
+    return json.dumps(
+        {"pid": pid, "argv": list(command), "start": started}
+    ) + "\n"
+
+
+@dataclass(frozen=True)
+class Leftover:
+    """What a pid file says about the client a ``serve`` started."""
+
+    pid: int
+    argv: List[str]
+    start: Optional[str]
+
+
+def read_leftover(text: str, command: Sequence[str]) -> Optional[Leftover]:
+    """Parse a pid file; None when it names no process to check.
+
+    A file of the current format gives the pid, arguments and start
+    time it recorded. A bare pid (the earlier format) is checked
+    against ``command``, the full command line this ``serve`` would
+    run, with no start time.
+    """
+    text = text.strip()
+    if text.isdigit():
+        pid, argv, start = int(text), list(command), None
+    else:
+        try:
+            data = json.loads(text)
+            pid = data["pid"]
+            argv = data["argv"]
+            start = data.get("start")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            return None
+        if (
+            not isinstance(pid, int) or isinstance(pid, bool)
+            or not isinstance(argv, list)
+            or not all(isinstance(a, str) for a in argv)
+            or not (start is None or isinstance(start, str))
+        ):
+            return None
+    if pid <= 1:
+        return None
+    return Leftover(pid, argv, start)
+
+
+def is_our_client(
+    arguments: Optional[List[str]], expected: Sequence[str]
+) -> bool:
+    """Tell whether ``arguments`` are exactly a client command we ran.
+
+    ``expected`` is the full command line that was started; it must be
+    a ``chisel client`` command, and the running process's arguments
+    must equal it, every one of them.
+    """
     return (
-        arguments is not None and len(arguments) >= 2
-        and arguments[0] == str(executable) and arguments[1] == "client"
+        arguments is not None and len(expected) >= 2
+        and expected[1] == "client" and list(arguments) == list(expected)
     )
 
 
 def end_leftover(
     path: Path,
-    executable: Path,
+    command: Sequence[str],
     describe: CommandLine = command_line,
     send: Callable[[int, int], None] = os.kill,
     pause: Callable[[float], None] = time.sleep,
+    started: StartTime = process_start,
 ) -> Optional[int]:
     """End the client a crashed ``serve`` left running; return its pid.
 
-    ``path`` is the pid file. The process is only signalled when its
-    arguments show it is ``executable client`` (a pid may have been
-    reused by anything else); it gets SIGTERM, then SIGKILL after
+    ``path`` is the pid file (:func:`pid_record`); ``command`` is the
+    command line this ``serve`` runs, used for a file that holds only a
+    pid. The process is only signalled when its arguments are exactly
+    the recorded ones and, when a start time was recorded, it started
+    then (a pid may have been reused by anything else, another
+    ``serve``'s client included); it gets SIGTERM, then SIGKILL after
     :data:`STOP_TIMEOUT` seconds. The pid file is removed. Returns None
     when there was nothing of ours to end.
     """
     try:
-        text = path.read_text(encoding="utf-8").strip()
+        text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
         return None
     path.unlink(missing_ok=True)
-    if not text.isdigit() or int(text) <= 1:
+    leftover = read_leftover(text, command)
+    if leftover is None:
         return None
-    pid = int(text)
-    if not is_our_client(describe(pid), executable):
+    pid = leftover.pid
+
+    def ours() -> bool:
+        """Tell whether ``pid`` is still the recorded client."""
+        if not is_our_client(describe(pid), leftover.argv):
+            return False
+        return leftover.start is None or started(pid) == leftover.start
+
+    if not ours():
         return None
     LOG.warning("Ending the tunnel client left by an earlier run (%d)", pid)
     try:
@@ -341,7 +452,7 @@ def end_leftover(
         return pid
     waited = 0.0
     while waited < STOP_TIMEOUT:
-        if not is_our_client(describe(pid), executable):
+        if not ours():
             return pid
         pause(0.1)
         waited += 0.1
@@ -381,8 +492,9 @@ class ChiselTunnel:
     stopped meanwhile (tests pass one that records delays). ``probe``
     checks the tunnel end to end before it is reported ``connected``
     (None: chisel's ``Connected`` line is enough). ``environ`` is the
-    environment the client's variables are taken from; ``describe`` and
-    ``signal_process`` find and end a leftover client (tests pass fakes).
+    environment the client's variables are taken from; ``describe``,
+    ``started`` and ``signal_process`` find and end a leftover client
+    (tests pass fakes).
     """
 
     def __init__(
@@ -397,6 +509,7 @@ class ChiselTunnel:
         describe: CommandLine = command_line,
         environ: Optional[Mapping[str, str]] = None,
         signal_process: Callable[[int, int], None] = os.kill,
+        started: StartTime = process_start,
     ) -> None:
         """Open ``R:0.0.0.0:<remote_port>`` to ``127.0.0.1:port``."""
         self._settings = settings
@@ -407,6 +520,7 @@ class ChiselTunnel:
         self._probe = probe
         self._describe = describe
         self._signal = signal_process
+        self._started = started
         self._environ = environ
         self._lock = threading.Lock()
         self._stopping = threading.Event()
@@ -469,14 +583,15 @@ class ChiselTunnel:
             return self._child
 
     def _write_pid(self, pid: int) -> None:
-        """Record the child's pid (best effort; mode 600)."""
+        """Record the child's pid, arguments and start (best effort; 600)."""
         try:
+            record = pid_record(pid, self._command, self._started(pid))
             self._pid_file.parent.mkdir(parents=True, exist_ok=True)
             descriptor = os.open(
                 self._pid_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
             )
             with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-                handle.write(f"{pid}\n")
+                handle.write(record)
         except OSError as exc:
             LOG.warning("Cannot write %s: %s", self._pid_file, exc)
 
@@ -501,12 +616,36 @@ class ChiselTunnel:
         if child is None:
             return None
         self.connections += 1
+        lost = self._watch(child, seen)
+        if lost is not None:
+            child.terminate()
+            code = child.wait(STOP_TIMEOUT)
+        else:
+            code = child.wait(None)
+        self._pid_file.unlink(missing_ok=True)
+        if self._stopping.is_set():
+            return None
+        return lost or exit_reason(code, child.output())
+
+    def _watch(self, child: Process, seen: threading.Event) -> Optional[str]:
+        """Follow a running client until it exits or its path breaks.
+
+        Returns None when the child exited (or the tunnel was stopped),
+        else why a working tunnel stopped answering: the probe failed
+        :data:`PROBE_FAILURES` times in a row after it had worked.
+        """
         working = False
+        failed = 0
         next_probe = 0.0
         while True:
-            code = child.wait(None if working else POLL_SECONDS)
-            if code is not None:
-                break
+            if working and self._probe is None:
+                wait: Optional[float] = None
+            elif working:
+                wait = max(next_probe - time.monotonic(), 0.0)
+            else:
+                wait = POLL_SECONDS
+            if child.wait(wait) is not None:
+                return None
             if not seen.is_set() or time.monotonic() < next_probe:
                 continue
             reason = self._probe() if self._probe is not None else None
@@ -517,19 +656,25 @@ class ChiselTunnel:
                 if reason is None:
                     self._set("connected", None)
                     working = True
-                else:
+                    failed = 0
+                elif not working:
                     self._set("connecting", f"chisel connected; {reason}")
-        self._pid_file.unlink(missing_ok=True)
-        if self._stopping.is_set():
-            return None
-        return exit_reason(code, child.output())
+                else:
+                    failed += 1
+                    LOG.info("Tunnel probe failed (%d of %d): %s", failed,
+                             PROBE_FAILURES, reason)
+                    if failed >= PROBE_FAILURES:
+                        lost = (f"no answer through the tunnel"
+                                f" {failed} times in a row; {reason}")
+                        self._set("reconnecting", lost)
+                        return lost
 
     def _supervise(self) -> None:
         """End a leftover client, then connect and reconnect until stopped."""
         try:
             end_leftover(
-                self._pid_file, chisel_path(self._settings), self._describe,
-                self._signal,
+                self._pid_file, self._command, self._describe, self._signal,
+                started=self._started,
             )
         except OSError as exc:
             LOG.warning("Cannot check %s: %s", self._pid_file, exc)

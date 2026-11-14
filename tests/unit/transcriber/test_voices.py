@@ -479,6 +479,18 @@ class TestSeedVoices:
                              threshold=0.9)
         assert seeded.coarse == [0, 1, 1, 1]
 
+    def test_a_count_is_a_lower_bound_for_the_voiceprints(self) -> None:
+        """Every enrolled person a window claims is a group, even past
+        ``num_speakers``: the count only splits the unclaimed windows."""
+        coarse = windows(*[axis(0, wobble=w) for w in (0.0, 0.05, 0.1, 0.0)],
+                         *[axis(1, wobble=w) for w in (0.0, 0.05, 0.1, 0.0)])
+        prints = [print_of("ana", *axis(0)), print_of("luis", *axis(1))]
+        seeded = seed_voices(coarse, windows(), prints, num_speakers=1,
+                             threshold=0.9)
+        assert seeded.people == {0: "ana", 1: "luis"}
+        assert seeded.coarse == [0] * 4 + [1] * 4
+        assert seeded.vectors.shape == (2, 4)
+
     def test_nothing_to_seed(self) -> None:
         prints = [print_of("ana", *axis(0))]
         empty = seed_voices(np.zeros((0, 4), np.float32),

@@ -1,5 +1,6 @@
 """The chisel tunnel supervisor with fake processes (no chisel is run)."""
 
+import json
 import os
 import signal
 import threading
@@ -13,6 +14,7 @@ from pydantic import ValidationError
 from transcriber.adapters.outbound.chisel_tunnel import (
     PID_FILE,
     ChiselTunnel,
+    PROBE_FAILURES,
     LineHandler,
     TunnelSetupError,
     backoff,
@@ -22,7 +24,9 @@ from transcriber.adapters.outbound.chisel_tunnel import (
     end_leftover,
     exit_reason,
     is_our_client,
+    pid_record,
     read_credential,
+    read_leftover,
 )
 from transcriber.application.ports import TunnelStatus
 from transcriber.config import TunnelSettings
@@ -113,6 +117,23 @@ def until(condition: Callable[[], bool]) -> None:
 def no_process(pid: int) -> Optional[List[str]]:
     """``describe`` for a machine where no leftover runs."""
     return None
+
+
+def start_of(pid: int) -> Optional[str]:
+    """``started`` for the fakes: every process started at "99"."""
+    return "99"
+
+
+def recorded(path: Path) -> Dict[str, object]:
+    """Return what the pid file says."""
+    data: Dict[str, object] = json.loads(path.read_text())
+    return data
+
+
+OURS = ["/opt/bin/chisel", "client", "--keepalive", "25s",
+        "--max-retry-count", "0", "https://rag.peer4u.app/_tunnel",
+        "R:0.0.0.0:9000:127.0.0.1:8770"]
+"""The client command of ``settings(...)`` for port 8770."""
 
 
 class TestSettings:
@@ -278,7 +299,8 @@ class TestSupervisor:
     def test_connects_and_stops(self, tmp_path: Path) -> None:
         runner = FakeRunner()
         tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path, runner,
-                              describe=no_process, environ={"PATH": "/bin"})
+                              describe=no_process, environ={"PATH": "/bin"},
+                              started=start_of)
         assert tunnel.status().state == "stopped"
         tunnel.start()
         tunnel.start()  # once only
@@ -286,7 +308,10 @@ class TestSupervisor:
         assert runner.started == [client_command(settings(tmp_path), 8770)]
         assert runner.environments == [{"PATH": "/bin", "AUTH": CREDENTIAL}]
         assert not any(CREDENTIAL in arg for arg in runner.started[0])
-        assert (tmp_path / PID_FILE).read_text() == "4242\n"
+        assert recorded(tmp_path / PID_FILE) == {
+            "pid": 4242, "argv": client_command(settings(tmp_path), 8770),
+            "start": "99",
+        }
         assert (tmp_path / PID_FILE).stat().st_mode & 0o777 == 0o600
         tunnel.stop()
         assert runner.children[0].terminated.is_set()
@@ -331,6 +356,74 @@ class TestSupervisor:
         )
         gate.set()
         until(lambda: tunnel.status().state == "connected")
+        tunnel.stop()
+
+    def test_a_broken_path_restarts_a_running_client(
+        self, tmp_path: Path
+    ) -> None:
+        """chisel stays up, the server's path breaks: after
+        PROBE_FAILURES failed probes in a row the client is restarted."""
+        answers: List[Optional[str]] = (
+            [None, None, "502"] + [None] * 2  # one failure: still connected
+            + ["timed out"] * PROBE_FAILURES  # broken
+        )
+        calls: List[int] = []
+        seen: List[str] = []
+
+        def probe() -> Optional[str]:
+            calls.append(1)
+            seen.append(tunnel.status().describe())
+            return answers.pop(0) if answers else None
+
+        delays: List[float] = []
+
+        def pause(seconds: float) -> bool:
+            delays.append(seconds)
+            return False
+
+        runner = FakeRunner()
+        tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path, runner,
+                              probe=probe, pause=pause, describe=no_process,
+                              started=start_of)
+        tunnel.start()
+        until(lambda: len(runner.started) == 2)
+        assert runner.children[0].terminated.is_set()
+        # Connected through the single failure; never a "connecting".
+        assert seen[1:7] == ["connected"] * 6
+        assert delays == [0.01]
+        until(lambda: tunnel.status().state == "connected")
+        assert len(calls) >= 3 + 2 + PROBE_FAILURES + 1
+        tunnel.stop()
+
+    def test_the_reason_of_a_broken_path_is_shown(
+        self, tmp_path: Path
+    ) -> None:
+        answers: List[Optional[str]] = [None] + ["x answered 502"] * 9
+
+        def probe() -> Optional[str]:
+            return answers.pop(0) if answers else None
+
+        tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path,
+                              FakeRunner(), probe=probe,
+                              pause=lambda s: True, describe=no_process)
+        tunnel.start()
+        until(lambda: tunnel.status().state == "reconnecting")
+        assert tunnel.status().describe() == (
+            f"reconnecting (no answer through the tunnel {PROBE_FAILURES}"
+            " times in a row; x answered 502)"
+        )
+        tunnel.stop()
+
+    def test_without_a_probe_a_connected_client_is_only_waited_for(
+        self, tmp_path: Path
+    ) -> None:
+        runner = FakeRunner()
+        tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path, runner,
+                              describe=no_process)
+        tunnel.start()
+        until(lambda: tunnel.status().state == "connected")
+        time.sleep(0.1)
+        assert len(runner.started) == 1
         tunnel.stop()
 
     def test_an_exit_reconnects(self, tmp_path: Path) -> None:
@@ -439,14 +532,13 @@ class TestSupervisor:
         assert tunnel.status().state == "stopped"
 
     def test_a_leftover_client_is_ended_first(self, tmp_path: Path) -> None:
-        (tmp_path / PID_FILE).write_text("777\n")
+        assert client_command(settings(tmp_path), 8770) == OURS
+        (tmp_path / PID_FILE).write_text(pid_record(777, OURS, "99"))
         running = {777}
         signals: List[tuple[int, int]] = []
 
         def describe(pid: int) -> Optional[List[str]]:
-            if pid in running:
-                return ["/opt/bin/chisel", "client", "--keepalive", "25s"]
-            return None
+            return list(OURS) if pid in running else None
 
         def send(pid: int, number: int) -> None:
             signals.append((pid, number))
@@ -455,12 +547,12 @@ class TestSupervisor:
         runner = FakeRunner()
         tunnel = ChiselTunnel(
             settings(tmp_path), 8770, tmp_path, runner, describe=describe,
-            signal_process=send,
+            signal_process=send, started=start_of,
         )
         tunnel.start()
         until(lambda: tunnel.status().state == "connected")
         assert signals == [(777, signal.SIGTERM)]
-        assert (tmp_path / PID_FILE).read_text() == "4242\n"
+        assert recorded(tmp_path / PID_FILE)["pid"] == 4242
         tunnel.stop()
 
 
@@ -470,53 +562,132 @@ class TestLeftover:
         path.write_text(f"{os.getpid()}\n")
         signals: List[int] = []
         ended = end_leftover(
-            path, Path("/opt/bin/chisel"),
+            path, OURS,
             lambda pid: ["/usr/bin/python3", "-m", "pytest"],
             lambda pid, number: signals.append(number),
         )
         assert ended is None and signals == []
         assert not path.exists()
 
-    def test_one_that_ignores_sigterm_is_killed(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("running, start", [
+        # Another serve's client: same chisel, another local port.
+        (OURS[:-1] + ["R:0.0.0.0:9000:127.0.0.1:8771"], "99"),
+        # Another serve's client to another server.
+        (OURS[:6] + ["https://other.example/_tunnel", OURS[7]], "99"),
+        # The same command line, but a process started later: the pid
+        # was reused by a client exactly like ours.
+        (OURS, "123"),
+        # The same executable and "client" only.
+        (["/opt/bin/chisel", "client"], "99"),
+    ])
+    def test_another_client_on_a_reused_pid_is_left_alone(
+        self, tmp_path: Path, running: List[str], start: str
+    ) -> None:
         path = tmp_path / PID_FILE
-        path.write_text("777")
+        path.write_text(pid_record(777, OURS, "99"))
         signals: List[int] = []
         ended = end_leftover(
-            path, Path("/opt/bin/chisel"),
-            lambda pid: ["/opt/bin/chisel", "client"],
+            path, OURS, lambda pid: list(running),
             lambda pid, number: signals.append(number),
-            pause=lambda s: None,
+            started=lambda pid: start,
+        )
+        assert ended is None and signals == []
+        assert not path.exists()
+
+    def test_the_recorded_command_wins_over_this_one(
+        self, tmp_path: Path
+    ) -> None:
+        """A crashed serve on another port: its client is still ended."""
+        earlier = OURS[:-1] + ["R:0.0.0.0:9000:127.0.0.1:8000"]
+        path = tmp_path / PID_FILE
+        path.write_text(pid_record(777, earlier, "99"))
+        running = {777}
+        signals: List[int] = []
+
+        def send(pid: int, number: int) -> None:
+            signals.append(number)
+            running.discard(pid)
+
+        ended = end_leftover(
+            path, OURS,
+            lambda pid: list(earlier) if pid in running else None, send,
+            started=start_of,
+        )
+        assert ended == 777 and signals == [signal.SIGTERM]
+
+    def test_a_bare_pid_must_match_this_command_line(
+        self, tmp_path: Path
+    ) -> None:
+        path = tmp_path / PID_FILE
+        path.write_text("777\n")
+        assert end_leftover(
+            path, OURS, lambda pid: OURS[:-1] + ["R:0.0.0.0:9000:x:1"],
+            lambda pid, number: None,
+        ) is None
+        path.write_text("777\n")
+        signals: List[int] = []
+        assert end_leftover(
+            path, OURS, lambda pid: list(OURS),
+            lambda pid, number: signals.append(number),
+            pause=lambda s: None, started=lambda pid: None,
+        ) == 777
+        assert signals == [signal.SIGTERM, signal.SIGKILL]
+
+    def test_one_that_ignores_sigterm_is_killed(self, tmp_path: Path) -> None:
+        path = tmp_path / PID_FILE
+        path.write_text(pid_record(777, OURS, "99"))
+        signals: List[int] = []
+        ended = end_leftover(
+            path, OURS, lambda pid: list(OURS),
+            lambda pid, number: signals.append(number),
+            pause=lambda s: None, started=start_of,
         )
         assert ended == 777
         assert signals == [signal.SIGTERM, signal.SIGKILL]
 
-    @pytest.mark.parametrize("content", ["", "abc", "1", "0", "-5"])
+    @pytest.mark.parametrize("content", [
+        "", "abc", "1", "0", "-5", "[]", "{}", '{"pid": "7", "argv": []}',
+        '{"pid": true, "argv": []}', '{"pid": 7, "argv": "x"}',
+        '{"pid": 7, "argv": [1]}', '{"pid": 7, "argv": [], "start": 5}',
+        '{"pid": 1, "argv": ["/x", "client"]}',
+    ])
     def test_a_pid_file_without_a_pid_is_removed(
         self, tmp_path: Path, content: str
     ) -> None:
         path = tmp_path / PID_FILE
         path.write_text(content)
-        assert end_leftover(path, Path("/x"), lambda pid: ["/x", "client"],
+        assert end_leftover(path, ["/x", "client"],
+                            lambda pid: ["/x", "client"],
                             lambda pid, number: None) is None
         assert not path.exists()
 
     def test_nothing_to_end(self, tmp_path: Path) -> None:
-        assert end_leftover(tmp_path / PID_FILE, Path("/x")) is None
+        assert end_leftover(tmp_path / PID_FILE, OURS) is None
 
     def test_one_already_gone(self, tmp_path: Path) -> None:
         path = tmp_path / PID_FILE
-        path.write_text("777")
+        path.write_text(pid_record(777, ["/x", "client"], None))
 
         def send(pid: int, number: int) -> None:
             raise ProcessLookupError()
 
-        assert end_leftover(path, Path("/x"), lambda pid: ["/x", "client"],
+        assert end_leftover(path, OURS, lambda pid: ["/x", "client"],
                             send) == 777
 
+    def test_read_leftover(self) -> None:
+        assert read_leftover(pid_record(5, OURS, "7"), ["/y"]) == (
+            read_leftover('{"pid": 5, "argv": %s, "start": "7"}'
+                          % json.dumps(OURS), [])
+        )
+        bare = read_leftover(" 5\n", OURS)
+        assert bare is not None and bare.argv == OURS and bare.start is None
+
     def test_is_our_client(self) -> None:
-        chisel = Path("/opt/bin/chisel")
-        assert is_our_client(["/opt/bin/chisel", "client", "x"], chisel)
-        assert not is_our_client(["/opt/bin/chisel", "server"], chisel)
-        assert not is_our_client(["/other/chisel", "client"], chisel)
-        assert not is_our_client(None, chisel)
-        assert not is_our_client([], chisel)
+        assert is_our_client(list(OURS), OURS)
+        assert not is_our_client(OURS + ["x"], OURS)
+        assert not is_our_client(OURS[:-1], OURS)
+        assert not is_our_client(["/opt/bin/chisel", "server"],
+                                 ["/opt/bin/chisel", "server"])
+        assert not is_our_client(["/other/chisel"] + OURS[1:], OURS)
+        assert not is_our_client(None, OURS)
+        assert not is_our_client([], [])

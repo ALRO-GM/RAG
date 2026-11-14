@@ -217,6 +217,34 @@ test("a failed resync read counts as a network failure and retries later", async
   assert.equal(up.state().drained, true);
 });
 
+test("a 401 from the resync's read pauses like a refused chunk, not a retry", async () => {
+  let code = "old";
+  const sent = [];
+  let refusals = 0;
+  const { up, states, time } = setup(async (id, n) => {
+    if (code === "old") { refusals += 1; throw failure("client", { code: "wrong_state" }); }
+    sent.push(n);
+    return {};
+  }, async () => {
+    if (code === "old") throw failure("unauthorized");
+    return { chunks: 0 };
+  });
+  up.push(bytes(4));
+  await settle();
+  assert.equal(states.at(-1).paused, "unauthorized");
+  assert.equal(states.at(-1).lastError, "unauthorized");
+  assert.equal(states.at(-1).fatal, null);
+  assert.equal(states.at(-1).pendingBytes, 4, "the chunk is kept");
+  await time.advance(60000);
+  assert.equal(time.timers.length, 0, "no retry timer while paused");
+  assert.equal(refusals, 1, "nothing is sent again while paused");
+  code = "new";
+  up.resume(0);
+  up.finish();
+  assert.equal(await up.whenDone(), null);
+  assert.deepEqual(sent, [0]);
+});
+
 // ---- Api -----------------------------------------------------------
 
 function fakeFetch(answer) {

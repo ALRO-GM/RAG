@@ -5,8 +5,10 @@ The command (``docs/transcriber/ARCHITECTURE.md`` §5):
 1. takes an exclusive lock on ``<data_dir>/serve.lock``
    (:func:`hold_serve_lock`): one service per data directory, so a
    second one never runs recovery under the first one's jobs;
-2. binds the API's port on 127.0.0.1 (:func:`bind_port`) before
-   anything changes on disk: a taken port stops it here too;
+2. binds and listens on the API's port on 127.0.0.1
+   (:func:`bind_port`) before anything changes on disk: a taken port,
+   even one another ``serve`` on another data directory has only just
+   reserved, stops it here too;
 3. makes the access code (or reads the kept one with ``--keep-code``);
 4. builds the container with recovery (:func:`start_container`): this
    process runs the jobs;
@@ -77,14 +79,22 @@ def hold_serve_lock(data_dir: Path) -> Optional[IO[str]]:
 
 
 def bind_port(port: int) -> socket.socket:
-    """Return a socket bound to ``127.0.0.1:port`` for the API.
+    """Return a socket listening on ``127.0.0.1:port`` for the API.
 
+    The socket already listens when this returns: with ``SO_REUSEADDR``
+    two sockets that are only bound may share a port on Linux, so a
+    second ``serve`` (on another data directory) would get past this
+    and run recovery before uvicorn failed. A listening socket keeps
+    the port to itself; connections that arrive before uvicorn serves
+    it wait in the kernel's queue. uvicorn takes the socket as it is
+    (``loop.create_server(sock=...)`` listens again with its backlog).
     Raises :class:`OSError` when the port is taken.
     """
     bound = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         bound.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         bound.bind((LOCAL_HOST, port))
+        bound.listen()
     except OSError:
         bound.close()
         raise

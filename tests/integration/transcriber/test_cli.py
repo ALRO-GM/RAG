@@ -457,6 +457,24 @@ def test_a_taken_port_stops_serve_before_recovery(
     assert json.loads(record.read_text())["state"] == "running"
 
 
+def test_two_data_dirs_on_one_port_only_the_first_recovers(
+    tmp_path: Path, files: Dict[str, Path]
+) -> None:
+    from transcriber.adapters.inbound.serve import bind_port
+
+    first = bind_port(0)  # a serve of another data directory, recovering
+    try:
+        data = tmp_path / "data"
+        record = running_session(data, files)
+        result = run(data, "serve", "--no-tunnel", "--port",
+                     str(first.getsockname()[1]))
+    finally:
+        first.close()
+    assert result.returncode == 1
+    assert "could not listen" in result.stdout
+    assert json.loads(record.read_text())["state"] == "running"
+
+
 def test_serve_new_code_replaces_the_kept_one(
     tmp_path: Path, services: List[Service]
 ) -> None:

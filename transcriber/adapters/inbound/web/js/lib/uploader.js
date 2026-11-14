@@ -1,6 +1,7 @@
 // Drives a ChunkQueue against the API: one chunk at a time, in order,
 // retries with back-off, resync on doubt. A 401 (the service restarted
-// with a new access code) pauses the uploads, keeping the backlog, until
+// with a new access code), from a chunk or from the resync's read,
+// pauses the uploads, keeping the backlog, until
 // resume() is called with a working code. No DOM; time and timers are
 // injected so it is tested with fakes.
 
@@ -132,13 +133,7 @@ export class ChunkUploader {
   async _handle(chunk, error) {
     const kind = error?.kind ?? "unavailable";
     this.lastError = kind;
-    if (kind === "unauthorized") {
-      // Not fatal: keep the chunk and everything after it until a new
-      // code works (resume()).
-      this.queue.release(chunk.number);
-      this.paused = "unauthorized";
-      return false;
-    }
+    if (kind === "unauthorized") return this._pause(chunk);
     if (kind === "client") {
       // The server disagrees with our numbering (or refused the chunk):
       // read what it holds and align, once; a second refusal is final.
@@ -152,14 +147,32 @@ export class ChunkUploader {
         this.queue.resync(view.chunks);
         return !this.queue.fatal;
       } catch (again) {
+        const why = again?.kind ?? "unavailable";
+        this.lastError = why;
+        if (why === "unauthorized") {
+          // The code changed between the refusal and the read: pause
+          // like a refused chunk, and keep the one resync for later.
+          this.rejectedOnce = false;
+          return this._pause(chunk);
+        }
         this.queue.failed(chunk.number, this.now());
-        this.lastError = again?.kind ?? "unavailable";
         return false;
       }
     }
     const minimum = kind === "rate" ? (error.waitSeconds ?? 0) * 1000 : 0;
     this.queue.failed(chunk.number, this.now(), minimum);
     this._emit();
+    return false;
+  }
+
+  /**
+   * A 401 (a putChunk or the resync's getSession): not fatal. Keep the
+   * chunk and everything after it until a new code works (resume()).
+   * Returns false: the loop stops.
+   */
+  _pause(chunk) {
+    this.queue.release(chunk.number);
+    this.paused = "unauthorized";
     return false;
   }
 
