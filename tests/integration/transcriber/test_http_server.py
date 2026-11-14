@@ -114,7 +114,13 @@ def test_a_body_announced_too_large_is_refused_before_it_is_sent(
             + b"Content-Type: application/octet-stream\r\n"
             b"Content-Length: 1000000000\r\n\r\n"
         )
-        answer = raw.recv(65536).decode("latin-1")
+        received = b""
+        while b"payload_too_large" not in received:
+            part = raw.recv(65536)  # the answer may come in pieces
+            if not part:
+                break
+            received += part
+        answer = received.decode("latin-1")
     assert answer.startswith("HTTP/1.1 413"), answer
     assert '"code":"payload_too_large"' in answer
     session = container.sessions.get("s1")
