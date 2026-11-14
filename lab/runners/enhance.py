@@ -5,7 +5,11 @@ Models:
 ``deepfilternet3`` (denoise)
     DeepFilterNet3 (``deepfilternet`` 0.5.6, MIT/Apache-2.0; weights
     from the project's GitHub release, fetched on first use into
-    ``~/.cache/DeepFilterNet``), full band at 48 kHz.
+    ``~/.cache/DeepFilterNet``), full band at 48 kHz. Run on pieces of
+    ``piece_seconds`` (30 s) with 1 s cross-faded overlaps: on a whole
+    AMI meeting (25-40 min) at once it tried to allocate 1.8-5.3 GiB
+    more and ran out of GPU memory. Pieces are not rescaled (as before,
+    the model's output level is kept).
 ``mossformer2-se-48k`` / ``mossformergan-se-16k`` (denoise)
     ClearerVoice-Studio (``clearvoice`` 0.1.2, Apache-2.0) speech
     enhancement models ``alibabasglab/MossFormer2_SE_48K`` and
@@ -16,9 +20,11 @@ Models:
     library and weights), 48 kHz, 10 ms frames, CPU only.
 
 ClearVoice cuts long audio into windows itself (10 s for the 16 kHz
-models; written as PCM16 because its reader cannot take float WAV
-without ffprobe). Every output is resampled back to
-16 kHz mono with the input's length. See ``_common`` for the contract.
+models) and only a window's features reach the model, so its memory
+does not grow with the recording and it is not cut here (written as
+PCM16 because its reader cannot take float WAV without ffprobe).
+RNNoise runs 10 ms frames on the CPU. Every output is resampled back
+to 16 kHz mono with the input's length. See ``_common`` for the contract.
 """
 
 import importlib.util
@@ -69,12 +75,13 @@ def _torchaudio_backend_shim() -> None:
 
 
 def deepfilternet(context: Context) -> Dict[str, Any]:
-    """Enhance with DeepFilterNet3 at 48 kHz."""
+    """Enhance with DeepFilterNet3 at 48 kHz, ``piece_seconds`` at a time."""
     _torchaudio_backend_shim()
+    import numpy as np
     import torch
     from df.enhance import enhance, init_df
 
-    context.ignore_unknown(("atten_lim_db", "post_filter"))
+    context.ignore_unknown(("atten_lim_db", "post_filter", "piece_seconds"))
     model, state, _ = init_df(
         post_filter=bool(context.param("post_filter", False)),
         log_level="WARNING", log_file=None,
@@ -88,14 +95,20 @@ def deepfilternet(context: Context) -> Dict[str, Any]:
     wide = _common.resample(samples, _common.RATE, rate)
     context.loaded()
     limit = context.param("atten_lim_db")
-    with torch.inference_mode():
-        out = enhance(
-            model, state, torch.from_numpy(wide).unsqueeze(0),
-            atten_lim_db=None if limit is None else float(limit),
-        )
+    piece = int(float(context.param("piece_seconds", 30.0)) * rate)
+
+    def run(chunk: "np.ndarray") -> "np.ndarray":
+        """Enhance one piece."""
+        with torch.inference_mode():
+            out = enhance(
+                model, state, torch.from_numpy(chunk).unsqueeze(0),
+                atten_lim_db=None if limit is None else float(limit),
+            )
+        return out.squeeze(0).cpu().numpy()[:len(chunk)]
+
+    enhanced = _common.pieces(wide, piece, rate, run)
     _common.write_audio(
-        context.out / "audio.wav", out.squeeze(0).cpu().numpy(), rate,
-        len(samples),
+        context.out / "audio.wav", enhanced, rate, len(samples),
     )
     return {"audio": "audio.wav", "sample_rate": _common.RATE}
 

@@ -23,6 +23,7 @@ from tests.unit.transcriber.fakes import (
     voice,
 )
 from tests.unit.transcriber.lab_fakes import (
+    Answer,
     FakeEnvironment,
     FakeLabRepository,
     FakeProcesses,
@@ -71,6 +72,7 @@ from transcriber.domain.lab import (
     LabRun,
     ReferenceLabel,
     Segment,
+    StageOutcome,
 )
 from transcriber.domain.models import Session, SessionState, Word
 from transcriber.domain.parameters import TranscriptionParameters
@@ -104,6 +106,19 @@ ENTRIES = [
 ]
 
 TURNS = [(0.0, 12.0, "X"), (13.0, 25.0, "Y"), (26.0, 36.0, "X")]
+
+
+def fails_once(code: str, then: Answer = denoises) -> Answer:
+    """A model that fails with ``code`` on its first call only."""
+    calls: List[int] = []
+
+    def answer(request: ToolRequest) -> StageOutcome:
+        """Fail the first time, then answer as ``then``."""
+        calls.append(1)
+        if len(calls) == 1:
+            return fails(code)(request)
+        return then(request)
+    return answer
 
 
 @dataclass
@@ -404,6 +419,67 @@ class TestRun:
         assert denoised is not None and denoised.code == "out_of_memory"
         assert read is not None and "did not finish" in read.message
         assert steps["diarize:none+z1"].state == "done"
+
+    def test_out_of_memory_is_tried_again_after_its_stage(
+        self, lab: Lab
+    ) -> None:
+        lab.catalogue.catalogue = StaticCatalogue(
+            ENTRIES + [entry("dn2", "denoise")]
+        ).catalogue
+        lab.tool.answers["dn"] = fails_once("out_of_memory")
+        lab.tool.answers["dn2"] = denoises
+        run_id = lab.run(denoisers=["none", "dn", "dn2"], diarizers=["z1"])
+        view = lab.status(SESSION, run_id)
+        assert view.state == "done"
+        assert lab.tool.calls == [
+            "denoise:dn", "denoise:dn2", "denoise:dn",
+            "diarize:z1", "diarize:z1", "diarize:z1",
+        ]
+        assert all(s.error is None for s in view.run.steps)
+
+    def test_a_diarizer_out_of_memory_waits_for_the_last_diarization(
+        self, lab: Lab
+    ) -> None:
+        lab.tool.answers["z1"] = fails_once(
+            "out_of_memory", scene_turns(TURNS)
+        )
+        run_id = lab.run(denoisers=["none", "dn"], diarizers=["z1"],
+                         recognisers=["r1"])
+        assert lab.status(SESSION, run_id).state == "done"
+        assert lab.tool.calls == [
+            "denoise:dn", "diarize:z1", "recognise:r1", "diarize:z1",
+            "diarize:z1", "recognise:r1",
+        ]
+
+    def test_out_of_memory_is_tried_again_only_once(self, lab: Lab) -> None:
+        lab.tool.answers["dn"] = fails("out_of_memory")
+        lab.run(denoisers=["none", "dn"], diarizers=["z1"])
+        assert lab.tool.calls.count("denoise:dn") == 2
+
+    def test_other_failures_are_not_tried_again(self, lab: Lab) -> None:
+        lab.tool.answers["z1"] = crashes
+        lab.run(denoisers=["none"], diarizers=["z1", "gated"])
+        assert lab.tool.calls == ["diarize:z1", "diarize:gated"]
+
+    def test_a_cancel_stops_before_the_second_try(self, lab: Lab) -> None:
+        lab.catalogue.catalogue = StaticCatalogue(
+            ENTRIES + [entry("dn2", "denoise")]
+        ).catalogue
+        lab.tool.answers["dn"] = fails("out_of_memory")
+        lab.tool.answers["dn2"] = denoises
+        run = lab.start(SESSION, LabRequest.model_validate(
+            dict(denoisers=["none", "dn", "dn2"], diarizers=["z1"])
+        ))
+
+        def cancel_at_dn2() -> None:
+            """Ask the run to stop when the second denoiser is called."""
+            if lab.tool.calls == ["denoise:dn"]:
+                lab.cancel(SESSION, run.id)
+
+        lab.tool.before = cancel_at_dn2
+        lab.execute(SESSION, run.id, RecordingProgress())
+        assert lab.status(SESSION, run.id).state == "cancelled"
+        assert lab.tool.calls == ["denoise:dn", "denoise:dn2"]
 
     def test_an_unknown_error_code_becomes_failed(self, lab: Lab) -> None:
         lab.tool.answers["z1"] = fails("weird")

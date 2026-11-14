@@ -40,7 +40,8 @@
       "vram_gb": 1.9,
       "parameters": {
         "atten_lim_db": null,
-        "post_filter": false
+        "post_filter": false,
+        "piece_seconds": 30.0
       },
       "minimums": {},
       "types": {
@@ -50,9 +51,9 @@
         "https://github.com/Rikorose/DeepFilterNet/raw/main/models/DeepFilterNet3.zip"
       ],
       "weights_mb": 9,
-      "notes": "deepfilternet 0.5.6 (the current release; DeepFilterNet3 is its default model), 48 kHz full band. The package pins numpy<2 and imports torchaudio.backend (removed in torchaudio 2.1): installed without its pins and run with an empty stand-in for that one type; the env's torchaudio 2.11.1 runs without its compiled extension. Weights come from the GitHub release into ~/.cache/DeepFilterNet. Measured 1.7 s for 122 s on the GPU (1.9 GB peak).",
+      "notes": "deepfilternet 0.5.6 (the current release; DeepFilterNet3 is its default model), 48 kHz full band. The package pins numpy<2 and imports torchaudio.backend (removed in torchaudio 2.1): installed without its pins and run with an empty stand-in for that one type; the env's torchaudio 2.11.1 runs without its compiled extension. Weights come from the GitHub release into ~/.cache/DeepFilterNet. Measured 1.7 s for 122 s on the GPU (1.9 GB peak). Revision 2: run on 30 s pieces with 1 s cross-fades (piece_seconds); revision 1 took the whole file at once and ran out of GPU memory on 25-40 min AMI meetings (it tried to allocate 1.8-5.3 GiB more).",
       "lineage": null,
-      "revision": 1
+      "revision": 2
     },
     {
       "id": "mossformer2-se-48k",

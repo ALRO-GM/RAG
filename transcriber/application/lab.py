@@ -609,9 +609,12 @@ class RunLab:
     ) -> LabRun:
         """Run every step not done yet, then map and compare.
 
-        A failing step is recorded and the run goes on; the run ends
-        ``done``, ``partial`` (some steps failed), ``failed`` (no
-        pipeline finished) or ``cancelled``.
+        A failing step is recorded and the run goes on. A step that ran
+        out of memory is tried once more right after the last step of
+        its stage: another process may have freed the GPU by then, and
+        a denoiser is still retried before any step reads its audio.
+        The run ends ``done``, ``partial`` (some steps failed),
+        ``failed`` (no pipeline finished) or ``cancelled``.
         """
         repo = self._repository
         run = repo.run(session_id, run_id)
@@ -667,29 +670,27 @@ class RunLab:
         }
         audio_keys: Dict[str, Optional[str]] = {NO_DENOISER: original}
         total = len(run.steps) + 2
+        last = {step.stage: n for n, step in enumerate(run.steps)}
+        retry: List[Step] = []
         for number, step in enumerate(run.steps):
-            current = run.step(step.name) or step
             if self._cancelled(run):
                 return self._cancel(run)
             progress.report(step.name, number / total)
-            if current.state == "done" and current.key and repo.outcome(
-                session.id, current.key
-            ):
-                done = current
-            else:
-                run = run.with_step(current.model_copy(
-                    update={"state": "running", "error": None}
-                ))
-                repo.save_run(run)
-                done = self._step(
-                    run, current, catalogue, audio_keys, standard,
+            run, done = self._attempt(
+                run, run.step(step.name) or step, catalogue, audio_keys,
+                standard, voiceprints, anonymous,
+            )
+            if _out_of_memory(done):
+                retry.append(done)
+            if last[step.stage] != number:
+                continue
+            for again in [s for s in retry if s.stage == step.stage]:
+                if self._cancelled(run):
+                    return self._cancel(run)
+                progress.report(again.name, number / total)
+                run, _ = self._attempt(
+                    run, again, catalogue, audio_keys, standard,
                     voiceprints, anonymous,
-                )
-                run = run.with_step(done)
-                repo.save_run(run)
-            if done.stage == "denoise":
-                audio_keys[done.model] = (
-                    done.key if done.state == "done" else None
                 )
         if self._cancelled(run):
             return self._cancel(run)
@@ -709,6 +710,44 @@ class RunLab:
             "state": state, "finished_at": self._clock.now(),
             "message": None if finished else "No pipeline finished.",
         })
+
+    def _attempt(
+        self,
+        run: LabRun,
+        step: Step,
+        catalogue: Catalogue,
+        audio_keys: Dict[str, Optional[str]],
+        standard: Mapping[str, Any],
+        voiceprints: Sequence[Voiceprint],
+        anonymous: bool,
+    ) -> Tuple[LabRun, Step]:
+        """Run ``step`` unless it is done; return the run and the step.
+
+        The run is saved before and after the step; a denoise step
+        records in ``audio_keys`` the key of its audio (``None`` when it
+        failed).
+        """
+        repo = self._repository
+        if step.state == "done" and step.key and repo.outcome(
+            run.session_id, step.key
+        ):
+            done = step
+        else:
+            run = run.with_step(step.model_copy(
+                update={"state": "running", "error": None}
+            ))
+            repo.save_run(run)
+            done = self._step(
+                run, step, catalogue, audio_keys, standard, voiceprints,
+                anonymous,
+            )
+            run = run.with_step(done)
+            repo.save_run(run)
+        if done.stage == "denoise":
+            audio_keys[done.model] = (
+                done.key if done.state == "done" else None
+            )
+        return run, done
 
     def _cancel(self, run: LabRun) -> LabRun:
         """Return the run cancelled, its unfinished steps too."""
@@ -937,6 +976,13 @@ def build_results(
         run.id, run.session_id, duration, run.pipelines(), diarizations,
         recognitions, entries, costs, comparison,
         repository.reference(run.session_id),
+    )
+
+
+def _out_of_memory(step: Step) -> bool:
+    """Tell whether ``step`` failed for lack of memory."""
+    return step.state == "failed" and step.error is not None and (
+        step.error.code == "out_of_memory"
     )
 
 

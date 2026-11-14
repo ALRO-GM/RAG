@@ -133,6 +133,19 @@ marker is reported `not_installed` in the catalogue.
   The runners refuse a step that would never end too: a piece of
   fewer than one sample (`piece_seconds`) or a window or hop below
   one 10 ms frame is `bad_input`.
+- Memory must not grow with the recording. The denoisers that would
+  hand the whole file to the model run it on pieces of
+  `piece_seconds` with 1 s linear cross-fades (`_common.pieces`; the
+  output always has the input's length): `deepfilternet3` (30 s,
+  revision 2, #45; revision 1 took the whole file and ran out of GPU
+  memory on every AMI meeting of §13, asking for 1.8–5.3 GiB more on
+  25–40 min recordings) and the SpeechBrain `sepformer-dns4` and
+  `metricgan-plus` (10 s). Each SpeechBrain piece is scaled back to
+  its input's RMS level before the cross-fade (their output level is
+  arbitrary); DeepFilterNet's pieces are not rescaled, as before.
+  ClearVoice windows long audio itself (only a window's features reach
+  the model) and RNNoise runs 10 ms frames on the CPU, so they are not
+  cut and keep revision 1.
 - `--selftest` imports the family's libraries without loading weights
   or using the network and prints one JSON line
   (`{"ok": true, "family", "python", "packages", "cuda"}`).
@@ -169,7 +182,12 @@ hash of the voiceprints). The cost of a run is therefore one denoise
 per denoiser and one diarization and one recognition per (denoiser,
 model), never the whole product, and a second run (or a resumed one)
 computes only what is missing. Failures are not cached: they are tried
-again.
+again. A step that fails with `out_of_memory` is also tried once more
+inside the same run, right after the last step of its stage (all the
+denoisers, all the diarizations or all the recognitions): another
+process may have freed the GPU by then, and a denoiser is still
+retried before any step reads its audio. Other failures are not
+retried until the run is resumed.
 
 ### 3.3 Names for each diarizer's speakers
 
@@ -593,7 +611,7 @@ on 2026-11-14. "Peak MB" is the runner process's peak (torch reserved or
 | Stage | Id | Family | Licence | State | Peak MB on R1 |
 |---|---|---|---|---|---|
 | denoise | `none` | project | – | ran | – |
-| denoise | `deepfilternet3` | enhance | MIT / Apache-2.0 | ran | (1.9 GB on the test clip) |
+| denoise | `deepfilternet3` | enhance | MIT / Apache-2.0 | ran (revision 2: 30 s pieces) | (1.9 GB on the test clip, whole file) |
 | denoise | `mossformer2-se-48k` (ClearerVoice-Studio) | enhance | Apache-2.0 | ran | (0.46 GB, test clip) |
 | denoise | `mossformergan-se-16k` (ClearerVoice-Studio) | enhance | Apache-2.0 | ran | (6.3 GB, test clip) |
 | denoise | `sepformer-dns4` (SpeechBrain) | speechbrain | Apache-2.0 | ran (revision 2) | (1.8 GB, test clip) |
@@ -927,7 +945,19 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
 ```
 
 The GPU must be free of other jobs (a resume after an out-of-memory
-only needs the other process to be gone).
+only needs the other process to be gone; within a run, a step that
+ran out of memory is tried once more after the rest of its stage,
+§3.2).
+
+`deepfilternet3` revision 2 (30 s pieces, #45) was checked on the CPU
+only (the GPU was busy with the §13 run) on 60 s of `ami-TS3003a`
+(from 120 s), with 20 s pieces so there are two seams, against
+revision 1 on the same file: same length; identical inside the first
+piece; at the recording's level (RMS 0.0033) both outputs are almost
+silent (RMS 0.00002 and 0.00006); scaled ×10 (RMS 0.033) the outputs
+correlate at 0.996 (RMS 0.0172 against 0.0177, difference 9% of
+revision 1's RMS; at most 0.47 of it in a near-silent second close to a
+seam). Its GPU peak on a long meeting is not measured yet.
 
 ## 13. Scoring against a public reference (AMI, CALLHOME)
 

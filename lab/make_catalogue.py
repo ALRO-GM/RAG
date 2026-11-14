@@ -60,12 +60,13 @@ ENTRIES: List[Dict[str, Any]] = [
         notes="In-process: the session's audio as decoded (16 kHz mono).",
     ),
     entry(
-        id="deepfilternet3", stage="denoise", family="enhance",
+        id="deepfilternet3", stage="denoise", family="enhance", revision=2,
         display_name="DeepFilterNet3",
         source_url="https://github.com/Rikorose/DeepFilterNet",
         licence="MIT OR Apache-2.0 (code and weights)",
         vram_gb=1.9, parameters={"atten_lim_db": None,
-                                 "post_filter": False},
+                                 "post_filter": False,
+                                 "piece_seconds": 30.0},
         weights=["https://github.com/Rikorose/DeepFilterNet/raw/main/"
                  "models/DeepFilterNet3.zip"],
         weights_mb=9,
@@ -76,7 +77,11 @@ ENTRIES: List[Dict[str, Any]] = [
               " an empty stand-in for that one type; the env's torchaudio"
               " 2.11.1 runs without its compiled extension. Weights come"
               " from the GitHub release into ~/.cache/DeepFilterNet."
-              " Measured 1.7 s for 122 s on the GPU (1.9 GB peak).",
+              " Measured 1.7 s for 122 s on the GPU (1.9 GB peak)."
+              " Revision 2: run on 30 s pieces with 1 s cross-fades"
+              " (piece_seconds); revision 1 took the whole file at once"
+              " and ran out of GPU memory on 25-40 min AMI meetings (it"
+              " tried to allocate 1.8-5.3 GiB more).",
     ),
     entry(
         id="mossformer2-se-48k", stage="denoise", family="enhance",
