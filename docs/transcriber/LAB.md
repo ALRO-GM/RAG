@@ -146,6 +146,12 @@ marker is reported `not_installed` in the catalogue.
   ClearVoice windows long audio itself (only a window's features reach
   the model) and RNNoise runs 10 ms frames on the CPU, so they are not
   cut and keep revision 1.
+- A recording with no speech (silence, or noise alone) is a diarization
+  with no segments, not a failure. pyannote, Sortformer and Nemotron
+  already answer so; `diarizen-wavlm-large-s80-md-v2` and
+  `nemo-clustering` aborted (#48, §13.5) and now return no segments
+  with a note (`no speech found…`). Only that path changed, so a
+  recording with speech gives the same result: both keep revision 1.
 - `--selftest` imports the family's libraries without loading weights
   or using the network and prints one JSON line
   (`{"ok": true, "family", "python", "packages", "cuda"}`).
@@ -1152,3 +1158,62 @@ of overlap, collar 0.25 s):
 (missed, false alarm and confusion as shares of the reference speech.)
 One recording says nothing general; the corpus-wide run with every
 model is the follow-up experiment.
+
+### 13.5 CALLHOME recordings with no speech in them (#48)
+
+In #44 `diarizen-wavlm-large-s80-md-v2` failed on `callhome-data-0002`
+and `-0003` ("negative dimensions are not allowed", on the original and
+the DeepFilterNet3 audio) and `nemo-clustering` too ("All files present
+in manifest contains silence", on the original and the MossFormer2
+audio), while `callhome-data-0001` passed.
+
+**The audio of those recordings has no speech.** The corpus row's WAV
+is already 16 kHz mono 16-bit (the lab stores it as given and changes
+nothing), but its level is a constant noise: 20 ms frame RMS from
+0.18 (5th percentile) to 0.27 (95th), against 0.0003 to 0.08 for
+`callhome-data-0001`, with a flat spectrum up to 4 kHz (within 2.1 dB
+in 1 kHz bands) and nothing above. pyannote 3.1 and community-1,
+Nemotron and ECAPA find no segment on it, and Whisper's whole
+transcript is "Gracias por ver el video." five times (once every 80 s),
+the usual hallucination on no speech.
+Of the 28 recordings of the first `spa/data` shard, 7 look like this
+(rows 2, 3, 9, 15, 18, 23 and 28; 5th-percentile frame RMS above 0.17,
+the others below 0.007); their reference still has speaker turns
+(144 on row 2), so every diarizer's DER on them is about 1 and says
+nothing about the diarizer. Why the dataset's audio is noise for those
+rows was not investigated (not a byte-order or two-channel μ-law
+misreading: neither gives speech-like samples).
+
+**Why the two diarizers aborted.** With no speaker anywhere, DiariZen
+marks every local speaker of every chunk inactive (cluster −2); its
+pyannote fork then sizes the reconstruction with
+`max(cluster) + 1 = −1` clusters (`speaker_diarization.py`,
+`reconstruct`) and numpy refuses the shape. NeMo's VAD keeps no
+stretch of speech and `validate_vad_manifest` aborts the run. The same
+happens on the denoised audio, which is near silence (DeepFilterNet3
+lowers row 2 from an RMS of 0.227 to 0.0014).
+
+**Fix (runners, any input).** `diarizen.py` wraps the pipeline's
+`reconstruct`: when no hard cluster is 0 or more it stops, and the
+runner returns no segments with the note "no speech found: every
+speaker of every chunk is inactive". `nemo.py` catches the
+`ValueError` of `diarize()` only when the VAD manifest
+(`vad_outputs/vad_out.json`) exists and has no stretch longer than
+0 s, and returns no segments with the note "no speech found by the
+VAD"; any other failure is raised as before. A recording with speech
+never reaches either path, so its result is the same and the catalogue
+revisions stay 1. Tests (no models,
+`tests/unit/transcriber/test_lab_runner_guards.py`): fakes of both
+pipelines that fail as the real ones do on synthetic noise (the
+DiariZen fake raises the same numpy error), the runners' empty result
+and note on it, an unchanged result on a synthetic tone, and a NeMo
+failure after speech that is still raised.
+
+Checked on the CPU with the real models on the stored
+`callhome-data-0002` audio: before the fix DiariZen failed with the
+error of #44 in `reconstruct`, NeMo with the "silence" error; after
+it NeMo returns no segments and the note on the original audio of
+`-0002` (20.3 s of processing) and the MossFormer2 audio of `-0003`
+(60.2 s), and DiariZen returns no segments and its note on the original audio
+of `-0002` (400.0 s of processing on the CPU). Neither denoised
+DiariZen input nor a GPU run was repeated.
