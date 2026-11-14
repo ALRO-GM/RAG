@@ -596,7 +596,7 @@ on 2026-11-14. "Peak MB" is the runner process's peak (torch reserved or
 | diarize | `ecapa-spectral` (SpeechBrain ECAPA + spectral clustering, written here) | speechbrain | Apache-2.0 | ran | 1612–1616 |
 | diarize | `nemo-clustering` (NeMo clustering diarizer, TitaNet-L) | nemo | CC BY 4.0 | ran | 2904–2982 |
 | recognise | `whisper-large-v3-turbo` | project | MIT | ran | – |
-| recognise | `whisper-large-v3` | project | Apache-2.0 | **not installed: disk** (3.1 GB of weights) | – |
+| recognise | `whisper-large-v3` | project | Apache-2.0 | ran (full run, §11.7) | – (in-process, not measured) |
 | recognise | `faster-whisper-large-v3-turbo` (CTranslate2 int8, converted here from the cached turbo) | ctranslate2 | MIT | ran | 1362–1394 |
 | recognise | `parakeet-tdt-0.6b-v3` (NVIDIA, 25 European languages incl. Spanish) | nemo | CC BY 4.0 | ran | 6346 |
 
@@ -605,8 +605,9 @@ project's transformers 5.20.2 has the model, so it runs in the
 `transformers` family (Python 3.10). The environments take 0.93 GB in
 all (hard-linked files shared), the converted and ClearerVoice models
 1.1 GB, the downloaded weights about 4 GB (parakeet 2.5 GB). Postponed
-for disk: `whisper-large-v3` (3.1 GB); optional DiariZen v1 or base
-variants (0.28 / 0.10 GB). `--all` never selects a model whose weights
+for disk: nothing now (`whisper-large-v3`, 3.1 GB of weights, was
+installed and ran, §11.7); optional DiariZen v1 or base variants
+(0.28 / 0.10 GB) are still not installed. `--all` never selects a model whose weights
 are known to be missing.
 
 To enable the gated pyannote pipelines on another machine: accept the
@@ -645,7 +646,9 @@ it; on the SepFormer audio no diarizer's voice matched a voiceprint and
 DiariZen found no speech at all. The runner now scales each piece back
 to its input's level (revision 2, §3.2 cache key); the second run
 recomputed only those two denoisers and their 22 dependent steps. The
-numbers below are the second run.
+numbers below are the second run. A third run added
+`whisper-large-v3` (224 pipelines, §11.7); §11.1 to §11.6 are the same
+in it.
 
 ### 11.1 Cost (seconds of processing without model loading; R1 = 388 s)
 
@@ -787,22 +790,115 @@ none).
 - **Generality.** One session of two people and one phone; every
   figure can move with another recording.
 
-## 12. Status and how to resume (2026-11-14, branch `feat/model-lab`)
+### 11.7 Full run with `whisper-large-v3` (run `e7a37b38`, 224 pipelines)
 
-Done: domain, use cases, adapters, API, CLI, make targets, tests (gate
-green before the last docs commit), seven environments built and
-self-tested, the R1 suite run twice (results of the second run in
-`data/transcriber/lab/<R1>/runs/`, the newest run). Every model of §9
-ran except `whisper-large-v3` (postponed for disk: 3.1 GB of weights).
-Optional when space allows: DiariZen v1 / base variants.
+The suite of §11.1 plus the fourth recogniser `whisper-large-v3` on the
+original and the six denoised tracks: 7 denoisers x 8 diarizers x 4
+recognisers = **224 pipelines** from 90 steps (6 denoise, 56 diarize,
+28 recognise). The 83 steps of the second run came from the cache; only
+the 7 `whisper-large-v3` steps ran. The run needed one resume (one step
+died with CUDA out of memory because another process held the GPU); it
+ended `done` with every step finished, 2026-11-14 18:15 to 18:58. The
+stored results are 8.9 MB.
 
-Resumability was checked on R1: the second run of the same suite found
-59 of its 83 steps in the cache and recomputed only the 24 that
-depended on the two revised denoisers. A stage becomes visible only
-when its directory is renamed into `stages/` with its `outcome.json`
-(written atomically); an interrupted stage leaves a directory under
-`work/`, which is never read as a result. A run stopped by a reboot is
-reported `interrupted`.
+**Did the earlier figures change?** No. Compared with the second run
+(§11.1 to §11.6), the 56 tracks, the 3080 diarizer pairs, the 168
+earlier pipelines, the 420 earlier recogniser pairs, the 14028 earlier
+word-agreement pairs, the 66 earlier denoiser-effect rows, the
+transcripts' word counts and the consensus (coverage 0.996, 332 spans,
+same vote groups) are identical field by field. Only the fragments'
+`distinct_texts` changed (184 of 395, more text variants because of the
+new recogniser): fragments with more than one text 381 instead of 369;
+the 319 fragments with disagreement and the 6 with half or more of the
+vote against the modal answer are the same.
+
+Cost against the other recognisers (R1 = 388 s; seconds without model
+loading, as in §11.1):
+
+| Recogniser | s on the original | peak MB | words on the original | s on the 6 denoised tracks |
+|---|---|---|---|---|
+| whisper-large-v3-turbo (project) | 13.6 | – | 825 | – |
+| whisper-large-v3 (project) | 313.2 | – (in-process) | 756 | 29.1 to 41.0 |
+| faster-whisper-large-v3-turbo | 9.2 | 1362 | 867 | – |
+| parakeet-tdt-0.6b-v3 | 1.3 | 6346 | 654 | – |
+
+`whisper-large-v3` is the slowest recogniser: about 23 times the turbo
+build's time on the original, 34 times faster-whisper's. The 313 s of
+the first step are ten times the other six (29 to 41 s on the denoised
+tracks); it is the first step that used the 3.1 GB of weights and the
+run needed a resume, but the cause of the difference was not
+investigated (the step records do not say), so the 29 to 41 s are the
+better estimate of its cost. Its
+peak GPU memory was not measured (it runs inside the job, like the
+project's turbo build).
+
+WER on the original, hypothesis in the row, reference in the column (the
+convention of §11.4; time agreement in brackets):
+
+| | whisper-turbo (project) | whisper-large-v3 | faster-whisper-turbo | parakeet-v3 |
+|---|---|---|---|---|
+| hypothesis whisper-turbo | – | 0.136 (0.78) | 0.165 (0.73) | 0.494 (0.62) |
+| hypothesis whisper-large-v3 | 0.148 (0.78) | – | 0.216 (0.58) | 0.417 (0.38) |
+| hypothesis faster-whisper | 0.173 (0.73) | 0.188 (0.58) | – | 0.569 (0.64) |
+| hypothesis parakeet | 0.392 (0.62) | 0.482 (0.38) | 0.429 (0.65) | – |
+
+(read: with whisper-large-v3 as reference, the turbo build's words have a
+WER of 0.136.) The columns and rows without `whisper-large-v3` are the
+numbers of §11.4. `whisper-large-v3` is closest to its turbo sibling
+(0.14 to 0.15), further from the CTranslate2 build (0.19 to 0.22) and
+furthest from parakeet (0.42 to 0.48), with the lowest time agreement
+of any pair (0.38). It returned 756 words, between parakeet's 654 and
+the turbo build's 825.
+
+Effect of each denoiser on `whisper-large-v3` (WER against its own words
+on the original; words in brackets; time agreement of matched words
+0.80 to 0.93):
+
+| Denoiser | WER whisper-large-v3 | words | (whisper-turbo, §11.5) |
+|---|---|---|---|
+| deepfilternet3 | 0.107 | 744 | 0.108 |
+| mossformer2-se-48k | 0.123 | 770 | 0.091 |
+| mossformergan-se-16k | 0.159 | 788 | 0.142 |
+| sepformer-dns4 (rev. 2) | 0.098 | 784 | 0.115 |
+| metricgan-plus (rev. 2) | 0.378 | 587 | 0.355 |
+| rnnoise | 0.132 | 733 | 0.133 |
+
+It behaves like the turbo build: every denoiser except MetricGAN+ changes
+10 to 16% of the words (WER), MetricGAN+ is the outlier (0.378, 587 words against 733 to
+788 on the other versions), SepFormer changes it least (0.098). Whether
+any of that is better is still unknown without corrected text (§11.6).
+
+Over the pipelines, the share of words falling inside the consensus
+speech (`words_on_consensus`) is 0.959 on average for each of
+`whisper-large-v3`, the turbo build and parakeet, 0.956 for
+faster-whisper; the range for `whisper-large-v3` is 0.770 to 0.990. The
+highest agreement with the consensus is still `mossformer2-se-48k` with
+pyannote-3.1 (0.923): the recogniser does not enter the diarization, so
+the four recognisers share every diarization figure and the new
+recogniser adds text, not speaker information.
+
+## 12. Status and how to resume (2026-11-14)
+
+Merged in main (PR #32, fixes #35, #36, #38): domain, use cases,
+adapters, API, CLI, make targets, tests, seven environments built and
+self-tested, and the web tab "Pruebas" (deployed). **Every model of §9
+ran**: the full run `e7a37b38` of session R1 has all 224 pipelines
+(`done`, §11.7); its results are in `data/transcriber/lab/<R1>/runs/`
+(the newest run). Optional, not installed: DiariZen v1 / base variants.
+
+Left: the owner's labels on the disputed fragments (§11.6), which
+decide every "which is right" question; DiariZen v1 / base if wanted.
+
+Resumability was checked twice on R1. The second run of the same suite
+found 59 of its 83 steps in the cache and recomputed only the 24 that
+depended on the two revised denoisers. The full run found 83 of 90 steps
+in the cache, ran the 7 `whisper-large-v3` steps, and was resumed once
+after a CUDA out-of-memory on one step (another process held the GPU):
+`resume` kept the done steps and ran the rest. A stage becomes visible
+only when its directory is renamed into `stages/` with its
+`outcome.json` (written atomically); an interrupted stage leaves a
+directory under `work/`, which is never read as a result. A run stopped
+by a reboot is reported `interrupted`.
 
 To resume after a reboot (from the repository root):
 
@@ -816,8 +912,7 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
 TRANSCRIBER_DATA_DIR=data/transcriber \
   uv run --no-sync python -m transcriber lab run <session> --all \
   --diarize builtin,pyannote-3.1,pyannote-community-1,sortformer-streaming-v2,nemotron-3-diarization,diarizen-wavlm-large-s80-md-v2,ecapa-spectral,nemo-clustering
-# once there is disk: name whisper-large-v3 with --recognise to download it
 ```
 
-Left for later: the web tab "Pruebas" on the API of §7; owner labels
-on the disputed fragments (§11.6); `whisper-large-v3`.
+The GPU must be free of other jobs (a resume after an out-of-memory
+only needs the other process to be gone).
