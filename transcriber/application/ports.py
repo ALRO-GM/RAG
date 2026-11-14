@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import (
     Any,
     Callable,
+    ContextManager,
     List,
     Mapping,
     Optional,
@@ -35,6 +36,9 @@ from transcriber.domain.voices import FloatArray
 
 PCM_FORMAT = "pcm_s16le_16000_mono"
 """Format of audio recorded from the phone: raw 16-bit PCM, 16 kHz, mono."""
+
+PCM_SAMPLE_WIDTH = 2
+"""Bytes per sample of :data:`PCM_FORMAT`; a chunk holds whole samples."""
 
 
 @dataclass(frozen=True)
@@ -81,6 +85,8 @@ class JobStatus(BaseModel):
     """Where the job of a session is: its state, stage and progress.
 
     ``fraction`` is the share of the whole job done, from 0 to 1.
+    ``message`` is the last note the job gave (:meth:`Progress.note`),
+    for the person waiting.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -89,6 +95,7 @@ class JobStatus(BaseModel):
     state: SessionState
     stage: Optional[str] = None
     fraction: float = Field(default=0.0, ge=0, le=1)
+    message: Optional[str] = None
 
 
 class AudioDecoder(Protocol):
@@ -142,6 +149,10 @@ class SessionRepository(Protocol):
         """Return the session, or ``None`` if it does not exist."""
         ...
 
+    def ids(self) -> List[str]:
+        """Return the id of every stored session."""
+        ...
+
     def create(self, session: Session) -> None:
         """Store a new session; it must not exist yet."""
         ...
@@ -155,7 +166,13 @@ class SessionRepository(Protocol):
         ...
 
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
-        """Append chunk ``number`` of :data:`PCM_FORMAT` audio."""
+        """Store chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
+
+        Idempotent per chunk number: chunk ``number`` replaces whatever
+        followed chunk ``number - 1``, so storing the same number twice
+        keeps it once (with the last bytes given) and drops any later
+        chunk. A ``number`` past the next one is an error.
+        """
         ...
 
     def store_recording(
@@ -224,6 +241,10 @@ class Progress(Protocol):
         """``stage`` started; ``fraction`` of the whole job is done."""
         ...
 
+    def note(self, message: str) -> None:
+        """Tell the person waiting something about the job."""
+        ...
+
 
 Job = Callable[[Progress], None]
 """Work submitted to a :class:`JobRunner`; it reports to ``Progress``."""
@@ -238,6 +259,22 @@ class JobRunner(Protocol):
 
     def status(self, session_id: str) -> Optional[JobStatus]:
         """Return the status of the session's job, if one was submitted."""
+        ...
+
+
+class SessionLocks(Protocol):
+    """Mutual exclusion per session, across requests and the job.
+
+    Every use case that reads a session and then writes it does both
+    while holding the session's lock, so two requests (or a request
+    and the job) never act on the same stale copy.
+    """
+
+    def hold(self, session_id: str) -> ContextManager[None]:
+        """Return a context that holds the lock of ``session_id``.
+
+        The lock is re-entrant for the thread holding it.
+        """
         ...
 
 

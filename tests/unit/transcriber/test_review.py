@@ -25,6 +25,16 @@ def finished(enrol_luis: bool = False) -> World:
     return w
 
 
+def renamer(w: World) -> RenameSpeaker:
+    """The rename use case of ``w``."""
+    return RenameSpeaker(w.sessions, w.voiceprints, w.locks)
+
+
+def reassigner(w: World) -> ReassignUtterance:
+    """The reassign use case of ``w``."""
+    return ReassignUtterance(w.sessions, w.voiceprints, w.locks)
+
+
 def stored(w: World) -> Transcript:
     """The stored transcript of ``s1``."""
     transcript = w.sessions.transcript("s1")
@@ -41,8 +51,7 @@ class TestRenameSpeaker:
     def test_a_name_for_an_anonymous_voice(self) -> None:
         w = finished()
         before = stored(w)
-        out = RenameSpeaker(w.sessions, w.voiceprints)("s1", "S2",
-                                                       name=" Luis ")
+        out = renamer(w)("s1", "S2", name=" Luis ")
         assert speakers(out) == [("S1", None, False), ("S2", "Luis", False)]
         assert out.utterances == before.utterances
         assert stored(w) == out
@@ -50,8 +59,7 @@ class TestRenameSpeaker:
 
     def test_merge_into_a_speaker_of_the_session(self) -> None:
         w = finished()
-        out = RenameSpeaker(w.sessions, w.voiceprints)("s1", "S2",
-                                                       merge_into="S1")
+        out = renamer(w)("s1", "S2", merge_into="S1")
         assert turns(out) == [("S1", None)]
         assert speakers(out) == [("S1", None, False)]
         assert [u.id for u in out.utterances] == [
@@ -63,8 +71,7 @@ class TestRenameSpeaker:
         w = finished()
         w.voiceprints.enrol("luis", voice(1), name="Luis")
         prints = dict(w.voiceprints.voiceprints)
-        out = RenameSpeaker(w.sessions, w.voiceprints)("s1", "S2",
-                                                       merge_into="luis")
+        out = renamer(w)("s1", "S2", merge_into="luis")
         assert turns(out) == [("S1", None), ("luis", "S1"), ("S1", "luis")]
         assert speakers(out) == [("S1", None, False), ("luis", "Luis", True)]
         moved = [u for u in out.utterances if u.speaker == "luis"]
@@ -74,7 +81,7 @@ class TestRenameSpeaker:
 
     def test_invalid_renames(self) -> None:
         w = finished(enrol_luis=True)
-        rename = RenameSpeaker(w.sessions, w.voiceprints)
+        rename = renamer(w)
         with pytest.raises(InvalidInputError, match="either"):
             rename("s1", "S1")
         with pytest.raises(InvalidInputError, match="either"):
@@ -94,7 +101,7 @@ class TestRenameSpeaker:
         w = world()
         w.upload()
         with pytest.raises(StateError, match="done"):
-            RenameSpeaker(w.sessions, w.voiceprints)("s1", "S1", name="A")
+            renamer(w)("s1", "S1", name="A")
 
 
 class TestReassignUtterance:
@@ -102,7 +109,7 @@ class TestReassignUtterance:
         w = finished()
         before = stored(w)
         last_of_first = [u for u in before.utterances if u.turn == 0][-1]
-        out = ReassignUtterance(w.sessions, w.voiceprints)(
+        out = reassigner(w)(
             "s1", last_of_first.id, "S2"
         )
         assert turns(out) == [("S1", None), ("S2", "S1"), ("S1", "S2")]
@@ -122,7 +129,7 @@ class TestReassignUtterance:
         w = finished()
         before = stored(w)
         middle = [u for u in before.utterances if u.turn == 1]
-        reassign = ReassignUtterance(w.sessions, w.voiceprints)
+        reassign = reassigner(w)
         for utterance in middle:
             current = stored(w)
             target = next(u for u in current.utterances
@@ -135,7 +142,7 @@ class TestReassignUtterance:
     def test_to_an_enrolled_person_and_to_the_same_speaker(self) -> None:
         w = finished()
         w.voiceprints.enrol("eva", voice(5), name="Eva")
-        reassign = ReassignUtterance(w.sessions, w.voiceprints)
+        reassign = reassigner(w)
         same = reassign("s1", "t0.s0", "S1")
         assert same == stored(w)
         out = reassign("s1", "t0.s0", "eva")
@@ -145,7 +152,7 @@ class TestReassignUtterance:
 
     def test_invalid_reassignments(self) -> None:
         w = finished()
-        reassign = ReassignUtterance(w.sessions, w.voiceprints)
+        reassign = reassigner(w)
         with pytest.raises(NotFoundError, match="t9.s9"):
             reassign("s1", "t9.s9", "S1")
         with pytest.raises(NotFoundError, match="nadie"):

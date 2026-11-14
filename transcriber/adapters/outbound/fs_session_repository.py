@@ -100,6 +100,21 @@ class FileSystemSessionRepository:
             return None
         return _parse(Session.model_validate, data, path)
 
+    def ids(self) -> List[str]:
+        """Return the id of every stored session, sorted.
+
+        A stored session is a directory with a valid id holding a
+        ``session.json``; anything else under the root is ignored.
+        """
+        if not self.root.is_dir():
+            return []
+        return sorted(
+            entry.name for entry in self.root.iterdir()
+            if re.fullmatch(SESSION_ID_PATTERN, entry.name)
+            and entry.is_dir() and not entry.is_symlink()
+            and (entry / SESSION_FILE).is_file()
+        )
+
     def create(self, session: Session) -> None:
         """Store a new session; :class:`InvalidInputError` if it exists."""
         with self._lock:
@@ -138,10 +153,12 @@ class FileSystemSessionRepository:
                 shutil.rmtree(directory)
 
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
-        """Append chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
+        """Store chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
 
-        Chunk ``number`` replaces whatever followed chunk ``number - 1``
-        (a chunk half-written by a killed process); a gap in the
+        Idempotent per chunk number, as the port requires: chunk
+        ``number`` replaces whatever followed chunk ``number - 1`` (a
+        chunk half-written by a killed process, or the same chunk
+        stored before), and later chunks are dropped; a gap in the
         numbering is an :class:`InvalidInputError`.
         """
         with self._lock:

@@ -10,6 +10,7 @@ from tests.unit.transcriber.fakes import (
     FakeDecoder,
     FakeJobRunner,
     FakeRecogniser,
+    FakeSessionLocks,
     FakeSessionRepository,
     FakeVoiceEncoder,
     FakeVoiceprintRepository,
@@ -33,6 +34,7 @@ from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
     StateError,
+    VoiceModelMismatchError,
 )
 from transcriber.domain.models import SessionState, Transcript
 from transcriber.domain.parameters import TranscriptionParameters
@@ -52,10 +54,11 @@ class World:
     transcribe: TranscribeSession
     queue: QueueTranscription
     status: TranscriptionStatus
+    locks: FakeSessionLocks
 
     def upload(self, session_id: str = "s1") -> str:
         """Import a recording as an uploaded session."""
-        ImportRecording(self.sessions)(
+        ImportRecording(self.sessions, self.locks)(
             session_id, "es", RecordedAudio(b"audio", "wav")
         )
         return session_id
@@ -77,23 +80,42 @@ class World:
 def world(
     scene: Optional[Scene] = None,
     parameters: TranscriptionParameters = TranscriptionParameters(),
+    sessions: Optional[FakeSessionRepository] = None,
+    voiceprints: Optional[FakeVoiceprintRepository] = None,
 ) -> World:
-    """Fresh fakes around ``scene`` (the default meeting)."""
+    """Fresh fakes around ``scene`` (the default meeting).
+
+    ``sessions`` and ``voiceprints`` replace the empty stores (their
+    writes are then checked against the world's locks).
+    """
     scene = scene or meeting()
-    sessions = FakeSessionRepository()
-    voiceprints = FakeVoiceprintRepository()
+    locks = FakeSessionLocks()
+    sessions = sessions or FakeSessionRepository()
+    sessions.locks = locks
+    voiceprints = voiceprints or FakeVoiceprintRepository()
     decoder = FakeDecoder(scene)
     recogniser = FakeRecogniser(scene)
     encoder = FakeVoiceEncoder(scene)
     runner = FakeJobRunner()
     transcribe = TranscribeSession(sessions, voiceprints, decoder,
-                                   recogniser, encoder, parameters)
+                                   recogniser, encoder, locks, parameters)
     return World(
         scene, sessions, voiceprints, decoder, recogniser, encoder, runner,
         transcribe, QueueTranscription(sessions, voiceprints, runner,
-                                       transcribe),
-        TranscriptionStatus(sessions, runner),
+                                       transcribe, locks),
+        TranscriptionStatus(sessions, runner), locks,
     )
+
+
+def monologue(seconds: float = 60.0) -> Scene:
+    """Ana alone for ``seconds``: four-second sentences, short pauses."""
+    lines = []
+    start = 0.0
+    while start + 4.0 <= seconds:
+        lines.append(Line("ana", start, start + 4.0,
+                          "Hoy os cuento como va el proyecto nuevo."))
+        start += 4.6
+    return Scene(lines=lines, voices={"ana": voice(0)})
 
 
 def turns(transcript: Transcript) -> List[Tuple[str, Optional[str]]]:
@@ -183,7 +205,9 @@ class TestTranscribeSession:
         w.upload()
         w.queue("s1")
         w.runner.pending.clear()
-        assert w.transcribe("s1").session.state is SessionState.DONE
+        transcript = w.transcribe("s1")
+        assert transcript is not None
+        assert transcript.session.state is SessionState.DONE
 
     def test_the_runner_status_follows_the_job(self) -> None:
         w = world()
@@ -292,6 +316,149 @@ class TestTranscribeSession:
         assert words[0].speaker == "S1"
 
 
+class TestSingleSpeaker:
+    def test_a_monologue_is_one_anonymous_speaker(self) -> None:
+        w = world(monologue())
+        transcript = w.run()
+        assert [s.id for s in transcript.speakers] == ["S1"]
+        assert turns(transcript) == [("S1", None)]
+        assert {wd.speaker for wd in w.sessions.words("s1")} == {"S1"}
+
+    def test_a_monologue_of_an_enrolled_person(self) -> None:
+        w = world(monologue())
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        w.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = w.run()
+        assert [(s.id, s.enrolled) for s in transcript.speakers] == [
+            ("ana", True),
+        ]
+        assert turns(transcript) == [("ana", None)]
+
+    def test_the_threshold_comes_from_the_parameters(self) -> None:
+        """At a threshold no window reaches, the old split comes back."""
+        w = world(monologue(), TranscriptionParameters(
+            single_voice_threshold=1.0
+        ))
+        assert len(w.run().speakers) > 1
+
+
+class TestOrdering:
+    def test_first_heard_is_s1_even_if_clustered_second(self) -> None:
+        """Luis opens, but the first long window is Ana's voice.
+
+        Luis's opening second only fits in the first long window, whose
+        middle is Ana's, so clustering numbers Ana's group first; the
+        short windows still give the opening words to Luis's group.
+        """
+        scene = Scene(
+            lines=[
+                Line("luis", 0.0, 1.0, "Buenos días."),
+                Line("ana", 1.0, 12.0,
+                     "Hola a todos. Hoy repartimos las tareas del"
+                     " proyecto nuevo."),
+                Line("luis", 13.0, 25.0,
+                     "Vale. Yo me encargo de la interfaz y de las"
+                     " pruebas."),
+            ],
+            voices={"ana": voice(0), "luis": voice(1)},
+        )
+        w = world(scene)
+        transcript = w.run()
+        words = w.sessions.words("s1")
+        assert (words[0].text, words[0].speaker) == ("Buenos", "S1")
+        assert turns(transcript) == [
+            ("S1", None), ("S2", "S1"), ("S1", "S2"),
+        ]
+
+
+class TestSilence:
+    def test_words_invented_over_silence_are_dropped(self) -> None:
+        w = world()
+        w.decoder.silent.append((13.0, 25.0))  # Luis's line is silent
+        transcript = w.run()
+        assert "Necesito" not in " ".join(
+            u.text for u in transcript.utterances
+        )
+        assert [s.id for s in transcript.speakers] == ["S1"]
+        heard = w.sessions.words("s1")
+        assert heard and all(not 13.0 <= wd.start < 25.0 for wd in heard)
+
+    def test_a_silent_recording_fails_with_no_speech(self) -> None:
+        w = world()
+        w.decoder.silent.append((0.0, w.scene.duration))
+        with pytest.raises(InvalidInputError, match="No speech"):
+            w.run()
+        session = w.sessions.sessions["s1"]
+        assert (session.state, session.failure) == (
+            SessionState.FAILED, "recognise: No speech recognised.",
+        )
+        assert w.sessions.transcript("s1") is None
+
+    def test_the_level_comes_from_the_parameters(self) -> None:
+        w = world(parameters=TranscriptionParameters(activity_threshold=0.5))
+        with pytest.raises(InvalidInputError, match="No speech"):
+            w.run()
+
+
+class TestVoiceModels:
+    def test_an_expected_speaker_of_another_model_is_refused(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), model="other-model")
+        w.upload()
+        with pytest.raises(VoiceModelMismatchError, match="ana"):
+            w.queue("s1", TranscriptionOptions(expected_speakers=["ana"]))
+        assert w.sessions.sessions["s1"].state is SessionState.UPLOADED
+        assert w.runner.pending == []
+
+    def test_skipped_voiceprints_are_reported(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), model="other-model")
+        w.voiceprints.enrol("eva", voice(4), model="old-model")
+        w.voiceprints.enrol("luis", voice(1))
+        w.upload()
+        w.queue("s1")
+        w.runner.pending.clear()
+        progress = RecordingProgress()
+        transcript = w.transcribe("s1", progress=progress)
+        assert transcript is not None
+        assert [s.id for s in transcript.speakers] == ["S1", "luis"]
+        assert len(progress.notes) == 1
+        assert progress.notes[0].startswith("2 enrolled voiceprint(s)")
+
+    def test_the_skipped_count_reaches_the_job_status(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), model="other-model")
+        w.run()
+        message = w.status("s1").message
+        assert message is not None and message.startswith("1 enrolled")
+
+    def test_nothing_is_reported_when_nothing_is_skipped(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0))
+        w.run()
+        assert w.status("s1").message is None
+
+
+class TestReservedLabels:
+    def test_an_enrolled_s1_never_labels_an_anonymous_voice(self) -> None:
+        w = world()
+        w.voiceprints.enrol("S1", voice(5))  # stored before the rule
+        w.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = w.run(TranscriptionOptions(expected_speakers=["luis"]))
+        assert turns(transcript) == [
+            ("S2", None), ("luis", "S2"), ("S2", "luis"),
+        ]
+
+    def test_without_voice_windows_the_label_skips_enrolled_ids(
+        self,
+    ) -> None:
+        scene = Scene(lines=[Line("ana", 0.0, 0.3, "Sí.")],
+                      voices={"ana": voice(0)}, duration=2.0)
+        w = world(scene)
+        w.voiceprints.enrol("S1", voice(0), model="other-model")
+        assert turns(w.run()) == [("S2", None)]
+
+
 class TestFailures:
     def test_a_failing_stage_leaves_the_session_failed(self) -> None:
         w = world()
@@ -364,9 +531,8 @@ class TestFailures:
 
     @pytest.mark.parametrize("state", [
         SessionState.RECORDING, SessionState.QUEUED, SessionState.RUNNING,
-        SessionState.DONE,
     ])
-    def test_only_uploaded_or_failed_sessions_are_queued(
+    def test_only_uploaded_failed_or_done_sessions_are_queued(
         self, state: SessionState
     ) -> None:
         w = world()

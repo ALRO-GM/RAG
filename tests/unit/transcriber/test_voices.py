@@ -222,6 +222,13 @@ class TestMatchVoices:
         assert labels(out) == [("S1", True), ("S2", False)]
         assert anonymous_label(3) == "S3"
 
+    def test_anonymous_labels_skip_taken_ids(self) -> None:
+        """An enrolled ``S1`` that is not a candidate is still taken."""
+        groups = np.eye(3, dtype=np.float32)
+        out = match_voices(groups, [], taken={"S1", "S3"})
+        assert [a.speaker for a in out] == ["S2", "S4", "S5"]
+        assert not any(a.enrolled for a in out)
+
     def test_labels_are_deterministic(self) -> None:
         session = groups((1.0, 0.0), (1.0, 0.0), (0.0, 1.0))
         prints = [print_of("ana", 1.0, 0.0), print_of("luis", 1.0, 0.0)]

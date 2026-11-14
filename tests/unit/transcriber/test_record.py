@@ -4,6 +4,7 @@ import pytest
 
 from tests.unit.transcriber.fakes import (
     NOW,
+    FakeSessionLocks,
     FakeSessionRepository,
     FixedClock,
 )
@@ -25,13 +26,24 @@ from transcriber.domain.models import SessionState
 
 @pytest.fixture
 def sessions() -> FakeSessionRepository:
-    """An empty session store."""
-    return FakeSessionRepository()
+    """An empty session store whose writes are checked for the lock."""
+    return FakeSessionRepository(locks=FakeSessionLocks())
+
+
+def locks(sessions: FakeSessionRepository) -> FakeSessionLocks:
+    """The locks the store checks its writes against."""
+    assert sessions.locks is not None
+    return sessions.locks
+
+
+def opener(sessions: FakeSessionRepository) -> OpenSession:
+    """The open use case over ``sessions`` with a stopped clock."""
+    return OpenSession(sessions, FixedClock(), locks(sessions))
 
 
 def opened(sessions: FakeSessionRepository) -> str:
     """Open session ``s1`` and return its id."""
-    OpenSession(sessions, FixedClock())("s1", "es", title="Equipo A")
+    opener(sessions)("s1", "es", title="Equipo A")
     return "s1"
 
 
@@ -39,7 +51,7 @@ class TestOpenSession:
     def test_opens_in_recording_with_the_clock_time(
         self, sessions: FakeSessionRepository
     ) -> None:
-        session = OpenSession(sessions, FixedClock())("s1", "es", "Equipo")
+        session = opener(sessions)("s1", "es", "Equipo")
         assert session.state is SessionState.RECORDING
         assert session.started_at == NOW
         assert sessions.get("s1") == session
@@ -47,20 +59,20 @@ class TestOpenSession:
     def test_an_id_is_used_once(self, sessions: FakeSessionRepository) -> None:
         opened(sessions)
         with pytest.raises(InvalidInputError, match="already exists"):
-            OpenSession(sessions, FixedClock())("s1", "es")
+            opener(sessions)("s1", "es")
 
     def test_invalid_id_is_input_error(
         self, sessions: FakeSessionRepository
     ) -> None:
         with pytest.raises(InvalidInputError, match="id"):
-            OpenSession(sessions, FixedClock())("../etc", "es")
+            opener(sessions)("../etc", "es")
 
 
 class TestAppendAudio:
     def test_chunks_are_numbered_from_zero(
         self, sessions: FakeSessionRepository
     ) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         assert append("s1", 0, b"aa") is True
         assert append("s1", 1, b"bb") is True
@@ -70,7 +82,7 @@ class TestAppendAudio:
     def test_repeating_the_last_chunk_is_a_no_op(
         self, sessions: FakeSessionRepository
     ) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         append("s1", 0, b"aa")
         append("s1", 1, b"bb")
@@ -81,7 +93,7 @@ class TestAppendAudio:
     def test_other_bytes_for_an_accepted_number_is_an_error(
         self, sessions: FakeSessionRepository
     ) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         append("s1", 0, b"aa")
         append("s1", 1, b"bb")
@@ -91,8 +103,33 @@ class TestAppendAudio:
             append("s1", 0, b"aa")
         assert sessions.chunks["s1"] == [b"aa", b"bb"]
 
+    @pytest.mark.parametrize("data", [b"a", b"abc", b"\x00" * 31999])
+    def test_a_chunk_of_half_a_sample_is_refused(
+        self, sessions: FakeSessionRepository, data: bytes
+    ) -> None:
+        append = AppendAudio(sessions, locks(sessions))
+        opened(sessions)
+        with pytest.raises(InvalidInputError, match="whole 2-byte"):
+            append("s1", 0, data)
+        assert "s1" not in sessions.chunks
+        assert sessions.sessions["s1"].chunks == 0
+
+    def test_storing_a_chunk_number_again_keeps_it_once(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        """The port's contract, as the fake keeps it (see the adapter's
+        integration test for the file system)."""
+        opened(sessions)
+        sessions.append_chunk("s1", 0, b"aa")
+        sessions.append_chunk("s1", 1, b"bb")
+        sessions.append_chunk("s1", 2, b"cc")
+        sessions.append_chunk("s1", 1, b"dd")
+        assert sessions.chunks["s1"] == [b"aa", b"dd"]
+        with pytest.raises(InvalidInputError, match="gap"):
+            sessions.append_chunk("s1", 3, b"ee")
+
     def test_a_gap_is_an_error(self, sessions: FakeSessionRepository) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         with pytest.raises(InvalidInputError, match="gap"):
             append("s1", 1, b"bb")
@@ -101,17 +138,17 @@ class TestAppendAudio:
     def test_only_while_recording(
         self, sessions: FakeSessionRepository
     ) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         append("s1", 0, b"aa")
-        CloseSession(sessions)("s1")
+        CloseSession(sessions, locks(sessions))("s1")
         with pytest.raises(StateError, match="recording"):
             append("s1", 1, b"bb")
 
     def test_empty_chunk_and_unknown_session(
         self, sessions: FakeSessionRepository
     ) -> None:
-        append = AppendAudio(sessions)
+        append = AppendAudio(sessions, locks(sessions))
         opened(sessions)
         with pytest.raises(InvalidInputError, match="empty"):
             append("s1", 0, b"")
@@ -124,8 +161,8 @@ class TestCloseSession:
         self, sessions: FakeSessionRepository
     ) -> None:
         opened(sessions)
-        AppendAudio(sessions)("s1", 0, b"aa")
-        closed = CloseSession(sessions)("s1")
+        AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
+        closed = CloseSession(sessions, locks(sessions))("s1")
         assert closed.state is SessionState.UPLOADED
         assert sessions.recording("s1") == RecordedAudio(b"aa", PCM_FORMAT)
 
@@ -134,16 +171,16 @@ class TestCloseSession:
     ) -> None:
         opened(sessions)
         with pytest.raises(InvalidInputError, match="no audio"):
-            CloseSession(sessions)("s1")
+            CloseSession(sessions, locks(sessions))("s1")
 
     def test_closing_twice_is_a_state_error(
         self, sessions: FakeSessionRepository
     ) -> None:
         opened(sessions)
-        AppendAudio(sessions)("s1", 0, b"aa")
-        CloseSession(sessions)("s1")
+        AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
+        CloseSession(sessions, locks(sessions))("s1")
         with pytest.raises(StateError):
-            CloseSession(sessions)("s1")
+            CloseSession(sessions, locks(sessions))("s1")
 
 
 class TestImportRecording:
@@ -151,13 +188,14 @@ class TestImportRecording:
         self, sessions: FakeSessionRepository
     ) -> None:
         recording = RecordedAudio(b"RIFF....", "wav")
-        session = ImportRecording(sessions)("s2", "en", recording, "Demo")
+        importer = ImportRecording(sessions, locks(sessions))
+        session = importer("s2", "en", recording, "Demo")
         assert session.state is SessionState.UPLOADED
         assert session.title == "Demo"
         assert sessions.recording("s2") == recording
 
     def test_invalid_imports(self, sessions: FakeSessionRepository) -> None:
-        importer = ImportRecording(sessions)
+        importer = ImportRecording(sessions, locks(sessions))
         with pytest.raises(InvalidInputError, match="empty"):
             importer("s2", "en", RecordedAudio(b"", "wav"))
         with pytest.raises(InvalidInputError, match="format"):
@@ -173,12 +211,12 @@ class TestDeleteSession:
         self, sessions: FakeSessionRepository
     ) -> None:
         opened(sessions)
-        AppendAudio(sessions)("s1", 0, b"aa")
-        DeleteSession(sessions)("s1")
+        AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
+        DeleteSession(sessions, locks(sessions))("s1")
         assert sessions.get("s1") is None
         assert "s1" not in sessions.chunks
         with pytest.raises(NotFoundError):
-            DeleteSession(sessions)("s1")
+            DeleteSession(sessions, locks(sessions))("s1")
 
     def test_not_while_running(self, sessions: FakeSessionRepository) -> None:
         opened(sessions)
@@ -186,4 +224,4 @@ class TestDeleteSession:
             update={"state": SessionState.RUNNING}
         ))
         with pytest.raises(StateError, match="being transcribed"):
-            DeleteSession(sessions)("s1")
+            DeleteSession(sessions, locks(sessions))("s1")

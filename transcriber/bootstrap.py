@@ -2,10 +2,13 @@
 
 :func:`build_container` wires the outbound adapters (file-system
 repositories under ``settings.data_dir``, the PyAV decoder, the models
-chosen by ``settings.runtime``, the job runner, the directory
-publisher) into every use case. Building it does no I/O and loads no
-model: directories are created on the first write and models on the
-first job, and the job runner unloads the models after every job.
+chosen by ``settings.runtime``, the job runner, the session locks, the
+directory publisher) into every use case. Building it does no I/O and
+loads no model: directories are created on the first write and models
+on the first job, and the job runner unloads the models after every
+job. :func:`start_container` is for the process that runs the jobs
+(the service): it builds the container and then fails the sessions a
+previous process left queued or running (:class:`RecoverSessions`).
 """
 
 from dataclasses import dataclass
@@ -27,6 +30,9 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 )
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
+from transcriber.adapters.outbound.thread_session_locks import (
+    ThreadSessionLocks,
+)
 from transcriber.adapters.outbound.wavlm_voice_encoder import (
     WavLMVoiceEncoder,
 )
@@ -37,6 +43,7 @@ from transcriber.application.enrol import EnrolSpeaker, ForgetSpeaker
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
+    SessionLocks,
     SessionRepository,
     SpeechRecogniser,
     TranscriptPublisher,
@@ -51,6 +58,7 @@ from transcriber.application.record import (
     ImportRecording,
     OpenSession,
 )
+from transcriber.application.recover import RecoverSessions
 from transcriber.application.review import RenameSpeaker, ReassignUtterance
 from transcriber.application.transcribe import (
     QueueTranscription,
@@ -89,6 +97,7 @@ class TranscriberContainer:
     runner: ThreadJobRunner
     publisher: TranscriptPublisher
     clock: Clock
+    locks: SessionLocks
     open_session: OpenSession
     append_audio: AppendAudio
     close_session: CloseSession
@@ -102,6 +111,7 @@ class TranscriberContainer:
     publish: PublishTranscript
     rename_speaker: RenameSpeaker
     reassign_utterance: ReassignUtterance
+    recover_sessions: RecoverSessions
 
     def release_models(self) -> None:
         """Unload the speech and voice models (after a job)."""
@@ -144,9 +154,11 @@ def build_container(
     runner = ThreadJobRunner(after_job=release_models)
     publisher = DirectoryTranscriptPublisher(settings.published())
     clock = SystemClock()
+    locks = ThreadSessionLocks()
     parameters = settings.transcription
     transcribe = TranscribeSession(
-        sessions, voiceprints, decoder, recogniser, encoder, parameters
+        sessions, voiceprints, decoder, recogniser, encoder, locks,
+        parameters,
     )
     return TranscriberContainer(
         settings=settings,
@@ -158,11 +170,12 @@ def build_container(
         runner=runner,
         publisher=publisher,
         clock=clock,
-        open_session=OpenSession(sessions, clock),
-        append_audio=AppendAudio(sessions),
-        close_session=CloseSession(sessions),
-        import_recording=ImportRecording(sessions),
-        delete_session=DeleteSession(sessions),
+        locks=locks,
+        open_session=OpenSession(sessions, clock, locks),
+        append_audio=AppendAudio(sessions, locks),
+        close_session=CloseSession(sessions, locks),
+        import_recording=ImportRecording(sessions, locks),
+        delete_session=DeleteSession(sessions, locks),
         enrol_speaker=EnrolSpeaker(
             decoder, recogniser, encoder, voiceprints, clock, parameters,
             settings.enrolment,
@@ -170,10 +183,27 @@ def build_container(
         forget_speaker=ForgetSpeaker(voiceprints),
         transcribe=transcribe,
         queue_transcription=QueueTranscription(
-            sessions, voiceprints, runner, transcribe
+            sessions, voiceprints, runner, transcribe, locks
         ),
         transcription_status=TranscriptionStatus(sessions, runner),
         publish=PublishTranscript(sessions, publisher),
-        rename_speaker=RenameSpeaker(sessions, voiceprints),
-        reassign_utterance=ReassignUtterance(sessions, voiceprints),
+        rename_speaker=RenameSpeaker(sessions, voiceprints, locks),
+        reassign_utterance=ReassignUtterance(sessions, voiceprints, locks),
+        recover_sessions=RecoverSessions(sessions, locks),
     )
+
+
+def start_container(
+    settings: Optional[TranscriberSettings] = None,
+) -> TranscriberContainer:
+    """Build the container of the job-running process and recover.
+
+    Every session a previous process left ``queued`` or ``running`` is
+    failed as ``interrupted`` (its job was lost), so it can be queued
+    again or deleted. Only the one process that runs the jobs for
+    ``settings.data_dir`` (the service) may call it: a session failed
+    here is assumed to have no live job.
+    """
+    container = build_container(settings)
+    container.recover_sessions()
+    return container

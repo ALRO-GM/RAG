@@ -17,10 +17,13 @@ from transcriber.domain.models import (
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.sentences import build_utterances, regroup_utterances
 from transcriber.domain.sessions import (
+    INTERRUPTED,
     TRANSITIONS,
     ChunkAction,
     accept_chunk,
+    can_delete,
     can_move,
+    interrupt,
     move,
     require_state,
     with_chunk,
@@ -29,6 +32,7 @@ from transcriber.domain.voices import (
     FloatArray,
     centre_on_session,
     group_voices,
+    is_single_voice,
     unit_vectors,
 )
 
@@ -51,6 +55,7 @@ class TestTransitions:
         assert can_move(S.RUNNING, S.FAILED)
         assert can_move(S.QUEUED, S.FAILED)
         assert can_move(S.FAILED, S.QUEUED)
+        assert can_move(S.DONE, S.QUEUED)
 
     def test_the_table_is_complete_and_nothing_else_moves(self) -> None:
         assert set(TRANSITIONS) == set(SessionState)
@@ -60,13 +65,12 @@ class TestTransitions:
             (S.RECORDING, S.UPLOADED), (S.UPLOADED, S.QUEUED),
             (S.QUEUED, S.RUNNING), (S.QUEUED, S.FAILED),
             (S.RUNNING, S.DONE), (S.RUNNING, S.FAILED),
-            (S.FAILED, S.QUEUED),
+            (S.FAILED, S.QUEUED), (S.DONE, S.QUEUED),
         }
-        assert TRANSITIONS[S.DONE] == frozenset()
 
     @pytest.mark.parametrize("current, target", [
         (S.RECORDING, S.QUEUED), (S.UPLOADED, S.RUNNING),
-        (S.DONE, S.QUEUED), (S.DONE, S.RUNNING), (S.FAILED, S.RUNNING),
+        (S.DONE, S.FAILED), (S.DONE, S.RUNNING), (S.FAILED, S.RUNNING),
         (S.RUNNING, S.RUNNING), (S.RECORDING, S.DONE),
     ])
     def test_invalid_moves_are_errors(
@@ -74,6 +78,32 @@ class TestTransitions:
     ) -> None:
         with pytest.raises(StateError, match=target.value):
             move(session(current), target)
+
+    def test_a_finished_session_can_be_queued_again(self) -> None:
+        again = move(session(S.DONE), S.QUEUED)
+        assert (again.state, again.failure) == (S.QUEUED, None)
+
+    @pytest.mark.parametrize("state", [S.QUEUED, S.RUNNING])
+    def test_an_interrupted_job_fails_its_session(
+        self, state: SessionState
+    ) -> None:
+        failed = interrupt(session(state))
+        assert (failed.state, failed.failure) == (S.FAILED, INTERRUPTED)
+        assert can_move(failed.state, S.QUEUED)
+
+    @pytest.mark.parametrize("state", [
+        S.RECORDING, S.UPLOADED, S.DONE, S.FAILED,
+    ])
+    def test_interrupt_leaves_other_states_alone(
+        self, state: SessionState
+    ) -> None:
+        assert interrupt(session(state)) == session(state)
+
+    @pytest.mark.parametrize("state", list(SessionState))
+    def test_every_state_but_running_can_be_deleted(
+        self, state: SessionState
+    ) -> None:
+        assert can_delete(session(state)) is (state is not S.RUNNING)
 
     def test_failure_reason_rules(self) -> None:
         failed = move(session(S.RUNNING), S.FAILED, "recognise: boom")
@@ -227,6 +257,62 @@ class TestGroupVoices:
                               num_speakers=1)
         assert groups.coarse == [0, 0, 0, 0]
 
+    def one_voice(self) -> FloatArray:
+        """Six long windows of one voice, each a little different."""
+        rng = np.random.default_rng(3)
+        base = np.array([1.0, 0.5, 0.2, 0.0], dtype=np.float32)
+        noisy: FloatArray = (
+            base + rng.normal(0.0, 0.03, (6, 4))
+        ).astype(np.float32)
+        return noisy
+
+    def test_centring_one_voice_splits_it(self) -> None:
+        """Why the single-voice test exists: the bug it prevents."""
+        groups = group_voices(self.one_voice(),
+                              np.zeros((0, 4), dtype=np.float32))
+        assert len(set(groups.coarse)) > 1
+
+    def test_one_voice_is_one_group(self) -> None:
+        coarse = self.one_voice()
+        fine = coarse[:3].copy()
+        groups = group_voices(coarse, fine, single_voice_threshold=0.9)
+        assert groups.coarse == [0] * 6
+        assert groups.fine == [0] * 3
+        assert groups.vectors.shape == (1, 4)
+        assert np.allclose(np.linalg.norm(groups.vectors[0]), 1.0)
+
+    def test_the_single_voice_test_needs_every_window(self) -> None:
+        # Each window has cosine 10 / sqrt(101), about 0.995, with the
+        # mean direction: one voice at 0.99, two voices at 0.999.
+        two = self.two_voices()
+        assert is_single_voice(two, 0.99)
+        assert not is_single_voice(two, 0.999)
+        groups = group_voices(two, np.zeros((0, 3), dtype=np.float32),
+                              single_voice_threshold=0.999)
+        assert groups.coarse == [0, 1, 0, 1]
+
+    def test_a_known_number_overrides_the_single_voice_test(self) -> None:
+        groups = group_voices(self.one_voice(),
+                              np.zeros((0, 4), dtype=np.float32),
+                              num_speakers=2, single_voice_threshold=0.9)
+        assert sorted(set(groups.coarse)) == [0, 1]
+
+    def test_one_known_speaker_is_one_group_without_clustering(
+        self,
+    ) -> None:
+        groups = group_voices(self.two_voices(),
+                              self.two_voices()[:2],
+                              num_speakers=1)
+        assert groups.coarse == [0] * 4 and groups.fine == [0, 0]
+        with pytest.raises(InvalidInputError, match="at least 1"):
+            group_voices(self.two_voices(), self.two_voices(),
+                         num_speakers=0)
+
+    def test_single_voice_degenerate_inputs(self) -> None:
+        assert not is_single_voice(np.zeros((0, 3), np.float32), 0.0)
+        opposite = np.array([[1.0, 0.0], [-1.0, 0.0]], dtype=np.float32)
+        assert not is_single_voice(opposite, -1.0)
+
     def test_no_windows(self) -> None:
         none = np.zeros((0, 0), dtype=np.float32)
         groups = group_voices(none, none)
@@ -247,6 +333,10 @@ class TestTranscriptionParameters:
         assert params.coarse() == (5.0, 2.5, 0.4)
         assert params.fine() == (1.5, 0.75, 0.4)
         assert params.normaliser() is unit_vectors
+        assert params.single_voice_threshold == 0.9
+        assert (params.activity_frame, params.activity_threshold) == (
+            0.025, 0.003,
+        )
         centred = TranscriptionParameters(normalisation="centre_on_session")
         assert centred.normaliser() is centre_on_session
 
@@ -257,3 +347,9 @@ class TestTranscriptionParameters:
             TranscriptionParameters(fine_window=0.3, window_minimum=0.4)
         with pytest.raises(ValidationError):
             TranscriptionParameters(normalisation="other")  # type: ignore
+        with pytest.raises(ValidationError):
+            TranscriptionParameters(single_voice_threshold=1.5)
+        with pytest.raises(ValidationError):
+            TranscriptionParameters(activity_frame=0.0)
+        with pytest.raises(ValidationError):
+            TranscriptionParameters(activity_threshold=-0.1)

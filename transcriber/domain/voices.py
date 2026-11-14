@@ -17,6 +17,7 @@ here are parameters with untuned defaults for the same reason.
 
 import math
 from typing import (
+    AbstractSet,
     Callable,
     Dict,
     List,
@@ -151,6 +152,26 @@ def nearest_voice(vectors: FloatArray, centroids: FloatArray) -> List[int]:
     return [int(i) for i in np.argmax(vectors @ centroids.T, axis=1)]
 
 
+def is_single_voice(vectors: FloatArray, threshold: float) -> bool:
+    """Tell whether every row of ``vectors`` is one and the same voice.
+
+    The rows are taken as raw unit vectors (no centring): they are one
+    voice when each has at least ``threshold`` cosine with their mean
+    direction. Centring cannot answer this question: with one voice,
+    subtracting the mean leaves only the voice's own variation, which
+    clustering then splits into several "people". No rows, or a mean of
+    zero length, is not one voice.
+    """
+    if vectors.shape[0] == 0:
+        return False
+    unit = unit_rows(vectors).astype(np.float64)
+    mean = unit.mean(axis=0)
+    norm = float(np.linalg.norm(mean))
+    if norm == 0.0:
+        return False
+    return bool(float(np.min(unit @ (mean / norm))) >= threshold)
+
+
 class VoiceGroups(NamedTuple):
     """The voices of a recording found by :func:`group_voices`.
 
@@ -172,12 +193,16 @@ def group_voices(
     threshold: float = 0.5,
     max_speakers: int = 10,
     centre_windows: bool = True,
+    single_voice_threshold: Optional[float] = None,
 ) -> VoiceGroups:
     """Find the voices of a recording in two passes.
 
     1. *Who is there*: the long-window embeddings ``coarse`` are
        clustered (:func:`cluster_speakers` with ``num_speakers``,
-       ``threshold`` and ``max_speakers``).
+       ``threshold`` and ``max_speakers``). With ``num_speakers`` 1, or
+       when the number is unknown and :func:`is_single_voice` finds
+       one voice at ``single_voice_threshold`` (``None`` skips the
+       test), every window is one group and nothing is clustered.
     2. *Who speaks when*: each short-window embedding of ``fine`` goes
        to the nearest group centroid, which keeps the time resolution
        long windows lack.
@@ -195,6 +220,17 @@ def group_voices(
         return VoiceGroups([], [], np.zeros((0, width), dtype=np.float32))
     if fine.shape[0] and fine.shape[1] != coarse.shape[1]:
         raise InvalidInputError("Long and short windows differ in size.")
+    if num_speakers is not None and num_speakers < 1:
+        raise InvalidInputError("num_speakers must be at least 1.")
+    single = num_speakers == 1 or (
+        num_speakers is None and single_voice_threshold is not None
+        and is_single_voice(coarse, single_voice_threshold)
+    )
+    if single:
+        return VoiceGroups(
+            [0] * int(coarse.shape[0]), [0] * int(fine.shape[0]),
+            voice_centroids(unit_rows(coarse), [0] * int(coarse.shape[0])),
+        )
     if centre_windows:
         mean: FloatArray = coarse.mean(axis=0).astype(np.float32)
         long, short = centre(coarse, mean), centre(fine, mean)
@@ -260,6 +296,7 @@ def match_voices(
     threshold: float = DEFAULT_MATCH_THRESHOLD,
     normalisation: Normalisation = unit_vectors,
     model: Optional[str] = None,
+    taken: AbstractSet[str] = frozenset(),
 ) -> List[Attribution]:
     """Attribute the voice groups of a session to enrolled people.
 
@@ -284,7 +321,9 @@ def match_voices(
     a greedy one.
 
     Groups left without a voiceprint are labelled ``S1``, ``S2``, ...
-    in group order, skipping labels that are enrolled ids. When
+    in group order, skipping labels that are ids of ``voiceprints`` or
+    in ``taken`` (callers pass every enrolled id, candidate or not, so
+    an anonymous voice never wears a person's id). When
     ``model`` is given, every voiceprint must come from that voice
     model. Raises :class:`InvalidInputError` for a ``groups`` array
     that is not 2-D, a vector that is not finite, or voiceprints that
@@ -334,7 +373,7 @@ def match_voices(
         for row, col in zip(rows.tolist(), cols.tolist()):
             if similarity[row, col] >= threshold:
                 matched[row] = (ids[col], float(similarity[row, col]))
-    anonymous = _anonymous_labels(count - len(matched), set(ids))
+    anonymous = _anonymous_labels(count - len(matched), set(ids) | taken)
     attributions: List[Attribution] = []
     for group in range(count):
         near_id, near_sim = nearest.get(group, (None, None))

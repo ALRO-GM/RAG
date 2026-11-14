@@ -77,12 +77,61 @@ def test_status_while_queued_and_running(runner: ThreadJobRunner) -> None:
     )
     assert (second.state, second.stage) == (SessionState.QUEUED, None)
     assert runner.status("never") is None
-    with pytest.raises(StateError, match="already has a job"):
-        runner.submit("second", lambda progress: None)
     release.set()
     assert runner.wait(WAIT)
     done = runner.status("second")
     assert done is not None and done.state is SessionState.DONE
+    runner.close(WAIT)
+
+
+def test_a_later_submission_owns_the_status(runner: ThreadJobRunner) -> None:
+    """An earlier job of the same session runs but no longer reports."""
+    started = threading.Event()
+    release = threading.Event()
+    ran: List[str] = []
+
+    def hold(progress: Progress) -> None:
+        started.set()
+        release.wait(WAIT)
+
+    def stale(progress: Progress) -> None:
+        ran.append("stale")
+        progress.report("recognise", 0.3)
+        progress.note("stale note")
+        raise RuntimeError("stale failure")
+
+    def fresh(progress: Progress) -> None:
+        ran.append("fresh")
+        progress.note("fresh note")
+
+    runner.submit("busy", hold)
+    assert started.wait(WAIT)
+    runner.submit("s", stale)
+    runner.submit("s", fresh)
+    queued = runner.status("s")
+    assert queued is not None and queued.state is SessionState.QUEUED
+    release.set()
+    assert runner.wait(WAIT)
+    assert ran == ["stale", "fresh"]
+    status = runner.status("s")
+    assert status is not None
+    assert (status.state, status.message) == (SessionState.DONE, "fresh note")
+    assert runner.error("s") is None
+    runner.close(WAIT)
+
+
+def test_a_note_is_kept_on_the_status(runner: ThreadJobRunner) -> None:
+    def noted(progress: Progress) -> None:
+        progress.report("identify", 0.8)
+        progress.note("2 voiceprints skipped")
+
+    runner.submit("s", noted)
+    assert runner.wait(WAIT)
+    status = runner.status("s")
+    assert status is not None
+    assert (status.state, status.message) == (
+        SessionState.DONE, "2 voiceprints skipped",
+    )
     runner.close(WAIT)
 
 

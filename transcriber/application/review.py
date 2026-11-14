@@ -5,12 +5,18 @@ merges it into a known speaker; :class:`ReassignUtterance` moves one
 sentence to another speaker. Both recompute the turns and the previous
 speaker of the whole transcript and keep the stored words in step.
 Neither creates a voiceprint: a voice is only enrolled with consent.
+Both read and write the transcript while holding the session's lock.
 """
 
 from typing import Dict, List, Optional, Sequence
 
-from transcriber.application.common import require_session, require_transcript
+from transcriber.application.common import (
+    check_speaker_id,
+    require_session,
+    require_transcript,
+)
 from transcriber.application.ports import (
+    SessionLocks,
     SessionRepository,
     VoiceprintRepository,
 )
@@ -30,11 +36,15 @@ class _Review:
     """What both review use cases share: lookups and saving an edit."""
 
     def __init__(
-        self, sessions: SessionRepository, voiceprints: VoiceprintRepository
+        self,
+        sessions: SessionRepository,
+        voiceprints: VoiceprintRepository,
+        locks: SessionLocks,
     ) -> None:
         """Wire the ports."""
         self._sessions = sessions
         self._voiceprints = voiceprints
+        self._locks = locks
 
     def _transcript(self, session_id: str) -> Transcript:
         """Return the transcript of a ``done`` session."""
@@ -48,6 +58,7 @@ class _Review:
         A speaker of the transcript, or an enrolled person (named by
         their consent record) who was not recognised in it.
         """
+        check_speaker_id(speaker_id)
         for speaker in transcript.speakers:
             if speaker.id == speaker_id:
                 return speaker
@@ -119,6 +130,18 @@ class RenameSpeaker(_Review):
         """
         if (name is None) == (merge_into is None):
             raise InvalidInputError("Give either a name or a speaker id.")
+        check_speaker_id(label)
+        with self._locks.hold(session_id):
+            return self._rename(session_id, label, name, merge_into)
+
+    def _rename(
+        self,
+        session_id: str,
+        label: str,
+        name: Optional[str],
+        merge_into: Optional[str],
+    ) -> Transcript:
+        """Apply the rename or merge; the caller holds the lock."""
         transcript = self._transcript(session_id)
         source = next(
             (s for s in transcript.speakers if s.id == label), None
@@ -168,6 +191,14 @@ class ReassignUtterance(_Review):
         hand); its turn splits or joins its neighbours as needed, so
         utterance ids after it may change.
         """
+        check_speaker_id(speaker_id)
+        with self._locks.hold(session_id):
+            return self._reassign(session_id, utterance_id, speaker_id)
+
+    def _reassign(
+        self, session_id: str, utterance_id: str, speaker_id: str
+    ) -> Transcript:
+        """Move the utterance; the caller holds the lock."""
         transcript = self._transcript(session_id)
         current = next(
             (u for u in transcript.utterances if u.id == utterance_id), None

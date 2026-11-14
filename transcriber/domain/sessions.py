@@ -1,11 +1,15 @@
 """Sessions: the life of a recording, and the chunks it is uploaded in.
 
 A session moves ``recording → uploaded → queued → running → done |
-failed`` (:data:`TRANSITIONS`). A failed transcription can be queued
-again; a finished one is final (its transcript is edited by review, not
-recomputed). Recording from the phone arrives in numbered chunks:
-:func:`accept_chunk` decides whether a chunk is the next one, a retried
-copy of the last one, or an error.
+failed`` (:data:`TRANSITIONS`). A failed or a finished transcription
+can be queued again (a retry, or a new run after enrolling someone or
+changing a threshold; the previous transcript stays until the new one
+is saved). A queued or running session whose job was lost (the
+process stopped) is moved to ``failed`` by :func:`interrupt`. A session
+may be deleted in any state but ``running`` (:func:`can_delete`).
+Recording from the phone arrives in numbered chunks: :func:`accept_chunk`
+decides whether a chunk is the next one, a retried copy of the last one,
+or an error.
 """
 
 import enum
@@ -21,10 +25,16 @@ TRANSITIONS: Mapping[SessionState, FrozenSet[SessionState]] = {
     S.UPLOADED: frozenset({S.QUEUED}),
     S.QUEUED: frozenset({S.RUNNING, S.FAILED}),
     S.RUNNING: frozenset({S.DONE, S.FAILED}),
-    S.DONE: frozenset(),
+    S.DONE: frozenset({S.QUEUED}),
     S.FAILED: frozenset({S.QUEUED}),
 }
 """The states each state may move to; any other move is an error."""
+
+ACTIVE = frozenset({S.QUEUED, S.RUNNING})
+"""States in which a session has a job waiting or running."""
+
+INTERRUPTED = "interrupted"
+"""Failure reason of a job lost when the process stopped."""
 
 
 def can_move(current: SessionState, target: SessionState) -> bool:
@@ -53,6 +63,23 @@ def move(
     elif failure is not None:
         raise InvalidInputError("Only a failed session has a reason.")
     return session.model_copy(update={"state": target, "failure": failure})
+
+
+def interrupt(session: Session) -> Session:
+    """Return ``session`` failed as :data:`INTERRUPTED` if it was active.
+
+    A session left ``queued`` or ``running`` when the process stopped
+    has no job any more; failing it lets it be queued again or deleted.
+    A session in any other state is returned unchanged.
+    """
+    if session.state not in ACTIVE:
+        return session
+    return move(session, S.FAILED, INTERRUPTED)
+
+
+def can_delete(session: Session) -> bool:
+    """Tell whether ``session`` may be deleted (it is not ``running``)."""
+    return session.state is not S.RUNNING
 
 
 def require_state(session: Session, *states: SessionState) -> None:

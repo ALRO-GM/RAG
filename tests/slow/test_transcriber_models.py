@@ -118,20 +118,12 @@ def test_a_real_job_runs_the_models_and_unloads_them(tmp_path: Path) -> None:
     assert container.runner.wait(600)
     session = container.sessions.get("quiet")
     assert session is not None
-    # Whisper may hear nothing (the job fails at "recognise") or invent
-    # a word in the silence (see above): then every stage runs, WavLM
-    # included, and a valid transcript of one anonymous voice results.
-    if session.state is SessionState.FAILED:
-        assert session.failure == "recognise: No speech recognised."
-    else:
-        assert session.state is SessionState.DONE
-        transcript = container.sessions.transcript("quiet")
-        assert transcript is not None
-        assert [s.id for s in transcript.speakers] == ["S1"]
-        voice_model = transcript.pipeline.voice_model
-        assert voice_model == WavLMVoiceEncoder().model_name
-        for utterance in transcript.utterances:
-            assert utterance.end <= transcript.session.duration
+    # Whisper may invent a word in the silence (see above); the speech
+    # activity check drops it, so the job always fails at "recognise".
+    assert (session.state, session.failure) == (
+        SessionState.FAILED, "recognise: No speech recognised.",
+    )
+    assert container.sessions.transcript("quiet") is None
     print(f"\nreal job on 4 s of silence ended {session.state.value}")
     assert isinstance(container.recogniser, WhisperRecogniser)
     assert isinstance(container.encoder, WavLMVoiceEncoder)

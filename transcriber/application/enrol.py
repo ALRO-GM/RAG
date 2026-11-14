@@ -9,6 +9,7 @@ the sample audio is never handed to a repository.
 import re
 from typing import Optional
 
+from transcriber.application.common import check_speaker_id
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
@@ -28,7 +29,7 @@ from transcriber.domain.errors import (
     NotFoundError,
 )
 from transcriber.domain.models import (
-    SPEAKER_ID_PATTERN,
+    ANONYMOUS_LABEL_PATTERN,
     ConsentRecord,
     Voiceprint,
 )
@@ -82,9 +83,10 @@ class EnrolSpeaker:
         :class:`ConsentRequiredError` before the audio is touched.
         ``text_version`` is the enrolment text read (the latest of
         ``language`` if omitted). Enrolling an enrolled person again
-        replaces the voiceprint and the consent record. Raises
-        :class:`~transcriber.domain.errors.SampleRejectedError` when
-        the sample is unfit.
+        replaces the voiceprint and the consent record. Ids shaped like
+        anonymous labels (``S1``, ``S2``...) are reserved and refused.
+        Raises :class:`~transcriber.domain.errors.SampleRejectedError`
+        when the sample is unfit.
         """
         if consent is not True:
             raise ConsentRequiredError(
@@ -93,8 +95,12 @@ class EnrolSpeaker:
             )
         if not consent_version.strip():
             raise InvalidInputError("The consent version is required.")
-        if not re.fullmatch(SPEAKER_ID_PATTERN, speaker_id):
-            raise InvalidInputError(f"Invalid speaker id {speaker_id!r}.")
+        check_speaker_id(speaker_id)
+        if re.fullmatch(ANONYMOUS_LABEL_PATTERN, speaker_id):
+            raise InvalidInputError(
+                f"Speaker id {speaker_id} is reserved for anonymous"
+                " voices; choose another id."
+            )
         text = enrolment_text(language, text_version)
         text.text(name)  # the text must be readable with this name
         now = self._clock.now()
@@ -130,6 +136,9 @@ class ForgetSpeaker:
         self._voiceprints = voiceprints
 
     def __call__(self, speaker_id: str) -> None:
-        """Forget ``speaker_id``; :class:`NotFoundError` if not enrolled."""
-        if not self._voiceprints.delete(speaker_id):
+        """Forget ``speaker_id``; :class:`NotFoundError` if not enrolled.
+
+        An invalid id is an :class:`InvalidInputError`.
+        """
+        if not self._voiceprints.delete(check_speaker_id(speaker_id)):
             raise NotFoundError(f"No enrolled speaker {speaker_id}.")

@@ -83,6 +83,29 @@ class TestSessions:
         stored = repo.get("s1")
         assert stored is not None and stored.title == "Otro"
 
+    def test_ids_lists_stored_sessions_only(
+        self, repo: FileSystemSessionRepository, tmp_path: Path
+    ) -> None:
+        assert repo.ids() == []
+        repo.create(session("b"))
+        repo.create(session("a", SessionState.UPLOADED))
+        (tmp_path / "sessions" / "empty-dir").mkdir()
+        (tmp_path / "sessions" / ".hidden").mkdir()
+        (tmp_path / "sessions" / ".hidden" / "session.json").write_text("{}")
+        (tmp_path / "sessions" / "file").write_text("x")
+        assert repo.ids() == ["a", "b"]
+
+    def test_the_run_id_is_kept(
+        self, repo: FileSystemSessionRepository
+    ) -> None:
+        repo.create(session())
+        queued = session(state=SessionState.UPLOADED).model_copy(
+            update={"run_id": "c" * 32}
+        )
+        repo.save(queued)
+        stored = repo.get("s1")
+        assert stored is not None and stored.run_id == "c" * 32
+
     def test_create_twice_is_refused(
         self, repo: FileSystemSessionRepository
     ) -> None:
@@ -165,6 +188,20 @@ class TestRecordingAudio:
         repo.append_chunk("s1", 1, b"\x02\x00")
         repo.append_chunk("s1", 1, b"\x09\x00")
         assert repo.recording("s1").data == b"\x01\x00\x09\x00"
+
+    def test_storing_a_chunk_number_again_drops_the_later_ones(
+        self, repo: FileSystemSessionRepository
+    ) -> None:
+        """The port's contract: idempotent per chunk number."""
+        repo.create(session())
+        repo.append_chunk("s1", 0, b"\x01\x00")
+        repo.append_chunk("s1", 1, b"\x02\x00")
+        repo.append_chunk("s1", 2, b"\x03\x00")
+        repo.append_chunk("s1", 1, b"\x09\x00")
+        repo.append_chunk("s1", 1, b"\x09\x00")
+        assert repo.recording("s1").data == b"\x01\x00\x09\x00"
+        with pytest.raises(InvalidInputError, match="expects chunk 2"):
+            repo.append_chunk("s1", 3, b"\x00\x00")
 
     def test_bytes_left_by_a_killed_append_are_cut(
         self, repo: FileSystemSessionRepository, tmp_path: Path

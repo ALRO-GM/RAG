@@ -51,30 +51,48 @@ whenever the workstation is off.
 transcriber/
   domain/          pure Python: no I/O, no torch
     models.py        Word, Utterance, Speaker, Voiceprint, Session, Transcript
+    sessions.py      session states and moves, chunk acceptance, interruption
+    parameters.py    TranscriptionParameters: every threshold of a transcription
+    activity.py      speech activity from frame energy; drops words over silence
     sentences.py     sentence splitting, utterance ids
     speakers.py      word→speaker assignment, smoothing, turns, previous speaker
-    voices.py        clustering, centroids, matching clusters to voiceprints
+    voices.py        single-voice test, clustering, centroids, matching to voiceprints
     enrolment.py     the text a person reads, checks on an enrolment sample
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
                      SessionRepository, VoiceprintRepository,
-                     TranscriptPublisher, JobRunner, Progress
+                     TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
+    common.py        id checks and lookups shared by the use cases
     enrol.py         EnrolSpeaker, ForgetSpeaker
-    record.py        OpenSession, AppendAudio, CloseSession, ImportRecording
-    transcribe.py    TranscribeSession (recognise → diarize → identify → sentences)
+    record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
+                     DeleteSession
+    transcribe.py    TranscribeSession (recognise → diarize → identify → sentences),
+                     QueueTranscription, TranscriptionStatus
+    recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
     review.py        RenameSpeaker, ReassignUtterance
   adapters/
     inbound/         http_api.py (FastAPI), cli.py (Fire), web/ (static pages)
     outbound/        av_audio_decoder.py, whisper_recogniser.py,
-                     wavlm_voice_encoder.py, fs_session_repository.py,
-                     fs_voiceprint_repository.py, http_transcript_publisher.py,
-                     fs_transcript_publisher.py, thread_job_runner.py
+                     wavlm_voice_encoder.py, fake_models.py,
+                     fs_session_repository.py, fs_voiceprint_repository.py,
+                     http_transcript_publisher.py, fs_transcript_publisher.py,
+                     thread_job_runner.py, thread_session_locks.py
   config.py        TranscriberSettings (pydantic)
-  bootstrap.py     composition root
+  bootstrap.py     composition root (start_container also runs RecoverSessions)
   __main__.py
 ```
+
+Session states: `recording → uploaded → queued → running → done |
+failed`. A `failed` or `done` session can be queued again (a `done` one
+keeps its transcript until the new one is saved); `queued` and
+`running` sessions left by a stopped process are failed as
+`interrupted` at start-up; a session can be deleted in any state but
+`running`. Each queueing gives the session a new `run_id` that the job
+carries, and every use case that reads then writes a session holds that
+session's lock (`SessionLocks`), so a stale job never runs on, or saves
+over, a session that was deleted, re-created or queued again.
 
 Rules, same as the RAG: dependencies point inwards; the domain imports
 nothing from the other layers; adapters are the only place that

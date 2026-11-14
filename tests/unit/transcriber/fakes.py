@@ -2,13 +2,25 @@
 
 No model, no file, no network: the use cases are tested quickly and
 deterministically. A scripted :class:`Scene` says who speaks when; the
-fake recogniser hears its words and the fake voice encoder returns, for
-each window, the voice of the person speaking at the window's middle.
+fake decoder gives audio that is loud while someone speaks and silent
+otherwise, the fake recogniser hears the scene's words and the fake
+voice encoder returns, for each window, the voice of the person speaking
+at the window's middle.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 import numpy as np
 
@@ -34,6 +46,7 @@ from transcriber.domain.voices import FloatArray
 NOW = datetime(2026, 11, 14, 10, 0, tzinfo=timezone.utc)
 RATE = 100  # samples per second of the fake audio: enough to cut windows
 DIM = 8
+LOUD = 0.1  # sample level while someone speaks (silence is 0)
 
 
 def voice(index: int) -> FloatArray:
@@ -119,20 +132,29 @@ def reading(speaker: str = "ana", seconds: float = 30.0) -> Scene:
 
 
 class FakeDecoder:
-    """Decode any recording into silence as long as the scene."""
+    """Decode any recording into the scene's audio: loud while speaking.
+
+    ``silent`` lists spans (seconds) forced to silence, so a test can
+    have the recogniser hear words where the audio has none.
+    """
 
     def __init__(self, scene: Scene) -> None:
-        """Remember the scene whose duration the audio has."""
+        """Remember the scene whose duration and lines the audio has."""
         self.scene = scene
         self.decoded: List[RecordedAudio] = []
         self.failures: List[Exception] = []
+        self.silent: List[Tuple[float, float]] = []
 
     def decode(self, recording: RecordedAudio) -> Audio:
-        """Return silent samples of the scene's duration."""
+        """Return samples of the scene: :data:`LOUD` during each line."""
         self.decoded.append(recording)
         if self.failures:
             raise self.failures.pop(0)
         samples = np.zeros(int(self.scene.duration * RATE), dtype=np.float32)
+        for line in self.scene.lines:
+            samples[int(line.start * RATE):int(line.end * RATE)] = LOUD
+        for start, end in self.silent:
+            samples[int(start * RATE):int(end * RATE)] = 0.0
         return Audio(samples=samples, sample_rate=RATE)
 
 
@@ -182,9 +204,38 @@ class FakeVoiceEncoder:
         return out
 
 
+class FakeSessionLocks:
+    """Session locks that record who held what (one thread only)."""
+
+    def __init__(self) -> None:
+        """Start with nothing held."""
+        self.held: Dict[str, int] = {}
+        self.taken: List[str] = []
+
+    @contextmanager
+    def hold(self, session_id: str) -> Iterator[None]:
+        """Count the lock of ``session_id`` as held in the block."""
+        self.taken.append(session_id)
+        self.held[session_id] = self.held.get(session_id, 0) + 1
+        try:
+            yield
+        finally:
+            self.held[session_id] -= 1
+            if not self.held[session_id]:
+                del self.held[session_id]
+
+    def holds(self, session_id: str) -> bool:
+        """Tell whether the lock of ``session_id`` is held now."""
+        return session_id in self.held
+
+
 @dataclass
 class FakeSessionRepository:
-    """Sessions, audio, words and transcripts in dictionaries."""
+    """Sessions, audio, words and transcripts in dictionaries.
+
+    With ``locks``, every write made without holding the session's
+    lock is recorded in ``unlocked_writes`` as ``(operation, id)``.
+    """
 
     sessions: Dict[str, Session] = field(default_factory=dict)
     chunks: Dict[str, List[bytes]] = field(default_factory=dict)
@@ -192,24 +243,39 @@ class FakeSessionRepository:
     stored_words: Dict[str, List[Word]] = field(default_factory=dict)
     transcripts: Dict[str, Transcript] = field(default_factory=dict)
     saved_states: List[Tuple[str, SessionState]] = field(default_factory=list)
+    locks: Optional[FakeSessionLocks] = None
+    unlocked_writes: List[Tuple[str, str]] = field(default_factory=list)
+
+    def _write(self, operation: str, session_id: str) -> None:
+        """Record a write made without the session's lock."""
+        if self.locks is not None and not self.locks.holds(session_id):
+            self.unlocked_writes.append((operation, session_id))
 
     def get(self, session_id: str) -> Optional[Session]:
         """Return the session, if stored."""
         return self.sessions.get(session_id)
 
+    def ids(self) -> List[str]:
+        """Return the stored session ids."""
+        return list(self.sessions)
+
     def create(self, session: Session) -> None:
         """Store a new session."""
+        self._write("create", session.id)
         if session.id in self.sessions:
             raise InvalidInputError(f"Session {session.id} exists.")
-        self.save(session)
+        self.sessions[session.id] = session
+        self.saved_states.append((session.id, session.state))
 
     def save(self, session: Session) -> None:
         """Replace the session and remember the state it was saved in."""
+        self._write("save", session.id)
         self.sessions[session.id] = session
         self.saved_states.append((session.id, session.state))
 
     def delete(self, session_id: str) -> None:
         """Forget everything about the session."""
+        self._write("delete", session_id)
         self.sessions.pop(session_id, None)
         self.chunks.pop(session_id, None)
         self.recordings.pop(session_id, None)
@@ -217,15 +283,23 @@ class FakeSessionRepository:
         self.transcripts.pop(session_id, None)
 
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
-        """Append a chunk; the number must be the next one."""
+        """Store chunk ``number``, dropping it and any later one first.
+
+        Idempotent per chunk number, as the port requires; a gap is an
+        :class:`InvalidInputError`.
+        """
+        self._write("append_chunk", session_id)
         stored = self.chunks.setdefault(session_id, [])
-        assert number == len(stored)
+        if number < 0 or number > len(stored):
+            raise InvalidInputError(f"Chunk {number} leaves a gap.")
+        del stored[number:]
         stored.append(data)
 
     def store_recording(
         self, session_id: str, recording: RecordedAudio
     ) -> None:
         """Keep the imported recording."""
+        self._write("store_recording", session_id)
         self.recordings[session_id] = recording
 
     def recording(self, session_id: str) -> RecordedAudio:
@@ -237,6 +311,7 @@ class FakeSessionRepository:
 
     def save_words(self, session_id: str, words: Sequence[Word]) -> None:
         """Keep the words."""
+        self._write("save_words", session_id)
         self.stored_words[session_id] = list(words)
 
     def words(self, session_id: str) -> List[Word]:
@@ -245,6 +320,7 @@ class FakeSessionRepository:
 
     def save_transcript(self, transcript: Transcript) -> None:
         """Keep the transcript."""
+        self._write("save_transcript", transcript.session.id)
         self.transcripts[transcript.session.id] = transcript
 
     def transcript(self, session_id: str) -> Optional[Transcript]:
@@ -312,15 +388,20 @@ class RecordingPublisher:
 
 
 class RecordingProgress:
-    """Keep every report."""
+    """Keep every report and every note."""
 
     def __init__(self) -> None:
         """Start with no report."""
         self.reports: List[Tuple[str, float]] = []
+        self.notes: List[str] = []
 
     def report(self, stage: str, fraction: float) -> None:
         """Keep the report."""
         self.reports.append((stage, fraction))
+
+    def note(self, message: str) -> None:
+        """Keep the note."""
+        self.notes.append(message)
 
 
 class _JobProgress:
@@ -332,10 +413,20 @@ class _JobProgress:
         self.session_id = session_id
 
     def report(self, stage: str, fraction: float) -> None:
-        """Record the stage as the session's running status."""
+        """Record the stage as the session's running status (the last
+        note is kept)."""
+        previous = self.runner.statuses.get(self.session_id)
         self.runner.statuses[self.session_id] = JobStatus(
             session_id=self.session_id, state=SessionState.RUNNING,
             stage=stage, fraction=fraction,
+            message=previous.message if previous is not None else None,
+        )
+
+    def note(self, message: str) -> None:
+        """Attach the note to the session's status."""
+        current = self.runner.statuses[self.session_id]
+        self.runner.statuses[self.session_id] = current.model_copy(
+            update={"message": message}
         )
 
 
@@ -377,6 +468,7 @@ class FakeJobRunner:
                 self.statuses[session_id] = JobStatus(
                     session_id=session_id, state=SessionState.DONE,
                     stage="done", fraction=1.0,
+                    message=self.statuses[session_id].message,
                 )
 
 

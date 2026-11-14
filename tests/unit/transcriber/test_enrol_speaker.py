@@ -1,5 +1,6 @@
 """Transcriber enrolment use cases: enrol with consent, forget."""
 
+import inspect
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -85,13 +86,21 @@ class TestEnrolSpeaker:
 
     def test_the_audio_is_never_stored(self) -> None:
         voiceprints = FakeVoiceprintRepository()
-        sessions = FakeSessionRepository()
-        enrol_use_case(reading(), voiceprints)(
+        scene = reading()
+        decoder = FakeDecoder(scene)
+        EnrolSpeaker(decoder, FakeRecogniser(scene), FakeVoiceEncoder(scene),
+                     voiceprints, FixedClock())(
             "ana", "Ana", "es", SAMPLE, True, "consent-1"
         )
+        assert decoder.decoded == [SAMPLE]  # the audio was used...
         stored = repr(voiceprints.voiceprints) + repr(voiceprints.consents)
-        assert "sample-bytes" not in stored
-        assert sessions.recordings == {} and sessions.chunks == {}
+        assert "sample-bytes" not in stored  # ...and not kept
+        # The only store the use case can write to is the voiceprints':
+        # it is given no port that could keep audio.
+        ports = inspect.signature(EnrolSpeaker.__init__).parameters
+        assert not any(
+            "Session" in str(param.annotation) for param in ports.values()
+        )
 
     @pytest.mark.parametrize("consent", [False, None, "yes", 1])
     def test_enrolment_without_consent_is_refused(
@@ -137,6 +146,21 @@ class TestEnrolSpeaker:
         assert error.value.reason == Rejection.TOO_SHORT.value
         assert voiceprints.voiceprints == {}
 
+    def test_a_rejected_sample_leaves_an_existing_voiceprint(self) -> None:
+        voiceprints = FakeVoiceprintRepository()
+        enrol_use_case(reading(), voiceprints)(
+            "ana", "Ana", "es", SAMPLE, True, "consent-1"
+        )
+        voiceprint = voiceprints.voiceprints["ana"]
+        consent = voiceprints.consents["ana"]
+        later = FixedClock(NOW + timedelta(days=1))
+        with pytest.raises(SampleRejectedError):
+            enrol_use_case(reading(seconds=10.0), voiceprints, later)(
+                "ana", "Ana Nueva", "es", SAMPLE, True, "consent-2"
+            )
+        assert voiceprints.voiceprints == {"ana": voiceprint}
+        assert voiceprints.consents == {"ana": consent}
+
     def test_two_voices_are_rejected(self) -> None:
         scene = Scene(
             lines=[Line("ana", 0.5, 15.0, " ".join(["hola"] * 30)),
@@ -148,6 +172,15 @@ class TestEnrolSpeaker:
                 "ana", "Ana", "es", SAMPLE, True, "consent-1"
             )
         assert error.value.reason == Rejection.SEVERAL_VOICES.value
+
+    @pytest.mark.parametrize("speaker_id", ["S", "Sara", "s1", "S1a"])
+    def test_ids_near_the_reserved_shape_are_allowed(
+        self, speaker_id: str
+    ) -> None:
+        voiceprint = enrol_use_case(reading(), FakeVoiceprintRepository())(
+            speaker_id, "Ana", "es", SAMPLE, True, "consent-1"
+        )
+        assert voiceprint.speaker_id == speaker_id
 
     def test_the_rules_come_from_the_settings(self) -> None:
         rules = SampleRules(min_duration=5.0, min_windows=3,
@@ -161,6 +194,9 @@ class TestEnrolSpeaker:
         enrol = enrol_use_case(reading(), FakeVoiceprintRepository())
         with pytest.raises(InvalidInputError, match="speaker id"):
             enrol("../ana", "Ana", "es", SAMPLE, True, "consent-1")
+        for reserved in ("S1", "S12", "S0"):
+            with pytest.raises(InvalidInputError, match="reserved"):
+                enrol(reserved, "Ana", "es", SAMPLE, True, "consent-1")
         with pytest.raises(InvalidInputError, match="consent version"):
             enrol("ana", "Ana", "es", SAMPLE, True, " ")
         with pytest.raises(InvalidInputError, match="name"):

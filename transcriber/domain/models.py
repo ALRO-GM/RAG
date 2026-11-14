@@ -30,6 +30,10 @@ SESSION_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
 SPEAKER_ID_PATTERN = SESSION_ID_PATTERN
 UTTERANCE_ID_PATTERN = r"^t[0-9]+\.s[0-9]+$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
+# Anonymous voice labels (``S1``, ``S2``...): reserved, never enrolled.
+ANONYMOUS_LABEL_PATTERN = r"^S[0-9]+$"
+# The identity of one queueing of a session (a random hex token).
+RUN_ID_PATTERN = r"^[0-9a-f]{32}$"
 
 # How far past ``session.duration`` an utterance may end. Recogniser
 # timestamps are quantised (Whisper uses 20 ms steps) and the duration
@@ -192,7 +196,10 @@ class Session(BaseModel):
     the audio chunks accepted while recording and ``last_chunk_sha256``
     identifies the last one, so a retried upload can be recognised.
     ``failure`` says why the last transcription failed (only in state
-    ``failed``).
+    ``failed``). ``run_id`` is drawn at random each time the session is
+    queued; the job carries it, so a job queued before the session was
+    deleted, re-created or queued again finds another ``run_id`` and
+    does nothing.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -209,6 +216,7 @@ class Session(BaseModel):
         default=None, pattern=SHA256_PATTERN
     )
     failure: Optional[str] = None
+    run_id: Optional[str] = Field(default=None, pattern=RUN_ID_PATTERN)
 
 
 class ConsentRecord(BaseModel):

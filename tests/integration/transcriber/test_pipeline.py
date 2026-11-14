@@ -171,10 +171,10 @@ def test_a_failing_job_leaves_the_session_failed(
     assert container.runner.error("broken") is not None
 
 
-def test_a_session_deleted_while_queued_fails_its_job(
-    container: TranscriberContainer,
+def test_a_session_deleted_while_queued_stops_its_job_quietly(
+    container: TranscriberContainer, tmp_path: Path
 ) -> None:
-    """A queued session may be deleted; its job then finds nothing."""
+    """A queued session may be deleted; its job then does nothing."""
     busy = threading.Event()
     release = threading.Event()
 
@@ -191,8 +191,10 @@ def test_a_session_deleted_while_queued_fails_its_job(
     release.set()
     assert container.runner.wait(WAIT)
     status = container.runner.status("gone")
-    assert status is not None and status.state is SessionState.FAILED
-    assert container.runner.error("gone") == "No session gone."
+    assert status is not None and status.message is not None
+    assert "deleted or queued again" in status.message
+    assert container.runner.error("gone") is None
+    assert not (tmp_path / "data" / "sessions" / "gone").exists()
     with pytest.raises(NotFoundError):
         container.transcription_status("gone")
 
