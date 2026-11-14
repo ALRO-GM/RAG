@@ -6,7 +6,10 @@ directory, are flushed to disk and renamed over the target, so a reader
 (or a crash) never sees half a transcript, and a second document for
 the same session replaces the first. Session ids are checked against
 the contract's pattern before any path is built, so an id cannot reach
-outside the directory.
+outside the directory. :meth:`FileSystemTranscriptStore.find` reads a
+stored document as the analyzer's transcript; the analyzer's own
+repository finds the same files by session id when both use the same
+directory (``transcripts_dir``, the default).
 """
 
 import json
@@ -21,7 +24,12 @@ from src.domain.errors import (
     NotFoundError,
     RagError,
 )
-from src.domain.skills.transcript_contract import SCHEMA, is_session_id
+from src.domain.skills.transcript import Transcript, from_contract
+from src.domain.skills.transcript_contract import (
+    SCHEMA,
+    is_session_id,
+    read_contract,
+)
 
 SUFFIX = f".{SCHEMA}.json"
 
@@ -80,3 +88,18 @@ class FileSystemTranscriptStore:
         if not isinstance(document, dict):
             raise CorruptedDataError(f"{target} is not a JSON object.")
         return document
+
+    def find(self, session_id: str) -> Transcript:
+        """Return the stored document of ``session_id`` as a transcript.
+
+        Utterance ids become sentence ids
+        (:func:`~src.domain.skills.transcript.from_contract`). Raises
+        :class:`~src.domain.errors.CorruptedDataError` when the stored
+        file no longer follows the contract.
+        """
+        document = self.get(session_id)
+        try:
+            contract = read_contract(document)
+        except InvalidInputError as exc:
+            raise CorruptedDataError(f"{self.path_for(session_id)}: {exc}")
+        return from_contract(contract)

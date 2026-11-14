@@ -1,31 +1,20 @@
-"""Speech domain: speakers for words, turns, sentences, voice clusters."""
+"""Sentences: turns split into sentences that keep speaker and time."""
 
 from typing import List
 
-import numpy as np
 import pytest
 
-from src.domain.errors import InvalidInputError
 from src.domain.skills.speech import (
-    UNKNOWN_SPEAKER,
-    FloatArray,
-    SpeakerSpan,
-    analysis_windows,
-    assign_speakers,
-    centre,
-    cluster_speakers,
-    nearest_voice,
-    rename_speakers,
-    segments_from_words,
-    spans_from_windows,
-    speaker_label,
-    speech_regions,
     split_sentences,
     transcript_sentences,
     turn_sentences,
-    voice_centroids,
 )
-from src.domain.skills.transcript import Turn, Word, build_transcript
+from src.domain.skills.transcript import (
+    Turn,
+    TurnSentence,
+    Word,
+    build_transcript,
+)
 
 
 def words(*items: tuple[str, float, float]) -> List[Word]:
@@ -61,68 +50,6 @@ class TestSplitSentences:
     def test_lowercase_after_period_is_not_a_boundary(self) -> None:
         """Recognisers put stray periods; a lower-case follow-up joins."""
         assert split_sentences("vale. pero no.") == ["vale. pero no."]
-
-
-class TestAssignSpeakers:
-    def test_largest_overlap_wins(self) -> None:
-        spans = [SpeakerSpan(speaker="A", start=0, end=1.0),
-                 SpeakerSpan(speaker="B", start=1.0, end=3.0)]
-        out = assign_speakers(
-            words(("uno", 0.1, 0.5), ("dos", 0.8, 1.6), ("tres", 2.0, 2.4)),
-            spans,
-        )
-        assert [w.speaker for w in out] == ["A", "B", "B"]
-
-    def test_word_in_a_gap_takes_the_nearest_span(self) -> None:
-        spans = [SpeakerSpan(speaker="A", start=0, end=1.0),
-                 SpeakerSpan(speaker="B", start=5.0, end=6.0)]
-        out = assign_speakers(
-            words(("x", 1.2, 1.4), ("y", 4.5, 4.8)), spans
-        )
-        assert [w.speaker for w in out] == ["A", "B"]
-
-    def test_without_spans_one_unknown_speaker(self) -> None:
-        out = assign_speakers(words(("x", 0, 1)), [])
-        assert out[0].speaker == UNKNOWN_SPEAKER
-
-    def test_input_is_not_modified(self) -> None:
-        source = words(("x", 0, 1))
-        assign_speakers(source, [SpeakerSpan(speaker="A", start=0, end=1)])
-        assert source[0].speaker is None
-
-
-class TestSegmentsFromWords:
-    def test_split_on_speaker_change_and_long_silence(self) -> None:
-        w = words((" Hola", 0.0, 0.4), (" a", 0.5, 0.6), ("todos.", 0.6, 1.0),
-                  ("Sí.", 1.2, 1.5), ("Vale.", 4.0, 4.5), ("", 4.6, 4.7))
-        for word, speaker in zip(w, ["A", "A", "A", "B", "B", "B"]):
-            word.speaker = speaker
-        segments = segments_from_words(w, max_gap=1.0)
-        assert [(s["speaker"], s["text"], s["start"], s["end"])
-                for s in segments] == [
-            ("A", "Hola a todos.", 0.0, 1.0),
-            ("B", "Sí.", 1.2, 1.5),
-            ("B", "Vale.", 4.0, 4.5),
-        ]
-        assert len(segments[0]["words"]) == 3
-
-    def test_words_without_speaker_are_unknown(self) -> None:
-        segments = segments_from_words(words(("x", 0, 1)))
-        assert segments[0]["speaker"] == UNKNOWN_SPEAKER
-
-    def test_segments_feed_the_transcript_with_words_and_confidence(
-        self,
-    ) -> None:
-        w = [Word(text="Hola", start=0, end=0.5, speaker="A",
-                  probability=0.9),
-             Word(text="tú.", start=0.6, end=1.0, speaker="A",
-                  probability=0.7)]
-        transcript = build_transcript("s", segments_from_words(w))
-        turn = transcript.turns[0]
-        assert turn.text == "Hola tú."
-        assert (turn.start, turn.end) == (0, 1.0)
-        assert [x.text for x in turn.words] == ["Hola", "tú."]
-        assert turn.confidence == pytest.approx(0.8)
 
 
 class TestSentences:
@@ -169,146 +96,24 @@ class TestSentences:
         assert ids == ["t0.s0", "t0.s1", "t1.s0"]
 
 
-class TestRenameSpeakers:
-    def test_names_replace_labels_in_turns_and_words(self) -> None:
-        transcript = build_transcript("s", [
-            {"speaker": "SPEAKER_01", "text": "Hola.", "start": 0, "end": 1,
-             "words": [{"text": "Hola.", "start": 0, "end": 1,
-                        "speaker": "SPEAKER_01"}]},
-            {"speaker": "SPEAKER_02", "text": "Buenas."},
-        ])
-        named = rename_speakers(transcript, {"SPEAKER_01": "Ana"})
-        assert named.speakers() == ["Ana", "SPEAKER_02"]
-        assert named.turns[0].words[0].speaker == "Ana"
-        assert transcript.speakers() == ["SPEAKER_01", "SPEAKER_02"]
-
-    def test_two_people_cannot_share_a_name(self) -> None:
-        transcript = build_transcript("s", [
-            {"speaker": "SPEAKER_01", "text": "Hola."},
-            {"speaker": "SPEAKER_02", "text": "Buenas."},
-        ])
-        with pytest.raises(InvalidInputError, match="named Ana"):
-            rename_speakers(
-                transcript, {"SPEAKER_01": "Ana", "SPEAKER_02": "Ana"}
-            )
-
-
-def voices() -> FloatArray:
-    """Six embeddings: three voices, two windows each, first-seen order."""
-    a, b, c = np.eye(3, dtype=np.float32)
-    stacked: FloatArray = np.stack(
-        [a, b, a * 0.9 + b * 0.1, c, b * 0.95 + c * 0.05, c]
-    ).astype(np.float32)
-    return stacked
-
-
-class TestClusterSpeakers:
-    def test_known_number_of_speakers(self) -> None:
-        assert cluster_speakers(voices(), num_speakers=3) == [0, 1, 0, 2, 1, 2]
-
-    def test_threshold_finds_the_number(self) -> None:
-        assert cluster_speakers(voices(), threshold=0.5) == [0, 1, 0, 2, 1, 2]
-
-    def test_one_speaker(self) -> None:
-        assert cluster_speakers(voices(), num_speakers=1) == [0] * 6
-
-    def test_low_threshold_merges_everything(self) -> None:
-        assert set(cluster_speakers(voices(), threshold=-1.0)) == {0}
-
-    def test_max_speakers_caps_an_unknown_count(self) -> None:
-        distinct = np.eye(5, dtype=np.float32)
-        distinct[1, 0] = 0.4  # voices 0 and 1 are the closest pair
-        distinct[3, 2] = 0.3  # then voices 2 and 3
-        assert len(set(cluster_speakers(distinct, threshold=0.5))) == 5
-        labels = cluster_speakers(distinct, threshold=0.5, max_speakers=3)
-        assert labels == [0, 0, 1, 1, 2]
-
-    def test_empty_and_invalid(self) -> None:
-        assert cluster_speakers(np.zeros((0, 4), dtype=np.float32)) == []
-        with pytest.raises(InvalidInputError):
-            cluster_speakers(voices(), num_speakers=0)
-
-    def test_zero_vectors_do_not_crash(self) -> None:
-        vectors = np.zeros((2, 3), dtype=np.float32)
-        assert cluster_speakers(vectors, num_speakers=2) == [0, 1]
-
-
-class TestSpansAndWindows:
-    def test_speaker_label(self) -> None:
-        assert speaker_label(0) == "SPEAKER_01"
-        assert speaker_label(11) == "SPEAKER_12"
-
-    def test_adjacent_windows_merge_and_overlaps_are_halved(self) -> None:
-        spans = spans_from_windows(
-            [(0.0, 1.5), (0.75, 2.25), (1.5, 3.0), (5.0, 6.0)],
-            [0, 0, 1, 1],
+class TestGivenSentences:
+    def test_a_turn_with_sentences_is_not_split_again(self) -> None:
+        turn = Turn(
+            index=4, speaker="Luis", text="Sr. Pérez dijo. Que no.",
+            start=1.0, end=3.0, previous_speaker="Marta",
+            sentences=[
+                TurnSentence(id="t4.s0", text="Sr. Pérez dijo. Que no.",
+                             start=1.0, end=3.0),
+            ],
         )
-        assert [(s.speaker, s.start, s.end) for s in spans] == [
-            ("SPEAKER_01", 0.0, 1.875),
-            ("SPEAKER_02", 1.875, 6.0),
-        ]
-
-    def test_label_count_must_match(self) -> None:
-        with pytest.raises(ValueError):
-            spans_from_windows([(0.0, 1.0)], [])
-
-    def test_windows_cover_regions(self) -> None:
-        assert analysis_windows([(0.0, 1.0)]) == [(0.0, 1.0)]
-        assert analysis_windows([(0.0, 0.2)]) == []
-        assert analysis_windows([(0.0, 3.0)]) == [
-            (0.0, 1.5), (0.75, 2.25), (1.5, 3.0),
-        ]
-        # 3.5 s: the last full window ends at 3.0, 0.5 s left -> anchored
-        assert analysis_windows([(0.0, 3.5)])[-1] == (2.0, 3.5)
-        # 3.2 s: only 0.2 s left, below the minimum -> no extra window
-        assert analysis_windows([(0.0, 3.2)])[-1] == (1.5, 3.0)
-
-    def test_window_parameters_are_validated(self) -> None:
-        with pytest.raises(InvalidInputError):
-            analysis_windows([(0.0, 1.0)], length=0)
-
-    def test_speech_regions_join_close_words(self) -> None:
-        w = words(("c", 5.0, 5.5), ("a", 0.0, 0.4), ("b", 0.6, 1.0))
-        assert speech_regions(w, max_gap=0.5) == [(0.0, 1.0), (5.0, 5.5)]
-        assert speech_regions([]) == []
-
-
-class TestCentredVoices:
-    def test_centring_removes_the_common_component(self) -> None:
-        """Two voices that differ slightly around a large shared part."""
-        shared = np.array([10.0, 0.0, 0.0], dtype=np.float32)
-        a = shared + np.array([0.0, 1.0, 0.0], dtype=np.float32)
-        b = shared + np.array([0.0, -1.0, 0.0], dtype=np.float32)
-        raw = np.stack([a, b, a, b]).astype(np.float32)
-        unit = raw / np.linalg.norm(raw, axis=1, keepdims=True)
-        assert float(unit[0] @ unit[1]) > 0.97      # indistinguishable
-        centred = centre(raw)
-        assert float(centred[0] @ centred[1]) == pytest.approx(-1.0)
-        assert float(centred[0] @ centred[2]) == pytest.approx(1.0)
-        assert cluster_speakers(centred, threshold=0.5) == [0, 1, 0, 1]
-
-    def test_given_mean_and_degenerate_inputs(self) -> None:
-        raw = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
-        moved = centre(raw, np.array([1.0, 1.0], dtype=np.float32))
-        assert np.allclose(moved, [[0.7071, -0.7071], [-0.7071, 0.7071]],
-                           atol=1e-3)
-        assert centre(np.zeros((0, 3), dtype=np.float32)).shape == (0, 3)
-        same = centre(np.ones((2, 2), dtype=np.float32))
-        assert np.allclose(same, 0.0)               # no information left
-
-    def test_centroids_and_nearest_voice(self) -> None:
-        vectors = np.array(
-            [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0]], dtype=np.float32
+        [sentence] = turn_sentences(turn)
+        assert (sentence.id, sentence.turn, sentence.index) == (
+            "t4.s0", 4, 0,
         )
-        centroids = voice_centroids(vectors, [0, 0, 1])
-        assert centroids.shape == (2, 2)
-        assert np.allclose(np.linalg.norm(centroids, axis=1), 1.0)
-        fine = np.array([[0.9, 0.1], [0.1, 0.9], [0.6, 0.4]],
-                        dtype=np.float32)
-        assert nearest_voice(fine, centroids) == [0, 1, 0]
+        assert sentence.text == "Sr. Pérez dijo. Que no."
+        assert (sentence.start, sentence.end) == (1.0, 3.0)
+        assert sentence.previous_speaker == "Marta"
 
-    def test_empty_inputs(self) -> None:
-        none = np.zeros((0, 2), dtype=np.float32)
-        assert voice_centroids(none, []).shape == (0, 2)
-        assert nearest_voice(none, np.eye(2, dtype=np.float32)) == []
-        assert nearest_voice(np.eye(2, dtype=np.float32), none) == []
+    def test_split_turns_have_no_previous_speaker(self) -> None:
+        turn = Turn(index=0, speaker="A", text="Uno. Dos.")
+        assert {s.previous_speaker for s in turn_sentences(turn)} == {None}

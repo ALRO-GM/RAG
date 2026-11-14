@@ -5,32 +5,21 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
-import numpy as np
 import pytest
 
 import src.skills_bootstrap as bootstrap
 from src.adapters.inbound.cli import safe_command
 from src.adapters.inbound.lab_cli import LabCLI
-from src.adapters.inbound.skills_cli import (
-    SkillsCLI,
-    fmt,
-    parse_names,
-    parse_speaker_names,
-)
+from src.adapters.inbound.skills_cli import SkillsCLI, fmt, parse_names
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
-from src.adapters.outbound.xvector_diarizer import XVectorDiarizer
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
-from src.application.skills.ports import Audio, RecognisedSpeech
-from src.application.skills.transcription import TranscriptionService
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.experiments import TrialResult
 from src.domain.skills.assessment import SessionAssessment
-from src.domain.skills.speech import SpeakerSpan
-from src.domain.skills.transcript import Word
 from src.skills_bootstrap import SkillsContainer, SkillsLabFactory
 from tests.fakes import FakeChatModel, FakeEmbedder, judge_reply
 from tests.samples import write_json
@@ -608,110 +597,7 @@ def test_skills_cli_lab_command_hosts_the_lab(skills_project: Path) -> None:
         lab.train_router()
 
 
-# -- recordings and sentence tags ---------------------------------------
-
-class OneSecond:
-    """An audio reader that returns silence and remembers the paths."""
-
-    def __init__(self) -> None:
-        self.paths: List[str] = []
-
-    def read(self, path: str) -> Audio:
-        self.paths.append(path)
-        return Audio(np.zeros(16000, dtype=np.float32), 16000)
-
-
-class Scripted:
-    """A recogniser and diarizer with a fixed two-person exchange."""
-
-    model_name = "scripted"
-
-    def recognise(
-        self, audio: Audio, language: Any = None
-    ) -> RecognisedSpeech:
-        items = [("What", 0.0, 0.3), ("do", 0.3, 0.4), ("you", 0.4, 0.5),
-                 ("mean", 0.5, 0.8), ("exactly?", 0.8, 1.2),
-                 ("That", 2.0, 2.2), ("is", 2.2, 2.3),
-                 ("nonsense,", 2.3, 2.9), ("really.", 2.9, 3.3)]
-        return RecognisedSpeech(
-            words=[Word(text=t, start=s, end=e) for t, s, e in items],
-            language=language or "en",
-        )
-
-    def diarize(
-        self, audio: Audio, regions: Any, num_speakers: Any = None
-    ) -> List[SpeakerSpan]:
-        return [SpeakerSpan(speaker="SPEAKER_01", start=0.0, end=1.5),
-                SpeakerSpan(speaker="SPEAKER_02", start=1.5, end=4.0)]
-
-
-def recording_app() -> SkillsContainer:
-    """A container whose transcription service runs on scripted models."""
-    app = container()
-    scripted = Scripted()
-    app.__dict__["transcription"] = TranscriptionService(
-        OneSecond(), scripted, scripted
-    )
-    return app
-
-
-def test_transcribe_saves_a_transcript_the_analyzer_reads(
-    skills_project: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """Recording -> named speakers, times, sentences, stored by session."""
-    app = recording_app()
-    cli(app).transcribe(
-        "meeting.wav", speakers=2, names="Maya,SPEAKER_02=Tom"
-    )
-    out = capsys.readouterr().out
-    assert "[00:00:00] Maya: What do you mean exactly?" in out
-    assert "[00:00:02] Tom: That is nonsense, really." in out
-    assert "2 turns, 2 speakers (Maya, Tom), language en" in out
-    saved = Path(TRANSCRIPTS) / "meeting.json"
-    assert f"Saved {saved}" in out
-    document = json.loads(saved.read_text(encoding="utf-8"))
-    assert document["speakers"] == ["Maya", "Tom"]
-    assert document["sentences"][1] == {
-        "id": "t1.s0", "turn": 1, "index": 0, "speaker": "Tom",
-        "text": "That is nonsense, really.", "start": 2.0, "end": 3.3,
-    }
-    again = app.transcripts.find("meeting")
-    assert again.turns[1].words[2].text == "nonsense,"
-
-
-def test_transcribe_options(
-    skills_project: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """Session, language and output path are honoured."""
-    cli(recording_app()).transcribe(
-        "x.wav", session="kickoff", language="es", output="elsewhere/k.json"
-    )
-    out = capsys.readouterr().out
-    assert "language es" in out and "Saved elsewhere/k.json" in out
-    document = json.loads(Path("elsewhere/k.json").read_text())
-    assert document["session_id"] == "kickoff"
-    assert document["speakers"] == ["SPEAKER_01", "SPEAKER_02"]
-
-
-def test_transcribe_rejects_bad_options(skills_project: Path) -> None:
-    """Negative speaker counts and malformed names are user errors."""
-    commands = cli(recording_app())
-    with pytest.raises(InvalidInputError, match="--speakers"):
-        commands.transcribe("x.wav", speakers=-1)
-    with pytest.raises(InvalidInputError, match="LABEL=Name"):
-        commands.transcribe("x.wav", names="SPEAKER_01=")
-
-
-@pytest.mark.parametrize("value, expected", [
-    ("", {}),
-    ("Ana,Luis", {"SPEAKER_01": "Ana", "SPEAKER_02": "Luis"}),
-    ("SPEAKER_02=Luis", {"SPEAKER_02": "Luis"}),
-    (("A = Ana", "Luis"), {"A": "Ana", "SPEAKER_02": "Luis"}),
-])
-def test_parse_speaker_names(value: Any, expected: Dict[str, str]) -> None:
-    """Names are given by label or by order of first appearance."""
-    assert parse_speaker_names(value) == expected
-
+# -- sentence tags ---------------------------------------
 
 def test_sentences_and_tags_of_a_stored_transcript(
     skills_project: Path, capsys: pytest.CaptureFixture[str]
@@ -739,18 +625,10 @@ def test_sentences_and_tags_of_a_stored_transcript(
     assert "Maya:" not in quiet and "Saved other/s1.tags.json" in quiet
 
 
-def test_container_builds_the_audio_services_lazily(
-    skills_project: Path,
-) -> None:
-    """Wiring the recording pipeline loads no model."""
-    app = container(speech_model="a/speech", voice_model="a/voice",
-                    voice_threshold=0.4, turn_gap=2.0)
-    service = app.transcription
-    assert service.recogniser.model_name == "a/speech"
-    assert service.turn_gap == 2.0
-    assert isinstance(service.diarizer, XVectorDiarizer)
-    assert service.diarizer.model_name == "a/voice"
-    assert app.tagger.top == 2
+def test_container_wires_the_tagger(skills_project: Path) -> None:
+    """The tagger takes its limits from the settings and loads no model."""
+    app = container(tags_per_sentence=3)
+    assert app.tagger.top == 3
 
 
 def test_tag_confirm_asks_the_judge_and_saves_decisions(

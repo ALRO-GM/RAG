@@ -58,12 +58,20 @@ def confirm_user_prompt(
     target: Sentence,
     competencies: Sequence[Competency],
 ) -> str:
-    """Return the user turn: indicators, context, target, task."""
+    """Return the user turn: indicators, context, target, task.
+
+    When the transcript says who spoke in the turn before the target
+    (``previous_speaker``), the target line says so too; otherwise the
+    prompt is unchanged.
+    """
     before = "\n".join(f"{s.speaker}: {s.text}" for s in context)
+    said = f"said by {target.speaker}"
+    if target.previous_speaker:
+        said += f", after {target.previous_speaker} spoke"
     return (
         f"Indicators:\n{format_indicators(competencies)}\n\n"
         f"Context (not coded):\n{before or '(start of the session)'}\n\n"
-        f"TARGET sentence, said by {target.speaker}:\n{target.text}\n\n"
+        f"TARGET sentence, {said}:\n{target.text}\n\n"
         "JSON:"
     )
 

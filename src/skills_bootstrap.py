@@ -24,16 +24,11 @@ from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
 from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
-from src.adapters.outbound.soundfile_audio_reader import (
-    SoundFileAudioReader,
-)
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
-from src.adapters.outbound.whisper_recogniser import WhisperRecogniser
-from src.adapters.outbound.xvector_diarizer import XVectorDiarizer
 from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
@@ -42,7 +37,6 @@ from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
 from src.application.skills.ports import ChatModel
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
-from src.application.skills.transcription import TranscriptionService
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
 from src.config import SkillsSettings
@@ -163,20 +157,6 @@ class SkillsContainer:
     def confirmer(self) -> TagConfirmer:
         """Classifier that confirms or rejects candidate tags."""
         return TagConfirmer(self.judge, self.cache, self.progress)
-
-    @cached_property
-    def transcription(self) -> TranscriptionService:
-        """Recording -> diarized transcript (models load on first use)."""
-        s = self.settings
-        return TranscriptionService(
-            SoundFileAudioReader(),
-            WhisperRecogniser(s.speech_model, plan=self.runtime),
-            XVectorDiarizer(
-                s.voice_model, threshold=s.voice_threshold,
-                plan=self.runtime,
-            ),
-            turn_gap=s.turn_gap,
-        )
 
     @cached_property
     def judge(self) -> ChatModel:

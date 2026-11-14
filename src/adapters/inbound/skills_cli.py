@@ -41,25 +41,6 @@ def parse_names(value: Any) -> Optional[List[str]]:
     return names or None
 
 
-def parse_speaker_names(value: Any) -> Dict[str, str]:
-    """Parse ``SPEAKER_01=Ana,SPEAKER_02=Luis`` into a mapping.
-
-    A bare list (``Ana,Luis``) names the speakers in order of first
-    appearance: ``SPEAKER_01`` is the first voice heard.
-    """
-    names: Dict[str, str] = {}
-    for position, item in enumerate(parse_names(value) or []):
-        label, sep, name = item.partition("=")
-        if not sep:
-            label, name = f"SPEAKER_{position + 1:02d}", item
-        if not label.strip() or not name.strip():
-            raise InvalidInputError(
-                f"Invalid speaker name {item!r}; use LABEL=Name."
-            )
-        names[label.strip()] = name.strip()
-    return names
-
-
 def fmt(value: Optional[float]) -> str:
     """Format an optional statistic."""
     return "n/a" if value is None else f"{value:.3f}"
@@ -75,7 +56,7 @@ class SkillsCLI:
         self._container: Optional[SkillsContainer] = None
         for name in (
             "catalogue", "interaction", "evidence", "assess",
-            "transcribe", "sentences", "tag",
+            "sentences", "tag",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset",
         ):
@@ -234,53 +215,6 @@ class SkillsCLI:
             )
             print(f"{card.participant:<16} {cells}")
         print(f"Saved {path} and {report} ({result.seconds:.1f}s)")
-
-    def _transcribe(
-        self,
-        audio: str,
-        speakers: int = 0,
-        names: str = "",
-        language: str = "",
-        session: str = "",
-        output: str = "",
-    ) -> None:
-        """Transcribe a recording: who said what, and when.
-
-        The recording is processed on this machine; nothing is sent
-        anywhere. The transcript is saved as JSON (turns with times and
-        words, and the list of sentences) where ``assess``, ``tag`` and
-        the lab find it.
-
-        Args:
-            audio: Recording (WAV, FLAC, OGG, MP3; others need ffmpeg).
-            speakers: Number of people in the recording (0 = estimate
-                it; giving it is much more reliable).
-            names: ``SPEAKER_01=Ana,SPEAKER_02=Luis``, or ``Ana,Luis``
-                in order of first appearance.
-            language: Spoken language code, e.g. es (default: detect).
-            session: Session identifier (default: the file name).
-            output: Transcript file (default:
-                <transcripts_dir>/<session>.json).
-        """
-        app = self._app()
-        count = int(speakers)
-        if count < 0:
-            raise InvalidInputError("--speakers must not be negative.")
-        document = app.transcription.transcribe(
-            str(audio),
-            session_id=str(session) or None,
-            language=str(language) or None,
-            num_speakers=count or None,
-            names=parse_speaker_names(names) or None,
-        )
-        path = app.transcripts.save(document, str(output))
-        for turn in document.turns:
-            print(f"[{clock(turn.start)}] {turn.speaker}: {turn.text}")
-        print(f"{len(document.turns)} turns, "
-              f"{len(document.speakers())} speakers "
-              f"({', '.join(document.speakers())}), "
-              f"language {document.language or 'unknown'}")
-        print(f"Saved {path}")
 
     def _sentences(self, transcript: str) -> None:
         """List the sentences of a transcript with speaker and time.

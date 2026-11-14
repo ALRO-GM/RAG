@@ -3537,7 +3537,7 @@ wheels = [
 name = "rag-against-the-machine"
 version = "1.0.0"
 source = { virtual = "." }
-default-groups = ["api", "audio", "bench", "cpu", "dev", "transcriber"]
+default-groups = ["api", "bench", "cpu", "dev", "transcriber"]
 dependencies = [
     { name = "fastapi" },
     { name = "fire" },
@@ -3558,9 +3558,6 @@ dependencies = [
 [package.dev-dependencies]
 api = [
     { name = "anthropic" },
-]
-audio = [
-    { name = "soundfile" },
 ]
 bench = [
     { name = "pyarrow", version = "25.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-23-rag-against-the-machine-cpu' and extra == 'group-23-rag-against-the-machine-cuda')" },
@@ -3612,7 +3609,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 api = [{ name = "anthropic", specifier = ">=1.0" }]
-audio = [{ name = "soundfile", specifier = ">=0.13" }]
 bench = [{ name = "pyarrow", specifier = ">=25.0.1" }]
 cpu = [{ name = "torch", specifier = ">=2.3", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "rag-against-the-machine", group = "cpu" } }]
 cuda = [{ name = "torch", specifier = ">=2.3", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "rag-against-the-machine", group = "cuda" } }]

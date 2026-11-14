@@ -23,9 +23,6 @@ api = [
 bench = [
     "pyarrow>=25.0.1",
 ]
-audio = [
-    "soundfile>=0.13",
-]
 cpu = [
     "torch>=2.3",
 ]
@@ -51,7 +48,7 @@ transcriber = [
 
 [tool.uv]
 package = false
-default-groups = ["dev", "cpu", "api", "bench", "audio", "transcriber"]
+default-groups = ["dev", "cpu", "api", "bench", "transcriber"]
 conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
 
 [tool.uv.sources]

@@ -1,21 +1,37 @@
 """Transcript repository adapter: transcripts as files on disk."""
 
-import json
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from src.domain.errors import CorruptedDataError, NotFoundError, RagError
-from src.domain.skills.speech import transcript_document
 from src.domain.skills.transcript import Transcript, parse_transcript
+from src.domain.skills.transcript_contract import SCHEMA
 
-EXTENSIONS = (".json", ".txt", ".md")
+CONTRACT_SUFFIX = f".{SCHEMA}.json"
+"""Name ending of a ``transcript.v1`` file received from the transcriber."""
+EXTENSIONS = (CONTRACT_SUFFIX, ".json", ".txt", ".md")
+
+
+def session_of(name: str) -> Optional[str]:
+    """Return the session id a file name stands for, or ``None``.
+
+    ``x.transcript.v1.json`` (as the RAG stores what the transcriber
+    publishes) is session ``x``; ``x.json``, ``x.txt`` and ``x.md`` are
+    session ``x`` too.
+    """
+    for extension in EXTENSIONS:
+        if name.endswith(extension):
+            return name[:-len(extension)] or None
+    return None
 
 
 class FileSystemTranscriptRepository:
-    """Read transcripts from JSON or ``Speaker: text`` files.
+    """Read transcripts: JSON, ``transcript.v1`` or ``Speaker: text`` files.
 
-    The session identifier of a file is its name without extension,
-    unless the JSON document names one.
+    The session identifier of a file is its name without extension
+    (``x.transcript.v1.json`` is ``x``), unless the document names one.
+    A ``transcript.v1`` document keeps its utterance ids as sentence
+    ids (:func:`~src.domain.skills.transcript.from_contract`).
     """
 
     def __init__(self, directory: str = "data/transcripts"):
@@ -33,7 +49,7 @@ class FileSystemTranscriptRepository:
             raise CorruptedDataError(f"{file} is not a UTF-8 text file.")
         except OSError as exc:
             raise RagError(f"Cannot read {file}: {exc}")
-        return parse_transcript(file.stem, text)
+        return parse_transcript(session_of(file.name) or file.stem, text)
 
     def find(self, session_id: str) -> Transcript:
         """Return the transcript named ``session_id`` in the directory.
@@ -54,29 +70,8 @@ class FileSystemTranscriptRepository:
         """Return the session identifiers found in the directory."""
         if not self.directory.is_dir():
             return []
-        return sorted({
-            file.stem for file in self.directory.iterdir()
-            if file.is_file() and file.suffix in EXTENSIONS
-        })
-
-    def save(self, transcript: Transcript, path: str = "") -> str:
-        """Write ``transcript`` as JSON and return the file path.
-
-        Without ``path`` the file is ``<directory>/<session_id>.json``,
-        where :meth:`find` looks it up.
-        """
-        target = Path(path) if path else (
-            self.directory / f"{transcript.session_id}.json"
+        found = (
+            session_of(file.name) for file in self.directory.iterdir()
+            if file.is_file()
         )
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(
-                json.dumps(
-                    transcript_document(transcript), ensure_ascii=False,
-                    indent=1,
-                ),
-                encoding="utf-8",
-            )
-        except OSError as exc:
-            raise RagError(f"Cannot write {target}: {exc}")
-        return str(target)
+        return sorted({name for name in found if name is not None})

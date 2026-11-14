@@ -266,3 +266,18 @@ def test_serve_mounts_the_routes_only_with_a_token(
         assert "routes off (set $RAG_TRANSCRIPTS_TOKEN" in out
         assert answer.status_code == 404
     assert TOKEN not in out
+
+
+def test_the_store_reads_a_document_as_a_transcript(tmp_path: Path) -> None:
+    store = FileSystemTranscriptStore(str(tmp_path))
+    store.put("demo-es", example())
+    transcript = store.find("demo-es")
+    assert [t.speaker for t in transcript.turns] == ["Marta", "Luis", "S1"]
+    assert [s.id for s in transcript.turns[0].sentences] == ["t0.s0", "t0.s1"]
+    broken = example()
+    broken["schema"] = "transcript.v0"
+    store.put("old", broken)
+    with pytest.raises(CorruptedDataError, match="old.transcript.v1.json"):
+        store.find("old")
+    with pytest.raises(InvalidInputError):
+        store.find("../x")

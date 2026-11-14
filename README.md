@@ -377,6 +377,10 @@ uv run python -m src skills evidence \
     --participant Pablo --competency LISTEN
 uv run python -m src skills assess \
     --transcript examples/skills/transcripts/demo_es.txt
+uv run python -m src skills sentences \
+    --transcript contracts/examples/transcript.v1.json
+uv run python -m src skills tag \
+    --transcript contracts/examples/transcript.v1.json
 ```
 
 - **Rubric**: 11 competencies, 110 behavioural indicators, in English
@@ -431,16 +435,15 @@ make ci           # what CI runs: lint-strict, coverage, site (the bundle)
 
 ### From a recording
 
-`skills transcribe --audio FILE --speakers N` turns a recording into
-that transcript on this machine: Whisper for the words and their
-times, voice embeddings for who spoke when. `skills sentences` and
-`skills tag` then split turns into sentences that keep speaker and
-time, and propose rubric indicators per sentence. On synthetic
-four-speaker meetings in Spanish: 5.4% word error rate and 91.5% of
-the words attributed to the right speaker, at about 22× real time on
-the GPU. Those figures are from read speech without overlap and are
-optimistic; see `docs/skills/AUDIO.md`, which also says what must be
-settled before recording real people.
+Recordings are turned into transcripts by the transcriber
+(`python -m transcriber`, `docs/transcriber/ARCHITECTURE.md`), which
+hands over a `transcript.v1` document (`contracts/`): to a directory,
+or to `POST /transcripts` of `python -m src serve` when
+`$RAG_TRANSCRIPTS_TOKEN` holds the shared token. `skills sentences`
+and `skills tag` read it as it is, keeping its sentence ids, times and
+who spoke before. The measured figures of the former in-process audio
+path (synthetic read speech, optimistic) and what must be settled
+before recording real people are in `docs/skills/AUDIO.md`.
 
 ## Design decisions
 

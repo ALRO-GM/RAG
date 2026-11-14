@@ -315,10 +315,8 @@ class RagCLI:
         min_participant_words: Optional[int] = None,
         min_similarity: Optional[float] = None,
         lab_dir: Optional[str] = None,
-        speech_model: Optional[str] = None,
-        voice_model: Optional[str] = None,
-        voice_threshold: Optional[float] = None,
         tags_per_sentence: Optional[int] = None,
+        semantic: Optional[bool] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -345,11 +343,9 @@ class RagCLI:
             min_similarity: Drop quotes whose cosine with their
                 indicator is below this value (0 keeps all).
             lab_dir: Directory of the skills lab (experiments/skills).
-            speech_model: Speech-recognition model for ``transcribe``.
-            voice_model: Voice-embedding model that tells speakers apart.
-            voice_threshold: Cosine below which two voices are different
-                people (used when --speakers is not given).
             tags_per_sentence: Most candidate tags kept per sentence.
+            semantic: Use the embedding model in retrieval
+                (``--semantic=False``: words only, no model is loaded).
         """
         options = dict(locals())
         options.pop("self")

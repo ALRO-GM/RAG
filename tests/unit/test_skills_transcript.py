@@ -489,3 +489,72 @@ def test_build_unusable_timestamps_become_none() -> None:
         (None, None), (None, None),
     ]
     assert not transcript.has_timestamps()
+
+
+# -- transcript.v1 from the transcriber ---------------------------------
+
+def test_a_contract_document_keeps_turns_ids_times_and_names() -> None:
+    from src.domain.skills.speech import transcript_sentences
+    from tests.unit.test_skills_ingest import example
+
+    document = example()
+    document["utterances"][0]["confidence"] = 0.8
+    document["utterances"][1]["confidence"] = 0.6
+    transcript = parse_transcript("file-name", json.dumps(document))
+    assert transcript.session_id == "demo-es"
+    assert transcript.language == "es"
+    assert [(t.index, t.speaker, t.previous_speaker)
+            for t in transcript.turns] == [
+        (0, "Marta", None), (1, "Luis", "Marta"), (2, "S1", "Luis"),
+    ]
+    first = transcript.turns[0]
+    assert first.text == (
+        "Creo que con un solo proceso no cumplimos el requisito. "
+        "Pero no estoy segura."
+    )
+    assert (first.start, first.end, first.confidence) == (0.4, 6.3, 0.7)
+    assert transcript.turns[1].confidence is None
+    sentences = transcript_sentences(transcript)
+    assert [(s.id, s.speaker, s.start, s.end) for s in sentences] == [
+        (u["id"], s.speaker, u["start"], u["end"])
+        for u, s in zip(document["utterances"], sentences)
+    ]
+    assert transcript.speakers() == ["Marta", "Luis", "S1"]
+
+
+def test_speakers_who_share_a_name_stay_apart() -> None:
+    from src.domain.skills.transcript import from_contract
+    from src.domain.skills.transcript_contract import read_contract
+    from tests.unit.test_skills_ingest import example
+
+    document = example()
+    document["speakers"][1]["name"] = "Marta"   # luis is also "Marta"
+    document["speakers"][2]["name"] = "luis"    # S1 is called like an id
+    transcript = from_contract(read_contract(document))
+    assert [(t.speaker, t.previous_speaker) for t in transcript.turns] == [
+        ("Marta (marta)", None), ("Marta (luis)", "Marta (marta)"),
+        ("luis (S1)", "Marta (luis)"),
+    ]
+
+
+def test_a_contract_without_utterances_has_no_turn() -> None:
+    from tests.unit.test_skills_ingest import example
+
+    document = example()
+    document["utterances"] = []
+    with pytest.raises(InvalidInputError, match="no speaker turn"):
+        parse_transcript("x", json.dumps(document))
+
+
+@pytest.mark.parametrize("change", [
+    {"schema": "transcript.v2"},
+    {"utterances": [{"id": "t0.s0"}]},
+])
+def test_a_broken_contract_document_is_corrupted(
+    change: Dict[str, Any]
+) -> None:
+    from tests.unit.test_skills_ingest import example
+
+    document = {**example(), **change}
+    with pytest.raises(CorruptedDataError, match="Transcript 'x'"):
+        parse_transcript("x", json.dumps(document))

@@ -7,12 +7,21 @@ import pytest
 
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.tagging import (
+    SentenceTag,
     SentenceTagger,
     TagConfirmer,
     TaggedSentence,
     render_timeline,
 )
-from src.domain.skills.speech import clock, sentence_transcript
+from src.domain.skills.speech import (
+    Sentence,
+    clock,
+    sentence_transcript,
+    turn_sentences,
+)
+from src.domain.skills.tag_prompting import confirm_user_prompt
+from src.domain.skills.transcript import from_contract
+from src.domain.skills.transcript_contract import read_contract
 from tests.fakes import (
     FakeChatModel,
     FakeEmbedder,
@@ -22,6 +31,7 @@ from tests.fakes import (
     make_catalogue,
     make_transcript,
 )
+from tests.unit.test_skills_ingest import example
 
 CATALOGUE = make_catalogue()
 
@@ -269,3 +279,42 @@ def test_progress_is_reported() -> None:
         candidates(), CATALOGUE
     )
     assert progress.loops == [("Confirming tags", 3)]
+
+
+def test_prompt_states_the_previous_speaker_when_known() -> None:
+    """A ``transcript.v1`` sentence says who spoke before; others do not."""
+    listening = [CATALOGUE.competency("listening")]
+    plain = Sentence(id="t1.s0", turn=1, index=0, speaker="Luis",
+                     text="Eso es una tontería.")
+    assert "TARGET sentence, said by Luis:\nEso es" in confirm_user_prompt(
+        [], plain, listening
+    )
+    after = plain.model_copy(update={"previous_speaker": "Marta"})
+    assert (
+        "TARGET sentence, said by Luis, after Marta spoke:\nEso es"
+        in confirm_user_prompt([], after, listening)
+    )
+
+
+def test_confirmation_of_a_contract_transcript_names_who_spoke_before(
+) -> None:
+    """Through the use case: the judge sees the previous speaker."""
+    sentences = [
+        s for turn in from_contract(read_contract(example())).turns
+        for s in turn_sentences(turn)
+    ]
+    tagged = [
+        TaggedSentence(sentence=s, tags=[SentenceTag(
+            indicator_id="L1", competency_id="listening",
+            polarity="positive", score=1.0,
+        )])
+        for s in sentences
+    ]
+    judge = FakeChatModel([answer(None)])
+    TagConfirmer(judge).confirm(tagged, CATALOGUE, "es")
+    targets = [user.split("TARGET sentence, ")[1].split(":")[0]
+               for _, user, _ in judge.calls]
+    assert targets == [
+        "said by Marta", "said by Marta", "said by Luis, after Marta spoke",
+        "said by S1, after Luis spoke",
+    ]
