@@ -197,7 +197,15 @@ client left by a crashed `serve` is ended at the next start (after
 checking it is that client). The
 access code is new at every start, or kept in
 `data/transcriber/access_code` (mode 600) with `serve --keep-code` so a
-printed QR keeps working. `--no-tunnel` prints an
+printed QR keeps working; `--new-code` replaces the kept code. One
+`serve` per data directory: it takes an exclusive lock on
+`<data_dir>/serve.lock` and binds its port before recovering
+interrupted jobs, so a second one stops (exit code 3, or 1 for a taken
+port) without touching the first one's sessions. During a recording a
+401 (the service restarted with a new code) pauses the uploads; the
+page keeps capturing (at most 30 minutes in memory) and asks for the
+new link or code, then resumes from the chunk the service holds.
+Closing a session is idempotent. `--no-tunnel` prints an
 `http://127.0.0.1:<port>/#k=<code>` link for local development. Settings
 come from `TRANSCRIBER_CONFIG` (a JSON file), `TRANSCRIBER_DATA_DIR`,
 `TRANSCRIBER_RUNTIME` (`fake` runs every command without torch) and

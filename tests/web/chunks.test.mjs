@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ChunkQueue } from "../../transcriber/adapters/inbound/web/js/lib/chunks.js";
+import { ChunkQueue, DEFAULT_MAX_BYTES } from "../../transcriber/adapters/inbound/web/js/lib/chunks.js";
 
 const bytes = (n, v = 1) => new Uint8Array(n).fill(v);
 
@@ -133,4 +133,29 @@ test("continuing a session numbers from what the server holds", () => {
   q.push(bytes(4));
   assert.equal(q.next(0).number, 7);
   assert.equal(q.resync(7), true);
+});
+
+test("push refuses audio past maxBytes and stays full", () => {
+  const q = new ChunkQueue({ chunkBytes: 4, maxBytes: 10 });
+  assert.equal(q.push(new Uint8Array(8)), true);
+  assert.equal(q.full, false);
+  assert.equal(q.push(new Uint8Array(4)), false);
+  assert.equal(q.full, true);
+  assert.equal(q.pendingBytes, 8);
+  assert.equal(q.push(new Uint8Array(2)), false, "once full, nothing more");
+});
+
+test("release puts the chunk in flight back, ready, without a failure", () => {
+  const q = new ChunkQueue({ chunkBytes: 4 });
+  q.push(new Uint8Array(4));
+  const chunk = q.next(0);
+  q.release(chunk.number);
+  const again = q.next(0);
+  assert.equal(again.number, 0);
+  assert.equal(again.attempt, 1);
+  assert.throws(() => q.release(5));
+});
+
+test("the default cap is 30 minutes of audio", () => {
+  assert.equal(DEFAULT_MAX_BYTES, 1800 * 32000);
 });

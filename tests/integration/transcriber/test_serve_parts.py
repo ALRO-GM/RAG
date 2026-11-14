@@ -61,13 +61,18 @@ class TestAccessCode:
         settings = TranscriberSettings(data_dir=tmp_path / "data")
         assert access_code(settings, keep=True) == first
         assert access_code(settings, keep=False) != first
+        renewed = access_code(settings, keep=True, renew=True)
+        assert renewed != first
+        assert access_code(settings, keep=True) == renewed
+        assert path.stat().st_mode & 0o777 == 0o600
 
+    @pytest.mark.parametrize("mode", [0o644, 0o640, 0o620, 0o604])
     def test_a_kept_code_others_can_read_is_refused(
-        self, tmp_path: Path
+        self, tmp_path: Path, mode: int
     ) -> None:
         path = tmp_path / "access_code"
         kept_access_code(path)
-        path.chmod(0o644)
+        path.chmod(mode)
         with pytest.raises(AccessCodeError, match="readable by others"):
             kept_access_code(path)
 

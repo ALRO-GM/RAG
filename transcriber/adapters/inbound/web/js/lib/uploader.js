@@ -1,5 +1,7 @@
 // Drives a ChunkQueue against the API: one chunk at a time, in order,
-// retries with back-off, resync on doubt. No DOM; time and timers are
+// retries with back-off, resync on doubt. A 401 (the service restarted
+// with a new access code) pauses the uploads, keeping the backlog, until
+// resume() is called with a working code. No DOM; time and timers are
 // injected so it is tested with fakes.
 
 export class ChunkUploader {
@@ -22,11 +24,25 @@ export class ChunkUploader {
     this.lastError = null; // kind of the last failure, null once a chunk went through
     this.waiting = []; // resolvers of whenDone()
     this.rejectedOnce = false;
+    this.paused = null; // "unauthorized" while waiting for a new code
   }
 
-  /** Hand over PCM bytes (even count) and start sending. */
+  /** Hand over PCM bytes (even count) and start sending; false when full. */
   push(bytes) {
-    this.queue.push(bytes);
+    const kept = this.queue.push(bytes);
+    this.kick();
+    return kept;
+  }
+
+  /**
+   * A working access code is back: align with the `serverChunks` the
+   * service holds (when given) and send the backlog from there.
+   */
+  resume(serverChunks = null) {
+    this.paused = null;
+    this.lastError = null;
+    if (serverChunks !== null && serverChunks !== undefined) this.queue.resync(serverChunks);
+    this._emit();
     this.kick();
   }
 
@@ -56,6 +72,8 @@ export class ChunkUploader {
       pendingSeconds: this.queue.pendingSeconds,
       pendingChunks: this.queue.pendingChunks,
       large: this.queue.isLarge,
+      full: this.queue.full,
+      paused: this.paused,
       lastError: this.lastError,
       fatal: this.queue.fatal,
       drained: this.queue.drained,
@@ -66,6 +84,10 @@ export class ChunkUploader {
     if (this.timer !== null) {
       this.clearTimer(this.timer);
       this.timer = null;
+    }
+    if (this.paused) {
+      this._emit(); // the backlog grew: say so
+      return;
     }
     this._pump();
   }
@@ -81,10 +103,11 @@ export class ChunkUploader {
   }
 
   async _pump() {
-    if (this.running) return;
+    if (this.running || this.paused) return;
     this.running = true;
     try {
       for (;;) {
+        if (this.paused) break;
         const now = this.now();
         const chunk = this.queue.next(now);
         if (!chunk) break;
@@ -110,7 +133,10 @@ export class ChunkUploader {
     const kind = error?.kind ?? "unavailable";
     this.lastError = kind;
     if (kind === "unauthorized") {
-      this.queue.fatal = "unauthorized";
+      // Not fatal: keep the chunk and everything after it until a new
+      // code works (resume()).
+      this.queue.release(chunk.number);
+      this.paused = "unauthorized";
       return false;
     }
     if (kind === "client") {
@@ -138,7 +164,7 @@ export class ChunkUploader {
   }
 
   _schedule() {
-    if (this.timer !== null) return;
+    if (this.timer !== null || this.paused) return;
     const wait = this.queue.waitMs(this.now());
     if (wait === null) return;
     this.timer = this.setTimer(() => {

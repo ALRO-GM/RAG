@@ -61,6 +61,10 @@ RUNNER_CLOSE_TIMEOUT = 30.0
 FINISHED = (SessionState.DONE, SessionState.FAILED)
 
 
+SERVE_LOCKED = 3
+"""Exit code of ``serve`` when another one uses the data directory."""
+
+
 class UsageError(Exception):
     """The command was asked for something it cannot do (exit code 2)."""
 
@@ -210,7 +214,9 @@ class Commands:
         from transcriber.adapters.inbound.serve import (
             WEB_DIR,
             ServeOptions,
+            bind_port,
             dev_settings,
+            hold_serve_lock,
             serve,
         )
 
@@ -225,13 +231,34 @@ class Commands:
             raise UsageError(
                 f"{problem} (or run with --no-tunnel for local use)"
             )
-        code = access_code(settings, args.keep_code)
-        container = start_container(settings)
-        tunnel = None if args.no_tunnel else build_tunnel(settings, port)
-        options = ServeOptions(
-            port=port, tunnel=not args.no_tunnel, dev_pages=args.dev_pages
-        )
-        return serve(container, code, options, tunnel, self.output.out)
+        # Before anything touches the data: one service per directory.
+        lock = hold_serve_lock(settings.data_dir)
+        if lock is None:
+            self.output.note(
+                f"transcriber serve: another transcriber serve is using"
+                f" {settings.data_dir}; stop it first."
+            )
+            return SERVE_LOCKED
+        try:
+            try:
+                bound = bind_port(port)
+            except OSError:
+                self.output.line(f"The API could not listen on port {port}.")
+                return 1
+            code = access_code(
+                settings, args.keep_code or args.new_code, args.new_code
+            )
+            container = start_container(settings)
+            tunnel = None if args.no_tunnel else build_tunnel(settings, port)
+            options = ServeOptions(
+                port=port, tunnel=not args.no_tunnel,
+                dev_pages=args.dev_pages,
+            )
+            return serve(
+                container, code, options, tunnel, self.output.out, bound
+            )
+        finally:
+            lock.close()
 
     def enrol(self, args: argparse.Namespace) -> int:
         """Enrol a person from a recording of the enrolment text."""
@@ -395,6 +422,11 @@ class Commands:
         if session.failure:
             self.output.line(f"Failed: {session.failure}")
         if transcript is not None:
+            if args.lead > 0:
+                self.output.line(
+                    f"Times are shifted {args.lead:g} s earlier than"
+                    f" spoken (--lead {args.lead:g})."
+                )
             for line in transcript_lines(transcript, args.lead):
                 self.output.line(line)
         return 0
@@ -501,6 +533,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="reuse the access code kept in the data"
                        " directory (made on first use), so a printed QR"
                        " keeps working")
+    serve.add_argument("--new-code", action="store_true",
+                       help="discard the kept access code and keep a new"
+                       " one (old links and QR codes stop working)")
 
     enrol = commands.add_parser(
         "enrol", help="enrol a person's voice (runs the models here)",

@@ -8,6 +8,7 @@ import { WakeLock, setLeaveGuard } from "../device.js";
 import { ChunkQueue } from "../lib/chunks.js";
 import { ChunkUploader } from "../lib/uploader.js";
 import { formatTime, sessionIdFor } from "../lib/text.js";
+import { codeFromInput } from "../lib/net.js";
 import { transcriptionBody } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
 
@@ -77,9 +78,23 @@ export async function recordView(ctx, root, params) {
   const pause = h("button", { type: "button", class: "big", onClick: () => togglePause() }, t("record.pause"));
   const stop = h("button", { type: "button", class: "primary big", onClick: () => finish() }, t("record.stop"));
   const retry = h("button", { type: "button", class: "big", hidden: true, onClick: () => finalise() }, t("action.retry"));
+  // A new access code (the service restarted without --keep-code): the
+  // uploads wait, capture goes on, the person pastes the new link here.
+  const codeInput = h("input", { id: "rec-code", type: "text", autocomplete: "off", spellcheck: false });
+  const codeStatus = h("p", { class: "hint", role: "status" });
+  const codeNote = h("p", { class: "warn", role: "alert" });
+  const codeButton = h("button", { type: "submit", class: "primary" }, t("record.reauth_use"));
+  let afterCode = null; // what to do once a code works
+  const codeForm = h("form", { class: "stack reauth", hidden: true, onSubmit: (event) => {
+    event.preventDefault();
+    tryCode(codeFromInput(codeInput.value));
+  } },
+  codeNote,
+  h("div", { class: "field" }, h("label", { for: "rec-code" }, t("record.reauth_label")), codeInput),
+  codeButton, codeStatus);
   const live = h("section", { class: "stack", hidden: true },
     h("h1", {}, title.value || t("record.recording")),
-    clock, meter, statusLine, warning, wakeNote,
+    clock, meter, statusLine, warning, codeForm, wakeNote,
     h("div", { class: "row" }, pause, stop, retry));
 
   root.append(form, live);
@@ -91,11 +106,63 @@ export async function recordView(ctx, root, params) {
     warning.textContent = text ?? "";
   }
 
+  function askForCode(state, then) {
+    afterCode = then;
+    const mb = (state.pendingBytes / 1e6).toFixed(1);
+    codeNote.textContent = t("record.paused_auth", { seconds: Math.round(state.pendingSeconds), mb });
+    if (codeForm.hidden) {
+      codeForm.hidden = false;
+      codeStatus.textContent = "";
+      codeInput.focus();
+    }
+  }
+
+  /** Use a pasted code, if it looks like one. */
+  function tryCode(code) {
+    if (!code) {
+      codeStatus.textContent = t("record.reauth_invalid");
+      return;
+    }
+    ctx.setCode(code);
+    verify();
+  }
+
+  /** Check the code in use with a cheap authenticated call, then go on. */
+  async function verify() {
+    codeButton.disabled = true;
+    codeStatus.textContent = t("record.reauth_checking");
+    let view;
+    try {
+      view = await ctx.api.getSession(sessionId);
+    } catch (error) {
+      codeButton.disabled = false;
+      codeStatus.textContent = error?.kind === "unauthorized" ? t("record.reauth_wrong") : describeError(error);
+      return;
+    }
+    codeButton.disabled = false;
+    codeForm.hidden = true;
+    codeInput.value = "";
+    const then = afterCode;
+    afterCode = null;
+    then?.(view);
+  }
+
+  // The new link opened in this tab: main.js kept the code without a reload.
+  const stopListening = ctx.onNewCode?.(() => {
+    if (!codeForm.hidden) verify();
+  });
+
   function renderUpload(state) {
+    if (state.paused === "unauthorized") askForCode(state, (view) => uploader.resume(view.chunks));
+    if (state.full && phase === "recording") {
+      showWarning(t("record.full", { seconds: Math.round(state.pendingSeconds) }));
+      finish();
+      return;
+    }
     const parts = [];
     if (state.pendingSeconds >= 1) parts.push(t("record.pending", { seconds: Math.round(state.pendingSeconds) }));
     else if (phase === "recording") parts.push(t("record.sent_all"));
-    if (state.lastError) parts.push(t(state.lastError === "unavailable" ? "record.retrying" : "record.retrying_other"));
+    if (state.lastError && !state.paused) parts.push(t(state.lastError === "unavailable" ? "record.retrying" : "record.retrying_other"));
     statusLine.textContent = parts.join(" · ");
     if (state.fatal) showWarning(t(`record.fatal.${state.fatal}`));
     else if (state.large) showWarning(t("record.large_backlog", { seconds: Math.round(state.pendingSeconds) }));
@@ -180,6 +247,17 @@ export async function recordView(ctx, root, params) {
     await finalise();
   }
 
+  /** Queue the transcription; already queued (a lost answer) is fine. */
+  async function queueOnce() {
+    try {
+      await ctx.api.queueTranscription(sessionId, {}); // the session's own options
+    } catch (error) {
+      if (error?.code !== "wrong_state") throw error;
+      const view = await ctx.api.getSession(sessionId);
+      if (!["queued", "running", "done"].includes(view.state)) throw error;
+    }
+  }
+
   async function finalise() {
     retry.hidden = true;
     statusLine.textContent = t("record.finishing");
@@ -189,11 +267,12 @@ export async function recordView(ctx, root, params) {
       return;
     }
     try {
+      // Closing again is harmless: a retry after a lost answer goes on.
       await ctx.api.closeSession(sessionId);
-      await ctx.api.queueTranscription(sessionId, {}); // the session's own options
+      await queueOnce();
     } catch (error) {
       if (error?.kind === "unauthorized") {
-        ctx.fail(error, () => finalise());
+        askForCode(uploader.state(), () => finalise());
         return;
       }
       showWarning(describeError(error));
@@ -208,6 +287,7 @@ export async function recordView(ctx, root, params) {
   }
 
   return () => {
+    stopListening?.();
     clearInterval(timer);
     window.removeEventListener("online", onOnline);
     if (phase === "recording" || phase === "starting") capture?.stop();

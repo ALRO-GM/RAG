@@ -70,7 +70,7 @@ Después la terminal escribe una línea cada vez que algo cambia:
 | `HH:MM:SS  tunnel  connecting` | Se está abriendo. Si sigue un motivo entre paréntesis, chisel ya está conectado pero la comprobación aún falla. |
 | `HH:MM:SS  tunnel  reconnecting (motivo)` | Se ha cortado y se reintenta solo, con esperas cada vez más largas. Mientras tanto la web dice que el ordenador no está disponible. |
 | `HH:MM:SS  <sesión>  queued` | Una sesión espera su turno (el ordenador transcribe de una en una). |
-| `HH:MM:SS  <sesión>  running  recognise 5%` | Está transcribiendo. Se escribe una línea por cada etapa y cada 10 %. Las etapas son `decode`, `recognise`, `voices`, `identify`, `sentences` y `save`. |
+| `HH:MM:SS  <sesión>  running  recognise 5%` | Está transcribiendo. Se escribe una línea por cada etapa y cada 10 %. Las etapas son `decode`, `recognise`, `voices`, `identify`, `sentences` y `save` (en la web aparecen traducidas: «leyendo el audio», «reconociendo el habla», «separando las voces», «poniendo nombres», «formando frases», «guardando»). |
 | `HH:MM:SS  <sesión>  done` | Terminada. |
 | `HH:MM:SS  <sesión>  failed  <motivo>` | Ha fallado. En la web aparece «Ha fallado» y se puede pulsar «Transcribir» otra vez. |
 
@@ -95,13 +95,18 @@ Cuándo cambiar el código:
 
 - Si el enlace se ha compartido con quien no debía, o se ha perdido un
   teléfono con la página abierta.
-- Para cambiarlo, borra `data/transcriber/access_code` y arranca otra
-  vez con `--keep-code` (se crea uno nuevo), o arranca sin `--keep-code`.
+- Para cambiarlo, arranca con `--new-code` (descarta el guardado y
+  guarda uno nuevo), o arranca sin `--keep-code`.
   Todos los enlaces anteriores dejan de valer. Para ver el nuevo, mira
   la terminal.
 
 Una persona con un enlace que ya no vale ve «El enlace de acceso ya
-no vale». Con un código equivocado repetido, la web pide esperar unos
+no vale». Si eso pasa **mientras graba**, la grabación no se para: el
+teléfono guarda el audio (dice cuántos segundos y MB tiene pendientes)
+y muestra un recuadro para pegar el enlace nuevo o el código; al
+pegarlo sigue enviando desde donde se quedó. El teléfono guarda como
+mucho 30 minutos de audio sin enviar; si se llena, deja de grabar y
+envía lo que tiene en cuanto puede. Con un código equivocado repetido, la web pide esperar unos
 segundos («Demasiados intentos»).
 
 ### Parar
@@ -136,7 +141,7 @@ servicio en marcha. Todos aceptan `--help`.
 | Qué quieres | Comando |
 |---|---|
 | Listar las sesiones | `python -m transcriber sessions` (una línea por sesión: id, estado, duración, idioma, título) |
-| Ver las frases de una sesión | `python -m transcriber show ID` (añade `--lead 3` para ver cada hora 3 s antes) |
+| Ver las frases de una sesión | `python -m transcriber show ID` (añade `--lead 3` para ver cada hora 3 s antes; la cabecera lo avisa) |
 | Exportar la transcripción | `python -m transcriber export ID --output ARCHIVO.json` (sin `--output` la escribe en la terminal) |
 | Entregarla al RAG | `python -m transcriber publish ID` (la escribe en `data/transcriber/published/`) |
 | Borrar una sesión | `python -m transcriber sessions delete ID` |
@@ -346,7 +351,8 @@ con las frases, las horas y los hablantes, ya con tus correcciones.
 Quien organiza también puede exportarlo desde la terminal (sección 1).
 
 **Borrar.** En «Sesiones», «Borrar» elimina el audio y la transcripción
-de esa sesión, para todos. No se puede deshacer.
+de esa sesión, para todos. No se puede deshacer. Mientras una sesión se
+está transcribiendo no aparece «Borrar»: hay que esperar a que acabe.
 
 **Una grabación hecha con otra app.** En «Sesiones», abajo, «Subir una
 grabación hecha con otra app» deja subir un archivo de audio o vídeo.

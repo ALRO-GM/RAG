@@ -178,14 +178,35 @@ class TestCloseSession:
         with pytest.raises(InvalidInputError, match="no audio"):
             CloseSession(sessions, locks(sessions))("s1")
 
-    def test_closing_twice_is_a_state_error(
+    def test_closing_again_returns_the_session_as_it_is(
         self, sessions: FakeSessionRepository
+    ) -> None:
+        # The page retries a close whose answer was lost.
+        opened(sessions)
+        AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
+        first = CloseSession(sessions, locks(sessions))("s1")
+        again = CloseSession(sessions, locks(sessions))("s1")
+        assert again == first
+        assert again.state is SessionState.UPLOADED
+
+    @pytest.mark.parametrize("state", [
+        SessionState.QUEUED, SessionState.RUNNING, SessionState.DONE,
+        SessionState.FAILED,
+    ])
+    def test_a_session_further_on_is_left_as_it_is(
+        self, sessions: FakeSessionRepository, state: SessionState
     ) -> None:
         opened(sessions)
         AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
-        CloseSession(sessions, locks(sessions))("s1")
-        with pytest.raises(StateError):
-            CloseSession(sessions, locks(sessions))("s1")
+        closed = CloseSession(sessions, locks(sessions))("s1")
+        later = closed.model_copy(update={
+            "state": state,
+            "failure": "interrupted" if state is SessionState.FAILED
+            else None,
+        })
+        sessions.save(later)
+        assert CloseSession(sessions, locks(sessions))("s1") == later
+        assert sessions.get("s1") == later
 
 
 class TestStartedWith:

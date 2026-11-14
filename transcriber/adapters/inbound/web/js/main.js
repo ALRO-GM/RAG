@@ -4,7 +4,7 @@
 import { h } from "./dom.js";
 import { t, translateStatic } from "./i18n.js";
 import { Api } from "./api.js";
-import { codeFromFragment, fragmentWithoutCode } from "./lib/net.js";
+import { adoptCodeFrom } from "./lib/net.js";
 import { isBusy, setLeaveGuard } from "./device.js";
 import { sessionsView } from "./views/sessions.js";
 import { recordView } from "./views/record.js";
@@ -43,12 +43,12 @@ function forgetCode() {
 
 /** The code arrives as #k=<code>: keep it, then take it out of the address bar. */
 function adoptCode() {
-  const fromLink = codeFromFragment(location.hash);
-  if (!fromLink) return false;
-  keepCode(fromLink);
-  history.replaceState(null, "", location.pathname + location.search + fragmentWithoutCode(location.hash));
-  return true;
+  return adoptCodeFrom(location, history, keepCode);
 }
+
+// Views that want to know when a new code arrives without a reload (a
+// recording that must not be interrupted).
+const codeListeners = new Set();
 
 adoptCode();
 
@@ -72,6 +72,15 @@ const ctx = {
   },
   fail(error, retry) {
     blocking(error, retry ?? route);
+  },
+  /** Use `code` from now on (pasted by the person). */
+  setCode(code) {
+    keepCode(code);
+  },
+  /** Call `listener` when a new code arrives by link; returns the unsubscribe. */
+  onNewCode(listener) {
+    codeListeners.add(listener);
+    return () => codeListeners.delete(listener);
   },
 };
 
@@ -155,6 +164,12 @@ let lastHash = location.hash;
 let reverting = false;
 window.addEventListener("hashchange", () => {
   if (adoptCode()) {
+    if (isBusy()) {
+      // A recording is going on: keep the page, use the new code.
+      history.replaceState(null, "", location.pathname + location.search + lastHash);
+      for (const listener of codeListeners) listener();
+      return;
+    }
     lastHash = location.hash;
     route();
     return;

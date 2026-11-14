@@ -8,6 +8,10 @@ export const SECONDS_PER_CHUNK = 5;
 export const BYTES_PER_SECOND = 16000 * 2;
 export const DEFAULT_CHUNK_BYTES = SECONDS_PER_CHUNK * BYTES_PER_SECOND;
 export const DEFAULT_WARN_BYTES = 300 * BYTES_PER_SECOND; // 5 minutes
+// Most audio kept in the phone's memory while it cannot be sent: 30
+// minutes (about 58 MB). At the cap the page stops recording instead of
+// letting the tab run out of memory.
+export const DEFAULT_MAX_BYTES = 1800 * BYTES_PER_SECOND;
 
 export class ChunkQueue {
   constructor(options = {}) {
@@ -16,6 +20,8 @@ export class ChunkQueue {
     this.backoffBase = options.backoffBaseMs ?? 1000;
     this.backoffMax = options.backoffMaxMs ?? 30000;
     this.warnBytes = options.warnBytes ?? DEFAULT_WARN_BYTES;
+    this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+    this.full = false; // true once audio was refused at maxBytes
     this.nextNumber = options.firstNumber ?? 0; // number of the next chunk to cut
     this.acked = this.nextNumber; // chunks [0, acked) are on the server
     this.queue = []; // sealed chunks not yet acknowledged, in order
@@ -25,13 +31,21 @@ export class ChunkQueue {
     this.fatal = null; // string reason once nothing can go on
   }
 
-  /** Add PCM bytes (an even count); whole chunks are sealed as they fill. */
+  /**
+   * Add PCM bytes (an even count); whole chunks are sealed as they fill.
+   * Returns false, keeps nothing and sets `full` when they would take the
+   * backlog over `maxBytes`.
+   */
   push(bytes) {
     if (bytes.length % 2 !== 0) throw new RangeError("PCM needs an even number of bytes");
-    if (bytes.length === 0) return;
+    if (bytes.length === 0) return true;
+    if (this.full || this.pendingBytes + bytes.length > this.maxBytes) {
+      this.full = true;
+      return false;
+    }
     this.partial.push(bytes);
     this.partialBytes += bytes.length;
-    if (this.partialBytes < this.chunkBytes) return;
+    if (this.partialBytes < this.chunkBytes) return true;
     const all = concatBytes(this.partial);
     let at = 0;
     while (all.length - at >= this.chunkBytes) {
@@ -41,6 +55,7 @@ export class ChunkQueue {
     const rest = all.slice(at);
     this.partial = rest.length ? [rest] : [];
     this.partialBytes = rest.length;
+    return true;
   }
 
   /** Seal what is left as a last, shorter chunk (at the end of the recording). */
@@ -79,6 +94,16 @@ export class ChunkQueue {
     this.queue.shift();
     this.inFlight = null;
     this.acked = number + 1;
+  }
+
+  /** The chunk in flight was not sent and is not a failure (paused): keep it, ready. */
+  release(number) {
+    const head = this.queue[0];
+    if (this.inFlight !== number || !head || head.number !== number) {
+      throw new Error(`chunk ${number} is not the one in flight`);
+    }
+    head.readyAt = 0;
+    this.inFlight = null;
   }
 
   /** The upload failed; keep the chunk and wait before the same number again. */

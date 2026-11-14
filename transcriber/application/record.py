@@ -168,10 +168,14 @@ class CloseSession:
     def __call__(self, session_id: str) -> Session:
         """Move the session from ``recording`` to ``uploaded``.
 
-        A session without any audio cannot be closed.
+        A session without any audio cannot be closed. Closing is
+        idempotent: a session already ``uploaded`` or further on is
+        returned as it is (a page retries a close whose answer it lost).
         """
         with self._locks.hold(session_id):
             session = require_session(self._sessions, session_id)
+            if session.state is not SessionState.RECORDING:
+                return session
             if (
                 session.state is SessionState.RECORDING
                 and session.chunks == 0

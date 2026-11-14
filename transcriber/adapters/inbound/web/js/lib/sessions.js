@@ -13,6 +13,7 @@ export function actionsFor(session) {
     case "uploaded": return ["transcribe", "delete"];
     case "failed": return ["transcribe", "delete"];
     case "done": return ["open", "transcribe", "delete"];
+    case "running": return []; // the job holds it: nothing to do but wait
     default: return ["delete"];
   }
 }
@@ -34,4 +35,12 @@ export function transcriptionBody(language, expected, numSpeakers) {
   const n = Number.parseInt(numSpeakers, 10);
   if (Number.isFinite(n) && n >= 1) body.num_speakers = n;
   return body;
+}
+
+/** The job stage in the page's language (`t` translates), or as it came. */
+export function stageLabel(t, stage) {
+  if (!stage) return "";
+  const key = `stage.${stage}`;
+  const text = t(key);
+  return text === key ? stage : text;
 }

@@ -135,10 +135,62 @@ test("a server that lost chunks makes the recording unrecoverable, not silently 
   assert.equal(n, 2);
 });
 
-test("a wrong access code stops the upload", async () => {
-  const { up } = setup(async () => { throw failure("unauthorized"); });
+test("a 401 pauses the upload, keeps the backlog and resumes from the same chunk", async () => {
+  let code = "old";
+  const sent = [];
+  const { up, states, time } = setup(async (id, n) => {
+    if (code === "old" && n >= 1) throw failure("unauthorized");
+    sent.push(n);
+    return {};
+  });
+  up.push(bytes(4)); // chunk 0 goes through
+  await settle();
+  up.push(bytes(4)); // chunk 1 meets the restarted service: paused
+  await settle();
+  assert.equal(states.at(-1).paused, "unauthorized");
+  assert.equal(states.at(-1).fatal, null);
+  up.push(bytes(4)); // capture goes on: chunks 1 and 2 wait
+  await time.advance(60000);
+  assert.deepEqual(sent, [0], "nothing is sent while paused");
+  assert.equal(states.at(-1).pendingBytes, 8);
+  assert.equal(time.timers.length, 0, "no retry timer while paused");
+  let done = "pending";
+  up.whenDone().then((v) => { done = v; });
+  await settle();
+  assert.equal(done, "pending", "whenDone waits for the new code");
+  code = "new";
+  up.resume(1); // what GET /sessions/s1 says the service holds
+  up.finish();
+  assert.equal(await up.whenDone(), null);
+  assert.deepEqual(sent, [0, 1, 2]);
+  assert.equal(done, null);
+  assert.equal(states.at(-1).paused, null);
+});
+
+test("resume without a server count sends the kept chunk again", async () => {
+  let refuse = true;
+  const sent = [];
+  const { up } = setup(async (id, n) => {
+    if (refuse) throw failure("unauthorized");
+    sent.push(n);
+    return {};
+  });
   up.push(bytes(4));
-  assert.equal(await up.whenDone(), "unauthorized");
+  await settle();
+  refuse = false;
+  up.resume();
+  assert.equal(await up.whenDone(), null);
+  assert.deepEqual(sent, [0]);
+});
+
+test("the backlog has a hard cap: audio past it is refused and reported", async () => {
+  const { up, states } = setup(async () => { throw failure("unavailable"); },
+    async () => ({ chunks: 0 }), { maxBytes: 8 });
+  assert.equal(up.push(bytes(8)), true);
+  assert.equal(up.push(bytes(2)), false);
+  await settle();
+  assert.equal(states.at(-1).full, true);
+  assert.equal(states.at(-1).pendingBytes, 8);
 });
 
 test("state reports the backlog and warns when it is large", async () => {

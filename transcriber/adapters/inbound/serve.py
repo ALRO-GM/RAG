@@ -2,13 +2,18 @@
 
 The command (``docs/transcriber/ARCHITECTURE.md`` §5):
 
-1. makes the access code (or reads the kept one with ``--keep-code``);
-2. builds the container with recovery (:func:`start_container`): this
+1. takes an exclusive lock on ``<data_dir>/serve.lock``
+   (:func:`hold_serve_lock`): one service per data directory, so a
+   second one never runs recovery under the first one's jobs;
+2. binds the API's port on 127.0.0.1 (:func:`bind_port`) before
+   anything changes on disk: a taken port stops it here too;
+3. makes the access code (or reads the kept one with ``--keep-code``);
+4. builds the container with recovery (:func:`start_container`): this
    process runs the jobs;
-3. runs the API with uvicorn on 127.0.0.1 only;
-4. once the API listens, starts the tunnel (unless ``--no-tunnel``) and
+5. runs the API with uvicorn on the bound socket;
+6. once the API listens, starts the tunnel (unless ``--no-tunnel``) and
    prints the join link and its QR code;
-5. prints a line for every change of a job or of the tunnel until
+7. prints a line for every change of a job or of the tunnel until
    Ctrl-C (or SIGTERM), then stops the tunnel and the server.
 
 The access code is written to the terminal and nowhere else: it is
@@ -16,13 +21,15 @@ never passed to a logger, and the API never logs URLs with it (the code
 travels in a header and in the link's fragment).
 """
 
+import fcntl
 import signal
+import socket
 import threading
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import FrameType
-from typing import Callable, Dict, Optional, TextIO, Tuple
+from typing import IO, Callable, Dict, List, Optional, TextIO, Tuple
 
 import uvicorn
 from fastapi import FastAPI
@@ -48,6 +55,41 @@ interrupted (:class:`~transcriber.application.recover.RecoverSessions`).
 """
 
 ACTIVE = (SessionState.QUEUED, SessionState.RUNNING)
+
+LOCK_FILE = "serve.lock"
+
+
+def hold_serve_lock(data_dir: Path) -> Optional[IO[str]]:
+    """Take the exclusive lock of ``data_dir``'s service, or return None.
+
+    The lock (``flock`` on ``<data_dir>/serve.lock``) lasts as long as
+    the returned file stays open, that is until the process ends. None
+    means another ``transcriber serve`` holds it.
+    """
+    data_dir.mkdir(parents=True, exist_ok=True)
+    handle = open(data_dir / LOCK_FILE, "a", encoding="utf-8")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    return handle
+
+
+def bind_port(port: int) -> socket.socket:
+    """Return a socket bound to ``127.0.0.1:port`` for the API.
+
+    Raises :class:`OSError` when the port is taken.
+    """
+    bound = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        bound.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        bound.bind((LOCAL_HOST, port))
+    except OSError:
+        bound.close()
+        raise
+    return bound
+
 
 Snapshot = Tuple[str, Optional[str], int, Optional[str], Optional[str]]
 """State, stage, tenths done, last note and run id of a session."""
@@ -170,13 +212,15 @@ def serve(
     options: ServeOptions,
     tunnel: Optional[Tunnel],
     out: TextIO,
+    bound: Optional[socket.socket] = None,
 ) -> int:
     """Run the service until interrupted; return the exit code.
 
     ``container`` must come from ``start_container``; ``tunnel`` is
-    started once the API listens (``None`` with ``--no-tunnel``). The
-    exit code is 0 after Ctrl-C or SIGTERM, 1 if the API could not
-    start (the port is taken).
+    started once the API listens (``None`` with ``--no-tunnel``).
+    ``bound`` is the socket :func:`bind_port` returned (without it
+    uvicorn binds the port itself). The exit code is 0 after Ctrl-C or
+    SIGTERM, 1 if the API could not start (the port is taken).
     """
     settings = container.settings
 
@@ -218,7 +262,10 @@ def serve(
     started = False
     try:
         watcher.start()
-        server.run()
+        sockets: Optional[List[socket.socket]] = (
+            None if bound is None else [bound]
+        )
+        server.run(sockets=sockets)
     except (KeyboardInterrupt, _Interrupted):
         pass
     except SystemExit:
@@ -230,6 +277,8 @@ def serve(
         if tunnel is not None:
             tunnel.stop()
         container.runner.close(STOP_JOBS_TIMEOUT)
+        if bound is not None:
+            bound.close()
         if main:
             signal.signal(signal.SIGTERM, previous)
     write("Stopped.")

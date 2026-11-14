@@ -54,3 +54,32 @@ export function fragmentWithoutCode(hash) {
   const rest = String(hash ?? "").replace(/^#/, "").split("&").filter((p) => p && !p.startsWith("k="));
   return rest.length ? `#${rest.join("&")}` : "";
 }
+
+/**
+ * The code arrives as #k=<code>: keep it with `keep`, then take it out of
+ * the address bar (`history.replaceState`, so no new history entry and no
+ * reload). `loc` and `hist` are `location` and `history` (fakes in tests).
+ * Returns whether there was a code.
+ */
+export function adoptCodeFrom(loc, hist, keep) {
+  const fromLink = codeFromFragment(loc.hash);
+  if (!fromLink) return false;
+  keep(fromLink);
+  hist.replaceState(null, "", loc.pathname + loc.search + fragmentWithoutCode(loc.hash));
+  return true;
+}
+
+/** Shortest access code the API accepts. */
+export const MIN_CODE_LENGTH = 16;
+
+/**
+ * The code in what a person pasted: a whole join link
+ * ("https://host/#k=abc") or the bare code. Null when it is neither.
+ */
+export function codeFromInput(text) {
+  const raw = String(text ?? "").trim();
+  const hash = raw.includes("#") ? raw.slice(raw.indexOf("#")) : null;
+  const code = hash !== null ? codeFromFragment(hash) : raw;
+  if (!code || code.length < MIN_CODE_LENGTH || !/^[A-Za-z0-9_-]+$/.test(code)) return null;
+  return code;
+}

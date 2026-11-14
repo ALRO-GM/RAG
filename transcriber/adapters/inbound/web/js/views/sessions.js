@@ -5,7 +5,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime, sessionIdFor } from "../lib/text.js";
 import { nextPollMs } from "../lib/net.js";
-import { actionsFor, progressPercent, sortSessions } from "../lib/sessions.js";
+import { actionsFor, progressPercent, sortSessions, stageLabel } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
 
 export async function sessionsView(ctx, root) {
@@ -37,7 +37,7 @@ export async function sessionsView(ctx, root) {
       s.state === "running" || s.state === "queued"
         ? h("div", { class: "progress" },
           h("progress", { max: 100, value: pct ?? undefined, "aria-label": t("sessions.progress") }),
-          h("span", {}, [pct !== null ? `${pct}%` : t("state.queued"), s.stage ? ` · ${s.stage}` : "", s.message ? ` · ${s.message}` : ""].join("")))
+          h("span", {}, [pct !== null ? `${pct}%` : t("state.queued"), s.stage ? ` · ${stageLabel(t, s.stage)}` : "", s.message ? ` · ${s.message}` : ""].join("")))
         : null,
       s.state === "failed" && s.failure ? h("p", { class: "error" }, s.failure) : null,
       s.message && s.state !== "running" && s.state !== "queued" ? h("p", { class: "hint" }, s.message) : null,
@@ -69,7 +69,10 @@ export async function sessionsView(ctx, root) {
       await call();
     } catch (error) {
       if (error.kind === "unauthorized") return ctx.fail(error, refresh);
-      say(describeError(error), true);
+      // The session moved on meanwhile (a job started, another device
+      // acted): not a failure, the refreshed list shows where it is.
+      if (error.code === "wrong_state") say(t("sessions.changed"));
+      else say(describeError(error), true);
     }
     await refresh();
   }

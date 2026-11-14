@@ -314,14 +314,20 @@ def tunnel_problem(settings: TranscriberSettings) -> Optional[str]:
     return None
 
 
-def access_code(settings: TranscriberSettings, keep: bool) -> str:
+def access_code(
+    settings: TranscriberSettings, keep: bool, renew: bool = False
+) -> str:
     """Return a fresh access code, or with ``keep`` the kept one.
 
     The kept code lives in ``<data_dir>/access_code`` (mode 600) and is
     made on first use; see
     :func:`~transcriber.adapters.outbound.fs_access_code.kept_access_code`
-    for when it is refused.
+    for when it is refused. ``renew`` deletes the kept code first, so a
+    new one is made and kept.
     """
     if keep:
-        return kept_access_code(code_file(settings.data_dir))
+        path = code_file(settings.data_dir)
+        if renew:
+            path.unlink(missing_ok=True)
+        return kept_access_code(path)
     return new_access_code()

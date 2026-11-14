@@ -436,14 +436,17 @@ class TestChunks:
         assert_error(client.put("/api/sessions/nope/chunks/0", content=b"ab"),
                      404, "not_found")
 
-    def test_closing_without_audio_or_twice(self, client: TestClient) -> None:
+    def test_closing_without_audio_or_again(self, client: TestClient) -> None:
         client.post("/api/sessions", json={"id": "s1", "language": "es"})
         assert_error(client.post("/api/sessions/s1/close"),
                      400, "invalid_input")
         client.put("/api/sessions/s1/chunks/0", content=b"\x01\x00")
-        assert client.post("/api/sessions/s1/close").status_code == 200
-        assert_error(client.post("/api/sessions/s1/close"),
-                     409, "wrong_state")
+        first = client.post("/api/sessions/s1/close")
+        assert first.status_code == 200
+        # A retry after a lost answer: the session as it is, no error.
+        again = client.post("/api/sessions/s1/close")
+        assert again.status_code == 200
+        assert again.json()["state"] == "uploaded" == first.json()["state"]
         assert_error(client.put("/api/sessions/s1/chunks/1",
                                 content=b"\x01\x00"), 409, "wrong_state")
 

@@ -112,9 +112,12 @@ def test_a_session_from_enrolment_to_publication(
     assert shown[0] == "team - Reparto (done, 00:00:20)"
     assert shown[1].startswith("[00:00:00] Ana María: ")
     assert any(" (after Ana María): " in line for line in shown[2:])
-    assert ok(data, "show", "team", "--lead", "100").count(
-        "[00:00:00]"
-    ) == len(shown) - 1
+    led = ok(data, "show", "team", "--lead", "100").splitlines()
+    assert led[1] == (
+        "Times are shifted 100 s earlier than spoken (--lead 100)."
+    )
+    assert sum("[00:00:00]" in line for line in led) == len(shown) - 1
+    assert "shifted" not in "\n".join(shown)
     detail = json.loads(ok(data, "show", "team", "--json"))
     assert detail["session"]["state"] == "done"
     assert "words" not in detail["transcript"]["utterances"][0]
@@ -410,6 +413,67 @@ def test_serve_refuses_a_taken_port(
     assert result.returncode == 1
     assert "could not listen" in result.stdout
     assert "#k=" not in result.stdout
+
+
+def running_session(data: Path, files: Dict[str, Path]) -> Path:
+    """Import a session and mark it running, as a live service's job."""
+    ok(data, "import", str(files["talk"]), "--id", "live")
+    record = next(data.rglob("live/session.json"))
+    state = json.loads(record.read_text())
+    state["state"] = "running"
+    record.write_text(json.dumps(state))
+    return record
+
+
+def test_a_second_serve_leaves_the_live_one_alone(
+    tmp_path: Path, files: Dict[str, Path]
+) -> None:
+    import fcntl
+
+    data = tmp_path / "data"
+    record = running_session(data, files)
+    with open(data / "serve.lock", "a") as held:  # the live service
+        fcntl.flock(held.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = run(data, "serve", "--no-tunnel", "--port",
+                     str(free_port()))
+    assert result.returncode == 3
+    assert "another transcriber serve is using" in result.stderr
+    assert "#k=" not in result.stdout
+    assert json.loads(record.read_text())["state"] == "running"
+
+
+def test_a_taken_port_stops_serve_before_recovery(
+    tmp_path: Path, files: Dict[str, Path]
+) -> None:
+    data = tmp_path / "data"
+    record = running_session(data, files)
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", 0))
+        taken.listen()
+        result = run(data, "serve", "--no-tunnel", "--port",
+                     str(taken.getsockname()[1]))
+    assert result.returncode == 1
+    assert "could not listen" in result.stdout
+    assert json.loads(record.read_text())["state"] == "running"
+
+
+def test_serve_new_code_replaces_the_kept_one(
+    tmp_path: Path, services: List[Service]
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    kept = data / "access_code"
+    kept.write_text("o" * 43 + "\n")
+    kept.chmod(0o600)
+    port = free_port()
+    service = Service(data, ["--no-tunnel", "--port", str(port),
+                             "--new-code"])
+    services.append(service)
+    code = code_of(service.wait_for("#k="))
+    assert code != "o" * 43
+    assert kept.read_text().strip() == code
+    assert kept.stat().st_mode & 0o777 == 0o600
+    assert service.stop() == 0
 
 
 def test_serve_refuses_a_kept_code_others_can_read(tmp_path: Path) -> None:

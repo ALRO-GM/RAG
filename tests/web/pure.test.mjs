@@ -10,9 +10,10 @@ import {
 } from "../../transcriber/adapters/inbound/web/js/lib/transcript.js";
 import {
   classifyFailure, isRetryable, nextPollMs, codeFromFragment, fragmentWithoutCode,
+  adoptCodeFrom, codeFromInput,
 } from "../../transcriber/adapters/inbound/web/js/lib/net.js";
 import {
-  progressPercent, actionsFor, sortSessions, transcriptionBody,
+  progressPercent, actionsFor, sortSessions, transcriptionBody, stageLabel,
 } from "../../transcriber/adapters/inbound/web/js/lib/sessions.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -197,6 +198,44 @@ test("the access code travels in the fragment only", () => {
   assert.equal(fragmentWithoutCode("#/x"), "#/x");
 });
 
+test("the code is kept and removed from the address bar", () => {
+  const replaced = [];
+  const kept = [];
+  const history = { replaceState: (...args) => replaced.push(args) };
+  const loc = { pathname: "/", search: "?x=1", hash: "#/record&k=secret-code-0123456789" };
+  assert.equal(adoptCodeFrom(loc, history, (c) => kept.push(c)), true);
+  assert.deepEqual(kept, ["secret-code-0123456789"]);
+  assert.deepEqual(replaced, [[null, "", "/?x=1#/record"]]);
+  assert.ok(!replaced[0][2].includes("secret"));
+  const none = { pathname: "/", search: "", hash: "#/" };
+  assert.equal(adoptCodeFrom(none, history, (c) => kept.push(c)), false);
+  assert.equal(replaced.length, 1, "nothing replaced without a code");
+});
+
+test("codeFromInput takes a pasted link or a bare code", () => {
+  const code = "AbC_def-0123456789xyz";
+  assert.equal(codeFromInput(`https://rag.peer4u.app/#k=${code}`), code);
+  assert.equal(codeFromInput(`  ${code}\n`), code);
+  assert.equal(codeFromInput(`https://rag.peer4u.app/#/record&k=${code}`), code);
+  assert.equal(codeFromInput("short"), null);
+  assert.equal(codeFromInput("https://rag.peer4u.app/#/"), null);
+  assert.equal(codeFromInput("has spaces in it 0123456789"), null);
+  assert.equal(codeFromInput(""), null);
+  assert.equal(codeFromInput(null), null);
+});
+
+test("job stages are shown in the page's language", () => {
+  for (const stage of ["decode", "recognise", "voices", "identify", "sentences", "save"]) {
+    const t = (key) => translate({ es, en }, "es", key);
+    assert.notEqual(stageLabel(t, stage), stage, stage);
+    assert.notEqual(stageLabel((key) => translate({ es, en }, "en", key), stage), `stage.${stage}`);
+  }
+  const t = (key) => translate({ es, en }, "es", key);
+  assert.equal(stageLabel(t, "recognise"), es["stage.recognise"]);
+  assert.equal(stageLabel(t, "something-new"), "something-new");
+  assert.equal(stageLabel(t, null), "");
+});
+
 test("sessions helpers", () => {
   assert.equal(progressPercent({ state: "running", fraction: 0.456 }), 46);
   assert.equal(progressPercent({ state: "running", fraction: 3 }), 100);
@@ -206,7 +245,7 @@ test("sessions helpers", () => {
   assert.deepEqual(actionsFor({ state: "uploaded" }), ["transcribe", "delete"]);
   assert.deepEqual(actionsFor({ state: "failed" }), ["transcribe", "delete"]);
   assert.deepEqual(actionsFor({ state: "done" }), ["open", "transcribe", "delete"]);
-  assert.deepEqual(actionsFor({ state: "running" }), ["delete"]);
+  assert.deepEqual(actionsFor({ state: "running" }), [], "no Borrar while the job holds it");
   assert.deepEqual(actionsFor({ state: "queued" }), ["delete"]);
   const s = [{ id: "a", started_at: "2026-01-01T10:00:00+01:00" }, { id: "b", started_at: null },
     { id: "c", started_at: "2026-02-01T10:00:00+01:00" }];
