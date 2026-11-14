@@ -46,7 +46,9 @@ class ToolRequest:
     an in-process tool; ``workspace`` is an empty directory the tool
     writes into (a denoiser writes ``audio.wav`` there). ``inputs``
     holds results the stage depends on (the built-in diarization reads
-    the project recogniser's words, ``inputs["words"]``).
+    the project recogniser's words, ``inputs["words"]``). ``anonymous``
+    asks an in-process tool to compare the voices with no enrolled
+    person (a session imported from a public corpus).
     """
 
     entry: CatalogueEntry
@@ -56,6 +58,7 @@ class ToolRequest:
     workspace: Path
     load: Callable[[], Audio]
     inputs: Mapping[str, StageOutcome] = field(default_factory=dict)
+    anonymous: bool = False
 
 
 class LabTool(Protocol):

@@ -41,7 +41,7 @@ from transcriber.domain.lab_reference import (
     score_track,
     spread,
 )
-from transcriber.domain.models import SessionState, Word
+from transcriber.domain.models import Session, SessionState, Word
 
 NO_COLLAR = ComparisonParameters(collar=0.0)
 AMI = CORPORA["ami"]
@@ -164,6 +164,9 @@ class TestScoringByHand:
         assert score.false_alarm == pytest.approx(0.75)
         assert score.confusion == pytest.approx(1.5)
         assert score.der == pytest.approx(2.5 / 7, abs=1e-4)
+        # A~x: 3.0 of 3.0 scored frames shared; B~y: 2.25 over 4.75
+        assert score.jer == pytest.approx((0 + 1 - 2.25 / 4.75) / 2,
+                                          abs=1e-4)
 
     def test_perfect_and_empty_tracks(self) -> None:
         reference = ten_seconds()
@@ -291,6 +294,26 @@ class TestImport:
             ("ami-REC0", "exists"), ("ami-REC1", "imported"),
         ]
 
+    def test_a_session_left_without_reference_is_repaired(self) -> None:
+        importer = Importer(FakeCorpus(1))
+        importer.use("ami")
+        # the process stopped between the session and its reference
+        del importer.repository.references["ami-REC0"]
+        again = importer.use("ami")
+        assert [(d.session_id, d.state, d.turns) for d in again] == [
+            ("ami-REC0", "repaired", 2),
+        ]
+        assert importer.repository.reference("ami-REC0") is not None
+        assert importer.use("ami")[0].state == "exists"
+
+    def test_a_foreign_session_of_that_id_is_refused(self) -> None:
+        importer = Importer(FakeCorpus(1))
+        importer.sessions.create(Session(id="ami-REC0", language="es",
+                                         title="my meeting"))
+        with pytest.raises(InvalidInputError, match="not imported"):
+            importer.use("ami")
+        assert importer.repository.reference("ami-REC0") is None
+
     def test_words_and_a_non_commercial_corpus(self) -> None:
         words = [Word(text="hola", start=1.0, end=1.4)]
         importer = Importer(FakeCorpus(1, words))
@@ -365,6 +388,22 @@ class TestRunScores:
         assert block["transcripts"][0]["wer"] == 0.0
         assert not block["licence_commercial"]
         assert all(not p["licence_commercial"] for p in block["pipelines"])
+
+    def test_corpus_speakers_are_never_given_enrolled_ids(self) -> None:
+        lab = Lab()
+        named = lab.run(diarizers=["builtin", "z1"])
+        speakers = {s for t in lab.results(SESSION, named)["tracks"]
+                    for s in t["speakers"]}
+        assert {"ana", "luis"} <= speakers  # enrolled people are found
+        with_reference(lab)
+        run_id = lab.run(diarizers=["builtin", "z1"])
+        tracks = lab.results(SESSION, run_id)["tracks"]
+        assert tracks and all(
+            m["speaker"] is None and m["method"] == "none"
+            for t in tracks for m in t["mapping"]
+        )
+        assert not {"ana", "luis"} & {s for t in tracks
+                                      for s in t["speakers"]}
 
     def test_sessions_without_reference_have_none(self) -> None:
         lab = Lab()

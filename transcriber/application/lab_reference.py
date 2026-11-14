@@ -34,6 +34,7 @@ from transcriber.application.ports import (
 )
 from transcriber.application.record import ImportRecording
 from transcriber.domain.errors import InvalidInputError, StorageError
+from transcriber.domain.models import Session
 from transcriber.domain.lab_reference import (
     CorpusSpec,
     MetricSpread,
@@ -53,10 +54,11 @@ SCORED_STATES = ("done", "partial")
 class ImportedRecording(BaseModel):
     """What the import did with one recording.
 
-    ``state``: ``imported``, or ``exists`` when a session of that id
-    was already there (left as it was). The numbers describe the
-    reference (aggregates only, never text): ``speaker_seconds`` sums
-    the turns (two people at once count twice).
+    ``state``: ``imported``; ``exists`` when the session and its
+    reference were already there (left as they were); ``repaired`` when
+    an earlier import stopped before storing the reference. The numbers
+    describe the reference (aggregates only, never text):
+    ``speaker_seconds`` sums the turns (two people at once count twice).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -120,12 +122,27 @@ class ImportReference:
     def _one(
         self, spec: CorpusSpec, split: str, item: CorpusRecording
     ) -> ImportedRecording:
-        """Import one recording (or find it imported)."""
+        """Import one recording (or find it imported, or repair it).
+
+        A session of that id with its reference is left as it is
+        (``exists``). One the import created but whose reference was
+        never stored (the process stopped in between) gets it now
+        (``repaired``); a session of that id made otherwise is refused.
+        """
         session_id = recording_session_id(spec.id, item.recording)
-        if self._sessions.get(session_id) is not None:
+        title = f"{spec.display_name} {item.recording}"
+        found = self._sessions.get(session_id)
+        if found is not None and (
+            self._repository.reference(session_id) is not None
+        ):
             return ImportedRecording(
                 session_id=session_id, recording=item.recording,
                 state="exists",
+            )
+        if found is not None and found.title != title:
+            raise InvalidInputError(
+                f"Session {session_id} exists and was not imported from"
+                f" {spec.display_name}."
             )
         duration = self._decoder.decode(item.audio).duration
         if duration <= 0:
@@ -139,30 +156,39 @@ class ImportReference:
             item.words, self._clock.now(),
         )
         with self._locks.hold(session_id):
+            if found is not None:
+                self._store(found, duration, reference)
+                return _described(session_id, reference, "repaired")
             session = self._importer(
-                session_id, spec.language, item.audio,
-                title=f"{spec.display_name} {item.recording}",
+                session_id, spec.language, item.audio, title=title,
             )
             try:
-                self._sessions.save(session.model_copy(
-                    update={"duration": round(duration, 3)}
-                ))
-                self._repository.save_reference(session_id, reference)
+                self._store(session, duration, reference)
             except BaseException:
                 self._repository.delete_session(session_id)
                 self._sessions.delete(session_id)
                 raise
         return _described(session_id, reference)
 
+    def _store(
+        self, session: Session, duration: float,
+        reference: SessionReference,
+    ) -> None:
+        """Save the session's duration, then its reference."""
+        self._sessions.save(session.model_copy(
+            update={"duration": round(duration, 3)}
+        ))
+        self._repository.save_reference(session.id, reference)
+
 
 def _described(
-    session_id: str, reference: SessionReference
+    session_id: str, reference: SessionReference, state: str = "imported",
 ) -> ImportedRecording:
     """Return the import line of a new session."""
     seconds = sum(s.end - s.start for s in reference.segments)
     return ImportedRecording(
         session_id=session_id, recording=reference.recording,
-        state="imported", duration=round(reference.duration, 3),
+        state=state, duration=round(reference.duration, 3),
         speakers=len(reference.speakers()), turns=len(reference.segments),
         speaker_seconds=round(seconds, 3),
         words=None if reference.words is None else len(reference.words),

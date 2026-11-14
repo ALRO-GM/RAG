@@ -94,6 +94,11 @@ class LabCommands:
             if item.state == "exists":
                 self.output.line(f"{item.session_id}: already imported")
                 return
+            if item.state == "repaired":
+                self.output.line(
+                    f"{item.session_id}: reference stored again"
+                )
+                return
             words = "no transcript" if item.words is None else (
                 f"{item.words} reference words"
             )

@@ -58,6 +58,7 @@ from transcriber.domain.lab import (
     StageOutcome,
 )
 from transcriber.domain.models import (
+    ConsentRecord,
     Session,
     SessionState,
     Transcript,
@@ -148,6 +149,30 @@ class _GivenAudio:
     def decode(self, recording: RecordedAudio) -> Audio:
         """Return the held audio whatever the bytes."""
         return self._audio
+
+
+class _NoVoiceprints:
+    """No one enrolled: what a corpus session is compared with."""
+
+    def save(self, voiceprint: Voiceprint, consent: ConsentRecord) -> None:
+        """Not used by a transcription."""
+        raise NotImplementedError
+
+    def get(self, speaker_id: str) -> Optional[Voiceprint]:
+        """Nobody is enrolled."""
+        return None
+
+    def consent(self, speaker_id: str) -> Optional[ConsentRecord]:
+        """Nobody gave consent here."""
+        return None
+
+    def all(self) -> List[Voiceprint]:
+        """Return no voiceprint."""
+        return []
+
+    def delete(self, speaker_id: str) -> bool:
+        """Nothing to delete."""
+        return False
 
 
 class _NoLocks:
@@ -241,8 +266,11 @@ class InProcessTools:
             id=SCRATCH_ID, language=language, state=SessionState.QUEUED,
         )
         scratch = _ScratchSessions(session)
+        voiceprints: VoiceprintRepository = (
+            _NoVoiceprints() if request.anonymous else self._voiceprints
+        )
         transcribe = TranscribeSession(
-            scratch, self._voiceprints, _GivenAudio(audio), model,
+            scratch, voiceprints, _GivenAudio(audio), model,
             self._encoder, _NoLocks(), self._parameters,
         )
         options = TranscriptionOptions(

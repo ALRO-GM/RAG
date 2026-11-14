@@ -19,8 +19,9 @@ ignored by git), and stops at the shard that holds the last recording
 asked for. A gated corpus is checked first: until the account whose
 token is used (``huggingface-cli login`` or ``HF_TOKEN``) has accepted
 its terms, it raises :class:`CorpusAccessError` saying where to accept
-them. The network calls are injectable, so the tests read a tiny local
-corpus with no network.
+them. Without the Hub (offline, or the check cannot be made), the
+shards already downloaded are read. The network calls are injectable,
+so the tests read a tiny local corpus with no network.
 """
 
 from pathlib import Path
@@ -74,6 +75,10 @@ def _gated(exc: BaseException) -> bool:
     return isinstance(exc, GatedRepoError)
 
 
+class _Gated(CorpusAccessError):
+    """The account has not accepted a gated corpus's terms (no fallback)."""
+
+
 class HuggingFaceCorpus:
     """Read corpus recordings from the Hub's parquet shards (see module)."""
 
@@ -94,16 +99,29 @@ class HuggingFaceCorpus:
         self, spec: CorpusSpec, split: str, limit: Optional[int]
     ) -> Iterator[CorpusRecording]:
         """Yield up to ``limit`` recordings of ``split``, in shard order."""
-        if spec.gated:
-            self._call(spec, lambda: self._check_access(spec.repo))
         local = self._directory / spec.id
+        if spec.gated:
+            try:
+                self._call(spec, lambda: self._check_access(spec.repo))
+            except _Gated:
+                raise
+            except CorpusAccessError:
+                if not self._local_shards(spec, split):
+                    raise
         given = 0
         for shard in self._shards(spec, split):
             if limit is not None and given >= limit:
                 return
-            path = self._call(
-                spec, lambda: self._download(spec.repo, shard, local)
-            )
+            try:
+                path = self._call(
+                    spec, lambda: self._download(spec.repo, shard, local)
+                )
+            except _Gated:
+                raise
+            except CorpusAccessError:
+                path = local / shard
+                if not path.is_file():
+                    raise
             for number, row in enumerate(_rows(path)):
                 if limit is not None and given >= limit:
                     return
@@ -113,17 +131,16 @@ class HuggingFaceCorpus:
     def _shards(self, spec: CorpusSpec, split: str) -> List[str]:
         """Return the shards of ``split`` in order (listed on the Hub).
 
-        Without the Hub (offline), the shards already downloaded.
+        Without the Hub (offline), the shards already downloaded; a
+        gated corpus refused by the Hub is never read from them.
         """
         prefix = f"{spec.config}/{split}-"
         try:
             files = self._call(spec, lambda: self._list_files(spec.repo))
+        except _Gated:
+            raise
         except CorpusAccessError:
-            folder = self._directory / spec.id / spec.config
-            files = [
-                f"{spec.config}/{p.name}"
-                for p in folder.glob(f"{split}-*.parquet")
-            ]
+            files = self._local_shards(spec, split)
             if not files:
                 raise
         shards = sorted(
@@ -136,6 +153,14 @@ class HuggingFaceCorpus:
             )
         return shards
 
+    def _local_shards(self, spec: CorpusSpec, split: str) -> List[str]:
+        """Return the shards of ``split`` already downloaded (repo paths)."""
+        folder = self._directory / spec.id / spec.config
+        return sorted(
+            f"{spec.config}/{p.name}"
+            for p in folder.glob(f"{split}-*.parquet")
+        )
+
     def _call(self, spec: CorpusSpec, work: Callable[[], Any]) -> Any:
         """Run a Hub call; turn its failures into ``CorpusAccessError``."""
         try:
@@ -144,7 +169,7 @@ class HuggingFaceCorpus:
             raise
         except Exception as exc:
             if _gated(exc):
-                raise CorpusAccessError(
+                raise _Gated(
                     f"{spec.display_name} is gated: accept its terms at"
                     f" {spec.source_url} with the Hugging Face account you"
                     " log in with (huggingface-cli login, or HF_TOKEN),"

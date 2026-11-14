@@ -979,10 +979,18 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
   can simply be run again. A gated corpus whose terms were not accepted
   fails before downloading anything, with the page where to accept them.
 
-No one is enrolled for these sessions: diarizers' labels stay
-anonymous (`~label`) unless a voice happens to match an enrolled one;
-the scores below do not depend on the names, since they pair labels
-with the reference's speakers themselves.
+A session with a reference is never compared with the people enrolled
+on this machine: the run uses no voiceprint for it (no `voiceprint` or
+`builtin_overlap` naming, §3.3, and the built-in diarization runs with
+nobody enrolled), so every diarizer's labels stay anonymous (`~label`)
+and a corpus speaker can never be given a household member's id. The
+scores below pair labels with the reference's speakers themselves, so
+they do not need names.
+
+If an import stops between creating a session and storing its
+reference, the next import stores the reference (`repaired`) instead of
+skipping the session; a session of that id not made by the import (its
+title differs) is refused.
 
 ### 13.2 Scores
 
@@ -1003,7 +1011,8 @@ part in the consensus or the fragments):
 
 The 10-second example of the tests (reference A 0–4 s, B 3–8 s; a track
 with three anonymous voices) gives by hand DER 3.2/9 without a collar
-and 2.5/7 with the 0.25 s collar, JER 0.275, overlap precision 1.0 and
+and 2.5/7 with the 0.25 s collar, JER 0.275 without a collar and
+0.2632 with it ((0 + 1 − 2.25/4.75) / 2), overlap precision 1.0 and
 recall 0.3, and a speaker-count error of +1
 (`tests/unit/transcriber/test_lab_reference.py`).
 
@@ -1038,8 +1047,8 @@ of overlap, collar 0.25 s):
 
 | Track | DER | missed | false alarm | confusion | JER | overlap P | overlap R | speaker count error |
 |---|---|---|---|---|---|---|---|---|
-| `pyannote-community-1` | 0.182 | 0.114 | 0.028 | 0.040 | 0.230 | 0.879 | 0.645 | 0 |
-| `sortformer-streaming-v2` | 0.291 | 0.225 | 0.036 | 0.030 | 0.327 | 0.894 | 0.481 | 0 |
+| `pyannote-community-1` | 0.1819 | 0.1144 | 0.0275 | 0.0400 | 0.2302 | 0.879 | 0.645 | 0 |
+| `sortformer-streaming-v2` | 0.2907 | 0.2251 | 0.0356 | 0.0300 | 0.3266 | 0.894 | 0.481 | 0 |
 
 (missed, false alarm and confusion as shares of the reference speech.)
 One recording says nothing general; the corpus-wide run with every

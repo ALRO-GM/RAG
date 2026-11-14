@@ -177,6 +177,29 @@ class TestHuggingFaceCorpus:
         with pytest.raises(CorpusAccessError, match="no shard"):
             list(corpus(tmp_path, hub).recordings(AMI, "validation", 1))
 
+    def test_a_gated_corpus_offline_reads_its_shards(
+        self, tmp_path: Path
+    ) -> None:
+        hub = FakeHub(tmp_path / "hub", "spa", "data")
+        list(corpus(tmp_path, hub).recordings(CALLHOME, "data", 1))
+
+        def offline(*args: Any) -> Any:
+            """No network for any Hub call."""
+            raise OSError("offline")
+
+        reader = HuggingFaceCorpus(tmp_path / "corpora", offline, offline,
+                                   offline)
+        got = list(reader.recordings(CALLHOME, "data", 5))
+        assert [r.recording for r in got] == ["data-0001", "data-0002"]
+        empty = HuggingFaceCorpus(tmp_path / "none", offline, offline,
+                                  offline)
+        with pytest.raises(CorpusAccessError, match="offline"):
+            list(empty.recordings(CALLHOME, "data", 1))
+        refused = HuggingFaceCorpus(tmp_path / "corpora", offline, offline,
+                                    gated)
+        with pytest.raises(CorpusAccessError, match="accept its terms"):
+            list(refused.recordings(CALLHOME, "data", 1))
+
     def test_a_row_without_audio(self, tmp_path: Path) -> None:
         hub = FakeHub(tmp_path / "hub", "sdm", "test")
         shard(tmp_path / "hub" / hub.files[0], [row("x.wav", b"")])

@@ -652,7 +652,12 @@ class RunLab:
         catalogue = self._catalogue.load()
         audio = self._decoder.decode(self._sessions.recording(session.id))
         original = repo.store_original(session.id, audio)
-        voiceprints = self._candidates(session.expected_speakers)
+        # a session imported from a public corpus is never compared with
+        # the people enrolled here: its speakers stay anonymous
+        anonymous = repo.reference(session.id) is not None
+        voiceprints = [] if anonymous else self._candidates(
+            session.expected_speakers
+        )
         language = run.request.language or session.language
         standard: Dict[str, Any] = {
             "language": language,
@@ -678,7 +683,7 @@ class RunLab:
                 repo.save_run(run)
                 done = self._step(
                     run, current, catalogue, audio_keys, standard,
-                    voiceprints,
+                    voiceprints, anonymous,
                 )
                 run = run.with_step(done)
                 repo.save_run(run)
@@ -734,8 +739,13 @@ class RunLab:
         audio_keys: Mapping[str, Optional[str]],
         standard: Mapping[str, Any],
         voiceprints: Sequence[Voiceprint],
+        anonymous: bool = False,
     ) -> Step:
-        """Run (or find) one step; return it done or failed."""
+        """Run (or find) one step; return it done or failed.
+
+        ``anonymous``: the in-process tools use no voiceprint (a corpus
+        session).
+        """
         repo = self._repository
         session_id = run.session_id
         source = NO_DENOISER if step.stage == "denoise" else step.denoiser
@@ -778,6 +788,7 @@ class RunLab:
             audio=repo.audio_path(session_id, audio_key),
             workspace=workspace,
             load=lambda: repo.load_audio(session_id, audio_key),
+            anonymous=anonymous,
         )
         try:
             outcome = tool.run(request, lambda: self._cancelled(run))
