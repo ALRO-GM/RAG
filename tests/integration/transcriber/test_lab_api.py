@@ -175,6 +175,33 @@ def test_audio_of_a_run(client: TestClient) -> None:
         == 401
 
 
+def test_the_audio_route_only_reads(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    lab = container.settings.data_dir / "lab" / "s1"
+    run = client.post("/api/lab/sessions/s1/runs", json={
+        "diarizers": ["fake-diarize"],
+    }).json()
+    stored = json.loads((lab / "original.json").read_text())["key"]
+    assert (lab / "audio" / f"{stored}.wav").is_file()
+    wait(client, run["id"])
+    base = f"/api/lab/sessions/s1/runs/{run['id']}/audio"
+    assert client.get(f"{base}/none").status_code == 200
+    (lab / "original.json").unlink()
+    (lab / "audio" / f"{stored}.wav").unlink()
+    before = sorted(str(p) for p in lab.rglob("*"))
+    missing = client.get(f"{base}/none")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "not_found"
+    assert sorted(str(p) for p in lab.rglob("*")) == before
+    assert client.post(
+        f"/api/lab/sessions/s1/runs/{run['id']}/resume"
+    ).status_code == 202
+    assert (lab / "original.json").is_file()
+    assert client.get(f"{base}/none").status_code == 200
+    wait(client, run["id"])
+
+
 def test_refusals(client: TestClient) -> None:
     def code(response: Any) -> str:
         return str(response.json()["code"])

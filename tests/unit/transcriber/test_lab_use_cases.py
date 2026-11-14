@@ -1,8 +1,11 @@
 """The lab's use cases with fakes: runs, cache, mapping, labels, scores."""
 
+import threading
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List
 
 import pytest
 
@@ -10,6 +13,7 @@ from tests.unit.transcriber.fakes import (
     FakeDecoder,
     FakeJobRunner,
     FakeRecogniser,
+    FakeSessionLocks,
     FakeSessionRepository,
     FakeVoiceEncoder,
     FakeVoiceprintRepository,
@@ -62,6 +66,7 @@ from transcriber.domain.errors import (
 )
 from transcriber.domain.lab import (
     LabRequest,
+    LabRun,
     ReferenceLabel,
     Segment,
 )
@@ -114,6 +119,7 @@ class Lab:
         default_factory=lambda: StaticCatalogue(ENTRIES)
     )
     released: List[str] = field(default_factory=list)
+    locks: Any = field(default_factory=FakeSessionLocks)
 
     def __post_init__(self) -> None:
         """Store a finished session and enrol its two people."""
@@ -149,17 +155,16 @@ class Lab:
                                    self.runner, self.processes)
         self.start = StartLabRun(
             self.sessions, self.repository, self.catalogue, self.runner,
-            self.execute, clock, self.processes,
+            self.execute, clock, self.processes, self.decoder,
         )
         self.resume = ResumeLabRun(self.repository, self.start, self.status,
-                                   self.processes)
+                                   self.processes, self.locks)
         self.cancel = CancelLabRun(self.repository, self.status)
         self.results = LabResultsView(self.status, self.repository)
         self.labels = LabLabels(self.sessions, self.voiceprints,
                                 self.repository, self.decoder, clock)
         self.scores = LabScores(self.status, self.repository)
-        self.audio = LabAudio(self.status, self.repository, self.sessions,
-                              self.decoder)
+        self.audio = LabAudio(self.status, self.repository)
         self.runs = ListLabRuns(self.sessions, self.repository, self.status)
 
     def run(self, **request: Any) -> str:
@@ -167,6 +172,23 @@ class Lab:
         run = self.start(SESSION, LabRequest.model_validate(request))
         self.runner.run_all()
         return run.id
+
+
+class ThreadLocks:
+    """Locks that really exclude threads: one re-entrant lock per key."""
+
+    def __init__(self) -> None:
+        """Start with no lock."""
+        self._guard = threading.Lock()
+        self._locks: Dict[str, threading.RLock] = {}
+
+    @contextmanager
+    def hold(self, key: str) -> Iterator[None]:
+        """Hold the lock of ``key`` for the block."""
+        with self._guard:
+            lock = self._locks.setdefault(key, threading.RLock())
+        with lock:
+            yield
 
 
 @pytest.fixture()
@@ -238,6 +260,20 @@ class TestStart:
             lab.start("nobody", LabRequest())
         with pytest.raises(InvalidInputError):
             lab.start("../x", LabRequest())
+
+    def test_the_original_is_stored_before_the_job(self, lab: Lab) -> None:
+        run = lab.start(SESSION, LabRequest())
+        key = lab.repository.originals[SESSION]
+        assert lab.runner.pending and len(lab.decoder.decoded) == 1
+        assert lab.audio(SESSION, run.id, "none").size > 0
+        lab.start(SESSION, LabRequest())
+        assert len(lab.decoder.decoded) == 1
+        assert lab.repository.originals[SESSION] == key
+
+    def test_a_refused_request_stores_nothing(self, lab: Lab) -> None:
+        with pytest.raises(InvalidInputError):
+            lab.start(SESSION, LabRequest(diarizers=["nope"]))
+        assert not lab.repository.originals and not lab.decoder.decoded
 
     def test_the_run_is_queued_under_its_own_key(self, lab: Lab) -> None:
         run = lab.start(SESSION, LabRequest())
@@ -359,6 +395,60 @@ class TestRun:
         assert lab.tool.calls.count("denoise:dn") == 1
         with pytest.raises(StateError):
             lab.resume(SESSION, lab.start(SESSION, LabRequest()).id)
+
+    def test_resume_holds_the_run_lock(self, lab: Lab) -> None:
+        run_id = lab.run(diarizers=["z1"])
+        seen: List[bool] = []
+        save = lab.repository.save_run
+
+        def saving(run: LabRun) -> None:
+            """Record whether the run's lock is held, then save."""
+            seen.append(lab.locks.holds(job_key(run_id)))
+            save(run)
+
+        lab.repository.save_run = saving  # type: ignore[method-assign]
+        lab.resume(SESSION, run_id)
+        assert seen == [True]
+        assert lab.locks.taken == [job_key(run_id)]
+        assert not lab.locks.held
+        with pytest.raises(StateError):
+            lab.resume(SESSION, run_id)
+        assert len(lab.runner.pending) == 1
+
+    def test_resume_stores_a_missing_original(self, lab: Lab) -> None:
+        run_id = lab.run(diarizers=["z1"])
+        lab.repository.originals.clear()
+        lab.resume(SESSION, run_id)
+        assert lab.audio(SESSION, run_id, "none").size > 0
+
+    def test_two_concurrent_resumes_queue_one_job(self) -> None:
+        lab = Lab(locks=ThreadLocks())
+        run_id = lab.run(diarizers=["z1"])
+        save = lab.repository.save_run
+
+        def slow(run: LabRun) -> None:
+            """Save late, so both resumes check before either saves."""
+            time.sleep(0.05)
+            save(run)
+
+        lab.repository.save_run = slow  # type: ignore[method-assign]
+        outcomes: List[str] = []
+
+        def resume() -> None:
+            """Resume the run; record whether it was refused."""
+            try:
+                lab.resume(SESSION, run_id)
+                outcomes.append("queued")
+            except StateError:
+                outcomes.append("refused")
+
+        threads = [threading.Thread(target=resume) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(5.0)
+        assert sorted(outcomes) == ["queued", "refused"]
+        assert [key for key, _ in lab.runner.pending] == [job_key(run_id)]
 
     def test_a_cancelled_queued_run_stops_at_once(self, lab: Lab) -> None:
         run = lab.start(SESSION, LabRequest(diarizers=["z1"]))
@@ -596,5 +686,12 @@ class TestReview:
         assert original.read(0, 64) != cleaned.read(0, 64)
         with pytest.raises(NotFoundError):
             lab.audio(SESSION, run_id, "other")
+
+    def test_playback_only_reads(self, lab: Lab) -> None:
+        run_id = lab.run(diarizers=["z1"])
         lab.repository.originals.clear()
-        assert lab.audio(SESSION, run_id, "none").size == original.size
+        decoded = len(lab.decoder.decoded)
+        with pytest.raises(NotFoundError, match="original"):
+            lab.audio(SESSION, run_id, "none")
+        assert not lab.repository.originals
+        assert len(lab.decoder.decoded) == decoded
