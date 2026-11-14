@@ -1,0 +1,9117 @@
+[
+ {
+  "id": "assessment_centre",
+  "name": "Assessment centre (interpersonal exercises: role-play, group discussion, presentation)",
+  "family": "selection-method",
+  "native_mode": "observer rating of live or recorded simulations by trained assessors",
+  "constructs": [
+   "influencing others",
+   "consideration/awareness of others",
+   "communication",
+   "organizing and planning",
+   "problem solving",
+   "drive",
+   "stress tolerance"
+  ],
+  "A": {
+   "total": 69,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "G-study (inter-assessor): .80 single post-exercise rating, .97 overall; but across exercises only .26 (single rating), .55 (dimension over 3 exercises), .65 (overall over 3) - adequate across assessors, inadequate across situations; narrative figure .70 in salgado2008.",
+     "sources": [
+      "jackson2016",
+      "salgado2008"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Contested: person x dimension variance .13-1.11% vs exercise 24.7-53.7% (jackson2016); exercise 41% vs broad dimensions 13% (hoffman2011); meta-analytic CFA prefers 3 broad factors with relational skills least supported (meriac2014, abstract); kuncel_sackett2014 argues the opposite (secondary).",
+     "sources": [
+      "jackson2016",
+      "hoffman2011",
+      "meriac2014",
+      "kuncel_sackett2014"
+     ]
+    },
+    "A3": {
+     "score": 25,
+     "why": "Re-estimated meta-analytic operational validity .29 vs job performance (sackett2022); dimensions .25-.39 (arthur2003, abstract); +.10 R2 over GMA + Big Five (meriac2008, N=52,779).",
+     "sources": [
+      "sackett2022",
+      "arthur2003",
+      "meriac2008"
+     ]
+    },
+    "A4": {
+     "score": 20,
+     "why": "Evidence from independent academics; overall-score criterion validity held after Sackett's re-estimation.",
+     "sources": [
+      "sackett2022",
+      "meriac2008",
+      "jackson2016"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "Meta-analytic N=52,779 (meriac2008), operational AC N=698 (jackson2016), 4 field samples incl. 1,075 bank candidates (hoffman2011); 2008-2022.",
+     "sources": [
+      "meriac2008",
+      "jackson2016",
+      "hoffman2011"
+     ]
+    },
+    "A6": {
+     "score": -6,
+     "why": "Exercise effects dominate; role-player disposition changes candidate behaviour (oliver2014); the most conversational dimensions add least (communication dR2 .003 n.s., consideration .005; meriac2008).",
+     "sources": [
+      "jackson2016",
+      "oliver2014",
+      "meriac2008"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 74,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "Independent surveys: UK AC 17.3%, group exercise 14.9% (zibarras2010); Germany 35% (diekmann_konig); Spanish SMEs 8% (alonso2015); 52% in a large-firm Spanish convenience sample (cop_madrid, professional body).",
+     "sources": [
+      "zibarras2010",
+      "diekmann_konig_personality",
+      "alonso2015",
+      "cop_madrid_encuesta2015"
+     ]
+    },
+    "B2": {
+     "score": 25,
+     "why": "International Taskforce Guidelines define the method (multiple simulations, multiple trained assessors, FOR training).",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "B3": {
+     "score": 12,
+     "why": "Face validity drives perceived fairness (hausknecht2004, secondary); adverse-impact figures for ACs not found.",
+     "sources": [
+      "hausknecht2004"
+     ]
+    },
+    "B4": {
+     "score": 12,
+     "why": "No Spanish instrument; built locally and practised in Spain (alonso2015, cop_madrid); Spanish-journal rater-accuracy work (wirz2013).",
+     "sources": [
+      "alonso2015",
+      "cop_madrid_encuesta2015",
+      "wirz2013"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 93,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Native mode is trained-observer rating of interaction; Guidelines allow rating post hoc from audio/video recordings (p. 1251).",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study: ML on manual transcripts of 18 three-minute role-plays converged with assessors about as well as one human; ASR abandoned for room noise.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual assessee.",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Method is free and the Guidelines open; indicators must come from one's own job analysis (vendor dimension libraries are proprietary).",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Influencing others, consideration of others, communication: leadership and negotiation-like role-plays.",
+     "sources": [
+      "meriac2008"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use",
+   "reason": "Use as the measurement model (several situations, several trained raters, behaviour classified to job-derived dimensions); a machine may assist assessors but a fully automated scorer is not an AC under rupp2015."
+  },
+  "popular_but_weak": false,
+  "disagreements": [
+   "Operational validity .29 (sackett2022) vs .37 (salgado2008, older corrections).",
+   "arthur2003 abstract says 6 dimensions; meriac2008 and hoffman2011 describe 7.",
+   "Dimension variance negligible (jackson2016) vs can dominate with two exercises (kuncel_sackett2014, secondary)."
+  ],
+  "open_questions": [
+   "How many recorded conversations per person reach .80 across situations in this product's setting (jackson2016 gives .65 for 3 exercises)?",
+   "Does transcript-only scoring keep validity when ASR and diarisation errors are present (hickman2023 used manual transcripts)?"
+  ]
+ },
+ {
+  "id": "multiple_speeded_assessments",
+  "name": "Multiple speeded assessments (many 3-minute role-plays)",
+  "family": "selection-method",
+  "native_mode": "observer rating of many short recorded role-plays",
+  "constructs": [
+   "interpersonal effectiveness (overall)"
+  ],
+  "A": {
+   "total": 23,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Single human assessor G(q,1) averaged .38 per 3-minute role-play; single role-plays 'not ensured' reliable.",
+     "sources": [
+      "hickman2023",
+      "herde_lievens2023"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found (Breil 2022 on distinct social skills not obtained).",
+     "sources": []
+    },
+    "A3": {
+     "score": 8,
+     "why": "Aggregate of 18 role-plays predicted instructor ratings 7 months later: .54 (abstract) / human OAR r=.57; MBA students, not a job criterion.",
+     "sources": [
+      "herde_lievens2023",
+      "hickman2023"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single independent research group and dataset.",
+     "sources": [
+      "herde_lievens2023"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "96 MBA students.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Individual role-plays unreliable; validity exists only in aggregate.",
+     "sources": [
+      "herde_lievens2023"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "No Spanish version; method described in open paper.",
+     "sources": [
+      "hickman2023"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 90,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Trained-observer rating of recorded interaction.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study of ML scoring of the transcripts against assessors.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Method free; content self-built.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Interpersonal role-plays; specific scope constructs not recorded.",
+     "sources": [
+      "hickman2023"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "The design template for this product: many short heterogeneous scored conversations aggregated, rather than one long one."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Which constructs were rated (Herde & Lievens 2023 full text not obtained)?",
+   "Does the format transfer from scripted role-plays to natural meetings?"
+  ]
+ },
+ {
+  "id": "structured_interview",
+  "name": "Structured (behavioural / competency) interview",
+  "family": "selection-method",
+  "native_mode": "interview: trained interviewers rate answers against anchored scales",
+  "constructs": [
+   "job-related competencies elicited by past-behaviour or situational questions"
+  ],
+  "A": {
+   "total": 67,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Reliability .83 reported in an independent narrative of meta-analyses (type not separated).",
+     "sources": [
+      "salgado2008"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found: construct-validity meta-analysis exists (salgadomoscoso2002) but no figure was opened.",
+     "sources": [
+      "salgadomoscoso2002"
+     ]
+    },
+    "A3": {
+     "score": 25,
+     "why": "Re-estimated meta-analytic operational validity .42, top of all predictors (sackett2022); .63 for structured behavioural interview in salgado2008 (older corrections).",
+     "sources": [
+      "sackett2022",
+      "salgado2008"
+     ]
+    },
+    "A4": {
+     "score": 20,
+     "why": "Independent; remained the top predictor after critical re-estimation.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "Meta-analytic, re-estimated 2022.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "What is called 'structured' varies in practice; only 24.6% of HR respondents rejected an anti-structure myth (fisher2019); B-W d = .23.",
+     "sources": [
+      "fisher2019_selection_myths",
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 77,
+   "lines": {
+    "B1": {
+     "score": 35,
+     "why": "UK structured 69.4% (zibarras2010); Spain competency interview 52% of SMEs (alonso2015) and 80% (cop_madrid).",
+     "sources": [
+      "zibarras2010",
+      "alonso2015",
+      "cop_madrid_encuesta2015"
+     ]
+    },
+    "B2": {
+     "score": 18,
+     "why": "Recommended in the Spanish professional channel (salgado_moscoso2008 abstract); no formal body standard collected.",
+     "sources": [
+      "salgado_moscoso2008"
+     ]
+    },
+    "B3": {
+     "score": 12,
+     "why": "Seen as legally defensible (zibarras2010); small subgroup difference d=.23 (sackett2022); candidate reactions not collected first-hand.",
+     "sources": [
+      "zibarras2010",
+      "sackett2022"
+     ]
+    },
+    "B4": {
+     "score": 12,
+     "why": "Practised in Spain; no standard Spanish instrument.",
+     "sources": [
+      "alonso2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 59,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Interview answers scored by assessors (answers about other situations, not live interaction).",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect and partly negative: LLM ratings from interview transcripts gave R2 < 0 for job-related competences/interview performance (zhang2024, context to check); crowd-rated mock interviews (naim2015).",
+     "sources": [
+      "zhang2024",
+      "naim2015"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Method free; questions and anchors self-built.",
+     "sources": [
+      "salgado2008"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Any competency incl. leadership; not specific.",
+     "sources": [
+      "salgado2008"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Best-validated way of scoring spoken answers; use its anchoring and structure as the human criterion and design pattern, not as something the product replaces."
+  },
+  "popular_but_weak": false,
+  "disagreements": [
+   "Validity .42 (sackett2022) vs .51 (Schmidt & Hunter, via sackett2022) vs .63 (salgado2008) vs .70 (huffcutt2014, secondary, overcorrected)."
+  ],
+  "open_questions": [
+   "Can transcript scoring reach trained-interviewer agreement for competencies (zhang2024 says no for its setting)?"
+  ]
+ },
+ {
+  "id": "unstructured_interview",
+  "name": "Unstructured interview",
+  "family": "selection-method",
+  "native_mode": "free conversation judged by the interviewer",
+  "constructs": [
+   "global suitability / 'fit'"
+  ],
+  "A": {
+   "total": 37,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 20,
+     "why": "Meta-analytic re-estimate .19 (sackett2022); .14 in salgado2008.",
+     "sources": [
+      "sackett2022",
+      "salgado2008"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Independent evidence; validity estimate halved under re-estimation (.38 -> .19).",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "Meta-analytic, 2022.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Practitioners over-trust it relative to evidence (highhouse2008; zibarras2010 authors).",
+     "sources": [
+      "highhouse2008",
+      "zibarras2010"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 53,
+   "lines": {
+    "B1": {
+     "score": 35,
+     "why": "UK 41.8% (zibarras2010); Spanish SMEs 90.7% (alonso2015); 81% 'traditional' (cop_madrid).",
+     "sources": [
+      "zibarras2010",
+      "alonso2015",
+      "cop_madrid_encuesta2015"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "Negative: the professional-channel review recommends structured interviews instead.",
+     "sources": [
+      "salgado_moscoso2008"
+     ]
+    },
+    "B3": {
+     "score": 6,
+     "why": "HR executives rate it above tests (Terpstra via highhouse2008); defensibility evidence not found.",
+     "sources": [
+      "highhouse2008"
+     ]
+    },
+    "B4": {
+     "score": 12,
+     "why": "Ubiquitous in Spain.",
+     "sources": [
+      "alonso2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 42,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Interview judged by the interviewer.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "No content to licence.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "No defined constructs.",
+     "sources": [
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Lowest-validity interview format; do not model the product on free conversation judged globally."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "situational_judgement_test",
+  "name": "Situational judgement test (paper or video)",
+  "family": "selection-method",
+  "native_mode": "test: candidate chooses or rates responses to described situations",
+  "constructs": [
+   "interpersonal skills",
+   "teamwork",
+   "leadership (most common SJT constructs)"
+  ],
+  "A": {
+   "total": 59,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Partial: knowledge instructions relate more to ability, behavioural-tendency to personality; correlate row labels partly lost in extraction.",
+     "sources": [
+      "mcdaniel2007"
+     ]
+    },
+    "A3": {
+     "score": 25,
+     "why": "Meta-analysis rho .26 (k=118, N=24,756; mcdaniel2007), same .26 after re-estimation (sackett2022).",
+     "sources": [
+      "mcdaniel2007",
+      "sackett2022"
+     ]
+    },
+    "A4": {
+     "score": 20,
+     "why": "Independent; value held under re-estimation.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "N=24,756; re-estimated 2022.",
+     "sources": [
+      "mcdaniel2007",
+      "sackett2022"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Mostly concurrent samples; estimates rest on few studies (sackett2022 note).",
+     "sources": [
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "UK Civil Service uses judgement tests (owner = adopter); no independent usage figure.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 45,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Test.",
+     "sources": [
+      "mcdaniel2007"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "mcdaniel2007"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Method free; items self-built.",
+     "sources": [
+      "mcdaniel2007"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership and teamwork SJTs show relatively high validity (abstract).",
+     "sources": [
+      "christian2010"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Useful for writing standardised scenarios that elicit the behaviour to be observed; its scoring (choosing options) is not conversation scoring."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Christian 2010 coefficients for leadership/teamwork SJTs (abstract only)."
+  ]
+ },
+ {
+  "id": "work_sample",
+  "name": "Work sample / job simulation",
+  "family": "selection-method",
+  "native_mode": "simulation scored by assessors",
+  "constructs": [
+   "job-specific task performance"
+  ],
+  "A": {
+   "total": 55,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 25,
+     "why": "Re-estimated meta-analytic validity .33.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A4": {
+     "score": 20,
+     "why": "Independent; held under re-estimation.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "Meta-analytic 2022.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 49,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "UK 19.3% (zibarras2010); Germany 37% (diekmann_konig); vendor panel 16% use, 67-68% rate effective (testgorilla2025).",
+     "sources": [
+      "zibarras2010",
+      "diekmann_konig_personality",
+      "testgorilla2025"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 12,
+     "why": "Face validity predicts perceived fairness (hausknecht2004, secondary); candidate data otherwise vendor.",
+     "sources": [
+      "hausknecht2004"
+     ]
+    },
+    "B4": {
+     "score": 12,
+     "why": "Role-play/simulations used by 20% of Spanish SMEs.",
+     "sources": [
+      "alonso2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 42,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Simulation scored by assessors on task output.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Self-built.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "Task skills, not soft-skill constructs.",
+     "sources": [
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Supports the principle 'sample behaviour, do not ask about it', but it measures task skill, not soft skills."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "leaderless_group_discussion",
+  "name": "Leaderless group discussion and leader emergence (incl. speaking time)",
+  "family": "selection-method",
+  "native_mode": "observer or peer rating of who leads in an unstructured group",
+  "constructs": [
+   "leader emergence (perceived leadership)"
+  ],
+  "A": {
+   "total": 19,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (Bass 1954 / Bass et al. 1953 not retrieved).",
+     "sources": [
+      "bass1954"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Nomological only, secondary: emergence relates to extraversion and authoritarianism (45 studies) and speaking time; Big Five R=.48 with leadership.",
+     "sources": [
+      "ensari2011",
+      "judge2002",
+      "maclaren2020"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found: emergence is perception, not effectiveness; no work criterion collected.",
+     "sources": [
+      "maclaren2020"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent groups and meta-analyses (secondary).",
+     "sources": [
+      "ensari2011",
+      "lord1986",
+      "judge2002"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Student groups (256 students, secondary); meta-analyses of older work.",
+     "sources": [
+      "maclaren2020"
+     ]
+    },
+    "A6": {
+     "score": -6,
+     "why": "Rewards talkativeness; men received about one extra vote (secondary).",
+     "sources": [
+      "maclaren2020"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 37,
+   "lines": {
+    "B1": {
+     "score": 15,
+     "why": "Group exercises 14.9% of UK organisations.",
+     "sources": [
+      "zibarras2010"
+     ]
+    },
+    "B2": {
+     "score": 10,
+     "why": "Covered as an exercise type within AC Guidelines only.",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "Role-play/simulation practice in Spain (20% of SMEs); group-dynamics protocols only in grey literature.",
+     "sources": [
+      "alonso2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 100,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Native mode: observer/peer rating of live group interaction.",
+     "sources": [
+      "bass1954"
+     ]
+    },
+    "C2": {
+     "score": 25,
+     "why": "Replicated automatic identification of the peer-perceived emergent leader from speaking activity (up to 80%) and speaking time effect.",
+     "sources": [
+      "sanchez2010",
+      "sanchez2012jmui",
+      "maclaren2020"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "maclaren2020"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Method free.",
+     "sources": [
+      "rupp2015"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership (emergence).",
+     "sources": [
+      "ensari2011"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Maximum fit on paper but no work-criterion validity and a documented talkativeness/gender bias; never present emergence or speaking time as leadership skill."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Reliability of LGD ratings (Bass et al. 1953).",
+   "Does emergence in recorded meetings relate to rated leadership effectiveness?"
+  ]
+ },
+ {
+  "id": "teamwork_ksa_test",
+  "name": "Teamwork KSA test (Stevens & Campion)",
+  "family": "selection-method",
+  "native_mode": "test (situational multiple choice, 35 items)",
+  "constructs": [
+   "conflict resolution",
+   "collaborative problem solving",
+   "communication",
+   "goal setting",
+   "planning/coordination"
+  ],
+  "A": {
+   "total": 20,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Contested: large correlation with aptitude tests (GMA component).",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Concurrent validity with supervisor/peer ratings in two small plant samples (n=70, 72); coefficients not seen.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single developer study.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Small, 1999.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Overlap with cognitive ability.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found (Spanish validation not found).",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 35,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Test.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Published test; content citable only.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Core teamwork.",
+     "sources": [
+      "stevens_campion1999"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Useful as a list of teamwork KSA areas; not an observational instrument."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Coefficients of the 1999 validation."
+  ]
+ },
+ {
+  "id": "graphology",
+  "name": "Graphology",
+  "family": "selection-method",
+  "native_mode": "handwriting analysis",
+  "constructs": [
+   "claimed personality/performance"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found in collected sources; fisher2019 treats the predictive claim as a myth (negative, from their literature).",
+     "sources": [
+      "fisher2019_selection_myths"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 15,
+   "lines": {
+    "B1": {
+     "score": 15,
+     "why": "Small use: 2.5% Canada, 3.0% US (cited in fisher2019); 2% Germany.",
+     "sources": [
+      "fisher2019_selection_myths",
+      "diekmann_konig_personality"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 15,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No validated mode.",
+     "sources": [
+      "fisher2019_selection_myths"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "fisher2019_selection_myths"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 0,
+     "why": "None.",
+     "sources": [
+      "fisher2019_selection_myths"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "avoid",
+   "reason": "No validity evidence; included only because 47.0% of US/Canadian HR respondents did not reject its predictive claim."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "big_five_self_report",
+  "name": "Big Five / FFM self-report inventories (NEO PI-R/3, BFI-2, IPIP, HEXACO)",
+  "family": "questionnaire",
+  "native_mode": "self-report",
+  "constructs": [
+   "neuroticism/emotional stability",
+   "extraversion",
+   "openness",
+   "agreeableness",
+   "conscientiousness"
+  ],
+  "A": {
+   "total": 55,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Independent reviews: NEO PI-R internal consistency 4.5/5 (cop2011); conscientiousness measures reliability .80 (salgado2008). Test-retest not collected.",
+     "sources": [
+      "cop2011",
+      "salgado2008"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Construct validity rated 3/5 for NEO PI-R by COP reviewers; structural/convergent figures not collected.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Re-estimated meta-analytic validity: conscientiousness .19 overall (.25 contextualised), emotional stability .09, extraversion .10, agreeableness .10, openness .05 (sackett2022); conscientiousness grand mean .20 (wilmot2019).",
+     "sources": [
+      "sackett2022",
+      "wilmot2019"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Independent, but the critical panel concludes self-report validity is very low for selection (morgeson2007) and estimates fell under re-estimation.",
+     "sources": [
+      "morgeson2007",
+      "sackett2022"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "Second-order meta-analyses: n > 1.1 million (wilmot2019), N=89,639 workers (wilmot2021).",
+     "sources": [
+      "wilmot2019",
+      "wilmot2021"
+     ]
+    },
+    "A6": {
+     "score": -5,
+     "why": "Faking unavoidable (morgeson2007); no DIF analysis in reviewed Spanish tests (cop2011); weaker in complex jobs (wilmot2019; salgado2017fc abstract).",
+     "sources": [
+      "morgeson2007",
+      "cop2011",
+      "wilmot2019",
+      "salgado2017fc"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 75,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "Personality questionnaires: UK 25.6% (zibarras2010), Spanish SMEs 40% (alonso2015), Germany 15% (diekmann_konig); NEO-PI only 1.9% of Spanish psychologists (muniz2020).",
+     "sources": [
+      "zibarras2010",
+      "alonso2015",
+      "diekmann_konig_personality",
+      "muniz2020"
+     ]
+    },
+    "B2": {
+     "score": 18,
+     "why": "SIOP supports job-linked Big Five-based assessment (statement, no data); COP review of NEO PI-R favourable with predictive validity '-'.",
+     "sources": [
+      "siop2021_persona",
+      "cop2011"
+     ]
+    },
+    "B3": {
+     "score": 12,
+     "why": "Low subgroup difference (conscientiousness d=-.07); candidate reactions not collected.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "B4": {
+     "score": 20,
+     "why": "NEO PI-R Spanish adaptation rated 5/5 (cop2011); IPIP public domain (secondary).",
+     "sources": [
+      "cop2011",
+      "goldberg2006"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 45,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "Negative: AVI models trained on self-reports reach convergent validity .12 (hickman2022); strangers judging from text agree only .11-.28 (connelly2010).",
+     "sources": [
+      "hickman2022",
+      "connelly2010"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "IPIP public domain (secondary); NEO commercial.",
+     "sources": [
+      "goldberg2006"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "If personality is in scope, measure it with a short open questionnaire (e.g. IPIP) as a separate input; never infer self-report personality from transcripts."
+  },
+  "popular_but_weak": false,
+  "disagreements": [
+   "Conscientiousness operational validity .19-.25 (sackett2022) vs .30 (salgado2008, older corrections) vs .31 (Schmidt & Hunter via sackett2022)."
+  ],
+  "open_questions": [
+   "Spanish norms for an open inventory (IPIP/BFI-2 Spanish not searched)."
+  ]
+ },
+ {
+  "id": "sixteen_pf5",
+  "name": "16PF-5 (Spanish TEA edition)",
+  "family": "questionnaire",
+  "native_mode": "self-report",
+  "constructs": [
+   "16 primary personality factors"
+  ],
+  "A": {
+   "total": 19,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Internal consistency rated 3.5/5; test-retest blank (cop2011).",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Construct validity rated 4/5 by reviewers; figures not seen.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found: predictive validity '-' (none reported in manual).",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Independent review of the publisher's evidence only.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "No samples collected.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "No DIF/bias analysis.",
+     "sources": [
+      "cop2011"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 63,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "Most used test by Spanish work psychologists (27.5%, N=69) and most used test in COP Madrid survey.",
+     "sources": [
+      "muniz2020",
+      "cop_madrid_encuesta2015"
+     ]
+    },
+    "B2": {
+     "score": 18,
+     "why": "COP review favourable but predictive validity '-'.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 20,
+     "why": "TEA Spanish edition with norms.",
+     "sources": [
+      "cop2011"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Commercial (TEA).",
+     "sources": [
+      "cop2011"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "cop2011"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Dominant in Spanish practice but no job-performance validity in the collected evidence and a self-report mode."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": [
+   "Any criterion study in the TEA manual?"
+  ]
+ },
+ {
+  "id": "hogan_hpi_hds_mvpi",
+  "name": "Hogan HPI / HDS / MVPI",
+  "family": "questionnaire",
+  "native_mode": "self-report",
+  "constructs": [
+   "HPI: Adjustment, Ambition, Sociability, Interpersonal Sensitivity, Prudence, Inquisitive, Learning Approach",
+   "HDS derailers",
+   "MVPI values"
+  ],
+  "A": {
+   "total": 27,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (test reliability not in the collected reports).",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 20,
+     "why": "Vendor validity-generalisation for sales, k=51, N=3,763: Ambition .28, others .05-.12; HDS -.16 to .14.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor only.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "N=3,763, sales jobs, 2016.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor claim: archive of studies on 250+ jobs.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Proprietary.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "hogan_tech2016"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Vendor-only evidence, self-report mode, gated content."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Independent validation of HPI scales."
+  ]
+ },
+ {
+  "id": "shl_opq32",
+  "name": "SHL OPQ32",
+  "family": "questionnaire",
+  "native_mode": "self-report (forced choice)",
+  "constructs": [
+   "32 work-related personality scales"
+  ],
+  "A": {
+   "total": 27,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 20,
+     "why": "Vendor meta-analysis (29 studies, N=4,861): ability+personality operational validities .20-.44 against manager-rated Great Eight (abstract via search).",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor author (SHL research director).",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "N=4,861; 2005.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor claims only.",
+     "sources": [
+      "shl_ucf_guide"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found (BPS rating claim seen only on a vendor page).",
+     "sources": [
+      "bps_ptc"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found (Spanish version not verified).",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Proprietary.",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "bartram2005"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Owner-produced evidence seen only at abstract level; self-report."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "OPQ32 technical manual."
+  ]
+ },
+ {
+  "id": "mbti",
+  "name": "Myers-Briggs Type Indicator",
+  "family": "questionnaire",
+  "native_mode": "self-report forced choice, type categories",
+  "constructs": [
+   "four type dichotomies"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative: about 35% change at least one letter on retest after about a month (secondary).",
+     "sources": [
+      "pittenger2005"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found; critiques report no evidence of job-performance prediction (secondary).",
+     "sources": [
+      "pittenger2005"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "One independent critic (secondary).",
+     "sources": [
+      "pittenger2005"
+     ]
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": -10,
+     "why": "Test-retest instability; SIOP: types should not be used for hiring.",
+     "sources": [
+      "pittenger2005",
+      "siop2021_persona"
+     ]
+    }
+   },
+   "note": "raw sum -5 floored at 0"
+  },
+  "B": {
+   "total": 15,
+   "lines": {
+    "B1": {
+     "score": 15,
+     "why": "Reported among most-used tests in several national surveys (review), but 0% in the German sample.",
+     "sources": [
+      "diekmann_konig_personality"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "Negative: SIOP says not for hiring or high-stakes decisions.",
+     "sources": [
+      "siop2021_persona"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "pittenger2005"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "pittenger2005"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Proprietary.",
+     "sources": [
+      "siop2021_persona"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Claims to describe personality.",
+     "sources": [
+      "siop2021_persona"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Unstable classification, no criterion evidence, explicit SIOP rejection for hiring; only 20.1% of HR respondents rejected the MBTI myth (fisher2019)."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "disc",
+  "name": "DISC",
+  "family": "questionnaire",
+  "native_mode": "self-report (per instruments notes; no source record collected)",
+  "constructs": [
+   "dominance, influence, steadiness, conscientiousness"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report (notes only).",
+     "sources": []
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": []
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 10,
+     "why": "Claims to describe personality/behavioural style.",
+     "sources": []
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "avoid",
+   "reason": "No peer-reviewed validity evidence was found; already excluded by the owner."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Popularity of DISC is not documented in the collected sources."
+  ]
+ },
+ {
+  "id": "belbin_team_roles",
+  "name": "Belbin Team Roles (SPI and observer forms; Interplace II)",
+  "family": "questionnaire",
+  "native_mode": "self-report inventory plus observer (colleague) assessment forms",
+  "constructs": [
+   "nine team roles"
+  ],
+  "A": {
+   "total": 24,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Interrater Kendall W mean .56 (single independent study of Interplace II).",
+     "sources": [
+      "vandierendonck2008"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Contested: role loadings .50-.82 with method loadings .21-.32 and notable overlap (MTMM); adequate convergent but weak discriminant validity across 43 studies.",
+     "sources": [
+      "vandierendonck2008",
+      "aritzeta2007"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 10,
+     "why": "Independent tests; discriminant validity did not hold up.",
+     "sources": [
+      "vandierendonck2008",
+      "aritzeta2007"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "2007-2008, sample details not collected.",
+     "sources": [
+      "vandierendonck2008"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "Weak discriminant validity; self-report forms show bias.",
+     "sources": [
+      "vandierendonck2008",
+      "aritzeta2007"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found (no usage figure collected).",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 44,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Observer (colleague) forms exist and were tested in MTMM; primary instrument is self-report.",
+     "sources": [
+      "vandierendonck2008"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "vandierendonck2008"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 7,
+     "why": "Team roles.",
+     "sources": [
+      "aritzeta2007"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "avoid",
+   "reason": "No criterion validity and weak discriminant validity; the repository's rubric already excludes it."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Popularity is not documented in the collected sources (no usage survey)."
+  ]
+ },
+ {
+  "id": "competea",
+  "name": "CompeTEA (TEA Ediciones)",
+  "family": "questionnaire",
+  "native_mode": "self-report, 170 items",
+  "constructs": [
+   "20 competencies in 5 areas incl. leadership, negotiation, communication, teamwork, influence"
+  ],
+  "A": {
+   "total": 26,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Vendor slides: reliability (type not named) negotiation .73, leadership .80, communication .82, teamwork .75 (N=22,359); COP internal-consistency rating 3/5.",
+     "sources": [
+      "competea_foro2015",
+      "cop2013"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Structural only: CFA RMSEA .034, CFI .921 (vendor); COP construct rating 4/5.",
+     "sources": [
+      "competea_foro2015",
+      "cop2013"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found: the manual lists criterion = country and administration format; COP rated predictive validity 3.5 on evidence not seen here.",
+     "sources": [
+      "competea_manual2015",
+      "cop2013"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Vendor data, independently reviewed.",
+     "sources": [
+      "cop2013"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Norm samples N=63,195 (Spain 18,036), 2015; population not stated.",
+     "sources": [
+      "competea_manual2015"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 70,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "Used by 21.7% of Spanish work psychologists (N=69) - independent survey; 2.1% overall.",
+     "sources": [
+      "muniz2020"
+     ]
+    },
+    "B2": {
+     "score": 25,
+     "why": "COP review: construct 4, predictive 3.5, content 3.5, internal consistency 3.",
+     "sources": [
+      "cop2013"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 20,
+     "why": "Spanish-native with Spanish and Latin American norms.",
+     "sources": [
+      "competea_manual2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 30,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "competea_manual2015"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "competea_manual2015"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Commercial, qualified users.",
+     "sources": [
+      "competea_manual2015"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership, negotiation, teamwork scales.",
+     "sources": [
+      "competea_variables"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Only Spanish-native instrument with leadership and negotiation scales; usable as a self-report convergent measure in a validation study, not as the scoring basis."
+  },
+  "popular_but_weak": true,
+  "disagreements": [
+   "COP predictive validity rating 3.5 vs manual contents listing no job-performance criterion (not resolvable without the COP report)."
+  ],
+  "open_questions": [
+   "What criterion evidence underlies the COP predictive rating of 3.5?"
+  ]
+ },
+ {
+  "id": "msceit",
+  "name": "MSCEIT (ability emotional intelligence)",
+  "family": "questionnaire",
+  "native_mode": "ability test (consensus/expert keyed)",
+  "constructs": [
+   "perceiving, using, understanding, managing emotions"
+  ],
+  "A": {
+   "total": 47,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Spanish version reliability 'good' (abstract; co-author is a test author).",
+     "sources": [
+      "extremera2006msceit"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Contested: items too easy, expert key often not associated with highest ability (IRT).",
+     "sources": [
+      "fiori2014"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Ability EI .22 re-estimated (sackett2022).",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Independent critical tests not survived (fiori2014).",
+     "sources": [
+      "fiori2014"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Re-estimate rests on few studies; Spanish N=946 students.",
+     "sources": [
+      "sackett2022",
+      "extremera2006msceit"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "IRT problems; little incremental validity over Big Five + GMA (dR2 .002, secondary).",
+     "sources": [
+      "fiori2014",
+      "joseph2010"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 12,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found (not in COP review lists - a coverage gap, not a negative).",
+     "sources": [
+      "cop2024"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "Spanish version (students), commercial.",
+     "sources": [
+      "extremera2006msceit"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 24,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Test.",
+     "sources": [
+      "fiori2014"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "fiori2014"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Commercial (MHS).",
+     "sources": [
+      "extremera2006msceit"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent (EI).",
+     "sources": [
+      "fiori2014"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Contested construct validity and a test mode that cannot be observed in talk."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "trait_ei_questionnaires",
+  "name": "Self-report EI (EQ-i 2.0, TEIQue, TMMS-24)",
+  "family": "questionnaire",
+  "native_mode": "self-report",
+  "constructs": [
+   "trait emotional intelligence",
+   "emotional attention/clarity/repair (TMMS-24)"
+  ],
+  "A": {
+   "total": 51,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Independent internal consistency: TMMS-24 alphas .92/.84/.84, TEIQue-SF Spanish .70-.83 (secondary).",
+     "sources": [
+      "fernandezberrocal2004tmms"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 25,
+     "why": "Personality-based EI .30 re-estimated (sackett2022); .24-.30 (oboyle2011 abstract).",
+     "sources": [
+      "sackett2022",
+      "oboyle2011"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Independent; incremental value contested (joseph2010, secondary).",
+     "sources": [
+      "joseph2010"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Re-estimate on few, mostly concurrent studies.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "A6": {
+     "score": -5,
+     "why": "Overlap with personality; dR2 .002 over Big Five + GMA (secondary).",
+     "sources": [
+      "joseph2010",
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 12,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found; belief data only: 52.7% of HR respondents believed EI predicts better than GMA.",
+     "sources": [
+      "fisher2019_selection_myths"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "TMMS-24 Spanish-native, student samples.",
+     "sources": [
+      "fernandezberrocal2004tmms",
+      "tmms24_2021"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 24,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sackett2022"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found (TMMS-24 reuse terms not checked).",
+     "sources": [
+      "fernandezberrocal2004tmms"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent (EI).",
+     "sources": [
+      "sackett2022"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Criterion validity mostly overlaps personality; not observable in transcripts."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": [
+   "Does any validated EI measure work from conversation? None found."
+  ]
+ },
+ {
+  "id": "cliftonstrengths",
+  "name": "Gallup CliftonStrengths",
+  "family": "questionnaire",
+  "native_mode": "self-report forced choice",
+  "constructs": [
+   "34 talent themes"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (technical report not obtained).",
+     "sources": [
+      "gallup_csf"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 20,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "gallup_csf"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "gallup_csf"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Proprietary.",
+     "sources": [
+      "gallup_csf"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "Talents, not scope constructs.",
+     "sources": [
+      "gallup_csf"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "avoid",
+   "reason": "No evidence collected; dispositions, not behaviours in talk."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Gallup technical report."
+  ]
+ },
+ {
+  "id": "psychological_safety_scale",
+  "name": "Team psychological safety scale (Edmondson)",
+  "family": "questionnaire",
+  "native_mode": "self-report by team members, aggregated to team",
+  "constructs": [
+   "team psychological safety"
+  ],
+  "A": {
+   "total": 66,
+   "lines": {
+    "A1": {
+     "score": 20,
+     "why": "Meta-analytic internal consistency: pooled alpha .77-.81 over 217 studies (preprint).",
+     "sources": [
+      "liu2024"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Factor structure and nomological evidence 'need work'.",
+     "sources": [
+      "liu2024"
+     ]
+    },
+    "A3": {
+     "score": 15,
+     "why": "Team learning/performance in 51 teams (edmondson1999); meta-analysis of outcomes k=136 (frazier2017, no coefficient seen).",
+     "sources": [
+      "edmondson1999",
+      "frazier2017"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Independent, replicated; no critical re-analysis found.",
+     "sources": [
+      "frazier2017",
+      "liu2024"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "> 22,000 individuals, ~5,000 groups.",
+     "sources": [
+      "frazier2017"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Company write-up ranks it first (Google re:Work), no independent adoption survey.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 23,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report.",
+     "sources": [
+      "liu2024"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Team-level construct.",
+     "sources": [
+      "edmondson1999"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Items in a paywalled paper; cite.",
+     "sources": [
+      "edmondson1999"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Core teamwork climate.",
+     "sources": [
+      "edmondson1999"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "A team-level outcome to validate against, not an individual score."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "negotiact",
+  "name": "NegotiAct negotiation coding scheme",
+  "family": "observational-scheme",
+  "native_mode": "observer coding of video-recorded negotiations (thought units attributed to speakers)",
+  "constructs": [
+   "information exchange",
+   "offers (single/multi-issue)",
+   "persuasive communication",
+   "socio-emotional statements incl. active listening",
+   "unethical behaviour",
+   "procedural communication"
+  ],
+  "A": {
+   "total": 23,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Cohen's kappa .80 over 18 negotiations (5,365 units); per-code agreement 66.7-100%.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found (content validity from 89 schemes only; no structural evidence).",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Exploratory, dyad level, N=18 students: multi-issue offer -> active listening rs=.50 with joint gains; each alone n.s.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single independent study.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "33 German undergraduates, 2024.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Coded from video because paraverbal cues are lost in transcripts; some codes need role instructions (lying, positional information).",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "English, open article and manual; no Spanish version.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 70,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Trained-observer coding of interaction.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect only: LLM annotation of negotiation tactics in Diplomacy (different scheme, abstract).",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "C3": {
+     "score": 7,
+     "why": "Units attributed to speakers but validated at dyad level; dyad-specific variance large (secondary).",
+     "sources": [
+      "jaeckel2024_negotiact",
+      "elfenbein2008"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "CC BY-NC: reuse with attribution, commercial use needs permission.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Negotiation.",
+     "sources": [
+      "jaeckel2024_negotiact"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use",
+   "reason": "Best available open taxonomy of codable negotiation behaviours; use as the indicator source for negotiation, with licence permission and own validation."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Agreement on ASR transcripts with diarisation errors.",
+   "Individual-level criterion validity across several counterparts."
+  ]
+ },
+ {
+  "id": "negotiation_tactic_coding",
+  "name": "Negotiation tactic/sequence coding (Weingart et al.; Adair & Brett; Olekalns & Smith)",
+  "family": "observational-scheme",
+  "native_mode": "observer coding of recorded negotiations; Adair & Brett coded transcripts natively",
+  "constructs": [
+   "integrative vs distributive tactics",
+   "information and influence sequences"
+  ],
+  "A": {
+   "total": 25,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (reliability figures not retrieved).",
+     "sources": [
+      "weingart2004",
+      "adair2005"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 8,
+     "why": "Dyad outcomes: reciprocation of integrative tactics and information sharing improve joint efficiency (abstract); student/lab negotiations.",
+     "sources": [
+      "weingart1990"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent groups.",
+     "sources": [
+      "weingart1990",
+      "adair2005",
+      "olekalns2015"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Older lab work; 236 dyads in 8 countries for Adair & Brett (secondary).",
+     "sources": [
+      "adair2005"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Same sequence has opposite effects in cooperative vs competitive contexts.",
+     "sources": [
+      "olekalns2015"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 70,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "weingart2004"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect: human coding of transcripts works for Adair & Brett (secondary); outcome classification from transcripts (twitchell2013, abstract).",
+     "sources": [
+      "adair2005",
+      "twitchell2013"
+     ]
+    },
+    "C3": {
+     "score": 7,
+     "why": "Dyad.",
+     "sources": [
+      "weingart1990"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Schemes in paywalled papers; cite.",
+     "sources": [
+      "weingart2004"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Negotiation.",
+     "sources": [
+      "weingart1990"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Precedents NegotiAct synthesised; useful for transcript-native coding (Adair & Brett)."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Adair & Brett reliability on transcripts."
+  ]
+ },
+ {
+  "id": "act4teams",
+  "name": "act4teams (Advanced Interaction Analysis for Teams)",
+  "family": "observational-scheme",
+  "native_mode": "observer coding of videotaped real meetings (sense units attributed to speakers)",
+  "constructs": [
+   "problem-solving talk",
+   "procedural talk",
+   "socio-emotional talk",
+   "action-oriented talk",
+   "counterproductive talk (criticising, complaining)"
+  ],
+  "A": {
+   "total": 37,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Fleiss kappa .81 (5 coders, ~200 h training); kappa .63 by a non-developer engineering team; composite alphas .80/.71.",
+     "sources": [
+      "lehmannwillenbrock2015",
+      "bavendiek2015"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Nomological, one study: observer-rated transformational leadership -> leader solution talk -> member solution talk.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Team-level: functional talk relates to satisfaction/productivity, dysfunctional talk negatively incl. organisational success 2.5 years later (92 meetings, abstract only).",
+     "sources": [
+      "kauffeld2012"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Evidence from the scheme owners' group only.",
+     "sources": [
+      "kauffeld2012",
+      "lehmannwillenbrock2015",
+      "bavendiek2015"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Real company meetings (92; 30 x ~1 h), 2012-2015.",
+     "sources": [
+      "kauffeld2012",
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Validated only for teams; ~200 h coder training; authors rated from video because transcripts capture interpersonal constructs less accurately.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Used in German consultancy through the authors' group (claim).",
+     "sources": [
+      "kauffeld2012"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found (manual not public; no Spanish version).",
+     "sources": [
+      "kauffeld_act4teams_chapter"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 55,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect: only a thesis lead on automatic act4teams-SHORT classification (secondary); developers warn about transcripts.",
+     "sources": [
+      "kauffeld_act4teams_chapter",
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "C3": {
+     "score": 3,
+     "why": "Validated at team level only.",
+     "sources": [
+      "kauffeld2012"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Manual not public; licence from the authors.",
+     "sources": [
+      "kauffeld_act4teams_chapter"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Core teamwork in meetings, plus leader codes.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "The strongest evidence that meeting talk relates to team outcomes, but at team level and with a closed manual; licence it or cite categories."
+  },
+  "popular_but_weak": false,
+  "disagreements": [
+   "kauffeld2012 kappa .90 vs .71 in two secondary snippets; .63 in bavendiek2015; .81 in lehmannwillenbrock2015."
+  ],
+  "open_questions": [
+   "Per-person reliability across meetings.",
+   "Full category list and licence (Kauffeld et al. 2018 chapter)."
+  ]
+ },
+ {
+  "id": "sun_cps_model",
+  "name": "Generalized collaborative problem solving competency model (Sun, Shute, D'Mello et al.)",
+  "family": "observational-scheme",
+  "native_mode": "observer coding of video for per-person verbal and non-verbal indicators",
+  "constructs": [
+   "constructing shared knowledge",
+   "negotiation/coordination",
+   "maintaining team function"
+  ],
+  "A": {
+   "total": 33,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Coders trained to ICC .80 (Study 1); agreement .92 Spearman (Study 2); one paper.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "Convergent and discriminant: facets largely unrelated to personality and intelligence.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Constructing shared knowledge predicted task score (B=1.57) in students; non-work criterion.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single research group.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "33 middle-school students; 111 undergraduates.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Negotiation/coordination unexpectedly predicted perceived outcomes negatively.",
+     "sources": [
+      "sun2020"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Indicators published (NSF public-access copy); English only.",
+     "sources": [
+      "sun2020"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 75,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect: the same group automated a sibling CPS framework from speech (pugh2021).",
+     "sources": [
+      "pugh2021"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual within triad.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Indicators readable in a public-access copy; licence not stated.",
+     "sources": [
+      "sun2020"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Core teamwork.",
+     "sources": [
+      "sun2020"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use",
+   "reason": "Individual-level teamwork indicators with initial convergent/discriminant evidence; good seed for the teamwork indicator cards."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Transfer from student game tasks to workplace meetings."
+  ]
+ },
+ {
+  "id": "pisa_atc21s_cps",
+  "name": "PISA 2015 / ATC21S collaborative problem solving frameworks",
+  "family": "observational-scheme",
+  "native_mode": "coding of logged chat and actions in collaborative tasks",
+  "constructs": [
+   "collaborative problem solving"
+  ],
+  "A": {
+   "total": 7,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "Negative, exploratory: 'weak' predictive validity of the PISA framework (24 students).",
+     "sources": [
+      "nouri2017"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "One small independent study.",
+     "sources": [
+      "nouri2017"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "School samples.",
+     "sources": [
+      "care2014",
+      "nouri2017"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Mode of communication changes what can be assessed.",
+     "sources": [
+      "nouri2017"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 44,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Scored from task logs/chat.",
+     "sources": [
+      "care2014"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect (chat-based scoring).",
+     "sources": [
+      "care2014"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "care2014"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found (framework documents not reached).",
+     "sources": []
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "care2014"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Education frameworks, not reached in full, weak validity signal."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "PISA 2015 CPS framework text."
+  ]
+ },
+ {
+  "id": "twente_leader_coding",
+  "name": "Twente leader-behaviour video coding scheme (Hoogeboom & Wilderom)",
+  "family": "observational-scheme",
+  "native_mode": "observer coding of videotaped real staff meetings",
+  "constructs": [
+   "11 leader behaviours: directing, verifying, structuring, informing, visioning, intellectual stimulation, individualized consideration, listening, etc."
+  ],
+  "A": {
+   "total": 15,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "95.4% coder agreement in a student thesis (secondary, not chance-corrected).",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "Negative (preliminary): highly vs moderately effective leaders (n=16 vs 13) did not differ in any behaviour share.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single group.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "29 leaders in Dutch organisations.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Frequencies alone did not discriminate effectiveness.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 68,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual leader.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Code list public in an open conference paper; codebook not public.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership.",
+     "sources": [
+      "hoogeboom2012"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Useful list of codable leader behaviours in meetings; its own validity evidence is negative so far."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Hoogeboom 2019 thesis results (101 leaders, secondary)."
+  ]
+ },
+ {
+  "id": "observer_rated_tli",
+  "name": "Observer-rated transformational leadership from video (German TLI)",
+  "family": "observational-scheme",
+  "native_mode": "follower questionnaire transferred to trained observers rating video",
+  "constructs": [
+   "transformational leadership"
+  ],
+  "A": {
+   "total": 23,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "6 trained raters on one meeting: ICC1 .28 (single rater, poor), ICC2 .66 (mean of 6).",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Nomological: related to leaders' solution-focused talk.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "30 real meetings.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Single-rater reliability poor; six raters needed for .66.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 47,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Native validated mode is follower report; observer use is a transfer.",
+     "sources": [
+      "lehmannwillenbrock2015",
+      "derue2011"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual leader.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership.",
+     "sources": [
+      "lehmannwillenbrock2015"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Direct evidence of what happens when a questionnaire is carried to observation: single-observer reliability collapses to .28."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "riverside_behavioral_qsort",
+  "name": "Riverside Behavioral Q-sort (RBQ)",
+  "family": "observational-scheme",
+  "native_mode": "trained coders Q-sort 64 behaviour items from videotaped interaction",
+  "constructs": [
+   "mid-level social behaviours linked to personality"
+  ],
+  "A": {
+   "total": 23,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "'Adequate' reliability (abstract via search).",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Correlates with personality and reflects manipulations (abstract).",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single developer group.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Lab dyads, 2000.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Items were public (site now offline, archived); English.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 68,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Items publicly readable; licence not stated.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality expressed in behaviour.",
+     "sources": [
+      "funder2000_rbq"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "The established route for observing personality-relevant behaviour; coefficients still to be obtained."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Funder et al. 2000 full text."
+  ]
+ },
+ {
+  "id": "expressiveness_coding",
+  "name": "Behavioural expressiveness coding in group interaction (Bleckmann & Wagner)",
+  "family": "observational-scheme",
+  "native_mode": "trained observers code 30-s sequences of a 10-min group interaction",
+  "constructs": [
+   "verbal and non-verbal expressiveness"
+  ],
+  "A": {
+   "total": 21,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Person means ICC(2,k) > .89 aggregated over sequences (one study).",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Converged with extraversion (convergent only).",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "301 adolescents, 2025.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "More than 49% within-person variance: one short sample is not enough.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open article (CC BY-NC-ND), German sample.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 68,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer coding of interaction.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "CC BY-NC-ND: cite only.",
+     "sources": [
+      "bleckmann2025"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality (extraversion expression).",
+     "sources": [
+      "bleckmann2025"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Shows reliable person scores need aggregation over many short sequences."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "clinical_marker_systems",
+  "name": "Clinical behavioural marker systems (ANTS, Oxford NOTECHS II, TeamSTEPPS TPOT/PACT, Co-ACT)",
+  "family": "observational-scheme",
+  "native_mode": "observer rating of live or video simulations with behavioural categories",
+  "constructs": [
+   "situation awareness",
+   "communication",
+   "leadership",
+   "coordination",
+   "teamwork"
+  ],
+  "A": {
+   "total": 37,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "PACT ICC(1,k) .76-.90 (chiu2014); NOTECHS II 'good' agreement (robertson2014); Co-ACT 'substantial' (secondary); Thai TPOT alpha .96 / ICC .98 (secondary).",
+     "sources": [
+      "chiu2014_pact",
+      "robertson2014",
+      "kolbe2013_coact",
+      "tpot_validations"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 8,
+     "why": "Weak: NOTECHS II r=-.26 with operating-theatre glitches; known-groups difference 74.5 vs 71.1.",
+     "sources": [
+      "robertson2014"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Mixed: developers author most studies; independent thesis (PACT).",
+     "sources": [
+      "robertson2014",
+      "chiu2014_pact"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "297 operations in 5 NHS sites, 2014.",
+     "sources": [
+      "robertson2014"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Weak criterion link.",
+     "sources": [
+      "robertson2014"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 53,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer rating of interaction.",
+     "sources": [
+      "robertson2014"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Mostly team-level (ANTS individual, secondary only).",
+     "sources": [
+      "robertson2014",
+      "fletcher2003_ants"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "TPOT free from AHRQ; others academic.",
+     "sources": [
+      "chiu2014_pact"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "robertson2014"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Model for writing behavioural markers and training raters; clinical and mostly team-level."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "bales_ipa_symlog",
+  "name": "Bales Interaction Process Analysis / SYMLOG",
+  "family": "observational-scheme",
+  "native_mode": "observer interaction scoring (original); questionnaire ratings in current vendor use",
+  "constructs": [
+   "task and socio-emotional acts",
+   "dominance/friendliness/task orientation"
+  ],
+  "A": {
+   "total": 2,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (vendor claims only).",
+     "sources": [
+      "symlog_evidence"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found; predictive validity 'under-researched' per an independent comment.",
+     "sources": [
+      "symlog_evidence"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "One independent comment.",
+     "sources": [
+      "symlog_evidence"
+     ]
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": -3,
+     "why": "Needs intensive scorer training.",
+     "sources": [
+      "symlog_evidence"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 57,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer scoring of interaction (original).",
+     "sources": [
+      "symlog_evidence"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual acts/members.",
+     "sources": [
+      "symlog_evidence"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 7,
+     "why": "Group interaction.",
+     "sources": [
+      "symlog_evidence"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Historical base of act4teams and the Twente scheme; no usable evidence collected."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "observer_rated_big_five",
+  "name": "Other-/observer-rated Big Five (acquaintances, strangers, thin slices)",
+  "family": "peer/other-report",
+  "native_mode": "other-report by acquaintances or strangers",
+  "constructs": [
+   "Big Five as perceived by others"
+  ],
+  "A": {
+   "total": 61,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Meta-analytic single-rater inter-rater rho: extraversion .51, ES .40, A .40, O .39 overall; strangers ES .27 to E .48 (mostly poor-moderate); cross-situational consistency .43 (secondary).",
+     "sources": [
+      "connelly2010",
+      "borkenau2004"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Accuracy/convergence with self-ratings reported but coefficients not extracted.",
+     "sources": [
+      "connelly2010"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Meta-analyses: other-ratings predict job performance better than and incrementally to self-reports (coefficients not seen).",
+     "sources": [
+      "connelly2010",
+      "ohwangmount2011"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Two independent meta-analyses agree.",
+     "sources": [
+      "connelly2010",
+      "ohwangmount2011"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "263 samples, 44,178 targets.",
+     "sources": [
+      "connelly2010"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "Needs acquaintance for low-visibility traits; strangers from text/electronic communication only .11-.28.",
+     "sources": [
+      "connelly2010"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 73,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Other-report.",
+     "sources": [
+      "connelly2010"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "Automatic scores converge with observer criteria (AVI .40; LLM zero-shot comparable), but human text-only consensus is low (.11-.28): contrary evidence.",
+     "sources": [
+      "hickman2022",
+      "zhang2024",
+      "connelly2010"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "connelly2010"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "No open observer form verified (IPIP secondary).",
+     "sources": [
+      "goldberg2006"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "connelly2010"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "If personality stays in scope, define it as observer-perceived personality, validated against several human observers, and expect a ceiling near human text-only consensus."
+  },
+  "popular_but_weak": false,
+  "disagreements": [
+   "instruments notes give emotional stability .40 overall and .27 for strangers; both match connelly2010 tables (overall vs stranger subsets), not a conflict."
+  ],
+  "open_questions": [
+   "Oh, Wang & Mount 2011 coefficients.",
+   "Stranger consensus for speech transcripts specifically (Connelly's text category has k=3-4)."
+  ]
+ },
+ {
+  "id": "multisource_360",
+  "name": "Multisource (360-degree) feedback ratings",
+  "family": "peer/other-report",
+  "native_mode": "other-report by subordinates, peers, supervisors",
+  "constructs": [
+   "any competency on the form"
+  ],
+  "A": {
+   "total": 39,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Meta-analytic single-rater inter-rater: subordinates .30, peers .37, supervisors .50 (secondary).",
+     "sources": [
+      "conway1997"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Cross-source correlations .14-.34 (secondary).",
+     "sources": [
+      "conway1997"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found for selection criteria; after feedback improvement is 'generally small' (24 studies).",
+     "sources": [
+      "smither2005"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Independent meta-analyses.",
+     "sources": [
+      "conway1997",
+      "smither2005"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Large but older (1997, 2005).",
+     "sources": [
+      "conway1997"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "A single peer rating is unreliable.",
+     "sources": [
+      "conway1997"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 44,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Other-report.",
+     "sources": [
+      "conway1997"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "conway1997"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 7,
+     "why": "Any competency incl. leadership.",
+     "sources": [
+      "conway1997"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Any peer-rating layer of the product needs several raters per person."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Conway & Huffcutt 1997 full text."
+  ]
+ },
+ {
+  "id": "catme",
+  "name": "CATME / CATME-B (peer evaluation with behavioural anchors)",
+  "family": "peer/other-report",
+  "native_mode": "peer and self rating on behaviourally anchored scales",
+  "constructs": [
+   "contributing to team's work",
+   "interacting with teammates",
+   "keeping team on track",
+   "expecting quality",
+   "task-related KSAs"
+  ],
+  "A": {
+   "total": 28,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Anchors improved inter-rater reliability (2005 study, secondary).",
+     "sources": [
+      "ohland2012"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Spanish CATME-S CFA adequate in 949 students (secondary).",
+     "sources": [
+      "catmes2022"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found (validation papers not opened).",
+     "sources": [
+      "ohland2012"
+     ]
+    },
+    "A4": {
+     "score": 10,
+     "why": "Owners plus one independent Spanish adaptation.",
+     "sources": [
+      "ohland2012",
+      "catmes2022"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Students.",
+     "sources": [
+      "catmes2022"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 12,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "Spanish CATME-S adaptation (secondary).",
+     "sources": [
+      "catmes2022"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 52,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Peer report with behavioural anchors.",
+     "sources": [
+      "catme_asee2006"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "catme_asee2006"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Anchors published; system is the owners'.",
+     "sources": [
+      "catme_asee2006"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "catme_asee2006"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Good template for behaviourally anchored peer items in the product's peer-evaluation layer."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Ohland 2012 and Loughry 2007 figures."
+  ]
+ },
+ {
+  "id": "mlq",
+  "name": "Multifactor Leadership Questionnaire (MLQ)",
+  "family": "peer/other-report",
+  "native_mode": "follower (other-report) questionnaire about the leader",
+  "constructs": [
+   "transformational",
+   "transactional",
+   "laissez-faire leadership"
+  ],
+  "A": {
+   "total": 48,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Spanish CFA (N=954) separates transformational/transactional but structure differs from original (secondary).",
+     "sources": [
+      "molero2010mlq"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Meta-analysis: traits plus behaviours (measured mainly with MLQ/LBDQ) explain >= 31% of variance in leadership effectiveness; behaviours more than traits.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Independent meta-analysis.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Meta-analytic, 2011.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 12,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "Spanish adaptation (secondary); commercial (Mind Garden).",
+     "sources": [
+      "molero2010mlq"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 47,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Other-report (followers).",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual leader.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Commercial.",
+     "sources": [
+      "molero2010mlq"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership.",
+     "sources": [
+      "derue2011"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "A follower-report criterion for validating any leadership indicator, not a scoring basis."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "lbdq_yukl",
+  "name": "Follower-rated leader-behaviour questionnaires (LBDQ; Yukl's task/relations/change taxonomy)",
+  "family": "peer/other-report",
+  "native_mode": "subordinate questionnaires",
+  "constructs": [
+   "initiating structure",
+   "consideration",
+   "task, relations and change behaviour"
+  ],
+  "A": {
+   "total": 48,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "CFA supports three metacategories (structural only).",
+     "sources": [
+      "yukl2002"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Meta-analysis: initiating structure/consideration among behaviours explaining >= 31% of effectiveness variance.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Independent.",
+     "sources": [
+      "derue2011",
+      "yukl2002"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "2002-2011.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 47,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Other-report.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual leader.",
+     "sources": [
+      "derue2011"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership.",
+     "sources": [
+      "derue2011"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Taxonomy for naming leader behaviours (task/relations/change) that can be mapped to codable talk."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "shl_ucf_great_eight",
+  "name": "SHL Universal Competency Framework / Great Eight",
+  "family": "framework",
+  "native_mode": "job profiling by incumbents/SMEs; people assessed with OPQ, ability tests, interviews, AC",
+  "constructs": [
+   "8 factors / 20 dimensions / 96 components, e.g. Leading and Deciding, Interacting and Presenting"
+  ],
+  "A": {
+   "total": 31,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (reliability of the 96-component level not found).",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Vendor profile-level convergence: O*NET-derived vs incumbent profiles r=.86 over 125 jobs (job descriptions, not people).",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Vendor meta-analysis, 29 studies, N=4,861: tests vs manager-rated competencies .20-.44 (abstract via search).",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor only.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "N=4,861, 2005.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Criterion is line-manager ratings (shared method variance); conflict of interest.",
+     "sources": [
+      "bartram2005"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor claims.",
+     "sources": [
+      "shl_ucf_guide"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 24,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Validated through tests/self-report.",
+     "sources": [
+      "bartram2005"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Behavioural anchors in client-only packs.",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Leading/Interacting named with definitions; indicators gated.",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Best example of competency-to-job mapping (O*NET equations), but content and evidence are the vendor's."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "UCF technical manual (2019)."
+  ]
+ },
+ {
+  "id": "hogan_competency_model",
+  "name": "Hogan Competency Model",
+  "family": "framework",
+  "native_mode": "personality self-report mapped to competencies; SME job analysis",
+  "constructs": [
+   "56 competencies in 4 domains incl. Negotiation, Managing Conflict, Motivating Others"
+  ],
+  "A": {
+   "total": 10,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "SME job-analysis inter-rater .92/.89 (N=9 SMEs; job ratings, not people).",
+     "sources": [
+      "hogan_sales_techreport"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found (synthetic validity claimed, no coefficients).",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor only.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "Vendor statements.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor claims.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 32,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self-report mapped.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "One-line definitions readable in a public whitepaper.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Negotiation and leadership named, no indicators.",
+     "sources": [
+      "hogan_competency_model"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Shows the SME job-analysis link; no observable indicators."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "kornferry_leadership_architect",
+  "name": "Korn Ferry Leadership Architect (Lominger)",
+  "family": "framework",
+  "native_mode": "multi-rater 360 and interview",
+  "constructs": [
+   "38 competencies (earlier 67)"
+  ],
+  "A": {
+   "total": 8,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 8,
+     "why": "Vendor figure: proficiency accounts for 43-64% of performance variance, no sample or method.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor only.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "No sample.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Shared rater variance likely, no corrections.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor claims.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 41,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Multi-rater other-report.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Copyrighted.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Leadership competencies named.",
+     "sources": [
+      "kornferry_21st_century"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Unverifiable vendor figures; gated content."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "ddi_success_profiles",
+  "name": "DDI Success Profiles",
+  "family": "framework",
+  "native_mode": "behavioural interview / simulation (DDI practice)",
+  "constructs": [
+   "knowledge, experience, competencies with key actions, personal attributes"
+  ],
+  "A": {
+   "total": 2,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "Vendor only.",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "Vendor statements.",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Vendor client survey (91% 'more fair').",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 27,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Interview/simulation scored by assessors.",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "Proprietary.",
+     "sources": [
+      "ddi_competency_mgmt"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "No psychometrics found."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "competency_modeling_process",
+  "name": "Competency modelling as practised (Campion et al. best practices; SIOP task force)",
+  "family": "framework",
+  "native_mode": "SME interviews/focus groups/surveys define competencies and map them to jobs",
+  "constructs": [
+   "job-to-competency linkage"
+  ],
+  "A": {
+   "total": 14,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative (direction only, secondary): untrained raters' competency inferences had poor inter-rater reliability, improved with task information and experts.",
+     "sources": [
+      "lievens2004"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found: authors call the approach 'experience based rather than empirically based'.",
+     "sources": [
+      "campion2011"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent reviews agree.",
+     "sources": [
+      "campion2011",
+      "shippmann2000",
+      "stevens2013"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "Conceptual reviews.",
+     "sources": [
+      "campion2011"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Weak rigor vs job analysis; conceptual ambiguity.",
+     "sources": [
+      "shippmann2000",
+      "stevens2013"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 47,
+   "lines": {
+    "B1": {
+     "score": 25,
+     "why": "Competency interviews 52% of Spanish SMEs; competency scales 53% in COP Madrid sample.",
+     "sources": [
+      "alonso2015",
+      "cop_madrid_encuesta2015"
+     ]
+    },
+    "B2": {
+     "score": 10,
+     "why": "SIOP task-force review is critical; best-practice guidance exists.",
+     "sources": [
+      "shippmann2000",
+      "campion2011"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "Practised widely in Spain.",
+     "sources": [
+      "alonso2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 25,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No person-level assessment mode; unit is the job.",
+     "sources": [
+      "campion2011"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect: LLM extraction of behaviours from interview transcripts mapped to libraries (preprint, abstract).",
+     "sources": [
+      "llm_competency2026"
+     ]
+    },
+    "C3": {
+     "score": 0,
+     "why": "Unit is the job, not a person.",
+     "sources": [
+      "campion2011"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Process published openly.",
+     "sources": [
+      "campion2011"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "None directly.",
+     "sources": [
+      "campion2011"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "The procedure for linking competencies to job profiles; treat its products as judgements needing reliability checks, not evidence."
+  },
+  "popular_but_weak": true,
+  "disagreements": [],
+  "open_questions": [
+   "Lievens 2004 figures."
+  ]
+ },
+ {
+  "id": "mcclelland_spencer_competencies",
+  "name": "McClelland / Spencer & Spencer / Boyatzis competency approach",
+  "family": "framework",
+  "native_mode": "behavioural event interview (proposed)",
+  "constructs": [
+   "competencies such as communication skills"
+  ],
+  "A": {
+   "total": 2,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found (argumentative paper).",
+     "sources": [
+      "mcclelland1973"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "One independent critique.",
+     "sources": [
+      "barrett_depinet1991"
+     ]
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": -3,
+     "why": "Critique: claims against aptitude testing unsupported.",
+     "sources": [
+      "barrett_depinet1991"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found (dictionary not located).",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 31,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Interview.",
+     "sources": [
+      "mcclelland1973"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "mcclelland1973"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 4,
+     "why": "Communication named.",
+     "sources": [
+      "mcclelland1973"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Historical origin of 'competencies'; no evidence collected."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "onet_work_styles",
+  "name": "O*NET Work Styles (and skills)",
+  "family": "framework",
+  "native_mode": "SME/analyst rating of occupations",
+  "constructs": [
+   "work styles aligned with Big Five; skills"
+  ],
+  "A": {
+   "total": 45,
+   "lines": {
+    "A1": {
+     "score": 14,
+     "why": "Expert-panel inter-rater mean ICC(C,5) .86 across 125 occupations (5th percentile .74; Dependability .57).",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Structural mapping: 11 of 16 lower-order styles map to one Big Five trait (as cited).",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 15,
+     "why": "Government contractor, independent of vendors.",
+     "sources": [
+      "onet_work_styles_2024",
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "125/891 occupations, 2024-25.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 14,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Used by SHL mapping (vendor) and the US labour system; no adoption survey.",
+     "sources": [
+      "shl_ucf_whitepaper"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "US public domain, English, US occupations.",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 29,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "Rates occupations, not people.",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect: LLM ratings of occupation descriptions converge with experts (.84 vs analysts .76).",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "C3": {
+     "score": 0,
+     "why": "Unit is the occupation.",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Public domain.",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Personality requirements of jobs.",
+     "sources": [
+      "onet_work_styles_2024"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "The open job-profile side: occupation vectors of work styles/skills to link person scores to jobs."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Final 2025 Work Styles structure."
+  ]
+ },
+ {
+  "id": "uk_civil_service_behaviours",
+  "name": "UK Civil Service Success Profiles: Behaviours",
+  "family": "framework",
+  "native_mode": "application, interview, judgement test, presentation, in-tray (assessor rated)",
+  "constructs": [
+   "Leadership",
+   "Communicating and Influencing",
+   "Working Together",
+   "and others, level-graded"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 14,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Owner is the adopter (UK Civil Service).",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "English; Open Government Licence.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 52,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Interview/simulation scored by assessors.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Open Government Licence v3.0.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership and influencing written as observable, level-graded actions.",
+     "sources": [
+      "ukcs_success_profiles"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Best reusable behavioural text (open licence, observable, level-graded, chosen per job); no validation evidence."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Any internal validation by the Civil Service."
+  ]
+ },
+ {
+  "id": "sfia9",
+  "name": "SFIA 9 behavioural factors",
+  "family": "framework",
+  "native_mode": "role/level mapping, not a person measure",
+  "constructs": [
+   "collaboration, communication, leadership by level of responsibility"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found (licence not verified).",
+     "sources": [
+      "sfia9_behavioural"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 12,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "Not a person measure.",
+     "sources": [
+      "sfia9_behavioural"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 0,
+     "why": "Unit is the role level.",
+     "sources": [
+      "sfia9_behavioural"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Publicly readable; licence not verified.",
+     "sources": [
+      "sfia9_behavioural"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Named only.",
+     "sources": [
+      "sfia9_behavioural"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Ready role-level structure for IT jobs; nothing to score with."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "SFIA licence terms."
+  ]
+ },
+ {
+  "id": "lifecomp_entrecomp",
+  "name": "LifeComp (and EntreComp), EU JRC frameworks",
+  "family": "framework",
+  "native_mode": "none (educational framework)",
+  "constructs": [
+   "9 competences incl. empathy, communication, collaboration; S3.2 coping with conflicts and negotiating disagreements"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found (content validity by stakeholder consultation only).",
+     "sources": [
+      "lifecomp2020"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "CC BY 4.0, English; Spanish translation not verified.",
+     "sources": [
+      "lifecomp2020"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 37,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No instrument.",
+     "sources": [
+      "lifecomp2020"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual competences.",
+     "sources": [
+      "lifecomp2020"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "CC BY 4.0.",
+     "sources": [
+      "lifecomp2020"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Collaboration, negotiating disagreements.",
+     "sources": [
+      "lifecomp2020"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Open descriptors for vocabulary; not an assessment."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "EntreComp content (secondary only)."
+  ]
+ },
+ {
+  "id": "esco_transversal",
+  "name": "ESCO transversal skills",
+  "family": "framework",
+  "native_mode": "none (taxonomy)",
+  "constructs": [
+   "transversal skills and competences"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 14,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Used to code 1.7 million Catalan vacancies (research use, demand side).",
+     "sources": [
+      "duran2024"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Spanish names on portal (not verified).",
+     "sources": [
+      "esco_tsc2020"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 27,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No instrument.",
+     "sources": [
+      "esco_tsc2020"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual skills.",
+     "sources": [
+      "esco_tsc2020"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Readable; licence not verified.",
+     "sources": [
+      "esco_transversal_terminology"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Names only.",
+     "sources": [
+      "esco_tsc2020"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Useful for mapping to EU occupation codes; no indicators."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "ESCO licence and structure counts."
+  ]
+ },
+ {
+  "id": "nace_career_readiness",
+  "name": "NACE career readiness competencies",
+  "family": "framework",
+  "native_mode": "student/employer self- and employer rating",
+  "constructs": [
+   "8 competencies with sample behaviours, e.g. Leadership, Teamwork, Communication"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 35,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Self/employer rating.",
+     "sources": [
+      "nace_competencies"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "nace_competencies"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Readable; reprint terms not verified.",
+     "sources": [
+      "nace_competencies"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Leadership and teamwork sample behaviours.",
+     "sources": [
+      "nace_competencies"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Graduate-level behaviour lists without evidence."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "conocer_ec0554",
+  "name": "CONOCER EC0554.01 Teamwork standard (Mexico)",
+  "family": "framework",
+  "native_mode": "observer rating of a simulated team task against observable criteria",
+  "constructs": [
+   "inclusive communication",
+   "fostering collaboration",
+   "task-oriented actions",
+   "moderating conflict through negotiation"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found (developed by a ManpowerGroup committee).",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 12,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 12,
+     "why": "In Spanish (Mexico), free to read.",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 65,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer rating of interaction in a simulation (not validated).",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Free to read; reuse terms not checked.",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork incl. conflict negotiation.",
+     "sources": [
+      "conocer_ec0554"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Spanish-language observable teamwork criteria ready to adapt; no psychometrics."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Reliability of certifiers' ratings."
+  ]
+ },
+ {
+  "id": "big_five_teamwork_salas",
+  "name": "Big Five of teamwork (Salas, Sims & Burke)",
+  "family": "framework",
+  "native_mode": "framework; observational use in later studies unverified",
+  "constructs": [
+   "team leadership",
+   "mutual performance monitoring",
+   "backup behaviour",
+   "adaptability",
+   "team orientation",
+   "shared mental models",
+   "closed-loop communication",
+   "mutual trust"
+  ],
+  "A": {
+   "total": 9,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "One qualitative application (3 agile teams).",
+     "sources": [
+      "strode2016"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "3 cases.",
+     "sources": [
+      "strode2016"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 18,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No instrument.",
+     "sources": [
+      "salas2005"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Team processes.",
+     "sources": [
+      "salas2005"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Definitions citable (open secondary source).",
+     "sources": [
+      "strode2016"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Core teamwork.",
+     "sources": [
+      "salas2005"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Conceptual map of teamwork; original not opened."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Salas 2005 full text."
+  ]
+ },
+ {
+  "id": "team_process_taxonomy",
+  "name": "Marks-Mathieu-Zaccaro team process taxonomy (LePine et al. meta-analysis)",
+  "family": "framework",
+  "native_mode": "mostly questionnaire in primary studies (not verified)",
+  "constructs": [
+   "transition, action, interpersonal processes (names unverified)"
+  ],
+  "A": {
+   "total": 48,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Meta-analytic support for 3 higher-order dimensions plus a general factor (structural only).",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "A3": {
+     "score": 20,
+     "why": "Meta-analysis: processes relate positively to team performance and satisfaction (no coefficients seen).",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Independent.",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "2008.",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 23,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Mostly questionnaires (unverified).",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Team.",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Cite.",
+     "sources": [
+      "lepine2008"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "lepine2008"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Defensible structure for organising teamwork indicators."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "LePine 2008 coefficients and dimension names."
+  ]
+ },
+ {
+  "id": "negotiation_competency_model",
+  "name": "Negotiation competency model (Smolinski & Xiong)",
+  "family": "framework",
+  "native_mode": "judge rating of simulated negotiations",
+  "constructs": [
+   "language and emotionality",
+   "negotiation intelligence",
+   "relationship building",
+   "moral wisdom"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found (content validity by literature and interviews only).",
+     "sources": [
+      "smolinski2020"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": -2,
+     "why": "Judges could not rate more than ten competencies in 60 minutes.",
+     "sources": [
+      "smolinski2020"
+     ]
+    }
+   },
+   "note": "raw sum -2 floored at 0"
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open article (CC BY-NC), English.",
+     "sources": [
+      "smolinski2020"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 68,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Observer (judge) rating of interaction.",
+     "sources": [
+      "smolinski2020"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "smolinski2020"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "CC BY-NC.",
+     "sources": [
+      "smolinski2020"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Negotiation.",
+     "sources": [
+      "smolinski2020"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Source of behavioural indicators and proficiency levels for negotiation anchors; no psychometrics."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "collective_intelligence",
+  "name": "Collective intelligence factor (Woolley et al.)",
+  "family": "framework",
+  "native_mode": "group test battery",
+  "constructs": [
+   "group collective intelligence",
+   "social perceptiveness"
+  ],
+  "A": {
+   "total": 21,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Meta-analytic support for a CI factor (22 studies) by the originators; others questioned it.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 10,
+     "why": "Originators' meta-analysis; critique not retrieved.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "5,279 people, 1,356 groups, lab.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Replication contested.",
+     "sources": [
+      "riedl2021",
+      "woolley2010"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 20,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Test.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Group.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Open article.",
+     "sources": [
+      "riedl2021"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent.",
+     "sources": [
+      "riedl2021"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Group-level construct; collaboration process matters more than individual skill."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "project_aristotle",
+  "name": "Google Project Aristotle (team effectiveness dynamics)",
+  "family": "framework",
+  "native_mode": "internal survey of teams",
+  "constructs": [
+   "psychological safety, dependability, structure, meaning, impact"
+  ],
+  "A": {
+   "total": 2,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found (no effect sizes published).",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "A4": {
+     "score": 0,
+     "why": "Company only.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "A5": {
+     "score": 2,
+     "why": "180 teams at one company, methods summarised only.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 8,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Company's own use.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 23,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Survey.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 3,
+     "why": "Team.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Public page.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "rework_aristotle"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Anecdote-grade company write-up; do not cite as evidence."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "ml_scoring_ac_roleplays",
+  "name": "ML scoring of transcribed AC role-plays (Hickman et al. 2023)",
+  "family": "automatic-method",
+  "native_mode": "NLP models trained on trained-assessor ratings of manual transcripts",
+  "constructs": [
+   "interpersonal effectiveness in role-plays"
+  ],
+  "A": {
+   "total": 23,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found for the ML score itself; criterion single-assessor G averaged .38.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "Convergent with assessors about .03 above single-rater reliability; OAR-level .76-.79; word-count contamination checked (chosen model .38 vs human .44).",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Instructor ratings 7 months later: ML OAR r=.47, role player + ML .55, full human panel .57, role player alone .53 (MBA students).",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single independent study.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "N=96.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "Word-count contamination up to .88 for some models; ASR abandoned for noise.",
+     "sources": [
+      "hickman2023"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 16,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 10,
+     "why": "General guidance: compare automated with two independent human raters (itc2022); fully automated scoring is not an AC (rupp2015).",
+     "sources": [
+      "itc2022",
+      "rupp2015"
+     ]
+    },
+    "B3": {
+     "score": 0,
+     "why": "Negative in general: applicants judge algorithmic evaluation less fair.",
+     "sources": [
+      "robots2022",
+      "moritz2023"
+     ]
+    },
+    "B4": {
+     "score": 6,
+     "why": "Method in open paper; English.",
+     "sources": [
+      "hickman2023"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 83,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Criterion is trained-observer rating of interaction.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Method described; models not released.",
+     "sources": [
+      "hickman2023"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Interpersonal.",
+     "sources": [
+      "hickman2023"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use",
+   "reason": "The validation template for the product: machine as one rater among humans, checked for word-count contamination, against a later criterion."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Replication with ASR transcripts and real workplace criteria."
+  ]
+ },
+ {
+  "id": "avi_personality",
+  "name": "Automated video-interview personality assessment (Hickman et al. 2022)",
+  "family": "automatic-method",
+  "native_mode": "ML on verbal/paraverbal/non-verbal features, trained on self- or interviewer-reports",
+  "constructs": [
+   "Big Five"
+  ],
+  "A": {
+   "total": 35,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Test-retest of automated scores .46 (self-trained) / .50 (interviewer-trained), N=99.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "MTMM: interviewer-trained convergent .40, discriminant .20; self-trained .12 / .04.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Academic outcomes only.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single independent study (3 samples).",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "N=1,073, mostly students, mock interviews.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Self-report-trained models show little validity; not real applicants.",
+     "sources": [
+      "hickman2022"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "Negative in general: automated interview evaluation worsens applicant reactions (secondary).",
+     "sources": [
+      "langer2020",
+      "robots2022"
+     ]
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open accepted manuscript.",
+     "sources": [
+      "hickman2022"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 55,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Criterion: interviewer ratings of interview behaviour.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study with human-criterion agreement.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "hickman2022"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found (models not available).",
+     "sources": []
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "hickman2022"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Key lesson: train on observer labels; convergence reaches about one interviewer and no job criterion exists."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "llm_zero_shot_personality",
+  "name": "LLM zero-shot personality rating from interview transcripts (Zhang et al. 2024)",
+  "family": "automatic-method",
+  "native_mode": "GPT-3.5/4 prompted on interview answers",
+  "constructs": [
+   "Big Five/HEXACO",
+   "job-related competences"
+  ],
+  "A": {
+   "total": 14,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative: 'insufficient test-retest reliability'.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Zero-shot validity vs observer/self-report comparable to a trained model, uneven across traits.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "Negative: R2 < 0 for job-related competences and interview performance (context to be checked).",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single independent study.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "685 participants, simulated AVI, 2024.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "Biases; prompt sensitivity and model drift unresolved.",
+     "sources": [
+      "zhang2024"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open author version.",
+     "sources": [
+      "zhang2024"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 63,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Criterion: observer ratings of interview answers.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study, transcript-only.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Method described; proprietary models.",
+     "sources": [
+      "zhang2024"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "zhang2024"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Closest test of what the product would do with an LLM, and it failed on reliability and on competences."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Exact model/criterion behind R2 < 0."
+  ]
+ },
+ {
+  "id": "interview_performance_prediction",
+  "name": "Automated interview-performance prediction (Naim et al. 2015)",
+  "family": "automatic-method",
+  "native_mode": "facial, prosodic and lexical features vs crowd ratings",
+  "constructs": [
+   "overall interview performance",
+   "engagement",
+   "friendliness"
+  ],
+  "A": {
+   "total": 10,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative for the criterion: crowd inter-rater alpha .19 for overall (read from figure layout).",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Agreement with crowd impressions r > .65 (overall), >= .75 for engagement/friendliness.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "69 MIT students.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "A6": {
+     "score": -5,
+     "why": "Criterion unreliable; facial/prosodic inference would fall under EU biometric/emotion rules.",
+     "sources": [
+      "naim2015",
+      "ec_guidelines_prohibited"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open paper.",
+     "sources": [
+      "naim2015"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 57,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Untrained crowd raters of interviews.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Dataset availability not verified.",
+     "sources": [
+      "naim2015"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent.",
+     "sources": [
+      "naim2015"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Predicts lay impressions with an unreliable criterion; biometric features."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "apparent_personality_chalearn",
+  "name": "Apparent personality from short video (ChaLearn First Impressions)",
+  "family": "automatic-method",
+  "native_mode": "models trained on crowd pairwise judgements of 15-s clips",
+  "constructs": [
+   "apparent Big Five"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 0,
+     "why": "Negative: labels are impressions biased by perceived gender, ethnicity, age, attractiveness.",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "One independent critique.",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "~10,000 YouTube clips, not work.",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "A6": {
+     "score": -10,
+     "why": "Documented observer bias; 86% Caucasian.",
+     "sources": [
+      "jacques2021"
+     ]
+    }
+   },
+   "note": "raw sum -1 floored at 0"
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 47,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Crowd impressions.",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect (challenge papers not opened).",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "jacques2021"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "jacques2021"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Learns observer bias; 'apparent' personality is not personality."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "personality_from_language",
+  "name": "Personality from language (Mairesse; Schwartz; Park)",
+  "family": "automatic-method",
+  "native_mode": "language models trained on self-reports (and observer ratings in Mairesse)",
+  "constructs": [
+   "Big Five"
+  ],
+  "A": {
+   "total": 33,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Six-month stability of language-based scores (abstract).",
+     "sources": [
+      "park2015"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Convergence with self and informant reports; MTMM C1 .38 for Park models as tabulated by Hickman.",
+     "sources": [
+      "park2015",
+      "hickman2022"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent groups.",
+     "sources": [
+      "mairesse2007",
+      "schwartz2013",
+      "park2015"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Large social-media samples (66,732 / 75,000), not work speech.",
+     "sources": [
+      "park2015",
+      "schwartz2013"
+     ]
+    },
+    "A6": {
+     "score": -3,
+     "why": "Openness not above baseline in conversation; domain mismatch.",
+     "sources": [
+      "mairesse2007"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 56,
+   "lines": {
+    "C1": {
+     "score": 5,
+     "why": "Labels mostly self-report.",
+     "sources": [
+      "park2015"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "Observer-rated traits recognised better than self-rated (binary accuracy 61-68%), but human text-only consensus is low.",
+     "sources": [
+      "mairesse2007",
+      "connelly2010"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "mairesse2007"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Methods described.",
+     "sources": [
+      "mairesse2007"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Personality.",
+     "sources": [
+      "mairesse2007"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Not validated against work criteria and built on self-report labels."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "emergent_leadership_speaking_activity",
+  "name": "Emergent-leader detection from speaking activity (ELEA; speaking time)",
+  "family": "automatic-method",
+  "native_mode": "audio speaking-activity features vs peer-perceived leadership",
+  "constructs": [
+   "perceived (emergent) leadership",
+   "dominance"
+  ],
+  "A": {
+   "total": 19,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found (inter-observer agreement not stated).",
+     "sources": [
+      "elea"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Leadership related but not equivalent to dominance.",
+     "sources": [
+      "sanchez2012jmui"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found: criterion is peer perception, not effectiveness.",
+     "sources": [
+      "sanchez2010"
+     ]
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent groups.",
+     "sources": [
+      "sanchez2010",
+      "maclaren2020"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "27 zero-history student groups; 256 students (secondary).",
+     "sources": [
+      "elea",
+      "maclaren2020"
+     ]
+    },
+    "A6": {
+     "score": -6,
+     "why": "Rewards talkativeness and reproduces a gender effect.",
+     "sources": [
+      "maclaren2020"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 87,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Peer perception.",
+     "sources": [
+      "sanchez2010"
+     ]
+    },
+    "C2": {
+     "score": 25,
+     "why": "Replicated (up to 80% identification; speaking-time effect).",
+     "sources": [
+      "sanchez2010",
+      "sanchez2012jmui",
+      "maclaren2020"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "sanchez2010"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Speaking time is trivially computable from diarised audio.",
+     "sources": [
+      "maclaren2020"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Leadership (emergence).",
+     "sources": [
+      "sanchez2010"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Report participation share as a descriptive fact if useful, never as leadership skill."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "conversational_uptake",
+  "name": "Conversational uptake (Demszky et al.)",
+  "family": "automatic-method",
+  "native_mode": "unsupervised next-utterance score vs expert annotation",
+  "constructs": [
+   "building on the other speaker's contribution"
+  ],
+  "A": {
+   "total": 25,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found for the automated score; expert annotators agreed only rho .474 / kappa .286.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "Convergent with human uptake labels rho .540; relates to instruction-quality ratings (nomological).",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Education criterion (instruction quality).",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Classroom data.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Construct hard for humans to rate.",
+     "sources": [
+      "demszky2021"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open paper.",
+     "sources": [
+      "demszky2021"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 83,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Expert coding of interaction.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study, transcript-native.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Per speaker.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Method described.",
+     "sources": [
+      "demszky2021"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Listening/collaboration.",
+     "sources": [
+      "demszky2021"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "A transcript-native, speaker-level indicator of building on others; needs workplace validation."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "politeness_classifier",
+  "name": "Politeness classifier (Danescu-Niculescu-Mizil et al.)",
+  "family": "automatic-method",
+  "native_mode": "text classifier vs crowd annotators",
+  "constructs": [
+   "politeness of requests"
+  ],
+  "A": {
+   "total": 13,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found for the classifier; crowd agreement high only at the extremes.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "'Close to human performance', transfers across domains (no number extracted).",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Online requests, not spoken work talk.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Middle range not reliably judged by humans.",
+     "sources": [
+      "danescu2013"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open paper.",
+     "sources": [
+      "danescu2013"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 57,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Crowd annotators.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Per speaker.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Corpus licence not stated.",
+     "sources": [
+      "danescu2013"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent (communication).",
+     "sources": [
+      "danescu2013"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "cite-only",
+   "reason": "Linguistic style, not a competency."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "receptiveness_followup_questions",
+  "name": "Conversational receptiveness and follow-up questions (Yeomans; Huang)",
+  "family": "automatic-method",
+  "native_mode": "language models vs partner/observer perceptions",
+  "constructs": [
+   "receptiveness to opposing views",
+   "follow-up question rate"
+  ],
+  "A": {
+   "total": 21,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "Receptive language seen as better teammate/advisor (abstract).",
+     "sources": [
+      "yeomans2020"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Partner liking / second-date agreement; perceived collaborator desirability (non-work).",
+     "sources": [
+      "huang2017",
+      "yeomans2020"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Overlapping author group.",
+     "sources": [
+      "yeomans2020",
+      "huang2017"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Lab/speed-dating samples.",
+     "sources": [
+      "huang2017"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Observers did not show the follow-up-question effect.",
+     "sources": [
+      "huang2017"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Published methods; English.",
+     "sources": [
+      "yeomans2020"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 70,
+   "lines": {
+    "C1": {
+     "score": 22,
+     "why": "Partner perceptions (other-report).",
+     "sources": [
+      "yeomans2020"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "Automated language measures vs perceptions (abstract only).",
+     "sources": [
+      "yeomans2020",
+      "huang2017"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "yeomans2020"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Described.",
+     "sources": [
+      "yeomans2020"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Conflict/collaboration.",
+     "sources": [
+      "yeomans2020"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Candidate transcript indicators for listening and conflict handling."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Full texts."
+  ]
+ },
+ {
+  "id": "automated_cps_coding",
+  "name": "Automated coding of collaborative problem solving talk (Pugh 2021; Hao 2025; Venkatesha 2025)",
+  "family": "automatic-method",
+  "native_mode": "ASR + classifier or LLM vs trained human coders",
+  "constructs": [
+   "cognitive and social CPS skills per utterance"
+  ],
+  "A": {
+   "total": 35,
+   "lines": {
+    "A1": {
+     "score": 8,
+     "why": "Pipeline consistency: automatic transcription/segmentation preserved detection but cut utterances by 26.5% (abstract).",
+     "sources": [
+      "venkatesha2025_cps_asr"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "Agreement with trained coders AUROC .80 (ASR) / .91 (human transcripts); ChatGPT comparable to humans and consistent across gender/ethnicity (abstract).",
+     "sources": [
+      "pugh2021",
+      "hao2025_chatgpt_cps"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 15,
+     "why": "Several independent groups.",
+     "sources": [
+      "pugh2021",
+      "hao2025_chatgpt_cps",
+      "venkatesha2025_cps_asr"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "Students (44 dyads).",
+     "sources": [
+      "pugh2021"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Accuracy drops with ASR errors and classroom noise.",
+     "sources": [
+      "pugh2021"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open papers.",
+     "sources": [
+      "pugh2021"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 90,
+   "lines": {
+    "C1": {
+     "score": 35,
+     "why": "Criterion: trained coders (median ICC .93).",
+     "sources": [
+      "pugh2021"
+     ]
+    },
+    "C2": {
+     "score": 25,
+     "why": "Replicated across three studies (two abstract-only).",
+     "sources": [
+      "pugh2021",
+      "hao2025_chatgpt_cps",
+      "venkatesha2025_cps_asr"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Utterances attributed to speakers.",
+     "sources": [
+      "pugh2021"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Described.",
+     "sources": [
+      "pugh2021"
+     ]
+    },
+    "C5": {
+     "score": 7,
+     "why": "Teamwork.",
+     "sources": [
+      "pugh2021"
+     ]
+    }
+   }
+  },
+  "confidence": "Medium",
+  "verdict": {
+   "label": "use",
+   "reason": "Strongest evidence that utterance-level collaboration codes can be automated from speech against trained coders; no outcome validity yet."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Per-person aggregate reliability across sessions.",
+   "Workplace transfer."
+  ]
+ },
+ {
+  "id": "automatic_negotiation_analysis",
+  "name": "Automatic negotiation analysis (outcome prediction; LLM tactic annotation)",
+  "family": "automatic-method",
+  "native_mode": "language features / LLM-as-judge vs outcomes or human tactic labels",
+  "constructs": [
+   "negotiation outcome",
+   "tactics"
+  ],
+  "A": {
+   "total": 21,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A2": {
+     "score": 6,
+     "why": "LLM tactic annotation reported reliable (abstract).",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "A3": {
+     "score": 8,
+     "why": "Outcome classification 80/75/85% on 20 divorce-negotiation transcripts (abstract).",
+     "sources": [
+      "twitchell2013"
+     ]
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single studies.",
+     "sources": [
+      "twitchell2013",
+      "li2025_diplomacy"
+     ]
+    },
+    "A5": {
+     "score": 4,
+     "why": "20 transcripts; game data.",
+     "sources": [
+      "twitchell2013"
+     ]
+    },
+    "A6": {
+     "score": -2,
+     "why": "Outcome is not skill.",
+     "sources": [
+      "twitchell2013"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 63,
+   "lines": {
+    "C1": {
+     "score": 12,
+     "why": "Outcomes/game annotation.",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "C2": {
+     "score": 18,
+     "why": "One study of LLM vs human annotation (abstract).",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Described.",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    },
+    "C5": {
+     "score": 10,
+     "why": "Negotiation.",
+     "sources": [
+      "li2025_diplomacy"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Shows tactic labelling by LLM is plausible; no skill validity."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": [
+   "Friedman 2024 LLM coding of negotiation transcripts (not obtained)."
+  ]
+ },
+ {
+  "id": "sociometric_badges",
+  "name": "Sociometric badges / 'honest signals'",
+  "family": "automatic-method",
+  "native_mode": "wearable sensors",
+  "constructs": [
+   "speech activity, mirroring"
+  ],
+  "A": {
+   "total": 0,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative: badge software inaccurate; unsynchronised badges distort measures (secondary).",
+     "sources": [
+      "kayhan2018"
+     ]
+    },
+    "A2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found (replication of original findings not established).",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "One validation critique.",
+     "sources": [
+      "kayhan2018"
+     ]
+    },
+    "A5": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A6": {
+     "score": -5,
+     "why": "Measurement inaccuracy.",
+     "sources": [
+      "kayhan2018"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 0,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "C": {
+   "total": 19,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "No validated mode.",
+     "sources": [
+      "kayhan2018"
+     ]
+    },
+    "C2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C3": {
+     "score": 15,
+     "why": "Individual.",
+     "sources": [
+      "kayhan2018"
+     ]
+    },
+    "C4": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "C5": {
+     "score": 4,
+     "why": "Adjacent.",
+     "sources": [
+      "kayhan2018"
+     ]
+    }
+   }
+  },
+  "confidence": "Low",
+  "verdict": {
+   "label": "avoid",
+   "reason": "Measurement itself unreliable."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "llm_as_judge",
+  "name": "LLM-as-a-judge (chat answers, essays)",
+  "family": "automatic-method",
+  "native_mode": "LLM vs human preference votes or essay raters",
+  "constructs": [
+   "answer quality",
+   "essay quality"
+  ],
+  "A": {
+   "total": 19,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "Negative: position (order) sensitivity.",
+     "sources": [
+      "wang2023fair",
+      "zheng2023"
+     ]
+    },
+    "A2": {
+     "score": 6,
+     "why": "Agreement > 80% with human preferences, human-human level (zheng2023); essay QWK near humans on some datasets, inconsistent overall.",
+     "sources": [
+      "zheng2023",
+      "shermis2024"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 10,
+     "why": "Benchmark owners plus independent tests.",
+     "sources": [
+      "zheng2023",
+      "wang2023fair",
+      "shermis2024",
+      "hua2025"
+     ]
+    },
+    "A5": {
+     "score": 7,
+     "why": "Large benchmarks, 2023-25.",
+     "sources": [
+      "zheng2023"
+     ]
+    },
+    "A6": {
+     "score": -4,
+     "why": "Position, verbosity, self-enhancement biases.",
+     "sources": [
+      "zheng2023"
+     ]
+    }
+   }
+  },
+  "B": {
+   "total": 6,
+   "lines": {
+    "B1": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Open papers.",
+     "sources": [
+      "zheng2023"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 18,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "Not a person-assessment method.",
+     "sources": [
+      "zheng2023"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect.",
+     "sources": [
+      "zheng2023"
+     ]
+    },
+    "C3": {
+     "score": 0,
+     "why": "Rates texts, not people.",
+     "sources": [
+      "zheng2023"
+     ]
+    },
+    "C4": {
+     "score": 8,
+     "why": "Described.",
+     "sources": [
+      "zheng2023"
+     ]
+    },
+    "C5": {
+     "score": 0,
+     "why": "None.",
+     "sources": [
+      "zheng2023"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Lists the biases any LLM rater in the product must be tested for (order, length, self-preference)."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ },
+ {
+  "id": "onet_hybrid_ai_ratings",
+  "name": "Hybrid AI-expert O*NET Work Style ratings",
+  "family": "automatic-method",
+  "native_mode": "LLM rating of occupation descriptions vs expert panels",
+  "constructs": [
+   "occupational work-style profiles"
+  ],
+  "A": {
+   "total": 25,
+   "lines": {
+    "A1": {
+     "score": 0,
+     "why": "not found for the LLM ratings; expert criterion ICC(C,5) .86.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A2": {
+     "score": 10,
+     "why": "Convergent: LLM-expert r .84 vs analyst-expert .76; profile-level .89 vs .81.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "A4": {
+     "score": 5,
+     "why": "Single study.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A5": {
+     "score": 10,
+     "why": "891 occupations, 2025.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "A6": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    }
+   }
+  },
+  "B": {
+   "total": 14,
+   "lines": {
+    "B1": {
+     "score": 8,
+     "why": "Adopted for the O*NET database (owner = adopter); authors still recommend expert review.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "B2": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B3": {
+     "score": 0,
+     "why": "not found",
+     "sources": []
+    },
+    "B4": {
+     "score": 6,
+     "why": "Public domain.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    }
+   }
+  },
+  "C": {
+   "total": 29,
+   "lines": {
+    "C1": {
+     "score": 0,
+     "why": "Rates occupations.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "C2": {
+     "score": 10,
+     "why": "Indirect.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "C3": {
+     "score": 0,
+     "why": "Occupation.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "C4": {
+     "score": 15,
+     "why": "Public domain.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    },
+    "C5": {
+     "score": 4,
+     "why": "Job profiles.",
+     "sources": [
+      "onet_hybrid_ai_2025"
+     ]
+    }
+   }
+  },
+  "confidence": "High",
+  "verdict": {
+   "label": "use-as-reference",
+   "reason": "Template for reporting an LLM rater against an expert panel with ICCs, and a way to draft job profiles."
+  },
+  "popular_but_weak": false,
+  "disagreements": [],
+  "open_questions": []
+ }
+]
