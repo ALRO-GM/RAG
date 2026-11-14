@@ -470,6 +470,7 @@ class TestChunks:
 SAMPLES = {
     "session_id": "s1", "number": "0", "label": "S1",
     "utterance_id": "t0.s0", "speaker_id": "ana",
+    "run_id": "0" * 32, "denoiser": "none",
 }
 """A value for every path parameter the API has."""
 
@@ -535,6 +536,8 @@ ROUTES = [
 """Every route but the health check, with a request that reaches it."""
 
 AUDIO_ROUTE = ("GET", "/api/sessions/s1/audio")
+LAB_AUDIO_ROUTE = ("GET", f"/api/lab/sessions/s1/runs/{'0' * 32}/audio/none")
+"""The routes that also take the playback cookie."""
 
 
 def playback_cookie(client: TestClient) -> Tuple[str, str]:
@@ -572,7 +575,7 @@ class TestAccess:
         assert all(path.startswith("/api/") for _, path in served)
         assert OPEN_ROUTES <= served
         assert len(ROUTES) == len(served) - len(OPEN_ROUTES) >= 17
-        assert AUDIO_ROUTE in ROUTES
+        assert AUDIO_ROUTE in ROUTES and LAB_AUDIO_ROUTE in ROUTES
         assert ("POST", "/api/access/cookie") in ROUTES
 
     @pytest.mark.parametrize("method, path", ROUTES)
@@ -655,7 +658,8 @@ class TestAccess:
                          401, "unauthorized")
 
     @pytest.mark.parametrize(
-        "method, path", [r for r in ROUTES if r != AUDIO_ROUTE]
+        "method, path",
+        [r for r in ROUTES if r not in (AUDIO_ROUTE, LAB_AUDIO_ROUTE)],
     )
     def test_every_other_route_ignores_the_cookie(
         self, client: TestClient, method: str, path: str

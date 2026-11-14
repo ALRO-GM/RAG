@@ -18,7 +18,7 @@ its tunnel (a chisel client) and its access code.
 import logging
 import os
 from dataclasses import dataclass
-from typing import Mapping, Optional, Protocol, Tuple
+from typing import Dict, Mapping, Optional, Protocol, Tuple
 
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
 from transcriber.adapters.outbound.chisel_tunnel import (
@@ -49,6 +49,15 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 from transcriber.adapters.outbound.http_transcript_publisher import (
     HttpTranscriptPublisher,
 )
+from transcriber.adapters.outbound.fs_lab_repository import (
+    FileSystemLabRepository,
+)
+from transcriber.adapters.outbound.subprocess_lab_tool import (
+    FileSystemLabEnvironment,
+    JsonCatalogue,
+    OsProcessTable,
+    SubprocessLabTool,
+)
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
 from transcriber.adapters.outbound.thread_session_locks import (
@@ -73,6 +82,21 @@ from transcriber.application.enrol import (
     ForgetSpeaker,
     ShowEnrolmentText,
 )
+from transcriber.application.lab import (
+    CancelLabRun,
+    LabAudio,
+    LabLabels,
+    LabResultsView,
+    LabRunStatus,
+    LabScores,
+    ListLabRuns,
+    ResumeLabRun,
+    RunLab,
+    ShowCatalogue,
+    StartLabRun,
+)
+from transcriber.application.lab_builtin import InProcessTools
+from transcriber.application.lab_ports import LabRepository
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
@@ -101,6 +125,7 @@ from transcriber.application.transcribe import (
     TranscriptionStatus,
 )
 from transcriber.config import TranscriberSettings
+from transcriber.domain.comparison import ComparisonParameters
 
 LOG = logging.getLogger(__name__)
 
@@ -119,6 +144,23 @@ class ReleasableRecogniser(SpeechRecogniser, _Releasable, Protocol):
 
 class ReleasableEncoder(VoiceEncoder, _Releasable, Protocol):
     """A voice encoder whose model can be unloaded."""
+
+
+@dataclass(frozen=True)
+class LabUseCases:
+    """The model lab's use cases (``docs/transcriber/LAB.md``)."""
+
+    repository: LabRepository
+    catalogue: ShowCatalogue
+    start: StartLabRun
+    status: LabRunStatus
+    runs: ListLabRuns
+    cancel: CancelLabRun
+    resume: ResumeLabRun
+    results: LabResultsView
+    labels: LabLabels
+    scores: LabScores
+    audio: LabAudio
 
 
 @dataclass(frozen=True)
@@ -157,6 +199,7 @@ class TranscriberContainer:
     session_audio: SessionAudio
     show_transcript: ShowTranscript
     overlaps: Optional[OverlapDetector] = None
+    lab: Optional[LabUseCases] = None
 
     def release_models(self) -> None:
         """Unload the speech, voice and overlap models (after a job)."""
@@ -194,6 +237,81 @@ def build_models(
     return (
         WhisperRecogniser(settings.recogniser, device=settings.device),
         WavLMVoiceEncoder(settings.voice_model, device=settings.device),
+    )
+
+
+def build_lab(
+    settings: TranscriberSettings,
+    sessions: SessionRepository,
+    voiceprints: VoiceprintRepository,
+    decoder: AudioDecoder,
+    recogniser: ReleasableRecogniser,
+    encoder: ReleasableEncoder,
+    runner: ThreadJobRunner,
+    clock: Clock,
+    environ: Mapping[str, str],
+) -> LabUseCases:
+    """Return the lab's use cases over the service's own adapters.
+
+    The project's recogniser is reused for its own model name; another
+    Whisper model of the catalogue gets an adapter of its own, made on
+    first use and unloaded after every step (with the service's models).
+    """
+    lab = settings.lab
+    repository = FileSystemLabRepository(settings.data_dir)
+    environment = FileSystemLabEnvironment(
+        lab.envs_dir, lab.runners_dir, environ
+    )
+    catalogue = JsonCatalogue(lab.catalogue)
+    processes = OsProcessTable()
+    extra: Dict[str, ReleasableRecogniser] = {}
+
+    def recogniser_for(name: str) -> SpeechRecogniser:
+        """Return the recogniser of model ``name``."""
+        if name == recogniser.model_name or settings.runtime == "fake":
+            return recogniser
+        if name not in extra:
+            extra[name] = WhisperRecogniser(name, device=settings.device)
+        return extra[name]
+
+    def release() -> None:
+        """Unload every model the lab used in this process."""
+        recogniser.release()
+        encoder.release()
+        for model in extra.values():
+            model.release()
+
+    comparison = ComparisonParameters(
+        frame=lab.frame, collar=lab.collar,
+        change_tolerance=lab.change_tolerance, cut_merge=lab.cut_merge,
+        word_time_tolerance=lab.word_time_tolerance,
+    )
+    internal = InProcessTools(
+        recogniser_for, encoder, voiceprints, settings.transcription,
+        release,
+    )
+    external = SubprocessLabTool(environment, environ, lab.step_timeout)
+    execute = RunLab(
+        sessions, voiceprints, decoder, repository, catalogue, external,
+        internal, encoder, clock, processes, settings.transcription,
+        comparison, release,
+    )
+    status = LabRunStatus(sessions, repository, runner, processes)
+    start = StartLabRun(
+        sessions, repository, catalogue, runner, execute, clock, processes
+    )
+    return LabUseCases(
+        repository=repository,
+        catalogue=ShowCatalogue(catalogue, environment),
+        start=start,
+        status=status,
+        runs=ListLabRuns(sessions, repository, status),
+        cancel=CancelLabRun(repository, status),
+        resume=ResumeLabRun(repository, start, status, processes),
+        results=LabResultsView(status, repository),
+        labels=LabLabels(sessions, voiceprints, repository, decoder, clock),
+        scores=LabScores(status, repository, comparison),
+        audio=LabAudio(status, repository, sessions, decoder),
     )
 
 
@@ -295,6 +413,10 @@ def build_container(
         session_audio=SessionAudio(sessions),
         show_transcript=ShowTranscript(sessions),
         overlaps=overlaps,
+        lab=build_lab(
+            settings, sessions, voiceprints, decoder, recogniser, encoder,
+            runner, clock, os.environ if environ is None else environ,
+        ),
     )
 
 

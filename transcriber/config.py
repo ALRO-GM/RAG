@@ -222,6 +222,38 @@ class HttpPublishSettings(BaseModel):
     backoff_factor: float = Field(default=2.0, ge=1)
 
 
+REPOSITORY = Path(__file__).resolve().parents[1]
+"""The checkout the service runs from (the lab's catalogue and runners)."""
+
+
+class LabSettings(BaseModel):
+    """Where the model lab finds its models and how long it waits.
+
+    ``catalogue`` is the JSON list of candidate models and
+    ``runners_dir`` the runner scripts (both in the repository);
+    ``envs_dir`` holds one environment per family, outside the
+    repository (``make lab-env``; ``~`` is expanded). A runner taking
+    longer than ``step_timeout`` seconds is stopped. ``collar``,
+    ``change_tolerance``, ``cut_merge`` and ``word_time_tolerance`` are
+    the comparison's tolerances in seconds (``docs/transcriber/LAB.md``
+    §4); ``frame`` its time step. ``labels_max_bytes`` bounds the body
+    of ``PUT /api/lab/.../labels``.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    catalogue: Path = REPOSITORY / "lab" / "catalogue.json"
+    runners_dir: Path = REPOSITORY / "lab" / "runners"
+    envs_dir: Path = Path("~/.local/share/ragputin/lab-envs")
+    step_timeout: float = Field(default=3600.0, gt=0)
+    frame: float = Field(default=0.01, gt=0, le=1)
+    collar: float = Field(default=0.25, ge=0, le=5)
+    change_tolerance: float = Field(default=0.5, gt=0, le=5)
+    cut_merge: float = Field(default=0.2, ge=0, le=5)
+    word_time_tolerance: float = Field(default=0.2, ge=0, le=5)
+    labels_max_bytes: int = Field(default=2 * MIB, gt=0)
+
+
 class TranscriberSettings(BaseModel):
     """Configuration consumed by the composition root.
 
@@ -258,6 +290,7 @@ class TranscriberSettings(BaseModel):
     api: ApiSettings = ApiSettings()
     tunnel: TunnelSettings = TunnelSettings()
     overlap_detector: OverlapDetectorName = "off"
+    lab: LabSettings = LabSettings()
 
     @model_validator(mode="after")
     def _http_needs_a_url(self) -> "TranscriberSettings":

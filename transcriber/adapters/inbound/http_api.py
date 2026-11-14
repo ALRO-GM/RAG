@@ -59,7 +59,12 @@ from transcriber.adapters.inbound.playback import (
     byte_blocks,
     parse_range,
 )
-from transcriber.application.ports import PCM_FORMAT, JobStatus, RecordedAudio
+from transcriber.application.ports import (
+    PCM_FORMAT,
+    JobStatus,
+    PlaybackAudio,
+    RecordedAudio,
+)
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import TranscriberContainer
 from transcriber.domain.consent import ConsentNotice
@@ -291,6 +296,37 @@ def recording_format(filename: str, allowed: Tuple[str, ...]) -> str:
             + ", ".join(allowed) + ".",
         )
     return kind
+
+
+def wav_response(
+    rendering: PlaybackAudio, range_header: Optional[str]
+) -> Response:
+    """Answer a WAV rendering whole or as the one byte range asked for.
+
+    The bytes are read from the rendering a block at a time as they are
+    sent; an unsatisfiable range is a ``416`` and closes the rendering.
+    """
+    size = rendering.size
+    headers = {"Accept-Ranges": "bytes"}
+    wanted = parse_range(range_header, size)
+    if isinstance(wanted, Unsatisfiable):
+        rendering.close()
+        return error_response(
+            416, "range_not_satisfiable",
+            f"The audio has {size} bytes.",
+            {**headers, "Content-Range": f"bytes */{size}"},
+        )
+    status = 200
+    first, last = 0, size - 1
+    if wanted is not None:
+        status = 206
+        first, last = wanted
+        headers["Content-Range"] = f"bytes {first}-{last}/{size}"
+    headers["Content-Length"] = str(last - first + 1)
+    return StreamingResponse(
+        iterate_in_threadpool(byte_blocks(rendering, first, last)),
+        status, headers, media_type=WAV_TYPE,
+    )
 
 
 class SecurityHeaders:
@@ -566,27 +602,7 @@ def create_app(
         are read from the rendering a block at a time as they are sent.
         """
         rendering = await run_in_threadpool(c.session_audio, session_id)
-        size = rendering.size
-        headers = {"Accept-Ranges": "bytes"}
-        wanted = parse_range(request.headers.get("range"), size)
-        if isinstance(wanted, Unsatisfiable):
-            rendering.close()
-            return error_response(
-                416, "range_not_satisfiable",
-                f"The audio has {size} bytes.",
-                {**headers, "Content-Range": f"bytes */{size}"},
-            )
-        status = 200
-        first, last = 0, size - 1
-        if wanted is not None:
-            status = 206
-            first, last = wanted
-            headers["Content-Range"] = f"bytes {first}-{last}/{size}"
-        headers["Content-Length"] = str(last - first + 1)
-        return StreamingResponse(
-            iterate_in_threadpool(byte_blocks(rendering, first, last)),
-            status, headers, media_type=WAV_TYPE,
-        )
+        return wav_response(rendering, request.headers.get("range"))
 
     @api.patch("/sessions/{session_id}/speakers/{label}")
     async def rename(
@@ -711,6 +727,10 @@ def create_app(
         await run_in_threadpool(c.forget_speaker, speaker_id)
         return Response(status_code=204)
 
+    if c.lab is not None:
+        from transcriber.adapters.inbound.lab_api import add_lab_routes
+
+        add_lab_routes(api, playback, c.lab, c.settings)
     app.include_router(api)
     app.include_router(playback)
     if limits.static_dir is not None:
