@@ -534,3 +534,72 @@ Participantes:
 - [ ] He aceptado el micrófono en el navegador.
 - [ ] He registrado mi voz (o sé que saldré como «S1», «S2»…).
 - [ ] Sé que puedo pedir que se borren mi voz y la sesión.
+
+## 6. Pruebas: comparar modelos y etiquetar fragmentos
+
+La pestaña **Pruebas** (con el mismo enlace de acceso) compara modelos
+de limpieza, diarización y transcripción sobre una grabación ya hecha.
+Los detalles técnicos están en [LAB.md](LAB.md).
+
+### Lanzar una batería
+
+1. Entra en **Pruebas** y elige la grabación.
+2. Verás tres columnas: **Limpieza**, **Diarización** y
+   **Transcripción**. Cada modelo indica su licencia, si es
+   **no comercial**, si **necesita token** (modelos con acceso
+   restringido: hay que aceptar sus condiciones en Hugging Face con tu
+   cuenta), si **no está instalado** y por qué, y la memoria de GPU
+   prevista. Vienen marcados todos los que están listos.
+3. Debajo aparece cuántas combinaciones y pasos supone la selección.
+   Pulsa **Empezar la batería**. El progreso se ve paso a paso; un paso
+   que falla dice por qué y los demás siguen. Puedes **Cancelar** y más
+   tarde **Continuar**: lo ya calculado no se repite.
+
+Usa la GPU: no lances una batería mientras se transcribe una reunión
+(se pone en cola detrás).
+
+### Leer la comparación
+
+En **Resumen**, todas las cifras son **acuerdo** entre modelos, no
+acierto: varios modelos pueden equivocarse igual. La tabla de
+combinaciones se ordena pulsando las cabeceras (tiempo, memoria de GPU,
+personas, segundos de habla y de solape, acuerdo con el consenso). El
+mapa de calor compara las diarizaciones de dos en dos (elige la limpieza
+o el diarizador; el valor sale al pasar el ratón o el foco, y también
+como tabla). Debajo, la diferencia de texto entre transcriptores y el
+efecto de cada limpieza.
+
+En **Línea de tiempo** hay una fila por diarizador (el consenso arriba y
+tus etiquetas si las hay); cada persona tiene siempre el mismo color y
+las voces sin identificar salen rayadas en gris. Pulsa en cualquier
+punto para escuchar desde ahí, con el audio original o el de cualquier
+limpieza.
+
+### Etiquetar fragmentos
+
+En **Fragmentos** salen primero los trozos en los que los modelos más
+discrepan. Cada uno muestra qué dice cada grupo de combinaciones
+(«ana — 14»), las versiones del texto y el consenso. Escúchalo
+(**Escuchar** o la barra espaciadora; usa los segundos de margen de la
+transcripción) y marca quién habló de verdad:
+
+| Tecla | Etiqueta |
+|---|---|
+| 1, 2… | esa persona |
+| B | varias a la vez (con más de dos personas, eliges quiénes) |
+| N | nadie |
+| U | no sé (no cuenta en las puntuaciones) |
+| X | quitar la etiqueta |
+| J / K | siguiente / anterior |
+
+Puedes corregir el texto en el campo que aparece al etiquetar. Se
+guarda solo; si el ordenador no responde, las etiquetas se quedan en el
+navegador y se reintentan («No se ha podido guardar»). Arriba se ve
+cuánto llevas etiquetado; **Sin etiquetar** oculta lo ya hecho.
+
+En **Puntuaciones** aparece cada combinación medida contra tus
+etiquetas (perdido, falsa alarma, confusión, palabras bien atribuidas y,
+donde corregiste el texto, WER), siempre con los segundos etiquetados, y
+lo mejor por etapa. **Descargar etiquetas y puntuaciones** guarda un JSON
+en tu equipo.
+

@@ -492,6 +492,25 @@ when missing.
              "text_labels": 12, "reference_tokens": 95, "wer": 0.08}]}
 ```
 
+### The "Pruebas" tab
+
+The web pages have a tab for all of this (`#/lab`, behind the access
+code; texts in Spanish and English): pick a recording, choose models by
+stage (licence, non-commercial badge, token and installed state, VRAM),
+see how many pipelines and steps that is, start, follow the steps,
+cancel and resume; then for an ended run an overview (sortable pipeline
+table, heat map of pairwise track agreement for one denoiser or one
+diarizer with a table alternative, recognisers' pairwise WER, denoiser
+effect), a timeline (one row per diarizer, consensus and labels, click
+to play the original or a denoised version through the audio route and
+the playback cookie), the fragments to label (grouped answers, text
+variants, keys 1/2/B/N/U/X/space/J/K, saved with debounced `PUT
+…/labels`, kept in the browser and retried when saving fails) and the
+scores with a client-side JSON export (a `blob:` download link, which
+the site's CSP does not restrict: it is a navigation, not a fetch). The
+results are fetched once per run. Code: `web/js/views/lab*.js`, pure
+logic in `web/js/lib/lab.js` (tests in `tests/web/lab.test.mjs`).
+
 ## 8. CLI
 
 ```sh
