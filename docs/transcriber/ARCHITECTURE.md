@@ -21,7 +21,7 @@ click it and hear it, starting a chosen number of seconds earlier.
 ## 2. Two services, one contract
 
 ```
- phone (browser) ──HTTPS, LAN──►  TRANSCRIBER (this workstation, GPU)
+ phone (browser) ──HTTPS (§5)──►  TRANSCRIBER (this workstation, GPU)
                                     domain · application · adapters
                                     owns: audio, voiceprints, sessions
                                         │
@@ -37,7 +37,7 @@ click it and hear it, starting a chosen number of seconds earlier.
 | Two top-level packages in one repository: `src/` (RAG and analyzer) and `transcriber/` | Each is hexagonal on its own and can be tested, audited and reused alone; one repository keeps the contract, the CI and the history together. A test forbids imports between them in both directions. |
 | They share only `contracts/transcript.v1.schema.json` | A versioned data contract is the whole coupling. Each side validates against it in its own tests (contract tests). |
 | Asynchronous hand-over, started by the workstation | The workstation is behind NAT and often off; the server cannot call it. The transcriber *pushes* a finished transcript (`POST /transcripts` on the RAG) or writes it to a directory the RAG reads. No synchronous call from the RAG to the transcriber exists, so neither needs the other to be up. |
-| Audio and voiceprints never leave the workstation | They are personal (voice is biometric) data. The contract carries text, times and ids. The player that needs the audio is served by the transcriber itself. |
+| Audio and voiceprints are stored only on the workstation | They are personal (voice is biometric) data. The contract carries text, times and ids. The player gets the audio from the transcriber's API; through rag.peer4u.app it crosses the server in transit and is not kept there (§5). |
 | One environment, dependency group `transcriber` | A second virtual environment would duplicate 5 GB of torch on a disk that is nearly full. The import ban keeps the packages independent anyway. |
 
 Microservices were the author's proposal. The design keeps the
@@ -149,19 +149,38 @@ marked `slow`.
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.
 
-## 5. Recording from the phone
+## 5. Recording from the phone, through rag.peer4u.app
 
-`python -m transcriber serve` starts the service on the workstation,
-prints the address and a QR code, and shows progress in the terminal.
-The phone opens that address in its browser; nothing is installed.
+The app is used from **https://rag.peer4u.app** (decision of
+2026-11-14, ticket TR-15). The server cannot run the models, so it is
+only the front door; the work and every stored byte stay on the
+workstation.
+
+```
+phone ──HTTPS──► Peer4U Caddy ──► ragputin-web (Caddy): static pages from /srv
+                                     └─ /api/*  ──► unix socket /run/tunnel/app.sock
+                                                      ▲ ssh -R, opened by the workstation
+                                           workstation: API on 127.0.0.1, GPU, storage
+```
+
+`python -m transcriber serve` starts the API on 127.0.0.1, opens and
+supervises the SSH reverse forward that creates the socket on the
+server, and prints the join link and a QR code. The phone opens the
+link in its browser; nothing is installed.
 
 | Concern | Decision |
 |---|---|
-| Microphone access needs HTTPS | A self-signed certificate is generated once (`openssl`), stored under `data/transcriber/tls/`. The tutorial explains the browser warning. |
-| Only the people at the table may use it | The address carries a random token created at start-up; every request needs it. The service listens on the LAN interface only while `serve` runs. |
+| Microphone access needs HTTPS | The domain's real certificate. No self-signed certificate, no browser warning. |
+| The site is on the internet | Every `/api/*` call carries an access code in a header. The join link is `https://rag.peer4u.app/#k=<code>`: a URL fragment is never sent to a server, so the code does not reach logs. Failed codes are throttled. Without the code the pages load and can do nothing. |
+| Nothing new on the shared server | The existing Caddy container serves the pages and proxies `/api/*` to a unix socket in `/opt/ragputin/run`. No new container, port or sshd setting. The tunnel uses its own SSH key, restricted to forwarding. |
+| Where audio goes | Through the server in transit (TLS ends at the Peer4U Caddy), stored only on the workstation. The server keeps static files and nothing else. |
+| Workstation off or tunnel down | `/api/*` answers 502; the pages say the workstation is not available. |
 | A long recording must survive a dropped connection | The page captures PCM (16 kHz, mono, 16-bit) and uploads it in numbered chunks of a few seconds; the service appends them and tolerates a retried chunk. No codec is involved. A screen wake lock keeps the phone awake. |
 | A recording made with another app | `transcriber import FILE` or the upload form; decoded with PyAV (bundles the FFmpeg libraries; nothing to install). |
-| One GPU | Jobs run one at a time in a worker thread; the API reports `queued / running (stage, %) / done / failed`. |
+| One GPU | Jobs run one at a time in a worker thread; the API reports `queued / running (stage, %) / done / failed`. Enrolment uses the same queue. |
+
+The results site that used to live on this domain is retired; the
+benchmark documents remain in the repository.
 
 ## 6. Putting a name on a voice
 
