@@ -387,6 +387,11 @@ uv run python -m src skills tag \
   and Spanish (`knowledge/rubrics/`), derived from published HR and
   teamwork frameworks; sources and their appraisal in
   `docs/skills/THEORY.md`.
+- **Research**: what the evidence supports for scoring soft skills
+  from recorded conversations (70 methods scored for credibility,
+  acceptance and fit, every figure with its source) in
+  `docs/skills/RESEARCH.md`, data in `docs/skills/research/`, and as a
+  Spanish page with charts at https://rag.peer4u.app/research.html.
 - **Verification**: quotes must exist in the participant's own turns;
   a rating needs three incidents from two exchanges, otherwise the
   result is "insufficient evidence" (`docs/skills/DESIGN.md`).

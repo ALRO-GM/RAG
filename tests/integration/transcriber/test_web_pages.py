@@ -7,6 +7,7 @@ to any other origin. These tests check those properties on the files
 themselves, and run the pure-logic tests of ``tests/web`` with node.
 """
 
+import json
 import re
 import shutil
 import subprocess
@@ -34,6 +35,15 @@ FORBIDDEN_JS = [
     (re.compile(r"\bXMLHttpRequest\b|\bWebSocket\b|\bsendBeacon\b"),
      "other network API"),
 ]
+LINK = re.compile(
+    r'<a href="https://[^"\s]+" rel="noopener noreferrer">'
+)
+"""An outbound link the reader may follow (the research page's
+references): a navigation, not a request the page makes."""
+SVG_NS = '"http://www.w3.org/2000/svg"'
+"""The SVG namespace name, an identifier and never fetched."""
+LINK_FIELDS = {"link", "url"}
+"""Fields of research/data.json that hold a reference's address."""
 IMPORT = re.compile(
     r"(?:import\s[^;]*?from\s*|import\s*\(\s*|import\s+)[\"'](\.[^\"']+)[\"']"
 )
@@ -64,12 +74,17 @@ class Page(HTMLParser):
     ) -> None:
         """Record references and inline handlers, styles and scripts."""
         names = dict(attrs)
+        outbound = (
+            tag == "a" and names.get("rel") == "noopener noreferrer"
+            and str(names.get("href")).startswith("https://")
+        )
         for name, value in attrs:
             if name.startswith("on"):
                 self.problems.append(f"inline handler {name} on <{tag}>")
             if name == "style":
                 self.problems.append(f"inline style on <{tag}>")
-            if name in ("src", "href") and value is not None:
+            if name in ("src", "href") and value is not None \
+                    and not outbound:
                 self.references.append(value)
             if name == "action" and value:
                 self.problems.append("form action")
@@ -100,14 +115,44 @@ def test_the_web_directory_has_the_pages() -> None:
 
 
 def test_no_external_urls_anywhere() -> None:
+    """Nothing loads from another origin.
+
+    Allowed: outbound https links with ``rel="noopener noreferrer"`` in
+    the HTML, the SVG namespace name in scripts, and the reference
+    addresses of ``research/data.json`` (shown as such links).
+    """
     found = []
     for path in web_files():
+        if path.suffix == ".json":
+            continue
         for number, line in enumerate(
             path.read_text(encoding="utf-8").splitlines(), 1
         ):
-            if EXTERNAL.search(line):
+            if EXTERNAL.search(LINK.sub("", line).replace(SVG_NS, "")):
                 found.append(f"{path.relative_to(WEB)}:{number}: {line}")
     assert found == []
+
+
+def json_strings(value: object, key: str = "") -> List[Tuple[str, str]]:
+    """Every (key, string) pair inside a JSON value."""
+    if isinstance(value, str):
+        return [(key, value)]
+    if isinstance(value, list):
+        return [p for v in value for p in json_strings(v, key)]
+    if isinstance(value, dict):
+        return [p for k, v in value.items() for p in json_strings(v, k)]
+    return []
+
+
+def test_json_holds_addresses_only_as_reference_links() -> None:
+    for path in web_files():
+        if path.suffix != ".json":
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for key, text in json_strings(data):
+            if EXTERNAL.search(text):
+                assert key in LINK_FIELDS, (path.name, key, text)
+                assert text.startswith("https://"), (path.name, text)
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,6147 @@
+{
+ "generated": "2026-11-14",
+ "panels": [
+  {
+   "id": "kappa",
+   "chart": "reliability",
+   "kind": "kappa",
+   "title": "Acuerdo entre codificadores humanos",
+   "statistic": "κ (Cohen o Fleiss)",
+   "measures": "fiabilidad entre codificadores",
+   "how": "κ corrige el acuerdo que se daría por azar. Por encima de .60 se suele considerar bueno y por encima de .80 muy bueno."
+  },
+  {
+   "id": "icc",
+   "chart": "reliability",
+   "kind": "icc",
+   "title": "Acuerdo entre observadores humanos: uno frente a varios",
+   "statistic": "ICC (correlación intraclase)",
+   "measures": "fiabilidad entre observadores",
+   "how": "Un ICC de un solo observador (ICC1, ICC(1,1)) es la fiabilidad de una sola persona puntuando; el de la media de k observadores (ICC2) siempre es más alto."
+  },
+  {
+   "id": "g",
+   "chart": "reliability",
+   "kind": "g",
+   "title": "Otro evaluador frente a otro ejercicio",
+   "statistic": "Eρ² o G (coeficiente de generalizabilidad)",
+   "measures": "fiabilidad entre evaluadores y entre situaciones",
+   "how": "Correlación esperada si se repite la medida con otro evaluador (o con otro evaluador y otro ejercicio). Es la cifra que dice cuánto se mantiene la puntuación de una persona."
+  },
+  {
+   "id": "channel",
+   "chart": "reliability",
+   "kind": "rho_rr",
+   "title": "Personalidad juzgada por desconocidos según el material",
+   "statistic": "ρrr (acuerdo de un solo observador, corregido)",
+   "measures": "fiabilidad entre observadores (consenso)",
+   "how": "Cuánto coinciden dos desconocidos que juzgan la personalidad de alguien con el mismo material. Texto solo frente a audio solo frente a conducta natural vista y oída."
+  },
+  {
+   "id": "machine",
+   "chart": "reliability",
+   "kind": "corr",
+   "title": "Máquina frente a humanos (correlaciones)",
+   "statistic": "r, ρ de Spearman, G e ICC de un observador",
+   "measures": "acuerdo máquina–humano junto al acuerdo humano–humano del mismo estudio",
+   "how": "Todos son coeficientes de tipo correlación (0 a 1). Compare cada barra de máquina solo con la barra humana del mismo estudio, como hacen sus autores."
+  },
+  {
+   "id": "auroc",
+   "chart": "reliability",
+   "kind": "auroc",
+   "title": "Clasificador automático de habilidades de colaboración",
+   "statistic": "AUROC",
+   "measures": "acuerdo máquina–codificadores humanos",
+   "how": "AUROC .50 es azar y 1 es perfecto. No es una correlación: no se puede comparar con las barras de otros paneles."
+  },
+  {
+   "id": "validity",
+   "chart": "validity",
+   "kind": "rho_op",
+   "title": "Validez frente al rendimiento en el puesto",
+   "statistic": "ρ operativa (metaanálisis reestimado)",
+   "measures": "validez de criterio",
+   "how": "Correlación con el rendimiento laboral corregida por la fiabilidad del criterio y la restricción de rango, con las correcciones conservadoras de Sackett et al. (2022)."
+  },
+  {
+   "id": "exercises",
+   "chart": "situations",
+   "kind": "g",
+   "title": "Una situación frente a tres",
+   "statistic": "Eρ² (coeficiente de generalizabilidad)",
+   "measures": "fiabilidad entre situaciones (ejercicios) y evaluadores",
+   "how": "Puntos: datos de Jackson et al. (2016). Línea discontinua: proyección propia con la fórmula de Spearman-Brown, no es un dato publicado."
+  },
+  {
+   "id": "roleplays",
+   "chart": "situations",
+   "kind": "r",
+   "title": "Un juego de rol de 3 minutos frente a 18",
+   "statistic": "r con la valoración de los profesores 7 meses después",
+   "measures": "validez de criterio (no laboral: valoración posterior)",
+   "how": "La misma persona puntuada en un solo juego de rol predice poco; la media de 18 juegos de rol cortos predice mucho más."
+  }
+ ],
+ "figures": [
+  {
+   "id": "k_negotiact",
+   "panel": "kappa",
+   "factor": "negociación",
+   "label": "NegotiAct: códigos de negociación",
+   "value": 0.8,
+   "statistic": "κ de Cohen",
+   "raters": "2 codificadores",
+   "sample": "18 negociaciones grabadas en vídeo, 5.365 unidades",
+   "source": "jaeckel2024_negotiact",
+   "location": "PDF p. 23-24; Tabla 5",
+   "verified": "full-text",
+   "cite": "Jäckel et al. (2024)"
+  },
+  {
+   "id": "k_act4teams",
+   "panel": "kappa",
+   "factor": "trabajo en equipo y liderazgo",
+   "label": "act4teams: reuniones de equipo",
+   "value": 0.81,
+   "statistic": "κ de Fleiss",
+   "raters": "5 codificadores con unas 200 h de formación",
+   "sample": "6 vídeos codificados dos veces, 2.795 unidades",
+   "source": "lehmannwillenbrock2015",
+   "location": "p. 1024",
+   "verified": "full-text",
+   "cite": "Lehmann-Willenbrock et al. (2015)"
+  },
+  {
+   "id": "k_act4teams_ped",
+   "panel": "kappa",
+   "factor": "trabajo en equipo",
+   "label": "act4teams: una reunión de desarrollo de producto",
+   "value": 0.63,
+   "statistic": "κ de Cohen",
+   "raters": "2 evaluadores formados",
+   "sample": "1 reunión grabada",
+   "source": "bavendiek2015",
+   "location": "Sección 3",
+   "verified": "full-text",
+   "cite": "Bavendiek et al. (2015)"
+  },
+  {
+   "id": "k_uptake_experts",
+   "panel": "kappa",
+   "factor": "conducta conversacional (uptake)",
+   "label": "Uptake: anotadores expertos entre sí",
+   "value": 0.286,
+   "statistic": "κ de Fleiss",
+   "raters": "anotadores expertos",
+   "sample": "intercambios alumno–profesor de matemáticas",
+   "source": "demszky2021",
+   "location": "Sección 3",
+   "verified": "full-text",
+   "cite": "Demszky et al. (2021)"
+  },
+  {
+   "id": "i_cps_pugh",
+   "panel": "icc",
+   "factor": "resolución colaborativa de problemas",
+   "label": "Codificación de colaboración (mediana)",
+   "value": 0.93,
+   "statistic": "ICC",
+   "raters": "3 codificadores formados (20% triple)",
+   "sample": "44 parejas de estudiantes, 8.660 enunciados",
+   "source": "pugh2021",
+   "location": "Sección 2",
+   "verified": "full-text",
+   "cite": "Pugh et al. (2021)"
+  },
+  {
+   "id": "i_cps_sun",
+   "panel": "icc",
+   "factor": "resolución colaborativa de problemas",
+   "label": "Codificación de colaboración (criterio de formación)",
+   "value": 0.8,
+   "statistic": "ICC",
+   "raters": "3 codificadores formados",
+   "sample": "33 estudiantes de secundaria (estudio 1)",
+   "source": "sun2020",
+   "location": "PDF p. 6",
+   "verified": "full-text",
+   "cite": "Sun et al. (2020)"
+  },
+  {
+   "id": "i_tli_one",
+   "panel": "icc",
+   "factor": "liderazgo",
+   "label": "Liderazgo transformacional desde vídeo: 1 observador",
+   "value": 0.28,
+   "statistic": "ICC1",
+   "raters": "1 observador",
+   "sample": "30 reuniones de equipo",
+   "source": "lehmannwillenbrock2015",
+   "location": "p. 1023",
+   "verified": "full-text",
+   "cite": "Lehmann-Willenbrock et al. (2015)"
+  },
+  {
+   "id": "i_tli_six",
+   "panel": "icc",
+   "factor": "liderazgo",
+   "label": "Liderazgo transformacional desde vídeo: media de 6",
+   "value": 0.66,
+   "statistic": "ICC2",
+   "raters": "media de 6 observadores",
+   "sample": "30 reuniones de equipo",
+   "source": "lehmannwillenbrock2015",
+   "location": "p. 1023",
+   "verified": "full-text",
+   "cite": "Lehmann-Willenbrock et al. (2015)"
+  },
+  {
+   "id": "i_interviewer_s1",
+   "panel": "icc",
+   "factor": "personalidad percibida",
+   "label": "Personalidad valorada por entrevistadores (muestra 1)",
+   "value": 0.46,
+   "statistic": "ICC(1,1)",
+   "raters": "1 entrevistador",
+   "sample": "entrevistas simuladas, sobre todo estudiantes",
+   "source": "hickman2022",
+   "location": "texto junto a la Tabla 6",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2022)"
+  },
+  {
+   "id": "i_interviewer_s3",
+   "panel": "icc",
+   "factor": "personalidad percibida",
+   "label": "Personalidad valorada por entrevistadores (muestra 3)",
+   "value": 0.27,
+   "statistic": "ICC(1,1)",
+   "raters": "1 entrevistador",
+   "sample": "entrevistas simuladas, sobre todo estudiantes",
+   "source": "hickman2022",
+   "location": "texto junto a la Tabla 6",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2022)"
+  },
+  {
+   "id": "g_one_rating_assessor",
+   "panel": "g",
+   "factor": "dimensiones de assessment centre",
+   "label": "Una calificación, otro evaluador (mismo ejercicio)",
+   "value": 0.8,
+   "statistic": "Eρ²",
+   "raters": "1 evaluador por calificación",
+   "situations": 1,
+   "sample": "698 candidatos, 3 ejercicios, 6 dimensiones",
+   "source": "jackson2016",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "g_overall_assessor",
+   "panel": "g",
+   "factor": "dimensiones de assessment centre",
+   "label": "Puntuación global, otro evaluador",
+   "value": 0.97,
+   "statistic": "Eρ²",
+   "raters": "otro evaluador",
+   "situations": 3,
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "g_one_rating_exercise",
+   "panel": "g",
+   "factor": "dimensiones de assessment centre",
+   "label": "Una calificación, otro ejercicio",
+   "value": 0.26,
+   "statistic": "Eρ²",
+   "raters": "otro evaluador",
+   "situations": 1,
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "g_dimension_3ex",
+   "panel": "g",
+   "factor": "dimensiones de assessment centre",
+   "label": "Una dimensión con 3 ejercicios, otros 3 ejercicios",
+   "value": 0.55,
+   "statistic": "Eρ²",
+   "raters": "otro evaluador",
+   "situations": 3,
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "g_overall_3ex",
+   "panel": "g",
+   "factor": "dimensiones de assessment centre",
+   "label": "Puntuación global con 3 ejercicios, otros 3 ejercicios",
+   "value": 0.65,
+   "statistic": "Eρ²",
+   "raters": "otro evaluador",
+   "situations": 3,
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "g_roleplay_single",
+   "panel": "g",
+   "factor": "conducta interpersonal en juego de rol",
+   "label": "Un juego de rol de 3 min, un evaluador (media de 18)",
+   "value": 0.38,
+   "statistic": "G(q,1)",
+   "raters": "1 evaluador",
+   "situations": 1,
+   "sample": "96 estudiantes de MBA",
+   "source": "hickman2023",
+   "location": "PDF p. 8; Tabla 3",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "c_es_text",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Estabilidad emocional",
+   "channel": "text",
+   "label": "Estabilidad emocional, solo texto",
+   "value": 0.11,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 4, N = 243",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_es_audio",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Estabilidad emocional",
+   "channel": "audio",
+   "label": "Estabilidad emocional, solo audio",
+   "value": 0.38,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 9, N = 315",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_es_av",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Estabilidad emocional",
+   "channel": "av",
+   "label": "Estabilidad emocional, conducta natural (audio y vídeo)",
+   "value": 0.38,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 15, N = 2.136",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ex_text",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Extraversión",
+   "channel": "text",
+   "label": "Extraversión, solo texto",
+   "value": 0.28,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 4, N = 243",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ex_audio",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Extraversión",
+   "channel": "audio",
+   "label": "Extraversión, solo audio",
+   "value": 0.53,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 10, N = 393",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ex_av",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Extraversión",
+   "channel": "av",
+   "label": "Extraversión, conducta natural (audio y vídeo)",
+   "value": 0.59,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 16, N = 2.124",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_op_text",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Apertura",
+   "channel": "text",
+   "label": "Apertura, solo texto",
+   "value": 0.14,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 3, N = 237",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_op_audio",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Apertura",
+   "channel": "audio",
+   "label": "Apertura, solo audio",
+   "value": 0.24,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 3, N = 245",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_op_av",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Apertura",
+   "channel": "av",
+   "label": "Apertura, conducta natural (audio y vídeo)",
+   "value": 0.36,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 11, N = 1.929",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ag_text",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Amabilidad",
+   "channel": "text",
+   "label": "Amabilidad, solo texto",
+   "value": 0.23,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 3, N = 237",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ag_audio",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Amabilidad",
+   "channel": "audio",
+   "label": "Amabilidad, solo audio",
+   "value": 0.43,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 10, N = 393",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_ag_av",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Amabilidad",
+   "channel": "av",
+   "label": "Amabilidad, conducta natural (audio y vídeo)",
+   "value": 0.39,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 16, N = 2.160",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_co_text",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Responsabilidad",
+   "channel": "text",
+   "label": "Responsabilidad, solo texto",
+   "value": 0.16,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 3, N = 237",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_co_audio",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Responsabilidad",
+   "channel": "audio",
+   "label": "Responsabilidad, solo audio",
+   "value": 0.3,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 5, N = 229",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "c_co_av",
+   "panel": "channel",
+   "factor": "personalidad percibida",
+   "trait": "Responsabilidad",
+   "channel": "av",
+   "label": "Responsabilidad, conducta natural (audio y vídeo)",
+   "value": 0.43,
+   "statistic": "ρrr",
+   "raters": "1 observador desconocido",
+   "sample": "k = 12, N = 1.996",
+   "source": "connelly2010",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "cite": "Connelly y Ones (2010)"
+  },
+  {
+   "id": "m_ac_human",
+   "panel": "machine",
+   "factor": "conducta interpersonal en juego de rol",
+   "study": "Juegos de rol puntuados (Hickman et al. 2023)",
+   "who": "human",
+   "label": "Un evaluador humano (media de 18 ejercicios)",
+   "value": 0.38,
+   "statistic": "G(q,1)",
+   "raters": "1 evaluador",
+   "sample": "96 estudiantes de MBA, transcripciones manuales",
+   "source": "hickman2023",
+   "location": "PDF p. 8; Tabla 3",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "m_ac_machine",
+   "panel": "machine",
+   "factor": "conducta interpersonal en juego de rol",
+   "study": "Juegos de rol puntuados (Hickman et al. 2023)",
+   "who": "machine",
+   "label": "Máquina frente a los evaluadores (media de 18 ejercicios)",
+   "value": 0.41,
+   "statistic": "r̄",
+   "raters": "modelo n-gramas + USE",
+   "sample": "96 estudiantes de MBA, transcripciones manuales",
+   "source": "hickman2023",
+   "location": "Tabla 2",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "m_ac_machine_oar",
+   "panel": "machine",
+   "factor": "conducta interpersonal en juego de rol",
+   "study": "Juegos de rol puntuados (Hickman et al. 2023)",
+   "who": "machine",
+   "label": "Máquina frente a los evaluadores (puntuación global)",
+   "value": 0.77,
+   "statistic": "r",
+   "raters": "modelo n-gramas + USE",
+   "sample": "96 estudiantes de MBA, 95% IC [.67, .84]",
+   "source": "hickman2023",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "m_uptake_human",
+   "panel": "machine",
+   "factor": "conducta conversacional (uptake)",
+   "study": "Uptake (Demszky et al. 2021)",
+   "who": "human",
+   "label": "Anotadores expertos entre sí",
+   "value": 0.474,
+   "statistic": "ρ de Spearman",
+   "raters": "anotadores expertos",
+   "sample": "intercambios alumno–profesor",
+   "source": "demszky2021",
+   "location": "Sección 3",
+   "verified": "full-text",
+   "cite": "Demszky et al. (2021)"
+  },
+  {
+   "id": "m_uptake_machine",
+   "panel": "machine",
+   "factor": "conducta conversacional (uptake)",
+   "study": "Uptake (Demszky et al. 2021)",
+   "who": "machine",
+   "label": "Modelo pJSD frente a las etiquetas humanas",
+   "value": 0.54,
+   "statistic": "ρ de Spearman",
+   "raters": "modelo pJSD",
+   "sample": "intercambios alumno–profesor",
+   "source": "demszky2021",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Demszky et al. (2021)"
+  },
+  {
+   "id": "m_avi_human",
+   "panel": "machine",
+   "factor": "personalidad percibida",
+   "study": "Personalidad en entrevistas en vídeo (Hickman et al. 2022)",
+   "who": "human",
+   "label": "Un entrevistador (muestra 1)",
+   "value": 0.46,
+   "statistic": "ICC(1,1)",
+   "raters": "1 entrevistador",
+   "sample": "entrevistas simuladas",
+   "source": "hickman2022",
+   "location": "texto junto a la Tabla 6",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2022)"
+  },
+  {
+   "id": "m_avi_interviewer",
+   "panel": "machine",
+   "factor": "personalidad percibida",
+   "study": "Personalidad en entrevistas en vídeo (Hickman et al. 2022)",
+   "who": "machine",
+   "label": "Modelo entrenado con valoraciones de entrevistadores",
+   "value": 0.4,
+   "statistic": "r (índice C1 convergente)",
+   "raters": "modelo automático",
+   "sample": "3 muestras, N = 1.073",
+   "source": "hickman2022",
+   "location": "Tabla 6 y texto",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2022)"
+  },
+  {
+   "id": "m_avi_self",
+   "panel": "machine",
+   "factor": "personalidad percibida",
+   "study": "Personalidad en entrevistas en vídeo (Hickman et al. 2022)",
+   "who": "machine",
+   "label": "Modelo entrenado con autoinformes",
+   "value": 0.12,
+   "statistic": "r (índice C1 convergente)",
+   "raters": "modelo automático",
+   "sample": "3 muestras, N = 1.073",
+   "source": "hickman2022",
+   "location": "Tabla 6 y texto",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2022)"
+  },
+  {
+   "id": "a_cps_human_tx",
+   "panel": "auroc",
+   "factor": "resolución colaborativa de problemas",
+   "who": "machine",
+   "label": "Transcripción humana",
+   "value": 0.91,
+   "statistic": "AUROC (micro-media)",
+   "raters": "clasificador BERT frente a codificadores (ICC .93)",
+   "sample": "44 parejas de estudiantes",
+   "source": "pugh2021",
+   "location": "Resumen",
+   "verified": "full-text",
+   "cite": "Pugh et al. (2021)"
+  },
+  {
+   "id": "a_cps_asr",
+   "panel": "auroc",
+   "factor": "resolución colaborativa de problemas",
+   "who": "machine",
+   "label": "Transcripción automática (ASR)",
+   "value": 0.8,
+   "statistic": "AUROC (micro-media)",
+   "raters": "clasificador BERT frente a codificadores (ICC .93)",
+   "sample": "44 parejas de estudiantes",
+   "source": "pugh2021",
+   "location": "Resumen",
+   "verified": "full-text",
+   "cite": "Pugh et al. (2021)"
+  },
+  {
+   "id": "a_cps_asr_lab",
+   "panel": "auroc",
+   "factor": "resolución colaborativa de problemas",
+   "who": "machine",
+   "label": "ASR en laboratorio",
+   "value": 0.83,
+   "statistic": "AUROC (micro-media)",
+   "raters": "clasificador BERT",
+   "sample": "9 parejas en laboratorio",
+   "source": "pugh2021",
+   "location": "Resumen",
+   "verified": "full-text",
+   "cite": "Pugh et al. (2021)"
+  },
+  {
+   "id": "a_cps_asr_school",
+   "panel": "auroc",
+   "factor": "resolución colaborativa de problemas",
+   "who": "machine",
+   "label": "ASR en aula ruidosa",
+   "value": 0.78,
+   "statistic": "AUROC (micro-media)",
+   "raters": "clasificador BERT",
+   "sample": "35 parejas en el centro escolar",
+   "source": "pugh2021",
+   "location": "Resumen",
+   "verified": "full-text",
+   "cite": "Pugh et al. (2021)"
+  },
+  {
+   "id": "v_structured_interview",
+   "panel": "validity",
+   "method": "Entrevista estructurada",
+   "mode": "interview",
+   "value": 0.42,
+   "sd": 0.19,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_job_knowledge",
+   "panel": "validity",
+   "method": "Prueba de conocimientos del puesto",
+   "mode": "test",
+   "value": 0.4,
+   "sd": 0.13,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_biodata",
+   "panel": "validity",
+   "method": "Biodatos con clave empírica",
+   "mode": "self-report",
+   "value": 0.38,
+   "sd": 0.09,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_work_sample",
+   "panel": "validity",
+   "method": "Muestra de trabajo",
+   "mode": "behaviour",
+   "value": 0.33,
+   "sd": 0.09,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_cognitive",
+   "panel": "validity",
+   "method": "Capacidad cognitiva",
+   "mode": "test",
+   "value": 0.31,
+   "sd": 0.14,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_integrity",
+   "panel": "validity",
+   "method": "Test de integridad",
+   "mode": "self-report",
+   "value": 0.31,
+   "sd": 0.2,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_ei_personality",
+   "panel": "validity",
+   "method": "Inteligencia emocional (basada en personalidad)",
+   "mode": "self-report",
+   "value": 0.3,
+   "sd": 0.17,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_assessment_centre",
+   "panel": "validity",
+   "method": "Assessment centre",
+   "mode": "behaviour",
+   "value": 0.29,
+   "sd": 0.09,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_sjt_knowledge",
+   "panel": "validity",
+   "method": "Test de juicio situacional (conocimiento)",
+   "mode": "simulation",
+   "value": 0.26,
+   "sd": 0.1,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_sjt_tendency",
+   "panel": "validity",
+   "method": "Test de juicio situacional (tendencia)",
+   "mode": "simulation",
+   "value": 0.26,
+   "sd": 0.12,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_conscientiousness_ctx",
+   "panel": "validity",
+   "method": "Responsabilidad (cuestionario contextualizado)",
+   "mode": "self-report",
+   "value": 0.25,
+   "sd": 0.0,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_es_ctx",
+   "panel": "validity",
+   "method": "Estabilidad emocional (contextualizado)",
+   "mode": "self-report",
+   "value": 0.23,
+   "sd": 0.1,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_ei_ability",
+   "panel": "validity",
+   "method": "Inteligencia emocional (test de capacidad)",
+   "mode": "test",
+   "value": 0.22,
+   "sd": 0.05,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_conscientiousness",
+   "panel": "validity",
+   "method": "Responsabilidad (cuestionario general)",
+   "mode": "self-report",
+   "value": 0.19,
+   "sd": 0.15,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_unstructured_interview",
+   "panel": "validity",
+   "method": "Entrevista no estructurada",
+   "mode": "interview",
+   "value": 0.19,
+   "sd": 0.16,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_extraversion",
+   "panel": "validity",
+   "method": "Extraversión (cuestionario general)",
+   "mode": "self-report",
+   "value": 0.1,
+   "sd": 0.12,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_agreeableness",
+   "panel": "validity",
+   "method": "Amabilidad (cuestionario general)",
+   "mode": "self-report",
+   "value": 0.1,
+   "sd": 0.13,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_es",
+   "panel": "validity",
+   "method": "Estabilidad emocional (cuestionario general)",
+   "mode": "self-report",
+   "value": 0.09,
+   "sd": 0.08,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "v_openness",
+   "panel": "validity",
+   "method": "Apertura (cuestionario general)",
+   "mode": "self-report",
+   "value": 0.05,
+   "sd": 0.07,
+   "statistic": "ρ",
+   "sample": "metaanálisis reestimado",
+   "source": "sackett2022",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Sackett et al. (2022)"
+  },
+  {
+   "id": "s_one_rating",
+   "panel": "exercises",
+   "label": "Una calificación en 1 ejercicio",
+   "situations": 1,
+   "value": 0.26,
+   "statistic": "Eρ²",
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "s_dimension_3",
+   "panel": "exercises",
+   "label": "Una dimensión, media de 3 ejercicios",
+   "situations": 3,
+   "value": 0.55,
+   "statistic": "Eρ²",
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 3",
+   "verified": "full-text",
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "s_overall_3",
+   "panel": "exercises",
+   "label": "Puntuación global, media de 3 ejercicios",
+   "situations": 3,
+   "value": 0.65,
+   "statistic": "Eρ²",
+   "sample": "698 candidatos",
+   "source": "jackson2016",
+   "location": "Tabla 4",
+   "verified": "full-text",
+   "projection_base": true,
+   "cite": "Jackson et al. (2016)"
+  },
+  {
+   "id": "r_roleplayer_one",
+   "panel": "roleplays",
+   "label": "Evaluador del juego de rol, 1 juego (media)",
+   "situations": 1,
+   "who": "human",
+   "value": 0.25,
+   "statistic": "r̄",
+   "sample": "96 estudiantes de MBA",
+   "source": "hickman2023",
+   "location": "PDF p. 8",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_ml_one",
+   "panel": "roleplays",
+   "label": "Máquina, 1 juego (media)",
+   "situations": 1,
+   "who": "machine",
+   "value": 0.19,
+   "statistic": "r̄",
+   "sample": "96 estudiantes de MBA",
+   "source": "hickman2023",
+   "location": "PDF p. 8",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_roleplayer_18",
+   "panel": "roleplays",
+   "label": "Evaluador del juego de rol, 18 juegos",
+   "situations": 18,
+   "who": "human",
+   "value": 0.53,
+   "statistic": "r",
+   "sample": "96 estudiantes de MBA",
+   "source": "hickman2023",
+   "location": "PDF p. 8",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_ml_18",
+   "panel": "roleplays",
+   "label": "Máquina, 18 juegos",
+   "situations": 18,
+   "who": "machine",
+   "value": 0.47,
+   "statistic": "r",
+   "sample": "96 estudiantes de MBA, 95% IC [.30, .61]",
+   "source": "hickman2023",
+   "location": "PDF p. 8",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_mixed_18",
+   "panel": "roleplays",
+   "label": "Evaluador + máquina, 18 juegos",
+   "situations": 18,
+   "who": "machine",
+   "value": 0.55,
+   "statistic": "r",
+   "sample": "96 estudiantes de MBA, 95% IC [.39, .68]",
+   "source": "hickman2023",
+   "location": "PDF p. 8-9",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_panel_18",
+   "panel": "roleplays",
+   "label": "Todos los evaluadores, 18 juegos",
+   "situations": 18,
+   "who": "human",
+   "value": 0.57,
+   "statistic": "r",
+   "sample": "96 estudiantes de MBA",
+   "source": "hickman2023",
+   "location": "PDF p. 8-9",
+   "verified": "full-text",
+   "cite": "Hickman et al. (2023)"
+  },
+  {
+   "id": "r_herde_18",
+   "panel": "roleplays",
+   "label": "Todos los evaluadores, 18 juegos (Herde y Lievens 2023, solo resumen)",
+   "situations": 18,
+   "who": "human",
+   "value": 0.54,
+   "statistic": "r",
+   "sample": "96 estudiantes de MBA",
+   "source": "herde_lievens2023",
+   "location": "resumen (citado por un buscador)",
+   "verified": "abstract-only",
+   "cite": "Herde y Lievens (2023)"
+  }
+ ],
+ "projection": {
+  "from": "s_overall_3",
+  "single": 0.382,
+  "points": [
+   {
+    "situations": 1,
+    "value": 0.382
+   },
+   {
+    "situations": 2,
+    "value": 0.553
+   },
+   {
+    "situations": 3,
+    "value": 0.65
+   },
+   {
+    "situations": 4,
+    "value": 0.712
+   },
+   {
+    "situations": 5,
+    "value": 0.756
+   },
+   {
+    "situations": 6,
+    "value": 0.788
+   },
+   {
+    "situations": 7,
+    "value": 0.812
+   },
+   {
+    "situations": 8,
+    "value": 0.832
+   },
+   {
+    "situations": 9,
+    "value": 0.848
+   },
+   {
+    "situations": 10,
+    "value": 0.861
+   }
+  ],
+  "derived": true
+ },
+ "entries": [
+  {
+   "id": "assessment_centre",
+   "name": "Assessment centre (interpersonal exercises: role-play, group discussion, presentation)",
+   "family": "selection-method",
+   "A": 69,
+   "B": 74,
+   "C": 93,
+   "confidence": "High",
+   "verdict": "use",
+   "popular_but_weak": false
+  },
+  {
+   "id": "multiple_speeded_assessments",
+   "name": "Multiple speeded assessments (many 3-minute role-plays)",
+   "family": "selection-method",
+   "A": 23,
+   "B": 6,
+   "C": 90,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "structured_interview",
+   "name": "Structured (behavioural / competency) interview",
+   "family": "selection-method",
+   "A": 67,
+   "B": 77,
+   "C": 59,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "unstructured_interview",
+   "name": "Unstructured interview",
+   "family": "selection-method",
+   "A": 37,
+   "B": 53,
+   "C": 42,
+   "confidence": "High",
+   "verdict": "avoid",
+   "popular_but_weak": true
+  },
+  {
+   "id": "situational_judgement_test",
+   "name": "Situational judgement test (paper or video)",
+   "family": "selection-method",
+   "A": 59,
+   "B": 8,
+   "C": 45,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "work_sample",
+   "name": "Work sample / job simulation",
+   "family": "selection-method",
+   "A": 55,
+   "B": 49,
+   "C": 42,
+   "confidence": "High",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "leaderless_group_discussion",
+   "name": "Leaderless group discussion and leader emergence (incl. speaking time)",
+   "family": "selection-method",
+   "A": 19,
+   "B": 37,
+   "C": 100,
+   "confidence": "Low",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "teamwork_ksa_test",
+   "name": "Teamwork KSA test (Stevens & Campion)",
+   "family": "selection-method",
+   "A": 20,
+   "B": 0,
+   "C": 35,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "graphology",
+   "name": "Graphology",
+   "family": "selection-method",
+   "A": 0,
+   "B": 15,
+   "C": 15,
+   "confidence": "Low",
+   "verdict": "avoid",
+   "popular_but_weak": true
+  },
+  {
+   "id": "big_five_self_report",
+   "name": "Big Five / FFM self-report inventories (NEO PI-R/3, BFI-2, IPIP, HEXACO)",
+   "family": "questionnaire",
+   "A": 55,
+   "B": 75,
+   "C": 45,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "sixteen_pf5",
+   "name": "16PF-5 (Spanish TEA edition)",
+   "family": "questionnaire",
+   "A": 19,
+   "B": 63,
+   "C": 30,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": true
+  },
+  {
+   "id": "hogan_hpi_hds_mvpi",
+   "name": "Hogan HPI / HDS / MVPI",
+   "family": "questionnaire",
+   "A": 27,
+   "B": 8,
+   "C": 30,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "shl_opq32",
+   "name": "SHL OPQ32",
+   "family": "questionnaire",
+   "A": 27,
+   "B": 8,
+   "C": 30,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "mbti",
+   "name": "Myers-Briggs Type Indicator",
+   "family": "questionnaire",
+   "A": 0,
+   "B": 15,
+   "C": 30,
+   "confidence": "Medium",
+   "verdict": "avoid",
+   "popular_but_weak": true
+  },
+  {
+   "id": "disc",
+   "name": "DISC",
+   "family": "questionnaire",
+   "A": 0,
+   "B": 0,
+   "C": 30,
+   "confidence": "Low",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "belbin_team_roles",
+   "name": "Belbin Team Roles (SPI and observer forms; Interplace II)",
+   "family": "questionnaire",
+   "A": 24,
+   "B": 0,
+   "C": 44,
+   "confidence": "Medium",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "competea",
+   "name": "CompeTEA (TEA Ediciones)",
+   "family": "questionnaire",
+   "A": 26,
+   "B": 70,
+   "C": 30,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": true
+  },
+  {
+   "id": "msceit",
+   "name": "MSCEIT (ability emotional intelligence)",
+   "family": "questionnaire",
+   "A": 47,
+   "B": 12,
+   "C": 24,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "trait_ei_questionnaires",
+   "name": "Self-report EI (EQ-i 2.0, TEIQue, TMMS-24)",
+   "family": "questionnaire",
+   "A": 51,
+   "B": 12,
+   "C": 24,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": true
+  },
+  {
+   "id": "cliftonstrengths",
+   "name": "Gallup CliftonStrengths",
+   "family": "questionnaire",
+   "A": 0,
+   "B": 0,
+   "C": 20,
+   "confidence": "Low",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "psychological_safety_scale",
+   "name": "Team psychological safety scale (Edmondson)",
+   "family": "questionnaire",
+   "A": 66,
+   "B": 8,
+   "C": 23,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "negotiact",
+   "name": "NegotiAct negotiation coding scheme",
+   "family": "observational-scheme",
+   "A": 23,
+   "B": 6,
+   "C": 70,
+   "confidence": "High",
+   "verdict": "use",
+   "popular_but_weak": false
+  },
+  {
+   "id": "negotiation_tactic_coding",
+   "name": "Negotiation tactic/sequence coding (Weingart et al.; Adair & Brett; Olekalns & Smith)",
+   "family": "observational-scheme",
+   "A": 25,
+   "B": 0,
+   "C": 70,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "act4teams",
+   "name": "act4teams (Advanced Interaction Analysis for Teams)",
+   "family": "observational-scheme",
+   "A": 37,
+   "B": 8,
+   "C": 55,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "sun_cps_model",
+   "name": "Generalized collaborative problem solving competency model (Sun, Shute, D'Mello et al.)",
+   "family": "observational-scheme",
+   "A": 33,
+   "B": 6,
+   "C": 75,
+   "confidence": "High",
+   "verdict": "use",
+   "popular_but_weak": false
+  },
+  {
+   "id": "pisa_atc21s_cps",
+   "name": "PISA 2015 / ATC21S collaborative problem solving frameworks",
+   "family": "observational-scheme",
+   "A": 7,
+   "B": 0,
+   "C": 44,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "twente_leader_coding",
+   "name": "Twente leader-behaviour video coding scheme (Hoogeboom & Wilderom)",
+   "family": "observational-scheme",
+   "A": 15,
+   "B": 0,
+   "C": 68,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "observer_rated_tli",
+   "name": "Observer-rated transformational leadership from video (German TLI)",
+   "family": "observational-scheme",
+   "A": 23,
+   "B": 0,
+   "C": 47,
+   "confidence": "High",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "riverside_behavioral_qsort",
+   "name": "Riverside Behavioral Q-sort (RBQ)",
+   "family": "observational-scheme",
+   "A": 23,
+   "B": 6,
+   "C": 68,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "expressiveness_coding",
+   "name": "Behavioural expressiveness coding in group interaction (Bleckmann & Wagner)",
+   "family": "observational-scheme",
+   "A": 21,
+   "B": 6,
+   "C": 68,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "clinical_marker_systems",
+   "name": "Clinical behavioural marker systems (ANTS, Oxford NOTECHS II, TeamSTEPPS TPOT/PACT, Co-ACT)",
+   "family": "observational-scheme",
+   "A": 37,
+   "B": 0,
+   "C": 53,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "bales_ipa_symlog",
+   "name": "Bales Interaction Process Analysis / SYMLOG",
+   "family": "observational-scheme",
+   "A": 2,
+   "B": 0,
+   "C": 57,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "observer_rated_big_five",
+   "name": "Other-/observer-rated Big Five (acquaintances, strangers, thin slices)",
+   "family": "peer/other-report",
+   "A": 61,
+   "B": 0,
+   "C": 73,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "multisource_360",
+   "name": "Multisource (360-degree) feedback ratings",
+   "family": "peer/other-report",
+   "A": 39,
+   "B": 0,
+   "C": 44,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "catme",
+   "name": "CATME / CATME-B (peer evaluation with behavioural anchors)",
+   "family": "peer/other-report",
+   "A": 28,
+   "B": 12,
+   "C": 52,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "mlq",
+   "name": "Multifactor Leadership Questionnaire (MLQ)",
+   "family": "peer/other-report",
+   "A": 48,
+   "B": 12,
+   "C": 47,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "lbdq_yukl",
+   "name": "Follower-rated leader-behaviour questionnaires (LBDQ; Yukl's task/relations/change taxonomy)",
+   "family": "peer/other-report",
+   "A": 48,
+   "B": 0,
+   "C": 47,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "shl_ucf_great_eight",
+   "name": "SHL Universal Competency Framework / Great Eight",
+   "family": "framework",
+   "A": 31,
+   "B": 8,
+   "C": 24,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "hogan_competency_model",
+   "name": "Hogan Competency Model",
+   "family": "framework",
+   "A": 10,
+   "B": 8,
+   "C": 32,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "kornferry_leadership_architect",
+   "name": "Korn Ferry Leadership Architect (Lominger)",
+   "family": "framework",
+   "A": 8,
+   "B": 8,
+   "C": 41,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "ddi_success_profiles",
+   "name": "DDI Success Profiles",
+   "family": "framework",
+   "A": 2,
+   "B": 8,
+   "C": 27,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "competency_modeling_process",
+   "name": "Competency modelling as practised (Campion et al. best practices; SIOP task force)",
+   "family": "framework",
+   "A": 14,
+   "B": 47,
+   "C": 25,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": true
+  },
+  {
+   "id": "mcclelland_spencer_competencies",
+   "name": "McClelland / Spencer & Spencer / Boyatzis competency approach",
+   "family": "framework",
+   "A": 2,
+   "B": 0,
+   "C": 31,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "onet_work_styles",
+   "name": "O*NET Work Styles (and skills)",
+   "family": "framework",
+   "A": 45,
+   "B": 14,
+   "C": 29,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "uk_civil_service_behaviours",
+   "name": "UK Civil Service Success Profiles: Behaviours",
+   "family": "framework",
+   "A": 0,
+   "B": 14,
+   "C": 52,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "sfia9",
+   "name": "SFIA 9 behavioural factors",
+   "family": "framework",
+   "A": 0,
+   "B": 0,
+   "C": 12,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "lifecomp_entrecomp",
+   "name": "LifeComp (and EntreComp), EU JRC frameworks",
+   "family": "framework",
+   "A": 0,
+   "B": 6,
+   "C": 37,
+   "confidence": "Medium",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "esco_transversal",
+   "name": "ESCO transversal skills",
+   "family": "framework",
+   "A": 0,
+   "B": 14,
+   "C": 27,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "nace_career_readiness",
+   "name": "NACE career readiness competencies",
+   "family": "framework",
+   "A": 0,
+   "B": 0,
+   "C": 35,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "conocer_ec0554",
+   "name": "CONOCER EC0554.01 Teamwork standard (Mexico)",
+   "family": "framework",
+   "A": 0,
+   "B": 12,
+   "C": 65,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "big_five_teamwork_salas",
+   "name": "Big Five of teamwork (Salas, Sims & Burke)",
+   "family": "framework",
+   "A": 9,
+   "B": 0,
+   "C": 18,
+   "confidence": "Low",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "team_process_taxonomy",
+   "name": "Marks-Mathieu-Zaccaro team process taxonomy (LePine et al. meta-analysis)",
+   "family": "framework",
+   "A": 48,
+   "B": 0,
+   "C": 23,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "negotiation_competency_model",
+   "name": "Negotiation competency model (Smolinski & Xiong)",
+   "family": "framework",
+   "A": 0,
+   "B": 6,
+   "C": 68,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "collective_intelligence",
+   "name": "Collective intelligence factor (Woolley et al.)",
+   "family": "framework",
+   "A": 21,
+   "B": 0,
+   "C": 20,
+   "confidence": "Medium",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "project_aristotle",
+   "name": "Google Project Aristotle (team effectiveness dynamics)",
+   "family": "framework",
+   "A": 2,
+   "B": 8,
+   "C": 23,
+   "confidence": "High",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "ml_scoring_ac_roleplays",
+   "name": "ML scoring of transcribed AC role-plays (Hickman et al. 2023)",
+   "family": "automatic-method",
+   "A": 23,
+   "B": 16,
+   "C": 83,
+   "confidence": "High",
+   "verdict": "use",
+   "popular_but_weak": false
+  },
+  {
+   "id": "avi_personality",
+   "name": "Automated video-interview personality assessment (Hickman et al. 2022)",
+   "family": "automatic-method",
+   "A": 35,
+   "B": 6,
+   "C": 55,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "llm_zero_shot_personality",
+   "name": "LLM zero-shot personality rating from interview transcripts (Zhang et al. 2024)",
+   "family": "automatic-method",
+   "A": 14,
+   "B": 6,
+   "C": 63,
+   "confidence": "High",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "interview_performance_prediction",
+   "name": "Automated interview-performance prediction (Naim et al. 2015)",
+   "family": "automatic-method",
+   "A": 10,
+   "B": 6,
+   "C": 57,
+   "confidence": "High",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "apparent_personality_chalearn",
+   "name": "Apparent personality from short video (ChaLearn First Impressions)",
+   "family": "automatic-method",
+   "A": 0,
+   "B": 0,
+   "C": 47,
+   "confidence": "Medium",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "personality_from_language",
+   "name": "Personality from language (Mairesse; Schwartz; Park)",
+   "family": "automatic-method",
+   "A": 33,
+   "B": 0,
+   "C": 56,
+   "confidence": "Medium",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "emergent_leadership_speaking_activity",
+   "name": "Emergent-leader detection from speaking activity (ELEA; speaking time)",
+   "family": "automatic-method",
+   "A": 19,
+   "B": 0,
+   "C": 87,
+   "confidence": "Medium",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "conversational_uptake",
+   "name": "Conversational uptake (Demszky et al.)",
+   "family": "automatic-method",
+   "A": 25,
+   "B": 6,
+   "C": 83,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "politeness_classifier",
+   "name": "Politeness classifier (Danescu-Niculescu-Mizil et al.)",
+   "family": "automatic-method",
+   "A": 13,
+   "B": 6,
+   "C": 57,
+   "confidence": "High",
+   "verdict": "cite-only",
+   "popular_but_weak": false
+  },
+  {
+   "id": "receptiveness_followup_questions",
+   "name": "Conversational receptiveness and follow-up questions (Yeomans; Huang)",
+   "family": "automatic-method",
+   "A": 21,
+   "B": 6,
+   "C": 70,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "automated_cps_coding",
+   "name": "Automated coding of collaborative problem solving talk (Pugh 2021; Hao 2025; Venkatesha 2025)",
+   "family": "automatic-method",
+   "A": 35,
+   "B": 6,
+   "C": 90,
+   "confidence": "Medium",
+   "verdict": "use",
+   "popular_but_weak": false
+  },
+  {
+   "id": "automatic_negotiation_analysis",
+   "name": "Automatic negotiation analysis (outcome prediction; LLM tactic annotation)",
+   "family": "automatic-method",
+   "A": 21,
+   "B": 0,
+   "C": 63,
+   "confidence": "Low",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "sociometric_badges",
+   "name": "Sociometric badges / 'honest signals'",
+   "family": "automatic-method",
+   "A": 0,
+   "B": 0,
+   "C": 19,
+   "confidence": "Low",
+   "verdict": "avoid",
+   "popular_but_weak": false
+  },
+  {
+   "id": "llm_as_judge",
+   "name": "LLM-as-a-judge (chat answers, essays)",
+   "family": "automatic-method",
+   "A": 19,
+   "B": 6,
+   "C": 18,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  },
+  {
+   "id": "onet_hybrid_ai_ratings",
+   "name": "Hybrid AI-expert O*NET Work Style ratings",
+   "family": "automatic-method",
+   "A": 25,
+   "B": 14,
+   "C": 29,
+   "confidence": "High",
+   "verdict": "use-as-reference",
+   "popular_but_weak": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "adair2005",
+   "authors": "Adair, Brett",
+   "year": 2005,
+   "title": "The negotiation dance: time, culture, and behavioral sequences in negotiation",
+   "venue": "Organization Science 16(1), 33-51",
+   "doi": "10.1287/orsc.1040.0102",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Adair y Brett (2005)",
+   "link": "https://doi.org/10.1287/orsc.1040.0102",
+   "cited_by": [
+    "negotiation_tactic_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "aiact_annex3",
+   "authors": "European Union",
+   "year": 2024,
+   "title": "AI Act Annex III point 4 (employment, workers management), unofficial reproduction",
+   "venue": "Regulation (EU) 2024/1689",
+   "doi": null,
+   "url": "https://artificialintelligenceact.eu/annex/3/",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Union (2024)",
+   "link": "https://artificialintelligenceact.eu/annex/3/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "aiact_art3",
+   "authors": "European Union",
+   "year": 2024,
+   "title": "AI Act Article 3 definitions (incl. 3(34) biometric data, 3(39) emotion recognition system)",
+   "venue": "Regulation (EU) 2024/1689",
+   "doi": null,
+   "url": "https://artificialintelligenceact.eu/article/3/",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Union (2024)",
+   "link": "https://artificialintelligenceact.eu/article/3/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "aiact_art5",
+   "authors": "European Union",
+   "year": 2024,
+   "title": "AI Act Article 5 (prohibited practices), unofficial reproduction",
+   "venue": "Regulation (EU) 2024/1689; artificialintelligenceact.eu",
+   "doi": null,
+   "url": "https://artificialintelligenceact.eu/article/5/",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Union (2024)",
+   "link": "https://artificialintelligenceact.eu/article/5/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "alonso2015",
+   "authors": "Alonso, Moscoso, Cuadrado",
+   "year": 2015,
+   "title": "Procedimientos de selección de personal en pequeñas y medianas empresas españolas",
+   "venue": "Rev. Psicología del Trabajo y de las Organizaciones 31(2) 79-89",
+   "doi": null,
+   "url": "https://journals.copmadrid.org/jwop/archivos/S1576596215000201/S1576596215000201.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Alonso et al. (2015)",
+   "link": "https://journals.copmadrid.org/jwop/archivos/S1576596215000201/S1576596215000201.pdf",
+   "cited_by": [
+    "assessment_centre",
+    "big_five_self_report",
+    "competency_modeling_process",
+    "leaderless_group_discussion",
+    "structured_interview",
+    "unstructured_interview",
+    "work_sample"
+   ],
+   "families": [
+    "framework",
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "alonso2015_pymes",
+   "authors": "Alonso, P.; Moscoso, S.; Cuadrado, D.",
+   "year": 2015,
+   "title": "Procedimientos de seleccion de personal en pequenas y medianas empresas espanolas",
+   "venue": "Revista de Psicologia del Trabajo y de las Organizaciones 31(3):79-89",
+   "doi": null,
+   "url": "https://www.infocop.es/procedimientos-de-seleccion-de-personal-en-pequenas-y-medianas-empresas-espanolas/",
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Alonso et al. (2015)",
+   "link": "https://www.infocop.es/procedimientos-de-seleccion-de-personal-en-pequenas-y-medianas-empresas-espanolas/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "aritzeta2007",
+   "authors": "Aritzeta, Swailes, Senior",
+   "year": 2007,
+   "title": "Belbin's team role model: development, validity and applications for team building",
+   "venue": "Journal of Management Studies 44(1)",
+   "doi": "10.1111/j.1467-6486.2007.00666.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Aritzeta et al. (2007)",
+   "link": "https://doi.org/10.1111/j.1467-6486.2007.00666.x",
+   "cited_by": [
+    "belbin_team_roles"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "arthur2003",
+   "authors": "Arthur, Day, McNelly, Edens",
+   "year": 2003,
+   "title": "A meta-analysis of the criterion-related validity of assessment center dimensions",
+   "venue": "Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2003.tb00146.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Arthur et al. (2003)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2003.tb00146.x",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "arthur2003_ac",
+   "authors": "Arthur, Day, McNelly, Edens",
+   "year": 2003,
+   "title": "A meta-analysis of the criterion-related validity of assessment center dimensions",
+   "venue": "Personnel Psychology 56:125-154",
+   "doi": null,
+   "url": "https://data.zhenzhi.com/details/1/913310486",
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Arthur et al. (2003)",
+   "link": "https://data.zhenzhi.com/details/1/913310486",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "barrett_depinet1991",
+   "authors": "Barrett, Depinet",
+   "year": 1991,
+   "title": "A reconsideration of testing for competence rather than for intelligence",
+   "venue": "American Psychologist 46(10)",
+   "doi": null,
+   "url": "https://www.gwern.net/doc/iq/1991-barrett.pdf",
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Barrett y Depinet (1991)",
+   "link": "https://www.gwern.net/doc/iq/1991-barrett.pdf",
+   "cited_by": [
+    "mcclelland_spencer_competencies"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "bartram2005",
+   "authors": "Bartram",
+   "year": 2005,
+   "title": "The Great Eight competencies: a criterion-centric approach to validation",
+   "venue": "Journal of Applied Psychology 90(6):1185-1203",
+   "doi": "10.1037/0021-9010.90.6.1185",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Bartram (2005)",
+   "link": "https://doi.org/10.1037/0021-9010.90.6.1185",
+   "cited_by": [
+    "shl_opq32",
+    "shl_ucf_great_eight"
+   ],
+   "families": [
+    "framework",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "bass1954",
+   "authors": "Bass",
+   "year": 1954,
+   "title": "The leaderless group discussion",
+   "venue": "Psychological Bulletin 51(5), 465-492",
+   "doi": "10.1037/h0056881",
+   "url": null,
+   "verified": "secondary",
+   "kind": "review",
+   "cite": "Bass (1954)",
+   "link": "https://doi.org/10.1037/h0056881",
+   "cited_by": [
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "bavendiek2015",
+   "authors": "Bavendiek, Thiele, Meyer, Vietor, Kauffeld, Fingscheidt",
+   "year": 2015,
+   "title": "Meetings in the product development process: applying design methods to improve team interaction and meeting outcomes",
+   "venue": "ICED15 International Conference on Engineering Design",
+   "doi": null,
+   "url": "https://www.designsociety.org/download-publication/37730/meetings_in_the_product_development_process_applying_design_methods_to_improve_team_interaction_and_meeting_outcomes",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Bavendiek et al. (2015)",
+   "link": "https://www.designsociety.org/download-publication/37730/meetings_in_the_product_development_process_applying_design_methods_to_improve_team_interaction_and_meeting_outcomes",
+   "cited_by": [
+    "act4teams"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": [
+    "k_act4teams_ped"
+   ]
+  },
+  {
+   "id": "bleckmann2025",
+   "authors": "Bleckmann, Wagner",
+   "year": 2025,
+   "title": "Assessing behavioral dynamics in group interactions: a focus on expressiveness",
+   "venue": "European Journal of Psychological Assessment (online first)",
+   "doi": "10.1027/1015-5759/a000923",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Bleckmann y Wagner (2025)",
+   "link": "https://doi.org/10.1027/1015-5759/a000923",
+   "cited_by": [
+    "expressiveness_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "borkenau2004",
+   "authors": "Borkenau, Mauer, Riemann, Spinath, Angleitner",
+   "year": 2004,
+   "title": "Thin slices of behavior as cues of personality and intelligence",
+   "venue": "Journal of Personality and Social Psychology 86(4), 599-614",
+   "doi": "10.1037/0022-3514.86.4.599",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Borkenau et al. (2004)",
+   "link": "https://doi.org/10.1037/0022-3514.86.4.599",
+   "cited_by": [
+    "observer_rated_big_five"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "bps_ptc",
+   "authors": "British Psychological Society",
+   "year": 2025,
+   "title": "Psychological Testing Centre (BPS) - about page",
+   "venue": "bps.org.uk",
+   "doi": null,
+   "url": "https://bps.org.uk/about-psychological-testing-centre",
+   "verified": "full-text",
+   "kind": "other",
+   "cite": "British Psychological Society (2025)",
+   "link": "https://bps.org.uk/about-psychological-testing-centre",
+   "cited_by": [
+    "shl_opq32"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "campion2011",
+   "authors": "Campion, Fink, Ruggeberg, Carr, Phillips, Odman",
+   "year": 2011,
+   "title": "Doing competencies well: best practices in competency modeling",
+   "venue": "Personnel Psychology 64:225-262",
+   "doi": "10.1111/j.1744-6570.2010.01207.x",
+   "url": null,
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Campion et al. (2011)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2010.01207.x",
+   "cited_by": [
+    "competency_modeling_process"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "care2014",
+   "authors": "Care, Griffin",
+   "year": 2014,
+   "title": "An approach to assessment of collaborative problem solving (ATC21S)",
+   "venue": "RPTEL",
+   "doi": "10.58459/rptel.2014.9367-388",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Care y Griffin (2014)",
+   "link": "https://doi.org/10.58459/rptel.2014.9367-388",
+   "cited_by": [
+    "pisa_atc21s_cps"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "catme_asee2006",
+   "authors": "Ohland, Loughry, et al.",
+   "year": 2006,
+   "title": "The Comprehensive Assessment of Team Member Effectiveness: a new peer evaluation instrument",
+   "venue": "ASEE Annual Conference",
+   "doi": null,
+   "url": "https://peer.asee.org/751.pdf",
+   "verified": "full-text",
+   "kind": "technical-manual",
+   "cite": "Ohland y Loughry (2006)",
+   "link": "https://peer.asee.org/751.pdf",
+   "cited_by": [
+    "catme"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "catmes2022",
+   "authors": "(authors not read)",
+   "year": 2022,
+   "title": "Self-assessment of teamwork in higher education: adaptation and validation of the CATME-S to Spanish",
+   "venue": "SAGE Open (per search listing, not verified)",
+   "doi": null,
+   "url": "https://deustoteka.deusto.es/items/8e581276-1821-48c3-b68a-186b41185507/full",
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Self-assessment of teamwork in higher education (2022)",
+   "link": "https://deustoteka.deusto.es/items/8e581276-1821-48c3-b68a-186b41185507/full",
+   "cited_by": [
+    "catme"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "cfr1607",
+   "authors": "EEOC, Civil Service Commission, DOL, DOJ",
+   "year": 1978,
+   "title": "Uniform Guidelines on Employee Selection Procedures, 29 CFR 1607 (sections 3, 4, 14)",
+   "venue": "29 CFR Part 1607 (Cornell LII reproduction)",
+   "doi": null,
+   "url": "https://www.law.cornell.edu/cfr/text/29/1607.4",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "EEOC et al. (1978)",
+   "link": "https://www.law.cornell.edu/cfr/text/29/1607.4",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "chiu2014_pact",
+   "authors": "Chiu",
+   "year": 2014,
+   "title": "Development and validation of performance assessment tools for interprofessional communication and teamwork (PACT)",
+   "venue": "PhD dissertation, University of Washington",
+   "doi": null,
+   "url": "https://digital.lib.washington.edu/researchworks/bitstreams/b9b2142e-cd20-44d4-921c-2f66311ff40b/download",
+   "verified": "full-text",
+   "kind": "other",
+   "cite": "Chiu (2014)",
+   "link": "https://digital.lib.washington.edu/researchworks/bitstreams/b9b2142e-cd20-44d4-921c-2f66311ff40b/download",
+   "cited_by": [
+    "clinical_marker_systems"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "christian2010",
+   "authors": "Christian, Edwards, Bradley",
+   "year": 2010,
+   "title": "Situational judgment tests: constructs assessed and a meta-analysis of their criterion-related validities",
+   "venue": "Personnel Psychology 63(1)",
+   "doi": "10.1111/j.1744-6570.2009.01163.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Christian et al. (2010)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2009.01163.x",
+   "cited_by": [
+    "situational_judgement_test"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "competea_foro2015",
+   "authors": "Arribas",
+   "year": 2015,
+   "title": "compeTEA: desarrollo de competencias profesionales (presentation)",
+   "venue": "TEA Ediciones (I Foro Coaching, Madrid 2 March 2015)",
+   "doi": null,
+   "url": "https://web.teaediciones.com/ejemplos/I-FORO-Coaching-CompeTEA.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Arribas (2015)",
+   "link": "https://web.teaediciones.com/ejemplos/I-FORO-Coaching-CompeTEA.pdf",
+   "cited_by": [
+    "competea"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "competea_manual2015",
+   "authors": "Arribas, Pereña",
+   "year": 2015,
+   "title": "CompeTEA: Evaluación de competencias (manual extract, 3rd ed.)",
+   "venue": "TEA Ediciones",
+   "doi": null,
+   "url": "https://web.teaediciones.com/Ejemplos/COMPETEA_Extract_manual_2015.pdf",
+   "verified": "full-text",
+   "kind": "technical-manual",
+   "cite": "Arribas y Pereña (2015)",
+   "link": "https://web.teaediciones.com/Ejemplos/COMPETEA_Extract_manual_2015.pdf",
+   "cited_by": [
+    "competea"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "competea_variables",
+   "authors": "Arribas, Pereña",
+   "year": 2015,
+   "title": "COMPETEA: Evaluación de Competencias (corrección y resultados, UAM copy)",
+   "venue": "TEA / Universidad Autónoma de Madrid",
+   "doi": null,
+   "url": "https://www.uam.es/uam/media/doc/1606882714339/competea.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Arribas y Pereña (2015)",
+   "link": "https://www.uam.es/uam/media/doc/1606882714339/competea.pdf",
+   "cited_by": [
+    "competea"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "connelly2010",
+   "authors": "Connelly, Ones",
+   "year": 2010,
+   "title": "An other perspective on personality: meta-analytic integration of observers' accuracy and predictive validity",
+   "venue": "Psychological Bulletin 136(6), 1092-1122",
+   "doi": "10.1037/a0021212",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "Connelly y Ones (2010)",
+   "link": "https://doi.org/10.1037/a0021212",
+   "cited_by": [
+    "big_five_self_report",
+    "observer_rated_big_five",
+    "personality_from_language"
+   ],
+   "families": [
+    "automatic-method",
+    "peer/other-report",
+    "questionnaire"
+   ],
+   "figures": [
+    "c_es_text",
+    "c_es_audio",
+    "c_es_av",
+    "c_ex_text",
+    "c_ex_audio",
+    "c_ex_av",
+    "c_op_text",
+    "c_op_audio",
+    "c_op_av",
+    "c_ag_text",
+    "c_ag_audio",
+    "c_ag_av",
+    "c_co_text",
+    "c_co_audio",
+    "c_co_av"
+   ]
+  },
+  {
+   "id": "conocer_ec0554",
+   "authors": "CONOCER (México), developed by ManpowerGroup committee",
+   "year": 2025,
+   "title": "EC0554.01 Trabajo en equipo (Estándar de Competencia, CONOCER)",
+   "venue": "Diario Oficial de la Federación / CONOCER",
+   "doi": null,
+   "url": "https://conocer.gob.mx/wp-content/uploads/2025/11/EC0554_01.pdf",
+   "verified": "full-text",
+   "kind": "standard",
+   "cite": "CONOCER (2025)",
+   "link": "https://conocer.gob.mx/wp-content/uploads/2025/11/EC0554_01.pdf",
+   "cited_by": [
+    "conocer_ec0554"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "conway1997",
+   "authors": "Conway, Huffcutt",
+   "year": 1997,
+   "title": "Psychometric properties of multisource performance ratings: a meta-analysis of subordinate, supervisor, peer and self-ratings",
+   "venue": "Human Performance 10(4)",
+   "doi": "10.1207/s15327043hup1004_2",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Conway y Huffcutt (1997)",
+   "link": "https://doi.org/10.1207/s15327043hup1004_2",
+   "cited_by": [
+    "multisource_360"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "cop2011",
+   "authors": "Muñiz, Fernández-Hermida, Fonseca-Pedrero, Campillo-Álvarez, Peña-Suárez",
+   "year": 2011,
+   "title": "Evaluación de tests editados en España (first COP test review)",
+   "venue": "Papeles del Psicólogo 32(2) 113-128",
+   "doi": null,
+   "url": "https://www.papelesdelpsicologo.es/pdf/1947.pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Muñiz et al. (2011)",
+   "link": "https://www.papelesdelpsicologo.es/pdf/1947.pdf",
+   "cited_by": [
+    "big_five_self_report",
+    "sixteen_pf5"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "cop2013",
+   "authors": "Ponsoda, Hontangas",
+   "year": 2013,
+   "title": "Segunda evaluación de tests editados en España",
+   "venue": "Papeles del Psicólogo 34(2) 82-90",
+   "doi": null,
+   "url": "https://www.papelesdelpsicologo.es/pdf/2232.pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Ponsoda y Hontangas (2013)",
+   "link": "https://www.papelesdelpsicologo.es/pdf/2232.pdf",
+   "cited_by": [
+    "competea"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "cop2024",
+   "authors": "Abad",
+   "year": 2024,
+   "title": "Décima evaluación de test editados en España: incorporando información sobre test no comerciales",
+   "venue": "Papeles del Psicólogo 45(2) 56-64",
+   "doi": null,
+   "url": "https://papelesdelpsicologo.es/pdf/3033.pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Abad (2024)",
+   "link": "https://papelesdelpsicologo.es/pdf/3033.pdf",
+   "cited_by": [
+    "msceit"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "cop_madrid_encuesta2015",
+   "authors": "Colegio Oficial de Psicologos de Madrid, Grupo de Trabajo de Psicologia y Buenas Practicas en R&S",
+   "year": 2015,
+   "title": "II Encuesta del Observatorio de Reclutamiento y Seleccion de Personas (COP Madrid, slides)",
+   "venue": "COP Madrid working-group presentation, 22 May 2015",
+   "doi": null,
+   "url": "https://historiadelcolegio.copmadrid.org/es/file-download/download/public/3190",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Colegio Oficial de Psicologos de Madrid y Grupo de Trabajo de Psicologia y Buenas Practicas en R&S (2015)",
+   "link": "https://historiadelcolegio.copmadrid.org/es/file-download/download/public/3190",
+   "cited_by": [
+    "assessment_centre",
+    "competency_modeling_process",
+    "sixteen_pf5",
+    "structured_interview",
+    "unstructured_interview"
+   ],
+   "families": [
+    "framework",
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "danescu2013",
+   "authors": "Danescu-Niculescu-Mizil, Sudhof, Jurafsky, Leskovec, Potts",
+   "year": 2013,
+   "title": "A computational approach to politeness with application to social factors",
+   "venue": "ACL 2013 (arXiv 1306.6078)",
+   "doi": null,
+   "url": "https://arxiv.org/abs/1306.6078",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Danescu-Niculescu-Mizil et al. (2013)",
+   "link": "https://arxiv.org/abs/1306.6078",
+   "cited_by": [
+    "politeness_classifier"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "ddi_competency_mgmt",
+   "authors": "DDI",
+   "year": null,
+   "title": "Competency management at its most competent",
+   "venue": "DDI article",
+   "doi": null,
+   "url": "https://media.ddiworld.com/articles/competency-management-at-its-most-competent_article_ddi.pdf",
+   "verified": "abstract-only",
+   "kind": "vendor-material",
+   "cite": "DDI (s. f.)",
+   "link": "https://media.ddiworld.com/articles/competency-management-at-its-most-competent_article_ddi.pdf",
+   "cited_by": [
+    "ddi_success_profiles"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "demszky2021",
+   "authors": "Demszky, Liu, Mancenido, Cohen, Hill, Jurafsky, Hashimoto",
+   "year": 2021,
+   "title": "Measuring conversational uptake: a case study on student-teacher interactions",
+   "venue": "ACL 2021 (arXiv 2106.03873)",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2106.03873",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Demszky et al. (2021)",
+   "link": "https://arxiv.org/abs/2106.03873",
+   "cited_by": [
+    "conversational_uptake"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": [
+    "k_uptake_experts",
+    "m_uptake_human",
+    "m_uptake_machine"
+   ]
+  },
+  {
+   "id": "derue2011",
+   "authors": "DeRue, Nahrgang, Wellman, Humphrey",
+   "year": 2011,
+   "title": "Trait and behavioral theories of leadership: an integration and meta-analytic test of their relative validity",
+   "venue": "Personnel Psychology 64(1)",
+   "doi": "10.1111/j.1744-6570.2010.01201.x",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "DeRue et al. (2011)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2010.01201.x",
+   "cited_by": [
+    "lbdq_yukl",
+    "mlq",
+    "observer_rated_tli"
+   ],
+   "families": [
+    "observational-scheme",
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "diekmann_konig_personality",
+   "authors": "Diekmann, J.; Konig, C.J.",
+   "year": 2015,
+   "title": "Personality testing in personnel selection: Love it? Leave it? Understand it!",
+   "venue": "In Nikolaou & Oostrom (eds), Employee recruitment, selection and assessment, Psychology Press (in-press manuscript)",
+   "doi": null,
+   "url": "https://www.uni-saarland.de/fileadmin/upload/lehrstuhl/koenig/PDFs-Publikationen/DiekmannKoenigBkch.pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Diekmann y Konig (2015)",
+   "link": "https://www.uni-saarland.de/fileadmin/upload/lehrstuhl/koenig/PDFs-Publikationen/DiekmannKoenigBkch.pdf",
+   "cited_by": [
+    "assessment_centre",
+    "big_five_self_report",
+    "graphology",
+    "mbti",
+    "work_sample"
+   ],
+   "families": [
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "duran2024",
+   "authors": "Durán Martínez, Pagés Serra",
+   "year": 2024,
+   "title": "¿Cuán transversales son las competencias blandas (soft skills)? Evidencia a partir de vacantes laborales",
+   "venue": "Oikonomics 23 (UOC)",
+   "doi": null,
+   "url": "https://comein.uoc.edu/divulgacio/oikonomics/_recursos/documents/23/OIKO23_03_ES_duran.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Durán Martínez y Pagés Serra (2024)",
+   "link": "https://comein.uoc.edu/divulgacio/oikonomics/_recursos/documents/23/OIKO23_03_ES_duran.pdf",
+   "cited_by": [
+    "esco_transversal"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "ec_guidelines_prohibited",
+   "authors": "European Commission",
+   "year": 2025,
+   "title": "Commission guidelines on prohibited AI practices (Art. 5 AI Act), C(2025) 884 final, annex",
+   "venue": "C(2025) 884 final (copy hosted by Sidley)",
+   "doi": null,
+   "url": "https://www.sidley.com/en/-/media/resource-pages/ai-monitor/guidance/eu-commission-guidelines-on-prohibited-ai-practices-established-by-the-ai-act.pdf?la=en",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Commission (2025)",
+   "link": "https://www.sidley.com/en/-/media/resource-pages/ai-monitor/guidance/eu-commission-guidelines-on-prohibited-ai-practices-established-by-the-ai-act.pdf?la=en",
+   "cited_by": [
+    "interview_performance_prediction"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "edmondson1999",
+   "authors": "Edmondson",
+   "year": 1999,
+   "title": "Psychological safety and learning behavior in work teams",
+   "venue": "Administrative Science Quarterly",
+   "doi": "10.2307/2666999",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Edmondson (1999)",
+   "link": "https://doi.org/10.2307/2666999",
+   "cited_by": [
+    "psychological_safety_scale"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "elea",
+   "authors": "Sanchez-Cortes et al.",
+   "year": 2012,
+   "title": "ELEA corpus (Idiap)",
+   "venue": "Idiap dataset page",
+   "doi": null,
+   "url": "https://www.idiap.ch/dataset/elea",
+   "verified": "full-text",
+   "kind": "dataset",
+   "cite": "Sanchez-Cortes et al. (2012)",
+   "link": "https://www.idiap.ch/dataset/elea",
+   "cited_by": [
+    "emergent_leadership_speaking_activity"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "elfenbein2008",
+   "authors": "Elfenbein, Curhan, Eisenkraft, Shirako, Baccaro",
+   "year": 2008,
+   "title": "Are some negotiators better than others? Individual differences in bargaining outcomes",
+   "venue": "Journal of Research in Personality 42, 1463-1475",
+   "doi": "10.1016/j.jrp.2008.06.010",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Elfenbein et al. (2008)",
+   "link": "https://doi.org/10.1016/j.jrp.2008.06.010",
+   "cited_by": [
+    "negotiact"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "elosua2025_cop_recomendaciones",
+   "authors": "Elosua, P.; Hernandez, A.; Abad, F.J.",
+   "year": 2025,
+   "title": "Procesos selectivos: recomendaciones para la evaluacion de la personalidad (Comision de Test, Consejo General de la Psicologia)",
+   "venue": "Papeles del Psicologo; republished by Infocop 5 Feb 2025",
+   "doi": null,
+   "url": "https://www.infocop.es/procesos-selectivos-recomendaciones-para-la-evaluacion-de-la-personalidad/",
+   "verified": "secondary",
+   "kind": "framework",
+   "cite": "Elosua et al. (2025)",
+   "link": "https://www.infocop.es/procesos-selectivos-recomendaciones-para-la-evaluacion-de-la-personalidad/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "ensari2011",
+   "authors": "Ensari, Riggio, Christian, Carslaw",
+   "year": 2011,
+   "title": "Who emerges as a leader? Meta-analyses of individual differences as predictors of leadership emergence",
+   "venue": "Personality and Individual Differences 51(4), 532-536",
+   "doi": "10.1016/j.paid.2011.05.017",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Ensari et al. (2011)",
+   "link": "https://doi.org/10.1016/j.paid.2011.05.017",
+   "cited_by": [
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "esco_transversal2020",
+   "authors": "Hart, Noack, Plaimauer, Bjornavold",
+   "year": 2020,
+   "title": "Towards a structured and consistent terminology on transversal skills and competences (2nd report)",
+   "venue": "ESCO/EQF expert group",
+   "doi": null,
+   "url": "https://esco.ec.europa.eu/system/files/2021-07/c4526148-d809-48e8-9daf-c18cdf74fe35Transversal_skills_terminology.pdf",
+   "verified": "abstract-only",
+   "kind": "framework",
+   "cite": "Hart et al. (2020)",
+   "link": "https://esco.ec.europa.eu/system/files/2021-07/c4526148-d809-48e8-9daf-c18cdf74fe35Transversal_skills_terminology.pdf",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "esco_transversal_terminology",
+   "authors": "Bjornavold (Cedefop) / ESCO",
+   "year": 2020,
+   "title": "A terminology on transversal skills and competences and its integration in ESCO v1.1",
+   "venue": "ESCO",
+   "doi": null,
+   "url": "https://esco.ec.europa.eu/system/files/2021-07/8bfb4c4c-5c1d-48b0-9061-6d15a05875a5A_terminology_on_transversal_skills_and_competences_and_its_integration_in_ESCO_v.1.1.pdf",
+   "verified": "abstract-only",
+   "kind": "framework",
+   "cite": "Bjornavold (2020)",
+   "link": "https://esco.ec.europa.eu/system/files/2021-07/8bfb4c4c-5c1d-48b0-9061-6d15a05875a5A_terminology_on_transversal_skills_and_competences_and_its_integration_in_ESCO_v.1.1.pdf",
+   "cited_by": [
+    "esco_transversal"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "esco_tsc2020",
+   "authors": "Hart, Noack, Plaimauer, Bjørnåvold",
+   "year": 2020,
+   "title": "Towards a structured and consistent terminology on transversal skills and competences",
+   "venue": "Cedefop / ESCO working group report",
+   "doi": null,
+   "url": "https://esco.ec.europa.eu/system/files/2021-07/c4526148-d809-48e8-9daf-c18cdf74fe35Transversal_skills_terminology.pdf",
+   "verified": "abstract-only",
+   "kind": "framework",
+   "cite": "Hart et al. (2020)",
+   "link": "https://esco.ec.europa.eu/system/files/2021-07/c4526148-d809-48e8-9daf-c18cdf74fe35Transversal_skills_terminology.pdf",
+   "cited_by": [
+    "esco_transversal"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "extremera2006msceit",
+   "authors": "Extremera, Fernández-Berrocal, Salovey",
+   "year": 2006,
+   "title": "Spanish version of the MSCEIT v2.0: reliabilities, age and gender differences",
+   "venue": "Psicothema 18 (suppl) 42-48",
+   "doi": null,
+   "url": "https://www.psicothema.com/pi?pii=3274",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Extremera et al. (2006)",
+   "link": "https://www.psicothema.com/pi?pii=3274",
+   "cited_by": [
+    "msceit"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "fernandezberrocal2004tmms",
+   "authors": "Fernández-Berrocal, Extremera, Ramos",
+   "year": 2004,
+   "title": "Validity and reliability of the Spanish modified version of the Trait Meta-Mood Scale (TMMS-24)",
+   "venue": "Psychological Reports 94(3) 751-755",
+   "doi": null,
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Fernández-Berrocal et al. (2004)",
+   "link": null,
+   "cited_by": [
+    "trait_ei_questionnaires"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "fiori2014",
+   "authors": "Fiori, Antonietti, Mikolajczak, Luminet, Hansenne, Rossier",
+   "year": 2014,
+   "title": "What is the Ability Emotional Intelligence Test (MSCEIT) good for? An evaluation using item response theory",
+   "venue": "PLoS ONE 9(6)",
+   "doi": "10.1371/journal.pone.0098827",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Fiori et al. (2014)",
+   "link": "https://doi.org/10.1371/journal.pone.0098827",
+   "cited_by": [
+    "msceit"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "fisher2019_selection_myths",
+   "authors": "Fisher, P.A.; Risavy, S.D.; Robie, C.; Konig, C.J.; Christiansen, N.D.; Tett, R.P.; Simonet, D.V.",
+   "year": null,
+   "title": "Selection Myths: A Conceptual Replication of HR Professionals' Beliefs About Effective Human Resource Practices in the United States and Canada",
+   "venue": "J. Personnel Psychology (in-press manuscript, as downloaded)",
+   "doi": "10.1027/1866-5888/a000263",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Fisher et al. (s. f.)",
+   "link": "https://doi.org/10.1027/1866-5888/a000263",
+   "cited_by": [
+    "graphology",
+    "structured_interview",
+    "trait_ei_questionnaires"
+   ],
+   "families": [
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "fletcher2003_ants",
+   "authors": "Fletcher, Flin, McGeorge, Glavin, Maran, Patey",
+   "year": 2003,
+   "title": "Anaesthetists' Non-Technical Skills (ANTS): evaluation of a behavioural marker system",
+   "venue": "British Journal of Anaesthesia 90(5), 580-588",
+   "doi": "10.1093/bja/aeg112",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Fletcher et al. (2003)",
+   "link": "https://doi.org/10.1093/bja/aeg112",
+   "cited_by": [
+    "clinical_marker_systems"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "frazier2017",
+   "authors": "Frazier, Fainshmidt, Klinger, Pezeshkan, Vracheva",
+   "year": 2017,
+   "title": "Psychological safety: a meta-analytic review and extension",
+   "venue": "Personnel Psychology",
+   "doi": "10.1111/peps.12183",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Frazier et al. (2017)",
+   "link": "https://doi.org/10.1111/peps.12183",
+   "cited_by": [
+    "psychological_safety_scale"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "funder2000_rbq",
+   "authors": "Funder, Furr, Colvin",
+   "year": 2000,
+   "title": "The Riverside Behavioral Q-sort: a tool for the description of social behavior",
+   "venue": "Journal of Personality 68(3), 451-489",
+   "doi": "10.1111/1467-6494.00103",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Funder et al. (2000)",
+   "link": "https://doi.org/10.1111/1467-6494.00103",
+   "cited_by": [
+    "riverside_behavioral_qsort"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "gallup_csf",
+   "authors": "Gallup",
+   "year": 2023,
+   "title": "CliftonStrengths technical report",
+   "venue": "Gallup",
+   "doi": null,
+   "url": "https://www.gallup.com/cliftonstrengths/en/253790/technical-report.aspx",
+   "verified": "secondary",
+   "kind": "technical-manual",
+   "cite": "Gallup (2023)",
+   "link": "https://www.gallup.com/cliftonstrengths/en/253790/technical-report.aspx",
+   "cited_by": [
+    "cliftonstrengths"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "gdpr_art22",
+   "authors": "European Union",
+   "year": 2016,
+   "title": "GDPR Article 22 (automated individual decision-making incl. profiling), unofficial reproduction",
+   "venue": "Regulation (EU) 2016/679; gdpr-info.eu",
+   "doi": null,
+   "url": "https://gdpr-info.eu/art-22-gdpr/",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Union (2016)",
+   "link": "https://gdpr-info.eu/art-22-gdpr/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "gdpr_art9",
+   "authors": "European Union",
+   "year": 2016,
+   "title": "GDPR Article 9 (special categories) and Article 4 definitions",
+   "venue": "Regulation (EU) 2016/679",
+   "doi": null,
+   "url": "https://gdpr-info.eu/art-9-gdpr/",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "European Union (2016)",
+   "link": "https://gdpr-info.eu/art-9-gdpr/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "goldberg2006",
+   "authors": "Goldberg et al.",
+   "year": 2006,
+   "title": "The International Personality Item Pool and the future of public-domain personality measures",
+   "venue": "Journal of Research in Personality 40(1)",
+   "doi": "10.1016/j.jrp.2005.08.007",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Goldberg et al. (2006)",
+   "link": "https://doi.org/10.1016/j.jrp.2005.08.007",
+   "cited_by": [
+    "big_five_self_report",
+    "observer_rated_big_five"
+   ],
+   "families": [
+    "peer/other-report",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "greenhouse2023_ai_survey",
+   "authors": "Greenhouse",
+   "year": 2023,
+   "title": "AI, DEIB and the future of hiring: cautious curiosity from candidates and hiring managers",
+   "venue": "Greenhouse blog 11 July 2023",
+   "doi": null,
+   "url": "https://www.greenhouse.com/blog/ai-deib-candidate-hiring-manager-survey-results",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Greenhouse (2023)",
+   "link": "https://www.greenhouse.com/blog/ai-deib-candidate-hiring-manager-survey-results",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "greenhouse2026_ai_interviews",
+   "authors": "Greenhouse; reported by HR Dive (L. Ewen)",
+   "year": 2026,
+   "title": "Greenhouse 2026 candidate AI interview report (via HR Dive, 6 May 2026)",
+   "venue": "HR Dive news article",
+   "doi": null,
+   "url": "https://www.hrdive.com/news/job-seekers-walk-away-from-AI-interviews/819443/",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Greenhouse y reported by HR Dive (2026)",
+   "link": "https://www.hrdive.com/news/job-seekers-walk-away-from-AI-interviews/819443/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "hao2025_chatgpt_cps",
+   "authors": "Hao, Cui, Kyllonen, Kerzabi",
+   "year": 2025,
+   "title": "Automated coding of communication data using ChatGPT: consistency across subgroups",
+   "venue": "arXiv 2510.20584",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2510.20584",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Hao et al. (2025)",
+   "link": "https://arxiv.org/abs/2510.20584",
+   "cited_by": [
+    "automated_cps_coding"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hausknecht2004",
+   "authors": "Hausknecht, J.P.; Day, D.V.; Thomas, S.C.",
+   "year": 2004,
+   "title": "Applicant reactions to selection procedures: an updated model and meta-analysis",
+   "venue": "Personnel Psychology 57(3):639-683",
+   "doi": null,
+   "url": "https://doi.org/10.1111/j.1744-6570.2004.00003.x",
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Hausknecht et al. (2004)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2004.00003.x",
+   "cited_by": [
+    "assessment_centre",
+    "work_sample"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "herde_lievens2023",
+   "authors": "Herde, Lievens",
+   "year": 2023,
+   "title": "Multiple speeded assessments under scrutiny: underlying theory, design considerations, reliability, and validity",
+   "venue": "Journal of Applied Psychology 108(3), 351-373",
+   "doi": "10.1037/apl0000603",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Herde y Lievens (2023)",
+   "link": "https://doi.org/10.1037/apl0000603",
+   "cited_by": [
+    "multiple_speeded_assessments"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": [
+    "r_herde_18"
+   ]
+  },
+  {
+   "id": "hickman2022",
+   "authors": "Hickman, Bosch, Ng, Saef, Tay, Woo",
+   "year": 2022,
+   "title": "Automated video interview personality assessments: reliability, validity, and generalizability investigations",
+   "venue": "Journal of Applied Psychology 107(8)",
+   "doi": "10.1037/apl0000695",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hickman et al. (2022)",
+   "link": "https://doi.org/10.1037/apl0000695",
+   "cited_by": [
+    "avi_personality",
+    "big_five_self_report",
+    "observer_rated_big_five",
+    "personality_from_language"
+   ],
+   "families": [
+    "automatic-method",
+    "peer/other-report",
+    "questionnaire"
+   ],
+   "figures": [
+    "i_interviewer_s1",
+    "i_interviewer_s3",
+    "m_avi_human",
+    "m_avi_interviewer",
+    "m_avi_self"
+   ]
+  },
+  {
+   "id": "hickman2023",
+   "authors": "Hickman, Herde, Lievens, Tay",
+   "year": 2023,
+   "title": "Automatic scoring of speeded interpersonal assessment center exercises via machine learning: initial psychometric evidence and practical guidelines",
+   "venue": "International Journal of Selection and Assessment",
+   "doi": "10.1111/ijsa.12418",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hickman et al. (2023)",
+   "link": "https://doi.org/10.1111/ijsa.12418",
+   "cited_by": [
+    "assessment_centre",
+    "ml_scoring_ac_roleplays",
+    "multiple_speeded_assessments"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": [
+    "g_roleplay_single",
+    "m_ac_human",
+    "m_ac_machine",
+    "m_ac_machine_oar",
+    "r_roleplayer_one",
+    "r_ml_one",
+    "r_roleplayer_18",
+    "r_ml_18",
+    "r_mixed_18",
+    "r_panel_18"
+   ]
+  },
+  {
+   "id": "highhouse2008",
+   "authors": "Highhouse, S.",
+   "year": 2008,
+   "title": "Stubborn reliance on intuition and subjectivity in employee selection",
+   "venue": "Industrial and Organizational Psychology 1:333-342 (SIOP focal article)",
+   "doi": null,
+   "url": "https://goal-lab.psych.umn.edu/orgpsych/readings/12.%20Judgment%20&%20Decision%20Making/Highhouse%20(2008).pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Highhouse (2008)",
+   "link": "https://goal-lab.psych.umn.edu/orgpsych/readings/12.%20Judgment%20&%20Decision%20Making/Highhouse%20(2008).pdf",
+   "cited_by": [
+    "unstructured_interview"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hoffman2011",
+   "authors": "Hoffman, Melchers, Blair, Kleinmann, Ladd",
+   "year": 2011,
+   "title": "Exercises and dimensions are the currency of assessment centers",
+   "venue": "Personnel Psychology 64",
+   "doi": "10.1111/j.1744-6570.2011.01213.x",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hoffman et al. (2011)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2011.01213.x",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hogan_competency_model",
+   "authors": "Hogan Assessment Systems",
+   "year": null,
+   "title": "The development of the Hogan Competency Model (whitepaper)",
+   "venue": "Hogan whitepaper",
+   "doi": null,
+   "url": "https://info.hoganassessments.com/hubfs/EL_Hogan_Comp_Model.pdf",
+   "verified": "full-text",
+   "kind": "technical-manual",
+   "cite": "Hogan Assessment Systems (s. f.)",
+   "link": "https://info.hoganassessments.com/hubfs/EL_Hogan_Comp_Model.pdf",
+   "cited_by": [
+    "hogan_competency_model",
+    "hogan_hpi_hds_mvpi"
+   ],
+   "families": [
+    "framework",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hogan_sales_techreport",
+   "authors": "Hogan Assessment Systems",
+   "year": 2016,
+   "title": "Validity of the HPI, HDS and MVPI for selecting sales representatives at ABC Company (sample technical report)",
+   "venue": "Hogan sample technical report",
+   "doi": null,
+   "url": "https://www.hoganassessments.com/sites/default/files/uploads/Sample_Tech%20Report_2016-07-06_FINAL.pdf",
+   "verified": "abstract-only",
+   "kind": "technical-manual",
+   "cite": "Hogan Assessment Systems (2016)",
+   "link": "https://www.hoganassessments.com/sites/default/files/uploads/Sample_Tech%20Report_2016-07-06_FINAL.pdf",
+   "cited_by": [
+    "hogan_competency_model"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hogan_tech2016",
+   "authors": "Hogan Assessment Systems",
+   "year": 2016,
+   "title": "Validity of the HPI, HDS and MVPI for selecting sales representatives at ABC Company (technical report)",
+   "venue": "vendor technical report",
+   "doi": null,
+   "url": "https://www.hoganassessments.com/sites/default/files/uploads/Sample_Tech%20Report_2016-07-06_FINAL.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Hogan Assessment Systems (2016)",
+   "link": "https://www.hoganassessments.com/sites/default/files/uploads/Sample_Tech%20Report_2016-07-06_FINAL.pdf",
+   "cited_by": [
+    "hogan_hpi_hds_mvpi"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hoogeboom2012",
+   "authors": "Hoogeboom, Wilderom",
+   "year": 2012,
+   "title": "Behavioral dynamics (in staff meetings): what patterns lead to success?",
+   "venue": "Proceedings of Measuring Behavior 2012, 313-316",
+   "doi": null,
+   "url": "https://archive.measuringbehavior.org/mb2012/files/2012/ProceedingsPDF(website)/General%20Sessions/Measurement%20of%20Human%20Behavior%20and%20Interaction%20in%20Natural%20Contexts/Hoogeboom__Wilderom_MB2012.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hoogeboom y Wilderom (2012)",
+   "link": "https://archive.measuringbehavior.org/mb2012/files/2012/ProceedingsPDF(website)/General%20Sessions/Measurement%20of%20Human%20Behavior%20and%20Interaction%20in%20Natural%20Contexts/Hoogeboom__Wilderom_MB2012.pdf",
+   "cited_by": [
+    "twente_leader_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "hua2025",
+   "authors": "Hua, Jiao, Song",
+   "year": 2025,
+   "title": "Comparison of scoring rationales between large language models and human raters",
+   "venue": "arXiv 2509.23412",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2509.23412",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hua et al. (2025)",
+   "link": "https://arxiv.org/abs/2509.23412",
+   "cited_by": [
+    "llm_as_judge"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "huang2017",
+   "authors": "Huang, Yeomans, Brooks, Minson, Gino",
+   "year": 2017,
+   "title": "It doesn't hurt to ask: question-asking increases liking",
+   "venue": "JPSP 113(3)",
+   "doi": "10.1037/pspi0000097",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Huang et al. (2017)",
+   "link": "https://doi.org/10.1037/pspi0000097",
+   "cited_by": [
+    "receptiveness_followup_questions"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "huffcutt2014",
+   "authors": "Huffcutt, Culbertson, Weyhrauch",
+   "year": 2014,
+   "title": "Moving forward indirectly: reanalyzing the validity of employment interviews with indirect range restriction methodology",
+   "venue": "International Journal of Selection and Assessment 22(3)",
+   "doi": "10.1111/ijsa.12078",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Huffcutt et al. (2014)",
+   "link": "https://doi.org/10.1111/ijsa.12078",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "hunkenschroer2021",
+   "authors": "Hunkenschroer, Lutge",
+   "year": 2021,
+   "title": "How to improve fairness perceptions of AI in hiring: the crucial role of positioning and sensitization",
+   "venue": "AI Ethics Journal 2(2)",
+   "doi": "10.47289/aiej20210716-3",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Hunkenschroer y Lutge (2021)",
+   "link": "https://doi.org/10.47289/aiej20210716-3",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "infojobs2023_ia",
+   "authors": "InfoJobs / CIO Spain",
+   "year": 2023,
+   "title": "Solo el 16% de las empresas espanolas emplean la IA en sus procesos de seleccion (InfoJobs digital transformation report, via CIO)",
+   "venue": "CIO Spain article, 16 May 2023",
+   "doi": null,
+   "url": "https://www.cio.com/tendencias/solo-el-16-de-las-empresas-espanolas-emplean-la-ia-en-sus-procesos-de-seleccion",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "InfoJobs / CIO Spain (2023)",
+   "link": "https://www.cio.com/tendencias/solo-el-16-de-las-empresas-espanolas-emplean-la-ia-en-sus-procesos-de-seleccion",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "itc2022",
+   "authors": "International Test Commission and Association of Test Publishers",
+   "year": 2022,
+   "title": "Guidelines for Technology-Based Assessment",
+   "venue": "ITC/ATP",
+   "doi": null,
+   "url": "https://rd.mandela.ac.za/rcd/media/Store/documents/RecH/Guidelines-for-Technology-Based-Assessment-v20221108.pdf",
+   "verified": "full-text",
+   "kind": "standard",
+   "cite": "International Test Commission and Association of Test Publishers (2022)",
+   "link": "https://rd.mandela.ac.za/rcd/media/Store/documents/RecH/Guidelines-for-Technology-Based-Assessment-v20221108.pdf",
+   "cited_by": [
+    "ml_scoring_ac_roleplays"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "jackson2016",
+   "authors": "Jackson, Michaelides, Dewberry, Kim",
+   "year": 2016,
+   "title": "Everything that you have ever been told about assessment center ratings is confounded",
+   "venue": "Journal of Applied Psychology 101(7)",
+   "doi": "10.1037/apl0000102",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Jackson et al. (2016)",
+   "link": "https://doi.org/10.1037/apl0000102",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": [
+    "g_one_rating_assessor",
+    "g_overall_assessor",
+    "g_one_rating_exercise",
+    "g_dimension_3ex",
+    "g_overall_3ex",
+    "s_one_rating",
+    "s_dimension_3",
+    "s_overall_3"
+   ]
+  },
+  {
+   "id": "jacques2021",
+   "authors": "Jacques Junior, Lapedriza, Palmero, Baro, Escalera",
+   "year": 2021,
+   "title": "Person perception biases exposed: revisiting the ChaLearn First Impressions dataset",
+   "venue": "WACV Workshops 2021 (arXiv 2011.14906)",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2011.14906",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Jacques Junior et al. (2021)",
+   "link": "https://arxiv.org/abs/2011.14906",
+   "cited_by": [
+    "apparent_personality_chalearn"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "jaeckel2024_negotiact",
+   "authors": "Jäckel, Zerres, Hemshorn de Sanchez, Lehmann-Willenbrock, Hüffmeier",
+   "year": 2024,
+   "title": "NegotiAct: introducing a comprehensive coding scheme to capture temporal interaction patterns in negotiations",
+   "venue": "Group & Organization Management 49(3), 743-783",
+   "doi": "10.1177/10596011221132600",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Jäckel et al. (2024)",
+   "link": "https://doi.org/10.1177/10596011221132600",
+   "cited_by": [
+    "negotiact"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": [
+    "k_negotiact"
+   ]
+  },
+  {
+   "id": "joseph2010",
+   "authors": "Joseph, Newman",
+   "year": 2010,
+   "title": "Emotional intelligence: an integrative meta-analysis and cascading model",
+   "venue": "Journal of Applied Psychology 95(1)",
+   "doi": "10.1037/a0017286",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Joseph y Newman (2010)",
+   "link": "https://doi.org/10.1037/a0017286",
+   "cited_by": [
+    "msceit",
+    "trait_ei_questionnaires"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "judge2002",
+   "authors": "Judge, Bono, Ilies, Gerhardt",
+   "year": 2002,
+   "title": "Personality and leadership: a qualitative and quantitative review",
+   "venue": "Journal of Applied Psychology 87(4), 765-780",
+   "doi": "10.1037/0021-9010.87.4.765",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Judge et al. (2002)",
+   "link": "https://doi.org/10.1037/0021-9010.87.4.765",
+   "cited_by": [
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kauffeld2012",
+   "authors": "Kauffeld, Lehmann-Willenbrock",
+   "year": 2012,
+   "title": "Meetings matter: effects of team meetings on team and organizational success",
+   "venue": "Small Group Research",
+   "doi": "10.1177/1046496411429599",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Kauffeld y Lehmann-Willenbrock (2012)",
+   "link": "https://doi.org/10.1177/1046496411429599",
+   "cited_by": [
+    "act4teams"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kauffeld_act4teams_chapter",
+   "authors": "Kauffeld, Lehmann-Willenbrock",
+   "year": null,
+   "title": "The Advanced Interaction Analysis for Teams (act4teams) Coding Scheme",
+   "venue": "Cambridge Handbook of Group Interaction Analysis",
+   "doi": "10.1017/9781316286302.022",
+   "url": null,
+   "verified": "secondary",
+   "kind": "book",
+   "cite": "Kauffeld y Lehmann-Willenbrock (s. f.)",
+   "link": "https://doi.org/10.1017/9781316286302.022",
+   "cited_by": [
+    "act4teams"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kayhan2018",
+   "authors": "Kayhan et al.",
+   "year": 2018,
+   "title": "How honest are the signals? A protocol for validating wearable sensors",
+   "venue": "Behavior Research Methods",
+   "doi": null,
+   "url": "https://www.bohrium.com/paper-details/how-honest-are-the-signals-a-protocol-for-validating-wearable-sensors/813066500641390594-12238",
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Kayhan et al. (2018)",
+   "link": "https://www.bohrium.com/paper-details/how-honest-are-the-signals-a-protocol-for-validating-wearable-sensors/813066500641390594-12238",
+   "cited_by": [
+    "sociometric_badges"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kolbe2013_coact",
+   "authors": "Kolbe, Burtscher, Manser",
+   "year": 2013,
+   "title": "Co-ACT - a framework for observing coordination behaviour in acute care teams",
+   "venue": "BMJ Quality & Safety 22(7), 596-605",
+   "doi": "10.1136/bmjqs-2012-001319",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Kolbe et al. (2013)",
+   "link": "https://doi.org/10.1136/bmjqs-2012-001319",
+   "cited_by": [
+    "clinical_marker_systems"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kornferry_21st_century",
+   "authors": "Korn Ferry Institute",
+   "year": null,
+   "title": "Define. Distill. Deploy.: adopting 21st-century competencies for high-impact talent",
+   "venue": "Korn Ferry white paper",
+   "doi": null,
+   "url": "https://s1.q4cdn.com/209931665/files/doc_downloads/report_21st_century.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Korn Ferry Institute (s. f.)",
+   "link": "https://s1.q4cdn.com/209931665/files/doc_downloads/report_21st_century.pdf",
+   "cited_by": [
+    "kornferry_leadership_architect"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "kuncel_sackett2014",
+   "authors": "Kuncel, Sackett",
+   "year": 2014,
+   "title": "Resolving the assessment center construct validity problem (as we know it)",
+   "venue": "Journal of Applied Psychology 99(1), 38-47",
+   "doi": "10.1037/a0034147",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Kuncel y Sackett (2014)",
+   "link": "https://doi.org/10.1037/a0034147",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "lacroux2022_trust",
+   "authors": "Lacroux, A.; Martin-Lacroux, C.",
+   "year": 2022,
+   "title": "Should I trust the artificial intelligence to recruit? Recruiters' perceptions and behavior when faced with algorithm-based recommendation systems during resume screening",
+   "venue": "Frontiers in Psychology 13:895997",
+   "doi": null,
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9298741/",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Lacroux y Martin-Lacroux (2022)",
+   "link": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9298741/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "lance2008",
+   "authors": "Lance",
+   "year": 2008,
+   "title": "Why assessment centers do not work the way they are supposed to",
+   "venue": "Industrial and Organizational Psychology",
+   "doi": "10.1111/j.1754-9434.2007.00017.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Lance (2008)",
+   "link": "https://doi.org/10.1111/j.1754-9434.2007.00017.x",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "langer2020",
+   "authors": "Langer, Konig, Hemsing",
+   "year": 2020,
+   "title": "Is anybody listening? The impact of automatically evaluated job interviews on impression management and applicant reactions",
+   "venue": "Journal of Managerial Psychology 35(4)",
+   "doi": "10.1108/jmp-03-2019-0156",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Langer et al. (2020)",
+   "link": "https://doi.org/10.1108/jmp-03-2019-0156",
+   "cited_by": [
+    "avi_personality"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "langer2024",
+   "authors": "(authors not captured)",
+   "year": 2024,
+   "title": "Applicant reactions to algorithm- versus recruiter-based evaluations of an asynchronous video interview",
+   "venue": "Journal of Occupational and Organizational Psychology",
+   "doi": null,
+   "url": "https://research.tilburguniversity.edu/en/publications/applicant-reactions-to-algorithm-versus-recruiter-based-evaluatio/",
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Applicant reactions to algorithm- versus recruiter-based evaluations of an asynchronous video interview (2024)",
+   "link": "https://research.tilburguniversity.edu/en/publications/applicant-reactions-to-algorithm-versus-recruiter-based-evaluatio/",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "lehmannwillenbrock2015",
+   "authors": "Lehmann-Willenbrock, Meinecke, Rowold, Kauffeld",
+   "year": 2015,
+   "title": "How transformational leadership works during team interactions: a behavioral process analysis",
+   "venue": "The Leadership Quarterly 26, 1017-1033",
+   "doi": "10.1016/j.leaqua.2015.07.003",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Lehmann-Willenbrock et al. (2015)",
+   "link": "https://doi.org/10.1016/j.leaqua.2015.07.003",
+   "cited_by": [
+    "act4teams",
+    "observer_rated_tli"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": [
+    "k_act4teams",
+    "i_tli_one",
+    "i_tli_six"
+   ]
+  },
+  {
+   "id": "lepine2008",
+   "authors": "LePine, Piccolo, Jackson, Mathieu, Saul",
+   "year": 2008,
+   "title": "A meta-analysis of teamwork processes: tests of a multidimensional model and relationships with team effectiveness",
+   "venue": "Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2008.00114.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "LePine et al. (2008)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2008.00114.x",
+   "cited_by": [
+    "team_process_taxonomy"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "li2021_aies_recruiters",
+   "authors": "Li, L.; Lassiter, T.; Oh, J.; Lee, M.K.",
+   "year": 2021,
+   "title": "Algorithmic Hiring in Practice: Recruiter and HR Professional's Perspectives on AI Use in Hiring (poster)",
+   "venue": "AIES 2021 poster",
+   "doi": null,
+   "url": "https://www.aies-conference.com/2021/wp-content/posters/238_%20Algorithmic%20Hiring%20in%20Practice_%20Recruiter%20and%20HR%20Professional%E2%80%99s%20Perspectives%20on%20AI%20Use%20in%20Hiring.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Li et al. (2021)",
+   "link": "https://www.aies-conference.com/2021/wp-content/posters/238_%20Algorithmic%20Hiring%20in%20Practice_%20Recruiter%20and%20HR%20Professional%E2%80%99s%20Perspectives%20on%20AI%20Use%20in%20Hiring.pdf",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "li2025_diplomacy",
+   "authors": "Li, Ng, Liu, Fried",
+   "year": 2025,
+   "title": "Measuring fine-grained negotiation tactics of humans and LLMs in Diplomacy",
+   "venue": "arXiv 2512.18292",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2512.18292",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Li et al. (2025)",
+   "link": "https://arxiv.org/abs/2512.18292",
+   "cited_by": [
+    "automatic_negotiation_analysis",
+    "negotiact"
+   ],
+   "families": [
+    "automatic-method",
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "lievens2004",
+   "authors": "Lievens, Sanchez, De Corte",
+   "year": 2004,
+   "title": "Easing the inferential leap in competency modeling: effects of task-related information and subject matter expertise",
+   "venue": "Personnel Psychology 57(4):881-904",
+   "doi": "10.1111/j.1744-6570.2004.00009.x",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Lievens et al. (2004)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2004.00009.x",
+   "cited_by": [
+    "competency_modeling_process"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "lifecomp2020",
+   "authors": "Sala, Punie, Garkov, Cabrera",
+   "year": 2020,
+   "title": "LifeComp: the European framework for personal, social and learning to learn key competence",
+   "venue": "JRC Science for Policy Report EUR 30246",
+   "doi": null,
+   "url": "https://publications.jrc.ec.europa.eu/repository/handle/JRC120911",
+   "verified": "full-text",
+   "kind": "framework",
+   "cite": "Sala et al. (2020)",
+   "link": "https://publications.jrc.ec.europa.eu/repository/handle/JRC120911",
+   "cited_by": [
+    "lifecomp_entrecomp"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "liu2024",
+   "authors": "Liu et al.",
+   "year": 2024,
+   "title": "Meta-analysis and systematic review of the measures of psychological safety",
+   "venue": "medRxiv preprint",
+   "doi": "10.1101/2024.02.09.24302562",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Liu et al. (2024)",
+   "link": "https://doi.org/10.1101/2024.02.09.24302562",
+   "cited_by": [
+    "psychological_safety_scale"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "llm_competency2026",
+   "authors": "Du, Xin, Wang",
+   "year": 2026,
+   "title": "Exploring a new competency modeling process with large language models",
+   "venue": "arXiv:2602.13084",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2602.13084",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Du et al. (2026)",
+   "link": "https://arxiv.org/abs/2602.13084",
+   "cited_by": [
+    "competency_modeling_process"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "lord1986",
+   "authors": "Lord, De Vader, Alliger",
+   "year": 1986,
+   "title": "A meta-analysis of the relation between personality traits and leadership perceptions",
+   "venue": "Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.71.3.402",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Lord et al. (1986)",
+   "link": "https://doi.org/10.1037/0021-9010.71.3.402",
+   "cited_by": [
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "maclaren2020",
+   "authors": "MacLaren, Yammarino, Dionne, Sayama, Mumford, Connelly, Martin, Mulhearn, Todd, Kulkarni, Cao, Ruark",
+   "year": 2020,
+   "title": "Testing the babble hypothesis: speaking time predicts leader emergence in small groups",
+   "venue": "The Leadership Quarterly 31(5), 101409",
+   "doi": "10.1016/j.leaqua.2020.101409",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "MacLaren et al. (2020)",
+   "link": "https://doi.org/10.1016/j.leaqua.2020.101409",
+   "cited_by": [
+    "emergent_leadership_speaking_activity",
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "mairesse2007",
+   "authors": "Mairesse, Walker, Mehl, Moore",
+   "year": 2007,
+   "title": "Using linguistic cues for the automatic recognition of personality in conversation and text",
+   "venue": "Journal of Artificial Intelligence Research 30",
+   "doi": "10.1613/jair.2349",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Mairesse et al. (2007)",
+   "link": "https://doi.org/10.1613/jair.2349",
+   "cited_by": [
+    "personality_from_language"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "mcclelland1973",
+   "authors": "McClelland",
+   "year": 1973,
+   "title": "Testing for competence rather than for 'intelligence'",
+   "venue": "American Psychologist 28(1):1-14",
+   "doi": "10.1037/h0034092",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "McClelland (1973)",
+   "link": "https://doi.org/10.1037/h0034092",
+   "cited_by": [
+    "mcclelland_spencer_competencies"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "mcdaniel2007",
+   "authors": "McDaniel, Hartman, Whetzel, Grubb",
+   "year": 2007,
+   "title": "Situational judgment tests, response instructions, and validity: a meta-analysis",
+   "venue": "Personnel Psychology 60(1)",
+   "doi": "10.1111/j.1744-6570.2007.00065.x",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "McDaniel et al. (2007)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2007.00065.x",
+   "cited_by": [
+    "situational_judgement_test"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "meriac2008",
+   "authors": "Meriac, Hoffman, Woehr, Fleisher",
+   "year": 2008,
+   "title": "Further evidence for the validity of assessment center dimensions: meta-analysis of incremental criterion-related validity",
+   "venue": "Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.93.5.1042",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "Meriac et al. (2008)",
+   "link": "https://doi.org/10.1037/0021-9010.93.5.1042",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "meriac2014",
+   "authors": "Meriac, Hoffman, Woehr",
+   "year": 2014,
+   "title": "A conceptual and empirical review of the structure of assessment center dimensions",
+   "venue": "Journal of Management",
+   "doi": "10.1177/0149206314522299",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Meriac et al. (2014)",
+   "link": "https://doi.org/10.1177/0149206314522299",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "michaelpage2020_candidatos",
+   "authors": "Michael Page Spain",
+   "year": 2020,
+   "title": "Candidatos y procesos de seleccion: cual es su percepcion?",
+   "venue": "Recruitment firm survey poster",
+   "doi": null,
+   "url": "https://www.michaelpage.es/sites/michaelpage.es/files/legacy/mp_es_percepcion_candidatos_procesos_seleccion.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Michael Page Spain (2020)",
+   "link": "https://www.michaelpage.es/sites/michaelpage.es/files/legacy/mp_es_percepcion_candidatos_procesos_seleccion.pdf",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "molero2010mlq",
+   "authors": "Molero, Recio, Cuadrado",
+   "year": 2010,
+   "title": "Adaptación del MLQ al español (Molero, Recio, Cuadrado)",
+   "venue": "Psicothema 22(3) 495-501",
+   "doi": null,
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Molero et al. (2010)",
+   "link": null,
+   "cited_by": [
+    "mlq"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "morgeson2007",
+   "authors": "Morgeson, Campion, Dipboye, Hollenbeck, Murphy, Schmitt",
+   "year": 2007,
+   "title": "Reconsidering the use of personality tests in personnel selection contexts",
+   "venue": "Personnel Psychology 60(3)",
+   "doi": "10.1111/j.1744-6570.2007.00089.x",
+   "url": null,
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Morgeson et al. (2007)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2007.00089.x",
+   "cited_by": [
+    "big_five_self_report"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "moritz2023",
+   "authors": "Moritz et al.",
+   "year": 2023,
+   "title": "Meta-analysis of (un)fairness perceptions of algorithmic decision-making",
+   "venue": "Academy of Management meeting (conference, not peer reviewed per listing)",
+   "doi": null,
+   "url": "https://www.wi.uni-muenster.de/publication/194382330",
+   "verified": "secondary",
+   "kind": "review",
+   "cite": "Moritz et al. (2023)",
+   "link": "https://www.wi.uni-muenster.de/publication/194382330",
+   "cited_by": [
+    "ml_scoring_ac_roleplays"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "muniz2020",
+   "authors": "Muñiz, Hernández, Fernández-Hermida",
+   "year": 2020,
+   "title": "Test use in Spain: the psychologists' viewpoint",
+   "venue": "Papeles del Psicólogo 41(1) 1-15",
+   "doi": "10.23923/pap.psicol2020.2921",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Muñiz et al. (2020)",
+   "link": "https://doi.org/10.23923/pap.psicol2020.2921",
+   "cited_by": [
+    "big_five_self_report",
+    "competea",
+    "sixteen_pf5"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "murphy_hall2021",
+   "authors": "Murphy, Hall",
+   "year": 2021,
+   "title": "Capturing behavior in small doses: a review of comparative research in evaluating thin slices for behavioral measurement",
+   "venue": "Frontiers in Psychology 12, 667326",
+   "doi": "10.3389/fpsyg.2021.667326",
+   "url": null,
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Murphy y Hall (2021)",
+   "link": "https://doi.org/10.3389/fpsyg.2021.667326",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "nace_competencies",
+   "authors": "NACE",
+   "year": 2024,
+   "title": "Career readiness competencies for a career-ready workforce (NACE)",
+   "venue": "NACE (copy hosted by WPI)",
+   "doi": null,
+   "url": "https://www.wpi.edu/sites/default/files/2024-04/NACE-Competencies.pdf",
+   "verified": "full-text",
+   "kind": "framework",
+   "cite": "NACE (2024)",
+   "link": "https://www.wpi.edu/sites/default/files/2024-04/NACE-Competencies.pdf",
+   "cited_by": [
+    "nace_career_readiness"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "naim2015",
+   "authors": "Naim, Tanveer, Gildea, Hoque",
+   "year": 2015,
+   "title": "Automated analysis and prediction of job interview performance",
+   "venue": "IEEE Transactions on Affective Computing (arXiv 1504.03425)",
+   "doi": "10.1109/taffc.2016.2614299",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Naim et al. (2015)",
+   "link": "https://doi.org/10.1109/taffc.2016.2614299",
+   "cited_by": [
+    "interview_performance_prediction",
+    "structured_interview"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "nouri2017",
+   "authors": "Nouri, Åkerfeldt, Fors, Selander",
+   "year": 2017,
+   "title": "Assessing collaborative problem solving skills in technology-enhanced learning environments: PISA framework and modes of communication",
+   "venue": "iJET",
+   "doi": "10.3991/ijet.v12i04.6737",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Nouri et al. (2017)",
+   "link": "https://doi.org/10.3991/ijet.v12i04.6737",
+   "cited_by": [
+    "pisa_atc21s_cps"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "nyc_ll144_rule",
+   "authors": "NYC Dept of Consumer and Worker Protection",
+   "year": 2023,
+   "title": "NYC DCWP final rule implementing Local Law 144 of 2021 (AEDT), notice of adoption 2023",
+   "venue": "6 RCNY 5-300 et seq. (Sidley copy of the notice)",
+   "doi": null,
+   "url": "https://www.sidley.com/-/media/resource-pages/ai-monitor/laws-and-regulations/20230406-nyc-dcwp-notice-of-adoption-of-final-rule-for-local-law-144.pdf?la=en",
+   "verified": "full-text",
+   "kind": "regulation",
+   "cite": "NYC Dept of Consumer and Worker Protection (2023)",
+   "link": "https://www.sidley.com/-/media/resource-pages/ai-monitor/laws-and-regulations/20230406-nyc-dcwp-notice-of-adoption-of-final-rule-for-local-law-144.pdf?la=en",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "oboyle2011",
+   "authors": "O'Boyle, Humphrey, Pollack, Hawver, Story",
+   "year": 2011,
+   "title": "The relation between emotional intelligence and job performance: a meta-analysis",
+   "venue": "Journal of Organizational Behavior 32(5)",
+   "doi": "10.1002/job.714",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "O'Boyle et al. (2011)",
+   "link": "https://doi.org/10.1002/job.714",
+   "cited_by": [
+    "trait_ei_questionnaires"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "ohland2012",
+   "authors": "Ohland, Loughry, Woehr, Bullard, Felder, Finelli, Layton, Pomeranz, Schmucker",
+   "year": 2012,
+   "title": "The Comprehensive Assessment of Team Member Effectiveness: development of a behaviorally anchored rating scale for self- and peer evaluation",
+   "venue": "Academy of Management Learning & Education 11(4), 609-630",
+   "doi": "10.5465/amle.2010.0177",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Ohland et al. (2012)",
+   "link": "https://doi.org/10.5465/amle.2010.0177",
+   "cited_by": [
+    "catme"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "ohwangmount2011",
+   "authors": "Oh, Wang, Mount",
+   "year": 2011,
+   "title": "Validity of observer ratings of the five-factor model of personality traits: a meta-analysis",
+   "venue": "Journal of Applied Psychology 96(4), 762-773",
+   "doi": "10.1037/a0021832",
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Oh et al. (2011)",
+   "link": "https://doi.org/10.1037/a0021832",
+   "cited_by": [
+    "observer_rated_big_five"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "olekalns2015",
+   "authors": "Olekalns, Smith",
+   "year": 2015,
+   "title": "Negotiation sequences",
+   "venue": "Intl Encyclopedia of Interpersonal Communication",
+   "doi": "10.1002/9781118540190.wbeic070",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Olekalns y Smith (2015)",
+   "link": "https://doi.org/10.1002/9781118540190.wbeic070",
+   "cited_by": [
+    "negotiation_tactic_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "oliver2014",
+   "authors": "Oliver, Hausdorf, Lievens, Conlon",
+   "year": 2016,
+   "title": "Interpersonal dynamics in assessment center exercises: effects of role player portrayed disposition",
+   "venue": "Journal of Management",
+   "doi": "10.1177/0149206314525207",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Oliver et al. (2016)",
+   "link": "https://doi.org/10.1177/0149206314525207",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "onet_hybrid_ai_2025",
+   "authors": "Putka et al. (HumRRO) for National Center for O*NET Development",
+   "year": 2025,
+   "title": "Using a hybrid AI-expert method to develop Work Style ratings for the O*NET database",
+   "venue": "O*NET report 2025 No. 130",
+   "doi": null,
+   "url": "https://www.onetcenter.org/dl_files/Hybrid_AI_Ratings.pdf",
+   "verified": "full-text",
+   "kind": "technical-manual",
+   "cite": "Putka et al. (2025)",
+   "link": "https://www.onetcenter.org/dl_files/Hybrid_AI_Ratings.pdf",
+   "cited_by": [
+    "onet_hybrid_ai_ratings",
+    "onet_work_styles"
+   ],
+   "families": [
+    "automatic-method",
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "onet_work_styles_2024",
+   "authors": "Putka, Kell, Voss, Oswald (HumRRO) for National Center for O*NET Development",
+   "year": 2024,
+   "title": "Revisiting the Work Styles domain of the O*NET content model",
+   "venue": "O*NET report 2024 No. 090",
+   "doi": null,
+   "url": "https://onetcenter.org/dl_files/Work_Styles_New.pdf",
+   "verified": "full-text",
+   "kind": "technical-manual",
+   "cite": "Putka et al. (2024)",
+   "link": "https://onetcenter.org/dl_files/Work_Styles_New.pdf",
+   "cited_by": [
+    "onet_work_styles"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "park2015",
+   "authors": "Park, Schwartz, Eichstaedt, Kern, Kosinski, Stillwell, Ungar, Seligman",
+   "year": 2015,
+   "title": "Automatic personality assessment through social media language",
+   "venue": "Journal of Personality and Social Psychology 108(6)",
+   "doi": "10.1037/pspp0000020",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Park et al. (2015)",
+   "link": "https://doi.org/10.1037/pspp0000020",
+   "cited_by": [
+    "personality_from_language"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "pittenger2005",
+   "authors": "Pittenger",
+   "year": 2005,
+   "title": "Pittenger (1993; 2005) critiques of the MBTI",
+   "venue": "Consulting Psychology Journal 57(3)",
+   "doi": "10.1037/1065-9293.57.3.210",
+   "url": null,
+   "verified": "secondary",
+   "kind": "review",
+   "cite": "Pittenger (2005)",
+   "link": "https://doi.org/10.1037/1065-9293.57.3.210",
+   "cited_by": [
+    "mbti"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "pugh2021",
+   "authors": "Pugh, Subburaj, Rao, Stewart, Andrews-Todd, D'Mello",
+   "year": 2021,
+   "title": "Say what? Automatic modeling of collaborative problem solving skills from student speech in the wild",
+   "venue": "EDM 2021",
+   "doi": null,
+   "url": "https://par.nsf.gov/servlets/purl/10494306",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Pugh et al. (2021)",
+   "link": "https://par.nsf.gov/servlets/purl/10494306",
+   "cited_by": [
+    "automated_cps_coding",
+    "sun_cps_model"
+   ],
+   "families": [
+    "automatic-method",
+    "observational-scheme"
+   ],
+   "figures": [
+    "i_cps_pugh",
+    "a_cps_human_tx",
+    "a_cps_asr",
+    "a_cps_asr_lab",
+    "a_cps_asr_school"
+   ]
+  },
+  {
+   "id": "rework_aristotle",
+   "authors": "Google re:Work Editorial Team",
+   "year": 2015,
+   "title": "Understand team effectiveness (Project Aristotle / Oxygen), Google re:Work",
+   "venue": "rework.withgoogle.com",
+   "doi": null,
+   "url": "https://rework.withgoogle.com/intl/en/guides/understand-team-effectiveness",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "Google re:Work Editorial Team (2015)",
+   "link": "https://rework.withgoogle.com/intl/en/guides/understand-team-effectiveness",
+   "cited_by": [
+    "project_aristotle",
+    "psychological_safety_scale"
+   ],
+   "families": [
+    "framework",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "riedl2021",
+   "authors": "Riedl, Kim, Gupta, Malone, Woolley",
+   "year": 2021,
+   "title": "Quantifying collective intelligence in human groups",
+   "venue": "PNAS",
+   "doi": "10.1073/pnas.2005737118",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "Riedl et al. (2021)",
+   "link": "https://doi.org/10.1073/pnas.2005737118",
+   "cited_by": [
+    "collective_intelligence"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "robertson2014",
+   "authors": "Robertson, Hadi, Morgan, Pickering, Collins, New, Griffin",
+   "year": 2014,
+   "title": "Oxford NOTECHS II: a modified theatre team non-technical skills scoring system",
+   "venue": "PLOS ONE",
+   "doi": "10.1371/journal.pone.0090320",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Robertson et al. (2014)",
+   "link": "https://doi.org/10.1371/journal.pone.0090320",
+   "cited_by": [
+    "clinical_marker_systems"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "robots2022",
+   "authors": "(authors not captured)",
+   "year": 2022,
+   "title": "Robots are judging me: perceived fairness of algorithmic recruitment tools",
+   "venue": "Frontiers in Psychology (PMC9358218)",
+   "doi": null,
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9358218/",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Robots are judging me (2022)",
+   "link": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9358218/",
+   "cited_by": [
+    "avi_personality",
+    "ml_scoring_ac_roleplays"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "rupp2015",
+   "authors": "Rupp et al.",
+   "year": 2015,
+   "title": "Guidelines and ethical considerations for assessment center operations (International Taskforce)",
+   "venue": "Journal of Management",
+   "doi": "10.1177/0149206314567780",
+   "url": null,
+   "verified": "full-text",
+   "kind": "standard",
+   "cite": "Rupp et al. (2015)",
+   "link": "https://doi.org/10.1177/0149206314567780",
+   "cited_by": [
+    "assessment_centre",
+    "leaderless_group_discussion",
+    "ml_scoring_ac_roleplays"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "sackett2022",
+   "authors": "Sackett, Zhang, Berry, Lievens",
+   "year": 2022,
+   "title": "Revisiting meta-analytic estimates of validity in personnel selection: addressing systematic overcorrection for restriction of range",
+   "venue": "Journal of Applied Psychology 107(11)",
+   "doi": "10.1037/apl0000994",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "Sackett et al. (2022)",
+   "link": "https://doi.org/10.1037/apl0000994",
+   "cited_by": [
+    "assessment_centre",
+    "big_five_self_report",
+    "msceit",
+    "situational_judgement_test",
+    "structured_interview",
+    "trait_ei_questionnaires",
+    "unstructured_interview",
+    "work_sample"
+   ],
+   "families": [
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": [
+    "v_structured_interview",
+    "v_job_knowledge",
+    "v_biodata",
+    "v_work_sample",
+    "v_cognitive",
+    "v_integrity",
+    "v_ei_personality",
+    "v_assessment_centre",
+    "v_sjt_knowledge",
+    "v_sjt_tendency",
+    "v_conscientiousness_ctx",
+    "v_es_ctx",
+    "v_ei_ability",
+    "v_conscientiousness",
+    "v_unstructured_interview",
+    "v_extraversion",
+    "v_agreeableness",
+    "v_es",
+    "v_openness"
+   ]
+  },
+  {
+   "id": "salas2005",
+   "authors": "Salas, Sims, Burke",
+   "year": 2005,
+   "title": "Is there a Big Five in teamwork?",
+   "venue": "Small Group Research",
+   "doi": "10.1177/1046496405277134",
+   "url": null,
+   "verified": "secondary",
+   "kind": "framework",
+   "cite": "Salas et al. (2005)",
+   "link": "https://doi.org/10.1177/1046496405277134",
+   "cited_by": [
+    "big_five_teamwork_salas"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "salgado2008",
+   "authors": "Salgado, Moscoso",
+   "year": 2008,
+   "title": "Selección de personal en la empresa y las administraciones públicas: de la visión tradicional a la visión estratégica",
+   "venue": "Papeles del Psicólogo 29(1) 16-24",
+   "doi": null,
+   "url": "https://www.papelesdelpsicologo.es/pdf/1534.pdf",
+   "verified": "full-text",
+   "kind": "review",
+   "cite": "Salgado y Moscoso (2008)",
+   "link": "https://www.papelesdelpsicologo.es/pdf/1534.pdf",
+   "cited_by": [
+    "assessment_centre",
+    "big_five_self_report",
+    "structured_interview",
+    "unstructured_interview"
+   ],
+   "families": [
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "salgado2017fc",
+   "authors": "Salgado",
+   "year": 2017,
+   "title": "Moderator effects of job complexity on the validity of forced-choice personality inventories for predicting job performance",
+   "venue": "J. Work and Organizational Psychology 33(3) 229-238",
+   "doi": "10.1016/j.rpto.2017.07.001",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Salgado (2017)",
+   "link": "https://doi.org/10.1016/j.rpto.2017.07.001",
+   "cited_by": [
+    "big_five_self_report"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "salgado_moscoso2008",
+   "authors": "Salgado, J.F.; Moscoso, S.",
+   "year": 2008,
+   "title": "Seleccion de personal en la empresa y las administraciones publicas: de la vision tradicional a la vision estrategica",
+   "venue": "Papeles del Psicologo 29(1):16-24 (Consejo General de la Psicologia)",
+   "doi": null,
+   "url": "https://www.papelesdelpsicologo.es/pdf/1534.pdf",
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Salgado y Moscoso (2008)",
+   "link": "https://www.papelesdelpsicologo.es/pdf/1534.pdf",
+   "cited_by": [
+    "structured_interview",
+    "unstructured_interview"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "salgadomoscoso2002",
+   "authors": "Salgado, Moscoso",
+   "year": 2002,
+   "title": "Comprehensive meta-analysis of the construct validity of the employment interview",
+   "venue": "European Journal of Work and Organizational Psychology (volume/pages not verified)",
+   "doi": null,
+   "url": null,
+   "verified": "secondary",
+   "kind": "meta-analysis",
+   "cite": "Salgado y Moscoso (2002)",
+   "link": null,
+   "cited_by": [
+    "structured_interview"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "sanchez2010",
+   "authors": "Sanchez-Cortes, Aran, Schmid Mast, Gatica-Perez",
+   "year": 2010,
+   "title": "Identifying emergent leadership in small groups using nonverbal communicative cues",
+   "venue": "ICMI-MLMI 2010",
+   "doi": null,
+   "url": "https://infoscience.epfl.ch/record/163173/files/Sanchez-Cortes_ICMI-MLMI2010_2010.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Sanchez-Cortes et al. (2010)",
+   "link": "https://infoscience.epfl.ch/record/163173/files/Sanchez-Cortes_ICMI-MLMI2010_2010.pdf",
+   "cited_by": [
+    "emergent_leadership_speaking_activity",
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "sanchez2012jmui",
+   "authors": "Sanchez-Cortes, Aran, Jayagopi, Schmid Mast, Gatica-Perez",
+   "year": 2013,
+   "title": "Emergent leaders through looking and speaking: from audio-visual data to multimodal recognition",
+   "venue": "Journal on Multimodal User Interfaces (preprint)",
+   "doi": null,
+   "url": "https://infoscience.epfl.ch/record/192624/files/Sanchez-Cortes_JMUI_2012.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Sanchez-Cortes et al. (2013)",
+   "link": "https://infoscience.epfl.ch/record/192624/files/Sanchez-Cortes_JMUI_2012.pdf",
+   "cited_by": [
+    "emergent_leadership_speaking_activity",
+    "leaderless_group_discussion"
+   ],
+   "families": [
+    "automatic-method",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "savani2023",
+   "authors": "(authors not captured; search summary names Lavanchy and colleagues for a J. Bus. Ethics 2023 paper)",
+   "year": 2023,
+   "title": "Applicants' fairness perceptions of algorithm-driven hiring procedures",
+   "venue": "Journal of Business Ethics",
+   "doi": null,
+   "url": "https://ira.lib.polyu.edu.hk/bitstream/10397/99045/1/Savani_Applicants_Fairness_Perceptions.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "search summary names Lavanchy and colleagues for a J. Bus. Ethics 2023 paper) (2023)",
+   "link": "https://ira.lib.polyu.edu.hk/bitstream/10397/99045/1/Savani_Applicants_Fairness_Perceptions.pdf",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "schwartz2013",
+   "authors": "Schwartz et al.",
+   "year": 2013,
+   "title": "Personality, gender and age in the language of social media: the open-vocabulary approach",
+   "venue": "PLoS ONE 8(9)",
+   "doi": "10.1371/journal.pone.0073791",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Schwartz et al. (2013)",
+   "link": "https://doi.org/10.1371/journal.pone.0073791",
+   "cited_by": [
+    "personality_from_language"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "sfia9_behavioural",
+   "authors": "SFIA Foundation",
+   "year": 2024,
+   "title": "SFIA 9 generic attributes, business skills and behavioural factors",
+   "venue": "sfia-online.org",
+   "doi": null,
+   "url": "https://sfia-online.org/en/sfia-9/responsibilities/generic-attributes-business-skills-behaviours",
+   "verified": "abstract-only",
+   "kind": "framework",
+   "cite": "SFIA Foundation (2024)",
+   "link": "https://sfia-online.org/en/sfia-9/responsibilities/generic-attributes-business-skills-behaviours",
+   "cited_by": [
+    "sfia9"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "shermis2024",
+   "authors": "Shermis",
+   "year": 2024,
+   "title": "Using ChatGPT to score essays and short-form constructed responses",
+   "venue": "arXiv 2408.09540",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2408.09540",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Shermis (2024)",
+   "link": "https://arxiv.org/abs/2408.09540",
+   "cited_by": [
+    "llm_as_judge"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "shippmann2000",
+   "authors": "Shippmann, Ash, Batjtis, Carr, Eyde, Hesketh, Kehoe, Pearlman, Prien, Sanchez (SIOP task force)",
+   "year": 2000,
+   "title": "The practice of competency modeling",
+   "venue": "Personnel Psychology 53(3):703-740",
+   "doi": "10.1111/j.1744-6570.2000.tb00220.x",
+   "url": null,
+   "verified": "secondary",
+   "kind": "review",
+   "cite": "Shippmann et al. (2000)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2000.tb00220.x",
+   "cited_by": [
+    "competency_modeling_process"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "shl_ucf_guide",
+   "authors": "SHL",
+   "year": 2025,
+   "title": "A guide to SHL's Universal Competency Framework (UCF): science, structure and best practices",
+   "venue": "SHL guide",
+   "doi": null,
+   "url": "https://www.shl.com/assets/premium-content/shl-universal-competency-framework-ucf-guide.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "SHL (2025)",
+   "link": "https://www.shl.com/assets/premium-content/shl-universal-competency-framework-ucf-guide.pdf",
+   "cited_by": [
+    "shl_opq32",
+    "shl_ucf_great_eight"
+   ],
+   "families": [
+    "framework",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "shl_ucf_whitepaper",
+   "authors": "SHL",
+   "year": null,
+   "title": "The SHL Universal Competency Framework: business success through the science of competency fit (whitepaper)",
+   "venue": "SHL whitepaper",
+   "doi": null,
+   "url": "https://www.shl.com/assets/campaigns/global/competency-fit/universal-competency-framework-whitepaper-en.pdf",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "SHL (s. f.)",
+   "link": "https://www.shl.com/assets/campaigns/global/competency-fit/universal-competency-framework-whitepaper-en.pdf",
+   "cited_by": [
+    "onet_work_styles",
+    "shl_opq32",
+    "shl_ucf_great_eight"
+   ],
+   "families": [
+    "framework",
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "shrm2022_assessments",
+   "authors": "SHRM",
+   "year": 2022,
+   "title": "New SHRM research makes the case for skills-based hiring (press release)",
+   "venue": "SHRM press release 15 Aug 2022",
+   "doi": null,
+   "url": "https://www.shrm.org/mena/about/press-room/new-shrm-research-makes-case-skills-based-hiring",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "SHRM (2022)",
+   "link": "https://www.shrm.org/mena/about/press-room/new-shrm-research-makes-case-skills-based-hiring",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "siop2021_persona",
+   "authors": "SIOP (President G. Chao)",
+   "year": 2021,
+   "title": "HBO Max Documentary on Personality Tests Fails: SIOP Responds",
+   "venue": "SIOP statement, 6 April 2021",
+   "doi": null,
+   "url": "https://www.siop.org/Portals/84/PDFs/SIOP%20Response%20to%20HBO%20Max%20Persona%20Film.pdf",
+   "verified": "full-text",
+   "kind": "other",
+   "cite": "SIOP (2021)",
+   "link": "https://www.siop.org/Portals/84/PDFs/SIOP%20Response%20to%20HBO%20Max%20Persona%20Film.pdf",
+   "cited_by": [
+    "big_five_self_report",
+    "mbti"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "siop_tip63_2_genai_survey",
+   "authors": "Nag, M.; Leung, D.; Zhou, S.; Belwalkar, B.",
+   "year": 2025,
+   "title": "Use of Artificial Intelligence in I-O Psychology: Current Trends and Future Outlook (SIOP membership survey, in TIP 63(2))",
+   "venue": "The Industrial-Organizational Psychologist 63(2), Autumn 2025, pp. 63-69",
+   "doi": null,
+   "url": "https://www.siop.org/wp-content/uploads/2025/09/632.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Nag et al. (2025)",
+   "link": "https://www.siop.org/wp-content/uploads/2025/09/632.pdf",
+   "cited_by": [],
+   "families": [],
+   "figures": []
+  },
+  {
+   "id": "smither2005",
+   "authors": "Smither, London, Reilly",
+   "year": 2005,
+   "title": "Does performance improve following multisource feedback? A theoretical model, meta-analysis, and review of empirical findings",
+   "venue": "Personnel Psychology 58(1)",
+   "doi": "10.1111/j.1744-6570.2005.514_1.x",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Smither et al. (2005)",
+   "link": "https://doi.org/10.1111/j.1744-6570.2005.514_1.x",
+   "cited_by": [
+    "multisource_360"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "smolinski2020",
+   "authors": "Smolinski, Xiong",
+   "year": 2020,
+   "title": "In search of master negotiators: a negotiation competency model",
+   "venue": "Negotiation Journal 36(3)",
+   "doi": "10.1111/nejo.12332",
+   "url": null,
+   "verified": "full-text",
+   "kind": "framework",
+   "cite": "Smolinski y Xiong (2020)",
+   "link": "https://doi.org/10.1111/nejo.12332",
+   "cited_by": [
+    "negotiation_competency_model"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "stevens2013",
+   "authors": "Stevens",
+   "year": 2013,
+   "title": "A critical review of the science and practice of competency modeling",
+   "venue": "Human Resource Development Review 12(1):86-107",
+   "doi": null,
+   "url": "https://www.econbiz.de/Record/a-critical-review-of-the-science-and-practice-of-competency-modeling/10009747753",
+   "verified": "secondary",
+   "kind": "review",
+   "cite": "Stevens (2013)",
+   "link": "https://www.econbiz.de/Record/a-critical-review-of-the-science-and-practice-of-competency-modeling/10009747753",
+   "cited_by": [
+    "competency_modeling_process"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "stevens_campion1999",
+   "authors": "Stevens, Campion",
+   "year": 1999,
+   "title": "Staffing work teams: development and validation of a selection test for teamwork settings",
+   "venue": "Journal of Management",
+   "doi": "10.1177/014920639902500205",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Stevens y Campion (1999)",
+   "link": "https://doi.org/10.1177/014920639902500205",
+   "cited_by": [
+    "teamwork_ksa_test"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "strode2016",
+   "authors": "Strode",
+   "year": 2016,
+   "title": "Applying adapted Big Five teamwork theory to agile software development",
+   "venue": "ACIS 2015 / arXiv 1606.03549",
+   "doi": "10.48550/arxiv.1606.03549",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Strode (2016)",
+   "link": "https://doi.org/10.48550/arxiv.1606.03549",
+   "cited_by": [
+    "big_five_teamwork_salas"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "sun2020",
+   "authors": "Sun, Shute, Stewart, Yonehiro, Duran, D'Mello",
+   "year": 2020,
+   "title": "Towards a generalized competency model of collaborative problem solving",
+   "venue": "Computers & Education 143, 103672",
+   "doi": "10.1016/j.compedu.2019.103672",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Sun et al. (2020)",
+   "link": "https://doi.org/10.1016/j.compedu.2019.103672",
+   "cited_by": [
+    "sun_cps_model"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": [
+    "i_cps_sun"
+   ]
+  },
+  {
+   "id": "symlog_evidence",
+   "authors": "SYMLOG Consulting Group; Dowie et al.",
+   "year": null,
+   "title": "SYMLOG reliability and validity: vendor statements and independent comment",
+   "venue": "web",
+   "doi": null,
+   "url": "https://iea.symlog.com/ProductEntry/ReliabilityValidity.aspx",
+   "verified": "secondary",
+   "kind": "other",
+   "cite": "SYMLOG Consulting Group y Dowie et al. (s. f.)",
+   "link": "https://iea.symlog.com/ProductEntry/ReliabilityValidity.aspx",
+   "cited_by": [
+    "bales_ipa_symlog"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "testgorilla2025",
+   "authors": "TestGorilla",
+   "year": 2025,
+   "title": "The State of Skills-Based Hiring 2025",
+   "venue": "TestGorilla annual report",
+   "doi": null,
+   "url": "https://www.testgorilla.com/skills-based-hiring/state-of-skills-based-hiring-2025/",
+   "verified": "full-text",
+   "kind": "vendor-material",
+   "cite": "TestGorilla (2025)",
+   "link": "https://www.testgorilla.com/skills-based-hiring/state-of-skills-based-hiring-2025/",
+   "cited_by": [
+    "work_sample"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "tmms24_2021",
+   "authors": "Soto-Ferrari et al. (as retrieved)",
+   "year": 2021,
+   "title": "Validation of TMMS-24 in three Spanish-speaking countries: Argentina, Ecuador and Spain",
+   "venue": "Int J Environ Res Public Health",
+   "doi": null,
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8469647/",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Soto-Ferrari et al. (2021)",
+   "link": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8469647/",
+   "cited_by": [
+    "trait_ei_questionnaires"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "tpot_validations",
+   "authors": "various",
+   "year": 2024,
+   "title": "TeamSTEPPS Team Performance Observation Tool (TPOT): psychometric evaluations (Thai translation 2024; Bremner 2014 pilot; Sawyer 2013 as reviewed)",
+   "venue": "various",
+   "doi": null,
+   "url": "https://bohrium.dp.tech/paper/arxiv/27293124",
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "various (2024)",
+   "link": "https://bohrium.dp.tech/paper/arxiv/27293124",
+   "cited_by": [
+    "clinical_marker_systems"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "twitchell2013",
+   "authors": "(authors not captured)",
+   "year": 2013,
+   "title": "Negotiation outcome classification using language features",
+   "venue": "Group Decision and Negotiation 22",
+   "doi": "10.1007/s10726-012-9301-y",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Negotiation outcome classification using language features (2013)",
+   "link": "https://doi.org/10.1007/s10726-012-9301-y",
+   "cited_by": [
+    "automatic_negotiation_analysis",
+    "negotiation_tactic_coding"
+   ],
+   "families": [
+    "automatic-method",
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "ukcs_success_profiles",
+   "authors": "UK Civil Service / Cabinet Office",
+   "year": 2025,
+   "title": "Success Profiles: Civil Service Behaviours (2018 booklet and gov.uk page 2025)",
+   "venue": "gov.uk",
+   "doi": null,
+   "url": "https://www.gov.uk/government/publications/success-profiles/success-profiles-civil-service-behaviours",
+   "verified": "full-text",
+   "kind": "framework",
+   "cite": "UK Civil Service / Cabinet Office (2025)",
+   "link": "https://www.gov.uk/government/publications/success-profiles/success-profiles-civil-service-behaviours",
+   "cited_by": [
+    "situational_judgement_test",
+    "uk_civil_service_behaviours"
+   ],
+   "families": [
+    "framework",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "vandierendonck2008",
+   "authors": "van Dierendonck, Groen",
+   "year": 2008,
+   "title": "Belbin revisited: the construct validity of the Interplace II team role instrument",
+   "venue": "ERIM report ERS-2008-017-ORG",
+   "doi": null,
+   "url": "https://repub.eur.nl/pub/12123/ERS-2008-017-ORG.pdf",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "van Dierendonck y Groen (2008)",
+   "link": "https://repub.eur.nl/pub/12123/ERS-2008-017-ORG.pdf",
+   "cited_by": [
+    "belbin_team_roles"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "venkatesha2025_cps_asr",
+   "authors": "Venkatesha, Bradford, Blanchard",
+   "year": 2025,
+   "title": "Dude, where's my utterance? Evaluating the effects of automatic segmentation and transcription on CPS detection",
+   "venue": "arXiv 2507.04454",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2507.04454",
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Venkatesha et al. (2025)",
+   "link": "https://arxiv.org/abs/2507.04454",
+   "cited_by": [
+    "automated_cps_coding"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "wang2023fair",
+   "authors": "Wang et al.",
+   "year": 2023,
+   "title": "Large language models are not fair evaluators",
+   "venue": "arXiv 2305.17926",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2305.17926",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Wang et al. (2023)",
+   "link": "https://arxiv.org/abs/2305.17926",
+   "cited_by": [
+    "llm_as_judge"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "weingart1990",
+   "authors": "Weingart, Thompson, Bazerman, Carroll",
+   "year": 1990,
+   "title": "Tactical behavior and negotiation outcomes",
+   "venue": "Int. J. Conflict Management",
+   "doi": "10.1108/eb022670",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Weingart et al. (1990)",
+   "link": "https://doi.org/10.1108/eb022670",
+   "cited_by": [
+    "negotiation_tactic_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "weingart2004",
+   "authors": "Weingart, Olekalns, Smith",
+   "year": 2004,
+   "title": "Quantitative coding of negotiation behavior",
+   "venue": "International Negotiation",
+   "doi": "10.1163/1571806053498805",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "review",
+   "cite": "Weingart et al. (2004)",
+   "link": "https://doi.org/10.1163/1571806053498805",
+   "cited_by": [
+    "negotiation_tactic_coding"
+   ],
+   "families": [
+    "observational-scheme"
+   ],
+   "figures": []
+  },
+  {
+   "id": "wilmot2019",
+   "authors": "Wilmot, Ones",
+   "year": 2019,
+   "title": "A century of research on conscientiousness at work (second-order meta-analysis)",
+   "venue": "PNAS 116(46)",
+   "doi": "10.1073/pnas.1908430116",
+   "url": null,
+   "verified": "full-text",
+   "kind": "meta-analysis",
+   "cite": "Wilmot y Ones (2019)",
+   "link": "https://doi.org/10.1073/pnas.1908430116",
+   "cited_by": [
+    "big_five_self_report"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "wilmot2021",
+   "authors": "Wilmot, Ones",
+   "year": 2021,
+   "title": "Occupational characteristics moderate personality-performance relations in major occupational groups",
+   "venue": "Journal of Vocational Behavior 131",
+   "doi": "10.1016/j.jvb.2021.103655",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "meta-analysis",
+   "cite": "Wilmot y Ones (2021)",
+   "link": "https://doi.org/10.1016/j.jvb.2021.103655",
+   "cited_by": [
+    "big_five_self_report"
+   ],
+   "families": [
+    "questionnaire"
+   ],
+   "figures": []
+  },
+  {
+   "id": "wirz2013",
+   "authors": "Wirz, Melchers, Lievens, De Corte, Kleinmann",
+   "year": 2013,
+   "title": "Trade-offs between assessor team size and assessor expertise in affecting rating accuracy in assessment centers",
+   "venue": "Journal of Work and Organizational Psychology (Revista de Psicologia del Trabajo y de las Organizaciones) 29, 13-20",
+   "doi": "10.5093/tr2013a3",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Wirz et al. (2013)",
+   "link": "https://doi.org/10.5093/tr2013a3",
+   "cited_by": [
+    "assessment_centre"
+   ],
+   "families": [
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "woolley2010",
+   "authors": "Woolley, Chabris, Pentland, Hashmi, Malone",
+   "year": 2010,
+   "title": "Evidence for a collective intelligence factor in the performance of human groups",
+   "venue": "Science",
+   "doi": "10.1126/science.1193147",
+   "url": null,
+   "verified": "secondary",
+   "kind": "primary-study",
+   "cite": "Woolley et al. (2010)",
+   "link": "https://doi.org/10.1126/science.1193147",
+   "cited_by": [
+    "collective_intelligence"
+   ],
+   "families": [
+    "framework"
+   ],
+   "figures": []
+  },
+  {
+   "id": "yeomans2020",
+   "authors": "Yeomans, Minson, Collins, Chen, Gino",
+   "year": 2020,
+   "title": "Conversational receptiveness: improving engagement with opposing views",
+   "venue": "Organizational Behavior and Human Decision Processes 160",
+   "doi": "10.1016/j.obhdp.2020.03.011",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Yeomans et al. (2020)",
+   "link": "https://doi.org/10.1016/j.obhdp.2020.03.011",
+   "cited_by": [
+    "receptiveness_followup_questions"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "yukl2002",
+   "authors": "Yukl, Gordon, Taber",
+   "year": 2002,
+   "title": "A hierarchical taxonomy of leadership behavior",
+   "venue": "J. Leadership & Organizational Studies",
+   "doi": "10.1177/107179190200900102",
+   "url": null,
+   "verified": "abstract-only",
+   "kind": "primary-study",
+   "cite": "Yukl et al. (2002)",
+   "link": "https://doi.org/10.1177/107179190200900102",
+   "cited_by": [
+    "lbdq_yukl"
+   ],
+   "families": [
+    "peer/other-report"
+   ],
+   "figures": []
+  },
+  {
+   "id": "zhang2024",
+   "authors": "Zhang, Koutsoumpis, Oostrom, Holtrop, Ghassemi, de Vries",
+   "year": 2024,
+   "title": "Can large language models assess personality from asynchronous video interviews? A comprehensive evaluation of validity, reliability, fairness, and rating patterns",
+   "venue": "IEEE Transactions on Affective Computing",
+   "doi": "10.1109/taffc.2024.3374875",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Zhang et al. (2024)",
+   "link": "https://doi.org/10.1109/taffc.2024.3374875",
+   "cited_by": [
+    "llm_zero_shot_personality",
+    "observer_rated_big_five",
+    "structured_interview"
+   ],
+   "families": [
+    "automatic-method",
+    "peer/other-report",
+    "selection-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "zheng2023",
+   "authors": "Zheng et al.",
+   "year": 2023,
+   "title": "Judging LLM-as-a-judge with MT-Bench and Chatbot Arena",
+   "venue": "NeurIPS 2023 Datasets and Benchmarks (arXiv 2306.05685)",
+   "doi": null,
+   "url": "https://arxiv.org/abs/2306.05685",
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Zheng et al. (2023)",
+   "link": "https://arxiv.org/abs/2306.05685",
+   "cited_by": [
+    "llm_as_judge"
+   ],
+   "families": [
+    "automatic-method"
+   ],
+   "figures": []
+  },
+  {
+   "id": "zibarras2010",
+   "authors": "Zibarras, Woods",
+   "year": 2010,
+   "title": "A survey of UK selection practices across different organization sizes and industry sectors",
+   "venue": "JOOP 83(2)",
+   "doi": "10.1348/096317909x425203",
+   "url": null,
+   "verified": "full-text",
+   "kind": "primary-study",
+   "cite": "Zibarras y Woods (2010)",
+   "link": "https://doi.org/10.1348/096317909x425203",
+   "cited_by": [
+    "assessment_centre",
+    "big_five_self_report",
+    "leaderless_group_discussion",
+    "structured_interview",
+    "unstructured_interview",
+    "work_sample"
+   ],
+   "families": [
+    "questionnaire",
+    "selection-method"
+   ],
+   "figures": []
+  }
+ ],
+ "coverage": {
+  "generated": "2026-11-14",
+  "areas": {
+   "behaviour": {
+    "sources": 79,
+    "full_text": 25,
+    "abstract_only": 27,
+    "secondary": 27,
+    "records_with_file": 31,
+    "files_present_in_papers": 31,
+    "meta_analyses": 18,
+    "kinds": {
+     "meta-analysis": 18,
+     "review": 10,
+     "primary-study": 41,
+     "standard": 1,
+     "book": 2,
+     "framework": 3,
+     "technical-manual": 1,
+     "vendor-material": 1,
+     "other": 2
+    }
+   },
+   "computational": {
+    "sources": 50,
+    "full_text": 37,
+    "abstract_only": 5,
+    "secondary": 8,
+    "records_with_file": 39,
+    "files_present_in_papers": 39,
+    "meta_analyses": 0,
+    "kinds": {
+     "primary-study": 23,
+     "review": 4,
+     "dataset": 9,
+     "regulation": 10,
+     "standard": 3,
+     "other": 1
+    }
+   },
+   "frameworks": {
+    "sources": 37,
+    "full_text": 13,
+    "abstract_only": 11,
+    "secondary": 13,
+    "records_with_file": 22,
+    "files_present_in_papers": 22,
+    "meta_analyses": 2,
+    "kinds": {
+     "review": 5,
+     "primary-study": 4,
+     "meta-analysis": 2,
+     "other": 3,
+     "vendor-material": 5,
+     "technical-manual": 5,
+     "framework": 11,
+     "standard": 2
+    }
+   },
+   "instruments": {
+    "sources": 43,
+    "full_text": 10,
+    "abstract_only": 14,
+    "secondary": 19,
+    "records_with_file": 21,
+    "files_present_in_papers": 21,
+    "meta_analyses": 21,
+    "kinds": {
+     "meta-analysis": 21,
+     "review": 8,
+     "primary-study": 13,
+     "vendor-material": 1
+    }
+   },
+   "practice": {
+    "sources": 24,
+    "full_text": 17,
+    "abstract_only": 1,
+    "secondary": 6,
+    "records_with_file": 10,
+    "files_present_in_papers": 10,
+    "meta_analyses": 1,
+    "kinds": {
+     "primary-study": 8,
+     "other": 3,
+     "review": 3,
+     "vendor-material": 7,
+     "framework": 1,
+     "standard": 1,
+     "meta-analysis": 1
+    }
+   },
+   "spanish": {
+    "sources": 30,
+    "full_text": 13,
+    "abstract_only": 7,
+    "secondary": 10,
+    "records_with_file": 21,
+    "files_present_in_papers": 21,
+    "meta_analyses": 4,
+    "kinds": {
+     "review": 6,
+     "primary-study": 12,
+     "standard": 1,
+     "meta-analysis": 4,
+     "technical-manual": 1,
+     "vendor-material": 2,
+     "framework": 4
+    }
+   }
+  },
+  "totals": {
+   "records": 263,
+   "unique_ids": 251,
+   "duplicate_records_same_id": 12,
+   "records_full_text": 115,
+   "records_abstract_only": 65,
+   "records_secondary": 83,
+   "unique_ids_best_verification": {
+    "abstract-only": 62,
+    "full-text": 112,
+    "secondary": 77
+   },
+   "files_in_papers_dir": 157,
+   "same_paper_under_two_ids": [
+    [
+     "arthur2003",
+     "arthur2003_ac"
+    ],
+    [
+     "salgado2008",
+     "salgado_moscoso2008"
+    ],
+    [
+     "alonso2015",
+     "alonso2015_pymes"
+    ],
+    [
+     "esco_tsc2020",
+     "esco_transversal2020"
+    ],
+    [
+     "hogan_tech2016",
+     "hogan_sales_techreport"
+    ]
+   ]
+  },
+  "scores": {
+   "entries": 70,
+   "by_family": {
+    "selection-method": 9,
+    "questionnaire": 12,
+    "observational-scheme": 11,
+    "peer/other-report": 5,
+    "framework": 18,
+    "automatic-method": 15
+   },
+   "by_verdict": {
+    "use": 5,
+    "use-as-reference": 30,
+    "avoid": 13,
+    "cite-only": 22
+   },
+   "by_confidence": {
+    "High": 23,
+    "Medium": 23,
+    "Low": 24
+   },
+   "cited_source_ids_count": 152,
+   "cited_source_ids": [
+    "adair2005",
+    "alonso2015",
+    "aritzeta2007",
+    "arthur2003",
+    "barrett_depinet1991",
+    "bartram2005",
+    "bass1954",
+    "bavendiek2015",
+    "bleckmann2025",
+    "borkenau2004",
+    "bps_ptc",
+    "campion2011",
+    "care2014",
+    "catme_asee2006",
+    "catmes2022",
+    "chiu2014_pact",
+    "christian2010",
+    "competea_foro2015",
+    "competea_manual2015",
+    "competea_variables",
+    "connelly2010",
+    "conocer_ec0554",
+    "conway1997",
+    "cop2011",
+    "cop2013",
+    "cop2024",
+    "cop_madrid_encuesta2015",
+    "danescu2013",
+    "ddi_competency_mgmt",
+    "demszky2021",
+    "derue2011",
+    "diekmann_konig_personality",
+    "duran2024",
+    "ec_guidelines_prohibited",
+    "edmondson1999",
+    "elea",
+    "elfenbein2008",
+    "ensari2011",
+    "esco_transversal_terminology",
+    "esco_tsc2020",
+    "extremera2006msceit",
+    "fernandezberrocal2004tmms",
+    "fiori2014",
+    "fisher2019_selection_myths",
+    "fletcher2003_ants",
+    "frazier2017",
+    "funder2000_rbq",
+    "gallup_csf",
+    "goldberg2006",
+    "hao2025_chatgpt_cps",
+    "hausknecht2004",
+    "herde_lievens2023",
+    "hickman2022",
+    "hickman2023",
+    "highhouse2008",
+    "hoffman2011",
+    "hogan_competency_model",
+    "hogan_sales_techreport",
+    "hogan_tech2016",
+    "hoogeboom2012",
+    "hua2025",
+    "huang2017",
+    "itc2022",
+    "jackson2016",
+    "jacques2021",
+    "jaeckel2024_negotiact",
+    "joseph2010",
+    "judge2002",
+    "kauffeld2012",
+    "kauffeld_act4teams_chapter",
+    "kayhan2018",
+    "kolbe2013_coact",
+    "kornferry_21st_century",
+    "kuncel_sackett2014",
+    "langer2020",
+    "lehmannwillenbrock2015",
+    "lepine2008",
+    "li2025_diplomacy",
+    "lievens2004",
+    "lifecomp2020",
+    "liu2024",
+    "llm_competency2026",
+    "lord1986",
+    "maclaren2020",
+    "mairesse2007",
+    "mcclelland1973",
+    "mcdaniel2007",
+    "meriac2008",
+    "meriac2014",
+    "molero2010mlq",
+    "morgeson2007",
+    "moritz2023",
+    "muniz2020",
+    "nace_competencies",
+    "naim2015",
+    "nouri2017",
+    "oboyle2011",
+    "ohland2012",
+    "ohwangmount2011",
+    "olekalns2015",
+    "oliver2014",
+    "onet_hybrid_ai_2025",
+    "onet_work_styles_2024",
+    "park2015",
+    "pittenger2005",
+    "pugh2021",
+    "rework_aristotle",
+    "riedl2021",
+    "robertson2014",
+    "robots2022",
+    "rupp2015",
+    "sackett2022",
+    "salas2005",
+    "salgado2008",
+    "salgado2017fc",
+    "salgado_moscoso2008",
+    "salgadomoscoso2002",
+    "sanchez2010",
+    "sanchez2012jmui",
+    "schwartz2013",
+    "sfia9_behavioural",
+    "shermis2024",
+    "shippmann2000",
+    "shl_ucf_guide",
+    "shl_ucf_whitepaper",
+    "siop2021_persona",
+    "smither2005",
+    "smolinski2020",
+    "stevens2013",
+    "stevens_campion1999",
+    "strode2016",
+    "sun2020",
+    "symlog_evidence",
+    "testgorilla2025",
+    "tmms24_2021",
+    "tpot_validations",
+    "twitchell2013",
+    "ukcs_success_profiles",
+    "vandierendonck2008",
+    "venkatesha2025_cps_asr",
+    "wang2023fair",
+    "weingart1990",
+    "weingart2004",
+    "wilmot2019",
+    "wilmot2021",
+    "wirz2013",
+    "woolley2010",
+    "yeomans2020",
+    "yukl2002",
+    "zhang2024",
+    "zheng2023",
+    "zibarras2010"
+   ],
+   "cited_ids_verification": {
+    "secondary": 36,
+    "full-text": 75,
+    "abstract-only": 41
+   }
+  }
+ },
+ "pending": [
+  {
+   "rank": 1,
+   "paper": "Herde & Lievens (2023), Multiple speeded assessments under scrutiny, Journal of Applied Psychology",
+   "doi": "10.1037/apl0000603",
+   "why": "Plantilla de diseño para muchas conversaciones cortas puntuadas; solo se vio el resumen"
+  },
+  {
+   "rank": 2,
+   "paper": "Kauffeld, Lehmann-Willenbrock & Meinecke (2018), capítulo sobre act4teams",
+   "doi": "10.1017/9781316286302.022",
+   "why": "Lista completa de códigos, fiabilidad y licencia del principal esquema para reuniones"
+  },
+  {
+   "rank": 3,
+   "paper": "Kauffeld & Lehmann-Willenbrock (2012), Meetings matter, Small Group Research",
+   "doi": "10.1177/1046496411429599",
+   "why": "Coeficientes de criterio de la conversación en reuniones (solo resumen)"
+  },
+  {
+   "rank": 4,
+   "paper": "Putka & Hoffman (2013), fuentes de varianza en assessment centres, Journal of Applied Psychology",
+   "doi": "10.1037/a0030887",
+   "why": "Cuántos evaluadores y ejercicios hacen falta; cifras vistas solo a través de Jackson et al. (2016)"
+  },
+  {
+   "rank": 5,
+   "paper": "Oh, Wang & Mount (2011), validez de la personalidad valorada por observadores, Journal of Applied Psychology",
+   "doi": "10.1037/a0021832",
+   "why": "Coeficientes de la personalidad valorada por observadores frente al rendimiento"
+  },
+  {
+   "rank": 6,
+   "paper": "Elfenbein et al. (2008), Are some negotiators better than others?, Journal of Research in Personality; y su continuación de 2018 en Journal of Applied Psychology",
+   "doi": "10.1016/j.jrp.2008.06.010",
+   "why": "Varianza individual frente a diádica en negociación (DOI de la continuación no registrado)"
+  },
+  {
+   "rank": 7,
+   "paper": "Breil, Forthmann & Back (2022), Multiple speed assessments of social skills, European Journal of Psychological Assessment",
+   "doi": "10.1027/1015-5759/a000657",
+   "why": "Habilidades sociales distintas a partir de interacciones cortas"
+  },
+  {
+   "rank": 8,
+   "paper": "Arthur et al. (2003), validez de criterio de las dimensiones de assessment centre, Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2003.tb00146.x",
+   "why": "Resuelve 6 frente a 7 dimensiones; validez por dimensión"
+  },
+  {
+   "rank": 9,
+   "paper": "Funder, Furr & Colvin (2000), Riverside Behavioral Q-sort, Journal of Personality",
+   "doi": "10.1111/1467-6494.00103",
+   "why": "Codificación por observadores de conducta relevante para la personalidad; coeficientes"
+  },
+  {
+   "rank": 10,
+   "paper": "Borkenau et al. (2004), Thin slices, Journal of Personality and Social Psychology",
+   "doi": "10.1037/0022-3514.86.4.599",
+   "why": "Cuántas situaciones hacen falta para las impresiones de personalidad"
+  },
+  {
+   "rank": 11,
+   "paper": "MacLaren et al. (2020), Babble hypothesis, The Leadership Quarterly",
+   "doi": "10.1016/j.leaqua.2020.101409",
+   "why": "Verificar r = .67 y el efecto de género antes de citarlos"
+  },
+  {
+   "rank": 12,
+   "paper": "Kuncel & Sackett (2014), validez de constructo de los assessment centres, Journal of Applied Psychology",
+   "doi": "10.1037/a0034147",
+   "why": "Postura contraria a Jackson et al. (2016)"
+  },
+  {
+   "rank": 13,
+   "paper": "Roch et al. (2012), metaanálisis del entrenamiento con marco de referencia, Journal of Occupational and Organizational Psychology",
+   "doi": "10.1111/j.2044-8325.2011.02045.x",
+   "why": "Efecto del entrenamiento de evaluadores (d .50, cifra secundaria)"
+  },
+  {
+   "rank": 14,
+   "paper": "Lievens (2001), entrenamiento de evaluadores, Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.86.2.255",
+   "why": "Efecto del entrenamiento en la fiabilidad y la validez discriminante"
+  },
+  {
+   "rank": 15,
+   "paper": "Bowler & Woehr (2006), factores de dimensión frente a ejercicio, Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.91.5.1114",
+   "why": "Descomposición metaanalítica de la varianza"
+  },
+  {
+   "rank": 16,
+   "paper": "Hüffmeier et al. (2014), metaanálisis de tácticas duras y blandas en negociación, Journal of Management",
+   "doi": "10.1177/0149206311423788",
+   "why": "Qué conductas rinden; tamaños del efecto no vistos"
+  },
+  {
+   "rank": 17,
+   "paper": "Lievens, Sanchez & De Corte (2004), inferencia de competencias, Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2004.00009.x",
+   "why": "Fiabilidad del enlace entre puesto y competencias"
+  },
+  {
+   "rank": 18,
+   "paper": "Conway & Huffcutt (1997), valoraciones de múltiples fuentes, Human Performance",
+   "doi": "10.1207/s15327043hup1004_2",
+   "why": "Fiabilidad de la valoración entre compañeros (cifras secundarias)"
+  },
+  {
+   "rank": 19,
+   "paper": "Ohland et al. (2012), CATME-B, Academy of Management Learning & Education",
+   "doi": "10.5465/amle.2010.0177",
+   "why": "Validez de las anclas para valoración entre compañeros"
+  },
+  {
+   "rank": 20,
+   "paper": "Christian, Edwards & Bradley (2010), constructos de los tests de juicio situacional, Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2009.01163.x",
+   "why": "Coeficientes de los tests situacionales de liderazgo y trabajo en equipo"
+  },
+  {
+   "rank": 21,
+   "paper": "Bartram (2005), Great Eight, Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.90.6.1185",
+   "why": "Única evidencia de criterio para un marco comercial; solo resumen"
+  },
+  {
+   "rank": 22,
+   "paper": "Judge et al. (2002), personalidad y liderazgo, Journal of Applied Psychology",
+   "doi": "10.1037/0021-9010.87.4.765",
+   "why": "Cifras de emergencia frente a eficacia"
+  },
+  {
+   "rank": 23,
+   "paper": "LePine et al. (2008), metaanálisis de procesos de equipo, Personnel Psychology",
+   "doi": "10.1111/j.1744-6570.2008.00114.x",
+   "why": "Nombres de dimensiones y coeficientes"
+  },
+  {
+   "rank": 24,
+   "paper": "Bass (1954), Leaderless group discussion, Psychological Bulletin (y Bass et al. 1953)",
+   "doi": "10.1037/h0056881",
+   "why": "Fiabilidad de la discusión de grupo sin líder"
+  },
+  {
+   "rank": 25,
+   "paper": "Fletcher et al. (2003), ANTS, British Journal of Anaesthesia",
+   "doi": "10.1093/bja/aeg112",
+   "why": "Sistema de marcadores a nivel individual"
+  },
+  {
+   "rank": 26,
+   "paper": "Langer, König & Hemsing (2020), entrevistas automáticas, Journal of Managerial Psychology",
+   "doi": "10.1108/JMP-03-2019-0156",
+   "why": "Reacciones de los candidatos"
+  },
+  {
+   "rank": 27,
+   "paper": "SIOP (2023), recomendaciones sobre evaluación basada en IA",
+   "doi": null,
+   "why": "Norma profesional; el PDF devolvió 403"
+  },
+  {
+   "rank": 28,
+   "paper": "Texto oficial del Reglamento de IA, DO L 2024/1689 (EUR-Lex), arts. 3, 4, 5, 6, 26 y anexo III",
+   "doi": null,
+   "why": "Sustituir las reproducciones no oficiales"
+  },
+  {
+   "rank": 29,
+   "paper": "Informe CET-R del COP sobre CompeTEA",
+   "doi": null,
+   "why": "Resolver el desacuerdo sobre su validez predictiva"
+  },
+  {
+   "rank": 30,
+   "paper": "Hausknecht, Day & Thomas (2004), metaanálisis de reacciones de los candidatos",
+   "doi": null,
+   "why": "Aceptación de cada procedimiento"
+  }
+ ],
+ "labels": {
+  "family": {
+   "selection-method": "Métodos de selección",
+   "observational-scheme": "Esquemas de observación",
+   "peer/other-report": "Valoración por otros",
+   "automatic-method": "Métodos automáticos",
+   "questionnaire": "Cuestionarios y tests",
+   "framework": "Marcos de competencias"
+  },
+  "verdict": {
+   "use": "usar",
+   "use-as-reference": "usar como referencia",
+   "cite-only": "solo citar",
+   "avoid": "evitar"
+  },
+  "confidence": {
+   "High": "alta",
+   "Medium": "media",
+   "Low": "baja"
+  },
+  "verified": {
+   "full-text": "texto completo",
+   "abstract-only": "solo resumen",
+   "secondary": "fuente secundaria"
+  },
+  "mode": {
+   "behaviour": "observa conducta",
+   "simulation": "simulación escrita o en vídeo",
+   "interview": "entrevista",
+   "test": "test",
+   "self-report": "autoinforme"
+  },
+  "channel": {
+   "text": "solo texto",
+   "audio": "solo audio",
+   "av": "conducta natural (audio y vídeo)"
+  }
+ }
+}
