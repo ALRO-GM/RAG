@@ -118,9 +118,14 @@ marker is reported `not_installed` in the catalogue.
   `invalid_input` otherwise): it must have the JSON type of the
   catalogue default (boolean, integer, number or string; a boolean is
   not a number; an integer is accepted for a number, not the other
-  way round; a `null` default takes `null`, a scalar or a list of
-  strings), and a number must be finite and greater than 0, or at
-  least the entry's `minimums[name]` when the catalogue declares one
+  way round; a `null` default, where the model chooses, takes `null`
+  or the type the entry declares for it in `types[name]`: `boolean`,
+  `integer`, `number`, `string` or `string_list`; every `null`
+  default must have one, and only those: `num_speakers`,
+  `min_speakers` and `max_speakers` are integers, `atten_lim_db` a
+  number, `language` and `streaming_mode` strings, `expected_speakers`
+  a list of strings), and a number must be finite and greater than 0,
+  or at least the entry's `minimums[name]` when the catalogue declares one
   (`ecapa-spectral`: `window` and `hop` at least 0.01 s, one frame).
   The runners refuse a step that would never end too: a piece of
   fewer than one sample (`piece_seconds`) or a window or hop below
@@ -292,6 +297,16 @@ runs is `queued` or `running` the deletion is refused (409
 `wrong_state`): cancel the run first. An `interrupted` run does not
 block it.
 
+Starting or resuming a run holds the session's lock (the one the
+deletion holds) from the session check through storing the original
+audio, saving the run and queueing it. A deletion and a start (or a
+resume) of the same session therefore never interleave: either the
+deletion comes first and the start finds no session (404), or the
+start comes first and the deletion sees the queued run (409). A start
+decoding a long recording never writes `original.json`, the WAV copy
+or `runs/<id>.json` after its lab directory was removed, so a new
+session with the same id cannot inherit them.
+
 ## 7. API
 
 All routes are under `/api/lab`, need the access code header
@@ -314,7 +329,8 @@ before them.
    "licence": "MIT", "licence_commercial": true, "gated": true,
    "token_url": "https://huggingface.co/pyannote/speaker-diarization-3.1",
    "languages": ["any"], "vram_gb": 1.5,
-   "parameters": {"num_speakers": null}, "weights": ["pyannote/speaker-diarization-3.1"],
+   "parameters": {"num_speakers": null}, "types": {"num_speakers": "integer"},
+   "weights": ["pyannote/speaker-diarization-3.1"],
    "weights_mb": 32, "notes": "…", "lineage": "pyannote",
    "state": "needs_token",
    "reason": "needs token: accept the conditions at https://huggingface.co/pyannote/speaker-diarization-3.1 and log in (huggingface-cli login)",
@@ -339,8 +355,9 @@ Every field is optional: `denoisers` defaults to `["none"]`, `diarizers`
 to `["builtin"]`, `recognisers` to `[]` (at least one diarizer or
 recogniser). At most 16 models per stage and 600 pipelines; `params`
 may only override parameters the model declares, with a value of the
-default's type and, for a number, greater than 0 or the catalogue's
-minimum (§3). `language` and
+default's type (for a `null` default, `null` or its declared `types`
+entry) and, for a number, greater than 0 or the catalogue's minimum
+(§3). `language` and
 `num_speakers` default to the session's. The session must have its
 audio (any state but `recording`). Answer: the run (as below, state
 `queued`).
@@ -381,8 +398,9 @@ some pipelines finished), `failed` (no pipeline finished), `cancelled`,
 Cancel: only a `queued` or `running` run (else 409 `wrong_state`);
 answers the status. Resume: only a run that is not queued or running;
 done steps stay, the others are tried again; answers the run. The check
-and the queueing hold the run's lock, so of two concurrent resumes one
-is 202 and the other 409 `wrong_state`.
+and the queueing hold the session's lock and then the run's lock, so of
+two concurrent resumes one is 202 and the other 409 `wrong_state`, and
+a concurrent deletion of the session waits and is then refused (§6).
 
 ### `GET …/runs/{run_id}/results`
 

@@ -67,7 +67,7 @@ class TestCatalogue:
     def test_parameters(self) -> None:
         model = CatalogueEntry.model_validate(entry("a", parameters={
             "num_speakers": None, "threshold": 0.5,
-        }))
+        }, types={"num_speakers": "integer"}))
         assert merged_params(model, {"threshold": 0.7}, {
             "num_speakers": 2, "language": "es",
         }) == {"num_speakers": 2, "threshold": 0.7}
@@ -83,7 +83,13 @@ class TestCatalogue:
 TYPED = {
     "piece_seconds": 10.0, "batch_size": 8, "vad_filter": False,
     "mode": "fast", "num_speakers": None, "hop": 0.75, "shift": 0.0,
-    "cuts": [1.0],
+    "cuts": [1.0], "speakers": None, "gain": None, "lang": None,
+    "flag": None,
+}
+#: The declared types of the null defaults of :data:`TYPED`.
+NULL_TYPES = {
+    "num_speakers": "integer", "speakers": "string_list",
+    "gain": "number", "lang": "string", "flag": "boolean",
 }
 
 
@@ -94,16 +100,17 @@ class TestOverrides:
     def model(self) -> CatalogueEntry:
         """A model with one parameter of each kind; ``hop`` >= 0.01."""
         return CatalogueEntry.model_validate(entry(
-            "m", parameters=TYPED,
+            "m", parameters=TYPED, types=NULL_TYPES,
             minimums={"hop": 0.01, "shift": -3.0},
         ))
 
     @pytest.mark.parametrize("name, value", [
         ("piece_seconds", 2.5), ("piece_seconds", 3), ("batch_size", 1),
         ("vad_filter", True), ("mode", "slow"), ("num_speakers", 2),
-        ("num_speakers", None), ("num_speakers", "auto"),
-        ("num_speakers", ["ana", "luis"]), ("num_speakers", 1.5),
-        ("hop", 0.01), ("shift", 0.0), ("shift", -3.0), ("shift", 2),
+        ("num_speakers", None), ("speakers", ["ana", "luis"]),
+        ("speakers", []), ("speakers", None), ("gain", 1.5), ("gain", 2),
+        ("lang", "es"), ("flag", True), ("flag", None), ("hop", 0.01),
+        ("shift", 0.0), ("shift", -3.0), ("shift", 2),
     ])
     def test_accepted(
         self, model: CatalogueEntry, name: str, value: Any
@@ -129,8 +136,18 @@ class TestOverrides:
         ("mode", ["fast"], "must be a string, not a list"),
         ("num_speakers", 0, "greater than 0"),
         ("num_speakers", -2, "greater than 0"),
-        ("num_speakers", {"a": 1}, "cannot be an object"),
-        ("num_speakers", [1, 2], "cannot be a list"),
+        ("num_speakers", "auto", "must be null or an integer, not a string"),
+        ("num_speakers", 1.5, "must be null or an integer, not a number"),
+        ("num_speakers", True, "must be null or an integer, not a boolean"),
+        ("num_speakers", {"a": 1}, "not an object"),
+        ("num_speakers", [1, 2], "not a list"),
+        ("speakers", [1, 2], "must be null or a list of strings, not a list"),
+        ("speakers", "ana", "must be null or a list of strings"),
+        ("gain", 0, "greater than 0"),
+        ("gain", float("nan"), "finite"),
+        ("gain", "loud", "must be null or a number, not a string"),
+        ("lang", 1, "must be null or a string, not an integer"),
+        ("flag", 1, "must be null or a boolean, not an integer"),
         ("hop", 0.005, "at least 0.01"),
         ("hop", 0, "at least 0.01"),
         ("shift", -3.5, "at least -3"),
@@ -160,8 +177,44 @@ class TestOverrides:
     def test_invalid_minimums(self, minimums: Dict[str, float]) -> None:
         with pytest.raises(ValidationError):
             CatalogueEntry.model_validate(entry(
-                "m", parameters=TYPED, minimums=minimums,
+                "m", parameters=TYPED, types=NULL_TYPES, minimums=minimums,
             ))
+
+    @pytest.mark.parametrize("types, error", [
+        ({k: v for k, v in NULL_TYPES.items() if k != "gain"},
+         "no declared type for null parameter gain"),
+        ({**NULL_TYPES, "hop": "number"}, "without a null default: hop"),
+        ({**NULL_TYPES, "other": "number"},
+         "without a null default: other"),
+        ({**NULL_TYPES, "gain": "decibels"}, "gain"),
+    ])
+    def test_null_defaults_need_a_declared_type(
+        self, types: Dict[str, str], error: str
+    ) -> None:
+        with pytest.raises(ValidationError, match=error):
+            CatalogueEntry.model_validate(entry(
+                "m", parameters=TYPED, types=types,
+            ))
+
+    def test_the_shipped_catalogue_types_its_null_defaults(self) -> None:
+        """Every null default of the shipped catalogue has a type."""
+        catalogue = Catalogue.model_validate_json(
+            (Path(__file__).parents[3] / "lab" / "catalogue.json")
+            .read_text(encoding="utf-8")
+        )
+        pyannote = catalogue.require("pyannote-3.1", "diarize")
+        with pytest.raises(InvalidInputError, match="an integer"):
+            check_override(pyannote, "max_speakers", "many")
+        with pytest.raises(InvalidInputError, match="an integer"):
+            check_override(pyannote, "num_speakers", 2.5)
+        deepfilter = catalogue.require("deepfilternet3", "denoise")
+        with pytest.raises(InvalidInputError, match="a number"):
+            check_override(deepfilter, "atten_lim_db", [1])
+        assert check_override(deepfilter, "atten_lim_db", 12) == 12
+        builtin = catalogue.require("builtin", "diarize")
+        assert check_override(builtin, "expected_speakers", ["ana"]) == [
+            "ana"
+        ]
 
     def test_the_catalogue_bounds_the_lab_diarizer_steps(self) -> None:
         """The shipped catalogue refuses a hop below one 10 ms frame."""
