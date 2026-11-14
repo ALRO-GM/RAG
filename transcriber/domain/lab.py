@@ -99,6 +99,8 @@ MappingMethod = Literal["pipeline", "voiceprint", "builtin_overlap", "none"]
 """How a diarizer's speaker got its id (:class:`SpeakerMapping`)."""
 
 LabelKind = Literal["person", "both", "nobody", "unsure"]
+#: The JSON type a ``null``-default parameter takes when overridden.
+ParamType = Literal["boolean", "integer", "number", "string", "string_list"]
 
 MAX_MODELS_PER_STAGE = 16
 MAX_LABELS = 5000
@@ -122,7 +124,10 @@ class CatalogueEntry(BaseModel):
     ``parameters`` are the defaults a run may override (see
     :func:`check_override` for what an override may be);
     ``minimums`` gives a numeric parameter an inclusive lower bound in
-    place of the default rule "greater than 0". ``lineage``
+    place of the default rule "greater than 0". ``types`` declares the
+    type of every parameter whose default is ``null`` (the model
+    chooses), which an override must then have (or be ``null``); a
+    parameter with another default takes its default's type. ``lineage``
     groups near-duplicates (same method, other weights) for the
     consensus vote; it defaults to the id. ``revision`` is raised when
     the runner's output for this model changes (a fix): from 2 on it is
@@ -144,6 +149,7 @@ class CatalogueEntry(BaseModel):
     vram_gb: Optional[float] = Field(default=None, ge=0)
     parameters: Dict[str, Any] = Field(default_factory=dict)
     minimums: Dict[str, float] = Field(default_factory=dict)
+    types: Dict[str, ParamType] = Field(default_factory=dict)
     weights: List[str] = Field(default_factory=list)
     weights_mb: Optional[float] = Field(default=None, ge=0)
     notes: str = ""
@@ -161,6 +167,23 @@ class CatalogueEntry(BaseModel):
         for name, value in self.minimums.items():
             if not math.isfinite(value):
                 raise ValueError(f"the minimum of {name} must be finite")
+        return self
+
+    @model_validator(mode="after")
+    def _typed_nulls(self) -> "CatalogueEntry":
+        """Require a type for each null default, and only for those."""
+        nulls = {k for k, v in self.parameters.items() if v is None}
+        missing = sorted(nulls - set(self.types))
+        if missing:
+            raise ValueError(
+                f"no declared type for null parameter {', '.join(missing)}"
+            )
+        extra = sorted(set(self.types) - nulls)
+        if extra:
+            raise ValueError(
+                f"a type for a parameter without a null default:"
+                f" {', '.join(extra)}"
+            )
         return self
 
     @property
@@ -507,19 +530,34 @@ def _kind(value: Any) -> str:
     return "an object"
 
 
+_TYPE_WORDS: Dict[str, str] = {
+    "boolean": "a boolean", "integer": "an integer", "number": "a number",
+    "string": "a string", "string_list": "a list of strings",
+}
+_TYPE_EXAMPLES: Dict[str, Any] = {
+    "boolean": False, "integer": 0, "number": 0.0, "string": "",
+}
+
+
+def _declared_fits(declared: ParamType, value: Any) -> bool:
+    """Tell whether ``value`` is ``null`` or of the ``declared`` type."""
+    if value is None:
+        return True
+    if declared == "string_list":
+        return isinstance(value, list) and all(
+            isinstance(item, str) for item in value
+        )
+    return _type_fits(_TYPE_EXAMPLES[declared], value)
+
+
 def _type_fits(default: Any, value: Any) -> bool:
     """Tell whether ``value`` has the type of the catalogue ``default``.
 
     A bool is not a number; an int fits a float default (JSON may write
     ``10`` for ``10.0``) but a float never fits an int default. A
-    ``null`` default (the model chooses) takes ``null``, a bool, a
-    number, a string or a list of strings. A list or object default
-    cannot be overridden.
+    ``null`` default takes its declared type (:func:`_declared_fits`);
+    a list or object default cannot be overridden.
     """
-    if default is None:
-        if isinstance(value, list):
-            return all(isinstance(item, str) for item in value)
-        return value is None or isinstance(value, (bool, int, float, str))
     if isinstance(default, bool):
         return isinstance(value, bool)
     if isinstance(default, int):
@@ -535,19 +573,25 @@ def check_override(entry: CatalogueEntry, name: str, value: Any) -> Any:
     """Return ``value`` if it may override ``entry``'s parameter ``name``.
 
     The parameter must be declared and the value must have the type of
-    its catalogue default (:func:`_type_fits`). A number must be finite
-    and greater than 0, or at least the catalogue's minimum for it when
-    one is declared (``entry.minimums``): a zero step or piece would
-    make a runner loop forever. Anything else is an
+    its catalogue default (:func:`_type_fits`), or, for a ``null``
+    default, be ``null`` or of the type in ``entry.types``. A number
+    must be finite and greater than 0, or at least the catalogue's
+    minimum for it when one is declared (``entry.minimums``): a zero
+    step or piece would make a runner loop forever. Anything else is an
     :class:`InvalidInputError`.
     """
     if name not in entry.parameters:
         raise InvalidInputError(f"Model {entry.id} has no parameter {name}.")
     default = entry.parameters[name]
     where = f"Parameter {name} of {entry.id}"
-    if not _type_fits(default, value):
-        if default is None:
-            raise InvalidInputError(f"{where} cannot be {_kind(value)}.")
+    if default is None:
+        declared = entry.types[name]
+        if not _declared_fits(declared, value):
+            raise InvalidInputError(
+                f"{where} must be null or {_TYPE_WORDS[declared]},"
+                f" not {_kind(value)}."
+            )
+    elif not _type_fits(default, value):
         raise InvalidInputError(
             f"{where} must be {_kind(default)}, not {_kind(value)}."
         )

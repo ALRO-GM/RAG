@@ -210,7 +210,7 @@ def test_refusals(client: TestClient) -> None:
                             json={"diarizers": ["nope"]})) == "invalid_input"
     assert code(client.post("/api/lab/sessions/s1/runs",
                             json={"diarizers": []})) == "invalid_request"
-    for value in (0, -1, {"n": 2}):
+    for value in (0, -1, {"n": 2}, "auto", 1.5, True):
         bad = client.post("/api/lab/sessions/s1/runs", json={
             "diarizers": ["fake-diarize"],
             "params": {"fake-diarize": {"num_speakers": value}},

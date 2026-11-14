@@ -88,13 +88,17 @@ def entry(model_id: str, stage: str, family: str = "fam",
 ENTRIES = [
     entry("none", "denoise", "project"),
     entry("builtin", "diarize", "project", weights=["fake/asr"],
-          parameters={"num_speakers": None, "expected_speakers": None}),
+          parameters={"num_speakers": None, "expected_speakers": None},
+          types={"num_speakers": "integer",
+                 "expected_speakers": "string_list"}),
     entry("project-asr", "recognise", "project", weights=["fake/asr"],
-          parameters={"language": None}),
+          parameters={"language": None}, types={"language": "string"}),
     entry("dn", "denoise"),
-    entry("z1", "diarize", parameters={"num_speakers": None}),
+    entry("z1", "diarize", parameters={"num_speakers": None},
+          types={"num_speakers": "integer"}),
     entry("z2", "diarize", lineage="z1", licence_commercial=False),
-    entry("r1", "recognise", parameters={"language": None}),
+    entry("r1", "recognise", parameters={"language": None},
+          types={"language": "string"}),
     entry("gated", "diarize", gated=True, token_url="https://x/accept"),
     entry("absent", "diarize", family="gone"),
 ]
@@ -122,6 +126,7 @@ class Lab:
     )
     released: List[str] = field(default_factory=list)
     locks: Any = field(default_factory=FakeSessionLocks)
+    session_locks: Any = field(default_factory=FakeSessionLocks)
 
     def __post_init__(self) -> None:
         """Store a finished session and enrol its two people."""
@@ -158,6 +163,7 @@ class Lab:
         self.start = StartLabRun(
             self.sessions, self.repository, self.catalogue, self.runner,
             self.execute, clock, self.processes, self.decoder,
+            self.session_locks,
         )
         self.resume = ResumeLabRun(self.repository, self.start, self.status,
                                    self.processes, self.locks)
@@ -242,7 +248,9 @@ class TestStart:
         ({"diarizers": ["z1"], "params": {"z1": {"num_speakers": 0}}},
          "greater than 0"),
         ({"diarizers": ["z1"], "params": {"z1": {"num_speakers": {}}}},
-         "cannot be an object"),
+         "must be null or an integer, not an object"),
+        ({"diarizers": ["z1"], "params": {"z1": {"num_speakers": "auto"}}},
+         "must be null or an integer, not a string"),
     ])
     def test_invalid_requests(
         self, lab: Lab, request_: Dict[str, Any], error: str
@@ -275,6 +283,33 @@ class TestStart:
         lab.start(SESSION, LabRequest())
         assert len(lab.decoder.decoded) == 1
         assert lab.repository.originals[SESSION] == key
+
+    def test_the_start_holds_the_session_lock(self, lab: Lab) -> None:
+        """Check, original, run and queueing all happen under the lock."""
+        seen: List[str] = []
+        save, store = lab.repository.save_run, lab.repository.store_original
+
+        def saving(run: LabRun) -> None:
+            """Record whether the session's lock is held, then save."""
+            seen.append(f"run:{lab.session_locks.holds(SESSION)}")
+            save(run)
+
+        def storing(session_id: str, audio: Any) -> str:
+            """Record whether the session's lock is held, then store."""
+            seen.append(f"original:{lab.session_locks.holds(session_id)}")
+            return store(session_id, audio)
+
+        lab.repository.save_run = saving  # type: ignore[method-assign]
+        lab.repository.store_original = (  # type: ignore[method-assign]
+            storing
+        )
+        lab.start(SESSION, LabRequest())
+        assert seen == ["original:True", "run:True"]
+        assert lab.session_locks.taken == [SESSION]
+        assert not lab.session_locks.held
+        with pytest.raises(NotFoundError):
+            lab.start("nobody", LabRequest())
+        assert not lab.session_locks.held
 
     def test_a_refused_request_stores_nothing(self, lab: Lab) -> None:
         with pytest.raises(InvalidInputError):
@@ -413,10 +448,12 @@ class TestRun:
             save(run)
 
         lab.repository.save_run = saving  # type: ignore[method-assign]
+        lab.session_locks.taken.clear()
         lab.resume(SESSION, run_id)
         assert seen == [True]
         assert lab.locks.taken == [job_key(run_id)]
-        assert not lab.locks.held
+        assert lab.session_locks.taken == [SESSION]
+        assert not lab.locks.held and not lab.session_locks.held
         with pytest.raises(StateError):
             lab.resume(SESSION, run_id)
         assert len(lab.runner.pending) == 1
@@ -494,6 +531,132 @@ class TestRun:
 
 
 class TestDeleteSession:
+    def test_a_delete_and_a_start_do_not_interleave(self) -> None:
+        """A delete waits for a start decoding the original, then refuses.
+
+        The start holds the session's lock while it decodes, stores the
+        original and saves the run, so the delete (same locks) runs
+        after it, sees the queued run and is refused: no lab data is
+        removed under the start, and none is left without a session.
+        """
+        locks = ThreadLocks()
+        lab = Lab(session_locks=locks)
+        decoding, release = threading.Event(), threading.Event()
+        decode = lab.decoder.decode
+
+        def slow(recording: RecordedAudio) -> Any:
+            """Signal the decoding, then wait to be released."""
+            decoding.set()
+            assert release.wait(5.0)
+            return decode(recording)
+
+        lab.decoder.decode = slow  # type: ignore[method-assign]
+        delete = DeleteSession(
+            lab.sessions, locks, LabSessionData(lab.repository, lab.status),
+        )
+        outcomes: Dict[str, Any] = {}
+
+        def start() -> None:
+            """Start a run; record its id."""
+            outcomes["run"] = lab.start(SESSION, LabRequest()).id
+
+        def deleting() -> None:
+            """Delete the session; record how it ended."""
+            try:
+                delete(SESSION)
+                outcomes["delete"] = "deleted"
+            except StateError:
+                outcomes["delete"] = "refused"
+
+        starter = threading.Thread(target=start)
+        starter.start()
+        assert decoding.wait(5.0)
+        deleter = threading.Thread(target=deleting)
+        deleter.start()
+        deleter.join(0.2)
+        assert deleter.is_alive()  # waiting for the start's lock
+        assert "delete" not in outcomes
+        release.set()
+        starter.join(5.0)
+        deleter.join(5.0)
+        assert outcomes["delete"] == "refused"
+        assert lab.sessions.get(SESSION) is not None
+        assert lab.repository.run(SESSION, outcomes["run"]) is not None
+        assert lab.repository.original_key(SESSION) is not None
+
+    def test_a_start_after_a_delete_finds_no_session(self) -> None:
+        """A delete first: the waiting start finds no session, stores none."""
+        locks = ThreadLocks()
+        lab = Lab(session_locks=locks)
+        delete = DeleteSession(
+            lab.sessions, locks, LabSessionData(lab.repository, lab.status),
+        )
+        outcomes: List[str] = []
+
+        def start() -> None:
+            """Start a run; record that it found no session."""
+            try:
+                lab.start(SESSION, LabRequest())
+                outcomes.append("started")
+            except NotFoundError:
+                outcomes.append("not_found")
+
+        with locks.hold(SESSION):  # the delete is under way
+            starter = threading.Thread(target=start)
+            starter.start()
+            starter.join(0.2)
+            assert starter.is_alive()
+            delete(SESSION)
+        starter.join(5.0)
+        assert outcomes == ["not_found"]
+        assert lab.repository.original_key(SESSION) is None
+        assert lab.repository.runs(SESSION) == []
+
+    def test_a_resume_holds_the_session_lock_against_a_delete(
+        self
+    ) -> None:
+        """A delete waits for a resume storing the original, then refuses."""
+        locks = ThreadLocks()
+        lab = Lab(session_locks=locks)
+        run_id = lab.run(diarizers=["z1"])
+        lab.repository.originals.clear()
+        storing, release = threading.Event(), threading.Event()
+        store = lab.repository.store_original
+
+        def slow(session_id: str, audio: Any) -> str:
+            """Signal the store, then wait to be released."""
+            storing.set()
+            assert release.wait(5.0)
+            return store(session_id, audio)
+
+        lab.repository.store_original = slow  # type: ignore[method-assign]
+        delete = DeleteSession(
+            lab.sessions, locks, LabSessionData(lab.repository, lab.status),
+        )
+        outcomes: List[str] = []
+
+        def deleting() -> None:
+            """Delete the session; record how it ended."""
+            try:
+                delete(SESSION)
+                outcomes.append("deleted")
+            except StateError:
+                outcomes.append("refused")
+
+        resumer = threading.Thread(target=lambda: lab.resume(SESSION, run_id))
+        resumer.start()
+        assert storing.wait(5.0)
+        deleter = threading.Thread(target=deleting)
+        deleter.start()
+        deleter.join(0.2)
+        assert deleter.is_alive()
+        release.set()
+        resumer.join(5.0)
+        deleter.join(5.0)
+        assert outcomes == ["refused"]
+        assert lab.status(SESSION, run_id).state == "queued"
+        assert lab.repository.original_key(SESSION) is not None
+
     def delete(self, lab: Lab) -> None:
         """Delete the session with its lab data."""
         DeleteSession(

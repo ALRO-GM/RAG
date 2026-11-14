@@ -17,6 +17,7 @@
       "vram_gb": 0.0,
       "parameters": {},
       "minimums": {},
+      "types": {},
       "weights": [],
       "weights_mb": 0,
       "notes": "In-process: the session's audio as decoded (16 kHz mono).",
@@ -42,6 +43,9 @@
         "post_filter": false
       },
       "minimums": {},
+      "types": {
+        "atten_lim_db": "number"
+      },
       "weights": [
         "https://github.com/Rikorose/DeepFilterNet/raw/main/models/DeepFilterNet3.zip"
       ],
@@ -66,6 +70,7 @@
       "vram_gb": 0.5,
       "parameters": {},
       "minimums": {},
+      "types": {},
       "weights": [
         "alibabasglab/MossFormer2_SE_48K"
       ],
@@ -90,6 +95,7 @@
       "vram_gb": 6.3,
       "parameters": {},
       "minimums": {},
+      "types": {},
       "weights": [
         "alibabasglab/MossFormerGAN_SE_16K"
       ],
@@ -116,6 +122,7 @@
         "piece_seconds": 10.0
       },
       "minimums": {},
+      "types": {},
       "weights": [
         "speechbrain/sepformer-dns4-16k-enhancement"
       ],
@@ -142,6 +149,7 @@
         "piece_seconds": 10.0
       },
       "minimums": {},
+      "types": {},
       "weights": [
         "speechbrain/metricgan-plus-voicebank"
       ],
@@ -166,6 +174,7 @@
       "vram_gb": 0.0,
       "parameters": {},
       "minimums": {},
+      "types": {},
       "weights": [
         "pyrnnoise==0.4.5 (bundled)"
       ],
@@ -193,6 +202,10 @@
         "expected_speakers": null
       },
       "minimums": {},
+      "types": {
+        "num_speakers": "integer",
+        "expected_speakers": "string_list"
+      },
       "weights": [
         "openai/whisper-large-v3-turbo",
         "microsoft/wavlm-base-plus-sv"
@@ -222,6 +235,11 @@
         "max_speakers": null
       },
       "minimums": {},
+      "types": {
+        "num_speakers": "integer",
+        "min_speakers": "integer",
+        "max_speakers": "integer"
+      },
       "weights": [
         "pyannote/speaker-diarization-3.1",
         "pyannote/segmentation-3.0",
@@ -252,6 +270,11 @@
         "max_speakers": null
       },
       "minimums": {},
+      "types": {
+        "num_speakers": "integer",
+        "min_speakers": "integer",
+        "max_speakers": "integer"
+      },
       "weights": [
         "pyannote/speaker-diarization-community-1"
       ],
@@ -278,6 +301,7 @@
         "threshold": 0.5
       },
       "minimums": {},
+      "types": {},
       "weights": [
         "nvidia/diar_streaming_sortformer_4spk-v2"
       ],
@@ -305,6 +329,9 @@
         "streaming_mode": null
       },
       "minimums": {},
+      "types": {
+        "streaming_mode": "string"
+      },
       "weights": [
         "nvidia/Nemotron-3-Diarization"
       ],
@@ -334,6 +361,11 @@
         "batch_size": 8
       },
       "minimums": {},
+      "types": {
+        "num_speakers": "integer",
+        "min_speakers": "integer",
+        "max_speakers": "integer"
+      },
       "weights": [
         "BUT-FIT/diarizen-wavlm-large-s80-md-v2",
         "pyannote/wespeaker-voxceleb-resnet34-LM"
@@ -367,6 +399,10 @@
         "window": 0.01,
         "hop": 0.01
       },
+      "types": {
+        "num_speakers": "integer",
+        "max_speakers": "integer"
+      },
       "weights": [
         "speechbrain/spkrec-ecapa-voxceleb"
       ],
@@ -395,6 +431,10 @@
         "batch_size": 16
       },
       "minimums": {},
+      "types": {
+        "num_speakers": "integer",
+        "max_speakers": "integer"
+      },
       "weights": [
         "nvidia/speakerverification_en_titanet_large",
         "vad_multilingual_marblenet (NGC)"
@@ -422,6 +462,9 @@
         "language": null
       },
       "minimums": {},
+      "types": {
+        "language": "string"
+      },
       "weights": [
         "openai/whisper-large-v3-turbo"
       ],
@@ -448,6 +491,9 @@
         "language": null
       },
       "minimums": {},
+      "types": {
+        "language": "string"
+      },
       "weights": [
         "openai/whisper-large-v3"
       ],
@@ -476,6 +522,9 @@
         "vad_filter": false
       },
       "minimums": {},
+      "types": {
+        "language": "string"
+      },
       "weights": [
         "openai/whisper-large-v3-turbo (converted locally)"
       ],
@@ -527,6 +576,9 @@
         "local_attention": true
       },
       "minimums": {},
+      "types": {
+        "language": "string"
+      },
       "weights": [
         "nvidia/parakeet-tdt-0.6b-v3"
       ],

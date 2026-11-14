@@ -15,6 +15,12 @@ the comparison is computed and stored
 
 The session's original audio is stored when a run is started or
 resumed (and again by the job), so the player's audio route only reads.
+A start or a resume checks the session, stores the original and saves
+the run while holding the session's lock (the one
+:class:`~transcriber.application.record.DeleteSession` holds), so a
+deletion either happens first (the start finds no session) or sees the
+queued run and is refused; it never removes the lab directory between
+the check and the writes.
 
 A run can be cancelled (between steps, and a running subprocess is
 stopped) and resumed; a resume checks and queues the run under the
@@ -29,6 +35,7 @@ import uuid
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     List,
     Literal,
@@ -253,8 +260,9 @@ class StartLabRun:
         clock: Clock,
         processes: ProcessTable,
         decoder: AudioDecoder,
+        locks: SessionLocks,
     ) -> None:
-        """Wire the ports."""
+        """Wire the ports; ``locks`` are the sessions' locks."""
         self._sessions = sessions
         self._repository = repository
         self._catalogue = catalogue
@@ -263,29 +271,37 @@ class StartLabRun:
         self._clock = clock
         self._processes = processes
         self._decoder = decoder
+        self._locks = locks
+
+    def hold(self, session_id: str) -> ContextManager[None]:
+        """Return a context holding the lock of ``session_id``."""
+        return self._locks.hold(session_id)
 
     def __call__(self, session_id: str, request: LabRequest) -> LabRun:
         """Store and queue a run of ``request`` on ``session_id``.
 
         The session must have audio (any state but ``recording``);
         every model must be in the catalogue under its stage and every
-        parameter override must be one the model declares.
+        parameter override must be one the model declares. Everything
+        from the session check to the queueing happens under the
+        session's lock, so a concurrent deletion cannot interleave.
         """
-        session = require_session(self._sessions, session_id)
-        if session.state is SessionState.RECORDING:
-            raise StateError("The session is still recording.")
-        catalogue = self._catalogue.load()
-        _check_request(catalogue, request)
-        self.store_original(session.id)
-        run = LabRun(
-            id=uuid.uuid4().hex, session_id=session.id,
-            created_at=self._clock.now(), request=request,
-            steps=plan_steps(request),
-            worker_pid=self._processes.current(),
-        )
-        self._repository.save_run(run)
-        self.submit(run)
-        return run
+        with self.hold(session_id):
+            session = require_session(self._sessions, session_id)
+            if session.state is SessionState.RECORDING:
+                raise StateError("The session is still recording.")
+            catalogue = self._catalogue.load()
+            _check_request(catalogue, request)
+            self.store_original(session.id)
+            run = LabRun(
+                id=uuid.uuid4().hex, session_id=session.id,
+                created_at=self._clock.now(), request=request,
+                steps=plan_steps(request),
+                worker_pid=self._processes.current(),
+            )
+            self._repository.save_run(run)
+            self.submit(run)
+            return run
 
     def store_original(self, session_id: str) -> str:
         """Store the session's original audio unless stored; return its key.
@@ -346,7 +362,9 @@ class ResumeLabRun:
     results may also have been computed meanwhile by another run). The
     state check and the save happen under the run's lock (``locks``,
     keyed by :func:`job_key`), so of two concurrent resumes one queues
-    the run and the other is refused.
+    the run and the other is refused. The session's lock is held
+    around it all (taken first, then the run's), so a concurrent
+    deletion of the session cannot interleave with the writes.
     """
 
     def __init__(
@@ -363,7 +381,9 @@ class ResumeLabRun:
 
     def __call__(self, session_id: str, run_id: str) -> LabRun:
         """Queue the run again; a queued or running run is refused."""
-        with self._locks.hold(job_key(check_run_id(run_id))):
+        with self._start.hold(session_id), self._locks.hold(
+            job_key(check_run_id(run_id))
+        ):
             view = self._status(session_id, run_id)
             if view.state in ACTIVE:
                 raise StateError("The run is still queued or running.")

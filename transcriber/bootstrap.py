@@ -251,12 +251,15 @@ def build_lab(
     runner: ThreadJobRunner,
     clock: Clock,
     environ: Mapping[str, str],
+    locks: SessionLocks,
 ) -> LabUseCases:
     """Return the lab's use cases over the service's own adapters.
 
     The project's recogniser is reused for its own model name; another
     Whisper model of the catalogue gets an adapter of its own, made on
     first use and unloaded after every step (with the service's models).
+    ``locks`` are the sessions' locks: a start or resume holds them
+    against a concurrent deletion of the session.
     """
     lab = settings.lab
     repository = FileSystemLabRepository(settings.data_dir)
@@ -302,7 +305,7 @@ def build_lab(
     status = LabRunStatus(sessions, repository, runner, processes)
     start = StartLabRun(
         sessions, repository, catalogue, runner, execute, clock, processes,
-        decoder,
+        decoder, locks,
     )
     return LabUseCases(
         repository=repository,
@@ -380,7 +383,7 @@ def build_container(
     status = TranscriptionStatus(sessions, runner)
     lab = build_lab(
         settings, sessions, voiceprints, decoder, recogniser, encoder,
-        runner, clock, os.environ if environ is None else environ,
+        runner, clock, os.environ if environ is None else environ, locks,
     )
     return TranscriberContainer(
         settings=settings,

@@ -16,6 +16,14 @@ from typing import Any, Dict, List
 HERE = Path(__file__).resolve().parent
 
 DIARIZE = {"num_speakers": None, "max_speakers": None}
+# The declared type of each parameter whose default is null (the model
+# chooses): an override must be null or of this type.
+NULL_TYPES = {
+    "num_speakers": "integer", "min_speakers": "integer",
+    "max_speakers": "integer", "expected_speakers": "string_list",
+    "language": "string", "streaming_mode": "string",
+    "atten_lim_db": "number",
+}
 WHISPER_LANGS = ["multilingual"]
 PARAKEET_LANGS = [
     "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
@@ -30,12 +38,15 @@ def entry(**fields: Any) -> Dict[str, Any]:
         "id": None, "stage": None, "family": None, "display_name": None,
         "source_url": None, "licence": None, "licence_commercial": True,
         "gated": False, "token_url": None, "languages": ["any"],
-        "vram_gb": None, "parameters": {}, "minimums": {}, "weights": [],
-        "weights_mb": None, "notes": "", "lineage": None, "revision": 1,
+        "vram_gb": None, "parameters": {}, "minimums": {}, "types": {},
+        "weights": [], "weights_mb": None, "notes": "", "lineage": None,
+        "revision": 1,
     }
     unknown = set(fields) - set(base)
     assert not unknown, unknown
     base.update(fields)
+    nulls = [k for k, v in base["parameters"].items() if v is None]
+    base["types"] = {name: NULL_TYPES[name] for name in nulls}
     return base
 
 
