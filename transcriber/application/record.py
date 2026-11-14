@@ -291,8 +291,9 @@ class DeleteSession:
         session to delete again rather than lab data without a session
         (a new session with the same id would inherit it).
 
-        Once the session is gone, the RAG's copy of its transcript is
-        deleted too, on a best-effort basis: a failure is logged (the
+        Once the session is gone, still holding its lock (so no publish
+        of the same id runs meanwhile), the RAG's copy of its transcript
+        is deleted too, on a best-effort basis: a failure is logged (the
         session id and the reason, never the transcript) and the
         deletion here stands.
         """
@@ -311,11 +312,16 @@ class DeleteSession:
                 )
             self._lab.delete(session_id)
             self._sessions.delete(session_id)
-        if self._published is not None:
-            try:
-                self._published.retract(session_id)
-            except PublishError as exc:
-                LOG.warning(
-                    "Session %s was deleted, but not the RAG's copy: %s",
-                    session_id, exc,
-                )
+            if self._published is not None:
+                self._retract(session_id)
+
+    def _retract(self, session_id: str) -> None:
+        """Delete the RAG's copy; log (never raise) a failure."""
+        assert self._published is not None
+        try:
+            self._published.retract(session_id)
+        except PublishError as exc:
+            LOG.warning(
+                "Session %s was deleted, but not the RAG's copy: %s",
+                session_id, exc,
+            )

@@ -54,6 +54,7 @@ class Received:
     def __init__(self, answers: List[Answer]) -> None:
         """Answer with ``answers`` in order, then always 201."""
         self.answers = list(answers)
+        self.extra: Dict[str, Any] = {}
         self.requests: List[Dict[str, Any]] = []
         self.lock = threading.Lock()
 
@@ -83,7 +84,9 @@ def handler_for(received: Received) -> type:
             status, delay = received.next_answer()
             if delay:
                 time.sleep(delay)
-            reply = json.dumps({"detail": f"answer {status}"}).encode()
+            reply = json.dumps(
+                {"detail": f"answer {status}", **received.extra}
+            ).encode()
             try:
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
@@ -331,9 +334,30 @@ def test_retract_deletes_the_sessions_copy_once(rag: StandIn) -> None:
 
 def test_retracting_a_copy_the_rag_lacks_is_fine(rag: StandIn) -> None:
     rag.answer((404, 0.0))
+    rag.received.extra = {"code": "transcript_not_found"}
     sender, _ = publisher(rag.url)
     sender.retract("demo-es")
     assert len(rag.received.requests) == 1
+
+
+@pytest.mark.parametrize("extra", [{}, {"code": "something_else"}])
+def test_a_404_that_is_not_the_rags_is_a_failure(
+    rag: StandIn, extra: Dict[str, Any],
+) -> None:
+    """A route that does not exist (RAG without token, another service)."""
+    rag.answer((404, 0.0))
+    rag.received.extra = extra
+    sender, waits = publisher(rag.url, retries=3)
+    with pytest.raises(PublishError, match="answered 404 without saying"):
+        sender.retract("demo-es")
+    assert len(rag.received.requests) == 1 and waits == []
+
+
+def test_retract_waits_its_own_short_time(rag: StandIn) -> None:
+    rag.answer((204, 1.5))
+    sender, _ = publisher(rag.url, timeout=30.0, retract_timeout=0.3)
+    with pytest.raises(PublishError, match="no answer within 0.3 s"):
+        sender.retract("demo-es")
 
 
 @pytest.mark.parametrize("status, message", [
@@ -369,7 +393,13 @@ def test_retract_refuses_an_unreachable_rag_or_a_bad_id(
 
 # -- the token from a private file ----------------------------------------
 
-def token_file(folder: Path, text: str = TOKEN, mode: int = 0o600) -> Path:
+FILE_TOKEN = "s3cret-token-for-tests-" * 2
+"""A token as ``make rag-token`` would write it (32+ safe characters)."""
+
+
+def token_file(
+    folder: Path, text: str = FILE_TOKEN, mode: int = 0o600
+) -> Path:
     """Write ``text`` to ``folder/rag-token`` with ``mode``."""
     path = folder / "rag-token"
     path.write_text(text + "\n", encoding="utf-8")
@@ -386,7 +416,7 @@ def test_the_token_is_read_from_the_file(
     sender.publish(example())
     sender.retract("demo-es")
     assert [r["headers"]["Authorization"] for r in rag.received.requests] \
-        == [f"Bearer {TOKEN}"] * 2
+        == [f"Bearer {FILE_TOKEN}"] * 2
 
 
 def test_an_unsafe_token_file_sends_nothing(
@@ -401,8 +431,8 @@ def test_an_unsafe_token_file_sends_nothing(
         sender, _ = publisher(rag.url, token_file=path)
         with pytest.raises(PublishError, match=message) as error:
             sender.publish(example())
-        assert TOKEN not in str(error.value)
-    for text in ("", "two words", "t\u00f6ken"):
+        assert FILE_TOKEN not in str(error.value)
+    for text in ("", "short", "two words " * 4, "t\u00f6ken" * 8):
         bad = token_file(tmp_path, text)
         sender, _ = publisher(rag.url, token_file=bad)
         with pytest.raises(PublishError, match="does not hold a token"):
@@ -420,5 +450,8 @@ def test_the_settings_pass_the_token_file(tmp_path: Path) -> None:
     built = build_publisher(http, {})
     assert isinstance(built, HttpTranscriptPublisher)
     assert built.token_file == Path("~/t")
+    assert built.retract_timeout == 5.0
     with pytest.raises(ValueError, match="token_file must be an absolute"):
         HttpPublishSettings(token_file=Path("relative/t"))
+    with pytest.raises(ValueError, match="rag_token_file must be"):
+        TranscriberSettings(rag_token_file=Path("relative/t"))

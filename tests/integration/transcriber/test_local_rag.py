@@ -69,6 +69,15 @@ def test_the_token_file_points_publishing_at_the_local_rag(
     assert local_rag_note(settings) is None
 
 
+def test_the_local_rag_settings_are_validated(tmp_path: Path) -> None:
+    settings = TranscriberSettings(rag_token_file=tmp_path / "t")
+    local = settings.with_local_rag()
+    assert local.publish_http.token_file == tmp_path / "t"
+    assert local.publish_http.url == LOCAL_RAG_URL
+    with pytest.raises(ValueError, match="rag_token_file must be"):
+        load_settings(environment(tmp_path, rag_token_file="relative/t"))
+
+
 def test_without_the_token_file_the_directory_stays(tmp_path: Path) -> None:
     settings = load_settings(environment(tmp_path))
     assert settings.local_rag and settings.publisher == "directory"

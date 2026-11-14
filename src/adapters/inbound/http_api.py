@@ -31,6 +31,8 @@ from src.domain.models import MinimalAnswer, MinimalSource
 
 TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
 """Largest ``transcript.v1`` body accepted (text only; hours of speech)."""
+TRANSCRIPT_NOT_FOUND = "transcript_not_found"
+"""``code`` of ``DELETE /transcripts/{id}``'s ``404``: no copy to delete."""
 
 
 class SearchRequest(BaseModel):
@@ -251,13 +253,21 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         "/transcripts/{session_id}", dependencies=guard, status_code=204
     )
     async def delete_transcript(session_id: str) -> Response:
-        """Delete the stored document of a session (204; 404 if none)."""
+        """Delete the stored document of a session.
+
+        ``204`` once deleted; ``404`` with ``code``
+        :data:`TRANSCRIPT_NOT_FOUND` when there is none, so the
+        transcriber tells it apart from a route that does not exist.
+        """
         try:
             await run_in_threadpool(forget, session_id)
         except InvalidInputError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
         except NotFoundError as exc:
-            raise HTTPException(status_code=404, detail=str(exc))
+            return JSONResponse(
+                {"detail": str(exc), "code": TRANSCRIPT_NOT_FOUND},
+                status_code=404,
+            )
         except RagError as exc:
             raise HTTPException(status_code=500, detail=str(exc))
         return Response(status_code=204)

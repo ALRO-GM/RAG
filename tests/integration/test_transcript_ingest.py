@@ -326,6 +326,7 @@ def test_delete_removes_the_copy(tmp_path: Path) -> None:
     ).status_code == 404
     again = client.delete("/transcripts/demo-es", headers=AUTH)
     assert again.status_code == 404
+    assert again.json()["code"] == "transcript_not_found"
     assert client.delete(
         "/transcripts/-bad", headers=AUTH
     ).status_code == 400
@@ -399,7 +400,7 @@ def test_the_token_file_is_refused_unless_safe(tmp_path: Path) -> None:
 @pytest.mark.parametrize("host, loopback", [
     ("127.0.0.1", True), ("127.0.0.2", True), ("::1", True),
     ("localhost", True), ("0.0.0.0", False), ("::", False),
-    ("192.168.1.10", False), ("rag.example", False),
+    ("192.168.1.10", False), ("rag.example", False), (" 127.0.0.1", False),
 ])
 def test_is_loopback(host: str, loopback: bool) -> None:
     from src.adapters.inbound.cli import is_loopback
@@ -421,7 +422,7 @@ def test_serve_reads_the_token_file(
     )
     monkeypatch.delenv("RAG_TRANSCRIPTS_TOKEN", raising=False)
     token_file = private_token(indexed_project)
-    RagCLI(mode="bm25").serve(token_file=str(token_file))
+    RagCLI(mode="bm25").serve(host=" 127.0.0.1 ", token_file=str(token_file))
     out = capsys.readouterr().out
     assert (served["host"], served["port"]) == ("127.0.0.1", 8000)
     assert f"token from file {token_file}" in out

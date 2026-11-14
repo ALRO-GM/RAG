@@ -206,6 +206,14 @@ class TunnelSettings(BaseModel):
         return f"{scheme}://{rest.split('/', 1)[0]}/api/health"
 
 
+def check_absolute(path: Path, name: str) -> None:
+    """Raise :class:`ValueError` unless ``path`` is absolute or ``~/...``."""
+    if not str(path).startswith(("/", "~/")):
+        raise ValueError(
+            f"{name} must be an absolute path (or start with ~/)"
+        )
+
+
 class HttpPublishSettings(BaseModel):
     """Where and how ``publisher: "http"`` sends transcripts.
 
@@ -218,7 +226,8 @@ class HttpPublishSettings(BaseModel):
     multiplied by ``backoff_factor`` after every retry. A ``4xx``
     answer is final. With ``token_file`` (an absolute path, or one
     starting with ``~/``) the token is read from that private file
-    instead of ``token_env``.
+    instead of ``token_env``. Deleting the RAG's copy of a deleted
+    session waits ``retract_timeout`` seconds at most, once.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -233,17 +242,13 @@ class HttpPublishSettings(BaseModel):
     backoff_initial: float = Field(default=1.0, ge=0)
     backoff_factor: float = Field(default=2.0, ge=1)
     token_file: Optional[Path] = None
+    retract_timeout: float = Field(default=5.0, gt=0)
 
     @model_validator(mode="after")
     def _absolute_token_file(self) -> "HttpPublishSettings":
         """Refuse a relative token file (it would follow the cwd)."""
-        if self.token_file is not None and not str(
-            self.token_file
-        ).startswith(("/", "~/")):
-            raise ValueError(
-                "publish_http.token_file must be an absolute path (or"
-                " start with ~/)"
-            )
+        if self.token_file is not None:
+            check_absolute(self.token_file, "publish_http.token_file")
         return self
 
 
@@ -323,6 +328,12 @@ class TranscriberSettings(BaseModel):
     lab: LabSettings = LabSettings()
 
     @model_validator(mode="after")
+    def _absolute_rag_token_file(self) -> "TranscriberSettings":
+        """Refuse a relative ``rag_token_file``."""
+        check_absolute(self.rag_token_file, "rag_token_file")
+        return self
+
+    @model_validator(mode="after")
     def _http_needs_a_url(self) -> "TranscriberSettings":
         """Refuse ``publisher: "http"`` without ``publish_http.url``."""
         if self.publisher == "http" and self.publish_http.url is None:
@@ -352,12 +363,13 @@ class TranscriberSettings(BaseModel):
         read from ``rag_token_file``; the other ``publish_http`` values
         (time-out, retries) are kept.
         """
-        http = self.publish_http.model_copy(
-            update={"url": LOCAL_RAG_URL, "token_file": self.rag_token_file}
-        )
-        return self.model_copy(
-            update={"publisher": "http", "publish_http": http}
-        )
+        http = HttpPublishSettings.model_validate({
+            **self.publish_http.model_dump(),
+            "url": LOCAL_RAG_URL, "token_file": self.rag_token_file,
+        })
+        return TranscriberSettings.model_validate({
+            **dict(self), "publisher": "http", "publish_http": http,
+        })
 
     def published(self) -> Path:
         """Return the directory published transcripts are written to."""

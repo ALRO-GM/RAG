@@ -344,6 +344,7 @@ def build_publisher(
             backoff_initial=http.backoff_initial,
             backoff_factor=http.backoff_factor,
             token_file=http.token_file,
+            retract_timeout=http.retract_timeout,
         )
     return DirectoryTranscriptPublisher(settings.published())
 
@@ -423,7 +424,7 @@ def build_container(
             sessions, voiceprints, runner, transcribe, locks
         ),
         transcription_status=status,
-        publish=PublishTranscript(sessions, publisher),
+        publish=PublishTranscript(sessions, publisher, locks),
         rename_speaker=RenameSpeaker(sessions, voiceprints, locks),
         reassign_utterance=ReassignUtterance(sessions, voiceprints, locks),
         recover_sessions=RecoverSessions(sessions, locks),

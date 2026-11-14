@@ -249,10 +249,15 @@ TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-cod
   session is deleted in the transcriber; a new publish of the same
   session replaces it. Deleting a session (web or `sessions delete`)
   with the HTTP publisher active then sends `DELETE
-  /transcripts/{id}` once: a copy the RAG does not have is fine, and a
-  failure (RAG stopped, wrong token) is logged with the session id and
-  the reason, never the transcript, and does not undo the deletion;
-  delete the file by hand then. The directory publisher's files are not
+  /transcripts/{id}` once (5 s at most, `publish_http.retract_timeout`)
+  while still holding the session's lock, which a publish also holds
+  until the RAG answers, so a publish in flight cannot leave a copy
+  behind. The RAG's `404` with `"code": "transcript_not_found"` (no
+  copy) is fine; any other `404` (a RAG without its transcript routes,
+  another service on the port) and every other failure (RAG stopped,
+  wrong token) is logged with the session id and the reason, never the
+  transcript, and does not undo the deletion; delete the file by hand
+  then. The directory publisher's files are not
   touched by a deletion.
 - The tunnel forwards only `127.0.0.1:8770` (the transcriber); the RAG
   listens on another port and on loopback only, so nothing reaches it

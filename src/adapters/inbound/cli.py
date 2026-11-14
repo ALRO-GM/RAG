@@ -75,11 +75,15 @@ def as_text(value: Any, name: str) -> str:
 
 
 def is_loopback(host: str) -> bool:
-    """Tell whether ``host`` is an address of this machine only."""
-    if host.strip().lower() == "localhost":
+    """Tell whether ``host`` is an address of this machine only.
+
+    ``host`` is taken as it is (no spaces stripped): it must be the very
+    value the server is given.
+    """
+    if host.lower() == "localhost":
         return True
     try:
-        return ipaddress.ip_address(host.strip()).is_loopback
+        return ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
 
@@ -725,7 +729,7 @@ class RagCLI:
         port = as_int(port, "port")
         if not 0 < port < 65536:
             raise InvalidInputError("--port must be between 1 and 65535.")
-        host = as_text(host, "host")
+        host = as_text(host, "host").strip()
         file_token = ""
         if token_file is not None:
             if not is_loopback(host):
