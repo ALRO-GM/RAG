@@ -1,12 +1,12 @@
 """Parameters of a transcription: every threshold in one place.
 
 The use cases take them from the settings instead of hard-coding them.
-The defaults are the values the analyzer's audio commands use under
-``src/`` (window lengths, the clustering threshold, smoothing and turn
-gaps) and the untuned starting values of this package (the match
-threshold, the single-voice test, the speech-activity level). None of
-them has been measured on the transcriber yet: ticket TR-05 measures
-and sets them.
+The window lengths, the clustering threshold, smoothing and turn gaps
+are the values the analyzer's audio commands use under ``src/``. The
+match threshold, the single-voice rule and the speech-activity level
+were measured by ticket TR-05 on synthetic meetings of read speech
+(``docs/transcriber/IDENTIFICATION.md``); a phone on a table has not
+been measured yet.
 """
 
 from typing import Literal, Tuple
@@ -34,11 +34,12 @@ class TranscriptionParameters(BaseModel):
     nearest voice for time resolution. ``window_minimum``: regions
     shorter than this are not embedded. ``centre_windows``: subtract the
     recording's mean voice before grouping (as the analyzer does).
-    ``single_voice_threshold``: when the number of people is unknown,
-    a recording whose every long window has at least this cosine with
-    the windows' mean direction (raw unit vectors, before centring) is
-    one voice and is not clustered (centring one voice would leave only
-    its own variation to split).
+    ``single_voice_threshold``/``single_voice_quantile``: when the
+    number of people is unknown, a recording whose long windows have,
+    at that quantile, at least this cosine with the windows' mean
+    direction (raw unit vectors, before centring) is one voice and is
+    not clustered (centring one voice would leave only its own
+    variation to split).
     ``group_threshold``/``max_speakers``: clustering when the number of
     people is unknown. ``match_threshold``/``normalisation``: matching
     groups to voiceprints. ``smoothing_run``: longest run of words
@@ -49,15 +50,20 @@ class TranscriptionParameters(BaseModel):
     scale is 1) is speech; a recognised word with no such frame in its
     span is dropped (recognisers invent words over silence).
 
-    Untuned starting values, reasoned rather than measured (TR-05 sets
-    them): ``single_voice_threshold`` 0.9 because two voices whose raw
-    embeddings have cosine ``c`` put their windows at about
-    ``sqrt((1 + c) / 2)`` from the mean direction, so 0.9 still keeps
-    apart two voices up to ``c`` of about 0.6, while one voice is only
-    taken as one when every window agrees closely. ``activity_frame``
-    0.025 s is the usual speech-analysis frame; ``activity_threshold``
-    0.003 (about -50 dBFS) lies below quiet speech and above digital
-    silence, so it only drops words over (near) silence.
+    Measured in TR-05 (``docs/transcriber/IDENTIFICATION.md``; figures
+    on the readers held out from the choice): ``match_threshold`` 0.95
+    on raw unit vectors, the best of the sweep for cluster-then-match
+    on the tuning readers (held out, number of speakers given, mean of
+    the four enrolment conditions: 86.1% of words on the right id
+    against 84.5% at the old 0.5). The single-voice rule 0.95 at
+    quantile 0.1 merged 3 of 20 two-reader recordings into one voice
+    and split none of 40 one-reader recordings; the old 0.9 on the
+    minimum merged 10 of 20, split 2 of 40 and merged one four-reader
+    meeting. ``activity_frame`` 0.025 s and ``activity_threshold``
+    0.003 (about -50 dBFS) were kept: they dropped 5 of 22,379 words
+    said by a reader and 7 of the 56 words Whisper timed entirely
+    inside a pause (clean read speech with digital silence between
+    turns, unlike a phone on a table).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -69,7 +75,8 @@ class TranscriptionParameters(BaseModel):
     fine_step: float = Field(default=0.75, gt=0, allow_inf_nan=False)
     window_minimum: float = Field(default=0.4, ge=0, allow_inf_nan=False)
     centre_windows: bool = True
-    single_voice_threshold: float = Field(default=0.9, ge=-1, le=1)
+    single_voice_threshold: float = Field(default=0.95, ge=-1, le=1)
+    single_voice_quantile: float = Field(default=0.1, ge=0, lt=1)
     group_threshold: float = Field(default=0.5, ge=-1, le=1)
     max_speakers: int = Field(default=10, ge=1)
     match_threshold: float = Field(

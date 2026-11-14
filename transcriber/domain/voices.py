@@ -10,9 +10,11 @@ anonymous labels ``S1``, ``S2``, ...
 How embeddings are normalised before they are compared is a parameter
 (:data:`Normalisation`): centring on the mean of a recording, which
 helps inside one recording, is meaningless for a one-voice enrolment
-sample, and the right choice across recordings is still to be measured
-(ticket TR-05). The default compares raw unit vectors. The thresholds
-here are parameters with untuned defaults for the same reason.
+sample. Ticket TR-05 compared raw unit vectors, centring on the
+session, on a fixed mean of other readers and on the enrolled
+voiceprints: none beat raw unit vectors on held-out readers, which stay
+the default (``docs/transcriber/IDENTIFICATION.md``). The match and
+single-voice thresholds were set there on synthetic read speech.
 """
 
 import math
@@ -45,9 +47,11 @@ Normalisation = Callable[
     [FloatArray, FloatArray], Tuple[FloatArray, FloatArray]
 ]
 
-# Cosine similarity a group needs to take an enrolled id. A starting
-# value, not a measured one: ticket TR-05 measures and sets it.
-DEFAULT_MATCH_THRESHOLD = 0.5
+# Cosine similarity (raw unit vectors) a group needs to take an
+# enrolled id. Measured in TR-05 (docs/transcriber/IDENTIFICATION.md):
+# raw cosines between different readers' voices reach 0.95 and more, so
+# 0.5 named nearly every group; 0.95 was best on the tuning readers.
+DEFAULT_MATCH_THRESHOLD = 0.95
 
 # Fewest session groups whose mean :func:`centre_on_session` subtracts.
 # Below it the mean says nothing about the room: one group minus its own
@@ -152,16 +156,27 @@ def nearest_voice(vectors: FloatArray, centroids: FloatArray) -> List[int]:
     return [int(i) for i in np.argmax(vectors @ centroids.T, axis=1)]
 
 
-def is_single_voice(vectors: FloatArray, threshold: float) -> bool:
+def is_single_voice(
+    vectors: FloatArray, threshold: float, quantile: float = 0.0
+) -> bool:
     """Tell whether every row of ``vectors`` is one and the same voice.
 
     The rows are taken as raw unit vectors (no centring): they are one
-    voice when each has at least ``threshold`` cosine with their mean
-    direction. Centring cannot answer this question: with one voice,
-    subtracting the mean leaves only the voice's own variation, which
-    clustering then splits into several "people". No rows, or a mean of
-    zero length, is not one voice.
+    voice when the ``quantile`` of their cosines with their mean
+    direction reaches ``threshold``. With ``quantile`` 0 that is the
+    lowest cosine, so every window must agree; with 0.1 about one window
+    in ten may stray (a cough, a noisy window) without the recording
+    counting as several voices. Measured in ``docs/transcriber/
+    IDENTIFICATION.md``: one stray window was enough for the minimum to
+    call a one-voice recording several. Centring cannot answer this
+    question: with one voice, subtracting the mean leaves only the
+    voice's own variation, which clustering then splits into several
+    "people". No rows, or a mean of zero length, is not one voice.
+    Raises :class:`InvalidInputError` for a ``quantile`` outside
+    ``[0, 1)``.
     """
+    if not 0.0 <= quantile < 1.0:
+        raise InvalidInputError("The quantile must be in [0, 1).")
     if vectors.shape[0] == 0:
         return False
     unit = unit_rows(vectors).astype(np.float64)
@@ -169,7 +184,8 @@ def is_single_voice(vectors: FloatArray, threshold: float) -> bool:
     norm = float(np.linalg.norm(mean))
     if norm == 0.0:
         return False
-    return bool(float(np.min(unit @ (mean / norm))) >= threshold)
+    cosines = unit @ (mean / norm)
+    return bool(float(np.quantile(cosines, quantile)) >= threshold)
 
 
 class VoiceGroups(NamedTuple):
@@ -194,6 +210,7 @@ def group_voices(
     max_speakers: int = 10,
     centre_windows: bool = True,
     single_voice_threshold: Optional[float] = None,
+    single_voice_quantile: float = 0.0,
 ) -> VoiceGroups:
     """Find the voices of a recording in two passes.
 
@@ -201,7 +218,8 @@ def group_voices(
        clustered (:func:`cluster_speakers` with ``num_speakers``,
        ``threshold`` and ``max_speakers``). With ``num_speakers`` 1, or
        when the number is unknown and :func:`is_single_voice` finds
-       one voice at ``single_voice_threshold`` (``None`` skips the
+       one voice at ``single_voice_threshold`` and
+       ``single_voice_quantile`` (a threshold of ``None`` skips the
        test), every window is one group and nothing is clustered.
     2. *Who speaks when*: each short-window embedding of ``fine`` goes
        to the nearest group centroid, which keeps the time resolution
@@ -224,7 +242,9 @@ def group_voices(
         raise InvalidInputError("num_speakers must be at least 1.")
     single = num_speakers == 1 or (
         num_speakers is None and single_voice_threshold is not None
-        and is_single_voice(coarse, single_voice_threshold)
+        and is_single_voice(
+            coarse, single_voice_threshold, single_voice_quantile
+        )
     )
     if single:
         return VoiceGroups(

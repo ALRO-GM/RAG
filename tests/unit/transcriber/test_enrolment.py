@@ -193,6 +193,32 @@ class TestEnrolmentVector:
             enrolment_vector(vectors, spread(20), [(0.0, 30.0)], 30.0,
                              strict)
 
+    def test_defaults_reject_a_close_second_voice_on_a_fifth(self) -> None:
+        """The case TR-05 measured: two readers, raw cosine near 0.7.
+
+        Raw WavLM embeddings of different readers have a median cosine
+        of about 0.69, so the old clustering threshold of 0.5 merged
+        them; and a second reader on 20% of the sample stayed under the
+        old 20% share. The measured defaults reject both.
+        """
+        rules = SampleRules()
+        assert (rules.same_voice_threshold,
+                rules.max_other_voice_share) == (0.85, 0.1)
+        a = np.zeros(512)
+        a[0] = 1.0
+        b = np.zeros(512)
+        b[0], b[1] = 0.7, float(np.sqrt(1 - 0.7 ** 2))
+        noise = np.random.default_rng(2).normal(0.0, 0.01, (20, 512))
+        vectors = (np.vstack([np.tile(a, (16, 1)), np.tile(b, (4, 1))])
+                   + noise).astype(np.float32)
+        with pytest.raises(SampleRejectedError) as error:
+            sample(vectors)
+        assert rejection(error) == Rejection.SEVERAL_VOICES.value
+        old = SampleRules(same_voice_threshold=0.5, max_other_voice_share=0.2)
+        assert len(enrolment_vector(
+            vectors, spread(20), [(0.0, 30.0)], 30.0, old
+        )) == 512
+
     def test_one_window_is_not_a_voiceprint(self) -> None:
         """Regions may claim speech; the voiceprint needs the windows."""
         with pytest.raises(SampleRejectedError) as error:

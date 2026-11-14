@@ -10,8 +10,8 @@ the version read is stored with the consent.
 :func:`enrolment_vector` turns the window embeddings of a sample into
 one voiceprint vector and rejects a sample that is too short, mostly
 silent, or holds more than one voice. Every limit is a field of
-:class:`SampleRules` with a starting default that has not been measured
-yet (ticket TR-05).
+:class:`SampleRules`; the several-voices limits were measured in
+ticket TR-05 and still let some two-person samples through.
 """
 
 import enum
@@ -109,10 +109,17 @@ class Rejection(str, enum.Enum):
 
 
 class SampleRules(BaseModel):
-    """Limits an enrolment sample must meet. Defaults are not tuned.
+    """Limits an enrolment sample must meet.
 
-    Every default is a starting value chosen by reasoning, not by
-    measurement; ticket TR-05 measures and sets them.
+    ``same_voice_threshold`` and ``max_other_voice_share`` were set by
+    TR-05 (``docs/transcriber/IDENTIFICATION.md`` §4): on 30 s samples
+    of read speech the old 0.5 and 0.2 let 17 of 18 two-reader samples
+    through (15 of 18 on held-out readers); 0.85 and 0.1 kept every
+    genuine sample (20 of 20 on each set) and let 3 of 18 through on
+    the readers used to choose them, 7 of 18 on the held-out readers.
+    The other limits are reasoned starting values, not tuned; one
+    genuine sample sat at their edge (15.3 s of speech in 30 s, 5
+    voiced windows).
 
     ``min_duration``: seconds of recording. ``min_speech_ratio``: share
     of the recording covered by speech regions. ``min_windows``: windows
@@ -135,8 +142,8 @@ class SampleRules(BaseModel):
     min_windows: int = Field(default=5, ge=1)
     min_window_seconds: float = Field(default=10.0, ge=0, allow_inf_nan=False)
     min_window_norm: float = Field(default=1e-6, ge=0, allow_inf_nan=False)
-    same_voice_threshold: float = Field(default=0.5, ge=-1, le=1)
-    max_other_voice_share: float = Field(default=0.2, ge=0, le=1)
+    same_voice_threshold: float = Field(default=0.85, ge=-1, le=1)
+    max_other_voice_share: float = Field(default=0.1, ge=0, le=1)
 
 
 def clip_spans(

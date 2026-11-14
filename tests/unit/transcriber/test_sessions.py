@@ -312,6 +312,37 @@ class TestGroupVoices:
         assert not is_single_voice(np.zeros((0, 3), np.float32), 0.0)
         opposite = np.array([[1.0, 0.0], [-1.0, 0.0]], dtype=np.float32)
         assert not is_single_voice(opposite, -1.0)
+        with pytest.raises(InvalidInputError, match="quantile"):
+            is_single_voice(opposite, 0.0, quantile=1.0)
+        with pytest.raises(InvalidInputError, match="quantile"):
+            is_single_voice(opposite, 0.0, quantile=-0.1)
+
+    def one_voice_and_a_stray_window(self) -> FloatArray:
+        """Nineteen windows of one voice and one window far from it."""
+        voice = np.tile(np.array([1.0, 0.0, 0.0], np.float32), (19, 1))
+        stray = np.array([[0.0, 1.0, 0.0]], dtype=np.float32)
+        return np.vstack([voice, stray]).astype(np.float32)
+
+    def test_a_quantile_tolerates_a_stray_window(self) -> None:
+        windows = self.one_voice_and_a_stray_window()
+        # The minimum is the stray window's cosine with the mean; the
+        # 10% quantile is set by the nineteen windows of the voice.
+        assert not is_single_voice(windows, 0.9)
+        assert is_single_voice(windows, 0.9, quantile=0.1)
+        groups = group_voices(windows, np.zeros((0, 3), np.float32),
+                              single_voice_threshold=0.9,
+                              single_voice_quantile=0.1)
+        assert groups.coarse == [0] * 20
+
+    def test_a_quantile_still_sees_two_voices(self) -> None:
+        # Half and half: the 10% quantile is a window of one of the two
+        # voices, about 0.71 from the mean direction.
+        two = np.vstack([
+            np.tile(np.array([1.0, 0.0], np.float32), (5, 1)),
+            np.tile(np.array([0.0, 1.0], np.float32), (5, 1)),
+        ]).astype(np.float32)
+        assert not is_single_voice(two, 0.9, quantile=0.1)
+        assert is_single_voice(two, 0.7, quantile=0.1)
 
     def test_no_windows(self) -> None:
         none = np.zeros((0, 0), dtype=np.float32)
@@ -333,7 +364,9 @@ class TestTranscriptionParameters:
         assert params.coarse() == (5.0, 2.5, 0.4)
         assert params.fine() == (1.5, 0.75, 0.4)
         assert params.normaliser() is unit_vectors
-        assert params.single_voice_threshold == 0.9
+        assert (params.single_voice_threshold,
+                params.single_voice_quantile) == (0.95, 0.1)
+        assert params.match_threshold == 0.95
         assert (params.activity_frame, params.activity_threshold) == (
             0.025, 0.003,
         )
@@ -349,6 +382,8 @@ class TestTranscriptionParameters:
             TranscriptionParameters(normalisation="other")  # type: ignore
         with pytest.raises(ValidationError):
             TranscriptionParameters(single_voice_threshold=1.5)
+        with pytest.raises(ValidationError):
+            TranscriptionParameters(single_voice_quantile=1.0)
         with pytest.raises(ValidationError):
             TranscriptionParameters(activity_frame=0.0)
         with pytest.raises(ValidationError):

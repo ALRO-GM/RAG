@@ -339,6 +339,7 @@ class TranscribeSession:
             self._embed(audio, fine_windows),
             options.num_speakers, p.group_threshold, p.max_speakers,
             p.centre_windows, p.single_voice_threshold,
+            p.single_voice_quantile,
         )
         if fine_windows:
             spans = spans_from_windows(fine_windows, groups.fine)
