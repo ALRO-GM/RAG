@@ -1,7 +1,7 @@
 // Review of a lab run: the fragments to label (who really spoke, the
 // right text) and the pipelines' scores against those labels.
 
-import { h } from "../dom.js";
+import { fill, h } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
@@ -108,7 +108,7 @@ export async function fragmentsSection(body, env) {
   onlyBox.addEventListener("change", () => { unlabelled = onlyBox.checked; offset = 0; load(); });
 
   const keys = [people.slice(0, 9).map((p, i) => `${i + 1} ${p}`).join(" · "), "B", "N", "U", "X", t("lab.key_space"), "J/K"];
-  body.replaceChildren(
+  fill(body,
     h("p", { class: "hint" }, t("lab.review_about")),
     player.element,
     h("div", { class: "row wrap" },
@@ -294,7 +294,7 @@ export async function scoresSection(body, env) {
     return null;
   }
   const rows = scores.scores;
-  body.replaceChildren(
+  fill(body,
     h("p", { class: "notice", role: "note" }, t("lab.scores_meta", {
       labels: scores.labels, seconds: num(scores.labelled_seconds), unsure: num(scores.unsure_seconds), texts: scores.text_labels,
     })),

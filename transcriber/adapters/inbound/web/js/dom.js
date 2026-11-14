@@ -52,3 +52,9 @@ export function svg(tag, attrs = {}, ...children) {
   append(el, children);
   return el;
 }
+
+/** Replace an element's children (strings, nodes, arrays; null and false skipped). */
+export function fill(el, ...children) {
+  el.replaceChildren();
+  append(el, children);
+}

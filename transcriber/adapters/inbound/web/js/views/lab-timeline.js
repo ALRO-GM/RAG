@@ -2,7 +2,7 @@
 // denoised audio, the consensus on top and the reference labels when there
 // are any; click to play from there, a cursor follows the audio.
 
-import { h, svg } from "../dom.js";
+import { fill, h, svg } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
@@ -216,7 +216,7 @@ export async function timelineSection(body, env) {
     svg("svg", { width: 14, height: 14, "aria-hidden": "true" }, svg("rect", { width: 14, height: 14, ...fillFor(s) })),
     " ", s)), h("li", {}, svg("svg", { width: 14, height: 14, "aria-hidden": "true" }, svg("rect", { y: 9, width: 14, height: 4, class: "ovl" })), " ", t("lab.overlap")));
 
-  body.replaceChildren(
+  fill(body,
     h("p", { class: "hint" }, t("lab.timeline_about")),
     player.element,
     h("div", { class: "row wrap" },

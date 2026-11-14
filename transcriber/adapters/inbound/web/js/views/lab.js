@@ -132,10 +132,10 @@ async function chooseView(ctx, root, session) {
     h("legend", {}, t(`lab.stage.${stage}`)),
     h("ul", { class: "plain models" }, groups[stage].map((m) => modelRow(m, selected, update)))));
 
-  root.append(crumbs(session), h("h1", {}, t("lab.choose_title")),
+  root.append(...[crumbs(session), h("h1", {}, t("lab.choose_title")),
     catalogue.token_present ? null : h("p", { class: "hint" }, t("lab.no_token")),
     h("div", { class: "stages" }, stageLists), counts, start, message, live,
-    h("h2", {}, t("lab.runs")), runsList);
+    h("h2", {}, t("lab.runs")), runsList].filter(Boolean));
 
   function runCard(run) {
     const href = `#/lab/${encodeURIComponent(session)}/${encodeURIComponent(run.id)}`;

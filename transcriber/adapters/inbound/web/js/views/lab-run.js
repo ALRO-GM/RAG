@@ -2,7 +2,7 @@
 // fragments and scores sections. The results (5-7 MB on a full run) are
 // fetched once per run and kept while the tab stays on that run.
 
-import { h, svg } from "../dom.js";
+import { fill, h, svg } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
@@ -144,7 +144,7 @@ async function overview(body, env) {
     initial: "agreement_with_consensus", rowClass: nonCommercial,
     caption: t("lab.pipelines_caption", { count: rows.length }),
   });
-  body.replaceChildren(
+  fill(body,
     h("p", { class: "notice warn", role: "note" }, t("lab.agreement_note")),
     h("p", { class: "meta" }, t("lab.overview_meta", {
       duration: num(results.duration), pipelines: results.pipelines.length,
