@@ -1,33 +1,30 @@
-"""Audio for the browser's player: a WAV rendering and byte ranges.
+"""Byte ranges of the audio the browser's player asks for.
 
-The player (``docs/transcriber/ARCHITECTURE.md`` §7) sets the audio to
-a time and plays from there, so the browser must be able to seek to any
-second without downloading the file. Stored audio is FLAC (recorded
-sessions) or whatever was imported (m4a, mp3, webm...). Browsers seek
-those by guessing a byte offset and then searching for a frame, which
-is slow or imprecise for FLAC without a seek table, and some formats do
-not play at all in Safari (Ogg, older WebM). So the player is given a
-rendering as 16-bit PCM WAV at the decoder's rate (16 kHz mono): every
-browser plays it, and a time maps to a byte offset exactly, which makes
-each seek one HTTP range request. It costs 32 KB per second of audio
-(115 MB per hour) in transit; only the ranges played are sent.
-
-Renderings are kept in memory (:class:`RenderCache`), bounded in bytes,
-keyed by the session and a hash of its stored audio.
+The player (``docs/transcriber/ARCHITECTURE.md`` §7) seeks by asking
+for one byte range of a WAV file in which a time is a byte offset (the
+rendering is made and kept by the session repository, see
+:mod:`transcriber.adapters.outbound.wav_playback`). This module reads
+the ``Range`` header (:func:`parse_range`) and streams the bytes asked
+for, a block at a time (:func:`byte_blocks`), so neither a seek nor a
+whole download ever holds the recording in memory.
 """
 
-import io
-import re
-import threading
-import wave
-from collections import OrderedDict
-from typing import Callable, Optional, Tuple, Union
+from typing import Iterator, Optional, Tuple, Union
 
-import numpy as np
-
-from transcriber.application.ports import Audio
+from transcriber.application.ports import PlaybackAudio
 
 WAV_TYPE = "audio/wav"
+
+MAX_RANGE_HEADER = 100
+"""Longest ``Range`` header read; a longer one is ignored (RFC 9110)."""
+
+MAX_DIGITS = 18
+"""Longest number read in a range (more than any file has bytes)."""
+
+READ_BLOCK = 256 * 1024
+"""Bytes read from the rendering per block sent."""
+
+DIGITS = frozenset("0123456789")
 
 
 class Unsatisfiable:
@@ -38,22 +35,17 @@ UNSATISFIABLE = Unsatisfiable()
 ByteRange = Tuple[int, int]
 """First and last byte, both included."""
 
-_RANGE = re.compile(r"^\s*bytes\s*=\s*(\d*)\s*-\s*(\d*)\s*$", re.IGNORECASE)
 
+def _number(text: str) -> Optional[int]:
+    """Return ``text`` as a byte position, ``None`` if it is not one.
 
-def wav_bytes(audio: Audio) -> bytes:
-    """Return ``audio`` as a mono 16-bit PCM WAV file."""
-    scaled = np.clip(
-        np.round(audio.samples.astype(np.float64) * 32768.0),
-        -32768, 32767,
-    ).astype("<i2")
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as out:
-        out.setnchannels(1)
-        out.setsampwidth(2)
-        out.setframerate(audio.sample_rate)
-        out.writeframes(scaled.tobytes())
-    return buffer.getvalue()
+    An empty text is ``-1`` (the side of the range left open).
+    """
+    if not text:
+        return -1
+    if len(text) > MAX_DIGITS or not set(text) <= DIGITS:
+        return None
+    return int(text)
 
 
 def parse_range(
@@ -63,25 +55,30 @@ def parse_range(
 
     ``None`` means "send the whole body": no header, a header this
     server does not understand (another unit, several ranges, a
-    malformed one, first byte after last), which RFC 9110 lets a server
-    ignore. A range that starts past the end, or an empty suffix, is
-    :data:`UNSATISFIABLE`. The last byte is clamped to the body.
+    malformed or overlong one, first byte after last), which RFC 9110
+    lets a server ignore. A range that starts past the end, or an empty
+    suffix, is :data:`UNSATISFIABLE`. The last byte is clamped to the
+    body. Parsing takes time linear in the header, which is read only
+    up to :data:`MAX_RANGE_HEADER` characters.
     """
-    if header is None:
+    if header is None or len(header) > MAX_RANGE_HEADER:
         return None
-    match = _RANGE.match(header)
-    if match is None:
+    unit, equals, spec = header.partition("=")
+    if not equals or unit.strip().lower() != "bytes":
         return None
-    first_text, last_text = match.groups()
-    if not first_text:
-        if not last_text:
+    first_text, dash, last_text = spec.partition("-")
+    first = _number(first_text.strip())
+    last = _number(last_text.strip())
+    if not dash or first is None or last is None:
+        return None
+    if first < 0:
+        if last < 0:
             return None
-        suffix = int(last_text)
-        if suffix == 0 or size == 0:
+        if last == 0 or size == 0:
             return UNSATISFIABLE
-        return max(size - suffix, 0), size - 1
-    first = int(first_text)
-    last = int(last_text) if last_text else max(size - 1, first)
+        return max(size - last, 0), size - 1
+    if last < 0:
+        last = max(size - 1, first)
     if last < first:
         return None
     if first >= size:
@@ -89,39 +86,22 @@ def parse_range(
     return first, min(last, size - 1)
 
 
-class RenderCache:
-    """The last renderings made, at most ``limit`` bytes in all."""
+def byte_blocks(
+    audio: PlaybackAudio, first: int, last: int, block: int = READ_BLOCK
+) -> Iterator[bytes]:
+    """Yield bytes ``first`` to ``last`` of ``audio``, then close it.
 
-    def __init__(self, limit: int) -> None:
-        """Keep up to ``limit`` bytes of renderings (0 keeps none)."""
-        self.limit = limit
-        self._items: "OrderedDict[Tuple[str, str], bytes]" = OrderedDict()
-        self._lock = threading.Lock()
-
-    def get(
-        self, key: Tuple[str, str], render: Callable[[], bytes]
-    ) -> bytes:
-        """Return the rendering under ``key``, making it if needed.
-
-        A rendering larger than the limit is returned but not kept.
-        Two requests for a missing rendering may both make it.
-        """
-        with self._lock:
-            found = self._items.get(key)
-            if found is not None:
-                self._items.move_to_end(key)
-                return found
-        made = render()
-        if len(made) <= self.limit:
-            with self._lock:
-                self._items[key] = made
-                self._items.move_to_end(key)
-                while sum(map(len, self._items.values())) > self.limit:
-                    self._items.popitem(last=False)
-        return made
-
-    def forget(self, session_id: str) -> None:
-        """Drop every rendering of ``session_id`` (it was deleted)."""
-        with self._lock:
-            for key in [k for k in self._items if k[0] == session_id]:
-                del self._items[key]
+    Reads at most ``block`` bytes at a time. ``audio`` is closed when
+    the bytes are sent, when reading fails, or when the generator is
+    closed early (the client went away).
+    """
+    try:
+        position = first
+        while position <= last:
+            data = audio.read(position, min(block, last - position + 1))
+            if not data:
+                break
+            yield data
+            position += len(data)
+    finally:
+        audio.close()

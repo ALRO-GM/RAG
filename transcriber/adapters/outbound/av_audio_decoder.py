@@ -6,11 +6,16 @@ MP4, WEBM, MP3... what phones and meeting tools record) is decoded with
 PyAV, which bundles the FFmpeg libraries, so nothing has to be
 installed. The resampling helpers are copied from
 ``src/adapters/outbound/soundfile_audio_reader.py``.
+
+:func:`pcm16_blocks` decodes a stored file block by block into mono
+16-bit PCM for the player's WAV rendering, so a long recording is never
+held whole in memory.
 """
 
 import io
 from math import gcd
-from typing import TYPE_CHECKING, List
+from pathlib import Path
+from typing import TYPE_CHECKING, Iterator, List
 
 import numpy as np
 import numpy.typing as npt
@@ -31,6 +36,9 @@ PCM_RATE = 16000
 
 SOUNDFILE_FORMATS = frozenset({"wav", "flac", "ogg"})
 """Formats tried with libsndfile before PyAV."""
+
+BLOCK_FRAMES = 65536
+"""Frames decoded at a time by :func:`pcm16_blocks` (4 s at 16 kHz)."""
 
 
 def to_mono(data: FloatArray) -> FloatArray:
@@ -143,3 +151,66 @@ def _frame_samples(frame: "AudioFrame") -> FloatArray:
     planes = np.asarray(frame.to_ndarray(), dtype=np.float32)
     mono: FloatArray = planes.reshape(planes.shape[0], -1).mean(axis=0)
     return mono.astype(np.float32)
+
+
+def pcm16(samples: FloatArray) -> bytes:
+    """Return samples in [-1, 1] as 16-bit little-endian PCM bytes.
+
+    Samples decoded from 16-bit PCM come back as the same integers.
+    """
+    scaled = np.clip(
+        np.round(samples.astype(np.float64) * 32768.0), -32768, 32767
+    ).astype("<i2")
+    return scaled.tobytes()
+
+
+def pcm16_blocks(
+    path: Path, kind: str, sample_rate: int = DEFAULT_SAMPLE_RATE
+) -> Iterator[bytes]:
+    """Yield the audio of the file at ``path`` as mono 16-bit PCM blocks.
+
+    ``kind`` is the stored format (the file extension). Files libsndfile
+    reads at ``sample_rate`` are read directly, a few seconds at a time;
+    anything else is decoded and resampled frame by frame with PyAV. The
+    channels are averaged, as :class:`AvAudioDecoder` does. Raises
+    :class:`InvalidInputError` when the file cannot be decoded.
+    """
+    if kind.lower() in SOUNDFILE_FORMATS:
+        import soundfile
+
+        try:
+            sound = soundfile.SoundFile(str(path))
+        except (soundfile.LibsndfileError, RuntimeError, TypeError):
+            sound = None
+        if sound is not None:
+            with sound:
+                if sound.samplerate == sample_rate:
+                    for block in sound.blocks(
+                        BLOCK_FRAMES, dtype="float32", always_2d=True
+                    ):
+                        yield pcm16(to_mono(block))
+                    return
+    yield from _pyav_blocks(path, kind, sample_rate)
+
+
+def _pyav_blocks(path: Path, kind: str, sample_rate: int) -> Iterator[bytes]:
+    """Decode the first audio stream of ``path`` frame by frame."""
+    import av
+
+    try:
+        with av.open(str(path), mode="r") as container:
+            if not container.streams.audio:
+                raise InvalidInputError(
+                    f"The {kind} recording has no audio stream."
+                )
+            resampler = av.AudioResampler(format="fltp", rate=sample_rate)
+            stream = container.streams.audio[0]
+            for frame in container.decode(stream):
+                for out in resampler.resample(frame):
+                    yield pcm16(_frame_samples(out))
+            for out in resampler.resample(None):
+                yield pcm16(_frame_samples(out))
+    except av.FFmpegError as exc:
+        raise InvalidInputError(
+            f"Cannot decode the {kind} recording: {exc}"
+        ) from exc

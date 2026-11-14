@@ -8,11 +8,17 @@ path or the query string (which end up in logs).
 
 Wrong or missing codes are counted per client by :class:`FailureLimiter`:
 after ``limit`` failures within ``window`` seconds the client is refused
-for ``cooldown`` seconds. Behind the tunnel every request arrives from
-the local end of the SSH forward, so the client is the left-most
-``X-Forwarded-For`` address when the direct peer is loopback (or a unix
-socket, which has no address); otherwise it is the peer
-(:func:`client_key`).
+for ``cooldown`` seconds. A right code is never refused, blocked or not:
+the code is checked first and only a wrong or missing one meets the
+block (so an attacker cannot lock the owner out). Behind the tunnel
+every request arrives from the local end of the SSH forward, so the
+client of a request whose direct peer is loopback (or a unix socket,
+which has no address) is the dedicated header the server's proxy
+writes (``X-Client-IP`` by default, overwriting any value the caller
+sent); otherwise it is the peer (:func:`client_key`).
+``X-Forwarded-For`` is never read: a caller can append to it, and
+uvicorn must run with ``proxy_headers=False`` so that it does not
+replace the peer with that header either.
 
 A browser ``<audio>`` element cannot send a header, so the audio route
 also accepts a playback cookie (:data:`PLAYBACK_COOKIE`): a random
@@ -29,7 +35,10 @@ from collections import deque
 from typing import Callable, Deque, Dict, Mapping, Optional
 
 ACCESS_HEADER = "X-Access-Code"
-FORWARDED_HEADER = "X-Forwarded-For"
+CLIENT_HEADER = "X-Client-IP"
+"""Header the server's proxy sets to the caller's address (default)."""
+
+MAX_KEY_LENGTH = 64
 MIN_CODE_LENGTH = 16
 """Shortest access code accepted (``transcriber serve`` makes longer)."""
 
@@ -67,19 +76,22 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
-def client_key(peer: Optional[str], headers: Mapping[str, str]) -> str:
+def client_key(
+    peer: Optional[str],
+    headers: Mapping[str, str],
+    header: str = CLIENT_HEADER,
+) -> str:
     """Return the key the failures of this request are counted under.
 
     ``peer`` is the direct peer's address (``None`` for a unix socket).
-    From loopback or a unix socket (the tunnel) the key is the
-    left-most ``X-Forwarded-For`` value, the address the proxy saw;
-    otherwise, or without that header, it is the peer.
+    From loopback or a unix socket (the tunnel) the key is the value of
+    ``header``, the address the server's proxy saw; otherwise, or
+    without that header, it is the peer.
     """
     if peer is None or _is_loopback(peer):
-        forwarded = headers.get(FORWARDED_HEADER, "")
-        first = forwarded.split(",")[0].strip()
-        if first:
-            return first[:64]
+        given = headers.get(header, "").strip()
+        if given:
+            return given[:MAX_KEY_LENGTH]
     return peer or UNKNOWN_CLIENT
 
 
@@ -87,7 +99,14 @@ class FailureLimiter:
     """Refuse a client for a while after too many failed codes.
 
     Not tied to HTTP: it counts failures under string keys with the
-    clock ``now`` (seconds, monotonic by default). Thread-safe.
+    clock ``now`` (seconds, monotonic by default). Thread-safe. A right
+    code does not reset the count: the pages poll, so an owner sharing
+    an address with an attacker would otherwise keep the attacker from
+    ever being blocked; failures simply age out of the window.
+
+    At most ``max_clients`` keys are tracked. When the table is full,
+    keys that are not blocked are forgotten first (oldest first); a
+    blocked key is dropped only when blocked keys alone fill the table.
     """
 
     def __init__(
@@ -131,16 +150,16 @@ class FailureLimiter:
             if len(failures) >= self.limit:
                 self._blocked[key] = now + self.cooldown
                 del self._failures[key]
-            self._forget_old(now)
+            self._forget_old(now, key)
 
-    def succeeded(self, key: str) -> None:
-        """Forget the failures of ``key`` after a right code."""
-        with self._lock:
-            self._failures.pop(key, None)
+    def _forget_old(self, now: float, keep: str) -> None:
+        """Keep the tables bounded (hold ``_lock``).
 
-    def _forget_old(self, now: float) -> None:
-        """Keep the tables bounded (hold ``_lock``)."""
-        if len(self._failures) + len(self._blocked) <= self._max_clients:
+        Expired blocks and failures that left the window go first, then
+        the oldest unblocked keys, and only then the blocked keys that
+        end soonest. ``keep``, the key just counted, is never dropped.
+        """
+        if self._size() <= self._max_clients:
             return
         for key in [k for k, v in self._blocked.items() if v <= now]:
             del self._blocked[key]
@@ -149,7 +168,17 @@ class FailureLimiter:
             if not v or v[-1] <= now - self.window
         ]:
             del self._failures[key]
-        while len(self._failures) > self._max_clients // 2:
-            del self._failures[next(iter(self._failures))]
-        while len(self._blocked) > self._max_clients // 2:
-            del self._blocked[next(iter(self._blocked))]
+        unblocked = [k for k in self._failures if k != keep]
+        unblocked.sort(key=lambda k: self._failures[k][-1])
+        for key in unblocked[:max(self._size() - self._max_clients, 0)]:
+            del self._failures[key]
+        blocked = sorted(
+            (k for k in self._blocked if k != keep),
+            key=self._blocked.__getitem__,
+        )
+        for key in blocked[:max(self._size() - self._max_clients, 0)]:
+            del self._blocked[key]
+
+    def _size(self) -> int:
+        """Return how many keys are tracked (hold ``_lock``)."""
+        return len(self._failures) + len(self._blocked)

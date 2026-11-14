@@ -74,6 +74,27 @@ class Audio:
         return self.samples[first:max(last, first)]
 
 
+class PlaybackAudio(Protocol):
+    """A session's audio as a WAV file (16-bit mono), read by byte ranges.
+
+    Holds an open file until :meth:`close`; reading never loads more
+    than the bytes asked for.
+    """
+
+    @property
+    def size(self) -> int:
+        """Return the size of the whole WAV file in bytes."""
+        ...
+
+    def read(self, offset: int, length: int) -> bytes:
+        """Return up to ``length`` bytes from ``offset`` (fewer at the end)."""
+        ...
+
+    def close(self) -> None:
+        """Release the file."""
+        ...
+
+
 class RecognisedSpeech(BaseModel):
     """What a speech recogniser heard: timed words and the language."""
 
@@ -186,6 +207,16 @@ class SessionRepository(Protocol):
 
     def recording(self, session_id: str) -> RecordedAudio:
         """Return the stored audio of the session."""
+        ...
+
+    def playback(self, session_id: str) -> PlaybackAudio:
+        """Return the session's audio as WAV for the player.
+
+        The rendering is made once, kept beside the audio until the
+        audio changes, and removed with the session; while the session
+        is ``recording`` it is the PCM received so far behind a WAV
+        header. :class:`NotFoundError` without any audio.
+        """
         ...
 
     def save_words(self, session_id: str, words: Sequence[Word]) -> None:

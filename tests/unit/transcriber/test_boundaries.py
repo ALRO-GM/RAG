@@ -119,6 +119,17 @@ def crossing_imports(root: Path, source: str, target: str) -> List[str]:
     return found
 
 
+def inbound_reaching_outbound(root: Path) -> List[str]:
+    """Return the imports of outbound adapters made by inbound adapters.
+
+    Inbound adapters reach the outbound side only through the use cases
+    and the composition root, never directly.
+    """
+    return crossing_imports(
+        root, "transcriber/adapters/inbound", "transcriber.adapters.outbound"
+    )
+
+
 def impure_domain(root: Path) -> List[str]:
     """Return the violations of the domain rules under ``root``."""
     found = []
@@ -163,6 +174,9 @@ class TestRealTree:
 
     def test_transcriber_application_stays_inside(self) -> None:
         assert leaky_application(REPO) == []
+
+    def test_inbound_adapters_do_not_import_outbound_ones(self) -> None:
+        assert inbound_reaching_outbound(REPO) == []
 
     def test_the_rules_see_the_real_packages(self) -> None:
         """Guard against a vacuous pass (wrong root, no files found)."""
@@ -234,6 +248,32 @@ class TestRulesCatchViolations:
         write(tmp_path, "transcriber/domain/__init__.py", "")
         write(tmp_path, "transcriber/domain/x.py", text)
         assert impure_domain(tmp_path) == []
+
+
+class TestAdapterRulesCatchViolations:
+    @pytest.mark.parametrize("text", [
+        "from transcriber.adapters.outbound.torch_runtime import X\n",
+        "import transcriber.adapters.outbound.fs_storage\n",
+        "from ..outbound import fs_storage\n",
+    ])
+    def test_inbound_importing_outbound(
+        self, tmp_path: Path, text: str
+    ) -> None:
+        write(tmp_path, "transcriber/adapters/__init__.py", "")
+        write(tmp_path, "transcriber/adapters/inbound/__init__.py", "")
+        write(tmp_path, "transcriber/adapters/inbound/x.py", text)
+        assert inbound_reaching_outbound(tmp_path)
+
+    @pytest.mark.parametrize("text", [
+        "from transcriber.bootstrap import TranscriberContainer\n",
+        "from transcriber.domain.errors import ModelLoadError\n",
+        "from .access import check_code\n",
+    ])
+    def test_allowed_in_inbound(self, tmp_path: Path, text: str) -> None:
+        write(tmp_path, "transcriber/adapters/__init__.py", "")
+        write(tmp_path, "transcriber/adapters/inbound/__init__.py", "")
+        write(tmp_path, "transcriber/adapters/inbound/x.py", text)
+        assert inbound_reaching_outbound(tmp_path) == []
 
 
 class TestApplicationRulesCatchViolations:

@@ -16,10 +16,15 @@ stable codes (:data:`ERROR_CODES`); unexpected errors give a generic
 500 and are logged, never shown.
 
 The audio of a session is served as a WAV rendering with HTTP range
-support (:mod:`transcriber.adapters.inbound.playback`).
+support (:mod:`transcriber.adapters.inbound.playback`), streamed from a
+file a block at a time.
+
+Only enrolments wait for the job runner (the models); at most
+``api.max_pending_enrolments`` of them may be in progress or waiting,
+so waiting requests never fill the thread pool the other routes use.
+Every other route returns without waiting for a job.
 """
 
-import hashlib
 import logging
 import math
 import time
@@ -29,9 +34,9 @@ from typing import (
 )
 
 from fastapi import APIRouter, Depends, FastAPI, Query, Request
-from fastapi.concurrency import run_in_threadpool
+from fastapi.concurrency import iterate_in_threadpool, run_in_threadpool
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.datastructures import MutableHeaders
@@ -50,20 +55,18 @@ from transcriber.adapters.inbound.access import (
 )
 from transcriber.adapters.inbound.playback import (
     WAV_TYPE,
-    RenderCache,
     Unsatisfiable,
+    byte_blocks,
     parse_range,
-    wav_bytes,
 )
-from transcriber.adapters.outbound.torch_runtime import ModelLoadError
 from transcriber.application.ports import PCM_FORMAT, JobStatus, RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import TranscriberContainer
-from transcriber.domain.enrolment import enrolment_text
 from transcriber.domain.errors import (
     ConsentRequiredError,
     ContractError,
     InvalidInputError,
+    ModelLoadError,
     NotFoundError,
     SampleRejectedError,
     StateError,
@@ -258,12 +261,19 @@ def _too_large(limit: int) -> ApiError:
     )
 
 
-def recording_format(filename: str) -> str:
-    """Return the audio format named by ``filename``'s extension."""
+def recording_format(filename: str, allowed: Tuple[str, ...]) -> str:
+    """Return the audio format named by ``filename``'s extension.
+
+    Only the extensions in ``allowed`` are accepted; anything else
+    (none, ``.pcm``, ``.txt``, a control character) is a ``400
+    unsupported_format``, answered before the body is read.
+    """
     kind = PurePath(filename).suffix.lower().lstrip(".")
-    if not kind:
-        raise InvalidInputError(
-            "The file name needs an extension (wav, m4a, mp3...)."
+    if kind not in allowed:
+        raise ApiError(
+            400, "unsupported_format",
+            "Upload an audio or video file: "
+            + ", ".join(allowed) + ".",
         )
     return kind
 
@@ -316,7 +326,7 @@ def create_app(
         limits.failed_code_limit, limits.failed_code_window,
         limits.failed_code_cooldown, now,
     )
-    renders = RenderCache(limits.audio_cache_bytes)
+    enrolments = 0  # in progress or waiting; only touched on the event loop
     playback_token = new_playback_token()
     app = FastAPI(
         title="Transcriber",
@@ -365,12 +375,21 @@ def create_app(
     def admit(request: Request, cookie_too: bool) -> None:
         """Let the request through with the code (or, if allowed, cookie).
 
-        A throttled client is refused first; a request with neither a
-        valid code nor (with ``cookie_too``) a valid playback cookie
-        counts as one failure.
+        A right code (or cookie) always passes, even from a client that
+        is being throttled: the code is checked first, so wrong codes
+        sent by someone else can never lock the owner out. A request
+        with neither counts as one failure of its client, or gets 429
+        while that client is blocked.
         """
+        allowed = check_code(access_code, request.headers.get(ACCESS_HEADER))
+        if not allowed and cookie_too:
+            allowed = check_code(
+                playback_token, request.cookies.get(PLAYBACK_COOKIE)
+            )
+        if allowed:
+            return
         peer = request.client.host if request.client is not None else None
-        key = client_key(peer, request.headers)
+        key = client_key(peer, request.headers, limits.client_ip_header)
         wait = limiter.retry_after(key)
         if wait > 0:
             raise ApiError(
@@ -378,17 +397,8 @@ def create_app(
                 "Too many wrong access codes; try again later.",
                 {"Retry-After": str(math.ceil(wait))},
             )
-        allowed = check_code(access_code, request.headers.get(ACCESS_HEADER))
-        if not allowed and cookie_too:
-            allowed = check_code(
-                playback_token, request.cookies.get(PLAYBACK_COOKIE)
-            )
-        if not allowed:
-            limiter.failed(key)
-            raise ApiError(
-                401, "unauthorized", "A valid access code is required."
-            )
-        limiter.succeeded(key)
+        limiter.failed(key)
+        raise ApiError(401, "unauthorized", "A valid access code is required.")
 
     async def authorise(request: Request) -> None:
         """Let the request through only with the access code header."""
@@ -465,8 +475,13 @@ def create_app(
         language: str = Query(min_length=2, max_length=16),
         title: Optional[str] = Query(default=None, max_length=200),
     ) -> Dict[str, Any]:
-        """Create a session from a whole recording sent as the body."""
-        kind = recording_format(filename)
+        """Create a session from a whole recording sent as the body.
+
+        The file name and the size are checked before the session is
+        created, so a refused upload leaves nothing behind and can be
+        sent again with the same id.
+        """
+        kind = recording_format(filename, limits.upload_formats)
         data = await read_body(request, limits.upload_max_bytes)
         session = await run_in_threadpool(
             c.import_recording, session_id, language,
@@ -512,36 +527,34 @@ def create_app(
             await run_in_threadpool(c.show_transcript, session_id)
         )
 
-    def rendered(session_id: str) -> bytes:
-        """Return the WAV rendering of the session's audio."""
-        recording = c.session_audio.recording(session_id)
-        key = (session_id, hashlib.sha256(recording.data).hexdigest())
-        return renders.get(
-            key, lambda: wav_bytes(c.session_audio.decode(recording))
-        )
-
     @playback.get("/sessions/{session_id}/audio")
     async def audio(session_id: str, request: Request) -> Response:
         """Serve the audio as WAV, whole or as one byte range.
 
-        The only route that also takes the playback cookie.
+        The only route that also takes the playback cookie. The bytes
+        are read from the rendering a block at a time as they are sent.
         """
-        body = await run_in_threadpool(rendered, session_id)
-        size = len(body)
+        rendering = await run_in_threadpool(c.session_audio, session_id)
+        size = rendering.size
         headers = {"Accept-Ranges": "bytes"}
         wanted = parse_range(request.headers.get("range"), size)
         if isinstance(wanted, Unsatisfiable):
+            rendering.close()
             return error_response(
                 416, "range_not_satisfiable",
                 f"The audio has {size} bytes.",
                 {**headers, "Content-Range": f"bytes */{size}"},
             )
-        if wanted is None:
-            return Response(body, 200, headers, media_type=WAV_TYPE)
-        first, last = wanted
-        headers["Content-Range"] = f"bytes {first}-{last}/{size}"
-        return Response(
-            body[first:last + 1], 206, headers, media_type=WAV_TYPE
+        status = 200
+        first, last = 0, size - 1
+        if wanted is not None:
+            status = 206
+            first, last = wanted
+            headers["Content-Range"] = f"bytes {first}-{last}/{size}"
+        headers["Content-Length"] = str(last - first + 1)
+        return StreamingResponse(
+            iterate_in_threadpool(byte_blocks(rendering, first, last)),
+            status, headers, media_type=WAV_TYPE,
         )
 
     @api.patch("/sessions/{session_id}/speakers/{label}")
@@ -572,7 +585,6 @@ def create_app(
     async def delete(session_id: str) -> Response:
         """Delete the session with its audio, words and transcript."""
         await run_in_threadpool(c.delete_session, session_id)
-        renders.forget(session_id)
         return Response(status_code=204)
 
     @api.post("/sessions/{session_id}/publish")
@@ -596,13 +608,13 @@ def create_app(
         ``consent_version`` is the consent statement an enrolment made
         now is recorded against.
         """
-        chosen = enrolment_text(language)
+        guide = c.enrolment_text(language, name)
         return {
-            "language": chosen.language,
-            "version": chosen.version,
-            "template": chosen.template,
-            "text": chosen.text(name) if name is not None else None,
-            "consent_version": limits.consent_version,
+            "language": guide.text.language,
+            "version": guide.text.version,
+            "template": guide.text.template,
+            "text": guide.reading,
+            "consent_version": guide.consent_version,
         }
 
     @api.post("/speakers/{speaker_id}/enrolment", status_code=201)
@@ -618,19 +630,34 @@ def create_app(
         """Enrol a voice from a sample read aloud; needs ``consent=true``.
 
         Consent is checked before the body is read. The call waits for
-        the models (it queues behind a running transcription).
+        the models (it queues behind a running transcription); when
+        ``max_pending_enrolments`` enrolments are already in progress or
+        waiting, it is refused at once with ``409 busy`` and a
+        ``Retry-After`` header instead of holding a worker thread.
         """
+        nonlocal enrolments
         if consent != "true":
             raise ConsentRequiredError(
                 "A voice is only enrolled with the person's explicit"
                 " consent (consent=true)."
             )
-        data = await read_body(request, limits.enrolment_max_bytes)
-        voiceprint = await run_in_threadpool(
-            c.enrol_speaker, speaker_id, name, language,
-            RecordedAudio(data, format), True, limits.consent_version,
-            text_version,
-        )
+        if enrolments >= limits.max_pending_enrolments:
+            raise ApiError(
+                409, "busy",
+                "The workstation is busy with other enrolments; try"
+                " again shortly.",
+                {"Retry-After": str(limits.busy_retry_after)},
+            )
+        enrolments += 1
+        try:
+            data = await read_body(request, limits.enrolment_max_bytes)
+            voiceprint = await run_in_threadpool(
+                c.enrol_speaker, speaker_id, name, language,
+                RecordedAudio(data, format), True,
+                c.enrolment_text.consent_version, text_version,
+            )
+        finally:
+            enrolments -= 1
         return {
             "id": voiceprint.speaker_id,
             "model": voiceprint.model,

@@ -64,7 +64,7 @@ transcriber/
                      SessionRepository, VoiceprintRepository,
                      TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
     common.py        id checks and lookups shared by the use cases
-    enrol.py         EnrolSpeaker, ForgetSpeaker
+    enrol.py         EnrolSpeaker, ForgetSpeaker, ShowEnrolmentText
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
     transcribe.py    TranscribeSession (recognise → diarize → identify → sentences),
@@ -77,11 +77,13 @@ transcriber/
   adapters/
     inbound/         http_api.py (FastAPI, all routes under /api),
                      access.py (access code, throttling of failed codes),
-                     playback.py (WAV rendering and byte ranges for the player),
+                     playback.py (byte ranges of the player's WAV, streamed),
                      cli.py (Fire), web/ (static pages)
     outbound/        av_audio_decoder.py, whisper_recogniser.py,
                      wavlm_voice_encoder.py, fake_models.py,
-                     fs_session_repository.py, fs_voiceprint_repository.py,
+                     fs_session_repository.py (with the player's WAV
+                     rendering, kept on disk), wav_playback.py,
+                     fs_voiceprint_repository.py,
                      http_transcript_publisher.py, fs_transcript_publisher.py,
                      thread_job_runner.py, thread_session_locks.py
   config.py        TranscriberSettings (pydantic)

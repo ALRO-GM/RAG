@@ -3,9 +3,7 @@
 import pytest
 
 from tests.unit.transcriber.fakes import (
-    FakeDecoder,
     FakeVoiceprintRepository,
-    meeting,
     voice,
 )
 from tests.unit.transcriber.test_transcribe import world
@@ -16,7 +14,6 @@ from transcriber.application.browse import (
     ShowSession,
     ShowTranscript,
 )
-from transcriber.application.ports import RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.domain.errors import (
     InvalidInputError,
@@ -100,17 +97,14 @@ class TestShowTranscript:
 
 
 class TestSessionAudio:
-    def test_recording_and_decoding(self) -> None:
+    def test_the_rendering_comes_from_the_repository(self) -> None:
         w = world()
         w.upload()
-        decoder = FakeDecoder(meeting())
-        audio = SessionAudio(w.sessions, decoder)
-        recording = audio.recording("s1")
-        assert recording == RecordedAudio(b"audio", "wav")
-        assert audio.decode(recording).sample_rate > 0
-        assert decoder.decoded == [recording]
+        audio = SessionAudio(w.sessions)
+        rendering = audio("s1")
+        assert rendering.read(0, rendering.size) == b"WAV:audio"
         with pytest.raises(NotFoundError):
-            audio.recording("nope")
+            audio("nope")
 
 
 class TestQueueLanguage:

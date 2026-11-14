@@ -6,13 +6,14 @@ deterministic stand-in models (a 220 Hz tone is one person, an 880 Hz
 tone another).
 """
 
+import hmac
 import io
+import threading
 import time
 import wave
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Tuple
 
-import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -31,9 +32,9 @@ from transcriber.adapters.inbound.access import (
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.inbound.playback import (
     UNSATISFIABLE,
-    RenderCache,
     parse_range,
 )
+from transcriber.application.ports import Progress, RecordedAudio
 from transcriber.bootstrap import TranscriberContainer, build_container
 from transcriber.config import ApiSettings, TranscriberSettings
 
@@ -236,7 +237,62 @@ def test_an_uploaded_file_and_a_language_given_at_queueing(
         "/api/sessions/otra/upload",
         params={"filename": "audio", "language": "es"}, content=wav,
     )
-    assert_error(no_extension, 400, "invalid_input")
+    assert_error(no_extension, 400, "unsupported_format")
+
+
+class TestUploads:
+    @pytest.mark.parametrize("filename", [
+        "a.wav\n", "a.pcm", "rec.PCM", "notes.txt", "data.json", "audio",
+        "a.flac.exe", ".wav",
+    ])
+    def test_only_audio_and_video_files_are_accepted(
+        self, client: TestClient, tmp_path: Path, filename: str
+    ) -> None:
+        wav = sound_file(tone(1.0), 16000, "wav")
+        answer = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": filename, "language": "es"}, content=wav,
+        )
+        body = assert_error(answer, 400, "unsupported_format")
+        assert "m4a" in body["message"]
+        assert_error(client.get("/api/sessions/s1"), 404, "not_found")
+        assert not (tmp_path / "data" / "sessions" / "s1").exists()
+
+    def test_a_refused_upload_can_be_sent_again(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        wav = sound_file(tone(1.0), 16000, "wav")
+        refused = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": "a.wav\n", "language": "es"}, content=wav,
+        )
+        assert_error(refused, 400, "unsupported_format")
+        bad_language = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": "a.wav", "language": "x"}, content=wav,
+        )
+        assert bad_language.status_code in (400, 422), bad_language.text
+        made = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": "a.wav", "language": "es"}, content=wav,
+        )
+        assert made.status_code == 201, made.text
+        folder = tmp_path / "data" / "sessions" / "s1"
+        assert (folder / "imported.wav").is_file()
+
+    def test_an_imported_pcm_never_takes_the_recorder_files(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        flac = sound_file(tone(1.0), 16000, "flac")
+        made = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": "rec.flac", "language": "es"}, content=flac,
+        )
+        assert made.status_code == 201, made.text
+        folder = tmp_path / "data" / "sessions" / "s1"
+        assert sorted(p.name for p in folder.iterdir()) == [
+            "imported.flac", "session.json",
+        ]
 
 
 class TestChunks:
@@ -286,25 +342,70 @@ class TestChunks:
                                 content=b"\x01\x00"), 409, "wrong_state")
 
 
+SAMPLES = {
+    "session_id": "s1", "number": "0", "label": "S1",
+    "utterance_id": "t0.s0", "speaker_id": "ana",
+}
+"""A value for every path parameter the API has."""
+
+QUERIES = {
+    "/api/sessions/{session_id}/upload": "?filename=a.wav&language=es",
+    "/api/enrolment/text": "?language=es",
+    "/api/speakers/{speaker_id}/enrolment": "?name=A&language=es",
+}
+"""Required query parameters, so that the request reaches the route."""
+
+OPEN_ROUTES = {("GET", "/api/health")}
+
+
+def walk_routes(routes: Any) -> Iterator[Tuple[str, str]]:
+    """Yield (method, path) of every endpoint in ``routes``, recursively.
+
+    Newer FastAPI versions keep an included router as one entry that
+    points at the router (``original_router``); its routes carry the
+    prefix already.
+    """
+    for route in routes:
+        included = getattr(route, "original_router", None)
+        if included is not None:
+            yield from walk_routes(included.routes)
+            continue
+        methods = getattr(route, "methods", None) or set()
+        for method in sorted(set(methods) - {"HEAD"}):
+            yield method, str(getattr(route, "path"))
+
+
+def served_routes() -> List[Tuple[str, str]]:
+    """Every (method, path template) the API serves, from ``app.routes``.
+
+    Built from the app itself, so a route added later is covered by
+    the tests below without being listed by hand; the OpenAPI listing
+    of the same app must agree.
+    """
+    app = create_app(build_container(TranscriberSettings(
+        data_dir=Path("/nonexistent/transcriber"), runtime="fake",
+    )), CODE)
+    found = sorted(set(walk_routes(app.routes)))
+    documented = sorted(
+        (method.upper(), path)
+        for path, item in app.openapi()["paths"].items() for method in item
+    )
+    assert found == documented
+    return found
+
+
+def sample_path(template: str) -> str:
+    """Fill ``template``'s parameters with :data:`SAMPLES` values."""
+    path = template
+    for name, value in SAMPLES.items():
+        path = path.replace("{" + name + "}", value)
+    assert "{" not in path, f"no sample value for a parameter of {template}"
+    return path + QUERIES.get(template, "")
+
+
 ROUTES = [
-    ("GET", "/api/sessions"),
-    ("POST", "/api/sessions"),
-    ("GET", "/api/sessions/s1"),
-    ("PUT", "/api/sessions/s1/chunks/0"),
-    ("POST", "/api/sessions/s1/close"),
-    ("POST", "/api/sessions/s1/upload?filename=a.wav&language=es"),
-    ("POST", "/api/sessions/s1/transcription"),
-    ("GET", "/api/sessions/s1/transcript"),
-    ("GET", "/api/sessions/s1/audio"),
-    ("PATCH", "/api/sessions/s1/speakers/S1"),
-    ("PATCH", "/api/sessions/s1/utterances/t0.s0"),
-    ("DELETE", "/api/sessions/s1"),
-    ("POST", "/api/sessions/s1/publish"),
-    ("GET", "/api/speakers"),
-    ("GET", "/api/enrolment/text?language=es"),
-    ("POST", "/api/speakers/ana/enrolment?name=A&language=es"),
-    ("DELETE", "/api/speakers/ana"),
-    ("POST", "/api/access/cookie"),
+    (method, sample_path(path)) for method, path in served_routes()
+    if (method, path) not in OPEN_ROUTES
 ]
 """Every route but the health check, with a request that reaches it."""
 
@@ -342,28 +443,19 @@ class TestAccess:
     def test_the_route_list_is_complete(
         self, container: TranscriberContainer
     ) -> None:
-        app = create_app(container, CODE)
-        served = {
-            (method.upper(), path)
-            for path, item in app.openapi()["paths"].items()
-            for method in item
-        }
-        listed = {
-            (method, path.split("?")[0]
-             .replace("/s1", "/{session_id}")
-             .replace("/ana", "/{speaker_id}")
-             .replace("/0", "/{number}")
-             .replace("/S1", "/{label}")
-             .replace("/t0.s0", "/{utterance_id}"))
-            for method, path in ROUTES
-        }
-        assert served == listed | {("GET", "/api/health")}
+        served = set(served_routes())
+        assert all(path.startswith("/api/") for _, path in served)
+        assert OPEN_ROUTES <= served
+        assert len(ROUTES) == len(served) - len(OPEN_ROUTES) >= 17
+        assert AUDIO_ROUTE in ROUTES
+        assert ("POST", "/api/access/cookie") in ROUTES
 
     @pytest.mark.parametrize("method, path", ROUTES)
     def test_every_route_needs_the_code(
         self, container: TranscriberContainer, method: str, path: str
     ) -> None:
-        plain = TestClient(create_app(container, CODE))
+        app = create_app(container, CODE)
+        plain = TestClient(app)
         container.open_session("s1", "es")
         for headers in ({}, {"X-Access-Code": "wrong"},
                         {"X-Access-Code": CODE + "x"}):
@@ -371,6 +463,14 @@ class TestAccess:
                                    content=b"\x00\x00")
             assert_error(answer, 401, "unauthorized")
         assert container.sessions.get("s1") is not None  # untouched
+        # With the code the same request reaches the route.
+        reached = TestClient(app, headers=AUTH).request(
+            method, path, content=b"\x00\x00"
+        )
+        body = reached.json() if reached.status_code != 204 else {}
+        assert reached.status_code != 405, reached.text
+        assert body.get("code") != "unauthorized", reached.text
+        assert body.get("message") != "Not Found", reached.text  # routed
 
     def test_the_playback_cookie_is_a_token_not_the_code(
         self, client: TestClient
@@ -457,8 +557,11 @@ class TestAccess:
                                       headers=with_cookie("guess")),
                          401, "unauthorized")
         assert_error(attacker.get("/api/sessions/s1/audio",
-                                  headers=with_cookie(value)),
+                                  headers=with_cookie("guess")),
                      429, "too_many_attempts")
+        # The right cookie still plays, even from the blocked client.
+        assert attacker.get("/api/sessions/s1/audio",
+                            headers=with_cookie(value)).status_code == 200
         container.runner.close(WAIT)
 
     def test_the_code_is_never_taken_from_the_url(
@@ -493,13 +596,18 @@ class TestAccess:
         blocked = attacker.get("/api/sessions", headers=wrong)
         assert_error(blocked, 429, "too_many_attempts")
         assert blocked.headers["retry-after"] == "120"
-        # Even the right code waits for the cool-down...
-        assert_error(attacker.get("/api/sessions", headers=AUTH),
+        # The right code is never refused, even from the blocked client;
+        # it does not lift the block for wrong codes either...
+        assert attacker.get("/api/sessions", headers=AUTH).status_code == 200
+        assert_error(attacker.get("/api/sessions", headers=wrong),
                      429, "too_many_attempts")
-        # ...while another client is not affected.
+        assert_error(attacker.get("/api/sessions"),
+                     429, "too_many_attempts")
+        # ...and another client is not affected.
         assert other.get("/api/sessions").status_code == 200
         clock.now += 121
-        assert attacker.get("/api/sessions", headers=AUTH).status_code == 200
+        assert_error(attacker.get("/api/sessions", headers=wrong),
+                     401, "unauthorized")
         container.runner.close(WAIT)
 
     def test_failures_outside_the_window_are_forgotten(
@@ -525,14 +633,71 @@ class TestAccess:
         app = create_app(container, CODE, now=Clock())
         tunnel = TestClient(app, client=("127.0.0.1", 4000))
         wrong = {"X-Access-Code": "nope"}
-        attacker = {**wrong, "X-Forwarded-For": "198.51.100.7, 10.0.0.2"}
-        for _ in range(2):
-            tunnel.get("/api/sessions", headers=attacker)
-        assert_error(tunnel.get("/api/sessions", headers=attacker),
-                     429, "too_many_attempts")
-        phone = {**AUTH, "X-Forwarded-For": "198.51.100.8"}
-        assert tunnel.get("/api/sessions", headers=phone).status_code == 200
+        for hop in range(2):
+            tunnel.get("/api/sessions", headers={
+                **wrong, "X-Client-IP": "198.51.100.7",
+                "X-Forwarded-For": f"203.0.113.{hop}",
+            })
+        assert_error(tunnel.get("/api/sessions", headers={
+            **wrong, "X-Client-IP": "198.51.100.7",
+            "X-Forwarded-For": "203.0.113.99",
+        }), 429, "too_many_attempts")
+        assert_error(tunnel.get("/api/sessions", headers={
+            **wrong, "X-Client-IP": "198.51.100.8",
+        }), 401, "unauthorized")
         container.runner.close(WAIT)
+
+    def test_the_client_header_is_trusted_only_from_the_tunnel(
+        self, tmp_path: Path
+    ) -> None:
+        container = make_container(tmp_path, failed_code_limit=2)
+        app = create_app(container, CODE, now=Clock())
+        direct = TestClient(app, client=("203.0.113.9", 4000))
+        wrong = {"X-Access-Code": "nope"}
+        for n in range(2):
+            direct.get("/api/sessions", headers={
+                **wrong, "X-Client-IP": f"198.51.100.{n}",
+            })
+        assert_error(direct.get("/api/sessions", headers={
+            **wrong, "X-Client-IP": "198.51.100.50",
+        }), 429, "too_many_attempts")
+        container.runner.close(WAIT)
+
+    def test_the_header_name_comes_from_the_settings(
+        self, tmp_path: Path
+    ) -> None:
+        container = make_container(
+            tmp_path, failed_code_limit=1, client_ip_header="X-Real-IP",
+        )
+        app = create_app(container, CODE, now=Clock())
+        tunnel = TestClient(app, client=("127.0.0.1", 4000))
+        wrong = {"X-Access-Code": "nope"}
+        tunnel.get("/api/sessions", headers={**wrong, "X-Real-IP": "a"})
+        assert_error(tunnel.get("/api/sessions", headers={
+            **wrong, "X-Real-IP": "b",
+        }), 401, "unauthorized")
+        assert_error(tunnel.get("/api/sessions", headers={
+            **wrong, "X-Real-IP": "a",
+        }), 429, "too_many_attempts")
+        container.runner.close(WAIT)
+
+    def test_the_code_is_compared_in_constant_time(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        compared: List[Tuple[bytes, bytes]] = []
+        real = hmac.compare_digest
+
+        def spy(a: bytes, b: bytes) -> bool:
+            compared.append((a, b))
+            return real(a, b)
+
+        monkeypatch.setattr(hmac, "compare_digest", spy)
+        assert client.get("/api/sessions").status_code == 200
+        assert (CODE.encode(), CODE.encode()) in compared
+        compared.clear()
+        plain = TestClient(client.app)
+        plain.get("/api/sessions", headers={"X-Access-Code": "nope"})
+        assert (CODE.encode(), b"nope") in compared
 
 
 class TestErrors:
@@ -772,32 +937,143 @@ class TestAudioRanges:
         assert len(second) - len(first) == 16
 
 
+class TestRendering:
+    def test_rendered_once_on_disk_and_removed_with_the_session(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        data = pcm_bytes(tone(2.0))
+        record(client, "s1", data)
+        folder = tmp_path / "data" / "sessions" / "s1"
+        live = client.get("/api/sessions/s1/audio")
+        assert live.content[WAV_HEADER:] == data
+        assert not list(folder.glob("playback-*.wav"))  # live: no file
+        client.post("/api/sessions/s1/close")
+        whole = client.get("/api/sessions/s1/audio")
+        assert whole.content[WAV_HEADER:] == data
+        renderings = list(folder.glob("playback-*.wav"))
+        assert len(renderings) == 1
+        assert renderings[0].read_bytes() == whole.content
+        made = renderings[0].stat().st_mtime_ns
+        client.get("/api/sessions/s1/audio", headers={"Range": "bytes=0-9"})
+        assert renderings[0].stat().st_mtime_ns == made  # not made again
+        assert client.delete("/api/sessions/s1").status_code == 204
+        assert not folder.exists()
+
+    def test_new_audio_makes_a_new_rendering(
+        self, client: TestClient, container: TranscriberContainer,
+        tmp_path: Path,
+    ) -> None:
+        first = sound_file(tone(1.0, hz=220.0), 16000, "wav")
+        client.post("/api/sessions/s1/upload",
+                    params={"filename": "a.wav", "language": "es"},
+                    content=first)
+        before = client.get("/api/sessions/s1/audio").content
+        folder = tmp_path / "data" / "sessions" / "s1"
+        old = list(folder.glob("playback-*.wav"))
+        container.sessions.store_recording("s1", RecordedAudio(
+            sound_file(tone(1.0, hz=880.0), 16000, "wav"), "wav"
+        ))
+        after = client.get("/api/sessions/s1/audio").content
+        assert after != before
+        new = list(folder.glob("playback-*.wav"))
+        assert len(new) == 1 and new != old
+
+    def test_an_undecodable_recording_is_a_client_error(
+        self, client: TestClient
+    ) -> None:
+        client.post("/api/sessions/s1/upload",
+                    params={"filename": "a.mp3", "language": "es"},
+                    content=b"not audio at all" * 10)
+        assert_error(client.get("/api/sessions/s1/audio"),
+                     400, "invalid_input")
+
+
+class TestEnrolmentLimit:
+    def test_waiting_enrolments_are_bounded_and_other_routes_answer(
+        self, tmp_path: Path
+    ) -> None:
+        container = make_container(tmp_path, max_pending_enrolments=2,
+                                   busy_retry_after=7)
+        client = TestClient(create_app(container, CODE), headers=AUTH)
+        release = threading.Event()
+        started = threading.Event()
+
+        def hold(progress: Progress) -> None:
+            started.set()
+            release.wait(WAIT)
+
+        container.runner.submit("blocker", hold)  # the GPU is busy
+        assert started.wait(WAIT)
+        answers: List[Any] = []
+        waiting = [
+            threading.Thread(target=lambda: answers.append(enrol(client)))
+            for _ in range(2)
+        ]
+        for thread in waiting:
+            thread.start()
+        deadline = time.monotonic() + WAIT
+        while container.runner._queue.qsize() < 2:
+            assert time.monotonic() < deadline, "the enrolments never queued"
+            time.sleep(0.01)
+        busy = enrol(client)
+        body = assert_error(busy, 409, "busy")
+        assert busy.headers["retry-after"] == "7"
+        assert "busy" in body["message"]
+        # Nothing else waits for the runner.
+        assert client.get("/api/sessions").status_code == 200
+        assert client.get("/api/speakers").status_code == 200
+        record(client, "s1", pcm_bytes(tone(1.0)))
+        assert client.post("/api/sessions/s1/close").status_code == 200
+        queued = client.post("/api/sessions/s1/transcription")
+        assert queued.status_code == 202
+        assert client.get("/api/sessions/s1").json()["state"] == "queued"
+        release.set()
+        for thread in waiting:
+            thread.join(WAIT)
+        assert [a.status_code for a in answers] == [201, 201]
+        assert enrol(client, "luis").status_code == 201  # room again
+        container.runner.close(WAIT)
+
+    def test_a_refused_consent_does_not_take_a_place(
+        self, tmp_path: Path
+    ) -> None:
+        container = make_container(tmp_path, max_pending_enrolments=1)
+        client = TestClient(create_app(container, CODE), headers=AUTH)
+        for _ in range(3):
+            refused = client.post(
+                "/api/speakers/ana/enrolment",
+                params={"name": "Ana", "language": "es"}, content=b"x",
+            )
+            assert_error(refused, 400, "consent_required")
+        too_big = client.post(
+            "/api/speakers/ana/enrolment",
+            params={"name": "Ana", "language": "es", "consent": "true"},
+            content=b"\x00" * (21 * 1024 * 1024),
+        )
+        assert_error(too_big, 413, "payload_too_large")
+        assert enrol(client).status_code == 201
+        container.runner.close(WAIT)
+
+
 class TestPlaybackParts:
     def test_parse_range_edges(self) -> None:
         assert parse_range(None, 10) is None
         assert parse_range("bytes=0-", 0) is UNSATISFIABLE
         assert parse_range("bytes=-5", 0) is UNSATISFIABLE
         assert parse_range(" BYTES = 2 - 4 ", 10) == (2, 4)
+        assert parse_range("bytes=1-2-3", 10) is None
+        assert parse_range("bytes=١-2", 10) is None  # non-ASCII digit
+        assert parse_range("bytes=" + "9" * 19 + "-", 10) is None
 
-    def test_the_cache_keeps_at_most_its_limit(self) -> None:
-        cache = RenderCache(limit=10)
-        made: List[str] = []
-
-        def render(value: bytes) -> Any:
-            def run() -> bytes:
-                made.append(value.decode())
-                return value
-            return run
-
-        assert cache.get(("a", "1"), render(b"aaaaaa")) == b"aaaaaa"
-        assert cache.get(("a", "1"), render(b"zzzzzz")) == b"aaaaaa"
-        cache.get(("b", "1"), render(b"bbbbbb"))  # evicts a
-        cache.get(("a", "1"), render(b"aaaaaa"))
-        assert made == ["aaaaaa", "bbbbbb", "aaaaaa"]
-        cache.get(("c", "1"), render(b"c" * 11))  # too big to keep
-        cache.forget("a")
-        cache.get(("a", "1"), render(b"aaaaaa"))
-        assert made[-2:] == ["c" * 11, "aaaaaa"]
+    def test_parsing_is_linear_and_long_headers_are_ignored(self) -> None:
+        """The old regular expression took quadratic time on spaces."""
+        hostile = "bytes=" + " " * 50000 + "x"
+        started = time.perf_counter()
+        for _ in range(100):
+            assert parse_range(hostile, 10) is None
+            assert parse_range("bytes=0" + " " * 90 + "-1", 10) == (0, 1)
+        assert time.perf_counter() - started < 1.0
+        assert parse_range("bytes=0-1" + " " * 200, 10) is None
 
 
 class TestAccessParts:
@@ -807,20 +1083,28 @@ class TestAccessParts:
         assert not check_code(CODE, "")
         assert not check_code(CODE, "ñ" * 20)
 
-    @pytest.mark.parametrize("peer, forwarded, key", [
+    @pytest.mark.parametrize("peer, header, key", [
         ("203.0.113.9", "198.51.100.7", "203.0.113.9"),
-        ("127.0.0.1", "198.51.100.7, 10.0.0.1", "198.51.100.7"),
+        ("127.0.0.1", "198.51.100.7", "198.51.100.7"),
         ("::1", " 2001:db8::1 ", "2001:db8::1"),
         (None, "198.51.100.7", "198.51.100.7"),
         (None, None, "unknown"),
         ("127.0.0.1", None, "127.0.0.1"),
+        ("127.0.0.1", "  ", "127.0.0.1"),
+        ("127.0.0.1", "x" * 100, "x" * 64),
         ("testclient", "198.51.100.7", "testclient"),
     ])
-    def test_client_key(
-        self, peer: Any, forwarded: Any, key: str
-    ) -> None:
-        headers = {} if forwarded is None else {"X-Forwarded-For": forwarded}
+    def test_client_key(self, peer: Any, header: Any, key: str) -> None:
+        headers = {"X-Forwarded-For": "192.0.2.1"}
+        if header is not None:
+            headers["X-Client-IP"] = header
         assert client_key(peer, headers) == key
+
+    def test_x_forwarded_for_is_never_read(self) -> None:
+        for peer in ("127.0.0.1", None, "203.0.113.9"):
+            assert client_key(peer, {"X-Forwarded-For": "192.0.2.1"}) in (
+                "127.0.0.1", "unknown", "203.0.113.9",
+            )
 
     def test_the_tables_stay_bounded(self) -> None:
         clock = Clock()
@@ -831,6 +1115,28 @@ class TestAccessParts:
             clock.now += 1
         assert len(limiter._failures) + len(limiter._blocked) <= 4
         assert limiter.retry_after("c19") > 0
+
+    def test_blocked_clients_are_kept_before_unblocked_ones(self) -> None:
+        clock = Clock()
+        limiter = FailureLimiter(2, 60.0, 600.0, now=clock, max_clients=4)
+        limiter.failed("attacker")
+        limiter.failed("attacker")  # blocked
+        for n in range(10):  # a flood of single failures
+            limiter.failed(f"noise{n}")
+            clock.now += 1
+        assert len(limiter._failures) + len(limiter._blocked) <= 4
+        assert limiter.retry_after("attacker") > 0
+        assert "noise9" in limiter._failures  # the newest are kept
+
+    def test_blocked_clients_alone_are_dropped_soonest_ending_first(
+        self,
+    ) -> None:
+        clock = Clock()
+        limiter = FailureLimiter(1, 60.0, 600.0, now=clock, max_clients=2)
+        for n in range(3):
+            limiter.failed(f"b{n}")
+            clock.now += 1
+        assert sorted(limiter._blocked) == ["b1", "b2"]
 
 
 def test_static_pages_in_development(tmp_path: Path) -> None:
@@ -843,14 +1149,3 @@ def test_static_pages_in_development(tmp_path: Path) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
     assert_error(client.get("/api/sessions"), 401, "unauthorized")
     container.runner.close(WAIT)
-
-
-def test_wav_rendering_is_exact_for_decoded_audio() -> None:
-    """Samples decoded from 16-bit PCM come back as the same integers."""
-    from transcriber.adapters.inbound.playback import wav_bytes
-    from transcriber.application.ports import Audio
-
-    ints = np.array([-32768, -1, 0, 1, 32767], dtype="<i2")
-    audio = Audio(ints.astype(np.float32) / 32768.0, 16000)
-    with wave.open(io.BytesIO(wav_bytes(audio))) as heard:
-        assert heard.readframes(5) == ints.tobytes()

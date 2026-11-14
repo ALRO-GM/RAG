@@ -52,3 +52,11 @@ class VoiceModelMismatchError(InvalidInputError):
 
 class StorageError(TranscriberError):
     """Stored data cannot be read back (a damaged or foreign file)."""
+
+
+class ModelLoadError(TranscriberError):
+    """A model cannot be loaded (not downloaded, or not that kind)."""
+
+
+class AccessCodeError(TranscriberError):
+    """The kept access code cannot be used."""

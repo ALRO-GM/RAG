@@ -9,7 +9,7 @@ variables ``TRANSCRIBER_DATA_DIR``, ``TRANSCRIBER_RUNTIME`` and
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Literal, Mapping, Optional
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,6 +27,12 @@ Device = Literal["auto", "cpu", "cuda"]
 MIB = 1024 * 1024
 
 DEFAULT_PORT = 8770
+
+UPLOAD_FORMATS: Tuple[str, ...] = (
+    "wav", "flac", "ogg", "opus", "mp3", "m4a", "mp4", "aac", "webm",
+    "mov", "3gp", "amr", "wma",
+)
+"""File extensions an uploaded recording may have (audio and video)."""
 DEFAULT_PUBLIC_HOST = "rag.peer4u.app"
 
 CONFIG_VARIABLE = "TRANSCRIBER_CONFIG"
@@ -50,10 +56,20 @@ class ApiSettings(BaseModel):
     Wrong access codes are throttled per client: after
     ``failed_code_limit`` failures within ``failed_code_window``
     seconds the client gets ``429`` for ``failed_code_cooldown``
-    seconds. ``consent_version`` is the version of the consent
+    seconds. The client is the direct peer, except for a request that
+    arrives from loopback or a unix socket (the tunnel), whose client
+    is the address in the ``client_ip_header`` header that the server's
+    proxy sets (it overwrites whatever the caller sent);
+    ``X-Forwarded-For`` is never read. A right code is never refused.
+
+    At most ``max_pending_enrolments`` enrolments may be in progress or
+    waiting for the models at once; a further one gets ``409 busy``
+    with ``Retry-After: busy_retry_after`` seconds. ``upload_formats``
+    are the file extensions an uploaded recording may have.
+
+    ``consent_version`` is the version of the consent
     statement the pages show, recorded with every enrolment.
-    ``audio_cache_bytes`` bounds the memory kept for audio rendered for
-    the player. ``static_dir`` serves the pages at ``/`` (development
+    ``static_dir`` serves the pages at ``/`` (development
     only; in production the server's Caddy serves them).
     ``cookie_secure`` marks the playback cookie ``Secure``; turn it off
     only for local development over plain http (a browser does not
@@ -70,7 +86,14 @@ class ApiSettings(BaseModel):
     failed_code_window: float = Field(default=60.0, gt=0)
     failed_code_cooldown: float = Field(default=300.0, gt=0)
     consent_version: str = Field(default="consent-1", min_length=1)
-    audio_cache_bytes: int = Field(default=256 * MIB, ge=0)
+    client_ip_header: str = Field(
+        default="X-Client-IP", pattern=r"^[A-Za-z0-9-]{1,64}$"
+    )
+    max_pending_enrolments: int = Field(default=2, ge=1)
+    busy_retry_after: int = Field(default=10, ge=1)
+    upload_formats: Tuple[str, ...] = Field(
+        default=UPLOAD_FORMATS, min_length=1
+    )
     static_dir: Optional[Path] = None
     cookie_secure: bool = True
     port: int = Field(default=DEFAULT_PORT, ge=1, le=65535)

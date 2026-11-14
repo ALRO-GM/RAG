@@ -12,27 +12,41 @@ import json
 import os
 import re
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO, Iterator
 
 from transcriber.domain.errors import InvalidInputError, StorageError
 
 
 def atomic_write(path: Path, data: bytes) -> None:
-    """Replace ``path`` with ``data`` in one step.
+    """Replace ``path`` with ``data`` in one step (:func:`atomic_file`)."""
+    with atomic_file(path) as stream:
+        stream.write(data)
+
+
+@contextmanager
+def atomic_file(
+    path: Path, make_parent: bool = True
+) -> Iterator[BinaryIO]:
+    """Yield a stream whose bytes replace ``path`` in one step.
 
     The bytes go to a hidden temporary file next to ``path`` (same file
     system, so the rename is atomic), are synced to disk and renamed
-    over ``path``; the directory is synced too, so the rename survives
-    a power cut. The temporary file is removed if anything fails.
+    over ``path`` when the block ends; the directory is synced too, so
+    the rename survives a power cut. If the block raises, the temporary
+    file is removed and ``path`` is left as it was. The stream can seek
+    and read back what was written. Without ``make_parent`` a missing
+    directory is a :class:`FileNotFoundError` instead of being created.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if make_parent:
+        path.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(
         prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
     )
     try:
-        with os.fdopen(handle, "wb") as stream:
-            stream.write(data)
+        with os.fdopen(handle, "w+b") as stream:
+            yield stream
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)

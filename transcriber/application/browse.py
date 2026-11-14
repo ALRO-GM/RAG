@@ -12,10 +12,8 @@ from transcriber.application.common import (
     require_transcript,
 )
 from transcriber.application.ports import (
-    Audio,
-    AudioDecoder,
     JobStatus,
-    RecordedAudio,
+    PlaybackAudio,
     SessionRepository,
     VoiceprintRepository,
 )
@@ -128,24 +126,17 @@ class ShowTranscript:
 
 
 class SessionAudio:
-    """The audio of a session, stored and decoded, for the player."""
+    """The audio of a session as WAV, for the player."""
 
-    def __init__(
-        self, sessions: SessionRepository, decoder: AudioDecoder
-    ) -> None:
-        """Wire the ports."""
+    def __init__(self, sessions: SessionRepository) -> None:
+        """Wire the port."""
         self._sessions = sessions
-        self._decoder = decoder
 
-    def recording(self, session_id: str) -> RecordedAudio:
-        """Return the stored audio of the session.
+    def __call__(self, session_id: str) -> PlaybackAudio:
+        """Return the session's audio rendered for the player.
 
-        :class:`NotFoundError` for an unknown session or one without
-        audio.
+        The caller closes it. :class:`NotFoundError` for an unknown
+        session or one without audio.
         """
         require_session(self._sessions, session_id)
-        return self._sessions.recording(session_id)
-
-    def decode(self, recording: RecordedAudio) -> Audio:
-        """Return ``recording`` as samples (mono, the decoder's rate)."""
-        return self._decoder.decode(recording)
+        return self._sessions.playback(session_id)

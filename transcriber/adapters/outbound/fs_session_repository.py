@@ -15,8 +15,17 @@ Layout under ``<root>/sessions/<id>/``:
     recording; a FLAC found beside it was left by a close that a killed
     process did not finish, and it is replaced when the session is
     closed again.
-``audio.<ext>``
-    an imported recording, kept as it came.
+``imported.<ext>``
+    an imported recording, kept as it came. Its name never collides
+    with the files the recorder writes (``audio.pcm``, ``audio.flac``);
+    imports stored by earlier versions as ``audio.<ext>`` are still read.
+``playback-<key>.wav``
+    the WAV rendering the player reads (:mod:`~transcriber.adapters.
+    outbound.wav_playback`), made on the first request, written block by
+    block (bounded memory) and atomically. ``<key>`` identifies the
+    stored audio file it was made from (name, inode, size, modification
+    time), so a new import or a close makes a new rendering and the old
+    one is removed; deleting the session removes it too.
 ``words.json`` and ``transcript.json``
     the attributed words and the transcript (the transcriber's own
     format, words included; the contract is made from it on publish).
@@ -32,28 +41,42 @@ what it should be raises :class:`StorageError`, never a raw
 :class:`OSError`.
 """
 
+import hashlib
 import io
 import os
 import re
 import shutil
 import threading
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Sequence, TypeVar
+from typing import (
+    Any, Callable, Dict, Iterator, List, Optional, Sequence, TypeVar,
+)
 
 from pydantic import TypeAdapter, ValidationError
 
 from transcriber.adapters.outbound.av_audio_decoder import (
     PCM_RATE,
+    pcm16_blocks,
     pcm_samples,
 )
 from transcriber.adapters.outbound.fs_storage import (
+    atomic_file,
     atomic_write,
     child_path,
     read_json,
     sync_directory,
     write_json,
 )
-from transcriber.application.ports import PCM_FORMAT, RecordedAudio
+from transcriber.adapters.outbound.wav_playback import (
+    FilePlayback,
+    LivePlayback,
+    write_wav,
+)
+from transcriber.application.ports import (
+    PCM_FORMAT,
+    PlaybackAudio,
+    RecordedAudio,
+)
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
@@ -74,7 +97,14 @@ CLOSED_FORMAT = "flac"
 WORDS_FILE = "words.json"
 TRANSCRIPT_FILE = "transcript.json"
 AUDIO_STEM = "audio"
+IMPORTED_STEM = "imported"
+PLAYBACK_PREFIX = "playback-"
+RECORDER_FORMATS = frozenset({"pcm", PCM_FORMAT})
+"""Formats an import may not claim: the recorder's raw PCM."""
 FORMAT_PATTERN = r"^[a-z0-9]{1,10}$"
+
+Blocks = Callable[[Path, str], Iterator[bytes]]
+"""Decode a stored file (path, format) into mono 16-bit PCM blocks."""
 
 _WORDS = TypeAdapter(List[Word])
 T = TypeVar("T")
@@ -83,10 +113,15 @@ T = TypeVar("T")
 class FileSystemSessionRepository:
     """Sessions, their audio, words and transcripts under ``root``."""
 
-    def __init__(self, root: Path) -> None:
-        """Keep sessions under ``root / "sessions"`` (created on write)."""
+    def __init__(self, root: Path, blocks: Blocks = pcm16_blocks) -> None:
+        """Keep sessions under ``root / "sessions"`` (created on write).
+
+        ``blocks`` decodes stored audio for the player's rendering.
+        """
         self.root = Path(root) / "sessions"
+        self._blocks = blocks
         self._lock = threading.RLock()
+        self._render_locks: Dict[str, threading.Lock] = {}
 
     def _directory(self, session_id: str) -> Path:
         """Return the directory of ``session_id`` after checking the id."""
@@ -168,7 +203,11 @@ class FileSystemSessionRepository:
         with self._lock:
             directory = self._directory(session_id)
             if directory.is_dir():
-                shutil.rmtree(directory)
+                # A rendering being written meanwhile may add a file
+                # while the tree is removed: try once more.
+                shutil.rmtree(directory, ignore_errors=True)
+                if directory.exists():
+                    shutil.rmtree(directory)
 
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
         """Store chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
@@ -247,26 +286,41 @@ class FileSystemSessionRepository:
     def _stored_audio(self, directory: Path) -> Optional[Path]:
         """Return the encoded or imported audio file, if there is one."""
         found = sorted(
-            p for p in directory.glob(f"{AUDIO_STEM}.*")
+            p for p in (
+                *directory.glob(f"{IMPORTED_STEM}.*"),
+                *directory.glob(f"{AUDIO_STEM}.*"),
+            )
             if p.name != PCM_FILE and p.is_file() and not p.is_symlink()
+            and not p.name.endswith(".tmp")
         )
         return found[0] if found else None
 
     def store_recording(
         self, session_id: str, recording: RecordedAudio
     ) -> None:
-        """Store a whole recording (an imported file) as ``audio.<ext>``."""
+        """Store a whole recording (an imported file) as ``imported.<ext>``.
+
+        Raw PCM (the recorder's own format) or a format that is not a
+        short lowercase extension is an :class:`InvalidInputError`.
+        """
         kind = recording.format.lower().lstrip(".")
-        if kind == PCM_FORMAT or not re.fullmatch(FORMAT_PATTERN, kind):
+        if kind in RECORDER_FORMATS or not re.fullmatch(
+            FORMAT_PATTERN, kind
+        ):
             raise InvalidInputError(
                 f"Unsupported recording format {recording.format!r}."
             )
         with self._lock:
             directory = self._existing(session_id)
-            for old in directory.glob(f"{AUDIO_STEM}.*"):
+            for old in (
+                *directory.glob(f"{AUDIO_STEM}.*"),
+                *directory.glob(f"{IMPORTED_STEM}.*"),
+            ):
                 old.unlink()
             (directory / CHUNKS_FILE).unlink(missing_ok=True)
-            atomic_write(directory / f"{AUDIO_STEM}.{kind}", recording.data)
+            atomic_write(
+                directory / f"{IMPORTED_STEM}.{kind}", recording.data
+            )
 
     def recording(self, session_id: str) -> RecordedAudio:
         """Return the stored audio of the session.
@@ -291,6 +345,65 @@ class FileSystemSessionRepository:
             if data:
                 return RecordedAudio(data, PCM_FORMAT)
         raise NotFoundError(f"Session {session_id} has no audio.")
+
+    def playback(self, session_id: str) -> PlaybackAudio:
+        """Return the session's audio as WAV for the player.
+
+        While the session is ``recording`` (or when only PCM is stored)
+        it is the PCM accepted so far behind a WAV header. Otherwise it
+        is ``playback-<key>.wav``, rendered from the stored file the
+        first time and kept until that file changes; one session is
+        rendered by one request at a time, and other sessions are not
+        held up meanwhile. :class:`NotFoundError` without any audio.
+        """
+        directory = self._existing(session_id)
+        current = self.get(session_id)
+        recording = (
+            current is not None and current.state is SessionState.RECORDING
+        )
+        stored = None if recording else self._stored_audio(directory)
+        if stored is None:
+            return self._live(session_id, directory)
+        try:
+            with self._render_lock(session_id):
+                target = self._rendering(stored)
+                if not target.is_file():
+                    with atomic_file(target, make_parent=False) as stream:
+                        write_wav(
+                            stream, self._blocks(stored, stored.suffix[1:])
+                        )
+                for old in directory.glob(f"{PLAYBACK_PREFIX}*.wav"):
+                    if old != target:
+                        old.unlink(missing_ok=True)
+                return FilePlayback(target)
+        except FileNotFoundError as exc:
+            # The session was deleted, or its audio replaced, meanwhile.
+            raise NotFoundError(f"Session {session_id} has no audio.") from exc
+
+    def _live(self, session_id: str, directory: Path) -> PlaybackAudio:
+        """Return the PCM received so far as WAV, or raise NotFound."""
+        ends = self._chunk_ends(directory)
+        if ends and ends[-1] > 0:
+            try:
+                return LivePlayback(directory / PCM_FILE, ends[-1])
+            except FileNotFoundError:
+                pass
+        raise NotFoundError(f"Session {session_id} has no audio.")
+
+    def _render_lock(self, session_id: str) -> threading.Lock:
+        """Return the lock that serialises renderings of one session."""
+        with self._lock:
+            return self._render_locks.setdefault(session_id, threading.Lock())
+
+    @staticmethod
+    def _rendering(stored: Path) -> Path:
+        """Return the rendering's path for the stored file as it is now."""
+        info = stored.stat()
+        identity = (
+            f"{stored.name}:{info.st_ino}:{info.st_size}:{info.st_mtime_ns}"
+        )
+        key = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+        return stored.parent / f"{PLAYBACK_PREFIX}{key}.wav"
 
     def save_words(self, session_id: str, words: Sequence[Word]) -> None:
         """Store the attributed words of the session (for the player)."""

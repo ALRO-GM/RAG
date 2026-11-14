@@ -11,7 +11,7 @@ import gc
 from typing import Any, Dict
 
 from transcriber.config import Device
-from transcriber.domain.errors import TranscriberError
+from transcriber.domain.errors import ModelLoadError
 
 __all__ = [
     "Device", "HALF_PRECISION_DEVICES", "ModelLoadError", "model_kwargs",
@@ -26,10 +26,6 @@ queries): 3x faster than float32 and the same top-1 for every query.
 CPUs keep float32 (float16 is slow there). Not yet measured for the
 transcriber's models.
 """
-
-
-class ModelLoadError(TranscriberError):
-    """A model cannot be loaded (not downloaded, or not that kind)."""
 
 
 def pick_device(preferred: Device) -> str:

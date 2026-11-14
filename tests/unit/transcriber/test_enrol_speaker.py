@@ -21,7 +21,11 @@ from tests.unit.transcriber.fakes import (
     reading,
     voice,
 )
-from transcriber.application.enrol import EnrolSpeaker, ForgetSpeaker
+from transcriber.application.enrol import (
+    EnrolSpeaker,
+    ForgetSpeaker,
+    ShowEnrolmentText,
+)
 from transcriber.application.ports import (
     Audio,
     RecognisedSpeech,
@@ -292,3 +296,25 @@ class TestForgetSpeaker:
         after = sessions.transcript("s1")
         assert after is not None
         assert after.to_contract() == before
+
+
+class TestShowEnrolmentText:
+    def test_the_text_with_the_name_and_the_consent_version(self) -> None:
+        show = ShowEnrolmentText("consent-7")
+        guide = show("es-ES", "  Ana  María ")
+        assert guide.text.version == "es-1"
+        assert guide.reading is not None
+        assert guide.reading.startswith("Me llamo Ana María.")
+        assert guide.consent_version == show.consent_version == "consent-7"
+
+    def test_without_a_name_only_the_template(self) -> None:
+        guide = ShowEnrolmentText("consent-1")("en")
+        assert guide.reading is None
+        assert guide.text.template.startswith("My name is {name}.")
+
+    def test_unknown_language_or_empty_name(self) -> None:
+        show = ShowEnrolmentText("consent-1")
+        with pytest.raises(InvalidInputError, match="No enrolment text"):
+            show("xx")
+        with pytest.raises(InvalidInputError, match="empty"):
+            show("es", "   ")

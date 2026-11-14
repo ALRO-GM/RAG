@@ -208,6 +208,20 @@ class TestImportRecording:
             importer("s1", "en", RecordedAudio(b"x", "wav"))
         assert "s1" not in sessions.recordings
 
+    def test_a_failed_store_leaves_no_session(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        importer = ImportRecording(sessions, locks(sessions))
+        sessions.store_failures.append(
+            InvalidInputError("Unsupported recording format")
+        )
+        with pytest.raises(InvalidInputError, match="Unsupported"):
+            importer("s2", "en", RecordedAudio(b"x", "wav\n"))
+        assert sessions.get("s2") is None
+        assert sessions.unlocked_writes == []
+        again = importer("s2", "en", RecordedAudio(b"x", "wav"))
+        assert again.state is SessionState.UPLOADED
+
 
 class TestDeleteSession:
     def test_delete_removes_everything(

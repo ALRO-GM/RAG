@@ -35,7 +35,11 @@ from transcriber.application.ports import (
     RecognisedSpeech,
     RecordedAudio,
 )
-from transcriber.domain.errors import InvalidInputError, StorageError
+from transcriber.domain.errors import (
+    InvalidInputError,
+    NotFoundError,
+    StorageError,
+)
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -234,6 +238,28 @@ class FakeSessionLocks:
         return session_id in self.held
 
 
+class BytesPlayback:
+    """A playback rendering held in memory; records whether it was closed."""
+
+    def __init__(self, data: bytes) -> None:
+        """Serve ``data``."""
+        self.data = data
+        self.closed = False
+
+    @property
+    def size(self) -> int:
+        """Return the size of the rendering."""
+        return len(self.data)
+
+    def read(self, offset: int, length: int) -> bytes:
+        """Return up to ``length`` bytes from ``offset``."""
+        return self.data[offset:offset + length]
+
+    def close(self) -> None:
+        """Remember that it was closed."""
+        self.closed = True
+
+
 @dataclass
 class FakeSessionRepository:
     """Sessions, audio, words and transcripts in dictionaries.
@@ -251,6 +277,7 @@ class FakeSessionRepository:
     locks: Optional[FakeSessionLocks] = None
     unlocked_writes: List[Tuple[str, str]] = field(default_factory=list)
     damaged: Set[str] = field(default_factory=set)
+    store_failures: List[Exception] = field(default_factory=list)
 
     def _write(self, operation: str, session_id: str) -> None:
         """Record a write made without the session's lock."""
@@ -310,8 +337,10 @@ class FakeSessionRepository:
     def store_recording(
         self, session_id: str, recording: RecordedAudio
     ) -> None:
-        """Keep the imported recording."""
+        """Keep the imported recording (or raise the next failure)."""
         self._write("store_recording", session_id)
+        if self.store_failures:
+            raise self.store_failures.pop(0)
         self.recordings[session_id] = recording
 
     def recording(self, session_id: str) -> RecordedAudio:
@@ -320,6 +349,13 @@ class FakeSessionRepository:
             return self.recordings[session_id]
         return RecordedAudio(b"".join(self.chunks.get(session_id, [])),
                              PCM_FORMAT)
+
+    def playback(self, session_id: str) -> BytesPlayback:
+        """Return the stored bytes behind a marker (no real WAV)."""
+        data = self.recording(session_id).data
+        if not data:
+            raise NotFoundError(f"Session {session_id} has no audio.")
+        return BytesPlayback(b"WAV:" + data)
 
     def save_words(self, session_id: str, words: Sequence[Word]) -> None:
         """Keep the words."""

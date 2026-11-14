@@ -14,6 +14,13 @@ import secrets
 import stat
 from pathlib import Path
 
+from transcriber.domain.errors import AccessCodeError
+
+__all__ = [
+    "AccessCodeError", "CODE_FILE", "code_file", "kept_access_code",
+    "new_access_code",
+]
+
 CODE_BYTES = 32
 """Random bytes in a code (43 URL-safe characters)."""
 
@@ -22,10 +29,6 @@ MIN_KEPT_LENGTH = 32
 
 CODE_FILE = "access_code"
 CODE_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
-
-
-class AccessCodeError(Exception):
-    """The kept access code cannot be used."""
 
 
 def new_access_code() -> str:

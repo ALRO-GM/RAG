@@ -25,6 +25,7 @@ from types import FrameType
 from typing import Callable, Dict, Optional, TextIO, Tuple
 
 import uvicorn
+from fastapi import FastAPI
 
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.inbound.join import LOCAL_HOST, join_link, qr_text
@@ -130,6 +131,21 @@ class ProgressLines:
         return "  ".join(parts)
 
 
+def server_config(app: FastAPI, port: int) -> uvicorn.Config:
+    """Return how uvicorn runs the API: on 127.0.0.1, quiet.
+
+    ``proxy_headers`` is off: uvicorn would otherwise replace the
+    client address with the last ``X-Forwarded-For`` hop (the server's
+    proxy, the same for everyone), and the throttling of wrong codes
+    reads its own header instead (``api.client_ip_header``).
+    """
+    return uvicorn.Config(
+        app, host=LOCAL_HOST, port=port, log_level="warning",
+        access_log=False, lifespan="off", server_header=False,
+        proxy_headers=False,
+    )
+
+
 @dataclass(frozen=True)
 class ServeOptions:
     """What ``transcriber serve`` was asked for."""
@@ -170,10 +186,7 @@ def serve(
         out.flush()
 
     app = create_app(container, code)
-    server = uvicorn.Server(uvicorn.Config(
-        app, host=LOCAL_HOST, port=options.port, log_level="warning",
-        access_log=False, lifespan="off", server_header=False,
-    ))
+    server = uvicorn.Server(server_config(app, options.port))
     progress = ProgressLines(container, tunnel, write)
     stopping = threading.Event()
 

@@ -165,7 +165,12 @@ class ImportRecording:
         recording: RecordedAudio,
         title: Optional[str] = None,
     ) -> Session:
-        """Store ``recording`` as session ``session_id``, ``uploaded``."""
+        """Store ``recording`` as session ``session_id``, ``uploaded``.
+
+        Creating the session and storing its audio succeed or fail
+        together: if the audio cannot be stored the new session is
+        removed again, so the same id can be used for another try.
+        """
         if not recording.data:
             raise InvalidInputError("The recording is empty.")
         if not recording.format.strip():
@@ -176,7 +181,11 @@ class ImportRecording:
         )
         with self._locks.hold(session.id):
             _new_session(self._sessions, session)
-            self._sessions.store_recording(session.id, recording)
+            try:
+                self._sessions.store_recording(session.id, recording)
+            except BaseException:
+                self._sessions.delete(session.id)
+                raise
         return session
 
 

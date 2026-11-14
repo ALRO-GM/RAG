@@ -11,7 +11,7 @@ GPU, and released afterwards. The caller waits for that job.
 """
 
 import re
-from typing import List, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 from transcriber.application.common import check_speaker_id
 from transcriber.application.ports import (
@@ -25,6 +25,7 @@ from transcriber.application.ports import (
     VoiceprintRepository,
 )
 from transcriber.domain.enrolment import (
+    EnrolmentText,
     SampleRules,
     build_voiceprint,
     enrolment_text,
@@ -42,6 +43,45 @@ from transcriber.domain.models import (
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.speakers import analysis_windows, speech_regions
 from transcriber.domain.voices import FloatArray
+
+
+class EnrolmentGuide(NamedTuple):
+    """What a person sees before enrolling.
+
+    ``text`` is the enrolment text of the language, ``reading`` that
+    text with the person's name in place (``None`` without a name) and
+    ``consent_version`` the consent statement an enrolment made now is
+    recorded against.
+    """
+
+    text: EnrolmentText
+    reading: Optional[str]
+    consent_version: str
+
+
+class ShowEnrolmentText:
+    """The text to read at enrolment and the consent it is made under."""
+
+    def __init__(self, consent_version: str) -> None:
+        """Keep the version of the consent statement in force."""
+        self._consent_version = consent_version
+
+    @property
+    def consent_version(self) -> str:
+        """Return the version of the consent statement in force."""
+        return self._consent_version
+
+    def __call__(
+        self, language: str, name: Optional[str] = None
+    ) -> EnrolmentGuide:
+        """Return the latest text of ``language`` (with ``name``, if given).
+
+        :class:`InvalidInputError` for a language without a text or an
+        empty name.
+        """
+        text = enrolment_text(language)
+        reading = text.text(name) if name is not None else None
+        return EnrolmentGuide(text, reading, self._consent_version)
 
 
 class EnrolSpeaker:

@@ -29,7 +29,6 @@ from typing import (
 from pydantic import ValidationError
 
 from transcriber import __version__
-from transcriber.adapters.outbound.fs_access_code import AccessCodeError
 from transcriber.application.ports import RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import (
@@ -40,7 +39,6 @@ from transcriber.bootstrap import (
     start_container,
 )
 from transcriber.config import TranscriberSettings, load_settings
-from transcriber.domain.enrolment import enrolment_text
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
@@ -439,18 +437,20 @@ class Commands:
 
     def enrolment_text(self, args: argparse.Namespace) -> int:
         """Print the text a person reads aloud to enrol."""
-        chosen = enrolment_text(args.language)
-        text = chosen.text(args.name) if args.name else chosen.template
+        guide = self.container.enrolment_text(
+            args.language, args.name or None
+        )
+        chosen = guide.text
         if args.json:
             self.output.json({
                 "language": chosen.language,
                 "version": chosen.version,
                 "template": chosen.template,
-                "text": chosen.text(args.name) if args.name else None,
-                "consent_version": self.settings.api.consent_version,
+                "text": guide.reading,
+                "consent_version": guide.consent_version,
             })
         else:
-            self.output.line(text)
+            self.output.line(guide.reading or chosen.template)
         return 0
 
 
@@ -619,7 +619,7 @@ def main(
     except UsageError as exc:
         output.note(f"transcriber {args.command}: {exc}")
         return 2
-    except (TranscriberError, AccessCodeError, OSError) as exc:
+    except (TranscriberError, OSError) as exc:
         output.note(f"transcriber {args.command}: error: {exc}")
         return 1
     finally:
