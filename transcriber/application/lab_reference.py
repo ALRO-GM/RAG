@@ -13,8 +13,10 @@ measured against the reference as well (``reference`` of the results,
 
 Before a recording becomes a session its decoded audio goes through the
 speech check (:mod:`~transcriber.domain.speech_check`): one that holds
-steady noise rather than speech is skipped, and ``limit`` counts only
-the recordings that can be used. :class:`CheckReferenceSpeech` runs the
+steady noise rather than speech is skipped, as is one whose reference
+the corpus gives broken (a turn that ends before it starts, say:
+``invalid reference (...)``), and ``limit`` counts only the recordings
+that can be used. :class:`CheckReferenceSpeech` runs the
 same check on sessions imported before and stores its figures in their
 reference, so that the summary and the overview leave out the ones that
 fail.
@@ -66,7 +68,8 @@ class ImportedRecording(BaseModel):
     ``state``: ``imported``; ``exists`` when the session and its
     reference were already there (left as they were); ``repaired`` when
     an earlier import stopped before storing the reference; ``skipped``
-    when the audio failed the speech check (no session is made);
+    when the audio failed the speech check or the reference is invalid
+    (no session is made; ``speech`` is ``None`` for the latter);
     ``checked`` when :class:`CheckReferenceSpeech` checked a session
     again. The numbers describe the reference (aggregates only, never
     text): ``speaker_seconds`` sums the turns (two people at once count
@@ -125,8 +128,9 @@ class ImportReference:
         """Import up to ``limit`` usable recordings of ``split``.
 
         A recording whose session already exists is left as it is, so an
-        interrupted import can be run again; one whose audio fails the
-        speech check is skipped and the corpus is read on until
+        interrupted import can be run again; one whose reference is
+        invalid or whose audio fails the speech check is skipped and the
+        corpus is read on until
         ``limit`` recordings can be used (already imported ones count
         unless they failed the check). ``report`` hears about each
         recording as soon as it is done.
@@ -155,9 +159,10 @@ class ImportReference:
         (``exists``). One the import created but whose reference was
         never stored (the process stopped in between) gets it now
         (``repaired``); a session of that id made otherwise is refused.
-        A new recording whose audio fails the speech check is not
-        imported (``skipped``); a repaired one keeps the figures in its
-        reference, which leaves it out of the summary.
+        A new recording whose reference is invalid, or whose audio fails
+        the speech check, is not imported (``skipped``); a repaired one
+        keeps the speech figures in its reference, which leaves it out
+        of the summary (its reference was valid when it was made).
         """
         session_id = recording_session_id(spec.id, item.recording)
         title = f"{spec.display_name} {item.recording}"
@@ -182,6 +187,21 @@ class ImportReference:
             raise InvalidInputError(
                 f"Recording {item.recording!r} has no audio."
             )
+        try:
+            reference = make_reference(
+                spec, split, item.recording, duration,
+                reference_segments(item.starts, item.ends, item.speakers,
+                                   duration),
+                item.words, self._clock.now(),
+            )
+        except InvalidInputError as exc:
+            if found is not None:
+                raise
+            return ImportedRecording(
+                session_id=session_id, recording=item.recording,
+                state="skipped", duration=round(duration, 3),
+                reason=invalid_reference(exc),
+            )
         speech = check_speech(audio.samples, audio.sample_rate)
         del audio
         if found is None and not speech.speech:
@@ -190,12 +210,7 @@ class ImportReference:
                 state="skipped", duration=round(duration, 3),
                 speech=speech, reason=speech.reason(),
             )
-        reference = make_reference(
-            spec, split, item.recording, duration,
-            reference_segments(item.starts, item.ends, item.speakers,
-                               duration),
-            item.words, self._clock.now(), speech,
-        )
+        reference = reference.model_copy(update={"speech": speech})
         with self._locks.hold(session_id):
             if found is not None:
                 self._store(found, duration, reference)
@@ -220,6 +235,20 @@ class ImportReference:
             update={"duration": round(duration, 3)}
         ))
         self._repository.save_reference(session.id, reference)
+
+
+INVALID_REFERENCE = "invalid reference"
+"""The start of the reason a recording with an unusable reference has."""
+
+
+def invalid_reference(error: InvalidInputError) -> str:
+    """Return the skip reason of a recording whose reference is refused.
+
+    ``invalid reference (<what is wrong>)``: a turn that ends before it
+    starts, columns of different lengths, a turn without a speaker, or
+    no turn at all.
+    """
+    return f"{INVALID_REFERENCE} ({str(error).strip().rstrip('.')})"
 
 
 def _described(

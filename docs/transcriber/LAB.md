@@ -1090,7 +1090,10 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
   not imported (§13.6): it is reported as `skipped: no speech in the
   audio` with the check's figures, and `--limit N` reads on until N
   usable recordings are in (sessions already imported count unless they
-  failed the check). A gated corpus whose terms were not accepted
+  failed the check). A recording whose reference is invalid (a turn
+  that ends before it starts, no turn at all...) is not imported either
+  (§13.7): it is reported as `skipped: invalid reference (…)`, and
+  counts the same way. A gated corpus whose terms were not accepted
   fails before downloading anything, with the page where to accept them.
 
 A session with a reference is never compared with the people enrolled
@@ -1300,3 +1303,33 @@ speech in the audio (…)` for the ones that fail. Nothing is deleted: a
 failing session stays, and `lab reference-summary`, `GET
 /api/lab/reference-summary` (`excluded`) and the overview (`excluded`
 per session, §7) leave it out and say why.
+
+### 13.7 Rows with an invalid reference (#53, 2026-11-15)
+
+`lab import-reference callhome --limit 10` stopped the whole import at
+row 12 of `diarizers-community/callhome` (`spa`, shard 0, session
+`callhome-data-0012`): `Invalid reference turn 342.684--56.709999999999994`.
+Read from the shard (the timestamp columns only), that row has 188
+turns, 2 of them ending before they start: speaker `B2` at 342.684 s
+"to" -56.71 s and speaker `A` at 348.964 s "to" -48.89 s; the turns
+around them are ordinary (B2 338.19–340.71 s, A 345.06–348.67 s). The
+other 27 rows of the shard have no such turn. The right end of those
+two turns cannot be recovered from the row, and dropping or guessing
+them would score the diarizers against a reference with holes, so the
+whole row is skipped:
+
+- the import builds and checks the reference before the speech check;
+  a new recording whose reference is refused (a turn that ends before
+  it starts or is not a number, columns of different lengths, a turn
+  without a speaker, no turn at all) gets no session and is reported
+  as `<session>: skipped: invalid reference (<what is wrong>)`, with
+  `speech: null` in `--json`;
+- `--limit N` reads on until N usable recordings are in, as for the
+  recordings without speech (§13.6), and the last line counts both
+  (`…; 1 with an invalid reference; 3 without speech.`).
+
+With the shard already downloaded, `lab import-reference callhome
+--limit 9` into an empty data directory now reports rows 2, 3 and 9 as
+without speech, row 12 as `skipped: invalid reference (Invalid
+reference turn from 342.684 s to -56.71 s)` and imports rows 1, 4–8,
+10, 11 and 13.
