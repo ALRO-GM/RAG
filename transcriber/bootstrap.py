@@ -267,8 +267,10 @@ def build_lab(
     extra: Dict[str, ReleasableRecogniser] = {}
 
     def recogniser_for(name: str) -> SpeechRecogniser:
-        """Return the recogniser of model ``name``."""
-        if name == recogniser.model_name or settings.runtime == "fake":
+        """Return the recogniser of model ``name`` (``""``: the service's)."""
+        if not name or name == recogniser.model_name or (
+            settings.runtime == "fake"
+        ):
             return recogniser
         if name not in extra:
             extra[name] = WhisperRecogniser(name, device=settings.device)

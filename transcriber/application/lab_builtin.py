@@ -162,7 +162,8 @@ class InProcessTools:
     """The ``project`` family: built-in diarization, project recognisers.
 
     ``recogniser_for`` returns the recogniser of a Hugging Face model
-    name (the catalogue entry's first weight); ``release`` unloads every
+    name (a recogniser entry's first weight; ``""`` for the service's
+    own, which the built-in diarization uses); ``release`` unloads every
     model this tool used. Parameters it reads: ``language`` (a code or
     ``auto``), ``num_speakers`` and ``expected_speakers``.
     """
@@ -196,9 +197,7 @@ class InProcessTools:
         if cancelled():
             raise LabStepError("cancelled", "The run was cancelled.")
         if request.stage == "diarize" and entry.id == BUILTIN_DIARIZER:
-            model = self._recogniser_for(
-                entry.weights[0] if entry.weights else ""
-            )
+            model = self._recogniser_for("")
         elif request.stage == "recognise" and entry.weights:
             model = self._recogniser_for(entry.weights[0])
         else:

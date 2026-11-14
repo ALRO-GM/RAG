@@ -1,0 +1,7 @@
+{
+  "unresolved": ["clearvoice==0.1.2", "deepfilternet==0.5.6"],
+  "post_install": [
+    ["{python}", "-I", "-c", "import importlib.util, pathlib; s = importlib.util.find_spec('torchaudio'); d = pathlib.Path(list(s.submodule_search_locations)[0]) / 'lib'; [p.unlink() for p in d.glob('*.so')]; print('removed the torchaudio extension')"]
+  ],
+  "comment": "torchaudio 2.11.1's compiled extension is built for torch 2.11 and does not load with the project's torch 2.14.1; without its .so files torchaudio uses its pure-Python code."
+}

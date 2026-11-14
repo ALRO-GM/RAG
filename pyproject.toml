@@ -69,7 +69,10 @@ explicit = true
 
 [tool.mypy]
 python_version = "3.10"
-exclude = ["^data/", "^\\.venv/", "^moulinette/", "^\\.claude/"]
+# lab/runners: scripts run by the lab's own environments (NeMo,
+# pyannote, SpeechBrain...), whose untyped libraries are not installed
+# here; they are linted by flake8 and exercised by `make lab-selftest`.
+exclude = ["^data/", "^\\.venv/", "^moulinette/", "^\\.claude/", "^lab/runners/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

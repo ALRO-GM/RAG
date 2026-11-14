@@ -536,7 +536,9 @@ def consensus(
     for track in tracks:
         votes[rows, table.ids[track.id]] += weights[track.id]
     if frames == 0 or not tracks:
-        return Consensus(table, np.zeros(frames, dtype=np.int64), weights)
+        return Consensus(
+            table, np.full(frames, NO_CONSENSUS, dtype=np.int64), weights
+        )
     best = votes.max(axis=1)
     winners = (votes >= best[:, None] - 1e-9).sum(axis=1)
     chosen = votes.argmax(axis=1).astype(np.int64)

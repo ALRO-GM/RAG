@@ -1,0 +1,6 @@
+{
+  "comment": "Converts the cached openai/whisper-large-v3-turbo (downloaded first if absent, 1.6 GB) to CTranslate2 int8_float16 in ~/.local/share/ragputin/lab-models (about 0.8 GB).",
+  "post_install": [
+    ["{python}", "-m", "ctranslate2.converters.transformers", "--model", "openai/whisper-large-v3-turbo", "--output_dir", "{models}/faster-whisper-large-v3-turbo-int8", "--quantization", "int8_float16", "--copy_files", "tokenizer.json", "preprocessor_config.json", "--force"]
+  ]
+}

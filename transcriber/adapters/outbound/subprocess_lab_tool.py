@@ -296,7 +296,8 @@ def parse_result(
             audio_seconds=data.get("audio_seconds"),
             notes=[str(n)[:500] for n in data.get("notes") or []][:20],
             segments=[
-                Segment(start=float(s["start"]), end=float(s["end"]),
+                Segment(start=max(float(s["start"]), 0.0),
+                        end=max(float(s["end"]), 0.0),
                         speaker=str(s["speaker"]))
                 for s in data.get("segments") or []
             ],
@@ -304,8 +305,8 @@ def parse_result(
                 (float(a), float(b)) for a, b in data.get("overlap") or []
             ],
             words=[
-                Word(text=str(w["text"]), start=float(w["start"]),
-                     end=max(float(w["end"]), float(w["start"])),
+                Word(text=str(w["text"]), start=max(float(w["start"]), 0.0),
+                     end=max(float(w["end"]), float(w["start"]), 0.0),
                      probability=_probability(w.get("probability")))
                 for w in data.get("words") or []
             ],

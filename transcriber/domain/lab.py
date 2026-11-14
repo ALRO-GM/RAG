@@ -129,7 +129,7 @@ class CatalogueEntry(BaseModel):
     stage: Stage
     family: str = Field(pattern=FAMILY_PATTERN)
     display_name: str = Field(min_length=1)
-    source_url: str = ""
+    source_url: Optional[str] = None
     licence: str = ""
     licence_commercial: bool = True
     gated: bool = False

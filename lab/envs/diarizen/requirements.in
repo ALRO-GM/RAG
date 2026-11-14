@@ -1,0 +1,14 @@
+# DiariZen (BUT Speech@FIT; code MIT, the WavLM diarization weights
+# CC BY-NC 4.0) and its fork of pyannote.audio 3.1.1, both from the
+# repository at a fixed commit.
+diarizen @ git+https://github.com/BUTSpeechFIT/DiariZen@844f5555b0a98acd0931511fc641a8c5b8ba92c7
+pyannote.audio @ git+https://github.com/BUTSpeechFIT/DiariZen@844f5555b0a98acd0931511fc641a8c5b8ba92c7#subdirectory=pyannote-audio
+# What their inference code imports (DiariZen's requirements.txt also
+# lists training and notebook tools, left out).
+torchaudio==2.11.1
+einops==0.8.2
+h5py
+librosa==0.11.0
+toml
+tabulate
+accelerate==1.6.0

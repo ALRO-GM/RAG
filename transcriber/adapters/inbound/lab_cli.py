@@ -5,7 +5,9 @@
   of the comparison: aggregate numbers only (times, memory, speakers
   found, seconds of speech and overlap, agreement), never text. Models
   are chosen with ``--denoise``/``--diarize``/``--recognise`` (ids,
-  comma separated) or ``--all`` (every ready model of the catalogue).
+  comma separated) or ``--all`` (every ready model of the catalogue
+  whose weights are not known to be missing: ``--all`` never starts a
+  download of weights the catalogue knows are absent).
 * ``lab runs SESSION`` lists the runs; ``lab summary SESSION RUN``
   prints a run's summary again; ``lab resume SESSION RUN`` resumes it.
 
@@ -115,8 +117,13 @@ class LabCommands:
                 "denoise": [], "diarize": [], "recognise": [],
             }
             for item in self.lab.catalogue().items:
-                if item.state == "ready":
+                if item.state == "ready" and item.weights_cached is not False:
                     ready[item.entry.stage].append(item.entry.id)
+                elif item.state == "ready":
+                    self.output.note(
+                        f"{item.entry.id}: weights not downloaded; left out"
+                        " of --all (name it to download them)."
+                    )
             denoise = denoise or ready["denoise"]
             diarize = diarize or ready["diarize"]
             recognise = recognise or ready["recognise"]

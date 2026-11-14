@@ -110,6 +110,7 @@ def catalogue() -> Dict[str, Any]:
         entry("fake-split", "diarize", lineage="fake-diarize",
               licence_commercial=False),
         entry("fake-asr", "recognise", parameters={"language": None}),
+        entry("fake-heavy", "recognise", weights=["org/not-downloaded"]),
         entry("fake-gated", "diarize", gated=True,
               token_url="https://example.org/accept"),
         entry("fake-crash", "diarize"),
@@ -121,17 +122,23 @@ def catalogue() -> Dict[str, Any]:
 
 
 def make_lab(root: Path, ready: bool = True) -> LabSettings:
-    """Write the sandbox under ``root``; return its lab settings."""
+    """Write the sandbox under ``root``; return its lab settings.
+
+    A sandbox already there is reused as it is.
+    """
     runners = root / "runners"
+    envs = root / "envs"
+    path = root / "catalogue.json"
+    if root.exists():
+        return LabSettings(catalogue=path, runners_dir=runners,
+                           envs_dir=envs, step_timeout=20.0)
     runners.mkdir(parents=True)
     (runners / "fake.py").write_text(FAKE_RUNNER, encoding="utf-8")
     (runners / "absent.py").write_text("", encoding="utf-8")
-    envs = root / "envs"
     (envs / "fake" / "bin").mkdir(parents=True)
     os.symlink(sys.executable, envs / "fake" / "bin" / "python")
     if ready:
         (envs / "fake" / READY_MARKER).write_text("{}", encoding="utf-8")
-    path = root / "catalogue.json"
     path.write_text(json.dumps(catalogue()), encoding="utf-8")
     return LabSettings(catalogue=path, runners_dir=runners, envs_dir=envs,
                        step_timeout=20.0)
