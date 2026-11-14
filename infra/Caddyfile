@@ -1,20 +1,22 @@
 # Internal Caddy of RAGPutin (container ragputin-web). Plain HTTP: TLS is
 # terminated by the Peer4U Caddy, which proxies rag.peer4u.app here.
 #
-# It serves the transcriber's pages from /srv and passes /api/* to the
-# transcriber API on the workstation, through the unix socket that the
-# workstation's SSH reverse forward creates in /run/tunnel
-# (docs/DEPLOYMENT.md). Nothing is stored here: audio and transcripts
-# only pass through.
+# It serves the transcriber's pages from /srv, passes the workstation's
+# tunnel (a WebSocket on /_tunnel) to the chisel server of the `tunnel`
+# container, and passes /api/* to the port that tunnel opens for the
+# workstation's API (docs/DEPLOYMENT.md). Nothing is stored here: audio
+# and transcripts only pass through.
 {
 	auto_https off
 	admin off
 	servers {
 		# The Peer4U Caddy reaches this container over the private docker
 		# network and sets X-Forwarded-For to the address it saw (it
-		# drops whatever an untrusted caller sent). Trusting only private
-		# ranges, read right to left, makes {client_ip} that address.
-		trusted_proxies static private_ranges
+		# drops whatever an untrusted caller sent). Trusting only those
+		# proxies, read right to left, makes {client_ip} that address.
+		# TRUSTED_PROXIES (compose.yml) narrows them; on the server it is
+		# the subnet of sanatorio_default. Default: every private range.
+		trusted_proxies static {$TRUSTED_PROXIES:private_ranges}
 		trusted_proxies_strict
 		client_ip_headers X-Forwarded-For
 		timeouts {
@@ -42,16 +44,33 @@
 		respond `{"status":"ok"}` 200
 	}
 
+	# The workstation's chisel client: a WebSocket upgrade on exactly
+	# /_tunnel, nothing else. Plain requests never reach chisel (they
+	# get the static 404), so its /health and /version stay internal.
+	@tunnel {
+		path /_tunnel
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @tunnel {
+		reverse_proxy tunnel:8080
+	}
+	handle /_tunnel* {
+		respond 404
+	}
+
 	handle /api/* {
 		# A bit above the API's largest body (an uploaded recording,
 		# 256 MiB); the API checks its own, smaller, limits per route.
 		request_body {
 			max_size 260MiB
 		}
-		reverse_proxy unix//run/tunnel/app.sock {
+		# The port the workstation's reverse tunnel opens in the tunnel
+		# container (only while the workstation is connected).
+		reverse_proxy tunnel:9000 {
 			# The only client address the API trusts, overwriting any
 			# value the caller sent; the forwarding headers are not
-			# needed behind the tunnel and are not passed on.
+			# needed by the API and are not passed on.
 			header_up X-Client-IP {client_ip}
 			header_up -X-Forwarded-For
 			header_up -X-Forwarded-Proto

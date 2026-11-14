@@ -16,13 +16,17 @@ SERVE_ARGS  ?=
 # Server that serves the transcriber's pages (the domain resolves to it).
 DEPLOY_TARGET ?= ubuntu@rag.peer4u.app
 REMOTE_DIR    := /opt/ragputin
-# The workstation's own key for the SSH reverse forward (make tunnel-key).
-TUNNEL_KEY    ?= $(HOME)/.ssh/ragputin_tunnel
+# The workstation's tunnel over HTTPS: the chisel client (make
+# tunnel-client), its credential and the server's users file (make
+# tunnel-secret). None of them is in the repository.
+CHISEL_BIN        ?= $(HOME)/.local/share/ragputin/bin/chisel
+TUNNEL_CREDENTIAL ?= $(HOME)/.config/ragputin/tunnel-credential
+TUNNEL_USERS      ?= $(HOME)/.config/ragputin/tunnel-users.json
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
 	install-cuda system system-benchmark study coverage ci site \
-	infra-up infra-proxy tunnel-key transcriber-serve transcriber-test
+	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test
 
 install:
 	uv sync
@@ -145,27 +149,28 @@ site:
 	uv run --no-sync python -m transcriber.adapters.inbound.bundle \
 		--out dist/site --commit "$$(git rev-parse --short HEAD)"
 
-## infra-up: upload infra/ and (re)start the RAGPutin web container.
-## Also makes /opt/ragputin/run (mode 750, owner ubuntu), where the
-## tunnel's socket appears, and installs the tunnel key's forced command.
+## infra-up: upload infra/ and the tunnel's users file ($(TUNNEL_USERS)),
+## validate them on the server (caddy validate, docker compose config) and
+## (re)start the RAGPutin containers (infra/install-infra.sh).
 infra-up:
-	ssh $(DEPLOY_TARGET) 'mkdir -p $(REMOTE_DIR)/infra $(REMOTE_DIR)/pruebas && install -d -m 750 $(REMOTE_DIR)/run'
-	rsync -rlz infra/Caddyfile infra/compose.yml $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
-	rsync -pz --chmod=F755 infra/tunnel-clean.sh $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
-	ssh $(DEPLOY_TARGET) 'cd $(REMOTE_DIR)/infra && docker compose up -d && docker compose ps'
+	infra/install-infra.sh $(DEPLOY_TARGET) $(TUNNEL_USERS)
 
 ## infra-proxy: install the rag.peer4u.app block in the Peer4U Caddy
 ## (validated first, rolled back on failure).
 infra-proxy:
 	infra/install-proxy.sh $(DEPLOY_TARGET)
 
-## tunnel-key: make the workstation's tunnel key if it is missing and
-## print the authorized_keys line to add on the server by hand. It
-## installs nothing anywhere.
-tunnel-key:
-	@test -f $(TUNNEL_KEY) || ssh-keygen -q -t ed25519 -N "" -C ragputin-tunnel -f $(TUNNEL_KEY)
-	@echo "Add this line to ~/.ssh/authorized_keys of $(DEPLOY_TARGET):"
-	@echo "restrict,port-forwarding,command=\"$(REMOTE_DIR)/infra/tunnel-clean.sh\" $$(cat $(TUNNEL_KEY).pub)"
+## tunnel-client: download the pinned chisel client for this machine to
+## $(CHISEL_BIN), checked against infra/chisel-<version>.sha256.
+tunnel-client:
+	python3 -I infra/tunnel_setup.py client --out $(CHISEL_BIN)
+
+## tunnel-secret: make the workstation's tunnel credential if it is
+## missing and write the matching users file for the server. It uploads
+## nothing (make infra-up does).
+tunnel-secret:
+	python3 -I infra/tunnel_setup.py secret --credential $(TUNNEL_CREDENTIAL) \
+		--users $(TUNNEL_USERS)
 
 clean:
 	find . -name __pycache__ -type d -not -path "./.venv/*" -prune \

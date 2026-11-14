@@ -20,6 +20,23 @@ ve la persona en la página.
 
 ## 1. Quien arranca el ordenador
 
+### Preparar el ordenador (una vez)
+
+El ordenador llega al servidor por un túnel sobre HTTPS (un programa
+llamado chisel), con una contraseña propia. Se prepara una sola vez:
+
+```sh
+make tunnel-client   # descarga chisel y comprueba su huella SHA-256
+make tunnel-secret   # crea la contraseña del túnel (modo 600)
+```
+
+`make tunnel-secret` escribe la contraseña en
+`~/.config/ragputin/tunnel-credential` y, al lado, el fichero que el
+servidor necesita (`tunnel-users.json`). Ese fichero lo sube al
+servidor quien lo administra (`make infra-up`, ver
+`docs/DEPLOYMENT.md`). No compartas la contraseña: con ella alguien
+podría hacerse pasar por tu ordenador ante los teléfonos.
+
 ### Arrancar
 
 En la carpeta del proyecto:
@@ -49,13 +66,16 @@ Después la terminal escribe una línea cada vez que algo cambia:
 
 | Línea | Qué significa |
 |---|---|
-| `HH:MM:SS  tunnel  connected` | El túnel con el servidor está abierto. Las personas pueden entrar. |
-| `HH:MM:SS  tunnel  connecting` | Se está abriendo. |
+| `HH:MM:SS  tunnel  connected` | El túnel con el servidor está abierto y se ha comprobado que `https://rag.peer4u.app/api/health` llega a tu ordenador. Las personas pueden entrar. |
+| `HH:MM:SS  tunnel  connecting` | Se está abriendo. Si sigue un motivo entre paréntesis, chisel ya está conectado pero la comprobación aún falla. |
 | `HH:MM:SS  tunnel  reconnecting (motivo)` | Se ha cortado y se reintenta solo, con esperas cada vez más largas. Mientras tanto la web dice que el ordenador no está disponible. |
 | `HH:MM:SS  <sesión>  queued` | Una sesión espera su turno (el ordenador transcribe de una en una). |
 | `HH:MM:SS  <sesión>  running  recognise 5%` | Está transcribiendo. Se escribe una línea por cada etapa y cada 10 %. Las etapas son `decode`, `recognise`, `voices`, `identify`, `sentences` y `save`. |
 | `HH:MM:SS  <sesión>  done` | Terminada. |
 | `HH:MM:SS  <sesión>  failed  <motivo>` | Ha fallado. En la web aparece «Ha fallado» y se puede pulsar «Transcribir» otra vez. |
+
+Si falta chisel o la contraseña, `serve` se para al momento y dice qué
+`make` ejecutar.
 
 Si usas `--no-tunnel` (solo para probar en el mismo ordenador), no hay
 líneas de túnel y el enlace es `http://127.0.0.1:<puerto>/#k=<código>`.
@@ -141,7 +161,10 @@ tu ordenador. Comprueba, por orden:
    arranca de nuevo.
 2. ¿Qué dice la última línea `tunnel`? Si es `reconnecting (...)`,
    el ordenador no llega al servidor: mira la conexión a internet. Se
-   reintenta solo.
+   reintenta solo. Si el motivo dice `unable to authenticate`, la
+   contraseña del túnel no coincide con la del servidor: `make
+   tunnel-secret` y que quien administra el servidor haga `make
+   infra-up`.
 3. Si dice `connected` y la web sigue sin responder, para con Ctrl-C y
    arranca otra vez.
 4. En la web, el botón «Reintentar» vuelve a comprobarlo.
@@ -414,6 +437,8 @@ En palabras sencillas:
 
 Quien organiza:
 
+- [ ] Haber hecho una vez `make tunnel-client` y `make tunnel-secret`,
+      y que el servidor tenga el fichero del túnel (`make infra-up`).
 - [ ] Arrancar con `make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-code'`
       y ver el enlace, el QR y `tunnel  connected`.
 - [ ] Abrir el enlace en un teléfono de prueba: sale «Sesiones».

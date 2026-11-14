@@ -343,7 +343,8 @@ class TunnelStatus(BaseModel):
     """Where the tunnel to the server is, and why it is not up.
 
     ``reason`` says why the last connection ended (while
-    ``reconnecting``) or what the last clean-up reported.
+    ``reconnecting``) or why a connection is not working yet (while
+    ``connecting``).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -353,7 +354,7 @@ class TunnelStatus(BaseModel):
 
     def describe(self) -> str:
         """Return the status as one line: ``reconnecting (why)``."""
-        if self.reason and self.state == "reconnecting":
+        if self.reason and self.state in ("connecting", "reconnecting"):
             return f"{self.state} ({self.reason})"
         return self.state
 

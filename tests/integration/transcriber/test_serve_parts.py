@@ -90,7 +90,7 @@ class TestSettingsFromTheEnvironment:
         config = tmp_path / "settings.json"
         config.write_text(json.dumps({
             "data_dir": "from-file", "runtime": "real",
-            "tunnel": {"target": "me@elsewhere", "public_host": "x.test"},
+            "tunnel": {"remote_port": 9100, "public_host": "x.test"},
             "api": {"port": 9001},
         }))
         settings = load_settings({
@@ -100,7 +100,7 @@ class TestSettingsFromTheEnvironment:
         })
         assert settings.data_dir == Path("from-file")
         assert settings.runtime == "fake" and settings.device == "cpu"
-        assert settings.tunnel.target == "me@elsewhere"
+        assert settings.tunnel.remote_port == 9100
         assert settings.tunnel.public_host == "x.test"
         assert settings.api.port == 9001
         assert load_settings({

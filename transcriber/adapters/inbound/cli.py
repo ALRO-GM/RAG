@@ -37,6 +37,7 @@ from transcriber.bootstrap import (
     build_container,
     build_tunnel,
     start_container,
+    tunnel_problem,
 )
 from transcriber.config import TranscriberSettings, load_settings
 from transcriber.domain.errors import (
@@ -193,7 +194,7 @@ class Commands:
             "recogniser": current.recogniser,
             "voice_model": current.voice_model,
             "published": current.publish_target(),
-            "tunnel_target": current.tunnel.target,
+            "tunnel_server": current.tunnel.url(),
             "public_host": current.tunnel.public_host,
             "port": str(current.api.port),
         }
@@ -219,6 +220,11 @@ class Commands:
             if not WEB_DIR.is_dir():
                 raise UsageError(f"There are no pages in {WEB_DIR}.")
             settings = dev_settings(settings)
+        problem = None if args.no_tunnel else tunnel_problem(settings)
+        if problem is not None:
+            raise UsageError(
+                f"{problem} (or run with --no-tunnel for local use)"
+            )
         code = access_code(settings, args.keep_code)
         container = start_container(settings)
         tunnel = None if args.no_tunnel else build_tunnel(settings, port)
@@ -479,7 +485,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve = commands.add_parser(
         "serve", help="run the API, the tunnel and print the join link",
         description=(
-            "Run the API on 127.0.0.1, open the SSH tunnel to the server"
+            "Run the API on 127.0.0.1, open the tunnel to the server"
             " and print the join link with a QR code. This process runs"
             " the jobs. Ctrl-C stops it."
         ),

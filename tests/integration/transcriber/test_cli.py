@@ -3,8 +3,8 @@
 The commands run with ``TRANSCRIBER_RUNTIME=fake`` (no torch, no model)
 against a temporary data directory. ``serve`` is started for real on a
 free local port, used over HTTP and stopped with SIGINT; once with
-``--no-tunnel`` and once with a fake ``ssh`` first on ``PATH`` (the real
-server is never contacted).
+``--no-tunnel`` and once with a fake ``chisel`` client (the real server
+is never contacted).
 """
 
 import json
@@ -23,7 +23,10 @@ import httpx
 import pytest
 
 from tests.integration.transcriber.audio import scene, sound_file, tone
-from tests.integration.transcriber.fake_ssh import install_fake_ssh
+from tests.integration.transcriber.fake_chisel import (
+    install_fake_chisel,
+    write_credential,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 WAIT = 60.0
@@ -43,12 +46,14 @@ def environment(data: Path, **extra: str) -> Dict[str, str]:
     return env
 
 
-def run(data: Path, *args: str) -> "subprocess.CompletedProcess[str]":
+def run(
+    data: Path, *args: str, **env: str
+) -> "subprocess.CompletedProcess[str]":
     """Run ``python -m transcriber *args`` against ``data``."""
     return subprocess.run(
         [sys.executable, "-m", "transcriber", *args],
         cwd=ROOT, capture_output=True, text=True, timeout=WAIT,
-        env=environment(data),
+        env=environment(data, **env),
     )
 
 
@@ -277,8 +282,13 @@ def wait_healthy(port: int) -> None:
 
 
 def port_is_free(port: int) -> bool:
-    """Tell whether ``port`` can be bound again."""
+    """Tell whether ``port`` can be listened on again.
+
+    ``SO_REUSEADDR`` as servers set it: connections the API closed
+    first (left in TIME_WAIT) do not count, a listening socket does.
+    """
     with socket.socket() as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             probe.bind(("127.0.0.1", port))
         except OSError:
@@ -336,34 +346,52 @@ def test_serve_with_a_fake_tunnel(
     tmp_path: Path, services: List[Service]
 ) -> None:
     data = tmp_path / "data"
-    bin_dir = tmp_path / "bin"
-    install_fake_ssh(bin_dir)
-    log = tmp_path / "ssh.log"
-    config = tmp_path / "settings.json"
-    config.write_text(json.dumps({"tunnel": {
-        "target": "tester@example.invalid", "public_host": "app.example",
-        "identity_file": str(tmp_path / "key"), "backoff_initial": 0.05,
-        "connect_grace": 0.3,
-    }}))
+    log = tmp_path / "chisel.log"
+    chisel = install_fake_chisel(tmp_path / "bin", log)
+    credential = write_credential(tmp_path / "credential")
     port = free_port()
-    service = Service(
-        data, ["--port", str(port)],
-        PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
-        FAKE_SSH_LOG=str(log), TRANSCRIBER_CONFIG=str(config),
-    )
+    config = tmp_path / "settings.json"
+    # The probe goes to the host of server_url: here the API itself.
+    config.write_text(json.dumps({"tunnel": {
+        "public_host": "app.example", "chisel": str(chisel),
+        "credential_file": str(tmp_path / "credential"),
+        "server_url": f"http://127.0.0.1:{port}/_tunnel",
+        "backoff_initial": 0.05, "probe_interval": 0.1,
+    }}))
+    service = Service(data, ["--port", str(port)],
+                      TRANSCRIBER_CONFIG=str(config))
     services.append(service)
     link = service.wait_for("#k=")
     assert link.startswith("https://app.example/#k=")
     service.wait_for("tunnel  connected")
-    forwards = [line for line in log.read_text().splitlines()
-                if line.startswith("-N ")]
-    assert len(forwards) == 2  # the first one failed and was retried
-    assert forwards[-1].startswith(
-        f"-N -R /opt/ragputin/run/app.sock:127.0.0.1:{port} "
+    clients = log.read_text().splitlines()
+    assert len(clients) == 2  # the first one was refused and retried
+    assert clients[-1] == (
+        "client --keepalive 25s --max-retry-count 0"
+        f" http://127.0.0.1:{port}/_tunnel R:0.0.0.0:9000:127.0.0.1:{port}"
     )
+    assert credential not in log.read_text()
+    assert (data / "tunnel.pid").exists()
     assert service.stop() == 0
-    assert Path(f"{log}.term").exists()  # the forward was ended
+    assert Path(f"{log}.term").exists()  # the client was ended
+    assert not (data / "tunnel.pid").exists()
+    assert credential not in "\n".join(service.seen) + service.stderr()
     assert port_is_free(port)
+
+
+def test_serve_without_a_tunnel_client_says_how_to_get_one(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "settings.json"
+    config.write_text(json.dumps({"tunnel": {
+        "chisel": str(tmp_path / "missing"),
+        "credential_file": str(tmp_path / "credential"),
+    }}))
+    result = run(tmp_path / "data", "serve", "--port", str(free_port()),
+                 TRANSCRIBER_CONFIG=str(config))
+    assert result.returncode != 0
+    assert "make tunnel-client" in result.stderr
+    assert "--no-tunnel" in result.stderr
 
 
 def test_serve_refuses_a_taken_port(

@@ -12,7 +12,7 @@ job. The publisher is the directory one or, with ``publisher:
 (the service): it builds the container and then fails the sessions a
 previous process left queued or running (:class:`RecoverSessions`).
 :func:`build_tunnel` and :func:`access_code` give ``transcriber serve``
-its SSH tunnel and its access code.
+its tunnel (a chisel client) and its access code.
 """
 
 import logging
@@ -21,6 +21,12 @@ from dataclasses import dataclass
 from typing import Mapping, Optional, Protocol, Tuple
 
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
+from transcriber.adapters.outbound.chisel_tunnel import (
+    ChiselTunnel,
+    TunnelSetupError,
+    check_client,
+    http_probe,
+)
 from transcriber.adapters.outbound.fs_access_code import (
     code_file,
     kept_access_code,
@@ -42,7 +48,6 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 from transcriber.adapters.outbound.http_transcript_publisher import (
     HttpTranscriptPublisher,
 )
-from transcriber.adapters.outbound.ssh_tunnel import SshTunnel
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
 from transcriber.adapters.outbound.thread_session_locks import (
@@ -284,8 +289,29 @@ def start_container(
 
 
 def build_tunnel(settings: TranscriberSettings, port: int) -> Tunnel:
-    """Return the SSH tunnel to the server for the API on ``port``."""
-    return SshTunnel(settings.tunnel, port)
+    """Return the tunnel to the server for the API on ``port``.
+
+    It is reported ``connected`` only once ``/api/health`` answers
+    through the server.
+    """
+    tunnel = settings.tunnel
+    return ChiselTunnel(
+        tunnel, port, settings.data_dir,
+        probe=http_probe(tunnel.health_url(), tunnel.probe_timeout),
+    )
+
+
+def tunnel_problem(settings: TranscriberSettings) -> Optional[str]:
+    """Return why the tunnel client cannot run, or None if it can.
+
+    The chisel executable must be there and the credential file safe
+    (:func:`~transcriber.adapters.outbound.chisel_tunnel.check_client`).
+    """
+    try:
+        check_client(settings.tunnel)
+    except TunnelSetupError as exc:
+        return str(exc)
+    return None
 
 
 def access_code(settings: TranscriberSettings, keep: bool) -> str:

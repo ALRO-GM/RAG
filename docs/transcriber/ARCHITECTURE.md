@@ -169,22 +169,32 @@ workstation.
 
 ```
 phone ──HTTPS──► Peer4U Caddy ──► ragputin-web (Caddy): static pages from /srv
-                                     └─ /api/*  ──► unix socket /run/tunnel/app.sock
-                                                      ▲ ssh -R, opened by the workstation
-                                           workstation: API on 127.0.0.1, GPU, storage
+                                    ├─ /api/*    ──► tunnel:9000 ──┐  chisel server, on a
+                                    └─ /_tunnel  ──► tunnel:8080   │  private docker network
+                                         ▲ (WebSocket)             │  (container `tunnel`)
+                                         │                         ▼
+          workstation: chisel client ────┘   R:0.0.0.0:9000 ──► API on 127.0.0.1,
+                       (wss://rag.peer4u.app/_tunnel)             GPU, storage
 ```
 
 `python -m transcriber serve` starts the API on 127.0.0.1, opens and
-supervises the SSH reverse forward that creates the socket on the
-server, and prints the join link and a QR code. The phone opens the
-link in its browser; nothing is installed.
+supervises the tunnel, and prints the join link and a QR code. The
+phone opens the link in its browser; nothing is installed.
 
-The tunnel is the system `ssh` client run by a supervisor thread
-(`adapters/outbound/ssh_tunnel.py`, settings `tunnel.*`): a clean-up
-connection `ssh <target> true` (the key's forced command removes a
-stale socket), then `ssh -N -R <socket>:127.0.0.1:<port>` with
-`ExitOnForwardFailure`, strict host-key checking and the dedicated key;
-when it ends it is reopened with capped exponential back-off. The
+The tunnel is a chisel client (github.com/jpillora/chisel, the release
+pinned in `infra/`) run by a supervisor thread
+(`adapters/outbound/chisel_tunnel.py`, settings `tunnel.*`). It
+connects over HTTPS to `wss://rag.peer4u.app/_tunnel` and opens one
+reverse port, `R:0.0.0.0:9000`, in the server's `tunnel` container,
+which leads back to the API; the server's Caddy sends `/api/*` there.
+The credential (`user:password`, `make tunnel-secret`) is read from a
+file of mode 600 and handed to chisel in its environment, never on the
+command line. The client exits when its connection drops and is
+restarted with capped exponential back-off; it is reported `connected`
+only after chisel says so and `https://rag.peer4u.app/api/health`
+answers through it. Its pid is kept in `<data_dir>/tunnel.pid`, so a
+client left by a crashed `serve` is ended at the next start (after
+checking it is that client). The
 access code is new at every start, or kept in
 `data/transcriber/access_code` (mode 600) with `serve --keep-code` so a
 printed QR keeps working. `--no-tunnel` prints an
@@ -197,9 +207,11 @@ come from `TRANSCRIBER_CONFIG` (a JSON file), `TRANSCRIBER_DATA_DIR`,
 |---|---|
 | Microphone access needs HTTPS | The domain's real certificate. No self-signed certificate, no browser warning. |
 | The site is on the internet | Every `/api/*` call carries an access code in a header. The join link is `https://rag.peer4u.app/#k=<code>`: a URL fragment is never sent to a server, so the code does not reach logs. Failed codes are throttled. Without the code the pages load and can do nothing. |
-| Nothing new on the shared server | The existing Caddy container serves the pages and proxies `/api/*` to a unix socket in `/opt/ragputin/run` (it runs as the socket's owner and mounts the directory read-only). No new container, port or sshd setting. The tunnel uses its own SSH key, restricted to forwarding; its forced command (`infra/tunnel-clean.sh`) only removes a stale socket. Files and operations: `docs/DEPLOYMENT.md`. |
-| Who is throttled | The inner Caddy sets `X-Client-IP` from the address the Peer4U Caddy saw, overwriting any value the caller sent; the API trusts that header only from loopback or a unix socket and never reads `X-Forwarded-For` (uvicorn runs with `proxy_headers=False`). A right code is never refused. |
-| Where audio goes | Through the server in transit (TLS ends at the Peer4U Caddy), stored only on the workstation. The server keeps static files and nothing else. |
+| Little on the shared server | Two small containers in `/opt/ragputin`: the Caddy that serves the pages, and a chisel server (64 MB, read-only, no capabilities, non-root) that the workstation reaches through that Caddy at `/_tunnel`. Only WebSocket upgrades on `/_tunnel` reach chisel. The chisel server is on a private docker network shared only with the Caddy: no other container of the host, and no published port, reaches it or the tunnel's port. No SSH access is involved: the tunnel's credential gives nothing on the host. Files and operations: `docs/DEPLOYMENT.md`. |
+| What the tunnel credential allows | Only the reverse port 9000 (chisel's users file: `^R:0\.0\.0\.0:9000$`): no SOCKS, no forward tunnels, no other port, no shell. Whoever holds it can still serve `/api/*` for the domain while the workstation is not connected (and so impersonate the API to the phones): keep it on the workstation only; to rotate it, delete the credential file, `make tunnel-secret` and `make infra-up`. |
+| Who is throttled | The inner Caddy sets `X-Client-IP` from the address the Peer4U Caddy saw, overwriting any value the caller sent; the API trusts that header only from loopback (the tunnel's local end) or a unix socket and never reads `X-Forwarded-For` (uvicorn runs with `proxy_headers=False`). A right code is never refused. |
+| Where audio goes | Through the server in transit (TLS ends at the Peer4U Caddy; between the containers on the server it is plain HTTP, and from the `tunnel` container to the workstation it travels in chisel's encrypted SSH channel), stored only on the workstation. The server keeps static files and nothing else. |
+| Third-party code on the internet | The chisel server is reachable from the internet behind the two Caddies (only for WebSocket upgrades on `/_tunnel`); a flaw in it before authentication would be exposed. It is pinned by version and digest, runs with no capabilities, read-only, as an unprivileged user, on a network only the Caddy shares. |
 | Workstation off or tunnel down | `/api/*` answers 502; the pages say the workstation is not available. |
 | A long recording must survive a dropped connection | The page captures PCM (16 kHz, mono, 16-bit) and uploads it in numbered chunks of a few seconds; the service appends them and tolerates a retried chunk. No codec is involved. A screen wake lock keeps the phone awake. |
 | A recording made with another app | `transcriber import FILE` or the upload form; decoded with PyAV (bundles the FFmpeg libraries; nothing to install). |

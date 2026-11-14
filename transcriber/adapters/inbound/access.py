@@ -11,7 +11,7 @@ after ``limit`` failures within ``window`` seconds the client is refused
 for ``cooldown`` seconds. A right code is never refused, blocked or not:
 the code is checked first and only a wrong or missing one meets the
 block (so an attacker cannot lock the owner out). Behind the tunnel
-every request arrives from the local end of the SSH forward, so the
+every request arrives from the local chisel client (loopback), so the
 client of a request whose direct peer is loopback (or a unix socket,
 which has no address) is the dedicated header the server's proxy
 writes (``X-Client-IP`` by default, overwriting any value the caller

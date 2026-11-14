@@ -2,7 +2,7 @@
 # (with a coverage gate) and the transcriber's static pages are bundled.
 # A push to main then deploys that same bundle to https://rag.peer4u.app
 # (the server's Caddy serves it and passes /api/* to the workstation
-# through the SSH tunnel; see docs/DEPLOYMENT.md).
+# through the tunnel over HTTPS; see docs/DEPLOYMENT.md).
 #
 # The experiments and the transcription models are NOT run here: they
 # need the GPU of the workstation. CI only checks the code and publishes

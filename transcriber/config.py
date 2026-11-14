@@ -58,9 +58,9 @@ class ApiSettings(BaseModel):
     ``failed_code_limit`` failures within ``failed_code_window``
     seconds the client gets ``429`` for ``failed_code_cooldown``
     seconds. The client is the direct peer, except for a request that
-    arrives from loopback or a unix socket (the tunnel), whose client
-    is the address in the ``client_ip_header`` header that the server's
-    proxy sets (it overwrites whatever the caller sent);
+    arrives from loopback (the tunnel's local end) or a unix socket,
+    whose client is the address in the ``client_ip_header`` header that
+    the server's proxy sets (it overwrites whatever the caller sent);
     ``X-Forwarded-For`` is never read. A right code is never refused.
 
     At most ``max_pending_enrolments`` enrolments may be in progress or
@@ -100,42 +100,99 @@ class ApiSettings(BaseModel):
     port: int = Field(default=DEFAULT_PORT, ge=1, le=65535)
 
 
+HOST_PATTERN = (
+    r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$"
+)
+"""A DNS host name (no port, no scheme, never starting with ``-``)."""
+
+SERVER_URL_PATTERN = (
+    r"^(?:https://[A-Za-z0-9][A-Za-z0-9.-]{0,252}(?::[0-9]{1,5})?"
+    r"|http://(?:127\.0\.0\.1|localhost)(?::[0-9]{1,5})?)"
+    r"/[A-Za-z0-9_/-]{0,64}$"
+)
+"""The chisel server: https, or plain http only on this machine (tests)."""
+
+CREDENTIAL_PATTERN = r"^[A-Za-z0-9_.-]{1,64}:[A-Za-z0-9_.~+/=-]{32,256}$"
+"""``user:password`` as ``make tunnel-secret`` writes it."""
+
+
 class TunnelSettings(BaseModel):
-    """The SSH reverse forward that puts the API behind the server.
+    """The tunnel over HTTPS that puts the API behind the server.
 
-    ``transcriber serve`` runs ``ssh -N -R <remote_socket>:127.0.0.1:
-    <port>`` to ``target`` with the key ``identity_file`` (``~`` is
-    expanded), checking the server's host key strictly (against
-    ``known_hosts`` when given, else the user's own file). Before every
-    connection it runs ``ssh <target> true``, which the server's forced
-    command for that key uses to remove a stale socket.
+    ``transcriber serve`` runs the chisel client ``chisel`` (default
+    ``~/.local/share/ragputin/bin/chisel``, installed by ``make
+    tunnel-client``; ``~`` is expanded) as
 
-    When the forward ends it is opened again after ``backoff_initial``
-    seconds, doubled (``backoff_factor``) after every failure up to
-    ``backoff_max``; a connection that lasted ``stable_after`` seconds
-    resets the delay. A forward still alive ``connect_grace`` seconds
-    after it started is reported ``connected`` (``ExitOnForwardFailure``
-    makes ssh exit when the forward is refused). ``cleanup_timeout``
-    bounds the clean-up connection. ``public_host`` is the host of the
-    join link. ``ssh`` is the client executable.
+    ``chisel client --keepalive <keepalive>s --max-retry-count 0
+    <server> R:0.0.0.0:<remote_port>:127.0.0.1:<port>``
+
+    where ``<server>`` is ``server_url`` or, by default,
+    ``https://<public_host>/_tunnel``. The credential (``user:password``)
+    is read from ``credential_file`` (made by ``make tunnel-secret``;
+    refused unless only its owner may read it) and handed to chisel in
+    the ``AUTH`` environment variable, never on the command line.
+    Every value that reaches the argument list is validated (no value
+    can start with ``-`` and so be taken for an option).
+
+    The client exits when its connection drops; it is started again
+    after ``backoff_initial`` seconds, doubled (``backoff_factor``)
+    after every failure up to ``backoff_max``; a connection that lasted
+    ``stable_after`` seconds resets the delay. The tunnel is reported
+    ``connected`` once chisel says so and ``https://<public_host>
+    /api/health`` answers through it (tried every ``probe_interval``
+    seconds, each attempt waiting ``probe_timeout`` at most; on the
+    host of ``server_url`` when that is set). ``public_host`` is also
+    the host of the join link.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    target: str = Field(default="ubuntu@rag.peer4u.app", min_length=1)
-    remote_socket: str = Field(
-        default="/opt/ragputin/run/app.sock", min_length=1
+    public_host: str = Field(
+        default=DEFAULT_PUBLIC_HOST, max_length=253, pattern=HOST_PATTERN
     )
-    identity_file: Path = Path("~/.ssh/ragputin_tunnel")
-    known_hosts: Optional[Path] = None
+    server_url: Optional[str] = Field(
+        default=None, pattern=SERVER_URL_PATTERN
+    )
+    remote_port: int = Field(default=9000, ge=1024, le=65535)
+    chisel: Path = Path("~/.local/share/ragputin/bin/chisel")
+    credential_file: Path = Path("~/.config/ragputin/tunnel-credential")
+    keepalive: int = Field(default=25, ge=5, le=600)
     backoff_initial: float = Field(default=1.0, gt=0)
     backoff_factor: float = Field(default=2.0, ge=1)
     backoff_max: float = Field(default=60.0, gt=0)
     stable_after: float = Field(default=60.0, gt=0)
-    connect_grace: float = Field(default=3.0, ge=0)
-    cleanup_timeout: float = Field(default=30.0, gt=0)
-    public_host: str = Field(default=DEFAULT_PUBLIC_HOST, min_length=1)
-    ssh: str = Field(default="ssh", min_length=1)
+    probe_interval: float = Field(default=5.0, gt=0)
+    probe_timeout: float = Field(default=10.0, gt=0)
+
+    @model_validator(mode="after")
+    def _paths(self) -> "TunnelSettings":
+        """Refuse a path that could be read as an option or is relative."""
+        for name in ("chisel", "credential_file"):
+            value = str(getattr(self, name))
+            if not value.startswith(("/", "~/")):
+                raise ValueError(
+                    f"tunnel.{name} must be an absolute path (or start"
+                    " with ~/)"
+                )
+            if any(ord(char) < 32 for char in value):
+                raise ValueError(f"tunnel.{name} has a control character")
+        return self
+
+    def url(self) -> str:
+        """Return the chisel server's URL."""
+        if self.server_url is not None:
+            return self.server_url
+        return f"https://{self.public_host}/_tunnel"
+
+    def health_url(self) -> str:
+        """Return the ``/api/health`` the connection is probed on.
+
+        On the same host as :meth:`url`: through the server, back to
+        the local API.
+        """
+        scheme, _, rest = self.url().partition("://")
+        return f"{scheme}://{rest.split('/', 1)[0]}/api/health"
 
 
 class HttpPublishSettings(BaseModel):
@@ -182,7 +239,7 @@ class TranscriberSettings(BaseModel):
     ``directory`` (the default) writes it to ``publish_dir`` (default
     ``<data_dir>/published``), ``http`` posts it to the RAG as
     ``publish_http`` says. ``api`` holds the HTTP API's limits and
-    ``tunnel`` the SSH forward of ``transcriber serve``.
+    ``tunnel`` the tunnel of ``transcriber serve``.
     """
 
     model_config = ConfigDict(frozen=True)
