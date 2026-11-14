@@ -11,6 +11,9 @@ Models:
 ``nemo-clustering`` (diarize)
     NeMo's clustering diarizer: MarbleNet VAD, TitaNet-L embeddings at
     several scales, spectral clustering (``num_speakers`` when given).
+    When the VAD finds no speech in the whole recording (silence, noise
+    only), NeMo aborts ("All files present in manifest contains
+    silence"); the runner answers it with no segments and a note.
 ``parakeet-tdt-0.6b-v3`` (recognise)
     ``nvidia/parakeet-tdt-0.6b-v3``: 25 European languages (Spanish
     included), the language is detected (no language argument), word
@@ -42,6 +45,8 @@ SORTFORMER = "nvidia/diar_streaming_sortformer_4spk-v2"
 PARAKEET = "nvidia/parakeet-tdt-0.6b-v3"
 TITANET = "titanet_large"
 VAD = "vad_multilingual_marblenet"
+NO_SPEECH = "no speech found by the VAD"
+"""The note of a recording NeMo's VAD finds no speech in."""
 PARAKEET_LANGUAGES = (
     "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el",
     "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es",
@@ -125,7 +130,13 @@ def _clustered(context: Context, work: Path) -> Dict[str, Any]:
     diarizer = ClusteringDiarizer(cfg=config)
     context.model_version = f"nemo:{VAD}+{TITANET}"
     context.loaded()
-    diarizer.diarize()
+    try:
+        diarizer.diarize()
+    except ValueError:
+        if speech_found(work / "out" / "vad_outputs" / "vad_out.json"):
+            raise
+        context.notes.append(NO_SPEECH)
+        return {"segments": [], "overlap": []}
     rttm = work / "out" / "pred_rttms" / "audio.rttm"
     segments: List[Dict[str, Any]] = []
     for line in rttm.read_text().splitlines():
@@ -137,6 +148,22 @@ def _clustered(context: Context, work: Path) -> Dict[str, Any]:
     segments = _common.segments_sorted(segments)
     return {"segments": segments,
             "overlap": _common.overlap_spans(segments)}
+
+
+def speech_found(vad_manifest: Path) -> bool:
+    """Tell whether NeMo's VAD output holds any speech.
+
+    ``vad_manifest`` is the manifest the clustering diarizer writes
+    after its VAD, one JSON line per speech stretch; NeMo drops a file
+    whose stretches all last 0 s, and aborts when none is left. A
+    missing manifest means the VAD did not finish: not "no speech".
+    """
+    if not vad_manifest.is_file():
+        return True
+    for line in vad_manifest.read_text().splitlines():
+        if line.strip() and float(json.loads(line).get("duration") or 0) > 0:
+            return True
+    return False
 
 
 def _clustering_config(
