@@ -7,6 +7,7 @@ on first use and :meth:`WhisperRecogniser.release` unloads it after a
 job.
 """
 
+import threading
 from typing import Any, Dict, List, Optional
 
 from transcriber.adapters.outbound.torch_runtime import (
@@ -91,6 +92,7 @@ class WhisperRecogniser:
         self.device = device
         self._pipeline: Optional[Any] = None
         self._device = "cpu"
+        self._lock = threading.Lock()
 
     @property
     def model_name(self) -> str:
@@ -103,7 +105,15 @@ class WhisperRecogniser:
         return self._pipeline is not None
 
     def _load(self) -> Any:  # pragma: no cover - loads a real model
-        """Build the recognition pipeline on first use."""
+        """Build the recognition pipeline on first use.
+
+        Under a lock, so two first uses at once load one model.
+        """
+        with self._lock:
+            return self._load_unlocked()
+
+    def _load_unlocked(self) -> Any:  # pragma: no cover - real model
+        """Build the pipeline unless it exists (hold ``_lock``)."""
         if self._pipeline is None:
             from transformers import pipeline
 
@@ -149,7 +159,8 @@ class WhisperRecogniser:
 
     def release(self) -> None:
         """Unload the model and give its memory back."""
-        if self._pipeline is None:
-            return
-        self._pipeline = None
-        release(self._device)
+        with self._lock:
+            if self._pipeline is None:
+                return
+            self._pipeline = None
+            release(self._device)

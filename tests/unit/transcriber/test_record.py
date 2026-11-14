@@ -122,11 +122,14 @@ class TestAppendAudio:
         opened(sessions)
         sessions.append_chunk("s1", 0, b"aa")
         sessions.append_chunk("s1", 1, b"bb")
-        sessions.append_chunk("s1", 2, b"cc")
         sessions.append_chunk("s1", 1, b"dd")
         assert sessions.chunks["s1"] == [b"aa", b"dd"]
+        sessions.append_chunk("s1", 2, b"cc")
+        with pytest.raises(InvalidInputError, match="drop the chunks"):
+            sessions.append_chunk("s1", 1, b"ee")
+        assert sessions.chunks["s1"] == [b"aa", b"dd", b"cc"]
         with pytest.raises(InvalidInputError, match="gap"):
-            sessions.append_chunk("s1", 3, b"ee")
+            sessions.append_chunk("s1", 4, b"ee")
 
     def test_a_gap_is_an_error(self, sessions: FakeSessionRepository) -> None:
         append = AppendAudio(sessions, locks(sessions))

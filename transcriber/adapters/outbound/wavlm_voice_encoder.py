@@ -7,6 +7,7 @@ gate), runs in float16 on CUDA, is loaded on first use and unloaded by
 :meth:`WavLMVoiceEncoder.release` after a job.
 """
 
+import threading
 from typing import Any, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -42,6 +43,7 @@ class WavLMVoiceEncoder:
         self.device = device
         self._loaded: Optional[Tuple[Any, Any]] = None
         self._device = "cpu"
+        self._lock = threading.Lock()
 
     @property
     def model_name(self) -> str:
@@ -54,7 +56,15 @@ class WavLMVoiceEncoder:
         return self._loaded is not None
 
     def _load(self) -> Tuple[Any, Any]:  # pragma: no cover - real model
-        """Load the feature extractor and the model on first use."""
+        """Load the feature extractor and the model on first use.
+
+        Under a lock, so two first uses at once load one model.
+        """
+        with self._lock:
+            return self._load_unlocked()
+
+    def _load_unlocked(self) -> Tuple[Any, Any]:  # pragma: no cover
+        """Load both unless loaded (hold ``_lock``)."""
         if self._loaded is None:
             import transformers
 
@@ -126,7 +136,8 @@ class WavLMVoiceEncoder:
 
     def release(self) -> None:
         """Unload the model and give its memory back."""
-        if self._loaded is None:
-            return
-        self._loaded = None
-        release(self._device)
+        with self._lock:
+            if self._loaded is None:
+                return
+            self._loaded = None
+            release(self._device)

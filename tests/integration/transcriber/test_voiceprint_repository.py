@@ -134,3 +134,42 @@ class TestUnsafeInput:
         (tmp_path / "voiceprints" / "not an id.json").write_text("{}")
         (tmp_path / "voiceprints" / ".ana.json.x.tmp").write_text("{")
         assert [v.speaker_id for v in repo.all()] == ["ana"]
+
+    def test_stray_entries_never_break_the_listing(
+        self, repo: FileSystemVoiceprintRepository, tmp_path: Path,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A README, a directory, a damaged file or a link named like a
+        voiceprint is skipped, counted and logged; the rest is listed."""
+        repo.save(voiceprint(), consent())
+        folder = tmp_path / "voiceprints"
+        (folder / "README.json").write_text('{"about": "voiceprints"}')
+        (folder / "x.json").mkdir()
+        (folder / "broken.json").write_text("{")
+        (folder / "alias.json").symlink_to(folder / "ana.json")
+        with caplog.at_level("WARNING"):
+            assert [v.speaker_id for v in repo.all()] == ["ana"]
+        assert repo.skipped == 4
+        for name in ("README.json", "x.json", "broken.json", "alias.json"):
+            assert name in caplog.text
+
+    def test_single_reads_raise_storage_errors(
+        self, repo: FileSystemVoiceprintRepository, tmp_path: Path
+    ) -> None:
+        (tmp_path / "voiceprints" / "x.json").mkdir(parents=True)
+        with pytest.raises(StorageError, match="Cannot read x.json"):
+            repo.get("x")
+        with pytest.raises(StorageError, match="Cannot read x.json"):
+            repo.consent("x")
+
+    def test_a_symlink_to_another_voiceprint_is_refused(
+        self, repo: FileSystemVoiceprintRepository, tmp_path: Path
+    ) -> None:
+        repo.save(voiceprint(), consent())
+        folder = tmp_path / "voiceprints"
+        (folder / "alias.json").symlink_to(folder / "ana.json")
+        with pytest.raises(InvalidInputError, match="Invalid speaker id"):
+            repo.delete("alias")
+        with pytest.raises(InvalidInputError, match="Invalid speaker id"):
+            repo.get("alias")
+        assert repo.get("ana") == voiceprint()

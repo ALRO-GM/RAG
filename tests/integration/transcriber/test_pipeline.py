@@ -36,7 +36,11 @@ from transcriber.adapters.outbound.whisper_recogniser import (
 )
 from transcriber.application.ports import Progress, RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
-from transcriber.bootstrap import TranscriberContainer, build_container
+from transcriber.bootstrap import (
+    TranscriberContainer,
+    build_container,
+    start_container,
+)
 from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import NotFoundError
 from transcriber.domain.models import SessionState, Utterance
@@ -221,3 +225,51 @@ def test_fake_runtime(container: TranscriberContainer) -> None:
     assert isinstance(container.recogniser, FakeSpeechRecogniser)
     assert isinstance(container.encoder, FakeVoiceEncoder)
     container.release_models()
+
+
+def test_enrolment_runs_on_the_job_thread_and_releases_the_models(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Enrolment shares the one queue with transcriptions."""
+    threads: Dict[str, str] = {}
+    released: Dict[str, int] = {"recogniser": 0, "encoder": 0}
+    recognise = FakeSpeechRecogniser.recognise
+
+    def watched(self: FakeSpeechRecogniser, *args: object,
+                **kwargs: object) -> object:
+        threads["recognise"] = threading.current_thread().name
+        return recognise(self, *args, **kwargs)  # type: ignore[arg-type]
+
+    def counted(kind: str) -> object:
+        def release(self: object) -> None:
+            released[kind] += 1
+        return release
+
+    monkeypatch.setattr(FakeSpeechRecogniser, "recognise", watched)
+    monkeypatch.setattr(FakeSpeechRecogniser, "release",
+                        counted("recogniser"))
+    monkeypatch.setattr(FakeVoiceEncoder, "release", counted("encoder"))
+    container = build_container(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+    ))
+    enrol_ana(container)
+    assert threads == {"recognise": "transcriber-jobs"}
+    assert released == {"recogniser": 1, "encoder": 1}
+    assert container.voiceprints.get("ana") is not None
+    container.runner.close(WAIT)
+
+
+def test_start_up_skips_a_damaged_session(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    settings = TranscriberSettings(data_dir=tmp_path / "data",
+                                   runtime="fake")
+    first = build_container(settings)
+    first.open_session("ok", "es")
+    first.open_session("broken", "es")
+    (tmp_path / "data" / "sessions" / "broken" / "session.json"
+     ).write_text("{", encoding="utf-8")
+    with caplog.at_level("WARNING"):
+        container = start_container(settings)
+    assert "broken" in caplog.text
+    assert container.sessions.get("ok") is not None

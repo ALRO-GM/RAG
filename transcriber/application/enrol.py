@@ -4,15 +4,21 @@ A person reads the enrolment text (``docs/transcriber/ARCHITECTURE.md``
 §6); the sample is decoded, checked by the domain rules and reduced to
 one voiceprint. Only the voiceprint and the consent record are stored:
 the sample audio is never handed to a repository.
+
+The models run as a job of the :class:`~transcriber.application.ports.
+JobRunner`, like a transcription: never beside another job on the one
+GPU, and released afterwards. The caller waits for that job.
 """
 
 import re
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from transcriber.application.common import check_speaker_id
 from transcriber.application.ports import (
+    Audio,
     AudioDecoder,
     Clock,
+    JobRunner,
     RecordedAudio,
     SpeechRecogniser,
     VoiceEncoder,
@@ -35,6 +41,7 @@ from transcriber.domain.models import (
 )
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.speakers import analysis_windows, speech_regions
+from transcriber.domain.voices import FloatArray
 
 
 class EnrolSpeaker:
@@ -44,7 +51,8 @@ class EnrolSpeaker:
     to find voices (``parameters.window``), so a voiceprint and a
     session's voice groups are averages over windows of one length.
     The recogniser's word times are the speech regions, as in a
-    transcription.
+    transcription. Recognising and embedding run as one job of
+    ``runner``.
     """
 
     def __init__(
@@ -54,6 +62,7 @@ class EnrolSpeaker:
         encoder: VoiceEncoder,
         voiceprints: VoiceprintRepository,
         clock: Clock,
+        runner: JobRunner,
         parameters: TranscriptionParameters = TranscriptionParameters(),
         rules: SampleRules = SampleRules(),
     ) -> None:
@@ -63,6 +72,7 @@ class EnrolSpeaker:
         self._encoder = encoder
         self._voiceprints = voiceprints
         self._clock = clock
+        self._runner = runner
         self._parameters = parameters
         self._rules = rules
 
@@ -86,7 +96,7 @@ class EnrolSpeaker:
         replaces the voiceprint and the consent record. Ids shaped like
         anonymous labels (``S1``, ``S2``...) are reserved and refused.
         Raises :class:`~transcriber.domain.errors.SampleRejectedError`
-        when the sample is unfit.
+        when the sample is unfit. Waits for the jobs queued before it.
         """
         if consent is not True:
             raise ConsentRequiredError(
@@ -107,11 +117,9 @@ class EnrolSpeaker:
         if now.tzinfo is None or now.utcoffset() is None:
             raise InvalidInputError("The clock must give an aware time.")
         audio = self._decoder.decode(recording)
-        speech = self._recogniser.recognise(audio, language)
-        p = self._parameters
-        regions = speech_regions(speech.words, p.region_gap)
-        windows = analysis_windows(regions, *p.coarse())
-        vectors = self._encoder.embed(audio, windows)
+        vectors, windows, regions = self._runner.run(
+            lambda: self._embed(audio, language)
+        )
         voiceprint = build_voiceprint(
             speaker_id, self._encoder.model_name, consent_version, now,
             vectors, windows, regions, audio.duration, self._rules,
@@ -122,6 +130,19 @@ class EnrolSpeaker:
             given_at=now,
         ))
         return voiceprint
+
+    def _embed(self, audio: Audio, language: str) -> Tuple[
+        FloatArray, List[Tuple[float, float]], List[Tuple[float, float]]
+    ]:
+        """Find the speech and embed it (the job that uses the models).
+
+        Return the vectors, their windows and the speech regions.
+        """
+        speech = self._recogniser.recognise(audio, language)
+        p = self._parameters
+        regions = speech_regions(speech.words, p.region_gap)
+        windows = analysis_windows(regions, *p.coarse())
+        return self._encoder.embed(audio, windows), windows, regions
 
 
 class ForgetSpeaker:

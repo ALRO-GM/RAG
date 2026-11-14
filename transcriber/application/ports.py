@@ -18,6 +18,7 @@ from typing import (
     Protocol,
     Sequence,
     Tuple,
+    TypeVar,
 )
 
 import numpy as np
@@ -168,10 +169,11 @@ class SessionRepository(Protocol):
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
         """Store chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
 
-        Idempotent per chunk number: chunk ``number`` replaces whatever
-        followed chunk ``number - 1``, so storing the same number twice
-        keeps it once (with the last bytes given) and drops any later
-        chunk. A ``number`` past the next one is an error.
+        Only the next chunk, or the last stored chunk again, is
+        accepted: storing the last number twice keeps it once (with the
+        last bytes given). A ``number`` past the next one, or below the
+        last stored one, is an :class:`InvalidInputError` (it would
+        leave a gap or drop the chunks after it).
         """
         ...
 
@@ -249,12 +251,28 @@ class Progress(Protocol):
 Job = Callable[[Progress], None]
 """Work submitted to a :class:`JobRunner`; it reports to ``Progress``."""
 
+T = TypeVar("T")
+
 
 class JobRunner(Protocol):
-    """Run long jobs (one at a time on the one GPU) and report on them."""
+    """Run long jobs (one at a time on the one GPU) and report on them.
+
+    Every use of the models goes through the runner: transcriptions as
+    queued jobs (:meth:`submit`), enrolments as jobs the caller waits
+    for (:meth:`run`). So two jobs never share the GPU, and the models
+    are released after each, whatever kind it was.
+    """
 
     def submit(self, session_id: str, job: Job) -> None:
         """Queue ``job`` for ``session_id``."""
+        ...
+
+    def run(self, work: Callable[[], T]) -> T:
+        """Queue ``work`` like any job, wait for it, return its result.
+
+        An exception raised by ``work`` is raised to the caller. The
+        call waits for the jobs queued before it.
+        """
         ...
 
     def status(self, session_id: str) -> Optional[JobStatus]:

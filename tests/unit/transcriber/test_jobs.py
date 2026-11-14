@@ -175,7 +175,7 @@ class TestRecoverSessions:
         w = world()
         w.upload()
         session_in(w, state, "a" * 32)
-        assert RecoverSessions(w.sessions, w.locks)() == ["s1"]
+        assert RecoverSessions(w.sessions, w.locks)().recovered == ["s1"]
         session = w.sessions.sessions["s1"]
         assert (session.state, session.failure) == (S.FAILED, INTERRUPTED)
         w.queue("s1")
@@ -193,11 +193,23 @@ class TestRecoverSessions:
         w.upload("c")
         w.queue("c")
         before = dict(w.sessions.sessions)
-        assert RecoverSessions(w.sessions, w.locks)() == ["c"]
+        assert RecoverSessions(w.sessions, w.locks)().recovered == ["c"]
         assert w.sessions.sessions["a"] == before["a"]
         assert w.sessions.sessions["b"] == before["b"]
         assert w.sessions.sessions["c"].state is S.FAILED
-        assert RecoverSessions(w.sessions, w.locks)() == []
+        assert RecoverSessions(w.sessions, w.locks)().recovered == []
+
+    def test_a_damaged_session_is_skipped_and_reported(self) -> None:
+        w = world()
+        w.upload("a")
+        w.queue("a")
+        w.upload("b")
+        w.queue("b")
+        w.sessions.damaged.add("a")
+        recovery = RecoverSessions(w.sessions, w.locks)()
+        assert (recovery.recovered, recovery.damaged) == (["b"], ["a"])
+        assert w.sessions.sessions["b"].state is S.FAILED
+        assert w.sessions.sessions["a"].state is S.QUEUED  # untouched
 
 
 class TestRequeue:

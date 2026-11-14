@@ -188,3 +188,126 @@ def test_close_waits_for_queued_jobs(runner: ThreadJobRunner) -> None:
     runner.submit("b", lambda progress: ran.append("b"))
     runner.close(WAIT)
     assert ran == ["a", "b"]
+
+
+@pytest.mark.parametrize("error", [SystemExit, KeyboardInterrupt])
+def test_a_job_raising_a_base_exception_keeps_the_runner_alive(
+    runner: ThreadJobRunner, error: type
+) -> None:
+    def leaving(progress: Progress) -> None:
+        progress.report("recognise", 0.3)
+        raise error("stop")
+
+    runner.submit("bad", leaving)
+    runner.submit("good", lambda progress: None)
+    assert runner.wait(WAIT)
+    bad = runner.status("bad")
+    assert bad is not None
+    assert (bad.state, bad.stage) == (SessionState.FAILED, "recognise")
+    good = runner.status("good")
+    assert good is not None and good.state is SessionState.DONE
+    runner.close(WAIT)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_a_fraction_that_is_not_a_number_keeps_the_previous_one(
+    runner: ThreadJobRunner, value: float
+) -> None:
+    seen: List[float] = []
+
+    def odd(progress: Progress) -> None:
+        progress.report("voices", 0.4)
+        progress.report("identify", value)
+        status = runner.status("s")
+        assert status is not None
+        seen.append(status.fraction)
+
+    runner.submit("s", odd)
+    assert runner.wait(WAIT)
+    status = runner.status("s")
+    assert status is not None and status.state is SessionState.DONE
+    assert seen == [0.4]
+    runner.close(WAIT)
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_a_progress_kept_after_its_job_changes_nothing(
+    runner: ThreadJobRunner, fails: bool
+) -> None:
+    kept: List[Progress] = []
+
+    def leaky(progress: Progress) -> None:
+        kept.append(progress)
+        if fails:
+            raise RuntimeError("boom")
+
+    runner.submit("s", leaky)
+    assert runner.wait(WAIT)
+    before = runner.status("s")
+    kept[0].report("recognise", 0.5)
+    kept[0].note("late")
+    assert runner.status("s") == before
+    assert before is not None and before.state in (
+        SessionState.DONE, SessionState.FAILED,
+    )
+    runner.close(WAIT)
+
+
+class TestRun:
+    def test_the_work_runs_on_the_worker_after_queued_jobs(self) -> None:
+        cleaned: List[str] = []
+        runner = ThreadJobRunner(after_job=lambda: cleaned.append("x"))
+        log: List[str] = []
+        release = threading.Event()
+
+        def blocking(progress: Progress) -> None:
+            release.wait(WAIT)
+            log.append("job")
+
+        runner.submit("s", blocking)
+        threads: List[str] = []
+
+        def work() -> int:
+            threads.append(threading.current_thread().name)
+            log.append("work")
+            return 42
+
+        threading.Timer(0.05, release.set).start()
+        assert runner.run(work) == 42
+        assert log == ["job", "work"]
+        assert threads == ["transcriber-jobs"]
+        assert cleaned == ["x", "x"]  # the models are released after it
+        runner.close(WAIT)
+
+    def test_errors_reach_the_caller_and_the_runner_goes_on(
+        self, runner: ThreadJobRunner
+    ) -> None:
+        def broken() -> None:
+            raise ValueError("bad sample")
+
+        with pytest.raises(ValueError, match="bad sample"):
+            runner.run(broken)
+
+        def leaving() -> None:
+            raise SystemExit(3)
+
+        with pytest.raises(SystemExit):
+            runner.run(leaving)
+        assert runner.run(lambda: "still here") == "still here"
+        runner.close(WAIT)
+
+    def test_inside_a_job_the_work_runs_at_once(
+        self, runner: ThreadJobRunner
+    ) -> None:
+        results: List[str] = []
+        runner.submit(
+            "s", lambda progress: results.append(runner.run(lambda: "ok"))
+        )
+        assert runner.wait(WAIT)
+        assert results == ["ok"]
+        runner.close(WAIT)
+
+    def test_a_closed_runner_refuses_it(self, runner: ThreadJobRunner) -> None:
+        runner.close(WAIT)
+        with pytest.raises(StateError, match="closed"):
+            runner.run(lambda: None)

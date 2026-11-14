@@ -11,6 +11,7 @@ job. :func:`start_container` is for the process that runs the jobs
 previous process left queued or running (:class:`RecoverSessions`).
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Optional, Protocol, Tuple
 
@@ -66,6 +67,8 @@ from transcriber.application.transcribe import (
     TranscriptionStatus,
 )
 from transcriber.config import TranscriberSettings
+
+LOG = logging.getLogger(__name__)
 
 
 class _Releasable(Protocol):
@@ -177,8 +180,8 @@ def build_container(
         import_recording=ImportRecording(sessions, locks),
         delete_session=DeleteSession(sessions, locks),
         enrol_speaker=EnrolSpeaker(
-            decoder, recogniser, encoder, voiceprints, clock, parameters,
-            settings.enrolment,
+            decoder, recogniser, encoder, voiceprints, clock, runner,
+            parameters, settings.enrolment,
         ),
         forget_speaker=ForgetSpeaker(voiceprints),
         transcribe=transcribe,
@@ -200,10 +203,13 @@ def start_container(
 
     Every session a previous process left ``queued`` or ``running`` is
     failed as ``interrupted`` (its job was lost), so it can be queued
-    again or deleted. Only the one process that runs the jobs for
+    again or deleted. A session whose record cannot be read is left
+    alone and logged. Only the one process that runs the jobs for
     ``settings.data_dir`` (the service) may call it: a session failed
     here is assumed to have no live job.
     """
     container = build_container(settings)
-    container.recover_sessions()
+    recovery = container.recover_sessions()
+    for session_id in recovery.damaged:
+        LOG.warning("Session %s cannot be read; left as it is", session_id)
     return container

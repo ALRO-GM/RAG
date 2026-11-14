@@ -141,6 +141,16 @@ class TestSessions:
         with pytest.raises(StorageError, match="Damaged session.json"):
             repo.get("s1")
 
+    def test_a_directory_in_place_of_the_session_file(
+        self, repo: FileSystemSessionRepository, tmp_path: Path
+    ) -> None:
+        (tmp_path / "sessions" / "s1" / "session.json").mkdir(parents=True)
+        with pytest.raises(StorageError, match="Cannot read session.json"
+                           ) as caught:
+            repo.get("s1")
+        assert str(tmp_path) not in str(caught.value)
+        assert repo.ids() == []
+
 
 class TestIds:
     @pytest.mark.parametrize("bad", [
@@ -168,6 +178,22 @@ class TestIds:
         with pytest.raises(InvalidInputError, match="Invalid session id"):
             repo.get("link")
 
+    def test_a_symlink_to_another_session_is_refused(
+        self, repo: FileSystemSessionRepository, tmp_path: Path
+    ) -> None:
+        """An alias must not reach (or delete) the session it points to."""
+        repo.create(session("real"))
+        (tmp_path / "sessions" / "alias").symlink_to(
+            tmp_path / "sessions" / "real"
+        )
+        for action in (repo.get, repo.delete, repo.recording):
+            with pytest.raises(InvalidInputError, match="Invalid session"):
+                action("alias")
+        with pytest.raises(InvalidInputError, match="Invalid session"):
+            repo.append_chunk("alias", 0, b"\x00\x00")
+        assert repo.get("real") == session("real")
+        assert repo.ids() == ["real"]
+
 
 class TestRecordingAudio:
     def test_chunks_are_appended_in_order(
@@ -189,19 +215,23 @@ class TestRecordingAudio:
         repo.append_chunk("s1", 1, b"\x09\x00")
         assert repo.recording("s1").data == b"\x01\x00\x09\x00"
 
-    def test_storing_a_chunk_number_again_drops_the_later_ones(
+    def test_only_the_last_chunk_may_be_stored_again(
         self, repo: FileSystemSessionRepository
     ) -> None:
-        """The port's contract: idempotent per chunk number."""
+        """The port's contract: the last chunk is idempotent; an older
+        number is refused instead of dropping every later chunk."""
         repo.create(session())
         repo.append_chunk("s1", 0, b"\x01\x00")
         repo.append_chunk("s1", 1, b"\x02\x00")
         repo.append_chunk("s1", 2, b"\x03\x00")
-        repo.append_chunk("s1", 1, b"\x09\x00")
-        repo.append_chunk("s1", 1, b"\x09\x00")
-        assert repo.recording("s1").data == b"\x01\x00\x09\x00"
-        with pytest.raises(InvalidInputError, match="expects chunk 2"):
-            repo.append_chunk("s1", 3, b"\x00\x00")
+        repo.append_chunk("s1", 2, b"\x03\x00")
+        with pytest.raises(InvalidInputError, match="expects chunk 3"):
+            repo.append_chunk("s1", 1, b"\x09\x00")
+        with pytest.raises(InvalidInputError, match="expects chunk 3"):
+            repo.append_chunk("s1", 0, b"\x09\x00")
+        assert repo.recording("s1").data == b"\x01\x00\x02\x00\x03\x00"
+        with pytest.raises(InvalidInputError, match="expects chunk 3"):
+            repo.append_chunk("s1", 4, b"\x00\x00")
 
     def test_bytes_left_by_a_killed_append_are_cut(
         self, repo: FileSystemSessionRepository, tmp_path: Path
@@ -264,6 +294,54 @@ class TestRecordingAudio:
         assert samples.tobytes() == data  # lossless
         repo.save(session(state=SessionState.UPLOADED))  # again: no-op
         assert repo.recording("s1") == recording
+
+    def test_an_interrupted_close_never_loses_later_chunks(
+        self, repo: FileSystemSessionRepository, tmp_path: Path
+    ) -> None:
+        """A process killed between the FLAC and ``session.json`` of a
+        close leaves a ``recording`` session with a stale FLAC; the
+        chunks received after it must reach the final FLAC."""
+        data = pcm_bytes(tone(0.002))  # 32 samples
+        first, second = data[:20], data[20:]  # 10 and 6 samples
+        repo.create(session())
+        repo.append_chunk("s1", 0, first)
+        folder = tmp_path / "sessions" / "s1"
+        repo._close_audio(folder)  # the close dies right after this
+        assert (folder / "audio.flac").is_file()
+        assert repo.get("s1") == session()  # still recording
+        assert repo.recording("s1") == RecordedAudio(first, PCM_FORMAT)
+        repo.append_chunk("s1", 1, second)
+        assert repo.recording("s1") == RecordedAudio(data, PCM_FORMAT)
+        repo.save(session(state=SessionState.UPLOADED))
+        samples, _ = soundfile.read(
+            io.BytesIO(repo.recording("s1").data), dtype="int16"
+        )
+        assert samples.tobytes() == data
+        assert sorted(p.name for p in folder.iterdir()) == [
+            "audio.flac", "session.json",
+        ]
+
+    def test_the_pcm_stays_until_the_session_file_is_written(
+        self, repo: FileSystemSessionRepository, tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Killed after the FLAC but before ``session.json``: the PCM is
+        still there, so nothing is lost."""
+        data = pcm_bytes(tone(0.002))
+        repo.create(session())
+        repo.append_chunk("s1", 0, data)
+        module = "transcriber.adapters.outbound.fs_session_repository"
+
+        def killed(path: Path, value: object) -> None:
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(f"{module}.write_json", killed)
+        with pytest.raises(KeyboardInterrupt):
+            repo.save(session(state=SessionState.UPLOADED))
+        monkeypatch.undo()
+        folder = tmp_path / "sessions" / "s1"
+        assert (folder / "audio.pcm").read_bytes() == data
+        assert repo.recording("s1") == RecordedAudio(data, PCM_FORMAT)
 
     def test_no_audio(self, repo: FileSystemSessionRepository) -> None:
         repo.create(session())

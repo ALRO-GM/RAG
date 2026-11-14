@@ -65,13 +65,21 @@ def write_json(path: Path, value: Any) -> None:
 def read_json(path: Path) -> Any:
     """Read the JSON file at ``path``.
 
-    Raises :class:`StorageError` when the file is not valid JSON, and
-    lets :class:`FileNotFoundError` through for the caller to decide.
+    Raises :class:`StorageError` when the file is not valid JSON or
+    cannot be read (a directory in its place, no permission), and lets
+    :class:`FileNotFoundError` through for the caller to decide. The
+    error never names more of the path than the file name.
     """
     try:
         return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise StorageError(f"Cannot read {path.name}: {exc}") from exc
+    except OSError as exc:
+        raise StorageError(
+            f"Cannot read {path.name}: {exc.strerror or type(exc).__name__}"
+        ) from exc
 
 
 def child_path(
@@ -80,14 +88,15 @@ def child_path(
     """Return ``root / (name + suffix)`` after checking the id and path.
 
     ``name`` must match ``pattern`` (the domain's id pattern, which has
-    no separators and cannot start with a dot), and the resolved path
-    must stay directly inside ``root`` even through symbolic links.
-    Raises :class:`InvalidInputError` otherwise.
+    no separators and cannot start with a dot), and the path must not
+    be a symbolic link: a link would make one id an alias of another
+    record (deleting the alias would delete the record) or of a place
+    outside ``root``. Raises :class:`InvalidInputError` otherwise.
     """
     if not isinstance(name, str) or not re.fullmatch(pattern, name):
         raise InvalidInputError(f"Invalid {what} id {name!r}.")
     base = root.resolve()
-    path = (base / f"{name}{suffix}").resolve()
-    if path.parent != base:
+    path = base / f"{name}{suffix}"
+    if path.is_symlink() or path.resolve().parent != base:
         raise InvalidInputError(f"Invalid {what} id {name!r}.")
     return path

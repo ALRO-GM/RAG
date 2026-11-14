@@ -13,13 +13,16 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterator,
     List,
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
+    TypeVar,
 )
 
 import numpy as np
@@ -32,7 +35,7 @@ from transcriber.application.ports import (
     RecognisedSpeech,
     RecordedAudio,
 )
-from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.errors import InvalidInputError, StorageError
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -42,6 +45,8 @@ from transcriber.domain.models import (
     Word,
 )
 from transcriber.domain.voices import FloatArray
+
+T = TypeVar("T")
 
 NOW = datetime(2026, 11, 14, 10, 0, tzinfo=timezone.utc)
 RATE = 100  # samples per second of the fake audio: enough to cut windows
@@ -245,6 +250,7 @@ class FakeSessionRepository:
     saved_states: List[Tuple[str, SessionState]] = field(default_factory=list)
     locks: Optional[FakeSessionLocks] = None
     unlocked_writes: List[Tuple[str, str]] = field(default_factory=list)
+    damaged: Set[str] = field(default_factory=set)
 
     def _write(self, operation: str, session_id: str) -> None:
         """Record a write made without the session's lock."""
@@ -252,7 +258,9 @@ class FakeSessionRepository:
             self.unlocked_writes.append((operation, session_id))
 
     def get(self, session_id: str) -> Optional[Session]:
-        """Return the session, if stored."""
+        """Return the session, if stored; StorageError if ``damaged``."""
+        if session_id in self.damaged:
+            raise StorageError(f"Damaged session.json in {session_id}.")
         return self.sessions.get(session_id)
 
     def ids(self) -> List[str]:
@@ -283,15 +291,19 @@ class FakeSessionRepository:
         self.transcripts.pop(session_id, None)
 
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
-        """Store chunk ``number``, dropping it and any later one first.
+        """Store the next chunk, or the last one again.
 
-        Idempotent per chunk number, as the port requires; a gap is an
-        :class:`InvalidInputError`.
+        As the port requires, a gap or a number below the last stored
+        chunk is an :class:`InvalidInputError`.
         """
         self._write("append_chunk", session_id)
         stored = self.chunks.setdefault(session_id, [])
         if number < 0 or number > len(stored):
             raise InvalidInputError(f"Chunk {number} leaves a gap.")
+        if number < len(stored) - 1:
+            raise InvalidInputError(
+                f"Chunk {number} would drop the chunks after it."
+            )
         del stored[number:]
         stored.append(data)
 
@@ -439,6 +451,8 @@ class FakeJobRunner:
         self.statuses: Dict[str, JobStatus] = {}
         self.errors: Dict[str, Exception] = {}
         self.refuse: Optional[Exception] = None
+        self.inside = False
+        self.calls = 0
 
     def submit(self, session_id: str, job: Job) -> None:
         """Queue the job, or raise ``refuse`` if set."""
@@ -452,6 +466,17 @@ class FakeJobRunner:
     def status(self, session_id: str) -> Optional[JobStatus]:
         """Return the last known status of the session's job."""
         return self.statuses.get(session_id)
+
+    def run(self, work: Callable[[], T]) -> T:
+        """Run ``work`` at once, with :attr:`inside` set meanwhile."""
+        if self.refuse is not None:
+            raise self.refuse
+        self.calls += 1
+        self.inside = True
+        try:
+            return work()
+        finally:
+            self.inside = False
 
     def run_all(self) -> None:
         """Run the queued jobs in order, recording how each ended."""

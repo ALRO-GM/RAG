@@ -2,6 +2,7 @@
 
 import inspect
 from datetime import datetime, timedelta, timezone
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import pytest
@@ -9,6 +10,7 @@ import pytest
 from tests.unit.transcriber.fakes import (
     NOW,
     FakeDecoder,
+    FakeJobRunner,
     FakeRecogniser,
     FakeSessionRepository,
     FakeVoiceEncoder,
@@ -20,13 +22,18 @@ from tests.unit.transcriber.fakes import (
     voice,
 )
 from transcriber.application.enrol import EnrolSpeaker, ForgetSpeaker
-from transcriber.application.ports import RecordedAudio
+from transcriber.application.ports import (
+    Audio,
+    RecognisedSpeech,
+    RecordedAudio,
+)
 from transcriber.domain.enrolment import Rejection, SampleRules
 from transcriber.domain.errors import (
     ConsentRequiredError,
     InvalidInputError,
     NotFoundError,
     SampleRejectedError,
+    StateError,
 )
 from transcriber.domain.models import (
     Pipeline,
@@ -38,6 +45,7 @@ from transcriber.domain.models import (
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.sentences import build_utterances
 from transcriber.domain.speakers import turns_from_words
+from transcriber.domain.voices import FloatArray
 
 SAMPLE = RecordedAudio(b"sample-bytes", "wav")
 
@@ -51,7 +59,8 @@ def enrol_use_case(
     """The use case around fakes that hear ``scene``."""
     return EnrolSpeaker(
         FakeDecoder(scene), FakeRecogniser(scene), FakeVoiceEncoder(scene),
-        voiceprints, clock, TranscriptionParameters(), rules,
+        voiceprints, clock, FakeJobRunner(), TranscriptionParameters(),
+        rules,
     )
 
 
@@ -75,11 +84,51 @@ class TestEnrolSpeaker:
         )
         assert consent.given_at.tzinfo is not None
 
+    def test_the_models_run_as_a_job_of_the_runner(self) -> None:
+        """Enrolment never uses the models beside another job."""
+        scene = reading()
+        runner = FakeJobRunner()
+        seen: List[bool] = []
+
+        class Watched(FakeRecogniser):
+            def recognise(
+                self, audio: Audio, language: Optional[str] = None
+            ) -> RecognisedSpeech:
+                seen.append(runner.inside)
+                return super().recognise(audio, language)
+
+        class WatchedEncoder(FakeVoiceEncoder):
+            def embed(
+                self, audio: Audio, windows: Sequence[Tuple[float, float]]
+            ) -> FloatArray:
+                seen.append(runner.inside)
+                return super().embed(audio, windows)
+
+        EnrolSpeaker(FakeDecoder(scene), Watched(scene),
+                     WatchedEncoder(scene), FakeVoiceprintRepository(),
+                     FixedClock(), runner)(
+            "ana", "Ana", "es", SAMPLE, True, "consent-1")
+        assert seen == [True, True]
+        assert runner.calls == 1
+
+    def test_a_refused_job_stores_nothing(self) -> None:
+        scene = reading()
+        runner = FakeJobRunner()
+        runner.refuse = StateError("The job runner is closed.")
+        voiceprints = FakeVoiceprintRepository()
+        with pytest.raises(StateError, match="closed"):
+            EnrolSpeaker(FakeDecoder(scene), FakeRecogniser(scene),
+                         FakeVoiceEncoder(scene), voiceprints,
+                         FixedClock(), runner)(
+                "ana", "Ana", "es", SAMPLE, True, "consent-1")
+        assert voiceprints.voiceprints == {}
+
     def test_the_sample_is_cut_into_long_windows(self) -> None:
         scene = reading()
         encoder = FakeVoiceEncoder(scene)
         EnrolSpeaker(FakeDecoder(scene), FakeRecogniser(scene), encoder,
-                     FakeVoiceprintRepository(), FixedClock())(
+                     FakeVoiceprintRepository(), FixedClock(),
+                     FakeJobRunner())(
             "ana", "Ana", "es", SAMPLE, True, "consent-1")
         lengths = {round(end - start, 3) for start, end in encoder.calls[0]}
         assert lengths == {5.0}
@@ -89,7 +138,7 @@ class TestEnrolSpeaker:
         scene = reading()
         decoder = FakeDecoder(scene)
         EnrolSpeaker(decoder, FakeRecogniser(scene), FakeVoiceEncoder(scene),
-                     voiceprints, FixedClock())(
+                     voiceprints, FixedClock(), FakeJobRunner())(
             "ana", "Ana", "es", SAMPLE, True, "consent-1"
         )
         assert decoder.decoded == [SAMPLE]  # the audio was used...
@@ -111,7 +160,7 @@ class TestEnrolSpeaker:
         decoder = FakeDecoder(scene)
         enrol = EnrolSpeaker(decoder, FakeRecogniser(scene),
                              FakeVoiceEncoder(scene), voiceprints,
-                             FixedClock())
+                             FixedClock(), FakeJobRunner())
         with pytest.raises(ConsentRequiredError):
             enrol("ana", "Ana", "es", SAMPLE, consent,  # type: ignore
                   "consent-1")

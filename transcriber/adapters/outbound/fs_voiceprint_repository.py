@@ -10,8 +10,15 @@ voiceprint of another model, :meth:`FileSystemVoiceprintRepository.get`
 raises :class:`VoiceModelMismatchError` for one found on disk (the
 person must enrol again) and :meth:`FileSystemVoiceprintRepository.all`
 leaves such voiceprints out, as the transcription would anyway.
+
+A listing never fails because of something else found in the
+directory: entries that are not voiceprint files (a ``README.json``, a
+directory, a link, a damaged file) are skipped, counted and logged.
+Reading one person's file raises :class:`StorageError` when it cannot
+be read, never a raw :class:`OSError`.
 """
 
+import logging
 import re
 import threading
 from pathlib import Path
@@ -37,6 +44,8 @@ from transcriber.domain.models import (
 
 SUFFIX = ".json"
 
+LOG = logging.getLogger(__name__)
+
 
 class _Enrolment(BaseModel):
     """What is stored for one person: the voiceprint and the consent."""
@@ -54,6 +63,7 @@ class FileSystemVoiceprintRepository:
         """Keep files under ``root / "voiceprints"``; accept ``model``."""
         self.root = Path(root) / "voiceprints"
         self.model = model
+        self.skipped = 0
         self._lock = threading.Lock()
 
     def _path(self, speaker_id: str) -> Path:
@@ -126,20 +136,46 @@ class FileSystemVoiceprintRepository:
     def all(self) -> List[Voiceprint]:
         """Return every voiceprint of this voice model, by speaker id.
 
-        Files whose name is not a speaker id are not voiceprints and
-        are ignored.
+        Every ``*.json`` entry that is not a readable voiceprint file
+        (a name that is not a speaker id, a directory, a symbolic link,
+        a damaged file) is skipped; :attr:`skipped` tells how many the
+        last listing skipped, and each one is logged.
         """
         found: List[Voiceprint] = []
-        if not self.root.is_dir():
-            return found
-        for path in sorted(self.root.glob(f"*{SUFFIX}")):
-            speaker_id = path.name[:-len(SUFFIX)]
-            if not re.fullmatch(SPEAKER_ID_PATTERN, speaker_id):
-                continue
-            stored = self._read(speaker_id)
-            if stored is not None and stored.voiceprint.model == self.model:
-                found.append(stored.voiceprint)
+        skipped = 0
+        if self.root.is_dir():
+            for path in sorted(self.root.glob(f"*{SUFFIX}")):
+                stored = self._listed(path)
+                if stored is None:
+                    skipped += 1
+                elif stored.voiceprint.model == self.model:
+                    found.append(stored.voiceprint)
+        self.skipped = skipped
         return found
+
+    def _listed(self, path: Path) -> Optional[_Enrolment]:
+        """Return the enrolment stored at ``path``, or ``None`` (logged).
+
+        ``None`` when ``path`` is not a voiceprint file of this
+        repository or cannot be read.
+        """
+        speaker_id = path.name[:-len(SUFFIX)]
+        reason: str
+        if not re.fullmatch(SPEAKER_ID_PATTERN, speaker_id):
+            reason = "the name is not a speaker id"
+        elif path.is_symlink() or not path.is_file():
+            reason = "it is not a regular file"
+        else:
+            try:
+                stored = self._read(speaker_id)
+            except (StorageError, InvalidInputError) as exc:
+                reason = str(exc)
+            else:
+                if stored is not None:
+                    return stored
+                reason = "it disappeared while listing"
+        LOG.warning("Skipped %s in the voiceprints: %s", path.name, reason)
+        return None
 
     def delete(self, speaker_id: str) -> bool:
         """Remove voiceprint and consent; tell whether they existed."""

@@ -1,5 +1,8 @@
 """Model adapters without loading a model, and the fake models."""
 
+import sys
+import threading
+import types
 from typing import Any, Dict, List
 
 import numpy as np
@@ -184,3 +187,60 @@ class TestFakeEncoder:
         assert not vectors[3].any()  # outside the audio: zero row
         assert encoder.embed(audio, []).shape == (0, 0)
         encoder.release()
+
+
+class _SlowLoader:
+    """Stands in for transformers: counts loads, each takes a moment."""
+
+    def __init__(self) -> None:
+        self.loads = 0
+
+    def load(self) -> Any:
+        self.loads += 1
+        threading.Event().wait(0.1)
+        loaded = types.SimpleNamespace()
+        loaded.model = types.SimpleNamespace(
+            get_encoder=lambda: types.SimpleNamespace(forward=None)
+        )
+        loaded.to = lambda device: loaded
+        loaded.eval = lambda: loaded
+        return loaded
+
+
+def _fake_transformers(
+    monkeypatch: pytest.MonkeyPatch, loader: _SlowLoader
+) -> None:
+    module = types.ModuleType("transformers")
+    setattr(module, "pipeline", lambda *a, **k: loader.load())
+    for name in ("AutoFeatureExtractor", "WavLMForXVector"):
+        setattr(module, name, types.SimpleNamespace(
+            from_pretrained=lambda *a, **k: loader.load()
+        ))
+    monkeypatch.setitem(sys.modules, "transformers", module)
+
+
+@pytest.mark.parametrize("adapter, loads_per_model", [
+    (lambda: WhisperRecogniser("m", device="cpu"), 1),
+    (lambda: WavLMVoiceEncoder("m", device="cpu"), 2),
+])
+def test_two_first_uses_at_once_load_one_model(
+    monkeypatch: pytest.MonkeyPatch, adapter: Any, loads_per_model: int
+) -> None:
+    loader = _SlowLoader()
+    _fake_transformers(monkeypatch, loader)
+    model = adapter()
+    start = threading.Barrier(2)
+
+    def first_use() -> None:
+        start.wait()
+        model._load()
+
+    threads = [threading.Thread(target=first_use) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(10)
+    assert loader.loads == loads_per_model
+    assert model.loaded
+    model.release()
+    assert not model.loaded

@@ -10,7 +10,11 @@ Layout under ``<root>/sessions/<id>/``:
 ``audio.flac``
     once a recorded session is closed (saved in any state other than
     ``recording``), the PCM is encoded losslessly and the two files
-    above are removed.
+    above are removed, in this order: the FLAC, then ``session.json``,
+    then the PCM. While the session is ``recording`` the PCM is the
+    recording; a FLAC found beside it was left by a close that a killed
+    process did not finish, and it is replaced when the session is
+    closed again.
 ``audio.<ext>``
     an imported recording, kept as it came.
 ``words.json`` and ``transcript.json``
@@ -21,6 +25,11 @@ JSON and audio files are written atomically (:func:`atomic_write`).
 Chunk appends are made safe by ``chunks.json``: appending chunk ``n``
 first cuts ``audio.pcm`` back to where chunk ``n - 1`` ended, so bytes
 left by a process killed mid-append are never kept twice.
+
+Ids are checked against their pattern and refused when their path is a
+symbolic link (:func:`child_path`). Reading a stored file that is not
+what it should be raises :class:`StorageError`, never a raw
+:class:`OSError`.
 """
 
 import io
@@ -41,6 +50,7 @@ from transcriber.adapters.outbound.fs_storage import (
     atomic_write,
     child_path,
     read_json,
+    sync_directory,
     write_json,
 )
 from transcriber.application.ports import PCM_FORMAT, RecordedAudio
@@ -92,7 +102,11 @@ class FileSystemSessionRepository:
         return directory
 
     def get(self, session_id: str) -> Optional[Session]:
-        """Return the session, or ``None`` if it does not exist."""
+        """Return the session, or ``None`` if it does not exist.
+
+        A ``session.json`` that cannot be read or is not a session is a
+        :class:`StorageError`.
+        """
         path = self._directory(session_id) / SESSION_FILE
         try:
             data = read_json(path)
@@ -132,18 +146,22 @@ class FileSystemSessionRepository:
         """Replace the stored session with ``session``.
 
         A session saved in any state but ``recording`` whose audio is
-        still raw PCM has its audio encoded as ``audio.flac`` first.
+        still raw PCM has the whole PCM encoded as ``audio.flac`` first
+        (replacing a FLAC an interrupted close left); the PCM is removed
+        only once the FLAC and ``session.json`` are on disk.
         """
         with self._lock:
             directory = self._existing(session.id)
-            if session.state is not SessionState.RECORDING:
+            closing = session.state is not SessionState.RECORDING
+            if closing:
                 self._close_audio(directory)
             write_json(
                 directory / SESSION_FILE, session.model_dump(mode="json")
             )
-            if session.state is not SessionState.RECORDING:
+            if closing:
                 for name in (PCM_FILE, CHUNKS_FILE):
                     (directory / name).unlink(missing_ok=True)
+                sync_directory(directory)
 
     def delete(self, session_id: str) -> None:
         """Remove the session with its audio, words and transcript."""
@@ -155,16 +173,17 @@ class FileSystemSessionRepository:
     def append_chunk(self, session_id: str, number: int, data: bytes) -> None:
         """Store chunk ``number`` (from 0) of :data:`PCM_FORMAT` audio.
 
-        Idempotent per chunk number, as the port requires: chunk
-        ``number`` replaces whatever followed chunk ``number - 1`` (a
-        chunk half-written by a killed process, or the same chunk
-        stored before), and later chunks are dropped; a gap in the
-        numbering is an :class:`InvalidInputError`.
+        Only the next chunk or the last one stored again is accepted:
+        chunk ``number`` replaces whatever followed chunk ``number - 1``
+        (a chunk half-written by a killed process, or the same chunk
+        stored before). A gap in the numbering, or a number below the
+        last stored chunk (which would drop every chunk after it), is
+        an :class:`InvalidInputError`.
         """
         with self._lock:
             directory = self._existing(session_id)
             ends = self._chunk_ends(directory)
-            if number < 0 or number > len(ends):
+            if number < max(len(ends) - 1, 0) or number > len(ends):
                 raise InvalidInputError(
                     f"Session {session_id} expects chunk {len(ends)},"
                     f" got {number}."
@@ -203,9 +222,14 @@ class FileSystemSessionRepository:
         return list(ends)
 
     def _close_audio(self, directory: Path) -> None:
-        """Encode the PCM of a finished recording as FLAC."""
+        """Encode the whole PCM of a finished recording as FLAC.
+
+        Done whenever the PCM is still there, even if a FLAC exists:
+        that one was written by a close that did not finish and may
+        miss the chunks received since.
+        """
         pcm = directory / PCM_FILE
-        if not pcm.is_file() or self._stored_audio(directory) is not None:
+        if not pcm.is_file():
             return
         import soundfile
 
@@ -224,7 +248,7 @@ class FileSystemSessionRepository:
         """Return the encoded or imported audio file, if there is one."""
         found = sorted(
             p for p in directory.glob(f"{AUDIO_STEM}.*")
-            if p.name != PCM_FILE and p.is_file()
+            if p.name != PCM_FILE and p.is_file() and not p.is_symlink()
         )
         return found[0] if found else None
 
@@ -247,11 +271,17 @@ class FileSystemSessionRepository:
     def recording(self, session_id: str) -> RecordedAudio:
         """Return the stored audio of the session.
 
-        The encoded or imported file when there is one, else the PCM
-        recorded so far. :class:`NotFoundError` without any audio.
+        While the session is ``recording``, the PCM received so far
+        (a FLAC beside it is stale); otherwise the encoded or imported
+        file, or the PCM if there is none. :class:`NotFoundError`
+        without any audio.
         """
         directory = self._existing(session_id)
-        stored = self._stored_audio(directory)
+        current = self.get(session_id)
+        recording = (
+            current is not None and current.state is SessionState.RECORDING
+        )
+        stored = None if recording else self._stored_audio(directory)
         if stored is not None:
             return RecordedAudio(stored.read_bytes(), stored.suffix[1:])
         pcm = directory / PCM_FILE
