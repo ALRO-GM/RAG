@@ -10,7 +10,16 @@ contract shared with the RAG (``contracts/transcript.v1.schema.json``).
 
 import enum
 import json
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from pydantic import (
     AwareDatetime,
@@ -74,6 +83,12 @@ class Word(BaseModel):
         return self
 
 
+# What flagged an utterance as overlapping speech.
+OverlapSource = Literal["voices", "detector", "both"]
+# How an enrolled person was recognised (see Speaker).
+Identification = Literal["threshold", "expected_floor"]
+
+
 class Turn(BaseModel):
     """One uninterrupted contribution of a speaker, before splitting.
 
@@ -108,6 +123,22 @@ class Utterance(BaseModel):
     of the turn before this one and ``previous_utterance`` the last
     sentence of that turn (both ``None`` in the first turn; the same for
     every sentence of a turn). ``words`` are not part of the contract.
+
+    ``confidence`` is the recogniser's mean word probability.
+    ``speaker_confidence`` is the similarity of the speaker's whole voice
+    group with their voiceprint (one value per speaker).
+    ``speaker_certainty``, ``doubtful``, ``overlap`` and
+    ``alternative_speaker`` describe this sentence's own attribution,
+    from the voice windows over it
+    (:func:`~transcriber.domain.certainty.assess_utterances`); ``None``
+    when they were not computed. ``overlap_source`` says what flagged an
+    overlap: the voice windows (``voices``), the overlap detector
+    (``detector``) or ``both``.
+
+    ``language`` is the language the recogniser detected where the
+    sentence was said; ``language_differs`` is ``True`` when the session
+    was recorded in a fixed language and that one is another (``None``
+    in an ``auto`` session, or when nothing was detected).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -127,6 +158,15 @@ class Utterance(BaseModel):
     speaker_confidence: Optional[float] = Field(
         default=None, ge=-1, le=1, allow_inf_nan=False
     )
+    speaker_certainty: Optional[float] = Field(
+        default=None, ge=-2, le=2, allow_inf_nan=False
+    )
+    doubtful: Optional[bool] = None
+    overlap: Optional[bool] = None
+    alternative_speaker: Optional[str] = Field(default=None, min_length=1)
+    overlap_source: Optional[OverlapSource] = None
+    language: Optional[str] = Field(default=None, min_length=2)
+    language_differs: Optional[bool] = None
     words: List[Word] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -139,6 +179,10 @@ class Utterance(BaseModel):
             )
         if self.end < self.start:
             raise ValueError("an utterance cannot end before it starts")
+        if self.alternative_speaker == self.speaker:
+            raise ValueError(
+                "the alternative speaker must be someone else"
+            )
         return self
 
 
@@ -147,6 +191,11 @@ class Speaker(BaseModel):
 
     ``id`` is an enrolled user id when the voice was recognised, or an
     anonymous label (``S1``, ``S2``, ...) stable inside the session.
+    ``identification`` says how an enrolled person was recognised:
+    ``threshold`` (their voice reached the match threshold) or
+    ``expected_floor`` (they were listed as present and their voice was
+    only above the lower floor of the expected-speakers rule: a weaker
+    identification); ``None`` for an anonymous voice or when unknown.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -154,6 +203,14 @@ class Speaker(BaseModel):
     id: str = Field(min_length=1)
     name: Optional[str] = None
     enrolled: bool
+    identification: Optional[Identification] = None
+
+    @model_validator(mode="after")
+    def _identified(self) -> "Speaker":
+        """Only an enrolled person has a way of identification."""
+        if self.identification is not None and not self.enrolled:
+            raise ValueError("an anonymous voice is not identified")
+        return self
 
 
 class Voiceprint(BaseModel):
@@ -258,11 +315,12 @@ class Pipeline(BaseModel):
 _SESSION_FIELDS = frozenset({
     "id", "title", "language", "started_at", "duration", "audio_sha256",
 })
-_SPEAKER_FIELDS = frozenset({"id", "name", "enrolled"})
+_SPEAKER_FIELDS = frozenset({"id", "name", "enrolled", "identification"})
 _UTTERANCE_FIELDS = frozenset({
     "id", "turn", "index", "speaker", "start", "end", "text",
     "previous_speaker", "previous_utterance", "confidence",
-    "speaker_confidence",
+    "speaker_confidence", "speaker_certainty", "doubtful", "overlap",
+    "alternative_speaker", "overlap_source", "language", "language_differs",
 })
 _PIPELINE_FIELDS = frozenset({"recogniser", "voice_model", "transcriber"})
 _TOP_FIELDS = frozenset({
@@ -270,9 +328,38 @@ _TOP_FIELDS = frozenset({
 })
 _SESSION_REQUIRED = frozenset({"id", "language", "duration"})
 _SPEAKER_REQUIRED = frozenset({"id", "enrolled"})
-_UTTERANCE_REQUIRED = _UTTERANCE_FIELDS - {
-    "confidence", "speaker_confidence",
-}
+# Fields a transcript.v1 document may leave out (added compatibly).
+_UTTERANCE_OPTIONAL = frozenset({
+    "confidence", "speaker_confidence", "speaker_certainty", "doubtful",
+    "overlap", "alternative_speaker", "overlap_source", "language",
+    "language_differs",
+})
+_UTTERANCE_REQUIRED = _UTTERANCE_FIELDS - _UTTERANCE_OPTIONAL
+# Fields added to transcript.v1 after its first version: written only
+# when they hold a value, so a transcript without them reads as before.
+_UTTERANCE_ADDED = frozenset({
+    "speaker_certainty", "doubtful", "overlap", "alternative_speaker",
+    "overlap_source", "language", "language_differs",
+})
+_SPEAKER_ADDED = frozenset({"identification"})
+
+
+def _speaker_contract(speaker: "Speaker") -> Dict[str, Any]:
+    """Return ``speaker`` as a ``transcript.v1`` speaker object."""
+    out = speaker.model_dump(include=set(_SPEAKER_FIELDS))
+    for key in _SPEAKER_ADDED:
+        if out[key] is None:
+            del out[key]
+    return out
+
+
+def _utterance_contract(utterance: "Utterance") -> Dict[str, Any]:
+    """Return ``utterance`` as a ``transcript.v1`` utterance object."""
+    out = utterance.model_dump(include=set(_UTTERANCE_FIELDS))
+    for key in _UTTERANCE_ADDED:
+        if out[key] is None:
+            del out[key]
+    return out
 
 
 class Transcript(BaseModel):
@@ -296,7 +383,10 @@ class Transcript(BaseModel):
             raise ValueError("utterance ids must be unique")
         listed = set(known)
         for utterance in self.utterances:
-            for who in (utterance.speaker, utterance.previous_speaker):
+            for who in (
+                utterance.speaker, utterance.previous_speaker,
+                utterance.alternative_speaker,
+            ):
                 if who is not None and who not in listed:
                     raise ValueError(
                         f"utterance {utterance.id} names an unlisted"
@@ -336,11 +426,8 @@ class Transcript(BaseModel):
                 "duration": session.duration,
                 "audio_sha256": session.audio_sha256,
             },
-            "speakers": [s.model_dump() for s in self.speakers],
-            "utterances": [
-                u.model_dump(include=set(_UTTERANCE_FIELDS))
-                for u in self.utterances
-            ],
+            "speakers": [_speaker_contract(s) for s in self.speakers],
+            "utterances": [_utterance_contract(u) for u in self.utterances],
             "pipeline": self.pipeline.model_dump(),
         }
 

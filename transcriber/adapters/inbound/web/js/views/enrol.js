@@ -47,6 +47,7 @@ export async function enrolView(ctx, root) {
   const form = h("section", { class: "stack" },
     h("h1", {}, t("enrol.title")),
     h("p", {}, t("enrol.intro")),
+    h("p", { class: "hint" }, t("enrol.advice")),
     h("p", { class: "hint" }, t("enrol.wait_note")),
     h("div", { class: "field" }, h("label", { for: "en-name" }, t("enrol.name")), name),
     h("div", { class: "field" }, h("label", { for: "en-id" }, t("enrol.id")), id, idHint),

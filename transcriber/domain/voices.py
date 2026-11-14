@@ -198,12 +198,16 @@ class VoiceGroups(NamedTuple):
     ``coarse`` and ``fine`` hold the group of each long and each short
     window (``fine`` is empty without short windows) and ``vectors``
     one raw unit-length mean per group (row ``i`` is group ``i``), the
-    vector compared with enrolled voiceprints.
+    vector compared with enrolled voiceprints. ``fine_scores`` holds,
+    for each short window (row) and each group (column), the cosine the
+    window's group was chosen by (the largest of its row); it is
+    ``None`` when nothing was compared (one voice, or no windows).
     """
 
     coarse: List[int]
     fine: List[int]
     vectors: FloatArray
+    fine_scores: Optional[FloatArray] = None
 
 
 def group_voices(
@@ -261,9 +265,11 @@ def group_voices(
     else:
         long, short = unit_rows(coarse), unit_rows(fine)
     labels = cluster_speakers(long, num_speakers, threshold, max_speakers)
-    assigned = nearest_voice(short, voice_centroids(long, labels))
+    centroids = voice_centroids(long, labels)
+    assigned = nearest_voice(short, centroids)
     return VoiceGroups(
-        labels, assigned, voice_centroids(unit_rows(coarse), labels)
+        labels, assigned, voice_centroids(unit_rows(coarse), labels),
+        _scores(short, centroids),
     )
 
 
@@ -422,13 +428,15 @@ class SeededVoices(NamedTuple):
     ``coarse``, ``fine`` and ``vectors`` are as in :class:`VoiceGroups`
     (group ``i`` is row ``i`` of ``vectors``). ``people`` gives the
     enrolled id of each group a voiceprint claimed; the other groups are
-    voices nobody enrolled.
+    voices nobody enrolled. ``fine_scores`` is as in
+    :class:`VoiceGroups`.
     """
 
     coarse: List[int]
     fine: List[int]
     vectors: FloatArray
     people: Dict[int, str]
+    fine_scores: Optional[FloatArray] = None
 
 
 def seed_voices(
@@ -522,12 +530,26 @@ def seed_voices(
             for i, a in zip(free, others):
                 labels[i] = len(people) + a
     centroids = voice_centroids(centred, labels)
-    short = nearest_voice(centre(fine, mean), centroids) if fine.shape[0] \
-        else []
+    fine_centred = centre(fine, mean) if fine.shape[0] else fine
+    short = nearest_voice(fine_centred, centroids)
     return SeededVoices(
         labels, short, voice_centroids(unit_rows(coarse), labels),
         {k: ids[people[k]] for k in range(len(people))},
+        _scores(fine_centred, centroids),
     )
+
+
+def _scores(
+    windows: FloatArray, centroids: FloatArray
+) -> Optional[FloatArray]:
+    """Cosines of unit ``windows`` (rows) with unit ``centroids``.
+
+    ``None`` when there is no window or no centroid to compare.
+    """
+    if windows.shape[0] == 0 or centroids.shape[0] == 0:
+        return None
+    out: FloatArray = (windows @ centroids.T).astype(np.float32)
+    return out
 
 
 def name_seeded(

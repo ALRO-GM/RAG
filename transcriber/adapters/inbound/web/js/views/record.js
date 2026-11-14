@@ -38,7 +38,8 @@ export async function recordView(ctx, root, params) {
   // ---- form ---------------------------------------------------------
   const title = h("input", { id: "rec-title", type: "text", maxLength: 200, autocomplete: "off", value: existing?.title ?? "" });
   const language = h("select", { id: "rec-lang" },
-    h("option", { value: "es" }, "Español"), h("option", { value: "en" }, "English"));
+    h("option", { value: "es" }, "Español"), h("option", { value: "en" }, "English"),
+    h("option", { value: "auto" }, t("record.language_auto")));
   language.value = existing?.language ?? lang;
   const people = enrolled.speakers.map((p) => ({
     id: p.id,
@@ -58,6 +59,7 @@ export async function recordView(ctx, root, params) {
       h("div", { class: "field" }, h("label", { for: "rec-lang" }, t("record.language")), language),
       h("fieldset", { class: "field" },
         h("legend", {}, t("record.who")),
+        h("p", { class: "hint" }, t("record.who_hint")),
         people.length
           ? people.map((p) => h("label", { class: "check" }, p.box, h("span", {}, p.name)))
           : h("p", { class: "hint" }, t("record.nobody_enrolled")),

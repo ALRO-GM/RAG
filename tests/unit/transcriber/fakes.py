@@ -32,8 +32,10 @@ from transcriber.application.ports import (
     Audio,
     Job,
     JobStatus,
+    LanguageSpan,
     RecognisedSpeech,
     RecordedAudio,
+    WordScores,
 )
 from transcriber.domain.errors import (
     InvalidInputError,
@@ -168,24 +170,83 @@ class FakeDecoder:
 
 
 class FakeRecogniser:
-    """Hear the words of the scene; can be told to fail."""
+    """Hear the words of the scene; can be told to fail.
+
+    :meth:`recognise` returns the words without probability and
+    :meth:`score_words` gives each the scene's probability (0.9), so a
+    test sees whether the use case asked for the scores. ``scored``
+    keeps the words each scoring call was given.
+    """
 
     model_name = "fake-whisper"
+    supported_languages = frozenset({"es", "en", "fr"})
 
     def __init__(self, scene: Scene) -> None:
         """Remember the scene to hear."""
         self.scene = scene
         self.failures: List[Exception] = []
+        self.score_failures: List[Exception] = []
         self.languages: List[Optional[str]] = []
+        self.scored: List[List[Word]] = []
+        self.extra: List[Word] = []
+        self.detected: List[Tuple[float, float, str]] = []
 
     def recognise(
         self, audio: Audio, language: Optional[str] = None
     ) -> RecognisedSpeech:
-        """Return the scene's words, or raise the next queued failure."""
+        """Return the scene's words, or raise the next queued failure.
+
+        ``extra`` words are appended as returned (a seam, for example).
+        """
         self.languages.append(language)
         if self.failures:
             raise self.failures.pop(0)
-        return RecognisedSpeech(words=self.scene.words(), language=language)
+        words = [
+            w.model_copy(update={"probability": None})
+            for w in self.scene.words() + self.extra
+        ]
+        return RecognisedSpeech(words=words, language=language)
+
+    def score_words(
+        self, audio: Audio, words: Sequence[Word],
+        language: Optional[str] = None,
+    ) -> WordScores:
+        """Give every word 0.9, or raise the next queued failure.
+
+        The languages detected are the ``detected`` stretches.
+        """
+        self.scored.append(list(words))
+        if self.score_failures:
+            raise self.score_failures.pop(0)
+        return WordScores(
+            words=[w.model_copy(update={"probability": 0.9}) for w in words],
+            languages=[LanguageSpan(start=a, end=b, language=c)
+                       for a, b, c in self.detected],
+        )
+
+
+class FakeOverlapDetector:
+    """Hear two voices at once in the given stretches; can fail."""
+
+    model_name = "fake-overlap"
+
+    def __init__(self, spans: Sequence[Tuple[float, float]] = ()) -> None:
+        """Remember the stretches to report."""
+        self.spans = list(spans)
+        self.failures: List[Exception] = []
+        self.calls = 0
+        self.released = 0
+
+    def overlaps(self, audio: Audio) -> List[Tuple[float, float]]:
+        """Return the stretches, or raise the next queued failure."""
+        self.calls += 1
+        if self.failures:
+            raise self.failures.pop(0)
+        return list(self.spans)
+
+    def release(self) -> None:
+        """Count the unloads."""
+        self.released += 1
 
 
 class FakeVoiceEncoder:

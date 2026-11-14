@@ -244,6 +244,15 @@ class TestGroupVoices:
         unit = coarse[0] / np.linalg.norm(coarse[0])
         assert np.allclose(groups.vectors[0], unit, atol=1e-6)
 
+    def test_short_windows_keep_their_cosines_with_every_group(self) -> None:
+        coarse = self.two_voices()
+        fine = np.stack([coarse[1], coarse[0], coarse[1]]).astype(np.float32)
+        groups = group_voices(coarse, fine)
+        assert groups.fine_scores is not None
+        assert groups.fine_scores.shape == (3, 2)
+        # The group each window was given is the column it scores best.
+        assert list(groups.fine_scores.argmax(axis=1)) == groups.fine
+
     def test_without_centring_the_shared_part_merges_them(self) -> None:
         groups = group_voices(self.two_voices(),
                               np.zeros((0, 3), dtype=np.float32),
@@ -278,6 +287,7 @@ class TestGroupVoices:
         groups = group_voices(coarse, fine, single_voice_threshold=0.9)
         assert groups.coarse == [0] * 6
         assert groups.fine == [0] * 3
+        assert groups.fine_scores is None  # one voice: nothing compared
         assert groups.vectors.shape == (1, 4)
         assert np.allclose(np.linalg.norm(groups.vectors[0]), 1.0)
 

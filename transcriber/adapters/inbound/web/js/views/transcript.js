@@ -5,8 +5,9 @@ import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import {
-  DEFAULT_LEAD, activeIndex, filterBySpeaker, isAnonymous, mergeTargets, parseLead,
-  previousHint, seekTime, sortUtterances, speakerName,
+  DEFAULT_LEAD, activeIndex, doubtNote, filterUtterances, isAnonymous, mergeTargets,
+  namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
+  speakerName, weakSpeakers,
 } from "../lib/transcript.js";
 
 const LEAD_KEY = "transcriber.lead";
@@ -59,6 +60,7 @@ export async function transcriptView(ctx, root, params) {
   let rows = [];
   let current = -1;
   let filter = "";
+  let onlyDoubtful = false;
   let follow = true;
 
   const audio = h("audio", { preload: "metadata", hidden: true });
@@ -84,8 +86,10 @@ export async function transcriptView(ctx, root, params) {
 
   const filterSelect = h("select", { id: "pl-filter", onChange: () => { filter = filterSelect.value; applyFilter(); } });
   const followBox = h("input", { id: "pl-follow", type: "checkbox", checked: true, onChange: () => { follow = followBox.checked; } });
+  const doubtBox = h("input", { id: "pl-doubtful", type: "checkbox", onChange: () => { onlyDoubtful = doubtBox.checked; applyFilter(); } });
   const message = h("p", { class: "notice", role: "status", hidden: true });
   const speakersPanel = h("div", { class: "stack" });
+  const weakNotice = h("div", { class: "notice warn", role: "note", hidden: true });
   const list = h("ol", { class: "utterances" });
 
   const bar = h("div", { class: "player" },
@@ -94,12 +98,13 @@ export async function transcriptView(ctx, root, params) {
   const options = h("div", { class: "row wrap options" },
     h("label", { for: "pl-lead" }, t("player.lead")), leadField,
     h("label", { for: "pl-filter" }, t("player.filter")), filterSelect,
+    h("label", { class: "check" }, doubtBox, h("span", {}, t("player.only_doubtful"))),
     h("label", { class: "check" }, followBox, h("span", {}, t("player.follow"))));
 
   root.append(
     h("h1", {}, transcript.session.title || id),
     h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/" }, t("nav.sessions"))),
-    bar, options, audio, message,
+    bar, options, audio, message, weakNotice,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
     list,
     h("button", { type: "button", onClick: download }, t("transcript.download")));
@@ -128,19 +133,35 @@ export async function transcriptView(ctx, root, params) {
     const speakers = transcript.speakers;
     rows = utterances.map((u, index) => {
       const hint = previousHint(u, speakers);
+      const note = doubtNote(u, speakers);
+      const weak = sentenceNamedByFloor(u, speakers);
+      const language = otherLanguage(u);
       const button = h("button", {
         type: "button", class: "row-button", "data-index": index,
         onClick: () => playFrom(index),
       },
       h("span", { class: "time" }, formatTime(u.start)),
-      h("span", { class: "who" }, speakerName(speakers, u.speaker)),
+      h("span", { class: weak ? "who weak" : "who", title: weak ? t("transcript.weak_speaker") : null },
+        speakerName(speakers, u.speaker), weak ? " ?" : ""),
       h("span", { class: "text" }, u.text),
+      note || language ? doubtBadge(note, language) : null,
       hint ? h("span", { class: "after" }, t("transcript.after", { name: hint })) : null);
-      return h("li", { class: "utterance", "data-speaker": u.speaker }, button, changeButton(u));
+      return h("li", { class: note ? "utterance doubtful" : "utterance", "data-speaker": u.speaker }, button, changeButton(u));
     });
     list.replaceChildren(...rows);
     applyFilter();
     highlight(audio.currentTime || 0, true);
+  }
+
+  // Text only (h() makes text nodes): names and values never become HTML.
+  function doubtBadge(note, language = null) {
+    const parts = [];
+    if (note?.floor) parts.push(t("transcript.floor_sentence"));
+    if (note?.doubtful) parts.push(note.alternative ? t("transcript.doubtful_or", { name: note.alternative }) : t("transcript.doubtful"));
+    if (note?.overlap) parts.push(note.alternative && !note.doubtful ? t("transcript.overlap_with", { name: note.alternative }) : t("transcript.overlap"));
+    if (language) parts.push(t("transcript.other_language", { code: language }));
+    const title = note?.certainty == null ? null : t("transcript.certainty", { value: note.certainty.toFixed(2) });
+    return h("span", { class: "doubt", title }, parts.join(" · "));
   }
 
   function changeButton(u) {
@@ -186,7 +207,7 @@ export async function transcriptView(ctx, root, params) {
   }
 
   function applyFilter() {
-    const shown = new Set(filterBySpeaker(utterances, filter));
+    const shown = new Set(filterUtterances(utterances, filter, onlyDoubtful, transcript.speakers));
     utterances.forEach((u, i) => { rows[i].hidden = !shown.has(u); });
   }
 
@@ -198,11 +219,19 @@ export async function transcriptView(ctx, root, params) {
     filterSelect.value = transcript.speakers.some((s) => s.id === previous) ? previous : "";
     filter = filterSelect.value;
     speakersPanel.replaceChildren(...transcript.speakers.map((s) => speakerRow(s)));
+    const weak = weakSpeakers(transcript.speakers);
+    weakNotice.hidden = weak.length === 0;
+    weakNotice.replaceChildren(...(weak.length ? [
+      h("strong", {}, t("transcript.weak_title")), " ",
+      t("transcript.weak_note", { names: weak.map((s) => speakerName(transcript.speakers, s.id)).join(", ") }), " ",
+      h("a", { href: "#/enrol" }, t("nav.enrol")),
+    ] : []));
   }
 
   function speakerRow(s) {
     const label = h("strong", {}, speakerName(transcript.speakers, s.id));
-    if (!isAnonymous(s)) return h("div", { class: "line" }, label, h("span", { class: "hint" }, s.enrolled ? t("speakers.enrolled") : ""));
+    const status = namedByFloor(s) ? t("speakers.floor") : s.enrolled ? t("speakers.enrolled") : "";
+    if (!isAnonymous(s)) return h("div", { class: "line" }, label, h("span", { class: "hint" }, status));
     const name = h("input", { type: "text", maxLength: 100, autocomplete: "off", value: s.name ?? "", "aria-label": t("speakers.name_for", { label: s.id }) });
     const save = h("button", { type: "button", onClick: () => {
       if (name.value.trim()) edit(() => ctx.api.renameSpeaker(id, s.id, { name: name.value.trim() }));

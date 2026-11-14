@@ -69,10 +69,12 @@ from transcriber.adapters.outbound.av_audio_decoder import (
 )
 from transcriber.application.ports import Audio
 from transcriber.domain.activity import heard_words, speech_activity
+from transcriber.domain.certainty import VoiceEvidence, keep_sentences_whole
 from transcriber.domain.enrolment import SampleRules, enrolment_vector
 from transcriber.domain.errors import SampleRejectedError
 from transcriber.domain.models import Voiceprint, Word
 from transcriber.domain.parameters import TranscriptionParameters
+from transcriber.domain.seams import resolve_seams
 from transcriber.domain.speakers import (
     SpeakerSpan,
     analysis_windows,
@@ -444,6 +446,7 @@ class Recording(NamedTuple):
     coarse_windows: List[Tuple[float, float]]
     fine_windows: List[Tuple[float, float]]
     embed_seconds: float
+    raw_words: Sequence[Word] = ()
 
 
 def load_split(data_dir: Path, split: str) -> Tuple[Row, List[Recording]]:
@@ -455,7 +458,7 @@ def load_split(data_dir: Path, split: str) -> Tuple[Row, List[Recording]]:
     out: List[Recording] = []
     for recording in plan["recordings"]:
         built = build(corpus, recording)
-        words = load_words(cache, recording["id"])
+        raw = words = load_words(cache, recording["id"])
         if not recording["kind"].startswith("enrol"):
             words = gated(words, built.audio, p)
         stored = np.load(vectors_path(cache, recording["id"]))
@@ -470,7 +473,7 @@ def load_split(data_dir: Path, split: str) -> Tuple[Row, List[Recording]]:
             stored["coarse"].astype(np.float32),
             stored["fine"].astype(np.float32),
             pairs("coarse_windows"), pairs("fine_windows"),
-            float(stored["seconds"]),
+            float(stored["seconds"]), raw,
         ))
     return plan, out
 
@@ -986,6 +989,105 @@ def identification_rows(
     return rows
 
 
+# Longest stretch keep_sentences_whole may move, swept by
+# whole_sentence_rows (None: the rule off).
+MAX_MOVES: Tuple[Optional[float], ...] = (None, 1.5, 3.0, 6.0, 1e9)
+
+
+def seeded_with_rule(rec: Recording, prints: Dict[str, FloatArray],
+                     count: Optional[int], p: TranscriptionParameters,
+                     single: Callable[[FloatArray], bool], taken: Set[str],
+                     max_move: Optional[float]) -> Tuple[List[Word],
+                                                         List[str]]:
+    """Return the words and their final speakers, as the pipeline does.
+
+    The default pipeline (TranscribeSession): seams resolved, words over
+    silence dropped, voiceprints as seeds at the default threshold on
+    unit vectors, short windows to the nearest group, smoothing, then
+    :func:`keep_sentences_whole` with ``max_move`` (``None``: the rule
+    off) and the default margin and gap.
+    """
+    words = gated(resolve_seams(rec.raw_words), rec.built.audio, p)
+    seeded = seed_voices(
+        rec.coarse, rec.fine, voiceprints_of(prints), count,
+        p.match_threshold, unit_vectors, p.group_threshold, p.max_speakers,
+        single,
+    )
+    if rec.fine_windows:
+        spans = spans_from_windows(rec.fine_windows, seeded.fine)
+    else:
+        spans = spans_from_windows(rec.coarse_windows, seeded.coarse)
+    words = assign_speakers(words, spans)
+    if p.smoothing_run:
+        words = smooth_speakers(words, p.smoothing_run)
+    if max_move is not None and seeded.fine_scores is not None:
+        evidence = VoiceEvidence(rec.fine_windows, seeded.fine_scores, [
+            speaker_label(n) for n in range(seeded.fine_scores.shape[1])])
+        words = keep_sentences_whole(
+            words, evidence, p.whole_sentence_margin, p.turn_gap, max_move,
+        ).words
+    final: Dict[str, str] = {}
+    anon_number = 1
+    for label in dict.fromkeys(w.speaker or "" for w in words):
+        number = int(label.split("_")[1]) - 1
+        if number in seeded.people:
+            final[label] = seeded.people[number]
+        else:
+            while f"S{anon_number}" in taken:
+                anon_number += 1
+            final[label] = f"S{anon_number}"
+            anon_number += 1
+    return words, [final[w.speaker or ""] for w in words]
+
+
+def whole_sentence_rows(
+    split: str, recordings: Sequence[Recording],
+    prints: Dict[str, FloatArray], p: TranscriptionParameters,
+    single: Callable[[FloatArray], bool],
+) -> List[Row]:
+    """Words on the right id with keep_sentences_whole off and on.
+
+    The four-reader meetings, every enrolment condition, the number of
+    speakers given and estimated; ``max_move`` swept over
+    :data:`MAX_MOVES`. The truth of each word is recomputed for the
+    words the pipeline keeps (seams resolved first).
+    """
+    totals: Dict[Tuple[str, str, Optional[float]], List[Row]] = \
+        defaultdict(list)
+    for rec in recordings:
+        if rec.plan["kind"] != "meeting":
+            continue
+        present = set(rec.plan["readers"])
+        for condition in CONDITIONS:
+            enrolled = enrolled_set(rec.plan, condition)
+            candidates = {k: prints[k] for k in sorted(enrolled)}
+            for count_name, count in (("known", len(present)),
+                                      ("estimated", None)):
+                for max_move in MAX_MOVES:
+                    words, names = seeded_with_rule(
+                        rec, candidates, count, p, single, set(prints),
+                        max_move)
+                    truth = word_truth(words, rec.built.spans)
+                    totals[(condition, count_name, max_move)].append(
+                        score(names, truth, enrolled, present))
+        print(f"  whole sentences {rec.plan['id']} done", flush=True)
+    rows: List[Row] = []
+    for (condition, count_name, max_move), scores in sorted(
+            totals.items(), key=lambda kv: (kv[0][0], kv[0][1],
+                                            -1 if kv[0][2] is None
+                                            else kv[0][2])):
+        summed = {k: sum(s[k] for s in scores) for k in scores[0]}
+        rows.append({
+            "split": split, "question": "whole_sentences",
+            "condition": condition, "speakers": count_name,
+            "rule": "off" if max_move is None else "on",
+            "max_move": max_move, "meetings": len(scores),
+            "words": summed["words"], "right": summed["right"],
+            "right_share": round(summed["right"] / summed["words"], 4),
+        })
+    return rows
+
+
 def diarization_rows(split: str, recordings: Sequence[Recording],
                      p: TranscriptionParameters,
                      rules: Dict[str, Callable[[FloatArray], bool]]
@@ -1274,6 +1376,29 @@ def analyse(args: argparse.Namespace) -> None:
                 THRESHOLDS)
         print(write_jsonl(OUTPUT / "identification.jsonl", rows),
               "identification rows")
+    if "sentences" in what:
+        rows = []
+        for s in SPLITS:
+            rows += whole_sentence_rows(
+                s, loaded[s][1], enrolled_prints(loaded[s][1], rules, p),
+                p, chosen)
+        print(write_jsonl(OUTPUT / "whole_sentences.jsonl", rows),
+              "whole-sentence rows")
+
+
+def enrolled_prints(recordings: Sequence[Recording], rules: SampleRules,
+                    p: TranscriptionParameters) -> Dict[str, FloatArray]:
+    """Return the voiceprint of every reader's enrolment sample."""
+    prints: Dict[str, FloatArray] = {}
+    for rec in recordings:
+        if rec.plan["kind"] != "enrol":
+            continue
+        reason, vector = try_enrol(rec, rules, p)
+        if vector is None:
+            raise SystemExit(f"genuine sample rejected: {rec.plan['id']}:"
+                             f" {reason}")
+        prints[rec.plan["readers"][0]] = vector
+    return prints
 
 
 def main() -> None:

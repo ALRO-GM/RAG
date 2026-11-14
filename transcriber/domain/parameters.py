@@ -13,6 +13,12 @@ from typing import Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from transcriber.domain.certainty import (
+    DEFAULT_DOUBT_MARGIN,
+    DEFAULT_MAX_MOVE,
+    DEFAULT_MAX_MOVED,
+    DEFAULT_OVERLAP_SECONDS,
+)
 from transcriber.domain.voices import (
     DEFAULT_MATCH_THRESHOLD,
     Normalisation,
@@ -58,6 +64,38 @@ class TranscriptionParameters(BaseModel):
     (seconds) and a frame whose RMS level reaches the threshold (full
     scale is 1) is speech; a recognised word with no such frame in its
     span is dropped (recognisers invent words over silence).
+    ``doubt_margin``: a sentence whose speaker margin (the voice windows'
+    cosine with its speaker minus that with the closest other voice;
+    :mod:`transcriber.domain.certainty`) is below this is ``doubtful``;
+    a window inside a sentence that prefers another voice by at least
+    this much makes it an ``overlap``.
+    ``whole_sentences``: undo weak speaker changes inside a sentence
+    (:func:`~transcriber.domain.certainty.keep_sentences_whole`): a run
+    of at most ``whole_sentence_max_move`` seconds whose speaker the
+    windows do not support (margin at most 0, or below
+    ``whole_sentence_margin`` with a single window preferring it) goes
+    to a neighbouring speaker; one sentence gives away at most
+    ``whole_sentence_max_moved`` seconds in all (a judgement, the same
+    6 s; beyond it the sentence is cut at the changes). The sentences
+    holding a moved stretch carry its margin in their certainty.
+    Measured, before the per-sentence bound and the single-window
+    condition existed, in
+    TR-05's synthetic meetings (``docs/transcriber/IDENTIFICATION.md``,
+    appendix; held-out readers, mean of the four enrolment conditions,
+    seeded identification): with the rule on (6 s) 95.0% of words on
+    the right id against 91.4% off with the number of speakers given,
+    88.1% against 81.8% with it estimated.
+    ``expected_floor``: when a session lists who is present and the
+    number of speakers equals the list, the voices are clustered into
+    that many groups and assigned one to one to the listed voiceprints
+    (maximum total cosine), each pair accepted at this cosine or more;
+    a person named below ``match_threshold`` is marked
+    ``expected_floor`` in the transcript. 0.8 is a judgement from three
+    real sessions of two people (``docs/transcriber/OVERLAP.md`` §2.6:
+    lowest true pair 0.899, highest cross pair 0.730), not a
+    measurement of error rates. Open sessions keep ``match_threshold``.
+    ``overlap_seconds``: an utterance with at least this many seconds on
+    overlap found by the overlap detector is an ``overlap``.
 
     Measured in TR-05 (``docs/transcriber/IDENTIFICATION.md``; figures
     on the readers held out from the choice): ``match_threshold`` 0.95
@@ -103,6 +141,23 @@ class TranscriptionParameters(BaseModel):
     turn_gap: float = Field(default=1.0, ge=0, allow_inf_nan=False)
     activity_frame: float = Field(default=0.025, gt=0, allow_inf_nan=False)
     activity_threshold: float = Field(default=0.003, ge=0, le=1)
+    doubt_margin: float = Field(
+        default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
+    )
+    whole_sentences: bool = True
+    whole_sentence_margin: float = Field(
+        default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
+    )
+    whole_sentence_max_move: float = Field(
+        default=DEFAULT_MAX_MOVE, ge=0, allow_inf_nan=False
+    )
+    whole_sentence_max_moved: float = Field(
+        default=DEFAULT_MAX_MOVED, ge=0, allow_inf_nan=False
+    )
+    expected_floor: float = Field(default=0.8, ge=-1, le=1)
+    overlap_seconds: float = Field(
+        default=DEFAULT_OVERLAP_SECONDS, gt=0, allow_inf_nan=False
+    )
 
     @model_validator(mode="after")
     def _windows(self) -> "TranscriptionParameters":

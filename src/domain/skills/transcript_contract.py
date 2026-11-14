@@ -13,7 +13,7 @@ previous speaker and utterance of every turn).
 
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import (
     AwareDatetime,
@@ -56,16 +56,43 @@ class ContractSession(_Strict):
     )
 
 
+Identification = Literal["threshold", "expected_floor"]
+
+
 class ContractSpeaker(_Strict):
-    """A voice of the session: an enrolled person or an anonymous label."""
+    """A voice of the session: an enrolled person or an anonymous label.
+
+    ``identification`` (optional) says how an enrolled person was
+    recognised: ``threshold``, or ``expected_floor`` (listed as present
+    and only above the lower floor: a weaker identification; a person
+    who spoke without being listed is given a listed name this way).
+    """
 
     id: str = Field(min_length=1)
     name: Optional[str] = None
     enrolled: bool
+    identification: Optional[Identification] = None
+
+    @model_validator(mode="after")
+    def _identified(self) -> "ContractSpeaker":
+        """Only an enrolled person has a way of identification."""
+        if self.identification is not None and not self.enrolled:
+            raise ValueError(f"anonymous speaker {self.id} is identified")
+        return self
 
 
 class ContractUtterance(_Strict):
-    """One sentence of one turn, with its place in the audio."""
+    """One sentence of one turn, with its place in the audio.
+
+    ``speaker_certainty`` (a similarity margin in [-2, 2], not a
+    probability), ``doubtful``, ``overlap`` and ``alternative_speaker``
+    describe how well the voice evidence supports this sentence's
+    speaker; ``overlap_source`` says what flagged an overlap
+    (``voices``, ``detector`` or ``both``); ``language`` is the language
+    detected where the sentence was said and ``language_differs`` tells
+    it is not the session's fixed one. All are optional (older
+    transcripts lack them).
+    """
 
     id: str = Field(pattern=UTTERANCE_ID_PATTERN)
     turn: int = Field(ge=0)
@@ -82,6 +109,15 @@ class ContractUtterance(_Strict):
     speaker_confidence: Optional[float] = Field(
         default=None, ge=-1, le=1, allow_inf_nan=False
     )
+    speaker_certainty: Optional[float] = Field(
+        default=None, ge=-2, le=2, allow_inf_nan=False
+    )
+    doubtful: Optional[bool] = None
+    overlap: Optional[bool] = None
+    alternative_speaker: Optional[str] = Field(default=None, min_length=1)
+    overlap_source: Optional[Literal["voices", "detector", "both"]] = None
+    language: Optional[str] = Field(default=None, min_length=2)
+    language_differs: Optional[bool] = None
 
     @model_validator(mode="after")
     def _consistent(self) -> "ContractUtterance":
@@ -93,6 +129,10 @@ class ContractUtterance(_Strict):
             )
         if self.end < self.start:
             raise ValueError(f"utterance {self.id} ends before it starts")
+        if self.alternative_speaker == self.speaker:
+            raise ValueError(
+                f"utterance {self.id} has itself as alternative speaker"
+            )
         return self
 
 
@@ -121,7 +161,10 @@ class ContractTranscript(_Strict):
             raise ValueError("speaker ids must be unique")
         listed = set(ids)
         for utterance in self.utterances:
-            for who in (utterance.speaker, utterance.previous_speaker):
+            for who in (
+                utterance.speaker, utterance.previous_speaker,
+                utterance.alternative_speaker,
+            ):
                 if who is not None and who not in listed:
                     raise ValueError(
                         f"utterance {utterance.id} names an unlisted "
@@ -129,6 +172,29 @@ class ContractTranscript(_Strict):
                     )
         check_turns(self.utterances)
         return self
+
+    def identification_of(
+        self, utterance: ContractUtterance
+    ) -> Optional[Identification]:
+        """Return how the speaker of ``utterance`` was identified.
+
+        Derived from the speaker list (the contract says it once per
+        speaker): ``None`` for an anonymous voice or an older document.
+        """
+        for speaker in self.speakers:
+            if speaker.id == utterance.speaker:
+                return speaker.identification
+        return None
+
+    def named_through_floor(self, utterance: ContractUtterance) -> bool:
+        """Tell whether the speaker of ``utterance`` is only a listed guess.
+
+        ``True`` when that speaker was named through the expected
+        speakers floor: the name may belong to someone else who spoke
+        without being listed, so an analysis should down-weight or skip
+        the sentence's attribution.
+        """
+        return self.identification_of(utterance) == "expected_floor"
 
     def turns(self) -> List[List[ContractUtterance]]:
         """Return the utterances grouped by turn, in order."""

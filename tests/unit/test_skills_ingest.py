@@ -22,6 +22,8 @@ from src.application.skills.ingest import (
     ShowIngestedTranscript,
 )
 from src.domain.errors import InvalidInputError, NotFoundError
+from src.domain.skills.speech import sentence_transcript, transcript_sentences
+from src.domain.skills.transcript import from_contract
 from src.domain.skills.transcript_contract import (
     is_session_id,
     read_contract,
@@ -77,6 +79,62 @@ def test_the_example_is_accepted(validator: Draft202012Validator) -> None:
     assert [len(t) for t in transcript.turns()] == [2, 1, 1]
     assert transcript.session.started_at is not None
     assert transcript.session.started_at.utcoffset() is not None
+
+
+def test_the_certainty_fields_are_read_and_optional(
+    validator: Draft202012Validator,
+) -> None:
+    document = example()
+    doubtful = read_contract(document).utterances[2]
+    transcript = read_contract(document)
+    doubtful = transcript.utterances[2]
+    assert (doubtful.speaker_certainty, doubtful.doubtful,
+            doubtful.overlap, doubtful.alternative_speaker,
+            doubtful.overlap_source) == (0.04, True, True, "S1", "detector")
+    first = transcript.utterances[0]
+    assert (first.language, first.language_differs) == ("es", False)
+    assert [s.identification for s in transcript.speakers] == [
+        "threshold", "expected_floor", None]
+    for item in document["utterances"]:
+        for key in ("speaker_certainty", "doubtful", "overlap",
+                    "alternative_speaker", "overlap_source", "language",
+                    "language_differs"):
+            item.pop(key, None)
+    for item in document["speakers"]:
+        item.pop("identification", None)
+    validator.validate(document)
+    plain = read_contract(document).utterances[2]
+    assert plain.speaker_certainty is None and plain.doubtful is None
+    assert plain.language is None and plain.overlap_source is None
+
+
+def test_every_sentence_of_a_floor_name_says_so() -> None:
+    """Luis was named through the floor: each of his sentences tells.
+
+    The contract keeps it once per speaker; the readers derive it per
+    utterance, per turn and per sentence, so the analyzer can
+    down-weight or leave out those attributions.
+    """
+    contract = read_contract(example())
+    assert [contract.identification_of(u) for u in contract.utterances] == [
+        "threshold", "threshold", "expected_floor", None]
+    assert [contract.named_through_floor(u)
+            for u in contract.utterances] == [False, False, True, False]
+    transcript = from_contract(contract)
+    assert [t.named_through_floor() for t in transcript.turns] == [
+        False, True, False]
+    sentences = transcript_sentences(transcript)
+    assert [(s.id, s.named_through_floor()) for s in sentences] == [
+        ("t0.s0", False), ("t0.s1", False), ("t1.s0", True),
+        ("t2.s0", False)]
+    flat = sentence_transcript(transcript, sentences)
+    assert [t.named_through_floor() for t in flat.turns] == [
+        False, False, True, False]
+    older = example()
+    for item in older["speakers"]:
+        item.pop("identification", None)
+    plain = transcript_sentences(from_contract(read_contract(older)))
+    assert not any(s.named_through_floor() for s in plain)
 
 
 def test_whole_numbers_are_valid_times() -> None:
@@ -140,6 +198,21 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
      set_in(["utterances", 0, "speaker_confidence"], "0.74")),
     ("previous speaker as a number",
      set_in(["utterances", 2, "previous_speaker"], 7)),
+    ("speaker certainty below -2",
+     set_in(["utterances", 0, "speaker_certainty"], -2.5)),
+    ("speaker certainty as a string",
+     set_in(["utterances", 0, "speaker_certainty"], "0.8")),
+    ("doubtful as a number", set_in(["utterances", 0, "doubtful"], 1)),
+    ("overlap as a string", set_in(["utterances", 0, "overlap"], "true")),
+    ("empty alternative speaker",
+     set_in(["utterances", 2, "alternative_speaker"], "")),
+    ("unknown identification",
+     set_in(["speakers", 0, "identification"], "guess")),
+    ("unknown overlap source",
+     set_in(["utterances", 0, "overlap_source"], "ears")),
+    ("language too short", set_in(["utterances", 0, "language"], "e")),
+    ("language differs as a string",
+     set_in(["utterances", 0, "language_differs"], "yes")),
     ("recogniser as a number", set_in(["pipeline", "recogniser"], 1)),
     ("utterances as an object", set_in(["utterances"], {})),
     ("speakers as a string", set_in(["speakers"], "marta")),
@@ -173,6 +246,9 @@ def swap_turns(document: Dict[str, Any]) -> None:
 
 # Each breaks a rule of §4 the JSON schema cannot express.
 STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
+    ("an anonymous voice identified",
+     lambda d: d["speakers"][2].update(identification="threshold"),
+     "identified"),
     ("id does not match turn and index",
      lambda d: utterance(d, 1).update(id="t0.s5"), "does not match"),
     ("utterance ends before it starts",
@@ -181,6 +257,12 @@ STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
      lambda d: d["speakers"].append(dict(d["speakers"][0])), "unique"),
     ("unlisted speaker",
      lambda d: [utterance(d, 3).update(speaker="nadie")], "unlisted"),
+    ("unlisted alternative speaker",
+     lambda d: utterance(d, 2).update(alternative_speaker="nadie"),
+     "unlisted"),
+    ("the speaker as its own alternative",
+     lambda d: utterance(d, 2).update(alternative_speaker="luis"),
+     "itself as alternative"),
     ("utterances out of order", swap_turns, "out of order"),
     ("gap in turn numbers",
      lambda d: utterance(d, 3).update(id="t3.s0", turn=3), "expected turn 2"),

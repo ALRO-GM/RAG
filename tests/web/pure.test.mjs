@@ -6,7 +6,8 @@ import {
 import { pickLanguage, translate } from "../../transcriber/adapters/inbound/web/js/lib/i18n.js";
 import {
   seekTime, parseLead, activeIndex, sortUtterances, speakerName, filterBySpeaker,
-  isAnonymous, mergeTargets, previousHint,
+  isAnonymous, mergeTargets, previousHint, needsReview, filterUtterances, doubtNote,
+  namedByFloor, weakSpeakers, otherLanguage, sentenceNamedByFloor,
 } from "../../transcriber/adapters/inbound/web/js/lib/transcript.js";
 import {
   classifyFailure, isRetryable, nextPollMs, codeFromFragment, fragmentWithoutCode,
@@ -155,6 +156,62 @@ test("speaker helpers", () => {
   assert.equal(previousHint({ speaker: "ana", previous_speaker: "S2" }, speakers), "Luis");
   assert.equal(previousHint({ speaker: "ana", previous_speaker: null }, speakers), null);
   assert.equal(previousHint({ speaker: "ana", previous_speaker: "ana" }, speakers), null);
+});
+
+test("doubtful attributions are marked and can be shown alone", () => {
+  const speakers = [{ id: "ana", name: "Ana", enrolled: true }, { id: "S1", name: null, enrolled: false }];
+  const sure = { speaker: "ana", speaker_certainty: 0.8, doubtful: false, overlap: false };
+  const doubt = { speaker: "ana", speaker_certainty: 0.04, doubtful: true, overlap: false, alternative_speaker: "S1" };
+  const mixed = { speaker: "S1", speaker_certainty: 0.5, doubtful: false, overlap: true, alternative_speaker: "ana" };
+  const old = { speaker: "S1" }; // a transcript made before the fields existed
+  const us = [sure, doubt, mixed, old];
+  assert.deepEqual(us.map(needsReview), [false, true, true, false]);
+  assert.deepEqual(filterUtterances(us, "", true), [doubt, mixed]);
+  assert.deepEqual(filterUtterances(us, "ana", true), [doubt]);
+  assert.deepEqual(filterUtterances(us, "ana"), [sure, doubt]);
+  assert.equal(doubtNote(sure, speakers), null);
+  assert.equal(doubtNote(old, speakers), null);
+  assert.deepEqual(doubtNote(doubt, speakers),
+    { doubtful: true, overlap: false, floor: false, alternative: "S1", certainty: 0.04 });
+  assert.deepEqual(doubtNote(mixed, speakers),
+    { doubtful: false, overlap: true, floor: false, alternative: "Ana", certainty: 0.5 });
+  assert.equal(doubtNote({ ...doubt, speaker_certainty: null, alternative_speaker: null }, speakers).certainty, null);
+});
+
+test("people named through the floor are pointed out", () => {
+  const strong = { id: "ana", name: "Ana", enrolled: true, identification: "threshold" };
+  const weak = { id: "luis", name: "Luis", enrolled: true, identification: "expected_floor" };
+  const old = { id: "eva", name: "Eva", enrolled: true }; // before the field existed
+  const anon = { id: "S1", name: null, enrolled: false };
+  assert.deepEqual([strong, weak, old, anon].map(namedByFloor), [false, true, false, false]);
+  assert.equal(namedByFloor(undefined), false);
+  assert.deepEqual(weakSpeakers([strong, weak, old, anon]), [weak]);
+});
+
+test("every sentence of a person named through the floor is marked", () => {
+  const speakers = [
+    { id: "ana", name: "Ana", enrolled: true, identification: "threshold" },
+    { id: "eva", name: "Eva", enrolled: true, identification: "expected_floor" },
+  ];
+  // Clear by the voice windows, but the name comes from the list only.
+  const guessed = { speaker: "eva", speaker_certainty: 0.7, doubtful: false, overlap: false };
+  const sure = { speaker: "ana", speaker_certainty: 0.7, doubtful: false, overlap: false };
+  assert.equal(sentenceNamedByFloor(guessed, speakers), true);
+  assert.equal(sentenceNamedByFloor(sure, speakers), false);
+  assert.equal(sentenceNamedByFloor(guessed), false);
+  assert.equal(needsReview(guessed, speakers), true);
+  assert.equal(needsReview(guessed), false);
+  assert.deepEqual(filterUtterances([sure, guessed], "", true, speakers), [guessed]);
+  assert.deepEqual(doubtNote(guessed, speakers),
+    { doubtful: false, overlap: false, floor: true, alternative: null, certainty: 0.7 });
+  assert.equal(doubtNote(sure, speakers), null);
+});
+
+test("another language than the session's is pointed out", () => {
+  assert.equal(otherLanguage({ language: "en", language_differs: true }), "en");
+  assert.equal(otherLanguage({ language: "es", language_differs: false }), null);
+  assert.equal(otherLanguage({ language: "en", language_differs: null }), null);
+  assert.equal(otherLanguage({}), null);
 });
 
 test("classifyFailure", () => {

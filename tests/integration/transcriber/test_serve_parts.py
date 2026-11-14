@@ -125,6 +125,21 @@ class TestSettingsFromTheEnvironment:
         with pytest.raises(OSError):
             load_settings({"TRANSCRIBER_CONFIG": str(tmp_path / "none")})
 
+    def test_the_fake_detector_is_refused_with_real_models(
+        self, tmp_path: Path,
+    ) -> None:
+        config = tmp_path / "settings.json"
+        config.write_text(json.dumps({"overlap_detector": "fake"}))
+        with pytest.raises(ValidationError, match="only for runtime"):
+            load_settings({"TRANSCRIBER_CONFIG": str(config)})
+        with pytest.raises(ValidationError, match="only for runtime"):
+            TranscriberSettings(runtime="real", overlap_detector="fake")
+        settings = load_settings({"TRANSCRIBER_CONFIG": str(config),
+                                  "TRANSCRIBER_RUNTIME": "fake"})
+        assert settings.overlap_detector == "fake"
+        assert TranscriberSettings(
+            runtime="real", overlap_detector="off").overlap_detector == "off"
+
 
 class FakeTunnel:
     """A tunnel whose status the test sets."""

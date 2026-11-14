@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from src.domain.errors import CorruptedDataError, InvalidInputError
 from src.domain.skills.transcript_contract import (
     ContractTranscript,
+    Identification,
     read_contract,
 )
 
@@ -69,6 +70,8 @@ class Turn(BaseModel):
     ``sentences`` are the turn's sentences when the source gave them
     (``transcript.v1``), and ``previous_speaker`` who spoke in the turn
     before, when the source says so; both are empty otherwise.
+    ``speaker_identification`` is how the transcriber identified the
+    speaker (``threshold`` or ``expected_floor``), when it says so.
     """
 
     index: int = Field(ge=0)
@@ -80,6 +83,17 @@ class Turn(BaseModel):
     confidence: Optional[float] = None
     sentences: List[TurnSentence] = Field(default_factory=list)
     previous_speaker: Optional[str] = None
+    speaker_identification: Optional[Identification] = None
+
+    def named_through_floor(self) -> bool:
+        """Tell whether the speaker's name is only a guess from a list.
+
+        ``True`` when the transcriber named the speaker through the
+        expected-speakers floor: someone who spoke without being listed
+        is given a listed name that way, so the attribution of the
+        turn's sentences should be down-weighted or left out.
+        """
+        return self.speaker_identification == "expected_floor"
 
     def n_words(self) -> int:
         """Return the number of words of the turn."""
@@ -227,7 +241,8 @@ def from_contract(contract: ContractTranscript) -> Transcript:
 
     One turn per contract turn, keeping its number; its sentences are
     the contract's utterances with their ids and times; the speaker and
-    the previous speaker are shown as :func:`speaker_names` says. The
+    the previous speaker are shown as :func:`speaker_names` says, and
+    the speaker's identification is kept (``named_through_floor``). The
     turn's confidence is the mean of its utterances' when they have one.
     """
     names = speaker_names(contract)
@@ -250,6 +265,7 @@ def from_contract(contract: ContractTranscript) -> Transcript:
                 for u in utterances
             ],
             previous_speaker=None if previous is None else names[previous],
+            speaker_identification=contract.identification_of(first),
         ))
     if not turns:
         raise InvalidInputError(

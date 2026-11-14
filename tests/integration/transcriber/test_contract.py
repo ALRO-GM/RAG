@@ -55,6 +55,25 @@ def test_example_round_trips(validator: Draft202012Validator) -> None:
     assert json.loads(json.dumps(out)) == example
 
 
+def test_a_document_without_the_certainty_fields_still_reads(
+    validator: Draft202012Validator,
+) -> None:
+    """The fields added to transcript.v1 are optional both ways."""
+    added = ("speaker_certainty", "doubtful", "overlap",
+             "alternative_speaker", "overlap_source", "language",
+             "language_differs")
+    old = load(EXAMPLE_PATH)
+    for item in old["utterances"]:
+        for key in added:
+            item.pop(key, None)
+    for item in old["speakers"]:
+        item.pop("identification", None)
+    validator.validate(old)
+    transcript = Transcript.from_contract(old)
+    assert all(u.speaker_certainty is None for u in transcript.utterances)
+    assert transcript.to_contract() == old
+
+
 def test_built_transcript_validates(validator: Draft202012Validator) -> None:
     turns = [
         Turn(speaker="marta", text="Creo que sí. Pero no estoy segura.",
@@ -110,6 +129,9 @@ def swap_turns(document: Dict[str, Any]) -> None:
 
 # Each breaks a rule of §4 that the JSON schema cannot express.
 STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
+    ("an anonymous voice identified",
+     lambda d: d["speakers"][2].update(identification="threshold"),
+     "not identified"),
     ("previous differs inside a turn", split_luis_turn,
      "does not share the previous"),
     ("first turn has a previous",
@@ -136,6 +158,12 @@ STRUCTURE_BREAKS: List[Tuple[str, Change, str]] = [
     ("gap in turn numbers",
      lambda d: utterance(d, 3).update(id="t3.s0", turn=3),
      "expected turn 2"),
+    ("alternative speaker not listed",
+     lambda d: utterance(d, 2).update(alternative_speaker="pablo"),
+     "unlisted speaker pablo"),
+    ("alternative speaker is the speaker",
+     lambda d: utterance(d, 2).update(alternative_speaker="luis"),
+     "alternative speaker must be someone else"),
     ("gap in sentence indices",
      lambda d: (utterance(d, 1).update(id="t0.s2", index=2),
                 utterance(d, 2).update(previous_utterance="t0.s2")),
@@ -192,6 +220,25 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
      set_in(["utterances", 0, "speaker_confidence"], "0.74")),
     ("previous speaker as a number",
      set_in(["utterances", 2, "previous_speaker"], 7)),
+    ("speaker certainty above 2",
+     set_in(["utterances", 0, "speaker_certainty"], 2.5)),
+    ("speaker certainty as a string",
+     set_in(["utterances", 0, "speaker_certainty"], "0.8")),
+    ("doubtful as a string", set_in(["utterances", 0, "doubtful"], "no")),
+    ("overlap as a number", set_in(["utterances", 0, "overlap"], 0)),
+    ("empty alternative speaker",
+     set_in(["utterances", 2, "alternative_speaker"], "")),
+    ("alternative speaker as a number",
+     set_in(["utterances", 2, "alternative_speaker"], 1)),
+    ("unknown identification",
+     set_in(["speakers", 0, "identification"], "guess")),
+    ("identification as a number",
+     set_in(["speakers", 0, "identification"], 1)),
+    ("unknown overlap source",
+     set_in(["utterances", 0, "overlap_source"], "ears")),
+    ("language too short", set_in(["utterances", 0, "language"], "e")),
+    ("language differs as a string",
+     set_in(["utterances", 0, "language_differs"], "yes")),
     ("recogniser as a number", set_in(["pipeline", "recogniser"], 1)),
     ("schema as another version", set_in(["schema"], "transcript.v2")),
     ("utterances as an object", set_in(["utterances"], {})),

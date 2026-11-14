@@ -211,11 +211,12 @@ details[open] > summary { margin-bottom: 0.5rem; }
 .utterances { list-style: none; margin: 0.5rem 0 1rem; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .utterance { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .utterance.active { background: var(--active); border-color: var(--accent); }
+.utterance.doubtful { border-left: 4px solid var(--warn-text); }
 
 .row-button {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-areas: "time who" "text text" "after after";
+  grid-template-areas: "time who" "text text" "doubt doubt" "after after";
   gap: 0.1rem 0.7rem;
   width: 100%;
   min-height: var(--target);
@@ -231,8 +232,10 @@ details[open] > summary { margin-bottom: 0.5rem; }
 
 .row-button .time { grid-area: time; color: var(--muted); font-variant-numeric: tabular-nums; }
 .row-button .who { grid-area: who; font-weight: 700; }
+.row-button .who.weak { font-style: italic; text-decoration: underline dotted; }
 .row-button .text { grid-area: text; }
 .row-button .after { grid-area: after; color: var(--muted); font-size: 0.85rem; }
+.row-button .doubt { grid-area: doubt; justify-self: start; background: var(--warn-bg); color: var(--warn-text); font-size: 0.85rem; padding: 0.05rem 0.4rem; border-radius: 4px; }
 .change { padding: 0 0.8rem 0.5rem; display: flex; }
 .change select { min-height: 36px; }
 

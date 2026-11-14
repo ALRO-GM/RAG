@@ -3,17 +3,25 @@
 import sys
 import threading
 import types
+from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
 import pytest
 
-from tests.integration.transcriber.audio import RATE, noise, scene, silence
+from tests.integration.transcriber.audio import (
+    RATE,
+    noise,
+    scene,
+    silence,
+    tone,
+)
 from transcriber.adapters.outbound import torch_runtime
 from transcriber.adapters.outbound.fake_models import (
     FAKE_RECOGNISER,
     FAKE_VOICE_MODEL,
     SENTENCE_WORDS,
+    FakeOverlapDetector,
     FakeSpeechRecogniser,
     FakeVoiceEncoder,
 )
@@ -22,11 +30,47 @@ from transcriber.adapters.outbound.wavlm_voice_encoder import (
 )
 from transcriber.adapters.outbound.whisper_recogniser import (
     WhisperRecogniser,
+    mean_token_probabilities,
+    scoring_windows,
+    whisper_language,
     without_encoder_attentions,
     words_from_chunks,
 )
+from transcriber.adapters.outbound.whisper_languages import (
+    WHISPER_LANGUAGES,
+)
 from transcriber.application.ports import Audio
+from transcriber.bootstrap import build_container
+from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.models import Word
+
+
+class TestWordProbabilities:
+    def test_windows_start_at_a_word_and_hold_what_ends_within(self) -> None:
+        words = [Word(text=" a", start=s, end=s + 1.0)
+                 for s in (0.0, 10.0, 28.0, 29.5, 45.0)]
+        assert scoring_windows(words, 30.0) == [
+            (0.0, [0, 1, 2]), (29.5, [3, 4]),
+        ]
+
+    def test_a_word_longer_than_a_window_is_alone(self) -> None:
+        words = [Word(text=" a", start=0.0, end=40.0),
+                 Word(text=" b", start=40.0, end=41.0)]
+        assert scoring_windows(words, 30.0) == [(0.0, [0]), (40.0, [1])]
+
+    def test_a_word_is_the_mean_of_its_tokens(self) -> None:
+        assert mean_token_probabilities([1, 2, 0], [0.9, 0.5, 0.7]) == [
+            0.9, pytest.approx(0.6), None,
+        ]
+
+    def test_tokens_cut_off_leave_the_word_unknown(self) -> None:
+        assert mean_token_probabilities([2, 2], [0.4, 0.6, 0.8]) == [
+            pytest.approx(0.5), None,
+        ]
+
+    def test_values_stay_probabilities(self) -> None:
+        assert mean_token_probabilities([1], [1.0000001]) == [1.0]
 
 
 class TestWhisperChunks:
@@ -137,6 +181,21 @@ class TestTorchRuntime:
         torch_runtime.release("cuda")
 
 
+class TestWhisperLanguages:
+    def test_the_copied_codes_are_whisper_s(self) -> None:
+        from transformers.models.whisper.tokenization_whisper import (
+            LANGUAGES,
+        )
+
+        assert WHISPER_LANGUAGES == frozenset(LANGUAGES)
+
+    def test_a_code_is_mapped_to_its_token_or_refused(self) -> None:
+        assert whisper_language("es-ES") == "es"
+        assert whisper_language(None) is None
+        with pytest.raises(InvalidInputError):
+            whisper_language("xx")
+
+
 class TestFakeRecogniser:
     def test_words_follow_the_loud_slots(self) -> None:
         samples = scene([("220", 2.0), ("-", 1.2), ("440", 0.8)])
@@ -244,3 +303,32 @@ def test_two_first_uses_at_once_load_one_model(
     assert model.loaded
     model.release()
     assert not model.loaded
+
+
+def test_the_fake_recogniser_scores_nothing() -> None:
+    words = [Word(text="hola", start=0.0, end=0.4)]
+    audio = Audio(samples=silence(1.0), sample_rate=RATE)
+    scored = FakeSpeechRecogniser().score_words(audio, words, "es").words
+    assert scored == words
+    assert "es" in FakeSpeechRecogniser().supported_languages
+
+
+class TestFakeOverlapDetector:
+    def test_two_tones_at_once_are_an_overlap(self) -> None:
+        both = (tone(1.0, hz=220.0, level=0.3)
+                + tone(1.0, hz=660.0, level=0.3)).astype(np.float32)
+        samples = np.concatenate([tone(1.0), silence(1.0), both])
+        found = FakeOverlapDetector().overlaps(
+            Audio(samples=samples, sample_rate=RATE))
+        assert found == [(2.0, 2.5), (2.5, 3.0)]
+        FakeOverlapDetector().release()
+
+
+def test_the_settings_pick_the_overlap_detector(tmp_path: Path) -> None:
+    off = build_container(TranscriberSettings(data_dir=tmp_path,
+                                              runtime="fake"))
+    assert off.overlaps is None
+    on = build_container(TranscriberSettings(
+        data_dir=tmp_path, runtime="fake", overlap_detector="fake"))
+    assert isinstance(on.overlaps, FakeOverlapDetector)
+    on.release_models()

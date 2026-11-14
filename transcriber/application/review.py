@@ -92,6 +92,13 @@ class _Review:
         speakers = [by_id[i] for i in dict.fromkeys(
             u.speaker for u in regrouped
         )]
+        heard = {s.id for s in speakers}
+        regrouped = [
+            u if u.alternative_speaker is None
+            or u.alternative_speaker in heard
+            else u.model_copy(update={"alternative_speaker": None})
+            for u in regrouped
+        ]
         edited = Transcript(
             session=transcript.session, speakers=speakers,
             utterances=regrouped, pipeline=transcript.pipeline,
@@ -110,6 +117,50 @@ class _Review:
         return edited
 
 
+def by_hand(utterance: Utterance, speaker: str) -> Utterance:
+    """Return ``utterance`` attributed to ``speaker`` by hand.
+
+    The voice evidence no longer applies: the speaker confidence and the
+    certainty, doubt, overlap and alternative speaker are cleared.
+    """
+    return utterance.model_copy(update={
+        "speaker": speaker, "speaker_confidence": None,
+        "speaker_certainty": None, "doubtful": None, "overlap": None,
+        "alternative_speaker": None, "overlap_source": None,
+    })
+
+
+def _without_evidence(utterance: Utterance) -> Utterance:
+    """Return ``utterance`` without its voice-window certainty.
+
+    The speaker confidence (the group's similarity with a voiceprint)
+    stays; the margin, doubt, overlap and alternative are cleared.
+    """
+    return utterance.model_copy(update={
+        "speaker_certainty": None, "doubtful": None, "overlap": None,
+        "alternative_speaker": None, "overlap_source": None,
+    })
+
+
+def _after_merge(
+    utterance: Utterance, label: str, target: str
+) -> Utterance:
+    """Return a sentence not of ``label`` once ``label`` is ``target``.
+
+    A sentence of ``target`` loses its certainty: its margin was taken
+    against the closest other voice, which may have been ``label``, now
+    the same person, and the windows cannot be compared again (they are
+    not kept). A sentence of anyone else keeps its margin (the closest
+    other voice was one of the two or someone else; either way a voice
+    of the transcript) and an alternative ``label`` becomes ``target``.
+    """
+    if utterance.speaker == target:
+        return _without_evidence(utterance)
+    if utterance.alternative_speaker != label:
+        return utterance
+    return utterance.model_copy(update={"alternative_speaker": target})
+
+
 class RenameSpeaker(_Review):
     """Name an anonymous voice, or merge it into a known speaker."""
 
@@ -125,8 +176,12 @@ class RenameSpeaker(_Review):
         Exactly one of the two is given. ``name`` only sets the display
         name: the id stays the anonymous label. ``merge_into`` is a
         speaker of the transcript or an enrolled person; every sentence
-        of ``label`` moves to them, with no speaker confidence (the
-        attribution is by hand). Enrolled ids cannot be renamed here.
+        of ``label`` moves to them, with no speaker confidence or
+        certainty (the attribution is by hand); the sentences
+        ``merge_into`` already had lose their certainty (it may have
+        been measured against ``label``), and sentences of others that
+        had ``label`` as their alternative speaker get ``merge_into``.
+        Enrolled ids cannot be renamed here.
         """
         if (name is None) == (merge_into is None):
             raise InvalidInputError("Give either a name or a speaker id.")
@@ -167,9 +222,8 @@ class RenameSpeaker(_Review):
             raise InvalidInputError("A speaker cannot merge into itself.")
         target = self._target(transcript, merge_into)
         utterances = [
-            u.model_copy(update={
-                "speaker": target.id, "speaker_confidence": None,
-            }) if u.speaker == label else u
+            by_hand(u, target.id) if u.speaker == label
+            else _after_merge(u, label, target.id)
             for u in transcript.utterances
         ]
         return self._save(
@@ -187,9 +241,9 @@ class ReassignUtterance(_Review):
         """Give utterance ``utterance_id`` to ``speaker_id``.
 
         The speaker is one of the transcript or an enrolled person. The
-        sentence loses its speaker confidence (the attribution is by
-        hand); its turn splits or joins its neighbours as needed, so
-        utterance ids after it may change.
+        sentence loses its speaker confidence and certainty (the
+        attribution is by hand); its turn splits or joins its
+        neighbours as needed, so utterance ids after it may change.
         """
         check_speaker_id(speaker_id)
         with self._locks.hold(session_id):
@@ -211,9 +265,7 @@ class ReassignUtterance(_Review):
             return transcript
         target = self._target(transcript, speaker_id)
         utterances = [
-            u.model_copy(update={
-                "speaker": target.id, "speaker_confidence": None,
-            }) if u.id == utterance_id else u
+            by_hand(u, target.id) if u.id == utterance_id else u
             for u in transcript.utterances
         ]
         moved = {(w.text, w.start, w.end): target.id for w in current.words}

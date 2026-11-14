@@ -11,13 +11,18 @@ signal in a fixed, predictable way:
 - :class:`FakeVoiceEncoder` describes each window by how its energy is
   spread over frequency bands, so tones of different pitch sound like
   different people and the same tone like the same person.
+- :class:`FakeOverlapDetector` hears two people at once where a slot
+  holds two tones of clearly different pitch (two strong peaks).
 """
 
-from typing import List, Optional, Sequence, Tuple
+from typing import AbstractSet, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from transcriber.application.ports import Audio, RecognisedSpeech
+from transcriber.adapters.outbound.whisper_languages import (
+    WHISPER_LANGUAGES,
+)
+from transcriber.application.ports import Audio, RecognisedSpeech, WordScores
 from transcriber.domain.models import Word
 from transcriber.domain.voices import FloatArray
 
@@ -48,6 +53,11 @@ class FakeSpeechRecogniser:
     """One word per loud 0.4-second slot; punctuation at pauses."""
 
     model_name = FAKE_RECOGNISER
+
+    @property
+    def supported_languages(self) -> AbstractSet[str]:
+        """Return the codes the real recogniser knows (Whisper's)."""
+        return WHISPER_LANGUAGES
 
     def recognise(
         self, audio: Audio, language: Optional[str] = None
@@ -81,6 +91,48 @@ class FakeSpeechRecogniser:
                 end=round((slot + 1) * WORD_SECONDS, 3),
             ))
         return RecognisedSpeech(words=words, language=language)
+
+    def score_words(
+        self, audio: Audio, words: Sequence[Word],
+        language: Optional[str] = None,
+    ) -> WordScores:
+        """Score nothing: every word keeps ``probability`` ``None``."""
+        return WordScores(words=list(words))
+
+    def release(self) -> None:
+        """Nothing to unload."""
+
+
+OVERLAP_SECONDS = 0.5
+"""Length of the slots the fake overlap detector judges."""
+
+
+class FakeOverlapDetector:
+    """Two voices where a slot's spectrum has two strong, distant peaks."""
+
+    model_name = "fake/overlap-detector"
+
+    def overlaps(self, audio: Audio) -> List[Tuple[float, float]]:
+        """Return the slots whose two strongest bins are far apart.
+
+        A slot is loud enough to be speech (:data:`SPEECH_RMS`), and its
+        second strongest frequency, at least 50 Hz from the strongest,
+        has at least a third of its power: two tones at once.
+        """
+        size = max(int(OVERLAP_SECONDS * audio.sample_rate), 1)
+        spans: List[Tuple[float, float]] = []
+        for first in range(0, int(audio.samples.shape[0]) - size + 1, size):
+            clip = audio.samples[first:first + size].astype(np.float64)
+            if float(np.sqrt(np.mean(np.square(clip)))) < SPEECH_RMS:
+                continue
+            power = np.square(np.abs(np.fft.rfft(clip)))
+            hz = np.fft.rfftfreq(clip.size, 1.0 / audio.sample_rate)
+            top = int(np.argmax(power))
+            far = np.abs(hz - hz[top]) >= 50.0
+            if far.any() and float(power[far].max()) >= power[top] / 3:
+                start = first / audio.sample_rate
+                spans.append((start, start + OVERLAP_SECONDS))
+        return spans
 
     def release(self) -> None:
         """Nothing to unload."""

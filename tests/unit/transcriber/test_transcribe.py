@@ -21,7 +21,11 @@ from tests.unit.transcriber.fakes import (
     voice,
 )
 from transcriber import __version__
-from transcriber.application.ports import Audio, RecordedAudio
+from transcriber.application.ports import (
+    Audio,
+    RecognisedSpeech,
+    RecordedAudio,
+)
 from transcriber.application.record import ImportRecording
 from transcriber.application.transcribe import (
     STAGES,
@@ -477,6 +481,134 @@ class TestOrdering:
         assert turns(transcript) == [
             ("S1", None), ("S2", "S1"), ("S1", "S2"),
         ]
+
+
+class SeamRecogniser(FakeRecogniser):
+    """Return the scene's words with a passage repeated, as at a seam.
+
+    After the words up to 20 s it goes back to 13 s and returns Luis's
+    words again from there (the first one glued to 13.0 s), as the
+    Whisper pipeline did on the first real recordings.
+    """
+
+    def recognise(
+        self, audio: Audio, language: Optional[str] = None
+    ) -> RecognisedSpeech:
+        """The scene's words with the 13-20 s passage returned twice."""
+        words = self.scene.words()
+        upto = [wd for wd in words if wd.start < 20.0]
+        again = [wd for wd in words if 13.0 <= wd.start]
+        again[0] = again[0].model_copy(update={"start": 13.0})
+        return RecognisedSpeech(words=upto + again, language=language)
+
+
+class TestCertainty:
+    def test_a_repeated_passage_is_kept_once_and_in_order(self) -> None:
+        w = world()
+        w.recogniser = SeamRecogniser(w.scene)
+        w.transcribe = TranscribeSession(
+            w.sessions, w.voiceprints, w.decoder, w.recogniser, w.encoder,
+            w.locks,
+        )
+        w.queue = QueueTranscription(w.sessions, w.voiceprints, w.runner,
+                                     w.transcribe, w.locks)
+        transcript = w.run()
+        starts = [u.start for u in transcript.utterances]
+        assert starts == sorted(starts)
+        texts = [u.text for u in transcript.utterances]
+        assert len(texts) == len(set(texts))
+        assert [u.text for u in transcript.utterances] == [
+            u.text for u in world().run().utterances
+        ]
+        heard = w.sessions.words("s1")
+        assert len(heard) == len(w.scene.words())
+        # Scored once the seam is resolved: each word once.
+        [given] = w.recogniser.scored
+        assert len(given) == len(w.scene.words())
+
+    def test_each_sentence_gets_its_own_certainty(self) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0), name="Ana")
+        w.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = w.run()
+        for u in transcript.utterances:
+            assert u.speaker_certainty is not None
+            assert u.speaker_certainty > 0.1
+            assert (u.doubtful, u.overlap) == (False, False)
+            assert u.alternative_speaker is None
+        assert len({u.speaker_certainty for u in transcript.utterances}) > 2
+        assert all(u.confidence == pytest.approx(0.9)
+                   for u in transcript.utterances)
+
+    def test_a_high_cut_makes_every_sentence_doubtful(self) -> None:
+        w = world(parameters=TranscriptionParameters(doubt_margin=2.0))
+        transcript = w.run()
+        assert all(u.doubtful for u in transcript.utterances)
+        alternatives = {(u.speaker, u.alternative_speaker)
+                        for u in transcript.utterances}
+        assert alternatives == {("S1", "S2"), ("S2", "S1")}
+        document = transcript.to_contract()
+        assert document["utterances"][0]["doubtful"] is True
+
+    def test_one_voice_has_no_certainty(self) -> None:
+        transcript = world(monologue()).run()
+        assert {u.speaker_certainty for u in transcript.utterances} == {None}
+        assert "doubtful" not in transcript.to_contract()["utterances"][0]
+
+
+class TestRecognitionScores:
+    def test_the_words_are_scored_after_the_seams(self) -> None:
+        w = world()
+        transcript = w.run()
+        [given] = w.recogniser.scored
+        assert [wd.text for wd in given] == [
+            wd.text for wd in w.scene.words()
+        ]
+        assert all(u.confidence == pytest.approx(0.9)
+                   for u in transcript.utterances)
+
+    def test_a_failed_scoring_leaves_no_confidence_not_a_failure(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        w = world()
+        w.recogniser.score_failures.append(RuntimeError("out of memory"))
+        transcript = w.run()
+        session = w.sessions.get("s1")
+        assert session is not None and session.state is SessionState.DONE
+        assert {u.confidence for u in transcript.utterances} == {None}
+        assert all(wd.probability is None for wd in w.sessions.words("s1"))
+        assert "Scoring the recognised words failed" in caplog.text
+        status = w.runner.status("s1")
+        assert status is not None
+        assert "no recognition confidence" in (status.message or "")
+
+
+class TestLanguage:
+    def test_an_unknown_language_is_refused_before_any_job(self) -> None:
+        w = world()
+        w.upload()
+        with pytest.raises(InvalidInputError, match="Unknown language"):
+            w.queue("s1", TranscriptionOptions(language="klingon"))
+        assert w.runner.pending == []
+        session = w.sessions.get("s1")
+        assert session is not None
+        assert session.state is SessionState.UPLOADED
+
+    def test_a_regional_code_reaches_the_recogniser_as_its_base(
+        self,
+    ) -> None:
+        w = world()
+        w.run(TranscriptionOptions(language="es-ES"))
+        assert w.recogniser.languages == ["es"]
+
+    def test_import_and_open_refuse_an_unknown_language(self) -> None:
+        w = world()
+        known = w.recogniser.supported_languages
+        with pytest.raises(InvalidInputError, match="Unknown language"):
+            ImportRecording(w.sessions, w.locks, known)(
+                "s9", "xx", RecordedAudio(b"audio", "wav")
+            )
+        assert w.sessions.get("s9") is None
 
 
 class TestSilence:
