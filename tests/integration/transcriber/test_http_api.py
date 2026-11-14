@@ -93,6 +93,19 @@ def recording() -> bytes:
     ]))
 
 
+def ana_alone() -> bytes:
+    """Only Ana, with two pauses: 20 seconds of 16 kHz PCM.
+
+    For a session declared as one person: forcing the two voices of
+    :func:`recording` into one group gives a mean voice whose cosine
+    with Ana's voiceprint (about 0.78 with the fake encoder) is below
+    the measured match threshold, so it rightly stays anonymous.
+    """
+    return pcm_bytes(scene([
+        ("220", 6.0), ("-", 1.6), ("220", 6.0), ("-", 1.6), ("220", 4.8),
+    ]))
+
+
 def enrol(client: TestClient, speaker: str = "ana") -> Any:
     """Enrol ``speaker`` from 30 seconds of a 220 Hz voice (WAV)."""
     sample = sound_file(tone(30.0, hz=220.0), 16000, "wav")
@@ -273,7 +286,7 @@ class TestConsentAndOptions:
                 opened.json()["num_speakers"],
                 opened.json()["expected_speakers"]) == (
             "consent-1", 1, ["ana"])
-        data = recording()
+        data = ana_alone()
         for number, start in enumerate(range(0, len(data), CHUNK)):
             client.put(f"/api/sessions/s1/chunks/{number}",
                        content=data[start:start + CHUNK])
