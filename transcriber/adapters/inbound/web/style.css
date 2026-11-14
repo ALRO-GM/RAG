@@ -451,3 +451,4 @@ kbd { font: 0.75rem ui-monospace, monospace; border: 1px solid var(--line); bord
 .save-state { font-weight: 600; color: var(--muted); }
 .save-state.saved { color: var(--ok); }
 .save-state.failed { color: var(--danger); }
+@media (max-width: 30rem) { .top a { font-size: 0.82rem; padding: 0 0.2rem; overflow-wrap: normal; hyphens: auto; } }
