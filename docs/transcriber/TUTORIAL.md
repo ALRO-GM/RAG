@@ -578,9 +578,37 @@ La pestaña **Pruebas** (con el mismo enlace de acceso) compara modelos
 de limpieza, diarización y transcripción sobre una grabación ya hecha.
 Los detalles técnicos están en [LAB.md](LAB.md).
 
+### Ver cómo van las pruebas (desde el móvil)
+
+Al entrar en **Pruebas**, antes de la lista de grabaciones, hay cuatro
+apartados que se actualizan solos cada 10 segundos mientras alguna
+batería está en marcha (y dejan de pedir datos con la pestaña en
+segundo plano):
+
+- **Cómo van las pruebas**: los pasos hechos y los que faltan en total,
+  cuántas baterías hay en marcha ahora y, por grabación (agrupadas en
+  grabaciones propias, AMI y CALLHOME), una barra de su última batería:
+  verde hecho, azul en marcha, gris pendiente, rojo fallo y ámbar
+  `out_of_memory` (sin memoria en la GPU).
+- **Resultados hasta ahora**: en AMI y CALLHOME, que traen una
+  referencia hecha por personas, el **DER** (error de diarización:
+  menos es mejor) de cada diarizador, media de las grabaciones con la
+  raya del mínimo al máximo, y el de cada limpieza. CALLHOME es **no
+  comercial**: sus cifras son solo para evaluación interna. En las
+  grabaciones propias no hay referencia: **Ver acuerdo** enseña el
+  acuerdo con el consenso, que no dice quién acierta.
+- **Pendiente**: los pasos que fallaron o faltan en cada grabación, con
+  el motivo, y cómo seguir: abrir la grabación y pulsar **Continuar** (un
+  `out_of_memory` necesita antes la GPU libre).
+- **Muestras de audio**: abre una grabación para oír 20 segundos del
+  original y de cada audio limpiado, junto a su DER o su acuerdo. El
+  trozo se elige donde hablan a la vez o cambian de hablante (según la
+  referencia o el consenso); si no se sabe, al 10 % de la grabación.
+
 ### Lanzar una batería
 
-1. Entra en **Pruebas** y elige la grabación.
+1. Entra en **Pruebas** y elige la grabación (debajo de los apartados
+   anteriores).
 2. Verás tres columnas: **Limpieza**, **Diarización** y
    **Transcripción**. Cada modelo indica su licencia, si es
    **no comercial**, si **necesita token** (modelos con acceso

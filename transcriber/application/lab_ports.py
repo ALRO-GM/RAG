@@ -149,6 +149,16 @@ class LabRepository(Protocol):
         """Return ``audio_key``'s WAV for the player, by byte ranges."""
         ...
 
+    def excerpt(
+        self, session_id: str, audio_key: str, start: float, seconds: float
+    ) -> PlaybackAudio:
+        """Return ``seconds`` of ``audio_key`` from ``start`` as a WAV.
+
+        Cut at the end of the audio; a ``start`` at or past the end is
+        an :class:`InvalidInputError`.
+        """
+        ...
+
     def new_workspace(self, session_id: str) -> Path:
         """Return a new, empty directory for one stage to write into."""
         ...

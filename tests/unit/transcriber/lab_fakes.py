@@ -21,7 +21,11 @@ from typing import (
 from tests.unit.transcriber.fakes import BytesPlayback
 from transcriber.application.lab_ports import ToolRequest
 from transcriber.application.ports import Audio
-from transcriber.domain.errors import LabStepError, NotFoundError
+from transcriber.domain.errors import (
+    InvalidInputError,
+    LabStepError,
+    NotFoundError,
+)
 from transcriber.domain.lab import (
     Catalogue,
     CatalogueEntry,
@@ -79,6 +83,21 @@ class FakeLabRepository:
         if audio_key not in self.audio:
             raise NotFoundError("No such lab audio.")
         return BytesPlayback(self.audio[audio_key].samples.tobytes())
+
+    def excerpt(
+        self, session_id: str, audio_key: str, start: float, seconds: float
+    ) -> BytesPlayback:
+        """Return the excerpt's samples as bytes (no real WAV header)."""
+        if audio_key not in self.audio:
+            raise NotFoundError("No such lab audio.")
+        audio = self.audio[audio_key]
+        if not start < len(audio.samples) / audio.sample_rate:
+            raise InvalidInputError(
+                "The excerpt starts after the end of the audio."
+            )
+        first = int(start * audio.sample_rate)
+        last = first + max(1, int(round(seconds * audio.sample_rate)))
+        return BytesPlayback(audio.samples[first:last].tobytes())
 
     def new_workspace(self, session_id: str) -> Path:
         """Return a new made-up directory."""

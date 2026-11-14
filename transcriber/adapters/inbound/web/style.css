@@ -452,3 +452,26 @@ kbd { font: 0.75rem ui-monospace, monospace; border: 1px solid var(--line); bord
 .save-state.saved { color: var(--ok); }
 .save-state.failed { color: var(--danger); }
 @media (max-width: 30rem) { .top a { font-size: 0.82rem; padding: 0 0.2rem; overflow-wrap: normal; hyphens: auto; } }
+
+/* Pruebas overview: progress bars, results charts, pending steps, samples. */
+.lab-progress h3 { margin: 0.6rem 0 0; font-size: 1.05rem; }
+.lab-progress .totals { font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+.progress-rows .progress-row { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.35rem 0; border-top: 1px solid var(--line); }
+.progress-rows .progress-row:first-child { border-top: 0; }
+.progress-row a { overflow-wrap: anywhere; }
+svg.stepbar { display: block; width: 100%; height: 14px; border-radius: 4px; overflow: hidden; }
+.seg-track { fill: var(--line); }
+.seg-done { fill: var(--ok); }
+.seg-running { fill: var(--accent); }
+.seg-pending { fill: var(--muted); fill-opacity: 0.45; }
+.seg-failed { fill: var(--danger); }
+.seg-failed.seg-oom { fill: var(--c4); }
+.chart-box { margin: 0.4rem 0 0.8rem; max-width: 40rem; }
+.chart-box figcaption { font-weight: 600; margin-bottom: 0.3rem; }
+svg.rangechart { display: block; width: 100%; height: auto; }
+.rangechart .label { fill: var(--text); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.rangechart .whisker { stroke: var(--text); stroke-width: 1.4; }
+details.pending, details.samples-box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.2rem 0.8rem 0.5rem; }
+.samples .sample { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.4rem 0; border-top: 1px solid var(--line); }
+.samples .sample:first-child { border-top: 0; }
+.samples audio { width: 100%; max-width: 30rem; }
