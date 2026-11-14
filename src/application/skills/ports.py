@@ -1,7 +1,9 @@
 """Ports of the soft-skills use cases."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Protocol, Sequence, Tuple
+from typing import (
+    Any, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -111,6 +113,24 @@ class TranscriptWriter(Protocol):
 
     def save(self, transcript: Transcript, path: str = "") -> str:
         """Store ``transcript`` and return where it was written."""
+        ...
+
+
+class TranscriptStore(Protocol):
+    """Keep ``transcript.v1`` documents received from the transcriber."""
+
+    def put(self, session_id: str, document: Mapping[str, Any]) -> bool:
+        """Store ``document`` as session ``session_id``, replacing any copy.
+
+        Return whether an earlier copy was replaced.
+        """
+        ...
+
+    def get(self, session_id: str) -> Dict[str, Any]:
+        """Return the stored document of ``session_id``.
+
+        Raises :class:`~src.domain.errors.NotFoundError` if there is none.
+        """
         ...
 
 

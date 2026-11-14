@@ -31,6 +31,11 @@ class Settings(BaseModel):
     as with the fixed 0.4 tuned on the 42 corpus, while prose leans on
     the embeddings, which is what seven public datasets reward. Set
     ``identifier_weight`` to ``None`` for one fixed weight.
+
+    ``serve`` receives the transcriber's ``transcript.v1`` documents
+    into ``transcripts_dir`` (where the analyzer reads transcripts),
+    only when the environment variable ``transcripts_token_env`` holds
+    the bearer token the transcriber sends.
     """
 
     raw_dir: str = "data/raw"
@@ -80,6 +85,11 @@ class Settings(BaseModel):
     runtime_plan_path: str = "data/runtime_plan.json"
     runtime_history_path: str = "experiments/hardware/runtime.jsonl"
     benchmark_dir: str = "data/benchmarks"
+    transcripts_dir: str = "data/transcripts"
+    transcripts_token_env: str = Field(
+        default="RAG_TRANSCRIPTS_TOKEN",
+        pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+    )
 
 
 BGE_SMALL: Dict[str, Any] = {

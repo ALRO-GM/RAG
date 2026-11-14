@@ -696,9 +696,11 @@ class RagCLI:
     @safe_command
     def serve(self, host: str = "127.0.0.1", port: int = 8000) -> None:
         """Start the local HTTP API (OpenAPI docs at /docs)."""
+        import os
+
         import uvicorn
 
-        from src.adapters.inbound.http_api import create_app
+        from src.adapters.inbound.http_api import TranscriptRoutes, create_app
 
         port = as_int(port, "port")
         if not 0 < port < 65536:
@@ -707,7 +709,18 @@ class RagCLI:
         snapshot = app.search.snapshot
         print(f"Index ready: {len(snapshot.chunks)} chunks, "
               f"mode {app.search.mode}")
-        uvicorn.run(create_app(app.search, app.answers),
+        token = app.transcripts_token(os.environ)
+        variable = app.settings.transcripts_token_env
+        if token:
+            print(f"Transcripts: POST /transcripts into "
+                  f"{app.settings.transcripts_dir} (token from ${variable})")
+        else:
+            print(f"Transcripts: routes off (set ${variable} to receive "
+                  "them)")
+        routes = TranscriptRoutes(
+            app.ingest_transcript, app.show_transcript, token
+        )
+        uvicorn.run(create_app(app.search, app.answers, routes),
                     host=as_text(host, "host"), port=port)
 
     @safe_command

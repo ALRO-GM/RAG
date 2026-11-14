@@ -621,6 +621,28 @@ class InMemoryTranscriptRepository:
         return sorted(self.transcripts)
 
 
+class InMemoryTranscriptStore:
+    """``transcript.v1`` documents kept in a ``{session id: doc}`` dict."""
+
+    def __init__(self) -> None:
+        """Start empty."""
+        self.documents: Dict[str, Dict[str, Any]] = {}
+        self.puts: List[str] = []
+
+    def put(self, session_id: str, document: Mapping[str, Any]) -> bool:
+        """Keep a copy of ``document``; tell whether one was replaced."""
+        self.puts.append(session_id)
+        replaced = session_id in self.documents
+        self.documents[session_id] = json.loads(json.dumps(document))
+        return replaced
+
+    def get(self, session_id: str) -> Dict[str, Any]:
+        """Return the document of ``session_id``."""
+        if session_id not in self.documents:
+            raise NotFoundError(f"No transcript for session {session_id!r}.")
+        return self.documents[session_id]
+
+
 class InMemoryCatalogueRepository:
     """Rubric catalogues kept by (name, language)."""
 

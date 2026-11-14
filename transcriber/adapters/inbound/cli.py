@@ -192,7 +192,7 @@ class Commands:
             "runtime": current.runtime,
             "recogniser": current.recogniser,
             "voice_model": current.voice_model,
-            "published": str(current.published()),
+            "published": current.publish_target(),
             "tunnel_target": current.tunnel.target,
             "public_host": current.tunnel.public_host,
             "port": str(current.api.port),
@@ -412,7 +412,8 @@ class Commands:
         """Hand a finished transcript over to the RAG."""
         self.container.publish(args.session_id)
         self.output.line(
-            f"Published {args.session_id} to {self.settings.published()}."
+            f"Published {args.session_id} to "
+            f"{self.settings.publish_target()}."
         )
         return 0
 

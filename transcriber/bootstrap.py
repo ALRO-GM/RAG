@@ -3,10 +3,12 @@
 :func:`build_container` wires the outbound adapters (file-system
 repositories under ``settings.data_dir``, the PyAV decoder, the models
 chosen by ``settings.runtime``, the job runner, the session locks, the
-directory publisher) into every use case. Building it does no I/O and
+publisher) into every use case. Building it does no I/O and
 loads no model: directories are created on the first write and models
 on the first job, and the job runner unloads the models after every
-job. :func:`start_container` is for the process that runs the jobs
+job. The publisher is the directory one or, with ``publisher:
+"http"``, the one that posts to the RAG (:func:`build_publisher`).
+:func:`start_container` is for the process that runs the jobs
 (the service): it builds the container and then fails the sessions a
 previous process left queued or running (:class:`RecoverSessions`).
 :func:`build_tunnel` and :func:`access_code` give ``transcriber serve``
@@ -14,8 +16,9 @@ its SSH tunnel and its access code.
 """
 
 import logging
+import os
 from dataclasses import dataclass
-from typing import Optional, Protocol, Tuple
+from typing import Mapping, Optional, Protocol, Tuple
 
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
 from transcriber.adapters.outbound.fs_access_code import (
@@ -35,6 +38,9 @@ from transcriber.adapters.outbound.fs_transcript_publisher import (
 )
 from transcriber.adapters.outbound.fs_voiceprint_repository import (
     FileSystemVoiceprintRepository,
+)
+from transcriber.adapters.outbound.http_transcript_publisher import (
+    HttpTranscriptPublisher,
 )
 from transcriber.adapters.outbound.ssh_tunnel import SshTunnel
 from transcriber.adapters.outbound.system_clock import SystemClock
@@ -165,10 +171,36 @@ def build_models(
     )
 
 
+def build_publisher(
+    settings: TranscriberSettings,
+    environ: Optional[Mapping[str, str]] = None,
+) -> TranscriptPublisher:
+    """Return the publisher ``settings.publisher`` picks.
+
+    The HTTP publisher reads its token from ``environ`` (the process
+    environment if omitted) when it publishes, not here.
+    """
+    http = settings.publish_http
+    if settings.publisher == "http" and http.url is not None:
+        return HttpTranscriptPublisher(
+            http.url, http.token_env,
+            os.environ if environ is None else environ,
+            timeout=http.timeout, retries=http.retries,
+            backoff_initial=http.backoff_initial,
+            backoff_factor=http.backoff_factor,
+        )
+    return DirectoryTranscriptPublisher(settings.published())
+
+
 def build_container(
     settings: Optional[TranscriberSettings] = None,
+    environ: Optional[Mapping[str, str]] = None,
 ) -> TranscriberContainer:
-    """Return the container for ``settings`` (the defaults if omitted)."""
+    """Return the container for ``settings`` (the defaults if omitted).
+
+    ``environ`` holds the HTTP publisher's token (the process
+    environment if omitted).
+    """
     settings = settings or TranscriberSettings()
     recogniser, encoder = build_models(settings)
 
@@ -183,7 +215,7 @@ def build_container(
     )
     decoder = AvAudioDecoder()
     runner = ThreadJobRunner(after_job=release_models)
-    publisher = DirectoryTranscriptPublisher(settings.published())
+    publisher = build_publisher(settings, environ)
     clock = SystemClock()
     locks = ThreadSessionLocks()
     parameters = settings.transcription

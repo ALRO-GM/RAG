@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Literal, Mapping, Optional, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from transcriber.domain.enrolment import SampleRules
 from transcriber.domain.parameters import TranscriptionParameters
@@ -22,6 +22,7 @@ DEFAULT_VOICE_MODEL = "microsoft/wavlm-base-plus-sv"
 PUBLISHED_DIR = "published"
 
 Runtime = Literal["real", "fake"]
+Publisher = Literal["directory", "http"]
 Device = Literal["auto", "cpu", "cuda"]
 
 MIB = 1024 * 1024
@@ -137,6 +138,32 @@ class TunnelSettings(BaseModel):
     ssh: str = Field(default="ssh", min_length=1)
 
 
+class HttpPublishSettings(BaseModel):
+    """Where and how ``publisher: "http"`` sends transcripts.
+
+    ``url`` is the RAG's base URL; transcripts go to
+    ``<url>/transcripts`` with the bearer token held by the environment
+    variable ``token_env`` (the token itself is never a setting, so it
+    cannot end up in a config file). Every attempt waits ``timeout``
+    seconds at most; a network error, a time-out or a ``5xx`` answer is
+    retried ``retries`` times, after ``backoff_initial`` seconds
+    multiplied by ``backoff_factor`` after every retry. A ``4xx``
+    answer is final.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    url: Optional[str] = Field(default=None, pattern=r"^https?://\S+$")
+    token_env: str = Field(
+        default="TRANSCRIBER_PUBLISH_TOKEN",
+        pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+    )
+    timeout: float = Field(default=30.0, gt=0)
+    retries: int = Field(default=3, ge=0, le=10)
+    backoff_initial: float = Field(default=1.0, ge=0)
+    backoff_factor: float = Field(default=2.0, ge=1)
+
+
 class TranscriberSettings(BaseModel):
     """Configuration consumed by the composition root.
 
@@ -151,8 +178,10 @@ class TranscriberSettings(BaseModel):
     ``fake`` uses the deterministic stand-ins of
     :mod:`transcriber.adapters.outbound.fake_models`, which need no
     torch (for tests that run the CLI or the API in a subprocess).
-    ``publish_dir`` receives published transcripts (default
-    ``<data_dir>/published``). ``api`` holds the HTTP API's limits and
+    ``publisher`` chooses how ``publish`` hands a transcript over:
+    ``directory`` (the default) writes it to ``publish_dir`` (default
+    ``<data_dir>/published``), ``http`` posts it to the RAG as
+    ``publish_http`` says. ``api`` holds the HTTP API's limits and
     ``tunnel`` the SSH forward of ``transcriber serve``.
     """
 
@@ -166,14 +195,31 @@ class TranscriberSettings(BaseModel):
     runtime: Runtime = "real"
     device: Device = "auto"
     publish_dir: Optional[Path] = None
+    publisher: Publisher = "directory"
+    publish_http: HttpPublishSettings = HttpPublishSettings()
     api: ApiSettings = ApiSettings()
     tunnel: TunnelSettings = TunnelSettings()
+
+    @model_validator(mode="after")
+    def _http_needs_a_url(self) -> "TranscriberSettings":
+        """Refuse ``publisher: "http"`` without ``publish_http.url``."""
+        if self.publisher == "http" and self.publish_http.url is None:
+            raise ValueError(
+                'publisher "http" needs publish_http.url (the RAG\'s URL)'
+            )
+        return self
 
     def published(self) -> Path:
         """Return the directory published transcripts are written to."""
         if self.publish_dir is not None:
             return self.publish_dir
         return self.data_dir / PUBLISHED_DIR
+
+    def publish_target(self) -> str:
+        """Return where ``publish`` sends transcripts, for messages."""
+        if self.publisher == "http" and self.publish_http.url is not None:
+            return self.publish_http.url.rstrip("/") + "/transcripts"
+        return str(self.published())
 
 
 def load_settings(environ: Mapping[str, str]) -> TranscriberSettings:
