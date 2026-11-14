@@ -176,20 +176,22 @@ function heatSection(results) {
       : tracks.filter((id) => id.endsWith(`+${diarizer}`));
     const short = (id) => (mode === "denoiser" ? id.slice(denoiser.length + 1) : id.slice(0, id.length - diarizer.length - 1));
     const matrix = pairMatrix(results.diarization, ids, field, field === "error_rate" ? 0 : 1);
-    const cell = 28;
+    const cell = 40;
     const pad = 150;
-    const size = pad + ids.length * cell;
-    const map = svg("svg", { class: "heat", viewBox: `0 0 ${size} ${size}`, width: size, height: size, role: "group", "aria-label": t("lab.heat_title") });
+    const top = 110;
+    const width = pad + ids.length * cell + 90;
+    const height = top + ids.length * cell;
+    const map = svg("svg", { class: "heat", viewBox: `0 0 ${width} ${height}`, width, height, role: "group", "aria-label": t("lab.heat_title") });
     ids.forEach((a, i) => {
-      map.append(svg("text", { x: pad - 6, y: pad + i * cell + cell * 0.65, "text-anchor": "end", class: "axis" }, short(a)));
-      map.append(svg("text", { x: pad + i * cell + cell * 0.65, y: pad - 6, transform: `rotate(-60 ${pad + i * cell + cell * 0.65} ${pad - 6})`, class: "axis" }, short(a)));
+      map.append(svg("text", { x: pad - 6, y: top + i * cell + cell * 0.6, "text-anchor": "end", class: "axis" }, short(a)));
+      map.append(svg("text", { x: pad + i * cell + cell * 0.65, y: top - 6, transform: `rotate(-45 ${pad + i * cell + cell * 0.65} ${top - 6})`, class: "axis" }, short(a)));
       ids.forEach((b, j) => {
         const value = matrix.value(a, b);
         const shown = field === "error_rate" ? num(value, 2) : pct(value);
         const text = t("lab.heat_cell", { a, b, value: shown });
         const heat = field === "error_rate" && value !== null ? 1 - Math.min(1, value) : value;
         map.append(svg("rect", {
-          x: pad + j * cell, y: pad + i * cell, width: cell - 2, height: cell - 2, class: `cell ${heatClass(heat)}`,
+          x: pad + j * cell, y: top + i * cell, width: cell - 2, height: cell - 2, class: `cell ${heatClass(heat)}`,
           tabindex: 0, "aria-label": text,
           onFocus: () => { readout.textContent = text; }, onMouseenter: () => { readout.textContent = text; },
         }, svg("title", {}, text)));
