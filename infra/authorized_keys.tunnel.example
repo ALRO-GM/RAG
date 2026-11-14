@@ -1,0 +1,1 @@
+restrict,port-forwarding,command="/opt/ragputin/infra/tunnel-clean.sh" ssh-ed25519 AAAA... ragputin-tunnel

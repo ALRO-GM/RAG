@@ -195,15 +195,19 @@ come from `TRANSCRIBER_CONFIG` (a JSON file), `TRANSCRIBER_DATA_DIR`,
 |---|---|
 | Microphone access needs HTTPS | The domain's real certificate. No self-signed certificate, no browser warning. |
 | The site is on the internet | Every `/api/*` call carries an access code in a header. The join link is `https://rag.peer4u.app/#k=<code>`: a URL fragment is never sent to a server, so the code does not reach logs. Failed codes are throttled. Without the code the pages load and can do nothing. |
-| Nothing new on the shared server | The existing Caddy container serves the pages and proxies `/api/*` to a unix socket in `/opt/ragputin/run`. No new container, port or sshd setting. The tunnel uses its own SSH key, restricted to forwarding. |
+| Nothing new on the shared server | The existing Caddy container serves the pages and proxies `/api/*` to a unix socket in `/opt/ragputin/run` (it runs as the socket's owner and mounts the directory read-only). No new container, port or sshd setting. The tunnel uses its own SSH key, restricted to forwarding; its forced command (`infra/tunnel-clean.sh`) only removes a stale socket. Files and operations: `docs/DEPLOYMENT.md`. |
+| Who is throttled | The inner Caddy sets `X-Client-IP` from the address the Peer4U Caddy saw, overwriting any value the caller sent; the API trusts that header only from loopback or a unix socket and never reads `X-Forwarded-For` (uvicorn runs with `proxy_headers=False`). A right code is never refused. |
 | Where audio goes | Through the server in transit (TLS ends at the Peer4U Caddy), stored only on the workstation. The server keeps static files and nothing else. |
 | Workstation off or tunnel down | `/api/*` answers 502; the pages say the workstation is not available. |
 | A long recording must survive a dropped connection | The page captures PCM (16 kHz, mono, 16-bit) and uploads it in numbered chunks of a few seconds; the service appends them and tolerates a retried chunk. No codec is involved. A screen wake lock keeps the phone awake. |
 | A recording made with another app | `transcriber import FILE` or the upload form; decoded with PyAV (bundles the FFmpeg libraries; nothing to install). |
 | One GPU | Jobs run one at a time in a worker thread; the API reports `queued / running (stage, %) / done / failed`. Enrolment uses the same queue. |
 
-The results site that used to live on this domain is retired; the
-benchmark documents remain in the repository.
+The results site that used to live on this domain was retired on
+2026-11-14; the benchmark documents remain in the repository
+(`docs/benchmarks/`, `experiments/`). CI builds the pages with
+`python -m transcriber.adapters.inbound.bundle` (plus `version.json`)
+and deploys them on every merge to `main`.
 
 ## 6. Putting a name on a voice
 

@@ -13,14 +13,16 @@ DATASETS    := docs code
 SUITE       ?= tune_all
 SERVE_ARGS  ?=
 
-# Server that hosts the results site (the domain resolves to it).
+# Server that serves the transcriber's pages (the domain resolves to it).
 DEPLOY_TARGET ?= ubuntu@rag.peer4u.app
 REMOTE_DIR    := /opt/ragputin
+# The workstation's own key for the SSH reverse forward (make tunnel-key).
+TUNNEL_KEY    ?= $(HOME)/.ssh/ragputin_tunnel
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
-	install-cuda system system-benchmark study coverage ci site site-serve \
-	deploy-site infra-up infra-proxy transcriber-serve transcriber-test
+	install-cuda system system-benchmark study coverage ci site \
+	infra-up infra-proxy tunnel-key transcriber-serve transcriber-test
 
 install:
 	uv sync
@@ -37,7 +39,7 @@ system:
 	$(PYTHON) -m src system
 
 ## system-benchmark: measure CPU plans against the GPU; the run is
-## appended to experiments/hardware/runtime.jsonl (shown on the site).
+## appended to experiments/hardware/runtime.jsonl.
 system-benchmark:
 	$(PYTHON) -m src system --benchmark
 
@@ -137,29 +139,33 @@ coverage:
 ## ci: what GitHub Actions runs, locally.
 ci: lint-strict coverage site
 
-## site: build the static results site into dist/site.
+## site: build the transcriber's static pages into dist/site, with
+## version.json (what CI deploys to the server).
 site:
-	uv run --no-sync python -m results_site build --out dist/site
-
-## site-serve: preview the site at http://localhost:8765.
-site-serve: site
-	cd dist/site && python3 -m http.server 8765
-
-## deploy-site: manual upload (CI does this on every push to main).
-deploy-site: site
-	rsync -rlz --delete --delay-updates --chmod=D755,F644 dist/site/ \
-		$(DEPLOY_TARGET):$(REMOTE_DIR)/pruebas/
+	uv run --no-sync python -m transcriber.adapters.inbound.bundle \
+		--out dist/site --commit "$$(git rev-parse --short HEAD)"
 
 ## infra-up: upload infra/ and (re)start the RAGPutin web container.
+## Also makes /opt/ragputin/run (mode 750, owner ubuntu), where the
+## tunnel's socket appears, and installs the tunnel key's forced command.
 infra-up:
-	ssh $(DEPLOY_TARGET) 'mkdir -p $(REMOTE_DIR)/infra $(REMOTE_DIR)/pruebas'
+	ssh $(DEPLOY_TARGET) 'mkdir -p $(REMOTE_DIR)/infra $(REMOTE_DIR)/pruebas && install -d -m 750 $(REMOTE_DIR)/run'
 	rsync -rlz infra/Caddyfile infra/compose.yml $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
+	rsync -pz --chmod=F755 infra/tunnel-clean.sh $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
 	ssh $(DEPLOY_TARGET) 'cd $(REMOTE_DIR)/infra && docker compose up -d && docker compose ps'
 
 ## infra-proxy: install the rag.peer4u.app block in the Peer4U Caddy
 ## (validated first, rolled back on failure).
 infra-proxy:
 	infra/install-proxy.sh $(DEPLOY_TARGET)
+
+## tunnel-key: make the workstation's tunnel key if it is missing and
+## print the authorized_keys line to add on the server by hand. It
+## installs nothing anywhere.
+tunnel-key:
+	@test -f $(TUNNEL_KEY) || ssh-keygen -q -t ed25519 -N "" -C ragputin-tunnel -f $(TUNNEL_KEY)
+	@echo "Add this line to ~/.ssh/authorized_keys of $(DEPLOY_TARGET):"
+	@echo "restrict,port-forwarding,command=\"$(REMOTE_DIR)/infra/tunnel-clean.sh\" $$(cat $(TUNNEL_KEY).pub)"
 
 clean:
 	find . -name __pycache__ -type d -not -path "./.venv/*" -prune \

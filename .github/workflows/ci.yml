@@ -1,10 +1,12 @@
 # CI/CD: every pull request and every push to main is linted, tested
-# (with a coverage gate) and the results site is built. A push to main
-# then deploys that same build to https://rag.peer4u.app.
+# (with a coverage gate) and the transcriber's static pages are bundled.
+# A push to main then deploys that same bundle to https://rag.peer4u.app
+# (the server's Caddy serves it and passes /api/* to the workstation
+# through the SSH tunnel; see docs/DEPLOYMENT.md).
 #
-# The experiments themselves are NOT run here: they need the GPU of the
-# workstation. They are run there and their results committed; CI only
-# checks the code and publishes what is committed.
+# The experiments and the transcription models are NOT run here: they
+# need the GPU of the workstation. CI only checks the code and publishes
+# the pages.
 name: CI
 
 on:
@@ -55,6 +57,10 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
+      # The pages' pure logic is tested with `node --test` (through pytest).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - run: uv sync
       - name: Unit + integration tests with coverage gate
         run: uv run pytest -q --cov --cov-report=term --cov-report=xml
@@ -74,11 +80,19 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      # The builder only needs the standard library: no project install.
+      # The pages are ES modules without package.json in the bundle: node 22
+      # detects that when checking them.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The bundler only needs the standard library: no project install.
       - name: Build
-        run: uv run --no-project python -m results_site build --out dist/site --commit "${GITHUB_SHA::7}"
+        run: uv run --no-project python -m transcriber.adapters.inbound.bundle --out dist/site --commit "${GITHUB_SHA::7}"
       - name: Check the front end parses
-        run: node --check dist/site/app.js
+        run: |
+          for file in $(find dist/site -name '*.js'); do node --check "$file"; done
+          test -f dist/site/index.html
+          python3 -c 'import json; print(json.load(open("dist/site/version.json")))'
       - uses: actions/upload-artifact@v7
         with:
           name: site
@@ -124,7 +138,7 @@ jobs:
         run: |
           expected="${GITHUB_SHA::7}"
           for attempt in 1 2 3 4 5; do
-            got="$(curl -fsS https://rag.peer4u.app/data/manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])' || true)"
+            got="$(curl -fsS https://rag.peer4u.app/version.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])' || true)"
             if [ "${got}" = "${expected}" ]; then echo "Live: ${got}"; exit 0; fi
             echo "Live commit '${got}', expected '${expected}'; retrying"; sleep 5
           done
