@@ -231,7 +231,10 @@ lets a human check the sample.
 - Known pitfall from `AUDIO.md`: embeddings were centred on the mean
   of the recording, which is meaningless for a one-voice enrolment
   sample. Matching across recordings needs its own normalisation and
-  must be measured (ticket TR-05).
+  must be measured (ticket TR-05). Measured in `IDENTIFICATION.md`:
+  raw unit vectors at cosine 0.95; enrolled voiceprints used as seeds
+  of the grouping did better than cluster-then-match and are the
+  recommended next step.
 
 Without enrolment everything still works with anonymous labels.
 
