@@ -396,7 +396,7 @@ export const es = {
   "lab.pending.title": "Pendiente",
   "lab.pending.none": "No queda nada pendiente.",
   "lab.pending.summary": "{session}: {left} pasos sin terminar, {failed} de ellos con fallo",
-  "lab.pending.resume": "Para seguir: abre la grabación y pulsa «Reanudar». Los pasos hechos se conservan y solo se repiten los demás. Un fallo out_of_memory necesita la GPU libre: cierra antes lo que la esté usando. Desde el ordenador: «lab resume <sesión> <ejecución>» (LAB.md §12).",
+  "lab.pending.resume": "Para seguir: abre la grabación y pulsa «Continuar». Los pasos hechos se conservan y solo se repiten los demás. Un fallo out_of_memory necesita la GPU libre: cierra antes lo que la esté usando. Desde el ordenador: «lab resume <sesión> <ejecución>» (LAB.md §12).",
   "lab.pending.running_note": "Esta ejecución sigue en marcha: sus pasos pendientes llegarán solos.",
   "lab.pending.open": "Abrir la grabación",
   "lab.samples.title": "Muestras de audio",

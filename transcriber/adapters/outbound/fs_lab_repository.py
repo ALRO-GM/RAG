@@ -146,17 +146,23 @@ class FileSystemLabRepository:
         stored audio's rate (16 kHz mono 16-bit, checked on storing).
         """
         path = self.audio_path(session_id, audio_key)
-        with wave.open(str(path), "rb") as reader:
-            if (reader.getnchannels(), reader.getsampwidth()) != (1, 2):
-                raise StorageError("Lab audio must be mono 16-bit PCM.")
-            rate = reader.getframerate()
-            first = int(round(start * rate))
-            if first >= reader.getnframes():
-                raise InvalidInputError(
-                    "The excerpt starts after the end of the audio."
-                )
-            reader.setpos(first)
-            data = reader.readframes(max(1, int(round(seconds * rate))))
+        try:
+            with wave.open(str(path), "rb") as reader:
+                if (reader.getnchannels(), reader.getsampwidth()) != (1, 2):
+                    raise StorageError("Lab audio must be mono 16-bit PCM.")
+                rate = reader.getframerate()
+                frames = reader.getnframes()
+                # compared in seconds first: a huge start never becomes an int
+                if not 0 <= start < frames / rate:
+                    raise InvalidInputError(
+                        "The excerpt starts after the end of the audio."
+                    )
+                first = min(int(start * rate), frames - 1)
+                reader.setpos(first)
+                wanted = min(seconds * rate, frames - first)
+                data = reader.readframes(max(1, int(round(wanted))))
+        except (wave.Error, EOFError) as exc:
+            raise StorageError(f"Cannot read a lab audio ({exc}).") from exc
         return MemoryPlayback(wav_header(len(data), rate) + data)
 
     # ---------------------------------------------------------- stages

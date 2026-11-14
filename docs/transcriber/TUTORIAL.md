@@ -598,7 +598,7 @@ segundo plano):
   grabaciones propias no hay referencia: **Ver acuerdo** enseña el
   acuerdo con el consenso, que no dice quién acierta.
 - **Pendiente**: los pasos que fallaron o faltan en cada grabación, con
-  el motivo, y cómo seguir: abrir la grabación y pulsar **Reanudar** (un
+  el motivo, y cómo seguir: abrir la grabación y pulsar **Continuar** (un
   `out_of_memory` necesita antes la GPU libre).
 - **Muestras de audio**: abre una grabación para oír 20 segundos del
   original y de cada audio limpiado, junto a su DER o su acuerdo. El

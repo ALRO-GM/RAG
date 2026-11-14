@@ -91,11 +91,11 @@ class FakeLabRepository:
         if audio_key not in self.audio:
             raise NotFoundError("No such lab audio.")
         audio = self.audio[audio_key]
-        first = int(round(start * audio.sample_rate))
-        if first >= len(audio.samples):
+        if not start < len(audio.samples) / audio.sample_rate:
             raise InvalidInputError(
                 "The excerpt starts after the end of the audio."
             )
+        first = int(start * audio.sample_rate)
         last = first + max(1, int(round(seconds * audio.sample_rate)))
         return BytesPlayback(audio.samples[first:last].tobytes())
 

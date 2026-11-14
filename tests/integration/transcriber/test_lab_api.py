@@ -222,6 +222,26 @@ def test_overview_and_excerpts(client: TestClient) -> None:
     assert plain.get("/api/lab/overview").status_code == 401
 
 
+def test_excerpts_far_away_or_of_unreadable_audio(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    run = client.post("/api/lab/sessions/s1/runs", json={
+        "diarizers": ["fake-diarize"],
+    }).json()
+    wait(client, run["id"])
+    base = f"/api/lab/sessions/s1/runs/{run['id']}/excerpt/none"
+    for start in ("1e308", "1e30", "20.0001"):
+        far = client.get(base, params={"start": start})
+        assert (far.status_code, far.json()["code"]) == (400, "invalid_input")
+    lab = container.settings.data_dir / "lab" / "s1"
+    key = json.loads((lab / "original.json").read_text())["key"]
+    (lab / "audio" / f"{key}.wav").write_bytes(b"not a wav file at all")
+    broken = client.get(base, params={"start": 0})
+    assert (broken.status_code, broken.json()["code"]) == (
+        500, "storage_error",
+    )
+
+
 def test_reference_summary_route(
     client: TestClient, container: TranscriberContainer
 ) -> None:

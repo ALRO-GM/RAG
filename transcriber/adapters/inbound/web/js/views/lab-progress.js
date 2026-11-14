@@ -200,6 +200,7 @@ export function progressPanel(ctx) {
   let timer = null;
   let stopped = false;
   let summaryKey = null;
+  let loadFailed = false; // the last load failed: retry when the page shows again
   let cookie = null;
 
   const message = h("p", { class: "error", role: "alert", hidden: true });
@@ -310,10 +311,12 @@ export function progressPanel(ctx) {
     try {
       entries = (await ctx.api.labOverview()).sessions;
       message.hidden = true;
+      loadFailed = false;
     } catch (error) {
       if (error.kind === "unauthorized") return ctx.fail(error);
       message.hidden = false;
       message.textContent = describeError(error);
+      loadFailed = true;
       schedule(true);
       return;
     }
@@ -338,7 +341,7 @@ export function progressPanel(ctx) {
     if (document.hidden) {
       clearTimeout(timer);
       timer = null;
-    } else if (!timer && entries.some((e) => ACTIVE_RUNS.has(e.run_state))) {
+    } else if (!timer && (loadFailed || !entries.length || entries.some((e) => ACTIVE_RUNS.has(e.run_state)))) {
       refresh();
     }
   }

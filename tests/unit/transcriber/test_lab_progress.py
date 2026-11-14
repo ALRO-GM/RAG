@@ -191,6 +191,7 @@ class TestExcerpt:
     @pytest.mark.parametrize("start, seconds", [
         (-1.0, 5.0), (float("nan"), 5.0), (0.0, 0.0),
         (0.0, MAX_EXCERPT_SECONDS + 1), (0.0, float("inf")), (10.0, 5.0),
+        (1e308, 5.0),
     ])
     def test_refused(self, lab: Fixture, start: float,
                      seconds: float) -> None:
