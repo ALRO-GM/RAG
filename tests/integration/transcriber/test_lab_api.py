@@ -40,6 +40,13 @@ def settings(tmp_path: Path) -> TranscriberSettings:
     )
 
 
+@pytest.fixture(autouse=True)
+def no_token(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hide any Hugging Face token of the machine from the lab."""
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "hf"))
+
+
 @pytest.fixture()
 def container(tmp_path: Path) -> Iterator[TranscriberContainer]:
     """A container with an enrolled person and an imported session."""
