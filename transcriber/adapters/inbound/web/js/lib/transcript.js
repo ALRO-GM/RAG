@@ -56,6 +56,72 @@ export function filterBySpeaker(utterances, speakerId) {
   return speakerId ? utterances.filter((u) => u.speaker === speakerId) : utterances;
 }
 
+/**
+ * True when the speaker of an utterance was named only through the
+ * expected-speakers floor (derived from the speaker list: the contract
+ * keeps it once per speaker). Such a name is a guess forced by the list
+ * of who is present: an unlisted person who spoke gets a listed name.
+ */
+export function sentenceNamedByFloor(utterance, speakers = []) {
+  if (!Array.isArray(speakers)) return false; // e.g. an index from Array.map
+  return namedByFloor(speakers.find((s) => s.id === utterance.speaker));
+}
+
+/**
+ * True when the attribution of an utterance should be checked: the voice
+ * evidence called it doubtful, heard two voices in it, or its speaker
+ * was named only through the floor. Older transcripts lack the fields:
+ * never doubtful.
+ */
+export function needsReview(utterance, speakers = []) {
+  return utterance.doubtful === true || utterance.overlap === true
+    || sentenceNamedByFloor(utterance, speakers);
+}
+
+/** Utterances to show: everybody's or one speaker's, optionally only doubtful ones. */
+export function filterUtterances(utterances, speakerId, onlyDoubtful = false, speakers = []) {
+  const bySpeaker = filterBySpeaker(utterances, speakerId);
+  return onlyDoubtful ? bySpeaker.filter((u) => needsReview(u, speakers)) : bySpeaker;
+}
+
+/**
+ * What to tell about an utterance's attribution, or null when nothing:
+ * { doubtful, overlap, floor, alternative (a display name or null), certainty }.
+ */
+export function doubtNote(utterance, speakers) {
+  if (!needsReview(utterance, speakers)) return null;
+  const alt = utterance.alternative_speaker;
+  return {
+    doubtful: utterance.doubtful === true,
+    overlap: utterance.overlap === true,
+    floor: sentenceNamedByFloor(utterance, speakers),
+    alternative: alt ? speakerName(speakers, alt) : null,
+    certainty: Number.isFinite(utterance.speaker_certainty) ? utterance.speaker_certainty : null,
+  };
+}
+
+/**
+ * True for an enrolled person named only because the session listed them
+ * (the expected-speakers floor, below the usual threshold): a weaker
+ * identification. Older transcripts lack the field: false.
+ */
+export function namedByFloor(speaker) {
+  return speaker?.enrolled === true && speaker.identification === "expected_floor";
+}
+
+/** Speakers of a transcript named through the floor (they should re-enrol). */
+export function weakSpeakers(speakers) {
+  return speakers.filter(namedByFloor);
+}
+
+/**
+ * The language to point out for an utterance, or null: the detected code
+ * when the session's fixed language is another one.
+ */
+export function otherLanguage(utterance) {
+  return utterance.language_differs === true && utterance.language ? utterance.language : null;
+}
+
 /** True for a voice the person can still name or merge (S1, S2... not enrolled). */
 export function isAnonymous(speaker) {
   return !speaker.enrolled && ANONYMOUS.test(speaker.id);

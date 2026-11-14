@@ -56,14 +56,21 @@ transcriber/
     sessions.py      session states and moves, chunk acceptance, interruption
     parameters.py    TranscriptionParameters: every threshold of a transcription
     activity.py      speech activity from frame energy; drops words over silence
+    seams.py         keeps once the passages the recogniser returned twice
+                     at the seams of its windows; words back in time order
+    languages.py     a session's language code or "auto"; validation
     sentences.py     sentence splitting, utterance ids
     speakers.py      word→speaker assignment, smoothing, turns, previous speaker
+    certainty.py     per-sentence speaker certainty, doubt, overlap and
+                     alternative speaker from the short windows' cosines;
+                     keeps a sentence whole on a weak change of speaker
     voices.py        single-voice test, clustering, centroids, matching to voiceprints
     enrolment.py     the text a person reads, checks on an enrolment sample
     consent.py       the versioned consent notices (enrolment, recording)
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
+                     OverlapDetector,
                      SessionRepository, VoiceprintRepository,
                      TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
     common.py        id checks and lookups shared by the use cases
@@ -71,7 +78,9 @@ transcriber/
     consent.py       ShowConsentNotice
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
-    transcribe.py    TranscribeSession (recognise → diarize → identify → sentences),
+    transcribe.py    TranscribeSession (recognise → seams → score words →
+                     diarize → sentences kept whole → identify →
+                     sentences → certainty),
                      QueueTranscription, TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
@@ -132,7 +141,9 @@ marked `slow`.
       "speaker": "ana", "start": 44.12, "end": 47.90,
       "text": "Eso no lo habíamos mirado.",
       "previous_speaker": "S1", "previous_utterance": "t2.s1",
-      "confidence": null, "speaker_confidence": 0.71
+      "confidence": 0.93, "speaker_confidence": 0.71,
+      "speaker_certainty": 0.04, "doubtful": true, "overlap": false,
+      "alternative_speaker": "S1"
     }
   ],
   "pipeline": {"recogniser": "openai/whisper-large-v3-turbo",
@@ -155,7 +166,91 @@ marked `slow`.
   chunks that keep the exchange together.
 - `speaker` is an enrolled user id when the voice was recognised, or
   an anonymous label (`S1`, `S2`, …) that is stable inside the session.
-  `speaker_confidence` is the similarity that supports the attribution.
+  `speaker_confidence` is the similarity of the speaker's whole voice
+  group with their voiceprint (the same for every sentence of a
+  speaker). `confidence` is the recogniser's mean word probability
+  (Whisper re-reads its own words against the audio, at most 30 s at a
+  time, and gives each token a probability; a word's is the mean over
+  its tokens). The words are scored once they are final (seams
+  resolved, words over silence dropped: `SpeechRecogniser.score_words`,
+  a second port method the use case calls), so a doubled passage is
+  never scored against audio that holds it once. A failure of that
+  pass is logged and noted on the job, and the transcript is saved
+  with `confidence` `null`: the scores are an extra, not a reason to
+  fail the job.
+- A session's `language` must be a code the recogniser knows (Whisper:
+  the 100 codes it has a token for; `es-ES` is read as `es`) or `auto`.
+  Opening, importing and queueing a session check it, so a typo is a
+  `400` before any job runs, not a failed transcription.
+- Per sentence, from the short voice windows over it (optional fields,
+  added compatibly; absent when there is one voice or no window):
+  `speaker_certainty` is the mean margin of the sentence's speaker over
+  the closest other voice (a difference of cosines in [-2, 2], **not a
+  probability**), `doubtful` a margin below `doubt_margin` (0.1),
+  `overlap` a window inside the sentence that prefers another voice,
+  and `alternative_speaker` that other voice when the sentence is
+  doubtful (the other voice the windows over its weakest stretch
+  prefer most) or an overlap (the voice of the window that flagged
+  it). Definition, rationale and limits: `IDENTIFICATION.md`,
+  appendix. A sentence moved by hand loses them, and so do the
+  sentences of the target of a merge (their margins may have been
+  taken against the voice merged into them).
+- Utterances are strictly in time order. The Whisper pipeline reads
+  30 s windows that start every 20 s; when its join of two windows
+  fails, the overlap comes out twice and the word stream jumps back to
+  the later window's start (seen at 20, 80, 180, 240, 260 and 360 s on
+  the first real recordings). `domain/seams.py` keeps one copy. First,
+  a word longer than it can plausibly last (3 s, or 0.4 s per letter
+  for long words; a judgement) is shortened to that, keeping its end
+  when its start jumped back and its start otherwise: one word with an
+  impossible span must not look like a seam over a whole passage. Only
+  a step back of more than 1 s is a seam; a smaller one is jitter of
+  the word times (seen: a few hundredths of a second) and the word's
+  start is clamped forward, in text order, unless the word is the same
+  word as one it steps back over (then it is treated as a seam too).
+  At a seam the two copies of the doubled stretch (plus the later
+  copy's words up to 1 s past it) are aligned word by word (longest
+  common subsequence of the words' letters, with compatible times); a
+  word in both is kept once, from the window where it is farther from
+  the window's edge (the earlier window before the stretch's middle,
+  the later one after it). A word with no counterpart is kept, unless
+  the other copy has different words at the same moment: then the copy
+  with more words there wins, and with as many, the copy from the
+  window farther from its edge. The step is idempotent; it drops a
+  word said once only in favour of at least as many other words heard
+  at the same moment, so one word never erases two.
+- A change of speaker inside a sentence is undone only when the
+  windows do not support it (`whole_sentences`, measured in
+  `IDENTIFICATION.md`, appendix): a stretch of at most
+  `whole_sentence_max_move` (6 s) goes to a neighbouring speaker of the
+  same sentence when its own margin is unknown (no window), at most 0,
+  or below `whole_sentence_margin` (0.1) with at most one window
+  preferring its own speaker; and one sentence gives away at most
+  `whole_sentence_max_moved` (6 s, a judgement) in all. A stretch whose
+  windows prefer its own speaker by the cut, or with a positive margin
+  that two windows prefer, stays, and the sentence is then cut at the change
+  (each part is its own turn). A sentence holding a moved stretch
+  takes that stretch's margin as its `speaker_certainty` when lower
+  (doubtful when below the cut, or when no window covers the moved
+  stretch). A sentence ends at final punctuation or at a pause longer
+  than `turn_gap`.
+- `overlap` combines two sources when an overlap detector is
+  configured (`overlap_detector`, port `OverlapDetector`; used only to
+  flag sentences, never to group voices): a sentence with at least
+  `overlap_seconds` (0.5 s) on stretches the detector hears two voices
+  in is an overlap, and `overlap_source` says which fired (`voices`,
+  `detector`, `both`). The candidate measured in `OVERLAP.md` §3
+  (NVIDIA's streaming Sortformer v2, CC BY 4.0) needs NeMo, which the
+  project's environment cannot take without resolving pins (`OVERLAP.md`
+  §9); the switch defaults to `off` and only a deterministic `fake`
+  ships.
+- `language` of a sentence is the language Whisper detects in the
+  scoring window it was said in (one decoder step on the encoder output
+  the scoring pass already has). With a session language of `auto`
+  Whisper detects the language of every window when it transcribes and
+  the session keeps `auto`; with a fixed one, a sentence detected in
+  another language gets `language_differs: true`. The speaker's
+  `identification` is described in §6.
 - Words are kept by the transcriber (for the player and for
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.
@@ -265,6 +360,18 @@ lets a human check the sample.
   raw unit vectors at cosine 0.95; enrolled voiceprints used as seeds
   of the grouping did better than cluster-then-match and are the
   recommended next step.
+- **Expected speakers** (TR-17, from `OVERLAP.md` §2.5–2.6). When a
+  session lists who is present and the number of speakers equals the
+  list, the voices are clustered into that many groups and assigned to
+  the listed voiceprints one to one (maximum total cosine), each pair
+  accepted at `expected_floor` (0.8) or more. 0.8 is a judgement from
+  three real sessions of two people (lowest true pair 0.899, highest
+  cross pair 0.730), not a measured error rate; the list is what
+  guards the names. A person named below the open threshold (0.95) is
+  marked `identification: "expected_floor"` in the transcript and the
+  player shows it as a less certain identification and recommends
+  re-enrolling. Open sessions (no list, or a count other than the
+  list) keep the measured seeding at 0.95, unchanged.
 
 Without enrolment everything still works with anonymous labels.
 

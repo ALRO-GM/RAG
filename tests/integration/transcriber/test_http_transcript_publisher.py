@@ -39,6 +39,10 @@ UTTERANCE_KEYS = {
     "previous_speaker", "previous_utterance", "confidence",
     "speaker_confidence",
 }
+# Optional fields, written when the voice evidence gave them a value.
+CERTAINTY_KEYS = {
+    "speaker_certainty", "doubtful", "overlap", "alternative_speaker",
+}
 
 Answer = Tuple[int, float]
 """A scripted answer: HTTP status and seconds to wait before it."""
@@ -270,7 +274,10 @@ def test_a_real_session_sends_no_audio_no_voiceprint_no_words(
     [body] = rag.bodies()
     assert body == returned
     assert set(body) == CONTRACT_KEYS
-    assert all(set(u) == UTTERANCE_KEYS for u in body["utterances"])
+    assert all(
+        UTTERANCE_KEYS <= set(u) <= UTTERANCE_KEYS | CERTAINTY_KEYS
+        for u in body["utterances"]
+    )
     raw = rag.received.requests[0]["body"]
     for forbidden in (b'"words"', b'"audio"', b'"voiceprint"', b'"vector"',
                       b'"embedding"', b"RIFF", b"fLaC"):

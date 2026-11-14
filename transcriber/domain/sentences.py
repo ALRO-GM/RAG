@@ -173,7 +173,8 @@ def regroup_utterances(utterances: Sequence[Utterance]) -> List[Utterance]:
     confidences); consecutive sentences of one speaker form one turn,
     and every turn is renumbered with its ``previous_speaker`` and
     ``previous_utterance`` as :func:`build_utterances` sets them. The
-    words of each sentence take its speaker.
+    words of each sentence take its speaker; every other field (the
+    confidences and the certainty of the attribution) is kept.
     """
     out: List[Utterance] = []
     turn = -1
@@ -189,19 +190,16 @@ def regroup_utterances(utterances: Sequence[Utterance]) -> List[Utterance]:
             current = utterance.speaker
             turn += 1
             index = 0
-        out.append(Utterance(
-            id=utterance_id(turn, index), turn=turn, index=index,
-            speaker=utterance.speaker, start=utterance.start,
-            end=utterance.end, text=utterance.text,
-            previous_speaker=previous_speaker,
-            previous_utterance=previous_utterance,
-            confidence=utterance.confidence,
-            speaker_confidence=utterance.speaker_confidence,
-            words=[
+        out.append(Utterance.model_validate({
+            **utterance.model_dump(exclude={"words"}),
+            "id": utterance_id(turn, index), "turn": turn, "index": index,
+            "previous_speaker": previous_speaker,
+            "previous_utterance": previous_utterance,
+            "words": [
                 w.model_copy(update={"speaker": utterance.speaker})
                 for w in utterance.words
             ],
-        ))
+        }))
         index += 1
     return out
 

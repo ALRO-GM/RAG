@@ -29,7 +29,8 @@
         "properties": {
           "id": {"type": "string", "minLength": 1},
           "name": {"type": ["string", "null"]},
-          "enrolled": {"type": "boolean"}
+          "enrolled": {"type": "boolean"},
+          "identification": {"type": ["string", "null"], "enum": ["threshold", "expected_floor", null]}
         }
       }
     },
@@ -50,7 +51,14 @@
           "previous_speaker": {"type": ["string", "null"]},
           "previous_utterance": {"type": ["string", "null"]},
           "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-          "speaker_confidence": {"type": ["number", "null"], "minimum": -1, "maximum": 1}
+          "speaker_confidence": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
+          "speaker_certainty": {"type": ["number", "null"], "minimum": -2, "maximum": 2},
+          "doubtful": {"type": ["boolean", "null"]},
+          "overlap": {"type": ["boolean", "null"]},
+          "alternative_speaker": {"type": ["string", "null"], "minLength": 1},
+          "overlap_source": {"type": ["string", "null"], "enum": ["voices", "detector", "both", null]},
+          "language": {"type": ["string", "null"], "minLength": 2},
+          "language_differs": {"type": ["boolean", "null"]}
         }
       }
     },

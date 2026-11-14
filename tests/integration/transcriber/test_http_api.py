@@ -315,6 +315,22 @@ class TestConsentAndOptions:
         transcript = client.get("/api/sessions/s1/transcript").json()
         assert len(transcript["speakers"]) == 2
 
+    def test_a_language_the_recogniser_lacks_is_refused(
+        self, client: TestClient
+    ) -> None:
+        refused = client.post("/api/sessions", json={
+            "id": "s1", "language": "xx"})
+        assert_error(refused, 400, "invalid_input")
+        assert "Unknown language" in refused.json()["message"]
+        wav = sound_file(tone(1.0), 16000, "wav")
+        assert_error(client.post(
+            "/api/sessions/s2/upload",
+            params={"filename": "a.wav", "language": "xx"}, content=wav,
+        ), 400, "invalid_input")
+        made = client.post("/api/sessions", json={
+            "id": "s3", "language": "es-ES"})
+        assert made.status_code == 201, made.text
+
     def test_an_unknown_consent_version_is_refused(
         self, client: TestClient
     ) -> None:

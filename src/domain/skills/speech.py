@@ -16,6 +16,7 @@ from typing import List, Optional, Sequence, Tuple
 from pydantic import BaseModel, Field
 
 from src.domain.skills.transcript import Transcript, Turn, Word
+from src.domain.skills.transcript_contract import Identification
 
 
 class Sentence(BaseModel):
@@ -25,6 +26,10 @@ class Sentence(BaseModel):
     tags and annotations can point at it. Times are ``None`` when the
     transcript has no timestamps. ``previous_speaker`` is who spoke in
     the turn before, when the transcript says so (``transcript.v1``).
+    ``speaker_identification`` is how the transcriber identified the
+    speaker, when it says so; :meth:`named_through_floor` tells from it
+    that the name is only a guess forced by the session's list of who
+    was present.
     """
 
     id: str
@@ -35,6 +40,16 @@ class Sentence(BaseModel):
     start: Optional[float] = None
     end: Optional[float] = None
     previous_speaker: Optional[str] = None
+    speaker_identification: Optional[Identification] = None
+
+    def named_through_floor(self) -> bool:
+        """Tell whether the speaker's name is only a guess from a list.
+
+        As :meth:`~src.domain.skills.transcript.Turn.named_through_floor`:
+        an analysis should down-weight or leave out such a sentence's
+        attribution.
+        """
+        return self.speaker_identification == "expected_floor"
 
     def n_words(self) -> int:
         """Return the number of words of the sentence."""
@@ -111,6 +126,7 @@ def turn_sentences(
                 id=s.id, turn=turn.index, index=n, speaker=turn.speaker,
                 text=s.text, start=s.start, end=s.end,
                 previous_speaker=turn.previous_speaker,
+                speaker_identification=turn.speaker_identification,
             )
             for n, s in enumerate(turn.sentences)
         ]
@@ -171,7 +187,8 @@ def sentence_transcript(
         language=transcript.language,
         turns=[
             Turn(index=n, speaker=s.speaker, text=s.text,
-                 start=s.start, end=s.end)
+                 start=s.start, end=s.end,
+                 speaker_identification=s.speaker_identification)
             for n, s in enumerate(items)
         ],
     )

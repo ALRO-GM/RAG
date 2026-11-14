@@ -24,6 +24,7 @@ PUBLISHED_DIR = "published"
 Runtime = Literal["real", "fake"]
 Publisher = Literal["directory", "http"]
 Device = Literal["auto", "cpu", "cuda"]
+OverlapDetectorName = Literal["off", "fake"]
 
 MIB = 1024 * 1024
 
@@ -256,6 +257,7 @@ class TranscriberSettings(BaseModel):
     publish_http: HttpPublishSettings = HttpPublishSettings()
     api: ApiSettings = ApiSettings()
     tunnel: TunnelSettings = TunnelSettings()
+    overlap_detector: OverlapDetectorName = "off"
 
     @model_validator(mode="after")
     def _http_needs_a_url(self) -> "TranscriberSettings":
@@ -263,6 +265,20 @@ class TranscriberSettings(BaseModel):
         if self.publisher == "http" and self.publish_http.url is None:
             raise ValueError(
                 'publisher "http" needs publish_http.url (the RAG\'s URL)'
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _no_fake_detector_on_real_models(self) -> "TranscriberSettings":
+        """Refuse ``overlap_detector: "fake"`` with ``runtime: "real"``.
+
+        The fake detector reports made-up overlaps: on real recordings
+        it would flag sentences that nobody spoke over.
+        """
+        if self.overlap_detector == "fake" and self.runtime == "real":
+            raise ValueError(
+                'overlap_detector "fake" is only for runtime "fake"; '
+                'use "off" with real models'
             )
         return self
 

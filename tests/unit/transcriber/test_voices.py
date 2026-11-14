@@ -403,6 +403,8 @@ class TestSeedVoices:
         assert seeded.coarse == [0, 0, 1, 0]
         assert seeded.fine == [0, 1, 1, 0]
         assert seeded.people == {0: "ana", 1: "luis"}
+        assert seeded.fine_scores is not None
+        assert list(seeded.fine_scores.argmax(axis=1)) == seeded.fine
         named = name_seeded([0, 1], seeded, prints)
         assert [(a.speaker, a.enrolled) for a in named] == [
             ("ana", True), ("luis", True),
@@ -417,6 +419,7 @@ class TestSeedVoices:
         assert seeded.people == {0: "ana"}
         assert seeded.coarse == [0, 1, 1, 0]
         assert seeded.fine == []
+        assert seeded.fine_scores is None
         named = name_seeded([0, 1], seeded, prints, taken={"S1"})
         assert [(a.speaker, a.enrolled) for a in named] == [
             ("ana", True), ("S2", False),
@@ -513,3 +516,37 @@ class TestSeedVoices:
         with pytest.raises(InvalidInputError, match=message):
             seed_voices(coarse, fine, [print_of("ana", *axis(0))],
                         num_speakers=count)  # type: ignore[arg-type]
+
+
+class TestOneNamePerGroup:
+    """The certainty code reads the names of the groups as distinct voices.
+
+    Could two groups ever get the same person (and so two columns of
+    the evidence one name)? Neither rule allows it.
+    """
+
+    def test_matching_twin_groups_names_one(self) -> None:
+        twins = np.array([[1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+        named = match_voices(twins, [print_of("ana", 1.0, 0.0)], 0.5)
+        assert [a.speaker for a in named] == ["ana", "S1"]
+
+    def test_seeding_gives_each_person_one_group(self) -> None:
+        coarse = np.array(
+            [[1, 0, 0], [0.99, 0.1, 0], [0, 1, 0], [0, 0.99, 0.1]],
+            dtype=np.float32,
+        )
+        prints = [print_of("ana", 1, 0, 0), print_of("luis", 0, 1, 0)]
+        seeded = seed_voices(coarse, coarse, prints, None, 0.9)
+        assert sorted(seeded.people.values()) == ["ana", "luis"]
+        named = name_seeded(
+            sorted(set(seeded.coarse)), seeded, prints
+        )
+        speakers = [a.speaker for a in named]
+        assert len(set(speakers)) == len(speakers)
+
+    def test_twin_voiceprints_claim_one_group(self) -> None:
+        """Two people enrolled with the same vector: one takes the voice."""
+        coarse = np.array([[1, 0], [0.99, 0.1]], dtype=np.float32)
+        prints = [print_of("ana", 1, 0), print_of("eva", 1, 0)]
+        seeded = seed_voices(coarse, coarse, prints, None, 0.9)
+        assert list(seeded.people.values()) == ["ana"]

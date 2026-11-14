@@ -10,7 +10,7 @@ SessionLocks`), so concurrent requests and the job never interleave.
 """
 
 import hashlib
-from typing import Any, Dict, Optional, Sequence
+from typing import AbstractSet, Any, Dict, Optional, Sequence
 
 from pydantic import ValidationError
 
@@ -24,6 +24,7 @@ from transcriber.application.ports import (
 )
 from transcriber.domain.consent import NoticeKind, check_consent_version
 from transcriber.domain.errors import InvalidInputError, StateError
+from transcriber.domain.languages import check_language
 from transcriber.domain.models import Session, SessionState
 from transcriber.domain.sessions import (
     ChunkAction,
@@ -84,12 +85,20 @@ class OpenSession:
     """Start recording a new session."""
 
     def __init__(
-        self, sessions: SessionRepository, clock: Clock, locks: SessionLocks
+        self,
+        sessions: SessionRepository,
+        clock: Clock,
+        locks: SessionLocks,
+        languages: Optional[AbstractSet[str]] = None,
     ) -> None:
-        """Wire the ports."""
+        """Wire the ports and the language codes the recogniser knows.
+
+        ``languages`` ``None`` accepts any code.
+        """
         self._sessions = sessions
         self._clock = clock
         self._locks = locks
+        self._languages = languages
 
     def __call__(
         self,
@@ -108,6 +117,7 @@ class OpenSession:
         transcription (:class:`~transcriber.application.transcribe.
         QueueTranscription` uses them when it is not given others).
         """
+        check_language(language, self._languages)
         session = _make_session(
             id=session_id, title=title, language=language,
             started_at=self._clock.now(),
@@ -192,11 +202,18 @@ class ImportRecording:
     """Create a session from a recording made with another app."""
 
     def __init__(
-        self, sessions: SessionRepository, locks: SessionLocks
+        self,
+        sessions: SessionRepository,
+        locks: SessionLocks,
+        languages: Optional[AbstractSet[str]] = None,
     ) -> None:
-        """Wire the ports."""
+        """Wire the ports and the language codes the recogniser knows.
+
+        ``languages`` ``None`` accepts any code.
+        """
         self._sessions = sessions
         self._locks = locks
+        self._languages = languages
 
     def __call__(
         self,
@@ -218,6 +235,7 @@ class ImportRecording:
             raise InvalidInputError("The recording is empty.")
         if not recording.format.strip():
             raise InvalidInputError("The recording needs a format.")
+        check_language(language, self._languages)
         session = _make_session(
             id=session_id, title=title, language=language,
             state=SessionState.UPLOADED, **_started_with(consent_version),

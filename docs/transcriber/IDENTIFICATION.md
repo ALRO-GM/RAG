@@ -332,6 +332,27 @@ a regression either.
 | `activity_frame` / `activity_threshold` | 0.025 / 0.003 | kept | drops no real word on `dev` (§5) |
 | `group_threshold` | 0.5 | kept | no value suits both two-voice recordings and meetings (§2) |
 
+**With a list of who is present (the expected-speakers rule).** When a
+session lists who is present and the number of speakers equals the
+list, the pipeline does not seed: it clusters the voices into that
+many groups and then matches them one to one to the listed voiceprints
+(cluster-then-match), accepting a pair at `expected_floor` (0.8)
+instead of 0.95. Cluster-then-match was measured here only at 0.95
+(86.1% of words on the right id on the held-out readers, number given,
+against 91.4% seeded); **its accuracy with the 0.8 floor has not been
+measured on labelled data** (the floor is a judgement from three
+unlabelled real sessions, `OVERLAP.md` §2.6). Its known failure mode
+cannot be fixed from the voices alone: **a person who speaks without
+being listed is given a listed name** whenever a listed voiceprint is
+within the floor of their voice (an absent person with a weak
+enrolment, for example; `test_an_unlisted_person_is_given_a_listed_name`
+pins it). The transcript says so only through the speaker's
+`identification: "expected_floor"`; the player marks every sentence of
+such a speaker and shows it under "only doubtful sentences", and the
+analyzer's sentences expose `named_through_floor()` so their
+attribution can be down-weighted or left out. List only the people
+really present.
+
 **What the pipeline uses now.** Voiceprints as seeds is the default
 of `TranscriptionParameters.identification` (`"seeded"`;
 `"cluster_then_match"` keeps the previous method). It applies whenever
@@ -398,3 +419,145 @@ rm -r data/tr05   # the audio is not kept
 
 `recognition.jsonl` gets one row per recording the first time it is
 recognised; delete it to time a fresh run.
+
+## Appendix: the speaker certainty of a sentence (TR-16)
+
+Every utterance of a transcript carries, besides `speaker_confidence`
+(the cosine of the speaker's whole voice group with their voiceprint,
+one value per speaker), its own `speaker_certainty`, `doubtful`,
+`overlap` and `alternative_speaker`
+(`transcriber/domain/certainty.py`). How they are computed:
+
+- Each short analysis window (1.5 s every 0.75 s) has a cosine with
+  each voice group's centroid, in the space the voices were grouped in
+  (unit vectors centred on the recording's mean, as the grouping does
+  by default). The window goes to
+  the group it scores best; those cosines are kept.
+- The **margin** of a speaker over a stretch of audio is the mean, over
+  the short windows that overlap the stretch (each weighted by the
+  seconds it shares with it), of the window's cosine with that speaker
+  minus its cosine with the closest other voice heard in the
+  transcript. `speaker_certainty` is the margin of the sentence's
+  speaker over `[start, end]`. It lies in [-2, 2]: positive when the
+  windows prefer the speaker, near 0 when they cannot tell, negative
+  when they prefer someone else (possible after smoothing or after a
+  sentence is kept whole).
+- `doubtful` is a margin below `doubt_margin` (0.1). `overlap` is a
+  window lying wholly inside the sentence that prefers another voice by
+  at least 0.1. `alternative_speaker` is given only when the sentence
+  is doubtful (the other voice the windows over its weakest stretch
+  prefer most) or an overlap (the voice of the window that flagged it;
+  with three or more voices it can differ from the runner-up over the
+  whole sentence).
+- A sentence that holds a stretch `keep_sentences_whole` gave to its
+  speaker (below) takes the margin over that stretch when it is lower:
+  a moved stretch is never hidden behind a confident sentence. With no
+  window over the moved stretch the sentence is doubtful.
+- With one voice in the session, or no window over a sentence, the
+  fields are absent (`null` in the model).
+
+What it is not: **a similarity margin, not a probability**. It was not
+calibrated against sentences whose speaker is known on real speech, so
+a margin of 0.5 does not mean "50% sure" and no error rate goes with
+the 0.1 cut. `overlap` cannot tell two people speaking at once from a
+quick exchange inside one sentence, and a sentence shorter than one
+window (1.5 s) never has a window inside it. Separating simultaneous
+voices needs a dedicated model (TR-14).
+
+### Keeping a sentence whole (`whole_sentences`)
+
+A change of speaker inside a sentence often comes from one stray short
+window at a sentence's edge. `keep_sentences_whole` gives a stretch of
+words to the speaker of a neighbouring stretch of the same sentence
+when all of these hold: it lasts at most `whole_sentence_max_move`
+seconds; the seconds the sentence already gave away plus its own are
+at most `whole_sentence_max_moved` (6 s, a judgement: the same as one
+stretch, so short moves cannot chain into a long one; a constructed
+test sentence had 13.2 s of its 19 s moved without it); and the windows do
+not support its own speaker: its margin is unknown (no window), at
+most 0, or below `whole_sentence_margin` (0.1) with at most one window
+preferring it (a single stray window). A stretch whose windows prefer
+its own speaker by 0.1 or more, even through one window, or whose
+margin is positive and two or more windows prefer it, however weakly,
+stays, and the sentence is cut
+there (each part becomes its own turn). The neighbour is the one whose
+margin over the stretch is best. (An earlier wording also moved a
+stretch when "the neighbour's margin over it is higher" than its
+own; that clause never fired, because the margins of two voices over
+the same windows add up to 0 or less, so it was removed.) It has
+its own switch, independent of `doubt_margin`.
+
+The table below was measured before two changes of the second review
+of #24: the per-sentence bound and the condition that a single window
+must also prefer its speaker by less than 0.1 to let it move. Their
+effect on these figures has not been measured (the TR-05 cache was not available when
+they were made).
+
+Measured on the synthetic four-reader meetings of §3 (20 per split;
+the default pipeline: seams resolved, words over silence dropped,
+voiceprints as seeds at 0.95 on unit vectors, smoothing; the same
+cached windows with the rule off and on; words on the right id, mean
+of the four enrolment conditions):
+
+| Split | Speakers | Off | 1.5 s | 3 s | 6 s | Unbounded |
+|---|---|---|---|---|---|---|
+| dev (tuning) | given | 94.1% | 95.5% | 95.9% | 96.2% | 96.1% |
+| dev (tuning) | estimated | 89.0% | 92.5% | 93.5% | 93.7% | 91.3% |
+| test (held out) | given | 91.4% | 94.0% | 94.7% | 95.0% | 94.6% |
+| test (held out) | estimated | 81.8% | 85.9% | 87.2% | 88.1% | 84.1% |
+
+With any of the four bounds the rule on put more words on the right id
+than off in each of the 16 cells (two splits, four enrolment
+conditions, number given or estimated; `whole_sentences.jsonl`), so it
+stays on by default; 6 s was the best bound on every dev cell (tied
+with unbounded on three) and is the default `whole_sentence_max_move`. Without a bound the rule hands long
+stretches to the wrong neighbour when the number of speakers is
+estimated. The "off" column with the number given reproduces the
+91.4% of §3 for seeding. These are read speech meetings with clean
+turns; on a phone on a table the rule was not measured against labels.
+
+```sh
+# needs the TR-05 cache (prepare, §8; GPU); this step is CPU only
+PYTHONPATH=. python experiments/transcriber/identification_eval.py \
+    analyse --what sentences
+```
+
+### On the first real recordings
+
+Two people around one phone, three recordings R1–R3 (985 s; no ground
+truth). Rerun with the current pipeline and printed by
+`experiments/transcriber/real_sessions.py`, which copies the sessions
+and the voiceprints to a new scratch directory (deleted on exit unless
+`--keep-work`) and prints aggregate counts only (no audio, text, ids or
+names). The table was printed before the second review of #24 changed
+the seam step and the whole-sentence rule; it has not been rerun since:
+
+```sh
+PYTHONPATH=. python experiments/transcriber/real_sessions.py \
+    --data-dir data/transcriber --work /tmp/real-sessions --first 3
+```
+
+| | R1 | R2 | R3 | All |
+|---|---|---|---|---|
+| Short windows | 405 | 205 | 269 | 879 |
+| Windows whose two closest voices are within 0.1 | 1.7% | 3.9% | 3.4% | 2.7% (24) |
+| 10% quantile of that gap | 0.374 | 0.192 | 0.185 | |
+| Sentences | 58 | 82 | 59 | 199 |
+| Doubtful | 13 | 10 | 4 | 27 (13.6%) |
+| Overlap | 11 | 5 | 8 | 24 (12.1%) |
+| Stretches moved by `keep_sentences_whole` | 17 | 6 | 3 | 26 |
+| Sentences out of time order | 0 | 0 | 0 | 0 |
+| Words returned / dropped by the seam step | 837 / 24 | 441 / 52 | 397 / 35 | 1675 / 111 |
+
+Why 0.1. Few windows are near ties (2.7% within 0.1): a sentence
+margin under 0.1 means its windows are, on average, as undecided as
+those few. It is a parameter (`TranscriptionParameters.doubt_margin`).
+With the sentences now cut where a supported change of speaker falls
+and moved stretches carried into the certainty, 13.6% of the sentences
+are doubtful (6.4% with the TR-16 rule, whose moves were silent).
+
+The table above is the open-session pipeline (seeding at 0.95), as
+TR-16 left it: B is anonymous on R2 and R3. With the TR-17
+expected-speakers rule (these sessions list both people and give the
+count 2) the same recordings give other groups and both people named;
+those figures are in `OVERLAP.md` §9.1.
