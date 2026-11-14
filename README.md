@@ -411,21 +411,22 @@ questions. The default now applies the rule on the existing index
 datasets up and one down); `--profile general`, `general-fast` and
 `general-cpu` select the larger configurations.
 
-## Results site and CI/CD
+## CI/CD and rag.peer4u.app
 
-Every result of the project is published at **https://rag.peer4u.app**:
-the lab suites, the BEIR/CoIR benchmarks, the soft-skills lab and
-rubrics, the hardware runs and all the documents. The experiments run
-on the workstation GPU and their result files are committed; GitHub
-Actions lints (flake8, `mypy --strict`), runs the unit and integration
-tests with a branch-coverage gate, builds the static site
-(`python -m results_site build`) and, on every merge to `main`,
-deploys it. Workflow and conventions: `CONTRIBUTING.md`; architecture
-and operations: `docs/DEPLOYMENT.md`.
+**https://rag.peer4u.app** serves the transcriber's pages (record a
+meeting from a phone, enrol a voice, play a transcript); its API runs
+on the workstation and is reached through an SSH tunnel
+(`docs/transcriber/ARCHITECTURE.md` §5). The results site that used to
+be published there was retired on 2026-11-14; the benchmark and
+experiment documents remain in `docs/benchmarks/` and `experiments/`.
+The experiments run on the workstation GPU and their result files are
+committed; GitHub Actions lints (flake8, `mypy --strict`), runs the unit
+and integration tests with a branch-coverage gate, bundles the pages
+and, on every merge to `main`, deploys them. Workflow and conventions:
+`CONTRIBUTING.md`; architecture and operations: `docs/DEPLOYMENT.md`.
 
 ```sh
-make ci           # what CI runs: lint-strict, coverage, site
-make site-serve   # preview the site at http://localhost:8765
+make ci           # what CI runs: lint-strict, coverage, site (the bundle)
 ```
 
 ### From a recording

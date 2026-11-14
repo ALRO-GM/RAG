@@ -86,7 +86,7 @@ module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["src", "results_site", "transcriber"]
+source = ["src", "transcriber"]
 branch = true
 # The CLI tests run `python -m src ...` in subprocesses: measure those too.
 patch = ["subprocess"]
