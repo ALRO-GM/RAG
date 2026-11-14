@@ -1,5 +1,7 @@
 # Transcriber: a separate service from recording to attributed sentences
 
+See also: [TUTORIAL.md](TUTORIAL.md) (in Spanish: how to enrol, record and read a transcript).
+
 Status: design, 2026-11-13. This document is the specification the
 tickets of the *Transcriber* milestone implement. It replaces the
 in-process audio commands of the analyzer (`docs/skills/AUDIO.md`),

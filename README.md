@@ -420,7 +420,7 @@ datasets up and one down); `--profile general`, `general-fast` and
 **https://rag.peer4u.app** serves the transcriber's pages (record a
 meeting from a phone, enrol a voice, play a transcript); its API runs
 on the workstation and is reached through an SSH tunnel
-(`docs/transcriber/ARCHITECTURE.md` §5). The results site that used to
+(`docs/transcriber/ARCHITECTURE.md` §5; Spanish tutorial for participants and the person who runs it: `docs/transcriber/TUTORIAL.md`). The results site that used to
 be published there was retired on 2026-11-14; the benchmark and
 experiment documents remain in `docs/benchmarks/` and `experiments/`.
 The experiments run on the workstation GPU and their result files are
