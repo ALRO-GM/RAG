@@ -522,6 +522,16 @@ class TestReview:
             with pytest.raises(InvalidInputError):
                 lab.results.fragments(SESSION, run_id, *bad)
 
+    def test_spans(self, lab: Lab) -> None:
+        run_id = self.labelled(lab)
+        spans = lab.results.spans(SESSION, run_id)["spans"]
+        timed = lab.results.fragments(SESSION, run_id, 0, 200, "time")
+        assert [s["start"] for s in spans] == [
+            f["start"] for f in timed["fragments"]
+        ]
+        assert set(spans[0]) == {"index", "start", "end", "disagreement",
+                                 "distinct_answers"}
+
     def test_tracks(self, lab: Lab) -> None:
         run_id = self.labelled(lab)
         shown = lab.results.tracks(SESSION, run_id)
@@ -550,6 +560,12 @@ class TestReview:
         assert best["wer"] == pytest.approx(0.0)
         page = lab.results.fragments(SESSION, run_id, 0, 200, "time")
         assert page["fragments"][0]["label"]["kind"] == "person"
+        left = lab.results.fragments(SESSION, run_id, 0, 200, "time", True)
+        assert left["total"] < page["total"]
+        assert all(f["label"] is None for f in left["fragments"])
+        assert left["total"] == sum(
+            1 for f in page["fragments"] if f["label"] is None
+        )
         with pytest.raises(InvalidInputError):
             lab.labels.replace(SESSION, [ReferenceLabel(
                 start=0, end=1, kind="person", speakers=["eve"],

@@ -920,6 +920,7 @@ class LabResultsView:
     def fragments(
         self, session_id: str, run_id: str, offset: int = 0,
         limit: int = 50, sort: str = "disagreement",
+        unlabelled: bool = False,
     ) -> Dict[str, Any]:
         """Return a page of fragments with each pipeline's answer.
 
@@ -927,7 +928,8 @@ class LabResultsView:
         different texts, then longest) or ``time``. Each fragment
         lists, per pipeline, its speakers and its words grouped by the
         speaker the pipeline gives them, and the reference label that
-        covers it, if any.
+        covers it, if any. ``unlabelled`` keeps only the fragments no
+        label covers (``total`` counts those).
         """
         if sort not in ("disagreement", "time"):
             raise InvalidInputError("sort must be disagreement or time.")
@@ -937,7 +939,10 @@ class LabResultsView:
             )
         run = self._status.run(session_id, run_id)
         results = self._results(session_id, run_id)
+        labels = self._repository.labels(session_id)
         listed = list(results.get("fragments", []))
+        if unlabelled:
+            listed = [f for f in listed if _covering(labels, f) is None]
         if sort == "disagreement":
             listed.sort(key=lambda f: (
                 -f["disagreement"], -f.get("distinct_texts", 0),
@@ -945,7 +950,6 @@ class LabResultsView:
             ))
         page = listed[offset:offset + limit]
         words, segments = self._sources(session_id, run, results)
-        labels = self._repository.labels(session_id)
         shown = []
         for fragment in page:
             pipelines: Dict[str, Any] = {}
@@ -959,6 +963,23 @@ class LabResultsView:
             })
         return {"total": len(listed), "offset": offset, "limit": limit,
                 "sort": sort, "fragments": shown}
+
+    def spans(self, session_id: str, run_id: str) -> Dict[str, Any]:
+        """Return every fragment in time order, without the answers.
+
+        Each item: ``index``, ``start``, ``end``, ``disagreement`` and
+        ``distinct_answers``: enough for a page to count labelled
+        fragments and to draw where the disputes are.
+        """
+        self._status.run(session_id, run_id)
+        results = self._results(session_id, run_id)
+        return {"spans": [
+            {"index": f["index"], "start": f["start"], "end": f["end"],
+             "disagreement": f["disagreement"],
+             "distinct_answers": f["distinct_answers"]}
+            for f in sorted(results.get("fragments", []),
+                            key=lambda f: f["start"])
+        ]}
 
     def _sources(
         self, session_id: str, run: LabRun, results: Mapping[str, Any]

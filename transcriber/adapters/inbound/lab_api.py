@@ -153,10 +153,19 @@ def add_lab_routes(
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=50, ge=1, le=MAX_PAGE),
         sort: str = Query(default="disagreement", max_length=16),
+        unlabelled: bool = Query(default=False),
     ) -> Dict[str, Any]:
         """Return a page of fragments, most disputed first by default."""
         return await run_in_threadpool(
-            lab.results.fragments, session_id, run_id, offset, limit, sort
+            lab.results.fragments, session_id, run_id, offset, limit, sort,
+            unlabelled,
+        )
+
+    @api.get("/lab/sessions/{session_id}/runs/{run_id}/fragment-spans")
+    async def spans(session_id: str, run_id: str) -> Dict[str, Any]:
+        """Return every fragment's span and disagreement, in time order."""
+        return await run_in_threadpool(
+            lab.results.spans, session_id, run_id
         )
 
     @api.get("/lab/sessions/{session_id}/runs/{run_id}/scores")

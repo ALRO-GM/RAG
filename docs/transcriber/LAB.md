@@ -428,7 +428,8 @@ Each track's named segments and the consensus, for a timeline:
 ### `GET …/runs/{run_id}/fragments?offset=0&limit=50&sort=disagreement`
 
 `sort`: `disagreement` (most disputed, then most different texts, then
-longest) or `time`; `limit` 1–200.
+longest) or `time`; `limit` 1–200; `unlabelled=true` keeps only the
+fragments no reference label covers (`total` counts those).
 
 ```json
 {"total": 812, "offset": 0, "limit": 50, "sort": "disagreement",
@@ -443,6 +444,17 @@ longest) or `time`; `limit` 1–200.
 ```
 
 `label` is the reference label holding the fragment's middle, if any.
+
+### `GET …/runs/{run_id}/fragment-spans`
+
+Every fragment in time order without the pipelines' answers (a few
+kilobytes instead of a page of answers): what the review tab needs to
+count labelled fragments and to mark the disputed stretches.
+
+```json
+{"spans": [{"index": 0, "start": 0.0, "end": 0.48,
+            "disagreement": 0.0, "distinct_answers": 1}]}
+```
 
 ### `GET …/runs/{run_id}/audio/{denoiser}`
 

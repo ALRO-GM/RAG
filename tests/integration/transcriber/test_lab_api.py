@@ -132,6 +132,13 @@ def test_a_run_from_start_to_scores(client: TestClient) -> None:
     assert labels.json()["speakers"] == ["ana"]
     assert len(client.get("/api/lab/sessions/s1/labels").json()["labels"]) \
         == 2
+    spans = client.get(f"{base}/fragment-spans").json()["spans"]
+    assert len(spans) == results["fragment_count"]
+    assert spans[0]["start"] == 0.0 and "pipelines" not in spans[0]
+    left = client.get(f"{base}/fragments", params={
+        "sort": "time", "unlabelled": "true", "limit": 200}).json()
+    assert 0 < left["total"] < results["fragment_count"]
+    assert all(f["label"] is None for f in left["fragments"])
     bad = client.put("/api/lab/sessions/s1/labels", json={"labels": [
         {"start": 0, "end": 1, "kind": "person", "speakers": ["eve"]},
     ]})
