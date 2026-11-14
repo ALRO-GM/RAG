@@ -55,6 +55,24 @@ def _fetch(cls: Any, repo: str, device: str) -> Any:
     )
 
 
+def matched_level(out: Any, chunk: Any) -> Any:
+    """Scale ``out`` to the RMS level of the input ``chunk``.
+
+    SepFormer is trained scale-invariant: its output has an arbitrary
+    level (seen: an RMS about 17 times the input's, clipped), and
+    MetricGAN+ doubled it. The diarizers and the voice model then hear
+    a distorted voice, so each piece is brought back to its input's
+    level before the pieces are joined.
+    """
+    import numpy as np
+
+    have = float(np.sqrt(np.mean(np.square(out)))) if len(out) else 0.0
+    want = float(np.sqrt(np.mean(np.square(chunk)))) if len(chunk) else 0.0
+    if have <= 1e-9:
+        return out
+    return out * (want / have)
+
+
 def sepformer(context: Context) -> Dict[str, Any]:
     """Enhance with the DNS-4 SepFormer, 10 s at a time."""
     import numpy as np
@@ -73,7 +91,9 @@ def sepformer(context: Context) -> Dict[str, Any]:
         batch = torch.from_numpy(chunk).unsqueeze(0).to(context.device)
         with torch.inference_mode():
             out = model.separate_batch(batch)
-        return out[0, :, 0].float().cpu().numpy()[:len(chunk)]
+        return matched_level(
+            out[0, :, 0].float().cpu().numpy()[:len(chunk)], chunk
+        )
 
     enhanced = _common.pieces(samples, piece, _common.RATE, run)
     _common.write_audio(
@@ -102,7 +122,8 @@ def metricgan(context: Context) -> Dict[str, Any]:
             out = model.enhance_batch(
                 batch, lengths=torch.tensor([1.0], device=context.device)
             )
-        return out[0].float().cpu().numpy()[:len(chunk)]
+        return matched_level(out[0].float().cpu().numpy()[:len(chunk)],
+                             chunk)
 
     enhanced = _common.pieces(samples, piece, _common.RATE, run)
     _common.write_audio(

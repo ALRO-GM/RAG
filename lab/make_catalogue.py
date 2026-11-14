@@ -31,7 +31,7 @@ def entry(**fields: Any) -> Dict[str, Any]:
         "source_url": None, "licence": None, "licence_commercial": True,
         "gated": False, "token_url": None, "languages": ["any"],
         "vram_gb": None, "parameters": {}, "weights": [],
-        "weights_mb": None, "notes": "", "lineage": None,
+        "weights_mb": None, "notes": "", "lineage": None, "revision": 1,
     }
     unknown = set(fields) - set(base)
     assert not unknown, unknown
@@ -93,7 +93,7 @@ ENTRIES: List[Dict[str, Any]] = [
               " memory while other jobs held 5 GB), 21 s for 122 s.",
     ),
     entry(
-        id="sepformer-dns4", stage="denoise", family="speechbrain",
+        id="sepformer-dns4", stage="denoise", family="speechbrain", revision=2,
         display_name="SpeechBrain SepFormer DNS-4 (16 kHz)",
         source_url="https://huggingface.co/speechbrain/"
                    "sepformer-dns4-16k-enhancement",
@@ -102,10 +102,14 @@ ENTRIES: List[Dict[str, Any]] = [
         weights=["speechbrain/sepformer-dns4-16k-enhancement"],
         weights_mb=113,
         notes="SpeechBrain 1.1.2. Run on 10 s pieces with 1 s"
-              " cross-fades so memory does not grow with the recording.",
+              " cross-fades so memory does not grow with the recording."
+              " Revision 2: each piece is scaled back to its input's RMS"
+              " level (the model's output level is arbitrary: revision 1"
+              " wrote audio at about 17 times the input's RMS, clipped,"
+              " on which no voice matched a voiceprint).",
     ),
     entry(
-        id="metricgan-plus", stage="denoise", family="speechbrain",
+        id="metricgan-plus", stage="denoise", family="speechbrain", revision=2,
         display_name="SpeechBrain MetricGAN+ (VoiceBank)",
         source_url="https://huggingface.co/speechbrain/"
                    "metricgan-plus-voicebank",
@@ -113,7 +117,9 @@ ENTRIES: List[Dict[str, Any]] = [
         vram_gb=0.3, parameters={"piece_seconds": 10.0},
         weights=["speechbrain/metricgan-plus-voicebank"], weights_mb=8,
         notes="Spectral mask enhancement trained on VoiceBank-DEMAND"
-              " (read speech, synthetic noise); 10 s pieces.",
+              " (read speech, synthetic noise); 10 s pieces. Revision 2:"
+              " each piece scaled back to its input's RMS level"
+              " (revision 1 doubled it, clipped).",
     ),
     entry(
         id="rnnoise", stage="denoise", family="enhance",

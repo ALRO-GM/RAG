@@ -19,7 +19,8 @@
       "weights": [],
       "weights_mb": 0,
       "notes": "In-process: the session's audio as decoded (16 kHz mono).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "deepfilternet3",
@@ -44,7 +45,8 @@
       ],
       "weights_mb": 9,
       "notes": "deepfilternet 0.5.6 (the current release; DeepFilterNet3 is its default model), 48 kHz full band. The package pins numpy<2 and imports torchaudio.backend (removed in torchaudio 2.1): installed without its pins and run with an empty stand-in for that one type; the env's torchaudio 2.11.1 runs without its compiled extension. Weights come from the GitHub release into ~/.cache/DeepFilterNet. Measured 1.7 s for 122 s on the GPU (1.9 GB peak).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "mossformer2-se-48k",
@@ -66,7 +68,8 @@
       ],
       "weights_mb": 222,
       "notes": "ClearerVoice-Studio (clearvoice 0.1.2, installed without its pins: numpy<2, soundfile 0.12, torchvision/opencv for its video models). 48 kHz model; ClearVoice cuts long audio into windows itself. Checkpoints in ~/.local/share/ragputin/lab-models/clearvoice.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "mossformergan-se-16k",
@@ -88,7 +91,8 @@
       ],
       "weights_mb": 136,
       "notes": "ClearerVoice-Studio 16 kHz GAN enhancement, 10 s decoding windows. Heavy: 6.3 GB peak on the GPU (it went out of memory while other jobs held 5 GB), 21 s for 122 s.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "sepformer-dns4",
@@ -111,8 +115,9 @@
         "speechbrain/sepformer-dns4-16k-enhancement"
       ],
       "weights_mb": 113,
-      "notes": "SpeechBrain 1.1.2. Run on 10 s pieces with 1 s cross-fades so memory does not grow with the recording.",
-      "lineage": null
+      "notes": "SpeechBrain 1.1.2. Run on 10 s pieces with 1 s cross-fades so memory does not grow with the recording. Revision 2: each piece is scaled back to its input's RMS level (the model's output level is arbitrary: revision 1 wrote audio at about 17 times the input's RMS, clipped, on which no voice matched a voiceprint).",
+      "lineage": null,
+      "revision": 2
     },
     {
       "id": "metricgan-plus",
@@ -135,8 +140,9 @@
         "speechbrain/metricgan-plus-voicebank"
       ],
       "weights_mb": 8,
-      "notes": "Spectral mask enhancement trained on VoiceBank-DEMAND (read speech, synthetic noise); 10 s pieces.",
-      "lineage": null
+      "notes": "Spectral mask enhancement trained on VoiceBank-DEMAND (read speech, synthetic noise); 10 s pieces. Revision 2: each piece scaled back to its input's RMS level (revision 1 doubled it, clipped).",
+      "lineage": null,
+      "revision": 2
     },
     {
       "id": "rnnoise",
@@ -158,7 +164,8 @@
       ],
       "weights_mb": 0,
       "notes": "pyrnnoise 0.4.5's bundled librnnoise, 48 kHz, 10 ms frames, CPU only (3.5 s for 122 s).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "builtin",
@@ -184,7 +191,8 @@
       ],
       "weights_mb": null,
       "notes": "In-process: the service's transcription on the lab's audio (the service's recogniser for speech regions, WavLM windows, grouping, identification with the session's expected speakers and count); segments are the turns of the attributed words, so it never reports overlap and its time includes its recognition.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "pyannote-3.1",
@@ -212,7 +220,8 @@
       ],
       "weights_mb": 33,
       "notes": "Gated: accept the conditions of pyannote/speaker-diarization-3.1 and pyannote/segmentation-3.0, then log in. Run through pyannote.audio 4.0.7 with audio in memory (torchcodec cannot load without FFmpeg). Not run: no token on this machine (the runner stops with needs_token).",
-      "lineage": "pyannote"
+      "lineage": "pyannote",
+      "revision": 1
     },
     {
       "id": "pyannote-community-1",
@@ -238,7 +247,8 @@
       ],
       "weights_mb": 34,
       "notes": "Gated (accept the conditions, log in). pyannote.audio 4.0.7; the overlapping speaker_diarization output is the result, the exclusive one is kept under 'exclusive'. Not run: no token on this machine.",
-      "lineage": "pyannote"
+      "lineage": "pyannote",
+      "revision": 1
     },
     {
       "id": "sortformer-streaming-v2",
@@ -262,7 +272,8 @@
       ],
       "weights_mb": 471,
       "notes": "NeMo 3.0.0, the card's offline (very high latency) streaming setting; posteriors every 80 ms, a speaker is active at >= threshold; at most 4 speakers, num_speakers is not used. Overlap native. 0.6 s for 122 s.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "nemotron-3-diarization",
@@ -287,7 +298,8 @@
       ],
       "weights_mb": 397,
       "notes": "Runs with the project's transformers 5.20.2 (model type nemotron3_diarization; NeMo is not needed, so the Python >= 3.11 requirement of NeMo's main branch does not apply). Chunked streaming inference as on the card, in the longest-latency mode the processor offers (low_latency, 1.04 s); frames every 10 ms; overlap native; num_speakers not used. 4.7 s for 122 s.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "diarizen-wavlm-large-s80-md-v2",
@@ -315,7 +327,8 @@
       ],
       "weights_mb": 305,
       "notes": "NON-COMMERCIAL weights: evaluation only. DiariZen at commit 844f555 with its pyannote.audio 3.1.1 fork; VBx clustering; overlap native (powerset). Batch 8 (32, the default, ran out of memory). Needs shims for torchaudio 2.11 (file loading, a removed type) and torch's weights_only loading. 5.3 s for 122 s.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "ecapa-spectral",
@@ -342,7 +355,8 @@
       ],
       "weights_mb": 89,
       "notes": "The lab's own simple diarizer, not a published recipe: energy speech mask, 1.5 s ECAPA windows every 0.75 s, spectral clustering (eigengap when num_speakers is not given). One speaker per frame: never marks overlap.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "nemo-clustering",
@@ -369,7 +383,8 @@
       ],
       "weights_mb": 102,
       "notes": "NeMo 3.0.0 ClusteringDiarizer with the settings of NeMo's diar_infer_meeting.yaml, inline; multi-scale TitaNet-L embeddings, spectral clustering; ignores overlap. Batch 16: 2.9 GB peak (nvidia-smi), 17 s for 122 s; batch 64 peaked at 5.7 GB.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "whisper-large-v3-turbo",
@@ -393,7 +408,8 @@
       ],
       "weights_mb": 1620,
       "notes": "In-process: the service's current recogniser (transformers).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "whisper-large-v3",
@@ -417,7 +433,8 @@
       ],
       "weights_mb": 3087,
       "notes": "In-process through the project's Whisper adapter. Not installed: disk (its model.safetensors is 3.1 GB and the lab's 7 GB budget was spent on the other candidates).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "faster-whisper-large-v3-turbo",
@@ -443,7 +460,8 @@
       ],
       "weights_mb": 780,
       "notes": "The cached openai/whisper-large-v3-turbo converted locally with ct2-transformers-converter to int8 weights, float16 compute (make lab-env FAMILY=ctranslate2); faster-whisper 1.2.1, CTranslate2 4.9.0, word timestamps, beam 5. cuBLAS/cuDNN come from the project's nvidia packages. 9.6-11.8 s for 122 s. Peak measured with nvidia-smi (includes the CUDA context).",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     },
     {
       "id": "parakeet-tdt-0.6b-v3",
@@ -492,7 +510,8 @@
       ],
       "weights_mb": 2509,
       "notes": "NeMo 3.0.0; detects the language itself (a language parameter outside its 25 is refused as unsupported_language, inside them it is only noted); word timestamps; local attention [256, 256] as the card advises for long audio. The .nemo archive is unpacked in /dev/shm when it has room. fp32: 5.8 GB peak (nvidia-smi, loading included); it ran out of memory while another job held 3.7 GB. 2.0 s for 122 s after a 28 s load.",
-      "lineage": null
+      "lineage": null,
+      "revision": 1
     }
   ]
 }

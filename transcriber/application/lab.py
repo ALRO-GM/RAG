@@ -679,6 +679,8 @@ class RunLab:
                 "parameters": self._parameters.model_dump(mode="json"),
                 "voiceprints": voiceprint_fingerprint(voiceprints),
             }
+        if entry.revision > 1:
+            extra = {**extra, "revision": entry.revision}
         key = stage_key(audio_key, step.stage, step.model, params, extra)
         found = repo.outcome(session_id, key)
         if found is not None:

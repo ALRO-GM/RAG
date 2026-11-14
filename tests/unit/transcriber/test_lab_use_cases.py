@@ -284,6 +284,16 @@ class TestRun:
         assert lab.tool.calls[calls:] == ["recognise:r1"]
         assert lab.status(SESSION, other).state == "done"
 
+    def test_a_new_revision_of_a_model_is_computed_again(
+        self, lab: Lab
+    ) -> None:
+        lab.run(diarizers=["z1"])
+        revised = [dict(e, revision=2) if e["id"] == "z1" else e
+                   for e in ENTRIES]
+        lab.catalogue.catalogue = StaticCatalogue(revised).catalogue
+        lab.run(diarizers=["z1"])
+        assert lab.tool.calls == ["diarize:z1", "diarize:z1"]
+
     def test_failures_are_recorded_and_the_run_goes_on(
         self, lab: Lab
     ) -> None:

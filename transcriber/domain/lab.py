@@ -120,7 +120,9 @@ class CatalogueEntry(BaseModel):
     token after accepting their conditions at ``token_url``.
     ``parameters`` are the defaults a run may override. ``lineage``
     groups near-duplicates (same method, other weights) for the
-    consensus vote; it defaults to the id.
+    consensus vote; it defaults to the id. ``revision`` is raised when
+    the runner's output for this model changes (a fix): from 2 on it is
+    part of the cache key, so results of the old runner are not reused.
     """
 
     model_config = ConfigDict(frozen=True, extra="ignore")
@@ -141,6 +143,7 @@ class CatalogueEntry(BaseModel):
     weights_mb: Optional[float] = Field(default=None, ge=0)
     notes: str = ""
     lineage: Optional[str] = None
+    revision: int = Field(default=1, ge=1)
 
     @property
     def vote_group(self) -> str:
