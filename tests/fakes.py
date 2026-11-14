@@ -642,6 +642,10 @@ class InMemoryTranscriptStore:
             raise NotFoundError(f"No transcript for session {session_id!r}.")
         return self.documents[session_id]
 
+    def delete(self, session_id: str) -> bool:
+        """Forget the document of ``session_id``; tell whether it was kept."""
+        return self.documents.pop(session_id, None) is not None
+
 
 class InMemoryCatalogueRepository:
     """Rubric catalogues kept by (name, language)."""

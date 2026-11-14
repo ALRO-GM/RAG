@@ -39,7 +39,11 @@ from transcriber.bootstrap import (
     start_container,
     tunnel_problem,
 )
-from transcriber.config import TranscriberSettings, load_settings
+from transcriber.config import (
+    LOCAL_RAG_URL,
+    TranscriberSettings,
+    load_settings,
+)
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
@@ -128,6 +132,27 @@ def transcript_lines(transcript: Transcript, lead: float = 0.0) -> List[str]:
         when = clock_time(max(utterance.start - lead, 0.0))
         lines.append(f"[{when}] {who}{after}: {utterance.text}")
     return lines
+
+
+def local_rag_note(settings: TranscriberSettings) -> Optional[str]:
+    """Say why ``TRANSCRIBER_LOCAL_RAG`` did not take effect, if it did not.
+
+    ``None`` when it is off or the RAG of this machine is the target.
+    """
+    if not settings.local_rag or (
+        settings.publisher == "http"
+        and settings.publish_http.url == LOCAL_RAG_URL
+    ):
+        return None
+    token_file = settings.rag_token_file.expanduser()
+    if settings.publisher == "directory" and not token_file.is_file():
+        reason = f"{token_file} does not exist (make rag-token)"
+    else:
+        reason = "the config file chooses the publisher"
+    return (
+        f"Local RAG not used: {reason}; transcripts go to"
+        f" {settings.publish_target()}."
+    )
 
 
 def _read_recording(path: Path) -> RecordedAudio:
@@ -222,6 +247,9 @@ class Commands:
 
         settings = self.settings
         port = args.port if args.port is not None else settings.api.port
+        note = local_rag_note(settings)
+        if note is not None:
+            self.output.note(note)
         if args.dev_pages:
             if not WEB_DIR.is_dir():
                 raise UsageError(f"There are no pages in {WEB_DIR}.")

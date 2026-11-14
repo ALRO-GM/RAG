@@ -1,8 +1,10 @@
 """Inbound adapter: local HTTP API (FastAPI) over the use cases.
 
 Besides search and answers, the API receives the transcripts the
-transcriber publishes (``POST /transcripts``) and gives them back
-(``GET /transcripts/{id}``). Those two routes need a bearer token,
+transcriber publishes (``POST /transcripts``), gives them back
+(``GET /transcripts/{id}``) and deletes them when the transcriber
+deletes the session (``DELETE /transcripts/{id}``, mounted when a
+delete use case is given). These routes need a bearer token,
 compared in constant time; when no token is configured they are not
 mounted at all, so they are never open.
 """
@@ -14,12 +16,13 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from src.application.answering import AnswerService
 from src.application.search import SearchService
 from src.application.skills.ingest import (
+    ForgetIngestedTranscript,
     IngestTranscript,
     ShowIngestedTranscript,
 )
@@ -73,12 +76,14 @@ class TranscriptRoutes:
 
     ``token`` is the bearer token the transcriber sends; an empty one
     leaves the routes unmounted. ``max_bytes`` bounds a request body.
+    ``forget`` adds ``DELETE /transcripts/{id}`` when given.
     """
 
     ingest: IngestTranscript
     show: ShowIngestedTranscript
     token: str
     max_bytes: int = TRANSCRIPT_MAX_BYTES
+    forget: Optional[ForgetIngestedTranscript] = None
 
 
 def create_app(
@@ -190,7 +195,10 @@ async def read_body(request: Request, limit: int) -> bytes:
 
 
 def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
-    """Add ``POST /transcripts`` and ``GET /transcripts/{id}`` to ``app``."""
+    """Add ``POST /transcripts`` and ``GET /transcripts/{id}`` to ``app``.
+
+    ``DELETE /transcripts/{id}`` too when ``routes.forget`` is given.
+    """
 
     def require_token(request: Request) -> None:
         """Refuse (401) a request without the right bearer token."""
@@ -234,3 +242,22 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
             raise HTTPException(status_code=404, detail=str(exc))
         except RagError as exc:
             raise HTTPException(status_code=500, detail=str(exc))
+
+    forget = routes.forget
+    if forget is None:
+        return
+
+    @app.delete(
+        "/transcripts/{session_id}", dependencies=guard, status_code=204
+    )
+    async def delete_transcript(session_id: str) -> Response:
+        """Delete the stored document of a session (204; 404 if none)."""
+        try:
+            await run_in_threadpool(forget, session_id)
+        except InvalidInputError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except NotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except RagError as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+        return Response(status_code=204)

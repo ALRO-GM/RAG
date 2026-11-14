@@ -18,6 +18,7 @@ import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
 from src.application.skills.ingest import (
+    ForgetIngestedTranscript,
     IngestTranscript,
     ShowIngestedTranscript,
 )
@@ -350,3 +351,21 @@ def test_show_checks_the_id_then_the_store() -> None:
         show("../x")
     with pytest.raises(NotFoundError):
         show("demo-es")
+
+
+def test_forget_deletes_the_stored_copy_once() -> None:
+    store = InMemoryTranscriptStore()
+    IngestTranscript(store)(example())
+    forget = ForgetIngestedTranscript(store)
+    forget("demo-es")
+    assert store.documents == {}
+    with pytest.raises(NotFoundError, match="demo-es"):
+        forget("demo-es")
+
+
+def test_forget_checks_the_id_first() -> None:
+    store = InMemoryTranscriptStore()
+    IngestTranscript(store)(example())
+    with pytest.raises(InvalidInputError, match="Invalid session id"):
+        ForgetIngestedTranscript(store)("../demo-es")
+    assert list(store.documents) == ["demo-es"]

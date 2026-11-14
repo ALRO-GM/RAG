@@ -22,11 +22,17 @@ REMOTE_DIR    := /opt/ragputin
 CHISEL_BIN        ?= $(HOME)/.local/share/ragputin/bin/chisel
 TUNNEL_CREDENTIAL ?= $(HOME)/.config/ragputin/tunnel-credential
 TUNNEL_USERS      ?= $(HOME)/.config/ragputin/tunnel-users.json
+# The RAG on the workstation (make rag-serve): this machine only, on
+# its own port (never the transcriber's, which is the one the tunnel
+# forwards). Its ingest token lives outside the repository (make rag-token).
+RAG_TOKEN_FILE    ?= $(HOME)/.config/ragputin/rag-token
+RAG_PORT          ?= 8000
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
 	install-cuda system system-benchmark study coverage ci site \
 	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test \
+	rag-token rag-serve \
 	lab-env lab-envs lab-selftest
 
 install:
@@ -88,6 +94,19 @@ answer:
 
 serve:
 	$(PYTHON) -m src serve
+
+## rag-token: make the RAG's ingest token if it is missing (mode 600,
+## outside the repository; checked if it exists). The transcriber reads
+## the same file with TRANSCRIBER_LOCAL_RAG=1. The token is never printed.
+rag-token:
+	python3 -m src.adapters.outbound.token_file "$(RAG_TOKEN_FILE)"
+
+## rag-serve: the RAG API on 127.0.0.1:$(RAG_PORT) only, receiving the
+## transcriber's transcripts with the token of make rag-token, e.g.
+## make rag-serve TORCH=cuda. Never reachable through the tunnel.
+rag-serve:
+	$(PYTHON) -m src serve --host 127.0.0.1 --port $(RAG_PORT) \
+		--token_file "$(RAG_TOKEN_FILE)"
 
 ## experiment: run a lab suite, e.g. make experiment SUITE=search_priors.
 experiment:

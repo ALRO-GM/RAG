@@ -59,6 +59,7 @@ from src.application.ports import Analyzer, Cache, Embedder, Reranker
 from src.application.runtime_tuning import RuntimeTuner
 from src.application.search import SearchService
 from src.application.skills.ingest import (
+    ForgetIngestedTranscript,
     IngestTranscript,
     ShowIngestedTranscript,
 )
@@ -301,6 +302,11 @@ class Container:
     def show_transcript(self) -> ShowIngestedTranscript:
         """Give a received transcript back."""
         return ShowIngestedTranscript(self.transcript_store)
+
+    @cached_property
+    def forget_transcript(self) -> ForgetIngestedTranscript:
+        """Delete a received transcript (the transcriber deleted it)."""
+        return ForgetIngestedTranscript(self.transcript_store)
 
     def transcripts_token(self, environ: Mapping[str, str]) -> str:
         """Return the ingest token held by ``environ`` ('' if none)."""

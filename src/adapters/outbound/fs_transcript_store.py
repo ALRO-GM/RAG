@@ -4,7 +4,8 @@ Each session is one file, ``<directory>/<session id>.transcript.v1.json``,
 written atomically: the bytes go to a temporary file in the same
 directory, are flushed to disk and renamed over the target, so a reader
 (or a crash) never sees half a transcript, and a second document for
-the same session replaces the first. Session ids are checked against
+the same session replaces the first, and a deleted session's file is
+removed. Session ids are checked against
 the contract's pattern before any path is built, so an id cannot reach
 outside the directory. :meth:`FileSystemTranscriptStore.find` reads a
 stored document as the analyzer's transcript; the analyzer's own
@@ -88,6 +89,17 @@ class FileSystemTranscriptStore:
         if not isinstance(document, dict):
             raise CorruptedDataError(f"{target} is not a JSON object.")
         return document
+
+    def delete(self, session_id: str) -> bool:
+        """Remove the file of ``session_id``; tell whether it existed."""
+        target = self.path_for(session_id)
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            raise RagError(f"Cannot delete {target}: {exc}")
+        return True
 
     def find(self, session_id: str) -> Transcript:
         """Return the stored document of ``session_id`` as a transcript.

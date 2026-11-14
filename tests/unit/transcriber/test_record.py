@@ -7,6 +7,7 @@ import pytest
 from tests.unit.transcriber.fakes import (
     NOW,
     FakeLabData,
+    FakePublishedTranscripts,
     FakeSessionLocks,
     FakeSessionRepository,
     FixedClock,
@@ -22,6 +23,7 @@ from transcriber.application.record import (
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
+    PublishError,
     StateError,
 )
 from transcriber.domain.models import SessionState
@@ -344,3 +346,44 @@ class TestDeleteSession:
         with pytest.raises(OSError):
             DeleteSession(sessions, locks(sessions), Failing())("s1")
         assert sessions.get("s1") is not None
+
+    def test_the_rags_copy_goes_after_the_session(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        opened(sessions)
+        published = FakePublishedTranscripts()
+        DeleteSession(sessions, locks(sessions), FakeLabData(), published)(
+            "s1"
+        )
+        assert sessions.get("s1") is None
+        assert published.retracted == ["s1"]
+
+    def test_a_refused_session_keeps_the_rags_copy(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        opened(sessions)
+        published = FakePublishedTranscripts()
+        lab = FakeLabData({"s1": ["9f" * 16]})
+        with pytest.raises(StateError):
+            DeleteSession(sessions, locks(sessions), lab, published)("s1")
+        with pytest.raises(NotFoundError):
+            DeleteSession(sessions, locks(sessions), lab, published)("s2")
+        assert published.retracted == []
+
+    def test_a_failed_retraction_is_logged_not_raised(
+        self, sessions: FakeSessionRepository,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        opened(sessions)
+        published = FakePublishedTranscripts(
+            PublishError("cannot reach it (refused)")
+        )
+        with caplog.at_level("WARNING", "transcriber.application.record"):
+            DeleteSession(
+                sessions, locks(sessions), FakeLabData(), published
+            )("s1")
+        assert sessions.get("s1") is None
+        assert [r.getMessage() for r in caplog.records] == [
+            "Session s1 was deleted, but not the RAG's copy: cannot reach"
+            " it (refused)"
+        ]

@@ -337,6 +337,18 @@ class TranscriptPublisher(Protocol):
         ...
 
 
+class PublishedTranscripts(Protocol):
+    """The copies of transcripts the RAG received from this transcriber."""
+
+    def retract(self, session_id: str) -> None:
+        """Delete the RAG's copy of ``session_id`` (none is not an error).
+
+        Raises :class:`~transcriber.domain.errors.PublishError` when the
+        RAG refuses or cannot be reached.
+        """
+        ...
+
+
 class Progress(Protocol):
     """Receive the stages of a long job as it runs."""
 
