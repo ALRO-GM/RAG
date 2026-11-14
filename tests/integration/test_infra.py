@@ -150,6 +150,34 @@ class TestCompose:
         assert "ssh-keygen" not in makefile
 
 
+class TestInstallScripts:
+    def test_the_server_side_is_streamed(self) -> None:
+        text = read("install-infra.sh")
+        assert ('ssh "$target" "sh -s -- $R \'$image\'" <'
+                ' "$here/install-remote.sh"') in text
+        assert "REMOTE" not in text
+
+    def test_validated_with_the_proxies_web_gets(self) -> None:
+        text = read("install-remote.sh")
+        assert 'cp "$R/infra/.env" .env' in text
+        assert "config --format json" in text
+        assert '-e "TRUSTED_PROXIES=$proxies"' in text
+        validate = text.index("caddy validate --config")
+        assert validate < text.index('cp Caddyfile compose.yml "$R/infra/"')
+
+    def test_web_is_recreated_and_checked_before_success(self) -> None:
+        text = read("install-remote.sh")
+        up = text.index("docker compose up -d --remove-orphans")
+        recreate = text.index(
+            "docker compose up -d --no-deps --force-recreate web")
+        health = text.index("http://127.0.0.1/healthz")
+        chisel = text.index("http://tunnel:8080/health")
+        done = text.index('echo "RAGPutin containers up')
+        assert up < recreate < health < chisel < done
+        assert text.startswith("#!/bin/sh\n")
+        assert "pipefail" not in text  # POSIX sh: the CLI image has no bash
+
+
 class TestClientInstall:
     def test_the_pinned_checksums(self) -> None:
         sums = setup.pinned_checksums()

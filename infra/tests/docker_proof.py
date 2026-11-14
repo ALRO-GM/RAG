@@ -27,8 +27,34 @@ the outer network cannot reach chisel or port 9000; the tunnel
 container's memory during a 200 MB upload stays under its limit; client
 killed → 502; client started again → 200.
 
+What a holder of the credential can reach: a hand-made chisel client
+(``infra/tests/chisel_probe``, built with the pinned Go image) declares
+the allowed remote and then asks the server for SSH channels to other
+addresses, as a modified client could. Every one must be refused by
+chisel's per-channel check; a control user allowed everything shows the
+same client does open channels when the list lets it. What the
+``tunnel`` container itself can reach (as a compromised chisel would)
+is measured with ``nc`` in its network namespace and with the control
+user: ``web:80`` and itself must answer; a listener on this machine
+bound to 0.0.0.0, reached through docker's default bridge and this
+machine's own address, and an outside address must not. The same
+listener through the internal network's gateway address is measured
+and printed as a ``note`` line, not checked: on this machine (Docker
+29.1.3) it answers, and it depends on the host's Docker and firewall.
+
+The server side of ``make infra-up`` (``infra/install-remote.sh``) is
+run here as on the server, in the docker CLI image with this machine's
+docker, under its own compose project and a temporary root: a first
+install with ``TRUSTED_PROXIES`` in ``infra/.env`` (validated and given
+to ``web`` with that value), a second one where only the Caddyfile
+changed (the new configuration is served), and two that must fail
+before anything is replaced (an invalid Caddyfile; an invalid
+``TRUSTED_PROXIES`` in ``.env``).
+
 Usage: ``python infra/tests/docker_proof.py`` (exit status 0 when every
-check passes). Nothing is contacted but local containers.
+check passes). Nothing is contacted but local containers, the registries
+the images and Go modules come from, and one TCP connection attempt to
+:data:`OUTSIDE` from the internal network (it must fail).
 """
 
 import http.client
@@ -62,6 +88,20 @@ USER = "workstation"
 PASSWORD = "proof-" + uuid.uuid4().hex
 REMOTE = "R:0.0.0.0:9000"
 ALLOWED = r"^R:0\.0\.0\.0:9000$"
+
+CONTROL = "control"
+CONTROL_PASSWORD = "control-" + uuid.uuid4().hex
+"""A user of the proof's users file only (never on the server) whose
+list allows every address: the positive control that shows the
+hand-made client does open channels when chisel's list lets it, and
+what chisel itself can dial from the ``tunnel`` container."""
+
+GO_IMAGE = ("golang:1.25-alpine@sha256:"
+            "1ae0735f00daffa3aaf1363a5184c0d2dc55c78e3db4ec70241cdac97bf84b59")
+"""Builds the hand-made client (``infra/tests/chisel_probe``)."""
+
+OUTSIDE = "1.1.1.1:443"
+"""An address outside this machine: only a TCP connection is tried."""
 
 PUBLIC_CLIENT = "198.51.100.23"
 """A public (documentation) address the outer proxy says it saw."""
@@ -232,6 +272,7 @@ class Proof:
     def __init__(self) -> None:
         """Name everything after a random tag."""
         tag = uuid.uuid4().hex[:8]
+        self.tag = tag
         self.outer_net = f"ragputin-proof-outer-{tag}"
         self.tunnel_net = f"ragputin-proof-tunnel-{tag}"
         self.web = f"ragputin-proof-web-{tag}"
@@ -248,6 +289,17 @@ class Proof:
         self.lines: List[str] = []
         self.failed = False
         self.server: Optional[BackendServer] = None
+        self.probe = self.work / "chisel_probe"
+        self.listener: Optional[socket.socket] = None
+        self.project = ""
+        self.install_root: Optional[Path] = None
+        self.made_outer = False
+
+    def note(self, what: str, detail: str = "") -> None:
+        """Print one measurement that is reported, not checked."""
+        line = f"note {what}" + (f": {detail}" if detail else "")
+        print(line, flush=True)
+        self.lines.append(line)
 
     def check(self, what: str, ok: bool, detail: str = "") -> None:
         """Record and print one check."""
@@ -270,7 +322,10 @@ class Proof:
             os.chmod(self.srv / name, 0o644)
         self.secrets.mkdir(mode=0o700)
         draft = self.secrets / "users.json.new"
-        draft.write_text(json.dumps({f"{USER}:{PASSWORD}": [ALLOWED]}))
+        draft.write_text(json.dumps({
+            f"{USER}:{PASSWORD}": [ALLOWED],
+            f"{CONTROL}:{CONTROL_PASSWORD}": [".*"],
+        }))
         # As on the server (make infra-up): owner 65534, mode 600, in a
         # directory only its owner can enter.
         docker(
@@ -282,6 +337,19 @@ class Proof:
         (self.work / "outer.caddy").write_text(OUTER)
         os.chmod(self.work, 0o755)
         os.chmod(self.work / "outer.caddy", 0o644)
+
+    def build_probe(self) -> None:
+        """Build the hand-made chisel client (a static linux binary)."""
+        source = Path(__file__).resolve().parent / "chisel_probe"
+        docker(
+            "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
+            "-e", "HOME=/tmp", "-e", "GOCACHE=/tmp/cache",
+            "-e", "GOMODCACHE=/tmp/mod", "-e", "CGO_ENABLED=0",
+            "-e", "GOFLAGS=-mod=readonly", "-e", "GOTOOLCHAIN=local",
+            "-v", f"{source}:/src:ro", "-v", f"{self.work}:/out",
+            "-w", "/src", GO_IMAGE, "go", "build", "-trimpath",
+            "-o", "/out/chisel_probe", ".",
+        )
 
     def validate(self) -> None:
         """caddy validate (default and narrowed proxies), compose config."""
@@ -342,7 +410,9 @@ class Proof:
             "-v", f"{self.srv}:/srv:ro",
             self.web_image,
         )
-        docker("network", "connect", self.tunnel_net, self.web)
+        # As in compose.yml: `web` by its service name on that network.
+        docker("network", "connect", "--alias", "web", self.tunnel_net,
+               self.web)
         docker(
             "run", "-d", "--name", self.outer, "--network", self.outer_net,
             "-p", f"127.0.0.1:{self.port}:80",
@@ -624,8 +694,260 @@ class Proof:
         ok = self.connect()
         self.check("client started again: /api/health is 200 again", ok)
 
+    def listen_on_host(self) -> int:
+        """Listen on 0.0.0.0 of this machine; return the port."""
+        self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.listener.bind(("0.0.0.0", 0))
+        self.listener.listen()
+        listener = self.listener
+
+        def accept() -> None:
+            """Answer every connection with one line, then close it."""
+            while True:
+                try:
+                    peer, _ = listener.accept()
+                except OSError:
+                    return
+                with peer:
+                    try:
+                        peer.sendall(b"HTTP/1.0 200 OK\r\n\r\nhost\n")
+                    except OSError:
+                        pass
+
+        threading.Thread(target=accept, daemon=True).start()
+        return int(self.listener.getsockname()[1])
+
+    def addresses(
+        self, port: int
+    ) -> List[Tuple[str, str, Optional[bool]]]:
+        """Return (what, host:port, should answer) seen from ``tunnel``.
+
+        ``None``: measured and reported, not checked.
+        """
+        gateway = docker(
+            "network", "inspect", "-f",
+            "{{range .IPAM.Config}}{{.Gateway}}{{end}}", self.tunnel_net,
+        ).strip()
+        bridge = docker(
+            "network", "inspect", "-f",
+            "{{range .IPAM.Config}}{{.Gateway}}{{end}}", "bridge",
+            check=False,
+        ).strip()
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as route:
+            route.connect(("192.0.2.1", 9))  # no packet is sent
+            own = str(route.getsockname()[0])
+        found: List[Tuple[str, str, Optional[bool]]] = [
+            ("web:80", "web:80", True),
+            ("itself (tunnel:8080)", "tunnel:8080", True),
+        ]
+        if gateway:
+            found.append((f"this machine through the internal network's"
+                          f" gateway ({gateway})", f"{gateway}:{port}",
+                          None))
+        if bridge:
+            found.append((f"this machine on docker's default bridge"
+                          f" ({bridge})", f"{bridge}:{port}", False))
+        found.append((f"this machine's own address ({own})",
+                      f"{own}:{port}", False))
+        found.append((f"an outside address ({OUTSIDE})", OUTSIDE, False))
+        return found
+
+    def run_probe(self, auth: str, targets: List[str]) -> List[str]:
+        """Run the hand-made client; return its output lines."""
+        done = subprocess.run(
+            [str(self.probe), f"ws://127.0.0.1:{self.port}/_tunnel",
+             f"{REMOTE}:127.0.0.1:{self.backend_port}", *targets],
+            capture_output=True, text=True, check=False, timeout=120,
+            env={"AUTH": auth},
+        )
+        return (done.stdout + done.stderr).splitlines()
+
+    def checks_channels(self) -> None:
+        """What a holder of the credential and the container can reach.
+
+        Runs with no workstation client connected: the probe declares
+        the one allowed reverse port itself.
+        """
+        port = self.listen_on_host()
+        places = [(what, target, answers)
+                  for what, target, answers in self.addresses(port)
+                  if target]
+        extra = [("the allowed remote as a channel address",
+                  "R:0.0.0.0:9000"),
+                 ("the allowed remote as a UDP address",
+                  "R:0.0.0.0:9000/udp"),
+                 ("chisel's SOCKS channel", "socks")]
+        targets = [t for _, t, _ in places] + [t for _, t in extra]
+        out = self.run_probe(f"{USER}:{PASSWORD}", targets)
+        self.check("the hand-made client is accepted with the credential"
+                   " and the allowed remote", "config accepted" in out,
+                   (out or [""])[0][-100:])
+        for what, target in [(w, t) for w, t, _ in places] + extra:
+            line = next((x for x in out
+                         if x.startswith(f"channel {target} ")), "")
+            self.check(f"the credential cannot open a channel to {what}"
+                       f" (hand-made client)",
+                       " refused: " in line and " opened" not in line,
+                       line[len(f"channel {target} "):][-110:])
+        out = self.run_probe(f"{CONTROL}:{CONTROL_PASSWORD}",
+                             [t for _, t, _ in places])
+        for what, target, answers in places:
+            line = next((x for x in out
+                         if x.startswith(f"channel {target} ")), "")
+            opened = " opened" in line
+            detail = line[len(f"channel {target} "):][-110:]
+            if answers is None:
+                verb = "reaches" if opened else "cannot reach"
+                self.note(f"control user (any address allowed): chisel in"
+                          f" `tunnel` {verb} {what}", detail)
+                continue
+            self.check(
+                f"control user (any address allowed): chisel in `tunnel`"
+                f" {'reaches' if answers else 'cannot reach'} {what}",
+                opened == answers, detail,
+            )
+        for what, target, answers in places:
+            host, _, number = target.rpartition(":")
+            out_nc = docker(
+                "run", "--rm", "--network", f"container:{self.tunnel}",
+                "--user", "65534:65534", "--cap-drop", "ALL",
+                self.web_image, "sh", "-c",
+                f"nc -z -w 3 {host} {number} 2>&1 && echo REACHED"
+                " || echo UNREACHABLE",
+                check=False, timeout=60,
+            ).strip()
+            reached = out_nc.endswith("REACHED") and not out_nc.endswith(
+                "UNREACHABLE")
+            detail = out_nc.splitlines()[-1][-80:] if out_nc else ""
+            if answers is None:
+                self.note(f"from the `tunnel` container's network (nc):"
+                          f" {'reaches' if reached else 'cannot reach'}"
+                          f" {what}", detail)
+                continue
+            self.check(
+                f"from the `tunnel` container's network (nc):"
+                f" {'reaches' if answers else 'cannot reach'} {what}",
+                reached == answers, detail,
+            )
+        if self.listener is not None:
+            self.listener.close()
+            self.listener = None
+
+    def install(self, root: Path, caddyfile: str) -> Tuple[int, str]:
+        """Stage ``caddyfile`` as make infra-up does; run the server side.
+
+        Returns the exit code and output of ``infra/install-remote.sh``.
+        """
+        staged = root / "infra.next"
+        staged.mkdir(exist_ok=True)
+        (staged / "Caddyfile").write_text(caddyfile)
+        shutil.copy(INFRA / "compose.yml", staged / "compose.yml")
+        for name in ("Caddyfile", "compose.yml"):
+            os.chmod(staged / name, 0o644)
+        (root / "secrets" / "tunnel-users.json.new").write_text(
+            json.dumps({f"{USER}:{PASSWORD}": [ALLOWED]})
+        )
+        return run_docker(
+            "run", "--rm", "-v", "/var/run/docker.sock:/var/run/docker.sock",
+            "-v", f"{root}:{root}",
+            "-v", f"{INFRA / 'install-remote.sh'}:/install-remote.sh:ro",
+            "-e", f"COMPOSE_PROJECT_NAME={self.project}", COMPOSE_CLI,
+            "sh", "/install-remote.sh", str(root), self.web_image,
+            timeout=300,
+        )
+
+    def served_health(self) -> str:
+        """Return what the installed web answers on /healthz."""
+        return docker(
+            "exec", f"{self.project}-web-1", "wget", "-q", "-O", "-",
+            "http://127.0.0.1/healthz", check=False, timeout=60,
+        ).strip()
+
+    def checks_install(self) -> None:
+        """infra/install-remote.sh, run here as on the server."""
+        if run_docker("image", "inspect", COMPOSE_CLI)[0] != 0:
+            docker("pull", "-q", COMPOSE_CLI)
+        self.project = f"ragputin-proof-{self.tag}"
+        root = self.work / "server"
+        self.install_root = root
+        (root / "pruebas").mkdir(parents=True)
+        shutil.copy(self.srv / "index.html", root / "pruebas" / "index.html")
+        os.chmod(root / "pruebas" / "index.html", 0o644)
+        (root / "infra").mkdir()
+        (root / "secrets").mkdir(mode=0o700)
+        env = root / "infra" / ".env"
+        env.write_text("TRUSTED_PROXIES=172.30.0.0/16 10.20.0.0/16\n")
+        if run_docker("network", "inspect", "sanatorio_default")[0] != 0:
+            docker("network", "create", "sanatorio_default")
+            self.made_outer = True
+        original = (INFRA / "Caddyfile").read_text(encoding="utf-8")
+        code, out = self.install(root, original)
+        self.check("install-remote.sh: a first install reports success",
+                   code == 0 and "RAGPutin containers up" in out,
+                   out.strip().splitlines()[-1][-110:] if out.strip()
+                   else str(code))
+        self.check("install-remote.sh validates the TRUSTED_PROXIES of"
+                   " infra/.env",
+                   "caddy validate with TRUSTED_PROXIES=172.30.0.0/16"
+                   " 10.20.0.0/16" in out and "Valid configuration" in out)
+        given = docker(
+            "inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}",
+            f"{self.project}-web-1", check=False,
+        )
+        self.check("web runs with that TRUSTED_PROXIES",
+                   "TRUSTED_PROXIES=172.30.0.0/16 10.20.0.0/16"
+                   in given.splitlines())
+        before = self.served_health()
+        self.check("the installed web answers /healthz",
+                   before == '{"status":"ok"}', before)
+        marked = '{"status":"ok","proof":"%s"}' % self.tag
+        changed = original.replace('respond `{"status":"ok"}` 200',
+                                   f"respond `{marked}` 200")
+        code, out = self.install(root, changed)
+        after = self.served_health()
+        self.check("a Caddyfile-only change is served after the install",
+                   code == 0 and after == marked, after)
+        code, out = self.install(root, changed + "\n:81 {\n\tbogus\n}\n")
+        self.check("an invalid Caddyfile fails the install and replaces"
+                   " nothing", code != 0 and self.served_health() == marked
+                   and (root / "infra" / "Caddyfile").read_text() == changed,
+                   out.strip().splitlines()[-1][-110:] if out.strip()
+                   else str(code))
+        env.write_text("TRUSTED_PROXIES=not-an-address\n")
+        code, out = self.install(root, original)
+        self.check("an invalid TRUSTED_PROXIES in infra/.env fails"
+                   " validation and replaces nothing",
+                   code != 0 and "TRUSTED_PROXIES=not-an-address" in out
+                   and self.served_health() == marked,
+                   out.strip().splitlines()[-1][-110:] if out.strip()
+                   else str(code))
+
+    def clean_install(self) -> None:
+        """Remove the installed project, its files and the network."""
+        if self.install_root is None:
+            return
+        root = self.install_root
+        if (root / "infra" / "compose.yml").exists():
+            run_docker(
+                "run", "--rm",
+                "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                "-v", f"{root}:{root}", "-w", f"{root}/infra",
+                "-e", f"COMPOSE_PROJECT_NAME={self.project}", COMPOSE_CLI,
+                "docker", "compose", "down", "--remove-orphans",
+                "--timeout", "5", timeout=120,
+            )
+        # Files the install made as root or 65534.
+        run_docker("run", "--rm", "--user", "0", "-v", f"{root}:/r",
+                   self.web_image, "rm", "-rf", "/r/infra", "/r/infra.next",
+                   "/r/secrets", "/r/pruebas", timeout=60)
+        if self.made_outer:
+            run_docker("network", "rm", "sanatorio_default")
+
     def clean(self) -> None:
         """Remove the containers, the networks and the directories."""
+        self.clean_install()
+        if self.listener is not None:
+            self.listener.close()
         if self.server is not None:
             self.server.shutdown()
             self.server.server_close()
@@ -642,16 +964,19 @@ def main(argv: Optional[List[str]] = None,
     proof = Proof()
     try:
         proof.prepare()
+        proof.build_probe()
         proof.validate()
         proof.start()
         proof.serve_backend()
         proof.checks_without_client()
         proof.checks_refused()
+        proof.checks_channels()
         if proof.connect():
             proof.checks_with_client()
             proof.checks_isolation()
             proof.check_memory()
             proof.checks_reconnection()
+        proof.checks_install()
     except Exception as exc:  # report, clean up, fail
         proof.check("proof ran to the end", False, str(exc))
     finally:

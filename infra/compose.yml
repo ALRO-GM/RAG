@@ -5,12 +5,19 @@
 #   to `tunnel`, and /api/* to the port that tunnel opens.
 # - tunnel: a chisel server. The workstation connects to it through
 #   wss://rag.peer4u.app/_tunnel with its own credential and opens one
-#   reverse port (9000) back to its API. The credential allows nothing
-#   else (no SOCKS, no forward tunnels, no other port).
+#   reverse port (9000) back to its API. chisel 1.12.0 checks the users
+#   file on the remotes declared at connection and on every channel
+#   asked for later; infra/tests/docker_proof.py shows a hand-made
+#   client with the credential refused SOCKS, forward channels and every
+#   destination but that reverse port (web:80, chisel itself, the host,
+#   an outside address).
 #
 # The models and every stored byte stay on the workstation: nothing heavy
 # runs next to Peer4U. `tunnel` is only on the private `tunnel` network,
-# so no other container of the host can reach chisel or port 9000.
+# so no other container of the host can reach chisel or port 9000. From
+# it, the container itself reaches web:80, and services of the host bound
+# to 0.0.0.0 through that network's gateway address (measured with the
+# docker proof; docs/DEPLOYMENT.md, residual risks).
 name: ragputin
 
 services:

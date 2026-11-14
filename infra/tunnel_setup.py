@@ -15,7 +15,12 @@ Two commands, both local; nothing is uploaded:
     write the matching chisel users file for the server, which allows
     that user only the one reverse remote ``R:0.0.0.0:<port>``
     (``make tunnel-secret``). It prints where both are, never the
-    password.
+    password. chisel 1.12.0 checks that list on the remotes declared at
+    connection and again on every channel asked for later; the docker
+    proof (``infra/tests/docker_proof.py``) shows a hand-made client
+    with the credential refused SOCKS and every channel to another
+    destination (``web:80``, chisel itself, the host, an outside
+    address).
 """
 
 import argparse

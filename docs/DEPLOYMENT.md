@@ -92,7 +92,12 @@ also set explicitly). The pages are world-readable (CI uploads them with
 modes 755/644). The chisel container is only on the internal network
 `ragputin_tunnel`, which it shares with `ragputin-web` alone: no other
 container of the host reaches chisel's port 8080 or the tunnel's port
-9000. Its users file is mounted read-only; owner 65534 and mode 600 let
+9000. From that network the container reaches `web:80` and itself, and
+not docker's default bridge, the host's own address or the internet
+("network unreachable"); it does reach services of the host listening
+on 0.0.0.0 through the internal network's gateway address (measured
+with the docker proof on the workstation, Docker 29.1.3; see residual
+risks). Its users file is mounted read-only; owner 65534 and mode 600 let
 chisel, and nobody else in the container, read it. The chisel image is a
 scratch image (the binary and CA roots), so it has no healthcheck of its
 own; `docker compose exec web wget -qO- http://tunnel:8080/health`
@@ -117,17 +122,34 @@ answers `OK` when it runs. All of this, and the limits, were checked with
 
      chisel matches the regex against `R:<interface>:<port>` for a
      reverse remote, `<host>:<port>` for a forward one and `socks` for
-     SOCKS, so this user can open the reverse port 9000 and nothing else.
-     It uploads nothing.
-2. **Containers**: `make infra-up` (`infra/install-infra.sh`) creates
+     SOCKS. chisel 1.12.0 applies the list twice: to the remotes a client
+     declares when it connects (`server/server_handler.go`) and again to
+     the destination of every channel it later asks for
+     (`share/tunnel/tunnel_out_ssh.go`), so a modified client cannot
+     declare the allowed remote and then ask for other channels. The
+     docker proof shows it with a hand-made client (below): with this
+     credential every channel to another address is refused. What the
+     credential gives is the reverse port 9000 in the `tunnel` container,
+     that is everything `web` sends to `/api/*`. It uploads nothing.
+2. **Containers**: `make infra-up` (`infra/install-infra.sh`, which
+   runs `infra/install-remote.sh` on the server) creates
    `/opt/ragputin/{infra,pruebas}` and `/opt/ragputin/secrets` (mode
    700), uploads `Caddyfile` and `compose.yml` to
    `/opt/ragputin/infra.next` and the users file next to its final place,
-   validates (`caddy validate` in the pinned Caddy image, `docker compose
-   config -q`), gives the users file to uid 65534 with mode 600 (a
-   one-shot container of the Caddy image, the only way for `ubuntu` to
-   `chown`), moves the new files in place, runs `docker compose up -d`
-   and restarts `tunnel` (a replaced users file is a new inode). It also
+   validates (`docker compose config -q` with the server's `infra/.env`,
+   and `caddy validate` in the pinned Caddy image with the
+   `TRUSTED_PROXIES` value compose resolves from that `.env`, so the
+   value `web` gets is the one validated), gives the users file to uid
+   65534 with mode 600 (a one-shot container of the Caddy image, the
+   only way for `ubuntu` to `chown`), moves the new files in place, runs
+   `docker compose up -d`, recreates `web` (the Caddyfile is a
+   bind-mounted file and Caddy runs with `admin off`: a changed
+   Caddyfile alone is never read by the running Caddy, and `up -d` does
+   not recreate a container whose definition did not change) and
+   restarts `tunnel` (a replaced users file is a new inode). It reports
+   success only once `web` answers `/healthz` and reaches chisel's
+   `/health` (60 s at most each; otherwise it prints the logs and
+   fails). It also
    removes what the retired SSH tunnel left: `/opt/ragputin/run` and
    `infra/tunnel-clean.sh`. The tunnel key's line in `~/.ssh/authorized_keys`
    of `ubuntu` (`restrict,port-forwarding,command="…/tunnel-clean.sh" …
@@ -175,10 +197,13 @@ make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-code'
 
 It starts the API on 127.0.0.1, starts and supervises the chisel client
 (restart with back-off; a client left by a crashed run, found through
-`data/transcriber/tunnel.pid`, is ended first) and prints the join link
+`data/transcriber/tunnel.pid` with its arguments and start time, is
+ended first) and prints the join link
 `https://rag.peer4u.app/#k=<code>` with a QR code. The `tunnel` line
 says `connected` once chisel is connected and
-`https://rag.peer4u.app/api/health` answers through it. `--keep-code`
+`https://rag.peer4u.app/api/health` answers through it; that check is
+repeated every 5 s, and after 3 failures in a row the line says
+`reconnecting` and the client is started again. `--keep-code`
 keeps the code across restarts; `SERVE_ARGS='--no-tunnel --dev-pages'`
 serves everything locally for development. Without the client or the
 credential, `serve` stops at once and says which `make` target to run.
@@ -215,6 +240,29 @@ JSON 413 over the limit; a container on the outer network cannot reach
 during a 200 MB upload the tunnel container's memory peak (cgroup
 `memory.peak`) stays under its 64 MiB limit; client killed → 502;
 client started again → 200.
+
+It also checks what the credential and the container can reach. A
+hand-made chisel client (`infra/tests/chisel_probe`, Go, built with a
+pinned Go image) authenticates with the credential, declares the
+allowed `R:0.0.0.0:9000` and then asks for channels to `web:80`, chisel
+itself, a listener on the workstation bound to 0.0.0.0 (through the
+internal network's gateway, docker's default bridge and the machine's
+own address), `1.1.1.1:443`, `socks`, `R:0.0.0.0:9000/udp` and
+`R:0.0.0.0:9000` written as an address: every one is refused (`access
+denied`, `SOCKS5 is not enabled`, or for the last one a dial error,
+since it passes the list but is no address). A control user of the
+proof's own users file, allowed everything, opens channels to `web:80`
+and chisel with the same client, which shows the refusals come from
+the list. `nc` in the container's network namespace (and the control
+user) reach `web:80` and chisel and not the default bridge, the
+machine's own address or `1.1.1.1:443`; the listener through the
+internal network's gateway is printed as a `note` (reached here).
+Last, it runs `infra/install-remote.sh` as on the server (docker CLI
+image, its own compose project): a first install with
+`TRUSTED_PROXIES` in `infra/.env` (validated and given to `web` with
+that value), a Caddyfile-only change (served after the install; without
+the recreation of `web` this check failed), and an invalid Caddyfile and
+an invalid `TRUSTED_PROXIES` (both fail before anything is replaced).
 
 ## Rolling back
 
@@ -259,7 +307,9 @@ Peer4U's production machine. What remains:
 - **The tunnel credential** lets its holder serve `/api/*` for the
   domain while the workstation is not connected, that is impersonate the
   API to the phones (and so collect what they send: access codes,
-  recordings). It gives nothing on the host. It lives only in
+  recordings). Beyond that reverse port it opens nothing: chisel 1.12.0
+  checks its list on every channel, and the docker proof's hand-made
+  client was refused every other destination (above). It lives only in
   `~/.config/ragputin/tunnel-credential` (mode 600) and, as the users
   file, in `/opt/ragputin/secrets`. The password is 43 random characters;
   chisel does not rate-limit logins, so its strength is the protection.
@@ -268,7 +318,16 @@ Peer4U's production machine. What remains:
   authentication would be reachable. It is pinned by version and digest,
   runs without capabilities, read-only, as uid 65534, with a 64 MiB cap,
   on a network only `ragputin-web` shares. Updating it is a deliberate
-  change of the pinned tag, digest and checksums.
+  change of the pinned tag, digest and checksums. Code running in that
+  container could reach `web:80` and, through the internal network's
+  gateway address, any service of the host that listens on 0.0.0.0
+  (measured on the workstation with Docker 29.1.3; the server's Docker
+  and firewall were not checked). The credential does not give this
+  (above). Not changed: the network option
+  `com.docker.network.bridge.gateway_mode_ipv4: isolated` removed the
+  gateway address in a manual test on the workstation (the listener was
+  then unreachable), but whether the server's Docker accepts it was not
+  checked.
 - **No server key pinning**: the client does not pass `--fingerprint`
   (the chisel server makes a new key at every start). The client trusts
   the TLS certificate of rag.peer4u.app; something able to intercept
