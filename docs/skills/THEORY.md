@@ -1,5 +1,7 @@
 # Soft-skills analyzer — theoretical base
 
+> **Superseded in part (2026-11-14).** [`RESEARCH.md`](RESEARCH.md) is the newer, source-by-source synthesis of the evidence (with scores in [`research/`](research/) and a public Spanish page with charts at https://rag.peer4u.app/research.html). Where its figures or appraisals differ from the evidence table below, RESEARCH.md wins. Terms follow RESEARCH.md's glossary (§13): reliability (internal consistency, test-retest, inter-rater, across situations) is kept apart from each type of validity (content, structural, convergent/discriminant, nomological, criterion, incremental), and "meta-analysis" is used only for a quantitative synthesis.
+
 Status: research synthesis, compiled 2026-11-12. Scope: which frameworks, instruments and rating methods are scientifically defensible for rating **observable verbal behaviour in recorded, diarized group conversations**, and how to turn them into a rubric catalogue (competency → behavioural indicators → rating anchors).
 
 Conventions used in this document:

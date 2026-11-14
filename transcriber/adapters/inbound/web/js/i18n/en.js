@@ -5,6 +5,7 @@ export const en = {
   "nav.sessions": "Sessions",
   "nav.record": "Record",
   "nav.enrol": "Enrol voice",
+  "nav.research": "Research",
   "nav.main": "Main navigation",
 
   "action.retry": "Retry",

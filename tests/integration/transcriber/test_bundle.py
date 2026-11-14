@@ -19,6 +19,8 @@ def test_the_pages_and_the_version(tmp_path: Path) -> None:
     files = build_bundle(out, " abc1234 ", now=lambda: WHEN)
     assert "index.html" in files and "js/main.js" in files
     assert "js/worklet/recorder-processor.js" in files
+    assert {"research.html", "research/data.json", "js/research/main.js",
+            "js/research/charts.js"} <= set(files)
     assert "package.json" not in files
     sources = {
         p.relative_to(WEB_DIR).as_posix() for p in WEB_DIR.rglob("*")
