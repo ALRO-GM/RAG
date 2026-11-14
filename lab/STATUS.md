@@ -1,38 +1,38 @@
-# Lab web tab (issue #30, "Pruebas") — status
+# Model lab and its web tab ("Pruebas", issue #30) - status
 
-Branch `feat/model-lab`. Updated as work goes; a new session resumes from here.
+Updated 2026-11-14. The lab (PR #32, fixes #35, #36, #38) is merged in
+main and the tab is deployed. Design and results: `docs/transcriber/LAB.md`
+(§11.7 and §12 for the full run and how to resume).
 
-## Done (committed)
-- Backend: `GET …/runs/{run}/fragment-spans` and `?unlabelled=true` on
-  `…/fragments` (use case, API, tests, LAB.md §7).
-- Pure logic `web/js/lib/lab.js` + `tests/web/lab.test.mjs` (grouping
-  answers, colours, scales/zoom, sorting, matrix, label placement,
-  LabelQueue save/retry/local copy, keyboard map, export payload).
-- Views: `js/views/lab.js` (recordings, catalogue by stage with
-  badges, plan counts, start, live progress, cancel/resume, runs list),
-  `lab-run.js` (sections, overview: sortable pipelines table, heat map +
-  table, recognisers WER, denoiser effect), `lab-timeline.js` (rows per
-  diarizer, consensus, labels, zoom/scroll, click to play, cursor, audio
-  choice), `lab-review.js` (fragments with grouped answers, text
-  variants, labelling buttons + keys, debounced saving, progress,
-  unlabelled filter; scores table, best per stage, JSON export via Blob).
-- Nav entry, route `#/lab[/<session>[/<run>[/<section>]]]`, es/en texts, CSS.
-
-- Tried in headless Chrome (CDP script, scratch only) against a dev
-  instance (fake runtime, sandbox lab, port 8791, own data dir) under the
-  production CSP header: no console errors or CSP violations on every
-  section; keyboard labelling (1, 2, N, U, K, X, B) saved 4 labels on the
-  server; timeline click started playback and moved the cursor.
-- Tests extended (test_web_pages, test_bundle); TUTORIAL.md §6, LAB.md tab section.
+## Done
+- Backend, CLI and API of the lab (LAB.md §7, §8) and the tab: recordings,
+  catalogue by stage with badges, plan counts, start, progress, cancel and
+  resume, run overview (sortable pipelines, heat map and table, recognisers'
+  WER, denoiser effect), timeline, fragments to label (keys, debounced
+  saving), scores with JSON export. Pure logic in `web/js/lib/lab.js`
+  (`tests/web/lab.test.mjs`).
+- Every model of the catalogue ran on R1: full run `e7a37b38`, 224
+  pipelines (7 denoisers x 8 diarizers x 4 recognisers), state `done`
+  after one resume (CUDA out of memory on one step: another process held the
+  GPU). The 168 earlier pipelines are unchanged in it.
+- Tried earlier in headless Chrome against a dev instance with fake data,
+  under the production CSP: no console errors or violations; keyboard
+  labelling saved on the server; timeline click played.
 
 ## Left / known gaps
-- Not checked against the real 168-pipeline run (private data; only fake
-  data used). Heat map is per denoiser or per diarizer by design.
-- Scores table does not show the NC flag (score rows carry no licence).
-- Not checked: screen readers, Firefox/Safari, real audio playback with
-  the denoised WAV of real models.
+- Owner labels on the disputed fragments (LAB.md §11.6): until then every
+  figure is agreement between models, not correctness.
+- Optional: DiariZen v1 / base variants (not installed).
+- Not checked: screen readers, Firefox/Safari, real audio playback of the
+  denoised WAVs of real models in the tab; the tab against the real run in
+  a browser was not re-checked in this update.
+- Heat map is per denoiser or per diarizer by design; the scores table does
+  not show the non-commercial flag (score rows carry no licence).
+- `whisper-large-v3` took 313 s on the original but 29 to 41 s on the
+  denoised tracks; the cause was not investigated.
 
 ## How to continue
-Gate: `uv run --no-sync flake8 .`, `uv run --no-sync mypy . --strict`,
+Resume commands: LAB.md §12. Gate: `uv run --no-sync flake8 .`,
+`uv run --no-sync mypy . --strict`,
 `HF_HUB_OFFLINE=1 CUDA_VISIBLE_DEVICES= uv run --no-sync pytest -q --cov -p no:cacheprovider`,
 `node --test tests/web/*.test.mjs`. Never plain `uv run`.
