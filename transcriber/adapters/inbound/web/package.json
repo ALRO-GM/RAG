@@ -1,0 +1,6 @@
+{
+  "name": "transcriber-pages",
+  "private": true,
+  "type": "module",
+  "description": "Static pages of the transcriber; the type marks the .js files as ES modules for node --test. No dependencies."
+}

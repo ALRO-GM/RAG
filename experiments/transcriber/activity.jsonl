@@ -1,0 +1,38 @@
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.0, "recordings": 60, "speech_kept": 21616, "silence_kept": 18, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.001, "recordings": 60, "speech_kept": 21616, "silence_kept": 17, "silence_dropped": 1, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.003, "recordings": 60, "speech_kept": 21616, "silence_kept": 15, "silence_dropped": 3, "wer": 0.056}
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.01, "recordings": 60, "speech_kept": 21609, "silence_kept": 14, "speech_dropped": 7, "silence_dropped": 4, "wer": 0.056}
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.02, "recordings": 60, "speech_kept": 21429, "silence_kept": 13, "speech_dropped": 187, "silence_dropped": 5, "wer": 0.0633}
+{"split": "dev", "question": "activity_gate", "frame": 0.01, "threshold": 0.05, "recordings": 60, "speech_kept": 18615, "speech_dropped": 3001, "silence_dropped": 18, "wer": 0.1821}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.0, "recordings": 60, "speech_kept": 21616, "silence_kept": 18, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.001, "recordings": 60, "speech_kept": 21616, "silence_kept": 17, "silence_dropped": 1, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.003, "recordings": 60, "speech_kept": 21616, "silence_kept": 15, "silence_dropped": 3, "wer": 0.056}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.01, "recordings": 60, "speech_kept": 21601, "silence_kept": 14, "speech_dropped": 15, "silence_dropped": 4, "wer": 0.0563}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.02, "recordings": 60, "speech_kept": 21379, "silence_kept": 13, "speech_dropped": 237, "silence_dropped": 5, "wer": 0.0655}
+{"split": "dev", "question": "activity_gate", "frame": 0.025, "threshold": 0.05, "recordings": 60, "speech_kept": 18159, "speech_dropped": 3457, "silence_kept": 2, "silence_dropped": 16, "wer": 0.2011}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.0, "recordings": 60, "speech_kept": 21616, "silence_kept": 18, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.001, "recordings": 60, "speech_kept": 21616, "silence_kept": 17, "silence_dropped": 1, "wer": 0.0561}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.003, "recordings": 60, "speech_kept": 21616, "silence_kept": 15, "silence_dropped": 3, "wer": 0.056}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.01, "recordings": 60, "speech_kept": 21599, "silence_kept": 14, "speech_dropped": 17, "silence_dropped": 4, "wer": 0.0566}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.02, "recordings": 60, "speech_kept": 21249, "speech_dropped": 367, "silence_kept": 13, "silence_dropped": 5, "wer": 0.0705}
+{"split": "dev", "question": "activity_gate", "frame": 0.05, "threshold": 0.05, "recordings": 60, "speech_kept": 17469, "speech_dropped": 4147, "silence_kept": 2, "silence_dropped": 16, "wer": 0.231}
+{"split": "dev", "question": "recognition_meetings", "meetings": 20, "reference_words": 11375, "wer": 0.0513, "wer_mean_of_meetings": 0.0514, "wer_min": 0.0145, "wer_max": 0.1458, "audio_seconds": 4954.7, "voice_embedding_seconds": 13.22, "asr_seconds": 136.2, "asr_times_real_time": 36.4, "asr_gpu_peak_allocated_gb": 2.04, "asr_gpu_peak_reserved_gb": 2.51, "asr_batch_size": 2}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.0, "recordings": 60, "speech_kept": 22379, "silence_kept": 56, "wer": 0.0499}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.001, "recordings": 60, "speech_kept": 22376, "silence_kept": 47, "silence_dropped": 9, "speech_dropped": 3, "wer": 0.0494}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.003, "recordings": 60, "speech_kept": 22374, "silence_kept": 47, "silence_dropped": 9, "speech_dropped": 5, "wer": 0.0493}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.01, "recordings": 60, "speech_kept": 22371, "silence_kept": 39, "silence_dropped": 17, "speech_dropped": 8, "wer": 0.0495}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.02, "recordings": 60, "speech_kept": 22302, "silence_kept": 38, "silence_dropped": 18, "speech_dropped": 77, "wer": 0.0522}
+{"split": "test", "question": "activity_gate", "frame": 0.01, "threshold": 0.05, "recordings": 60, "speech_kept": 18525, "speech_dropped": 3854, "silence_dropped": 23, "silence_kept": 33, "wer": 0.2124}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.0, "recordings": 60, "speech_kept": 22379, "silence_kept": 56, "wer": 0.0499}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.001, "recordings": 60, "speech_kept": 22374, "silence_kept": 49, "silence_dropped": 7, "speech_dropped": 5, "wer": 0.0494}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.003, "recordings": 60, "speech_kept": 22374, "silence_kept": 49, "silence_dropped": 7, "speech_dropped": 5, "wer": 0.0494}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.01, "recordings": 60, "speech_kept": 22370, "silence_kept": 44, "silence_dropped": 12, "speech_dropped": 9, "wer": 0.0495}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.02, "recordings": 60, "speech_kept": 22254, "silence_kept": 40, "speech_dropped": 125, "silence_dropped": 16, "wer": 0.0541}
+{"split": "test", "question": "activity_gate", "frame": 0.025, "threshold": 0.05, "recordings": 60, "speech_kept": 17696, "speech_dropped": 4683, "silence_kept": 35, "silence_dropped": 21, "wer": 0.2475}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.0, "recordings": 60, "speech_kept": 22379, "silence_kept": 56, "wer": 0.0499}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.001, "recordings": 60, "speech_kept": 22374, "silence_kept": 50, "silence_dropped": 6, "speech_dropped": 5, "wer": 0.0495}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.003, "recordings": 60, "speech_kept": 22374, "silence_kept": 50, "silence_dropped": 6, "speech_dropped": 5, "wer": 0.0495}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.01, "recordings": 60, "speech_kept": 22369, "silence_kept": 45, "silence_dropped": 11, "speech_dropped": 10, "wer": 0.0496}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.02, "recordings": 60, "speech_kept": 22188, "speech_dropped": 191, "silence_kept": 40, "silence_dropped": 16, "wer": 0.057}
+{"split": "test", "question": "activity_gate", "frame": 0.05, "threshold": 0.05, "recordings": 60, "speech_kept": 16472, "speech_dropped": 5907, "silence_kept": 34, "silence_dropped": 22, "wer": 0.2995}
+{"split": "test", "question": "recognition_meetings", "meetings": 20, "reference_words": 11576, "wer": 0.0455, "wer_mean_of_meetings": 0.0446, "wer_min": 0.0191, "wer_max": 0.0838, "audio_seconds": 5029.1, "voice_embedding_seconds": 13.4, "asr_seconds": 128.1, "asr_times_real_time": 39.3, "asr_gpu_peak_allocated_gb": 2.04, "asr_gpu_peak_reserved_gb": 2.8, "asr_batch_size": 2}

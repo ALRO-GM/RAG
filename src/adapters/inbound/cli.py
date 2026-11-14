@@ -315,10 +315,8 @@ class RagCLI:
         min_participant_words: Optional[int] = None,
         min_similarity: Optional[float] = None,
         lab_dir: Optional[str] = None,
-        speech_model: Optional[str] = None,
-        voice_model: Optional[str] = None,
-        voice_threshold: Optional[float] = None,
         tags_per_sentence: Optional[int] = None,
+        semantic: Optional[bool] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -345,11 +343,9 @@ class RagCLI:
             min_similarity: Drop quotes whose cosine with their
                 indicator is below this value (0 keeps all).
             lab_dir: Directory of the skills lab (experiments/skills).
-            speech_model: Speech-recognition model for ``transcribe``.
-            voice_model: Voice-embedding model that tells speakers apart.
-            voice_threshold: Cosine below which two voices are different
-                people (used when --speakers is not given).
             tags_per_sentence: Most candidate tags kept per sentence.
+            semantic: Use the embedding model in retrieval
+                (``--semantic=False``: words only, no model is loaded).
         """
         options = dict(locals())
         options.pop("self")
@@ -696,9 +692,11 @@ class RagCLI:
     @safe_command
     def serve(self, host: str = "127.0.0.1", port: int = 8000) -> None:
         """Start the local HTTP API (OpenAPI docs at /docs)."""
+        import os
+
         import uvicorn
 
-        from src.adapters.inbound.http_api import create_app
+        from src.adapters.inbound.http_api import TranscriptRoutes, create_app
 
         port = as_int(port, "port")
         if not 0 < port < 65536:
@@ -707,7 +705,18 @@ class RagCLI:
         snapshot = app.search.snapshot
         print(f"Index ready: {len(snapshot.chunks)} chunks, "
               f"mode {app.search.mode}")
-        uvicorn.run(create_app(app.search, app.answers),
+        token = app.transcripts_token(os.environ)
+        variable = app.settings.transcripts_token_env
+        if token:
+            print(f"Transcripts: POST /transcripts into "
+                  f"{app.settings.transcripts_dir} (token from ${variable})")
+        else:
+            print(f"Transcripts: routes off (set ${variable} to receive "
+                  "them)")
+        routes = TranscriptRoutes(
+            app.ingest_transcript, app.show_transcript, token
+        )
+        uvicorn.run(create_app(app.search, app.answers, routes),
                     host=as_text(host, "host"), port=port)
 
     @safe_command

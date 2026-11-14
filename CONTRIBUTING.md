@@ -1,12 +1,13 @@
 # Contributing
 
-How changes get into `main` and onto https://rag.peer4u.app.
+How changes get into `main`, and the transcriber's pages onto
+https://rag.peer4u.app.
 
 ## Branches
 
 - `main` is protected: it only changes through pull requests whose CI
   checks pass (Lint, Tests, Build site). Every merge to `main` deploys
-  the results site.
+  the transcriber's pages (the results site was retired on 2026-11-14).
 - Work happens on short-lived branches cut from `main`:
 
   | Prefix | For |
@@ -26,20 +27,19 @@ How changes get into `main` and onto https://rag.peer4u.app.
 `<type>(<scope>): <summary>` in the imperative, for example
 
 ```
-feat(site): show the GPU speed-up on the summary page
+feat(transcriber): show the job's note on finished sessions
 exp(lab): rerun the rerank suite on the GPU
 fix(cli): keep explicit options over a profile
 ```
 
 Types: `feat`, `fix`, `exp`, `docs`, `test`, `refactor`, `perf`, `ci`,
-`chore`. The scope is the area: `cli`, `lab`, `skills`, `site`,
+`chore`. The scope is the area: `cli`, `lab`, `skills`, `transcriber`,
 `infra`, `bench`, …
 
 ## Before opening a pull request
 
 ```sh
-make ci          # flake8 + mypy --strict, tests with coverage gate, site build
-make site-serve  # look at the site locally (http://localhost:8765)
+make ci          # flake8 + mypy --strict, tests with coverage gate, page bundle
 ```
 
 - New code comes with unit tests (domain and application, using the
@@ -50,7 +50,7 @@ make site-serve  # look at the site locally (http://localhost:8765)
   `make test-slow` on the workstation; CI runs offline and must not
   download models.
 
-## Experiments: computed on the workstation, published by CI
+## Experiments: computed on the workstation, committed
 
 The experiments need the workstation's GPU, so CI never runs them:
 
@@ -60,7 +60,7 @@ The experiments need the workstation's GPU, so CI never runs them:
    TORCH=cuda`, `make experiment SUITE=rerank TORCH=cuda`).
 3. Commit the result files they write under `experiments/` (and update
    `docs/TASKS.md` / the reports if the conclusions change).
-4. Open the pull request. When it is merged, CI rebuilds and deploys
-   the site, so the new results are online a few minutes later.
+4. Open the pull request. The results stay in the repository as
+   Markdown and JSON; nothing is published for them.
 
-See `docs/DEPLOYMENT.md` for how the publication works.
+See `docs/DEPLOYMENT.md` for how the pages are deployed.

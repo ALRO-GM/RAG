@@ -11,15 +11,22 @@ K           ?= 10
 SCOPE       ?= UnansweredQuestions
 DATASETS    := docs code
 SUITE       ?= tune_all
+SERVE_ARGS  ?=
 
-# Server that hosts the results site (the domain resolves to it).
+# Server that serves the transcriber's pages (the domain resolves to it).
 DEPLOY_TARGET ?= ubuntu@rag.peer4u.app
 REMOTE_DIR    := /opt/ragputin
+# The workstation's tunnel over HTTPS: the chisel client (make
+# tunnel-client), its credential and the server's users file (make
+# tunnel-secret). None of them is in the repository.
+CHISEL_BIN        ?= $(HOME)/.local/share/ragputin/bin/chisel
+TUNNEL_CREDENTIAL ?= $(HOME)/.config/ragputin/tunnel-credential
+TUNNEL_USERS      ?= $(HOME)/.config/ragputin/tunnel-users.json
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
 	evaluate answer serve experiment tune analyze skills-demo \
-	install-cuda system system-benchmark study coverage ci site site-serve \
-	deploy-site infra-up infra-proxy
+	install-cuda system system-benchmark study coverage ci site \
+	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test
 
 install:
 	uv sync
@@ -36,7 +43,7 @@ system:
 	$(PYTHON) -m src system
 
 ## system-benchmark: measure CPU plans against the GPU; the run is
-## appended to experiments/hardware/runtime.jsonl (shown on the site).
+## appended to experiments/hardware/runtime.jsonl.
 system-benchmark:
 	$(PYTHON) -m src system --benchmark
 
@@ -118,6 +125,17 @@ test:
 test-slow:
 	uv run pytest -q -m slow
 
+## transcriber-serve: the transcriber API, the tunnel to the server and
+## the join link with a QR code, e.g. make transcriber-serve TORCH=cuda
+## SERVE_ARGS='--keep-code' (or SERVE_ARGS='--no-tunnel' for local use).
+transcriber-serve:
+	$(PYTHON) -m transcriber serve $(SERVE_ARGS)
+
+## transcriber-test: the fast transcriber tests (fake models, no network).
+transcriber-test:
+	uv run pytest -q tests/unit/transcriber \
+		tests/integration/transcriber
+
 ## coverage: fast tests with branch coverage (fails under the gate).
 coverage:
 	uv run pytest -q --cov --cov-report=term --cov-report=html
@@ -125,29 +143,34 @@ coverage:
 ## ci: what GitHub Actions runs, locally.
 ci: lint-strict coverage site
 
-## site: build the static results site into dist/site.
+## site: build the transcriber's static pages into dist/site, with
+## version.json (what CI deploys to the server).
 site:
-	uv run --no-sync python -m results_site build --out dist/site
+	uv run --no-sync python -m transcriber.adapters.inbound.bundle \
+		--out dist/site --commit "$$(git rev-parse --short HEAD)"
 
-## site-serve: preview the site at http://localhost:8765.
-site-serve: site
-	cd dist/site && python3 -m http.server 8765
-
-## deploy-site: manual upload (CI does this on every push to main).
-deploy-site: site
-	rsync -rlz --delete --delay-updates --chmod=D755,F644 dist/site/ \
-		$(DEPLOY_TARGET):$(REMOTE_DIR)/pruebas/
-
-## infra-up: upload infra/ and (re)start the RAGPutin web container.
+## infra-up: upload infra/ and the tunnel's users file ($(TUNNEL_USERS)),
+## validate them on the server (caddy validate, docker compose config) and
+## (re)start the RAGPutin containers (infra/install-infra.sh).
 infra-up:
-	ssh $(DEPLOY_TARGET) 'mkdir -p $(REMOTE_DIR)/infra $(REMOTE_DIR)/pruebas'
-	rsync -rlz infra/Caddyfile infra/compose.yml $(DEPLOY_TARGET):$(REMOTE_DIR)/infra/
-	ssh $(DEPLOY_TARGET) 'cd $(REMOTE_DIR)/infra && docker compose up -d && docker compose ps'
+	infra/install-infra.sh $(DEPLOY_TARGET) $(TUNNEL_USERS)
 
 ## infra-proxy: install the rag.peer4u.app block in the Peer4U Caddy
 ## (validated first, rolled back on failure).
 infra-proxy:
 	infra/install-proxy.sh $(DEPLOY_TARGET)
+
+## tunnel-client: download the pinned chisel client for this machine to
+## $(CHISEL_BIN), checked against infra/chisel-<version>.sha256.
+tunnel-client:
+	python3 -I infra/tunnel_setup.py client --out $(CHISEL_BIN)
+
+## tunnel-secret: make the workstation's tunnel credential if it is
+## missing and write the matching users file for the server. It uploads
+## nothing (make infra-up does).
+tunnel-secret:
+	python3 -I infra/tunnel_setup.py secret --credential $(TUNNEL_CREDENTIAL) \
+		--users $(TUNNEL_USERS)
 
 clean:
 	find . -name __pycache__ -type d -not -path "./.venv/*" -prune \

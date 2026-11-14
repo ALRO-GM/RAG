@@ -1,0 +1,220 @@
+"""The API behind a real uvicorn server, configured as ``serve`` runs it.
+
+TestClient skips the HTTP server, so what uvicorn does to a request
+before the app sees it (the client address, proxy headers, a body
+announced but never sent) is checked here over a real socket, with the
+same :func:`server_config` ``transcriber serve`` uses.
+"""
+
+import socket
+import threading
+import time
+from pathlib import Path
+from typing import Iterator, Tuple
+
+import httpx
+import pytest
+import uvicorn
+
+from tests.integration.transcriber.audio import pcm_bytes, tone
+from transcriber.adapters.inbound.http_api import create_app
+from transcriber.adapters.inbound.serve import dev_settings, server_config
+from transcriber.bootstrap import TranscriberContainer, build_container
+from transcriber.config import ApiSettings, TranscriberSettings
+
+CODE = "a-long-enough-access-code"
+WAIT = 30.0
+LIMIT = 3
+
+
+def free_port() -> int:
+    """Return a port nothing listens on now."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
+@pytest.fixture()
+def server(tmp_path: Path) -> Iterator[Tuple[str, TranscriberContainer]]:
+    """The API on a real uvicorn server; yields its URL and container."""
+    container = build_container(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+        api=ApiSettings(failed_code_limit=LIMIT, cookie_secure=False,
+                        chunk_max_bytes=64 * 1024),
+    ))
+    port = free_port()
+    running = uvicorn.Server(server_config(create_app(container, CODE), port))
+    thread = threading.Thread(target=running.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + WAIT
+    while not running.started:
+        assert time.monotonic() < deadline, "uvicorn did not start"
+        time.sleep(0.02)
+    yield f"http://127.0.0.1:{port}", container
+    running.should_exit = True
+    thread.join(WAIT)
+    container.runner.close(WAIT)
+
+
+def test_uvicorn_does_not_rewrite_the_client_from_proxy_headers() -> None:
+    config = server_config(create_app(build_container(TranscriberSettings(
+        data_dir=Path("/nonexistent/transcriber"), runtime="fake",
+    )), CODE), free_port())
+    assert config.proxy_headers is False
+    assert config.host == "127.0.0.1"
+
+
+def test_throttling_follows_the_proxy_header_and_never_locks_the_owner_out(
+    server: Tuple[str, TranscriberContainer],
+) -> None:
+    url, _ = server
+    attacker = "198.51.100.7"
+    with httpx.Client(base_url=url, timeout=10.0) as http:
+        for hop in range(LIMIT):
+            wrong = http.get("/api/sessions", headers={
+                "X-Access-Code": "nope", "X-Client-IP": attacker,
+                "X-Forwarded-For": f"203.0.113.{hop}",
+            })
+            assert wrong.status_code == 401, wrong.text
+        for hop in range(LIMIT, LIMIT + 5):  # rotating the header is no use
+            blocked = http.get("/api/sessions", headers={
+                "X-Access-Code": "nope", "X-Client-IP": attacker,
+                "X-Forwarded-For": f"203.0.113.{hop}",
+            })
+            assert blocked.status_code == 429, blocked.text
+            assert int(blocked.headers["retry-after"]) > 0
+        # The owner, even behind the same address, is never refused...
+        for headers in (
+            {"X-Client-IP": attacker},
+            {"X-Client-IP": "192.0.2.10", "X-Forwarded-For": attacker},
+            {},
+        ):
+            owner = http.get(
+                "/api/sessions", headers={"X-Access-Code": CODE, **headers}
+            )
+            assert owner.status_code == 200, owner.text
+        # ...and someone else behind the proxy is counted apart.
+        other = http.get("/api/sessions", headers={
+            "X-Access-Code": "nope", "X-Client-IP": "192.0.2.11",
+        })
+        assert other.status_code == 401
+
+
+def test_a_body_announced_too_large_is_refused_before_it_is_sent(
+    server: Tuple[str, TranscriberContainer],
+) -> None:
+    url, container = server
+    container.open_session("s1", "es")
+    port = int(url.rsplit(":", 1)[1])
+    with socket.create_connection(("127.0.0.1", port), timeout=10.0) as raw:
+        raw.sendall(
+            b"PUT /api/sessions/s1/chunks/0 HTTP/1.1\r\n"
+            b"Host: 127.0.0.1\r\n"
+            + f"X-Access-Code: {CODE}\r\n".encode()
+            + b"Content-Type: application/octet-stream\r\n"
+            b"Content-Length: 1000000000\r\n\r\n"
+        )
+        received = b""
+        while b"payload_too_large" not in received:
+            part = raw.recv(65536)  # the answer may come in pieces
+            if not part:
+                break
+            received += part
+        answer = received.decode("latin-1")
+    assert answer.startswith("HTTP/1.1 413"), answer
+    assert '"code":"payload_too_large"' in answer
+    session = container.sessions.get("s1")
+    assert session is not None and session.chunks == 0
+
+
+def test_the_audio_streams_ranges_with_the_cookie(
+    server: Tuple[str, TranscriberContainer],
+) -> None:
+    url, _ = server
+    data = pcm_bytes(tone(1.5))
+    with httpx.Client(base_url=url, timeout=10.0) as http:
+        auth = {"X-Access-Code": CODE}
+        opened = http.post("/api/sessions", headers=auth,
+                           json={"id": "s1", "language": "es"})
+        assert opened.status_code == 201
+        http.put("/api/sessions/s1/chunks/0", headers=auth, content=data)
+        http.post("/api/sessions/s1/close", headers=auth)
+        cookie = http.post("/api/access/cookie", headers=auth)
+        assert cookie.status_code == 204
+        whole = http.get("/api/sessions/s1/audio")  # the cookie alone
+        assert whole.status_code == 200
+        assert whole.headers["content-length"] == str(44 + len(data))
+        assert whole.content[44:] == data
+        part = http.get("/api/sessions/s1/audio",
+                        headers={"Range": "bytes=44-1043"})
+        assert part.status_code == 206
+        assert part.content == data[:1000]
+
+
+def test_the_pages_and_the_player_sequence_against_the_real_api(
+    tmp_path: Path,
+) -> None:
+    """What the transcript page does, over plain HTTP, in development.
+
+    The pages are served by the API (``--dev-pages``); ``js/api.js``
+    sets the playback cookie with ``POST /api/access/cookie`` and the
+    ``<audio>`` element then asks for ranges with the cookie alone.
+    """
+    container = build_container(dev_settings(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+    )))
+    port = free_port()
+    running = uvicorn.Server(server_config(create_app(container, CODE), port))
+    thread = threading.Thread(target=running.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + WAIT
+    while not running.started:
+        assert time.monotonic() < deadline, "uvicorn did not start"
+        time.sleep(0.02)
+    try:
+        data = pcm_bytes(tone(1.0))
+        with httpx.Client(base_url=f"http://127.0.0.1:{port}",
+                          timeout=10.0) as http:
+            page = http.get("/")
+            assert page.status_code == 200
+            assert 'src="js/main.js"' in page.text
+            client_code = http.get("/js/api.js").text
+            assert '"POST", "/access/cookie"' in client_code
+            view = http.get("/js/views/transcript.js").text
+            assert "/api/sessions/${encodeURIComponent(id)}/audio" in view
+            auth = {"X-Access-Code": CODE}
+            http.post("/api/sessions", headers=auth,
+                      json={"id": "s1", "language": "es"})
+            http.put("/api/sessions/s1/chunks/0", headers=auth, content=data)
+            http.post("/api/sessions/s1/close", headers=auth)
+            # 1. the page asks for the cookie, with the code
+            cookie = http.post("/api/access/cookie", headers=auth)
+            assert cookie.status_code == 204
+            setting = cookie.headers["set-cookie"]
+            name, _, rest = setting.partition("=")
+            attributes = {p.strip().lower() for p in rest.split(";")[1:]}
+            assert {"httponly", "samesite=strict", "path=/api"} <= attributes
+            assert "secure" in attributes  # https in production
+        # 2. the <audio> element: no code, only the cookie (sent by hand:
+        #    httpx keeps a Secure cookie off plain http, a browser on
+        #    https sends it)
+        with httpx.Client(base_url=f"http://127.0.0.1:{port}",
+                          timeout=10.0) as player:
+            jar = {"Cookie": f"{name}={rest.split(';')[0]}"}
+            probe = player.get("/api/sessions/s1/audio",
+                               headers={**jar, "Range": "bytes=0-"})
+            assert probe.status_code == 206
+            size = int(probe.headers["content-range"].rsplit("/", 1)[1])
+            assert size == 44 + len(data)
+            seek = player.get("/api/sessions/s1/audio",
+                              headers={**jar, "Range": "bytes=16044-16143"})
+            assert seek.status_code == 206
+            assert seek.content == data[16000:16100]
+            assert seek.headers["content-type"] == "audio/wav"
+            refused = player.get("/api/sessions/s1/audio",
+                                 headers={"Range": "bytes=0-1"})
+            assert refused.status_code == 401
+    finally:
+        running.should_exit = True
+        thread.join(WAIT)
+        container.runner.close(WAIT)

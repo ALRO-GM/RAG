@@ -1,4 +1,11 @@
-"""Transcripts: diarized conversations as ordered speaker turns."""
+"""Transcripts: diarized conversations as ordered speaker turns.
+
+Three formats are read: ``[hh:mm:ss] Speaker: text`` lines, the
+analyzer's own JSON (``{"turns": [...]}``, or diarizer ``segments``)
+and the transcriber's ``transcript.v1`` contract
+(:func:`from_contract`), whose sentences and their ids are kept as they
+were published.
+"""
 
 import json
 import math
@@ -8,6 +15,10 @@ from typing import Any, Dict, List, Optional, Sequence
 from pydantic import BaseModel, Field
 
 from src.domain.errors import CorruptedDataError, InvalidInputError
+from src.domain.skills.transcript_contract import (
+    ContractTranscript,
+    read_contract,
+)
 
 _LINE = re.compile(
     r"^\s*(?:\[?(\d{1,3}:\d{2}(?::\d{2})?(?:[.,]\d+)?)\]?\s*[-–]?\s*)?"
@@ -34,6 +45,20 @@ class Word(BaseModel):
         return (self.start + self.end) / 2
 
 
+class TurnSentence(BaseModel):
+    """A sentence of a turn as its source split it, with a fixed id.
+
+    Transcripts from the transcriber arrive already split into
+    sentences (``t<turn>.s<n>`` utterances with their own times); they
+    are kept as they are instead of being split again.
+    """
+
+    id: str
+    text: str
+    start: Optional[float] = None
+    end: Optional[float] = None
+
+
 class Turn(BaseModel):
     """One uninterrupted contribution of a speaker.
 
@@ -41,6 +66,9 @@ class Turn(BaseModel):
     when the source has timestamps. Transcripts made from audio also
     keep the timed ``words`` of the turn and the recogniser's mean
     ``confidence`` in them; hand-written transcripts have neither.
+    ``sentences`` are the turn's sentences when the source gave them
+    (``transcript.v1``), and ``previous_speaker`` who spoke in the turn
+    before, when the source says so; both are empty otherwise.
     """
 
     index: int = Field(ge=0)
@@ -50,6 +78,8 @@ class Turn(BaseModel):
     end: Optional[float] = None
     words: List[Word] = Field(default_factory=list)
     confidence: Optional[float] = None
+    sentences: List[TurnSentence] = Field(default_factory=list)
+    previous_speaker: Optional[str] = None
 
     def n_words(self) -> int:
         """Return the number of words of the turn."""
@@ -173,13 +203,73 @@ def build_transcript(
     return Transcript(session_id=session_id, language=language, turns=turns)
 
 
+def speaker_names(contract: ContractTranscript) -> Dict[str, str]:
+    """Return how each speaker id of ``contract`` is shown.
+
+    A speaker is shown by name when it has one, else by id. A name
+    that two speakers share, or that is another speaker's id, is
+    followed by the id (``Ana (ana-2)``), so two people never merge.
+    """
+    names = {s.id: (s.name or "").strip() or s.id for s in contract.speakers}
+    shown = list(names.values())
+    clashing = {
+        n for n in shown
+        if shown.count(n) > 1 or (n in names and names[n] != n)
+    }
+    return {
+        sid: f"{name} ({sid})" if name in clashing and name != sid else name
+        for sid, name in names.items()
+    }
+
+
+def from_contract(contract: ContractTranscript) -> Transcript:
+    """Return the analyzer's transcript of a ``transcript.v1`` document.
+
+    One turn per contract turn, keeping its number; its sentences are
+    the contract's utterances with their ids and times; the speaker and
+    the previous speaker are shown as :func:`speaker_names` says. The
+    turn's confidence is the mean of its utterances' when they have one.
+    """
+    names = speaker_names(contract)
+    turns: List[Turn] = []
+    for utterances in contract.turns():
+        first, last = utterances[0], utterances[-1]
+        known = [u.confidence for u in utterances if u.confidence is not None]
+        previous = first.previous_speaker
+        turns.append(Turn(
+            index=first.turn,
+            speaker=names[first.speaker],
+            text=" ".join(u.text for u in utterances),
+            start=first.start,
+            end=last.end,
+            confidence=(
+                round(sum(known) / len(known), 4) if known else None
+            ),
+            sentences=[
+                TurnSentence(id=u.id, text=u.text, start=u.start, end=u.end)
+                for u in utterances
+            ],
+            previous_speaker=None if previous is None else names[previous],
+        ))
+    if not turns:
+        raise InvalidInputError(
+            f"Transcript {contract.session.id!r} has no speaker turn."
+        )
+    return Transcript(
+        session_id=contract.session.id,
+        language=contract.session.language,
+        turns=turns,
+    )
+
+
 def parse_json(session_id: str, text: str) -> Transcript:
     """Parse a JSON transcript.
 
-    Accepted shapes: our own (``{"turns": [...]}``), a diarizer output
-    (``{"segments": [...]}``, as WhisperX writes) or a bare list of
-    segments. Each item needs ``speaker`` and ``text``; ``start`` and
-    ``end`` are optional.
+    Accepted shapes: a ``transcript.v1`` document (recognised by its
+    ``schema`` field and validated strictly), our own (``{"turns":
+    [...]}``), a diarizer output (``{"segments": [...]}``, as WhisperX
+    writes) or a bare list of segments. Each item needs ``speaker`` and
+    ``text``; ``start`` and ``end`` are optional.
     """
     try:
         data = json.loads(text)
@@ -188,6 +278,12 @@ def parse_json(session_id: str, text: str) -> Transcript:
             f"Transcript {session_id!r} is not valid JSON: {exc}"
         )
     language: Optional[str] = None
+    if isinstance(data, dict) and "schema" in data:
+        try:
+            contract = read_contract(data)
+        except InvalidInputError as exc:
+            raise CorruptedDataError(f"Transcript {session_id!r}: {exc}")
+        return from_contract(contract)
     if isinstance(data, dict):
         language = data.get("language")
         session_id = str(data.get("session_id") or session_id)

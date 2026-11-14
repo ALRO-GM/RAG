@@ -5,6 +5,7 @@ They give context to the competency ratings (a rating built on three
 turns is weaker than one built on sixty) and describe the team.
 """
 
+from statistics import median
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -26,6 +27,8 @@ class SpeakerInteraction(BaseModel):
     questions: int
     seconds: Optional[float] = None
     overlapping_starts: Optional[int] = None
+    words_per_minute: Optional[float] = None
+    median_response_seconds: Optional[float] = None
 
 
 class TeamInteraction(BaseModel):
@@ -85,6 +88,11 @@ def describe(transcript: Transcript) -> TeamInteraction:
     has timestamps. An overlapping start is a turn that begins more
     than ``OVERLAP_SECONDS`` before the previous speaker stops; it is
     a count of simultaneous speech, not a judgement of interruption.
+    ``median_response_seconds`` is the median silence between the end
+    of someone else's turn and the start of the speaker's own (0 when
+    they overlap); ``words_per_minute`` divides the speaker's words by
+    their own speaking time. Both describe pace, not quality, and both
+    inherit the errors of the timestamps.
     """
     timed = transcript.has_timestamps()
     turns: Dict[str, int] = {}
@@ -92,6 +100,7 @@ def describe(transcript: Transcript) -> TeamInteraction:
     questions: Dict[str, int] = {}
     seconds: Dict[str, float] = {}
     overlaps: Dict[str, int] = {}
+    responses: Dict[str, List[float]] = {}
     previous = None
     for turn in transcript.turns:
         name = turn.speaker
@@ -104,6 +113,13 @@ def describe(transcript: Transcript) -> TeamInteraction:
                 0.0, turn.end - turn.start
             )
             overlaps.setdefault(name, 0)
+            if (
+                previous is not None and previous.speaker != name
+                and previous.end is not None
+            ):
+                responses.setdefault(name, []).append(
+                    max(0.0, turn.start - previous.end)
+                )
             if (
                 previous is not None and previous.speaker != name
                 and previous.end is not None
@@ -124,6 +140,14 @@ def describe(transcript: Transcript) -> TeamInteraction:
             questions=questions[name],
             seconds=round(seconds[name], 3) if timed else None,
             overlapping_starts=overlaps[name] if timed else None,
+            words_per_minute=(
+                round(60 * words[name] / seconds[name], 1)
+                if timed and seconds[name] > 0 else None
+            ),
+            median_response_seconds=(
+                round(median(responses[name]), 3)
+                if timed and responses.get(name) else None
+            ),
         )
         for name in transcript.speakers()
     ]

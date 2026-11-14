@@ -1,34 +1,102 @@
-# RAGPutin on the Peer4U server: one small static file server.
-# The experiments run on the workstation (GPU); this host only serves
-# their results, so nothing heavy runs next to Peer4U.
+# RAGPutin on the Peer4U server: two small containers.
+#
+# - web: a Caddy that serves the transcriber's pages (/opt/ragputin/pruebas,
+#   written by CI), passes the workstation's tunnel (WebSocket on /_tunnel)
+#   to `tunnel`, and /api/* to the port that tunnel opens.
+# - tunnel: a chisel server. The workstation connects to it through
+#   wss://rag.peer4u.app/_tunnel with its own credential and opens one
+#   reverse port (9000) back to its API. chisel 1.12.0 checks the users
+#   file on the remotes declared at connection and on every channel
+#   asked for later; infra/tests/docker_proof.py shows a hand-made
+#   client with the credential refused SOCKS, forward channels and every
+#   destination but that reverse port (web:80, chisel itself, the host,
+#   an outside address).
+#
+# The models and every stored byte stay on the workstation: nothing heavy
+# runs next to Peer4U. `tunnel` is only on the private `tunnel` network,
+# so no other container of the host can reach chisel or port 9000. From
+# it, the container itself reaches web:80, and services of the host bound
+# to 0.0.0.0 through that network's gateway address (measured with the
+# docker proof; docs/DEPLOYMENT.md, residual risks).
 name: ragputin
 
 services:
   web:
-    image: caddy:2.10-alpine
+    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     restart: unless-stopped
+    # Any unprivileged user: the pages are world-readable (CI uploads
+    # them with mode 644/755) and nothing else is mounted.
+    user: "65534:65534"
+    environment:
+      # Proxies whose X-Forwarded-For is believed (infra/Caddyfile). On
+      # the server: the subnet of sanatorio_default, in infra/.env.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private_ranges}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../pruebas:/srv:ro
     networks:
       peer4u:
         aliases: [ragputin-web]
+      tunnel: {}
     read_only: true
-    tmpfs: [/tmp, /config, /data]
+    tmpfs:
+      - /tmp:uid=65534,gid=65534,mode=700
+      - /config:uid=65534,gid=65534,mode=700
+      - /data:uid=65534,gid=65534,mode=700
     cap_drop: [ALL]
-    # The caddy binary carries the file capability to bind port 80.
+    # Port 80 as a non-root user: docker already opens the low ports in
+    # the container's own network namespace; the sysctl says so
+    # explicitly. The capability is kept for a root run of the image.
     cap_add: [NET_BIND_SERVICE]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
     security_opt: ["no-new-privileges:true"]
     mem_limit: 128m
     cpus: 0.5
     pids_limit: 64
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/data/manifest.json"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
       interval: 60s
       timeout: 5s
       retries: 3
+
+  tunnel:
+    # chisel 1.12.0 (MIT, github.com/jpillora/chisel), pinned by digest;
+    # the index lists linux/arm64. A scratch image: the binary and CA roots.
+    image: jpillora/chisel:1.12.0@sha256:e5538d0a8432f53788bf63089d918a4b9979e6df408a2f1aa36575917eacd314
+    restart: unless-stopped
+    user: "65534:65534"
+    # --reverse: the workstation may open reverse remotes, and the users
+    # file allows its one user only R:0.0.0.0:9000. No --socks5; forward
+    # remotes are refused by the same list. Keepalive through the proxies.
+    command:
+      - server
+      - --host=0.0.0.0
+      - --port=8080
+      - --reverse
+      - --authfile=/etc/chisel/users.json
+      - --keepalive=25s
+    environment:
+      # Keep the Go heap well inside mem_limit.
+      GOMEMLIMIT: 48MiB
+    volumes:
+      # Not in the repository: written by `make infra-up` from the file
+      # `make tunnel-secret` made (owner 65534, mode 600, in a 700 dir).
+      - ../secrets/tunnel-users.json:/etc/chisel/users.json:ro
+    networks: [tunnel]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 32
+    stop_grace_period: 10s
+    # No healthcheck: the image has nothing but chisel, which cannot ask
+    # its own /health; web's Caddy reaches it (docs/DEPLOYMENT.md).
 
 networks:
   peer4u:
     external: true
     name: sanatorio_default
+  tunnel:
+    internal: true

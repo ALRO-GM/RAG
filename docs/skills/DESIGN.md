@@ -7,10 +7,13 @@ used. The theory behind the rubric is in [`THEORY.md`](THEORY.md); how
 to build reference data is in
 [`ANNOTATION_GUIDE.md`](ANNOTATION_GUIDE.md).
 
-Recordings are transcribed and diarized by the stage described in
-[`AUDIO.md`](AUDIO.md) (`skills transcribe`), which also splits turns
-into sentences and proposes candidate tags per sentence. This document
-starts from the diarized transcript, however it was produced.
+Recordings are transcribed, diarized and attributed by the
+transcriber, a separate package
+([`docs/transcriber/ARCHITECTURE.md`](../transcriber/ARCHITECTURE.md)),
+which hands over a `transcript.v1` document (`contracts/`). What the
+analyzer does with it (sentences, candidate tags per sentence,
+confirmation) is in [`AUDIO.md`](AUDIO.md). This document starts from
+the diarized transcript, however it was produced.
 
 ## 1. Pipeline
 
@@ -22,7 +25,7 @@ transcript ──► turns ──► evidence retrieval ──► judge ──�
 
 | Step | What it does | Where |
 |---|---|---|
-| Parse | Reads `[hh:mm:ss] Speaker: text` lines or diarizer JSON (`segments` with `speaker`, `text`, `start`, `end`) into ordered turns; merges consecutive segments of one speaker | `domain/skills/transcript.py` |
+| Parse | Reads the transcriber's `transcript.v1` (validated strictly; one turn per contract turn, utterance ids kept as sentence ids, speakers by name, previous speaker kept), `[hh:mm:ss] Speaker: text` lines or diarizer JSON (`segments` with `speaker`, `text`, `start`, `end`) into ordered turns; merges consecutive segments of one speaker | `domain/skills/transcript.py`, `domain/skills/transcript_contract.py` |
 | Describe | Counts turns, words, share of speech, questions, participation equality. No model, no judgement | `domain/skills/interaction.py` |
 | Retrieve | Ranks the participant's own turns against each behavioural indicator of the competency: `bm25/max + w·cosine`, the fusion of the document search | `application/skills/evidence.py` |
 | Judge | A language model receives the rubric, the candidate turns (each after the turn it replies to) and returns quotes, the indicator each quote shows, a rating or null, and a rationale | `domain/skills/prompting.py`, `ChatModel` port |
@@ -186,11 +189,11 @@ Recommended by `THEORY.md` and not implemented yet:
 
 | Recommendation | Status |
 |---|---|
-| Classify and evaluate in two separate model calls, the second seeing only the classified incidents (limits halo) | One call does both |
+| Classify and evaluate in two separate model calls, the second seeing only the classified incidents (limits halo) | Call 1 exists per sentence (`skills tag --confirm`, `AUDIO.md` §4) but the 1.7 B local judge is unreliable at it; the scorecard still uses one call |
 | Quality flag per incident (basic / clear / exemplary) | Not recorded |
 | Opportunity gating: no disagreement or feedback episode in the session → insufficient evidence for everybody | Left to the judge and the evidence rules |
 | Frequency normalised by opportunity and capped | Only the minimum-evidence and breadth rules |
-| Low-confidence evidence from transcription confidence and overlap | Turns can carry a confidence and timed words (`AUDIO.md`); the Whisper adapter reports none yet and overlap is not detected |
+| Low-confidence evidence from transcription confidence and overlap | Turns can carry a confidence (from `transcript.v1`, `AUDIO.md`); the transcriber's Whisper adapter reports none yet and overlap is not detected |
 | Person-level profile from ≥ 3 sessions (median and range), commitments log across sessions | Session level only |
 | Team interaction profile (Bales / act4teams categories), leadership profile | Participation counts only |
 | Validation with assessors, fairness checks | Tooling ready (§8), no data |

@@ -8,8 +8,6 @@ from src.adapters.outbound.cross_encoder_reranker import (
     DEFAULT_RERANK_MODEL,
 )
 from src.adapters.outbound.fs_corpus import DEFAULT_EXTENSIONS
-from src.adapters.outbound.whisper_recogniser import DEFAULT_SPEECH_MODEL
-from src.adapters.outbound.xvector_diarizer import DEFAULT_VOICE_MODEL
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_LLM = "Qwen/Qwen3-0.6B"
@@ -31,6 +29,11 @@ class Settings(BaseModel):
     as with the fixed 0.4 tuned on the 42 corpus, while prose leans on
     the embeddings, which is what seven public datasets reward. Set
     ``identifier_weight`` to ``None`` for one fixed weight.
+
+    ``serve`` receives the transcriber's ``transcript.v1`` documents
+    into ``transcripts_dir`` (where the analyzer reads transcripts),
+    only when the environment variable ``transcripts_token_env`` holds
+    the bearer token the transcriber sends.
     """
 
     raw_dir: str = "data/raw"
@@ -80,6 +83,11 @@ class Settings(BaseModel):
     runtime_plan_path: str = "data/runtime_plan.json"
     runtime_history_path: str = "experiments/hardware/runtime.jsonl"
     benchmark_dir: str = "data/benchmarks"
+    transcripts_dir: str = "data/transcripts"
+    transcripts_token_env: str = Field(
+        default="RAG_TRANSCRIPTS_TOKEN",
+        pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+    )
 
 
 BGE_SMALL: Dict[str, Any] = {
@@ -182,12 +190,10 @@ class SkillsSettings(BaseModel):
     ``min_participant_words`` words is not rated at all. These rules
     follow ``docs/skills/THEORY.md`` §4.3.
 
-    ``speech_model`` transcribes recordings and ``voice_model`` tells
-    the speakers apart; ``voice_threshold`` (the cosine below which two
-    voices are different people) is only used when the number of
-    speakers is not given, and belongs to that voice model.
+    Recordings are transcribed by the separate ``transcriber`` package;
+    the analyzer reads its ``transcript.v1`` documents.
 
-    Those thresholds, ``min_similarity``, ``semantic_weight``,
+    ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
     on synthetic sessions and must be tuned with ``skills lab`` once
     human-annotated reference data exists. ``min_similarity`` depends
@@ -219,10 +225,6 @@ class SkillsSettings(BaseModel):
     episode_gap: int = Field(default=3, ge=0)
     min_participant_words: int = Field(default=40, ge=0)
     min_similarity: float = Field(default=0.3, ge=-1.0, le=1.0)
-    speech_model: str = DEFAULT_SPEECH_MODEL
-    voice_model: str = DEFAULT_VOICE_MODEL
-    voice_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
-    turn_gap: float = Field(default=1.0, ge=0.0)
     tags_per_sentence: int = Field(default=2, ge=1)
     max_new_tokens: int = Field(default=700, ge=16)
     use_cache: bool = True

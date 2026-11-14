@@ -377,6 +377,10 @@ uv run python -m src skills evidence \
     --participant Pablo --competency LISTEN
 uv run python -m src skills assess \
     --transcript examples/skills/transcripts/demo_es.txt
+uv run python -m src skills sentences \
+    --transcript contracts/examples/transcript.v1.json
+uv run python -m src skills tag \
+    --transcript contracts/examples/transcript.v1.json
 ```
 
 - **Rubric**: 11 competencies, 110 behavioural indicators, in English
@@ -411,35 +415,35 @@ questions. The default now applies the rule on the existing index
 datasets up and one down); `--profile general`, `general-fast` and
 `general-cpu` select the larger configurations.
 
-## Results site and CI/CD
+## CI/CD and rag.peer4u.app
 
-Every result of the project is published at **https://rag.peer4u.app**:
-the lab suites, the BEIR/CoIR benchmarks, the soft-skills lab and
-rubrics, the hardware runs and all the documents. The experiments run
-on the workstation GPU and their result files are committed; GitHub
-Actions lints (flake8, `mypy --strict`), runs the unit and integration
-tests with a branch-coverage gate, builds the static site
-(`python -m results_site build`) and, on every merge to `main`,
-deploys it. Workflow and conventions: `CONTRIBUTING.md`; architecture
-and operations: `docs/DEPLOYMENT.md`.
+**https://rag.peer4u.app** serves the transcriber's pages (record a
+meeting from a phone, enrol a voice, play a transcript); its API runs
+on the workstation and is reached through a tunnel over HTTPS
+(`docs/transcriber/ARCHITECTURE.md` §5; Spanish tutorial for participants and the person who runs it: `docs/transcriber/TUTORIAL.md`). The results site that used to
+be published there was retired on 2026-11-14; the benchmark and
+experiment documents remain in `docs/benchmarks/` and `experiments/`.
+The experiments run on the workstation GPU and their result files are
+committed; GitHub Actions lints (flake8, `mypy --strict`), runs the unit
+and integration tests with a branch-coverage gate, bundles the pages
+and, on every merge to `main`, deploys them. Workflow and conventions:
+`CONTRIBUTING.md`; architecture and operations: `docs/DEPLOYMENT.md`.
 
 ```sh
-make ci           # what CI runs: lint-strict, coverage, site
-make site-serve   # preview the site at http://localhost:8765
+make ci           # what CI runs: lint-strict, coverage, site (the bundle)
 ```
 
 ### From a recording
 
-`skills transcribe --audio FILE --speakers N` turns a recording into
-that transcript on this machine: Whisper for the words and their
-times, voice embeddings for who spoke when. `skills sentences` and
-`skills tag` then split turns into sentences that keep speaker and
-time, and propose rubric indicators per sentence. On synthetic
-four-speaker meetings in Spanish: 5.4% word error rate and 91.5% of
-the words attributed to the right speaker, at about 22× real time on
-the GPU. Those figures are from read speech without overlap and are
-optimistic; see `docs/skills/AUDIO.md`, which also says what must be
-settled before recording real people.
+Recordings are turned into transcripts by the transcriber
+(`python -m transcriber`, `docs/transcriber/ARCHITECTURE.md`), which
+hands over a `transcript.v1` document (`contracts/`): to a directory,
+or to `POST /transcripts` of `python -m src serve` when
+`$RAG_TRANSCRIPTS_TOKEN` holds the shared token. `skills sentences`
+and `skills tag` read it as it is, keeping its sentence ids, times and
+who spoke before. The measured figures of the former in-process audio
+path (synthetic read speech, optimistic) and what must be settled
+before recording real people are in `docs/skills/AUDIO.md`.
 
 ## Design decisions
 

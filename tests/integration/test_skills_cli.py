@@ -694,8 +694,34 @@ def test_sentences_lists_speaker_time_and_text(project: Path) -> None:
     assert len(lines) >= 8
 
 
-def test_transcribe_missing_recording_is_a_clean_error(project: Path) -> None:
-    """The file is checked before any model is loaded."""
+def test_tag_reads_the_contract_example(project: Path) -> None:
+    """``skills tag`` reads a ``transcript.v1`` file; no judge needed."""
     write_rubrics(project)
-    result = skills(["transcribe", "--audio", "nope.wav"], project)
-    assert_error(result, "Audio file not found: nope.wav")
+    example = Path(__file__).resolve().parents[2] / "contracts" / (
+        "examples/transcript.v1.json"
+    )
+    result = skills(
+        ["--semantic=False", "tag", "--transcript", str(example),
+         "--save_directory", "tags"],
+        project,
+    )
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.strip().splitlines()
+    assert lines[0].startswith("[00:00:00] t0.s0 Marta: Creo que")
+    assert any(" t1.s0 Luis: Eso es una tontería" in x for x in lines)
+    assert any(" t2.s0 S1: Espera, Luis" in x for x in lines)
+    assert "4 sentences" in result.stdout
+    saved = json.loads((project / "tags" / "demo-es.tags.json").read_text(
+        encoding="utf-8"
+    ))
+    sentences = [s["sentence"] for s in saved["sentences"]]
+    assert [s["id"] for s in sentences] == ["t0.s0", "t0.s1", "t1.s0", "t2.s0"]
+    assert sentences[2]["previous_speaker"] == "Marta"
+    assert (sentences[2]["start"], sentences[2]["end"]) == (6.9, 9.8)
+
+
+def test_transcribe_is_gone(project: Path) -> None:
+    """Recordings are the transcriber's job now."""
+    write_rubrics(project)
+    result = skills(["transcribe", "--audio", "x.wav"], project)
+    assert result.returncode != 0

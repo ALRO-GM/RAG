@@ -22,6 +22,9 @@ from src.adapters.outbound.fs_index_repository import (
     FileSystemIndexRepository,
 )
 from src.adapters.outbound.fs_source_reader import FileSystemSourceReader
+from src.adapters.outbound.fs_transcript_store import (
+    FileSystemTranscriptStore,
+)
 from src.adapters.outbound.json_dataset_repository import (
     JsonDatasetRepository,
 )
@@ -55,6 +58,10 @@ from src.application.indexing import IndexingService
 from src.application.ports import Analyzer, Cache, Embedder, Reranker
 from src.application.runtime_tuning import RuntimeTuner
 from src.application.search import SearchService
+from src.application.skills.ingest import (
+    IngestTranscript,
+    ShowIngestedTranscript,
+)
 from src.application.tuning import RouterTrainer, Tuner
 from src.config import INDEX_FIELDS, Settings
 from src.domain.chunking import default_registry
@@ -279,6 +286,25 @@ class Container:
     def answers(self) -> AnswerService:
         """Question-answering use case."""
         return AnswerService(self.search, self.generator, self.cache)
+
+    @cached_property
+    def transcript_store(self) -> FileSystemTranscriptStore:
+        """``transcript.v1`` documents received from the transcriber."""
+        return FileSystemTranscriptStore(self.settings.transcripts_dir)
+
+    @cached_property
+    def ingest_transcript(self) -> IngestTranscript:
+        """Receive a transcript from the transcriber."""
+        return IngestTranscript(self.transcript_store)
+
+    @cached_property
+    def show_transcript(self) -> ShowIngestedTranscript:
+        """Give a received transcript back."""
+        return ShowIngestedTranscript(self.transcript_store)
+
+    def transcripts_token(self, environ: Mapping[str, str]) -> str:
+        """Return the ingest token held by ``environ`` ('' if none)."""
+        return environ.get(self.settings.transcripts_token_env, "").strip()
 
     @cached_property
     def datasets(self) -> DatasetService:

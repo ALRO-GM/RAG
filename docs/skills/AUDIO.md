@@ -1,56 +1,56 @@
 # From a recording to tagged sentences
 
-Status: first working version, 2026-11-13. It extends the analyzer
-upstream (audio in, instead of a transcript written by someone) and
-downstream (tags per sentence, instead of evidence per turn). Numbers
-below come from synthetic meetings and are **optimistic**; nothing
-here has been measured on a real meeting yet.
+Status: 2026-11-14. Recording, recognition, diarization and speaker
+identification **moved to the transcriber**, a separate package with
+its own service, documented in
+[`docs/transcriber/ARCHITECTURE.md`](../transcriber/ARCHITECTURE.md).
+The analyzer no longer opens audio: it reads the transcript the
+transcriber publishes (`transcript.v1`, `contracts/`) and splits,
+tags and confirms its sentences. This page keeps what was measured
+when the audio path still lived here (§2), what the analyzer does with
+a transcript (§3, §4) and what must be settled before real people are
+recorded (§5). Numbers come from synthetic meetings and are
+**optimistic**.
 
-## 1. Pipeline
+## 1. Where each part lives now
 
 ```
-recording ─► words with times ─► speaker per word ─► turns ─► sentences ─► candidate tags ─► (judge / annotator) ─► scorecard
-            Whisper              voice embeddings     domain    domain      retrieval            existing analyzer
+recording ─► words with times ─► speaker per word ─► turns ─► sentences ─┬─► transcript.v1 ─► candidate tags ─► (judge / annotator) ─► scorecard
+            transcriber (docs/transcriber/ARCHITECTURE.md)                │   (contracts/)      src: skills tag, skills tag --confirm, skills assess
 ```
 
-| Stage | What it does | Where |
-|---|---|---|
-| Read | WAV, FLAC, OGG, MP3 to mono 16 kHz (other containers through `ffmpeg` if installed) | `adapters/outbound/soundfile_audio_reader.py` |
-| Recognise | Words with start and end times; language given or detected | `adapters/outbound/whisper_recogniser.py` (`openai/whisper-large-v3-turbo`) |
-| Diarize | Who spoke when, in two passes: 5 s windows find the voices, 1.5 s windows are assigned to the nearest voice | `adapters/outbound/xvector_diarizer.py` (`microsoft/wavlm-base-plus-sv`), maths in `domain/skills/speech.py` |
-| Join | Each word takes the speaker whose span overlaps it most; one-word speaker flips are undone; consecutive words of a speaker form a turn | `domain/skills/speech.py`, `application/skills/transcription.py` |
-| Split | Turns into sentences (`t3.s1`) that keep speaker and exact times from their words | `domain/skills/speech.py` |
-| Tag | Each sentence gets the rubric indicators it may show | `application/skills/tagging.py` |
-
-Everything runs on this machine: no audio or text leaves it. The
-speech recogniser and the diarizer are ports (`SpeechRecogniser`,
-`Diarizer`), so either can be replaced without touching the rest.
+| Stage | Where |
+|---|---|
+| Record, decode, recognise (Whisper), tell voices apart and name them (WavLM, enrolment), split into sentences with ids `t<turn>.s<n>` | `transcriber/` (`python -m transcriber`) |
+| Hand the transcript over | `transcriber publish ID`: a directory, or `POST /transcripts` on the RAG (`publisher: "http"`) |
+| Receive it | `POST /transcripts` on `python -m src serve` (bearer token in `$RAG_TRANSCRIPTS_TOKEN`), stored as `data/transcripts/<id>.transcript.v1.json` |
+| Read it | `src/domain/skills/transcript.py` (`from_contract`): one turn per contract turn, sentence ids = utterance ids, times kept, speakers by name (else id), previous speaker kept |
+| Sentences of other transcripts | `src/domain/skills/speech.py` (`split_sentences`, `turn_sentences`) for `Speaker: text` files and the analyzer's own JSON |
+| Tag, confirm | `src/application/skills/tagging.py` |
 
 ```sh
-# who said what, and when
-uv run python -m src skills transcribe --audio meeting.wav \
-    --speakers 4 --language es --names Ana,Luis,Marta,Pablo
-# -> data/transcripts/meeting.json (turns, words, sentences)
-
-uv run python -m src skills sentences --transcript data/transcripts/meeting.json
-uv run python -m src skills tag --transcript data/transcripts/meeting.json
-# -> data/output/skills/meeting.tags.json and a timeline
-
-# the rest of the analyzer reads the same file
-uv run python -m src skills assess --transcript data/transcripts/meeting.json
+# the transcriber's example document, or one it published
+uv run python -m src skills sentences --transcript contracts/examples/transcript.v1.json
+uv run python -m src skills tag --transcript contracts/examples/transcript.v1.json
+# -> data/output/skills/demo-es.tags.json and a timeline
+uv run python -m src skills tag --transcript data/transcripts/ID.transcript.v1.json --confirm=True
 ```
 
-`--speakers` is optional but matters: with the number of people known,
-diarization is clearly more reliable (below). `--names` maps voices in
-order of first appearance; check the first turns before trusting it.
+A `transcript.v1` sentence knows who spoke in the turn before it
+(`previous_speaker`); the confirmation prompt states it ("said by
+Luis, after Marta spoke"). Transcripts without it are prompted as
+before.
 
-## 2. What was measured
+## 2. What was measured (in-process audio path, retired)
 
-`experiments/audio/meeting_eval.py` builds meetings by concatenating
-utterances of several readers from Multilingual LibriSpeech (Spanish,
-public, with transcripts and speaker ids) with 0.2–1.0 s of silence in
-between. Six meetings, four speakers, sixteen turns, about four minutes
-each; rows in `experiments/audio/meetings.jsonl`.
+The script that produced these rows, `experiments/audio/meeting_eval.py`,
+was removed with the audio code; its successor measuring the
+transcriber is `experiments/transcriber/identification_eval.py`. The
+historical rows stay in `experiments/audio/meetings.jsonl`. Meetings
+were built by concatenating utterances of several readers from
+Multilingual LibriSpeech (Spanish, public, with transcripts and speaker
+ids) with 0.2–1.0 s of silence in between. Six meetings, four
+speakers, sixteen turns, about four minutes each.
 
 | Measure | Result |
 |---|---|
@@ -69,8 +69,8 @@ How the diarizer got there (same six meetings, speech boundaries given):
 | 5 s, centred | 95% |
 
 Short windows are too noisy to tell voices apart, and uncentred
-embeddings share one large component, so the final design finds the
-voices with long windows and only then labels short ones.
+embeddings share one large component, so the design found the voices
+with long windows and only then labelled short ones.
 
 Two implementation notes that cost time: asking Whisper for word
 timestamps makes `transformers` return every attention map, and the
@@ -82,8 +82,8 @@ person at a time, clean audio, no interruptions, no laughter, no
 overlap, a pause between turns. `THEORY.md` §2.6 cites word error
 rates of .19 to .35 by speaker group for commercial recognisers, and
 automatic coding that drops from AUROC .91 on human transcripts to .80
-on recognised ones. The diarizer cannot
-represent two people talking at once: the window goes to one of them.
+on recognised ones. The diarizer could not represent two people
+talking at once: the window went to one of them.
 
 ## 3. Sentences
 
@@ -97,9 +97,12 @@ plausible sentence start follows, and does not cut after abbreviations
  "text": "That is nonsense, really.", "start": 2.0, "end": 3.3}
 ```
 
-Times are exact when the transcript comes from audio (first and last
-word of the sentence). For transcripts written by hand they are
-interpolated inside the turn by length, which is an estimate.
+A `transcript.v1` document arrives already split: its utterances are
+the sentences, with their ids and times (exact, from word times, as
+the transcriber computes them), and each also carries
+`previous_speaker`. For transcripts written by hand, sentences are
+split here and their times interpolated inside the turn by length,
+which is an estimate.
 
 `sentence_transcript` presents the sentences as the "turns" of a
 transcript, so evidence retrieval, the judge and the grounding checks
@@ -144,8 +147,44 @@ that sees the context. Tags therefore have three states:
 | State | Made by | Meaning |
 |---|---|---|
 | candidate | retrieval (`skills tag`, done) | worth a look: which competencies this sentence may bear on |
-| confirmed / rejected | the judge or an annotator (next step) | which indicator of that competency, if any, the sentence shows |
+| confirmed / rejected | the judge (`skills tag --confirm`, below) or an annotator | which indicator of that competency, if any, the sentence shows |
 | counted | the existing evidence rules | enough confirmed tags from enough separate exchanges to support a rating |
+
+### Confirmation by the judge (call 1), and what it is worth today
+
+`skills --judge local tag --transcript FILE --confirm=True` asks the
+judge, for each sentence with candidates, which indicator of the
+candidate competencies the sentence shows, or none. It sees the three
+sentences said just before it, with their speakers, and the full indicator
+list of those competencies (not only the retrieved candidates). The
+reply is one line, parsed strictly; an indicator outside the list
+counts as not understood. Decisions are cached and written next to the
+candidates (`[+ID]`, `[-ID]`, `[none]`, `[?]` in the timeline).
+
+Run on the Spanish demo session with the local judge this machine
+selects (Qwen3-1.7B), 49 s on the GPU: 64 sentences with candidates,
+40 confirmed, 23 rejected, 1 not understood. **The result is not
+usable**:
+
+- 35 of the 40 confirmed tags are the *first* indicator of their
+  competency (`P1`), whatever the sentence says: "En la página cuatro."
+  became `LISTEN.P1`. That is position bias, not reading.
+- No negative indicator was confirmed in a session written to contain
+  several. "Eso es una tontería, Marta, con un proceso sobra."
+  (`CONFL.N2`) came back as none.
+- "Espera, Luis, déjala terminar." came back as `LISTEN.P1` instead of
+  `INCL.P2`.
+- About five look right on reading, all of them explicit: `INCL.P1`
+  for "Irene, no has dicho nada todavía, ¿cómo lo ves tú?",
+  `COORD.P5` for the closing summary, `CONFL.P1` for the apology,
+  `COLLAB.P2` for asking for help in advance.
+
+So the mechanism works and a 1.7 B model cannot do the task. What
+would: a larger judge (the next local step, Qwen3-4B, does not fit in
+8 GB at float16 without quantisation; the API judge sends text to a
+third party, see §5), indicators shown in shuffled order to measure and
+cancel position bias, and above all reference annotations to measure
+any of it (T-36). No rating should be computed from these tags.
 
 ### What the research requires of the next step
 
@@ -155,20 +194,21 @@ that sees the context. Tags therefore have three states:
 | A behaviour is defined in context ("lets the other finish", "builds on a previous idea") | The judge must see the sentences around the candidate and who said them; a sentence alone is not enough. Sentence ids make that window explicit. |
 | A rating needs ≥ 3 incidents from ≥ 2 exchanges | Already enforced on turns; with sentences, two tags in one turn must still count as one exchange (`episode_gap` in sentence units needs re-setting). |
 | Opportunity: no disagreement episode, no evidence on handling disagreement | Tags of *other* speakers define opportunities: a `CONFL` candidate by A opens an opportunity for B. Needs tags per sentence, which now exist. |
-| Interaction measures: interruptions, question asking, uptake, share of speech | Times per word make them computable: overlap of spans, latency between turns, speaking time. Not implemented; overlap needs a diarizer that detects it. |
+| Interaction measures: interruptions, question asking, uptake, share of speech | Speaking rate (words per minute) and median response latency are computed from turn times (`skills interaction`). Interruptions need a diarizer that detects overlap. |
 | ASR errors lower automatic coding (AUROC .91 on human transcripts vs .80 on ASR ones) | Each turn keeps the recogniser's confidence when available (not with the current Whisper adapter, which reports none); low-confidence sentences should be flagged, not scored. |
 | Diarization errors credit the wrong person | Show the speaker and the time with every tag so that a person can check it against the audio; never rate from a session whose speakers were not verified. |
 | Developmental feedback with a human in the loop | Tags are shown as a timeline to the participant and the assessor; a rating is a summary of confirmed tags, each traceable to a sentence and a time. |
 
 ### Three ways to confirm tags, in order of cost
 
-1. **Judge per candidate** (no new data): reuse the existing judge and
-   grounding checks on the sentence transcript. Works today for the
-   quote-and-verify part; the two-call split is the missing piece
-   (`DESIGN.md` §9).
-2. **Annotators** (needs people): the annotation forms already point at
-   turns; pointing at sentence ids is a format change. This produces
-   the reference data everything else needs (T-36).
+1. **Judge per candidate** (no new data): implemented as call 1 above;
+   not reliable with the small local judge. Call 2 (rating from
+   confirmed tags only) is not built and should wait for a call 1 that
+   can be trusted.
+2. **Annotators** (needs people): an evidence entry of an annotation
+   form may now carry a `sentence` id besides its turn (validated
+   against the transcript; forms with and without it can be mixed).
+   This produces the reference data everything else needs (T-36).
 3. **A trained classifier** (needs that data): once a few thousand
    sentences are annotated, a small supervised model per indicator
    family is cheaper and steadier than a judge, as in the CPS
@@ -185,19 +225,19 @@ recorded**, because audio changes the picture:
   is recorded, what is derived and who sees it, and to agree.
 - The pipeline is local by design. Keep it local: the API judge sends
   transcript text to a third party and needs its own decision.
-- Voice embeddings are computed in memory and never stored; storing
-  them to recognise a person across sessions would be biometric
-  identification and should not be added casually.
+- The transcriber now stores voiceprints of people who enrol, with
+  their consent (biometric data; `docs/transcriber/ARCHITECTURE.md`
+  §6, §8). They and the audio stay on the workstation; the contract
+  the analyzer receives carries text, times and ids only.
 - Decide how long audio is kept. The transcript, not the audio, is
-  what the analyzer needs after `transcribe`.
+  what the analyzer needs.
 
 ## 6. Open items
 
 | Item | Why it matters |
 |---|---|
 | Measure on real meetings (overlap, noise, accents) | Every number above is from read speech |
-| A diarizer that handles overlap (for example pyannote; its models are licence-gated) behind the same port | Interruptions are both an error source and a behaviour the rubric cares about |
-| Word confidence (Whisper reports none through this adapter) | Flagging unreliable evidence |
-| Two-call judge on sentence tags | Turns candidates into confirmed tags |
-| Sentence ids in the annotation forms | Reference data at the granularity of the tags |
-| Interaction measures from times | Speaking time, latency, interruptions |
+| A diarizer that handles overlap (for example pyannote; its models are licence-gated), in the transcriber | Interruptions are both an error source and a behaviour the rubric cares about |
+| Word confidence (the contract has `confidence` per sentence; the Whisper adapter reports none yet) | Flagging unreliable evidence |
+| A judge that can do call 1 (larger model, shuffled indicator order), then call 2 | The 1.7 B local judge picks the first indicator of the list |
+| Interruptions and overlap | Needs the overlap-aware diarizer |

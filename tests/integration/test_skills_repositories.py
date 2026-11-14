@@ -350,42 +350,44 @@ def test_example_lab_dataset_matches_the_example_reference() -> None:
     )
 
 
-def test_saved_transcript_is_found_again(tmp_path: Path) -> None:
-    """A transcript made from audio is stored where ``find`` looks."""
+def test_contract_transcripts_are_found_by_session(tmp_path: Path) -> None:
+    """``x.transcript.v1.json`` (as the RAG stores it) is session ``x``."""
     from src.domain.skills.speech import transcript_sentences
-    from src.domain.skills.transcript import build_transcript
 
-    repository = FileSystemTranscriptRepository(str(tmp_path / "sessions"))
-    transcript = build_transcript("standup", [{
-        "speaker": "Ana", "text": "Hola a todos. ¿Empezamos?",
-        "start": 0.0, "end": 1.8,
-        "words": [
-            {"text": "Hola", "start": 0.0, "end": 0.4},
-            {"text": "a", "start": 0.5, "end": 0.6},
-            {"text": "todos.", "start": 0.6, "end": 1.0},
-            {"text": "¿Empezamos?", "start": 1.1, "end": 1.8},
-        ],
-    }], language="es")
-    path = repository.save(transcript)
-    assert path.endswith("sessions/standup.json")
-    found = repository.find("standup")
-    assert found.language == "es"
-    assert found.turns[0].words[3].start == 1.1
-    assert [s.end for s in transcript_sentences(found)] == [1.0, 1.8]
-    assert repository.sessions() == ["standup"]
-    elsewhere = repository.save(transcript, str(tmp_path / "x" / "t.json"))
-    assert Path(elsewhere).is_file()
+    root = Path(__file__).resolve().parents[2]
+    example = root / "contracts" / "examples" / "transcript.v1.json"
+    folder = tmp_path / "sessions"
+    folder.mkdir()
+    (folder / "demo-es.transcript.v1.json").write_bytes(example.read_bytes())
+    (folder / "other.txt").write_text("Ana: Hola.\n", encoding="utf-8")
+    (folder / ".transcript.v1.json").write_text("{}", encoding="utf-8")
+    repository = FileSystemTranscriptRepository(str(folder))
+    assert repository.sessions() == ["demo-es", "other"]
+    found = repository.find("demo-es")
+    assert found.session_id == "demo-es" and found.language == "es"
+    assert [t.speaker for t in found.turns] == ["Marta", "Luis", "S1"]
+    sentences = transcript_sentences(found)
+    assert [s.id for s in sentences] == ["t0.s0", "t0.s1", "t1.s0", "t2.s0"]
+    assert [(s.start, s.end) for s in sentences][2] == (6.9, 9.8)
+    assert [s.previous_speaker for s in sentences] == [
+        None, None, "Marta", "Luis",
+    ]
+    read = repository.read(str(folder / "demo-es.transcript.v1.json"))
+    assert read.session_id == "demo-es"
 
 
-def test_save_reports_an_unwritable_target(tmp_path: Path) -> None:
-    """A path that cannot be created is a clean error."""
-    from src.domain.errors import RagError
-    from src.domain.skills.transcript import build_transcript
+def test_a_broken_contract_file_is_a_clean_error(tmp_path: Path) -> None:
+    """A ``transcript.v1`` file that breaks the contract is not guessed at."""
+    from src.domain.errors import CorruptedDataError
 
-    blocker = tmp_path / "file"
-    blocker.write_text("x")
-    transcript = build_transcript("s", [{"speaker": "A", "text": "Hola."}])
-    with pytest.raises(RagError, match="Cannot write"):
-        FileSystemTranscriptRepository(str(tmp_path)).save(
-            transcript, str(blocker / "sub" / "t.json")
+    root = Path(__file__).resolve().parents[2]
+    document = json.loads(
+        (root / "contracts" / "examples" / "transcript.v1.json").read_text(
+            "utf-8"
         )
+    )
+    document["utterances"][0]["turn"] = "0"
+    path = tmp_path / "x.transcript.v1.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(CorruptedDataError, match="utterances.0.turn"):
+        FileSystemTranscriptRepository(str(tmp_path)).find("x")
