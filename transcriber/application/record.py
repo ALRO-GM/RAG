@@ -4,9 +4,10 @@ A session recorded from the phone is opened, receives numbered audio
 chunks (:class:`AppendAudio`) and is closed, which makes it ready to
 transcribe. A recording made with another app is imported whole
 (:class:`ImportRecording`). :class:`DeleteSession` removes a session
-with everything derived from it. Each use case reads and writes the
-session while holding its lock (:class:`~transcriber.application.ports.
-SessionLocks`), so concurrent requests and the job never interleave.
+with everything derived from it, the model lab's data included. Each
+use case reads and writes the session while holding its lock
+(:class:`~transcriber.application.ports.SessionLocks`), so concurrent
+requests and the job never interleave.
 """
 
 import hashlib
@@ -19,6 +20,7 @@ from transcriber.application.ports import (
     PCM_SAMPLE_WIDTH,
     Clock,
     RecordedAudio,
+    SessionLabData,
     SessionLocks,
     SessionRepository,
 )
@@ -251,20 +253,26 @@ class ImportRecording:
 
 
 class DeleteSession:
-    """Remove a session, its audio, its words and its transcript."""
+    """Remove a session, its audio, words, transcript and lab data."""
 
     def __init__(
-        self, sessions: SessionRepository, locks: SessionLocks
+        self, sessions: SessionRepository, locks: SessionLocks,
+        lab: SessionLabData,
     ) -> None:
-        """Wire the ports."""
+        """Wire the ports; ``lab`` is what the model lab stored."""
         self._sessions = sessions
         self._locks = locks
+        self._lab = lab
 
     def __call__(self, session_id: str) -> None:
         """Delete the session in any state but ``running``.
 
         A queued session may be deleted: its job finds the session gone
-        (or replaced, with another ``run_id``) and does nothing.
+        (or replaced, with another ``run_id``) and does nothing. A
+        session with a queued or running lab run is refused (cancel the
+        run first). The lab's data goes first, so a failure leaves the
+        session to delete again rather than lab data without a session
+        (a new session with the same id would inherit it).
         """
         with self._locks.hold(session_id):
             session = require_session(self._sessions, session_id)
@@ -273,4 +281,11 @@ class DeleteSession:
                     f"Session {session_id} is being transcribed; delete"
                     " it when the job ends."
                 )
+            active = self._lab.active_runs(session_id)
+            if active:
+                raise StateError(
+                    f"Session {session_id} has a lab run queued or"
+                    f" running ({', '.join(active)}); cancel it first."
+                )
+            self._lab.delete(session_id)
             self._sessions.delete(session_id)

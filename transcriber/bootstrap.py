@@ -89,6 +89,7 @@ from transcriber.application.lab import (
     LabResultsView,
     LabRunStatus,
     LabScores,
+    LabSessionData,
     ListLabRuns,
     ResumeLabRun,
     RunLab,
@@ -377,6 +378,10 @@ def build_container(
         parameters, overlaps,
     )
     status = TranscriptionStatus(sessions, runner)
+    lab = build_lab(
+        settings, sessions, voiceprints, decoder, recogniser, encoder,
+        runner, clock, os.environ if environ is None else environ,
+    )
     return TranscriberContainer(
         settings=settings,
         sessions=sessions,
@@ -396,7 +401,9 @@ def build_container(
         import_recording=ImportRecording(
             sessions, locks, recogniser.supported_languages
         ),
-        delete_session=DeleteSession(sessions, locks),
+        delete_session=DeleteSession(
+            sessions, locks, LabSessionData(lab.repository, lab.status)
+        ),
         enrol_speaker=EnrolSpeaker(
             decoder, recogniser, encoder, voiceprints, clock, runner,
             parameters, settings.enrolment,
@@ -419,10 +426,7 @@ def build_container(
         session_audio=SessionAudio(sessions),
         show_transcript=ShowTranscript(sessions),
         overlaps=overlaps,
-        lab=build_lab(
-            settings, sessions, voiceprints, decoder, recogniser, encoder,
-            runner, clock, os.environ if environ is None else environ,
-        ),
+        lab=lab,
     )
 
 

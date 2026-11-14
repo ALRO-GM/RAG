@@ -170,9 +170,19 @@ def _fill(mask: Any, length: int, value: bool) -> Any:
 
 
 def _windows(mask: Any, length: float, hop: float) -> List[Tuple[int, int]]:
-    """Return frame spans of windows inside the speech regions."""
+    """Return frame spans of windows inside the speech regions.
+
+    ``length`` and ``hop`` are seconds; each must be at least one
+    frame (a step of 0 frames would never end), else ``bad_input``.
+    """
     spans: List[Tuple[int, int]] = []
     size, step = int(length / FRAME), int(hop / FRAME)
+    if size < 1 or step < 1:
+        raise RunnerError(
+            "bad_input",
+            f"window ({length} s) and hop ({hop} s) must be at least"
+            f" {FRAME} s",
+        )
     index = 0
     while index < len(mask):
         if mask[index]:

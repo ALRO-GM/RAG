@@ -15,6 +15,7 @@ from typing import Callable, List, Optional
 import pytest
 
 from tests.integration.transcriber.audio import sound_file, tone
+from tests.unit.transcriber.fakes import FakeLabData
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
 from transcriber.adapters.outbound.fake_models import (
     FakeSpeechRecogniser,
@@ -200,7 +201,7 @@ class TestRaces:
         )
         sessions.armed = True
         delete, job = in_threads(
-            Call(DeleteSession(sessions, locks), "s1"),
+            Call(DeleteSession(sessions, locks, FakeLabData()), "s1"),
             Call(transcribe, "s1", None, None, "a" * 32),
         )
         assert job.error is None, job.error

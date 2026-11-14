@@ -397,6 +397,29 @@ class SessionLocks(Protocol):
         ...
 
 
+class SessionLabData(Protocol):
+    """What the model lab stored about a session, seen when deleting it.
+
+    The lab keeps a copy of the recording, denoised audio, transcripts,
+    speaker mappings and the owner's labels per session
+    (``docs/transcriber/LAB.md``); they go with the session.
+    """
+
+    def active_runs(self, session_id: str) -> List[str]:
+        """Return the ids of the session's queued or running lab runs.
+
+        A run whose process is gone (``interrupted``) is not active.
+        """
+        ...
+
+    def delete(self, session_id: str) -> None:
+        """Remove everything the lab stored for ``session_id``.
+
+        Nothing stored is not an error.
+        """
+        ...
+
+
 class Clock(Protocol):
     """The current time."""
 

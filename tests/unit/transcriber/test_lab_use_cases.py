@@ -42,6 +42,7 @@ from transcriber.application.lab import (
     LabResultsView,
     LabRunStatus,
     LabScores,
+    LabSessionData,
     ListLabRuns,
     ResumeLabRun,
     RunLab,
@@ -58,6 +59,7 @@ from transcriber.application.lab_builtin import (
 )
 from transcriber.application.lab_ports import ToolRequest
 from transcriber.application.ports import RecordedAudio
+from transcriber.application.record import DeleteSession
 from transcriber.domain.errors import (
     InvalidInputError,
     LabStepError,
@@ -237,6 +239,10 @@ class TestStart:
         ({"diarizers": ["z1"], "params": {"z1": {"bad": 1}}},
          "no parameter"),
         ({"diarizers": ["z1"], "params": {"z2": {}}}, "not chosen"),
+        ({"diarizers": ["z1"], "params": {"z1": {"num_speakers": 0}}},
+         "greater than 0"),
+        ({"diarizers": ["z1"], "params": {"z1": {"num_speakers": {}}}},
+         "cannot be an object"),
     ])
     def test_invalid_requests(
         self, lab: Lab, request_: Dict[str, Any], error: str
@@ -485,6 +491,48 @@ class TestRun:
             lab.status(SESSION, "a" * 32)
         with pytest.raises(InvalidInputError):
             lab.status(SESSION, "not-a-run")
+
+
+class TestDeleteSession:
+    def delete(self, lab: Lab) -> None:
+        """Delete the session with its lab data."""
+        DeleteSession(
+            lab.sessions, FakeSessionLocks(),
+            LabSessionData(lab.repository, lab.status),
+        )(SESSION)
+
+    def test_an_active_run_blocks_the_deletion(self, lab: Lab) -> None:
+        run = lab.start(SESSION, LabRequest(diarizers=["z1"]))
+        data = LabSessionData(lab.repository, lab.status)
+        assert data.active_runs(SESSION) == [run.id]
+        with pytest.raises(StateError, match=f"lab run.*{run.id}"):
+            self.delete(lab)
+        assert lab.sessions.get(SESSION) is not None
+        assert lab.repository.run(SESSION, run.id) is not None
+        lab.repository.save_run(run.model_copy(update={"state": "running"}))
+        assert data.active_runs(SESSION) == [run.id]
+
+    def test_finished_or_interrupted_runs_go_with_the_session(
+        self, lab: Lab
+    ) -> None:
+        done = lab.run(diarizers=["z1"])
+        lab.labels.replace(SESSION, [ReferenceLabel(
+            start=0.0, end=5.0, kind="person", speakers=["ana"],
+        )])
+        lost = lab.start(SESSION, LabRequest(diarizers=["z2"]))
+        lab.runner.statuses.clear()  # its job was lost: interrupted
+        assert LabSessionData(
+            lab.repository, lab.status
+        ).active_runs(SESSION) == []
+        assert lab.repository.labels(SESSION)
+        assert lab.repository.original_key(SESSION) is not None
+        self.delete(lab)
+        assert lab.sessions.get(SESSION) is None
+        assert lab.repository.runs(SESSION) == []
+        assert lab.repository.labels(SESSION) == []
+        assert lab.repository.original_key(SESSION) is None
+        assert lab.repository.results(SESSION, done) is None
+        assert lab.repository.run(SESSION, lost.id) is None
 
 
 class TestMapping:

@@ -5,6 +5,7 @@ from typing import Callable, List
 import pytest
 
 from tests.unit.transcriber.fakes import (
+    FakeLabData,
     FakeSessionRepository,
     FakeVoiceprintRepository,
     RecordingPublisher,
@@ -79,7 +80,7 @@ def session_calls(w: World) -> List[Callable[[str], object]]:
     return [
         lambda s: AppendAudio(w.sessions, w.locks)(s, 0, b"\x00\x00"),
         lambda s: CloseSession(w.sessions, w.locks)(s),
-        lambda s: DeleteSession(w.sessions, w.locks)(s),
+        lambda s: DeleteSession(w.sessions, w.locks, FakeLabData())(s),
         lambda s: w.queue(s),
         lambda s: w.transcribe(s),
         lambda s: w.status(s),

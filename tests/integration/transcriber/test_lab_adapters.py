@@ -183,6 +183,49 @@ class TestRepository:
         with pytest.raises(StorageError):
             repo.original_key("s1")
 
+    def test_delete_session(self, tmp_path: Path) -> None:
+        repo = FileSystemLabRepository(tmp_path)
+        repo.delete_session("s1")  # nothing stored: nothing to do
+        assert not (tmp_path / "lab").exists()
+        key = repo.store_original("s1", audio(0.5))
+        repo.store_original("s2", audio(0.5))
+        work = repo.new_workspace("s1")
+        repo.keep("s1", KEY, StageOutcome(stage="diarize", model="z"), work)
+        repo.new_workspace("s1")  # a stage left half-way
+        run = LabRun(id="1" * 32, session_id="s1", created_at=NOW,
+                     request=LabRequest())
+        repo.save_run(run)
+        repo.request_cancel("s1", run.id)
+        repo.save_results("s1", run.id, {"a": 1})
+        repo.save_labels("s1", [ReferenceLabel(start=0, end=1,
+                                               kind="nobody")])
+        repo.delete_session("s1")
+        assert not (tmp_path / "lab" / "s1").exists()
+        assert repo.original_key("s1") is None
+        assert repo.runs("s1") == [] and repo.labels("s1") == []
+        assert repo.outcome("s1", KEY) is None
+        with pytest.raises(NotFoundError):
+            repo.audio_path("s1", key)
+        assert repo.original_key("s2") == key  # other sessions stay
+        with pytest.raises(InvalidInputError):
+            repo.delete_session("..")
+        with pytest.raises(InvalidInputError):
+            repo.delete_session("../lab")
+        assert (tmp_path / "lab" / "s2").is_dir()
+
+    def test_delete_session_does_not_follow_a_link(
+        self, tmp_path: Path
+    ) -> None:
+        repo = FileSystemLabRepository(tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "keep.txt").write_text("x")
+        (tmp_path / "lab").mkdir()
+        (tmp_path / "lab" / "s9").symlink_to(outside)
+        with pytest.raises(InvalidInputError):
+            repo.delete_session("s9")
+        assert (outside / "keep.txt").is_file()
+
     def test_read_wav_mixes_channels_down(self, tmp_path: Path) -> None:
         path = tmp_path / "x.wav"
         write_wav(path, 16000, 2)

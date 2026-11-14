@@ -6,6 +6,7 @@ import pytest
 
 from tests.unit.transcriber.fakes import (
     NOW,
+    FakeLabData,
     FakeSessionLocks,
     FakeSessionRepository,
     FixedClock,
@@ -297,16 +298,49 @@ class TestDeleteSession:
     ) -> None:
         opened(sessions)
         AppendAudio(sessions, locks(sessions))("s1", 0, b"aa")
-        DeleteSession(sessions, locks(sessions))("s1")
+        lab = FakeLabData()
+        DeleteSession(sessions, locks(sessions), lab)("s1")
         assert sessions.get("s1") is None
         assert "s1" not in sessions.chunks
+        assert lab.deleted == ["s1"]
         with pytest.raises(NotFoundError):
-            DeleteSession(sessions, locks(sessions))("s1")
+            DeleteSession(sessions, locks(sessions), lab)("s1")
+        assert lab.deleted == ["s1"]
 
     def test_not_while_running(self, sessions: FakeSessionRepository) -> None:
         opened(sessions)
         sessions.save(sessions.sessions["s1"].model_copy(
             update={"state": SessionState.RUNNING}
         ))
+        lab = FakeLabData()
         with pytest.raises(StateError, match="being transcribed"):
-            DeleteSession(sessions, locks(sessions))("s1")
+            DeleteSession(sessions, locks(sessions), lab)("s1")
+        assert lab.deleted == []
+
+    def test_not_while_a_lab_run_is_active(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        opened(sessions)
+        lab = FakeLabData({"s1": ["9f" * 16]})
+        with pytest.raises(StateError, match="lab run"):
+            DeleteSession(sessions, locks(sessions), lab)("s1")
+        assert sessions.get("s1") is not None
+        assert lab.deleted == []
+        lab.active.clear()
+        DeleteSession(sessions, locks(sessions), lab)("s1")
+        assert sessions.get("s1") is None
+        assert lab.deleted == ["s1"]
+
+    def test_lab_data_goes_first(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        """A failure removing lab data keeps the session to try again."""
+        opened(sessions)
+
+        class Failing(FakeLabData):
+            def delete(self, session_id: str) -> None:
+                raise OSError("disk")
+
+        with pytest.raises(OSError):
+            DeleteSession(sessions, locks(sessions), Failing())("s1")
+        assert sessions.get("s1") is not None

@@ -630,7 +630,7 @@ def create_app(
 
     @api.delete("/sessions/{session_id}", status_code=204)
     async def delete(session_id: str) -> Response:
-        """Delete the session with its audio, words and transcript."""
+        """Delete the session with its transcript and lab data (409: busy)."""
         await run_in_threadpool(c.delete_session, session_id)
         return Response(status_code=204)
 

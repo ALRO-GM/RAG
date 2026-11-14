@@ -1,6 +1,7 @@
 """The lab's plain data: catalogue, requests, runs, keys, labels, scores."""
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
@@ -18,6 +19,7 @@ from transcriber.domain.lab import (
     SpeakerMapping,
     Step,
     check_labels,
+    check_override,
     merged_params,
     named_segments,
     stage_key,
@@ -74,6 +76,105 @@ class TestCatalogue:
         }
         with pytest.raises(InvalidInputError, match="no parameter"):
             merged_params(model, {"other": 1}, {})
+        with pytest.raises(InvalidInputError, match="greater than 0"):
+            merged_params(model, {"threshold": 0}, {})
+
+
+TYPED = {
+    "piece_seconds": 10.0, "batch_size": 8, "vad_filter": False,
+    "mode": "fast", "num_speakers": None, "hop": 0.75, "shift": 0.0,
+    "cuts": [1.0],
+}
+
+
+class TestOverrides:
+    """An override has the default's type; a number is positive."""
+
+    @pytest.fixture()
+    def model(self) -> CatalogueEntry:
+        """A model with one parameter of each kind; ``hop`` >= 0.01."""
+        return CatalogueEntry.model_validate(entry(
+            "m", parameters=TYPED,
+            minimums={"hop": 0.01, "shift": -3.0},
+        ))
+
+    @pytest.mark.parametrize("name, value", [
+        ("piece_seconds", 2.5), ("piece_seconds", 3), ("batch_size", 1),
+        ("vad_filter", True), ("mode", "slow"), ("num_speakers", 2),
+        ("num_speakers", None), ("num_speakers", "auto"),
+        ("num_speakers", ["ana", "luis"]), ("num_speakers", 1.5),
+        ("hop", 0.01), ("shift", 0.0), ("shift", -3.0), ("shift", 2),
+    ])
+    def test_accepted(
+        self, model: CatalogueEntry, name: str, value: Any
+    ) -> None:
+        assert check_override(model, name, value) == value
+        assert merged_params(model, {name: value}, {})[name] == value
+
+    @pytest.mark.parametrize("name, value, error", [
+        ("piece_seconds", 0, "greater than 0"),
+        ("piece_seconds", 0.0, "greater than 0"),
+        ("piece_seconds", -1.0, "greater than 0"),
+        ("piece_seconds", float("inf"), "finite"),
+        ("piece_seconds", float("nan"), "finite"),
+        ("piece_seconds", True, "must be a number, not a boolean"),
+        ("piece_seconds", "10", "must be a number, not a string"),
+        ("piece_seconds", None, "must be a number, not null"),
+        ("batch_size", 8.0, "must be an integer, not a number"),
+        ("batch_size", False, "must be an integer, not a boolean"),
+        ("batch_size", 0, "greater than 0"),
+        ("vad_filter", 1, "must be a boolean, not an integer"),
+        ("vad_filter", "yes", "must be a boolean"),
+        ("mode", 1, "must be a string, not an integer"),
+        ("mode", ["fast"], "must be a string, not a list"),
+        ("num_speakers", 0, "greater than 0"),
+        ("num_speakers", -2, "greater than 0"),
+        ("num_speakers", {"a": 1}, "cannot be an object"),
+        ("num_speakers", [1, 2], "cannot be a list"),
+        ("hop", 0.005, "at least 0.01"),
+        ("hop", 0, "at least 0.01"),
+        ("shift", -3.5, "at least -3"),
+        ("cuts", [2.0], "must be a list"),
+        ("other", 1, "no parameter"),
+    ])
+    def test_refused(
+        self, model: CatalogueEntry, name: str, value: Any, error: str
+    ) -> None:
+        with pytest.raises(InvalidInputError, match=error):
+            check_override(model, name, value)
+        if name != "other":
+            with pytest.raises(InvalidInputError, match=error):
+                merged_params(model, {name: value}, {})
+
+    def test_standard_values_are_not_overrides(
+        self, model: CatalogueEntry
+    ) -> None:
+        """The service's own values pass through as they are."""
+        assert merged_params(model, {}, {"num_speakers": 3})[
+            "num_speakers"
+        ] == 3
+
+    @pytest.mark.parametrize("minimums", [
+        {"other": 1.0}, {"hop": float("inf")},
+    ])
+    def test_invalid_minimums(self, minimums: Dict[str, float]) -> None:
+        with pytest.raises(ValidationError):
+            CatalogueEntry.model_validate(entry(
+                "m", parameters=TYPED, minimums=minimums,
+            ))
+
+    def test_the_catalogue_bounds_the_lab_diarizer_steps(self) -> None:
+        """The shipped catalogue refuses a hop below one 10 ms frame."""
+        catalogue = Catalogue.model_validate_json(
+            (Path(__file__).parents[3] / "lab" / "catalogue.json")
+            .read_text(encoding="utf-8")
+        )
+        ecapa = catalogue.require("ecapa-spectral", "diarize")
+        with pytest.raises(InvalidInputError, match="at least 0.01"):
+            check_override(ecapa, "hop", 0.005)
+        sepformer = catalogue.require("sepformer-dns4", "denoise")
+        with pytest.raises(InvalidInputError, match="greater than 0"):
+            check_override(sepformer, "piece_seconds", 0)
 
 
 class TestRequestsAndRuns:

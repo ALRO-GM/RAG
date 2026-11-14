@@ -114,6 +114,17 @@ marker is reported `not_installed` in the catalogue.
   recognisers: the session's or the run's, `auto` to detect;
   `num_speakers` and, for the built-in diarization,
   `expected_speakers`: the session's), then the run's overrides.
+  The service checks each override before the run is stored (400
+  `invalid_input` otherwise): it must have the JSON type of the
+  catalogue default (boolean, integer, number or string; a boolean is
+  not a number; an integer is accepted for a number, not the other
+  way round; a `null` default takes `null`, a scalar or a list of
+  strings), and a number must be finite and greater than 0, or at
+  least the entry's `minimums[name]` when the catalogue declares one
+  (`ecapa-spectral`: `window` and `hop` at least 0.01 s, one frame).
+  The runners refuse a step that would never end too: a piece of
+  fewer than one sample (`piece_seconds`) or a window or hop below
+  one 10 ms frame is `bad_input`.
 - `--selftest` imports the family's libraries without loading weights
   or using the network and prints one JSON line
   (`{"ok": true, "family", "python", "packages", "cuda"}`).
@@ -273,6 +284,14 @@ A run records the process that queued or runs it: a `queued` or
 resumed. Cancelling leaves a marker file the running process checks
 between steps and while a runner works (it then kills the runner).
 
+Deleting a session (`DELETE /api/sessions/{id}`, `sessions delete`)
+removes `lab/<session_id>/` with it, through the `SessionLabData`
+port, before the session itself: a new session that reuses the id
+starts with no runs, labels or audio. While one of the session's lab
+runs is `queued` or `running` the deletion is refused (409
+`wrong_state`): cancel the run first. An `interrupted` run does not
+block it.
+
 ## 7. API
 
 All routes are under `/api/lab`, need the access code header
@@ -319,7 +338,9 @@ unknown); a first run downloads them.
 Every field is optional: `denoisers` defaults to `["none"]`, `diarizers`
 to `["builtin"]`, `recognisers` to `[]` (at least one diarizer or
 recogniser). At most 16 models per stage and 600 pipelines; `params`
-may only override parameters the model declares. `language` and
+may only override parameters the model declares, with a value of the
+default's type and, for a number, greater than 0 or the catalogue's
+minimum (§3). `language` and
 `num_speakers` default to the session's. The session must have its
 audio (any state but `recording`). Answer: the run (as below, state
 `queued`).
