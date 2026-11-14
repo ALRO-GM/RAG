@@ -404,6 +404,8 @@ The rubric has not been validated with human assessors yet and the
 sample sessions are synthetic: the output is a draft for a human
 assessor.
 
+Project status, phases and degree of certainty (in Spanish): `docs/ESTADO.md`.
+
 ## Beyond the 42 corpus (GPU study)
 
 With the GPU, the retrieval was re-measured on nine datasets at once:
