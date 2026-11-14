@@ -300,12 +300,20 @@ class TestForgetSpeaker:
 
 class TestShowEnrolmentText:
     def test_the_text_with_the_name_and_the_consent_version(self) -> None:
-        show = ShowEnrolmentText("consent-7")
+        show = ShowEnrolmentText("consent-1")
         guide = show("es-ES", "  Ana  María ")
         assert guide.text.version == "es-1"
         assert guide.reading is not None
         assert guide.reading.startswith("Me llamo Ana María.")
-        assert guide.consent_version == show.consent_version == "consent-7"
+        assert guide.consent_version == show.consent_version == "consent-1"
+        assert guide.notice.kind.value == "enrolment"
+        assert (guide.notice.language, guide.notice.version) == (
+            "es", "consent-1",
+        )
+
+    def test_a_version_without_a_notice_is_refused(self) -> None:
+        with pytest.raises(InvalidInputError, match="consent notice"):
+            ShowEnrolmentText("consent-7")("es")
 
     def test_without_a_name_only_the_template(self) -> None:
         guide = ShowEnrolmentText("consent-1")("en")

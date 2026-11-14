@@ -240,6 +240,99 @@ def test_an_uploaded_file_and_a_language_given_at_queueing(
     assert_error(no_extension, 400, "unsupported_format")
 
 
+class TestConsentAndOptions:
+    def test_the_notices_come_from_the_api(self, client: TestClient) -> None:
+        text = client.get("/api/enrolment/text",
+                          params={"language": "en", "name": "Ana"}).json()
+        assert text["consent"]["kind"] == "enrolment"
+        assert text["consent"]["version"] == text["consent_version"]
+        assert text["consent"]["points"] and text["consent"]["accept"]
+        notice = client.get("/api/consent",
+                            params={"kind": "recording", "language": "es"})
+        assert notice.status_code == 200
+        body = notice.json()
+        assert (body["kind"], body["language"], body["version"]) == (
+            "recording", "es", "consent-1",
+        )
+        assert body["title"] == "Antes de empezar"
+        for wrong in ({"kind": "other", "language": "es"},
+                      {"kind": "recording", "language": "xx"}):
+            assert_error(client.get("/api/consent", params=wrong),
+                         400, "invalid_input")
+
+    def test_options_chosen_at_the_start_are_used_from_any_device(
+        self, client: TestClient, container: TranscriberContainer
+    ) -> None:
+        assert enrol(client).status_code == 201
+        opened = client.post("/api/sessions", json={
+            "id": "s1", "language": "es", "consent_version": "consent-1",
+            "num_speakers": 1, "expected_speakers": ["ana"],
+        })
+        assert opened.status_code == 201, opened.text
+        assert (opened.json()["consent_version"],
+                opened.json()["num_speakers"],
+                opened.json()["expected_speakers"]) == (
+            "consent-1", 1, ["ana"])
+        data = recording()
+        for number, start in enumerate(range(0, len(data), CHUNK)):
+            client.put(f"/api/sessions/s1/chunks/{number}",
+                       content=data[start:start + CHUNK])
+        client.post("/api/sessions/s1/close")
+        other_device = TestClient(client.app, headers=AUTH)
+        queued = other_device.post("/api/sessions/s1/transcription")
+        assert queued.status_code == 202, queued.text
+        assert wait_until_done(other_device, "s1")["state"] == "done"
+        transcript = client.get("/api/sessions/s1/transcript").json()
+        assert [s["id"] for s in transcript["speakers"]] == ["ana"]
+
+    def test_the_queueing_body_overrides_them(
+        self, client: TestClient
+    ) -> None:
+        client.post("/api/sessions", json={
+            "id": "s1", "language": "es", "num_speakers": 1,
+        })
+        data = recording()
+        for number, start in enumerate(range(0, len(data), CHUNK)):
+            client.put(f"/api/sessions/s1/chunks/{number}",
+                       content=data[start:start + CHUNK])
+        client.post("/api/sessions/s1/close")
+        client.post("/api/sessions/s1/transcription",
+                    json={"num_speakers": 2})
+        assert wait_until_done(client, "s1")["state"] == "done"
+        transcript = client.get("/api/sessions/s1/transcript").json()
+        assert len(transcript["speakers"]) == 2
+
+    def test_an_unknown_consent_version_is_refused(
+        self, client: TestClient
+    ) -> None:
+        assert_error(client.post("/api/sessions", json={
+            "id": "s1", "language": "es", "consent_version": "v9",
+        }), 400, "invalid_input")
+        wav = sound_file(tone(1.0), 16000, "wav")
+        assert_error(client.post(
+            "/api/sessions/s2/upload",
+            params={"filename": "a.wav", "language": "es",
+                    "consent_version": "v9"}, content=wav,
+        ), 400, "invalid_input")
+        made = client.post(
+            "/api/sessions/s2/upload",
+            params={"filename": "a.wav", "language": "es",
+                    "consent_version": "consent-1"}, content=wav,
+        )
+        assert made.json()["consent_version"] == "consent-1"
+        assert client.get("/api/sessions").json()["sessions"][0]["id"] == "s2"
+
+    def test_the_listing_carries_the_job_notes(
+        self, client: TestClient, container: TranscriberContainer
+    ) -> None:
+        client.post("/api/sessions/s1/upload",
+                    params={"filename": "a.wav", "language": "es"},
+                    content=sound_file(tone(2.0), 16000, "wav"))
+        listed = client.get("/api/sessions").json()["sessions"][0]
+        assert {"stage", "fraction", "message"} <= set(listed)
+        assert listed["message"] is None
+
+
 class TestUploads:
     @pytest.mark.parametrize("filename", [
         "a.wav\n", "a.pcm", "rec.PCM", "notes.txt", "data.json", "audio",

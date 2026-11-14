@@ -89,9 +89,16 @@ export class Api {
 
   getSession(id) { return this.request("GET", `/sessions/${encodeURIComponent(id)}`); }
 
-  createSession(id, language, title) {
+  /**
+   * Open a session. `started` holds what was chosen at the start and is kept
+   * on the session: consent_version, num_speakers, expected_speakers.
+   */
+  createSession(id, language, title, started = {}) {
     const json = { id, language };
     if (title) json.title = title;
+    for (const [key, value] of Object.entries(started)) {
+      if (value !== undefined && value !== null) json[key] = value;
+    }
     return this.request("POST", "/sessions", { json });
   }
 
@@ -103,9 +110,9 @@ export class Api {
 
   closeSession(id) { return this.request("POST", `/sessions/${encodeURIComponent(id)}/close`); }
 
-  uploadRecording(id, file, language, title) {
+  uploadRecording(id, file, language, title, consentVersion) {
     return this.request("POST", `/sessions/${encodeURIComponent(id)}/upload`, {
-      query: { filename: file.name, language, title },
+      query: { filename: file.name, language, title, consent_version: consentVersion },
       body: file, contentType: "application/octet-stream",
     });
   }
@@ -129,6 +136,11 @@ export class Api {
   speakers() { return this.request("GET", "/speakers"); }
 
   deleteSpeaker(id) { return this.request("DELETE", `/speakers/${encodeURIComponent(id)}`); }
+
+  /** The consent notice in force: kind "recording" or "enrolment". */
+  consent(kind, language) {
+    return this.request("GET", "/consent", { query: { kind, language } });
+  }
 
   enrolmentText(language, name) {
     return this.request("GET", "/enrolment/text", { query: { language, name } });

@@ -24,6 +24,11 @@ from transcriber.application.ports import (
     VoiceEncoder,
     VoiceprintRepository,
 )
+from transcriber.domain.consent import (
+    ConsentNotice,
+    NoticeKind,
+    consent_notice,
+)
 from transcriber.domain.enrolment import (
     EnrolmentText,
     SampleRules,
@@ -49,14 +54,15 @@ class EnrolmentGuide(NamedTuple):
     """What a person sees before enrolling.
 
     ``text`` is the enrolment text of the language, ``reading`` that
-    text with the person's name in place (``None`` without a name) and
+    text with the person's name in place (``None`` without a name),
     ``consent_version`` the consent statement an enrolment made now is
-    recorded against.
+    recorded against and ``notice`` that statement in the language.
     """
 
     text: EnrolmentText
     reading: Optional[str]
     consent_version: str
+    notice: ConsentNotice
 
 
 class ShowEnrolmentText:
@@ -76,12 +82,15 @@ class ShowEnrolmentText:
     ) -> EnrolmentGuide:
         """Return the latest text of ``language`` (with ``name``, if given).
 
-        :class:`InvalidInputError` for a language without a text or an
-        empty name.
+        :class:`InvalidInputError` for a language without a text or a
+        notice, or an empty name.
         """
         text = enrolment_text(language)
         reading = text.text(name) if name is not None else None
-        return EnrolmentGuide(text, reading, self._consent_version)
+        notice = consent_notice(
+            NoticeKind.ENROLMENT.value, language, self._consent_version
+        )
+        return EnrolmentGuide(text, reading, self._consent_version, notice)
 
 
 class EnrolSpeaker:

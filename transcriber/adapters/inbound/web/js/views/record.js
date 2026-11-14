@@ -9,31 +9,16 @@ import { ChunkQueue } from "../lib/chunks.js";
 import { ChunkUploader } from "../lib/uploader.js";
 import { formatTime, sessionIdFor } from "../lib/text.js";
 import { transcriptionBody } from "../lib/sessions.js";
-
-const OPTIONS_KEY = "transcriber.options.";
-
-/** Options chosen at the start of a recording, kept to queue the transcription later. */
-export function savedOptions(sessionId) {
-  try {
-    return JSON.parse(sessionStorage.getItem(OPTIONS_KEY + sessionId) ?? "null");
-  } catch {
-    return null;
-  }
-}
-
-function saveOptions(sessionId, options) {
-  try {
-    sessionStorage.setItem(OPTIONS_KEY + sessionId, JSON.stringify(options));
-  } catch {
-    // private mode: the transcription is then queued without them
-  }
-}
+import { noticeSection } from "../consent.js";
 
 export async function recordView(ctx, root, params) {
   const resumeId = params[0] ?? null;
-  const [enrolled, existing] = await Promise.all([
+  // The notice comes from the API: its text and version are the ones the
+  // session records (consent_version).
+  const [enrolled, existing, notice] = await Promise.all([
     ctx.api.speakers(),
     resumeId ? ctx.api.getSession(resumeId) : Promise.resolve(null),
+    ctx.api.consent("recording", lang),
   ]);
   if (existing && existing.state !== "recording") {
     root.append(h("p", { class: "notice" }, t("record.not_recording")), h("a", { class: "button", href: "#/" }, t("nav.sessions")));
@@ -44,7 +29,6 @@ export async function recordView(ctx, root, params) {
   let uploader = null;
   let phase = "form"; // form | starting | recording | finishing | done
   let sessionId = existing?.id ?? null;
-  let options = null;
   let timer = null;
   const wake = new WakeLock((on) => {
     wakeNote.hidden = on;
@@ -80,10 +64,7 @@ export async function recordView(ctx, root, params) {
       h("div", { class: "field" }, h("label", { for: "rec-count" }, t("record.count")), count,
         h("p", { class: "hint" }, t("record.count_hint"))),
     ],
-    h("section", { class: "consent", "aria-labelledby": "consent-h" },
-      h("h2", { id: "consent-h" }, t("consent.title")),
-      h("ul", {}, ["consent.what", "consent.where", "consent.delete"].map((k) => h("li", {}, t(k))))),
-    h("label", { class: "check strong" }, consent, h("span", {}, t("consent.accept"))),
+    noticeSection(notice, consent, "rec"),
     formError,
     start);
 
@@ -144,9 +125,14 @@ export async function recordView(ctx, root, params) {
     try {
       if (!existing) {
         sessionId = sessionIdFor(new Date(), title.value);
-        await ctx.api.createSession(sessionId, language.value, title.value.trim());
-        options = transcriptionBody(language.value, people.filter((p) => p.box.checked).map((p) => p.id), count.value);
-        saveOptions(sessionId, options);
+        // The options are kept on the session, so closing it from any
+        // device queues the transcription with them.
+        const options = transcriptionBody(language.value, people.filter((p) => p.box.checked).map((p) => p.id), count.value);
+        await ctx.api.createSession(sessionId, language.value, title.value.trim(), {
+          consent_version: notice.version,
+          num_speakers: options.num_speakers,
+          expected_speakers: options.expected_speakers,
+        });
       }
     } catch (error) {
       await capture.stop();
@@ -204,8 +190,7 @@ export async function recordView(ctx, root, params) {
     }
     try {
       await ctx.api.closeSession(sessionId);
-      const saved = options ?? savedOptions(sessionId);
-      await ctx.api.queueTranscription(sessionId, saved ?? {});
+      await ctx.api.queueTranscription(sessionId, {}); // the session's own options
     } catch (error) {
       if (error?.kind === "unauthorized") {
         ctx.fail(error, () => finalise());

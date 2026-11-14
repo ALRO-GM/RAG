@@ -7,15 +7,18 @@ import { Capture, CaptureError } from "../capture.js";
 import { WakeLock, setLeaveGuard } from "../device.js";
 import { concatBytes } from "../lib/audio.js";
 import { suggestId, uniqueId, idProblem, countdown } from "../lib/text.js";
+import { noticeSection } from "../consent.js";
 
 export const GOAL_SECONDS = 30;
 const MAX_SECONDS = 90;
 
 export async function enrolView(ctx, root) {
-  const known = await ctx.api.speakers();
+  // The consent notice comes from the API, in force and versioned.
+  const [known, guide] = await Promise.all([ctx.api.speakers(), ctx.api.enrolmentText(lang)]);
   const taken = known.speakers.map((s) => s.id);
   let capture = null;
   let timer = null;
+  let retryTimer = null;
   let phase = "form"; // form | reading | recording | sending
   let idEdited = false;
   const parts = [];
@@ -47,10 +50,7 @@ export async function enrolView(ctx, root) {
     h("p", { class: "hint" }, t("enrol.wait_note")),
     h("div", { class: "field" }, h("label", { for: "en-name" }, t("enrol.name")), name),
     h("div", { class: "field" }, h("label", { for: "en-id" }, t("enrol.id")), id, idHint),
-    h("section", { class: "consent", "aria-labelledby": "en-consent-h" },
-      h("h2", { id: "en-consent-h" }, t("enrol.consent_title")),
-      h("ul", {}, ["enrol.consent_what", "enrol.consent_where", "enrol.consent_forget"].map((k) => h("li", {}, t(k))))),
-    h("label", { class: "check strong" }, consent, h("span", {}, t("enrol.consent_accept"))),
+    noticeSection(guide.consent, consent, "en"),
     formError, next);
 
   // ---- reading and recording ---------------------------------------
@@ -160,6 +160,14 @@ export async function enrolView(ctx, root) {
     try {
       await ctx.api.enrol(id.value, { name: name.value.trim(), language: lang, textVersion, pcm });
     } catch (error) {
+      if (error.code === "busy") {
+        // Other enrolments are waiting for the computer: try again by itself.
+        const seconds = Math.max(error.waitSeconds || 10, 1);
+        result.replaceChildren(h("p", { class: "warn" }, t("enrol.busy")),
+          h("p", { class: "hint" }, t("enrol.busy_in", { seconds })));
+        retryTimer = setTimeout(() => upload(pcm), seconds * 1000);
+        return;
+      }
       const again = h("button", { type: "button", class: "primary big", onClick: () => reset() }, t("enrol.retry"));
       const resend = error.kind === "unavailable" || error.kind === "server"
         ? h("button", { type: "button", class: "big", onClick: () => upload(pcm) }, t("action.retry")) : null;
@@ -186,6 +194,7 @@ export async function enrolView(ctx, root) {
 
   return () => {
     clearInterval(timer);
+    clearTimeout(retryTimer);
     if (phase === "recording") capture?.stop();
     wake.release();
     setLeaveGuard(() => false);

@@ -11,6 +11,8 @@ const BY_CODE = {
   model_unavailable: "err.model",
   invalid_input: "err.invalid",
   invalid_request: "err.invalid",
+  busy: "err.busy",
+  unsupported_format: "err.format",
 };
 
 const REASONS = {

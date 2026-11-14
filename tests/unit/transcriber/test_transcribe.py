@@ -29,6 +29,7 @@ from transcriber.application.transcribe import (
     TranscribeSession,
     TranscriptionOptions,
     TranscriptionStatus,
+    with_session_options,
 )
 from transcriber.domain.errors import (
     InvalidInputError,
@@ -36,7 +37,7 @@ from transcriber.domain.errors import (
     StateError,
     VoiceModelMismatchError,
 )
-from transcriber.domain.models import SessionState, Transcript
+from transcriber.domain.models import Session, SessionState, Transcript
 from transcriber.domain.parameters import TranscriptionParameters
 
 
@@ -251,6 +252,43 @@ class TestTranscribeSession:
         assert turns(transcript) == [
             ("S1", None), ("luis", "S1"), ("S1", "luis"),
         ]
+
+    def test_options_kept_on_the_session_are_used_when_queueing(
+        self,
+    ) -> None:
+        w = world()
+        w.voiceprints.enrol("ana", voice(0))
+        w.voiceprints.enrol("luis", voice(1))
+        w.upload()
+        w.sessions.save(w.sessions.sessions["s1"].model_copy(update={
+            "expected_speakers": ("luis",), "num_speakers": 2,
+        }))
+        w.queue("s1")
+        w.runner.run_all()
+        transcript = w.sessions.transcript("s1")
+        assert transcript is not None
+        assert turns(transcript) == [
+            ("S1", None), ("luis", "S1"), ("S1", "luis"),
+        ]
+
+    def test_the_queueing_request_overrides_the_session_options(
+        self,
+    ) -> None:
+        session = Session(
+            id="s1", language="es", num_speakers=3,
+            expected_speakers=("luis",),
+        )
+        merged = with_session_options(
+            TranscriptionOptions(num_speakers=1, expected_speakers=[]),
+            session,
+        )
+        assert (merged.num_speakers, merged.expected_speakers) == (1, [])
+        kept = with_session_options(TranscriptionOptions(), session)
+        assert (kept.num_speakers, kept.expected_speakers) == (3, ["luis"])
+        plain = with_session_options(
+            TranscriptionOptions(language="en"), Session(id="s", language="es")
+        )
+        assert plain == TranscriptionOptions(language="en")
 
     def test_an_unknown_expected_speaker_is_refused_at_queue_time(
         self,

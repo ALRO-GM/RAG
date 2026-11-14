@@ -2,10 +2,17 @@
 
 export const UNAVAILABLE_STATUS = [502, 503, 504];
 
+/** Seconds of a Retry-After header (delay form), or 0. */
+export function retryAfterSeconds(retryAfter) {
+  const n = Number.parseInt(retryAfter ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /**
  * Sort a failed call into what the page should do:
  * "unavailable" (workstation off, network down), "unauthorized",
- * "rate" (wait `waitSeconds`), "client" (4xx: the request is wrong),
+ * "rate" (wait `waitSeconds`), "client" (4xx: the request is wrong;
+ * `waitSeconds` from Retry-After when the API sent one, e.g. 409 busy),
  * "server" (other 5xx). A null status means the network failed.
  */
 export function classifyFailure(status, retryAfter = null) {
@@ -13,12 +20,9 @@ export function classifyFailure(status, retryAfter = null) {
     return { kind: "unavailable", waitSeconds: 0 };
   }
   if (status === 401) return { kind: "unauthorized", waitSeconds: 0 };
-  if (status === 429) {
-    const n = Number.parseInt(retryAfter ?? "", 10);
-    return { kind: "rate", waitSeconds: Number.isFinite(n) && n > 0 ? n : 30 };
-  }
+  if (status === 429) return { kind: "rate", waitSeconds: retryAfterSeconds(retryAfter) || 30 };
   if (status >= 500) return { kind: "server", waitSeconds: 0 };
-  return { kind: "client", waitSeconds: 0 };
+  return { kind: "client", waitSeconds: retryAfterSeconds(retryAfter) };
 }
 
 /** Whether uploading the same chunk again can help. */

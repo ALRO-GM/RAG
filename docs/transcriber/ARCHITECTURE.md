@@ -58,6 +58,7 @@ transcriber/
     speakers.py      word→speaker assignment, smoothing, turns, previous speaker
     voices.py        single-voice test, clustering, centroids, matching to voiceprints
     enrolment.py     the text a person reads, checks on an enrolment sample
+    consent.py       the versioned consent notices (enrolment, recording)
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
@@ -65,6 +66,7 @@ transcriber/
                      TranscriptPublisher, JobRunner, Progress, SessionLocks, Clock
     common.py        id checks and lookups shared by the use cases
     enrol.py         EnrolSpeaker, ForgetSpeaker, ShowEnrolmentText
+    consent.py       ShowConsentNotice
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
     transcribe.py    TranscribeSession (recognise → diarize → identify → sentences),
@@ -247,7 +249,13 @@ code). Only the audio route accepts that cookie.
 
 Consent is asked at enrolment and at the start of a session (the
 recording page states what is recorded, what is derived and where it
-stays). Audio, voiceprints and transcripts are stored under
+stays). The notices are versioned data of the domain
+(`domain/consent.py`, Spanish and English) served by the API
+(`GET /api/consent`, and with the enrolment text); the pages show that
+text, and the version shown is stored with the enrolment and with the
+session (`Session.consent_version`). The transcription options chosen
+when a recording starts (`num_speakers`, `expected_speakers`) are kept
+on the session too, so it is queued the same from any device. Audio, voiceprints and transcripts are stored under
 `data/transcriber/` (ignored by git). `sessions delete ID` and
 `speakers forget ID` remove them. Pushing a transcript to another
 machine is an explicit command. Rating people from recordings needs

@@ -18,7 +18,7 @@ import uvicorn
 
 from tests.integration.transcriber.audio import pcm_bytes, tone
 from transcriber.adapters.inbound.http_api import create_app
-from transcriber.adapters.inbound.serve import server_config
+from transcriber.adapters.inbound.serve import dev_settings, server_config
 from transcriber.bootstrap import TranscriberContainer, build_container
 from transcriber.config import ApiSettings, TranscriberSettings
 
@@ -143,3 +143,72 @@ def test_the_audio_streams_ranges_with_the_cookie(
                         headers={"Range": "bytes=44-1043"})
         assert part.status_code == 206
         assert part.content == data[:1000]
+
+
+def test_the_pages_and_the_player_sequence_against_the_real_api(
+    tmp_path: Path,
+) -> None:
+    """What the transcript page does, over plain HTTP, in development.
+
+    The pages are served by the API (``--dev-pages``); ``js/api.js``
+    sets the playback cookie with ``POST /api/access/cookie`` and the
+    ``<audio>`` element then asks for ranges with the cookie alone.
+    """
+    container = build_container(dev_settings(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+    )))
+    port = free_port()
+    running = uvicorn.Server(server_config(create_app(container, CODE), port))
+    thread = threading.Thread(target=running.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + WAIT
+    while not running.started:
+        assert time.monotonic() < deadline, "uvicorn did not start"
+        time.sleep(0.02)
+    try:
+        data = pcm_bytes(tone(1.0))
+        with httpx.Client(base_url=f"http://127.0.0.1:{port}",
+                          timeout=10.0) as http:
+            page = http.get("/")
+            assert page.status_code == 200
+            assert 'src="js/main.js"' in page.text
+            client_code = http.get("/js/api.js").text
+            assert '"POST", "/access/cookie"' in client_code
+            view = http.get("/js/views/transcript.js").text
+            assert "/api/sessions/${encodeURIComponent(id)}/audio" in view
+            auth = {"X-Access-Code": CODE}
+            http.post("/api/sessions", headers=auth,
+                      json={"id": "s1", "language": "es"})
+            http.put("/api/sessions/s1/chunks/0", headers=auth, content=data)
+            http.post("/api/sessions/s1/close", headers=auth)
+            # 1. the page asks for the cookie, with the code
+            cookie = http.post("/api/access/cookie", headers=auth)
+            assert cookie.status_code == 204
+            setting = cookie.headers["set-cookie"]
+            name, _, rest = setting.partition("=")
+            attributes = {p.strip().lower() for p in rest.split(";")[1:]}
+            assert {"httponly", "samesite=strict", "path=/api"} <= attributes
+            assert "secure" in attributes  # https in production
+        # 2. the <audio> element: no code, only the cookie (sent by hand:
+        #    httpx keeps a Secure cookie off plain http, a browser on
+        #    https sends it)
+        with httpx.Client(base_url=f"http://127.0.0.1:{port}",
+                          timeout=10.0) as player:
+            jar = {"Cookie": f"{name}={rest.split(';')[0]}"}
+            probe = player.get("/api/sessions/s1/audio",
+                               headers={**jar, "Range": "bytes=0-"})
+            assert probe.status_code == 206
+            size = int(probe.headers["content-range"].rsplit("/", 1)[1])
+            assert size == 44 + len(data)
+            seek = player.get("/api/sessions/s1/audio",
+                              headers={**jar, "Range": "bytes=16044-16143"})
+            assert seek.status_code == 206
+            assert seek.content == data[16000:16100]
+            assert seek.headers["content-type"] == "audio/wav"
+            refused = player.get("/api/sessions/s1/audio",
+                                 headers={"Range": "bytes=0-1"})
+            assert refused.status_code == 401
+    finally:
+        running.should_exit = True
+        thread.join(WAIT)
+        container.runner.close(WAIT)

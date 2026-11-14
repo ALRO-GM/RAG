@@ -165,6 +165,9 @@ test("classifyFailure", () => {
   assert.equal(classifyFailure(429, "soon").waitSeconds, 30);
   assert.equal(classifyFailure(500).kind, "server");
   assert.equal(classifyFailure(409).kind, "client");
+  // 409 busy (enrolment) carries Retry-After: the page waits that long.
+  assert.deepEqual(classifyFailure(409, "7"), { kind: "client", waitSeconds: 7 });
+  assert.equal(classifyFailure(400, "x").waitSeconds, 0);
   assert.equal(classifyFailure(422).kind, "client");
   assert.equal(isRetryable("unavailable"), true);
   assert.equal(isRetryable("server"), true);

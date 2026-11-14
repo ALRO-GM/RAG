@@ -494,7 +494,9 @@ class QueueTranscription:
         another voice model is reported at once rather than as a failed
         job. ``options.language``, when given, replaces the session's
         language. If the runner refuses the job the session is saved as
-        ``failed``.
+        ``failed``. ``num_speakers`` and ``expected_speakers`` left out
+        of ``options`` are taken from the session (what was chosen when
+        it was started), so it is queued the same from any device.
         """
         with self._locks.hold(session_id):
             session = require_session(self._sessions, session_id)
@@ -502,6 +504,7 @@ class QueueTranscription:
                 session, SessionState.UPLOADED, SessionState.FAILED,
                 SessionState.DONE,
             )
+            options = with_session_options(options, session)
             expected_voiceprints(
                 self._voiceprints, options, self._transcribe.voice_model
             )
@@ -526,6 +529,25 @@ class QueueTranscription:
                 )
                 raise
             return queued
+
+
+def with_session_options(
+    options: TranscriptionOptions, session: Session
+) -> TranscriptionOptions:
+    """Return ``options`` completed with the options kept on ``session``.
+
+    A field given in ``options`` wins; one left out (``None``) takes the
+    session's value.
+    """
+    expected = options.expected_speakers
+    if expected is None and session.expected_speakers is not None:
+        expected = list(session.expected_speakers)
+    speakers = options.num_speakers
+    if speakers is None:
+        speakers = session.num_speakers
+    return options.model_copy(update={
+        "expected_speakers": expected, "num_speakers": speakers,
+    })
 
 
 def _with_language(session: Session, language: str) -> Session:
@@ -556,7 +578,11 @@ class TranscriptionStatus:
         last note of the session's job (voiceprints skipped, a stopped
         run) is kept in ``message``.
         """
-        session = require_session(self._sessions, session_id)
+        return self.of(require_session(self._sessions, session_id))
+
+    def of(self, session: Session) -> JobStatus:
+        """Return the status of a session already read (no second read)."""
+        session_id = session.id
         job = self._runner.status(session_id)
         active = (SessionState.QUEUED, SessionState.RUNNING)
         if job is not None and session.state in active:

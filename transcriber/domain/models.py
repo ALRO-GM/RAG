@@ -10,7 +10,7 @@ contract shared with the RAG (``contracts/transcript.v1.schema.json``).
 
 import enum
 import json
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from pydantic import (
     AwareDatetime,
@@ -200,6 +200,12 @@ class Session(BaseModel):
     queued; the job carries it, so a job queued before the session was
     deleted, re-created or queued again finds another ``run_id`` and
     does nothing.
+
+    ``consent_version`` is the recording consent notice the session was
+    started under (``None`` when none was shown, e.g. a command-line
+    import). ``num_speakers`` and ``expected_speakers`` are the
+    transcription options chosen when the session was started; queueing
+    uses them unless the queueing request gives its own.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -217,6 +223,9 @@ class Session(BaseModel):
     )
     failure: Optional[str] = None
     run_id: Optional[str] = Field(default=None, pattern=RUN_ID_PATTERN)
+    consent_version: Optional[str] = Field(default=None, min_length=1)
+    num_speakers: Optional[int] = Field(default=None, ge=1)
+    expected_speakers: Optional[Tuple[str, ...]] = None
 
 
 class ConsentRecord(BaseModel):

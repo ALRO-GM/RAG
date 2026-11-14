@@ -62,6 +62,7 @@ from transcriber.adapters.inbound.playback import (
 from transcriber.application.ports import PCM_FORMAT, JobStatus, RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import TranscriberContainer
+from transcriber.domain.consent import ConsentNotice
 from transcriber.domain.errors import (
     ConsentRequiredError,
     ContractError,
@@ -126,13 +127,21 @@ class ApiError(Exception):
 
 
 class NewSession(BaseModel):
-    """Body of ``POST /api/sessions``."""
+    """Body of ``POST /api/sessions``.
+
+    ``consent_version`` is the recording notice the page showed;
+    ``num_speakers`` and ``expected_speakers`` are kept on the session
+    for its transcription.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     id: str
     language: str
     title: Optional[str] = None
+    consent_version: Optional[str] = Field(default=None, max_length=32)
+    num_speakers: Optional[int] = Field(default=None, ge=1)
+    expected_speakers: Optional[List[str]] = None
 
 
 class TranscriptionRequest(BaseModel):
@@ -204,7 +213,8 @@ def session_json(
         mode="json",
         include={
             "id", "title", "language", "started_at", "duration", "state",
-            "chunks", "failure",
+            "chunks", "failure", "consent_version", "num_speakers",
+            "expected_speakers",
         },
     )
     if status is not None:
@@ -213,6 +223,11 @@ def session_json(
             message=status.message,
         )
     return data
+
+
+def notice_json(notice: ConsentNotice) -> Dict[str, Any]:
+    """Return a consent notice as the pages show it."""
+    return notice.model_dump(mode="json")
 
 
 def transcript_json(transcript: Transcript) -> Dict[str, Any]:
@@ -441,7 +456,8 @@ def create_app(
             NewSession, await read_body(request, limits.json_max_bytes)
         )
         session = await run_in_threadpool(
-            c.open_session, body.id, body.language, body.title
+            c.open_session, body.id, body.language, body.title,
+            body.consent_version, body.num_speakers, body.expected_speakers,
         )
         return session_json(session)
 
@@ -474,29 +490,44 @@ def create_app(
         filename: str = Query(min_length=1, max_length=255),
         language: str = Query(min_length=2, max_length=16),
         title: Optional[str] = Query(default=None, max_length=200),
+        consent_version: Optional[str] = Query(default=None, max_length=32),
     ) -> Dict[str, Any]:
         """Create a session from a whole recording sent as the body.
 
         The file name and the size are checked before the session is
         created, so a refused upload leaves nothing behind and can be
-        sent again with the same id.
+        sent again with the same id. ``consent_version`` is the
+        recording notice the page showed.
         """
         kind = recording_format(filename, limits.upload_formats)
         data = await read_body(request, limits.upload_max_bytes)
         session = await run_in_threadpool(
             c.import_recording, session_id, language,
-            RecordedAudio(data, kind), title,
+            RecordedAudio(data, kind), title, consent_version,
         )
         return session_json(session)
 
     @api.get("/sessions")
     async def list_sessions() -> Dict[str, Any]:
-        """List the sessions; ``unreadable`` counts damaged records."""
-        listing = await run_in_threadpool(c.list_sessions)
-        return {
-            "sessions": [session_json(s) for s in listing.sessions],
-            "unreadable": listing.unreadable,
-        }
+        """List the sessions with their jobs.
+
+        Each session carries its stage, fraction and the last note of
+        its job (``message``: voiceprints skipped...); ``unreadable``
+        counts damaged records.
+        """
+
+        def listed() -> Dict[str, Any]:
+            """Read the sessions and the status of each."""
+            listing = c.list_sessions()
+            return {
+                "sessions": [
+                    session_json(s, c.transcription_status.of(s))
+                    for s in listing.sessions
+                ],
+                "unreadable": listing.unreadable,
+            }
+
+        return await run_in_threadpool(listed)
 
     @api.get("/sessions/{session_id}")
     async def show_session(session_id: str) -> Dict[str, Any]:
@@ -606,7 +637,8 @@ def create_app(
         """Return the text to read at enrolment (with the name, if given).
 
         ``consent_version`` is the consent statement an enrolment made
-        now is recorded against.
+        now is recorded against, and ``consent`` that statement (title,
+        points, sentence to accept) in the language.
         """
         guide = c.enrolment_text(language, name)
         return {
@@ -615,7 +647,16 @@ def create_app(
             "template": guide.text.template,
             "text": guide.reading,
             "consent_version": guide.consent_version,
+            "consent": notice_json(guide.notice),
         }
+
+    @api.get("/consent")
+    async def consent_notice(
+        kind: str = Query(min_length=1, max_length=16),
+        language: str = Query(min_length=2, max_length=16),
+    ) -> Dict[str, Any]:
+        """Return the consent notice in force (``recording``/``enrolment``)."""
+        return notice_json(c.consent_notice(kind, language))
 
     @api.post("/speakers/{speaker_id}/enrolment", status_code=201)
     async def enrol(

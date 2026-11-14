@@ -55,6 +55,7 @@ from transcriber.application.browse import (
     ShowSession,
     ShowTranscript,
 )
+from transcriber.application.consent import ShowConsentNotice
 from transcriber.application.enrol import (
     EnrolSpeaker,
     ForgetSpeaker,
@@ -129,6 +130,7 @@ class TranscriberContainer:
     enrol_speaker: EnrolSpeaker
     forget_speaker: ForgetSpeaker
     enrolment_text: ShowEnrolmentText
+    consent_notice: ShowConsentNotice
     transcribe: TranscribeSession
     queue_transcription: QueueTranscription
     transcription_status: TranscriptionStatus
@@ -212,6 +214,7 @@ def build_container(
         ),
         forget_speaker=ForgetSpeaker(voiceprints),
         enrolment_text=ShowEnrolmentText(settings.api.consent_version),
+        consent_notice=ShowConsentNotice(settings.api.consent_version),
         transcribe=transcribe,
         queue_transcription=QueueTranscription(
             sessions, voiceprints, runner, transcribe, locks

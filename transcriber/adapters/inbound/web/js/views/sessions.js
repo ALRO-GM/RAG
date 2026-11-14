@@ -6,7 +6,7 @@ import { describeError } from "../errors.js";
 import { formatTime, sessionIdFor } from "../lib/text.js";
 import { nextPollMs } from "../lib/net.js";
 import { actionsFor, progressPercent, sortSessions } from "../lib/sessions.js";
-import { savedOptions } from "./record.js";
+import { noticeSection } from "../consent.js";
 
 export async function sessionsView(ctx, root) {
   let sessions = (await ctx.api.listSessions()).sessions;
@@ -40,6 +40,7 @@ export async function sessionsView(ctx, root) {
           h("span", {}, [pct !== null ? `${pct}%` : t("state.queued"), s.stage ? ` · ${s.stage}` : "", s.message ? ` · ${s.message}` : ""].join("")))
         : null,
       s.state === "failed" && s.failure ? h("p", { class: "error" }, s.failure) : null,
+      s.message && s.state !== "running" && s.state !== "queued" ? h("p", { class: "hint" }, s.message) : null,
       h("div", { class: "row" }, actionsFor(s).map((a) => button(s, a))));
   }
 
@@ -50,7 +51,7 @@ export async function sessionsView(ctx, root) {
       finish: () => run(() => ctx.api.closeSession(s.id)),
       transcribe: () => {
         if (s.state === "done" && !confirm(t("sessions.requeue_confirm"))) return;
-        run(() => ctx.api.queueTranscription(s.id, savedOptions(s.id) ?? {}));
+        run(() => ctx.api.queueTranscription(s.id, {})); // options kept on the session
       },
       delete: () => {
         if (confirm(t("sessions.delete_confirm", { name: s.title || s.id }))) run(() => ctx.api.deleteSession(s.id));
@@ -133,7 +134,21 @@ export async function sessionsView(ctx, root) {
     const ok = h("input", { id: "up-ok", type: "checkbox" });
     const go = h("button", { type: "submit", class: "primary", disabled: true }, t("upload.send"));
     const status = h("p", { role: "status", class: "hint" });
-    const sync = () => { go.disabled = !(file.files?.length && ok.checked); };
+    const notice = h("div", { class: "stack" }, h("p", { class: "hint" }, t("consent.loading")));
+    let shown = null; // the recording notice shown, once loaded
+    const sync = () => { go.disabled = !(file.files?.length && ok.checked && shown); };
+    async function loadNotice() {
+      if (shown) return;
+      try {
+        shown = await ctx.api.consent("recording", lang);
+        notice.replaceChildren(...noticeSection(shown, ok, "up"),
+          h("p", { class: "hint" }, t("upload.consent")));
+      } catch (error) {
+        notice.replaceChildren(h("p", { class: "error" }, describeError(error)));
+        if (error.kind === "unauthorized") ctx.fail(error, refresh);
+      }
+      sync();
+    }
     file.addEventListener("change", sync);
     ok.addEventListener("change", sync);
     const form = h("form", { class: "stack", onSubmit: async (event) => {
@@ -142,7 +157,7 @@ export async function sessionsView(ctx, root) {
       go.disabled = true;
       status.textContent = t("upload.sending");
       try {
-        await ctx.api.uploadRecording(sessionIdFor(new Date(), title.value || chosen.name.replace(/\.[^.]+$/, "")), chosen, language.value, title.value.trim());
+        await ctx.api.uploadRecording(sessionIdFor(new Date(), title.value || chosen.name.replace(/\.[^.]+$/, "")), chosen, language.value, title.value.trim(), shown.version);
         status.textContent = t("upload.done");
         form.reset();
         await refresh();
@@ -155,9 +170,10 @@ export async function sessionsView(ctx, root) {
     h("div", { class: "field" }, h("label", { for: "up-file" }, t("upload.file")), file),
     h("div", { class: "field" }, h("label", { for: "up-title" }, t("record.session_title")), title),
     h("div", { class: "field" }, h("label", { for: "up-lang" }, t("record.language")), language),
-    h("label", { class: "check" }, ok, h("span", {}, t("upload.consent"))),
+    notice,
     go, status);
-    return h("details", { class: "upload" }, h("summary", {}, t("upload.title")), form);
+    return h("details", { class: "upload", onToggle: (event) => { if (event.target.open) loadNotice(); } },
+      h("summary", {}, t("upload.title")), form);
   }
 
   return () => {

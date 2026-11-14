@@ -10,11 +10,11 @@ SessionLocks`), so concurrent requests and the job never interleave.
 """
 
 import hashlib
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from pydantic import ValidationError
 
-from transcriber.application.common import require_session
+from transcriber.application.common import check_speaker_id, require_session
 from transcriber.application.ports import (
     PCM_SAMPLE_WIDTH,
     Clock,
@@ -22,6 +22,7 @@ from transcriber.application.ports import (
     SessionLocks,
     SessionRepository,
 )
+from transcriber.domain.consent import NoticeKind, check_consent_version
 from transcriber.domain.errors import InvalidInputError, StateError
 from transcriber.domain.models import Session, SessionState
 from transcriber.domain.sessions import (
@@ -43,6 +44,30 @@ def _make_session(**fields: Any) -> Session:
         raise InvalidInputError(
             f"Invalid session {where}: {first.get('msg', '')}"
         ) from exc
+
+
+def _started_with(
+    consent_version: Optional[str],
+    num_speakers: Optional[int] = None,
+    expected_speakers: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Return the session fields of what was chosen at the start.
+
+    The consent version must be one of a recording notice and the
+    expected speakers valid ids; anything else is invalid input.
+    """
+    fields: Dict[str, Any] = {}
+    if consent_version is not None:
+        fields["consent_version"] = check_consent_version(
+            NoticeKind.RECORDING.value, consent_version
+        )
+    if num_speakers is not None:
+        fields["num_speakers"] = num_speakers
+    if expected_speakers is not None:
+        fields["expected_speakers"] = tuple(
+            check_speaker_id(s) for s in expected_speakers
+        )
+    return fields
 
 
 def _new_session(
@@ -67,15 +92,26 @@ class OpenSession:
         self._locks = locks
 
     def __call__(
-        self, session_id: str, language: str, title: Optional[str] = None
+        self,
+        session_id: str,
+        language: str,
+        title: Optional[str] = None,
+        consent_version: Optional[str] = None,
+        num_speakers: Optional[int] = None,
+        expected_speakers: Optional[Sequence[str]] = None,
     ) -> Session:
         """Create session ``session_id`` in state ``recording``.
 
-        ``started_at`` is the clock's current time.
+        ``started_at`` is the clock's current time. ``consent_version``
+        is the recording notice the people present agreed to;
+        ``num_speakers`` and ``expected_speakers`` are kept for the
+        transcription (:class:`~transcriber.application.transcribe.
+        QueueTranscription` uses them when it is not given others).
         """
         session = _make_session(
             id=session_id, title=title, language=language,
             started_at=self._clock.now(),
+            **_started_with(consent_version, num_speakers, expected_speakers),
         )
         with self._locks.hold(session.id):
             return _new_session(self._sessions, session)
@@ -164,8 +200,11 @@ class ImportRecording:
         language: str,
         recording: RecordedAudio,
         title: Optional[str] = None,
+        consent_version: Optional[str] = None,
     ) -> Session:
         """Store ``recording`` as session ``session_id``, ``uploaded``.
+
+        ``consent_version`` is the recording notice shown, if any.
 
         Creating the session and storing its audio succeed or fail
         together: if the audio cannot be stored the new session is
@@ -177,7 +216,7 @@ class ImportRecording:
             raise InvalidInputError("The recording needs a format.")
         session = _make_session(
             id=session_id, title=title, language=language,
-            state=SessionState.UPLOADED,
+            state=SessionState.UPLOADED, **_started_with(consent_version),
         )
         with self._locks.hold(session.id):
             _new_session(self._sessions, session)

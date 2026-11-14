@@ -1,5 +1,7 @@
 """Transcriber recording use cases: open, append, close, import, delete."""
 
+from typing import Any, Dict
+
 import pytest
 
 from tests.unit.transcriber.fakes import (
@@ -184,6 +186,51 @@ class TestCloseSession:
         CloseSession(sessions, locks(sessions))("s1")
         with pytest.raises(StateError):
             CloseSession(sessions, locks(sessions))("s1")
+
+
+class TestStartedWith:
+    def test_consent_and_options_are_kept_on_the_session(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        session = opener(sessions)(
+            "s1", "es", "Reparto", consent_version="consent-1",
+            num_speakers=3, expected_speakers=["ana", "luis"],
+        )
+        assert session.consent_version == "consent-1"
+        assert session.num_speakers == 3
+        assert session.expected_speakers == ("ana", "luis")
+        assert sessions.sessions["s1"] == session
+
+    def test_without_them_nothing_is_kept(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        session = opener(sessions)("s1", "es")
+        assert (session.consent_version, session.num_speakers,
+                session.expected_speakers) == (None, None, None)
+
+    @pytest.mark.parametrize("fields, message", [
+        ({"consent_version": "consent-99"}, "consent version"),
+        ({"expected_speakers": ["../x"]}, "speaker id"),
+        ({"num_speakers": 0}, "num_speakers"),
+    ])
+    def test_invalid_choices_are_refused(
+        self, sessions: FakeSessionRepository, fields: Dict[str, Any],
+        message: str,
+    ) -> None:
+        with pytest.raises(InvalidInputError, match=message):
+            opener(sessions)("s1", "es", **fields)
+        assert sessions.get("s1") is None
+
+    def test_an_import_keeps_the_consent_shown(
+        self, sessions: FakeSessionRepository
+    ) -> None:
+        importer = ImportRecording(sessions, locks(sessions))
+        made = importer("s2", "es", RecordedAudio(b"x", "wav"), None,
+                        "consent-1")
+        assert made.consent_version == "consent-1"
+        with pytest.raises(InvalidInputError, match="consent version"):
+            importer("s3", "es", RecordedAudio(b"x", "wav"), None, "v0")
+        assert sessions.get("s3") is None
 
 
 class TestImportRecording:
