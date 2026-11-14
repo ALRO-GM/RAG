@@ -6,7 +6,7 @@ import { fill, h, svg } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  denoiserTable, heatClass, idPart, pairMatrix, sortRows,
+  denoiserTable, heatClass, idPart, pairMatrix, sortRows, withReference,
 } from "../lib/lab.js";
 import { crumbs } from "./lab.js";
 import { timelineSection } from "./lab-timeline.js";
@@ -136,16 +136,35 @@ function selector(id, label, values, current, onChange, show = (v) => v) {
   return h("span", { class: "row tight" }, h("label", { for: id }, label), select);
 }
 
+const REFERENCE_COLUMNS = [
+  ["ref_der", "lab.col.ref_der", (v) => num(v, 3)],
+  ["ref_jer", "lab.col.ref_jer", (v) => num(v, 3)],
+  ["ref_wer", "lab.col.ref_wer", (v) => num(v, 3)],
+];
+
+function referenceNote(reference) {
+  if (!reference) return null;
+  const text = t("lab.reference_note", {
+    corpus: reference.corpus, recording: reference.recording,
+    licence: reference.licence, collar: reference.collar,
+  });
+  const nc = reference.licence_commercial === false ? ` ${t("lab.reference_nc")}` : "";
+  return h("p", { class: "notice", role: "note" }, text + nc);
+}
+
 async function overview(body, env) {
   const { results } = env;
-  const rows = results.pipelines.map((p) => ({ ...p, speaker_count: p.speakers?.length ?? null }));
+  const reference = results.reference ?? null;
+  const rows = withReference(results.pipelines, reference);
   const nonCommercial = (row) => (row.licence_commercial === false ? "flag-nc" : null);
-  const pipelines = sortableTable(rows, PIPELINE_COLUMNS, {
-    initial: "agreement_with_consensus", rowClass: nonCommercial,
+  const pipelines = sortableTable(rows, reference ? [...PIPELINE_COLUMNS, ...REFERENCE_COLUMNS] : PIPELINE_COLUMNS, {
+    initial: reference ? "ref_der" : "agreement_with_consensus", descending: !reference,
+    rowClass: nonCommercial,
     caption: t("lab.pipelines_caption", { count: rows.length }),
   });
   fill(body,
     h("p", { class: "notice warn", role: "note" }, t("lab.agreement_note")),
+    referenceNote(reference),
     h("p", { class: "meta" }, t("lab.overview_meta", {
       duration: num(results.duration), pipelines: results.pipelines.length,
       tracks: results.tracks.length, fragments: results.fragment_count,

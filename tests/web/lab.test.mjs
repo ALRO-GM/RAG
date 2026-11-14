@@ -5,7 +5,7 @@ import {
   speakerColours, allSpeakers, timeScale, ticks, clampWindow, zoomWindow, scrollWindow, visible,
   overlaps, playStart, sortRows, idPart, pairMatrix, heatClass, denoiserTable, bestBy,
   coveringLabel, placeLabel, clearSpan, makeLabel, labelsBody, labelProgress, LabelQueue,
-  keyAction, exportPayload, isUnmatched, answerKey,
+  keyAction, exportPayload, isUnmatched, answerKey, withReference,
 } from "../../transcriber/adapters/inbound/web/js/lib/lab.js";
 
 const MODELS = [
@@ -290,4 +290,22 @@ test("the export holds labels and scores", () => {
   assert.equal(out.exported_at, "2026-01-01T00:00:00.000Z");
   assert.equal(out.labels[0].kind, "nobody");
   assert.deepEqual(out.scores, { scores: [] });
+});
+
+test("overview rows take the reference scores and its licence flag", () => {
+  const pipelines = [
+    { id: "none+z+r", speakers: ["A", "B"], licence_commercial: true },
+    { id: "none+z2+r", speakers: [], licence_commercial: false },
+  ];
+  const plain = withReference(pipelines, null);
+  assert.deepEqual(plain.map((r) => [r.speaker_count, "ref_der" in r]), [[2, false], [0, false]]);
+  const reference = {
+    licence_commercial: false,
+    pipelines: [{ id: "none+z+r", der: 0.25, jer: 0.4, wer: null }],
+  };
+  const rows = withReference(pipelines, reference);
+  assert.deepEqual(rows.map((r) => [r.ref_der, r.ref_jer, r.ref_wer, r.licence_commercial]),
+    [[0.25, 0.4, null, false], [null, null, null, false]]);
+  const open = withReference(pipelines, { ...reference, licence_commercial: true });
+  assert.deepEqual(open.map((r) => r.licence_commercial), [true, false]);
 });

@@ -31,6 +31,7 @@ from transcriber.domain.lab import (
     SpeakerMapping,
     StageOutcome,
 )
+from transcriber.domain.lab_reference import SessionReference
 from transcriber.domain.models import Word
 
 
@@ -47,6 +48,7 @@ class FakeLabRepository:
         self.cancels: Set[str] = set()
         self.stored_results: Dict[str, Dict[str, Any]] = {}
         self.stored_labels: Dict[str, List[ReferenceLabel]] = {}
+        self.references: Dict[str, SessionReference] = {}
         self.written: Dict[Path, Audio] = {}
         self.discarded: List[Path] = []
         self.workspaces = 0
@@ -166,6 +168,16 @@ class FakeLabRepository:
         """Keep the labels."""
         self.stored_labels[session_id] = list(labels)
 
+    def reference(self, session_id: str) -> Optional[SessionReference]:
+        """Return the session's corpus reference, if any."""
+        return self.references.get(session_id)
+
+    def save_reference(
+        self, session_id: str, reference: SessionReference
+    ) -> None:
+        """Keep the session's corpus reference."""
+        self.references[session_id] = reference
+
     def delete_session(self, session_id: str) -> None:
         """Forget the session's original, runs, results and labels.
 
@@ -174,6 +186,7 @@ class FakeLabRepository:
         """
         self.originals.pop(session_id, None)
         self.stored_labels.pop(session_id, None)
+        self.references.pop(session_id, None)
         for run_id in [r.id for r in self.runs(session_id)]:
             del self.stored_runs[run_id]
             self.stored_results.pop(run_id, None)

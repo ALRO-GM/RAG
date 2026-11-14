@@ -13,6 +13,7 @@ Layout (``docs/transcriber/LAB.md`` §6)::
       runs/<run_id>.json        a run; ``.cancel`` beside it asks it to
                                 stop; ``.results.json`` its comparison
       labels.json               the owner's reference labels
+      reference.json            a corpus recording's reference (§13)
       work/<random>/            workspaces of stages being computed
 
 Every id and key is checked against its pattern before a path is made,
@@ -56,6 +57,7 @@ from transcriber.domain.lab import (
     SpeakerMapping,
     StageOutcome,
 )
+from transcriber.domain.lab_reference import SessionReference
 from transcriber.domain.models import SESSION_ID_PATTERN
 
 LAB_DIR = "lab"
@@ -305,6 +307,28 @@ class FileSystemLabRepository:
         """Replace the reference labels."""
         write_json(self._session(session_id) / "labels.json",
                    [label.model_dump(mode="json") for label in labels])
+
+    # ------------------------------------------------------- reference
+
+    def reference(self, session_id: str) -> Optional[SessionReference]:
+        """Return the corpus reference of an imported session, if any."""
+        try:
+            data = read_json(self._session(session_id) / "reference.json")
+        except FileNotFoundError:
+            return None
+        try:
+            return SessionReference.model_validate(data)
+        except (TypeError, ValueError) as exc:
+            raise StorageError(
+                f"Cannot read the reference: {exc}"
+            ) from exc
+
+    def save_reference(
+        self, session_id: str, reference: SessionReference
+    ) -> None:
+        """Store the corpus reference of an imported session."""
+        write_json(self._session(session_id) / "reference.json",
+                   reference.model_dump(mode="json"))
 
     # --------------------------------------------------------- session
 

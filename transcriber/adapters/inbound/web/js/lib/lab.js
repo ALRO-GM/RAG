@@ -209,6 +209,28 @@ export function playStart(start, lead) {
 
 // ---- tables -------------------------------------------------------------
 
+/**
+ * The overview's pipeline rows with their scores against a corpus
+ * reference (results.reference), when the session has one: ref_der,
+ * ref_jer, ref_wer (null where not measured). A non-commercial corpus
+ * marks every row non-commercial.
+ */
+export function withReference(pipelines, reference) {
+  const scored = new Map((reference?.pipelines ?? []).map((p) => [p.id, p]));
+  return (pipelines ?? []).map((p) => {
+    const row = { ...p, speaker_count: p.speakers?.length ?? null };
+    if (!reference) return row;
+    const score = scored.get(p.id);
+    return {
+      ...row,
+      ref_der: score?.der ?? null,
+      ref_jer: score?.jer ?? null,
+      ref_wer: score?.wer ?? null,
+      licence_commercial: p.licence_commercial !== false && reference.licence_commercial !== false,
+    };
+  });
+}
+
 /** Sort rows by a numeric or text field; missing values always last. */
 export function sortRows(rows, key, descending = false) {
   const sign = descending ? -1 : 1;

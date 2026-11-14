@@ -77,3 +77,11 @@ class LabStepError(TranscriberError):
         """Keep the code with the message."""
         super().__init__(message)
         self.code = code
+
+
+class CorpusAccessError(TranscriberError):
+    """A public corpus cannot be read: gated and not accepted, or absent.
+
+    The message says what the owner has to do (accept the terms on the
+    corpus's page and log in).
+    """
