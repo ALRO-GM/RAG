@@ -1,5 +1,6 @@
 """Reference corpora: parsing, scoring by hand, import and summary."""
 
+import dataclasses
 from typing import Iterator, List, Optional, Sequence
 
 import numpy as np
@@ -17,6 +18,7 @@ from tests.unit.transcriber.test_speech_check import band_noise, voiced
 from transcriber.application.lab_reference import (
     CheckReferenceSpeech,
     ImportedRecording,
+    INVALID_REFERENCE,
     ImportReference,
     ReferenceSummary,
 )
@@ -238,19 +240,23 @@ class SyntheticDecoder:
 class FakeCorpus:
     """A tiny corpus of recordings with the 10-second example's turns.
 
-    The recordings numbered in ``noisy`` hold noise instead of speech.
+    The recordings numbered in ``noisy`` hold noise instead of speech;
+    those in ``broken`` have a second turn that ends before it starts
+    (as a CALLHOME row does).
     """
 
     def __init__(self, count: int = 3,
                  words: Optional[List[Word]] = None,
-                 noisy: Sequence[int] = ()) -> None:
+                 noisy: Sequence[int] = (),
+                 broken: Sequence[int] = ()) -> None:
         """Make ``count`` recordings."""
         self.items = [
             CorpusRecording(
                 recording=f"REC{n}",
                 audio=RecordedAudio(NOISE if n in noisy else b"RIFF", "wav"),
-                starts=[0.0, 3.0], ends=[4.0, 8.0], speakers=["A", "B"],
-                words=words,
+                starts=[0.0, 3.0],
+                ends=[4.0, -5.25 if n in broken else 8.0],
+                speakers=["A", "B"], words=words,
             )
             for n in range(count)
         ]
@@ -336,6 +342,52 @@ class TestImport:
             ("ami-REC2", "skipped"), ("ami-REC3", "exists"),
             ("ami-REC4", "imported"),
         ]
+
+    def test_an_invalid_reference_is_skipped(self) -> None:
+        importer = Importer(FakeCorpus(4, noisy=(2,), broken=(1, 2)))
+        heard: List[ImportedRecording] = []
+        done = importer.use("ami", limit=2, report=heard.append)
+        assert [(d.session_id, d.state) for d in done] == [
+            ("ami-REC0", "imported"), ("ami-REC1", "skipped"),
+            ("ami-REC2", "skipped"), ("ami-REC3", "imported"),
+        ]
+        assert heard == done
+        skipped = done[1]
+        assert skipped.reason == (
+            "invalid reference (Invalid reference turn from 3 s to -5.25 s)"
+        )
+        assert not skipped.usable and skipped.speech is None
+        assert skipped.duration == 10.0 and skipped.turns == 0
+        # the reference is refused before the speech check: noise and a
+        # broken reference say the reference
+        assert done[2].reason is not None
+        assert done[2].reason.startswith(INVALID_REFERENCE)
+        for name in ("ami-REC1", "ami-REC2"):
+            assert importer.sessions.get(name) is None
+            assert importer.repository.reference(name) is None
+
+    def test_a_row_without_turns_is_skipped(self) -> None:
+        corpus = FakeCorpus(2)
+        corpus.items[0] = dataclasses.replace(
+            corpus.items[0], starts=[], ends=[], speakers=[],
+        )
+        done = Importer(corpus).use("ami", limit=1)
+        assert [(d.state, d.reason) for d in done] == [
+            ("skipped", "invalid reference (Recording 'REC0' has no"
+             " speaker turn to score)"),
+            ("imported", None),
+        ]
+
+    def test_a_repaired_session_keeps_refusing_a_broken_reference(
+        self,
+    ) -> None:
+        corpus = FakeCorpus(1)
+        importer = Importer(corpus)
+        importer.use("ami")
+        del importer.repository.references["ami-REC0"]
+        corpus.items = FakeCorpus(1, broken=(0,)).items
+        with pytest.raises(InvalidInputError, match="Invalid reference"):
+            importer.use("ami")
 
     def test_a_repaired_session_without_speech_is_marked(self) -> None:
         corpus = FakeCorpus(1)

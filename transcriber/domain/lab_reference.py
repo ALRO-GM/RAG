@@ -173,7 +173,7 @@ def reference_segments(
         a, b = float(start), float(end)
         if not (math.isfinite(a) and math.isfinite(b)) or a < 0 or b < a:
             raise InvalidInputError(
-                f"Invalid reference turn {start!r}-{end!r}."
+                f"Invalid reference turn from {a:g} s to {b:g} s."
             )
         name = str(speaker).strip()
         if not name:

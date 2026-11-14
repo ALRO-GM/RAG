@@ -64,10 +64,14 @@ def shard(path: Path, rows: List[Dict[str, Any]]) -> None:
     }), path)
 
 
-def row(name: Any, data: bytes) -> Dict[str, Any]:
-    """One recording: A 0-4 s, B 3-8 s (1 s of overlap)."""
+def row(name: Any, data: bytes, broken: bool = False) -> Dict[str, Any]:
+    """One recording: A 0-4 s, B 3-8 s (1 s of overlap).
+
+    ``broken``: B's turn ends before it starts (3 s to -5.25 s), as in
+    a CALLHOME row.
+    """
     return {"audio": {"bytes": data, "path": name},
-            "starts": [0.0, 3.0], "ends": [4.0, 8.0],
+            "starts": [0.0, 3.0], "ends": [4.0, -5.25 if broken else 8.0],
             "speakers": ["A", "B"]}
 
 
@@ -75,10 +79,12 @@ class FakeHub:
     """A hub that lists fixed shards and copies them on download."""
 
     def __init__(self, root: Path, config: str, split: str,
-                 noisy: Sequence[int] = ()) -> None:
+                 noisy: Sequence[int] = (),
+                 broken: Sequence[int] = ()) -> None:
         """Write two shards of ``config``/``split`` under ``root``.
 
-        The recordings numbered in ``noisy`` hold noise, not speech.
+        The recordings numbered in ``noisy`` hold noise, not speech;
+        those in ``broken`` have a turn that ends before it starts.
         """
         self.root = root
         self.downloads: List[str] = []
@@ -90,9 +96,9 @@ class FakeHub:
             lambda n: f"REC{n}.Array1-01.wav"
         )
         audio = [noise_wav() if n in noisy else wav() for n in range(3)]
-        shard(root / self.files[0], [row(name(0), audio[0]),
-                                     row(name(1), audio[1])])
-        shard(root / self.files[1], [row(name(2), audio[2])])
+        shard(root / self.files[0], [row(name(0), audio[0], 0 in broken),
+                                     row(name(1), audio[1], 1 in broken)])
+        shard(root / self.files[1], [row(name(2), audio[2], 2 in broken)])
 
     def list_files(self, repo: str) -> List[str]:
         """Return the fixed listing."""
@@ -253,12 +259,12 @@ def container(tmp_path: Path) -> Iterator[TranscriberContainer]:
 
 def with_fake_hub(
     container: TranscriberContainer, tmp_path: Path,
-    noisy: Sequence[int] = (),
+    noisy: Sequence[int] = (), broken: Sequence[int] = (),
 ) -> LabCommands:
     """Return the lab commands with the import reading the fake hub."""
     lab = container.lab
     assert lab is not None
-    hub = FakeHub(tmp_path / "hub", "sdm", "test", noisy)
+    hub = FakeHub(tmp_path / "hub", "sdm", "test", noisy, broken)
     importer = ImportReference(
         container.sessions, lab.repository, corpus(tmp_path, hub),
         container.decoder, container.import_recording, container.locks,
@@ -324,6 +330,30 @@ def run_cli(tmp_path: Path, *argv: str) -> "tuple[int, str]":
     out, err = io.StringIO(), io.StringIO()
     code = main(list(argv), {"TRANSCRIBER_CONFIG": str(config)}, out, err)
     return code, out.getvalue()
+
+
+def test_a_row_with_an_invalid_reference_is_skipped(
+    tmp_path: Path, container: TranscriberContainer
+) -> None:
+    commands = with_fake_hub(container, tmp_path, noisy=(1,), broken=(0,))
+    assert commands.import_reference("ami", None, 1, False) == 0
+    printed = text_of(commands)
+    assert "ami-REC0: skipped: invalid reference (Invalid reference turn" \
+        " from 3 s to -5.25 s)\n" in printed
+    assert "ami-REC1: skipped: no speech in the audio" in printed
+    assert "ami-REC2: 10.0 s, 2 speakers" in printed
+    assert "1 usable recordings of AMI" in printed
+    assert "; 1 with an invalid reference; 1 without speech." in printed
+    assert container.sessions.get("ami-REC0") is None
+    lab = commands.lab
+    assert lab.repository.reference("ami-REC0") is None
+    assert commands.import_reference("ami", None, 1, True) == 0
+    data = json.loads(text_of(commands))["recordings"]
+    assert [(d["state"], d["speech"]) for d in data][0] == (
+        "skipped", None,
+    )
+    assert data[0]["reason"].startswith("invalid reference (")
+    assert [d["state"] for d in data] == ["skipped", "skipped", "exists"]
 
 
 def test_noise_is_skipped_checked_and_excluded(

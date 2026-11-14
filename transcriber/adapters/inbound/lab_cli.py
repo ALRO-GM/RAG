@@ -125,10 +125,12 @@ class LabCommands:
             })
             return 0
         usable = sum(d.usable for d in done)
+        invalid = sum(not d.usable and d.speech is None for d in done)
+        broken = f" {invalid} with an invalid reference;" if invalid else ""
         self.output.line(
             f"{usable} usable recordings of {spec.display_name}"
-            f" ({spec.licence}, {spec.source_url});"
-            f" {len(done) - usable} without speech."
+            f" ({spec.licence}, {spec.source_url});{broken}"
+            f" {len(done) - usable - invalid} without speech."
         )
         if not spec.licence_commercial:
             self.output.note(
@@ -572,7 +574,8 @@ def add_lab_parser(
             "Download the shards needed into <data_dir>/lab-corpora and"
             " create one session per recording with its reference"
             " (speaker turns, licence, source). A recording whose audio"
-            " holds no speech is skipped. Runs on those sessions are"
+            " holds no speech, or whose reference is invalid, is"
+            " skipped. Runs on those sessions are"
             " also scored against the reference."
         ),
     )
