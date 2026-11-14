@@ -561,3 +561,223 @@ TR-16 left it: B is anonymous on R2 and R3. With the TR-17
 expected-speakers rule (these sessions list both people and give the
 count 2) the same recordings give other groups and both people named;
 those figures are in `OVERLAP.md` §9.1.
+
+## Appendix: pieces cut at pauses instead of a fixed grid (TR-19, negative)
+
+Question (#28): would the voices be followed better in quick exchanges
+if the short voice windows were cut where the audio pauses (activity
+gate) or the recogniser leaves a gap between words, instead of on the
+fixed grid of 1.5 s every 0.75 s? **Answer on the held-out readers:
+no.** Neither variant beat the current pipeline on `test`; the
+pause-aligned pieces lost words on every existing condition. Nothing
+was changed in the package. Every figure below is a row of
+`experiments/transcriber/pause_segments.jsonl`, written by
+`experiments/transcriber/pause_segments.py` (2026-11-14, RTX 3070 Ti).
+
+### Material
+
+- The TR-05 two-voice recordings (8 long turns) and four-reader
+  meetings, 20 of each per split, as in §1.
+- New **quick exchanges**, 20 per split, from MLS utterances TR-05 did
+  not use: two readers; a whole utterance of A, ten short turns
+  alternating B, A, ..., a whole utterance of B, ten short turns
+  alternating A, B, ... (about a minute each; 55–81 s on `test`). The
+  short turns are real utterances cut, each aiming at a length drawn
+  from 0.5–3 s, at a gap between the words Whisper found in the
+  utterance alone (at the quietest 10 ms of the gap), and taken in
+  order, so they are continuous stretches of reading. Two versions of
+  every recording: `quickgap` (0–0.4 s of digital silence between
+  turns) and `quicknogap` (the same turns back to back). 54–55% of
+  their words lie in the short turns.
+- Truth by construction (the turn holding a word's middle). Every
+  enrolment condition of §3 (for two readers, "two unenrolled" means
+  nobody enrolled: the voices are then clustered), number of speakers
+  given or estimated, voiceprints as seeds at 0.95 as the pipeline
+  does. The pipeline's words (seams resolved, activity gate) and
+  windows were recomputed for every recording.
+
+### Methods
+
+- **grid**: the current pipeline (fixed grid, smoothing,
+  `keep_sentences_whole` with its defaults).
+- **pieces**: the speech regions cut at the middle of every stretch the
+  activity gate finds below a level for a minimum time and of every
+  gap between recognised words of at least a minimum; pieces longer
+  than a cap split evenly; each piece embedded and scored against the
+  voices of the long pass (the same centred space and centroids as the
+  grid windows), so identity comes from the long pass and boundaries
+  from the pieces. Pieces shorter than a minimum take the voice of the
+  neighbour their own vector is closer to (`merge`) or are left to the
+  grid (`grid`). Then smoothing and the whole-sentence rule on the
+  pieces' cosines (or not).
+- **hybrid**: the grid, with each change of speaker moved to the
+  nearest pause or word gap within a distance, and the whole-sentence
+  rule with its minimum evidence as a knob (a run keeps its speaker
+  when its margin is positive and either at least *k* windows prefer it
+  or the margin reaches *m*; the pipeline's rule is *k* 2, *m* 0.1).
+
+Swept on `dev` (110 settings): activity level 0.003 / 0.01 / 0.03 and
+minimum pause 0.1 / 0.2 / 0.3 s, word gap none / 0.05 / 0.1 s; then,
+around the best cuts, minimum piece 0.35 / 0.5 / 0.75 / 1.0 s, `merge`
+or `grid`, cap 1.5 / 3 s / none, whole-sentence rule on or off; hybrid
+with six cut sources × distance 0.25 / 0.5 / 0.75 s, and *k* 1–4 ×
+*m* 0.05–0.3 without moving the changes. The choice was the best mean
+of words right over the two quick kinds and both counts on `dev`:
+pieces at level 0.003, pause 0.1 s, word gap 0.05 s, minimum 0.5 s,
+short pieces to the grid, cap 1.5 s, rule on (82.8% against 82.6% for
+the grid); hybrid with word gap 0.1 s, distance 0.75 s, *k* 2, *m* 0.1
+(82.9%). Both margins on `dev` are about a quarter of a point.
+
+### Words on the right speaker and changes of speaker
+
+Words right as in §3 (pooled over the four enrolment conditions);
+"in quick turns": the words of the short turns only. A true change of
+speaker (midway between two turns of different readers) is found when
+a change between consecutive words of different final speakers lies
+within 0.5 s of it, paired one to one; false changes are the found
+changes left unpaired, per minute of audio.
+
+| Split | Recordings | Speakers | Method | Words right | in quick turns | Changes: precision / recall | False changes / min |
+|---|---|---|---|---|---|---|---|
+| test | quickgap | given | grid | 89.8% | 84.0% | 79.0% / 49.0% | 2.42 |
+| test | quickgap | given | pieces | 92.0% | 88.9% | 79.7% / 59.0% | 2.79 |
+| test | quickgap | given | hybrid | 89.8% | 83.8% | 77.6% / 47.7% | 2.55 |
+| test | quickgap | estimated | grid | 72.5% | 60.2% | 66.1% / 42.7% | 4.05 |
+| test | quickgap | estimated | pieces | 72.7% | 63.4% | 64.2% / 49.8% | 5.15 |
+| test | quickgap | estimated | hybrid | 72.4% | 59.7% | 65.9% / 41.5% | 3.99 |
+| test | quicknogap | given | grid | 89.2% | 82.4% | 80.1% / 46.8% | 2.29 |
+| test | quicknogap | given | pieces | 87.2% | 80.3% | 75.5% / 51.2% | 3.29 |
+| test | quicknogap | given | hybrid | 89.1% | 82.3% | 79.2% / 46.7% | 2.42 |
+| test | quicknogap | estimated | grid | 76.5% | 65.1% | 70.6% / 45.8% | 3.76 |
+| test | quicknogap | estimated | pieces | 72.9% | 59.9% | 63.9% / 47.8% | 5.34 |
+| test | quicknogap | estimated | hybrid | 76.6% | 65.3% | 70.8% / 45.8% | 3.74 |
+| test | two-voice | given | grid | 97.9% | – | 57.9% / 69.1% | 1.63 |
+| test | two-voice | given | pieces | 96.0% | – | 43.4% / 66.4% | 2.81 |
+| test | two-voice | given | hybrid | 98.0% | – | 58.6% / 69.1% | 1.59 |
+| test | two-voice | estimated | grid | 84.4% | – | 36.6% / 69.5% | 3.90 |
+| test | two-voice | estimated | pieces | 81.5% | – | 28.9% / 69.8% | 5.57 |
+| test | two-voice | estimated | hybrid | 84.4% | – | 37.0% / 70.0% | 3.88 |
+| test | meeting | given | grid | 94.6% | – | 49.5% / 68.9% | 2.51 |
+| test | meeting | given | pieces | 92.8% | – | 41.0% / 66.9% | 3.44 |
+| test | meeting | given | hybrid | 94.5% | – | 49.7% / 69.2% | 2.50 |
+| test | meeting | estimated | grid | 86.7% | – | 38.0% / 70.2% | 4.10 |
+| test | meeting | estimated | pieces | 84.2% | – | 31.3% / 69.6% | 5.47 |
+| test | meeting | estimated | hybrid | 86.5% | – | 38.0% / 70.6% | 4.12 |
+
+Means of the four rows per method on `test`: quick exchanges 82.0%
+(grid), 81.2% (pieces), 82.0% (hybrid); existing recordings 90.9%,
+88.6%, 90.9%. On `dev` (same rows in the file): quick 82.6% / 82.8% /
+82.9%, existing 94.7% / 93.7% / 94.7%.
+
+Read:
+
+- **Pieces help only where the turns are separated by silence.** With
+  0–0.4 s of digital silence between turns the activity gate finds
+  every change for free, and pieces put 2.2 points more words right
+  with the number given (recall of the changes 59.0% against 49.0%).
+  With the same turns back to back the gain turns into a loss (87.2%
+  against 89.2%), and on the long-turn recordings pieces lose 1.7–2.9
+  points and add 0.9–1.7 false changes per minute: every pause inside a
+  turn makes a short piece whose vector is noisy (below). A phone on a
+  table records room noise, not digital silence, in the pauses, so the
+  `quickgap` gain is the one least likely to carry over.
+- **The hybrid changes nothing that matters.** On `test` it is within
+  0.2 points of the grid in every row; no setting of the minimum
+  evidence beat the pipeline's *k* 2 / *m* 0.1 by more than 0.2 points
+  on `dev`.
+- **Whisper's word times carry almost no pause.** Of the gaps between
+  consecutive recognised words, 3.4–6.0% are at least 0.05 s
+  (`word_gaps` rows, `test`; 4.3–6.0% on `dev`): the recogniser butts
+  the words together, so "cut at word gaps" adds little to the
+  activity gate.
+
+### How short a piece can be
+
+In each four-reader meeting, three pieces per turn and length were cut
+at random inside the turn's recognised speech (`reliability` rows;
+957–960 pieces per length and split). "Right of two": the piece is
+closer to its reader's true voice in the meeting (centroid of the
+reader's pure long windows, centred on the meeting as the pipeline
+scores) than to another reader's, over every pair; "of four": its
+nearest voice among the four is its reader; AUC of same-reader against
+different-reader cosines between pieces (centred) and of a piece with
+its reader's voiceprint against the others' (raw).
+
+| Length (s) | dev: right of two / of four | dev: AUC pieces / voiceprint | test: right of two / of four | test: AUC pieces / voiceprint |
+|---|---|---|---|---|
+| 0.35 | 81.4% / 63.8% | 0.697 / 0.735 | 76.3% / 57.3% | 0.629 / 0.699 |
+| 0.5 | 87.4% / 73.5% | 0.775 / 0.801 | 84.9% / 69.9% | 0.719 / 0.768 |
+| 0.75 | 93.6% / 85.8% | 0.862 / 0.878 | 89.7% / 78.1% | 0.805 / 0.825 |
+| 1.0 | 95.3% / 89.9% | 0.892 / 0.913 | 93.4% / 86.3% | 0.869 / 0.882 |
+| 1.5 | 98.2% / 95.6% | 0.947 / 0.964 | 96.8% / 92.6% | 0.917 / 0.931 |
+| 2.0 | 99.0% / 97.9% | 0.963 / 0.979 | 98.8% / 96.9% | 0.943 / 0.960 |
+| 3.0 | 99.4% / 98.8% | 0.981 / 0.993 | 99.5% / 98.6% | 0.962 / 0.983 |
+
+0.3 s cannot be measured: alone, a clip of 0.30 s makes WavLM's
+x-vector head fail and one of 0.32 s gives a NaN vector; 0.34 s was the
+shortest that gave a vector. Defining the shortest usable piece, before
+looking, as the shortest length from which a piece goes to the right
+one of two voices at least 90% of the time: **0.75 s on `dev`, 1.0 s on
+`test`**. The grid's 1.5 s windows sit where the curve flattens.
+
+**The floor of this approach.** Of the words the current pipeline gets
+wrong in the quick exchanges on `test`, those in turns shorter than
+0.75 s are 7.6% / 8.8% (gap / no gap, number given) and 4.2% / 4.4%
+(estimated); in turns shorter than 1.0 s, 16.8% / 19.8% and 10.7% /
+11.6%. Most errors (84–86% given, 78–79% estimated) are in turns
+shorter than 3 s, but in turns long enough for a usable vector: the
+length floor explains a minority of what is lost; the rest is windows
+straddling two voices at each change and the voices of the long pass
+themselves. Simultaneous speech was out of scope (there is none in this
+material).
+
+### Cost
+
+Embedding the chosen pieces of the 80 `dev` recordings (168.5 audio
+minutes) with a fresh encoder took 0.055 GPU seconds per audio minute,
+against 0.092 for the grid's short windows and 0.080 for the long ones
+(`cost` row; 8,382 pieces against 12,012 short windows). With short
+pieces left to the grid both are needed: about +0.06 s per audio
+minute, negligible next to recognition.
+
+### On the real recordings R1–R3
+
+No ground truth: aggregate counts only, printed by the `real` command
+(which copies the sessions and voiceprints to a scratch directory
+deleted on exit, and writes nothing). Voices grouped with each
+session's number of speakers (two), as the expected-speakers rule
+does; the three methods share that grouping.
+
+| | grid | pieces | hybrid |
+|---|---|---|---|
+| Turns (R1 / R2 / R3) | 51 / 61 / 47 | 57 / 69 / 47 | 51 / 61 / 47 |
+| Sentences | 213 | 213 | 211 |
+| Doubtful | 17 (8.0%) | 14 (6.6%) | 17 (8.1%) |
+| Overlap | 18 (8.5%) | 16 (7.5%) | 18 (8.5%) |
+| Sentences holding two speakers | 24 | 20 | 22 |
+| Stretches moved by the whole-sentence rule | 14 | 5 | 11 |
+| Pieces: count; median length (R1 / R2 / R3) | – | 786; 0.96 / 0.96 / 1.23 s | – |
+| Pieces shorter than 0.5 s / 1.0 s | – | 136 (17%) / 370 (47%) | – |
+
+Pieces make more turns on two of the three recordings and fewer
+doubtful sentences, but nearly half of their pieces are shorter than
+the 1.0 s found usable on `test`: without labels this cannot be read
+as better attribution, and on the labelled material the same method
+lost words.
+
+### Decision
+
+Not implemented: the grid and `keep_sentences_whole` stay as they are.
+Finer cutting does not help; what might is better evidence at a change
+(a segmentation or overlap model, TR-14).
+
+```sh
+# needs the TR-05 cache (identification_eval.py prepare, §8)
+PYTHONPATH=. python experiments/transcriber/pause_segments.py prepare
+PYTHONPATH=. python experiments/transcriber/pause_segments.py analyse
+PYTHONPATH=. python experiments/transcriber/pause_segments.py cost
+# private recordings, aggregates only; the copy in --work is deleted
+PYTHONPATH=. python experiments/transcriber/pause_segments.py real \
+    --sessions data/transcriber --work /tmp/tr19-real
+rm -r data/tr05   # the audio is not kept
+```
