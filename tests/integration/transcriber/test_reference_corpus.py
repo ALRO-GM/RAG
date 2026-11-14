@@ -11,7 +11,7 @@ import json
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Sequence
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -20,7 +20,8 @@ from huggingface_hub.errors import GatedRepoError
 
 from tests.integration.transcriber.audio import scene, sound_file
 from tests.integration.transcriber.test_lab_api import settings
-from transcriber.adapters.inbound.cli import Output
+from tests.unit.transcriber.test_speech_check import band_noise
+from transcriber.adapters.inbound.cli import Output, main
 from transcriber.adapters.inbound.lab_cli import LabCommands
 from transcriber.adapters.outbound.fs_lab_repository import (
     FileSystemLabRepository,
@@ -47,6 +48,11 @@ def wav(seconds: float = 10.0) -> bytes:
                       "wav")
 
 
+def noise_wav(seconds: float = 10.0) -> bytes:
+    """A WAV of steady noise cut above 4 kHz, at 16 kHz (no speech)."""
+    return sound_file(band_noise(seconds), 16000, "wav")
+
+
 def shard(path: Path, rows: List[Dict[str, Any]]) -> None:
     """Write a parquet shard with the corpus's columns."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -68,8 +74,12 @@ def row(name: Any, data: bytes) -> Dict[str, Any]:
 class FakeHub:
     """A hub that lists fixed shards and copies them on download."""
 
-    def __init__(self, root: Path, config: str, split: str) -> None:
-        """Write two shards of ``config``/``split`` under ``root``."""
+    def __init__(self, root: Path, config: str, split: str,
+                 noisy: Sequence[int] = ()) -> None:
+        """Write two shards of ``config``/``split`` under ``root``.
+
+        The recordings numbered in ``noisy`` hold noise, not speech.
+        """
         self.root = root
         self.downloads: List[str] = []
         self.files = [f"{config}/{split}-00000-of-00002.parquet",
@@ -79,9 +89,10 @@ class FakeHub:
         name = (lambda n: None) if config == "spa" else (
             lambda n: f"REC{n}.Array1-01.wav"
         )
-        shard(root / self.files[0], [row(name(0), wav()),
-                                     row(name(1), wav())])
-        shard(root / self.files[1], [row(name(2), wav())])
+        audio = [noise_wav() if n in noisy else wav() for n in range(3)]
+        shard(root / self.files[0], [row(name(0), audio[0]),
+                                     row(name(1), audio[1])])
+        shard(root / self.files[1], [row(name(2), audio[2])])
 
     def list_files(self, repo: str) -> List[str]:
         """Return the fixed listing."""
@@ -241,12 +252,13 @@ def container(tmp_path: Path) -> Iterator[TranscriberContainer]:
 
 
 def with_fake_hub(
-    container: TranscriberContainer, tmp_path: Path
+    container: TranscriberContainer, tmp_path: Path,
+    noisy: Sequence[int] = (),
 ) -> LabCommands:
     """Return the lab commands with the import reading the fake hub."""
     lab = container.lab
     assert lab is not None
-    hub = FakeHub(tmp_path / "hub", "sdm", "test")
+    hub = FakeHub(tmp_path / "hub", "sdm", "test", noisy)
     importer = ImportReference(
         container.sessions, lab.repository, corpus(tmp_path, hub),
         container.decoder, container.import_recording, container.locks,
@@ -303,3 +315,66 @@ def test_import_run_and_summary(
     assert commands.reference_summary("ami", True) == 0
     summary = json.loads(text_of(commands))
     assert summary["unscored"] == ["ami-REC1"]
+
+
+def run_cli(tmp_path: Path, *argv: str) -> "tuple[int, str]":
+    """Run the CLI with the sandbox settings; return code and output."""
+    config = tmp_path / "config.json"
+    config.write_text(settings(tmp_path).model_dump_json())
+    out, err = io.StringIO(), io.StringIO()
+    code = main(list(argv), {"TRANSCRIBER_CONFIG": str(config)}, out, err)
+    return code, out.getvalue()
+
+
+def test_noise_is_skipped_checked_and_excluded(
+    tmp_path: Path, container: TranscriberContainer
+) -> None:
+    commands = with_fake_hub(container, tmp_path, noisy=(0,))
+    assert commands.import_reference("ami", None, 1, False) == 0
+    printed = text_of(commands)
+    assert "ami-REC0: skipped: no speech in the audio (lag-1" in printed
+    assert "ami-REC1: 10.0 s, 2 speakers" in printed
+    assert "1 usable recordings of AMI" in printed
+    assert "1 without speech." in printed
+    assert container.sessions.get("ami-REC0") is None
+    assert container.sessions.get("ami-REC2") is None
+    assert commands.import_reference("ami", None, 1, True) == 0
+    data = json.loads(text_of(commands))["recordings"]
+    assert [(d["state"], d["reason"]) for d in data] == [
+        ("skipped", "no speech in the audio"), ("exists", None),
+    ]
+    assert data[0]["speech"]["flatness"] > 0.2
+    # the check again, over the stored audio (no download)
+    code, text = run_cli(tmp_path, "lab", "import-reference", "ami",
+                         "--check")
+    assert code == 0, text
+    assert "ami-REC1: speech (lag-1 autocorrelation" in text
+    assert "1 sessions of AMI (single distant microphone) checked;" \
+        " 0 marked unusable" in text
+    # a session found without speech is left out of the summary
+    lab = commands.lab
+    reference = lab.repository.reference("ami-REC1")
+    assert reference is not None and reference.speech is not None
+    lab.repository.save_reference("ami-REC1", reference.model_copy(update={
+        "speech": reference.speech.model_copy(update={"speech": False}),
+    }))
+    code, text = run_cli(tmp_path, "lab", "import-reference", "ami",
+                         "--check", "--json")
+    checked = json.loads(text)["recordings"]
+    assert [(d["session_id"], d["state"]) for d in checked] == [
+        ("ami-REC1", "checked"),
+    ]
+    lab.repository.save_reference("ami-REC1", reference.model_copy(update={
+        "speech": reference.speech.model_copy(update={"speech": False}),
+    }))
+    assert commands.reference_summary(None, False) == 0
+    printed = text_of(commands)
+    assert "0 imported recordings (none); 0 without a scored run." in printed
+    assert "1 excluded: no speech in the audio." in printed
+    assert commands.check_reference("ami", False) == 0
+    assert "ami-REC1: speech" in text_of(commands)
+    lab.repository.save_reference("ami-REC1", reference.model_copy(update={
+        "speech": reference.speech.model_copy(update={"speech": False}),
+    }))
+    commands.import_reference("ami", None, 1, False)
+    assert "ami-REC1: unusable: no speech in the audio" in text_of(commands)

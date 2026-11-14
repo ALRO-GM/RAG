@@ -11,7 +11,9 @@
 * ``lab runs SESSION`` lists the runs; ``lab summary SESSION RUN``
   prints a run's summary again; ``lab resume SESSION RUN`` resumes it.
 * ``lab import-reference CORPUS [--limit N] [--split S]`` imports
-  recordings of a labelled public corpus as sessions with a reference;
+  recordings of a labelled public corpus as sessions with a reference,
+  skipping those whose audio holds no speech (``--check`` runs that
+  check again on the sessions already imported);
   ``lab reference-summary [--corpus C]`` gives the mean and spread of
   each reference metric per model over them.
 
@@ -74,6 +76,8 @@ class LabCommands:
         if action == "resume":
             run = self.lab.resume(args.session_id, args.run_id)
             return self.wait(run, args.json)
+        if action == "import-reference" and args.check:
+            return self.check_reference(args.corpus, args.json)
         if action == "import-reference":
             return self.import_reference(
                 args.corpus, args.split, args.limit, args.json
@@ -90,6 +94,9 @@ class LabCommands:
         def report(item: ImportedRecording) -> None:
             """Say what happened to one recording."""
             if as_json:
+                return
+            if item.reason is not None:
+                self.output.line(_excluded_line(item))
                 return
             if item.state == "exists":
                 self.output.line(f"{item.session_id}: already imported")
@@ -117,14 +124,44 @@ class LabCommands:
                 "recordings": [d.model_dump(mode="json") for d in done],
             })
             return 0
+        usable = sum(d.usable for d in done)
         self.output.line(
-            f"{len(done)} recordings of {spec.display_name}"
-            f" ({spec.licence}, {spec.source_url})."
+            f"{usable} usable recordings of {spec.display_name}"
+            f" ({spec.licence}, {spec.source_url});"
+            f" {len(done) - usable} without speech."
         )
         if not spec.licence_commercial:
             self.output.note(
                 "Non-commercial corpus: internal evaluation only."
             )
+        return 0
+
+    def check_reference(self, corpus: str, as_json: bool) -> int:
+        """Run the speech check on the sessions already imported."""
+        def report(item: ImportedRecording) -> None:
+            """Say what the check found on one session."""
+            if as_json:
+                return
+            if item.reason is not None:
+                self.output.line(_excluded_line(item))
+                return
+            figures = "" if item.speech is None else (
+                f" ({item.speech.describe()})"
+            )
+            self.output.line(f"{item.session_id}: speech{figures}")
+
+        done = self.lab.check_reference(corpus, report)
+        if as_json:
+            self.output.json({
+                "corpus": corpus,
+                "recordings": [d.model_dump(mode="json") for d in done],
+            })
+            return 0
+        failed = sum(not d.usable for d in done)
+        self.output.line(
+            f"{len(done)} sessions of {CORPORA[corpus].display_name}"
+            f" checked; {failed} marked unusable (no speech in the audio)."
+        )
         return 0
 
     def reference_summary(self, corpus: Optional[str], as_json: bool) -> int:
@@ -455,6 +492,13 @@ SUMMARY_TABLES = (
 )
 
 
+def _excluded_line(item: ImportedRecording) -> str:
+    """Return the line of a recording that is not used, with figures."""
+    verb = "skipped" if item.state == "skipped" else "unusable"
+    figures = "" if item.speech is None else f" ({item.speech.describe()})"
+    return f"{item.session_id}: {verb}: {item.reason}{figures}"
+
+
 def reference_summary_lines(summary: CorpusSummary) -> List[str]:
     """Return the corpus summary as lines (aggregates only)."""
     lines = [
@@ -462,6 +506,11 @@ def reference_summary_lines(summary: CorpusSummary) -> List[str]:
         f" ({', '.join(summary.corpora) or 'none'});"
         f" {len(summary.unscored)} without a scored run."
     ]
+    reasons: Dict[str, int] = {}
+    for item in summary.excluded:
+        reasons[item.reason] = reasons.get(item.reason, 0) + 1
+    for reason, count in sorted(reasons.items()):
+        lines.append(f"{count} excluded: {reason}.")
     if summary.non_commercial:
         lines.append(
             "Non-commercial corpus included: internal evaluation only."
@@ -522,13 +571,18 @@ def add_lab_parser(
         description=(
             "Download the shards needed into <data_dir>/lab-corpora and"
             " create one session per recording with its reference"
-            " (speaker turns, licence, source). Runs on those sessions are"
+            " (speaker turns, licence, source). A recording whose audio"
+            " holds no speech is skipped. Runs on those sessions are"
             " also scored against the reference."
         ),
     )
     imported.add_argument("corpus", choices=sorted(CORPORA))
     imported.add_argument("--limit", type=int,
-                          help="at most this many recordings")
+                          help="at most this many usable recordings")
+    imported.add_argument("--check", action="store_true",
+                          help="check the sessions already imported for"
+                          " speech instead (no download); failing ones"
+                          " are left out of the summary")
     imported.add_argument("--split", help="the corpus split (default: test"
                           " for ami, data for callhome)")
     json_flag(imported)

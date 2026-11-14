@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   corpusOf, tallyOf, stepTotal, groupByCorpus, overviewTotals, anyActive, barSegments, failureCodes,
   pendingGroups, niceMax, linearScale, axisTicks, summaryDenoisers, derByDiarizer, derByDenoiser,
-  agreementByDiarizer, chooseExcerpt, sampleRows, turnsToSpans,
+  agreementByDiarizer, chooseExcerpt, sampleRows, splitExcluded, turnsToSpans,
 } from "../../transcriber/adapters/inbound/web/js/lib/lab-progress.js";
 
 function tally(done, running, pending, failed, codes = {}, open = []) {
@@ -181,4 +181,17 @@ test("reference turns become spans with every voice at each moment", () => {
   ]);
   assert.deepEqual(turnsToSpans(null), []);
   assert.deepEqual(chooseExcerpt(spans, 100, 5), { start: 0, end: 5, reason: "overlap" });
+});
+
+test("recordings without speech are left out and counted per reason", () => {
+  const entries = [
+    { session_id: "callhome-data-0001", corpus: "callhome", excluded: null },
+    { session_id: "callhome-data-0002", corpus: "callhome", excluded: "no speech in the audio" },
+    { session_id: "callhome-data-0003", corpus: "callhome", excluded: "no speech in the audio" },
+    { session_id: "rec-1", corpus: null },
+  ];
+  const { kept, excluded } = splitExcluded(entries);
+  assert.deepEqual(kept.map((e) => e.session_id), ["callhome-data-0001", "rec-1"]);
+  assert.deepEqual(excluded, [{ reason: "no speech in the audio", n: 2 }]);
+  assert.deepEqual(splitExcluded([]), { kept: [], excluded: [] });
 });

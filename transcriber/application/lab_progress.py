@@ -39,6 +39,9 @@ class SessionProgress(BaseModel):
     ``corpus`` is ``None`` for the owner's own recordings. ``run_*``
     and ``steps`` describe the newest run (``None`` without any run);
     ``results_run`` is the newest run with stored results.
+    ``excluded`` says why an imported recording is left out of the
+    results (its audio failed the speech check); ``None`` when it is
+    used.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -56,6 +59,7 @@ class SessionProgress(BaseModel):
     message: Optional[str] = None
     steps: Optional[StepTally] = None
     results_run: Optional[str] = None
+    excluded: Optional[str] = None
 
 
 class LabOverview:
@@ -102,6 +106,7 @@ class LabOverview:
                 reference.licence_commercial if reference is not None
                 else None
             ),
+            excluded=reference.excluded() if reference is not None else None,
             results_run=next(
                 (r.id for r in runs if r.state in RESULT_STATES), None
             ),

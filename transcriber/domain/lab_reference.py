@@ -44,6 +44,7 @@ from transcriber.domain.comparison import (
 from transcriber.domain.errors import InvalidInputError
 from transcriber.domain.lab import Segment
 from transcriber.domain.models import SESSION_ID_PATTERN, Word
+from transcriber.domain.speech_check import SpeechCheck
 
 REFERENCE_SCHEMA = "lab.reference.v1"
 REFERENCE_TRACK = "reference"
@@ -192,6 +193,10 @@ class SessionReference(BaseModel):
     ``words`` the reference transcript with times, ``None`` when the
     corpus has none. ``licence``, ``licence_commercial`` and
     ``source_url`` say under what terms the recording may be used.
+    ``speech`` holds the figures of the speech check
+    (:mod:`~transcriber.domain.speech_check`), ``None`` when the
+    session was imported before the check existed and not checked
+    since; a recording that failed it is not used (:meth:`excluded`).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -208,6 +213,11 @@ class SessionReference(BaseModel):
     segments: List[Segment]
     words: Optional[List[Word]] = None
     imported_at: Optional[AwareDatetime] = None
+    speech: Optional[SpeechCheck] = None
+
+    def excluded(self) -> Optional[str]:
+        """Return why the recording is not used (``None``: it is)."""
+        return None if self.speech is None else self.speech.reason()
 
     def speakers(self) -> List[str]:
         """Return the corpus ids of the people who speak, sorted."""
@@ -226,6 +236,7 @@ def make_reference(
     segments: Sequence[Segment],
     words: Optional[Sequence[Word]],
     imported_at: Optional[datetime] = None,
+    speech: Optional[SpeechCheck] = None,
 ) -> SessionReference:
     """Return the reference of one recording of ``spec``.
 
@@ -244,7 +255,7 @@ def make_reference(
         licence=spec.licence, licence_commercial=spec.licence_commercial,
         source_url=spec.source_url, language=spec.language,
         duration=duration, segments=list(segments), words=kept,
-        imported_at=imported_at,
+        imported_at=imported_at, speech=speech,
     )
 
 

@@ -578,6 +578,7 @@ its newest run's steps counted for the tab's progress view:
   "corpus": "ami", "licence": "CC BY 4.0", "licence_commercial": true,
   "run_id": "8f…", "run_state": "partial", "created_at": "…",
   "finished_at": "…", "message": null, "results_run": "8f…",
+  "excluded": null,
   "steps": {"done": 15, "running": 0, "pending": 0, "failed": 14,
             "failed_codes": {"failed": 10, "out_of_memory": 4},
             "open": [{"name": "diarize:none+…", "stage": "diarize",
@@ -585,7 +586,9 @@ its newest run's steps counted for the tab's progress view:
                       "code": "out_of_memory", "message": "…"}]}}]}
 ```
 
-`corpus` is `null` for an own recording; `run_*` and `steps` are `null`
+`corpus` is `null` for an own recording; `excluded` says why an
+imported recording is left out of the results (`no speech in the
+audio`, §13.6), `null` when it is used; `run_*` and `steps` are `null`
 without a run; `results_run` is the newest `done` or `partial` run (the
 one with results). `run_state` is reported as in the runs list
 (`interrupted` when its process is gone). A step `running` in a run
@@ -598,7 +601,8 @@ step not done, with its error code and message when it failed.
 The summary of §13.3 (`lab reference-summary --json`) over the
 imported sessions of one corpus (all when `corpus` is omitted; an
 unknown one is 400 `invalid_input`): `corpora`, `non_commercial`,
-`recordings`, `unscored` and `models` (`kind` `diarization`,
+`recordings`, `unscored`, `excluded` (sessions left out: `session_id`,
+`corpus`, `recording`, `reason`, `speech` figures, §13.6) and `models` (`kind` `diarization`,
 `recognition` or `pipeline`; each metric's `n`, `mean`, `sd`, `min`,
 `max`).
 
@@ -666,6 +670,7 @@ python -m transcriber lab runs SESSION [--json]
 python -m transcriber lab summary SESSION RUN [--json]
 python -m transcriber lab resume SESSION RUN [--json]
 python -m transcriber lab import-reference ami|callhome [--limit N] [--split S] [--json]
+python -m transcriber lab import-reference ami|callhome --check [--json]
 python -m transcriber lab reference-summary [--corpus ami|callhome] [--json]
 ```
 
@@ -1081,7 +1086,11 @@ TRANSCRIBER_DATA_DIR=data/transcriber \
   and `source_url`. It goes with the session when the session is
   deleted (§6).
 - A recording whose session exists is skipped, so an interrupted import
-  can simply be run again. A gated corpus whose terms were not accepted
+  can simply be run again. A recording whose audio holds no speech is
+  not imported (§13.6): it is reported as `skipped: no speech in the
+  audio` with the check's figures, and `--limit N` reads on until N
+  usable recordings are in (sessions already imported count unless they
+  failed the check). A gated corpus whose terms were not accepted
   fails before downloading anything, with the page where to accept them.
 
 A session with a reference is never compared with the people enrolled
@@ -1138,7 +1147,11 @@ missed / false alarm / confusion as shares of the reference speech,
 JER, overlap precision and recall and the speaker-count error (signed
 and absolute); per transcript the WER; per pipeline DER, JER and WER.
 Sessions without a scored run are listed apart; a non-commercial corpus
-in the mix is flagged. Running the full suite on the corpus is a
+in the mix is flagged. Imported sessions whose audio failed the speech
+check (§13.6) count nowhere: they are listed in `excluded` (session,
+reason, figures) and the text says how many were left out and why
+(`1 excluded: no speech in the audio.`); the web overview leaves them
+out of the progress bars and the results and says the same. Running the full suite on the corpus is a
 separate experiment.
 
 ### 13.4 Smoke check (2026-11-14, one AMI recording)
@@ -1217,3 +1230,73 @@ it NeMo returns no segments and the note on the original audio of
 (60.2 s), and DiariZen returns no segments and its note on the original audio
 of `-0002` (400.0 s of processing on the CPU). Neither denoised
 DiariZen input nor a GPU run was repeated.
+
+### 13.6 Recordings with no speech (2026-11-14)
+
+Found while running the suite on CALLHOME (#48, §13.5): 7 of the first 28
+rows of `diarizers-community/callhome` (`spa`, shard 0: rows 2, 3, 9,
+15, 18, 23 and 28, sessions `callhome-data-0002`...) hold steady
+broadband noise up to 4 kHz instead of speech, while their reference
+says people talk. Every diarizer finds nobody there, so their DER of
+about 1 measures the data, not the models. The import now checks the
+decoded audio first (`transcriber/domain/speech_check.py`, numpy only):
+
+- frames of 32 ms (512 samples at 16 kHz); only the loudest 30 % are
+  measured (where speech would be);
+- per frame, the **lag-1 autocorrelation** (mean removed) and the
+  **spectral flatness** from the first bin above 0 Hz to 4 kHz
+  (geometric over arithmetic mean of the Hann-windowed power
+  spectrum); the recording's figure is the median over those frames;
+- **no speech** when the autocorrelation is below **0.8** *and* the
+  flatness is above **0.2** (both must say noise, so a noisy recording
+  with a voice in it is not dropped).
+
+Measured on the decoded audio (16 kHz mono, as the lab reads it) of
+the 28 rows of CALLHOME shard 0 and the 6 recordings of the first AMI
+`test` shard:
+
+| Recordings | lag-1 autocorrelation | spectral flatness (0–4 kHz) | Verdict |
+|---|---|---|---|
+| CALLHOME rows 2, 3, 9, 15, 18, 23, 28 | 0.6666–0.6866 | 0.3939–0.3998 | no speech (all 7) |
+| CALLHOME, the other 21 rows | 0.9011–0.9847 | 0.0039–0.0311 | speech |
+| AMI EN2002b, TS3003a, ES2004c, ES2004b, TS3003b, IS1009a | 0.9684–0.9899 | 0.0065–0.0219 | speech |
+
+Per CALLHOME row (autocorrelation / flatness): 1 0.9270/0.0225,
+**2 0.6866/0.3952**, **3 0.6759/0.3949**, 4 0.9227/0.0111,
+5 0.9096/0.0289, 6 0.9287/0.0199, 7 0.9291/0.0169, 8 0.9192/0.0311,
+**9 0.6773/0.3958**, 10 0.9786/0.0082, 11 0.9705/0.0055,
+12 0.9011/0.0121, 13 0.9753/0.0052, 14 0.9507/0.0200,
+**15 0.6823/0.3939**, 16 0.9568/0.0166, 17 0.9500/0.0084,
+**18 0.6823/0.3968**, 19 0.9490/0.0109, 20 0.9350/0.0071,
+21 0.9760/0.0105, 22 0.9847/0.0042, **23 0.6853/0.3948**,
+24 0.9676/0.0079, 25 0.9346/0.0146, 26 0.9585/0.0063,
+27 0.9705/0.0039, **28 0.6666/0.3998**. AMI: EN2002b 0.9797/0.0147,
+TS3003a 0.9899/0.0065, ES2004c 0.9796/0.0156, ES2004b 0.9827/0.0151,
+TS3003b 0.9831/0.0120, IS1009a 0.9684/0.0219.
+
+The check flags exactly the seven rows found in #48 and none of
+the others; the gap between the groups is wide on both figures
+(autocorrelation 0.69 against 0.90, flatness 0.40 against 0.03), and
+the thresholds sit in the middle of it. The noise rows are also flat in
+level (the 90th and 10th percentiles of frame energy within 2.0–2.5 dB
+of each other, against 13.2 dB or more for every speech recording),
+which the check does not use. The check took 0.02–0.05 s per CALLHOME
+row and 0.06–0.18 s per AMI meeting on this machine's CPU, after
+decoding. 34 recordings of two corpora are all it was calibrated on:
+a corpus with another kind of noise may need another look.
+
+Sessions imported before the check have no figures (`speech: null` in
+`reference.json`) and are used as before until checked:
+
+```sh
+TRANSCRIBER_DATA_DIR=data/transcriber \
+  uv run --no-sync python -m transcriber lab import-reference callhome --check
+```
+
+decodes each imported session of the corpus again (no download), stores
+the figures in its `reference.json` (`speech`: `autocorrelation`,
+`flatness`, `frames`, `speech`) and prints `<session>: unusable: no
+speech in the audio (…)` for the ones that fail. Nothing is deleted: a
+failing session stays, and `lab reference-summary`, `GET
+/api/lab/reference-summary` (`excluded`) and the overview (`excluded`
+per session, §7) leave it out and say why.

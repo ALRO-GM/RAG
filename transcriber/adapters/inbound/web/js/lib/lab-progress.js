@@ -26,6 +26,21 @@ export function stepTotal(tally) {
   return tally.done + tally.running + tally.pending + tally.failed;
 }
 
+/**
+ * Entries kept, and how many imported recordings were left out per reason
+ * (`excluded`: their audio holds no speech): { kept, excluded: [{ reason, n }] }.
+ */
+export function splitExcluded(entries) {
+  const kept = [];
+  const counts = new Map();
+  for (const entry of entries) {
+    if (entry.excluded) counts.set(entry.excluded, (counts.get(entry.excluded) || 0) + 1);
+    else kept.push(entry);
+  }
+  const excluded = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([reason, n]) => ({ reason, n }));
+  return { kept, excluded };
+}
+
 /** Entries grouped by corpus: own recordings first, then AMI, CALLHOME, others by name. */
 export function groupByCorpus(entries) {
   const groups = new Map();

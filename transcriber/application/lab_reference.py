@@ -11,6 +11,14 @@ source the recording came under. Lab runs on such a session are then
 measured against the reference as well (``reference`` of the results,
 :func:`~transcriber.application.lab_compare.compare_run`).
 
+Before a recording becomes a session its decoded audio goes through the
+speech check (:mod:`~transcriber.domain.speech_check`): one that holds
+steady noise rather than speech is skipped, and ``limit`` counts only
+the recordings that can be used. :class:`CheckReferenceSpeech` runs the
+same check on sessions imported before and stores its figures in their
+reference, so that the summary and the overview leave out the ones that
+fail.
+
 :class:`ReferenceSummary` gathers the newest scored run of every
 imported session and gives, per model and per pipeline, the mean and
 spread of each metric over the recordings (``docs/transcriber/LAB.md``
@@ -35,6 +43,7 @@ from transcriber.application.ports import (
 from transcriber.application.record import ImportRecording
 from transcriber.domain.errors import InvalidInputError, StorageError
 from transcriber.domain.models import Session
+from transcriber.domain.speech_check import SpeechCheck, check_speech
 from transcriber.domain.lab_reference import (
     CorpusSpec,
     MetricSpread,
@@ -56,9 +65,13 @@ class ImportedRecording(BaseModel):
 
     ``state``: ``imported``; ``exists`` when the session and its
     reference were already there (left as they were); ``repaired`` when
-    an earlier import stopped before storing the reference. The numbers
-    describe the reference (aggregates only, never text):
-    ``speaker_seconds`` sums the turns (two people at once count twice).
+    an earlier import stopped before storing the reference; ``skipped``
+    when the audio failed the speech check (no session is made);
+    ``checked`` when :class:`CheckReferenceSpeech` checked a session
+    again. The numbers describe the reference (aggregates only, never
+    text): ``speaker_seconds`` sums the turns (two people at once count
+    twice). ``speech`` holds the speech check's figures when known and
+    ``reason`` says why the recording is not used (``None``: it is).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -71,6 +84,13 @@ class ImportedRecording(BaseModel):
     turns: int = 0
     speaker_seconds: Optional[float] = None
     words: Optional[int] = None
+    speech: Optional[SpeechCheck] = None
+    reason: Optional[str] = None
+
+    @property
+    def usable(self) -> bool:
+        """Tell whether the recording is a session that can be scored."""
+        return self.state != "skipped" and self.reason is None
 
 
 class ImportReference:
@@ -102,20 +122,27 @@ class ImportReference:
         limit: Optional[int] = None,
         report: Callable[[ImportedRecording], None] = lambda _: None,
     ) -> List[ImportedRecording]:
-        """Import up to ``limit`` recordings of ``split`` of ``corpus``.
+        """Import up to ``limit`` usable recordings of ``split``.
 
-        A recording whose session already exists is skipped, so an
-        interrupted import can be run again. ``report`` hears about
-        each recording as soon as it is done.
+        A recording whose session already exists is left as it is, so an
+        interrupted import can be run again; one whose audio fails the
+        speech check is skipped and the corpus is read on until
+        ``limit`` recordings can be used (already imported ones count
+        unless they failed the check). ``report`` hears about each
+        recording as soon as it is done.
         """
         if limit is not None and limit < 1:
             raise InvalidInputError("--limit must be 1 or more.")
         spec = corpus_spec(corpus)
         chosen = check_split(spec, split)
         done: List[ImportedRecording] = []
-        for item in self._corpus.recordings(spec, chosen, limit):
+        usable = 0
+        for item in self._corpus.recordings(spec, chosen, None):
+            if limit is not None and usable >= limit:
+                break
             result = self._one(spec, chosen, item)
             done.append(result)
+            usable += result.usable
             report(result)
         return done
 
@@ -128,32 +155,46 @@ class ImportReference:
         (``exists``). One the import created but whose reference was
         never stored (the process stopped in between) gets it now
         (``repaired``); a session of that id made otherwise is refused.
+        A new recording whose audio fails the speech check is not
+        imported (``skipped``); a repaired one keeps the figures in its
+        reference, which leaves it out of the summary.
         """
         session_id = recording_session_id(spec.id, item.recording)
         title = f"{spec.display_name} {item.recording}"
         found = self._sessions.get(session_id)
-        if found is not None and (
-            self._repository.reference(session_id) is not None
-        ):
+        stored = (
+            None if found is None else self._repository.reference(session_id)
+        )
+        if stored is not None:
             return ImportedRecording(
                 session_id=session_id, recording=item.recording,
-                state="exists",
+                state="exists", speech=stored.speech,
+                reason=stored.excluded(),
             )
         if found is not None and found.title != title:
             raise InvalidInputError(
                 f"Session {session_id} exists and was not imported from"
                 f" {spec.display_name}."
             )
-        duration = self._decoder.decode(item.audio).duration
+        audio = self._decoder.decode(item.audio)
+        duration = audio.duration
         if duration <= 0:
             raise InvalidInputError(
                 f"Recording {item.recording!r} has no audio."
+            )
+        speech = check_speech(audio.samples, audio.sample_rate)
+        del audio
+        if found is None and not speech.speech:
+            return ImportedRecording(
+                session_id=session_id, recording=item.recording,
+                state="skipped", duration=round(duration, 3),
+                speech=speech, reason=speech.reason(),
             )
         reference = make_reference(
             spec, split, item.recording, duration,
             reference_segments(item.starts, item.ends, item.speakers,
                                duration),
-            item.words, self._clock.now(),
+            item.words, self._clock.now(), speech,
         )
         with self._locks.hold(session_id):
             if found is not None:
@@ -192,7 +233,72 @@ def _described(
         speakers=len(reference.speakers()), turns=len(reference.segments),
         speaker_seconds=round(seconds, 3),
         words=None if reference.words is None else len(reference.words),
+        speech=reference.speech, reason=reference.excluded(),
     )
+
+
+class CheckReferenceSpeech:
+    """Run the speech check on sessions imported before it existed."""
+
+    def __init__(
+        self,
+        sessions: SessionRepository,
+        repository: LabRepository,
+        decoder: AudioDecoder,
+        locks: SessionLocks,
+    ) -> None:
+        """Wire the ports."""
+        self._sessions = sessions
+        self._repository = repository
+        self._decoder = decoder
+        self._locks = locks
+
+    def __call__(
+        self,
+        corpus: str,
+        report: Callable[[ImportedRecording], None] = lambda _: None,
+    ) -> List[ImportedRecording]:
+        """Check every imported session of ``corpus``; store the figures.
+
+        Each session's audio is decoded and checked again and the
+        figures go into its reference (state ``checked``; ``reason``
+        set when it fails). Nothing is deleted: a failing session stays,
+        left out of the summary and the overview.
+        """
+        spec = corpus_spec(corpus)
+        done: List[ImportedRecording] = []
+        for session_id in sorted(self._sessions.ids()):
+            reference = _readable(self._repository, session_id)
+            if reference is None or reference.corpus != spec.id:
+                continue
+            with self._locks.hold(session_id):
+                audio = self._decoder.decode(
+                    self._sessions.recording(session_id)
+                )
+                speech = check_speech(audio.samples, audio.sample_rate)
+                del audio
+                self._repository.save_reference(
+                    session_id,
+                    reference.model_copy(update={"speech": speech}),
+                )
+            result = ImportedRecording(
+                session_id=session_id, recording=reference.recording,
+                state="checked", duration=round(reference.duration, 3),
+                speech=speech, reason=speech.reason(),
+            )
+            done.append(result)
+            report(result)
+        return done
+
+
+def _readable(
+    repository: LabRepository, session_id: str
+) -> Optional[SessionReference]:
+    """Return the session's reference; unreadable ones are skipped."""
+    try:
+        return repository.reference(session_id)
+    except (StorageError, InvalidInputError):
+        return None
 
 
 TRACK_METRICS = (
@@ -250,13 +356,26 @@ class SummarisedRecording(BaseModel):
     duration: float
 
 
+class ExcludedRecording(BaseModel):
+    """An imported session the summary leaves out, and why."""
+
+    model_config = ConfigDict(frozen=True)
+
+    session_id: str
+    corpus: str
+    recording: str
+    reason: str
+    speech: Optional[SpeechCheck] = None
+
+
 class CorpusSummary(BaseModel):
     """Mean and spread of every metric per model over the recordings.
 
     ``non_commercial`` is true when any recording comes from a
     non-commercial corpus: then the figures are for internal
     evaluation only. ``unscored`` lists imported sessions with no
-    scored run yet.
+    scored run yet; ``excluded`` the imported sessions left out (their
+    audio failed the speech check), which count nowhere else.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -266,6 +385,7 @@ class CorpusSummary(BaseModel):
     recordings: List[SummarisedRecording]
     unscored: List[str]
     models: List[ModelSummary]
+    excluded: List[ExcludedRecording] = []
 
 
 class ReferenceSummary:
@@ -282,18 +402,28 @@ class ReferenceSummary:
         """Return the summary over the imported sessions (one corpus).
 
         Each session counts with its newest ``done`` or ``partial``
-        run that has reference scores.
+        run that has reference scores; one whose audio failed the
+        speech check is listed in ``excluded`` instead.
         """
         if corpus is not None:
             corpus_spec(corpus)
         recordings: List[SummarisedRecording] = []
         unscored: List[str] = []
+        excluded: List[ExcludedRecording] = []
         values: Dict[tuple[str, str], Dict[str, List[Optional[float]]]] = {}
         for session_id in sorted(self._sessions.ids()):
             reference = self._reference(session_id)
             if reference is None or (
                 corpus is not None and reference.corpus != corpus
             ):
+                continue
+            reason = reference.excluded()
+            if reason is not None:
+                excluded.append(ExcludedRecording(
+                    session_id=session_id, corpus=reference.corpus,
+                    recording=reference.recording, reason=reason,
+                    speech=reference.speech,
+                ))
                 continue
             run_id, scored = self._scored(session_id)
             recordings.append(SummarisedRecording(
@@ -318,14 +448,12 @@ class ReferenceSummary:
             corpora=sorted({r.corpus for r in recordings}),
             non_commercial=any(not r.licence_commercial for r in recordings),
             recordings=recordings, unscored=unscored, models=models,
+            excluded=excluded,
         )
 
     def _reference(self, session_id: str) -> Optional[SessionReference]:
         """Return the session's reference; unreadable ones are skipped."""
-        try:
-            return self._repository.reference(session_id)
-        except (StorageError, InvalidInputError):
-            return None
+        return _readable(self._repository, session_id)
 
     def _scored(
         self, session_id: str

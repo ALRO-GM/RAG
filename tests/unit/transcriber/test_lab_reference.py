@@ -1,6 +1,6 @@
 """Reference corpora: parsing, scoring by hand, import and summary."""
 
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Sequence
 
 import numpy as np
 import pytest
@@ -13,7 +13,9 @@ from tests.unit.transcriber.fakes import (
 from tests.unit.transcriber.lab_fakes import FakeLabRepository
 from tests.unit.transcriber.test_lab_use_cases import SESSION, TURNS, Lab
 from transcriber.application.lab_ports import CorpusRecording
+from tests.unit.transcriber.test_speech_check import band_noise, voiced
 from transcriber.application.lab_reference import (
+    CheckReferenceSpeech,
     ImportedRecording,
     ImportReference,
     ReferenceSummary,
@@ -42,6 +44,7 @@ from transcriber.domain.lab_reference import (
     spread,
 )
 from transcriber.domain.models import Session, SessionState, Word
+from transcriber.domain.speech_check import NO_SPEECH, SpeechCheck
 
 NO_COLLAR = ComparisonParameters(collar=0.0)
 AMI = CORPORA["ami"]
@@ -210,28 +213,42 @@ class TestScoringByHand:
 # ------------------------------------------------------------ the import
 
 
-class SilentDecoder:
-    """Decode every recording as ``seconds`` of silence at 16 kHz."""
+NOISE = b"NOISE"
+"""The bytes of a fake recording that holds steady noise, not speech."""
+
+
+class SyntheticDecoder:
+    """Decode a recording as ``seconds`` of a synthetic voice at 16 kHz.
+
+    A recording whose bytes are :data:`NOISE` holds band-limited noise.
+    """
 
     def __init__(self, seconds: float = 10.0) -> None:
         """Keep the duration."""
         self.seconds = seconds
+        self.decoded = 0
 
     def decode(self, recording: RecordedAudio) -> Audio:
-        """Return silence of the duration."""
-        return Audio(np.zeros(int(self.seconds * 16000), dtype=np.float32),
-                     16000)
+        """Return the voice (or the noise) of the duration."""
+        self.decoded += 1
+        make = band_noise if recording.data == NOISE else voiced
+        return Audio(make(self.seconds), 16000)
 
 
 class FakeCorpus:
-    """A tiny corpus of recordings with the 10-second example's turns."""
+    """A tiny corpus of recordings with the 10-second example's turns.
+
+    The recordings numbered in ``noisy`` hold noise instead of speech.
+    """
 
     def __init__(self, count: int = 3,
-                 words: Optional[List[Word]] = None) -> None:
+                 words: Optional[List[Word]] = None,
+                 noisy: Sequence[int] = ()) -> None:
         """Make ``count`` recordings."""
         self.items = [
             CorpusRecording(
-                recording=f"REC{n}", audio=RecordedAudio(b"RIFF", "wav"),
+                recording=f"REC{n}",
+                audio=RecordedAudio(NOISE if n in noisy else b"RIFF", "wav"),
                 starts=[0.0, 3.0], ends=[4.0, 8.0], speakers=["A", "B"],
                 words=words,
             )
@@ -255,9 +272,13 @@ class Importer:
         self.sessions = FakeSessionRepository()
         self.repository = FakeLabRepository()
         locks = FakeSessionLocks()
+        self.decoder = SyntheticDecoder(seconds)
         self.use = ImportReference(
-            self.sessions, self.repository, corpus, SilentDecoder(seconds),
+            self.sessions, self.repository, corpus, self.decoder,
             ImportRecording(self.sessions, locks), locks, FixedClock(),
+        )
+        self.check = CheckReferenceSpeech(
+            self.sessions, self.repository, self.decoder, locks,
         )
 
 
@@ -267,7 +288,8 @@ class TestImport:
         importer = Importer(corpus)
         heard: List[ImportedRecording] = []
         done = importer.use("ami", limit=2, report=heard.append)
-        assert corpus.asked == [("ami", "test", 2)]
+        # the corpus is read on until two usable recordings are in
+        assert corpus.asked == [("ami", "test", None)]
         assert [d.session_id for d in done] == ["ami-REC0", "ami-REC1"]
         assert heard == done
         first = done[0]
@@ -285,6 +307,49 @@ class TestImport:
         assert (reference.corpus, reference.recording, reference.split,
                 reference.licence) == ("ami", "REC0", "test", "CC BY 4.0")
         assert reference.imported_at == FixedClock().now()
+        assert reference.speech is not None and reference.speech.speech
+        assert reference.excluded() is None
+        assert first.speech == reference.speech and first.usable
+
+    def test_noise_is_skipped_and_the_limit_counts_usable_ones(
+        self,
+    ) -> None:
+        importer = Importer(FakeCorpus(5, noisy=(1, 2)))
+        heard: List[ImportedRecording] = []
+        done = importer.use("ami", limit=2, report=heard.append)
+        assert [(d.session_id, d.state) for d in done] == [
+            ("ami-REC0", "imported"), ("ami-REC1", "skipped"),
+            ("ami-REC2", "skipped"), ("ami-REC3", "imported"),
+        ]
+        assert heard == done
+        skipped = done[1]
+        assert skipped.reason == NO_SPEECH and not skipped.usable
+        assert skipped.speech is not None and not skipped.speech.speech
+        assert skipped.duration == 10.0 and skipped.turns == 0
+        assert importer.sessions.get("ami-REC1") is None
+        assert importer.repository.reference("ami-REC1") is None
+        assert importer.sessions.get("ami-REC4") is None
+        # again: the noise is decoded and skipped again, nothing made
+        again = importer.use("ami", limit=3)
+        assert [(d.session_id, d.state) for d in again] == [
+            ("ami-REC0", "exists"), ("ami-REC1", "skipped"),
+            ("ami-REC2", "skipped"), ("ami-REC3", "exists"),
+            ("ami-REC4", "imported"),
+        ]
+
+    def test_a_repaired_session_without_speech_is_marked(self) -> None:
+        corpus = FakeCorpus(1)
+        importer = Importer(corpus)
+        importer.use("ami")
+        del importer.repository.references["ami-REC0"]
+        corpus.items = FakeCorpus(1, noisy=(0,)).items
+        (repaired,) = importer.use("ami")
+        assert (repaired.state, repaired.reason) == ("repaired", NO_SPEECH)
+        reference = importer.repository.reference("ami-REC0")
+        assert reference is not None and reference.excluded() == NO_SPEECH
+        # it no longer counts for the limit
+        (exists,) = importer.use("ami", limit=1)
+        assert (exists.state, exists.usable) == ("exists", False)
 
     def test_again_skips_what_exists(self) -> None:
         importer = Importer(FakeCorpus(2))
@@ -341,6 +406,36 @@ class TestImport:
         with pytest.raises(StorageError):
             importer.use("ami")
         assert importer.sessions.get("ami-REC0") is None
+
+
+class TestCheckAgain:
+    def test_sessions_imported_before_are_checked(self) -> None:
+        importer = Importer(FakeCorpus(3))
+        importer.use("ami")
+        importer.use("callhome", limit=1)
+        # as imported before the check existed: no figures, and the
+        # second recording's audio turns out to be noise
+        for ident in ("ami-REC0", "ami-REC1", "ami-REC2"):
+            old = importer.repository.reference(ident)
+            assert old is not None
+            importer.repository.save_reference(
+                ident, old.model_copy(update={"speech": None}))
+        importer.sessions.recordings["ami-REC1"] = RecordedAudio(NOISE, "wav")
+        heard: List[ImportedRecording] = []
+        done = importer.check("ami", heard.append)
+        assert heard == done
+        assert [(d.session_id, d.state, d.reason) for d in done] == [
+            ("ami-REC0", "checked", None),
+            ("ami-REC1", "checked", NO_SPEECH),
+            ("ami-REC2", "checked", None),
+        ]
+        bad = importer.repository.reference("ami-REC1")
+        assert bad is not None and bad.excluded() == NO_SPEECH
+        good = importer.repository.reference("ami-REC0")
+        assert good is not None and good.speech is not None
+        assert importer.sessions.get("ami-REC1") is not None  # kept
+        with pytest.raises(InvalidInputError):
+            importer.check("nope")
 
 
 # ------------------------------------------------- scoring inside a run
@@ -454,6 +549,22 @@ class TestSummary:
         assert ReferenceSummary(lab.sessions, lab.repository)(
             "callhome"
         ).recordings == []
+
+    def test_recordings_without_speech_are_excluded(self) -> None:
+        lab = Lab()
+        noise = SpeechCheck(autocorrelation=0.68, flatness=0.39, frames=9,
+                            speech=False)
+        reference = with_reference(lab).model_copy(update={"speech": noise})
+        lab.repository.save_reference(SESSION, reference)
+        lab.run(diarizers=["z1"])
+        summary = ReferenceSummary(lab.sessions, lab.repository)()
+        assert summary.recordings == [] and summary.models == []
+        assert summary.unscored == []
+        (excluded,) = summary.excluded
+        assert (excluded.session_id, excluded.corpus, excluded.reason) == (
+            SESSION, "ami", NO_SPEECH,
+        )
+        assert excluded.speech == noise
 
     def test_unscored_and_unreadable(self) -> None:
         lab = Lab()
