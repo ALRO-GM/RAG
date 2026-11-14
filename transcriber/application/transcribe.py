@@ -32,7 +32,7 @@ from typing import (
 )
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from transcriber import __version__
 from transcriber.application.common import (
@@ -108,11 +108,14 @@ class TranscriptionOptions(BaseModel):
     groups (one person then appears as two speakers), so give it only
     when sure. ``expected_speakers``: the enrolled ids of the people
     present; only their voiceprints are considered. ``None`` considers
-    every enrolled person.
+    every enrolled person. ``language``: the language spoken, when it
+    differs from the one the session was opened with; it replaces the
+    session's language when the session is queued.
     """
 
     model_config = ConfigDict(frozen=True)
 
+    language: Optional[str] = None
     num_speakers: Optional[int] = Field(default=None, ge=1)
     expected_speakers: Optional[List[str]] = None
 
@@ -489,7 +492,8 @@ class QueueTranscription:
         session gets a new ``run_id``, which the job carries. The
         expected speakers are checked now, so a typo or a voiceprint of
         another voice model is reported at once rather than as a failed
-        job. If the runner refuses the job the session is saved as
+        job. ``options.language``, when given, replaces the session's
+        language. If the runner refuses the job the session is saved as
         ``failed``.
         """
         with self._locks.hold(session_id):
@@ -501,6 +505,8 @@ class QueueTranscription:
             expected_voiceprints(
                 self._voiceprints, options, self._transcribe.voice_model
             )
+            if options.language is not None:
+                session = _with_language(session, options.language)
             run_id = self._run_ids()
             queued = move(session, SessionState.QUEUED).model_copy(
                 update={"run_id": run_id}
@@ -520,6 +526,16 @@ class QueueTranscription:
                 )
                 raise
             return queued
+
+
+def _with_language(session: Session, language: str) -> Session:
+    """Return ``session`` with another ``language`` (validated)."""
+    try:
+        return Session.model_validate(
+            {**session.model_dump(), "language": language}
+        )
+    except ValidationError as exc:
+        raise InvalidInputError(f"Invalid language {language!r}.") from exc
 
 
 class TranscriptionStatus:

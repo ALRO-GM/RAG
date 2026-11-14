@@ -72,8 +72,13 @@ transcriber/
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
     review.py        RenameSpeaker, ReassignUtterance
+    browse.py        ListSessions, ListSpeakers, ShowSession, ShowTranscript,
+                     SessionAudio (read-only, for the pages)
   adapters/
-    inbound/         http_api.py (FastAPI), cli.py (Fire), web/ (static pages)
+    inbound/         http_api.py (FastAPI, all routes under /api),
+                     access.py (access code, throttling of failed codes),
+                     playback.py (WAV rendering and byte ranges for the player),
+                     cli.py (Fire), web/ (static pages)
     outbound/        av_audio_decoder.py, whisper_recogniser.py,
                      wavlm_voice_encoder.py, fake_models.py,
                      fs_session_repository.py, fs_voiceprint_repository.py,

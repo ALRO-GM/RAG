@@ -40,6 +40,13 @@ from transcriber.adapters.outbound.wavlm_voice_encoder import (
 from transcriber.adapters.outbound.whisper_recogniser import (
     WhisperRecogniser,
 )
+from transcriber.application.browse import (
+    ListSessions,
+    ListSpeakers,
+    SessionAudio,
+    ShowSession,
+    ShowTranscript,
+)
 from transcriber.application.enrol import EnrolSpeaker, ForgetSpeaker
 from transcriber.application.ports import (
     AudioDecoder,
@@ -115,6 +122,11 @@ class TranscriberContainer:
     rename_speaker: RenameSpeaker
     reassign_utterance: ReassignUtterance
     recover_sessions: RecoverSessions
+    list_sessions: ListSessions
+    list_speakers: ListSpeakers
+    show_session: ShowSession
+    session_audio: SessionAudio
+    show_transcript: ShowTranscript
 
     def release_models(self) -> None:
         """Unload the speech and voice models (after a job)."""
@@ -163,6 +175,7 @@ def build_container(
         sessions, voiceprints, decoder, recogniser, encoder, locks,
         parameters,
     )
+    status = TranscriptionStatus(sessions, runner)
     return TranscriberContainer(
         settings=settings,
         sessions=sessions,
@@ -188,11 +201,16 @@ def build_container(
         queue_transcription=QueueTranscription(
             sessions, voiceprints, runner, transcribe, locks
         ),
-        transcription_status=TranscriptionStatus(sessions, runner),
+        transcription_status=status,
         publish=PublishTranscript(sessions, publisher),
         rename_speaker=RenameSpeaker(sessions, voiceprints, locks),
         reassign_utterance=ReassignUtterance(sessions, voiceprints, locks),
         recover_sessions=RecoverSessions(sessions, locks),
+        list_sessions=ListSessions(sessions),
+        list_speakers=ListSpeakers(voiceprints),
+        show_session=ShowSession(sessions, status),
+        session_audio=SessionAudio(sessions, decoder),
+        show_transcript=ShowTranscript(sessions),
     )
 
 
