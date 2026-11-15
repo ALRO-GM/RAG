@@ -46,7 +46,7 @@ A high C with a low A means "the right shape for the product, but nobody has sho
    - act4teams: team outcomes.
    - NegotiAct: joint gains of the dyad, N = 18.
    - The talk dimensions that look most like conversation add the least in ACs: communication ΔR² = .003 (n.s.), consideration of others .005 (`meriac2008`).
-5. **Speaking time "predicts" leadership only as peer-perceived emergence.** It also rewards talkativeness and carries a gender effect (`maclaren2020`, secondary; `sanchez2010`).
+5. **Speaking time "predicts" leadership only as peer-perceived emergence.** It also rewards talkativeness and carries a gender effect (`maclaren2020`, verified in full text 2026-11-15; `sanchez2010`).
 6. **An LLM given interview transcripts did not work for competences.** Its test-retest reliability was "insufficient", and R² was below 0 for job-related competences (`zhang2024`; which model and criterion the R² refers to should be checked in the paper).
 7. **Regulation constrains the design.** Inferring emotions from voice or face at work, including from candidates, is prohibited. Text-only inference is outside that ban. Selection and evaluation of workers is high-risk (AI Act Art. 5(1)(f), Annex III 4, as reproduced unofficially; §7).
 
@@ -173,13 +173,13 @@ Sorted by C (fit) inside each family, with A and B beside it. A "popular-but-wea
 
 **Multiple speeded assessments (23 / 6 / 90, use-as-reference).**
 - 18 three-minute role-plays, aggregated, predicted later ratings at .54 to .57.
-- Single role-plays were not reliable (single-assessor G = .38).
+- Single role-plays were not reliable (single-assessor G = .38), and their validity averaged only .26 (`herde_lievens2023`, verified).
 
 This is the design template: many short conversations rather than one long one. The evidence is a single dataset of 96 MBA students.
 
 **Leaderless group discussion and emergence (19 / 37 / 100, avoid).** It gets maximum fit because it is observer-rated, individual, and its automatic proxy (speaking activity) is replicated. But:
 - There is no work-criterion validity. Emergence is perception, not effectiveness.
-- It rewards talkativeness, and men received about one extra vote (`maclaren2020`, secondary).
+- It rewards talkativeness: speaking time correlated .67 with emergence votes (zero-order, article p. 6), and being male was worth about one additional expected vote, roughly 45 s of speaking (p. 8) (`maclaren2020`, verified in full text). A speaking-time classifier picked out female emergent leaders far less often than male ones (29% vs 81%, p. 10).
 
 It is the clearest case of a trap to avoid: a construct that fits the product perfectly and has no validity for the claim it would be used for.
 
@@ -288,9 +288,11 @@ It is the clearest case of a trap to avoid: a construct that fits the product pe
 | Across exercises, dimension over 3 exercises | .55 | `jackson2016` |
 | Across exercises, overall over 3 exercises | .65 | `jackson2016` |
 | Person × dimension share of variance | .13-1.11% | `jackson2016` |
-| Single assessor, one 3-min role-play | G = .38 | `hickman2023` |
-| 18 role-plays aggregated, criterion validity | .54 / .57 | `herde_lievens2023` (abstract) / `hickman2023` |
-| Personality impressions across 15 episodes | .43; little gain beyond ~6 | `borkenau2004` (secondary) |
+| Single assessor, one 3-min role-play | G = .38 (`hickman2023`); single-rater ICC .27–.42 across rating conditions (`herde_lievens2023`, manuscript p. 32) | `hickman2023`, `herde_lievens2023` |
+| 18 role-plays aggregated, criterion validity | .54 / .57; single role-plays averaged .26 (range .03–.43) | `herde_lievens2023` (verified, manuscript pp. 2, 21; N = 96, criterion 7 months later) / `hickman2023` |
+| Rating only the first minute | validities .43–.56 across four conditions; lowest (.43) with highly standardised raters and 1 min | `herde_lievens2023` (verified, manuscript p. 33) |
+| Distinct social skills, 2 exercises per skill | skill dimensions 20% of reliable variance per rating, 28% at dimension level; about four exercises per skill recommended | `breil2022` (verified, EJPA 38, pp. 230, 233; N = 589) |
+| Personality impressions across 15 episodes | .43 (range .29–.61); little gain beyond ~6 | `borkenau2004` (verified, JPSP 86, pp. 599, 604; N = 600) |
 | Expressiveness, aggregated over 30-s sequences | ICC(2,k) > .89, > 49% within-person variance | `bleckmann2025` |
 
 *My projection with Spearman-Brown, not stated in any source.* A per-exercise generalizability of about .38 is implied by .65 over 3 exercises. On that basis:
@@ -384,7 +386,7 @@ Scope: personality, negotiation and leadership, plus core teamwork. Each part is
   - paraphrasing the other party.
 
   Not codable from text alone: lying and positional misrepresentation, which need role instructions; back-channel listening if ASR drops it.
-- **Must NOT claim:** a "negotiation skill" score from one negotiation. Dyad-specific variance is large: 28% individual vs 42% dyadic in a later study (`elfenbein2008`, secondary, unverified). No individual-level criterion validity exists.
+- **Must NOT claim:** a "negotiation skill" score from one negotiation. *Corrected 2026-11-15 from the full text:* the earlier line "28% individual vs 42% dyadic" is not in `elfenbein2008`. In that round-robin study (N = 106 in the variance analysis), consistent individual differences explained 46% of objective outcomes (28% the negotiator's own effect, 19% the effect they have on counterparts), but dyadic effects could not be separated from error for objective outcomes; for subjective value, individual differences were 19% and the dyad 28% (JRP 42, Table 1, p. 1466; p. 1468). The 2018 follow-up figure remains unverified. No individual-level criterion validity exists.
 - **Validation study [J]:**
   - Design: round-robin. Each participant negotiates a standard multi-issue case with 3-4 different counterparts. Two trained coders per transcript.
   - Criteria: joint and individual outcomes, separated with a social-relations-model analysis.
@@ -523,9 +525,15 @@ All EU texts were read from **unofficial reproductions**: EUR-Lex returned a bot
   - Inferring emotional tone in hybrid team calls from voice or imagery is given as a prohibited example, para 254.
 - Consequence: score text only. Do not label emotions, stress or "attitude" from audio.
 
-**Art. 3(39)** (`aiact_art3`). Defines an emotion recognition system as one that infers emotions or intentions from biometric data. The wording was taken via the guidelines.
+**Art. 3(39)** (`aiact_art3`). Defines an emotion recognition system as one that infers emotions or intentions from biometric data (verified, OJ p. 48/144; recital 18, p. 5, lists examples and excludes mere detection of a raised voice). Note: Art. 5(1)(f) itself (OJ p. 51) does not mention biometric data; the biometric limit comes from recital 44 (p. 12) and the guidelines.
 
-**Annex III 4(a),(b)** (`aiact_annex3`). Recruitment and selection, and decisions or monitoring "based on individual behaviour or personal traits", are **high-risk**. A peer-evaluation or skills tool used by employers falls here. Arts. 6(3), 26 and 4 were saved but **not read**: deployer duties and any derogation are unchecked.
+**Annex III 4(a),(b)** (`aiact_annex3`; verified against the Official Journal text, OJ p. 127/144). 4(a) covers recruitment and selection, including evaluating candidates; 4(b) covers decisions on work terms, promotion and termination, task allocation "based on individual behaviour or personal traits", and monitoring and evaluating performance and behaviour. *Correction:* the quoted phrase belongs to task allocation; a skills tool falls under the "evaluate performance and behaviour" clause. A peer-evaluation or skills tool used by employers falls here.
+
+**Arts. 6(3), 26, 4 and 113** (read 2026-11-15 in the OJ text):
+- Art. 6(3) (p. 54): an Annex III system can escape high-risk status only under narrow conditions, and **never if it profiles natural persons**. Scoring an individual's skills is very likely profiling, so the derogation should not be relied on (our reading; legal review pending).
+- Art. 26 (pp. 67–69): deployers must follow the instructions for use, assign competent human oversight, and, if they are employers, **inform workers' representatives and the affected workers before use** (26(7)).
+- Art. 4 (p. 51): providers and deployers must ensure sufficient AI literacy of their staff.
+- Art. 113 (p. 123): the Regulation applies from 2 August 2026; Chapters I–II (including Arts. 4 and 5) from 2 February 2025.
 
 **GDPR** (`gdpr_art22`, `gdpr_art9`; unofficial):
 - Art. 22(1): no decision based solely on automated processing with legal or similarly significant effects. Where exceptions apply, 22(3) requires human intervention, a right to express a view, and a right to contest.
@@ -536,13 +544,14 @@ All EU texts were read from **unofficial reproductions**: EUR-Lex returned a bot
 - NYC Local Law 144 final rule (`nyc_ll144_rule`):
   - an "automated employment decision tool" is one that substantially assists or replaces discretionary decisions;
   - an annual independent bias audit is required, with impact ratios by sex, race/ethnicity and intersections;
-  - enforcement from 5 July 2023.
+  - verified 2026-11-15 in the DCWP final rule (§§ 5-300 to 5-304, pp. 3–10): impact ratio = a category's selection rate divided by that of the most selected category, or, for scores, the share above the sample median divided by that of the highest-scoring category (p. 4); an auditor may leave out a category under 2% of the data, with a justification and its counts still reported (p. 7); results must be posted before use and kept up at least 6 months after last use (p. 9); notice at least 10 business days before use (pp. 9–10);
+  - enforcement from 5 July 2023 (not stated in the rule text read; unverified).
 - The Illinois AI Video Interview Act and the EEOC 2023 guidance were seen only as summaries.
 
 **Professional standards:**
 - ITC/ATP 2022 (`itc2022`): automated scoring should be compared with at least two independent human raters, and biases tested.
 - AC Guidelines (`rupp2015`): fully automated scoring is not an AC.
-- SIOP 2023 AI-based assessment recommendations: secondary only.
+- SIOP 2023 AI-based assessment recommendations (read in full 2026-11-15): AI-based assessments should meet the same standards as traditional employment tests (p. 6); a vendor algorithm validated elsewhere needs evidence for the new context (p. 13); differences in microphones, cameras or connectivity are a source of measurement bias, and removing subgroup differences inside the algorithm can leave that bias unresolved and may be unlawful in the US (p. 19).
 - Spanish council 2025 recommendations (`elosua2025_cop_recomendaciones`, secondary): justified and published scoring and weights, candidate access to results, qualified psychologists. They do not mention AI.
 - ISO 10667: catalogue level only.
 
@@ -742,17 +751,17 @@ DOIs are as recorded in the sources or notes. "No DOI" means none was recorded.
 
 | # | Paper | DOI | Why it matters |
 |---|---|---|---|
-| 1 | Herde & Lievens (2023), Multiple speeded assessments under scrutiny, JAP | 10.1037/apl0000603 | Design template for many short scored conversations; only abstract seen |
+| 1 | Herde & Lievens (2023), Multiple speeded assessments under scrutiny, JAP | 10.1037/apl0000603 | Design template for many short scored conversations; **obtained and read 2026-11-15** (accepted manuscript) |
 | 2 | Kauffeld, Lehmann-Willenbrock & Meinecke (2018), act4teams chapter | 10.1017/9781316286302.022 | Full code list, reliability, licence of the main meeting scheme |
 | 3 | Kauffeld & Lehmann-Willenbrock (2012), Meetings matter, SGR | 10.1177/1046496411429599 | Criterion coefficients for meeting talk (abstract only) |
 | 4 | Putka & Hoffman (2013), AC variance sources, JAP | 10.1037/a0030887 | How many raters/exercises; figures seen only via jackson2016 |
 | 5 | Oh, Wang & Mount (2011), observer-rated FFM validity, JAP | 10.1037/a0021832 | Coefficients for observer-rated personality vs performance |
-| 6 | Elfenbein et al. (2008), Are some negotiators better than others?, JRP; and the 2018 JAP follow-up | 10.1016/j.jrp.2008.06.010 (follow-up DOI not recorded) | Individual vs dyadic variance in negotiation; free on PMC |
-| 7 | Breil, Forthmann & Back (2022), Multiple speed assessments of social skills, EJPA | 10.1027/1015-5759/a000657 | Distinct social skills from short interactions |
+| 6 | Elfenbein et al. (2008), Are some negotiators better than others?, JRP; and the 2018 JAP follow-up | 10.1016/j.jrp.2008.06.010 (follow-up DOI not recorded) | Individual vs dyadic variance in negotiation; **2008 paper read 2026-11-15**; 2018 follow-up still needed |
+| 7 | Breil, Forthmann & Back (2022), Multiple speed assessments of social skills, EJPA | 10.1027/1015-5759/a000657 | Distinct social skills from short interactions; **read 2026-11-15** |
 | 8 | Arthur et al. (2003), AC dimensions criterion validity, PPsych | 10.1111/j.1744-6570.2003.tb00146.x | Resolves 6 vs 7 dimensions; per-dimension validity |
 | 9 | Funder, Furr & Colvin (2000), RBQ, J Pers | 10.1111/1467-6494.00103 | Observer coding of personality-relevant behaviour; coefficients |
-| 10 | Borkenau et al. (2004), Thin slices, JPSP | 10.1037/0022-3514.86.4.599 | How many situations for personality impressions |
-| 11 | MacLaren et al. (2020), Babble hypothesis, LQ | 10.1016/j.leaqua.2020.101409 | Verify r = .67 and gender effect before quoting |
+| 10 | Borkenau et al. (2004), Thin slices, JPSP | 10.1037/0022-3514.86.4.599 | How many situations for personality impressions; **read 2026-11-15** |
+| 11 | MacLaren et al. (2020), Babble hypothesis, LQ | 10.1016/j.leaqua.2020.101409 | r = .67 and gender effect **verified 2026-11-15** |
 | 12 | Kuncel & Sackett (2014), AC construct validity, JAP | 10.1037/a0034147 | Counter-position to jackson2016 |
 | 13 | Roch et al. (2012), FOR training meta-analysis, JOOP | 10.1111/j.2044-8325.2011.02045.x | Rater-training effect (d .50 secondary) |
 | 14 | Lievens (2001), assessor training, JAP | 10.1037/0021-9010.86.2.255 | Training effect on reliability/discriminant validity |
@@ -763,14 +772,14 @@ DOIs are as recorded in the sources or notes. "No DOI" means none was recorded.
 | 19 | Ohland et al. (2012), CATME-B, AMLE | 10.5465/amle.2010.0177 | Peer-anchor validity |
 | 20 | Christian, Edwards & Bradley (2010), SJT constructs, PPsych | 10.1111/j.1744-6570.2009.01163.x | Leadership/teamwork SJT coefficients |
 | 21 | Bartram (2005), Great Eight, JAP | 10.1037/0021-9010.90.6.1185 | Only criterion evidence for a commercial framework; abstract only |
-| 22 | Judge et al. (2002), personality and leadership, JAP | 10.1037/0021-9010.87.4.765 | Emergence vs effectiveness figures |
+| 22 | Judge et al. (2002), personality and leadership, JAP | 10.1037/0021-9010.87.4.765 | **Read 2026-11-15**: Big Five multiple R .53 emergence, .39 effectiveness, .48 overall; extraversion ρ .31 (pp. 765, 773) |
 | 23 | LePine et al. (2008), teamwork processes meta-analysis, PPsych | 10.1111/j.1744-6570.2008.00114.x | Dimension names and coefficients |
 | 24 | Bass (1954), Leaderless group discussion, Psych Bull (+ Bass et al. 1953) | 10.1037/h0056881 | LGD reliability |
 | 25 | Fletcher et al. (2003), ANTS, BJA | 10.1093/bja/aeg112 | Individual-level marker system |
 | 26 | Langer, König & Hemsing (2020), automatic interviews, JMP | 10.1108/JMP-03-2019-0156 | Applicant reactions |
-| 27 | SIOP (2023) AI-based assessment recommendations | no DOI | Professional standard; PDF returned 403 |
-| 28 | AI Act official text, OJ L 2024/1689 (EUR-Lex), Arts. 3, 4, 5, 6, 26, Annex III | — | Replace unofficial reproductions |
-| 29 | COP CET-R report on CompeTEA (cop.es) | — | Resolve the predictive-validity disagreement |
+| 27 | SIOP (2023) AI-based assessment recommendations | no DOI | Professional standard; **read 2026-11-15** (§7) |
+| 28 | AI Act official text, OJ L 2024/1689 (EUR-Lex), Arts. 3, 4, 5, 6, 26, Annex III | — | **Read 2026-11-15** (§7) |
+| 29 | COP CET-R report on CompeTEA (cop.es) | — | Resolve the predictive-validity disagreement. The file obtained is the blank CET-R questionnaire (Hernández et al., 2016), not the CompeTEA report: still open |
 | 30 | Hausknecht, Day & Thomas (2004), applicant reactions meta-analysis | no DOI | Per-procedure favourability |
 
 ---
@@ -869,9 +878,9 @@ Counts are computed from the source records ([`research/coverage.json`](research
   - By record: 115 full text (44%), 65 abstract-only, 83 secondary.
   - 157 saved files (kept privately).
   - Of the 152 source ids cited in `scores.json`: 75 full text, 41 abstract-only, 36 secondary.
-- **Key meta-analyses are known only from abstracts or other papers:** Arthur 2003, Oh/Wang/Mount 2011, Conway & Huffcutt 1997, Christian 2010, Joseph & Newman 2010, O'Boyle 2011, Hüffmeier 2014, Herde & Lievens 2023, Kauffeld 2012. Scores built on them carry Low or Medium confidence.
+- **Key meta-analyses are known only from abstracts or other papers:** Arthur 2003, Oh/Wang/Mount 2011, Conway & Huffcutt 1997, Christian 2010, Joseph & Newman 2010, O'Boyle 2011, Hüffmeier 2014, Kauffeld 2012. (Herde & Lievens 2023, Judge 2002, Borkenau 2004, MacLaren 2020, Elfenbein 2008 and Breil 2022 were read in full on 2026-11-15.) Scores built on them carry Low or Medium confidence.
 - **No forum evidence:** Reddit, Stack Exchange and Quora were blocked, and CIPD returned 403. The "opinion climate" rests on surveys, many of them by vendors (TestGorilla, Greenhouse, SHRM, Michael Page, InfoJobs).
-- **Legal texts were unofficial reproductions** (EUR-Lex bot challenge). The AI Act Arts. 4, 6 and 26 were saved but not read. The Illinois statute and EEOC guidance are summaries only.
+- **Legal texts were unofficial reproductions** (EUR-Lex bot challenge). On 2026-11-15 the AI Act articles cited in §7 and the NYC LL144 final rule were checked against official copies. The Commission guidelines, the GDPR, the Illinois statute and EEOC guidance were not re-checked.
 - **Spanish evidence is thin:**
   - one regional company survey (75 firms, 2013);
   - one psychologists' survey (Work specialty N = 69);
