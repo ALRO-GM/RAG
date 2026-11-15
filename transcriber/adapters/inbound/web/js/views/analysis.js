@@ -7,7 +7,7 @@ import { h, fill } from "../dom.js";
 import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  COUNT_KEYS, OPEN_ISSUES, actRows, byPerson, clock, eventRows, isActive,
+  COUNT_KEYS, OPEN_ISSUES, actRows, byPerson, clock, doubtfulCount, eventRows, isActive,
   orderedSteps, ratingRows, reportFileName, startMode, stepStatus, tagChip,
   tagged, verdict,
 } from "../lib/session-analysis.js";
@@ -138,10 +138,16 @@ export async function analysisView(ctx, root, [rawId]) {
       ];
     }
     if (name === "acts") {
+      const info = result.tagger ?? {};
       return [
-        result.provisional ? h("p", { class: "notice" }, t("sa.acts_provisional")) : null,
+        h("p", { class: "hint" }, t("sa.acts_help", {
+          name: info.name ?? "", version: info.version ?? "",
+          doubtful: doubtfulCount(result), total: actRows(result).length,
+        })),
+        info.note ? h("p", { class: "notice" }, info.note) : null,
         h("ul", { class: "plain" }, actRows(result).map((r) =>
-          line(r, [" ", h("span", { class: "chip" }, r.label + (r.doubtful ? " ?" : ""))]))),
+          line(r, [" ", r.labels.map((l) => h("span", { class: l.doubtful ? "chip doubtful" : "chip" },
+            `${t(`act.${l.label}`)} ${l.weight}%${l.doubtful ? ` · ${t("sa.doubtful")}` : ""}`))]))),
       ];
     }
     if (name === "events") {

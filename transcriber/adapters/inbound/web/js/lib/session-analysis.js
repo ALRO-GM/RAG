@@ -15,7 +15,14 @@ export const STATUSES = ["pending", "running", "done", "failed", "unavailable"];
 export const COUNT_KEYS = [
   "sentences", "speakers", "turns", "words", "with_candidates", "candidates",
   "sent", "not_sent", "confirmed", "rejected", "unparsed", "participants",
-  "judgements", "rated", "evidence", "reports",
+  "judgements", "rated", "evidence", "reports", "doubtful", "by_encoder",
+  "by_rules",
+];
+
+/** The 13 dialogue-act categories (their names are in the dictionaries). */
+export const ACTS = [
+  "pregunta", "respuesta", "informacion", "opinion", "propuesta", "peticion",
+  "aceptacion", "rechazo", "compromiso", "escucha", "gestion", "relacion", "otro",
 ];
 
 /** The things people must still do, by the RAG's ids. */
@@ -103,12 +110,19 @@ export function ratingRows(assessment) {
   };
 }
 
-/** The first label of each sentence of an acts.v1 document. */
+/** The sentences of an acts.v1 document with their weighted labels (best first). */
 export function actRows(acts) {
   return (acts?.utterances ?? []).map((u) => ({
-    id: u.id, speaker: u.speaker, text: u.text, start: u.start,
-    label: u.labels?.[0]?.label ?? u.act ?? "", doubtful: Boolean(u.labels?.[0]?.doubtful),
+    id: u.id, speaker: u.speaker, text: u.text, start: u.start, by: u.by ?? "",
+    labels: (u.labels ?? (u.act ? [{ label: u.act, weight: 100 }] : [])).map((l) => ({
+      label: l.label, weight: l.weight, doubtful: Boolean(l.doubtful),
+    })),
   }));
+}
+
+/** How many sentences have a doubtful first label. */
+export function doubtfulCount(acts) {
+  return actRows(acts).filter((r) => r.labels[0]?.doubtful).length;
 }
 
 /** The events of step e, in spoken order. */

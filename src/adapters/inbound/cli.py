@@ -338,7 +338,6 @@ class RagCLI:
         act_card: Optional[str] = None,
         analysis_dir: Optional[str] = None,
         max_confirmations: Optional[int] = None,
-        provisional_acts: Optional[bool] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -387,9 +386,6 @@ class RagCLI:
                 ``analyze`` (best candidates first; 0: all; default
                 150, which keeps a 4-person session under about 200
                 calls).
-            provisional_acts: In ``analyze``, ask the judge for the
-                dialogue act of every sentence (one call each) until
-                the tagger of #82 exists, so the events step can run.
         """
         options = dict(locals())
         options.pop("self")

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Api } from "../../transcriber/adapters/inbound/web/js/api.js";
 import {
-  COUNT_KEYS, OPEN_ISSUES, STATUSES, STEPS, actRows, byPerson, clock, eventRows,
+  ACTS, COUNT_KEYS, OPEN_ISSUES, STATUSES, STEPS, actRows, byPerson, clock, doubtfulCount, eventRows,
   isActive, orderedSteps, ratingRows, reportFileName, startMode, stepStatus,
   tagChip, tagged, verdict,
 } from "../../transcriber/adapters/inbound/web/js/lib/session-analysis.js";
@@ -71,7 +71,8 @@ test("every step, status, count, issue and event has words in both languages", (
     ...["candidates", "confirmation", "assessment", "reports"].map((s) => `sa.help_${s}`),
     ...["question_answered", "question_unanswered", "proposal_accepted", "proposal_rejected",
       "proposal_contested", "proposal_ignored", "decision", "action_item", "open_issue"].map((e) => `sa.event_${e}`),
-    "nav.analysis",
+    "nav.analysis", "sa.acts_help", "sa.doubtful", "sa.run_interrupted",
+    ...ACTS.map((a) => `act.${a}`),
   ];
   for (const key of keys) {
     assert.ok(es[key], `es ${key}`);
@@ -105,8 +106,17 @@ test("ratings, acts, events and the report's file name", () => {
   ] });
   assert.deepEqual(rows.competencies, ["A", "B"]);
   assert.deepEqual(rows.people, [{ name: "Ana", ratings: [4, null] }, { name: "Luis", ratings: [null, 2] }]);
-  assert.deepEqual(actRows({ utterances: [{ id: "t0.s0", speaker: "A", text: "x", labels: [{ label: "otro", weight: 100, doubtful: true }] }] })[0],
-    { id: "t0.s0", speaker: "A", text: "x", start: undefined, label: "otro", doubtful: true });
+  const acts = { utterances: [
+    { id: "t0.s0", speaker: "A", text: "x", by: "encoder", labels: [{ label: "otro", weight: 60, doubtful: true }, { label: "opinion", weight: 30 }] },
+    { id: "t1.s0", speaker: "B", text: "y", act: "pregunta" },
+  ] };
+  assert.deepEqual(actRows(acts)[0], {
+    id: "t0.s0", speaker: "A", text: "x", start: undefined, by: "encoder",
+    labels: [{ label: "otro", weight: 60, doubtful: true }, { label: "opinion", weight: 30, doubtful: false }],
+  });
+  assert.deepEqual(actRows(acts)[1].labels, [{ label: "pregunta", weight: 100, doubtful: false }]);
+  assert.equal(doubtfulCount(acts), 1);
+  assert.equal(doubtfulCount(undefined), 0);
   assert.deepEqual(eventRows({ events: [{ order: 5 }, { order: 1 }] }).map((e) => e.order), [1, 5]);
   assert.equal(reportFileName("sim-1", { position: 2, name: "Joaquín Salas" }), "sim-1-2-Joaquin-Salas.html");
   assert.equal(reportFileName("sim-1", { position: 1, name: "../" }), "sim-1-1.html");

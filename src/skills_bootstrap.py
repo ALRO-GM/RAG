@@ -42,8 +42,8 @@ from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
 from src.application.skills.analysis_steps import (
-    ProvisionalActTagger,
     RuleEventExtractor,
+    TaggerActStep,
 )
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
@@ -365,15 +365,14 @@ class SkillsContainer:
 
     @property
     def acts_tagger(self) -> Optional[DialogueActTagger]:
-        """Step d of ``skills analyze``.
+        """Step d of ``skills analyze``: the tagger of #82 (``skills acts``).
 
-        ``None`` until the tagger of #82 exists, unless
-        ``provisional_acts`` asks the selected judge instead (one call
-        per sentence).
+        The card's choice (the fine-tuned encoder, the rules when its
+        weights are missing); ``None`` when the card itself is missing.
         """
-        if not self.settings.provisional_acts:
+        if not Path(self.settings.act_card).is_file():
             return None
-        return ProvisionalActTagger(lambda: self.act_classifier(self.judge))
+        return TaggerActStep(lambda: self.act_tagger("default"), self.act_card)
 
     @property
     def event_extractor(self) -> EventExtractor:

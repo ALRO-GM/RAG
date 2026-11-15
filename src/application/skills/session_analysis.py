@@ -82,13 +82,13 @@ SCORECARD_FILE = "scorecard.md"
 """The technical scorecard of the whole session (step h)."""
 
 UNAVAILABLE = {
-    "acts": "Not available yet: the dialogue-act tagger (#82) is not "
-            "connected.",
+    "acts": "Not available: no dialogue-act tagger is configured (its "
+            "settings card is missing).",
     "events": "Not available yet: decisions, action items and open "
               "questions (#83) are not connected.",
-    "events_without_acts": "Not available yet: the events are derived "
-                           "from the dialogue acts of step d, which did "
-                           "not run (#82).",
+    "events_without_acts": "Not available: the events are derived from "
+                           "the dialogue acts of step d, which did not "
+                           "run.",
 }
 """Why a step behind a missing module is skipped."""
 
@@ -425,7 +425,7 @@ class SessionAnalysis:
         output = self._write(session_id, name, made.data)
         return StepRecord(
             name=name, status="done", output=output, model=made.model,
-            counts=dict(made.counts),
+            counts=dict(made.counts), note=made.note,
         )
 
     def _acts(self, session_id: str, c: "_Context") -> StepRecord:

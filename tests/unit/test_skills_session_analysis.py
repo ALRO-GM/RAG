@@ -204,7 +204,7 @@ def test_the_whole_flow_records_every_step_and_its_results() -> None:
     }
     assert [r.name for r in seen] == list(STEPS)
     assert all(s.seconds is not None and s.started_at for s in run.steps)
-    assert "#82" in run.step("acts").note
+    assert "no dialogue-act tagger" in run.step("acts").note
     assert "#83" in run.step("events").note
     sentences = run.step("sentences")
     assert sentences.counts == {"sentences": 8, "speakers": 3}

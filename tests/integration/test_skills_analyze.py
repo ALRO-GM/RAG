@@ -20,6 +20,7 @@ from src.domain.errors import (
 from src.domain.skills.analysis_run import new_run
 from src.skills_bootstrap import SkillsContainer
 from tests.fakes import FakeChatModel, FakeEmbedder
+from tests.integration.test_act_tagger_adapters import write_card
 from tests.integration.test_skills_container import (
     cli,
     settings,
@@ -71,7 +72,7 @@ def test_analyze_runs_every_step_and_prints_the_table(
     out = capsys.readouterr().out
     assert "Analysing s1" in out
     assert "acts          unavailable" in out
-    assert "Not available yet" in out
+    assert "Not available: no dialogue-act tagger" in out
     assert "Still to be done by people:" in out
     assert "#19" in out and "#84" in out
     folder = skills_project / "analysis" / "s1"
@@ -154,20 +155,25 @@ def test_simulate_errors(skills_project: Path) -> None:
         commands.simulate(script=str(bad))
 
 
-def test_provisional_acts_let_the_events_step_run(
+def test_the_tagger_card_lets_acts_and_events_run(
     skills_project: Path,
 ) -> None:
-    """With ``provisional_acts`` steps d and e run (fake judge)."""
-    app = container(analysis_dir="analysis", provisional_acts=True)
+    """With a tagger card and no weights the rules answer steps d and e."""
+    card = write_card(skills_project / "card.json", encoder="no-weights")
+    app = container(analysis_dir="analysis", act_card=str(card))
     cli(app).analyze(session="s1")
     folder = skills_project / "analysis" / "s1"
     run = json.loads((folder / "run.json").read_text())
     steps = {s["name"]: s for s in run["steps"]}
     assert steps["acts"]["status"] == "done"
-    assert steps["acts"]["model"].endswith("(provisional tagger)")
+    assert steps["acts"]["model"].startswith("rules (")
+    assert "the rules answered" in steps["acts"]["note"]
+    assert steps["acts"]["counts"]["sentences"] == 8
+    assert "doubtful" in steps["acts"]["counts"]
     assert steps["events"]["status"] == "done"
     acts = json.loads((folder / "acts.json").read_text())
-    assert acts["schema"] == "acts.v1" and acts["provisional"] is True
+    assert acts["schema"] == "acts.v1"
+    assert acts["tagger"]["name"] == "rules"
     events = json.loads((folder / "events.json").read_text())
     assert events["session_id"] == "s1"
 

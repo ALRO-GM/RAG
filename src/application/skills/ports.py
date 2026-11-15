@@ -139,12 +139,14 @@ class StepOutput(NamedTuple):
     """What an optional analysis step produced.
 
     ``data`` is written as the step's JSON file; ``counts`` go to the
-    step's record; ``model`` names who produced it.
+    step's record; ``model`` names who produced it and ``note`` how
+    (which approach answered, thresholds).
     """
 
     data: Any
     counts: Dict[str, int]
     model: str
+    note: str = ""
 
 
 class DialogueActTagger(Protocol):

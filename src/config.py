@@ -231,9 +231,7 @@ class SkillsSettings(BaseModel):
     ones with the best candidate first; 0: all): with the 11
     competencies of the core rubric, 4 people add 44 assessment calls,
     so the default keeps a session under about 200 calls on Claude's
-    quota. ``provisional_acts`` fills the dialogue-act step with the
-    selected judge (one call per sentence) until the tagger of #82
-    exists; off by default because of that cost.
+    quota.
 
     ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
@@ -255,7 +253,6 @@ class SkillsSettings(BaseModel):
     output_dir: str = "data/output/skills"
     analysis_dir: str = "data/output/skills/analysis"
     max_confirmations: int = Field(default=150, ge=0)
-    provisional_acts: bool = False
     semantic: bool = True
     embedding_model: str = DEFAULT_SKILLS_EMBEDDING_MODEL
     embedding_max_tokens: int = Field(default=128, ge=8)

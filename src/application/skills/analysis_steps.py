@@ -1,28 +1,91 @@
 """Steps d and e of ``skills analyze`` over the existing modules.
 
+:class:`TaggerActStep` (step d) labels every sentence with the
+dialogue-act tagger of #82 (``skills acts``: by default the fine-tuned
+encoder, the rules when its weights are missing) and returns the
+``acts.v1`` document, recording which approach answered, the "dudoso"
+margin and how many first labels are doubtful.
 :class:`RuleEventExtractor` (step e) derives decisions, action items,
-open questions and the fate of proposals from the dialogue acts of
-step d with the fixed rules of ``docs/skills/CONVERSATION_EVENTS.md``
-(#83). :class:`ProvisionalActTagger` (step d, opt-in) stands in for the
-dialogue-act tagger (#82) until it exists: it asks the selected judge
-for one act per sentence (the route of ``skills judge_acts``), one call
-per sentence, and says in its output that it is provisional. Both
-write the ``acts.v1`` / events JSON the analysis stores.
+open questions and the fate of proposals from those acts with the
+fixed rules of ``docs/skills/CONVERSATION_EVENTS.md`` (#83).
 """
 
-from typing import Any, Callable, Dict, List, Optional, Sequence
+import json
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 
+from src.application.skills.act_tagger import ActPlace, TaggerCard, tag_acts
 from src.application.skills.conversation_events import analyse
-from src.application.skills.judges import ActClassifier, ActItem, release
-from src.application.skills.ports import StepOutput
+from src.application.skills.judges import release
+from src.application.skills.ports import ActTagger, StepOutput
 from src.domain.errors import InvalidInputError
-from src.domain.skills.act_sequence import ACTS_SCHEMA, session_from_json
+from src.domain.skills.act_sequence import session_from_json
+from src.domain.skills.act_tagging import sentence_inputs
 from src.domain.skills.conversation_events import EventRules
 from src.domain.skills.speech import Sentence
 from src.domain.skills.transcript import Transcript
 
 RULES_NAME = "rules (CONVERSATION_EVENTS.md)"
 """Who produced the events: fixed rules, no model."""
+
+
+class TaggerActStep:
+    """Step d: the dialogue-act tagger of #82 on every sentence.
+
+    Args:
+        tagger: Builds the tagger and the note on how it was chosen
+            (e.g. "no fine-tuned weights: the rules answered"), when the
+            step runs, so nothing is loaded before.
+        card: The tagger's measured settings ("dudoso" thresholds).
+        context: Sentences before each one the tagger reads.
+    """
+
+    def __init__(
+        self,
+        tagger: Callable[[], Tuple[ActTagger, str]],
+        card: Callable[[], TaggerCard],
+        context: int = 3,
+    ) -> None:
+        """Keep the factories; nothing is built yet."""
+        self.tagger = tagger
+        self.card = card
+        self.context = max(context, 0)
+
+    def tag(
+        self, transcript: Transcript, sentences: Sequence[Sentence]
+    ) -> StepOutput:
+        """Return the sentences as ``acts.v1`` with their weighted labels."""
+        card = self.card()
+        model, note = self.tagger()
+        items = sentence_inputs(
+            [(s.id, s.speaker, s.text) for s in sentences], self.context
+        )
+        places = [
+            ActPlace(turn=s.turn, start=s.start, end=s.end) for s in sentences
+        ]
+        try:
+            document = tag_acts(
+                transcript.session_id, items, model, card.thresholds(),
+                card.margin, note, places,
+            )
+        finally:
+            release(model)
+        counts: Dict[str, int] = {
+            "sentences": len(document.utterances),
+            "doubtful": sum(
+                1 for u in document.utterances if u.labels[0].doubtful
+            ),
+        }
+        for u in document.utterances:
+            key = f"by_{u.by}"
+            counts[key] = counts.get(key, 0) + 1
+        info = document.tagger
+        text = f"Doubtful margin {info.margin}."
+        if note:
+            text += f" {note}"
+        return StepOutput(
+            json.loads(document.to_json()), counts,
+            f"{info.name} ({info.version})", text,
+        )
 
 
 class RuleEventExtractor:
@@ -47,66 +110,3 @@ class RuleEventExtractor:
         result = analyse(session, self.rules)
         counts = {k: v for k, v in result.summary.counts.items() if v}
         return StepOutput(result.model_dump(mode="json"), counts, RULES_NAME)
-
-
-class ProvisionalActTagger:
-    """One act per sentence from the selected judge (until #82 exists).
-
-    Args:
-        classifier: Builds the act classifier over the judge, when the
-            step runs (so nothing is loaded before).
-        context: Sentences shown before each one.
-    """
-
-    def __init__(
-        self, classifier: Callable[[], ActClassifier], context: int = 3
-    ) -> None:
-        """Keep the factory; nothing is built yet."""
-        self.classifier = classifier
-        self.context = max(context, 0)
-
-    def tag(
-        self, transcript: Transcript, sentences: Sequence[Sentence]
-    ) -> StepOutput:
-        """Return the sentences as ``acts.v1`` with the judge's act."""
-        items = [
-            ActItem(
-                id=s.id, speaker=s.speaker, text=s.text,
-                context=[
-                    (b.speaker, b.text)
-                    for b in sentences[max(n - self.context, 0):n]
-                ],
-            )
-            for n, s in enumerate(sentences)
-        ]
-        classifier = self.classifier()
-        try:
-            verdicts = classifier.classify(items)
-        finally:
-            release(classifier.judge)
-        rows: List[Dict[str, Any]] = []
-        unparsed = 0
-        for sentence, verdict in zip(sentences, verdicts):
-            label: Dict[str, Any] = {"label": verdict.act or "otro",
-                                     "weight": 100}
-            if verdict.act is None:
-                unparsed += 1
-                label["doubtful"] = True
-            rows.append({
-                "id": sentence.id, "turn": sentence.turn,
-                "speaker": sentence.speaker, "text": sentence.text,
-                "start": sentence.start, "end": sentence.end,
-                "labels": [label],
-            })
-        models = sorted({v.model for v in verdicts})
-        name = ", ".join(models) + " (provisional tagger)"
-        return StepOutput(
-            {
-                "schema": ACTS_SCHEMA,
-                "session": {"id": transcript.session_id},
-                "tagger": name, "provisional": True,
-                "utterances": rows,
-            },
-            {"sentences": len(rows), "unparsed": unparsed},
-            name,
-        )
