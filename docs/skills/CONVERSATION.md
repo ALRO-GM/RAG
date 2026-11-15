@@ -58,22 +58,23 @@ grupos y con qué etiquetas de contexto.
    gruesas los modelos entrenados pasan del 90 % [6][9]. Conclusión: pocas
    categorías, bien definidas.
 
-**Grupos recomendados (capa 1, una etiqueta principal por frase):**
+**Grupos recomendados (capa 1, una etiqueta principal por frase). Son 13 tras la decisión 1 del dueño (2026-11-15): Opinión separada de Información, y Propuesta y Petición por separado:**
 
 | # | Categoría | En una frase |
 |---|---|---|
 | 1 | Pregunta | Pide información u opinión |
 | 2 | Respuesta | Contesta a una pregunta anterior |
-| 3 | Información | Aporta hechos, explicaciones u opinión sobre el tema |
-| 4 | Propuesta | Plantea una idea, solución o forma de actuar para que el grupo la considere |
-| 5 | Petición | Pide a alguien concreto que haga algo |
-| 6 | Aceptación | Acepta o apoya una propuesta, petición u opinión anterior |
-| 7 | Rechazo | Rechaza, discrepa o corrige |
-| 8 | Compromiso | Quien habla se obliga a hacer algo |
-| 9 | Señal de escucha | "Vale", "ajá", "sí, sí": sigue la conversación sin aportar contenido |
-| 10 | Gestión de la reunión | Orden del día, turnos, tiempo, resúmenes, cambio de tema |
-| 11 | Relación | Saludos, agradecimientos, disculpas, elogios o críticas personales, humor |
-| 12 | Otro | Frases cortadas, ininteligibles o sin función clara |
+| 3 | Información | Aporta hechos, datos o explicaciones comprobables |
+| 4 | Opinión | Expresa una valoración, juicio o postura sobre el tema |
+| 5 | Propuesta | Plantea una idea, solución o forma de actuar para que el grupo la considere |
+| 6 | Petición | Pide a alguien concreto que haga algo |
+| 7 | Aceptación | Acepta o apoya una propuesta, petición u opinión anterior |
+| 8 | Rechazo | Rechaza, discrepa o corrige |
+| 9 | Compromiso | Quien habla se obliga a hacer algo |
+| 10 | Señal de escucha | "Vale", "ajá", "sí, sí": sigue la conversación sin aportar contenido |
+| 11 | Gestión de la reunión | Orden del día, turnos, tiempo, resúmenes, cambio de tema |
+| 12 | Relación | Saludos, agradecimientos, disculpas, elogios o críticas personales, humor |
+| 13 | Otro | Frases cortadas, ininteligibles o sin función clara |
 
 Etiquetas de contexto: **tipo de conversación** (lo indica quien sube la
 grabación; no se adivina) y **fase** (apertura, exploración, discusión,
@@ -85,14 +86,14 @@ voz no transcribe, los solapamientos y la ironía. La ley europea de IA
 prohíbe deducir emociones de la voz en el trabajo: estas categorías
 describen **qué hace** una frase, nunca **cómo se siente** quien habla.
 
-**Primer paso recomendado.** Escribir la guía de anotación de estas 12
-categorías, anotar entre dos personas unas 1.500 frases de reuniones en
+**Primer paso recomendado.** Escribir la guía de anotación de estas 13
+categorías (hecha: [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md)), anotar entre dos personas unas 1.500 frases de reuniones en
 español (con consentimiento o simuladas), y medir con ellas tres opciones
 baratas: reglas, un modelo de lenguaje local con ejemplos, y un
 clasificador pequeño entrenado con AMI/ICSI traducidos. Coste de GPU:
 horas, no días.
 
-**Decisiones pendientes (Alberto):** ver §6.4.
+**Decisiones pendientes (Alberto):** ver §6.4. La 1 está tomada; de la 2 a la 6 siguen abiertas.
 
 ---
 
@@ -299,7 +300,7 @@ context only and should not be labelled from one recording.
 
 ### 5.1 Design
 
-- **Layer 1 (per sentence):** one primary category from the 12 below, plus
+- **Layer 1 (per sentence):** one primary category from the 13 below, plus
   an optional secondary one when a sentence clearly does two things. Each
   label points to the earlier sentence it responds to (`responds_to`)
   when it is a second-part category (Respuesta, Aceptación, Rechazo) —
@@ -366,27 +367,62 @@ show before the category is used for evidence.
 
 #### 3. Información (inform)
 
-- **Definition.** Provides facts, explanations, reasons, examples or the
-  speaker's view about the topic, not in reply to a question and not
-  proposing action.
+- **Definition.** Reports a fact, an event, a figure, an explanation or a
+  reason that could in principle be checked, not in reply to a question
+  and not proposing action. The test: *could someone look it up and say
+  it is true or false?*
 - **Examples.** "El cliente llamó ayer quejándose del plazo." · "El
-  problema no es el proceso, es que nadie lo revisa." · "Creo que el
-  proveedor no va a llegar."
-- **Boundary.** Opinion vs fact is **not** separated in layer 1 (AMI
-  separates Inform and Assess; the split is a candidate for layer 1.5 if
-  the gold set shows annotators agree on it). Reason attached to a
-  proposal in the same sentence → Propuesta (primary) + Información
-  (secondary) — feeds INFLU.P1.
+  informe tiene cuarenta páginas." · "El proveedor dijo que entrega el
+  día quince."
+- **Boundary.** Fact vs opinion is **separated in layer 1** (owner
+  decision 1): checkable fact or report → Información; evaluation or
+  stance → Opinión (#4). Mixed sentence ("el plazo es de dos semanas, y
+  es imposible") → primary the first function in the sentence, secondary
+  the other. A reason attached to a proposal in the same sentence →
+  Propuesta (primary) + Información (secondary), which feeds INFLU.P1.
+  Reported speech of someone's opinion ("Pablo cree que no llegamos") is
+  an Información about what Pablo said; the opinion belongs to Pablo.
 - **ISO.** Inform (and its subtypes in the Task dimension).
-- **Rubric.** COLLAB.P3; SOLVE.P1, SOLVE.P4, SOLVE.P5; INFLU.P1–P3
-  (as the reason part); COMM.P1–P3; FEEDB.P1, FEEDB.P4; INIT.P3;
-  ADAPT.P5.
-- **Analogue agreement.** DAMSL Statement κ .66 [3]; ISO Task dimension
-  .47 plain / .71 weighted [1].
-- **Corpora.** All; it is the majority class (MRDA statements 68% [6]),
-  so report per-class F1, not accuracy.
+- **Rubric.** COLLAB.P3; SOLVE.P1, SOLVE.P5; INFLU.P1–P3 (as the reason
+  part); COMM.P1–P3; FEEDB.P1, FEEDB.P4; INIT.P3; ADAPT.P5.
+- **Analogue agreement.** DAMSL Statement κ .66 [3] (that class holds
+  fact and opinion together); ISO Task dimension .47 plain / .71 weighted
+  [1].
+- **Corpora.** All; still a large class after the split (MRDA statements
+  are 68% before any split [6]), so report per-class F1, not accuracy.
 
-#### 4. Propuesta (proposal / suggestion)
+#### 4. Opinión (opinion / assessment)
+
+- **Definition.** Expresses an evaluation, judgement, belief, preference
+  or stance about the topic, a person's work or an option: it says how
+  the speaker sees it, not what happened. Not in reply to a question and
+  not a proposal for action. Words that often signal it: "creo que", "me
+  parece", "para mí", "es mejor / peor / peligroso", "no me convence".
+- **Examples.** "Creo que el proveedor no va a llegar." · "Me parece
+  demasiado arriesgado." · "El problema no es el proceso, es que nadie lo
+  revisa." · "Para mí es lo más importante de la semana."
+- **Boundary (Opinión vs Información).** Evaluation or stance → Opinión;
+  checkable fact or report → Información. "Creo que" does not decide it
+  by itself: "Creo que la reunión era a las diez" is a hesitant fact
+  (Información); "Creo que la reunión es una pérdida de tiempo" is a
+  judgement (Opinión). A prediction that depends on the speaker's reading
+  ("no va a llegar") → Opinión; a scheduled fact ("llega el jueves") →
+  Información. Evaluation that replies to an earlier proposal or to
+  someone else's opinion → Aceptación or Rechazo, not Opinión.
+  Evaluation of a person → Relación.
+- **ISO.** No separate class: Inform with an evaluative qualifier. AMI
+  has a separate Assess class [7].
+- **Rubric.** SOLVE.P4 (values options with criteria); SOLVE.P1 when the
+  problem is stated as a judgement; CONFL.P1 and INFLU.P1 as the reason
+  part (secondary label); COMM.P1.
+- **Analogue agreement.** No figure found for Inform vs Assess alone.
+  Expected to be one of the weakest pairs together with
+  Propuesta/Petición; the gold set (§6.3) must test it. If κ for either
+  class falls below .60 the two are merged back (the owner chose to
+  collect both so that merging stays possible).
+- **Corpora.** AMI Assess; MRDA statement subtypes [unverified names].
+
+#### 5. Propuesta (proposal / suggestion)
 
 - **Definition.** Puts forward an idea, solution, plan, offer or procedure
   for the group to consider and accept or reject. The speaker does not
@@ -411,7 +447,7 @@ show before the category is used for evidence.
 - **Corpora.** AMI Suggest/Offer/Elicit-Offer-or-Suggestion; MRDA
   suggestion tags [unverified: exact specific-tag names not checked].
 
-#### 5. Petición (request / instruction)
+#### 6. Petición (request / instruction)
 
 - **Definition.** Asks or tells a specific person (or the group) to do
   something.
@@ -430,7 +466,7 @@ show before the category is used for evidence.
 - **Corpora.** MRDA command tag [unverified]; AMI has no separate
   request class (falls under Suggest) [7]; DIHANA no.
 
-#### 6. Aceptación (acceptance / agreement)
+#### 7. Aceptación (acceptance / agreement)
 
 - **Definition.** Accepts, supports or agrees with an earlier proposal,
   request, offer or opinion by another speaker (`responds_to`). Includes
@@ -454,7 +490,7 @@ show before the category is used for evidence.
   adjacency relations (positive); DIHANA "Afirmación" (only as yes/no in
   a task dialogue, weak analogue).
 
-#### 7. Rechazo (rejection / disagreement / correction)
+#### 8. Rechazo (rejection / disagreement / correction)
 
 - **Definition.** Rejects a proposal or request, disagrees with an
   opinion, corrects a statement, or objects. Includes partial rejection
@@ -475,7 +511,7 @@ show before the category is used for evidence.
 - **Corpora.** MRDA reject tags [unverified names]; AMI adjacency
   relations (negative); NegotiAct "rejecting offer" (not public).
 
-#### 8. Compromiso (commitment)
+#### 9. Compromiso (commitment)
 
 - **Definition.** The speaker binds themself to a future action ("lo
   hago yo", "te lo mando mañana"). Includes accepting a request when the
@@ -498,7 +534,7 @@ show before the category is used for evidence.
   meetings; availability not checked); AMI ACTIONS summaries (weak, not
   utterance-level).
 
-#### 9. Señal de escucha (backchannel / acknowledgement)
+#### 10. Señal de escucha (backchannel / acknowledgement)
 
 - **Definition.** Short token that shows attention or understanding
   without taking the floor or adding content: "ajá", "sí, sí", "vale",
@@ -522,7 +558,7 @@ show before the category is used for evidence.
 - **Corpora.** MRDA, SwDA, AMI Backchannel. **Our transcripts may lack
   most of them** (§5.4).
 
-#### 10. Gestión de la reunión (process / discourse management)
+#### 11. Gestión de la reunión (process / discourse management)
 
 - **Definition.** Talk about the conversation itself: agenda, order,
   method, turn allocation, time, summaries of what was said or decided,
@@ -545,7 +581,7 @@ show before the category is used for evidence.
 - **Corpora.** MRDA (floor grabber/holder, topic change tags
   [unverified names]); AMI topic segmentation (as phase signal).
 
-#### 11. Relación (social / relational)
+#### 12. Relación (social / relational)
 
 - **Definition.** Acts that manage the relationship rather than the task:
   greetings, thanks, apologies, praise and criticism of a person (not of
@@ -553,7 +589,8 @@ show before the category is used for evidence.
 - **Examples.** "Gracias por traerlo tan preparado, Pablo." · "Perdona, me
   he pasado." · "Buenos días a todos."
 - **Boundary.** Praise of specific work ("el análisis de la página 4 está
-  muy bien hecho") → Relación + Información (FEEDB.P1/P6). Criticism of an
+  muy bien hecho") → Opinión (an evaluation of work, not of the person;
+  FEEDB.P1/P6); praise of the person → Relación. Criticism of an
   idea → Rechazo; of a person → Relación (CONFL.N1, COLLAB.N2,
   FEEDB.N4). Named by **act** (thanks, apology, criticism), never by an
   inferred feeling.
@@ -568,7 +605,7 @@ show before the category is used for evidence.
 - **Corpora.** AMI Be-Positive/Be-Negative (closest); SwDA thanking,
   apology tags.
 
-#### 12. Otro (other)
+#### 13. Otro (other)
 
 - **Definition.** Abandoned or interrupted fragments, self-corrections,
   stalls, unintelligible or off-task talk with no function in the
@@ -585,22 +622,77 @@ show before the category is used for evidence.
 |---|---|---|---|---|---|
 | 1 | Pregunta | Question family | LISTEN.P2/P5, INCL.P1/P3/P4, SOLVE.P2, INFLU.P6 | ~.80 (MRDA overall) | MRDA, SwDA, AMI; DIHANA (es) |
 | 2 | Respuesta | Answer, Confirm, Disconfirm | COMM.N4, COLLAB.N1, INIT.N2 | .76 (DAMSL) | MRDA, SwDA; DIHANA (es) |
-| 3 | Información | Inform | COLLAB.P3, SOLVE.P1/P4/P5, FEEDB.P1/P4 | .66 (DAMSL); .47/.71 (ISO Task) | all |
-| 4 | Propuesta | Suggest, Offer | INFLU.P1–P5, SOLVE.P3, INIT.P2, CONFL.P3/P5 | .70 (DAMSL) | AMI, MRDA |
-| 5 | Petición | Request, Instruct | COORD.P3/N4, COLLAB.P2 | .70 (DAMSL) | MRDA |
-| 6 | Aceptación | Agreement, Accept* | LISTEN.P3, ADAPT.P2/P6, layer-2 decision | .42 (DAMSL) – .71 (ISO) | MRDA, AMI relations |
-| 7 | Rechazo | Disagreement, Correction, Decline* | CONFL.P1/P2/N2, INFLU.N4, ADAPT.N1 | .42–.71 | MRDA, AMI relations |
-| 8 | Compromiso | Promise, Accept Request | INIT.P1/P4/N2, COLLAB.P1/P6, COORD.P3 | .15 (DAMSL) – .78 (hier. action items) | ICSI action items (if obtainable) |
-| 9 | Señal de escucha | Auto/Allo-Feedback, Turn | participation descriptor only | .21/.57 function; .90 dimension (ISO) | MRDA, SwDA, AMI |
-| 10 | Gestión | Discourse Structuring, Turn, Time | COORD.*, INCL.*, COMM.P2/P4 | .58–.82 (ISO) | MRDA, AMI topics |
-| 11 | Relación | Social Obligations Mgmt | COLLAB.P4/N2, CONFL.P6/N1, FEEDB.P6/N4 | 1.00 (ISO, small) | AMI Be-Pos/Neg, SwDA |
-| 12 | Otro | Own Comm. Mgmt, Stalling | COMM.N3 | .14–.64 | AMI, MRDA |
+| 3 | Información | Inform | COLLAB.P3, SOLVE.P1/P5, FEEDB.P1/P4 | .66 (DAMSL); .47/.71 (ISO Task) | all |
+| 4 | Opinión | Inform with an evaluative qualifier (no own class) | SOLVE.P4, CONFL.P1 and INFLU.P1 (reason part) | none measured; AMI keeps Assess apart from Inform [7] | AMI Assess, MRDA |
+| 5 | Propuesta | Suggest, Offer | INFLU.P1–P5, SOLVE.P3, INIT.P2, CONFL.P3/P5 | .70 (DAMSL) | AMI, MRDA |
+| 6 | Petición | Request, Instruct | COORD.P3/N4, COLLAB.P2 | .70 (DAMSL) | MRDA |
+| 7 | Aceptación | Agreement, Accept* | LISTEN.P3, ADAPT.P2/P6, layer-2 decision | .42 (DAMSL) – .71 (ISO) | MRDA, AMI relations |
+| 8 | Rechazo | Disagreement, Correction, Decline* | CONFL.P1/P2/N2, INFLU.N4, ADAPT.N1 | .42–.71 | MRDA, AMI relations |
+| 9 | Compromiso | Promise, Accept Request | INIT.P1/P4/N2, COLLAB.P1/P6, COORD.P3 | .15 (DAMSL) – .78 (hier. action items) | ICSI action items (if obtainable) |
+| 10 | Señal de escucha | Auto/Allo-Feedback, Turn | participation descriptor only | .21/.57 function; .90 dimension (ISO) | MRDA, SwDA, AMI |
+| 11 | Gestión | Discourse Structuring, Turn, Time | COORD.*, INCL.*, COMM.P2/P4 | .58–.82 (ISO) | MRDA, AMI topics |
+| 12 | Relación | Social Obligations Mgmt | COLLAB.P4/N2, CONFL.P6/N1, FEEDB.P6/N4 | 1.00 (ISO, small) | AMI Be-Pos/Neg, SwDA |
+| 13 | Otro | Own Comm. Mgmt, Stalling | COMM.N3 | .14–.64 | AMI, MRDA |
 
 Target for our gold set: κ ≥ .60 per category between two trained
 annotators before a category is used for evidence (Bakeman & Quera's .62
 threshold, as cited in [12]); categories below that are shown as
-"provisional" or merged (Propuesta+Petición; Aceptación vs Señal de
-escucha are the likely candidates).
+"provisional" or merged (Propuesta+Petición; Información+Opinión;
+Aceptación vs Señal de escucha are the likely candidates).
+
+#### 5.3.1 Certainty per category (owner request, #63)
+
+**Why a figure.** The owner wants to keep or drop categories that barely
+beat chance. κ is the chance-corrected agreement between two annotators:
+0 = no better than chance, 1 = perfect agreement. κ × 100 reads as "% of
+the possible agreement above chance". Plain-Spanish explanation for
+annotators: [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md) §11.
+
+**(a) Borrowed expectation, before we measure anything.** Every figure
+below comes from another scheme, unit or language (the "analogue" lines of
+§5.2) and is **not** the agreement we will obtain. Verdict rule: by the
+*lowest* figure of the range (conservative); keep κ ≥ .60, provisional
+.40–.60, at risk of removal or merging < .40.
+
+| # | Category | Borrowed κ (range) | % of possible agreement above chance | Source scheme | Verdict (borrowed) |
+|---|---|---|---|---|---|
+| 1 | Pregunta | .75–.80 | 75–80 % | MRDA coarse, SWBD-DAMSL overall [5][6] | keep |
+| 2 | Respuesta | .76 (single figure) | 76 % | DAMSL Answer [3] | keep |
+| 3 | Información | .47–.71 | 47–71 % | DAMSL Statement .66 [3]; ISO Task .47 plain / .71 weighted [1]; these classes include opinion, so the split may lower it | provisional |
+| 4 | Opinión | no figure found | — | AMI separates Assess [7] but no κ for the pair was found | no borrowed figure: provisional by default |
+| 5 | Propuesta | .70 (single figure, pooled with Petición) | 70 % | DAMSL Influence-on-Addressee-Future-Action [3] | keep (the pooled class; the split is untested) |
+| 6 | Petición | .70 (single figure, pooled with Propuesta) | 70 % | same class as 5 [3] | keep (same caveat) |
+| 7 | Aceptación | .42–.71 | 42–71 % | DAMSL Agreement .42 [3]; ISO Task .47–.71 [1] | provisional |
+| 8 | Rechazo | .42–.71 | 42–71 % | as 7 | provisional |
+| 9 | Compromiso | .15–.78 | 15–78 % | DAMSL .15 [3]; flat action-item scheme .36, hierarchical .64–.78 [18] | at risk (rare class; depends on a careful definition) |
+| 10 | Señal de escucha | .21–.57 (function); .90 only for "does this dimension apply" | 21–57 % | ISO Auto-feedback plain .21 / weighted .57 [1] | at risk |
+| 11 | Gestión de la reunión | .58–.82 | 58–82 % | ISO Discourse Structuring .74, Turn .82, Time .58 [1] | provisional (lowest .58) |
+| 12 | Relación | 1.00 on small Dutch data; praise/criticism never measured | — (1.00 is not reliable) | ISO Social Obligations [1] | no reliable figure: provisional by default |
+| 13 | Otro | .14–.64 | 14–64 % | DAMSL Abandoned .64, Unintelligible .14 [3] | at risk |
+
+Verdicts for 4 and 12 are a decision made in this document, not a
+literature result.
+
+**(b) Measured rule, after our own double annotation.** Each category gets
+its own κ (two annotators, independently, on the gold set of §6.2) with a
+95 % bootstrap confidence interval (bootstrap tooling exists in the lab).
+Verdict from the measured κ with the same bands (keep ≥ .60, provisional
+.40–.60, at risk < .40). A category is **dropped or merged** when the
+upper bound of its 95 % interval stays below .40 (it cannot be shown to
+beat chance by a useful margin), and when the interval is too wide to say
+(few instances) more examples are annotated before deciding; rare
+categories must reach ≥ 50 instances (§6.2). Candidate merges: Propuesta +
+Petición, Información + Opinión, Aceptación + Señal de escucha. The
+verdict for a merge is computed on the merged category.
+
+**(c) The automatic tagger, later.** Each predicted label carries a
+**calibrated confidence in %** (calibration measured against the gold
+set: of the labels given 70 %, about 70 % are right). A label whose
+confidence is not clearly above the **base rate** of its category (its
+share among all sentences in the gold set) is shown as **"dudoso"** or not
+shown. The margin over the base rate and the "dudoso"/hidden cut-off are
+**not fixed yet**: they are set on the gold set when it exists. Reported
+next to each per-category κ: the tagger's κ against the consensus (§6.3).
 
 ### 5.4 What text-only loses
 
@@ -650,9 +742,9 @@ stated.
 | Option | What | Data needed | GPU cost (estimate) | Expected quality (from §3.2) | Risks |
 |---|---|---|---|---|---|
 | A. Rules | "¿…?" → Pregunta; lexicon for backchannels ("ajá", "vale" alone in a short sentence), commitments ("me encargo", "lo hago yo"), management ("siguiente punto", "nos quedan") | None | None | Good for Pregunta (with "¿") and Señal de escucha; poor elsewhere | Brittle with ASR punctuation |
-| B. Local LLM, few-shot | Qwen3 from the existing ladder, prompt with definitions + Spanish examples, 3–5 sentences of context, one label (+ optional second) | ~5 examples per category | Qwen3-4B at 4-bit ≈ 3 GB; Qwen3-8B at 4-bit ≈ 5–6 GB (tight with 2.7 GB in use). Measured on this GPU: Qwen3-1.7B took 49 s for 64 sentences in call 1 (AUDIO.md §4); a 4B model a few minutes per meeting | Unknown for 12 coarse Spanish categories; fine-grained LLM DA accuracy is 31–40% [9]; the 1.7B judge showed position bias | Position bias, instability; needs label shuffling and measurement |
+| B. Local LLM, few-shot | Qwen3 from the existing ladder, prompt with definitions + Spanish examples, 3–5 sentences of context, one label (+ optional second) | ~5 examples per category | Qwen3-4B at 4-bit ≈ 3 GB; Qwen3-8B at 4-bit ≈ 5–6 GB (tight with 2.7 GB in use). Measured on this GPU: Qwen3-1.7B took 49 s for 64 sentences in call 1 (AUDIO.md §4); a 4B model a few minutes per meeting | Unknown for 13 coarse Spanish categories; fine-grained LLM DA accuracy is 31–40% [9]; the 1.7B judge showed position bias | Position bias, instability; needs label shuffling and measurement |
 | C. API LLM (Claude) | Same prompt | Same | None locally | Likely the best zero-shot option; not measured | Data leaves the machine: only with consent (DESIGN.md §4) |
-| D. Fine-tuned multilingual encoder | XLM-R base or mDeBERTa-v3-base (~280 M params) trained on English corpora mapped to the 12 categories (AMI, ICSI-MRDA; SwDA only if NC licence is acceptable) + DIHANA for Spanish question/answer; context window of previous sentences; zero-shot transfer to Spanish meetings | Mapping tables; corpora are free | Training in fp16, seq 128–256, batch 16: fits in ~5 GB; ~1–3 h for ~200k utterances on this GPU (estimate). Inference: thousands of sentences per minute | Coarse-set supervised models reach 91% in English [34][35]; cross-lingual transfer loss to Spanish meetings unknown | Domain shift (design role-play, telephone, railway info → Spanish workplace); categories 8 and 11 poorly covered by mappings |
+| D. Fine-tuned multilingual encoder | XLM-R base or mDeBERTa-v3-base (~280 M params) trained on English corpora mapped to the 13 categories (AMI, ICSI-MRDA; SwDA only if NC licence is acceptable) + DIHANA for Spanish question/answer; context window of previous sentences; zero-shot transfer to Spanish meetings | Mapping tables; corpora are free | Training in fp16, seq 128–256, batch 16: fits in ~5 GB; ~1–3 h for ~200k utterances on this GPU (estimate). Inference: thousands of sentences per minute | Coarse-set supervised models reach 91% in English [34][35]; cross-lingual transfer loss to Spanish meetings unknown | Domain shift (design role-play, telephone, railway info → Spanish workplace); categories 8 and 11 poorly covered by mappings |
 | E. D + machine-translated corpora / Spanish gold set fine-tuning | Translate AMI/MRDA to Spanish, or fine-tune D on our own annotated sentences | Our gold set (§6.3) | As D | Usually the step that closes the domain gap | Needs annotation effort first |
 | F. Hybrid | Rules for the easy categories, D or B for the rest, LLM only for disagreements | — | Sum of parts | — | More moving parts |
 
@@ -663,8 +755,8 @@ use SwDA for evaluation only unless a legal review says otherwise.
 
 ### 6.2 Recommended first step
 
-1. **Write the annotation guide** for the 12 categories (this document's
-   §5.2 is the draft), with `responds_to` and the optional second label.
+1. **Write the annotation guide** for the 13 categories (done:
+   [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md); §5.2 is its basis), with `responds_to` and the optional second label.
 2. **Annotate a Spanish gold set** (two annotators, independently, then
    consensus): ~1,500 sentences from 6–10 meetings (role-played or with
    consent), oversampling meetings with decisions and task assignment so
@@ -700,10 +792,13 @@ optional.
 
 ### 6.4 Decisions for the owner
 
-1. **Category set**: accept the 12 above, or merge before annotating
-   (Propuesta+Petición)? Should opinion be split from Información
-   (AMI's Inform vs Assess), which this proposal does not do?
-2. **Second label**: allow a secondary label per sentence (more faithful,
+1. **Category set** — **decided 2026-11-15 (owner):** keep the
+   categories separate. Propuesta and Petición stay apart; Opinión is
+   split from Información. 13 first-layer categories; data is collected
+   for each, and they are merged later only if the gold set shows κ below
+   .60 (§5.3). Recorded in §0, §5.2 and
+   [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md).
+2. **Second label** (open): allow a secondary label per sentence (more faithful,
    costlier to annotate) or force one?
 3. **Gold set source**: role-plays written/recorded in-house, or real
    meetings with consent? Who annotates (the psychologist, students)?
