@@ -11,7 +11,9 @@ one finds another ``run_id`` and does nothing. Refusing duplicates is
 left to the use cases, which know the session's state. Work the caller
 waits for (:meth:`ThreadJobRunner.run`, an enrolment) goes through the
 same queue and thread. After every job an optional ``after_job`` hook
-runs, which the composition root uses to unload the models.
+runs, which the composition root uses to unload the models; before it,
+the locals of a failed job's frames are cleared (they may hold a model's
+tensors) and the worker keeps no reference to the job (#117).
 
 The worker thread outlives any job: whatever a job raises, even
 :class:`SystemExit` or :class:`KeyboardInterrupt`, is recorded as its
@@ -27,6 +29,7 @@ from typing import (
     Any, Callable, Dict, Generic, Optional, Tuple, TypeVar, Union,
 )
 
+from transcriber.application.gpu import drop_frames
 from transcriber.application.ports import Job, JobStatus
 from transcriber.application.transcribe import DONE_STAGE
 from transcriber.domain.errors import StateError
@@ -58,6 +61,7 @@ class _Call(Generic[T]):
         try:
             self.result = self.work()
         except BaseException as exc:  # handed to the waiting caller
+            drop_frames(exc)
             self.error = exc
         finally:
             self.done.set()
@@ -246,17 +250,21 @@ class ThreadJobRunner:
         """Take jobs off the queue and run them until closed."""
         while True:
             item = self._queue.get()
+            if item is None:
+                self._queue.task_done()
+                return
             try:
-                if item is None:
-                    return
                 if isinstance(item, _Call):
                     item()
-                    self._clean_up()
                 else:
                     self._run(*item)
             except BaseException:  # pragma: no cover - _run never raises
                 LOG.exception("The job runner caught an unexpected error")
             finally:
+                # Nothing of the job is referenced while the models are
+                # unloaded, nor while the queue waits for the next one.
+                item = None
+                self._clean_up()
                 self._queue.task_done()
 
     def _run(self, session_id: str, token: _Token, job: Job) -> None:
@@ -267,6 +275,7 @@ class ThreadJobRunner:
             job(progress)
         except BaseException as exc:  # the worker must outlive any job
             LOG.exception("Job of session %s failed", session_id)
+            drop_frames(exc)
             last = self.status(session_id)
             self._set(
                 session_id, token, SessionState.FAILED,
@@ -278,8 +287,6 @@ class ThreadJobRunner:
             self._set(
                 session_id, token, SessionState.DONE, DONE_STAGE, 1.0
             )
-        finally:
-            self._clean_up()
 
     def _clean_up(self) -> None:
         """Run the ``after_job`` hook; log what it raises."""

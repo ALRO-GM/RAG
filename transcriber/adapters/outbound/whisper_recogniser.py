@@ -26,6 +26,7 @@ session can be told apart window by window.
 """
 
 import threading
+import weakref
 from typing import AbstractSet, Any, Dict, List, Optional, Sequence, Tuple
 
 from transcriber.adapters.outbound.torch_runtime import (
@@ -152,14 +153,27 @@ def without_encoder_attentions(model: Any) -> None:
     encoder's (32 layers x 20 heads x 1500 x 1500 for large-v3) take
     about 3 GB per 30-second window for nothing. This keeps the request
     away from the encoder only.
+
+    The replacement holds the encoder weakly: a closure over its own
+    bound ``forward`` would make a reference cycle, and the model would
+    then leave the GPU only when the garbage collector next runs, not
+    when the last reference to it is dropped (#117).
     """
     encoder = model.get_encoder()
     forward = encoder.forward
+    if getattr(forward, "__self__", None) is not encoder:
+        def lean_forward(*args: Any, **kwargs: Any) -> Any:
+            """Call the encoder without attention maps."""
+            kwargs["output_attentions"] = False
+            return forward(*args, **kwargs)
+    else:
+        method = forward.__func__
+        owner = weakref.ref(encoder)
 
-    def lean_forward(*args: Any, **kwargs: Any) -> Any:
-        """Call the encoder without attention maps."""
-        kwargs["output_attentions"] = False
-        return forward(*args, **kwargs)
+        def lean_forward(*args: Any, **kwargs: Any) -> Any:
+            """Call the encoder without attention maps."""
+            kwargs["output_attentions"] = False
+            return method(owner(), *args, **kwargs)
 
     encoder.forward = lean_forward
 

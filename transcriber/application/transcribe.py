@@ -39,6 +39,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
 )
 
 import numpy as np
@@ -49,10 +50,12 @@ from transcriber.application.common import (
     check_speaker_id,
     require_session,
 )
+from transcriber.application.gpu import retry_on_gpu_memory
 from transcriber.application.ports import (
     Audio,
     AudioDecoder,
     Diarizer,
+    GpuMemory,
     JobRunner,
     JobStatus,
     LanguageSpan,
@@ -155,6 +158,8 @@ STAGES: Tuple[Tuple[str, float], ...] = (
     ("save", 0.95),
 )
 DONE_STAGE = "done"
+
+T = TypeVar("T")
 
 
 class TranscriptionOptions(BaseModel):
@@ -302,6 +307,7 @@ class TranscribeSession:
         overlaps: Optional[OverlapDetector] = None,
         diarizer: Optional[Diarizer] = None,
         diarizer_rule: DiarizerRule = BUILTIN_RULE,
+        gpu: Optional[GpuMemory] = None,
     ) -> None:
         """Wire the ports and take the thresholds from the settings.
 
@@ -309,7 +315,10 @@ class TranscribeSession:
         overlaps are flagged from the voice windows only. ``diarizer``
         runs the lab's diarizers; ``diarizer_rule`` says which one a
         session gets (``builtin``, or no ``diarizer``: the built-in
-        grouping of voice windows).
+        grouping of voice windows). ``gpu``, when given, lets a stage
+        that ran out of GPU memory free the models and run once more
+        (:func:`~transcriber.application.gpu.retry_on_gpu_memory`), and
+        the GPU memory is logged at debug level at each stage.
         """
         self._sessions = sessions
         self._voiceprints = voiceprints
@@ -321,6 +330,7 @@ class TranscribeSession:
         self._overlaps = overlaps
         self._diarizer = diarizer
         self._rule = diarizer_rule
+        self._gpu = gpu
 
     @property
     def voice_model(self) -> str:
@@ -378,6 +388,7 @@ class TranscribeSession:
             """Start the next stage and report it."""
             nonlocal stage
             stage, fraction = next(stages)
+            self._log_gpu(f"{stage} starts")
             report.report(stage, fraction)
 
         try:
@@ -390,11 +401,24 @@ class TranscribeSession:
             reason = str(exc).strip() or type(exc).__name__
             self._fail(running, f"{stage}: {reason}")
             raise
+        finally:
+            self._log_gpu("the job's stages ended")
         if saved is None:
             report.note(STOPPED_NOTE)
             return None
         report.report(DONE_STAGE, 1.0)
         return saved
+
+    def _log_gpu(self, moment: str) -> None:
+        """Log the GPU memory at debug level, when there is a GPU."""
+        if self._gpu is not None and LOG.isEnabledFor(logging.DEBUG):
+            LOG.debug("GPU memory when %s: %s", moment, self._gpu.usage())
+
+    def _retried(
+        self, stage: str, work: Callable[[], T], report: Progress
+    ) -> T:
+        """Return ``work()``, run once more if the GPU ran out of memory."""
+        return retry_on_gpu_memory(self._gpu, stage, work, report.note)
 
     def _current(self, running: Session) -> Optional[Session]:
         """Return the stored session if it is still the run ``running``.
@@ -456,7 +480,10 @@ class TranscribeSession:
         audio = self._decoder.decode(recording)
         advance()  # recognise
         language = recognition_language(running.language)
-        speech = self._recogniser.recognise(audio, language)
+        speech = self._retried(
+            "recognise",
+            lambda: self._recogniser.recognise(audio, language), report,
+        )
         # Recognisers invent words over silence: keep only the words
         # said where the audio has some energy. Passages returned twice
         # at the seams of the recogniser's windows go first.
@@ -479,10 +506,11 @@ class TranscribeSession:
         listed = expected_rule(options, candidates.voiceprints)
         external = self._external(running, audio, options, report)
         if external is not None:
-            voices = self._segment_voices(audio, words, external)
+            voices = self._segment_voices(audio, words, external, report)
         else:
             voices = self._grouped_voices(
-                audio, words, options, candidates.voiceprints, listed
+                audio, words, options, candidates.voiceprints, listed,
+                report,
             )
         words, vectors, evidence, seeded, heard = voices
         if p.smoothing_run:
@@ -569,7 +597,7 @@ class TranscribeSession:
     def _grouped_voices(
         self, audio: Audio, words: List[Word],
         options: TranscriptionOptions, candidates: Sequence[Voiceprint],
-        listed: bool,
+        listed: bool, report: Progress,
     ) -> _Voices:
         """Find the voices with the built-in grouping of voice windows.
 
@@ -580,8 +608,8 @@ class TranscribeSession:
         regions = speech_regions(words, p.region_gap)
         coarse_windows = analysis_windows(regions, *p.coarse())
         fine_windows = analysis_windows(regions, *p.fine())
-        coarse = self._embed(audio, coarse_windows)
-        fine = self._embed(audio, fine_windows)
+        coarse = self._embed(audio, coarse_windows, report)
+        fine = self._embed(audio, fine_windows, report)
         seeded: Optional[SeededVoices] = None
         if (
             p.identification == "seeded" and candidates
@@ -679,6 +707,7 @@ class TranscribeSession:
 
     def _segment_voices(
         self, audio: Audio, words: List[Word], found: Diarization,
+        report: Progress,
     ) -> _Voices:
         """Find the voices from an external diarizer's segments.
 
@@ -694,11 +723,11 @@ class TranscribeSession:
         windows, owners = label_windows(
             found.segments, order, audio.duration, *p.fine()
         )
-        label_vectors = self._embed(audio, windows)
+        label_vectors = self._embed(audio, windows, report)
         fine_windows = analysis_windows(
             speech_regions(words, p.region_gap), *p.fine()
         )
-        fine = self._embed(audio, fine_windows)
+        fine = self._embed(audio, fine_windows, report)
         if label_vectors.shape[0] == 0 and fine.shape[0]:
             label_vectors = np.zeros((0, fine.shape[1]), dtype=np.float32)
         voices = segment_voices(
@@ -730,7 +759,13 @@ class TranscribeSession:
         """
         unscored = [w.model_copy(update={"probability": None}) for w in words]
         try:
-            scored = self._recogniser.score_words(audio, words, language)
+            scored = self._retried(
+                "recognise",
+                lambda: self._recogniser.score_words(
+                    audio, words, language
+                ),
+                report,
+            )
         except Exception:
             LOG.warning("Scoring the recognised words failed.", exc_info=True)
             report.note(SCORING_FAILED_NOTE)
@@ -759,7 +794,10 @@ class TranscribeSession:
         detected = list(heard)
         if self._overlaps is not None:
             try:
-                detected += self._overlaps.overlaps(audio)
+                overlaps = self._overlaps
+                detected += self._retried(
+                    "sentences", lambda: overlaps.overlaps(audio), report
+                )
             except Exception:
                 LOG.warning("The overlap detector failed.", exc_info=True)
                 report.note(OVERLAP_FAILED_NOTE)
@@ -770,12 +808,15 @@ class TranscribeSession:
         )
 
     def _embed(
-        self, audio: Audio, windows: Sequence[Tuple[float, float]]
+        self, audio: Audio, windows: Sequence[Tuple[float, float]],
+        report: Progress,
     ) -> FloatArray:
         """Embed ``windows`` of ``audio``; no windows give zero rows."""
         if not windows:
             return np.zeros((0, 0), dtype=np.float32)
-        return self._encoder.embed(audio, windows)
+        return self._retried(
+            "voices", lambda: self._encoder.embed(audio, windows), report
+        )
 
     def _one_voice(self, vectors: FloatArray) -> bool:
         """The single-voice rule of the parameters (raw long windows)."""

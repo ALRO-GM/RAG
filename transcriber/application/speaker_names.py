@@ -32,9 +32,11 @@ from transcriber.application.common import (
     require_session,
     require_transcript,
 )
+from transcriber.application.gpu import drop_frames, retry_on_gpu_memory
 from transcriber.application.ports import (
     ChatModel,
     Clock,
+    GpuMemory,
     JobRunner,
     Progress,
     SessionLocks,
@@ -108,6 +110,8 @@ class FindSpeakerNames:
         free_models: Called before the model loads, so the speech and
             voice models leave the GPU first.
         timer: Monotonic seconds, for how long a search took.
+        gpu: The GPU memory: a reading that ran out of it frees every
+            model and is tried once more (#117); ``None``: no retry.
     """
 
     def __init__(
@@ -122,6 +126,7 @@ class FindSpeakerNames:
         parameters: NameSearchParameters = NameSearchParameters(),
         free_models: Callable[[], None] = lambda: None,
         timer: Callable[[], float] = time.monotonic,
+        gpu: Optional[GpuMemory] = None,
     ) -> None:
         """Wire the ports; nothing is loaded yet."""
         self._sessions = sessions
@@ -134,6 +139,7 @@ class FindSpeakerNames:
         self._parameters = parameters
         self._free_models = free_models
         self._timer = timer
+        self._gpu = gpu
 
     def __call__(self, session_id: str) -> SpeakerNames:
         """Search session ``session_id`` (``done``) and apply the names.
@@ -198,6 +204,7 @@ class FindSpeakerNames:
         try:
             record = self(session_id)
         except Exception as exc:
+            drop_frames(exc)
             LOG.warning("Names of %s were not searched: %s", session_id, exc)
             reason = str(exc).strip() or type(exc).__name__
             note = SEARCH_FAILED_NOTE.format(reason=reason)
@@ -262,27 +269,40 @@ class FindSpeakerNames:
         if not candidates:
             return [], None, None
         model = self._model
+        notes: List[str] = []
         try:
             self._free_models()
+            self._log_gpu("the model for names loads")
             read: List[Tuple[NameCandidate, Optional[NameEvidence]]] = []
             for candidate in pick_for_model(
                 candidates, self._parameters.max_candidates
             ):
-                reply = model.complete(
-                    SYSTEM_PROMPT, model_prompt(candidate),
-                    self._parameters.max_tokens,
+                prompt = model_prompt(candidate)
+                reply = retry_on_gpu_memory(
+                    self._gpu, NAMES_STAGE,
+                    lambda prompt=prompt: model.complete(  # type: ignore[misc]
+                        SYSTEM_PROMPT, prompt, self._parameters.max_tokens
+                    ),
+                    notes.append,
                 )
                 read.append(
                     (candidate, parse_reply(transcript, candidate, reply))
                 )
             found = gated_evidence(transcript, candidates, read)
-            return found, model.model_name, None
+            return found, model.model_name, notes[-1] if notes else None
         except Exception as exc:  # any model failure: rules, no auto
+            drop_frames(exc)
             LOG.warning("The model for names failed: %s", exc)
             reason = str(exc).strip() or type(exc).__name__
             return rules, None, MODEL_FAILED_NOTE.format(reason=reason)
         finally:
             model.release()
+            self._log_gpu("the model for names was released")
+
+    def _log_gpu(self, moment: str) -> None:
+        """Log the GPU memory at debug level, when there is a GPU."""
+        if self._gpu is not None and LOG.isEnabledFor(logging.DEBUG):
+            LOG.debug("GPU memory when %s: %s", moment, self._gpu.usage())
 
 
 class QueueNameSearch:

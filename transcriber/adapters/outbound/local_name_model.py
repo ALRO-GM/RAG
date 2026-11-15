@@ -31,7 +31,10 @@ import time
 import traceback
 from typing import Any, Callable, Dict, Optional, Protocol, Sequence, Tuple
 
-from transcriber.adapters.outbound.torch_runtime import pick_device
+from transcriber.adapters.outbound.torch_runtime import (
+    empty_cuda_cache,
+    pick_device,
+)
 from transcriber.config import Device
 from transcriber.domain.errors import ModelLoadError
 from transcriber.domain.speaker_names import NAME_MODELS
@@ -217,11 +220,9 @@ class TransformersChat:
         gc.collect()
         try:
             import torch
-
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
         except ImportError:  # pragma: no cover - environment
-            pass
+            return
+        empty_cuda_cache(torch)
 
 
 class LocalNameModel:
