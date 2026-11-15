@@ -9,10 +9,10 @@ change the judge of the soft-skills analysis (``claude_code``,
 ``local`` or ``both``) and tell whether Claude's quota is available;
 the transcriber's web forwards them. ``/analysis/sessions/{id}`` starts
 the whole analysis of an ingested session (``skills analyze``, in a
-child process) and serves its step records, step results and person
-reports. These routes need a bearer token,
-compared in constant time; when no token is configured they are not
-mounted at all, so they are never open.
+child process), ``DELETE …/run`` stops it, and the others serve its
+step records, step results and person reports. These routes need a
+bearer token, compared in constant time; when no token is configured
+they are not mounted at all, so they are never open.
 """
 
 import hmac
@@ -37,6 +37,7 @@ from src.application.skills.ingest import (
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
+    LimitError,
     NotFoundError,
     RagError,
 )
@@ -348,13 +349,15 @@ def mount_judge(
 
 
 def analysis_error(exc: RagError) -> HTTPException:
-    """Map an analysis error: bad input 400, missing 404, busy 409."""
+    """Map an analysis error: 400 input, 404 missing, 409 busy, 429 limit."""
     if isinstance(exc, InvalidInputError):
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, NotFoundError):
         return HTTPException(status_code=404, detail=str(exc))
     if isinstance(exc, BusyError):
         return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, LimitError):
+        return HTTPException(status_code=429, detail=str(exc))
     return HTTPException(status_code=500, detail=str(exc))
 
 
@@ -392,6 +395,18 @@ def mount_analysis(
             return await run_in_threadpool(requests.status, session_id)
         except RagError as exc:
             raise analysis_error(exc)
+
+    @app.delete(
+        "/analysis/sessions/{session_id}/run", dependencies=guard,
+        status_code=204,
+    )
+    async def cancel_analysis(session_id: str) -> Response:
+        """Stop the running analysis (404: none; 409: from the terminal)."""
+        try:
+            await run_in_threadpool(requests.cancel, session_id)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return Response(status_code=204)
 
     @app.get(
         "/analysis/sessions/{session_id}/steps/{step}", dependencies=guard

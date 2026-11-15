@@ -680,6 +680,16 @@ class InMemoryAnalysisStore:
             raise NotFoundError(f"No {name} for session {session_id!r}.")
         return self.files[(session_id, name)]
 
+    def clear(self, session_id: str) -> None:
+        """Forget the run and its result files."""
+        self.runs.pop(session_id, None)
+        for key in [k for k in self.files if k[0] == session_id]:
+            del self.files[key]
+
+    def erase(self, session_id: str) -> None:
+        """Forget everything of the session."""
+        self.clear(session_id)
+
 
 class InMemoryAnalysisLock:
     """Sessions taken by worker id; ``taken`` simulates another process."""

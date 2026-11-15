@@ -32,7 +32,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.judges import (
-    FallbackJudge,
+    CallBudget,
     compare_confirmations,
     release,
 )
@@ -58,6 +58,7 @@ from src.application.skills.tagging import (
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
+    LimitError,
     NotFoundError,
     short_reason,
 )
@@ -100,13 +101,16 @@ UNAVAILABLE = {
 class JudgeSetup:
     """The judges of steps f and g, built only when they are needed.
 
-    ``second`` is the local judge's confirmer in ``both`` mode.
+    ``second`` is the local judge's confirmer in ``both`` mode;
+    ``budget``, when given, is the first judge's call limit for the whole
+    analysis (steps f and g share it).
     """
 
     mode: JudgeMode
     first: TagConfirmer
     assessment: AssessmentService
     second: Optional[TagConfirmer] = None
+    budget: Optional[CallBudget] = None
 
 
 def report_file(position: int) -> str:
@@ -166,7 +170,9 @@ class AnalysisResults:
     """Read what an analysis stored: its run, step results, reports.
 
     It needs only the store, so serving the results never builds a
-    model.
+    model. A step's result is served only while that step is ``done``
+    in the stored run, so a restarted analysis never shows the files of
+    the run before it.
     """
 
     def __init__(self, store: AnalysisStore):
@@ -181,28 +187,53 @@ class AnalysisResults:
             raise NotFoundError(f"No analysis of session {session_id!r}.")
         return run
 
+    def _done(self, session_id: str, step: StepName) -> None:
+        """Refuse (not found) a step that is not done in the stored run."""
+        if self.status(session_id).step(step).status != "done":
+            raise NotFoundError(
+                f"Step {step} of {session_id!r} has no result now."
+            )
+
     def result(self, session_id: str, step: str) -> Any:
         """Return the stored result of one step, as JSON data."""
         check_session(session_id)
         if step not in STEP_OUTPUTS:
             raise InvalidInputError(f"Unknown step {step!r}.")
-        name = STEP_OUTPUTS[step]
-        return json.loads(self.store.read(session_id, name))
+        name: StepName = step
+        self._done(session_id, name)
+        return json.loads(self.store.read(session_id, STEP_OUTPUTS[name]))
 
     def report(self, session_id: str, position: int) -> str:
         """Return the HTML report of the ``position``-th person (1-based)."""
         check_session(session_id)
         if position < 1:
             raise InvalidInputError("Reports are numbered from 1.")
+        self._done(session_id, "reports")
         return self.store.read(session_id, report_file(position))
 
 
+@dataclass(frozen=True)
+class StartLimits:
+    """How often analyses may be started through the API.
+
+    ``min_interval`` seconds between two starts of one session and at
+    most ``daily_starts`` starts in any 24 hours; they bound what a
+    page left open (or someone with the access code) can spend of a
+    hosted judge's quota.
+    """
+
+    min_interval: float = 300.0
+    daily_starts: int = 20
+
+
 class AnalysisRequests:
-    """Start an analysis in the background and report on it (the API).
+    """Start, follow, cancel and forget analyses (the API).
 
     The launcher runs ``skills analyze`` apart from the server, so a
     long analysis neither blocks the API nor keeps its models loaded
-    in it; the run's record is what both share.
+    in it; the run's record is what both share. Starts are kept in
+    memory to apply :class:`StartLimits` (a server restart forgets
+    them).
     """
 
     def __init__(
@@ -211,12 +242,17 @@ class AnalysisRequests:
         transcripts: TranscriptStore,
         launcher: AnalysisLauncher,
         lock: AnalysisLock,
+        limits: StartLimits = StartLimits(),
+        clock: Callable[[], float] = time.time,
     ):
         """Wire the stored results, the transcripts, launcher and lock."""
         self.results = results
         self.transcripts = transcripts
         self.launcher = launcher
         self.lock = lock
+        self.limits = limits
+        self.clock = clock
+        self._starts: List[Tuple[float, str]] = []
 
     def _active(self, session_id: str) -> bool:
         """Tell whether any process (API child or CLI) analyses it now."""
@@ -225,15 +261,33 @@ class AnalysisRequests:
             or self.lock.holder(session_id) is not None
         )
 
+    def _check_limits(self, session_id: str, now: float) -> None:
+        """Refuse a start too soon after the last one, or one too many."""
+        self._starts = [(t, s) for t, s in self._starts if now - t < 86400]
+        if len(self._starts) >= self.limits.daily_starts:
+            raise LimitError(
+                f"{self.limits.daily_starts} analyses were started in the "
+                "last 24 hours, the most allowed; try again later."
+            )
+        last = max((t for t, s in self._starts if s == session_id),
+                   default=None)
+        if last is not None and now - last < self.limits.min_interval:
+            wait = int(self.limits.min_interval - (now - last)) + 1
+            raise LimitError(
+                f"This session's analysis was started {int(now - last)} s "
+                f"ago; wait {wait} s before starting it again."
+            )
+
     def start(
         self, session_id: str, restart: bool = False, synthetic: bool = False
     ) -> Dict[str, Any]:
         """Start the analysis of ``session_id``; return its status.
 
         Raises :class:`~src.domain.errors.NotFoundError` when the
-        session has no transcript and
+        session has no transcript,
         :class:`~src.domain.errors.BusyError` when its analysis is
-        already running.
+        already running and :class:`~src.domain.errors.LimitError` when
+        a start limit or the launcher's concurrency limit refuses it.
         """
         check_session(session_id)
         self.transcripts.get(session_id)
@@ -241,22 +295,60 @@ class AnalysisRequests:
             raise BusyError(
                 f"The analysis of {session_id!r} is already running."
             )
+        now = self.clock()
+        self._check_limits(session_id, now)
         self.launcher.start(session_id, restart, synthetic)
+        self._starts.append((now, session_id))
         return {"session_id": session_id, "active": True}
 
     def status(self, session_id: str) -> Dict[str, Any]:
         """Return the stored run with ``active``: is it running now.
 
-        A run left ``running`` by a process that died reads
-        ``interrupted``; starting again resumes it.
+        Just after a start, before the worker has written its record,
+        the answer is an active run with no steps. A run left
+        ``running`` by a process that died reads ``interrupted``;
+        starting again resumes it.
         """
-        run = self.results.status(session_id)
+        check_session(session_id)
         active = self._active(session_id)
+        try:
+            run = self.results.status(session_id)
+        except NotFoundError:
+            if not active:
+                raise
+            return {"session_id": session_id, "status": "running",
+                    "steps": [], "open_issues": [], "active": True}
         return {
             **run.model_dump(mode="json"),
             "status": shown_status(run, active),
             "active": active,
         }
+
+    def cancel(self, session_id: str) -> None:
+        """Stop the analysis this server started for ``session_id``.
+
+        Raises :class:`~src.domain.errors.BusyError` when it runs from
+        the command line (stop it there) and
+        :class:`~src.domain.errors.NotFoundError` when none runs.
+        """
+        check_session(session_id)
+        if self.launcher.stop(session_id):
+            return
+        if self.lock.holder(session_id) is not None:
+            raise BusyError(
+                "This analysis runs from the command line; stop it there."
+            )
+        raise NotFoundError(f"No analysis of {session_id!r} is running.")
+
+    def erase(self, session_id: str) -> None:
+        """Stop and delete everything analysed of ``session_id``.
+
+        Called when the session's transcript is deleted: its sentences,
+        quotes and reports must not outlive it.
+        """
+        check_session(session_id)
+        self.launcher.stop(session_id)
+        self.results.store.erase(session_id)
 
 
 class SessionAnalysis:
@@ -333,6 +425,11 @@ class SessionAnalysis:
         """
         check_session(session_id)
         chosen = None if only is None else chosen_steps(only)
+        if restart and chosen is not None:
+            raise InvalidInputError(
+                "Choose either a restart or the steps to run again, not "
+                "both: a restart clears every earlier result."
+            )
         transcript = self.transcripts.find(session_id)
         worker = self.lock.acquire(session_id)
         if worker is None:
@@ -360,6 +457,8 @@ class SessionAnalysis:
         chosen: Optional[List[StepName]] = None,
     ) -> AnalysisRun:
         """Run the steps still to do while holding the session."""
+        if restart:
+            self.store.clear(session_id)
         previous = None if restart else self.store.load(session_id)
         todo = steps_to_run(previous, restart) if chosen is None else chosen
         run = previous if previous is not None else new_run(
@@ -390,8 +489,10 @@ class SessionAnalysis:
                 on_step(record)
             if record.status == "failed":
                 return run
+        finished = not steps_to_run(run)
         run = run.model_copy(update={
-            "status": "done", "finished_at": self.clock(),
+            "status": "done" if finished else "partial",
+            "finished_at": self.clock(),
         })
         self.store.save(run)
         return run
@@ -542,12 +643,23 @@ class SessionAnalysis:
             for item in stored["sentences"]
         ]
         rubric = c.rubric(self)
-        chosen = set(most_promising(tagged, self.max_confirmations))
+        setup = self._setup()
+        cap = self.max_confirmations
+        before = setup.budget.calls if setup.budget else 0
+        if setup.budget is not None:
+            # Keep enough calls for step g: one per person and competency.
+            reserve = len(c.transcript.speakers()) * len(rubric.competencies)
+            room = max(setup.budget.remaining - reserve, 0)
+            cap = min(cap, room) if cap else room
+            if not cap:
+                cap = -1
+        chosen = (
+            set() if cap < 0 else set(most_promising(tagged, cap))
+        )
         offered = [
             t if n in chosen else t.model_copy(update={"tags": []})
             for n, t in enumerate(tagged)
         ]
-        setup = self._setup()
         record: Dict[str, Any] = {}
         if setup.mode == "both" and setup.second is not None:
             decided, comparison = compare_confirmations(
@@ -560,10 +672,7 @@ class SessionAnalysis:
             d.model_copy(update={"tags": t.tags})
             for d, t in zip(decided, tagged)
         ]
-        judge = setup.first.judge
-        reason = (
-            judge.fallback_reason if isinstance(judge, FallbackJudge) else ""
-        )
+        reason = str(getattr(setup.first.judge, "fallback_reason", ""))
         models = judge_models(merged)
         judge_info: Dict[str, Any] = {"mode": setup.mode, "models": models}
         if reason:
@@ -575,12 +684,15 @@ class SessionAnalysis:
             "catalogue_language": rubric.language, "judge": judge_info,
             **record,
             "max_confirmations": self.max_confirmations,
+            "read_at_most": max(cap, 0),
             "sentences": [t.model_dump(exclude_none=True) for t in merged],
         })
         counts = {
             "sent": len(chosen),
             "not_sent": sum(1 for t in tagged if t.tags) - len(chosen),
         }
+        if setup.budget is not None:
+            counts["judge_calls"] = setup.budget.calls - before
         for status in ("confirmed", "rejected", "unparsed"):
             counts[status] = sum(
                 1 for t in merged
@@ -597,6 +709,7 @@ class SessionAnalysis:
         setup = self._setup()
         rubric = c.rubric(self)
         service = setup.assessment
+        before = setup.budget.calls if setup.budget else 0
         try:
             result = service.assess(c.transcript, rubric)
         finally:
@@ -608,11 +721,12 @@ class SessionAnalysis:
             session_id, SCORECARD_FILE,
             render_scorecards(result, rubric, c.transcript),
         )
-        judge = service.judge
-        reason = (
-            judge.fallback_reason if isinstance(judge, FallbackJudge) else ""
-        )
+        reason = str(getattr(service.judge, "fallback_reason", ""))
         cards = result.scorecards
+        calls = (
+            {"judge_calls": setup.budget.calls - before}
+            if setup.budget is not None else {}
+        )
         return StepRecord(
             name="assessment", status="done", output=output,
             model=result.judge_model, judge=setup.mode,
@@ -628,6 +742,7 @@ class SessionAnalysis:
                     len(a.evidence) for card in cards
                     for a in card.assessments
                 ),
+                **calls,
             },
         )
 

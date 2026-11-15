@@ -51,6 +51,7 @@ class FakeLauncher:
         """Nothing started."""
         self.started: List[Tuple[str, bool, bool]] = []
         self.active: set[str] = set()
+        self.stopped: List[str] = []
 
     def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
         """Remember the start and mark the session running."""
@@ -60,6 +61,14 @@ class FakeLauncher:
     def running(self, session_id: str) -> bool:
         """Tell whether the session was started and not finished."""
         return session_id in self.active
+
+    def stop(self, session_id: str) -> bool:
+        """Stop the session if it runs; tell whether it did."""
+        if session_id not in self.active:
+            return False
+        self.active.discard(session_id)
+        self.stopped.append(session_id)
+        return True
 
 
 def client_for(
@@ -73,7 +82,7 @@ def client_for(
     store = FileSystemAnalysisStore(str(folder / "analysis"))
     run = new_run("demo-es", T0).with_step(
         StepRecord(name="sentences", status="done", counts={"sentences": 4})
-    )
+    ).with_step(StepRecord(name="reports", status="done"))
     store.save(run)
     store.write("demo-es", "sentences.json", json.dumps({"sentences": []}))
     store.write("demo-es", "report-1.html", "<!doctype html><p>Marta</p>")
@@ -229,7 +238,7 @@ def test_the_launcher_command_and_a_failed_start(tmp_path: Path) -> None:
     assert args[args.index("--transcripts_dir") + 1] == str(
         tmp_path / "t"
     )
-    assert args[-4:] == ["--session", "s1", "--restart", "--synthetic"]
+    assert args[-3:] == ['--session="s1"', "--restart", "--synthetic"]
     with pytest.raises(RagError, match="Cannot start"):
         launcher.start("s1", False, False)
 

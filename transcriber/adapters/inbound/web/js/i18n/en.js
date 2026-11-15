@@ -687,4 +687,12 @@ export const en = {
   "act.gestion": "meeting management",
   "act.relacion": "relationship",
   "act.otro": "other",
+  "sa.cancel": "Stop the analysis",
+  "sa.cancel_confirm": "Stop the analysis? What is done is kept and it can be resumed later.",
+  "sa.cancelled": "Analysis stopped; it can be resumed.",
+  "sa.cancel_terminal": "This analysis was started from the terminal; stop it there.",
+  "sa.limit": "It cannot start now: another analysis is running, this session was started very recently or today's maximum of analyses was reached. Try again later.",
+  "sa.busy": "This session's analysis is already running (perhaps from the terminal).",
+  "sa.run_partial": "The steps asked for are done; earlier ones are still to do.",
+  "sa.count_judge_calls": "calls to the model",
 };

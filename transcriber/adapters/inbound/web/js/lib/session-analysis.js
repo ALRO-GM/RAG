@@ -16,7 +16,7 @@ export const COUNT_KEYS = [
   "sentences", "speakers", "turns", "words", "with_candidates", "candidates",
   "sent", "not_sent", "confirmed", "rejected", "unparsed", "participants",
   "judgements", "rated", "evidence", "reports", "doubtful", "by_encoder",
-  "by_rules",
+  "by_rules", "judge_calls",
 ];
 
 /** The 13 dialogue-act categories (their names are in the dictionaries). */
@@ -48,7 +48,7 @@ export function orderedSteps(run) {
 export function startMode(run) {
   if (!run) return "start";
   if (isActive(run)) return "running";
-  if (run.status === "failed" || run.status === "interrupted") return "resume";
+  if (["failed", "interrupted", "partial"].includes(run.status)) return "resume";
   return "again";
 }
 
@@ -134,4 +134,33 @@ export function eventRows(events) {
 export function reportFileName(session, person) {
   const safe = String(person?.name ?? "").normalize("NFKD").replace(/\p{M}+/gu, "").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "");
   return `${session}-${person?.position ?? 0}${safe ? `-${safe}` : ""}.html`;
+}
+
+/**
+ * The report as a file to save: never `text/html`, so the browser can
+ * only download it and never render it in the pages' origin.
+ */
+export function reportBlob(page) {
+  return new Blob([page], { type: "application/octet-stream" });
+}
+
+/** How long after a start a missing record still means "starting" (ms). */
+export const STARTING_MS = 60000;
+
+/** Whether a start made at `since` (ms, 0: none) is recent enough to wait for. */
+export function stillStarting(since, now) {
+  return since > 0 && now - since < STARTING_MS;
+}
+
+/** The run shown between a start and the worker's first record. */
+export function startingRun(id) {
+  return { session_id: id, status: "running", active: true, steps: [], open_issues: [] };
+}
+
+/** What to tell when a start is refused, by the transcriber's code. */
+export function startRefusal(t, error, describe) {
+  if (error?.code === "not_found") return t("sa.not_published");
+  if (error?.code === "limit_reached") return t("sa.limit");
+  if (error?.code === "wrong_state") return t("sa.busy");
+  return describe(error);
 }

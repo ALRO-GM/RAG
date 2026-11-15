@@ -101,6 +101,10 @@ class SessionAnalysisAccess:
         """Return the steps of the session's analysis."""
         return self._port(session_id).status(session_id)
 
+    def cancel(self, session_id: str) -> None:
+        """Stop the session's running analysis."""
+        self._port(session_id).cancel(session_id)
+
     def result(self, session_id: str, step: str) -> Any:
         """Return one step's result."""
         port = self._port(session_id)

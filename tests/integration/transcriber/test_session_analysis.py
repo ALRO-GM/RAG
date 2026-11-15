@@ -147,6 +147,13 @@ class FakeAnalysis:
             raise NotFoundError("No analysis.")
         return {**RUN, "session_id": session_id}
 
+    def cancel(self, session_id: str) -> None:
+        """Stop the run, or say none runs."""
+        if not self.running:
+            raise NotFoundError("Nothing runs.")
+        self.running = False
+        self.calls.append(("cancel", session_id))
+
     def result(self, session_id: str, step: str) -> Any:
         """Return a step's data."""
         self.calls.append(("result", session_id, step))

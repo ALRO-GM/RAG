@@ -169,6 +169,9 @@ export class Api {
     return this.request("POST", `/analysis/sessions/${encodeURIComponent(id)}`, { json: { restart, synthetic } });
   }
 
+  /** Stop the session's running analysis. */
+  cancelAnalysis(id) { return this.request("DELETE", `/analysis/sessions/${encodeURIComponent(id)}/run`); }
+
   /** The steps of a session's analysis (status, time, judge, counts). */
   analysisStatus(id) { return this.request("GET", `/analysis/sessions/${encodeURIComponent(id)}`); }
 

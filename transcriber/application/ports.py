@@ -422,6 +422,10 @@ class SessionAnalysisPort(Protocol):
         """Return one step's result."""
         ...
 
+    def cancel(self, session_id: str) -> None:
+        """Stop the running analysis."""
+        ...
+
     def report(self, session_id: str, position: int) -> str:
         """Return the HTML report of the ``position``-th person."""
         ...

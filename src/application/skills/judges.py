@@ -24,7 +24,11 @@ from src.application.skills.tagging import (
     TagDecision,
     TaggedSentence,
 )
-from src.domain.errors import InvalidInputError, QuotaExhaustedError
+from src.domain.errors import (
+    InvalidInputError,
+    LimitError,
+    QuotaExhaustedError,
+)
 from src.domain.skills.act_prompting import (
     act_system_prompt,
     act_user_prompt,
@@ -191,6 +195,52 @@ class FallbackJudge:
     def release(self) -> None:
         """Free the local judge's memory, if it was loaded."""
         release(self.fallback)
+
+
+class CallBudget:
+    """A judge that refuses calls past ``limit`` in one analysis.
+
+    Wraps the real judge after the reply cache, so only calls that
+    reach the model count (a resumed run answered from the cache costs
+    nothing). Past the limit it raises
+    :class:`~src.domain.errors.LimitError`; the step fails with that
+    reason and the run can be resumed with a higher limit.
+    """
+
+    def __init__(self, judge: ChatModel, limit: int):
+        """Wrap ``judge``; allow ``limit`` calls."""
+        self.judge = judge
+        self.limit = max(limit, 0)
+        self.calls = 0
+
+    @property
+    def model_name(self) -> str:
+        """Return the wrapped judge's identifier."""
+        return self.judge.model_name
+
+    @property
+    def fallback_reason(self) -> str:
+        """Return why the wrapped judge fell back to the local one, if so."""
+        return str(getattr(self.judge, "fallback_reason", ""))
+
+    @property
+    def remaining(self) -> int:
+        """Return how many calls are still allowed."""
+        return max(self.limit - self.calls, 0)
+
+    def complete(self, system: str, user: str, max_tokens: int) -> str:
+        """Ask the judge, unless the budget is spent."""
+        if self.calls >= self.limit:
+            raise LimitError(
+                f"The judge-call limit of this analysis ({self.limit}) is "
+                "reached; raise max_judge_calls to go on."
+            )
+        self.calls += 1
+        return self.judge.complete(system, user, max_tokens)
+
+    def release(self) -> None:
+        """Free the wrapped judge's memory, if it can."""
+        release(self.judge)
 
 
 def release(judge: Any) -> None:

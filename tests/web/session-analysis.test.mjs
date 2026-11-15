@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { Api } from "../../transcriber/adapters/inbound/web/js/api.js";
 import {
   ACTS, COUNT_KEYS, OPEN_ISSUES, STATUSES, STEPS, actRows, byPerson, clock, doubtfulCount, eventRows,
-  isActive, orderedSteps, ratingRows, reportFileName, startMode, stepStatus,
-  tagChip, tagged, verdict,
+  isActive, orderedSteps, ratingRows, reportBlob, reportFileName, startMode, stepStatus,
+  STARTING_MS, startRefusal, startingRun, stillStarting, tagChip, tagged, verdict,
 } from "../../transcriber/adapters/inbound/web/js/lib/session-analysis.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -121,4 +121,45 @@ test("ratings, acts, events and the report's file name", () => {
   assert.deepEqual(eventRows({ events: [{ order: 5 }, { order: 1 }] }).map((e) => e.order), [1, 5]);
   assert.equal(reportFileName("sim-1", { position: 2, name: "Joaquín Salas" }), "sim-1-2-Joaquin-Salas.html");
   assert.equal(reportFileName("sim-1", { position: 1, name: "../" }), "sim-1-1.html");
+});
+
+test("a report is saved as bytes, never as a page of this site", async () => {
+  const blob = reportBlob("<!doctype html><p>x</p>");
+  assert.equal(blob.type, "application/octet-stream");
+  assert.equal(await blob.text(), "<!doctype html><p>x</p>");
+});
+
+test("just after a start a missing record still reads as running", () => {
+  assert.equal(stillStarting(0, 1000), false);
+  assert.equal(stillStarting(1000, 1000 + STARTING_MS - 1), true);
+  assert.equal(stillStarting(1000, 1000 + STARTING_MS), false);
+  const run = startingRun("s1");
+  assert.equal(isActive(run), true);
+  assert.equal(startMode(run), "running");
+  assert.deepEqual(orderedSteps(run).map((s) => s.status), STEPS.map(() => "pending"));
+});
+
+test("a refused start says why: not published, limits, already running", () => {
+  const t = (key) => key;
+  const other = () => "other";
+  assert.equal(startRefusal(t, { code: "not_found" }, other), "sa.not_published");
+  assert.equal(startRefusal(t, { code: "limit_reached" }, other), "sa.limit");
+  assert.equal(startRefusal(t, { code: "wrong_state" }, other), "sa.busy");
+  assert.equal(startRefusal(t, { code: "x" }, other), "other");
+  for (const key of ["sa.limit", "sa.busy", "sa.cancel", "sa.cancel_confirm", "sa.cancelled", "sa.cancel_terminal", "sa.run_partial"]) {
+    assert.ok(es[key] && en[key], key);
+  }
+  assert.equal(startMode({ status: "partial" }), "resume");
+});
+
+test("cancel is a DELETE of the run, with the code", async () => {
+  const calls = [];
+  const api = new Api(() => "code-123", async (url, init) => {
+    calls.push({ url, init });
+    return new Response(null, { status: 204 });
+  });
+  assert.equal(await api.cancelAnalysis("s 1"), null);
+  assert.equal(calls[0].url, "/api/analysis/sessions/s%201/run");
+  assert.equal(calls[0].init.method, "DELETE");
+  assert.equal(calls[0].init.headers["X-Access-Code"], "code-123");
 });

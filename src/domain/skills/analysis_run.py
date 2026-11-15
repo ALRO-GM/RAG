@@ -31,7 +31,8 @@ StepStatus = Literal[
 """``unavailable``: the module behind the step does not exist yet; the
 step is skipped and the run goes on."""
 
-RunStatus = Literal["running", "done", "failed"]
+RunStatus = Literal["running", "done", "failed", "partial"]
+"""``partial``: the steps asked for ran, earlier ones are still to do."""
 
 FINISHED: Tuple[StepStatus, ...] = ("done", "unavailable")
 """Statuses a resumed run does not repeat."""

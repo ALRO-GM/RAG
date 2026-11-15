@@ -196,6 +196,14 @@ class AnalysisStore(Protocol):
         """Return one result file (``NotFoundError`` when missing)."""
         ...
 
+    def clear(self, session_id: str) -> None:
+        """Delete the previous run's record and results (a restart)."""
+        ...
+
+    def erase(self, session_id: str) -> None:
+        """Delete everything kept of the session (it was deleted)."""
+        ...
+
 
 class AnalysisLauncher(Protocol):
     """Run ``skills analyze`` on a session apart from the caller."""
@@ -206,6 +214,10 @@ class AnalysisLauncher(Protocol):
 
     def running(self, session_id: str) -> bool:
         """Tell whether the analysis of ``session_id`` is running now."""
+        ...
+
+    def stop(self, session_id: str) -> bool:
+        """Stop the analysis of ``session_id``; tell whether one ran."""
         ...
 
 
@@ -226,4 +238,12 @@ class AnalysisLock(Protocol):
 
     def holder(self, session_id: str) -> Optional[int]:
         """Return the worker id holding the session now, if any."""
+        ...
+
+
+class SessionEraser(Protocol):
+    """Delete what other modules derived from a session (retention)."""
+
+    def erase(self, session_id: str) -> None:
+        """Delete it; nothing when there is none."""
         ...

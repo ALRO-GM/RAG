@@ -687,4 +687,12 @@ export const es = {
   "act.gestion": "gestión de la reunión",
   "act.relacion": "relación",
   "act.otro": "otro",
+  "sa.cancel": "Detener el análisis",
+  "sa.cancel_confirm": "¿Detener el análisis? Lo hecho se guarda y se puede reanudar después.",
+  "sa.cancelled": "Análisis detenido; se puede reanudar.",
+  "sa.cancel_terminal": "Este análisis se lanzó desde la terminal; deténlo allí.",
+  "sa.limit": "Ahora no se puede empezar: hay otro análisis en marcha, esta sesión se empezó hace muy poco o ya se alcanzó el máximo de análisis del día. Inténtalo más tarde.",
+  "sa.busy": "El análisis de esta sesión ya está en marcha (quizá desde la terminal).",
+  "sa.run_partial": "Se hicieron los pasos pedidos; faltan otros anteriores.",
+  "sa.count_judge_calls": "llamadas al modelo",
 };

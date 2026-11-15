@@ -749,6 +749,7 @@ class RagCLI:
         import uvicorn
 
         from src.adapters.inbound.http_api import TranscriptRoutes, create_app
+        from src.application.skills.ingest import ForgetIngestedTranscript
         from src.adapters.outbound.token_file import read_token_file
 
         port = as_int(port, "port")
@@ -779,13 +780,18 @@ class RagCLI:
             print(f"Transcripts: routes off (set ${variable} or "
                   "--token_file to receive them)")
         skills = SkillsContainer(SkillsSettings())
+        analysis = skills.analysis_requests(
+            app.transcript_store, app.settings.transcripts_dir
+        )
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
-            forget=app.forget_transcript,
+            # Deleting a session deletes what was analysed of it.
+            forget=ForgetIngestedTranscript(app.transcript_store, [
+                analysis,
+                skills.session_outputs(app.settings.transcripts_dir),
+            ]),
             judge=skills.judge_selection,
-            analysis=skills.analysis_requests(
-                app.transcript_store, app.settings.transcripts_dir
-            ),
+            analysis=analysis,
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)

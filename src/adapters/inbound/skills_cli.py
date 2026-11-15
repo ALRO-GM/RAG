@@ -70,7 +70,11 @@ from src.domain.skills.simulation import (
     timed_sentences,
 )
 from src.domain.skills.speech import clock, transcript_sentences
-from src.domain.skills.transcript_contract import SCHEMA, read_contract
+from src.domain.skills.transcript_contract import (
+    SCHEMA,
+    is_session_id,
+    read_contract,
+)
 from src.domain.skills.transcript import Transcript
 from src.skills_bootstrap import SkillsContainer
 
@@ -681,6 +685,11 @@ class SkillsCLI:
             steps: Comma-separated steps to run again, keeping the
                 others (e.g. ``acts,events``: no judge is asked).
         """
+        if not isinstance(session, str) or not is_session_id(session):
+            raise InvalidInputError(
+                f"Invalid session id {session!r}. An id that looks like a "
+                "number must be quoted: --session='\"1e5\"'."
+            )
         app = self._app()
         analysis = app.session_analysis
 

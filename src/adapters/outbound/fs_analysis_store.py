@@ -11,8 +11,10 @@ any path is built, so neither can reach outside the directory.
 """
 
 import fcntl
+import json
 import os
 import re
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, Optional
@@ -89,6 +91,28 @@ class FileSystemAnalysisStore:
         except OSError as exc:
             raise RagError(f"Cannot write {target}: {exc}")
         return str(target)
+
+    def clear(self, session_id: str) -> None:
+        """Delete the run's record and results (the lock and log stay)."""
+        folder = self.path_for(session_id, RUN_FILE).parent
+        if not folder.is_dir():
+            return
+        try:
+            for item in folder.iterdir():
+                if item.is_file() and _NAME.fullmatch(item.name):
+                    item.unlink()
+        except OSError as exc:
+            raise RagError(f"Cannot clear {folder}: {exc}")
+
+    def erase(self, session_id: str) -> None:
+        """Delete the session's whole analysis directory."""
+        folder = self.path_for(session_id, RUN_FILE).parent
+        try:
+            shutil.rmtree(folder)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise RagError(f"Cannot delete {folder}: {exc}")
 
     def read(self, session_id: str, name: str) -> str:
         """Return one result file of ``session_id``."""
@@ -167,3 +191,51 @@ class FileAnalysisLock:
             return None
         finally:
             os.close(handle)
+
+
+class FileSystemSessionOutputs:
+    """The per-session files of the other ``skills`` commands.
+
+    ``skills assess`` writes ``<output_dir>/<id>.assessment.json`` and
+    ``.scorecard.md`` (read by ``skills profile``), ``skills tag``
+    ``<id>.tags.json``, ``skills report`` ``<id>.<person>.report.*``
+    and ``skills acts`` ``<transcripts_dir>/<id>.acts.json``.
+    :meth:`erase` deletes exactly those names (the people's names are
+    read from the assessment), never a pattern that could match
+    another session.
+    """
+
+    def __init__(self, output_dir: str, transcripts_dir: str) -> None:
+        """Look under both directories."""
+        self.output_dir = Path(output_dir)
+        self.transcripts_dir = Path(transcripts_dir)
+
+    def erase(self, session_id: str) -> None:
+        """Delete the session's files; nothing when there are none."""
+        if not is_session_id(session_id):
+            raise InvalidInputError(f"Invalid session id {session_id!r}.")
+        out = self.output_dir
+        names = [f"{session_id}.{s}" for s in (
+            "assessment.json", "scorecard.md", "tags.json",
+        )]
+        try:
+            data = json.loads(
+                (out / f"{session_id}.assessment.json").read_text("utf-8")
+            )
+            people = [str(c.get("participant", ""))
+                      for c in data.get("scorecards", [])]
+        except (OSError, ValueError, AttributeError):
+            people = []
+        for person in people:
+            if person and "/" not in person and person not in (".", ".."):
+                names += [f"{session_id}.{person}.report.html",
+                          f"{session_id}.{person}.report.md"]
+        targets = [out / n for n in names]
+        targets.append(self.transcripts_dir / f"{session_id}.acts.json")
+        for target in targets:
+            try:
+                target.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                raise RagError(f"Cannot delete {target}: {exc}")

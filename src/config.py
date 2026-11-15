@@ -231,7 +231,13 @@ class SkillsSettings(BaseModel):
     ones with the best candidate first; 0: all): with the 11
     competencies of the core rubric, 4 people add 44 assessment calls,
     so the default keeps a session under about 200 calls on Claude's
-    quota.
+    quota. ``max_judge_calls`` is the hard limit for one analysis
+    (steps f and g together; replies from the cache do not count): step
+    f leaves room for step g. Through the API, an analysis runs at most
+    ``analysis_timeout`` seconds, at most ``max_running_analyses`` run
+    at once, a session is started again only ``analysis_min_interval``
+    seconds after its last start, and at most ``analysis_daily_starts``
+    are started in 24 hours.
 
     ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
@@ -253,6 +259,11 @@ class SkillsSettings(BaseModel):
     output_dir: str = "data/output/skills"
     analysis_dir: str = "data/output/skills/analysis"
     max_confirmations: int = Field(default=150, ge=0)
+    max_judge_calls: int = Field(default=200, ge=1)
+    analysis_timeout: float = Field(default=3600.0, gt=0)
+    max_running_analyses: int = Field(default=1, ge=1)
+    analysis_min_interval: float = Field(default=300.0, ge=0)
+    analysis_daily_starts: int = Field(default=20, ge=1)
     semantic: bool = True
     embedding_model: str = DEFAULT_SKILLS_EMBEDDING_MODEL
     embedding_max_tokens: int = Field(default=128, ge=8)

@@ -73,6 +73,7 @@ from transcriber.domain.errors import (
     ConsentRequiredError,
     ContractError,
     InvalidInputError,
+    LimitReachedError,
     ModelLoadError,
     NotFoundError,
     SampleRejectedError,
@@ -94,6 +95,7 @@ ERROR_CODES: Tuple[Tuple[Type[TranscriberError], int, str], ...] = (
     (StateError, 409, "wrong_state"),
     (ModelLoadError, 503, "model_unavailable"),
     (AnalysisUnavailableError, 503, "analysis_unavailable"),
+    (LimitReachedError, 429, "limit_reached"),
     (StorageError, 500, "storage_error"),
     (ContractError, 500, "contract_error"),
 )
@@ -732,6 +734,12 @@ def create_app(
     async def analysis_status(session_id: str) -> Dict[str, Any]:
         """Return the steps of a session's analysis (forwarded)."""
         return await run_in_threadpool(c.session_analysis.status, session_id)
+
+    @api.delete("/analysis/sessions/{session_id}/run", status_code=204)
+    async def cancel_analysis(session_id: str) -> Response:
+        """Stop the session's running analysis (forwarded)."""
+        await run_in_threadpool(c.session_analysis.cancel, session_id)
+        return Response(status_code=204)
 
     @api.get("/analysis/sessions/{session_id}/steps/{step}")
     async def analysis_step(session_id: str, step: str) -> Any:

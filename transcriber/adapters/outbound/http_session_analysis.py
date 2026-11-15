@@ -20,6 +20,7 @@ from transcriber.adapters.outbound.no_redirect import OPENER
 from transcriber.domain.errors import (
     AnalysisUnavailableError,
     InvalidInputError,
+    LimitReachedError,
     NotFoundError,
     PublishError,
     StateError,
@@ -62,6 +63,10 @@ class HttpSessionAnalysis:
     def status(self, session_id: str) -> Dict[str, Any]:
         """Return the RAG's record of the session's analysis."""
         return self._object(json.loads(self._call("GET", session_id)))
+
+    def cancel(self, session_id: str) -> None:
+        """Ask the RAG to stop the analysis (``DELETE …/run``)."""
+        self._call("DELETE", f"{session_id}/run")
 
     def result(self, session_id: str, step: str) -> Any:
         """Return one step's stored result (JSON data)."""
@@ -130,9 +135,17 @@ def refusal(status: int, method: str, url: str) -> Exception:
     if status == 404:
         return NotFoundError("No such analysis, step or report.")
     if status == 409:
-        return StateError("The analysis of this session is already running.")
+        return StateError(
+            "The analysis of this session is running (or runs from the "
+            "command line)."
+        )
     if status in (400, 422):
         return InvalidInputError("The RAG refused the request.")
+    if status == 429:
+        return LimitReachedError(
+            "A limit on analyses refuses this start now (one at a time, "
+            "a pause between two starts of a session, a daily cap)."
+        )
     return AnalysisUnavailableError(
         f"The RAG answered {status} to {method} {url}."
     )

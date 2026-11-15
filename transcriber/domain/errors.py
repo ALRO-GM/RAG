@@ -58,6 +58,10 @@ class AnalysisUnavailableError(TranscriberError):
     """The RAG's analysis settings cannot be reached from here."""
 
 
+class LimitReachedError(TranscriberError):
+    """A usage limit refuses the request now; it can be tried later."""
+
+
 class StorageError(TranscriberError):
     """Stored data cannot be read back (a damaged or foreign file)."""
 

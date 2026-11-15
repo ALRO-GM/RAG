@@ -8,8 +8,8 @@ import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   COUNT_KEYS, OPEN_ISSUES, actRows, byPerson, clock, doubtfulCount, eventRows, isActive,
-  orderedSteps, ratingRows, reportFileName, startMode, stepStatus, tagChip,
-  tagged, verdict,
+  orderedSteps, ratingRows, reportBlob, reportFileName, startMode, startRefusal,
+  startingRun, stepStatus, stillStarting, tagChip, tagged, verdict,
 } from "../lib/session-analysis.js";
 
 const POLL_MS = 3000;
@@ -19,11 +19,13 @@ export async function analysisView(ctx, root, [rawId]) {
   let run = null;
   let timer = null;
   let stopped = false;
+  let starting = 0; // when this page last started the analysis (ms)
   const opened = new Map(); // step name -> its result panel, kept open across refreshes
 
   const synthetic = h("input", { type: "checkbox", id: "an-synthetic" });
   const start = h("button", { type: "button", class: "primary big", onClick: () => begin(false) });
   const restart = h("button", { type: "button", onClick: () => begin(true) }, t("sa.restart"));
+  const cancel = h("button", { type: "button", class: "danger", onClick: () => stop() }, t("sa.cancel"));
   const message = h("p", { role: "status", class: "hint" });
   const summary = h("p", { class: "meta" });
   const steps = h("ol", { class: "steps analysis-steps" });
@@ -38,7 +40,7 @@ export async function analysisView(ctx, root, [rawId]) {
     h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
     h("div", { class: "stack" },
       h("label", { class: "check" }, synthetic, h("span", {}, t("sa.synthetic"))),
-      h("div", { class: "stack" }, start, restart), message),
+      h("div", { class: "stack" }, start, restart, cancel), message),
     summary, steps);
 
   function say(text, error = false) {
@@ -51,6 +53,7 @@ export async function analysisView(ctx, root, [rawId]) {
     start.textContent = t(`sa.start_${mode}`);
     start.disabled = mode === "running";
     restart.hidden = !run || mode === "running";
+    cancel.hidden = mode !== "running";
     if (run?.synthetic) synthetic.checked = true;
     summary.textContent = run ? t(`sa.run_${isActive(run) ? "running" : run.status}`) : t("sa.never");
     fill(steps, orderedSteps(run).map(stepItem));
@@ -187,7 +190,7 @@ export async function analysisView(ctx, root, [rawId]) {
     say(t("sa.loading"));
     try {
       const page = await ctx.api.analysisReport(id, person.position);
-      const url = URL.createObjectURL(new Blob([page], { type: "text/html" }));
+      const url = URL.createObjectURL(reportBlob(page));
       const link = h("a", { href: url, download: reportFileName(id, person) });
       document.body.append(link);
       link.click();
@@ -197,6 +200,19 @@ export async function analysisView(ctx, root, [rawId]) {
     } catch (error) {
       say(describeError(error), true);
     }
+  }
+
+  async function stop() {
+    if (!confirm(t("sa.cancel_confirm"))) return;
+    cancel.disabled = true;
+    try {
+      await ctx.api.cancelAnalysis(id);
+      say(t("sa.cancelled"));
+    } catch (error) {
+      say(error?.code === "wrong_state" ? t("sa.cancel_terminal") : describeError(error), true);
+    }
+    cancel.disabled = false;
+    await refresh();
   }
 
   async function begin(again) {
@@ -218,8 +234,9 @@ export async function analysisView(ctx, root, [rawId]) {
     try {
       await ctx.api.startAnalysis(id, { restart: again, synthetic: synthetic.checked });
       say(t("sa.started"));
+      starting = Date.now();
     } catch (error) {
-      say(error?.code === "not_found" ? t("sa.not_published") : describeError(error), true);
+      say(startRefusal(t, error, describeError), true);
     }
     restart.disabled = false;
     await refresh();
@@ -231,7 +248,8 @@ export async function analysisView(ctx, root, [rawId]) {
     try {
       run = await ctx.api.analysisStatus(id);
     } catch (error) {
-      if (error?.code === "not_found") run = null;
+      // Just after a start the worker may not have written its record yet.
+      if (error?.code === "not_found") run = stillStarting(starting, Date.now()) ? startingRun(id) : null;
       else if (error?.kind === "unauthorized") return ctx.fail(error);
       else say(error?.code === "analysis_unavailable" ? t("analysis.unavailable") : describeError(error), true);
     }

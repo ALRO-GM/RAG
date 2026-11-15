@@ -16,6 +16,7 @@ from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
 from src.adapters.outbound.fs_analysis_store import (
     FileAnalysisLock,
     FileSystemAnalysisStore,
+    FileSystemSessionOutputs,
 )
 from src.adapters.outbound.fs_assessment_store import (
     FileSystemAssessmentStore,
@@ -57,6 +58,7 @@ from src.application.skills.act_tagger import (
 )
 from src.application.skills.judges import (
     ActClassifier,
+    CallBudget,
     FallbackJudge,
     JudgeSelection,
 )
@@ -66,6 +68,7 @@ from src.application.skills.ports import (
     ChatModel,
     DialogueActTagger,
     EventExtractor,
+    SessionEraser,
     TranscriptStore,
 )
 from src.application.skills.profile import ProfileService
@@ -74,6 +77,7 @@ from src.application.skills.session_analysis import (
     AnalysisResults,
     JudgeSetup,
     SessionAnalysis,
+    StartLimits,
 )
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
@@ -357,9 +361,13 @@ class SkillsContainer:
     @cached_property
     def assessment(self) -> AssessmentService:
         """Scorecard use case."""
+        return self.assessment_with(self.judge)
+
+    def assessment_with(self, judge: ChatModel) -> AssessmentService:
+        """Return the scorecard use case over ``judge``."""
         s = self.settings
         return AssessmentService(
-            self.retriever, self.judge, self.cache, self.progress,
+            self.retriever, judge, self.cache, self.progress,
             candidates=s.candidates, min_incidents=s.min_incidents,
             max_tokens=s.max_new_tokens, min_similarity=s.min_similarity,
             min_episodes=s.min_episodes, episode_gap=s.episode_gap,
@@ -385,9 +393,13 @@ class SkillsContainer:
     def judge_setup(self) -> JudgeSetup:
         """Return the judges of the analysis (built on first use)."""
         mode = self.judge_mode()
+        budget = CallBudget(self.judge, self.settings.max_judge_calls)
         return JudgeSetup(
-            mode=mode, first=self.confirmer, assessment=self.assessment,
+            mode=mode,
+            first=TagConfirmer(budget, self.cache, self.progress),
+            assessment=self.assessment_with(budget),
             second=self.second_confirmer if mode == "both" else None,
+            budget=budget,
         )
 
     def analysis_requests(
@@ -403,9 +415,18 @@ class SkillsContainer:
             AnalysisResults(FileSystemAnalysisStore(s.analysis_dir)),
             transcripts,
             SubprocessAnalysisLauncher(
-                REPOSITORY_ROOT, transcripts_dir, s.analysis_dir
+                REPOSITORY_ROOT, transcripts_dir, s.analysis_dir,
+                timeout=s.analysis_timeout,
+                max_running=s.max_running_analyses,
             ),
             FileAnalysisLock(s.analysis_dir),
+            StartLimits(s.analysis_min_interval, s.analysis_daily_starts),
+        )
+
+    def session_outputs(self, transcripts_dir: str) -> SessionEraser:
+        """Return the eraser of the other commands' per-session files."""
+        return FileSystemSessionOutputs(
+            self.settings.output_dir, transcripts_dir
         )
 
     @cached_property
