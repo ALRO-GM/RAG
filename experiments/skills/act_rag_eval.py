@@ -613,6 +613,7 @@ def main() -> None:  # noqa: C901 - one linear experiment
             **setup.answerer(preds, judged)}
     results["baselines"] = baselines
     rg: Dict[str, Any] = {}
+    rg_own: Dict[str, Dict[str, Any]] = {}
     for judge in ("claude_code", "local"):
         verdicts = load_verdicts(out / f"rg_{judge}.json")
         if not verdicts:
@@ -627,8 +628,7 @@ def main() -> None:  # noqa: C901 - one linear experiment
         for variant in ("weights+R", "outcome table"):
             preds, s = got[variant]
             entry[variant] = {**headline(s), **setup.answerer(preds, rows)}
-            if judge == "local" and len(rows) == len(setup.records):
-                predictions[f"RG {judge} ({variant})"] = preds
+        rg_own[f"RG {judge} ({len(rows)})"] = got["weights+R"][1]
         same = {"R": rag, "rules": rules}
         if "encoder-es" in predictions:
             same["encoder-es"] = predictions["encoder-es"]
@@ -644,11 +644,7 @@ def main() -> None:  # noqa: C901 - one linear experiment
     for name in ("encoder-es + R ensemble", "encoder-es, R on dudoso"):
         if name in predictions:
             own[name] = compact(score(refs, predictions[name]))
-    for name, preds in predictions.items():
-        if name.startswith("RG "):
-            own[name] = compact(score(refs, preds))
-    for name, s in list(own.items()):
-        s["sentences"] = len(refs)
+    own.update(rg_own)
     summary_files(own, str(out.parent))
     print(json.dumps({k: v for k, v in results.items()
                       if k not in ("configs", "ablation")}, indent=1,

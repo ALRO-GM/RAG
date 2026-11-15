@@ -1602,9 +1602,19 @@
    "status": "done",
    "approaches": [
     {
+     "approach": "RG claude_code (140)",
+     "items": 140,
+     "accuracy": 0.8643
+    },
+    {
      "approach": "llm:claude-code:opus",
      "items": 140,
      "accuracy": 0.7429
+    },
+    {
+     "approach": "encoder-es + R ensemble",
+     "items": 1534,
+     "accuracy": 0.7347
     },
     {
      "approach": "combined-es",
@@ -1615,6 +1625,16 @@
      "approach": "encoder-es",
      "items": 1534,
      "accuracy": 0.7314
+    },
+    {
+     "approach": "encoder-es, R on dudoso",
+     "items": 1534,
+     "accuracy": 0.7145
+    },
+    {
+     "approach": "rag cards+folds/e5-small/dense",
+     "items": 1534,
+     "accuracy": 0.618
     },
     {
      "approach": "llm:Qwen/Qwen3-8B@4bit",

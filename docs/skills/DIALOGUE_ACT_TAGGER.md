@@ -1,6 +1,7 @@
 # Dialogue-act tagger: three approaches, measured
 
-Status: issue #82 (SK-9), 2026-11-15. The automatic tagger of the 13
+Status: issue #82 (SK-9), 2026-11-15; §9 adds the retrieval taggers of
+#94 (SK-15). The automatic tagger of the 13
 first-layer categories of [`CONVERSATION.md`](CONVERSATION.md) §5 (ids in
 [`DIALOGUE_ACT_DATA.md`](DIALOGUE_ACT_DATA.md)), the weighted output of
 #73, and how each approach did on our Spanish set and the public corpora.
@@ -31,6 +32,13 @@ Every figure below comes from the runs listed in §8; the full tables
 - **Límites**: las etiquetas españolas son las que pretendía quien
   escribió los diálogos, no un acuerdo de anotadores humanos; los
   corpus públicos son reuniones en inglés.
+- **Cuarto enfoque, RAG sobre fichas de teoría (#94, §9)**: recuperar
+  fichas y frases etiquetadas sin más (R) acierta el 61,8 %, por debajo
+  del codificador; **recuperar y preguntar a Claude Code (RG)** acierta
+  el **86,4 %** en las mismas 140 frases en que Claude solo da 74,3 % y
+  el codificador 69,3 %. Por defecto se queda el codificador (local,
+  gratis, todas las frases); RG queda como revisión opcional de las
+  etiquetas dudosas, una llamada por frase.
 
 ## 1. Approaches (one port)
 
@@ -257,3 +265,200 @@ Not run: Qwen3-4B on the full set (GPU memory was taken by other jobs;
 on the CPU it needs ~24 s per sentence: command 4 with `Qwen/Qwen3-4B`
 and `--device cpu`); B and D+es on the public corpora; a few-shot prompt
 for B. Training with `--seed` other than 13 (no variance estimate).
+
+## 9. Retrieval over theory cards: R and RG (#94)
+
+A fourth approach, measured on the same Spanish set, folds and scores
+as §2. Results: `experiments/skills/results/act_rag/scores.json` (every
+configuration, ablation, combination and baseline, with answerer
+counts), `rg_claude_code.json` (the 140 verdicts with their reasons)
+and the summaries `act_tagger_rag_cards_folds_e5_small_dense.json`,
+`act_tagger_encoder_es___r_ensemble.json`,
+`act_tagger_encoder_es__r_on_dudoso.json`,
+`act_tagger_rg_claude_code__140.json` that the study page charts.
+
+### 9.1 Method
+
+- **Theory corpus** (`knowledge/dialogue_acts/theory/`, Spanish,
+  written for this project from `CONVERSATION.md` §5 and
+  `DIALOGUE_ACTS_GUIDE.md`): `categories.json`, one card per category
+  (definition, function, cues, what it is *not* with the neighbour it
+  is confused with, boundary cases, examples); `sequences.json`, 21
+  sequence cards (pregunta→respuesta, propuesta→aceptación/rechazo,
+  petición→compromiso, opinión→rechazo→propuesta, cierre→aceptaciones,
+  clarification chains…) with every position tagged. 369 card
+  examples, all new sentences: `test_card_examples_are_not_evaluation_sentences`
+  checks none is a sentence of the evaluation set. Chunks: 279 single,
+  121 pair, 46 window.
+- **Overlap between definitions** (cosine of definition + function):
+  the draft's closest pairs were reduced by rewriting the cards. Before
+  → after, closest pair: MiniLM propuesta/petición 0.828 → petición/
+  compromiso 0.745; e5-small aceptación/rechazo 0.945 → 0.921 (e5's
+  cosines sit high for any two Spanish texts; the draft figures are in
+  `act_rag/overlap_draft.json`).
+- **Three views**, each its own query and its own chunks: the target
+  alone (single), previous + target (pair), up to three previous +
+  target (window). A chunk votes only for the category of the position
+  the target occupies in it, so a retrieved "pregunta→respuesta" pair
+  votes respuesta for an answer and the previous sentence's evidence
+  never votes for the target. Views are fused with weights and a
+  temperature fitted on the other four folds (`FusionWeights`).
+- **Index**: cards only, or cards + the labelled sentences of the other
+  four folds (the test dialogue is never in the index); embedders
+  `paraphrase-multilingual-MiniLM-L12-v2` and `multilingual-e5-small`;
+  dense, or hybrid with BM25 (share 0.3, fixed before measuring).
+- **R**: the fused, calibrated vote. **RG**: the same evidence split by
+  position goes into a prompt (`src/domain/skills/act_rag_prompting.py`)
+  with the target marked and the context marked as context; the judge
+  answers up to three labels with weights and a one-line reason citing
+  a card; its weights are mixed with R (share of R fitted on the other
+  folds: 0.1 in every fold). Code: `src/domain/skills/act_retrieval.py`,
+  `src/application/skills/rag_act_tagger.py` (`RetrievalActTagger`,
+  `RetrievalJudgeTagger`, both `ActTagger`), cards loaded by
+  `src/adapters/outbound/json_act_cards.py`.
+
+### 9.2 R on the 1,534 sentences
+
+| Index / embedder / similarity | Top-1 | Top-3 | Macro-F1 | Log-loss | ECE | Answerer → pregunta |
+|---|---:|---:|---:|---:|---:|---:|
+| cards / MiniLM / dense | 0.335 | 0.615 | 0.266 | 2.088 | 0.071 | 3 |
+| cards / MiniLM / hybrid | 0.424 | 0.683 | 0.363 | 1.887 | 0.078 | 2 |
+| cards / e5-small / dense | 0.387 | 0.709 | 0.355 | 1.927 | 0.094 | 0 |
+| cards / e5-small / hybrid | 0.426 | 0.698 | 0.395 | 1.875 | 0.081 | 6 |
+| cards+folds / MiniLM / dense | 0.476 | 0.739 | 0.424 | 1.664 | 0.055 | 5 |
+| cards+folds / MiniLM / hybrid | 0.533 | 0.782 | 0.485 | 1.497 | 0.045 | 4 |
+| **cards+folds / e5-small / dense** | **0.618** | **0.852** | **0.553** | **1.271** | 0.071 | 1 |
+| cards+folds / e5-small / hybrid | 0.569 | 0.809 | 0.524 | 1.405 | 0.064 | 2 |
+
+"Answerer → pregunta" counts the error the owner feared: a sentence
+right after another speaker's pregunta, not itself a pregunta, labelled
+pregunta (186 such sentences). For comparison, encoder-es makes 0 of
+these errors and Qwen3-8B 9.
+
+Reading:
+
+- **The cards alone are weak** (best 0.426, below the rules' 0.519).
+  Adding the labelled sentences of the other folds lifts R to 0.618.
+- **The definitions add nothing measurable to R**: removing the
+  definition, cue and boundary chunks (keeping only the card examples
+  and the fold sentences) gives 0.617 for the best configuration
+  (0.618 with them) and 0.426 for cards/e5/hybrid (same). Nearest
+  neighbour voting is driven by example sentences; the theory text
+  matters only once a judge reads it (RG).
+- Hybrid BM25 helps with the cards only and hurts with e5 + folds.
+- Cost: about 36 s on the CPU for the 1,534 sentences of the first
+  e5-small configuration, embedding included (later configurations
+  reuse the cached embeddings: 1.3–4.6 s).
+
+**View ablation** (best configuration; F1 of the context-dependent
+categories):
+
+| Views | Top-1 | Macro-F1 | Log-loss | preg | resp | acep | rech | comp | Answerer → pregunta |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| single | 0.521 | 0.482 | 1.594 | .87 | .35 | .61 | .31 | .53 | 3 |
+| pair | 0.605 | 0.534 | 1.437 | .85 | .84 | .58 | .51 | .56 | 0 |
+| window | 0.559 | 0.508 | 1.540 | .89 | .59 | .57 | .43 | .53 | 0 |
+| single+pair | 0.614 | 0.547 | 1.310 | .85 | .80 | .58 | .52 | .60 | 2 |
+| single+window | 0.572 | 0.525 | 1.404 | .88 | .57 | .60 | .38 | .55 | 2 |
+| single+pair+window | 0.618 | 0.553 | 1.271 | .88 | .77 | .60 | .49 | .60 | 1 |
+
+Context helps: the pair view takes respuesta from .35 to .84 and
+rechazo from .31 to .51 while pregunta moves by at most .02; it also
+removes the answerer-as-pregunta errors. Aceptación does not gain.
+The fitted weights were single 1, pair 2, window 1 in all five folds.
+
+### 9.3 Combinations with the encoder (1,534 sentences)
+
+The encoder-es predictions here are recomputed from the fold models
+(`data/models/act-tagger/cache/encoder_es_folds.json`) and score 0.729
+top-1, 0.802 log-loss, against 0.731 / 0.799 in §2: the same models,
+a different inference run (small numeric differences); all rows below
+use the recomputed ones.
+
+| Approach | Top-1 | Top-3 | Macro-F1 | Log-loss | ECE |
+|---|---:|---:|---:|---:|---:|
+| encoder-es | 0.729 | 0.939 | 0.689 | 0.802 | 0.020 |
+| R | 0.618 | 0.852 | 0.553 | 1.271 | 0.071 |
+| encoder-es, R replaces "dudoso" (302 sentences) | 0.715 | 0.907 | 0.668 | 0.931 | 0.032 |
+| encoder-es, R averaged in on "dudoso" | 0.739 | 0.941 | 0.699 | 0.816 | 0.032 |
+| encoder-es + R ensemble (R share 0.1 in every fold) | 0.735 | 0.943 | 0.694 | 0.791 | 0.021 |
+
+"Dudoso" uses §5's margin 0.45 (set on this same set). The best
+combination gains +0.010 top-1, exactly the threshold §2 asks of a
+combination, with a worse log-loss; the ensemble gains +0.006 top-1
+and 0.011 log-loss. Neither is adopted.
+
+### 9.4 RG with Claude Code on #82's 140 sentences
+
+Same 140 sentences as the zero-shot Claude run of §2 (paired
+comparison), judge `claude-code:opus` through `claude -p` on the
+subscription; 140 calls in total (one per sentence, within the
+ticket's 150), none unparsed. The run was cut by a reboot after 70
+verdicts and resumed from the saved file; the 70 resumed calls took
+223 s (3.2 s per sentence; the first half's time was lost).
+
+| Approach (same 140) | Top-1 | Top-3 | Macro-F1 | Log-loss | ECE | Answerer → pregunta |
+|---|---:|---:|---:|---:|---:|---:|
+| rules | 0.479 | 0.671 | 0.355 | 1.653 | 0.109 | 0 / 16 |
+| R | 0.579 | 0.829 | 0.470 | 1.524 | 0.136 | 0 / 16 |
+| encoder-es | 0.693 | 0.907 | 0.630 | 0.865 | 0.108 | 0 / 16 |
+| Claude Code zero-shot (§2) | 0.743 | 0.879 | 0.660 | 1.158 | 0.124 | 0 / 16 |
+| **RG Claude Code, weights + R** | **0.864** | **0.986** | **0.849** | **0.458** | **0.082** | 0 / 16 |
+| RG Claude Code, outcome table | 0.864 | 0.929 | 0.849 | 0.779 | 0.149 | 0 / 16 |
+
+Per-category F1 of RG (weights + R): preg .90, resp .89, info .67,
+opin .89, prop .93, peti .80, acep .76, rech .82, comp .92, escu .91,
+gest .88, rela .87, otro .80. Every category's F1 is higher than
+with Claude zero-shot; the largest gains are peticion .40 → .80,
+otro .00 → .80, opinion .74 → .89, gestion .84 → .88 the smallest.
+
+With 140 sentences the 95 % normal-approximation interval is about
+±0.057 around 0.864 and ±0.072 around 0.743; no paired significance
+test was run.
+
+Not run: **RG with the local Qwen3-8B/4B on the 1,534 sentences**. The
+GPU had 6.2 of 8 GB taken by another project's worker throughout this
+work; the command is in §9.6.
+
+### 9.5 Decision
+
+- **Keep encoder-es as the default tagger.** It is local, free and
+  labels every sentence; R alone is 0.11 below it and its combinations
+  do not clear the +0.01 rule with a better log-loss.
+- **RG with Claude Code is the most accurate tagger measured** (0.864
+  vs 0.743 for the same judge without retrieval, on the same
+  sentences). It costs one subscription call per sentence (~3 s), so
+  the proposal is to use it as an optional second pass over the
+  encoder's "dudoso" labels (≈ 20 % of sentences, §5), not for every
+  sentence. That route was not measured end to end (RG was run on the
+  140 sentences of #82, not on the dudoso subset) and it is not wired
+  into `skills acts` in this ticket; the taggers exist behind the
+  `ActTagger` port and in the experiment script.
+- The theory cards matter for the judge, not for the vote: R gains
+  nothing from them (§9.2).
+
+### 9.6 Limits and how to reproduce
+
+- **Circularity.** The Spanish set, the theory cards and the judge's
+  prompt come from the same author (and the cards were written knowing
+  the categories' guide the set follows). The card examples are kept
+  disjoint from the evaluation sentences, and the index never holds the
+  test dialogue, but the style is shared: 0.864 measures agreement with
+  that author, an upper bound for real meetings.
+- Labels are the author's intended labels (§7), not human agreement.
+- RG figures rest on 140 sentences: per-category F1 on a handful each.
+- The fusion grid, the hybrid share 0.3 and the R share in the mix were
+  fitted or fixed on this set (fusion weights and shares on the other
+  folds of each test fold).
+
+```sh
+# R, ablations, combinations, scoring of saved RG verdicts, summaries
+HF_HUB_OFFLINE=1 CUDA_VISIBLE_DEVICES= PYTHONPATH=. python \
+    experiments/skills/act_rag_eval.py --es-folds data/models/act-tagger/xlmr-es-folds
+# RG with Claude Code on #82's 140 sentences (resumes from the saved verdicts)
+... act_rag_eval.py --configs cards+folds/e5-small/dense --run-judge claude_code \
+    --ids experiments/skills/results/act_tagger/llm_claude_code.json
+# RG with the local judge on every sentence (not run: GPU busy)
+... act_rag_eval.py --configs cards+folds/e5-small/dense --run-judge local \
+    --local-model Qwen/Qwen3-8B
+```
