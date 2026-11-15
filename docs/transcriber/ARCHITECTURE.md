@@ -65,12 +65,15 @@ transcriber/
                      alternative speaker from the short windows' cosines;
                      keeps a sentence whole on a weak change of speaker
     voices.py        single-voice test, clustering, centroids, matching to voiceprints
+    diarization.py   which lab diarizer a session gets (DiarizerRule); its
+                     segments as spans, each label's own windows, label
+                     voices and the short windows' cosines (TR-18)
     enrolment.py     the text a person reads, checks on an enrolment sample
     consent.py       the versioned consent notices (enrolment, recording)
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
-                     OverlapDetector,
+                     OverlapDetector, Diarizer,
                      SessionRepository, VoiceprintRepository,
                      TranscriptPublisher, PublishedTranscripts, JobRunner,
                      Progress, SessionLocks, Clock
@@ -80,7 +83,8 @@ transcriber/
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
     transcribe.py    TranscribeSession (recognise → seams → score words →
-                     diarize → sentences kept whole → identify →
+                     diarize (lab diarizer, or built-in grouping) →
+                     sentences kept whole → identify →
                      sentences → certainty),
                      QueueTranscription, TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
@@ -99,7 +103,8 @@ transcriber/
                      rendering, kept on disk), wav_playback.py,
                      fs_voiceprint_repository.py,
                      http_transcript_publisher.py, fs_transcript_publisher.py,
-                     thread_job_runner.py, thread_session_locks.py
+                     thread_job_runner.py, thread_session_locks.py,
+                     lab_runner_diarizer.py (a lab runner as Diarizer)
   config.py        TranscriberSettings (pydantic)
   bootstrap.py     composition root (start_container also runs RecoverSessions)
   __main__.py
@@ -150,7 +155,10 @@ marked `slow`.
   ],
   "pipeline": {"recogniser": "openai/whisper-large-v3-turbo",
                "voice_model": "microsoft/wavlm-base-plus-sv",
-               "transcriber": "0.1.0"}
+               "transcriber": "0.1.0",
+               "diarizer": "diarizen-wavlm-large-s80-md-v2",
+               "diarizer_licence": "CC-BY-NC-4.0 (weights); MIT (code)",
+               "diarizer_commercial": false}
 }
 ```
 
@@ -267,6 +275,12 @@ marked `slow`.
   the session keeps `auto`; with a fixed one, a sentence detected in
   another language gets `language_differs: true`. The speaker's
   `identification` is described in §6.
+- `pipeline.diarizer` names the model that separated the voices
+  (`builtin`, or a lab catalogue id, §6.1), with the licence of its
+  weights (`diarizer_licence`) and whether it allows commercial use
+  (`diarizer_commercial`), copied from `lab/catalogue.json`. Optional
+  fields added compatibly (TR-18): absent in older transcripts, and
+  the licence fields absent for `builtin`.
 - Words are kept by the transcriber (for the player and for
   re-splitting) but are not part of the contract.
 - A change that removes or renames a field is `transcript.v2`.
@@ -391,6 +405,115 @@ lets a human check the sample.
   list) keep the measured seeding at 0.95, unchanged.
 
 Without enrolment everything still works with anonymous labels.
+
+### 6.1 Which diarizer separates the voices (TR-18)
+
+The lab measured the built-in grouping far behind the published
+diarizers on public recordings with a known truth (`LAB.md` §13.8: DER
+0.49–0.50, five or six speakers too many). By the owner's decision of
+2026-11-15 the service uses **the best measured diarizer, even with a
+non-commercial licence**, to see the upper bound (the project is not
+monetised):
+
+| Session | Diarizer (setting `diarizer`) | Licence of the weights |
+|---|---|---|
+| default (meetings, unknown count) | `diarizen-wavlm-large-s80-md-v2` (`model`) | CC BY-NC 4.0: **non-commercial** |
+| `num_speakers` = 2 (a call, two people) | `nemotron-3-diarization` (`by_speakers: {"2": ...}`) | OpenMDW-1.1, commercial use allowed |
+
+- The model runs as in the lab: its runner (`lab/runners/<family>.py`)
+  in the family's own environment (`make lab-env FAMILY=diarizen`,
+  `FAMILY=transformers`), as a subprocess over a WAV the adapter writes
+  under `<data_dir>/diarize/` and deletes afterwards
+  (`adapters/outbound/lab_runner_diarizer.py`). The model is loaded for
+  one job and its GPU memory is freed when the process ends; before it
+  starts the service unloads its own recogniser (Whisper is not needed
+  again in that job), so the card (8 GB, shared with the RAG and
+  another project's worker) holds the diarizer and little else.
+- The runner and its copy of the audio never outlive the job. The
+  runner runs in its own process group, so the service kills it
+  itself: when the session is deleted or queued again (the job polls
+  the stored session every half second and stops quietly, saving
+  nothing), and when the service stops (Ctrl-C, SIGTERM, or at exit:
+  `TranscriberContainer.stop_runners`, which also refuses to start
+  another runner; the job then fails and is recovered as interrupted
+  at the next start). Deleting a session whose job is running is
+  refused anyway (§3), so a running job's audio is never orphaned by a
+  deletion. A `diarize-*` folder left by a service killed mid-run
+  (`SIGKILL`, power loss: no `finally` runs) is deleted when the
+  service starts (`LabRunnerDiarizer.sweep`, one service per data
+  directory). A runner left by such a kill is not tracked across
+  restarts: it ends when its model finishes or fails.
+- A diarizer label too short for any voice window has no voice vector
+  and is never matched with a voiceprint (it stays `S1`, `S2`…) in any
+  normalisation (`domain/diarization.py`, `name_labels`).
+- No denoiser runs first (`LAB.md` §13.8: cleaning did not help).
+- Each word takes the diarizer segment it overlaps most. Each label's
+  voice is embedded with the service's voice model over the stretches
+  where it speaks alone (as the lab's `voiceprint` mapping does) and
+  matched one to one to the enrolled voiceprints at `match_threshold`
+  (or `expected_floor` under the expected-speakers rule); a label that
+  matches nobody stays `S1`, `S2`… The voiceprints do not seed the
+  grouping here: the diarizer already grouped the voices.
+- The sentences keep their certainty, doubt, alternative speaker and
+  "kept whole" rule: the short voice windows are scored against each
+  label's voice (centred like the built-in grouping's). `overlap`
+  joins the diarizer's own overlap stretches to the overlap detector's
+  (`overlap_source: detector` when only those fired).
+- Fallback: when the chosen model's environment is missing or not
+  verified, the model is gated without a token, the runner fails, or
+  it hears no one, the job uses the built-in grouping, logs a warning
+  and notes it on the job (`pipeline.diarizer` is then `builtin`).
+  `transcriber serve` warns at start-up for each model of the rule
+  that cannot run. `{"diarizer": {"model": "builtin", "by_speakers":
+  {}}}` turns the lab diarizers off; with `runtime: "fake"` they are
+  never used.
+- The lab's own `builtin` step keeps measuring the built-in grouping.
+
+**Measured before the switch** (`experiments/transcriber/
+service_diarizer_eval.py`, rows in `service_diarizer.jsonl`, summary in
+`results/diarizer_switch.json`; the RTX 3070 Ti, 2026-11-15/16). The
+whole transcription (Whisper, then the diarizer, then words on
+speakers) on the original audio of the lab's corpus sessions, no one
+enrolled; the turns of the attributed words scored against the human
+reference with the lab's scoring (collar 0.25 s). CALLHOME calls were
+started with 2 speakers (Nemotron-3), AMI meetings without a count
+(DiariZen). Means over the sessions:
+
+| Corpus | Built-in grouping | Lab diarizer | The diarizer's own segments | Speakers too many (built-in → lab) |
+|---|---|---|---|---|
+| AMI, 4 meetings, 4 people | DER 0.495 | **0.266** | 0.090 (#44: 0.089) | +5.5 → +0.75 |
+| CALLHOME es, 10 calls | DER 0.359 | **0.223** | 0.109 (#44: 0.106) | −0.6 → +0.2 |
+
+The transcription's DER is higher than the diarizer's own because it
+scores the turns of the recognised words: speech Whisper does not
+transcribe counts as missed, and a turn spans the pauses between its
+words. Sentences flagged doubtful rose on the calls (10.7% → 33.1% of
+sentences; AMI 57.4% → 44.1%), and overlaps now include the diarizer's
+own (AMI 52%, calls 34% of sentences flagged): the certainty margins
+were tuned on the built-in grouping and were not re-tuned here.
+
+Words on the right id, synthetic meetings of `IDENTIFICATION.md` (20
+per split, 4 readers, mean of the four enrolment conditions, match
+threshold 0.95 unit; the default before recomputed on the same cache):
+
+| Split | Before: voiceprints seed the built-in grouping, count given / estimated | DiariZen, then match (given / estimated) |
+|---|---|---|
+| dev | 94.0% / 88.9% | 99.1% / 99.1% |
+| test | 91.4% / 81.7% | 98.1% / 98.1% |
+
+DiariZen found the same voices with and without the count. The worst
+meeting is 77.6% on `test` (before: 56.1% given). Read speech from
+audiobooks, one voice at a time: not a phone on a table.
+
+GPU (`nvidia-smi`, card otherwise idle at about 460 MiB): DiariZen's
+runner peaks at 3.7 GB (torch), Nemotron's at 0.6 GB; the service's own
+process peaks at 1.9–2.5 GB (Whisper, released before the runner
+starts, then WavLM); the whole card peaked at 4.4–4.5 GB on AMI and
+2.8–3.3 GB on the calls. One call (`callhome-data-0008`) was measured
+on the CPU while another project held the card (76 minutes for 300 s
+of audio, DER 0.168, `service_diarizer.jsonl`); its time and memory
+are left out of the GPU figures. Time on the GPU: 31–57 s for a 5–10
+min call, 131–212 s for a 25–39 min meeting.
 
 ## 7. Listening to a sentence
 

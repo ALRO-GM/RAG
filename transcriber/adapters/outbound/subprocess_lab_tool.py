@@ -16,7 +16,10 @@ switches) and the Hugging Face token is added only for a gated model,
 read from ``HF_TOKEN`` or the standard token file; it never appears on
 the command line or in a message. Output goes to ``<dir>/runner.log``.
 A run longer than ``timeout`` seconds, or cancelled, is killed with its
-whole process group.
+whole process group. :meth:`SubprocessLabTool.stop_all` kills every
+runner still running and refuses new ones: the service calls it when it
+stops, since a runner lives in its own session and would otherwise
+outlive the service (and keep the GPU and the audio).
 
 :class:`FileSystemLabEnvironment` tells whether a family's environment
 is ready (its interpreter, its runner and the marker ``make lab-env``
@@ -29,6 +32,7 @@ import json
 import os
 import signal
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional
@@ -168,9 +172,34 @@ class SubprocessLabTool:
         self._environ = environ
         self._timeout = timeout
         self._clock = clock
+        self._lock = threading.Lock()
+        self._live: Dict[int, "subprocess.Popen[bytes]"] = {}
+        self._stopped = False
 
     def release(self) -> None:
         """Nothing is held in this process."""
+
+    def stop_all(self) -> None:
+        """Kill every runner still running; refuse to start new ones.
+
+        A run in progress then raises a ``cancelled``
+        :class:`LabStepError`.
+        """
+        with self._lock:
+            self._stopped = True
+            live = list(self._live.values())
+        for process in live:
+            _kill(process)
+
+    def running(self) -> int:
+        """Return how many runners are running now."""
+        with self._lock:
+            return len(self._live)
+
+    def _stopping(self) -> bool:
+        """Tell whether :meth:`stop_all` was called."""
+        with self._lock:
+            return self._stopped
 
     def command(self, request: ToolRequest) -> List[str]:
         """Return the argument list that runs ``request``."""
@@ -211,17 +240,30 @@ class SubprocessLabTool:
         token = env.get("HF_TOKEN")
         log = request.workspace / "runner.log"
         started = self._clock()
+
+        def stop() -> bool:
+            """The run is cancelled, or the tool is stopping."""
+            return self._stopping() or cancelled()
+
         with open(log, "wb") as output:
-            process = subprocess.Popen(
-                self.command(request), stdin=subprocess.DEVNULL,
-                stdout=output, stderr=subprocess.STDOUT, env=env,
-                cwd=str(request.workspace), start_new_session=True,
-            )
+            with self._lock:
+                if self._stopped:
+                    raise LabStepError("cancelled", "The service is stopping.")
+                process = subprocess.Popen(
+                    self.command(request), stdin=subprocess.DEVNULL,
+                    stdout=output, stderr=subprocess.STDOUT, env=env,
+                    cwd=str(request.workspace), start_new_session=True,
+                )
+                self._live[process.pid] = process
             try:
-                code = self._wait(process, started, cancelled)
+                code = self._wait(process, started, stop)
             finally:
                 if process.poll() is None:
                     _kill(process)
+                with self._lock:
+                    self._live.pop(process.pid, None)
+        if self._stopping():
+            raise LabStepError("cancelled", "The service is stopping.")
         return self._outcome(request, code, log, token)
 
     def _wait(

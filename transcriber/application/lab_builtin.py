@@ -46,6 +46,12 @@ from transcriber.application.transcribe import (
     TranscriptionOptions,
 )
 from transcriber.domain.comparison import frame_count, to_frames
+from transcriber.domain.diarization import (
+    FRAME,
+    MAX_LABEL_WINDOWS,
+    exclusive_regions,
+    spread,
+)
 from transcriber.domain.errors import (
     LabStepError,
     NotFoundError,
@@ -70,8 +76,7 @@ from transcriber.domain.speakers import analysis_windows, turns_from_words
 from transcriber.domain.voices import match_voices, unit_rows
 
 SCRATCH_ID = "lab-scratch"
-FRAME = 0.01
-MAX_MAPPING_WINDOWS = 120
+MAX_MAPPING_WINDOWS = MAX_LABEL_WINDOWS
 """Windows embedded per speaker at most (evenly spread)."""
 
 
@@ -298,39 +303,6 @@ def turn_segments(words: Sequence[Word], gap: float) -> List[Segment]:
     ]
 
 
-def exclusive_regions(
-    segments: Sequence[Segment], duration: float, minimum: float = 0.4
-) -> Dict[str, List[Tuple[float, float]]]:
-    """Return, per label, the stretches where it is the only speaker.
-
-    Stretches shorter than ``minimum`` seconds are dropped.
-    """
-    frames = frame_count(duration, FRAME)
-    grid = to_frames(segments, frames, FRAME)
-    alone = grid.active & (grid.active.sum(axis=1) == 1)[:, None]
-    regions: Dict[str, List[Tuple[float, float]]] = {}
-    for column, name in enumerate(grid.names):
-        on = np.concatenate(([False], alone[:, column], [False]))
-        edges = np.flatnonzero(on[1:] != on[:-1])
-        found = [
-            (round(a * FRAME, 3), round(b * FRAME, 3))
-            for a, b in zip(edges[::2], edges[1::2])
-            if (b - a) * FRAME >= minimum
-        ]
-        regions[name] = found
-    return regions
-
-
-def _spread(windows: List[Tuple[float, float]], limit: int) -> List[
-    Tuple[float, float]
-]:
-    """Return at most ``limit`` of ``windows``, evenly spread."""
-    if len(windows) <= limit:
-        return windows
-    picks = np.linspace(0, len(windows) - 1, limit).round().astype(int)
-    return [windows[int(i)] for i in picks]
-
-
 def map_speakers(
     segments: Sequence[Segment],
     audio: Audio,
@@ -357,7 +329,7 @@ def map_speakers(
     windows: List[Tuple[float, float]] = []
     owners: List[str] = []
     for label in labels:
-        own = _spread(
+        own = spread(
             analysis_windows(regions.get(label, []), *parameters.fine()),
             MAX_MAPPING_WINDOWS,
         )

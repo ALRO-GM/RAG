@@ -51,6 +51,35 @@ make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-code'
 Si la página dice «El ordenador está cargando los modelos. Inténtalo de
 nuevo en un minuto.», espera y prueba otra vez.
 
+### Qué modelo separa las voces
+
+Desde TR-18 las voces las separa el mejor diarizador medido en el
+laboratorio (`LAB.md` §13.8), no la agrupación propia del servicio:
+
+- **DiariZen** (`diarizen-wavlm-large-s80-md-v2`) en reuniones y
+  cuando no se dice cuántas personas hay. **Su licencia (CC BY-NC 4.0)
+  no permite uso comercial**: se usa porque el proyecto no se
+  monetiza y se quiere ver el techo de calidad.
+- **Nemotron-3** (`nemotron-3-diarization`) cuando la sesión dice que
+  hay **2 personas** (una llamada, una entrevista).
+
+Cada uno corre en su propio entorno del laboratorio, que hay que
+instalar una vez:
+
+```sh
+make lab-env FAMILY=diarizen
+make lab-env FAMILY=transformers
+```
+
+El modelo se carga para cada trabajo y libera la tarjeta al acabar. Si
+falta su entorno, al arrancar la terminal avisa («Diarizer … cannot
+run») y esas sesiones se separan con la agrupación propia, que cuenta
+de más personas; el trabajo lo anota. Cada transcripción dice qué
+modelo usó y su licencia (`pipeline.diarizer`,
+`pipeline.diarizer_licence`). Para volver a la agrupación propia, pon
+en el fichero de ajustes (`TRANSCRIBER_CONFIG`):
+`{"diarizer": {"model": "builtin", "by_speakers": {}}}`.
+
 ### Qué escribe la terminal
 
 Cuando el servicio está listo, la terminal muestra, en este orden:

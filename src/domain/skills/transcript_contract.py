@@ -164,11 +164,17 @@ class ContractUtterance(_Strict):
 
 
 class ContractPipeline(_Strict):
-    """The models and the transcriber version that made the transcript."""
+    """The models and the transcriber version that made the transcript.
+
+    ``diarizer`` and its licence terms were added compatibly (TR-18).
+    """
 
     recogniser: str
     voice_model: str
     transcriber: str
+    diarizer: Optional[str] = None
+    diarizer_licence: Optional[str] = None
+    diarizer_commercial: Optional[bool] = None
 
 
 class ContractTranscript(_Strict):

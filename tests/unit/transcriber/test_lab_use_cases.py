@@ -54,10 +54,10 @@ from transcriber.application.lab import (
 )
 from transcriber.application.lab_builtin import (
     InProcessTools,
-    exclusive_regions,
     map_speakers,
     turn_segments,
 )
+from transcriber.domain.diarization import exclusive_regions
 from transcriber.application.lab_ports import ToolRequest
 from transcriber.application.ports import RecordedAudio
 from transcriber.application.record import DeleteSession

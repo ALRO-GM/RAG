@@ -331,13 +331,24 @@ class ConsentRecord(BaseModel):
 
 
 class Pipeline(BaseModel):
-    """The models and the transcriber version that made a transcript."""
+    """The models and the transcriber version that made a transcript.
+
+    ``diarizer`` is the model that separated the voices (``builtin``:
+    the service's own grouping; a lab catalogue id otherwise), with the
+    licence of its weights and whether that licence allows commercial
+    use (``diarizer_licence``, ``diarizer_commercial``; DiariZen's is
+    CC BY-NC 4.0, not commercial). They are ``None`` in transcripts
+    made before TR-18, and the licence fields for the built-in one.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     recogniser: str
     voice_model: str
     transcriber: str
+    diarizer: Optional[str] = None
+    diarizer_licence: Optional[str] = None
+    diarizer_commercial: Optional[bool] = None
 
 
 _SESSION_FIELDS = frozenset({
@@ -351,7 +362,14 @@ _UTTERANCE_FIELDS = frozenset({
     "speaker_confidence", "speaker_certainty", "doubtful", "overlap",
     "alternative_speaker", "overlap_source", "language", "language_differs",
 })
-_PIPELINE_FIELDS = frozenset({"recogniser", "voice_model", "transcriber"})
+_PIPELINE_FIELDS = frozenset({
+    "recogniser", "voice_model", "transcriber", "diarizer",
+    "diarizer_licence", "diarizer_commercial",
+})
+_PIPELINE_ADDED = frozenset({
+    "diarizer", "diarizer_licence", "diarizer_commercial",
+})
+_PIPELINE_REQUIRED = _PIPELINE_FIELDS - _PIPELINE_ADDED
 _TOP_FIELDS = frozenset({
     "schema", "session", "speakers", "utterances", "pipeline",
 })
@@ -387,6 +405,15 @@ def _utterance_contract(utterance: "Utterance") -> Dict[str, Any]:
     """Return ``utterance`` as a ``transcript.v1`` utterance object."""
     out = utterance.model_dump(include=set(_UTTERANCE_FIELDS))
     for key in _UTTERANCE_ADDED:
+        if out[key] is None:
+            del out[key]
+    return out
+
+
+def _pipeline_contract(pipeline: "Pipeline") -> Dict[str, Any]:
+    """Return ``pipeline`` as a ``transcript.v1`` pipeline object."""
+    out = pipeline.model_dump()
+    for key in _PIPELINE_ADDED:
         if out[key] is None:
             del out[key]
     return out
@@ -466,7 +493,7 @@ class Transcript(BaseModel):
             "session": described,
             "speakers": [_speaker_contract(s) for s in self.speakers],
             "utterances": [_utterance_contract(u) for u in self.utterances],
-            "pipeline": self.pipeline.model_dump(),
+            "pipeline": _pipeline_contract(self.pipeline),
         }
 
     @classmethod
@@ -496,7 +523,7 @@ class Transcript(BaseModel):
             for u in _items(document, "utterances")
         ]
         pipeline = _section(
-            document, "pipeline", _PIPELINE_FIELDS, _PIPELINE_FIELDS
+            document, "pipeline", _PIPELINE_FIELDS, _PIPELINE_REQUIRED
         )
         try:
             # Through JSON text in strict mode, so nothing is coerced:

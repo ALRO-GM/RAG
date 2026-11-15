@@ -4,7 +4,9 @@
 ARCHITECTURE.md`` §3: decode → recognise (timed words) → seams resolved,
 words over silence dropped → words scored (and the language of each
 window detected) → speech regions and analysis windows → voice
-embeddings → voice groups (two passes, in the domain) → identification
+embeddings → voice groups (two passes, in the domain; or, with a
+diarizer of the lab, its segments: :meth:`TranscribeSession._external`)
+→ identification
 against the enrolled voiceprints (seeded at the match threshold, or,
 when the session lists exactly who is present, clustered into that
 many voices and assigned one to one above ``expected_floor``) →
@@ -50,6 +52,7 @@ from transcriber.application.common import (
 from transcriber.application.ports import (
     Audio,
     AudioDecoder,
+    Diarizer,
     JobRunner,
     JobStatus,
     LanguageSpan,
@@ -69,11 +72,23 @@ from transcriber.domain.certainty import (
     assess_utterances,
     keep_sentences_whole,
 )
+from transcriber.domain.diarization import (
+    BUILTIN_RULE,
+    Diarization,
+    DiarizerRule,
+    label_order,
+    label_windows,
+    name_labels,
+    segment_spans,
+    segment_voices,
+)
 from transcriber.domain.errors import (
     InvalidInputError,
+    LabStepError,
     NotFoundError,
     VoiceModelMismatchError,
 )
+from transcriber.domain.lab import BUILTIN_DIARIZER
 from transcriber.domain.languages import (
     check_language,
     recognition_language,
@@ -119,6 +134,10 @@ LOG = logging.getLogger(__name__)
 SCORING_FAILED_NOTE = (
     "The recogniser could not score its words; the transcript has no"
     " recognition confidence."
+)
+DIARIZER_FALLBACK_NOTE = (
+    "The diarizer {model} could not be used ({reason}); the voices were"
+    " separated by the built-in grouping."
 )
 OVERLAP_FAILED_NOTE = (
     "The overlap detector failed; overlaps are flagged from the voice"
@@ -241,6 +260,26 @@ STOPPED_NOTE = (
 )
 
 
+class _Stopped(Exception):
+    """The run is no longer the session's: stop quietly, save nothing."""
+
+
+class _Voices(NamedTuple):
+    """The voices of a run: labelled words and what identification needs.
+
+    ``seeded`` is set when the voiceprints seeded the grouping;
+    ``vectors`` holds one vector per voice label otherwise. ``heard``,
+    when set, holds the label numbers that have a voice to match (a
+    lab diarizer's label with no window has none and stays anonymous).
+    """
+
+    words: List[Word]
+    vectors: FloatArray
+    evidence: Optional[VoiceEvidence]
+    seeded: Optional[SeededVoices]
+    heard: Optional[AbstractSet[int]] = None
+
+
 class _Result(NamedTuple):
     """What a run produced, before it is saved."""
 
@@ -261,11 +300,16 @@ class TranscribeSession:
         locks: SessionLocks,
         parameters: TranscriptionParameters = TranscriptionParameters(),
         overlaps: Optional[OverlapDetector] = None,
+        diarizer: Optional[Diarizer] = None,
+        diarizer_rule: DiarizerRule = BUILTIN_RULE,
     ) -> None:
         """Wire the ports and take the thresholds from the settings.
 
         ``overlaps`` is the optional overlap detector; without it
-        overlaps are flagged from the voice windows only.
+        overlaps are flagged from the voice windows only. ``diarizer``
+        runs the lab's diarizers; ``diarizer_rule`` says which one a
+        session gets (``builtin``, or no ``diarizer``: the built-in
+        grouping of voice windows).
         """
         self._sessions = sessions
         self._voiceprints = voiceprints
@@ -275,6 +319,8 @@ class TranscribeSession:
         self._locks = locks
         self._parameters = parameters
         self._overlaps = overlaps
+        self._diarizer = diarizer
+        self._rule = diarizer_rule
 
     @property
     def voice_model(self) -> str:
@@ -337,6 +383,9 @@ class TranscribeSession:
         try:
             result = self._run(running, options, advance, report)
             saved = self._commit(running, result)
+        except _Stopped:
+            report.note(STOPPED_NOTE)
+            return None
         except BaseException as exc:
             reason = str(exc).strip() or type(exc).__name__
             self._fail(running, f"{stage}: {reason}")
@@ -423,23 +472,123 @@ class TranscribeSession:
             raise InvalidInputError("No speech recognised.")
         words, languages = self._scored(audio, words, language, report)
         advance()  # voices
+        # Only voiceprints of this voice model can be compared.
+        candidates = expected_voiceprints(
+            self._voiceprints, options, self.voice_model
+        )
+        listed = expected_rule(options, candidates.voiceprints)
+        external = self._external(running, audio, options, report)
+        if external is not None:
+            voices = self._segment_voices(audio, words, external)
+        else:
+            voices = self._grouped_voices(
+                audio, words, options, candidates.voiceprints, listed
+            )
+        words, vectors, evidence, seeded, heard = voices
+        if p.smoothing_run:
+            words = smooth_speakers(words, p.smoothing_run)
+        moved: List[Tuple[float, float]] = []
+        if p.whole_sentences:
+            words, moved = keep_sentences_whole(
+                words, evidence, p.whole_sentence_margin, p.turn_gap,
+                p.whole_sentence_max_move, p.whole_sentence_max_moved,
+            )
+        advance()  # identify
+        if candidates.skipped:
+            report.note(skipped_note(candidates.skipped))
+        # Every enrolled id, compared or not, is kept off anonymous
+        # labels.
+        taken = {v.speaker_id for v in self._voiceprints.all()}
+        if seeded is not None:
+            names = self._name_seeded(
+                words, seeded, candidates.voiceprints, taken
+            )
+        else:
+            names = self._identify(
+                words, vectors, candidates.voiceprints, taken,
+                p.expected_floor if listed else p.match_threshold, heard,
+            )
+        words = [
+            w.model_copy(update={"speaker": names[w.speaker or ""].speaker})
+            for w in words
+        ]
+        advance()  # sentences
+        confidence = {a.speaker: a.similarity for a in names.values()}
+        turns = [
+            t.model_copy(update={"speaker_confidence": confidence[t.speaker]})
+            for t in turns_from_words(words, p.turn_gap)
+        ]
+        utterances = build_utterances(turns)
+        if evidence is not None:
+            evidence = evidence._replace(voices=[
+                names[v].speaker if v is not None and v in names else None
+                for v in evidence.voices
+            ])
+        utterances = assess_utterances(
+            utterances, evidence, p.doubt_margin, moved
+        )
+        if self._overlaps is not None or external is not None:
+            utterances = self._detected(
+                audio, utterances, report,
+                external.overlaps if external is not None else [],
+            )
+        if languages:
+            utterances = tag_languages(
+                utterances, [(s.start, s.end, s.language) for s in languages],
+                running.language,
+            )
+        advance()  # save
+        done = move(running, SessionState.DONE).model_copy(update={
+            "duration": audio.duration,
+            "audio_sha256": _sha256(recording),
+        })
+        transcript = Transcript(
+            session=done,
+            speakers=self._speakers(
+                [u.speaker for u in utterances], names.values(), listed
+            ),
+            utterances=utterances,
+            pipeline=Pipeline(
+                recogniser=self._recogniser.model_name,
+                voice_model=self._encoder.model_name,
+                transcriber=__version__,
+                diarizer=(
+                    external.model if external is not None
+                    else BUILTIN_DIARIZER
+                ),
+                diarizer_licence=(
+                    external.licence if external is not None else None
+                ),
+                diarizer_commercial=(
+                    external.commercial if external is not None else None
+                ),
+            ),
+        )
+        return _Result(transcript, words)
+
+    def _grouped_voices(
+        self, audio: Audio, words: List[Word],
+        options: TranscriptionOptions, candidates: Sequence[Voiceprint],
+        listed: bool,
+    ) -> _Voices:
+        """Find the voices with the built-in grouping of voice windows.
+
+        The voiceprints seed the grouping (``identification`` ``seeded``)
+        unless the expected-speakers rule applies (``listed``).
+        """
+        p = self._parameters
         regions = speech_regions(words, p.region_gap)
         coarse_windows = analysis_windows(regions, *p.coarse())
         fine_windows = analysis_windows(regions, *p.fine())
         coarse = self._embed(audio, coarse_windows)
         fine = self._embed(audio, fine_windows)
-        # Only voiceprints of this voice model can be compared.
-        candidates = expected_voiceprints(
-            self._voiceprints, options, self.voice_model
-        )
         seeded: Optional[SeededVoices] = None
-        listed = expected_rule(options, candidates.voiceprints)
         if (
-            p.identification == "seeded" and candidates.voiceprints
+            p.identification == "seeded" and candidates
             and coarse.shape[0] and not listed
         ):
             seeded = seed_voices(
-                coarse, fine, candidates.voiceprints, options.num_speakers,
+                coarse, fine, candidates, options.num_speakers,
                 p.match_threshold, p.normaliser(), p.group_threshold,
                 p.max_speakers, self._one_voice,
             )
@@ -462,74 +611,110 @@ class TranscribeSession:
                 ])
         else:
             spans = spans_from_windows(coarse_windows, coarse_labels)
-        words = assign_speakers(words, spans)
-        if p.smoothing_run:
-            words = smooth_speakers(words, p.smoothing_run)
-        moved: List[Tuple[float, float]] = []
-        if p.whole_sentences:
-            words, moved = keep_sentences_whole(
-                words, evidence, p.whole_sentence_margin, p.turn_gap,
-                p.whole_sentence_max_move, p.whole_sentence_max_moved,
-            )
-        advance()  # identify
-        if candidates.skipped:
-            report.note(skipped_note(candidates.skipped))
-        # Every enrolled id, compared or not, is kept off anonymous
-        # labels.
-        taken = {v.speaker_id for v in self._voiceprints.all()}
-        if seeded is not None:
-            names = self._name_seeded(
-                words, seeded, candidates.voiceprints, taken
-            )
-        else:
-            names = self._identify(
-                words, vectors, candidates.voiceprints, taken,
-                p.expected_floor if listed else p.match_threshold,
-            )
-        words = [
-            w.model_copy(update={"speaker": names[w.speaker or ""].speaker})
-            for w in words
-        ]
-        advance()  # sentences
-        confidence = {a.speaker: a.similarity for a in names.values()}
-        turns = [
-            t.model_copy(update={"speaker_confidence": confidence[t.speaker]})
-            for t in turns_from_words(words, p.turn_gap)
-        ]
-        utterances = build_utterances(turns)
-        if evidence is not None:
-            evidence = evidence._replace(voices=[
-                names[v].speaker if v is not None and v in names else None
-                for v in evidence.voices
+        return _Voices(assign_speakers(words, spans), vectors, evidence,
+                       seeded)
+
+    def _stale(self, running: Session) -> bool:
+        """Tell whether the stored session is no longer the run ``running``.
+
+        Read without the lock: it is only polled to stop a diarizer early
+        (the session was deleted or queued again); saving still checks
+        under the lock.
+        """
+        stored = self._sessions.get(running.id)
+        return (
+            stored is None or stored.run_id != running.run_id
+            or stored.state is not SessionState.RUNNING
+        )
+
+    def _external(
+        self, running: Session, audio: Audio, options: TranscriptionOptions,
+        report: Progress,
+    ) -> Optional[Diarization]:
+        """Run the lab diarizer the rule picks; ``None``: use the built-in.
+
+        The built-in grouping is used when there is no diarizer, the
+        rule picks ``builtin``, the model cannot run here (its
+        environment is missing), it fails, or it hears no one; each case
+        but the first two is logged as a warning and noted on the job.
+        A diarizer stopped because the session was deleted or queued
+        again stops the run quietly (nothing is saved); one stopped
+        because the service is stopping fails the job. Neither falls
+        back.
+        """
+        if self._diarizer is None:
+            return None
+        model = self._rule.model_for(options.num_speakers)
+        if model == BUILTIN_DIARIZER:
+            return None
+        problem = self._diarizer.problem(model)
+        if problem is None:
+            try:
+                found = self._diarizer.diarize(
+                    model, audio, options.num_speakers,
+                    lambda: self._stale(running),
+                )
+            except LabStepError as exc:
+                if exc.code == "cancelled":
+                    if self._stale(running):
+                        raise _Stopped() from exc
+                    raise
+                LOG.warning("The diarizer %s failed.", model, exc_info=True)
+                problem = str(exc).strip() or exc.code
+            except Exception as exc:
+                LOG.warning("The diarizer %s failed.", model, exc_info=True)
+                problem = str(exc).strip() or type(exc).__name__
+            else:
+                if any(s.end > s.start for s in found.segments):
+                    return found
+                problem = "it heard no speech"
+        LOG.warning(
+            "Diarizer %s not used (%s); falling back to the built-in"
+            " grouping.", model, problem,
+        )
+        report.note(DIARIZER_FALLBACK_NOTE.format(
+            model=model, reason=problem[:300]
+        ))
+        return None
+
+    def _segment_voices(
+        self, audio: Audio, words: List[Word], found: Diarization,
+    ) -> _Voices:
+        """Find the voices from an external diarizer's segments.
+
+        Each word takes the segment it overlaps most; each label's voice
+        is embedded over the stretches it speaks alone and compared with
+        the voiceprints afterwards (no seeding: the diarizer already
+        grouped the voices). The short windows over the recognised
+        speech give each sentence's certainty, as with the built-in
+        grouping.
+        """
+        p = self._parameters
+        order = label_order(found.segments)
+        windows, owners = label_windows(
+            found.segments, order, audio.duration, *p.fine()
+        )
+        label_vectors = self._embed(audio, windows)
+        fine_windows = analysis_windows(
+            speech_regions(words, p.region_gap), *p.fine()
+        )
+        fine = self._embed(audio, fine_windows)
+        if label_vectors.shape[0] == 0 and fine.shape[0]:
+            label_vectors = np.zeros((0, fine.shape[1]), dtype=np.float32)
+        voices = segment_voices(
+            label_vectors, owners, len(order), fine, p.centre_windows
+        )
+        evidence: Optional[VoiceEvidence] = None
+        if fine_windows and voices.fine_scores is not None:
+            evidence = VoiceEvidence(fine_windows, voices.fine_scores, [
+                speaker_label(n) for n in range(len(order))
             ])
-        utterances = assess_utterances(
-            utterances, evidence, p.doubt_margin, moved
-        )
-        if self._overlaps is not None:
-            utterances = self._detected(audio, utterances, report)
-        if languages:
-            utterances = tag_languages(
-                utterances, [(s.start, s.end, s.language) for s in languages],
-                running.language,
-            )
-        advance()  # save
-        done = move(running, SessionState.DONE).model_copy(update={
-            "duration": audio.duration,
-            "audio_sha256": _sha256(recording),
-        })
-        transcript = Transcript(
-            session=done,
-            speakers=self._speakers(
-                [u.speaker for u in utterances], names.values(), listed
-            ),
-            utterances=utterances,
-            pipeline=Pipeline(
-                recogniser=self._recogniser.model_name,
-                voice_model=self._encoder.model_name,
-                transcriber=__version__,
-            ),
-        )
-        return _Result(transcript, words)
+        words = assign_speakers(words, segment_spans(found.segments, order))
+        vectors = voices.vectors
+        if vectors.shape[1] == 0:
+            vectors = np.zeros((0, 0), dtype=np.float32)
+        return _Voices(words, vectors, evidence, None,
+                       frozenset(voices.heard))
 
     def _scored(
         self, audio: Audio, words: List[Word], language: Optional[str],
@@ -562,19 +747,24 @@ class TranscribeSession:
 
     def _detected(
         self, audio: Audio, utterances: List[Utterance], report: Progress,
+        heard: Sequence[Tuple[float, float]] = (),
     ) -> List[Utterance]:
-        """Flag the utterances the overlap detector hears two voices in.
+        """Flag the utterances heard with two voices at once.
 
-        A failure of the detector (any ``Exception``) is logged and
-        noted; the windows' flags stay and the job goes on.
+        ``heard`` are the overlaps an external diarizer marked; the
+        overlap detector's, when one is configured, are added. A failure
+        of the detector (any ``Exception``) is logged and noted; the
+        other flags stay and the job goes on.
         """
-        assert self._overlaps is not None
-        try:
-            detected = self._overlaps.overlaps(audio)
-        except Exception:
-            LOG.warning("The overlap detector failed.", exc_info=True)
-            report.note(OVERLAP_FAILED_NOTE)
-            return utterances
+        detected = list(heard)
+        if self._overlaps is not None:
+            try:
+                detected += self._overlaps.overlaps(audio)
+            except Exception:
+                LOG.warning("The overlap detector failed.", exc_info=True)
+                report.note(OVERLAP_FAILED_NOTE)
+                if not heard:
+                    return utterances
         return add_detected_overlaps(
             utterances, detected, self._parameters.overlap_seconds
         )
@@ -623,11 +813,15 @@ class TranscribeSession:
         candidates: Sequence[Voiceprint],
         taken: AbstractSet[str],
         threshold: float,
+        heard: Optional[AbstractSet[int]] = None,
     ) -> Dict[str, Attribution]:
         """Return the attribution of each diarizer label of ``words``.
 
         A group takes a voiceprint at ``threshold`` or more (the match
-        threshold, or the floor of the expected-speakers rule).
+        threshold, or the floor of the expected-speakers rule). With
+        ``heard``, only those group numbers may take one; the others
+        stay anonymous (:func:`~transcriber.domain.diarization.
+        name_labels`).
 
         Groups are passed to the matching in order of first appearance
         in the final words, so ``S1`` is the first unknown voice heard;
@@ -644,10 +838,18 @@ class TranscribeSession:
             )
         else:
             rows = {speaker_label(n): n for n in range(vectors.shape[0])}
-            matched = match_voices(
-                vectors[[rows[label] for label in order]], candidates,
-                threshold, self._parameters.normaliser(), taken=taken,
-            )
+            picked = vectors[[rows[label] for label in order]]
+            if heard is None:
+                matched = match_voices(
+                    picked, candidates, threshold,
+                    self._parameters.normaliser(), taken=taken,
+                )
+            else:
+                matched = name_labels(
+                    picked, [rows[label] in heard for label in order],
+                    candidates, threshold, self._parameters.normaliser(),
+                    taken,
+                )
         return dict(zip(order, matched))
 
     def _speakers(

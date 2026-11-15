@@ -164,13 +164,23 @@ frases que no se parten en un cambio de voz dudoso (TR-02 a TR-19).
 | Reunión real pública AMI, una grabación (4 personas, 1787 s) | pyannote-community-1: DER 0,1819; sortformer: DER 0,2907 | `LAB.md` §13.4 |
 | Laboratorio contra referencia humana, audio original: 4 reuniones AMI (4 personas) | DER medio: DiariZen 0,089 (no comercial), pyannote-3.1 0,130, pyannote-community-1 0,134, Nemotron 0,297, Sortformer 0,333 | `LAB.md` §13.8.1 |
 | Igual, 10 llamadas CALLHOME en español (2 personas, teléfono) | DER medio: Nemotron 0,106, Sortformer 0,122, DiariZen 0,163, pyannote-community-1 0,195; el orden cambia entre corpus | `LAB.md` §13.8.2 |
+| **Transcripción completa con el mejor diarizador (TR-18, #68)**, mismas sesiones: turnos de las palabras contra la referencia | AMI (DiariZen): DER medio 0,266 frente a 0,495 con la agrupación propia, +0,75 personas de más (antes +5,5). CALLHOME (Nemotron, sesión de 2 personas): 0,223 frente a 0,359 | `transcriber/ARCHITECTURE.md` §6.1 |
+| Palabras con la persona correcta, sintético, con DiariZen y luego huellas | 98,1 % en `test` (99,1 % en `dev`), igual con el número dado o estimado; antes 91,4 % / 81,7 % | `transcriber/ARCHITECTURE.md` §6.1 |
 
 DER es la proporción de tiempo de habla mal asignado u omitido (perdido,
 falsa alarma o confusión). 0,18 significa que el 18 % del habla de
 referencia sale mal. Una grabación no permite generalizar: el propio
 documento lo dice. La comparación con todos los modelos sobre 4 reuniones
-AMI y 10 llamadas CALLHOME en español es el experimento **#44, abierto y
-con resultados pendientes**.
+AMI y 10 llamadas CALLHOME en español (#44) está en `LAB.md` §13.8.
+
+Desde TR-18 (#68) el servicio separa las voces con el mejor diarizador
+medido: **DiariZen** por defecto (licencia **no comercial**, CC BY-NC
+4.0, aceptada por el dueño para ver el techo de calidad) y **Nemotron-3**
+cuando la sesión dice 2 personas; si falta su entorno, vuelve a la
+agrupación propia y lo avisa. Cada transcripción guarda qué modelo usó y
+su licencia. Precio medido: más frases marcadas como dudosas en las
+llamadas (11 % → 33 %) y muchas más marcadas como solape; los umbrales de
+certeza se ajustaron con la agrupación propia y no se han reajustado.
 
 En nuestras grabaciones reales (R1 a R3, dos personas alrededor de un
 móvil, 985 s) **no hay verdad conocida**: sólo se sabe que, con el

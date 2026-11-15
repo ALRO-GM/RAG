@@ -1535,8 +1535,19 @@
   ],
   "rule": {
    "issue": 68,
-   "status": "pending",
-   "corpora": {}
+   "status": "done",
+   "corpora": {
+    "ami": {
+     "der": 0.2663,
+     "success": 0.7337,
+     "n": 4
+    },
+    "callhome": {
+     "der": 0.2232,
+     "success": 0.7768,
+     "n": 10
+    }
+   }
   }
  },
  "labelling": {

@@ -39,6 +39,21 @@ use them in a rating. They can be changed after the recording; the
 next publish carries the new values. A document without them reads as
 before (no type, no goal).
 
+## `transcript.v1`: the diarizer and its licence
+
+Added compatibly on 2026-11-15 (#68), all three optional and written
+only when set: `pipeline.diarizer` is the model that separated the
+voices (`builtin`, the transcriber's own grouping, or an id of
+`lab/catalogue.json` such as `diarizen-wavlm-large-s80-md-v2`);
+`pipeline.diarizer_licence` and `pipeline.diarizer_commercial` are the
+licence of its weights and whether it allows commercial use, copied
+from the catalogue (absent for `builtin`). DiariZen's weights are
+CC BY-NC 4.0: `diarizer_commercial: false`. A document without them
+reads as before. **Deploy order:** the RAG's `ContractPipeline` forbids
+fields it does not know, so the RAG (reader) must run the version that
+knows these fields before the transcriber (writer) starts to write
+them; restart the RAG first.
+
 ## `transcript.v1`: rules the schema cannot express
 
 JSON Schema checks each field on its own. Both readers
