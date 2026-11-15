@@ -57,7 +57,7 @@ class TimedSentence(NamedTuple):
     """A sentence of the script with its simulated times."""
 
     turn: int
-    index: int
+    position: int
     speaker: str
     text: str
     start: float
@@ -77,18 +77,18 @@ def parse_script(text: str) -> Script:
         if not turns and found and found.group(1) in HEADER_KEYS:
             header[found.group(1)] = found.group(2).strip()
             continue
-        turn = _TURN.match(line)
-        if turn is None:
+        matched = _TURN.match(line)
+        if matched is None:
             raise InvalidInputError(
                 f"Line {number}: expected 'Name: text', got {line[:40]!r}."
             )
-        overlaps = bool(turn.group(1))
+        overlaps = bool(matched.group(1))
         if overlaps and not turns:
             raise InvalidInputError(
                 f"Line {number}: the first turn cannot overlap."
             )
         turns.append(ScriptTurn(
-            turn.group(2).strip(), turn.group(3).strip(), overlaps,
+            matched.group(2).strip(), matched.group(3).strip(), overlaps,
         ))
     if not turns:
         raise InvalidInputError("The script has no turns.")
@@ -183,7 +183,8 @@ def script_transcript(
             None,
         )
         utterances.append({
-            "id": f"t{s.turn}.s{s.index}", "turn": s.turn, "index": s.index,
+            "id": f"t{s.turn}.s{s.position}", "turn": s.turn,
+            "index": s.position,
             "speaker": ids[s.speaker], "start": s.start, "end": s.end,
             "text": s.text,
             "previous_speaker": before["speaker"] if before else None,

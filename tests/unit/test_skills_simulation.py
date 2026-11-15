@@ -58,7 +58,7 @@ def test_parse_refuses_bad_scripts(text: str, message: str) -> None:
 def test_timing_follows_words_pauses_and_overlaps() -> None:
     """Sentences last by words; an overlap starts before the end."""
     timed = timed_sentences(parse_script(SCRIPT), words_per_second=2.0)
-    assert [(s.turn, s.index) for s in timed] == [
+    assert [(s.turn, s.position) for s in timed] == [
         (0, 0), (0, 1), (1, 0), (2, 0),
     ]
     first, second, third, fourth = timed
