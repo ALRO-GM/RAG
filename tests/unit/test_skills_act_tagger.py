@@ -7,6 +7,7 @@ import pytest
 
 from src.application.skills.act_tagger import (
     ACTS_FORMAT,
+    ActPlace,
     CombinedTagger,
     LlmTagger,
     RuleTagger,
@@ -18,6 +19,7 @@ from src.application.skills.act_tagger import (
 from src.application.skills.judges import ActClassifier
 from src.domain.skills.act_calibration import fit_outcomes
 from src.domain.skills.act_rules import RULES_VERSION
+from src.domain.skills.act_sequence import session_from_json
 from src.domain.skills.act_tagging import (
     ActInput,
     Probabilities,
@@ -159,3 +161,22 @@ def test_sentence_inputs_keep_context_lines() -> None:
     assert items()[2].context == [
         ContextLine(speaker="Ana", text="¿Cuándo llega el pedido?"),
         ContextLine(speaker="Luis", text="Ajá.")]
+
+
+def test_acts_document_loads_in_the_second_layer() -> None:
+    combined = CombinedTagger(
+        {"rules": rules(), "encoder": FixedTagger({"opinion": 1.0})},
+        [Route(tagger="rules", categories=["pregunta"])], "encoder")
+    places = [ActPlace(turn=0, start=1.0, end=2.0),
+              ActPlace(turn=1, start=2.5, end=3.0),
+              ActPlace(turn=1, start=3.0, end=4.0)]
+    document = tag_acts("s1", items(), combined,
+                        {c: 0.1 for c in CATEGORIES}, 0.0, places=places)
+    session = session_from_json(json.loads(document.to_json()))
+    assert session.id == "s1"
+    assert [s.id for s in session.sentences] == ["t0.s0", "t1.s0", "t1.s1"]
+    first = session.sentences[0]
+    assert first.speaker == "Ana" and first.start == 1.0
+    assert first.labels[0].label == "pregunta"
+    with pytest.raises(ValueError):
+        tag_acts("s1", items(), combined, {}, 0.0, places=places[:1])
