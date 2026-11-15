@@ -88,3 +88,18 @@ def test_weighted_examples_are_few_and_in_the_datasheet() -> None:
     assert all(u.act == u.labels[0].label for u in weighted)
     sheet = (SET_DIR / "README.md").read_text(encoding="utf-8")
     assert f"{len(weighted)} sentences carry weighted" in sheet
+
+
+def test_expected_events_point_at_sentences_of_the_set() -> None:
+    """Every expected event names a real sentence and speaker (#83)."""
+    document = json.loads(
+        (SET_DIR / "expected_events.json").read_text(encoding="utf-8"))
+    by_id = {d.session.id: d for d in DIALOGUES}
+    assert len(document["dialogues"]) == 8
+    assert "not human gold" in document["note"]
+    for dialogue, events in document["dialogues"].items():
+        sentences = {u.id: u for u in by_id[dialogue].utterances}
+        for event in events:
+            assert event["sentence"] in sentences, (dialogue, event)
+            if "owner" in event:
+                assert event["owner"] in by_id[dialogue].speakers

@@ -1,0 +1,91 @@
+{
+  "note": "Expected conversation events for 8 dialogues of the Spanish set, written on 2026-11-15 by the AI coding assistant that wrote the event rules (#83), from reading each dialogue's content before running the rules on it. It is the author's reading, not human gold: one reader, no agreement measured, and the same author designed the rules. What counts as a question or a proposal follows the set's first-layer labels (pregunta, propuesta); whether it was answered, accepted, rejected, contested or ignored, what was decided and who took which task are read from the content, so a reply the labels do not link (an idea offered in answer to '¿Alguna más?', support voiced as an opinion) still counts here. Decisions name one sentence that states them; action items name their owner and one sentence of the task; open issues are what a reader would still consider unresolved when the dialogue ends.",
+  "dialogues": {
+    "dec-02": [
+      {"type": "question_answered", "sentence": "t6.s0"},
+      {"type": "question_answered", "sentence": "t11.s1"},
+      {"type": "proposal_rejected", "sentence": "t15.s0"},
+      {"type": "decision", "sentence": "t18.s1"},
+      {"type": "action_item", "sentence": "t22.s0", "owner": "Nuria"},
+      {"type": "action_item", "sentence": "t24.s1", "owner": "Carmen"}
+    ],
+    "dec-04": [
+      {"type": "question_answered", "sentence": "t3.s0"},
+      {"type": "question_answered", "sentence": "t7.s0"},
+      {"type": "question_answered", "sentence": "t11.s0"},
+      {"type": "question_answered", "sentence": "t17.s0"},
+      {"type": "proposal_rejected", "sentence": "t10.s0"},
+      {"type": "proposal_accepted", "sentence": "t14.s1"},
+      {"type": "decision", "sentence": "t20.s0"},
+      {"type": "action_item", "sentence": "t23.s0", "owner": "Belén"},
+      {"type": "action_item", "sentence": "t25.s0", "owner": "Andrés"}
+    ],
+    "llu-01": [
+      {"type": "question_answered", "sentence": "t10.s1", "note": "answered by an idea labelled propuesta"},
+      {"type": "proposal_rejected", "sentence": "t1.s0"},
+      {"type": "proposal_ignored", "sentence": "t4.s1"},
+      {"type": "proposal_contested", "sentence": "t5.s0", "note": "Óscar backs it later, Andrés prefers the soup kitchen"},
+      {"type": "proposal_rejected", "sentence": "t7.s0"},
+      {"type": "proposal_rejected", "sentence": "t8.s0"},
+      {"type": "proposal_contested", "sentence": "t11.s0", "note": "Lucía likes it, then objects"},
+      {"type": "proposal_accepted", "sentence": "t16.s0"},
+      {"type": "proposal_accepted", "sentence": "t22.s0"},
+      {"type": "decision", "sentence": "t16.s0", "note": "call and ask about access"},
+      {"type": "decision", "sentence": "t26.s0"},
+      {"type": "action_item", "sentence": "t26.s1", "owner": "Óscar"},
+      {"type": "action_item", "sentence": "t28.s0", "owner": "Andrés"}
+    ],
+    "pro-01": [
+      {"type": "question_answered", "sentence": "t1.s0"},
+      {"type": "question_answered", "sentence": "t3.s1"},
+      {"type": "question_answered", "sentence": "t15.s0"},
+      {"type": "question_answered", "sentence": "t21.s0"},
+      {"type": "proposal_accepted", "sentence": "t13.s0"},
+      {"type": "proposal_accepted", "sentence": "t19.s1"},
+      {"type": "decision", "sentence": "t13.s0"},
+      {"type": "decision", "sentence": "t19.s1"},
+      {"type": "action_item", "sentence": "t24.s0", "owner": "Hugo"},
+      {"type": "action_item", "sentence": "t23.s0", "owner": "Elena"}
+    ],
+    "neg-01": [
+      {"type": "question_answered", "sentence": "t5.s1"},
+      {"type": "question_answered", "sentence": "t8.s0"},
+      {"type": "question_answered", "sentence": "t12.s1"},
+      {"type": "proposal_rejected", "sentence": "t11.s0"},
+      {"type": "proposal_rejected", "sentence": "t14.s1"},
+      {"type": "proposal_accepted", "sentence": "t15.s1", "note": "taken into the final deal"},
+      {"type": "proposal_accepted", "sentence": "t16.s1"},
+      {"type": "decision", "sentence": "t17.s1"},
+      {"type": "action_item", "sentence": "t18.s1", "owner": "Marta"},
+      {"type": "action_item", "sentence": "t19.s0", "owner": "Hugo"}
+    ],
+    "con-01": [
+      {"type": "question_answered", "sentence": "t11.s1"},
+      {"type": "question_answered", "sentence": "t13.s0"},
+      {"type": "proposal_accepted", "sentence": "t16.s0"},
+      {"type": "decision", "sentence": "t20.s0"},
+      {"type": "action_item", "sentence": "t23.s0", "owner": "Rosa"}
+    ],
+    "ven-01": [
+      {"type": "question_answered", "sentence": "t2.s1"},
+      {"type": "question_answered", "sentence": "t4.s1"},
+      {"type": "question_answered", "sentence": "t6.s0"},
+      {"type": "question_answered", "sentence": "t11.s0"},
+      {"type": "proposal_accepted", "sentence": "t10.s0"},
+      {"type": "proposal_rejected", "sentence": "t16.s0"},
+      {"type": "proposal_accepted", "sentence": "t17.s1"},
+      {"type": "decision", "sentence": "t10.s0"},
+      {"type": "decision", "sentence": "t17.s1"},
+      {"type": "action_item", "sentence": "t18.s1", "owner": "Lucía", "note": "the e-mail; the request to send it to the clinic is the same task"}
+    ],
+    "seg-01": [
+      {"type": "question_answered", "sentence": "t6.s0"},
+      {"type": "question_answered", "sentence": "t12.s0"},
+      {"type": "decision", "sentence": "t26.s0", "note": "one week earlier, not two"},
+      {"type": "action_item", "sentence": "t5.s0", "owner": "Óscar"},
+      {"type": "action_item", "sentence": "t8.s0", "owner": "Óscar"},
+      {"type": "action_item", "sentence": "t16.s0", "owner": "Sergio"},
+      {"type": "action_item", "sentence": "t30.s0", "owner": "Clara"}
+    ]
+  }
+}

@@ -401,7 +401,8 @@ def _charts(report: PersonReport) -> str:
 
 
 def _context(report: PersonReport) -> str:
-    """Return the conversation's declared type and goal, or nothing."""
+    """Return the conversation's declared type and goal and the
+    participant's conversation-event counts, or nothing."""
     words = TEXTS[report.language]
     parts = []
     if report.conversation_type:
@@ -414,11 +415,17 @@ def _context(report: PersonReport) -> str:
         parts.append(words["context_goal"].format(
             goal=report.conversation_goal
         ))
+    events = (
+        f'<p class="sub context">'
+        f'{escape(" ".join(report.conversation_lines))}</p>'
+        if report.conversation_lines else ""
+    )
     if not parts:
-        return ""
+        return events
     return (
         f'<p class="sub context">{escape(" ".join(parts))} '
         f'<span class="small">{escape(words["context_note"])}</span></p>'
+        + events
     )
 
 
