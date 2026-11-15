@@ -403,3 +403,38 @@ def test_no_voice_emotion_or_speaking_time_as_leadership() -> None:
         page = render_person_html(build(ONE, language))
         assert fragment in page
         assert "liderazgo" in page or "leadership" in page
+
+
+DESCRIBED = TIMED.model_copy(update={
+    "conversation_type": "negociacion",
+    "conversation_goal": "Precio <del> servidor",
+})
+
+
+def test_the_declared_type_and_goal_are_shown_as_context() -> None:
+    report = build(ONE, transcript=DESCRIBED)
+    assert (report.conversation_type, report.conversation_goal) == (
+        "negociacion", "Precio <del> servidor")
+    page = render_person_html(report)
+    assert "Tipo de conversación: negociación." in page
+    assert "Objetivo: Precio &lt;del&gt; servidor." in page
+    assert "no cambia ningún nivel" in page
+    english = render_person_html(build(ONE, "en", transcript=DESCRIBED))
+    assert "Kind of conversation: negotiation." in english
+
+
+def test_without_them_nothing_is_shown_and_the_levels_do_not_change() -> None:
+    plain = build(ONE)
+    assert (plain.conversation_type, plain.conversation_goal) == (None, None)
+    assert "Tipo de conversación" not in render_person_html(plain)
+    assert build(ONE, transcript=None).conversation_type is None
+    described = build(ONE, transcript=DESCRIBED)
+    assert described.rows == plain.rows
+    assert described.summary == plain.summary
+
+
+def test_a_type_without_a_label_is_shown_as_it_came() -> None:
+    odd = TIMED.model_copy(update={"conversation_type": "nuevo"})
+    assert "Tipo de conversación: nuevo." in render_person_html(
+        build(ONE, transcript=odd)
+    )

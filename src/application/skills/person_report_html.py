@@ -21,7 +21,10 @@ from src.application.skills.person_report import (
     Row,
     note,
 )
-from src.application.skills.person_report_texts import TEXTS
+from src.application.skills.person_report_texts import (
+    TEXTS,
+    conversation_type_label,
+)
 
 STYLE = """
 :root{--bg:#ffffff;--fg:#1c1c1c;--muted:#555555;--card:#f4f4f2;
@@ -397,6 +400,28 @@ def _charts(report: PersonReport) -> str:
             f'</ul>{rows}{radar}')
 
 
+def _context(report: PersonReport) -> str:
+    """Return the conversation's declared type and goal, or nothing."""
+    words = TEXTS[report.language]
+    parts = []
+    if report.conversation_type:
+        parts.append(words["context_type"].format(
+            type=conversation_type_label(
+                report.language, report.conversation_type
+            )
+        ))
+    if report.conversation_goal:
+        parts.append(words["context_goal"].format(
+            goal=report.conversation_goal
+        ))
+    if not parts:
+        return ""
+    return (
+        f'<p class="sub context">{escape(" ".join(parts))} '
+        f'<span class="small">{escape(words["context_note"])}</span></p>'
+    )
+
+
 def render_person_html(report: PersonReport) -> str:
     """Return the report as one HTML page with no external resource."""
     words = TEXTS[report.language]
@@ -429,7 +454,7 @@ def render_person_html(report: PersonReport) -> str:
         f'content="width=device-width, initial-scale=1">'
         f'<title>{escape(title)}</title><style>{STYLE}</style></head>'
         f'<body><main><h1>{escape(title)}</h1>'
-        f'<p class="sub">{escape(subtitle)}</p>{banner}'
+        f'<p class="sub">{escape(subtitle)}</p>{_context(report)}{banner}'
         f'<section><h2>{escape(words["summary"])}</h2>'
         f'<div class="lead">{summary}</div></section>'
         f'<section><h2>{escape(words["meaning"])}</h2>{_meaning(report)}'

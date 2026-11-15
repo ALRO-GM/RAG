@@ -101,11 +101,19 @@ class Turn(BaseModel):
 
 
 class Transcript(BaseModel):
-    """A recorded session as a list of turns in speaking order."""
+    """A recorded session as a list of turns in speaking order.
+
+    ``conversation_type`` and ``conversation_goal`` are the session's
+    declared kind and goal (``transcript.v1`` ``session.type`` and
+    ``session.goal``), when the source has them: context to show next
+    to an analysis, never an input to it.
+    """
 
     session_id: str
     language: Optional[str] = None
     turns: List[Turn]
+    conversation_type: Optional[str] = None
+    conversation_goal: Optional[str] = None
 
     def speakers(self) -> List[str]:
         """Return the speakers in order of first appearance."""
@@ -244,6 +252,7 @@ def from_contract(contract: ContractTranscript) -> Transcript:
     the previous speaker are shown as :func:`speaker_names` says, and
     the speaker's identification is kept (``named_through_floor``). The
     turn's confidence is the mean of its utterances' when they have one.
+    The session's declared type and goal are kept as they came.
     """
     names = speaker_names(contract)
     turns: List[Turn] = []
@@ -275,6 +284,8 @@ def from_contract(contract: ContractTranscript) -> Transcript:
         session_id=contract.session.id,
         language=contract.session.language,
         turns=turns,
+        conversation_type=contract.session.type,
+        conversation_goal=contract.session.goal,
     )
 
 

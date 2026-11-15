@@ -1,7 +1,8 @@
 {
   "schema": "transcript.v1",
   "session": {"id": "demo-es", "title": "Reparto del servidor", "language": "es",
-              "started_at": "2026-11-14T10:02:00+01:00", "duration": 14.2, "audio_sha256": null},
+              "started_at": "2026-11-14T10:02:00+01:00", "duration": 14.2, "audio_sha256": null,
+              "type": "reunion_decision", "goal": "Decidir cuántos procesos lleva el servidor"},
   "speakers": [
     {"id": "marta", "name": "Marta", "enrolled": true, "identification": "threshold"},
     {"id": "luis", "name": "Luis", "enrolled": true, "identification": "expected_floor"},

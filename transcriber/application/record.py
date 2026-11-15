@@ -3,7 +3,9 @@
 A session recorded from the phone is opened, receives numbered audio
 chunks (:class:`AppendAudio`) and is closed, which makes it ready to
 transcribe. A recording made with another app is imported whole
-(:class:`ImportRecording`). :class:`DeleteSession` removes a session
+(:class:`ImportRecording`). :class:`DescribeSession` sets or changes
+the conversation type and goal of a session in any state, and of its
+transcript. :class:`DeleteSession` removes a session
 with everything derived from it, the model lab's data included, and
 asks the RAG to delete its copy when transcripts are published to it.
 Each
@@ -14,7 +16,7 @@ requests and the job never interleave.
 
 import hashlib
 import logging
-from typing import AbstractSet, Any, Dict, Optional, Sequence
+from typing import AbstractSet, Any, Dict, Mapping, Optional, Sequence
 
 from pydantic import ValidationError
 
@@ -40,6 +42,8 @@ from transcriber.domain.sessions import (
     ChunkAction,
     accept_chunk,
     can_delete,
+    carry_description,
+    describe,
     move,
     with_chunk,
 )
@@ -120,6 +124,8 @@ class OpenSession:
         consent_version: Optional[str] = None,
         num_speakers: Optional[int] = None,
         expected_speakers: Optional[Sequence[str]] = None,
+        kind: Optional[str] = None,
+        goal: Optional[str] = None,
     ) -> Session:
         """Create session ``session_id`` in state ``recording``.
 
@@ -128,13 +134,15 @@ class OpenSession:
         ``num_speakers`` and ``expected_speakers`` are kept for the
         transcription (:class:`~transcriber.application.transcribe.
         QueueTranscription` uses them when it is not given others).
+        ``kind`` and ``goal`` are the conversation type and goal
+        (:func:`~transcriber.domain.sessions.describe`).
         """
         check_language(language, self._languages)
-        session = _make_session(
+        session = describe(_make_session(
             id=session_id, title=title, language=language,
             started_at=self._clock.now(),
             **_started_with(consent_version, num_speakers, expected_speakers),
-        )
+        ), {"type": kind, "goal": goal})
         with self._locks.hold(session.id):
             return _new_session(self._sessions, session)
 
@@ -234,10 +242,13 @@ class ImportRecording:
         recording: RecordedAudio,
         title: Optional[str] = None,
         consent_version: Optional[str] = None,
+        kind: Optional[str] = None,
+        goal: Optional[str] = None,
     ) -> Session:
         """Store ``recording`` as session ``session_id``, ``uploaded``.
 
-        ``consent_version`` is the recording notice shown, if any.
+        ``consent_version`` is the recording notice shown, if any;
+        ``kind`` and ``goal`` the conversation type and goal.
 
         Creating the session and storing its audio succeed or fail
         together: if the audio cannot be stored the new session is
@@ -248,10 +259,10 @@ class ImportRecording:
         if not recording.format.strip():
             raise InvalidInputError("The recording needs a format.")
         check_language(language, self._languages)
-        session = _make_session(
+        session = describe(_make_session(
             id=session_id, title=title, language=language,
             state=SessionState.UPLOADED, **_started_with(consent_version),
-        )
+        ), {"type": kind, "goal": goal})
         with self._locks.hold(session.id):
             _new_session(self._sessions, session)
             try:
@@ -260,6 +271,42 @@ class ImportRecording:
                 self._sessions.delete(session.id)
                 raise
         return session
+
+
+class DescribeSession:
+    """Set or change the conversation type and goal of a session."""
+
+    def __init__(
+        self, sessions: SessionRepository, locks: SessionLocks
+    ) -> None:
+        """Wire the ports."""
+        self._sessions = sessions
+        self._locks = locks
+
+    def __call__(
+        self, session_id: str, changes: Mapping[str, Optional[str]]
+    ) -> Session:
+        """Apply ``changes`` (``type`` and/or ``goal``) and return the session.
+
+        Allowed in any state: the type is context, not an option of the
+        transcription. A field left out of ``changes`` keeps its value,
+        ``None`` clears it (:func:`~transcriber.domain.sessions.
+        describe`). A stored transcript gets the same values, so the
+        next publish carries them; a job running meanwhile keeps them
+        when it saves (it carries the stored ones over).
+        """
+        with self._locks.hold(session_id):
+            session = require_session(self._sessions, session_id)
+            described = describe(session, changes)
+            self._sessions.save(described)
+            transcript = self._sessions.transcript(session_id)
+            if transcript is not None:
+                self._sessions.save_transcript(transcript.model_copy(
+                    update={"session": carry_description(
+                        transcript.session, described
+                    )}
+                ))
+            return described
 
 
 class DeleteSession:

@@ -720,6 +720,24 @@ def test_tag_reads_the_contract_example(project: Path) -> None:
     assert (sentences[2]["start"], sentences[2]["end"]) == (6.9, 9.8)
 
 
+def test_interaction_shows_the_declared_conversation_type(
+    project: Path,
+) -> None:
+    """The contract example's ``session.type`` and ``goal`` come first."""
+    example = Path(__file__).resolve().parents[2] / "contracts" / (
+        "examples/transcript.v1.json"
+    )
+    result = skills(["interaction", str(example)], project)
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[0] == (
+        "Conversation: decision meeting · goal: Decidir cuántos procesos"
+        " lleva el servidor (declared by whoever recorded it; context, not"
+        " used in any rating)."
+    )
+    assert lines[1].startswith("3 speakers, 3 turns")
+
+
 def test_transcribe_is_gone(project: Path) -> None:
     """Recordings are the transcriber's job now."""
     write_rubrics(project)

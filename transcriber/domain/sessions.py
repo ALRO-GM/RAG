@@ -9,14 +9,21 @@ process stopped) is moved to ``failed`` by :func:`interrupt`. A session
 may be deleted in any state but ``running`` (:func:`can_delete`).
 Recording from the phone arrives in numbered chunks: :func:`accept_chunk`
 decides whether a chunk is the next one, a retried copy of the last one,
-or an error.
+or an error. :func:`describe` sets the conversation type and goal of a
+session, in any state, and :func:`carry_description` keeps them when a
+job saves a copy of the session it read before they changed.
 """
 
 import enum
 from typing import FrozenSet, Mapping, Optional
 
 from transcriber.domain.errors import InvalidInputError, StateError
-from transcriber.domain.models import Session, SessionState
+from transcriber.domain.models import (
+    GOAL_MAX_LENGTH,
+    SESSION_TYPES,
+    Session,
+    SessionState,
+)
 
 S = SessionState
 
@@ -134,3 +141,54 @@ def with_chunk(session: Session, sha256: str) -> Session:
     return session.model_copy(update={
         "chunks": session.chunks + 1, "last_chunk_sha256": sha256,
     })
+
+
+DESCRIPTION_FIELDS = ("type", "goal")
+"""The fields of a session that describe the conversation."""
+
+
+def describe(
+    session: Session, changes: Mapping[str, Optional[str]]
+) -> Session:
+    """Return ``session`` with the conversation type and goal of ``changes``.
+
+    ``changes`` holds ``type`` and/or ``goal``; a field left out keeps
+    its value and ``None`` clears it. A goal is trimmed, and an empty
+    one is ``None``. Raises :class:`InvalidInputError` for another
+    field, a type not in :data:`~transcriber.domain.models.SESSION_TYPES`
+    or a goal longer than
+    :data:`~transcriber.domain.models.GOAL_MAX_LENGTH` characters.
+    """
+    unknown = sorted(set(changes) - set(DESCRIPTION_FIELDS))
+    if unknown:
+        raise InvalidInputError(
+            f"Unknown session field(s): {', '.join(unknown)}."
+        )
+    update: dict[str, Optional[str]] = {}
+    if "type" in changes:
+        kind = changes["type"]
+        if kind is not None and kind not in SESSION_TYPES:
+            raise InvalidInputError(
+                f"Unknown conversation type {kind!r}; choose one of"
+                f" {', '.join(SESSION_TYPES)}."
+            )
+        update["type"] = kind
+    if "goal" in changes:
+        goal = (changes["goal"] or "").strip() or None
+        if goal is not None and len(goal) > GOAL_MAX_LENGTH:
+            raise InvalidInputError(
+                f"A goal has at most {GOAL_MAX_LENGTH} characters."
+            )
+        update["goal"] = goal
+    return session.model_copy(update=update)
+
+
+def carry_description(session: Session, source: Session) -> Session:
+    """Return ``session`` with the conversation type and goal of ``source``.
+
+    A job works on the copy of the session it read when it started; the
+    type and goal may have been edited since, and the stored ones win.
+    """
+    return session.model_copy(
+        update={key: getattr(source, key) for key in DESCRIPTION_FIELDS}
+    )

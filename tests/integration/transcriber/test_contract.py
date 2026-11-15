@@ -74,6 +74,34 @@ def test_a_document_without_the_certainty_fields_still_reads(
     assert transcript.to_contract() == old
 
 
+def test_a_document_without_type_and_goal_still_reads(
+    validator: Draft202012Validator,
+) -> None:
+    """The session's type and goal (#65) are optional both ways."""
+    old = load(EXAMPLE_PATH)
+    del old["session"]["type"], old["session"]["goal"]
+    validator.validate(old)
+    transcript = Transcript.from_contract(old)
+    assert (transcript.session.type, transcript.session.goal) == (None, None)
+    assert transcript.to_contract() == old
+
+
+def test_type_and_goal_are_read_and_null_is_none(
+    validator: Draft202012Validator,
+) -> None:
+    example = load(EXAMPLE_PATH)
+    session = Transcript.from_contract(example).session
+    assert session.type == "reunion_decision"
+    assert session.goal == "Decidir cuántos procesos lleva el servidor"
+    example["session"]["type"] = None
+    example["session"]["goal"] = None
+    validator.validate(example)
+    read = Transcript.from_contract(example)
+    assert read.session.type is None
+    # A null is not written back: the field is simply absent.
+    assert "type" not in read.to_contract()["session"]
+
+
 def test_built_transcript_validates(validator: Draft202012Validator) -> None:
     turns = [
         Turn(speaker="marta", text="Creo que sí. Pero no estoy segura.",
@@ -207,6 +235,11 @@ SCHEMA_BREAKS: List[Tuple[str, Change]] = [
     ("title as a number", set_in(["session", "title"], 5)),
     ("language too short", set_in(["session", "language"], "e")),
     ("bad audio hash", set_in(["session", "audio_sha256"], "ABC")),
+    ("unknown conversation type", set_in(["session", "type"], "fiesta")),
+    ("conversation type as a number", set_in(["session", "type"], 3)),
+    ("empty goal", set_in(["session", "goal"], "")),
+    ("goal too long", set_in(["session", "goal"], "x" * 501)),
+    ("goal as a number", set_in(["session", "goal"], 1)),
     ("speaker name as a number", set_in(["speakers", 0, "name"], 3)),
     ("turn as a string", set_in(["utterances", 0, "turn"], "0")),
     ("index as a boolean", set_in(["utterances", 0, "index"], False)),

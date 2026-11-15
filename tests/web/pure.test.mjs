@@ -16,6 +16,9 @@ import {
 import {
   progressPercent, actionsFor, sortSessions, transcriptionBody, stageLabel,
 } from "../../transcriber/adapters/inbound/web/js/lib/sessions.js";
+import {
+  SESSION_TYPES, GOAL_MAX_LENGTH, describeBody, describeChanged, typeLabel, describeLine,
+} from "../../transcriber/adapters/inbound/web/js/lib/describe.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
 
@@ -299,11 +302,11 @@ test("sessions helpers", () => {
   assert.equal(progressPercent({ state: "queued", fraction: 0 }), null);
   assert.equal(progressPercent({ state: "running" }), null);
   assert.deepEqual(actionsFor({ state: "recording" }), ["resume", "finish", "delete"]);
-  assert.deepEqual(actionsFor({ state: "uploaded" }), ["transcribe", "delete"]);
-  assert.deepEqual(actionsFor({ state: "failed" }), ["transcribe", "delete"]);
-  assert.deepEqual(actionsFor({ state: "done" }), ["open", "transcribe", "delete"]);
-  assert.deepEqual(actionsFor({ state: "running" }), [], "no Borrar while the job holds it");
-  assert.deepEqual(actionsFor({ state: "queued" }), ["delete"]);
+  assert.deepEqual(actionsFor({ state: "uploaded" }), ["transcribe", "describe", "delete"]);
+  assert.deepEqual(actionsFor({ state: "failed" }), ["transcribe", "describe", "delete"]);
+  assert.deepEqual(actionsFor({ state: "done" }), ["open", "transcribe", "describe", "delete"]);
+  assert.deepEqual(actionsFor({ state: "running" }), ["describe"], "no Borrar while the job holds it");
+  assert.deepEqual(actionsFor({ state: "queued" }), ["describe", "delete"]);
   const s = [{ id: "a", started_at: "2026-01-01T10:00:00+01:00" }, { id: "b", started_at: null },
     { id: "c", started_at: "2026-02-01T10:00:00+01:00" }];
   assert.deepEqual(sortSessions(s).map((x) => x.id), ["c", "a", "b"]);
@@ -311,4 +314,43 @@ test("sessions helpers", () => {
   assert.deepEqual(transcriptionBody("en", ["ana", "luis"], "3"),
     { language: "en", expected_speakers: ["ana", "luis"], num_speakers: 3 });
   assert.deepEqual(transcriptionBody("es", [], "0"), { language: "es" });
+});
+
+test("the conversation types are the contract's, each with a label in both languages", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const schema = JSON.parse(await readFile(new URL("../../contracts/transcript.v1.schema.json", import.meta.url), "utf-8"));
+  const contract = schema.properties.session.properties;
+  assert.deepEqual(contract.type.enum.filter((v) => v !== null), SESSION_TYPES);
+  assert.equal(contract.goal.maxLength, GOAL_MAX_LENGTH);
+  for (const type of SESSION_TYPES) {
+    assert.ok(es[`type.${type}`], type);
+    assert.ok(en[`type.${type}`], type);
+  }
+  assert.equal(es["type.lluvia_ideas"], "Lluvia de ideas");
+});
+
+test("describeBody reads the form: no choice and a blank goal are null", () => {
+  assert.deepEqual(describeBody("", ""), { type: null, goal: null });
+  assert.deepEqual(describeBody("negociacion", "  Precio  "), { type: "negociacion", goal: "Precio" });
+  assert.deepEqual(describeBody("fiesta", null), { type: null, goal: null });
+  assert.deepEqual(describeBody(undefined, "   "), { type: null, goal: null });
+});
+
+test("describeChanged compares with the session, unset counting as null", () => {
+  assert.equal(describeChanged({}, { type: null, goal: null }), false);
+  assert.equal(describeChanged(null, { type: null, goal: null }), false);
+  assert.equal(describeChanged({ type: "venta", goal: null }, { type: "venta", goal: null }), false);
+  assert.equal(describeChanged({ type: "venta" }, { type: "otro", goal: null }), true);
+  assert.equal(describeChanged({ type: "venta", goal: "a" }, { type: "venta", goal: null }), true);
+});
+
+test("typeLabel and describeLine show the type in the page's language", () => {
+  const t = (key) => translate({ es, en }, "es", key);
+  assert.equal(typeLabel(t, "reunion_decision"), "Reunión de decisión");
+  assert.equal(typeLabel(t, null), "");
+  assert.equal(typeLabel(t, "nuevo_tipo"), "nuevo_tipo", "an unknown value is shown as it came");
+  assert.equal(describeLine(t, { type: "negociacion", goal: "Precio" }), "Negociación · Precio");
+  assert.equal(describeLine(t, { type: null, goal: "Precio" }), "Precio");
+  assert.equal(describeLine(t, { type: "venta" }), "Venta");
+  assert.equal(describeLine(t, {}), "");
 });

@@ -11,6 +11,23 @@ TEXTS: Dict[str, Dict[str, str]] = {
     "es": {
         "title": "Informe de {participant}",
         "subtitle": "Conversación de grupo «{session}»",
+        "context_type": "Tipo de conversación: {type}.",
+        "context_goal": "Objetivo: {goal}.",
+        "context_note": (
+            "Lo indicó quien grabó la conversación; es contexto y no "
+            "cambia ningún nivel."
+        ),
+        "type.reunion_decision": "reunión de decisión",
+        "type.lluvia_ideas": "lluvia de ideas",
+        "type.resolucion_problemas": "resolución de problemas",
+        "type.negociacion": "negociación",
+        "type.entrevista": "entrevista",
+        "type.feedback": "feedback / evaluación",
+        "type.conflicto": "conflicto / mediación",
+        "type.coaching": "coaching",
+        "type.venta": "venta",
+        "type.conversacion_libre": "conversación libre",
+        "type.otro": "otro",
         "synthetic": (
             "Datos de ejemplo inventados. Esta página no describe a una "
             "persona real: sirve para ver cómo es el informe."
@@ -169,6 +186,23 @@ TEXTS: Dict[str, Dict[str, str]] = {
     "en": {
         "title": "Report on {participant}",
         "subtitle": "Group conversation “{session}”",
+        "context_type": "Kind of conversation: {type}.",
+        "context_goal": "Goal: {goal}.",
+        "context_note": (
+            "Given by whoever recorded the conversation; it is context "
+            "and changes no level."
+        ),
+        "type.reunion_decision": "decision meeting",
+        "type.lluvia_ideas": "brainstorming",
+        "type.resolucion_problemas": "problem solving",
+        "type.negociacion": "negotiation",
+        "type.entrevista": "interview",
+        "type.feedback": "feedback / appraisal",
+        "type.conflicto": "conflict / mediation",
+        "type.coaching": "coaching",
+        "type.venta": "sales",
+        "type.conversacion_libre": "casual conversation",
+        "type.otro": "other",
         "synthetic": (
             "Made-up sample data. This page does not describe a real "
             "person: it shows what the report looks like."
@@ -319,3 +353,11 @@ TEXTS: Dict[str, Dict[str, str]] = {
     },
 }
 """Report wording per language; ``{nN}`` marks the footnote calls."""
+
+
+def conversation_type_label(language: str, kind: str) -> str:
+    """Return the name of conversation type ``kind`` in ``language``.
+
+    A type this wording does not know is shown as it came.
+    """
+    return TEXTS[language].get(f"type.{kind}", kind)

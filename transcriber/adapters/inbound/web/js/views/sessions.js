@@ -7,6 +7,8 @@ import { formatTime, sessionIdFor } from "../lib/text.js";
 import { nextPollMs } from "../lib/net.js";
 import { actionsFor, progressPercent, sortSessions, stageLabel } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
+import { describeFields } from "../describe.js";
+import { describeLine } from "../lib/describe.js";
 
 export async function sessionsView(ctx, root) {
   let sessions = (await ctx.api.listSessions()).sessions;
@@ -34,6 +36,7 @@ export async function sessionsView(ctx, root) {
         h("span", { class: "badge" }, t(`state.${s.state}`)),
         s.started_at ? ` ${new Date(s.started_at).toLocaleString(lang)}` : "",
         s.duration > 0 ? ` · ${formatTime(s.duration)}` : ""),
+      describeLine(t, s) ? h("p", { class: "hint" }, describeLine(t, s)) : null,
       s.state === "running" || s.state === "queued"
         ? h("div", { class: "progress" },
           h("progress", { max: 100, value: pct ?? undefined, "aria-label": t("sessions.progress") }),
@@ -47,6 +50,7 @@ export async function sessionsView(ctx, root) {
   function button(s, action) {
     const handlers = {
       open: () => ctx.navigate(`#/s/${encodeURIComponent(s.id)}`),
+      describe: () => ctx.navigate(`#/s/${encodeURIComponent(s.id)}`), // the session page edits them
       resume: () => ctx.navigate(`#/record/${encodeURIComponent(s.id)}`),
       finish: () => run(() => ctx.api.closeSession(s.id)),
       transcribe: () => {
@@ -78,7 +82,7 @@ export async function sessionsView(ctx, root) {
   }
 
   function render() {
-    const sig = JSON.stringify(sessions.map((s) => [s.id, s.state, s.stage, s.fraction, s.message, s.title, s.duration, s.failure]));
+    const sig = JSON.stringify(sessions.map((s) => [s.id, s.state, s.stage, s.fraction, s.message, s.title, s.duration, s.failure, s.type, s.goal]));
     if (sig === signature) return;
     signature = sig;
     keepFocus(root, () => {
@@ -134,6 +138,7 @@ export async function sessionsView(ctx, root) {
     const title = h("input", { id: "up-title", type: "text", maxLength: 200, autocomplete: "off" });
     const language = h("select", { id: "up-lang" }, h("option", { value: "es" }, "Español"), h("option", { value: "en" }, "English"));
     language.value = lang;
+    const described = describeFields("up");
     const ok = h("input", { id: "up-ok", type: "checkbox" });
     const go = h("button", { type: "submit", class: "primary", disabled: true }, t("upload.send"));
     const status = h("p", { role: "status", class: "hint" });
@@ -160,7 +165,7 @@ export async function sessionsView(ctx, root) {
       go.disabled = true;
       status.textContent = t("upload.sending");
       try {
-        await ctx.api.uploadRecording(sessionIdFor(new Date(), title.value || chosen.name.replace(/\.[^.]+$/, "")), chosen, language.value, title.value.trim(), shown.version);
+        await ctx.api.uploadRecording(sessionIdFor(new Date(), title.value || chosen.name.replace(/\.[^.]+$/, "")), chosen, language.value, title.value.trim(), shown.version, described.body());
         status.textContent = t("upload.done");
         form.reset();
         await refresh();
@@ -173,6 +178,7 @@ export async function sessionsView(ctx, root) {
     h("div", { class: "field" }, h("label", { for: "up-file" }, t("upload.file")), file),
     h("div", { class: "field" }, h("label", { for: "up-title" }, t("record.session_title")), title),
     h("div", { class: "field" }, h("label", { for: "up-lang" }, t("record.language")), language),
+    described.element,
     notice,
     go, status);
     return h("details", { class: "upload", onToggle: (event) => { if (event.target.open) loadNotice(); } },

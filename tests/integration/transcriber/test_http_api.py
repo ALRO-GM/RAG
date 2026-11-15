@@ -362,6 +362,76 @@ class TestConsentAndOptions:
         assert listed["message"] is None
 
 
+class TestConversationType:
+    """The session's type and goal (#65): set, changed, published."""
+
+    def test_set_at_the_start_and_listed(self, client: TestClient) -> None:
+        opened = client.post("/api/sessions", json={
+            "id": "s1", "language": "es", "type": "negociacion",
+            "goal": "Precio del contrato",
+        })
+        assert opened.status_code == 201, opened.text
+        assert (opened.json()["type"], opened.json()["goal"]) == (
+            "negociacion", "Precio del contrato")
+        listed = client.get("/api/sessions").json()["sessions"][0]
+        assert (listed["type"], listed["goal"]) == (
+            "negociacion", "Precio del contrato")
+
+    def test_unset_by_default(self, client: TestClient) -> None:
+        opened = client.post("/api/sessions",
+                             json={"id": "s1", "language": "es"}).json()
+        assert (opened["type"], opened["goal"]) == (None, None)
+
+    def test_changed_later_a_field_at_a_time(
+        self, client: TestClient
+    ) -> None:
+        client.post("/api/sessions", json={"id": "s1", "language": "es"})
+        changed = client.patch("/api/sessions/s1",
+                               json={"type": "feedback", "goal": "Revisión"})
+        assert changed.status_code == 200, changed.text
+        kept = client.patch("/api/sessions/s1", json={"goal": None}).json()
+        assert (kept["type"], kept["goal"]) == ("feedback", None)
+        view = client.get("/api/sessions/s1").json()
+        assert (view["type"], view["goal"]) == ("feedback", None)
+
+    def test_invalid_values_are_refused(self, client: TestClient) -> None:
+        assert_error(client.post("/api/sessions", json={
+            "id": "s1", "language": "es", "type": "fiesta",
+        }), 400, "invalid_input")
+        client.post("/api/sessions", json={"id": "s2", "language": "es"})
+        assert_error(client.patch("/api/sessions/s2",
+                                  json={"type": "fiesta"}),
+                     400, "invalid_input")
+        assert_error(client.patch("/api/sessions/s2",
+                                  json={"goal": "x" * 501}),
+                     400, "invalid_input")
+        assert_error(client.patch("/api/sessions/s2",
+                                  json={"title": "x"}),
+                     422, "invalid_request")
+        assert client.patch("/api/sessions/nope",
+                            json={"type": None}).status_code == 404
+
+    def test_an_upload_carries_them_to_the_published_transcript(
+        self, client: TestClient
+    ) -> None:
+        wav = sound_file(scene([("220", 4.0), ("-", 1.6), ("880", 4.0)]),
+                         16000, "wav")
+        made = client.post(
+            "/api/sessions/s1/upload",
+            params={"filename": "a.wav", "language": "es",
+                    "type": "entrevista", "goal": "Soporte"},
+            content=wav,
+        )
+        assert made.status_code == 201, made.text
+        assert made.json()["type"] == "entrevista"
+        client.post("/api/sessions/s1/transcription")
+        assert wait_until_done(client, "s1")["state"] == "done"
+        client.patch("/api/sessions/s1", json={"type": "coaching"})
+        document = client.post("/api/sessions/s1/publish").json()
+        assert (document["session"]["type"],
+                document["session"]["goal"]) == ("coaching", "Soporte")
+
+
 class TestUploads:
     @pytest.mark.parametrize("filename", [
         "a.wav\n", "a.pcm", "rec.PCM", "notes.txt", "data.json", "audio",

@@ -93,7 +93,7 @@ from transcriber.domain.models import (
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.seams import resolve_seams
 from transcriber.domain.sentences import build_utterances
-from transcriber.domain.sessions import move, require_state
+from transcriber.domain.sessions import carry_description, move, require_state
 from transcriber.domain.speakers import (
     analysis_windows,
     assign_speakers,
@@ -341,40 +341,57 @@ class TranscribeSession:
             reason = str(exc).strip() or type(exc).__name__
             self._fail(running, f"{stage}: {reason}")
             raise
-        if not saved:
+        if saved is None:
             report.note(STOPPED_NOTE)
             return None
         report.report(DONE_STAGE, 1.0)
-        return result.transcript
+        return saved
 
-    def _current(self, running: Session) -> bool:
-        """Tell whether the stored session is still the run ``running``.
+    def _current(self, running: Session) -> Optional[Session]:
+        """Return the stored session if it is still the run ``running``.
 
-        The caller holds the session's lock.
+        ``None`` when it is gone or another run. The caller holds the
+        session's lock.
         """
         stored = self._sessions.get(running.id)
-        return (
+        if (
             stored is not None and stored.run_id == running.run_id
             and stored.state is SessionState.RUNNING
-        )
+        ):
+            return stored
+        return None
 
-    def _commit(self, running: Session, result: _Result) -> bool:
-        """Save the words, transcript and session if still this run."""
+    def _commit(
+        self, running: Session, result: _Result
+    ) -> Optional[Transcript]:
+        """Save the words, transcript and session if still this run.
+
+        The conversation type and goal are the stored ones (they may
+        have been edited while the job ran). Returns the saved
+        transcript, or ``None`` when the run is no longer current.
+        """
         with self._locks.hold(running.id):
-            if not self._current(running):
-                return False
+            stored = self._current(running)
+            if stored is None:
+                return None
+            transcript = result.transcript.model_copy(update={
+                "session": carry_description(
+                    result.transcript.session, stored
+                ),
+            })
             self._sessions.save_words(running.id, result.words)
-            self._sessions.save_transcript(result.transcript)
-            self._sessions.save(result.transcript.session)
-            return True
+            self._sessions.save_transcript(transcript)
+            self._sessions.save(transcript.session)
+            return transcript
 
     def _fail(self, running: Session, reason: str) -> None:
         """Save the session ``failed`` with ``reason`` if still this run."""
         with self._locks.hold(running.id):
-            if self._current(running):
-                self._sessions.save(
-                    move(running, SessionState.FAILED, reason)
-                )
+            stored = self._current(running)
+            if stored is not None:
+                self._sessions.save(carry_description(
+                    move(running, SessionState.FAILED, reason), stored
+                ))
 
     def _run(
         self,

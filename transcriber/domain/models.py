@@ -19,6 +19,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    get_args,
 )
 
 from pydantic import (
@@ -230,6 +231,24 @@ class Voiceprint(BaseModel):
     enrolled_at: AwareDatetime
 
 
+SessionType = Literal[
+    "reunion_decision", "lluvia_ideas", "resolucion_problemas",
+    "negociacion", "entrevista", "feedback", "conflicto", "coaching",
+    "venta", "conversacion_libre", "otro",
+]
+"""The kind of conversation recorded, as declared by whoever records it.
+
+The set of ``docs/skills/CONVERSATION.md`` §4: declared, never inferred.
+It gives the analysis its context; it is not a measurement.
+"""
+
+SESSION_TYPES: Tuple[str, ...] = get_args(SessionType)
+"""Every value of :data:`SessionType`, in the order the pages list them."""
+
+GOAL_MAX_LENGTH = 500
+"""Longest goal of a session, in characters."""
+
+
 class SessionState(str, enum.Enum):
     """Where a session is in its life, from recording to transcript.
 
@@ -263,6 +282,11 @@ class Session(BaseModel):
     import). ``num_speakers`` and ``expected_speakers`` are the
     transcription options chosen when the session was started; queueing
     uses them unless the queueing request gives its own.
+
+    ``type`` is the kind of conversation (:data:`SessionType`) and
+    ``goal`` what it was meant to achieve, in the recorder's words; both
+    are optional context, set when the session is opened or later
+    (:func:`transcriber.domain.sessions.describe`).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -283,6 +307,10 @@ class Session(BaseModel):
     consent_version: Optional[str] = Field(default=None, min_length=1)
     num_speakers: Optional[int] = Field(default=None, ge=1)
     expected_speakers: Optional[Tuple[str, ...]] = None
+    type: Optional[SessionType] = None
+    goal: Optional[str] = Field(
+        default=None, min_length=1, max_length=GOAL_MAX_LENGTH
+    )
 
 
 class ConsentRecord(BaseModel):
@@ -314,6 +342,7 @@ class Pipeline(BaseModel):
 
 _SESSION_FIELDS = frozenset({
     "id", "title", "language", "started_at", "duration", "audio_sha256",
+    "type", "goal",
 })
 _SPEAKER_FIELDS = frozenset({"id", "name", "enrolled", "identification"})
 _UTTERANCE_FIELDS = frozenset({
@@ -342,6 +371,7 @@ _UTTERANCE_ADDED = frozenset({
     "overlap_source", "language", "language_differs",
 })
 _SPEAKER_ADDED = frozenset({"identification"})
+_SESSION_ADDED = ("type", "goal")
 
 
 def _speaker_contract(speaker: "Speaker") -> Dict[str, Any]:
@@ -411,21 +441,29 @@ class Transcript(BaseModel):
         return self
 
     def to_contract(self) -> Dict[str, Any]:
-        """Return the transcript as a ``transcript.v1`` document."""
+        """Return the transcript as a ``transcript.v1`` document.
+
+        The session's ``type`` and ``goal`` (added to the contract
+        later) are written only when they are set.
+        """
         session = self.session
+        described: Dict[str, Any] = {
+            "id": session.id,
+            "title": session.title,
+            "language": session.language,
+            "started_at": (
+                session.started_at.isoformat()
+                if session.started_at is not None else None
+            ),
+            "duration": session.duration,
+            "audio_sha256": session.audio_sha256,
+        }
+        for key in _SESSION_ADDED:
+            if getattr(session, key) is not None:
+                described[key] = getattr(session, key)
         return {
             "schema": SCHEMA,
-            "session": {
-                "id": session.id,
-                "title": session.title,
-                "language": session.language,
-                "started_at": (
-                    session.started_at.isoformat()
-                    if session.started_at is not None else None
-                ),
-                "duration": session.duration,
-                "audio_sha256": session.audio_sha256,
-            },
+            "session": described,
             "speakers": [_speaker_contract(s) for s in self.speakers],
             "utterances": [_utterance_contract(u) for u in self.utterances],
             "pipeline": self.pipeline.model_dump(),

@@ -91,7 +91,8 @@ export class Api {
 
   /**
    * Open a session. `started` holds what was chosen at the start and is kept
-   * on the session: consent_version, num_speakers, expected_speakers.
+   * on the session: consent_version, num_speakers, expected_speakers, and the
+   * conversation's type and goal.
    */
   createSession(id, language, title, started = {}) {
     const json = { id, language };
@@ -110,11 +111,20 @@ export class Api {
 
   closeSession(id) { return this.request("POST", `/sessions/${encodeURIComponent(id)}/close`); }
 
-  uploadRecording(id, file, language, title, consentVersion) {
+  /** `described` is the conversation's { type, goal } (both optional). */
+  uploadRecording(id, file, language, title, consentVersion, described = {}) {
     return this.request("POST", `/sessions/${encodeURIComponent(id)}/upload`, {
-      query: { filename: file.name, language, title, consent_version: consentVersion },
+      query: {
+        filename: file.name, language, title, consent_version: consentVersion,
+        type: described.type, goal: described.goal,
+      },
       body: file, contentType: "application/octet-stream",
     });
+  }
+
+  /** Set or change the conversation's type and goal: a field left out is kept, null clears it. */
+  describeSession(id, changes) {
+    return this.request("PATCH", `/sessions/${encodeURIComponent(id)}`, { json: changes });
   }
 
   queueTranscription(id, body = {}) {

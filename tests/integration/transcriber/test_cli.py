@@ -156,6 +156,17 @@ def test_import_without_wait_leaves_the_session_ready(
     assert usage.returncode == 2 and "--wait" in usage.stderr
 
 
+def test_import_with_a_conversation_type(
+    tmp_path: Path, files: Dict[str, Path]
+) -> None:
+    data = tmp_path / "data"
+    ok(data, "import", str(files["talk"]), "--id", "t", "--type",
+       "negociacion", "--goal", "Precio")
+    assert "Conversation: negociacion - Precio" in ok(data, "show", "t")
+    wrong = run(data, "import", str(files["talk"]), "--type", "fiesta")
+    assert wrong.returncode == 2
+
+
 def test_import_wait_as_json(tmp_path: Path, files: Dict[str, Path]) -> None:
     data = tmp_path / "data"
     done = json.loads(ok(data, "import", str(files["talk"]), "--id", "j",

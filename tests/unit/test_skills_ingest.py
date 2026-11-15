@@ -26,6 +26,8 @@ from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.skills.speech import sentence_transcript, transcript_sentences
 from src.domain.skills.transcript import from_contract
 from src.domain.skills.transcript_contract import (
+    CONVERSATION_TYPES,
+    GOAL_MAX_LENGTH,
     is_session_id,
     read_contract,
 )
@@ -109,6 +111,35 @@ def test_the_certainty_fields_are_read_and_optional(
     assert plain.language is None and plain.overlap_source is None
 
 
+def test_the_conversation_type_and_goal_are_read_and_optional(
+    validator: Draft202012Validator,
+) -> None:
+    """``session.type`` and ``session.goal`` (#65), added compatibly."""
+    document = example()
+    session = read_contract(document).session
+    assert session.type == "reunion_decision"
+    assert session.goal == "Decidir cuántos procesos lleva el servidor"
+    transcript = from_contract(read_contract(document))
+    assert transcript.conversation_type == "reunion_decision"
+    assert transcript.conversation_goal == session.goal
+    del document["session"]["type"], document["session"]["goal"]
+    validator.validate(document)
+    old = from_contract(read_contract(document))
+    assert (old.conversation_type, old.conversation_goal) == (None, None)
+    document["session"]["type"] = None
+    validator.validate(document)
+    assert read_contract(document).session.type is None
+
+
+def test_the_types_and_goal_limit_are_the_schemas() -> None:
+    schema = json.loads(SCHEMA_PATH.read_text("utf-8"))
+    session = schema["properties"]["session"]["properties"]
+    assert tuple(
+        v for v in session["type"]["enum"] if v is not None
+    ) == CONVERSATION_TYPES
+    assert session["goal"]["maxLength"] == GOAL_MAX_LENGTH
+
+
 def test_every_sentence_of_a_floor_name_says_so() -> None:
     """Luis was named through the floor: each of his sentences tells.
 
@@ -165,6 +196,11 @@ def test_started_at_is_a_date_time_with_an_offset(value: str) -> None:
 # Documents the JSON schema rejects: the RAG must reject each too.
 SCHEMA_BREAKS: List[Tuple[str, Change]] = [
     ("another schema version", set_in(["schema"], "transcript.v2")),
+    ("unknown conversation type", set_in(["session", "type"], "fiesta")),
+    ("conversation type as a number", set_in(["session", "type"], 1)),
+    ("empty goal", set_in(["session", "goal"], "")),
+    ("goal too long", set_in(["session", "goal"], "x" * 501)),
+    ("goal as a number", set_in(["session", "goal"], 2)),
     ("unknown top-level field", set_in(["audio"], "UklGRg==")),
     ("unknown utterance field", set_in(["utterances", 0, "words"], [])),
     ("unknown speaker field", set_in(["speakers", 0, "voiceprint"], [0.1])),
