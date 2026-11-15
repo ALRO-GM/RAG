@@ -45,9 +45,11 @@ import torch
 
 from src.adapters.outbound.encoder_act_tagger import (
     EncoderActTagger,
+    wait_for_gpu,
     write_json,
 )
 from src.application.skills.act_tagger import TaggerCard, llm_outcome
+from src.domain.errors import ModelError
 from src.domain.skills.act_calibration import (
     Array,
     as_probabilities,
@@ -296,9 +298,19 @@ def main() -> None:  # noqa: C901 - one linear experiment
     parser.add_argument("--card",
                         default="knowledge/dialogue_acts/act_tagger.json")
     parser.add_argument("--cache", default="data/models/act-tagger/cache")
+    parser.add_argument("--need-gb", type=float, default=1.2,
+                        help="free GPU memory to wait for")
+    parser.add_argument("--wait-seconds", type=float, default=900.0,
+                        help="how long to wait for it before the CPU")
     parser.add_argument("--target", type=float, default=0.8,
                         help="precision of clear labels for the margin")
     args = parser.parse_args()
+    if args.device.startswith("cuda"):
+        try:
+            wait_for_gpu(args.need_gb, args.wait_seconds)
+        except ModelError as exc:
+            print(f"{exc} Scoring on the CPU instead.", flush=True)
+            args.device = "cpu"
     encoder = EncoderActTagger(args.encoder, args.device)
     scores: Dict[str, Dict[str, Dict[str, Any]]] = {}
     extra: Dict[str, Any] = {"encoder": encoder.card.model_dump(),

@@ -168,8 +168,11 @@ class EncoderActTagger:
         if self._model is None:
             self._tokenizer = AutoTokenizer.from_pretrained(
                 str(self.directory))
+            # Half precision on a GPU: half the memory of a shared card.
+            dtype = (torch.float16 if self.device.startswith("cuda")
+                     else torch.float32)
             model = AutoModelForSequenceClassification.from_pretrained(
-                str(self.directory))
+                str(self.directory), dtype=dtype)
             self._model = model.to(self.device).eval()
 
     def logits(self, items: Sequence[ActInput]) -> Array:
