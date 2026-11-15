@@ -1,0 +1,129 @@
+# Simulated discussion for the whole-flow demo (#88). Invented people and
+# company; original text written for this project. Synthetic: it shows
+# that the flow runs, it is not evidence about anyone.
+# One line per turn: "Name: text". A line starting with "+" begins
+# before the previous turn has ended (a short overlap).
+id: sim-reunion-verano
+title: Obrador Valdecruz: plan para el verano (simulación)
+language: es
+type: reunion_decision
+goal: Decidir cómo atender los pedidos de restaurantes en julio y agosto sin fallar entregas
+started_at: 2026-11-15T09:30:00+01:00
+
+Lucía: Buenos días a todos. Gracias por venir tan temprano, sé que el obrador ya lleva un rato en marcha. La idea es salir de aquí con una decisión sobre el verano, no con otra lista de problemas.
+Andrés: Buenos días. Yo tengo que volver abajo a las diez y media, que hoy sale la masa madre nueva.
+Lucía: Vale, lo tendremos en cuenta. Os recuerdo el problema. El verano pasado los pedidos de restaurantes casi se duplicaron en julio y en agosto, y fallamos once entregas. Tres de esos clientes no han vuelto a pedirnos.
+Nerea: Doce, en realidad. Lo revisé ayer en el programa de pedidos. Once fueron retrasos de más de una hora y uno fue un pedido que directamente no salió.
+Lucía: Doce entonces. Gracias, Nerea. ¿Alguien quiere añadir algo al diagnóstico antes de pasar a las propuestas?
+Joaquín: Yo sí. Siete de esos retrasos fueron en la ruta de la costa. Esa ruta en verano tiene un tráfico horrible a partir de las nueve.
+Andrés: El problema no es el tráfico. El problema es que en agosto me quedo con dos panaderos menos y nadie quiere verlo.
+Lucía: Lo vemos, Andrés. Por eso estamos aquí. ¿Cuántas horas de obrador te faltan, más o menos, en una semana normal de agosto?
+Andrés: Pues calcula. Cada panadero hace unas cuarenta horas. Si faltan dos, son ochenta horas menos con el doble de pedidos.
+Nerea: Pero no todo es el doble. Lo que se dispara son tres productos: la chapata, el pan de centeno y las bases de pizza. El resto sube un poco, pero no tanto.
+Andrés: Ya, pero la chapata es justo la que más trabajo lleva.
+Nerea: Precisamente por eso traigo una propuesta. Podríamos reducir el catálogo de restaurantes en verano. Ahora mismo les ofrecemos treinta y cuatro productos. Si nos quedamos con los doce que más venden, cubrimos casi el noventa por ciento de lo que facturamos con ellos.
+Andrés: ¿Y quién le dice al restaurante de la plaza que en agosto no hay brioche?
++Nerea: Yo. Es mi trabajo. Y prefiero decirle eso en junio que pedirle perdón en agosto.
+Lucía: Me parece razonable como punto de partida. Nerea, ¿tienes los números de esos doce productos?
+Nerea: Sí, os los he mandado esta mañana por correo. Están ordenados por facturación y por horas de obrador.
+Joaquín: Una pregunta. Si quitamos productos, ¿los pedidos llegan más pequeños o llegan igual pero con otras cosas?
+Nerea: Buena pregunta. Por lo que vimos en septiembre, cuando faltó harina de centeno, la mayoría cambió a otro pan nuestro. Solo dos restaurantes pidieron menos.
+Joaquín: Entonces para reparto no cambia mucho. Las cajas van a pesar lo mismo.
+Lucía: Bien, esa es la primera opción: reducir catálogo. ¿Qué otras opciones hay sobre la mesa?
+Andrés: Contratar. Dos panaderos de refuerzo desde el quince de junio hasta el quince de septiembre. Es lo único que funciona de verdad.
+Lucía: ¿Has mirado cuánto cuesta?
+Andrés: Más o menos. Con seguridad social, unos nueve mil euros por persona los tres meses.
+Nerea: Dieciocho mil euros es casi todo el margen de los restaurantes en verano. Contratar a dos no tiene sentido económico.
++Andrés: Eso es lo que dice siempre el departamento comercial. Luego los que nos quedamos hasta las tantas somos nosotros.
+Lucía: Andrés, entiendo que estás cansado, el año pasado fue muy duro. Pero vamos a separar los números de cómo nos sentimos, porque las dos cosas importan.
+Andrés: Vale. Perdona, Nerea. No iba por ti.
+Nerea: Tranquilo. Yo tampoco quiero que el obrador vuelva a vivir el agosto del año pasado.
+Joaquín: ¿Y si fuera uno en vez de dos? Uno contratado más el catálogo reducido.
+Andrés: Con uno y doce productos... podría salir. Tendría que mirarlo con los turnos delante.
+Lucía: ¿Qué necesitas para mirarlo?
+Andrés: La lista de Nerea con las cantidades por día de la semana, no solo el total. El lunes y el viernes no tienen nada que ver.
+Nerea: Te la preparo hoy mismo. La tienes antes de las cinco.
+Lucía: Perfecto. Joaquín, tú hablaste antes de la ruta de la costa. ¿Qué propones ahí?
+Joaquín: He estado preguntando a dos empresas de mensajería que hacen reparto refrigerado. Una de ellas cubriría la costa por unos trescientos euros a la semana.
++Andrés: Ya estamos. Un mensajero no sabe tratar el pan. Lo tiran en la furgoneta como si fueran paquetes.
+Joaquín: Eso pensé yo también. Por eso pregunté cómo cargan. Usan cajas cerradas y no apilan más de cuatro alturas. Puedo pedir que nos hagan una prueba.
+Lucía: Me gusta la idea de probar antes de decidir. ¿Cuánto tiempo necesitarías para la prueba?
+Joaquín: Dos semanas de junio serían suficientes. Si lo hacemos la segunda y la tercera semana, tenemos datos antes de julio.
+Nerea: ¿Y los clientes de la costa sabrían que les llega otra empresa?
+Joaquín: Sí, claro. Yo les llamaría uno a uno antes de empezar.
+Nerea: Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado.
+Lucía: Bien. Llevamos tres opciones: reducir catálogo, contratar refuerzo y externalizar la ruta de la costa. Había una cuarta, la de adelantar el turno de noche, ¿verdad, Andrés?
+Andrés: Sí, empezar a las dos en vez de a las cuatro. Pero ahí te digo ya que la gente no va a querer.
+Lucía: ¿Lo has hablado con ellos?
+Andrés: No formalmente. Pero los conozco.
+Nerea: Yo no lo descartaría sin preguntar. A lo mejor alguno prefiere entrar antes y salir antes, con el calor que hace en agosto.
+Andrés: Puede ser. Hay uno o dos que igual sí.
+Lucía: Entonces propongo que lo preguntes esta semana, sin compromiso, y que nos digas cuántos estarían dispuestos.
+Andrés: Vale, lo pregunto. Pero no prometo nada.
+Lucía: No te pido que prometas el resultado, solo que lo preguntes. ¿Te parece bien tenerlo para el jueves?
+Andrés: El jueves, de acuerdo.
+Joaquín: Una cosa que no hemos hablado. ¿Qué hacemos con los pedidos del domingo? El año pasado fueron el peor día.
+Lucía: Es verdad. ¿Por qué fue el peor?
+Joaquín: Porque el domingo solo hay un repartidor y los restaurantes piden más que ningún otro día.
+Andrés: Y en el obrador el domingo somos tres.
+Nerea: Podríamos cerrar el pedido del domingo el viernes a mediodía. Así Andrés sabe con tiempo lo que tiene que hacer.
+Andrés: Eso ayudaría mucho, la verdad.
+Joaquín: Para reparto no cambia nada. Sigue habiendo una sola furgoneta.
+Lucía: Lo del domingo me parece importante, pero no quiero cerrarlo hoy a la ligera. Lo dejamos apuntado y lo tratamos en la siguiente reunión.
+Nerea: De acuerdo, aunque no lo dejemos mucho, que los restaurantes cierran sus cartas de verano a final de mayo.
+Lucía: Tienes razón. Lo pongo el primero en la próxima reunión.
+Nerea: Antes de seguir, quiero poner otra idea encima de la mesa, aunque sé que no va a gustar. Podríamos subir un poco el precio a los restaurantes en verano.
++Andrés: ¿Subir precios? Si ya se quejan de que somos caros.
+Nerea: Se quejan, pero siguen pidiendo. Mira el dato: el año pasado subimos un cinco por ciento en enero y no perdimos ni un cliente por eso. Los que se fueron, se fueron por los retrasos.
+Joaquín: ¿Cuánto sería la subida?
+Nerea: Estaba pensando en un recargo de verano del cuatro por ciento, solo en julio y agosto, y explicado. Con eso pagamos casi entero el refuerzo.
+Lucía: Me interesa, pero me preocupa el mensaje. Subir el precio el mismo verano en que quitamos productos puede sonar a que damos menos y cobramos más.
+Nerea: Es un riesgo, sí. Por eso digo que habría que explicarlo bien. Si les contamos que es para no fallar entregas, la mayoría lo entiende.
+Andrés: Yo de precios no sé, la verdad. Lo que sé es que si fallamos otra vez, da igual el precio.
+Joaquín: En eso tiene razón Andrés. A los clientes de la costa lo que les importa es que el pan llegue antes de que abran la cocina.
+Lucía: Os propongo una cosa. Lo del recargo lo estudiamos con números antes de decidir. Nerea, ¿podrías calcular qué pasaría si perdiéramos dos o tres clientes por la subida?
+Nerea: Sí, puedo hacer dos escenarios: sin perder a nadie y perdiendo a los tres clientes más pequeños. Lo tengo para el lunes.
+Lucía: Perfecto. Entonces hoy no decidimos el precio, decidimos cómo producir y cómo repartir.
+Andrés: Mejor. Una cosa cada vez.
+Joaquín: Otra cosa que me preocupa es la furgoneta pequeña. Tiene la revisión pendiente y el aire acondicionado del compartimento de carga no enfría bien.
+Lucía: ¿Desde cuándo pasa eso?
+Joaquín: Desde finales del verano pasado. Lo dije en septiembre, pero se quedó ahí.
+Lucía: Pues tienes razón en recordarlo, y perdona que se quedara ahí. ¿Cuánto costaría arreglarlo?
+Joaquín: El taller me dijo unos seiscientos euros, más la revisión. Si se hace en mayo, llegamos a junio sin problema.
++Andrés: Eso hay que hacerlo sí o sí. En agosto, con la furgoneta caliente, la masa de las bases de pizza llega pasada.
+Nerea: Estoy de acuerdo. No tiene sentido hablar de mensajeros si nuestra propia furgoneta no está bien.
+Lucía: Entonces lo damos por aprobado. Joaquín, pide cita en el taller para mayo y me pasas el presupuesto por escrito.
+Joaquín: Hecho. Mañana llamo al taller.
+Andrés: Y ya que estamos, las bandejas de enfriado del obrador también están muy viejas. Pero eso lo dejo para otro día, que veo que no acabamos.
+Lucía: Apúntalo y lo vemos en la próxima. No quiero que se pierda como lo de la furgoneta.
+Andrés: Lo apunto.
+Lucía: Bien. Volvamos a la producción, que es lo que más prisa corre.
+Andrés: Yo sigo pensando que con un solo panadero vamos justos. Si alguien se pone malo, se cae todo.
+Nerea: ¿Y si buscamos a alguien que pueda hacer media jornada en septiembre también? Así el refuerzo no es tan caro y tenemos margen si alguien se pone enfermo.
+Andrés: Eso tiene más sentido. Hay una chica que hizo prácticas con nosotros en primavera. Trabajaba bien y me dijo que buscaba algo para el verano.
+Lucía: ¿Puedes hablar con ella?
+Andrés: Sí, la llamo esta tarde.
+Lucía: Muy bien. A ver si lo he entendido. La propuesta que se está formando es: catálogo de doce productos para restaurantes en julio y agosto, un panadero de refuerzo desde mediados de junio, la prueba del mensajero en la costa durante dos semanas de junio y preguntar por el turno de las dos. ¿Es así?
+Nerea: Es así. Yo añadiría avisar a los restaurantes del catálogo de verano antes del veinte de mayo.
+Joaquín: Por mi parte, de acuerdo.
+Andrés: De acuerdo, con una condición. Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.
+Lucía: Me parece justo. ¿Qué cifra usamos para decir que no llegamos?
+Andrés: Si hay más de dos retrasos en una semana, no llegamos.
++Nerea: Dos retrasos de más de una hora, para medir lo mismo que el año pasado.
+Andrés: Vale, de más de una hora.
+Lucía: Pues queda así. Si en una semana de julio hay más de dos retrasos de más de una hora, se contrata al segundo panadero. Nerea, ¿lo apuntas en el acta?
+Nerea: Apuntado.
+Joaquín: ¿Y quién mira los retrasos cada semana? Porque si no lo mira nadie, no nos enteraremos hasta septiembre.
+Lucía: Buena pregunta. ¿Puedes hacerlo tú, Joaquín? Eres quien tiene los horarios de entrega.
+Joaquín: Sí. Cada lunes os mando un resumen con los retrasos de la semana anterior.
+Lucía: Gracias. Repasemos quién hace qué y para cuándo, que luego se nos olvida.
+Nerea: Yo preparo hoy, antes de las cinco, la lista de los doce productos con cantidades por día. Y antes del veinte de mayo aviso a todos los restaurantes del catálogo de verano.
+Andrés: Yo llamo esta tarde a la chica de prácticas y el jueves os digo cuántos del equipo aceptarían entrar a las dos.
+Joaquín: Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.
+Nerea: Y el lunes os paso los dos escenarios del recargo de verano.
+Joaquín: Y mañana pido cita en el taller para la furgoneta.
+Lucía: Y yo hablo con la gestoría para saber el coste real del contrato y lo comparto el viernes. ¿Algo más?
+Andrés: Sí. Que la próxima vez la reunión sea a las once. A estas horas el horno no espera.
+Lucía: Me parece justo. La próxima, a las once, y empezamos por los domingos. Gracias a todos, ha sido una buena reunión.
+Nerea: Gracias. Andrés, te mando la lista en cuanto la tenga.
+Andrés: Vale. Me voy, que la masa no se hace sola.

@@ -110,3 +110,45 @@ def test_analyze_unknown_session(skills_project: Path) -> None:
     """No transcript for the id: a clean not-found error."""
     with pytest.raises(NotFoundError):
         cli(container(analysis_dir="analysis")).analyze(session="nope")
+
+
+DEMO_SCRIPT = (
+    Path(__file__).resolve().parents[2]
+    / "examples" / "skills" / "simulated" / "reunion_verano.txt"
+)
+
+
+def test_simulate_then_analyze_the_demo_discussion_with_fakes(
+    skills_project: Path, capsys: Any
+) -> None:
+    """The make target's two commands, end to end with a fake judge."""
+    commands = cli(container(analysis_dir="analysis", max_confirmations=40))
+    commands.simulate(script=str(DEMO_SCRIPT))
+    out = capsys.readouterr().out
+    assert "sim-reunion-verano: 4 speakers" in out
+    written = skills_project / "transcripts" / (
+        "sim-reunion-verano.transcript.v1.json"
+    )
+    assert written.is_file()
+    commands.analyze(session="sim-reunion-verano", synthetic=True)
+    folder = skills_project / "analysis" / "sim-reunion-verano"
+    run = json.loads((folder / "run.json").read_text())
+    assert run["status"] == "done"
+    counts = {s["name"]: s["counts"] for s in run["steps"]}
+    assert counts["sentences"] == {"sentences": 238, "speakers": 4}
+    assert counts["confirmation"]["sent"] == 40
+    summary = json.loads((folder / "summary.json").read_text())
+    assert [p["name"] for p in summary["people"]] == [
+        "Lucía", "Andrés", "Nerea", "Joaquín",
+    ]
+
+
+def test_simulate_errors(skills_project: Path) -> None:
+    """A missing or broken script is a clean error."""
+    commands = cli(container())
+    with pytest.raises(NotFoundError):
+        commands.simulate(script="missing.txt")
+    bad = skills_project / "bad.txt"
+    bad.write_text("id: x\nAna: hola\nAna: otra\n", encoding="utf-8")
+    with pytest.raises(InvalidInputError, match="in a row"):
+        commands.simulate(script=str(bad))

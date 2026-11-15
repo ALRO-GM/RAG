@@ -64,7 +64,13 @@ from src.domain.skills.dialogue_act_set import (
 )
 from src.domain.skills.event_evaluation import ExpectedEvents
 from src.domain.skills.interaction import describe
+from src.domain.skills.simulation import (
+    parse_script,
+    script_transcript,
+    timed_sentences,
+)
 from src.domain.skills.speech import clock, transcript_sentences
+from src.domain.skills.transcript_contract import SCHEMA, read_contract
 from src.domain.skills.transcript import Transcript
 from src.skills_bootstrap import SkillsContainer
 
@@ -136,7 +142,7 @@ class SkillsCLI:
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
             "dialogue_acts_set", "judge_acts", "events_evaluate", "acts",
-            "analyze",
+            "analyze", "simulate",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -700,6 +706,48 @@ class SkillsCLI:
                 "command again to resume from it."
             )
         print(f"Done: {app.settings.analysis_dir}/{session}/summary.json")
+
+    def _simulate(
+        self, script: str, output: str = "", words_per_second: float = 2.4,
+    ) -> None:
+        """Turn a written discussion script into a ``transcript.v1``.
+
+        The script's header gives the session (id, title, language,
+        type, goal); each ``Name: text`` line is a turn and a line
+        starting with ``+`` cuts in before the previous turn ends.
+        Times come from a speaking rate, not from audio.
+
+        Args:
+            script: The script file
+                (``examples/skills/simulated/*.txt``).
+            output: File to write (default:
+                <transcripts_dir>/<id>.transcript.v1.json, where
+                ``analyze --session <id>`` finds it).
+            words_per_second: Speaking rate used for the times.
+        """
+        try:
+            text = Path(str(script)).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise NotFoundError(f"Cannot read {script}: {exc}")
+        parsed = parse_script(text)
+        document = script_transcript(
+            parsed, timed_sentences(parsed, float(words_per_second))
+        )
+        read_contract(document)
+        session = document["session"]
+        target = str(output) or str(Path(
+            self._app().settings.transcripts_dir,
+            f"{session['id']}.{SCHEMA}.json",
+        ))
+        write_text(target, json.dumps(
+            document, ensure_ascii=False, indent=1) + "\n")
+        words = sum(len(u["text"].split()) for u in document["utterances"])
+        overlaps = sum(1 for u in document["utterances"] if u["overlap"])
+        print(f"{session['id']}: {len(parsed.speakers())} speakers, "
+              f"{len(parsed.turns)} turns, {len(document['utterances'])} "
+              f"sentences, {words} words, {overlaps} overlaps, "
+              f"{session['duration'] / 60:.1f} min")
+        print(f"Wrote {target}")
 
     def _judge_acts(
         self, dialogues: str = "examples/skills/dialogue_acts/dialogues.json",

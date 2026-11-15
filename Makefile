@@ -29,7 +29,7 @@ RAG_TOKEN_FILE    ?= $(HOME)/.config/ragputin/rag-token
 RAG_PORT          ?= 8000
 
 .PHONY: install run debug clean lint lint-strict test test-slow index search \
-	evaluate answer serve experiment tune analyze skills-demo \
+	evaluate answer serve experiment tune analyze skills-demo demo-analysis \
 	install-cuda system system-benchmark study coverage ci site \
 	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test \
 	rag-token rag-serve \
@@ -138,6 +138,23 @@ skills-demo:
 	$(PYTHON) -m src skills evidence \
 		--transcript examples/skills/transcripts/demo_es.txt \
 		--participant Pablo --competency LISTEN
+
+## demo-analysis: the whole flow on the simulated Spanish discussion
+## (4 invented people, ~15 min): script -> transcript.v1 -> sentences,
+## interaction, candidates, judge, scorecards, reports. Results in
+## data/output/skills/analysis/sim-reunion-verano (also on the web,
+## #/analysis/sim-reunion-verano). JUDGE=local keeps it on this machine;
+## the default asks the judge chosen on the web (Claude Code), reading
+## at most MAX_CONFIRM sentences. RESTART=1 runs every step again.
+JUDGE       ?= selected
+MAX_CONFIRM ?= 150
+DEMO_SCRIPT := examples/skills/simulated/reunion_verano.txt
+demo-analysis:
+	$(PYTHON) -m src skills simulate --script $(DEMO_SCRIPT)
+	$(PYTHON) -m src skills --judge $(JUDGE) \
+		--max_confirmations $(MAX_CONFIRM) analyze \
+		--session sim-reunion-verano --synthetic \
+		$(if $(RESTART),--restart,)
 
 test:
 	uv run pytest -q
