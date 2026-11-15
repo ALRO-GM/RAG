@@ -1,6 +1,6 @@
 # Model lab and its web tab ("Pruebas", issue #30) - status
 
-Updated 2026-11-14. The lab (PR #32, fixes #35, #36, #38) is merged in
+Updated 2026-11-15. The lab (PR #32, fixes #35, #36, #38) is merged in
 main and the tab is deployed. Design and results: `docs/transcriber/LAB.md`
 (§11.7 and §12 for the full run and how to resume).
 
@@ -18,6 +18,11 @@ main and the tab is deployed. Design and results: `docs/transcriber/LAB.md`
 - Tried earlier in headless Chrome against a dev instance with fake data,
   under the production CSP: no console errors or violations; keyboard
   labelling saved on the server; timeline click played.
+
+- Scored against public references (#44): AMI (4 meetings) and CALLHOME
+  Spanish (10 calls), 3 denoisers x 8 diarizers; figures, denoiser effect and
+  limits in LAB.md section 13.8 (no WER: neither corpus has reference words;
+  CALLHOME and DiariZen are non-commercial).
 
 ## Left / known gaps
 - Owner labels on the disputed fragments (LAB.md §11.6): until then every
