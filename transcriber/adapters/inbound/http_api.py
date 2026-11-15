@@ -69,6 +69,7 @@ from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import TranscriberContainer
 from transcriber.domain.consent import ConsentNotice
 from transcriber.domain.errors import (
+    AnalysisUnavailableError,
     ConsentRequiredError,
     ContractError,
     InvalidInputError,
@@ -92,6 +93,7 @@ ERROR_CODES: Tuple[Tuple[Type[TranscriberError], int, str], ...] = (
     (NotFoundError, 404, "not_found"),
     (StateError, 409, "wrong_state"),
     (ModelLoadError, 503, "model_unavailable"),
+    (AnalysisUnavailableError, 503, "analysis_unavailable"),
     (StorageError, 500, "storage_error"),
     (ContractError, 500, "contract_error"),
 )
@@ -172,6 +174,14 @@ class TranscriptionRequest(BaseModel):
     language: Optional[str] = None
     num_speakers: Optional[int] = Field(default=None, ge=1)
     expected_speakers: Optional[List[str]] = None
+
+
+class JudgeRequest(BaseModel):
+    """Body of ``PUT /api/analysis/judge``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: str = Field(max_length=32)
 
 
 class RenameRequest(BaseModel):
@@ -671,6 +681,17 @@ def create_app(
     async def publish(session_id: str) -> Dict[str, Any]:
         """Hand the transcript over to the RAG; return the document."""
         return await run_in_threadpool(c.publish, session_id)
+
+    @api.get("/analysis/judge")
+    async def analysis_judge() -> Dict[str, Any]:
+        """Return the RAG's analysis judge and Claude's quota status."""
+        return await run_in_threadpool(c.analysis_judge.status)
+
+    @api.put("/analysis/judge")
+    async def choose_analysis_judge(request: Request) -> Dict[str, Any]:
+        """Set the judge of the RAG's next analyses (forwarded on loopback)."""
+        body = parse_json(JudgeRequest, await read_body(request, 1024))
+        return await run_in_threadpool(c.analysis_judge.choose, body.mode)
 
     @api.get("/speakers")
     async def speakers() -> Dict[str, Any]:

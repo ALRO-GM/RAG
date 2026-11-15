@@ -1,7 +1,8 @@
 """Ports of the soft-skills use cases."""
 
-from typing import Any, Dict, List, Mapping, Protocol, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Protocol, Tuple
 
+from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.transcript import Transcript
 
@@ -16,6 +17,26 @@ class ChatModel(Protocol):
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:
         """Return the model's reply."""
+        ...
+
+
+class JudgeStateStore(Protocol):
+    """Keep the judge chosen from the web and what is known of the quota."""
+
+    def load(self) -> JudgeState:
+        """Return the stored state (an empty one when nothing is stored)."""
+        ...
+
+    def save(self, state: JudgeState) -> None:
+        """Replace the stored state."""
+        ...
+
+    def update(self, change: Callable[[JudgeState], JudgeState]) -> JudgeState:
+        """Apply ``change`` to the stored state atomically; return it.
+
+        Concurrent updates (the web choosing a judge while a job
+        records the quota) must not lose each other's fields.
+        """
         ...
 
 

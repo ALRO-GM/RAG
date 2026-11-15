@@ -75,10 +75,213 @@ still works through the embeddings alone.
 
 ## 4. Judge models
 
-| `--judge` | Model | Data leaves the machine | Status |
+Owner decision on #74 (2026-11-15): the paid Anthropic API is not
+used. The judge is **Claude through Claude Code** (the `claude`
+command line, signed in with the owner's subscription), with a **local
+model** behind it when the subscription's quota runs out, and a
+**both** mode to compare them. Consented recordings may be sent out
+(decision 5 on #57); only synthetic examples were sent while building
+this.
+
+| `--judge` | What runs | Data leaves the machine | Status |
 |---|---|---|---|
-| `local` (default) | Chosen automatically (`llm = "auto"`): the largest model of the ladder (Qwen3 0.6B to 14B) that fits the memory and, on a CPU, is estimated to reach 4 tokens/s; here `Qwen/Qwen3-1.7B`. `python -m src system` shows the choice and why the others were rejected; `--local_model` forces one | No | Tested. Quotes are verbatim, but indicator classification is weak; about 60 s per participant × competency on 20 cores |
-| `api` | Claude (`claude-opus-5-5`) through the Anthropic SDK (`uv sync --group api`) | Yes | Adapter unit-tested against a fake client; not run against the live API in this repository |
+| `selected` (default) | Whatever was chosen from the web (`GET/PUT /analysis/judge`, kept in `judge_state_path`, `data/skills/judge.json`); `claude_code` until something is chosen | as the choice | Tested with fakes; the choice file holds no transcript text |
+| `claude_code` | `claude -p` with `--model opus` (`--claude_model`), isolated as in §4.1; on a quota refusal the job goes on with the local judge (§4.3) | Yes, to Anthropic through the subscription | Run on 20 synthetic sentences (§4.4) |
+| `local` | On a GPU, Qwen3-8B at 4 bits if it fits the free memory, otherwise Qwen3-4B at 4 bits after waiting for room; never a smaller model (`local_policy`, `local_preference`, §4.2). On a CPU, the machine's choice as before. `--local_model` forces one | No | Measured on synthetic data (§4.2) |
+| `both` | `claude_code` and `local` on the same items; both answers kept, agreement reported | Yes | Run on 20 synthetic sentences (§4.4) |
+| `api` | Claude through the Anthropic SDK (`AnthropicChatModel`) | Yes | Kept, **not to be used** (costs extra money) |
+
+Every item records the judge that produced it (`TagDecision.model`,
+`ActVerdict.model`); the output file of `skills tag --confirm` and
+`skills judge_acts` has a `judge` record with the mode, the model and,
+after a fallback, `fallback_reason`. Replies are cached per judge, so a
+reply of the local judge is never filed under Claude's name.
+
+### 4.1 Claude Code judge and its isolation
+
+`adapters/outbound/claude_code_judge.py` runs one call per item:
+
+```
+claude -p --safe-mode --setting-sources "" --strict-mcp-config --tools "" \
+  --disable-slash-commands --no-session-persistence --output-format json \
+  --model opus --system-prompt <our prompt>      (user message on stdin)
+```
+
+from a new empty temporary directory (removed afterwards), with the
+environment reduced to `PATH`, `HOME`, `LANG`, `LC_ALL`. The transcript
+text goes on standard input, never on the command line (readable in the
+process list), and is never logged nor put in an error message.
+
+- `--bare` would isolate as well, but then Claude Code accepts only an
+  API key (`ANTHROPIC_API_KEY`), not the subscription's OAuth sign-in
+  (`claude --help`, 2.1.325), so it is not used.
+- `--safe-mode` disables CLAUDE.md, skills, plugins, hooks, MCP
+  servers, custom agents and output styles while keeping the sign-in;
+  `--setting-sources ""` loads no settings file; `--strict-mcp-config`
+  without `--mcp-config` loads no MCP server; `--tools ""` gives no tool.
+- Checked with real calls (Claude Code 2.1.325, 2026-11-15): a
+  `CLAUDE.md` with a secret word and a `.claude/notes.md` with another
+  were put in the working directory, and the judge was asked what
+  instructions, CLAUDE.md, memory, project files, tools and secret
+  words it could see. It answered: our system prompt only; no
+  CLAUDE.md, memory or project files; no tools; no secret word. No
+  session was written under `~/.claude/projects`. What Claude Code
+  still adds and cannot be turned off with the subscription: the
+  operating system, the date, the model name, the working directory
+  (the empty temporary one) and the account's e-mail address.
+- A first try that asked for the system prompt "verbatim" was refused
+  by the model's safeguards (`is_error: true`); such refusals are
+  reported as ordinary failures, not as quota.
+
+The JSON result is parsed (`result`, `is_error`, `api_error_status`).
+Failures are sorted into four kinds:
+
+- **Quota**: only the subscription's usage-limit messages ("Claude AI
+  usage limit reached|<timestamp>", "hit your … limit", "5-hour /
+  session / weekly limit reached", "out of extra usage") raise
+  `QuotaExhaustedError`. The reset time is kept as written and, when
+  it is a Unix timestamp, as a moment (`resets_at`).
+- **Transient**: a per-minute rate limit (`429`, "rate limit", "Too
+  Many Requests"), an overload or a `5xx`. These are retried twice
+  (5 s, then 10 s), change no stored state, and end as a plain
+  `ModelError`. They never send the job to the local judge.
+- **Sign-in**: only `401` or the not-logged-in messages ("Not logged
+  in", "Please run /login", "Invalid API key", "OAuth token has
+  expired") raise `ModelAuthError`; the fix is to run `claude` once
+  and log in.
+- **Anything else** (a time-out after `claude_timeout`, 180 s; a
+  missing program; a safeguard refusal) is a `ModelError`.
+
+An error message carries at most Claude Code's own error text, never
+a reply. `claude` starts in a new session (process group); on a
+time-out or any other exception the whole group is killed, and
+helpers left behind by a finished call are killed too. The real
+quota and sign-in messages were not seen, because they could not be
+triggered. The patterns come from the messages Claude Code is known
+to print and are tested with fakes.
+
+### 4.2 Local judge
+
+The GPU (8 GB) is shared with the live transcriber, the RAG and another
+project's worker, so the free memory changes from job to job.
+`adapters/outbound/local_judge.py` reads the free memory
+(`torch.cuda.mem_get_info`) when a job first needs the judge, keeps
+0.4 GB aside and estimates each model's needs as
+`params × bits/8 × 1.3`. The weights are quantised to 4 bits (NF4)
+with `bitsandbytes`, installed by `uv sync --group local-judge`
+(`bitsandbytes`, `accelerate`; not a default group). The job releases
+the model when it ends (`release()`), so the memory comes back.
+
+`local_policy` decides which model loads:
+
+- **`preferred`** (default; owner decision on #74):
+  - The list is `local_preference`, by default Qwen3-8B then Qwen3-4B,
+    both at 4 bits.
+  - The first model of the list that fits the free memory now is
+    loaded.
+  - When none fits, the job waits for the last model of the list,
+    checking every 15 s and logging what it waits for. It gives up
+    after `local_wait_seconds` (600 s) with a clear error.
+  - It never takes a model outside the list, so it never downgrades
+    to 1.7B.
+  - The list is a setting, so the 8B can be dropped if it measures
+    worse.
+- **`largest_fitting`**: the largest model of `model_ladder` that fits
+  the free memory now. Without the quantisation packages it logs a
+  warning and chooses among the models that fit at 16 bits.
+- **`fixed`**: pins `--local_model` and waits for it, like `preferred`.
+
+`--local_model` set explicitly loads that model under `preferred` and
+`largest_fitting` too. With `preferred` and no quantisation packages,
+the 8B and 4B do not fit an 8 GB card at 16 bits. The judge then
+fails at once, saying to install the group, rather than load another
+model.
+
+Measured on 2026-11-15 on the RTX 3070 Ti (one run each, greedy
+decoding). The figures come from a scratch version of
+`experiments/skills/judge_local_eval.py`, which computes the same
+values; the committed script was not rerun because the GPU was busy.
+To reproduce:
+
+```bash
+HF_HUB_OFFLINE=1 PYTHONPATH=. python experiments/skills/judge_local_eval.py Qwen/Qwen3-4B --bits 4 \
+    --output experiments/skills/results/judge_local_qwen3-4b-4bit.json
+```
+
+Dialogue acts: 200
+sentences spread over the 51 dialogues of the synthetic Spanish set,
+with the 3 previous sentences, against their intended labels. Tag
+confirmation: the synthetic Spanish demo session
+(`examples/skills/transcripts/demo_es.txt`), as in `AUDIO.md` §4.
+
+| Model | Peak VRAM of the judge | Load | Acts: accuracy (unparsed) | s / sentence | Tags: confirmed / rejected / not understood | First indicator (P1) among confirmed | Negative indicators confirmed |
+|---|---|---|---|---|---|---|---|
+| Qwen3-1.7B, 16 bit | 3.54 GB | 4.8 s | 0.365 (3) | 0.16 | 40 / 23 / 1 | 35 of 40 | 0 |
+| Qwen3-4B, 4 bit | 2.87 GB | 39.1 s | 0.545 (1) | 0.32 | 63 / 1 / 0 | 10 of 63 | 5 |
+
+The 1.7B run reproduces `AUDIO.md` §4 exactly. The 4B at 4 bits is
+better on dialogue acts (0.545 against 0.365) and its position bias is
+gone, but on tag confirmation it confirms almost everything (63 of 64):
+the failure moved from "always the first indicator" to "never none".
+Neither is a usable assessor of indicators. Qwen3-8B at 4 bits is
+downloaded but **not measured**: the other project's worker held
+5.4–5.9 GB during this work, which leaves too little free memory for
+it. The preferred policy loads it when its estimate fits (5.3 GB + 0.4
+GB margin). Otherwise the policy waits for Qwen3-4B (2.6 + 0.4 GB);
+the 4B's measured peak was 2.87 GB. Measure the 8B with the command
+above before trusting it.
+
+### 4.3 Selection and fallback
+
+`application/skills/judges.py`. `JudgeSelection` keeps the web's
+choice and Claude's quota record (`JudgeState`: last refusal, its reset
+time, last answer). `FallbackJudge` asks Claude; on the first
+`QuotaExhaustedError` of a job it records the refusal and answers that
+item and all the following ones with the local judge, giving the reason.
+A job that starts while the quota is known to be out goes to the local
+judge without calling Claude. "Known to be out" means: until the reset
+moment the service gave or, without one, for 5 hours (the
+subscription's window), unless Claude answered since. The state file
+(`judge_state_path`, relative to the repository root, not to the
+working directory) is changed under a file lock. The web's choice and
+a job's quota record therefore never overwrite each other. The web
+shows a reset moment in local time. The quota shown in the web
+is therefore what the last jobs saw (`available`, `exhausted`, or
+`unknown` before the first call), not a live probe: a probe would
+spend quota.
+
+In `both` mode, the first judge falls back to the same local model as
+the second when the quota runs out. Items that one model answered for
+both are left out of the agreement figures and counted in
+`same_judge`, and the command says so. Otherwise κ would tend to 1 by
+comparing the local model with itself.
+
+The RAG serves `GET/PUT /analysis/judge` behind the transcript token
+(`adapters/inbound/http_api.py`); the transcriber forwards
+`GET/PUT /api/analysis/judge` (access code) to it on loopback with the
+same token (redirects are never followed with the token, here or when
+publishing), so the RAG stays out of the tunnel; the sessions page has
+a «Análisis de habilidades: modelo que juzga» section with the three
+choices and the quota line.
+
+### 4.4 Both mode
+
+`compare_confirmations` (tags) and `compare_act_judges` (dialogue acts)
+run the two judges on the same items and return `LabelComparison`
+(`domain/skills/judging.py`): agreement, Cohen's κ over all labels,
+κ per category (one against the rest), the confusion between the two
+judges and, when the items have reference labels, each judge's
+accuracy overall and per category. `skills --judge both judge_acts
+--sample 20` does it on the Spanish set.
+
+**Smoke figure, not a benchmark** (2026-11-15, 20 sentences spread
+over the set, Claude Code `opus` against Qwen3-4B at 4 bits, intended
+labels of a synthetic set written by one author): Claude 14 of 20 right
+(0.70), the local judge 10 of 20 (0.50); the two agreed on 8 of 20,
+κ 0.36. Twenty sentences cannot rank two models; this shows the
+mechanism works end to end, nothing more.
+
+### 4.5 Earlier measurement (assessment, local 1.7B)
 
 Measured with the local judge on the synthetic Spanish session (5
 speakers, 39 turns, 55 judgements, 58 minutes on 20 cores), against the
@@ -90,8 +293,8 @@ reference rates 9, with 4 in common (2 of them identical). It gave
 Luis, who dismisses a colleague twice, 5/5 in listening. This judge is
 a wiring test, not a usable assessor.
 
-The API judge must only be used with recordings whose participants
-consented to external processing.
+Hosted judges (`claude_code`, `both`, `api`) must only be used with
+recordings whose participants consented to external processing.
 
 ## 5. Architecture
 
@@ -102,7 +305,7 @@ adds its own.
 |---|---|---|
 | Domain | `languages`, `skills/transcript`, `rubric`, `assessment`, `interaction`, `grounding`, `agreement`, `prompting` | `ranking` (fusion, top-k), `experiments` (metrics, bootstrap, Pareto) |
 | Application | `skills/evidence`, `assessment`, `gold`, `evaluation`, `lab`, `report`; ports `ChatModel`, `TranscriptRepository`, `CatalogueRepository` | ports `Embedder`, `LexicalIndexBuilder`, `Cache`, `Progress`, `TrialStore`; `ExperimentService`, `Tuner`, `AnalysisService` |
-| Adapters out | `fs_transcript_repository`, `json_catalogue_repository`, `transformers_chat_model`, `anthropic_chat_model` | `bm25_index`, `minilm_embedder`, `sqlite_cache`, `jsonl_trial_store` |
+| Adapters out | `fs_transcript_repository`, `json_catalogue_repository`, `transformers_chat_model`, `local_judge`, `claude_code_judge`, `json_judge_state`, `anthropic_chat_model` (kept, not used) | `bm25_index`, `minilm_embedder`, `sqlite_cache`, `jsonl_trial_store` |
 | Adapters in | `skills_cli` | `lab_cli` (now hosted by any container offering `experiments`, `tuner`, `analysis`) |
 | Composition | `skills_bootstrap.SkillsContainer`, `config.SkillsSettings` | |
 
@@ -125,7 +328,10 @@ uv run python -m src skills evidence --transcript FILE \
 
 # Full scorecards → data/output/skills/<session>.assessment.json + .scorecard.md
 uv run python -m src skills assess --transcript FILE
-uv run python -m src skills --judge api assess --transcript FILE
+uv run python -m src skills --judge local assess --transcript FILE
+
+# Judges (§4): dialogue acts of the synthetic Spanish set, two judges compared
+uv run python -m src skills --judge both judge_acts --sample 20
 
 # One participant, for a non-technical reader (§10) → <session>.<name>.report.html
 uv run python -m src skills report --assessment S.assessment.json \

@@ -54,6 +54,10 @@ class PublishError(TranscriberError):
     """A transcript could not be handed over to the RAG."""
 
 
+class AnalysisUnavailableError(TranscriberError):
+    """The RAG's analysis settings cannot be reached from here."""
+
+
 class StorageError(TranscriberError):
     """Stored data cannot be read back (a damaged or foreign file)."""
 

@@ -170,6 +170,12 @@ SKILLS_MODEL_LADDER: Tuple[Tuple[str, float], ...] = (
 )
 """Local judge candidates: (Hugging Face model, billions of parameters)."""
 DEFAULT_SKILLS_API_MODEL = "claude-opus-5-5"
+DEFAULT_LOCAL_PREFERENCE: Tuple[str, ...] = (
+    "Qwen/Qwen3-8B", "Qwen/Qwen3-4B",
+)
+"""Local judges in order of preference (4 bits; owner decision on #74)."""
+DEFAULT_CLAUDE_CODE_MODEL = "opus"
+"""Claude Code's alias of the best model of the subscription."""
 
 
 class SkillsSettings(BaseModel):
@@ -178,11 +184,28 @@ class SkillsSettings(BaseModel):
     ``rubric_language`` is the language of the rubric matched against
     the transcript: ``auto`` picks the transcript's own language and
     falls back to English when the catalogue is not translated.
-    ``judge`` chooses where the language model runs: ``local`` keeps
-    the transcript on the machine, ``api`` sends it to Anthropic.
-    With ``llm = "auto"`` the local judge is the largest model of
-    ``model_ladder`` that fits this machine's memory and, on a CPU,
-    is estimated to reach ``min_tokens_per_second``.
+    ``judge`` chooses the language model (``docs/skills/DESIGN.md``
+    §4): ``claude_code`` is Claude through the ``claude`` command line
+    on the owner's subscription, falling back to the local model when
+    its quota runs out; ``local`` keeps the transcript on the machine;
+    ``both`` runs the two and compares them; ``selected`` (default)
+    uses what was chosen from the web, kept in ``judge_state_path``
+    (``claude_code`` until something is chosen); ``api`` is the paid
+    Anthropic API, kept but not to be used (owner decision on #74).
+    On a GPU the local judge is the largest model of ``model_ladder``
+    that fits the memory free when the job starts, quantised to
+    ``local_bits``; on a CPU (``llm = "auto"``) the largest that fits
+    this machine's memory and is estimated to reach
+    ``min_tokens_per_second``. ``llm`` set to a model name forces it.
+    On a GPU, ``local_policy`` decides which local model loads (owner
+    decision on #74): ``preferred`` (default) takes the first model of
+    ``local_preference`` that fits the free memory now and otherwise
+    waits up to ``local_wait_seconds`` for the last one, never using a
+    smaller model; ``largest_fitting`` takes the largest ladder model
+    that fits now; ``fixed`` pins ``llm`` and waits for it.
+    ``judge_state_path`` is relative to the repository root unless
+    absolute, so the RAG and the CLI share one file whatever
+    their working directory.
 
     A rating needs ``min_incidents`` verified turns from
     ``min_episodes`` separate exchanges (turns within ``episode_gap``
@@ -215,7 +238,22 @@ class SkillsSettings(BaseModel):
     min_words: int = Field(default=4, ge=1)
     bm25_k1: float = 1.2
     bm25_b: float = 0.5
-    judge: Literal["local", "api"] = "local"
+    judge: Literal[
+        "selected", "claude_code", "local", "both", "api"
+    ] = "selected"
+    judge_state_path: str = "data/skills/judge.json"
+    claude_model: str = DEFAULT_CLAUDE_CODE_MODEL
+    claude_effort: Optional[
+        Literal["low", "medium", "high", "xhigh", "max"]
+    ] = None
+    claude_timeout: float = Field(default=180.0, gt=0)
+    claude_executable: str = "claude"
+    local_bits: Literal[4, 8, 16] = 4
+    local_policy: Literal[
+        "preferred", "largest_fitting", "fixed"
+    ] = "preferred"
+    local_preference: Tuple[str, ...] = DEFAULT_LOCAL_PREFERENCE
+    local_wait_seconds: float = Field(default=600.0, ge=0)
     llm: str = DEFAULT_SKILLS_LLM
     api_model: str = DEFAULT_SKILLS_API_MODEL
     api_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"

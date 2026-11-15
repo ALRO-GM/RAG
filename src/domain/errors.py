@@ -5,6 +5,10 @@ status code; they never surface as tracebacks.
 """
 
 
+from datetime import datetime
+from typing import Optional
+
+
 class RagError(Exception):
     """Base class of every expected, user-facing error."""
 
@@ -23,6 +27,35 @@ class CorruptedDataError(RagError):
 
 class ModelError(RagError):
     """A machine-learning model could not be loaded or run."""
+
+
+class QuotaExhaustedError(ModelError):
+    """A hosted model refused because the usage quota is used up.
+
+    ``resets`` says when the quota comes back, as the service wrote it
+    (empty when it did not say); ``resets_at`` is that moment when the
+    service gave it as a timestamp. A judge that can fall back to the
+    local model does so instead of failing.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        resets: str = "",
+        resets_at: Optional[datetime] = None,
+    ):
+        """Keep the message and when the quota resets."""
+        super().__init__(message)
+        self.resets = resets
+        self.resets_at = resets_at
+
+
+class ModelAuthError(ModelError):
+    """A hosted model refused the credentials (not logged in, expired)."""
+
+
+class TransientModelError(ModelError):
+    """A hosted model failed in a way worth retrying (overload, 5xx)."""
 
 
 def short_reason(exc: Exception) -> str:

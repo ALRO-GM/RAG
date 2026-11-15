@@ -5,12 +5,14 @@ cache, experiment lab) behind the same ports, and adds the adapters
 that are specific to transcripts and rubrics.
 """
 
+from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
 
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
+from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
 from src.adapters.outbound.fs_transcript_repository import (
     FileSystemTranscriptRepository,
 )
@@ -20,20 +22,24 @@ from src.adapters.outbound.json_catalogue_repository import (
 from src.adapters.outbound.json_dataset_repository import (
     JsonDatasetRepository,
 )
+from src.adapters.outbound.json_judge_state import JsonJudgeStateStore
 from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
+from src.adapters.outbound.local_judge import LocalJudge
 from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.tqdm_progress import TqdmProgress
-from src.adapters.outbound.transformers_chat_model import (
-    TransformersChatModel,
-)
 from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
+from src.application.skills.judges import (
+    ActClassifier,
+    FallbackJudge,
+    JudgeSelection,
+)
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
 from src.application.skills.ports import ChatModel
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
@@ -49,7 +55,22 @@ from src.domain.runtime import (
     RuntimePlan,
     choose_model,
 )
+from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+"""The checkout this code runs from (relative data paths start here)."""
+
+
+def judge_state_file(path: str, root: Path = REPOSITORY_ROOT) -> Path:
+    """Return the judge state file: ``path`` itself, or under ``root``.
+
+    The RAG server and the analysis commands may start in different
+    working directories; both must read and write the same file.
+    """
+    candidate = Path(path).expanduser()
+    return candidate if candidate.is_absolute() else root / candidate
 
 
 class SkillsContainer:
@@ -159,15 +180,81 @@ class SkillsContainer:
         return TagConfirmer(self.judge, self.cache, self.progress)
 
     @cached_property
+    def second_confirmer(self) -> TagConfirmer:
+        """The local judge's confirmer, compared with the first (both)."""
+        return TagConfirmer(self.local_judge, self.cache, self.progress)
+
+    def act_classifier(self, judge: ChatModel) -> ActClassifier:
+        """Return a dialogue-act classifier over ``judge``."""
+        return ActClassifier(judge, self.cache, self.progress)
+
+    @cached_property
+    def judge_selection(self) -> JudgeSelection:
+        """The judge chosen from the web and Claude's quota record."""
+        return JudgeSelection(
+            JsonJudgeStateStore(str(judge_state_file(
+                self.settings.judge_state_path
+            ))),
+            lambda: datetime.now(timezone.utc),
+        )
+
+    def judge_mode(self) -> JudgeMode:
+        """Return the judge of this job: the setting, or the web's choice.
+
+        ``api`` is reported as ``claude_code`` here: it is a single
+        hosted judge without the local one behind it.
+        """
+        s = self.settings
+        if s.judge == "selected":
+            return self.judge_selection.mode()
+        if s.judge == "api":
+            return "claude_code"
+        return s.judge
+
+    @cached_property
+    def claude_judge(self) -> ClaudeCodeJudge:
+        """Claude through the ``claude`` command line (subscription)."""
+        s = self.settings
+        return ClaudeCodeJudge(
+            s.claude_model, s.claude_executable, s.claude_timeout,
+            s.claude_effort,
+        )
+
+    @cached_property
+    def local_judge(self) -> ChatModel:
+        """The local model, picked by the memory free when it is needed."""
+        if self._shared_judge is not None:
+            return self._shared_judge
+        s = self.settings
+        return LocalJudge(
+            [
+                ModelOption(name=n, params_billion=b, bits=s.local_bits)
+                for n, b in s.model_ladder
+            ],
+            self.runtime,
+            cpu_model=self.local_model(),
+            fixed=None if s.llm == "auto" else s.llm,
+            policy=s.local_policy,
+            preference=s.local_preference,
+            wait_seconds=s.local_wait_seconds,
+        )
+
+    @cached_property
     def judge(self) -> ChatModel:
-        """Language model that quotes and rates."""
+        """Language model that quotes, rates and confirms tags.
+
+        Claude Code (also the first judge of ``both``) has the local
+        model behind it for when its quota runs out.
+        """
         if self._shared_judge is not None:
             return self._shared_judge
         s = self.settings
         if s.judge == "api":
             return AnthropicChatModel(s.api_model, s.api_effort)
-        return TransformersChatModel(
-            self.local_model(), plan=self.runtime
+        if self.judge_mode() == "local":
+            return self.local_judge
+        return FallbackJudge(
+            self.claude_judge, self.local_judge, self.judge_selection
         )
 
     @cached_property

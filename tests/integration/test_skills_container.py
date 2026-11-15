@@ -13,9 +13,12 @@ from src.adapters.inbound.lab_cli import LabCLI
 from src.adapters.inbound.skills_cli import SkillsCLI, fmt, parse_names
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
+from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.local_judge import LocalJudge
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
+from src.application.skills.judges import FallbackJudge
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.experiments import TrialResult
@@ -87,6 +90,7 @@ def settings(**overrides: Any) -> SkillsSettings:
         "progress": False, "min_incidents": 2, "min_episodes": 1,
         "min_participant_words": 0, "min_similarity": 0.0,
         "candidates": 8, "min_words": 4, "semantic_weight": 1.0,
+        "judge_state_path": str(Path("judge.json").resolve()),
     }
     return SkillsSettings.model_validate({**values, **overrides})
 
@@ -139,8 +143,8 @@ def test_listing_a_catalogue_builds_no_model(
         """Fail if a model adapter is constructed."""
         raise AssertionError("a model adapter was constructed")
 
-    for name in ("SentenceTransformerEmbedder", "TransformersChatModel",
-                 "AnthropicChatModel", "SqliteCache"):
+    for name in ("SentenceTransformerEmbedder", "LocalJudge",
+                 "ClaudeCodeJudge", "AnthropicChatModel", "SqliteCache"):
         monkeypatch.setattr(bootstrap, name, forbidden)
     app = SkillsContainer(settings())
     assert app.catalogues.load("core", "es").language == "es"
@@ -164,10 +168,15 @@ def test_container_uses_the_shared_embedder_and_judge(
 
 def test_container_builds_lazy_model_adapters(skills_project: Path) -> None:
     """The default adapters are configured but load nothing."""
-    local = SkillsContainer(settings(llm="some/local-model"))
-    assert isinstance(local.judge, TransformersChatModel)
+    local = SkillsContainer(settings(llm="some/local-model", judge="local"))
+    assert isinstance(local.judge, LocalJudge)
     assert local.judge.model_name == "some/local-model"
-    assert local.judge._model is None
+    built = local.judge._model
+    assert isinstance(built, TransformersChatModel) and built._model is None
+    claude = SkillsContainer(settings(judge="claude_code"))
+    assert isinstance(claude.judge, FallbackJudge)
+    assert isinstance(claude.judge.primary, ClaudeCodeJudge)
+    assert claude.judge.fallback is claude.local_judge
     api = SkillsContainer(settings(
         judge="api", api_model="claude-haiku-5-5", api_effort="low"
     ))
@@ -661,3 +670,43 @@ def test_tag_confirm_asks_the_judge_and_saves_decisions(
     }]
     assert all(d["status"] == "rejected" for d in decisions
                if d not in confirmed)
+    assert saved["judge"] == {"mode": "claude_code",
+                              "models": ["fake-judge"]}
+
+
+def test_judge_acts_records_the_models_that_answered(
+    skills_project: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``judge_acts`` saves verdicts, accuracy and the judge record."""
+    dialogues = Path("dialogues.json")
+    dialogues.write_text(json.dumps([{"session": {"id": "d"}, "utterances": [
+        {"id": "t0.s0", "speaker": "Ana", "text": "Hola.", "act": "relacion"},
+        {"id": "t1.s0", "speaker": "Luis", "text": "Mm.", "act": "escucha"},
+    ]}]), encoding="utf-8")
+    app = SkillsContainer(
+        settings(judge="local"), embedder=FakeEmbedder(dim=256),
+        judge=FakeChatModel(['{"act": "relacion"}']),
+    )
+    cli(app).judge_acts(dialogues=str(dialogues), sample=0,
+                        output="acts.json")
+    saved = json.loads(Path("acts.json").read_text(encoding="utf-8"))
+    assert saved["judge"] == {"mode": "local", "models": ["fake-judge"]}
+    assert saved["accuracy"] == 0.5
+    assert "2 sentences, judge fake-judge: accuracy 0.500" in (
+        capsys.readouterr().out
+    )
+
+
+def test_comparison_print_says_what_was_left_out(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A fallback in both mode is reported, not hidden."""
+    from src.adapters.inbound.skills_cli import judge_record, print_comparison
+
+    print_comparison({
+        "items": 3, "agreement": 0.5, "kappa": 0.2, "per_category": {},
+        "with_reference": 0, "same_judge": 4,
+    })
+    assert "Left out: 4 items" in capsys.readouterr().out
+    record = judge_record("both", object(), ["a", "a"], ["b"])
+    assert record == {"mode": "both", "models": ["a"], "second_models": ["b"]}

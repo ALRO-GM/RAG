@@ -1,7 +1,15 @@
-"""Chat model adapter: a Hugging Face causal LM running locally."""
+"""Chat model adapter: a Hugging Face causal LM running locally.
 
+On a GPU the weights may be quantised to 4 or 8 bits with
+``bitsandbytes`` (``uv sync --group local-judge``), which lets an 8 B
+model fit next to the other models of a shared 8 GB card. The model is
+loaded on first use and :meth:`TransformersChatModel.release` frees it,
+so a job holds the memory only while it runs.
+"""
+
+import gc
 import re
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from src.adapters.outbound.torch_runtime import prepare
 from src.domain.errors import ModelError
@@ -23,8 +31,16 @@ class TransformersChatModel:
         model_name: str,
         max_input_tokens: int = 6000,
         plan: Optional[RuntimePlan] = None,
+        bits: int = 16,
     ):
-        """Configure the model; the weights load on first use."""
+        """Configure the model; the weights load on first use.
+
+        ``bits`` 4 or 8 quantises the weights on a GPU (ignored on the
+        CPU, which keeps float32).
+        """
+        if bits not in (4, 8, 16):
+            raise ModelError(f"bits must be 4, 8 or 16, not {bits}.")
+        self.bits = bits
         self.plan = plan
         self._device = "cpu"
         self._model_name = model_name
@@ -47,16 +63,44 @@ class TransformersChatModel:
 
             self._device = prepare(self.plan)
             self._tokenizer = AutoTokenizer.from_pretrained(self._model_name)
-            model: Any = AutoModelForCausalLM.from_pretrained(
-                self._model_name,
-                dtype=torch.float32 if self._device == "cpu"
+            options: Dict[str, Any] = {
+                "dtype": torch.float32 if self._device == "cpu"
                 else torch.float16,
+            }
+            quantised = self._device == "cuda" and self.bits < 16
+            if quantised:
+                options["quantization_config"] = quantisation(self.bits)
+                options["device_map"] = {"": 0}
+            model: Any = AutoModelForCausalLM.from_pretrained(
+                self._model_name, **options
             )
-            model.to(self._device)
+            if not quantised:
+                model.to(self._device)
             model.eval()
             self._model = model
+        except ImportError as exc:
+            raise ModelError(
+                f"Cannot load model {self._model_name} at {self.bits} bits:"
+                f" {exc}. Quantised weights need `uv sync --group "
+                "local-judge`."
+            )
         except (OSError, ValueError) as exc:
             raise ModelError(f"Cannot load model {self._model_name}: {exc}")
+
+    def release(self) -> None:
+        """Drop the weights and give the GPU memory back."""
+        if self._model is None:
+            return
+        self._model = None
+        self._tokenizer = None
+        gc.collect()
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:
         """Return the model's reply to ``user`` under ``system``."""
@@ -98,3 +142,22 @@ class TransformersChatModel:
             output[0][size:], skip_special_tokens=True
         )
         return _THINK.sub("", str(text)).strip()
+
+
+def quantisation(bits: int) -> Any:
+    """Return the ``bitsandbytes`` configuration for 4 or 8 bits.
+
+    4 bits uses NF4 with float16 compute and double quantisation, the
+    usual setting for inference.
+    """
+    import torch
+    from transformers import BitsAndBytesConfig
+
+    config: Any = BitsAndBytesConfig
+    if bits == 4:
+        return config(
+            load_in_4bit=True, bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
+    return config(load_in_8bit=True)

@@ -322,6 +322,9 @@ class RagCLI:
         judge: Optional[str] = None,
         local_model: Optional[str] = None,
         api_model: Optional[str] = None,
+        claude_model: Optional[str] = None,
+        local_bits: Optional[int] = None,
+        local_policy: Optional[str] = None,
         embedding_model: Optional[str] = None,
         dense_weight: Optional[float] = None,
         candidates: Optional[int] = None,
@@ -336,7 +339,7 @@ class RagCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
         Options go between ``skills`` and the command, e.g.
-        ``skills --judge api assess --transcript FILE``. The global
+        ``skills --judge local assess --transcript FILE``. The global
         ``--no_cache`` also disables the cache of judge replies.
 
         Args:
@@ -345,9 +348,20 @@ class RagCLI:
             rubric_language: auto (the transcript's language), en or es.
             transcripts_dir: Where the lab finds sessions by identifier.
             output_dir: Where scorecards and forms are written.
-            judge: local (nothing leaves the machine) or api (Anthropic).
+            judge: selected (the web's choice, default), claude_code
+                (Claude Code on the subscription, local when its quota
+                runs out), local (nothing leaves the machine), both
+                (the two, compared) or api (paid API; not to be used).
             local_model: Hugging Face model of the local judge.
             api_model: Model of the API judge.
+            claude_model: Claude Code model (opus, sonnet, a full name).
+            local_bits: Weight precision of the local judge on a GPU
+                (4, 8 or 16; 4 and 8 need ``uv sync --group
+                local-judge``).
+            local_policy: preferred (default: Qwen3-8B if it fits,
+                else wait for Qwen3-4B; never smaller), largest_fitting
+                (the largest model the free GPU memory holds) or fixed
+                (``--local_model``, waiting for memory).
             embedding_model: Multilingual sentence-embedding model.
             dense_weight: Weight of the semantic score in retrieval.
             candidates: Turns shown to the judge per competency.
@@ -756,6 +770,7 @@ class RagCLI:
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
             forget=app.forget_transcript,
+            judge=SkillsContainer(SkillsSettings()).judge_selection,
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)

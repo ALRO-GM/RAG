@@ -9,6 +9,7 @@ import { actionsFor, progressPercent, sortSessions, stageLabel } from "../lib/se
 import { noticeSection } from "../consent.js";
 import { describeFields } from "../describe.js";
 import { describeLine } from "../lib/describe.js";
+import { judgeSection } from "../judge.js";
 
 export async function sessionsView(ctx, root) {
   let sessions = (await ctx.api.listSessions()).sessions;
@@ -129,7 +130,7 @@ export async function sessionsView(ctx, root) {
     h("div", { class: "row" },
       h("a", { class: "button primary big", href: "#/record" }, t("sessions.new")),
       h("a", { class: "button big", href: "#/enrol" }, t("sessions.enrol"))),
-    message, list, uploadForm());
+    message, list, uploadForm(), judgeSection(ctx));
   render();
   schedule();
 

@@ -4,7 +4,10 @@ Besides search and answers, the API receives the transcripts the
 transcriber publishes (``POST /transcripts``), gives them back
 (``GET /transcripts/{id}``) and deletes them when the transcriber
 deletes the session (``DELETE /transcripts/{id}``, mounted when a
-delete use case is given). These routes need a bearer token,
+delete use case is given). ``GET/PUT /analysis/judge`` read and
+change the judge of the soft-skills analysis (``claude_code``,
+``local`` or ``both``) and tell whether Claude's quota is available;
+the transcriber's web forwards them. These routes need a bearer token,
 compared in constant time; when no token is configured they are not
 mounted at all, so they are never open.
 """
@@ -21,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from src.application.answering import AnswerService
 from src.application.search import SearchService
+from src.application.skills.judges import JudgeSelection
 from src.application.skills.ingest import (
     ForgetIngestedTranscript,
     IngestTranscript,
@@ -44,6 +48,12 @@ class SearchRequest(BaseModel):
 
 class AnswerRequest(SearchRequest):
     """Body of ``POST /answer``."""
+
+
+class JudgeChoice(BaseModel):
+    """Body of ``PUT /analysis/judge``."""
+
+    mode: str = Field(min_length=1, max_length=32)
 
 
 class SearchHit(BaseModel):
@@ -78,7 +88,8 @@ class TranscriptRoutes:
 
     ``token`` is the bearer token the transcriber sends; an empty one
     leaves the routes unmounted. ``max_bytes`` bounds a request body.
-    ``forget`` adds ``DELETE /transcripts/{id}`` when given.
+    ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
+    the ``/analysis/judge`` routes.
     """
 
     ingest: IngestTranscript
@@ -86,6 +97,7 @@ class TranscriptRoutes:
     token: str
     max_bytes: int = TRANSCRIPT_MAX_BYTES
     forget: Optional[ForgetIngestedTranscript] = None
+    judge: Optional[JudgeSelection] = None
 
 
 def create_app(
@@ -199,7 +211,8 @@ async def read_body(request: Request, limit: int) -> bytes:
 def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
     """Add ``POST /transcripts`` and ``GET /transcripts/{id}`` to ``app``.
 
-    ``DELETE /transcripts/{id}`` too when ``routes.forget`` is given.
+    ``DELETE /transcripts/{id}`` too when ``routes.forget`` is given,
+    and ``GET/PUT /analysis/judge`` when ``routes.judge`` is.
     """
 
     def require_token(request: Request) -> None:
@@ -212,6 +225,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
             )
 
     guard = [Depends(require_token)]
+    if routes.judge is not None:
+        mount_judge(app, routes.judge, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -271,3 +286,29 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         except RagError as exc:
             raise HTTPException(status_code=500, detail=str(exc))
         return Response(status_code=204)
+
+
+def mount_judge(
+    app: FastAPI, selection: JudgeSelection, guard: List[Any]
+) -> None:
+    """Add ``GET`` and ``PUT /analysis/judge`` behind ``guard``."""
+
+    @app.get("/analysis/judge", dependencies=guard)
+    async def show_judge() -> Dict[str, Any]:
+        """Return the judge in use and Claude's quota status."""
+        try:
+            status = await run_in_threadpool(selection.status)
+        except RagError as exc:
+            raise http_error(exc)
+        return status.model_dump(mode="json")
+
+    @app.put("/analysis/judge", dependencies=guard)
+    async def choose_judge(body: JudgeChoice) -> Dict[str, Any]:
+        """Change the judge of the next analyses."""
+        try:
+            status = await run_in_threadpool(selection.choose, body.mode)
+        except InvalidInputError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        except RagError as exc:
+            raise http_error(exc)
+        return status.model_dump(mode="json")

@@ -29,6 +29,13 @@ cpu = [
 cuda = [
     "torch>=2.3",
 ]
+local-judge = [
+    # 4- and 8-bit weights for the local judge on a shared GPU
+    # (docs/skills/DESIGN.md §4.2). Not a default group: install with
+    # `uv sync --group local-judge` on the workstation that runs it.
+    "bitsandbytes>=0.45",
+    "accelerate>=1.0",
+]
 dev = [
     "flake8>=7.0",
     "mypy>=1.10",
