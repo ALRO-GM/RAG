@@ -173,13 +173,13 @@ drops them (§5.4).
 |---|---|---|---|
 | Turn-taking | Turns are built from turn-constructional units; at each transition-relevance place the next speaker is selected by the current one or self-selects; the system minimises gap and overlap | Sacks, Schegloff & Jefferson 1974 [21] [verified, owner copy: turn-constructional component p. 702, allocation rules p. 704, minimisation of gap and overlap p. 705] | Turn = speaker change is a valid but coarse unit; interruptions are violations of this order and need overlap detection |
 | Response timing | Across 10 languages the mean response offset after a polar question is +208 ms, mode 0 ms; language means range from +7 ms (Japanese) to +469 ms (Danish). Spanish is not in the sample | Stivers et al. 2009 [26] [verified] | Gaps are short and comparable across languages; a long delay before a reply is informative (often a dispreferred answer), and our word times can measure it |
-| Adjacency pair | Two turns by different speakers, first pair part (question, offer, request, proposal, greeting) makes a type-fitted second part (answer, acceptance/decline, compliance, return greeting) relevant | Schegloff 2007 [22] [unverified, bibliographic] | Core of the category set: first-pair-part categories (question, proposal, request) and second-pair-part categories (answer, acceptance, rejection) |
-| Sequence expansion | A base pair can be expanded before (pre-sequence: "¿Tienes un minuto?"), inside (insert sequence: a clarifying question before the answer) and after (post-expansion: "vale", "ah") | Schegloff 2007 [22] [unverified] | An answer may come several sentences after its question; linking needs a window, not just the previous sentence |
+| Adjacency pair | Two turns by different speakers, first pair part (question, offer, request, proposal, greeting) makes a type-fitted second part (answer, acceptance/decline, compliance, return greeting) relevant | Schegloff 2007 [22] [book not obtained]; definition verified in Schegloff & Sacks 1973 [25] [verified, author's archive copy, pp. 295–296: two utterances, adjacent, different speakers, second part from the same pair type as the first] | Core of the category set: first-pair-part categories (question, proposal, request) and second-pair-part categories (answer, acceptance, rejection) |
+| Sequence expansion | A base pair can be expanded before (pre-sequence: "¿Tienes un minuto?"), inside (insert sequence: a clarifying question before the answer) and after (post-expansion: "vale", "ah") | Schegloff 2007 [22] [book not obtained]; the three expansion positions verified in Schegloff 1990 [22b] [verified, author's archive copy, pp. 59, 64]; pre-sequences in Schegloff 1980 [22c] [verified, author's archive copy, p. 114] | An answer may come several sentences after its question; linking needs a window, not just the previous sentence |
 | Preference organisation | Second parts are not equal: agreement and acceptance are usually "preferred" (immediate, short); disagreement and rejection are "dispreferred" (delayed, hedged, with accounts: "Sí, pero…"). After self-deprecation disagreement is preferred | Pomerantz 1984 [23] [unverified] | "Sí, pero…" is mostly a **rejection**, not an acceptance; this is the hardest boundary for text classifiers and annotators alike |
-| Repair | Trouble in speaking, hearing or understanding is repaired; self-initiated self-repair is preferred over other-correction | Schegloff, Jefferson & Sacks 1977 [24] [unverified] | Self-corrections and restarts are "Otro"/own-communication management, not content; other-initiated repair ("¿cómo?") is a clarification question |
-| Openings and closings | Closings are organised: pre-closing ("bueno…", "vale, pues…"), then terminal exchange | Schegloff & Sacks 1973 [25] [unverified] | Phase signals for opening and closing |
+| Repair | Trouble in speaking, hearing or understanding is repaired; self-initiated self-repair is preferred over other-correction | Schegloff, Jefferson & Sacks 1977 [24] [verified, author's archive copy: preference for self-repair p. 361; self- vs other-initiation p. 364; preference argued p. 376] | Self-corrections and restarts are "Otro"/own-communication management, not content; other-initiated repair ("¿cómo?") is a clarification question |
+| Openings and closings | Closings are organised: pre-closing ("bueno…", "vale, pues…"), then terminal exchange | Schegloff & Sacks 1973 [25] [verified, author's archive copy: terminal exchange as an adjacency pair p. 295; possible pre-closings such as "We-ell", "O.K." pp. 303–305; the Spanish examples are ours] | Phase signals for opening and closing |
 | Change-of-state token | "Oh" marks a change in the speaker's knowledge | Heritage 1984 [27] [unverified] | Spanish "ah", "anda": acknowledgement with uptake, not a backchannel only |
-| Continuers | "Uh huh" passes up the opportunity of a full turn; it says "go on" | Schegloff 1982 [27b] [unverified] | Backchannels are a function of their own, not agreement |
+| Continuers | "Uh huh" passes up the opportunity of a full turn; it says "go on" | Schegloff 1982 [27b] [verified, author's archive copy, p. 81] | Backchannels are a function of their own, not agreement |
 | Acknowledgement tokens and nods | Vocal continuers align with the telling; nods mid-telling also affiliate with the teller's stance | Stivers 2008 [27c] [unverified] | Part of listening is visual and absent from any transcript |
 | Spanish affirmative operators | "sí", "ya", "claro", "vale", "exacto" often take the turn rather than act as pure backchannels | [29] [unverified] | In Spanish "vale"/"claro" are ambiguous between backchannel, acceptance and agreement; the boundary needs explicit rules (§5.2) |
 | Topic shift | Topics change by stepwise drift or by marked shifts ("otra cosa…", "pasando a…") | Galley et al. 2003; Hsueh & Moore 2007 (empirical topic segmentation) [19][20] | Marked shifts are a "Gestión" act and a phase/agenda signal |
@@ -881,8 +881,13 @@ optional.
 ## 7. Limitations of this study
 
 - **Not all primary sources were read in full.** Several CA works
-  (Schegloff 2007, Pomerantz 1984, Schegloff et al. 1977) are cited from
-  bibliographic records and standard summaries [unverified]. Sacks et al.
+  (Schegloff 2007, Pomerantz 1984) are cited from bibliographic records
+  and standard summaries [unverified]. Schegloff 2007 is a book with no
+  legal free copy; on 2026-11-15 its key concepts (adjacency pair, sequence
+  expansion, pre-sequences) were checked instead in Schegloff's earlier
+  papers from his own publication archive [22b] [22c] [25], which are
+  substitutes, not the book; Schegloff et al. 1977 and Schegloff 1982 were
+  read too. Sacks et al.
   1974, the SWBD-DAMSL manual and the MRDA coding manual (Dhillon et al.)
   were read on 2026-11-15 from owner copies; this corrected the MRDA tag
   shares and the SWBD-DAMSL basic-tag count.
@@ -983,10 +988,12 @@ Organization Management* 49(3), 743–783. doi:10.1177/10596011221132600
 [verified, local copy `jaeckel2024_negotiact.pdf`].
 
 [13] Kauffeld, S., Lehmann-Willenbrock, N. (2012). Meetings matter.
-*Small Group Research* 43, 128–156. doi:10.1177/1046496411429599.
+*Small Group Research* 43(2), 130–158. doi:10.1177/1046496411429599.
 https://www.mangold-international.com/research/publications/human-behavior/meetings-matter-effects-of-work-group-communication-on-organizational-success
-[verified, summary page]. act4teams chapter, Cambridge Handbook of Group
-Interaction Analysis (2018):
+[verified, summary page; full text not obtained]. Kauffeld, S.,
+Lehmann-Willenbrock, N., Meinecke, A. L. (2018). The Advanced Interaction
+Analysis for Teams (act4teams) coding scheme. In *Cambridge Handbook of
+Group Interaction Analysis*, 422–431. doi:10.1017/9781316286302.022:
 https://www.cambridge.org/core/books/cambridge-handbook-of-group-interaction-analysis/advanced-interaction-analysis-for-teams-act4teams-coding-scheme/1930BA23CB78C1881DD6EAC30CC4FB5B
 [unverified].
 
@@ -1032,7 +1039,17 @@ systematics for the organization of turn-taking for conversation.
 [22] Schegloff, E. A. (2007). *Sequence Organization in Interaction*.
 Cambridge University Press.
 https://www.cambridge.org/core/books/sequence-organization-in-interaction/insert-expansion/7E01D8FD1B90854C305BFFA54B9FFFC1
-[unverified].
+[book not obtained; see the substitutes [22b], [22c], [25]].
+
+[22b] Schegloff, E. A. (1990). On the organization of sequences as a source
+of "coherence" in talk-in-interaction. In B. Dorval (ed.), *Conversational
+Organization and its Development*, 51–77. Ablex. Author's publication
+archive: https://www.conversationanalysis.org/schegloff-publications-archive-landing/
+[verified, 2026-11-15].
+
+[22c] Schegloff, E. A. (1980). Preliminaries to preliminaries: "Can I ask
+you a question?" *Sociological Inquiry* 50(3–4), 104–152. Author's
+publication archive (as [22b]) [verified, 2026-11-15].
 
 [23] Pomerantz, A. (1984). Agreeing and disagreeing with assessments. In
 Atkinson & Heritage (eds.), *Structures of Social Action*, 57–101.
@@ -1040,10 +1057,12 @@ https://emcawiki.net/Pomerantz1984a [unverified].
 
 [24] Schegloff, E. A., Jefferson, G., Sacks, H. (1977). The preference for
 self-correction in the organization of repair in conversation. *Language*
-53(2), 361–382. https://emcawiki.net/Schegloff1977 [unverified].
+53(2), 361–382. https://emcawiki.net/Schegloff1977 [verified, author's
+publication archive copy (as [22b]), 2026-11-15].
 
 [25] Schegloff, E. A., Sacks, H. (1973). Opening up closings. *Semiotica*
-8, 289–327. https://nurc.fflch.usp.br/node/407 [unverified].
+8, 289–327. https://nurc.fflch.usp.br/node/407 [verified, author's
+publication archive copy (as [22b]), 2026-11-15].
 
 [26] Stivers, T., et al. (2009). Universals and cultural variation in
 turn-taking in conversation. *PNAS* 106(26), 10587–10592.
@@ -1054,7 +1073,8 @@ sequential placement. In *Structures of Social Action*, 299–345.
 https://emcawiki.net/Heritage2006a [unverified].
 [27b] Schegloff, E. A. (1982). Discourse as an interactional achievement:
 some uses of "uh huh" and other things that come between sentences. GURT
-1981, 71–93. [unverified].
+1981, 71–93. [verified, author's publication archive copy (as [22b]),
+2026-11-15].
 [27c] Stivers, T. (2008). Stance, alignment, and affiliation during
 storytelling. *Research on Language and Social Interaction* 41(1), 31–57.
 https://forms.mpi.nl/node/48855 [unverified].
