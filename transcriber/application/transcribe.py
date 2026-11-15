@@ -907,14 +907,20 @@ class QueueTranscription:
         transcribe: TranscribeSession,
         locks: SessionLocks,
         run_ids: Callable[[], str] = new_run_id,
+        after: Optional[Callable[[str, Progress], None]] = None,
     ) -> None:
-        """Wire the ports, the use case the job runs and the run ids."""
+        """Wire the ports, the use case the job runs and the run ids.
+
+        ``after`` runs at the end of a job whose transcript was saved
+        (the search for the speakers' names); it must not raise.
+        """
         self._sessions = sessions
         self._voiceprints = voiceprints
         self._runner = runner
         self._transcribe = transcribe
         self._locks = locks
         self._run_ids = run_ids
+        self._after = after
 
     def __call__(
         self,
@@ -955,8 +961,12 @@ class QueueTranscription:
             self._sessions.save(queued)
 
             def job(progress: Progress) -> None:
-                """Transcribe this run of the session."""
-                self._transcribe(session_id, options, progress, run_id)
+                """Transcribe this run of the session, then ``after``."""
+                saved = self._transcribe(
+                    session_id, options, progress, run_id
+                )
+                if saved is not None and self._after is not None:
+                    self._after(session_id, progress)
 
             try:
                 self._runner.submit(session_id, job)

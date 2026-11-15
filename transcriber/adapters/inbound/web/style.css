@@ -541,3 +541,6 @@ details.pending, details.samples-box { background: var(--surface); border: 1px s
 .help-section { margin: 1.2rem 0; }
 .analysis-steps td.provisional { font-style: italic; color: var(--muted); }
 .analysis-steps details.review { margin-top: 0.5rem; }
+/* Names found in what people said (transcript page, #102). */
+.names { border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.75rem; }
+.names q { font-style: italic; overflow-wrap: anywhere; }

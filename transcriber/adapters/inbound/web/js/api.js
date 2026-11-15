@@ -137,6 +137,17 @@ export class Api {
     return this.request("PATCH", `/sessions/${encodeURIComponent(id)}/speakers/${encodeURIComponent(label)}`, { json: change });
   }
 
+  /** Names found in what people said: given automatically and suggested. */
+  getNames(id) { return this.request("GET", `/sessions/${encodeURIComponent(id)}/names`); }
+
+  /** Search the finished session for names again (a background job). */
+  searchNames(id) { return this.request("POST", `/sessions/${encodeURIComponent(id)}/names`); }
+
+  /** Undo a name given automatically; returns the transcript. */
+  undoName(id, label) {
+    return this.request("DELETE", `/sessions/${encodeURIComponent(id)}/names/${encodeURIComponent(label)}`);
+  }
+
   reassignUtterance(id, utterance, speaker) {
     return this.request("PATCH", `/sessions/${encodeURIComponent(id)}/utterances/${encodeURIComponent(utterance)}`, { json: { speaker } });
   }

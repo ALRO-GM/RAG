@@ -70,13 +70,17 @@ transcriber/
                      voices and the short windows' cosines (TR-18)
     enrolment.py     the text a person reads, checks on an enrolment sample
     consent.py       the versioned consent notices (enrolment, recording)
+    speaker_names.py names from what people say: candidate sentences
+                     (rules), the model's prompt and answer check, the
+                     precision-first decision (TR-20, NAMES.md)
     errors.py
   application/
     ports.py         AudioDecoder, SpeechRecogniser, VoiceEncoder,
                      OverlapDetector, Diarizer,
                      SessionRepository, VoiceprintRepository,
                      TranscriptPublisher, PublishedTranscripts, JobRunner,
-                     Progress, SessionLocks, Clock
+                     Progress, SessionLocks, Clock, ChatModel,
+                     SpeakerNameStore
     common.py        id checks and lookups shared by the use cases
     enrol.py         EnrolSpeaker, ForgetSpeaker, ShowEnrolmentText
     consent.py       ShowConsentNotice
@@ -86,10 +90,13 @@ transcriber/
                      diarize (lab diarizer, or built-in grouping) →
                      sentences kept whole → identify →
                      sentences → certainty),
-                     QueueTranscription, TranscriptionStatus
+                     QueueTranscription (the job ends with the search
+                     for names), TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
     publish.py       PublishTranscript
-    review.py        RenameSpeaker, ReassignUtterance
+    review.py        RenameSpeaker, UnnameSpeaker, ReassignUtterance
+    speaker_names.py FindSpeakerNames, QueueNameSearch, ShowSpeakerNames,
+                     UndoAutoName
     browse.py        ListSessions, ListSpeakers, ShowSession, ShowTranscript,
                      SessionAudio (read-only, for the pages)
   adapters/
@@ -100,7 +107,9 @@ transcriber/
     outbound/        av_audio_decoder.py, whisper_recogniser.py,
                      wavlm_voice_encoder.py, fake_models.py,
                      fs_session_repository.py (with the player's WAV
-                     rendering, kept on disk), wav_playback.py,
+                     rendering, kept on disk, and names.json),
+                     wav_playback.py, local_name_model.py (Qwen3-8B →
+                     4B → wait, for names),
                      fs_voiceprint_repository.py,
                      http_transcript_publisher.py, fs_transcript_publisher.py,
                      thread_job_runner.py, thread_session_locks.py,
@@ -383,6 +392,16 @@ lets a human check the sample.
   voiceprints (best one-to-one assignment by cosine similarity, above
   a threshold). Unmatched groups stay `S1`, `S2`… and can be named by
   hand afterwards (`RenameSpeaker`), which never creates a voiceprint.
+- **Names from what people say** (TR-20, `NAMES.md`). The last step of
+  a job reads the sentences where someone may say a name ("soy Ana",
+  "gracias, Marta") with a local Qwen3-8B (4B if the 8B does not fit,
+  never smaller) and names an anonymous voice only from a clear
+  self-introduction that conflicts with nothing; everything else is a
+  suggestion with its quote and time. Enrolled people and names set by
+  hand are never touched; an automatic name can be undone. Routes
+  `GET/POST /api/sessions/{id}/names`, `DELETE
+  /api/sessions/{id}/names/{label}`. Measured on a synthetic Spanish
+  set: no wrong automatic name with the 8B or the 4B.
 - Enrolling with the same phone, in the same room, right before the
   meeting gives the closest match. The tutorial says so.
 - Known pitfall from `AUDIO.md`: embeddings were centred on the mean

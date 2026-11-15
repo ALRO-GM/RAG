@@ -37,6 +37,7 @@ from transcriber.domain.models import (
     Voiceprint,
     Word,
 )
+from transcriber.domain.speaker_names import SpeakerNames
 from transcriber.domain.voices import FloatArray
 
 PCM_FORMAT = "pcm_s16le_16000_mono"
@@ -558,4 +559,42 @@ class Tunnel(Protocol):
 
     def status(self) -> TunnelStatus:
         """Return where the tunnel is now."""
+        ...
+
+
+class ChatModel(Protocol):
+    """A local chat model that reads candidate sentences for names.
+
+    It runs on this machine only (the text is real people's speech);
+    loading it may wait for GPU memory and raises
+    :class:`~transcriber.domain.errors.ModelLoadError` when it cannot
+    run. :meth:`release` frees it.
+    """
+
+    @property
+    def model_name(self) -> str:
+        """Return the identifier of the model that answers."""
+        ...
+
+    def complete(self, system: str, user: str, max_tokens: int) -> str:
+        """Return the model's reply to ``user`` under ``system``."""
+        ...
+
+    def release(self) -> None:
+        """Free the model's memory."""
+        ...
+
+
+class SpeakerNameStore(Protocol):
+    """Where the outcome of the last search for names is kept.
+
+    One record per session, removed with the session.
+    """
+
+    def save_names(self, names: SpeakerNames) -> None:
+        """Store ``names`` for its session, replacing the previous."""
+        ...
+
+    def names(self, session_id: str) -> Optional[SpeakerNames]:
+        """Return the stored record of ``session_id``, if any."""
         ...

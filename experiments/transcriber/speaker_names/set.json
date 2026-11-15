@@ -1,0 +1,209 @@
+{
+  "description": "Synthetic Spanish conversations to measure naming speakers from what they say (TR-20, issue #102). Written for this test; no real person. Each speaker has its true name (name), whether they clearly introduce themselves (introduces: the target of automatic names) and whether their name is said by anyone in the conversation (said: the target of suggestions). A session with 'from' is read from that transcript.v1 file with its speakers made anonymous (S1, S2... in order of first appearance).",
+  "sessions": [
+    {
+      "id": "ronda-presentaciones",
+      "case": "self-introductions in a round",
+      "lines": [
+        ["S1", "Buenos días a todos, vamos a empezar."],
+        ["S1", "Como hay gente nueva, mejor nos presentamos."],
+        ["S1", "Yo soy Marta, coordino el proyecto desde el principio."],
+        ["S2", "Hola, me llamo Javier y llevo la parte de compras."],
+        ["S3", "Pues yo soy Lucía, de recursos humanos."],
+        ["S4", "Hola, aquí Rubén, de ventas, encantado."],
+        ["S1", "Perfecto, gracias a los tres."],
+        ["S1", "El primer punto es el calendario de entregas."],
+        ["S2", "Por mi parte, los proveedores confirman para marzo."],
+        ["S3", "Las contrataciones estarán cerradas antes."]
+      ],
+      "speakers": {
+        "S1": {"name": "Marta", "introduces": true, "said": true},
+        "S2": {"name": "Javier", "introduces": true, "said": true},
+        "S3": {"name": "Lucía", "introduces": true, "said": true},
+        "S4": {"name": "Rubén", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "falsos-amigos",
+      "case": "look-alike words: soy de, me llamo la atención, soy + club, zodiac",
+      "lines": [
+        ["S1", "Yo soy de Madrid, pero vivo aquí desde hace diez años."],
+        ["S2", "Pues a mí lo que me llamo la atención fue el precio del alquiler."],
+        ["S1", "Soy consciente de que es caro."],
+        ["S2", "Yo es que soy Sevilla de toda la vida, no me hables del Betis."],
+        ["S1", "Ja, ja. Y además soy Géminis, así que cambio de opinión cada semana."],
+        ["S2", "Bueno, volvamos al presupuesto."],
+        ["S1", "Soy partidario de esperar a enero."]
+      ],
+      "speakers": {
+        "S1": {"name": "Teresa", "introduces": false, "said": false},
+        "S2": {"name": "Hugo", "introduces": false, "said": false}
+      }
+    },
+    {
+      "id": "nombres-dichos",
+      "case": "names said to others, no self-introduction",
+      "lines": [
+        ["S1", "He traído las cifras del trimestre."],
+        ["S2", "Gracias, Elena."],
+        ["S2", "Óscar, ¿tú las has revisado?"],
+        ["S3", "Sí, ayer por la tarde. Cuadran con lo que esperábamos."],
+        ["S1", "Entonces podemos cerrarlo hoy."],
+        ["S2", "Vale, lo cerramos. ¿Algo más, Elena?"],
+        ["S1", "Nada más por mi parte."]
+      ],
+      "speakers": {
+        "S1": {"name": "Elena", "introduces": false, "said": true},
+        "S2": {"name": "Alberto", "introduces": false, "said": false},
+        "S3": {"name": "Óscar", "introduces": false, "said": true}
+      }
+    },
+    {
+      "id": "presentada-por-otro",
+      "case": "an introduction made on someone else's behalf",
+      "lines": [
+        ["S1", "Antes de empezar, os presento a Ana, que se incorpora hoy al equipo de diseño."],
+        ["S2", "Hola a todos, muchas gracias, Carlos."],
+        ["S2", "Tengo muchas ganas de empezar."],
+        ["S3", "Bienvenida. Yo me llamo Irene, cualquier cosa me dices."],
+        ["S2", "Genial, gracias."],
+        ["S1", "Bueno, pues vamos con el orden del día."]
+      ],
+      "speakers": {
+        "S1": {"name": "Carlos", "introduces": false, "said": true},
+        "S2": {"name": "Ana", "introduces": false, "said": true},
+        "S3": {"name": "Irene", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "mismo-nombre",
+      "case": "two people with the same name",
+      "lines": [
+        ["S1", "Hola, soy Ana, de logística."],
+        ["S2", "Qué casualidad, yo también me llamo Ana."],
+        ["S3", "Pues vaya lío. Yo soy Diego."],
+        ["S1", "Podemos usar los apellidos si hace falta."],
+        ["S2", "O el departamento, que es más fácil."],
+        ["S3", "Vale. Empezamos con logística entonces."]
+      ],
+      "speakers": {
+        "S1": {"name": "Ana", "introduces": true, "said": true},
+        "S2": {"name": "Ana", "introduces": true, "said": true},
+        "S3": {"name": "Diego", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "sin-nombres",
+      "case": "no names at all",
+      "lines": [
+        ["S1", "¿Habéis visto el correo del cliente?"],
+        ["S2", "Sí, quiere adelantar la entrega una semana."],
+        ["S1", "No llegamos. Hay que decírselo hoy."],
+        ["S3", "Puedo llamarle yo después de comer."],
+        ["S2", "Mejor, que tú tienes más confianza con él."],
+        ["S1", "De acuerdo. Lo dejamos así."]
+      ],
+      "speakers": {
+        "S1": {"name": "Nuria", "introduces": false, "said": false},
+        "S2": {"name": "Andrés", "introduces": false, "said": false},
+        "S3": {"name": "Pilar", "introduces": false, "said": false}
+      }
+    },
+    {
+      "id": "terceros-ausentes",
+      "case": "names of people who are not in the conversation",
+      "lines": [
+        ["S1", "Ayer hablé con Javier y me dijo que el pedido se retrasa."],
+        ["S2", "¿Javier el de almacén?"],
+        ["S1", "Sí. Y Rosa tampoco lo sabía."],
+        ["S2", "Pues soy Laura, de atención al cliente, y a mí nadie me avisó."],
+        ["S1", "Perdona, Laura, tienes razón, debimos avisarte."],
+        ["S2", "No pasa nada, pero que no se repita."]
+      ],
+      "speakers": {
+        "S1": {"name": "Gonzalo", "introduces": false, "said": false},
+        "S2": {"name": "Laura", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "cita-de-otro",
+      "case": "a self-introduction quoted from someone else",
+      "lines": [
+        ["S1", "Mi jefa entra siempre en las reuniones diciendo: soy Carmen y aquí mando yo."],
+        ["S2", "Ja, ja, la conozco, es verdad."],
+        ["S1", "Pues hoy no ha venido, así que decidimos nosotros."],
+        ["S2", "Me parece bien. Yo me llamo Álvaro, por cierto, que no nos conocíamos."],
+        ["S1", "Encantada, Álvaro."]
+      ],
+      "speakers": {
+        "S1": {"name": "Sonia", "introduces": false, "said": false},
+        "S2": {"name": "Álvaro", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "llamada",
+      "case": "a phone call: habla X / soy X",
+      "lines": [
+        ["S1", "Buenas tardes, habla Sergio, de la gestoría."],
+        ["S2", "Hola, Sergio, soy Marisa. Te llamaba por lo de la declaración."],
+        ["S1", "Sí, justo la tengo delante."],
+        ["S1", "Faltan dos facturas de octubre."],
+        ["S2", "Te las mando hoy mismo."],
+        ["S1", "Perfecto, gracias, Marisa."]
+      ],
+      "speakers": {
+        "S1": {"name": "Sergio", "introduces": true, "said": true},
+        "S2": {"name": "Marisa", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "correccion",
+      "case": "a speaker corrects their own name",
+      "lines": [
+        ["S1", "Hola, soy Pablo... perdón, me he liado, soy Pau, Pau Soler."],
+        ["S2", "Tranquilo, Pau. Yo me llamo Inés."],
+        ["S1", "Encantado, Inés."],
+        ["S2", "Bueno, ¿empezamos con el informe?"]
+      ],
+      "speakers": {
+        "S1": {"name": "Pau", "introduces": true, "said": true},
+        "S2": {"name": "Inés", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "mote",
+      "case": "introduced with one name, called by a nickname",
+      "lines": [
+        ["S1", "Buenas, me llamo Francisco y vengo de la sede de Valencia."],
+        ["S2", "Bienvenido. Yo soy Beatriz."],
+        ["S2", "¿Qué tal el viaje, Paco?"],
+        ["S1", "Muy bien, gracias, Beatriz."],
+        ["S2", "Pues vamos al lío."]
+      ],
+      "speakers": {
+        "S1": {"name": "Francisco", "introduces": true, "said": true},
+        "S2": {"name": "Beatriz", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "en-ingles",
+      "case": "an English introduction in a Spanish meeting",
+      "lines": [
+        ["S1", "Hola a todos, hoy tenemos una invitada de Londres."],
+        ["S2", "Hi everyone, I'm Kate, from the London office."],
+        ["S1", "Welcome, Kate. Yo soy Mario, llevo el equipo de Madrid."],
+        ["S2", "Nice to meet you, Mario."],
+        ["S1", "Seguimos en inglés entonces."]
+      ],
+      "speakers": {
+        "S1": {"name": "Mario", "introduces": true, "said": true},
+        "S2": {"name": "Kate", "introduces": true, "said": true}
+      }
+    },
+    {
+      "id": "sim-reunion-verano",
+      "case": "the simulated discussion of #88 (names only said to others)",
+      "from": "examples/skills/simulated/sim-reunion-verano.transcript.v1.json"
+    }
+  ]
+}

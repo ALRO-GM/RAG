@@ -11,6 +11,7 @@ import {
   namedByFloor, otherLanguage, parseLead, parseMoment, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
   speakerName, weakSpeakers,
 } from "../lib/transcript.js";
+import { nameRows, reasonKey, searchFinished } from "../lib/names.js";
 
 const LEAD_KEY = "transcriber.lead";
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -106,6 +107,16 @@ export async function transcriptView(ctx, root, params) {
   const message = h("p", { class: "notice", role: "status", hidden: true });
   const speakersPanel = h("div", { class: "stack" });
   const weakNotice = h("div", { class: "notice warn", role: "note", hidden: true });
+  // Names found in what people said (#102): given automatically or suggested.
+  let names = null;
+  let namesTimer = null;
+  let closed = false;
+  const namesButton = h("button", { type: "button", onClick: searchNames }, t("names.search"));
+  const namesStatus = h("p", { class: "hint", role: "status" });
+  const namesList = h("ul", { class: "plain" });
+  const namesBox = h("section", { class: "stack tight names", "aria-label": t("names.title") },
+    h("div", { class: "row wrap" }, h("strong", {}, t("names.title")), namesButton),
+    namesStatus, namesList);
   const list = h("ol", { class: "utterances" });
 
   const bar = h("div", { class: "player" },
@@ -121,7 +132,7 @@ export async function transcriptView(ctx, root, params) {
     h("h1", {}, transcript.session.title || id),
     h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/" }, t("nav.sessions"))),
     describedLine, editor,
-    bar, options, audio, message, weakNotice,
+    bar, options, audio, message, weakNotice, namesBox,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
     list,
     h("div", { class: "row" },
@@ -271,6 +282,79 @@ export async function transcriptView(ctx, root, params) {
     return h("div", { class: "stack tight" }, label, h("div", { class: "row wrap" }, name, save), targets.length ? merge : null);
   }
 
+  // ---- names found in the conversation -----------------------------
+  async function loadNames() {
+    clearTimeout(namesTimer);
+    if (closed) return;
+    const before = names;
+    try {
+      names = await ctx.api.getNames(id);
+    } catch (error) {
+      if (error.kind === "unauthorized") return ctx.fail(error, () => {});
+      namesStatus.textContent = describeError(error);
+      return;
+    }
+    if (searchFinished(before, names)) {
+      try {
+        transcript = await ctx.api.getTranscript(id);
+        renderSpeakers();
+        build();
+      } catch {
+        // the names are shown; the page keeps the transcript it had
+      }
+    }
+    renderNames();
+    if (names.running && !closed) namesTimer = setTimeout(loadNames, 3000);
+  }
+
+  async function searchNames() {
+    namesButton.disabled = true;
+    try {
+      names = { ...(await ctx.api.searchNames(id)), running: true };
+      renderNames();
+      clearTimeout(namesTimer);
+      namesTimer = setTimeout(loadNames, 2000);
+    } catch (error) {
+      if (error.kind === "unauthorized") return ctx.fail(error, () => {});
+      namesButton.disabled = false;
+      say(describeError(error), true);
+    }
+  }
+
+  function renderNames() {
+    const running = Boolean(names?.running);
+    namesButton.disabled = running;
+    const { auto, suggestions } = nameRows(names, transcript.speakers);
+    let status;
+    if (running) status = t("names.running");
+    else if (!names?.searched_at) status = t("names.never");
+    else if (!auto.length && !suggestions.length) status = t("names.none");
+    else status = t("names.summary", { auto: auto.length, suggested: suggestions.length });
+    const extra = [];
+    if (names?.model) extra.push(t("names.model", { model: names.model }));
+    if (names?.note) extra.push(names.note);
+    namesStatus.textContent = [status, ...extra].join(" · ");
+    namesList.replaceChildren(
+      ...auto.map((a) => h("li", { class: "line" },
+        h("span", {}, t("names.auto", { label: a.label, name: a.name })), " ",
+        h("q", {}, a.quote), " ",
+        h("button", { type: "button", class: "small", onClick: () => playAt(a.start) }, formatTime(a.start)), " ",
+        h("button", { type: "button", class: "small", onClick: () => edit(() => ctx.api.undoName(id, a.label)).then(loadNames) },
+          t("names.undo")))),
+      ...suggestions.map((s) => h("li", { class: "line" },
+        h("span", {}, t("names.suggested", { label: s.shown, name: s.name })), " ",
+        h("q", {}, s.quote), " ",
+        h("button", { type: "button", class: "small", onClick: () => playAt(s.start) }, formatTime(s.start)), " ",
+        h("span", { class: "hint" }, t(reasonKey(s.reason))), " ",
+        h("button", { type: "button", class: "small", onClick: () => edit(() => ctx.api.renameSpeaker(id, s.label, { name: s.name })).then(loadNames) },
+          t("names.accept")))));
+  }
+
+  function playAt(time) {
+    audio.currentTime = seekTime(time, lead);
+    audio.play().catch(() => { audioError.hidden = false; });
+  }
+
   async function edit(call) {
     say(null);
     try {
@@ -300,8 +384,11 @@ export async function transcriptView(ctx, root, params) {
     audio.currentTime = moment; // the row stays highlighted after the seek
     highlight(moment, true);
   }
+  loadNames();
 
   return () => {
+    closed = true;
+    clearTimeout(namesTimer);
     audio.pause();
     audio.removeAttribute("src");
     audio.load();

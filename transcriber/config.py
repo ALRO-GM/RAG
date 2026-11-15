@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from transcriber.domain.diarization import DiarizerRule
 from transcriber.domain.enrolment import SampleRules
 from transcriber.domain.parameters import TranscriptionParameters
+from transcriber.domain.speaker_names import NAME_MODELS, NameSearchParameters
 
 DEFAULT_DATA_DIR = Path("data/transcriber")
 DEFAULT_RECOGNISER = "openai/whisper-large-v3-turbo"
@@ -285,6 +286,40 @@ class LabSettings(BaseModel):
     labels_max_bytes: int = Field(default=2 * MIB, gt=0)
 
 
+class SpeakerNameSettings(BaseModel):
+    """The search for the speakers' names after a transcription (#102).
+
+    ``enabled`` runs it as the last step of every transcription job
+    (the page's «Buscar nombres» works either way). ``models`` are the
+    local models in preference order, among
+    :data:`~transcriber.domain.speaker_names.NAME_MODELS` only (Qwen3-8B,
+    then Qwen3-4B; never a smaller one). When none fits the free GPU
+    memory the step waits up to ``wait_seconds`` for the last one, then
+    only suggests names from the rules. ``search`` holds the thresholds
+    (``domain/speaker_names.py``). With ``runtime: "fake"`` no model is
+    loaded: rules only.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    enabled: bool = True
+    models: Tuple[str, ...] = NAME_MODELS
+    wait_seconds: float = Field(default=600.0, ge=0)
+    poll_seconds: float = Field(default=15.0, gt=0)
+    search: NameSearchParameters = NameSearchParameters()
+
+    @model_validator(mode="after")
+    def _allowed_models(self) -> "SpeakerNameSettings":
+        """Refuse a model outside :data:`NAME_MODELS`."""
+        wrong = [m for m in self.models if m not in NAME_MODELS]
+        if not self.models or wrong:
+            raise ValueError(
+                f"names.models must be among {', '.join(NAME_MODELS)};"
+                f" not {', '.join(wrong) or '-'}"
+            )
+        return self
+
+
 class TranscriberSettings(BaseModel):
     """Configuration consumed by the composition root.
 
@@ -316,6 +351,9 @@ class TranscriberSettings(BaseModel):
     grouping. A model whose environment is missing, or that fails,
     falls back to the built-in grouping with a warning. With
     ``runtime: "fake"`` the built-in grouping is always used.
+
+    ``names`` configures the search for the speakers' names from what
+    they say (:class:`SpeakerNameSettings`).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -337,6 +375,7 @@ class TranscriberSettings(BaseModel):
     overlap_detector: OverlapDetectorName = "off"
     lab: LabSettings = LabSettings()
     diarizer: DiarizerRule = DiarizerRule()
+    names: SpeakerNameSettings = SpeakerNameSettings()
 
     @model_validator(mode="after")
     def _absolute_rag_token_file(self) -> "TranscriberSettings":

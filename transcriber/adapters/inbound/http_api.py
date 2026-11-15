@@ -83,6 +83,7 @@ from transcriber.domain.errors import (
     VoiceModelMismatchError,
 )
 from transcriber.domain.models import Session, Transcript
+from transcriber.domain.speaker_names import SpeakerNames
 
 LOG = logging.getLogger(__name__)
 
@@ -287,6 +288,24 @@ def notice_json(notice: ConsentNotice) -> Dict[str, Any]:
 def transcript_json(transcript: Transcript) -> Dict[str, Any]:
     """Return the transcript in the transcriber's own format."""
     return transcript.model_dump(mode="json")
+
+
+def names_json(
+    session_id: str, names: Optional[SpeakerNames], running: bool
+) -> Dict[str, Any]:
+    """Return the names found in a session as the API shows them.
+
+    ``searched_at`` is ``null`` when names were never searched;
+    ``running`` tells that a search (or the transcription that ends
+    with one) is under way.
+    """
+    if names is None:
+        return {
+            "session": session_id, "running": running,
+            "searched_at": None, "model": None, "seconds": None,
+            "candidates": 0, "auto": [], "suggestions": [], "note": None,
+        }
+    return {**names.model_dump(mode="json"), "running": running}
 
 
 def parse_json(model: Type[M], data: bytes, empty_ok: bool = False) -> M:
@@ -693,6 +712,26 @@ def create_app(
         )
         return transcript_json(await run_in_threadpool(
             c.reassign_utterance, session_id, utterance_id, body.speaker
+        ))
+
+    @api.get("/sessions/{session_id}/names")
+    async def names(session_id: str) -> Dict[str, Any]:
+        """Return the names given and suggested from what people said."""
+        found, running = await run_in_threadpool(c.show_names, session_id)
+        return names_json(session_id, found, running)
+
+    @api.post("/sessions/{session_id}/names", status_code=202)
+    async def search_names(session_id: str) -> Dict[str, Any]:
+        """Search a finished session for names again (a background job)."""
+        await run_in_threadpool(c.queue_names, session_id)
+        found, running = await run_in_threadpool(c.show_names, session_id)
+        return names_json(session_id, found, running)
+
+    @api.delete("/sessions/{session_id}/names/{label}")
+    async def undo_name(session_id: str, label: str) -> Dict[str, Any]:
+        """Undo a name given automatically: the voice is ``S#`` again."""
+        return transcript_json(await run_in_threadpool(
+            c.undo_auto_name, session_id, label
         ))
 
     @api.delete("/sessions/{session_id}", status_code=204)

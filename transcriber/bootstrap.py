@@ -74,6 +74,7 @@ from transcriber.adapters.outbound.subprocess_lab_tool import (
     SubprocessLabTool,
 )
 from transcriber.adapters.outbound.system_clock import SystemClock
+from transcriber.adapters.outbound.local_name_model import LocalNameModel
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
 from transcriber.adapters.outbound.thread_session_locks import (
     ThreadSessionLocks,
@@ -146,7 +147,17 @@ from transcriber.application.record import (
     OpenSession,
 )
 from transcriber.application.recover import RecoverSessions
-from transcriber.application.review import RenameSpeaker, ReassignUtterance
+from transcriber.application.review import (
+    ReassignUtterance,
+    RenameSpeaker,
+    UnnameSpeaker,
+)
+from transcriber.application.speaker_names import (
+    FindSpeakerNames,
+    QueueNameSearch,
+    ShowSpeakerNames,
+    UndoAutoName,
+)
 from transcriber.application.transcribe import (
     QueueTranscription,
     TranscribeSession,
@@ -227,7 +238,12 @@ class TranscriberContainer:
     transcription_status: TranscriptionStatus
     publish: PublishTranscript
     rename_speaker: RenameSpeaker
+    unname_speaker: UnnameSpeaker
     reassign_utterance: ReassignUtterance
+    find_names: FindSpeakerNames
+    queue_names: QueueNameSearch
+    show_names: ShowSpeakerNames
+    undo_auto_name: UndoAutoName
     recover_sessions: RecoverSessions
     list_sessions: ListSessions
     list_speakers: ListSpeakers
@@ -240,13 +256,17 @@ class TranscriberContainer:
     diarizer: Optional[LabRunnerDiarizer] = None
     diarizer_rule: DiarizerRule = BUILTIN_RULE
     session_analysis: SessionAnalysisAccess = SessionAnalysisAccess(None)
+    name_model: Optional[LocalNameModel] = None
 
     def release_models(self) -> None:
-        """Unload the speech, voice and overlap models (after a job)."""
+        """Unload the speech, voice, overlap and name models (after a
+        job)."""
         self.recogniser.release()
         self.encoder.release()
         if self.overlaps is not None:
             self.overlaps.release()
+        if self.name_model is not None:
+            self.name_model.release()
 
     def stop_runners(self) -> None:
         """Kill a lab diarizer's runner in progress; start no other one.
@@ -474,12 +494,20 @@ def build_container(
         settings, environment, recogniser.release
     )
 
-    def release_models() -> None:
-        """Unload the models; the runner calls it after every job."""
+    name_model = build_name_model(settings)
+
+    def release_speech_models() -> None:
+        """Unload the speech, voice and overlap models."""
         recogniser.release()
         encoder.release()
         if overlaps is not None:
             overlaps.release()
+
+    def release_models() -> None:
+        """Unload the models; the runner calls it after every job."""
+        release_speech_models()
+        if name_model is not None:
+            name_model.release()
 
     sessions = FileSystemSessionRepository(settings.data_dir)
     voiceprints = FileSystemVoiceprintRepository(
@@ -496,6 +524,12 @@ def build_container(
         parameters, overlaps, diarizer, rule,
     )
     status = TranscriptionStatus(sessions, runner)
+    rename = RenameSpeaker(sessions, voiceprints, locks)
+    unname = UnnameSpeaker(sessions, voiceprints, locks)
+    find_names = FindSpeakerNames(
+        sessions, sessions, locks, rename, unname, clock, name_model,
+        settings.names.search, free_models=release_speech_models,
+    )
     lab = build_lab(
         settings, sessions, voiceprints, decoder, recogniser, encoder,
         runner, clock, environment, locks,
@@ -534,11 +568,20 @@ def build_container(
         consent_notice=ShowConsentNotice(settings.api.consent_version),
         transcribe=transcribe,
         queue_transcription=QueueTranscription(
-            sessions, voiceprints, runner, transcribe, locks
+            sessions, voiceprints, runner, transcribe, locks,
+            after=(
+                find_names.after_transcription if settings.names.enabled
+                else None
+            ),
         ),
         transcription_status=status,
         publish=PublishTranscript(sessions, publisher, locks),
-        rename_speaker=RenameSpeaker(sessions, voiceprints, locks),
+        rename_speaker=rename,
+        unname_speaker=unname,
+        find_names=find_names,
+        queue_names=QueueNameSearch(sessions, runner, find_names),
+        show_names=ShowSpeakerNames(sessions, sessions, runner),
+        undo_auto_name=UndoAutoName(sessions, sessions, locks, unname),
         reassign_utterance=ReassignUtterance(sessions, voiceprints, locks),
         recover_sessions=RecoverSessions(sessions, locks),
         list_sessions=ListSessions(sessions),
@@ -558,6 +601,24 @@ def build_container(
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None
         ),
+        name_model=name_model,
+    )
+
+
+def build_name_model(
+    settings: TranscriberSettings,
+) -> Optional[LocalNameModel]:
+    """Return the local model for names (``None`` with fake models).
+
+    Nothing is loaded here; the model loads when a search reads its
+    first candidate and is freed after the job.
+    """
+    if settings.runtime == "fake":
+        return None
+    names = settings.names
+    return LocalNameModel(
+        names.models, device=settings.device,
+        wait_seconds=names.wait_seconds, poll_seconds=names.poll_seconds,
     )
 
 
