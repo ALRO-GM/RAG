@@ -97,3 +97,15 @@ def test_quantised_models_need_less_gpu_memory() -> None:
     assert largest_fitting(ladder, "cuda", 3.0) == ladder[1]
     assert largest_fitting(ladder, "cuda", 6.0) == ladder[2]
     assert largest_fitting(ladder, "cuda", 1.0) is None
+
+
+def test_measured_gpu_peaks_replace_the_formula() -> None:
+    eight = ModelOption(name="Qwen/Qwen3-8B", params_billion=8.2, bits=4)
+    four = ModelOption(name="Qwen/Qwen3-4B", params_billion=4.0, bits=4)
+    assert model_memory_gb(eight, "cuda") == 6.31, "formula says 5.3"
+    assert model_memory_gb(four, "cuda") == 2.87
+    half = eight.model_copy(update={"bits": 16})
+    assert model_memory_gb(half, "cuda") == pytest.approx(8.2 * 2 * 1.3)
+    assert model_memory_gb(eight, "cpu") == pytest.approx(8.2 * 4 * 1.3)
+    assert largest_fitting([four, eight], "cuda", 6.0) == four
+    assert largest_fitting([four, eight], "cuda", 6.31) == eight

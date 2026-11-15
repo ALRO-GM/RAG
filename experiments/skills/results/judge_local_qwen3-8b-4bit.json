@@ -1,0 +1,33 @@
+{
+ "model": "Qwen/Qwen3-8B",
+ "bits": 4,
+ "model_name": "Qwen/Qwen3-8B@4bit",
+ "load_s": 19.7,
+ "acts_items": 200,
+ "acts_accuracy": 0.62,
+ "acts_unparsed": 0,
+ "acts_s_per_item": 0.39,
+ "acts_predicted": {
+  "informacion": 42,
+  "aceptacion": 28,
+  "propuesta": 23,
+  "pregunta": 22,
+  "relacion": 19,
+  "respuesta": 16,
+  "escucha": 15,
+  "compromiso": 12,
+  "rechazo": 8,
+  "opinion": 6,
+  "peticion": 6,
+  "gestion": 3
+ },
+ "peak_vram_judge_gb": 6.31,
+ "tags_sentences": 64,
+ "tags_confirmed": 58,
+ "tags_rejected": 6,
+ "tags_unparsed": 0,
+ "tags_first_indicator": 13,
+ "tags_negative": 7,
+ "tags_s_per_item": 0.99,
+ "after_release_gb": 0.24
+}
