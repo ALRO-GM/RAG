@@ -38,7 +38,7 @@ export async function analysisView(ctx, root, [rawId]) {
     h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
     h("div", { class: "stack" },
       h("label", { class: "check" }, synthetic, h("span", {}, t("sa.synthetic"))),
-      h("div", { class: "row" }, start, restart), message),
+      h("div", { class: "stack" }, start, restart), message),
     summary, steps);
 
   function say(text, error = false) {

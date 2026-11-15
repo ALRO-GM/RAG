@@ -30,7 +30,8 @@ repository (`docs/benchmarks/`, `experiments/`).
  workstation: python -m transcriber serve
               chisel client: R:0.0.0.0:9000 → 127.0.0.1:8770
               API on 127.0.0.1:8770, GPU, data/transcriber/ (audio, voiceprints, transcripts)
-              │ POST/DELETE /transcripts, GET/PUT /analysis/judge (loopback, bearer token)
+              │ POST/DELETE /transcripts, GET/PUT /analysis/judge,
+              │ POST/GET /analysis/sessions/{id}[/steps|/reports] (loopback, bearer token)
               ▼
             python -m src serve (make rag-serve): RAG API on 127.0.0.1:8000,
               data/transcripts/; not behind the tunnel, nothing of it on the server
