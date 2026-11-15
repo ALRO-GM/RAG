@@ -1,5 +1,5 @@
 // The "Análisis" page of a session: pure helpers (no DOM), tested in node.
-// The RAG runs the steps (docs/skills/DESIGN.md §11); the page shows their
+// The RAG runs the steps (docs/skills/DESIGN.md §12); the page shows their
 // records and results as the transcriber forwards them.
 
 /** The steps in the order they run (the RAG's names). */

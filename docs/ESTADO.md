@@ -114,7 +114,7 @@ corpus públicos; sólo sintética; sin medir.
 | 4 | Corpus teórico y rúbrica | parcial | ~60 | media-baja: sin revisión de experto | `docs/skills/THEORY.md`; `RESEARCH.md`; `knowledge/rubrics/` | Ningún experto ha revisado los indicadores; lo validado es observacional con evaluadores formados | T-38: revisión por psicólogo o panel |
 | 5 | RAG y recuperación de fragmentos | hecho | ~90 | alta en corpus 42 y BEIR; sin medir en la rúbrica | `README.md` "Performance analysis"; `experiments/REPORT.md`; `docs/benchmarks/` | No hay referencias reales de "qué indicador corresponde a qué frase" | Medir con las anotaciones de T-36 |
 | 6 | RAG en el ordenador de casa, alimentado por el transcriptor | hecho | ~100 | alta | `docs/TASKS.md` TR-09, TR-13; `docs/DEPLOYMENT.md` | Ninguno conocido; el flujo depende de que el ordenador esté encendido | Mantener |
-| 7 | Análisis de la conversación | parcial | ~55 | baja | `docs/skills/AUDIO.md` §4; `docs/skills/DESIGN.md` §4, §11; TASKS T-46, T-47, T-50, SK-7, SK-8, SK-14 | La recuperación acierta la competencia pero no el indicador; ningún juez local medido sirve para confirmar indicadores | Medir Claude Code en más frases; anotaciones humanas (T-36) |
+| 7 | Análisis de la conversación | parcial | ~55 | baja | `docs/skills/AUDIO.md` §4; `docs/skills/DESIGN.md` §4, §12; TASKS T-46, T-47, T-50, SK-7, SK-8, SK-14 | La recuperación acierta la competencia pero no el indicador; ningún juez local medido sirve para confirmar indicadores | Medir Claude Code en más frases; anotaciones humanas (T-36) |
 | 8 | Extraer preguntas, propuestas, respuestas, acuerdos | no empezado | ~5 | sin medir | `src/domain/skills/interaction.py` (`count_questions`) | Sólo hay un contador de signos de interrogación; ninguna clasificación de actos de habla | Decidir el esquema de actos (`DESIGN.md` §9, "team interaction profile") |
 | 9 | Evidencia por persona y perfil | parcial | ~20 | muy baja | `docs/skills/DESIGN.md` §1, §2, §9; `src/application/skills/assessment.py` | Ningún instrumento validado puntúa a una persona con una sola reunión; hacen falta unas 4 situaciones por persona para fiabilidad .70 | Perfil entre sesiones (T-39) cuando haya datos |
 | 10 | Validación con evaluadores humanos | parcial | ~30 | sin medir | `docs/skills/ANNOTATION_GUIDE.md`; TASKS T-34, T-36 | Herramientas hechas, datos reales ninguno | T-36: grabar, formar 3 anotadores, medir acuerdo |
@@ -299,7 +299,7 @@ indicadores candidatos (el RAG), actos de diálogo y acuerdos (cuando
 existan, #82/#83), confirmación por el juez, evidencias y niveles, e
 informes HTML por persona; cada paso registra estado, segundos, modelo
 o juez y recuentos, y un fallo se reanuda desde el paso que falló
-(`docs/skills/DESIGN.md` §11). Prueba con la discusión simulada
+(`docs/skills/DESIGN.md` §12). Prueba con la discusión simulada
 (`make demo-analysis`; 4 personas inventadas, 117 turnos, 238 frases,
 2.045 palabras, 15,5 min por tiempos estimados), una sola pasada real
 con Claude Code (`opus`) el 2026-11-15, en CPU para la búsqueda: 11,3 s

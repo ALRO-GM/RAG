@@ -30,7 +30,7 @@ estimate, not a recording: 15.5 minutes for this script. The committed
 it matches the script).
 
 `make demo-analysis` writes it to `data/transcripts/` and runs
-`skills analyze` on it (`TUTORIAL.md` §7, `DESIGN.md` §11).
+`skills analyze` on it (`TUTORIAL.md` §7, `DESIGN.md` §12).
 
 ## 2. The audio
 
@@ -113,7 +113,7 @@ an estimate for real meetings (#19 is the real measurement).
 
 ## 3. Results so far (2026-11-15)
 
-Text level: one real run with Claude Code is in `DESIGN.md` §11 and
+Text level: one real run with Claude Code is in `DESIGN.md` §12 and
 `docs/ESTADO.md` §4.7.
 
 Audio level: **prepared, not yet run end to end.** On the workstation,

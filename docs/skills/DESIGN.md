@@ -527,7 +527,7 @@ uv run python -m src skills \
     --assessments_dir examples/skills/profile/output --synthetic
 ```
 
-## 11. Whole flow in one run (`skills analyze`, #88)
+## 12. Whole flow in one run (`skills analyze`, #88)
 
 `skills analyze --session <id>` runs every step on a session's
 `transcript.v1` (found in `transcripts_dir`, where the RAG keeps the

@@ -2,7 +2,7 @@
 
 ``skills analyze`` runs the steps of the soft-skills flow in a fixed
 order on one ``transcript.v1`` document (``docs/skills/DESIGN.md``
-§11): sentences per person, interaction metrics, candidate rubric
+§12): sentences per person, interaction metrics, candidate rubric
 indicators found by retrieval, dialogue acts, derived events,
 confirmation by the judge, evidence and scorecards, reports. Each step
 leaves a :class:`StepRecord` (status, time, who ran it, counts) in an
