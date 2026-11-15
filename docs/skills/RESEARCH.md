@@ -25,11 +25,11 @@ A high C with a low A means "the right shape for the product, but nobody has sho
 
    Self-reported Big Five traits come lower: conscientiousness .19 (.25 when contextualised), the other four traits .05-.10 (`sackett2022`, full text).
 2. **Trained observers can agree with each other.** Some figures:
-   - AC assessors: G = .80 for a single rating, .97 for the overall score (`jackson2016`).
+   - AC assessors: G = .80 for a single rating, .97 for the overall score (`jackson2016`); in a second operational AC, .76 for one assessor and .87 for two (Putka & Hoffman 2013, verified, JAP 98, Results).
    - Negotiation coding: κ = .80 (`jaeckel2024_negotiact`).
    - Meeting coding: κ = .81 after about 200 h of training per coder (`lehmannwillenbrock2015`).
    - Collaborative problem solving (CPS) coding: ICC .80-.93 (`sun2020`, `pugh2021`).
-3. **Observer ratings of personality are more useful than self-reports.** Other-ratings predict job performance better than, and in addition to, self-reports (`connelly2010`, meta-analysis; `ohwangmount2011`, secondary). Automatic personality models work only when trained on observer labels: convergent validity .40, against .12 for models trained on self-reports (`hickman2022`).
+3. **Observer ratings of personality are more useful than self-reports.** Other-ratings predict job performance better than, and in addition to, self-reports (`connelly2010`, meta-analysis; `ohwangmount2011`, direction verified in the PubMed abstract, coefficients not seen). Automatic personality models work only when trained on observer labels: convergent validity .40, against .12 for models trained on self-reports (`hickman2022`).
 4. **A machine can stand in for one trained rater, in one small study.** On manual transcripts of 3-minute role-plays, ML matched about one human assessor. Role player + ML kept the panel's criterion validity (.55 against .57; `hickman2023`, N = 96).
 
 **What it does not support**
@@ -168,7 +168,7 @@ Sorted by C (fit) inside each family, with A and B beside it. A "popular-but-wea
 **Assessment centre (A 69 / B 74 / C 93, use).** This is the only method that is strong on all three scores.
 - Native mode: trained observers rating interaction. The Guidelines allow rating from recordings (`rupp2015`, p. 1251).
 - Criterion validity: re-estimated ρ = .29 (`sackett2022`); dimensions add ΔR² = .10 over cognitive ability plus the Big Five (`meriac2008`).
-- Weaknesses: exercise effects swamp dimension effects (`jackson2016`, `hoffman2011`), and the role player's behaviour shifts the candidate's (`oliver2014`).
+- Weaknesses: exercise effects swamp dimension effects (`jackson2016`, `hoffman2011`; in Putka & Hoffman 2013 exercise-related effects were 56.8% of between-candidate variance against 23.0% for all assessor-related effects, verified), and the role player's behaviour shifts the candidate's (`oliver2014`).
 - A fully automated scorer "could no longer be referred to as an assessment center" (`rupp2015`, Section X).
 
 **Multiple speeded assessments (23 / 6 / 90, use-as-reference).**
@@ -288,6 +288,7 @@ It is the clearest case of a trap to avoid: a construct that fits the product pe
 | Across exercises, dimension over 3 exercises | .55 | `jackson2016` |
 | Across exercises, overall over 3 exercises | .65 | `jackson2016` |
 | Person × dimension share of variance | .13-1.11% | `jackson2016` |
+| Second operational AC (3 samples, N = 633; 3–4 exercises, 2 assessors per exercise) | one assessor .76, two .87; same dimension in two exercises .27 (.18 with different assessors); a dimension averaged over 3 exercises against a new set of 3, .52 (.36 with a different assessor); person × dimension 0.4–1.4% of between-candidate variance | Putka & Hoffman 2013 (verified, JAP 98, Results, Tables 3–5) |
 | Single assessor, one 3-min role-play | G = .38 (`hickman2023`); single-rater ICC .27–.42 across rating conditions (`herde_lievens2023`, manuscript p. 32) | `hickman2023`, `herde_lievens2023` |
 | 18 role-plays aggregated, criterion validity | .54 / .57; single role-plays averaged .26 (range .03–.43) | `herde_lievens2023` (verified, manuscript pp. 2, 21; N = 96, criterion 7 months later) / `hickman2023` |
 | Rating only the first minute | validities .43–.56 across four conditions; lowest (.43) with highly standardised raters and 1 min | `herde_lievens2023` (verified, manuscript p. 33) |
@@ -444,7 +445,7 @@ All of this is my derivation from the collected figures.
    - With AC-type trained assessors (.80), 2-3 suffice.
 
    Pilot the human rater reliability first: it fixes the ceiling for the machine.
-3. **Situations.** About 4 per person for .70, about 6-7 for .80 (from `jackson2016`).
+3. **Situations.** About 4 per person for .70, about 6-7 for .80 for an overall score (from `jackson2016`). A single dimension generalises worse: about .27 per exercise (Putka & Hoffman 2013, verified), which by my Spearman-Brown projection needs about 6 exercises for .70.
 
 **What counts as success overall [J]:**
 - machine–human agreement not below human–human agreement;
@@ -730,7 +731,7 @@ The repository's rubric (`knowledge/rubrics/`, theory in [`THEORY.md`](THEORY.md
 1. **Every competency must be defined by indicators observable in a speaker-labelled transcript.** Drop or relabel anything that needs inner states, self-knowledge or emotion. Emotion from voice is prohibited at work (§7).
 2. **Every definition and indicator must be re-sourced** to a card with a licence status. Text that came from memory and cannot be sourced must be flagged. Gated vendor content (SHL, Hogan, Korn Ferry/Lominger, DDI, CompeTEA) cannot be copied.
 3. **Eleven separate scores from one conversation exceed what the evidence supports.**
-   - Dimension-specific variance in ACs is about 1% (`jackson2016`).
+   - Dimension-specific variance in ACs is about 1% (`jackson2016`; 0.4–1.4% in Putka & Hoffman 2013, verified, Table 3).
    - Meta-analytic CFA finds three broad factors: administrative, relational, drive (`meriac2014`, abstract).
    - Negotiation judges could not rate more than ten competencies in 60 minutes (`smolinski2020`).
 
@@ -752,10 +753,10 @@ DOIs are as recorded in the sources or notes. "No DOI" means none was recorded.
 | # | Paper | DOI | Why it matters |
 |---|---|---|---|
 | 1 | Herde & Lievens (2023), Multiple speeded assessments under scrutiny, JAP | 10.1037/apl0000603 | Design template for many short scored conversations; **obtained and read 2026-11-15** (accepted manuscript) |
-| 2 | Kauffeld, Lehmann-Willenbrock & Meinecke (2018), act4teams chapter | 10.1017/9781316286302.022 | Full code list, reliability, licence of the main meeting scheme |
-| 3 | Kauffeld & Lehmann-Willenbrock (2012), Meetings matter, SGR | 10.1177/1046496411429599 | Criterion coefficients for meeting talk (abstract only) |
-| 4 | Putka & Hoffman (2013), AC variance sources, JAP | 10.1037/a0030887 | How many raters/exercises; figures seen only via jackson2016 |
-| 5 | Oh, Wang & Mount (2011), observer-rated FFM validity, JAP | 10.1037/a0021832 | Coefficients for observer-rated personality vs performance |
+| 2 | Kauffeld, Lehmann-Willenbrock & Meinecke (2018), act4teams chapter, pp. 422–431 | 10.1017/9781316286302.022 | Full code list, reliability, licence of the main meeting scheme; **no legal open copy found 2026-11-15** (request to the authors drafted) |
+| 3 | Kauffeld & Lehmann-Willenbrock (2012), Meetings matter, SGR 43(2), 130–158 | 10.1177/1046496411429599 | Criterion coefficients for meeting talk (abstract only); **no legal open copy found 2026-11-15** (request drafted) |
+| 4 | Putka & Hoffman (2013), AC variance sources, JAP | 10.1037/a0030887 | How many raters/exercises; **read 2026-11-15** (copy posted by the second author's department): jackson2016's summary of it confirmed (person × dimension 1.1%, person × dimension × exercise 23.4%, Table 4) |
+| 5 | Oh, Wang & Mount (2011), observer-rated FFM validity, JAP | 10.1037/a0021832 | Coefficients for observer-rated personality vs performance; direction confirmed in the PubMed abstract 2026-11-15; an authors' copy is listed on SSRN but could not be fetched automatically |
 | 6 | Elfenbein et al. (2008), Are some negotiators better than others?, JRP; and the 2018 JAP follow-up | 10.1016/j.jrp.2008.06.010 (follow-up DOI not recorded) | Individual vs dyadic variance in negotiation; **2008 paper read 2026-11-15**; 2018 follow-up still needed |
 | 7 | Breil, Forthmann & Back (2022), Multiple speed assessments of social skills, EJPA | 10.1027/1015-5759/a000657 | Distinct social skills from short interactions; **read 2026-11-15** |
 | 8 | Arthur et al. (2003), AC dimensions criterion validity, PPsych | 10.1111/j.1744-6570.2003.tb00146.x | Resolves 6 vs 7 dimensions; per-dimension validity |
@@ -878,7 +879,7 @@ Counts are computed from the source records ([`research/coverage.json`](research
   - By record: 115 full text (44%), 65 abstract-only, 83 secondary.
   - 157 saved files (kept privately).
   - Of the 152 source ids cited in `scores.json`: 75 full text, 41 abstract-only, 36 secondary.
-- **Key meta-analyses are known only from abstracts or other papers:** Arthur 2003, Oh/Wang/Mount 2011, Conway & Huffcutt 1997, Christian 2010, Joseph & Newman 2010, O'Boyle 2011, Hüffmeier 2014, Kauffeld 2012. (Herde & Lievens 2023, Judge 2002, Borkenau 2004, MacLaren 2020, Elfenbein 2008 and Breil 2022 were read in full on 2026-11-15.) Scores built on them carry Low or Medium confidence.
+- **Key meta-analyses are known only from abstracts or other papers:** Arthur 2003, Oh/Wang/Mount 2011, Conway & Huffcutt 1997, Christian 2010, Joseph & Newman 2010, O'Boyle 2011, Hüffmeier 2014, Kauffeld 2012. (Herde & Lievens 2023, Judge 2002, Borkenau 2004, MacLaren 2020, Elfenbein 2008, Breil 2022 and Putka & Hoffman 2013 were read in full on 2026-11-15; for Oh/Wang/Mount 2011 only the PubMed abstract was checked.) Scores built on them carry Low or Medium confidence.
 - **No forum evidence:** Reddit, Stack Exchange and Quora were blocked, and CIPD returned 403. The "opinion climate" rests on surveys, many of them by vendors (TestGorilla, Greenhouse, SHRM, Michael Page, InfoJobs).
 - **Legal texts were unofficial reproductions** (EUR-Lex bot challenge). On 2026-11-15 the AI Act articles cited in §7 and the NYC LL144 final rule were checked against official copies. The Commission guidelines, the GDPR, the Illinois statute and EEOC guidance were not re-checked.
 - **Spanish evidence is thin:**
