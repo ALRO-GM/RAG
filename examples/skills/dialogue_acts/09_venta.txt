@@ -1,0 +1,170 @@
+# Lote 9: conversaciones de venta. Diálogos inventados para este proyecto.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== ven-01 | venta | Programa de gestión para una clínica dental
+-- fase: apertura
+Lucía: Buenos días, doctora, gracias por recibirme. | relacion
+Carmen: Buenos días, pase, pase. | relacion
+Lucía: Le robo quince minutos como mucho, se lo prometo. | compromiso
+-- fase: situación
+Lucía: ¿Cómo gestionan ahora las citas? | pregunta #q1
+Carmen: Con una agenda en papel y un programa antiguo para las facturas. | respuesta >q1
+Lucía: Ajá. | escucha
+Lucía: ¿Y qué es lo que más les complica? | pregunta #q2
+Carmen: Los pacientes que no vienen. | respuesta >q2
+Carmen: Perdemos tres o cuatro citas al día. | informacion
+Lucía: ¿Tres o cuatro al día? | pregunta #q3
+Carmen: Sí, y eso es mucho dinero al mes. | respuesta >q3
+Lucía: Ya lo creo. | escucha
+-- fase: propuesta
+Lucía: Nuestro programa manda un mensaje automático al paciente el día antes de la cita. | informacion
+Lucía: En las clínicas que lo usan, las ausencias bajan a menos de la mitad. | informacion #z1
+Carmen: Eso dicen todos. | rechazo >z1
+Lucía: Lo entiendo, por eso le propongo probarlo un mes gratis, sin compromiso. | propuesta #p1
+Carmen: ¿Gratis del todo? | pregunta #q4
+Lucía: Del todo, y si no le convence, se lo desinstalamos. | respuesta >q4
+Carmen: Mm. | escucha
+Carmen: El problema es que mi recepcionista no se lleva bien con los ordenadores. | informacion
+Lucía: Incluye dos horas de formación en la propia clínica. | informacion
+Carmen: Bueno, así sí. | aceptacion >p1
+-- fase: cierre
+Lucía: ¿Le parece que lo instalemos el lunes que viene? | propuesta #p2
+Carmen: El lunes no, que tenemos la consulta llena. | rechazo >p2
+Carmen: Mejor el miércoles por la tarde. | propuesta #p3
+Lucía: Miércoles por la tarde, perfecto. | aceptacion >p3
+Lucía: Le mando hoy un correo con todo por escrito. | compromiso
+Carmen: Mándelo a la dirección de la clínica, por favor, no a la mía. | peticion #r1
+Lucía: Así lo haré. | aceptacion >r1
+Lucía: Muchas gracias, doctora. | relacion
+
+=== ven-02 | venta | Cambio de compañía de electricidad
+-- fase: apertura
+Raúl: Hola, buenas tardes. | relacion
+Raúl: Le llamo de la compañía eléctrica para contarle una oferta que tenemos. | propuesta #z2
+Elena: Uy, ahora no me pilla bien. | rechazo >z2
+Raúl: Son solo dos minutos, se lo prometo. | peticion #r1
+Elena: Bueno, venga, dos minutos. | aceptacion >r1
+-- fase: situación
+Raúl: ¿Sabe cuánto paga de luz al mes, más o menos? | pregunta #q1
+Elena: Unos setenta euros, en invierno más. | respuesta >q1
+Raúl: ¿Tiene la tarifa con discriminación horaria? | pregunta #q2
+Elena: Pues no tengo ni idea. | respuesta >q2
+Raúl: Vale, no pasa nada. | escucha
+-- fase: propuesta
+Raúl: Con nuestra tarifa nocturna, si pone la lavadora por la noche, puede ahorrar un quince por ciento. | informacion #z3
+Elena: Yo la lavadora la pongo cuando puedo, no voy a estar pendiente. | rechazo >z3
+Raúl: Entiendo. | escucha
+Raúl: Tenemos también una tarifa fija, sin horarios, a un precio más bajo que la media. | propuesta #p1
+Elena: ¿Cuánto más bajo? | pregunta #q3
+Raúl: Depende de su consumo, tendría que ver una factura. | respuesta >q3 #z4
+Elena: No, mire, no le voy a dar mis datos por teléfono. | rechazo >z4
+Raúl: Lo entiendo perfectamente. | escucha
+Raúl: Le puedo mandar la información por correo y la mira con calma. | propuesta #p2
+Elena: Vale, eso sí. | aceptacion >p2
+-- fase: cierre
+Raúl: ¿Me da un correo electrónico? | peticion #r2
+Elena: Prefiero que me la mande por carta, a la dirección que ya tienen. | rechazo >r2
+Raúl: Perfecto, se la mando por carta esta semana. | compromiso
+Elena: Gracias. | relacion
+Raúl: A usted, que tenga buena tarde. | relacion
+
+=== ven-03 | venta | Furgonetas para una empresa de reparto
+-- fase: apertura
+David: Buenos días, Javier, ¿qué tal todo? | pregunta #q0
+Javier: Bien, liado, como siempre. | respuesta >q0
+David: Me imagino. | escucha
+David: Le traigo la oferta de las furgonetas eléctricas que me pidió. | informacion
+-- fase: situación
+Javier: Antes de nada, una pregunta. | gestion
+Javier: ¿Cuánta autonomía tienen de verdad, no la del folleto? | pregunta #q1
+David: En ciudad, con carga, unos doscientos kilómetros. | respuesta >q1
+Javier: ¿Doscientos? | pregunta #q2
+David: Doscientos, en invierno algo menos. | respuesta >q2
+Javier: Nuestras rutas son de ciento cincuenta como mucho. | informacion
+David: Pues van sobradas. | opinion
+-- fase: propuesta
+David: Le ofrezco cinco furgonetas en renting a cuatro años, con mantenimiento incluido. | propuesta #p1
+Javier: ¿A qué precio? | pregunta #q3
+David: Seiscientos veinte al mes cada una. | respuesta >q3
+Javier: Es caro. | rechazo >p1
+Javier: Las de gasoil nos salen por cuatrocientos ochenta. | informacion #z5
+David: Ya, pero en gasoil gastan unos doscientos al mes cada una, y en electricidad menos de cincuenta. | rechazo >z5
+Javier: Mm, visto así… | otro
+Javier: ¿Y los puntos de carga? | pregunta #q4
+David: Le instalamos tres en la nave, incluidos en el precio. | respuesta >q4
+Javier: ¿Incluidos? | pregunta #q5
+David: Incluidos, si firma este mes. | respuesta >q5
+Javier: Eso cambia bastante las cosas. | opinion
+-- fase: cierre
+Javier: Lo tengo que hablar con mi socia, que la decisión es de los dos. | informacion
+David: Claro, lógico. | escucha
+David: ¿Quiere que les haga una prueba con una furgoneta durante una semana? | propuesta #p2
+Javier: Sí, eso nos ayudaría mucho a decidir. | aceptacion >p2
+David: Se la traigo el lunes. | compromiso
+Javier: Perfecto, y el viernes le digo algo. | compromiso
+David: Muchas gracias, Javier. | relacion
+
+=== ven-04 | venta | Cursos de idiomas para una empresa
+-- fase: apertura
+Belén: Hola, Tomás, soy Belén, de la academia de idiomas, hablamos la semana pasada. | relacion
+Tomás: Ah, sí, hola, Belén. | relacion
+-- fase: situación
+Belén: Me dijiste que tu equipo necesitaba mejorar el inglés para las reuniones con clientes. | informacion
+Tomás: Eso es. | escucha
+Belén: ¿Cuántas personas serían? | pregunta #q1
+Tomás: Ocho, con niveles muy distintos. | respuesta >q1
+Belén: ¿Y qué horario os iría mejor? | pregunta #q2
+Tomás: A primera hora, antes de las nueve, que luego es imposible. | respuesta >q2
+-- fase: propuesta
+Belén: Os propongo dos grupos de cuatro, por niveles, dos días por semana de ocho a nueve. | propuesta #p1
+Tomás: Dos grupos encarece la cosa, ¿no? | pregunta #q3
+Belén: Algo, sí, pero con un solo grupo los de nivel bajo se pierden. | respuesta >q3
+Tomás: Ya… | escucha
+Tomás: ¿Y online? | propuesta #p2
+Belén: Online se puede, y sale un veinte por ciento más barato. | aceptacion >p2
+Belén: Aunque para hablar con soltura yo recomiendo presencial. | opinion #z6
+Tomás: Bueno, yo lo prefiero online, la mitad del equipo teletrabaja. | rechazo >z6 #z7
+Belén: Entonces online, perfecto. | aceptacion >z7
+Tomás: ¿Me mandas el presupuesto de dos grupos online? | peticion #r1
+Belén: Claro, mañana lo tienes. | compromiso >r1
+-- fase: cierre
+Tomás: Y una cosa, ¿hacéis prueba de nivel? | pregunta #q4
+Belén: Sí, gratis, la hacen online en veinte minutos. | respuesta >q4
+Tomás: Genial. | escucha
+Belén: Te mando el enlace con el presupuesto. | compromiso
+Tomás: Perfecto, gracias. | relacion
+
+=== ven-05 | venta | Reforma de una cocina en una tienda de muebles
+-- fase: apertura
+Hugo: Hola, buenas, ¿les puedo ayudar en algo? | pregunta #q0
+Rosa: Sí, estamos mirando cocinas. | respuesta >q0
+Luis: Para reformar la nuestra, que tiene ya veinte años. | informacion
+Hugo: Muy bien. | escucha
+-- fase: situación
+Hugo: ¿Cuántos metros tiene la cocina? | pregunta #q1
+Rosa: Unos nueve, es alargada. | respuesta >q1
+Hugo: ¿Y qué es lo que más les importa: espacio, precio, diseño…? | pregunta #q2
+Luis: El precio. | respuesta >q2 #z8
+Rosa: No, a mí el espacio, que no cabe nada. | rechazo >z8 #z9
+Luis: Bueno, las dos cosas. | aceptacion >z9
+-- fase: propuesta
+Hugo: Para una cocina alargada yo les recomendaría muebles altos hasta el techo. | propuesta #p1
+Hugo: Ganan casi un metro de almacenaje. | informacion
+Rosa: Eso me encanta. | aceptacion >p1
+Luis: ¿Y hasta el techo no es más caro? | pregunta #q3
+Hugo: Un diez por ciento más, más o menos. | respuesta >q3
+Luis: Mm. | escucha
+Hugo: Y si eligen la gama blanca básica, compensa la diferencia. | propuesta #p2
+Rosa: La blanca no, que se ensucia mucho. | rechazo >p2
+Hugo: Hay un gris claro en la misma gama. | propuesta #p3
+Rosa: Ah, el gris sí. | aceptacion >p3
+Luis: Si sale por el mismo precio, por mí vale. | aceptacion >p3
+-- fase: cierre
+Hugo: ¿Quieren que vaya un técnico a medir la cocina? | propuesta #p4
+Rosa: Sí, por favor. | aceptacion >p4
+Hugo: ¿Les va bien el jueves por la tarde? | pregunta #q4
+Luis: El jueves trabajo hasta tarde. | respuesta >q4
+Rosa: Pero estoy yo, el jueves sí. | respuesta >q4
+Hugo: Pues el jueves a las cinco. | gestion
+Hugo: Les preparo también el presupuesto con las dos opciones para que comparen. | compromiso
+Rosa: Muchas gracias, muy amable. | relacion

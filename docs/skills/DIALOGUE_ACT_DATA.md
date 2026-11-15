@@ -26,7 +26,8 @@ git-ignored `data/dialogue_acts/`.
   interna) y DIHANA (español, CC BY 4.0, pero diálogos de información de
   trenes con una máquina: solo pregunta/respuesta y poco más).
 - **No hay ningún corpus público de reuniones en español con actos de
-  diálogo.** Por eso hemos escrito nuestro propio conjunto (§4).
+  diálogo.** Por eso hemos escrito nuestro propio conjunto: 51 diálogos, 1.534 frases
+  (`examples/skills/dialogue_acts/`, ficha en su `README.md`).
 - Cada etiqueta de un corpus se traduce al **conjunto de categorías
   nuestras con las que es compatible**. Si el corpus no distingue algo
   (MRDA no separa hecho de opinión), la frase vale para las dos, y esa
@@ -222,7 +223,8 @@ Reading:
 - **Spanish**: DIHANA measures only questions, answers, yes/no replies,
   greetings and "wait": the human–machine timetable setting has no
   proposals, opinions or commitments. For everything else in Spanish
-  only our own set (§4) exists, and it is not human-annotated.
+  only our own set (`examples/skills/dialogue_acts/`, datasheet in its
+  `README.md`) exists, and it is not human-annotated.
 - English accuracy does not transfer to Spanish speech; the corpora are
   for development and a first cross-lingual sanity check, not for
   claiming Spanish performance.

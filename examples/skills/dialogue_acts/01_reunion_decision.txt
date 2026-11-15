@@ -1,0 +1,198 @@
+# Conjunto de actos de diálogo en español, escrito para este proyecto.
+# Lote 1: reuniones de decisión. Diálogos inventados; nombres genéricos.
+# Formato: docs/skills/DIALOGUE_ACT_DATA.md y src/domain/skills/dialogue_act_set.py
+
+=== dec-01 | reunion_decision | Cambio de proveedor de mensajería
+-- fase: apertura
+Marta: Buenos días a todos. | relacion
+Luis: Buenas. | relacion
+Irene: Hola, buenos días. | relacion
+Marta: Bueno, pues si os parece empezamos, que tenemos media hora justa. | gestion
+Marta: Hoy hay un solo punto: decidir si cambiamos de empresa de mensajería o no. | gestion
+-- fase: información
+Marta: Luis, tú has mirado los números, ¿no? | gestion #g1
+Luis: Sí, sí, los tengo aquí. | respuesta >g1
+Luis: Eh, el año pasado tuvimos cuarenta y tantas incidencias con los envíos. | informacion
+Irene: Ajá. | escucha
+Luis: Y de esas, más o menos la mitad fueron retrasos de más de dos días. | informacion
+Irene: ¿La mitad? | pregunta #q1
+Luis: Sí, veintidós si no me equivoco. | respuesta >q1
+Marta: Mm. | escucha
+Luis: La otra empresa, la que nos presentó la oferta, nos cobra un ocho por ciento más por envío. | informacion
+Irene: Para mí eso es demasiado para lo que movemos. | opinion #o1
+Luis: Ya, pero si contamos lo que nos cuestan los clientes enfadados igual sale a cuenta. | rechazo >o1
+-- fase: discusión
+Marta: ¿Y tenemos alguna referencia de cómo trabajan? | pregunta #q2
+Luis: Pues la de una tienda del polígono que los usa desde hace dos años. | respuesta >q2
+Luis: Dicen que bien, que cumplen. | informacion
+Irene: Hombre, una sola referencia es poco. | opinion
+Irene: ¿Y si hacemos una prueba de un mes solo con los envíos a Valencia? | propuesta #p1
+Marta: Me gusta, así no nos jugamos todo de golpe. | aceptacion >p1
+Luis: Sí, de acuerdo. | aceptacion >p1
+Luis: Aunque, eh, el contrato actual tiene permanencia hasta marzo. | informacion #i1
+Irene: No, hasta marzo no, hasta enero, lo renovamos en enero. | rechazo >i1
+Luis: Ah, vale, pues mejor todavía. | escucha
+-- fase: decisión
+Marta: Entonces, resumiendo: hacemos la prueba de un mes con Valencia y en enero decidimos. | gestion #s1
+Luis: Perfecto. | aceptacion >s1
+Irene: Vale. | aceptacion >s1
+-- fase: tareas
+Marta: Luis, ¿puedes llamar tú a la empresa nueva esta semana? | peticion #r1
+Luis: Sí, claro. | aceptacion >r1
+Luis: Les llamo el jueves por la mañana. | compromiso
+Irene: Yo preparo la lista de envíos a Valencia del último mes para comparar. | compromiso
+Marta: Genial, gracias a los dos. | relacion
+Marta: Pues lo dejamos aquí, nos vemos el lunes. | gestion
+
+=== dec-02 | reunion_decision | Horario de verano de la oficina
+-- fase: apertura
+Carmen: A ver, ¿estamos todos? | gestion #g1
+Sergio: Falta Nuria, que viene de camino. | respuesta >g1
+Carmen: Bueno, empezamos y que se enganche luego. | gestion
+-- fase: discusión
+Carmen: El tema es el horario de verano. | gestion
+Carmen: Dirección nos deja elegir entre jornada intensiva en julio y agosto o solo en agosto. | informacion
+Sergio: Yo lo tengo claro, julio y agosto. | opinion #o1
+Raúl: Eh, yo no lo veo tan claro. | rechazo >o1
+Raúl: En julio es cuando más pedidos entran, nos lo comemos todo por la tarde. | informacion #i1
+Sergio: Pero eso se arregla con turnos. | rechazo >i1
+Raúl: ¿Con turnos cómo? | pregunta #q1
+Sergio: Pues que dos personas se queden hasta las cinco cada semana, rotando. | respuesta >q1 #a1
+Carmen: Mm, ajá. | escucha
+Raúl: Ya, pero eso a quien tiene niños le complica la vida. | rechazo >a1
+Nuria: Hola, perdonad el retraso, el metro. | relacion
+Carmen: Nada, tranquila, estamos con el horario. | relacion
+Carmen: Nuria, ¿tú cómo lo ves? | gestion #g2
+Nuria: Pues a mí los turnos me parecen bien si se puede cambiar la semana entre nosotros. | respuesta #n1 >g2
+Sergio: Claro, eso sí. | aceptacion >n1
+Raúl: Bueno, si se puede cambiar, vale, lo acepto. | aceptacion >n1
+Carmen: ¿Y si los turnos los organiza cada equipo por su cuenta? | propuesta #p1
+Raúl: No, mejor uno común, si no siempre se queda el mismo. | rechazo >p1 #c1
+Nuria: Es verdad, en mi equipo pasaría eso. | opinion
+Carmen: Vale, pues un calendario común. | aceptacion >c1
+-- fase: decisión
+Carmen: Entonces queda: intensiva julio y agosto, con turnos de tarde rotatorios en un calendario común. | gestion #s1
+Sergio: Hecho. | aceptacion >s1
+Nuria: Sí. | aceptacion >s1
+Raúl: De acuerdo. | aceptacion >s1
+-- fase: tareas
+Carmen: Necesito que alguien haga el calendario antes del viernes. | peticion #r1
+Nuria: Lo hago yo, que me toca menos lío esta semana. | compromiso >r1
+Carmen: Gracias, Nuria. | relacion
+Carmen: Y yo se lo comunico a dirección mañana. | compromiso
+
+=== dec-03 | reunion_decision | Elegir herramienta de videollamadas
+-- fase: apertura
+David: Venga, que son y cinco. | gestion
+David: Tenemos que cerrar hoy lo de la herramienta de videollamadas, que la licencia vence el día treinta. | gestion
+-- fase: información
+Elena: Yo he probado las dos que dijimos. | informacion
+Elena: La primera va bien pero no deja grabar en la versión barata. | informacion
+Elena: La segunda sí graba pero se cuelga con más de quince personas. | informacion
+Tomás: ¿Se cuelga del todo? | pregunta #q1
+Elena: Bueno, del todo no, se congela el video unos segundos. | respuesta >q1
+Tomás: Ya, ya. | escucha
+David: ¿Cuántas veces hacemos llamadas de más de quince? | pregunta #q2
+Elena: Eh… | otro
+Elena: Pues la reunión general, una vez al mes. | respuesta >q2
+-- fase: discusión
+Tomás: Para una vez al mes yo no me complicaría. | opinion
+Tomás: Propongo la segunda, que graba, y la general la hacemos por la que ya tenemos en la intranet. | propuesta #p1
+David: Me parece razonable. | aceptacion >p1
+Elena: Sí, pero la de la intranet no tiene subtítulos y Clara los necesita. | rechazo >p1
+Tomás: Ah, no lo sabía. | escucha
+Tomás: Perdona, Elena, tienes razón. | relacion
+David: ¿Y la primera con el plan de pago completo? | propuesta #p2
+Elena: Esa es casi el doble. | informacion
+David: ¿Cuánto es el doble? | pregunta #q3
+Elena: Unos tres mil al año frente a mil seiscientos. | respuesta >q3
+Tomás: No, eso no lo aprueban ni de broma. | rechazo >p2
+David: Ya. | escucha
+Elena: Podríamos preguntar a la segunda si tienen un plan que aguante más gente. | propuesta #p3
+David: Vale, eso sí. | aceptacion >p3
+Tomás: Bien. | aceptacion >p3
+-- fase: tareas
+David: Elena, ¿te encargas tú de preguntarles? | peticion #r1
+Elena: Sí, les escribo hoy. | compromiso >r1
+David: Y si no hay plan, nos quedamos con la segunda igualmente. | gestion #s1
+Tomás: De acuerdo. | aceptacion >s1
+Elena: Vale. | aceptacion >s1
+
+=== dec-04 | reunion_decision | Presupuesto de formación
+-- fase: apertura
+Rosa: Buenas tardes, gracias por venir a esta hora. | relacion
+Andrés: Nada. | relacion
+Rosa: Esto va a ser rapidito, solo hay que repartir el presupuesto de formación. | gestion
+-- fase: información
+Rosa: Tenemos doce mil euros para todo el año. | informacion
+Andrés: ¿Doce mil para todo el departamento? | pregunta #q1
+Rosa: Para todo, sí. | respuesta >q1
+Belén: Pues es menos que el año pasado. | informacion #i1
+Rosa: No, es lo mismo, el año pasado eran doce también. | rechazo >i1
+Belén: Ah, ¿sí? | pregunta #q2
+Rosa: Sí, lo que pasa es que nos dieron una ampliación en septiembre. | respuesta >q2
+Belén: Vale, vale. | escucha
+-- fase: discusión
+Andrés: Yo pediría que la mitad fuera para el curso de análisis de datos, que lo necesitamos ya. | propuesta #p1
+Belén: ¿La mitad? | pregunta #q3
+Andrés: Bueno, la mitad o algo menos, unos cinco mil. | respuesta >q3
+Belén: Es mucho para un solo curso, la verdad. | rechazo >p1
+Belén: Hay gente que no ha hecho ninguna formación en dos años. | informacion #i2
+Rosa: Eso es cierto. | aceptacion >i2
+Rosa: ¿Qué os parece si fijamos un mínimo por persona y lo que sobre va al curso de datos? | propuesta #p2
+Andrés: Bueno, me vale, si el mínimo no es muy alto. | aceptacion >p2
+Belén: A mí me parece justo. | aceptacion >p2
+Andrés: ¿Cuánto sería el mínimo? | pregunta #q4
+Rosa: Somos catorce… | otro
+Rosa: Pongamos quinientos por persona. | respuesta >q4
+Andrés: Eso son siete mil, nos quedan cinco para datos. | informacion
+Andrés: Perfecto, me cuadra. | aceptacion >p2
+-- fase: decisión
+Rosa: Pues queda así: quinientos por persona y cinco mil para el curso de datos. | gestion #s1
+Belén: Sí. | aceptacion >s1
+Andrés: Hecho. | aceptacion >s1
+-- fase: tareas
+Rosa: Belén, ¿me mandas la lista de quién no ha hecho formación? | peticion #r1
+Belén: Te la mando esta tarde. | compromiso >r1
+Andrés: Yo pido presupuesto del curso a dos escuelas. | compromiso
+Rosa: Muy bien, gracias. | relacion
+
+=== dec-05 | reunion_decision | Fecha de lanzamiento de la aplicación
+-- fase: apertura
+Javier: Hola, ¿se me oye? | pregunta #q0
+Lucía: Sí, se te oye bien. | respuesta >q0
+Javier: Vale, perfecto. | escucha
+Javier: Pues vamos al grano, hay que fijar la fecha de lanzamiento. | gestion
+-- fase: información
+Hugo: Yo os cuento cómo vamos, ¿vale? | gestion
+Hugo: Faltan tres pantallas por terminar y el pago con tarjeta. | informacion
+Hugo: El pago lo tenemos medio hecho, eh, falta probarlo con el banco. | informacion
+Clara: ¿Y eso cuánto tarda? | pregunta #q1
+Hugo: El banco nos dijo dos semanas, pero suelen ser tres. | respuesta >q1
+Lucía: Uf. | escucha
+-- fase: discusión
+Javier: Yo quería lanzar el uno de mayo. | propuesta #p1
+Clara: Imposible. | rechazo >p1
+Clara: Con tres semanas del banco nos vamos a mediados de mayo como pronto. | informacion
+Javier: ¿Y si lanzamos sin pago con tarjeta y lo añadimos después? | propuesta #p2
+Hugo: Eso técnicamente se puede. | informacion
+Lucía: No sé, yo creo que sin pago la gente se va a frustrar. | opinion #o1
+Clara: Bueno, depende, al principio la mayoría van a ser usuarios de prueba. | rechazo >o1
+Lucía: Mm, ya, visto así… | escucha
+Lucía: Vale, lo compro. | aceptacion >p2
+Clara: Pues a mí me convence. | aceptacion >p2
+Hugo: Eso sí, las tres pantallas tienen que estar, eh, sin eso no salimos. | opinion #o2
+Javier: Claro, claro. | aceptacion >o2
+Javier: Hugo, ¿llegáis con las pantallas al uno de mayo? | pregunta #q2
+Hugo: Sí, si no nos meten nada nuevo. | respuesta >q2
+-- fase: decisión
+Javier: Entonces: lanzamos el uno de mayo sin pago con tarjeta, y el pago entra en cuanto el banco dé el visto bueno. | gestion #s1
+Lucía: De acuerdo. | aceptacion >s1
+Clara: Sí. | aceptacion >s1
+Hugo: Vale. | aceptacion >s1
+-- fase: tareas
+Javier: Lucía, prepara un mensaje para los usuarios explicando que el pago llega después, por favor. | peticion #r1
+Lucía: Vale, mañana lo tienes. | compromiso >r1
+Hugo: Yo llamo al banco para meterles prisa. | compromiso
+Clara: Y yo congelo las peticiones nuevas hasta el lanzamiento. | compromiso
+Javier: Gracias, equipo, buen trabajo. | relacion

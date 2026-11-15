@@ -1,0 +1,184 @@
+# Lote 3: resolución de problemas. Diálogos inventados para este proyecto.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== pro-01 | resolucion_problemas | La impresora del almacén no imprime etiquetas
+-- fase: orientación
+Sergio: Bueno, os cuento lo que pasa, que es urgente. | gestion
+Sergio: Desde ayer la impresora del almacén no saca las etiquetas de envío. | informacion
+Elena: ¿Nada de nada? | pregunta #q1
+Sergio: Saca una de cada cinco, y torcida. | respuesta >q1
+Hugo: Vale. | escucha
+Hugo: ¿Habéis cambiado algo esta semana? | pregunta #q2
+Sergio: Que yo sepa no. | respuesta >q2
+Elena: Bueno, el martes vinieron a actualizar los ordenadores. | informacion #i1
+Sergio: Ah, es verdad, el martes. | aceptacion >i1
+Hugo: Pues ahí lo tienes, seguro que es el controlador. | opinion #o1
+Elena: Hombre, seguro seguro no, puede ser el rollo de etiquetas también. | rechazo >o1 #z1
+Hugo: Ya, pero lo del rollo no explica que salgan torcidas. | rechazo >z1 #z2
+Elena: Si el rollo es de otra medida sí lo explica. | rechazo >z2
+Sergio: Eh… | otro
+Sergio: El rollo es el mismo de siempre, lo cambié yo el lunes. | informacion #z3
+Elena: Vale, entonces descartado. | aceptacion >z3
+-- fase: análisis
+Hugo: Lo que haría es volver al controlador de antes y probar. | propuesta #p1
+Elena: Sí, es lo más rápido. | aceptacion >p1
+Sergio: ¿Eso lo puedo hacer yo o hay que llamar a informática? | pregunta #q3
+Hugo: Lo puedes hacer tú, te mando los pasos. | respuesta >q3
+Sergio: Vale, porque informática tarda tres días en contestar. | informacion
+Elena: Tres días si tienes suerte. | opinion
+Hugo: Jaja. | otro
+-- fase: control
+Hugo: Si con el controlador viejo funciona, se lo decimos a informática para que no lo vuelvan a actualizar. | propuesta #p2
+Sergio: De acuerdo. | aceptacion >p2
+Elena: ¿Y mientras tanto cómo sacamos los envíos de hoy? | pregunta #q4
+Sergio: Pues a mano, con la impresora de la oficina, que es más lenta pero va. | respuesta >q4
+Elena: Vale, yo os ayudo a pegarlas. | compromiso
+Hugo: Te mando los pasos en cinco minutos, Sergio. | compromiso
+Sergio: Gracias, majo. | relacion
+
+=== pro-02 | resolucion_problemas | Quejas de clientes por el tiempo de respuesta
+-- fase: orientación
+Clara: Gracias por venir, sé que estáis a tope. | relacion
+Clara: El problema es que los clientes se quejan de que tardamos mucho en contestar los correos. | informacion
+Clara: La media ha pasado de un día a casi tres. | informacion
+Andrés: ¿Desde cuándo? | pregunta #q1
+Clara: Desde septiembre más o menos. | respuesta >q1
+Andrés: O sea, desde que se fue Pilar. | informacion #z4
+Clara: Sí. | escucha
+Belén: Pero no es solo eso. | rechazo >z4
+Belén: Desde septiembre también entran el doble de correos por la campaña. | informacion
+Andrés: Ajá. | escucha
+-- fase: análisis
+Clara: ¿Qué tipo de correos son la mayoría? | pregunta #q2
+Belén: Preguntas de dónde está mi pedido. | respuesta >q2
+Belén: Yo diría que siete de cada diez. | informacion
+Andrés: Y eso se podría contestar solo, con el número de seguimiento. | opinion #o1
+Clara: Totalmente de acuerdo. | aceptacion >o1
+Belén: Ya, pero el número de seguimiento no siempre está bien en el sistema. | rechazo >o1
+Andrés: ¿Cuántas veces está mal? | pregunta #q3
+Belén: No lo sé exactamente. | respuesta >q3
+Belén: Muchas. | informacion
+Clara: Mm. | escucha
+Andrés: Pues eso es lo primero que habría que arreglar. | opinion
+-- fase: soluciones
+Clara: Vale, os propongo dos cosas. | gestion
+Clara: Una, una respuesta automática con el enlace de seguimiento. | propuesta #p1
+Clara: Dos, que alguien revise cada mañana los pedidos sin número correcto. | propuesta #p2
+Andrés: La primera sí. | aceptacion >p1
+Belén: La primera sí, pero con un texto que diga que si no funciona respondan al correo. | aceptacion >p1
+Andrés: Lo de revisar cada mañana yo no lo veo, es mucho trabajo manual. | rechazo >p2 #k1
+Clara: ¿Mucho cuánto? | pregunta #q4
+Andrés: Una hora al día como poco. | respuesta >q4
+Belén: Es menos de lo que perdemos contestando a mano. | rechazo >k1
+Andrés: Bueno, visto así… | otro
+Andrés: Vale, pero que rote entre nosotros. | aceptacion >p2 #z5
+Clara: Hecho, que rote. | aceptacion >z5
+-- fase: tareas
+Clara: Belén, ¿te encargas tú del texto de la respuesta automática? | peticion #r1
+Belén: Sí, el lunes lo tienes. | compromiso >r1
+Clara: Andrés, ¿haces tú el cuadrante de quién revisa cada día? | peticion #r2
+Andrés: Vale. | aceptacion >r2
+Andrés: Lo hago hoy antes de irme. | compromiso
+Clara: Muchas gracias. | relacion
+
+=== pro-03 | resolucion_problemas | Retrasos en la obra de la cocina
+-- fase: orientación
+Javier: Hola, Rosa, ¿tienes cinco minutos? | pregunta #q0
+Rosa: Sí, dime. | respuesta >q0
+Javier: Es por la obra de la cocina del restaurante, que vamos con una semana de retraso. | informacion
+Rosa: ¿Una semana ya? | pregunta #q1
+Javier: Una semana y dos días. | respuesta >q1
+Rosa: Uf. | escucha
+Rosa: ¿Qué ha pasado? | pregunta #q2
+Javier: Pues que el fontanero no vino el lunes y sin la fontanería no pueden poner los muebles. | respuesta >q2
+Rosa: Ya. | escucha
+Javier: Y luego que los azulejos que llegaron no eran los que pedimos. | informacion
+Rosa: ¿Cómo que no eran? | pregunta #q3
+Javier: Eran de otro color, un gris más oscuro. | respuesta >q3
+-- fase: análisis
+Rosa: A ver, lo de los azulejos me parece lo más grave. | opinion
+Rosa: El fontanero viene otro día y ya está, pero un pedido nuevo tarda semanas. | opinion #z6
+Javier: No, en eso te equivocas, el proveedor dice que en tres días los cambia. | rechazo >z6
+Rosa: Ah, bueno, mejor. | escucha
+Javier: El problema es que el fontanero no coge el teléfono. | informacion
+Rosa: Pues búscate otro, hay muchos. | propuesta #p1
+Javier: Ya, pero este ya tiene los planos y conoce la instalación. | rechazo >p1
+Rosa: Javier, una semana es mucho dinero. | opinion
+Rosa: Cada día cerrado perdemos unos mil quinientos euros. | informacion
+Javier: Lo sé, lo sé. | escucha
+-- fase: soluciones
+Javier: Le doy hasta mañana a mediodía. | propuesta #p2
+Javier: Si no aparece, llamo al otro que nos recomendó tu cuñado. | propuesta
+Rosa: Vale, me parece bien. | aceptacion >p2
+Rosa: Y pídele al de los azulejos que los traiga el jueves como muy tarde. | peticion #r1
+Javier: Vale, se lo digo hoy. | compromiso >r1
+Rosa: Y mantenme informada, por favor, que si no me pongo nerviosa. | peticion #r2
+Javier: Claro, te escribo mañana a la una. | compromiso >r2
+Rosa: Gracias, Javier. | relacion
+
+=== pro-04 | resolucion_problemas | La aplicación se cierra al subir fotos
+-- fase: orientación
+Lucía: Haber, que empezamos. | gestion
+Lucía: Tenemos más de cien quejas en la tienda de aplicaciones de que se cierra al subir fotos. | informacion
+David: ¿Desde la última versión? | pregunta #q1
+Lucía: Desde la cuatro punto dos, sí. | respuesta >q1
+Óscar: ¿En todos los móviles o en algunos? | pregunta #q2
+Lucía: Eso no lo sé. | respuesta >q2
+David: Yo lo he mirado en el panel de errores. | informacion
+David: Casi todos son móviles con poca memoria. | informacion
+Óscar: Mm, ajá. | escucha
+-- fase: análisis
+Óscar: Entonces es por el tamaño de las fotos, apuesto lo que quieras. | opinion #o1
+David: Puede ser. | aceptacion >o1
+David: En la cuatro punto dos quitamos la compresión antes de subirlas. | informacion
+Lucía: ¿Por qué la quitamos? | pregunta #q3
+David: Porque los fotógrafos se quejaban de que perdían calidad. | respuesta >q3
+Lucía: Ah. | escucha
+Óscar: Pues ya está, ahí está el problema. | opinion #z7
+Lucía: Bueno, no corramos, eso hay que comprobarlo. | rechazo >z7 #z8
+Óscar: Vale, vale. | aceptacion >z8
+-- fase: soluciones
+David: Propongo volver a comprimir solo en los móviles con poca memoria. | propuesta #p1
+Óscar: Eso es complicadísimo de mantener. | rechazo >p1
+Óscar: ¿Y si comprimimos siempre pero dejamos una opción de calidad máxima? | propuesta #p2
+David: Me vale. | aceptacion >p2
+Lucía: A mí también, es lo que hacen casi todas. | aceptacion >p2
+Lucía: Pero antes quiero la prueba de que es eso, ¿eh? | peticion #r1
+David: Vale, mañana lo pruebo con un móvil viejo de los de la oficina. | compromiso >r1
+Óscar: Y yo preparo el cambio para tenerlo listo si se confirma. | compromiso
+Lucía: Pues perfecto, gracias, chicos. | relacion
+Lucía: Nos vemos el jueves para ver los resultados. | gestion
+
+=== pro-05 | resolucion_problemas | Turnos sin cubrir en la residencia
+-- fase: orientación
+Carmen: Buenas, sentaos, sentaos. | relacion
+Carmen: Hay un problema con los turnos de noche de diciembre. | gestion
+Carmen: Tenemos seis noches sin cubrir. | informacion
+Pablo: ¿Seis? | pregunta #q1
+Carmen: Seis, entre el veinte y el treinta y uno. | respuesta >q1
+Nuria: Es que coincide con las vacaciones de media plantilla. | informacion
+Pablo: Ya, ya. | escucha
+-- fase: análisis
+Carmen: ¿Alguien sabe si podemos contratar a alguien de refuerzo? | pregunta #q2
+Nuria: El año pasado se hizo con una agencia. | respuesta >q2
+Pablo: Y salió fatal, la chica no conocía a los residentes. | opinion #o1
+Nuria: Bueno, fatal no, una noche hubo un problema con la medicación pero luego bien. | rechazo >o1
+Pablo: A mí con una noche me sobra. | opinion
+Carmen: Entiendo lo que dices, Pablo. | escucha
+Carmen: Pero si no encontramos a nadie de dentro, no hay más opciones. | opinion
+-- fase: soluciones
+Nuria: Yo puedo hacer dos noches si me dan libre el día dos de enero. | propuesta #p1
+Carmen: Eso te lo firmo ya. | aceptacion >p1
+Pablo: Yo una, la del veintiocho. | compromiso
+Carmen: ¿Y la de nochevieja, Pablo? | peticion #r0
+Pablo: No, esa no puedo, lo siento, tengo a mi madre en casa. | rechazo >r0
+Carmen: No, claro, faltaría más. | relacion
+Carmen: Entonces nos quedan tres. | informacion
+Nuria: Podríamos preguntar a la gente del turno de tarde. | propuesta #p2
+Pablo: Eso, que alguno igual quiere horas extra. | aceptacion >p2
+Carmen: Vale. | aceptacion >p2
+Carmen: Nuria, ¿se lo preguntas tú hoy a los de tarde? | peticion #r1
+Nuria: Sí, a las tres los veo. | compromiso >r1
+Carmen: Y si el viernes seguimos con huecos, llamo a la agencia, pero pidiendo a alguien que ya haya estado. | compromiso #z9
+Pablo: Eso me parece mejor. | aceptacion >z9
+Carmen: Gracias por la disposición, de verdad. | relacion

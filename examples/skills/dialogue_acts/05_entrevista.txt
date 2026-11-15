@@ -1,0 +1,161 @@
+# Lote 5: entrevistas de trabajo. Diálogos inventados para este proyecto.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== ent-01 | entrevista | Puesto de técnica de laboratorio
+-- fase: apertura
+Carmen: Hola, Lucía, ¿verdad? | pregunta #q0
+Lucía: Sí, hola, buenos días. | respuesta >q0
+Carmen: Buenos días, siéntate, por favor. | relacion
+Carmen: Yo soy Carmen, la responsable del laboratorio, y él es David, de recursos humanos. | informacion
+David: Encantado. | relacion
+Lucía: Igualmente. | relacion
+Carmen: La entrevista va a durar unos cuarenta minutos y al final tendrás tiempo para tus preguntas. | gestion
+Lucía: Perfecto. | escucha
+-- fase: preguntas
+Carmen: Para empezar, cuéntanos un poco tu experiencia. | peticion #r1
+Lucía: Vale. | aceptacion >r1
+Lucía: Pues estudié biotecnología y llevo dos años en un laboratorio de análisis de aguas. | informacion
+Lucía: Allí hago sobre todo análisis microbiológicos, eh, y control de calidad. | informacion
+Carmen: Ajá. | escucha
+Lucía: Y el último año también formaba a los becarios nuevos. | informacion
+Carmen: ¿Cuántos becarios? | pregunta #q1
+Lucía: Tres este año y dos el anterior. | respuesta >q1
+David: ¿Y qué es lo que más te gustó de formarlos? | pregunta #q2
+Lucía: Pues… | otro
+Lucía: Ver cómo al mes ya hacían solos cosas que al principio les daban miedo. | respuesta >q2
+David: Muy bien. | escucha
+Carmen: Cuéntame una vez que algo saliera mal en el laboratorio y qué hiciste. | peticion #r2
+Lucía: Una vez se contaminó una serie entera de muestras por un, eh, por una campana mal limpia. | informacion
+Lucía: Lo detecté porque los controles negativos daban positivo. | informacion
+Carmen: ¿Y qué hiciste? | pregunta #q3
+Lucía: Paré la serie, avisé a mi jefa y repetimos todo al día siguiente. | respuesta >q3
+Lucía: Y propuse una hoja de limpieza que hubiera que firmar cada turno, que todavía se usa. | informacion
+Carmen: Eso está muy bien. | opinion
+David: ¿Por qué quieres cambiar de trabajo? | pregunta #q4
+Lucía: Porque en mi laboratorio no hay posibilidad de crecer, somos cuatro. | respuesta >q4
+Lucía: Y aquí trabajáis con análisis clínicos, que es lo que me gustaría aprender. | informacion
+David: Vale. | escucha
+-- fase: preguntas del candidato
+Carmen: Pues por nuestra parte ya está. | gestion
+Carmen: ¿Tienes alguna pregunta? | pregunta #q5
+Lucía: Sí, ¿cómo son los turnos? | pregunta #q6
+Carmen: De mañana o de tarde, rotando cada semana. | respuesta >q6
+Lucía: Vale. | escucha
+Lucía: ¿Y hay formación al entrar? | pregunta #q7
+Carmen: Dos semanas acompañada por alguien del equipo. | respuesta >q7
+-- fase: cierre
+David: Te escribiremos en dos semanas como mucho. | compromiso
+Lucía: Muchas gracias por vuestro tiempo. | relacion
+Carmen: Gracias a ti, Lucía, ha sido un placer. | relacion
+
+=== ent-02 | entrevista | Puesto de comercial
+-- fase: apertura
+Pablo: Buenas tardes, Raúl, ¿qué tal has llegado? | pregunta #q0
+Raúl: Bien, bien, con un poco de tráfico, pero bien. | respuesta >q0
+Pablo: Me alegro. | relacion
+Pablo: Mira, la idea es que me cuentes tu experiencia y luego te explico el puesto. | gestion
+-- fase: preguntas
+Pablo: ¿Cuánto tiempo llevas en ventas? | pregunta #q1
+Raúl: Seis años, los cuatro últimos en material de oficina. | respuesta >q1
+Pablo: ¿Y qué volumen manejabas? | pregunta #q2
+Raúl: Unos cuarenta clientes, la mayoría empresas medianas. | respuesta >q2
+Pablo: Ajá. | escucha
+Raúl: Facturaba más o menos… | otro
+Raúl: Bueno, no sé si puedo decir la cifra exacta. | informacion
+Pablo: No, no hace falta, tranquilo. | relacion
+Pablo: ¿Qué haces cuando un cliente te dice que no? | pregunta #q3
+Raúl: Pregunto por qué. | respuesta >q3
+Raúl: Casi siempre el no es al precio o al momento, no al producto. | opinion
+Raúl: Y si es el momento, apunto cuándo volver a llamar. | informacion
+Pablo: Mm. | escucha
+Pablo: Aquí vendemos a hospitales, que es un ciclo de venta muy largo. | informacion
+Pablo: A veces un año entero. | informacion
+Raúl: ¿Un año? | pregunta #q4
+Pablo: Un año, con concursos públicos y todo. | respuesta >q4
+Pablo: ¿Te ves con ese ritmo? | pregunta #q5
+Raúl: Sinceramente, no lo sé. | respuesta >q5
+Raúl: Estoy acostumbrado a cerrar ventas cada semana. | informacion
+Raúl: Pero me apetece aprender algo nuevo. | opinion
+Pablo: Te agradezco la sinceridad. | relacion
+-- fase: preguntas del candidato
+Raúl: ¿Puedo preguntar cómo es la parte variable del sueldo? | pregunta #q6
+Pablo: Un veinte por ciento, por objetivos anuales. | respuesta >q6
+Raúl: Anuales, vale. | escucha
+Raúl: ¿Y coche de empresa? | pregunta #q7
+Pablo: Sí, coche y móvil. | respuesta >q7
+-- fase: cierre
+Pablo: Pues te llamo la semana que viene, que me quedan dos entrevistas. | compromiso
+Raúl: Perfecto, muchas gracias. | relacion
+Pablo: Gracias a ti. | relacion
+
+=== ent-03 | entrevista | Prácticas en diseño gráfico
+-- fase: apertura
+Irene: Hola, Hugo, se te oye un poco entrecortado. | informacion
+Hugo: ¿Y ahora? | pregunta #q0
+Irene: Ahora mejor. | respuesta >q0
+Irene: Bueno, bienvenido, y gracias por mandar el portafolio. | relacion
+Hugo: Gracias a vosotros por llamarme. | relacion
+-- fase: preguntas
+Irene: Cuéntame el proyecto del que estás más orgulloso. | peticion #r1
+Hugo: Pues el cartel para el festival de cortos de mi pueblo. | informacion
+Hugo: Lo hice en, eh, en segundo de carrera y lo eligieron entre veinte propuestas. | informacion
+Irene: Ajá, lo vi, el del faro. | escucha
+Hugo: Ese, sí. | escucha
+Irene: Me gustó mucho el uso del color. | opinion
+Hugo: Gracias. | relacion
+Irene: ¿Qué programas manejas? | pregunta #q1
+Hugo: Los de maquetación y retoque, los normales, y algo de tres de. | respuesta >q1
+Hugo: Y estoy aprendiendo animación por mi cuenta. | informacion
+Irene: ¿Has trabajado alguna vez con un cliente real que te cambiara todo a última hora? | pregunta #q2
+Hugo: Sí, en lo del festival, me cambiaron la fecha cuando ya estaba impreso. | respuesta >q2
+Irene: ¿Y qué hiciste? | pregunta #q3
+Hugo: Hice una pegatina con la fecha nueva y quedó como si fuera a propósito. | respuesta >q3
+Irene: Jaja, muy bien. | opinion
+-- fase: preguntas del candidato
+Irene: ¿Quieres preguntarme algo? | pregunta #q4
+Hugo: Sí, ¿las prácticas son remuneradas? | pregunta #q5
+Irene: Sí, seiscientos euros al mes. | respuesta >q5
+Hugo: Vale. | escucha
+Hugo: ¿Y hay posibilidad de quedarse después? | pregunta #q6
+Irene: Depende de cómo vaya, no te lo puedo prometer. | respuesta >q6
+Irene: Los dos últimos becarios se quedaron. | informacion
+-- fase: cierre
+Irene: Te escribo el viernes con la respuesta, sea cual sea. | compromiso
+Hugo: Muchas gracias, Irene. | relacion
+
+=== ent-04 | entrevista | Responsable de mantenimiento
+-- fase: apertura
+Óscar: Buenos días, siéntese donde quiera. | relacion
+Rosa: Gracias. | relacion
+Óscar: Le explico cómo va: le haré unas preguntas sobre su experiencia y luego unas preguntas técnicas. | gestion
+Rosa: Muy bien. | escucha
+-- fase: preguntas
+Óscar: ¿Dónde trabaja ahora? | pregunta #q1
+Rosa: En una fábrica de envases, llevo el mantenimiento de las líneas de producción. | respuesta >q1
+Óscar: ¿Cuántas personas tiene a su cargo? | pregunta #q2
+Rosa: Ocho técnicos en tres turnos. | respuesta >q2
+Óscar: ¿Cómo organiza el mantenimiento preventivo? | pregunta #q3
+Rosa: Con un plan anual por máquina y revisiones cada semana de lo crítico. | respuesta >q3
+Rosa: Desde que lo pusimos así las paradas no previstas han bajado a la mitad. | informacion
+Óscar: ¿A la mitad? | pregunta #q4
+Rosa: Sí, de unas veinte al mes a nueve o diez. | respuesta >q4
+Óscar: Muy bien. | escucha
+Óscar: Aquí las máquinas son más antiguas. | informacion
+Óscar: Algunas tienen treinta años y no hay repuestos. | informacion
+Rosa: Eso es lo más difícil, sí. | opinion
+Rosa: En mi fábrica tenemos un torno y hacemos algunas piezas nosotros. | informacion
+Óscar: Ah, eso aquí no lo tenemos. | informacion
+Rosa: Pues yo lo plantearía, se amortiza enseguida. | propuesta #p1
+Óscar: Lo apunto. | aceptacion >p1
+Óscar: Una pregunta más personal: ¿cómo lleva trabajar con guardias de fin de semana? | pregunta #q5
+Rosa: Bien, si se reparten. | respuesta >q5
+Rosa: Lo que no haría es una guardia cada fin de semana, eso no. | opinion
+-- fase: preguntas del candidato
+Rosa: ¿Puedo preguntarle por qué se va la persona que ocupa ahora el puesto? | pregunta #q6
+Óscar: Se jubila. | respuesta >q6
+Óscar: Lleva aquí veintidós años. | informacion
+Rosa: Entonces habrá que aprender mucho de él antes. | opinion
+Óscar: Sí, habría un mes de solape. | informacion
+-- fase: cierre
+Óscar: Le llamaremos en unos diez días. | compromiso
+Rosa: Muchas gracias por recibirme. | relacion
