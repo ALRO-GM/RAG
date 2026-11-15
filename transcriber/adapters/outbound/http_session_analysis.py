@@ -77,7 +77,8 @@ class HttpSessionAnalysis:
     def report(self, session_id: str, position: int) -> str:
         """Return the HTML report of the ``position``-th person."""
         return self._call(
-            "GET", f"{session_id}/reports/{int(position)}", accept="text/html"
+            "GET", f"{session_id}/reports/{int(position)}",
+            accept="application/octet-stream, text/html",
         )
 
     @staticmethod

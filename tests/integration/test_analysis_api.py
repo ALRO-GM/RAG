@@ -141,7 +141,7 @@ def test_start_status_results_and_report(tmp_path: Path) -> None:
     report = client.get("/analysis/sessions/demo-es/reports/1", headers=AUTH)
     assert report.status_code == 200
     assert report.text.startswith("<!doctype html>")
-    assert report.headers["content-type"].startswith("text/html")
+    assert report.headers["content-type"] == "application/octet-stream"
     csp = report.headers["content-security-policy"]
     assert csp.startswith("sandbox;") and "script-src" not in csp
     assert "default-src 'none'" in csp

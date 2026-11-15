@@ -423,15 +423,18 @@ def mount_analysis(
         dependencies=guard,
     )
     async def person_report(session_id: str, position: int) -> Response:
-        """Return one person's report as a sandboxed HTML download."""
+        """Return one person's HTML report as a download (octet-stream)."""
         try:
             page = await run_in_threadpool(
                 results.report, session_id, position
             )
         except RagError as exc:
             raise analysis_error(exc)
+        # Bytes to save, never a page of this origin (the CSP sandboxes
+        # it too, should a browser render it anyway).
         return Response(
-            page, media_type="text/html; charset=utf-8", headers={
+            page.encode("utf-8"), media_type="application/octet-stream",
+            headers={
                 **REPORT_HEADERS,
                 "Content-Disposition": (
                     f'attachment; filename="{session_id}-report-'

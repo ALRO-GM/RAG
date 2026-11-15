@@ -8,7 +8,7 @@ import pytest
 
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
-from src.application.skills.judges import FallbackJudge
+from src.application.skills.judges import CallBudget, FallbackJudge
 from src.application.skills.ports import StepOutput
 from src.application.skills.session_analysis import (
     AnalysisResults,
@@ -26,6 +26,7 @@ from src.application.skills.tagging import (
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
+    LimitError,
     NotFoundError,
     QuotaExhaustedError,
 )
@@ -437,3 +438,91 @@ def test_only_reruns_the_named_steps_and_keeps_the_rest() -> None:
         build(store=store).run("s1", only=["nope"])
     with pytest.raises(InvalidInputError):
         build(store=store).run("s1", only=[" "])
+
+
+def test_the_call_budget_counts_real_calls_and_refuses_past_it() -> None:
+    """Only calls reaching the model count; past the limit: LimitError."""
+    judge = FakeChatModel(responder=reply, model_name="m")
+    budget = CallBudget(judge, 2)
+    assert budget.model_name == "m" and budget.fallback_reason == ""
+    budget.complete("s", "u", 5)
+    budget.complete("s", "u", 5)
+    assert budget.remaining == 0
+    with pytest.raises(LimitError, match=r"limit of this analysis \(2\)"):
+        budget.complete("s", "u", 5)
+    assert len(judge.calls) == 2
+    budget.release()
+
+
+def test_step_f_leaves_room_for_step_g_within_the_budget() -> None:
+    """3 speakers x 2 competencies are kept for step g."""
+    model = FakeChatModel(responder=reply)
+    retriever = EvidenceRetriever(
+        FakeLexicalBuilder(), FakeEmbedder(dim=64), min_words=4
+    )
+
+    def judges() -> JudgeSetup:
+        """A budget of 8: 6 kept for step g, 2 for step f."""
+        budget = CallBudget(model, 8)
+        return JudgeSetup(
+            "claude_code", TagConfirmer(budget),
+            AssessmentService(retriever, budget, min_incidents=1),
+            budget=budget,
+        )
+
+    run = build(judges=judges).run("s1")
+    assert run.status == "done"
+    confirmation = run.step("confirmation").counts
+    assert confirmation["sent"] == 2 and confirmation["judge_calls"] == 2
+    assert run.step("assessment").counts["judge_calls"] == 6
+    assert len(model.calls) == 8
+
+    def tight() -> JudgeSetup:
+        """A budget smaller than step g needs: f reads nothing, g fails."""
+        budget = CallBudget(model, 3)
+        return JudgeSetup(
+            "claude_code", TagConfirmer(budget),
+            AssessmentService(retriever, budget, min_incidents=1),
+            budget=budget,
+        )
+
+    failed = build(judges=tight).run("s1", restart=True)
+    assert failed.step("confirmation").counts["sent"] == 0
+    assert failed.step("assessment").status == "failed"
+    assert "max_judge_calls" in failed.step("assessment").error
+
+
+def test_a_restart_clears_results_and_results_need_a_done_step() -> None:
+    """After a restart the old files are gone; failed steps serve none."""
+    store = InMemoryAnalysisStore()
+    build(store=store).run("s1")
+    results = AnalysisResults(store)
+    assert results.result("s1", "candidates")
+
+    def broken(system: str, user: str) -> str:
+        """Fail in step f."""
+        raise RuntimeError("down")
+
+    run = build(FakeChatModel(responder=broken), store).run(
+        "s1", restart=True
+    )
+    assert run.step("confirmation").status == "failed"
+    assert ("s1", "report-1.html") not in store.files
+    with pytest.raises(NotFoundError):
+        results.result("s1", "confirmation")
+    with pytest.raises(NotFoundError):
+        results.report("s1", 1)
+    assert results.result("s1", "sentences")
+
+
+def test_restart_with_steps_is_refused_and_steps_alone_can_be_partial() -> (
+    None
+):
+    """``--restart --steps`` makes no sense; a lone step leaves partial."""
+    store = InMemoryAnalysisStore()
+    with pytest.raises(InvalidInputError, match="not both"):
+        build(store=store).run("s1", restart=True, only=["acts"])
+    run = build(store=store).run("s1", only=["sentences"])
+    assert run.status == "partial"
+    assert run.step("interaction").status == "pending"
+    assert build(store=store).run("s1").status == "done"

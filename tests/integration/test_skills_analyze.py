@@ -188,3 +188,31 @@ def test_without_acts_the_events_step_says_why(skills_project: Path) -> None:
     events = run["steps"][4]
     assert events["status"] == "unavailable"
     assert "step d" in events["note"]
+
+
+def test_numeric_looking_ids_stay_text(skills_project: Path) -> None:
+    """Fire turns 1e5 into 100000.0: refused; the quoted id works."""
+    (skills_project / "transcripts" / "1e5.txt").write_text(
+        (skills_project / "transcripts" / "s1.txt").read_text()
+    )
+    commands = cli(container(analysis_dir="analysis"))
+    with pytest.raises(InvalidInputError, match="must be quoted"):
+        commands.analyze(session=100000.0)
+    commands.analyze(session="1e5")
+    assert (skills_project / "analysis" / "1e5" / "run.json").is_file()
+
+
+def test_the_cli_parses_a_quoted_numeric_id(skills_project: Path) -> None:
+    """Through Fire, as the launcher passes it: ``--session="1e5"``."""
+    from tests.integration.test_cli import run_cli
+
+    result = run_cli(
+        ["skills", "--transcripts_dir", "transcripts", "--analysis_dir",
+         "analysis", "analyze", '--session="0x1f"'], skills_project,
+    )
+    assert "No transcript for session '0x1f'" in result.stderr
+    bare = run_cli(
+        ["skills", "--analysis_dir", "analysis", "analyze",
+         "--session=1_0"], skills_project,
+    )
+    assert "must be quoted" in bare.stderr

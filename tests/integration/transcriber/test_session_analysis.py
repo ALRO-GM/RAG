@@ -25,6 +25,7 @@ from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import (
     AnalysisUnavailableError,
     InvalidInputError,
+    LimitReachedError,
     NotFoundError,
     PublishError,
     StateError,
@@ -85,6 +86,7 @@ def test_the_adapter_forwards_every_call_with_the_token(
 
 @pytest.mark.parametrize("status, error", [
     (404, NotFoundError), (409, StateError), (400, InvalidInputError),
+    (429, LimitReachedError),
     (422, InvalidInputError), (500, AnalysisUnavailableError),
     (302, AnalysisUnavailableError),
 ])
@@ -226,6 +228,7 @@ def test_the_routes_need_the_code_and_forward(tmp_path: Path) -> None:
     csp = report.headers["content-security-policy"]
     assert csp.startswith("sandbox;") and "script-src" not in csp
     assert report.headers["content-disposition"].startswith("attachment;")
+    assert report.headers["content-type"] == "application/octet-stream"
     assert report.headers["x-content-type-options"] == "nosniff"
     off = client(tmp_path, None).get(
         "/api/analysis/sessions/s1", headers=AUTH
@@ -250,3 +253,30 @@ def test_the_container_links_the_analysis_only_with_the_http_publisher(
     port = linked.session_analysis._port_or_none
     assert isinstance(port, HttpSessionAnalysis)
     assert port.url == "http://127.0.0.1:9/rag/analysis/sessions/"
+
+
+def test_cancel_is_forwarded_and_limits_say_why(
+    rag: Tuple[str, StandInRag], tmp_path: Path,
+) -> None:
+    url, stand_in = rag
+    stand_in.status, stand_in.body = 204, b""
+    HttpSessionAnalysis(url, lambda: TOKEN).cancel("s1")
+    assert (stand_in.requests[-1]["method"], stand_in.requests[-1]["path"]) \
+        == ("DELETE", "/rag/analysis/sessions/s1/run")
+    port = FakeAnalysis()
+    api = client(tmp_path, port)
+    path = "/api/analysis/sessions/s1/run"
+    assert api.delete(path).status_code == 401
+    assert api.delete(path, headers=AUTH).status_code == 404
+    api.post("/api/analysis/sessions/s1", headers=AUTH)
+    assert api.delete(path, headers=AUTH).status_code == 204
+    assert ("cancel", "s1") in port.calls
+
+    def limited(session_id: str, restart: bool, synthetic: bool) -> Any:
+        """Refuse like the RAG at its limits."""
+        raise LimitReachedError("limits")
+
+    port.start = limited  # type: ignore[method-assign]
+    refused = api.post("/api/analysis/sessions/s1", headers=AUTH)
+    assert refused.status_code == 429
+    assert refused.json()["code"] == "limit_reached"

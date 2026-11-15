@@ -750,12 +750,14 @@ def create_app(
 
     @api.get("/analysis/sessions/{session_id}/reports/{position}")
     async def analysis_report(session_id: str, position: int) -> Response:
-        """Return one person's report: sandboxed HTML, as a download."""
+        """Return one person's HTML report as a download (octet-stream)."""
         page = await run_in_threadpool(
             c.session_analysis.report, session_id, position
         )
+        # Bytes to save, never a page of this origin.
         return Response(
-            page, media_type="text/html; charset=utf-8", headers={
+            page.encode("utf-8"), media_type="application/octet-stream",
+            headers={
                 **REPORT_HEADERS,
                 "Content-Disposition": (
                     f'attachment; filename="{session_id}-informe-'
