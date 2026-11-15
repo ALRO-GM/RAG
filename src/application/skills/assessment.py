@@ -1,7 +1,15 @@
 """Use case: produce evidence-backed scorecards for a session."""
 
 import time
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from src.application.caching import cache_key
 from src.application.ports import Cache, NoProgress, Progress
@@ -22,6 +30,7 @@ from src.domain.skills.assessment import (
 from src.domain.skills.grounding import decide_rating, ground
 from src.domain.skills.interaction import describe
 from src.domain.skills.prompting import (
+    PromptStyle,
     parse_judgement,
     system_prompt,
     user_prompt,
@@ -29,6 +38,19 @@ from src.domain.skills.prompting import (
 from src.domain.skills.provisional import estimate
 from src.domain.skills.rubric import Competency, RubricCatalogue
 from src.domain.skills.transcript import Transcript
+
+
+class JudgeTuning(NamedTuple):
+    """How one judge is asked and how far its quotes are trusted.
+
+    ``style`` is the prompt it gets; ``min_similarity`` is the lowest
+    cosine between a cited turn and its indicator that keeps the quote
+    as evidence (the second opinion of the embedding model). A quote
+    below it is kept only as a ``weak_match`` observation (#103).
+    """
+
+    style: PromptStyle
+    min_similarity: float
 
 
 class AssessmentService:
@@ -43,6 +65,14 @@ class AssessmentService:
     quotes, those the similarity check set apart and the sentences
     step f confirmed become a provisional estimate and observations
     for a reviewer, with no further call to the judge.
+
+    ``tuning`` gives the prompt style and the similarity floor from
+    the name of the judge that answers (#104: the local models and
+    Claude are tuned apart); without it every judge gets the standard
+    prompt and ``min_similarity``. It is asked on every call because a
+    fallback judge may take over in the middle of a session, and the
+    floor it gives is the one that sets ``weak_match`` observations
+    apart.
     """
 
     def __init__(
@@ -58,6 +88,7 @@ class AssessmentService:
         min_episodes: int = 1,
         episode_gap: int = 3,
         min_words: int = 0,
+        tuning: Optional[Callable[[str], JudgeTuning]] = None,
     ):
         """Wire the retriever, the judge model and the cache."""
         if candidates < 1 or min_incidents < 1:
@@ -75,6 +106,13 @@ class AssessmentService:
         self.min_episodes = min_episodes
         self.episode_gap = episode_gap
         self.min_words = min_words
+        self.tuning = tuning
+
+    def tuned(self) -> JudgeTuning:
+        """Return the tuning of the judge answering now."""
+        if self.tuning is None:
+            return JudgeTuning("standard", self.min_similarity)
+        return self.tuning(self.judge.model_name)
 
     def assess(
         self,
@@ -133,7 +171,7 @@ class AssessmentService:
                 "min_incidents": self.min_incidents,
                 "min_episodes": self.min_episodes,
                 "episode_gap": self.episode_gap,
-                "min_similarity": self.min_similarity,
+                "min_similarity": self.tuned().min_similarity,
                 "min_participant_words": self.min_words,
                 "candidates": self.candidates,
             },
@@ -214,9 +252,11 @@ class AssessmentService:
                 observations=confirmed,
             )
         turns = self.retriever.turns(index, found)
+        tuning = self.tuned()
         reply = self._reply(
             system_prompt(
-                catalogue.scale, self.min_incidents, index.language
+                catalogue.scale, self.min_incidents, index.language,
+                tuning.style,
             ),
             user_prompt(
                 index.transcript, turns, participant, competency,
@@ -227,7 +267,9 @@ class AssessmentService:
         verified, rejected = ground(
             judgement.evidence, turns, participant, competency
         )
-        evidence, weak = self._supported(index, competency, verified)
+        evidence, weak = self._supported(
+            index, competency, verified, tuning.min_similarity
+        )
         rating, flags = decide_rating(
             judgement.rating, evidence, catalogue.scale, self.min_incidents,
             self.min_episodes, self.episode_gap,
@@ -272,13 +314,15 @@ class AssessmentService:
         index: TranscriptIndex,
         competency: Competency,
         verified: List[Evidence],
+        min_similarity: float,
     ) -> Tuple[List[Evidence], List[Observation]]:
         """Score each quote against its indicator; set the distant apart.
 
         The judge decides which indicator a quote shows; the embedding
-        model checks that decision. Below ``min_similarity`` the quote
-        is real but does not look like the behaviour: it is not
-        evidence, only an observation (``weak_match``) for a reviewer.
+        model checks that decision. Below ``min_similarity`` (the
+        floor of the judge that answered) the quote is real but does
+        not look like the behaviour: it is not evidence, only an
+        observation (``weak_match``) for a reviewer.
         """
         kept: List[Evidence] = []
         weak: List[Observation] = []
@@ -287,7 +331,7 @@ class AssessmentService:
             assert indicator is not None
             score = self.retriever.similarity(index, item.turn, indicator)
             rounded = None if score is None else round(score, 4)
-            if score is not None and score < self.min_similarity:
+            if score is not None and score < min_similarity:
                 weak.append(Observation(
                     turn=item.turn, quote=item.quote,
                     indicator_id=item.indicator_id, polarity=item.polarity,

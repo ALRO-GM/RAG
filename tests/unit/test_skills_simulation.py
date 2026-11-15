@@ -106,3 +106,18 @@ def test_the_committed_demo_matches_its_script() -> None:
     assert len(script.speakers()) == 4
     assert 13 * 60 < stored["session"]["duration"] < 18 * 60
     assert sum(u["overlap"] for u in stored["utterances"]) >= 5
+
+
+def test_the_committed_interview_matches_its_script() -> None:
+    """The short interview of #104 is its script's output, unchanged."""
+    script = parse_script(
+        (DEMO / "entrevista_corta.txt").read_text(encoding="utf-8")
+    )
+    stored = json.loads(
+        (DEMO / "sim-entrevista-corta.transcript.v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert stored == script_transcript(script)
+    assert len(script.speakers()) == 2
+    assert 2 * 60 < stored["session"]["duration"] < 4 * 60

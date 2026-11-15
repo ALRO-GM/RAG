@@ -245,7 +245,18 @@ class SkillsSettings(BaseModel):
     on synthetic sessions and must be tuned with ``skills lab`` once
     human-annotated reference data exists. ``min_similarity`` depends
     on the embedding model and has to be set again whenever that
-    model changes.
+    model changes. It filters the candidate tags of each sentence.
+    The same check on the judge's quotes in the assessment (step g) is
+    tuned per judge on synthetic sessions with hand labels
+    (``docs/skills/LOCAL_JUDGE_QUOTES.md``, #104):
+    ``quote_min_similarity`` for Claude (0: it only drops turns that
+    point away from the indicator; at 0.3 it dropped half of Claude's
+    good quotes) and ``local_quote_min_similarity`` for the local
+    models (0.4: most of their quotes are misfiled, and the floor
+    raises the share of good ones from about a quarter to a half).
+    ``local_prompt`` is the prompt the local models get there:
+    ``precise`` (default: more good quotes at the same share), or
+    ``guided`` and Claude's ``standard``.
 
     ``act_card`` is the dialogue-act tagger's settings (#82), written by
     ``experiments/skills/act_tagger_eval.py``: its outcome table, the
@@ -300,6 +311,9 @@ class SkillsSettings(BaseModel):
     episode_gap: int = Field(default=3, ge=0)
     min_participant_words: int = Field(default=40, ge=0)
     min_similarity: float = Field(default=0.3, ge=-1.0, le=1.0)
+    quote_min_similarity: float = Field(default=0.0, ge=-1.0, le=1.0)
+    local_quote_min_similarity: float = Field(default=0.4, ge=-1.0, le=1.0)
+    local_prompt: Literal["standard", "guided", "precise"] = "precise"
     profile_min_situations: int = Field(default=3, ge=1)
     tags_per_sentence: int = Field(default=2, ge=1)
     max_new_tokens: int = Field(default=700, ge=16)

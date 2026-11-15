@@ -1,0 +1,32 @@
+# Short simulated interview for measuring the judges' quotes (#104).
+# Invented people and company; original text written for this project.
+# Synthetic: it tests the assessment step, it is not evidence about anyone.
+# One line per turn: "Name: text". A line starting with "+" begins
+# before the previous turn has ended (a short overlap).
+id: sim-entrevista-corta
+title: Taller Ruedalibre: entrevista para coordinar el taller (simulación)
+language: es
+type: entrevista
+goal: Conocer cómo trabaja en equipo la persona candidata a coordinar el taller
+started_at: 2026-11-15T17:00:00+01:00
+
+Elena: Hola, Tomás, gracias por venir. Vamos a hablar unos minutos de cómo trabajas con otras personas. ¿Te parece bien?
+Tomás: Sí, claro. Antes de empezar, ¿el puesto es coordinar solo el taller o también la tienda?
+Elena: Solo el taller, son cuatro mecánicos. Cuéntame una situación en la que el equipo no estuviera de acuerdo.
+Tomás: En mi último trabajo dos compañeros discutían cada semana por el orden de las reparaciones. Les pedí que cada uno me explicara sus razones por separado. Los dos tenían parte de razón: uno quería atender primero lo urgente y el otro lo que ya estaba pagado.
+Elena: ¿Y qué hiciste?
+Tomás: Propuse una regla sencilla: primero lo que el cliente necesita ese mismo día, después por orden de llegada. La probamos un mes y la revisamos juntos en una reunión corta.
+Elena: ¿Funcionó?
+Tomás: Bastante. Las discusiones bajaron, aunque al principio me equivoqué: no avisé a la tienda del cambio y prometieron plazos que no podíamos cumplir. Fue culpa mía y lo arreglé hablando con ellos esa misma tarde.
+Elena: Entiendo. ¿Cómo sueles dar una opinión sobre el trabajo de alguien?
+Tomás: Intento ser concreto. Por ejemplo, le dije a un mecánico nuevo que sus revisiones de frenos estaban muy bien, pero que apuntara en la ficha qué pieza cambiaba, porque luego nadie lo sabía.
+Elena: ¿Y tú pides opinión sobre tu trabajo?
+Tomás: Sí, cada dos o tres meses pregunto al equipo qué haría distinto si coordinaran ellos. La última vez me dijeron que reparto las tareas demasiado tarde, y ahora las dejo escritas el día antes.
+Elena: Aquí a veces llegan bicicletas eléctricas que nadie sabe reparar. ¿Qué harías?
+Tomás: Primero preguntaría quién del equipo tiene algo de experiencia. Si nadie la tiene, buscaría un curso corto y mientras tanto no aceptaría esas reparaciones, para no fallar a los clientes.
+Elena: Tiene sentido. ¿Alguna pregunta para mí?
+Tomás: Sí. Si entiendo bien, lo que más os preocupa es que se cumplan los plazos sin quemar al equipo. ¿Es así?
+Elena: Exactamente, eso es lo principal.
+Tomás: Entonces me comprometo a traer en la segunda semana una propuesta de calendario de reparaciones y a revisarla con los cuatro mecánicos antes de aplicarla.
+Elena: Perfecto. Te llamaremos el viernes con la respuesta.
+Tomás: Muchas gracias, Elena. Quedo a la espera.

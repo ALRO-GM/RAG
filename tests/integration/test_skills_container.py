@@ -212,12 +212,32 @@ def test_container_assessment_follows_the_settings(
     """Every threshold of the settings reaches the use case."""
     service = container(
         candidates=5, min_incidents=3, min_episodes=2, episode_gap=4,
-        min_participant_words=33, min_similarity=0.45, max_new_tokens=99,
+        min_participant_words=33, quote_min_similarity=0.45,
+        max_new_tokens=99,
     ).assessment
     assert (service.candidates, service.min_incidents) == (5, 3)
     assert (service.min_episodes, service.episode_gap) == (2, 4)
     assert (service.min_words, service.min_similarity) == (33, 0.45)
     assert service.max_tokens == 99
+
+
+def test_container_tunes_claude_and_the_local_models_apart(
+    skills_project: Path,
+) -> None:
+    """Local models get their prompt and floor; Claude the standard ones."""
+    app = container(
+        quote_min_similarity=0.1, local_quote_min_similarity=0.3,
+        local_prompt="precise", llm="org/forced-model",
+    )
+    assert app.judge_tuning("claude-code:opus") == ("standard", 0.1)
+    assert app.judge_tuning("Qwen/Qwen3-8B@4bit") == ("precise", 0.3)
+    assert app.judge_tuning("Qwen/Qwen3-4B") == ("precise", 0.3)
+    assert app.judge_tuning("org/forced-model") == ("precise", 0.3)
+    assert app.judge_tuning("other/model") == ("standard", 0.1)
+    assert app.assessment.tuning is not None
+    defaults = container()
+    assert defaults.judge_tuning("claude-code:opus") == ("standard", 0.0)
+    assert defaults.judge_tuning("Qwen/Qwen3-8B@4bit") == ("precise", 0.4)
 
 
 def test_container_rubric_language(skills_project: Path) -> None:

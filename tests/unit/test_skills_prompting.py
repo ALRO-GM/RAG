@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from src.domain.skills.prompting import (
+    MAX_QUOTES,
     format_rubric,
     format_turns,
     parse_judgement,
@@ -50,6 +51,92 @@ def test_system_prompt_demands_verbatim_quotes_and_restraint() -> None:
     assert "verbatim quote" in prompt
     assert "Most turns are NOT evidence" in prompt
     assert "Absence of evidence is not evidence of a low level" in prompt
+
+
+def test_standard_is_the_default_style() -> None:
+    """Claude's prompt is unchanged unless the guided style is asked."""
+    scale = Scale()
+    assert system_prompt(scale, 2, "en") == system_prompt(
+        scale, 2, "en", "standard"
+    )
+
+
+def test_guided_prompt_walks_the_turns_and_asks_for_more_quotes() -> None:
+    """The guided style asks per turn, caps the quotes, keeps the rules."""
+    prompt = system_prompt(Scale(minimum=1, maximum=5), 3, "es", "guided")
+    assert "one by one" in prompt
+    assert f"at most {MAX_QUOTES} items" in prompt
+    assert "copied character by character" in prompt
+    assert "at least 3 different turns" in prompt
+    assert "Absence of evidence is not evidence of a low level" in prompt
+    assert "rationale in Spanish" in prompt
+    assert "integer 1-5 or null" in prompt
+    assert "Most turns are NOT evidence" not in prompt
+    assert "{" + "min_incidents}" not in prompt
+
+
+def example_reply(prompt: str) -> Any:
+    """Return the example reply of a guided prompt, parsed."""
+    line = next(
+        line for line in prompt.splitlines() if line.startswith('{"evidence')
+    )
+    return json.loads(line)
+
+
+@pytest.mark.parametrize("language, quote", [
+    ("es", "¿qué opináis vosotros del horario nuevo?"),
+    ("en", "what do you all think of the new timetable?"),
+    ("pt", "what do you all think of the new timetable?"),
+])
+def test_guided_example_is_in_the_transcript_language(
+    language: str, quote: str
+) -> None:
+    """The example quotes the language of the session (else English)."""
+    prompt = system_prompt(Scale(), 3, language, "guided")
+    assert example_reply(prompt)["evidence"][0]["quote"] == quote
+    assert quote in prompt.split('{"evidence')[0]
+
+
+def test_guided_example_is_a_valid_reply_that_follows_the_rules() -> None:
+    """The example parses, quotes its own turns and obeys rule 6."""
+    strict = system_prompt(Scale(minimum=1, maximum=5), 3, "es", "guided")
+    loose = system_prompt(Scale(minimum=1, maximum=5), 2, "es", "guided")
+    parsed = parse_judgement(json.dumps(example_reply(strict)))
+    assert not parsed.parse_error and len(parsed.evidence) == 2
+    assert parsed.rating is None
+    assert parse_judgement(json.dumps(example_reply(loose))).rating == 3
+    lines = strict.splitlines()
+    for item in parsed.evidence:
+        turn = next(x for x in lines if x.startswith(f"[{item.turn}] Marta:"))
+        assert item.quote in turn
+
+
+def test_precise_prompt_asks_what_each_quote_does_first() -> None:
+    """The precise style asks for the reason before the indicator."""
+    prompt = system_prompt(Scale(minimum=1, maximum=5), 3, "es", "precise")
+    assert "exactly what one indicator describes" in prompt
+    assert "few items, or none, is a normal result" in prompt
+    assert f"at most {MAX_QUOTES} items" in prompt
+    assert "rationale in Spanish" in prompt
+    example = example_reply(prompt)
+    assert list(example["evidence"][0]) == [
+        "turn", "why", "quote", "indicator"
+    ]
+    assert not parse_judgement(json.dumps(example)).parse_error
+    assert "why" not in example_reply(
+        system_prompt(Scale(), 3, "es", "guided")
+    )["evidence"][0]
+
+
+def test_parse_judgement_ignores_the_reason_of_each_item() -> None:
+    """A ``why`` field in an evidence item does not break the parser."""
+    parsed = parse_judgement(reply(
+        evidence=[{"turn": 2, "why": "asks", "quote": "a b c",
+                   "indicator": "L1"}],
+        rating=None, rationale="r",
+    ))
+    assert not parsed.parse_error
+    assert (parsed.evidence[0].turn, parsed.evidence[0].quote) == (2, "a b c")
 
 
 def test_format_rubric_lists_indicators_with_polarity_and_anchors() -> None:
