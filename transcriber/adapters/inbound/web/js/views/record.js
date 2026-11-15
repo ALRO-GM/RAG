@@ -11,6 +11,8 @@ import { formatTime, sessionIdFor } from "../lib/text.js";
 import { codeFromInput } from "../lib/net.js";
 import { transcriptionBody } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
+import { describeFields } from "../describe.js";
+import { describeChanged } from "../lib/describe.js";
 
 export async function recordView(ctx, root, params) {
   const resumeId = params[0] ?? null;
@@ -51,6 +53,15 @@ export async function recordView(ctx, root, params) {
   const start = h("button", { class: "primary big", type: "button", disabled: true, onClick: () => begin() }, t(existing ? "record.resume" : "record.start"));
   consent.addEventListener("change", () => { start.disabled = !consent.checked; });
   const formError = h("p", { class: "error", role: "alert", hidden: true });
+  // The conversation's type and goal: chosen before recording, or while
+  // and after it (the fields move to the recording screen and each change
+  // is saved on the session).
+  const described = describeFields("rec", existing);
+  const describedNote = h("p", { class: "hint", role: "status" });
+  const context = h("div", { class: "stack" }, described.element, describedNote);
+  let saved = existing ? { type: existing.type ?? null, goal: existing.goal ?? null } : null;
+  described.type.addEventListener("change", () => saveDescription());
+  described.goal.addEventListener("change", () => saveDescription());
 
   const form = h("section", { class: "stack" },
     h("h1", {}, t(existing ? "record.resume_title" : "record.title")),
@@ -67,6 +78,7 @@ export async function recordView(ctx, root, params) {
       h("div", { class: "field" }, h("label", { for: "rec-count" }, t("record.count")), count,
         h("p", { class: "hint" }, t("record.count_hint"))),
     ],
+    context,
     noticeSection(notice, consent, "rec"),
     formError,
     start);
@@ -102,6 +114,21 @@ export async function recordView(ctx, root, params) {
   root.append(form, live);
 
   setLeaveGuard(() => phase === "recording" || phase === "finishing" || Boolean(uploader && !uploader.state().drained));
+
+  /** Save a changed type or goal once the session exists. */
+  async function saveDescription() {
+    if (!saved) return; // not created yet: the values go with the new session
+    const body = described.body();
+    if (!describeChanged(saved, body)) return;
+    describedNote.textContent = t("describe.saving");
+    try {
+      const view = await ctx.api.describeSession(sessionId, body);
+      saved = { type: view.type ?? null, goal: view.goal ?? null };
+      describedNote.textContent = t("describe.saved");
+    } catch (error) {
+      describedNote.textContent = describeError(error);
+    }
+  }
 
   function showWarning(text) {
     warning.hidden = !text;
@@ -197,11 +224,16 @@ export async function recordView(ctx, root, params) {
         // The options are kept on the session, so closing it from any
         // device queues the transcription with them.
         const options = transcriptionBody(language.value, people.filter((p) => p.box.checked).map((p) => p.id), count.value);
+        const chosen = described.body();
         await ctx.api.createSession(sessionId, language.value, title.value.trim(), {
           consent_version: notice.version,
           num_speakers: options.num_speakers,
           expected_speakers: options.expected_speakers,
+          type: chosen.type,
+          goal: chosen.goal,
         });
+        saved = chosen;
+        saveDescription(); // a change made while the session was being created
       }
     } catch (error) {
       await capture.stop();
@@ -218,6 +250,7 @@ export async function recordView(ctx, root, params) {
     wake.request();
     phase = "recording";
     form.hidden = true;
+    live.insertBefore(context, wakeNote);
     live.hidden = false;
     live.querySelector("h1").textContent = title.value || sessionId;
     timer = setInterval(() => {

@@ -130,7 +130,8 @@ marked `slow`.
   "session": {
     "id": "2026-11-14-equipo-a", "title": "Equipo A, reparto",
     "language": "es", "started_at": "2026-11-14T10:02:00+01:00",
-    "duration": 1830.4, "audio_sha256": "…"
+    "duration": 1830.4, "audio_sha256": "…",
+    "type": "reunion_decision", "goal": "Repartir el trabajo del sprint"
   },
   "speakers": [
     {"id": "ana", "name": "Ana", "enrolled": true},
@@ -153,6 +154,20 @@ marked `slow`.
 }
 ```
 
+- `session.type` and `session.goal` (optional, added compatibly, #65)
+  are the kind of conversation and what it was for, declared by
+  whoever records it (`docs/skills/CONVERSATION.md` §4.3: declared,
+  never inferred). `type` is one of `reunion_decision`,
+  `lluvia_ideas`, `resolucion_problemas`, `negociacion`, `entrevista`,
+  `feedback`, `conflicto`, `coaching`, `venta`, `conversacion_libre`,
+  `otro`; `goal` is free text of at most 500 characters. Both are
+  written only when set. They are chosen when a session is opened or
+  imported, and changed in any state with `PATCH /api/sessions/{id}`
+  (`DescribeSession`: a field left out is kept, `null` clears it),
+  which also updates the stored transcript; a job that was running
+  meanwhile carries the stored values over when it saves
+  (`carry_description`), so an edit is never lost. The analyzer and
+  the person report show them as context; no rating uses them.
 - An **utterance** is one sentence of one turn. Its id (`t<turn>.s<n>`)
   is the one the analyzer already uses for sentence tags.
 - `start`/`end` are seconds from the start of the session audio: the

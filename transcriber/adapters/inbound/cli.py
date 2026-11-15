@@ -49,7 +49,7 @@ from transcriber.domain.errors import (
     NotFoundError,
     TranscriberError,
 )
-from transcriber.domain.models import SessionState, Transcript
+from transcriber.domain.models import SESSION_TYPES, SessionState, Transcript
 
 MODELS_WARNING = (
     "enrol and import --wait run the models in this process: do not use"
@@ -333,7 +333,8 @@ class Commands:
         recording = _read_recording(path)
         c = self.container
         session = c.import_recording(
-            session_id, args.language, recording, args.title
+            session_id, args.language, recording, args.title,
+            kind=args.type, goal=args.goal,
         )
         if not args.wait:
             if args.json:
@@ -447,6 +448,11 @@ class Commands:
             f"{session.id}{title} ({session.state.value},"
             f" {clock_time(session.duration)})"
         )
+        if session.type or session.goal:
+            context = " - ".join(
+                part for part in (session.type, session.goal) if part
+            )
+            self.output.line(f"Conversation: {context}")
         if session.failure:
             self.output.line(f"Failed: {session.failure}")
         if transcript is not None:
@@ -603,6 +609,9 @@ def build_parser() -> argparse.ArgumentParser:
     imported.add_argument("--id", help="session id (default: from the file"
                           " name and the time)")
     imported.add_argument("--title", help="title of the session")
+    imported.add_argument("--type", choices=SESSION_TYPES,
+                          help="kind of conversation (optional context)")
+    imported.add_argument("--goal", help="what the conversation was for")
     imported.add_argument("--language", default="es",
                           help="language spoken (default: es)")
     imported.add_argument("--speakers", type=int,

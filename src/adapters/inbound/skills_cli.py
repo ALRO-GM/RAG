@@ -25,7 +25,10 @@ from src.application.skills.gold import (
 from src.application.skills.lab import lab_dataset
 from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
-from src.application.skills.report import render_scorecards
+from src.application.skills.report import (
+    conversation_context,
+    render_scorecards,
+)
 from src.application.skills.tagging import render_timeline
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError, short_reason
@@ -140,7 +143,11 @@ class SkillsCLI:
         Args:
             transcript: Transcript file (JSON or ``Speaker: text``).
         """
-        team = describe(self._app().transcripts.read(str(transcript)))
+        document = self._app().transcripts.read(str(transcript))
+        team = describe(document)
+        context = conversation_context(document)
+        if context:
+            print(context)
         print(f"{team.speakers} speakers, {team.turns} turns, "
               f"{team.words} words; participation equality "
               f"{team.participation_equality:.2f}")

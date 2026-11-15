@@ -144,3 +144,15 @@ def test_report_has_one_section_per_participant() -> None:
     assert text.index("## Participation") < text.index("## Maya")
     assert text.index("## Maya") < text.index("## Tom")
     assert "## Priya" not in text
+
+
+def test_report_shows_the_declared_type_and_goal_as_context() -> None:
+    described = TIMED.model_copy(update={
+        "conversation_type": "lluvia_ideas", "conversation_goal": "Ideas",
+    })
+    text = report(described)
+    assert ("Conversation: brainstorming · goal: Ideas (declared by whoever"
+            " recorded it; context, not used in any rating).") in text
+    assert "Conversation:" not in report()
+    goal_only = TIMED.model_copy(update={"conversation_goal": "Ideas"})
+    assert "Conversation: goal: Ideas (" in report(goal_only)

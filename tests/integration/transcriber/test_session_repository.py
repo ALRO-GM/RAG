@@ -99,6 +99,30 @@ class TestSessions:
         stored = repo.get("s1")
         assert stored is not None and stored.title == "Otro"
 
+    def test_records_written_before_the_conversation_type_still_load(
+        self, repo: FileSystemSessionRepository, tmp_path: Path
+    ) -> None:
+        """A session.json and transcript.json without type/goal (#65)."""
+        repo.create(session())
+        repo.save_transcript(transcript(session()))
+        directory = tmp_path / "sessions" / "s1"
+        for name in ("session.json", "transcript.json"):
+            path = directory / name
+            data = json.loads(path.read_text())
+            record = data if name == "session.json" else data["session"]
+            assert record.pop("type") is None and record.pop("goal") is None
+            path.write_text(json.dumps(data))
+        stored = repo.get("s1")
+        kept = repo.transcript("s1")
+        assert stored is not None and kept is not None
+        assert (stored.type, stored.goal) == (None, None)
+        assert kept.session.type is None
+        described = session().model_copy(
+            update={"type": "venta", "goal": "Renovar"}
+        )
+        repo.save(described)
+        assert repo.get("s1") == described
+
     def test_ids_lists_stored_sessions_only(
         self, repo: FileSystemSessionRepository, tmp_path: Path
     ) -> None:

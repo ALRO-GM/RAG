@@ -4,6 +4,8 @@ import { h } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
+import { describeEditor } from "../describe.js";
+import { describeLine } from "../lib/describe.js";
 import {
   DEFAULT_LEAD, activeIndex, doubtNote, filterUtterances, isAnonymous, mergeTargets,
   namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
@@ -32,13 +34,26 @@ function storeLead(value) {
 export async function transcriptView(ctx, root, params) {
   const id = decodeURIComponent(params[0] ?? "");
   const session = await ctx.api.getSession(id);
+  let transcript = null; // loaded below once the session is done
+  // The conversation's type and goal, editable in any state.
+  const describedLine = h("p", { class: "meta" }, describeLine(t, session));
+  // Open where there is no transcript yet: editing is what the page is for.
+  const editor = h("details", { class: "describe", open: session.state !== "done" },
+    h("summary", {}, t("describe.title")),
+    describeEditor(ctx, session, "s", (view) => {
+      describedLine.textContent = describeLine(t, view);
+      if (transcript) {
+        transcript.session = { ...transcript.session, type: view.type, goal: view.goal };
+      }
+    }));
   if (session.state !== "done") {
-    root.append(h("h1", {}, session.title || id),
+    root.append(h("h1", {}, session.title || id), describedLine,
       h("p", { class: "notice" }, t("transcript.not_ready", { state: t(`state.${session.state}`) })),
+      editor,
       h("a", { class: "button", href: "#/" }, t("nav.sessions")));
     return null;
   }
-  let transcript = await ctx.api.getTranscript(id);
+  transcript = await ctx.api.getTranscript(id);
   let enrolled = [];
   try {
     enrolled = (await ctx.api.speakers()).speakers;
@@ -104,6 +119,7 @@ export async function transcriptView(ctx, root, params) {
   root.append(
     h("h1", {}, transcript.session.title || id),
     h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/" }, t("nav.sessions"))),
+    describedLine, editor,
     bar, options, audio, message, weakNotice,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
     list,

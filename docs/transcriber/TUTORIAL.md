@@ -144,6 +144,7 @@ servicio en marcha. Todos aceptan `--help`.
 | Ver las frases de una sesión | `python -m transcriber show ID` (añade `--lead 3` para ver cada hora 3 s antes; la cabecera lo avisa) |
 | Exportar la transcripción | `python -m transcriber export ID --output ARCHIVO.json` (sin `--output` la escribe en la terminal) |
 | Entregarla al RAG | `python -m transcriber publish ID` (la escribe en `data/transcriber/published/`, o la envía al RAG de este ordenador: ver abajo) |
+| Importar con tipo y objetivo | `python -m transcriber import ARCHIVO --type negociacion --goal "Precio"` (`--help` lista los tipos; `show ID` los enseña) |
 | Borrar una sesión | `python -m transcriber sessions delete ID` |
 | Listar las voces registradas | `python -m transcriber speakers` |
 | Olvidar una voz | `python -m transcriber speakers forget ID` |
@@ -327,6 +328,18 @@ otra vez.
    frases donde se detecta otro idioma salen marcadas («idioma
    detectado: en»); con «Automático» cada parte se transcribe en el
    idioma que se oye.
+
+   «Tipo de conversación (opcional)» y «Objetivo (opcional)»: qué clase
+   de conversación es («Reunión de decisión», «Lluvia de ideas»,
+   «Resolución de problemas», «Negociación», «Entrevista», «Feedback /
+   evaluación», «Conflicto / mediación», «Coaching», «Venta»,
+   «Conversación libre» u «Otro») y, si quieres, para qué es, en una
+   frase. Por defecto no se indica nada. Lo declara quien graba; nadie
+   lo adivina. Da contexto al análisis y al informe de cada persona,
+   que lo muestran, pero **no se usa para puntuar**. Puedes elegirlo
+   antes de empezar o mientras grabas (los dos campos siguen en la
+   pantalla de grabación y cada cambio se guarda en la sesión), y
+   cambiarlo después (ver «Después: la transcripción»).
 3. Lee el aviso «Antes de empezar», con todas las personas delante. La
    casilla dice que **las personas presentes lo saben y están de acuerdo
    en que se grabe**. Márcala solo si es verdad.
@@ -452,7 +465,15 @@ está transcribiendo no aparece «Borrar»: hay que esperar a que acabe.
 **Una grabación hecha con otra app.** En «Sesiones», abajo, «Subir una
 grabación hecha con otra app» deja subir un archivo de audio o vídeo.
 Tiene su propio aviso de consentimiento: las personas que se oyen deben
-saber que se transcribe.
+saber que se transcribe. También deja indicar el tipo de conversación y
+el objetivo.
+
+**Cambiar el tipo y el objetivo.** En «Sesiones», cada tarjeta muestra
+el tipo y el objetivo si se indicaron, y el botón «Tipo y objetivo»
+abre la sesión con los dos campos y «Guardar tipo y objetivo» (en una
+sesión «Lista» están arriba, en «Tipo y objetivo»). Se puede en
+cualquier estado, también mientras se transcribe. Si la transcripción
+ya se entregó al RAG, vuelve a entregarla para que lleve el cambio.
 
 ---
 

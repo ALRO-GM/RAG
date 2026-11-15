@@ -10,8 +10,9 @@ the only thing two services share: neither imports the other's code.
 Rules: fields are only added inside a version, and only as optional
 fields (a document without them stays valid; the speaker-certainty
 fields of `transcript.v1` were added that way, and so were the
-speaker's `identification` and the utterance's `overlap_source`,
-`language` and `language_differs`); removing or renaming
+speaker's `identification`, the utterance's `overlap_source`,
+`language` and `language_differs`, and the session's `type` and
+`goal`); removing or renaming
 one is a new version (`transcript.v2`) and both stay readable until
 every consumer has moved. `examples/` holds one valid document per
 contract, used by the contract tests of both sides.
@@ -19,6 +20,21 @@ contract, used by the contract tests of both sides.
 Delivery of `transcript.v1`: `transcriber publish ID` writes it to a
 directory, or with `publisher: "http"` posts it to the RAG's
 `POST /transcripts` (bearer token; a re-post of a session replaces it).
+
+## `transcript.v1`: the conversation's type and goal
+
+Added compatibly on 2026-11-15 (#65), both optional and written only
+when set. `session.type` is the kind of conversation, declared by
+whoever records it, never inferred (`docs/skills/CONVERSATION.md`
+§4.3): one of `reunion_decision`, `lluvia_ideas`,
+`resolucion_problemas`, `negociacion`, `entrevista`, `feedback`,
+`conflicto`, `coaching`, `venta`, `conversacion_libre`, `otro`.
+`session.goal` is free text, at most 500 characters, saying what the
+conversation was for. Both are context for the analysis, not a
+measurement: the analyzer and the person report show them and do not
+use them in a rating. They can be changed after the recording; the
+next publish carries the new values. A document without them reads as
+before (no type, no goal).
 
 ## `transcript.v1`: rules the schema cannot express
 

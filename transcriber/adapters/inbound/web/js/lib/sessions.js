@@ -6,15 +6,19 @@ export function progressPercent(session) {
   return Math.round(Math.min(1, Math.max(0, session.fraction)) * 100);
 }
 
-/** Actions that make sense for a session in its state. */
+/**
+ * Actions that make sense for a session in its state. "describe" (the
+ * conversation's type and goal) is allowed in every state; a recording
+ * session has it on the recording page ("resume").
+ */
 export function actionsFor(session) {
   switch (session.state) {
     case "recording": return ["resume", "finish", "delete"];
-    case "uploaded": return ["transcribe", "delete"];
-    case "failed": return ["transcribe", "delete"];
-    case "done": return ["open", "transcribe", "delete"];
-    case "running": return []; // the job holds it: nothing to do but wait
-    default: return ["delete"];
+    case "uploaded": return ["transcribe", "describe", "delete"];
+    case "failed": return ["transcribe", "describe", "delete"];
+    case "done": return ["open", "transcribe", "describe", "delete"];
+    case "running": return ["describe"]; // the job holds it: no Borrar
+    default: return ["describe", "delete"];
   }
 }
 

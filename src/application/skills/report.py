@@ -1,7 +1,10 @@
 """Render a session assessment as a Markdown scorecard report."""
 
-from typing import List
+from typing import List, Optional
 
+from src.application.skills.person_report_texts import (
+    conversation_type_label,
+)
 from src.domain.skills.assessment import (
     CompetencyAssessment,
     SessionAssessment,
@@ -15,6 +18,29 @@ def _rating(item: CompetencyAssessment, maximum: int) -> str:
     if item.rating is None:
         return "insufficient evidence"
     return f"{item.rating} / {maximum}"
+
+
+def conversation_context(transcript: Optional[Transcript]) -> str:
+    """Return the declared kind and goal of the conversation, or "".
+
+    E.g. ``Conversation: negotiation · goal: Price (declared by whoever
+    recorded it; context, not used in any rating).``
+    """
+    if transcript is None:
+        return ""
+    parts = []
+    if transcript.conversation_type:
+        parts.append(
+            conversation_type_label("en", transcript.conversation_type)
+        )
+    if transcript.conversation_goal:
+        parts.append(f"goal: {transcript.conversation_goal}")
+    if not parts:
+        return ""
+    return (
+        f"Conversation: {' · '.join(parts)} (declared by whoever recorded "
+        "it; context, not used in any rating)."
+    )
 
 
 def render_scorecards(
@@ -33,6 +59,7 @@ def render_scorecards(
         i.id: i.text for c in catalogue.competencies for i in c.indicators
     }
     maximum = catalogue.scale.maximum
+    context = conversation_context(transcript)
     lines: List[str] = [
         f"# Session {assessment.session_id}",
         "",
@@ -41,6 +68,7 @@ def render_scorecards(
         f"{assessment.language} · a rating needs "
         f"{assessment.min_incidents} verified incidents.",
         "",
+        *([context, ""] if context else []),
         "Ratings describe behaviour observed in this session only. They "
         "are a draft for a human assessor, not a decision.",
         "",

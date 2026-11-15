@@ -45,6 +45,23 @@ test("an upload names its file and the notice shown, never the code, in the quer
   assert.ok(!calls[0].url.includes("code-123"));
 });
 
+test("the conversation's type and goal go with a new session, an upload and a change", async () => {
+  const { api, calls } = recorder(() => json(200, {}));
+  await api.createSession("s1", "es", "", { type: "negociacion", goal: "Precio", consent_version: null });
+  assert.deepEqual(JSON.parse(calls[0].init.body), { id: "s1", language: "es", type: "negociacion", goal: "Precio" });
+  await api.uploadRecording("s2", { name: "a.m4a" }, "es", "", "consent-1", { type: "venta", goal: null });
+  const url = new URL(calls[1].url, "https://x");
+  assert.equal(url.searchParams.get("type"), "venta");
+  assert.equal(url.searchParams.has("goal"), false, "an unset goal is left out");
+  await api.uploadRecording("s3", { name: "a.m4a" }, "es", "", "consent-1");
+  assert.equal(new URL(calls[2].url, "https://x").searchParams.has("type"), false);
+  await api.describeSession("s 4", { type: null, goal: "Algo" });
+  assert.equal(calls[3].url, "/api/sessions/s%204");
+  assert.equal(calls[3].init.method, "PATCH");
+  assert.equal(calls[3].init.headers["X-Access-Code"], "code-123");
+  assert.deepEqual(JSON.parse(calls[3].init.body), { type: null, goal: "Algo" }, "null clears a field");
+});
+
 test("the playback cookie is a POST to /api/access/cookie with the code", async () => {
   const { api, calls } = recorder();
   assert.equal(await api.audioCookie(), null);

@@ -117,6 +117,8 @@ class PersonReport:
     weaknesses: List[Point]
     signals: List[Point]
     summary: List[str]
+    conversation_type: Optional[str] = None
+    conversation_goal: Optional[str] = None
 
     @property
     def rated(self) -> List[Row]:
@@ -245,7 +247,9 @@ def build_person_report(
     points to improve those below it; a competency without a rating is
     "not enough evidence", never low. Negative quotes outside the
     points to improve become isolated signals to watch. The transcript
-    is optional: it adds the session length and the time of each quote.
+    is optional: it adds the session length, the time of each quote and
+    the conversation's declared type and goal (shown as context, never
+    used for a level).
     """
     language = catalogue.language
     if language not in TEXTS:
@@ -301,6 +305,12 @@ def build_person_report(
         summary=_summary(
             language, participant, minutes, rows, strengths, weaknesses,
             signal_count,
+        ),
+        conversation_type=(
+            transcript.conversation_type if transcript else None
+        ),
+        conversation_goal=(
+            transcript.conversation_goal if transcript else None
         ),
     )
 

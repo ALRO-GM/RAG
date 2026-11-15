@@ -17,7 +17,9 @@
         "language": {"type": "string", "minLength": 2},
         "started_at": {"type": ["string", "null"], "format": "date-time"},
         "duration": {"type": "number", "minimum": 0},
-        "audio_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+        "audio_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "type": {"type": ["string", "null"], "enum": ["reunion_decision", "lluvia_ideas", "resolucion_problemas", "negociacion", "entrevista", "feedback", "conflicto", "coaching", "venta", "conversacion_libre", "otro", null]},
+        "goal": {"type": ["string", "null"], "minLength": 1, "maxLength": 500}
       }
     },
     "speakers": {

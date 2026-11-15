@@ -136,7 +136,8 @@ class NewSession(BaseModel):
 
     ``consent_version`` is the recording notice the page showed;
     ``num_speakers`` and ``expected_speakers`` are kept on the session
-    for its transcription.
+    for its transcription. ``type`` and ``goal`` describe the
+    conversation (both optional).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -147,6 +148,20 @@ class NewSession(BaseModel):
     consent_version: Optional[str] = Field(default=None, max_length=32)
     num_speakers: Optional[int] = Field(default=None, ge=1)
     expected_speakers: Optional[List[str]] = None
+    type: Optional[str] = Field(default=None, max_length=64)
+    goal: Optional[str] = Field(default=None, max_length=2000)
+
+
+class DescribeRequest(BaseModel):
+    """Body of ``PATCH /api/sessions/{id}``: the conversation's context.
+
+    A field left out keeps its value; ``null`` clears it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Optional[str] = Field(default=None, max_length=64)
+    goal: Optional[str] = Field(default=None, max_length=2000)
 
 
 class TranscriptionRequest(BaseModel):
@@ -219,7 +234,7 @@ def session_json(
         include={
             "id", "title", "language", "started_at", "duration", "state",
             "chunks", "failure", "consent_version", "num_speakers",
-            "expected_speakers",
+            "expected_speakers", "type", "goal",
         },
     )
     if status is not None:
@@ -494,6 +509,7 @@ def create_app(
         session = await run_in_threadpool(
             c.open_session, body.id, body.language, body.title,
             body.consent_version, body.num_speakers, body.expected_speakers,
+            body.type, body.goal,
         )
         return session_json(session)
 
@@ -527,19 +543,25 @@ def create_app(
         language: str = Query(min_length=2, max_length=16),
         title: Optional[str] = Query(default=None, max_length=200),
         consent_version: Optional[str] = Query(default=None, max_length=32),
+        conversation: Optional[str] = Query(
+            default=None, alias="type", max_length=64
+        ),
+        goal: Optional[str] = Query(default=None, max_length=2000),
     ) -> Dict[str, Any]:
         """Create a session from a whole recording sent as the body.
 
         The file name and the size are checked before the session is
         created, so a refused upload leaves nothing behind and can be
         sent again with the same id. ``consent_version`` is the
-        recording notice the page showed.
+        recording notice the page showed; ``type`` and ``goal``
+        describe the conversation.
         """
         kind = recording_format(filename, limits.upload_formats)
         data = await read_body(request, limits.upload_max_bytes)
         session = await run_in_threadpool(
             c.import_recording, session_id, language,
             RecordedAudio(data, kind), title, consent_version,
+            conversation, goal,
         )
         return session_json(session)
 
@@ -570,6 +592,17 @@ def create_app(
         """Show a session with its state, stage, fraction and message."""
         view = await run_in_threadpool(c.show_session, session_id)
         return session_json(view.session, view.status)
+
+    @api.patch("/sessions/{session_id}")
+    async def describe(session_id: str, request: Request) -> Dict[str, Any]:
+        """Set or change the conversation type and goal, in any state."""
+        body = parse_json(
+            DescribeRequest, await read_body(request, limits.json_max_bytes)
+        )
+        changes = {key: getattr(body, key) for key in body.model_fields_set}
+        return session_json(await run_in_threadpool(
+            c.describe_session, session_id, changes
+        ))
 
     @api.post("/sessions/{session_id}/transcription", status_code=202)
     async def queue(session_id: str, request: Request) -> Dict[str, Any]:

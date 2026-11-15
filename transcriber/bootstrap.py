@@ -126,6 +126,7 @@ from transcriber.application.record import (
     AppendAudio,
     CloseSession,
     DeleteSession,
+    DescribeSession,
     ImportRecording,
     OpenSession,
 )
@@ -198,6 +199,7 @@ class TranscriberContainer:
     append_audio: AppendAudio
     close_session: CloseSession
     import_recording: ImportRecording
+    describe_session: DescribeSession
     delete_session: DeleteSession
     enrol_speaker: EnrolSpeaker
     forget_speaker: ForgetSpeaker
@@ -434,6 +436,7 @@ def build_container(
         import_recording=ImportRecording(
             sessions, locks, recogniser.supported_languages
         ),
+        describe_session=DescribeSession(sessions, locks),
         delete_session=DeleteSession(
             sessions, locks, LabSessionData(lab.repository, lab.status),
             publisher if isinstance(publisher, HttpTranscriptPublisher)

@@ -13,7 +13,7 @@ previous speaker and utterance of every turn).
 
 import json
 import re
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal, Optional, Tuple, get_args
 
 from pydantic import (
     AwareDatetime,
@@ -43,8 +43,31 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+ConversationType = Literal[
+    "reunion_decision", "lluvia_ideas", "resolucion_problemas",
+    "negociacion", "entrevista", "feedback", "conflicto", "coaching",
+    "venta", "conversacion_libre", "otro",
+]
+"""The kind of conversation, declared by whoever recorded it.
+
+``docs/skills/CONVERSATION.md`` §4: declared, never inferred. It is
+context for whoever reads an analysis, not an input to a rating.
+"""
+
+CONVERSATION_TYPES: Tuple[str, ...] = get_args(ConversationType)
+"""Every value of :data:`ConversationType`."""
+
+GOAL_MAX_LENGTH = 500
+"""Longest ``session.goal`` the contract allows, in characters."""
+
+
 class ContractSession(_Strict):
-    """The recorded session a transcript belongs to."""
+    """The recorded session a transcript belongs to.
+
+    ``type`` and ``goal`` (added to ``transcript.v1`` compatibly, both
+    optional) are the conversation's kind and what it was for, as the
+    person who recorded it declared them.
+    """
 
     id: str = Field(pattern=SESSION_ID_PATTERN)
     title: Optional[str] = None
@@ -53,6 +76,10 @@ class ContractSession(_Strict):
     duration: float = Field(ge=0, allow_inf_nan=False)
     audio_sha256: Optional[str] = Field(
         default=None, pattern=r"^[0-9a-f]{64}$"
+    )
+    type: Optional[ConversationType] = None
+    goal: Optional[str] = Field(
+        default=None, min_length=1, max_length=GOAL_MAX_LENGTH
     )
 
 
