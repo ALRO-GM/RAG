@@ -10,6 +10,7 @@ from src.application.skills.evidence import EvidenceRetriever
 from src.domain.errors import InvalidInputError
 from src.domain.skills.assessment import (
     CompetencyAssessment,
+    Observation,
     SessionAssessment,
 )
 from src.domain.skills.transcript import Transcript
@@ -119,13 +120,24 @@ def test_verified_evidence_and_rating_are_kept() -> None:
 
 
 def test_hallucinated_quotes_are_rejected_and_rating_withheld() -> None:
-    """Invented quotes are counted; too little real evidence, no rating."""
+    """Invented quotes are counted; too little real evidence, no rating.
+
+    The one real quote still gives a provisional estimate (#103).
+    """
     item = cell(assess(), "Tom", "listening")
-    assert (item.status, item.rating) == ("insufficient_evidence", None)
+    assert (item.status, item.rating) == ("provisional", None)
     assert [(e.turn, e.indicator_id) for e in item.evidence] == [(1, "L3")]
     assert (item.proposed, item.rejected) == (3, 2)
     assert item.flags == ["below_minimum_evidence"]
     assert item.candidate_turns == [1, 4, 7]
+    assert item.estimate is not None
+    assert (item.estimate.rating, item.estimate.confidence) == (2, "low")
+    assert item.estimate.reasons == [
+        "few_quotes", "single_episode", "short_participation",
+    ]
+    assert (item.estimate.quotes, item.estimate.needed) == (1, 2)
+    assert item.estimate.judge_rating == 2
+    assert [o.source for o in item.observed()] == ["below_minimum"]
 
 
 def test_min_incidents_one_lets_a_single_incident_rate() -> None:
@@ -477,9 +489,13 @@ def test_threshold_above_every_cosine_drops_all_evidence() -> None:
 def test_single_episode_evidence_is_withheld() -> None:
     """Two turns of one exchange do not make a rating with 2 episodes."""
     item = cell(assess(min_episodes=2), "Maya", "listening")
-    assert (item.status, item.rating) == ("insufficient_evidence", None)
+    assert (item.status, item.rating) == ("provisional", None)
     assert item.flags == ["single_episode"]
     assert len(item.evidence) == 2
+    assert item.estimate is not None
+    assert item.estimate.rating == 4
+    assert "single_episode" in item.estimate.reasons
+    assert "few_quotes" not in item.estimate.reasons
 
 
 def test_episode_gap_decides_what_one_exchange_is() -> None:
@@ -543,3 +559,112 @@ def test_person_ids_start_and_type_come_from_the_transcript() -> None:
     tom = result.scorecard("Tom")
     assert tom is not None and tom.person_id is None
     assert result.scorecard_of_person("nobody") is None
+
+
+# ------------------------------------------ provisional estimates (#103)
+
+
+def confirmed(turn: int, indicator: str, text: str = "x") -> Observation:
+    """Return a sentence step f confirmed."""
+    return Observation(
+        turn=turn, quote=text, indicator_id=indicator,
+        polarity="negative" if indicator in ("L3", "P2") else "positive",
+        source="confirmation", start=10.0 * turn, sentence_id=f"t{turn}.s0",
+    )
+
+
+def test_confirmations_alone_give_a_labelled_estimate() -> None:
+    """No usable judge reply, one confirmed sentence: low estimate."""
+    judge = scripted(SCRIPT)
+    result = service(judge).assess(
+        make_transcript(), CATALOGUE,
+        confirmed=[confirmed(5, "P1", "I will finish it by Wednesday")],
+    )
+    item = cell(result, "Priya", "planning")
+    assert (item.status, item.rating) == ("provisional", None)
+    assert item.flags == ["unparseable_reply"]
+    assert item.estimate is not None
+    assert item.estimate.model_dump() == {
+        "rating": 4, "confidence": "low",
+        "reasons": ["only_confirmations", "single_episode",
+                    "no_judge_rating", "short_participation"],
+        "quotes": 0, "confirmations": 1, "needed": 2,
+        "words": result.team.of("Priya").words, "judge_rating": None,
+    }
+    assert [(o.source, o.sentence_id, o.start) for o in item.observations] \
+        == [("confirmation", "t5.s0", 50.0)]
+    assert len(judge.calls) == 6
+    assert result.format_version == 2
+
+
+def test_confirmations_go_to_the_speaker_and_are_not_doubled() -> None:
+    """The turn decides whose; unknown ones and judge quotes drop out."""
+    result = service().assess(make_transcript(), CATALOGUE, confirmed=[
+        confirmed(1, "L3"), confirmed(99, "L1"), confirmed(0, "X9"),
+        confirmed(0, "L1"), confirmed(0, "L1"),
+    ])
+    tom = cell(result, "Tom", "listening")
+    assert tom.observations == []
+    assert [o.source for o in tom.observed()] == ["below_minimum"]
+    maya = cell(result, "Maya", "listening")
+    assert (maya.status, maya.estimate, maya.observations) == (
+        "rated", None, [],
+    )
+    assert maya.observed() == []
+    card = result.scorecard("Tom")
+    assert card is not None and card.tiers() == (1, 1, 1)
+
+
+def test_a_quote_below_the_similarity_is_an_observation() -> None:
+    """Real but far from its indicator: kept apart, lowers confidence."""
+    judge = scripted({("Maya", "listening"): judge_reply(
+        [(0, "What do you mean exactly", "L1"),
+         (3, "So if I understood correctly", "L3")], rating=4,
+    )})
+    result = service(
+        judge, FakeEmbedder(dim=256), min_similarity=0.2
+    ).assess(make_transcript(), CATALOGUE, ["Maya"], ["listening"])
+    item = cell(result, "Maya", "listening")
+    weak, = item.observations
+    assert (weak.turn, weak.indicator_id, weak.source) == (
+        3, "L3", "weak_match",
+    )
+    assert weak.similarity is not None and weak.similarity < 0.2
+    assert item.estimate is not None
+    assert "weak_match" in item.estimate.reasons
+    assert item.estimate.quotes == 2
+    assert item.estimate.confidence == "low"
+
+
+def test_too_few_turns_still_reads_the_confirmations() -> None:
+    """No judge call; a confirmed sentence still gives an estimate."""
+    transcript = make_transcript([
+        ("A", "What do you mean exactly by that sentence?"),
+        ("B", "Ok."),
+        ("A", "So if I understood correctly we all agree."),
+        ("B", "I will finish it by Wednesday, the whole thing."),
+        ("A", "Great, thanks a lot for doing that."),
+        ("B", "Yes."),
+    ])
+    judge = scripted({}, default=MAYA_LISTENING)
+    result = service(judge).assess(
+        transcript, CATALOGUE, ["B"], confirmed=[confirmed(3, "P1")],
+    )
+    planning = cell(result, "B", "planning")
+    assert planning.status == "provisional"
+    assert planning.flags == ["too_few_turns"]
+    assert planning.estimate is not None
+    assert planning.estimate.rating == 4
+    assert cell(result, "B", "listening").status == "insufficient_evidence"
+    assert judge.calls == []
+
+
+def test_the_word_floor_keeps_observations_but_gives_no_estimate() -> None:
+    """Too quiet for any level, even a provisional one."""
+    transcript = make_transcript([*MEETING_EN, ("Zoe", "I agree, sure.")])
+    result = service(scripted(SCRIPT), min_words=10).assess(
+        transcript, CATALOGUE, confirmed=[confirmed(8, "L1")],
+    )
+    item = cell(result, "Zoe", "listening")
+    assert (item.status, item.estimate) == ("insufficient_evidence", None)
+    assert [o.turn for o in item.observed()] == [8]

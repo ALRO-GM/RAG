@@ -92,7 +92,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -104,7 +106,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -116,7 +120,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -128,7 +134,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -140,21 +148,24 @@
               "quote": "Marta, ¿y tú qué te llevas de este sprint?",
               "indicator_id": "INCL.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 15,
               "quote": "Antes de cerrar, ¿alguien cree que se nos queda algo? Luis, Marta.",
               "indicator_id": "INCL.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 17,
               "quote": "¿Estamos todos de acuerdo? Entonces: revisiones en un día, con una sugerencia concreta, a prueba dos semanas. Lo apunto.",
               "indicator_id": "INCL.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -162,7 +173,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -174,7 +187,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -186,7 +201,8 @@
               "quote": "Yo lo noté. Cuando por fin explicaste lo de las consultas, nos convenciste a todos. Te diría que lo plantees con los números desde el principio, como hoy.",
               "indicator_id": "FEEDB.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -194,7 +210,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -206,14 +224,16 @@
               "quote": "Esta es la revisión del sprint. La idea es decirnos qué ha ido bien y qué cambiaríamos, sin buscar culpables. ¿Empieza alguien?",
               "indicator_id": "COORD.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 17,
               "quote": "¿Estamos todos de acuerdo? Entonces: revisiones en un día, con una sugerencia concreta, a prueba dos semanas. Lo apunto.",
               "indicator_id": "COORD.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -221,7 +241,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -233,7 +255,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -245,7 +269,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -257,7 +283,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -288,7 +316,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -300,7 +330,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -312,21 +344,24 @@
               "quote": "Estoy de acuerdo con el plazo. Y propondría algo más: que quien revisa deje al menos una sugerencia concreta, no solo un visto bueno, porque así aprendemos todos.",
               "indicator_id": "INFLU.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 7,
               "quote": "Lo hacemos a veces. En las últimas diez revisiones, siete eran solo un «ok». Si quieres te lo enseño.",
               "indicator_id": "INFLU.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 16,
               "quote": "Solo una cosa: propongo probar lo de las sugerencias dos semanas y ver si las revisiones mejoran. Si no sirve, lo quitamos y ya está.",
               "indicator_id": "INFLU.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -334,7 +369,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -346,14 +383,16 @@
               "quote": "Empiezo yo. Luis, la prueba de carga que montaste el jueves nos ahorró por lo menos dos días: con esos números decidimos en diez minutos.",
               "indicator_id": "COLLAB.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 13,
               "quote": "Vale. Luis, ¿me explicas cómo montaste el entorno de la prueba de carga? Así la próxima la preparo yo.",
               "indicator_id": "COLLAB.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -361,7 +400,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -373,7 +414,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -385,7 +428,8 @@
               "quote": "Lo hacemos a veces. En las últimas diez revisiones, siete eran solo un «ok». Si quieres te lo enseño.",
               "indicator_id": "CONFL.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -393,7 +437,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -405,14 +451,16 @@
               "quote": "Empiezo yo. Luis, la prueba de carga que montaste el jueves nos ahorró por lo menos dos días: con esos números decidimos en diez minutos.",
               "indicator_id": "FEEDB.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 10,
               "quote": "Que me cuesta decir que no estoy de acuerdo en el momento. En la reunión de la base de datos me callé y luego me arrepentí. ¿Cómo lo veis vosotros?",
               "indicator_id": "FEEDB.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -420,7 +468,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -432,7 +482,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -444,7 +496,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -456,7 +510,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -468,7 +524,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -499,7 +557,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -511,7 +571,8 @@
               "quote": "Vale, no lo sabía. Entonces sí, me parece bien.",
               "indicator_id": "LISTEN.P6",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -519,7 +580,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -531,7 +594,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -543,7 +608,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -555,7 +622,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -567,7 +636,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -579,14 +650,16 @@
               "quote": "Y yo a veces voy muy lanzado, lo sé. Si me paso, decídmelo.",
               "indicator_id": "FEEDB.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 14,
               "quote": "Claro. Mañana a las diez te lo enseño paso a paso, y si algo no queda claro lo vemos juntos.",
               "indicator_id": "FEEDB.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -594,7 +667,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -606,7 +681,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -618,7 +695,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -630,21 +709,24 @@
               "quote": "Gracias. Y os cuento que el parche sigue puesto y aguanta: llevamos una semana sin caídas, lo he mirado esta mañana.",
               "indicator_id": "INIT.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 4,
               "quote": "Las revisiones de código tardan demasiado. Propongo que cada uno revise como mucho al día siguiente, y me apunto el primero.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 14,
               "quote": "Claro. Mañana a las diez te lo enseño paso a paso, y si algo no queda claro lo vemos juntos.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -652,7 +734,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -664,12 +748,15 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     }
   ],
   "seconds": 0.0,
   "started_at": "2026-10-23T11:00:00+02:00",
-  "conversation_type": "feedback"
+  "conversation_type": "feedback",
+  "format_version": 1
 }

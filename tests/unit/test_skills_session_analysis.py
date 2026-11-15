@@ -14,6 +14,7 @@ from src.application.skills.session_analysis import (
     AnalysisResults,
     JudgeSetup,
     SessionAnalysis,
+    confirmed_observations,
     most_promising,
     step_table,
 )
@@ -21,6 +22,7 @@ from src.application.skills.tagging import (
     SentenceTag,
     SentenceTagger,
     TagConfirmer,
+    TagDecision,
     TaggedSentence,
 )
 from src.domain.errors import (
@@ -238,6 +240,64 @@ def test_the_whole_flow_records_every_step_and_its_results() -> None:
     assert any(
         s.status == "running" for r in store.saved for s in r.steps
     )
+
+
+def test_step_f_confirmations_become_estimates_and_observations() -> None:
+    """The judge rates nothing; what step f confirmed is not lost (#103).
+
+    Step g makes no extra call for it: one per person and competency.
+    """
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=reply)
+    run = build(model, store=store).run("s1")
+    confirmed = run.step("confirmation").counts["confirmed"]
+    counts = run.step("assessment").counts
+    assert counts["rated"] == 0 and counts["provisional"] > 0
+    assert counts["observations"] == confirmed
+    assert len(model.calls) == confirmed + 3 * 2
+    stored = json.loads(store.files[("s1", "assessment.json")])
+    assert stored["format_version"] == 2
+    cell = stored["scorecards"][0]["assessments"][0]
+    assert cell["status"] == "provisional"
+    assert cell["estimate"]["reasons"][0] == "only_confirmations"
+    assert {o["source"] for o in cell["observations"]} == {"confirmation"}
+    assert all(o["sentence_id"] for o in cell["observations"])
+    summary = json.loads(store.files[("s1", "summary.json")])
+    maya = summary["people"][0]
+    assert maya["rated"] == 0 and maya["provisional"] > 0
+    assert maya["observations"] > 0 and maya["why"]
+    assert set(maya["estimates"]) <= {"listening", "planning"}
+    assert maya["words"] > 0 and summary["min_incidents"] == 1
+    page = store.files[("s1", "report-1.html")]
+    assert "Provisional estimates and observations" in page
+    scorecard = store.files[("s1", "scorecard.md")]
+    assert "provisional ~" in scorecard
+    assert "[confirmed by the judge sentence by sentence]" in scorecard
+
+
+def test_only_the_first_judges_confirmations_are_observations() -> None:
+    """Rejected, unparsed and second-judge decisions are left out."""
+    sentence = Sentence(id="t0.s0", turn=0, index=0, speaker="Maya",
+                        text="What do you mean", start=1.5)
+    tag = SentenceTag(indicator_id="L1", competency_id="listening",
+                      polarity="positive", score=0.5)
+    items = [
+        TaggedSentence(sentence=sentence, tags=[tag], decision=TagDecision(
+            status="confirmed", indicator_id="L1", competency_id="listening",
+            polarity="positive",
+        )),
+        TaggedSentence(sentence=sentence, tags=[tag], decision=TagDecision(
+            status="rejected"), second_decision=TagDecision(
+            status="confirmed", indicator_id="L1", polarity="positive")),
+        TaggedSentence(sentence=sentence, tags=[tag], decision=TagDecision(
+            status="confirmed", indicator_id=None)),
+        TaggedSentence(sentence=sentence, tags=[tag]),
+    ]
+    found, = confirmed_observations(items)
+    assert (found.turn, found.quote, found.start, found.sentence_id) == (
+        0, "What do you mean", 1.5, "t0.s0",
+    )
+    assert (found.source, found.polarity) == ("confirmation", "positive")
 
 
 def test_results_and_reports_are_read_back_by_step() -> None:

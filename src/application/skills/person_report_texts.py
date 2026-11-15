@@ -182,6 +182,92 @@ TEXTS: Dict[str, Dict[str, str]] = {
             "Prueba: una frase dicha por la persona, copiada tal cual de "
             "la transcripción, que muestra la conducta."
         ),
+        "band_provisional": "Estimación provisional — revisar",
+        "legend_provisional": (
+            "Estimación provisional: círculo hueco. Hay alguna prueba, "
+            "pero no basta para un nivel firme; es una hipótesis para "
+            "revisar."
+        ),
+        "estimate_score": "~{rating}",
+        "estimate_label": (
+            "Estimación provisional — revisar: nivel {rating} de "
+            "{maximum}, confianza {confidence}"
+        ),
+        "confidence_low": "baja",
+        "confidence_medium": "media",
+        "s_provisional": (
+            "En {count} competencias hay una estimación provisional: una "
+            "hipótesis para que el entrevistador la revise, no una "
+            "valoración."
+        ),
+        "s_provisional_one": (
+            "En una competencia hay una estimación provisional: una "
+            "hipótesis para que el entrevistador la revise, no una "
+            "valoración."
+        ),
+        "s_tiers": (
+            "Valoraciones firmes: {firm} · estimaciones provisionales: "
+            "{provisional} · observaciones: {observations}."
+        ),
+        "review": "Estimaciones provisionales y observaciones",
+        "review_text": (
+            "Aquí hubo algo de evidencia, pero no la suficiente para un "
+            "nivel firme. Cada estimación es una hipótesis; cada "
+            "observación es una frase real de la persona, con su minuto, "
+            "para comprobarla en la transcripción."
+        ),
+        "review_none": (
+            "No hay estimaciones provisionales ni observaciones: lo que "
+            "se vio tiene nivel firme o no se vio nada."
+        ),
+        "observations_only": "Sin estimación: solo observaciones",
+        "why_not_firm": "Por qué no es firme",
+        "observed_items": "Observaciones",
+        "reason.few_quotes": "{quotes} de {needed} citas necesarias",
+        "reason.only_confirmations": (
+            "solo frases confirmadas por el juez una a una, sin cita en "
+            "la valoración"
+        ),
+        "reason.single_episode": "un solo momento de la conversación",
+        "reason.weak_match": (
+            "alguna cita se parece poco a la conducta descrita"
+        ),
+        "reason.no_judge_rating": (
+            "el modelo no propuso nivel; se estima por el signo (+/−) de "
+            "las frases"
+        ),
+        "reason.short_participation": "participación corta: {words} palabras",
+        "source.below_minimum": "cita comprobada; no llega al mínimo",
+        "source.weak_match": "cita comprobada; poco parecida a la conducta",
+        "source.confirmation": "confirmada por el juez frase a frase",
+        "why_title": "Por qué hay pocas valoraciones firmes",
+        "why.short_recording": "La grabación es corta.",
+        "why.little_participation": (
+            "{participant} habló poco: unas {words} palabras."
+        ),
+        "why.below_floor": (
+            "{participant} habló menos del mínimo para valorar; no se "
+            "pidió ninguna valoración al modelo."
+        ),
+        "why.few_quotes_proposed": (
+            "El modelo propuso pocas citas: menos de las {needed} por "
+            "competencia que pide un nivel firme."
+        ),
+        "why.quotes_filtered": (
+            "La mitad o más de las citas propuestas no pasaron las "
+            "comprobaciones (no estaban tal cual en la transcripción o se "
+            "parecían poco a la conducta)."
+        ),
+        "why.not_shown": (
+            "La conversación no mostró lo bastante de estas conductas."
+        ),
+        "limits_provisional": (
+            "Las estimaciones provisionales son hipótesis para el "
+            "entrevistador, no valoraciones: se apoyan en menos pruebas "
+            "de las necesarias y hay que comprobarlas en la transcripción."
+        ),
+        "tile_provisional": "Estimaciones provisionales",
+        "tile_observations": "{count} observaciones",
     },
     "en": {
         "title": "Report on {participant}",
@@ -350,6 +436,89 @@ TEXTS: Dict[str, Dict[str, str]] = {
             "Evidence: a sentence said by the person, copied exactly from "
             "the transcript, that shows the behaviour."
         ),
+        "band_provisional": "Provisional estimate — review",
+        "legend_provisional": (
+            "Provisional estimate: hollow circle. There is some evidence, "
+            "but not enough for a firm level; it is a hypothesis to "
+            "review."
+        ),
+        "estimate_score": "~{rating}",
+        "estimate_label": (
+            "Provisional estimate — review: level {rating} of {maximum}, "
+            "{confidence} confidence"
+        ),
+        "confidence_low": "low",
+        "confidence_medium": "medium",
+        "s_provisional": (
+            "{count} competencies have a provisional estimate: a "
+            "hypothesis for the interviewer to check, not an assessment."
+        ),
+        "s_provisional_one": (
+            "One competency has a provisional estimate: a hypothesis for "
+            "the interviewer to check, not an assessment."
+        ),
+        "s_tiers": (
+            "Firm levels: {firm} · provisional estimates: {provisional} · "
+            "observations: {observations}."
+        ),
+        "review": "Provisional estimates and observations",
+        "review_text": (
+            "There was some evidence here, but not enough for a firm "
+            "level. Each estimate is a hypothesis; each observation is a "
+            "real sentence of the person, with its minute, to check in "
+            "the transcript."
+        ),
+        "review_none": (
+            "No provisional estimates or observations: what was seen has "
+            "a firm level, or nothing was seen."
+        ),
+        "observations_only": "No estimate: observations only",
+        "why_not_firm": "Why it is not firm",
+        "observed_items": "Observations",
+        "reason.few_quotes": "{quotes} of {needed} quotes needed",
+        "reason.only_confirmations": (
+            "only sentences the judge confirmed one by one, no quote in "
+            "the assessment"
+        ),
+        "reason.single_episode": "a single moment of the conversation",
+        "reason.weak_match": (
+            "a quote looks little like the behaviour described"
+        ),
+        "reason.no_judge_rating": (
+            "the model proposed no level; estimated from the sign (+/−) "
+            "of the sentences"
+        ),
+        "reason.short_participation": "short participation: {words} words",
+        "source.below_minimum": "checked quote; below the minimum",
+        "source.weak_match": "checked quote; little like the behaviour",
+        "source.confirmation": "confirmed by the judge sentence by sentence",
+        "why_title": "Why there are few firm levels",
+        "why.short_recording": "The recording is short.",
+        "why.little_participation": (
+            "{participant} spoke little: about {words} words."
+        ),
+        "why.below_floor": (
+            "{participant} spoke less than the minimum to assess; the "
+            "model was not asked for any level."
+        ),
+        "why.few_quotes_proposed": (
+            "The model proposed few quotes: fewer than the {needed} per "
+            "competency a firm level needs."
+        ),
+        "why.quotes_filtered": (
+            "Half or more of the proposed quotes failed the checks (not "
+            "verbatim in the transcript, or little like the behaviour)."
+        ),
+        "why.not_shown": (
+            "The conversation did not show enough of these behaviours."
+        ),
+        "limits_provisional": (
+            "Provisional estimates are hypotheses for the interviewer, not "
+            "assessments: they rest on less evidence than needed and must "
+            "be checked in the transcript."
+        ),
+        "tile_provisional": "Provisional estimates",
+        "tile_observations": "{count} observations",
     },
 }
 """Report wording per language; ``{nN}`` marks the footnote calls."""

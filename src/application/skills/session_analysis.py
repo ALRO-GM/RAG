@@ -13,7 +13,10 @@ e. ``events``: decisions, action items, unanswered questions (#83),
    do not exist;
 f. ``confirmation``: the selected judge confirms or rejects the
    candidates (Claude Code, the local model behind it, or both);
-g. ``assessment``: evidence per person and scorecards;
+g. ``assessment``: evidence per person and scorecards, with a
+   provisional estimate and observations where there is some evidence
+   but not enough for a firm level (#103, using step f's
+   confirmations; no extra judge call);
 h. ``reports``: one HTML page per person and the session summary.
 
 Every step's result is stored under the session
@@ -72,7 +75,7 @@ from src.domain.skills.analysis_run import (
     shown_status,
     steps_to_run,
 )
-from src.domain.skills.assessment import SessionAssessment
+from src.domain.skills.assessment import Observation, SessionAssessment
 from src.domain.skills.interaction import describe
 from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
@@ -129,6 +132,32 @@ def judge_models(
     """Return the models that made the decisions of ``tagged``."""
     decisions = [t.second_decision if second else t.decision for t in tagged]
     return sorted({d.model for d in decisions if d is not None and d.model})
+
+
+def confirmed_observations(
+    tagged: Sequence[TaggedSentence],
+) -> List[Observation]:
+    """Return step f's confirmed sentences as observations.
+
+    Only the first judge's decisions count (in ``both`` mode the second
+    one is a comparison). The judge's reason is left out: nothing a
+    model writes reaches the reports.
+    """
+    found: List[Observation] = []
+    for item in tagged:
+        decision = item.decision
+        if (
+            decision is None or decision.status != "confirmed"
+            or not decision.indicator_id or decision.polarity is None
+        ):
+            continue
+        found.append(Observation(
+            turn=item.sentence.turn, quote=item.sentence.text,
+            indicator_id=decision.indicator_id, polarity=decision.polarity,
+            source="confirmation", start=item.sentence.start,
+            sentence_id=item.sentence.id,
+        ))
+    return found
 
 
 def most_promising(
@@ -710,8 +739,13 @@ class SessionAnalysis:
         rubric = c.rubric(self)
         service = setup.assessment
         before = setup.budget.calls if setup.budget else 0
+        stored = self._stored(session_id, "confirmation") or {}
+        confirmed = confirmed_observations([
+            TaggedSentence.model_validate(item)
+            for item in stored.get("sentences", [])
+        ])
         try:
-            result = service.assess(c.transcript, rubric)
+            result = service.assess(c.transcript, rubric, confirmed=confirmed)
         finally:
             release(service.judge)
         output = self._write(
@@ -734,14 +768,13 @@ class SessionAnalysis:
             counts={
                 "participants": len(cards),
                 "judgements": sum(len(card.assessments) for card in cards),
-                "rated": sum(
-                    1 for card in cards for a in card.assessments
-                    if a.rating is not None
-                ),
+                "rated": sum(card.tiers()[0] for card in cards),
+                "provisional": sum(card.tiers()[1] for card in cards),
                 "evidence": sum(
                     len(a.evidence) for card in cards
                     for a in card.assessments
                 ),
+                "observations": sum(card.tiers()[2] for card in cards),
                 **calls,
             },
         )
@@ -762,10 +795,15 @@ class SessionAnalysis:
             )
             name = report_file(position)
             self.store.write(session_id, name, render_person_html(report))
+            firm, provisional, observed = card.tiers()
             people.append({
                 "position": position, "name": card.participant,
                 "report": name,
-                "rated": len(report.rated),
+                "rated": firm,
+                "provisional": provisional,
+                "observations": observed,
+                "why": report.why,
+                "words": card.interaction.words,
                 "competencies": len(report.rows),
                 "strengths": [p.name for p in report.strengths],
                 "to_improve": [p.name for p in report.weaknesses],
@@ -773,11 +811,16 @@ class SessionAnalysis:
                 "ratings": {
                     a.competency_id: a.rating for a in card.assessments
                 },
+                "estimates": {
+                    a.competency_id: a.estimate.model_dump()
+                    for a in card.assessments if a.estimate is not None
+                },
             })
         output = self._write(session_id, "reports", {
             "session_id": session_id, "language": language,
             "synthetic": c.synthetic, "judge_model": result.judge_model,
             "scorecard": SCORECARD_FILE, "people": people,
+            "min_incidents": result.min_incidents,
             "open_issues": [i.model_dump() for i in c.open_issues],
         })
         return StepRecord(

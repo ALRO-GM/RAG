@@ -16,7 +16,7 @@ export const COUNT_KEYS = [
   "sentences", "speakers", "turns", "words", "with_candidates", "candidates",
   "sent", "not_sent", "confirmed", "rejected", "unparsed", "participants",
   "judgements", "rated", "evidence", "reports", "doubtful", "by_encoder",
-  "by_rules", "judge_calls",
+  "by_rules", "judge_calls", "provisional", "observations",
 ];
 
 /** The 13 dialogue-act categories (their names are in the dictionaries). */
@@ -94,7 +94,40 @@ export function tagged(result) {
   return (result?.sentences ?? []).filter((s) => (s.tags ?? []).length);
 }
 
-/** Rows of the assessment: one per person, competency → rating or null. */
+/** Why a provisional estimate is not firm (the RAG's codes, #103). */
+export const REASONS = [
+  "few_quotes", "only_confirmations", "single_episode", "weak_match", "no_judge_rating", "short_participation",
+];
+
+/** Why a person has few firm levels (the RAG's codes, #103). */
+export const WHY = [
+  "short_recording", "little_participation", "below_floor", "few_quotes_proposed", "quotes_filtered", "not_shown",
+];
+
+/** Where an observation comes from (the RAG's codes, #103). */
+export const SOURCES = ["below_minimum", "weak_match", "confirmation"];
+
+/**
+ * One cell of the assessment: a firm level, a provisional estimate
+ * (labelled, with its confidence) or nothing. Older analyses have no
+ * estimates and give firm levels or nothing.
+ */
+export function cellOf(item) {
+  if (typeof item?.rating === "number") return { kind: "firm", rating: item.rating };
+  if (item?.status === "provisional" && typeof item.estimate?.rating === "number") {
+    return { kind: "provisional", rating: item.estimate.rating, confidence: item.estimate.confidence ?? "low" };
+  }
+  return { kind: "none", rating: null };
+}
+
+/** The text of a cell: "4", "~3" (provisional) or "–". */
+export function cellText(cell) {
+  if (cell.kind === "firm") return String(cell.rating);
+  if (cell.kind === "provisional") return `~${cell.rating}`;
+  return "–";
+}
+
+/** Rows of the assessment: one per person, competency → firm rating or null, and every cell. */
 export function ratingRows(assessment) {
   const cards = assessment?.scorecards ?? [];
   const competencies = [];
@@ -103,11 +136,62 @@ export function ratingRows(assessment) {
   }
   return {
     competencies,
-    people: cards.map((card) => ({
-      name: card.participant,
-      ratings: competencies.map((id) => (card.assessments ?? []).find((a) => a.competency_id === id)?.rating ?? null),
-    })),
+    people: cards.map((card) => {
+      const items = competencies.map((id) => (card.assessments ?? []).find((a) => a.competency_id === id));
+      return { name: card.participant, ratings: items.map((a) => a?.rating ?? null), cells: items.map(cellOf) };
+    }),
   };
+}
+
+/**
+ * What a reviewer should check of one competency, in speaking order:
+ * nothing for a firm level; otherwise its quotes below the minimum and
+ * its observations (as the RAG's `CompetencyAssessment.observed`).
+ */
+export function observed(item) {
+  if (!item || item.status === "rated" || typeof item.rating === "number") return [];
+  const quotes = (item.evidence ?? []).map((e) => ({ ...e, source: "below_minimum" }));
+  return [...quotes, ...(item.observations ?? [])].sort((a, b) => (a.turn ?? 0) - (b.turn ?? 0));
+}
+
+/** Per person: how many firm levels, provisional estimates and observations, and what to review. */
+export function reviewRows(assessment) {
+  return (assessment?.scorecards ?? []).map((card) => {
+    const items = card.assessments ?? [];
+    const review = items
+      .map((a) => ({
+        competency: a.competency_id,
+        estimate: a.status === "provisional" ? a.estimate ?? null : null,
+        observations: observed(a),
+      }))
+      .filter((r) => r.estimate || r.observations.length);
+    return {
+      name: card.participant,
+      words: card.interaction?.words ?? 0,
+      firm: items.filter((a) => typeof a.rating === "number").length,
+      provisional: review.filter((r) => r.estimate).length,
+      observations: review.reduce((n, r) => n + r.observations.length, 0),
+      review,
+    };
+  });
+}
+
+/** Why an estimate is not firm, in words. */
+export function reasonText(t, code, estimate) {
+  if (!REASONS.includes(code)) return code;
+  return t(`sa.reason_${code}`, { quotes: estimate?.quotes ?? 0, needed: estimate?.needed ?? 0, words: estimate?.words ?? 0 });
+}
+
+/** Why a person has few firm levels, in words. */
+export function whyText(t, code, person, needed) {
+  if (!WHY.includes(code)) return code;
+  return t(`sa.why_${code}`, { name: person?.name ?? "", words: person?.words ?? 0, needed: needed ?? 0 });
+}
+
+/** The page of the transcript at a moment (whole seconds), or the transcript itself. */
+export function transcriptLink(session, seconds) {
+  const base = `#/s/${encodeURIComponent(session)}`;
+  return typeof seconds === "number" && Number.isFinite(seconds) && seconds >= 0 ? `${base}/t/${Math.floor(seconds)}` : base;
 }
 
 /** The sentences of an acts.v1 document with their weighted labels (best first). */

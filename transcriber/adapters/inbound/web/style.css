@@ -539,3 +539,5 @@ details.pending, details.samples-box { background: var(--surface); border: 1px s
 .help-competency > summary { min-height: var(--target); display: flex; align-items: center; cursor: pointer; }
 .help-link { display: inline-flex; align-items: center; justify-content: center; min-width: var(--target); min-height: var(--target); font-weight: 700; text-decoration: none; }
 .help-section { margin: 1.2rem 0; }
+.analysis-steps td.provisional { font-style: italic; color: var(--muted); }
+.analysis-steps details.review { margin-top: 0.5rem; }

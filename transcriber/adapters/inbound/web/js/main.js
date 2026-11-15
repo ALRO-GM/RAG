@@ -65,7 +65,7 @@ const ROUTES = [
   [/^#?\/?$/, sessionsView],
   [/^#\/record(?:\/([^/]+))?$/, recordView],
   [/^#\/enrol$/, enrolView],
-  [/^#\/s\/([^/]+)$/, transcriptView],
+  [/^#\/s\/([^/]+)(?:\/t\/(\d{1,6}))?$/, transcriptView],
   [/^#\/analysis\/([^/]+)$/, analysisView],
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],

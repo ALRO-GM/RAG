@@ -105,7 +105,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -117,7 +119,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -129,7 +133,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -141,7 +147,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -153,7 +161,8 @@
               "quote": "No exactamente, Luis. Irene, sigue, que antes te hemos cortado.",
               "indicator_id": "INCL.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -161,7 +170,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -173,7 +184,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -185,7 +198,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -197,21 +212,24 @@
               "quote": "Vale, el problema es que ayer el servidor se cayó dos veces con unos trescientos clientes conectados. Hoy quiero que entendamos por qué antes de tocar nada.",
               "indicator_id": "COORD.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 15,
               "quote": "Irene, ¿cuánto crees que os lleva revisar el cierre de las conexiones?",
               "indicator_id": "COORD.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 19,
               "quote": "Resumiendo: Luis pone el parche hoy, Marta e Irene revisan el código en dos días y el viernes lo vemos juntos.",
               "indicator_id": "COORD.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -219,7 +237,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -231,7 +251,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -243,7 +265,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -255,7 +279,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -286,7 +312,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -298,21 +326,24 @@
               "quote": "Pues entonces será la red, que siempre da problemas.",
               "indicator_id": "LISTEN.N1",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 7,
               "quote": "Eso es lo que he dicho yo, que es la red.",
               "indicator_id": "LISTEN.N2",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 10,
               "quote": "El código está bien, lo escribí yo. Ponemos el tiempo máximo y nos olvidamos.",
               "indicator_id": "LISTEN.N1",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -320,7 +351,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -332,7 +365,8 @@
               "quote": "El código está bien, lo escribí yo. Ponemos el tiempo máximo y nos olvidamos.",
               "indicator_id": "INFLU.N2",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -340,7 +374,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -352,7 +388,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -364,7 +402,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -376,7 +416,8 @@
               "quote": "Que no, que es perder el tiempo.",
               "indicator_id": "CONFL.N2",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -384,7 +425,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -396,7 +439,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -408,7 +453,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -420,7 +467,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -432,21 +481,24 @@
               "quote": "Es la memoria, seguro. Si queréis, esta tarde amplío la memoria de la máquina y mañana lo vemos.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 14,
               "quote": "Bueno, vale. Yo pongo el parche esta tarde.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 18,
               "quote": "Y el viernes os cuento cómo ha ido el parche en producción, con los números.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -454,7 +506,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -466,7 +520,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -497,7 +553,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -509,7 +567,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -521,7 +581,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -533,7 +595,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -545,7 +609,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -557,7 +623,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -569,7 +637,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -581,7 +651,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -593,21 +665,24 @@
               "quote": "Yo he mirado los registros. La memoria estaba al cuarenta por ciento cuando se cayó, así que no creo que sea eso.",
               "indicator_id": "SOLVE.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 5,
               "quote": "Sí, y ahí está el problema: las conexiones se quedaban abiertas. Iban subiendo hasta unas mil y entonces se paraba todo.",
               "indicator_id": "SOLVE.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 9,
               "quote": "Veo dos opciones: poner un tiempo máximo a cada conexión, o revisar el código que las cierra. Yo empezaría por el código, porque lo otro solo esconde el fallo.",
               "indicator_id": "SOLVE.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -615,7 +690,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -627,7 +704,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -639,7 +718,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -670,7 +751,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -682,21 +765,24 @@
               "quote": "Irene, has dicho que la memoria estaba al cuarenta por ciento. ¿Y el número de conexiones abiertas, lo viste en los registros?",
               "indicator_id": "LISTEN.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 6,
               "quote": "Entonces, si lo he entendido bien, el problema no es cuánta gente entra, sino que las conexiones no se cierran.",
               "indicator_id": "LISTEN.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 17,
               "quote": "Sí, yo preparo las pruebas de carga para mañana por la mañana. Irene, ¿te va bien empezar por el módulo de sesiones, que es donde viste las mil conexiones?",
               "indicator_id": "LISTEN.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -704,7 +790,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -716,14 +804,16 @@
               "quote": "Yo estoy con Irene. Si solo ponemos el tiempo máximo, el día de la demo con quinientas personas nos vuelve a pasar, y la demo es justo el objetivo de este mes.",
               "indicator_id": "INFLU.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 13,
               "quote": "Te entiendo, Luis, lo del tiempo máximo es rápido y algo arregla. ¿Qué te parece si lo ponemos hoy como parche y a la vez Irene y yo revisamos el código?",
               "indicator_id": "INFLU.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -731,7 +821,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -743,7 +835,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -755,7 +849,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -767,14 +863,16 @@
               "quote": "Yo estoy con Irene. Si solo ponemos el tiempo máximo, el día de la demo con quinientas personas nos vuelve a pasar, y la demo es justo el objetivo de este mes.",
               "indicator_id": "CONFL.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 13,
               "quote": "Te entiendo, Luis, lo del tiempo máximo es rápido y algo arregla. ¿Qué te parece si lo ponemos hoy como parche y a la vez Irene y yo revisamos el código?",
               "indicator_id": "CONFL.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -782,7 +880,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -794,7 +894,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -806,7 +908,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -818,7 +922,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -830,7 +936,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -842,12 +950,15 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     }
   ],
   "seconds": 0.0,
   "started_at": "2026-10-14T16:30:00+02:00",
-  "conversation_type": "resolucion_problemas"
+  "conversation_type": "resolucion_problemas",
+  "format_version": 1
 }

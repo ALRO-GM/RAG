@@ -42,8 +42,8 @@ The model's output never reaches the scorecard unchecked.
 | Speaker | The turn must be spoken by the assessed participant | Credit for someone else's words |
 | Citation | A quote found in another of the participant's turns is re-attributed to it | Wrong turn number |
 | Indicator | The indicator id must belong to the competency; polarity is read from the rubric, never from the model | Invented indicators, flipped signs |
-| Second opinion | The cosine between the turn and the cited indicator must reach `min_similarity` | A real quote filed under a behaviour it does not show |
-| Minimum evidence | A rating needs `min_incidents` (3) distinct turns of surviving evidence from `min_episodes` (2) separate exchanges, else "insufficient evidence" | Ratings from one remark or one exchange |
+| Second opinion | The cosine between the turn and the cited indicator must reach `min_similarity`; below it the quote is only an observation (§13) | A real quote filed under a behaviour it does not show |
+| Minimum evidence | A rating needs `min_incidents` (3) distinct turns of surviving evidence from `min_episodes` (2) separate exchanges; with less, a labelled provisional estimate (§13), and "insufficient evidence" only when nothing was seen | Ratings from one remark or one exchange |
 | Breadth at the extremes | The top rating needs two different positive indicators, the bottom one two negative incidents; otherwise it moves one point to the centre | Extreme ratings on narrow evidence |
 | Participation floor | A participant under `min_participant_words` words gets no rating at all | Scoring silence as a deficit |
 | Scale | Ratings off the scale are discarded | Format errors |
@@ -445,7 +445,8 @@ CSS and SVG), readable at phone width, printable, light or dark.
 | Qué significa | Situations seen (1) against the ~4 recommended (`RESEARCH.md` §1, §6), competencies with a level, length; what a level is; the limits box (no emotion or personality from the voice, speaking time is not leadership) | assessment, transcript, rubric scale |
 | Gráficas | One row per competency: the level on its scale, a written band and a shape (circle strong, square middle, triangle to improve), filled dots for the evidence against the minimum; dashed and "sin datos suficientes" when unrated, never low. A radar of the rated ones only when there are ≥ 5 | assessment |
 | Puntos fuertes / a mejorar | Rated above / below the centre of the scale, with their verified quotes (speaker, minute, indicator) and two examples of how the competency helps or hurts at work, in a team or in a negotiation | assessment, rubric `practice` |
-| Conductas aisladas | Verified negative quotes outside the points to improve: too few for a level, shown for the assessor to check | assessment |
+| Conductas aisladas | Verified negative quotes of a rated competency outside the points to improve, shown for the assessor to check | assessment |
+| Estimaciones provisionales y observaciones | Competencies without a firm level: the provisional estimate (hollow mark, "revisar", confidence, why it is not firm) and the sentences to check with their minute; a "why few firm levels" box under the summary and a line "Valoraciones firmes: N · estimaciones provisionales: M · observaciones: K" (§13) | assessment |
 | Notas | Footnotes for competency, assessor, situation, level and evidence | `person_report_texts.py` |
 
 No sentence is written by a model when the page is built. The
@@ -542,7 +543,7 @@ transcripts the transcriber publishes) and stores each result under
 | d. `acts`: dialogue acts per sentence, up to three weighted labels, "dudoso" below each category's threshold | `acts.json` (`acts.v1`) | port `DialogueActTagger`, adapter `TaggerActStep` over the #82 tagger (`skills acts`): the card's choice, the fine-tuned encoder (`data/models/act-tagger/…`), or the rules when its weights are missing; the record names the approach, the margin and how many first labels are doubtful; `unavailable` only when no tagger card exists |
 | e. `events`: decisions, action items, open questions, fate of proposals | `events.json` | port `EventExtractor`: the rules of #83 (`conversation_events.analyse`) over step d's acts; `unavailable` without them |
 | f. `confirmation`: the judge confirms or rejects the candidates | `confirmation.json` | the selected judge (§4.3); at most `max_confirmations` sentences, best candidate first |
-| g. `assessment`: evidence per person and scorecards | `assessment.json`, `scorecard.md` | the same judge (§1) |
+| g. `assessment`: evidence per person and scorecards; provisional estimates and observations from step f and the set-aside quotes (§13) | `assessment.json`, `scorecard.md` | the same judge (§1) |
 | h. `reports`: one HTML page per person, the session summary | `report-<n>.html`, `summary.json` | `person_report*.py` (§10) |
 
 `run.json` holds one record per step: status (`pending`, `running`,
@@ -602,3 +603,77 @@ información 59, aceptación 32, propuesta 28, pregunta 24, respuesta 20,
 compromiso 18, relación 12, opinión 12, escucha 10, rechazo 10,
 gestión 8, petición 5. Not checked against a human reading of the
 script.
+
+## 13. Provisional estimates and observations (#103)
+
+A firm level needs the minimum evidence of §2 (3 verified turns from 2
+exchanges). A short interview or a busy debate rarely reaches it, and
+a report with nothing in it does not help the interviewer. Below the
+firm level there is now a second, lenient tier, labelled everywhere
+(`assessment.json`, `scorecard.md`, the person page and the web):
+
+| Result | When | Shown as |
+|---|---|---|
+| `rated` | The rules of §2, unchanged | "4 / 5" |
+| `provisional` | No firm level, but at least one verified quote of the judge (kept, or set apart by the similarity check) or one sentence confirmed in step f, for that person and competency | "~4 / 5 — estimación provisional, revisar", confidence and the reasons it is not firm |
+| `insufficient_evidence` | Nothing at all, or the person is under the participation floor | "—" |
+
+The rule (`domain/skills/provisional.py`), with no new judge call:
+
+- **Level.** The judge's own rating when it gave one on the scale;
+  otherwise the side the evidence leans to (more + than −: one point
+  above the centre; more −: one below; even: the centre, rounded
+  down).
+- **Bounds.** Never an extreme of the scale (on 1–5: 2 to 4), and
+  never on the other side of the centre from evidence that is all
+  positive or all negative (then the centre); a moved level is
+  flagged `estimate_bounded`.
+- **Confidence.** `medium` with at least two distinct turns from two
+  exchanges, a rating from the judge, no quote below the similarity
+  threshold and at least 300 words from the person; `low` otherwise.
+- **Reasons.** `few_quotes` (n of the 3 needed), `only_confirmations`,
+  `single_episode`, `weak_match`, `no_judge_rating`,
+  `short_participation` (under 300 words).
+- **Participation floor.** Under `min_participant_words` there is no
+  estimate at all (silence is not evidence); step f's confirmations
+  are still listed as observations.
+
+**Observations** are the real sentences a reviewer should check for a
+competency without a firm level, each with its turn, time and
+indicator (+/−): verified quotes below the minimum (`below_minimum`),
+verified quotes whose cosine is under `min_similarity` (`weak_match`,
+no longer discarded) and the sentences the judge of step f confirmed
+(`confirmation`, with their sentence id). Step f's sentences never
+count towards a firm level and are not repeated when the judge quoted
+the same turn and indicator.
+
+**Why few firm levels.** When fewer than half of a person's
+competencies are firm, the page says why: a recording under 10
+minutes, under 300 words from the person, under the participation
+floor, the judge proposing fewer quotes per competency than a level
+needs, half or more of its quotes failing the checks, or otherwise
+that the conversation did not show these behaviours.
+
+The 300 words, 10 minutes and "half" are display choices, not
+measured values. Strengths and points to improve use firm levels
+only; provisional ones have their own section ("Estimaciones
+provisionales y observaciones"), and the limits box adds that they are
+hypotheses for the interviewer, not assessments. On the web
+(`#/analysis/<id>`) the assessment table shows `~n` for an estimate,
+each person's line "N firmes, M provisionales, K observaciones", and
+every observation's minute links to that moment of the transcript
+(`#/s/<id>/t/<seconds>`; not for simulated sessions, which only the
+analysis has).
+
+`assessment.json` has `format_version: 2`; files without it are
+version 1 and still make reports (no estimates, no observations).
+`summary.json` adds per person `provisional`, `observations`, `why`,
+`words` and `estimates`, and `min_incidents`.
+
+Demo, `--steps assessment,reports` again on the simulated discussion
+(2026-11-15, cached judge replies, 0 judge calls, assessment 3.8 s on
+CPU): 7 firm levels (as before), 29 provisional estimates (all `low`)
+and 88 observations (54 `weak_match` among them) over 44 person ×
+competency cells; 8 cells have nothing. Per person: Lucía 4 firm,
+5 provisional, 13 observations; Andrés 2, 7, 21; Nerea 0, 9, 33;
+Joaquín 1, 8, 21. Not checked against a human reading of the script.
