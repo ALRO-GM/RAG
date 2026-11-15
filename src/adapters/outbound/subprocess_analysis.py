@@ -12,7 +12,11 @@ Each child runs in its own process group, with a reduced environment
 (no variable whose name holds TOKEN, SECRET, PASSWORD or KEY: the
 RAG's bearer token never reaches it), is stopped after ``timeout``
 seconds, can be stopped on request (cancel, deleted session) and is
-stopped when the server process exits. At most ``max_running``
+stopped when the server process exits. A stop sends SIGTERM to the
+child's group (the child turns it into a clean exit that kills its
+judge) and, once the child is gone, kills the groups of every
+descendant it had started in a session of its own (``claude -p``), so
+no judge outlives a cancelled analysis. At most ``max_running``
 children run at once. Session ids are checked by the caller and again
 here, passed as one quoted argument so the command line never turns an
 id like ``1e5`` into a number, and never go through a shell.
@@ -27,13 +31,72 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from src.domain.errors import BusyError, LimitError, RagError
 from src.domain.skills.transcript_contract import is_session_id
 
 SECRET = re.compile(r"TOKEN|SECRET|PASSWORD|KEY", re.IGNORECASE)
 """Names of environment variables never handed to a child."""
+
+
+def descendants(pid: int, proc: Path = Path("/proc")) -> List[Tuple[int, int]]:
+    """Return ``(pid, process group)`` of every descendant of ``pid``.
+
+    Read from ``/proc``; where it does not exist the answer is empty.
+    """
+    parents: Dict[int, List[Tuple[int, int]]] = {}
+    try:
+        entries = list(proc.iterdir())
+    except OSError:
+        return []
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        stat = _stat(entry)
+        if stat is not None:
+            parent, group = stat
+            parents.setdefault(parent, []).append((int(entry.name), group))
+    found: List[Tuple[int, int]] = []
+    todo = [pid]
+    while todo:
+        for child in parents.get(todo.pop(), []):
+            found.append(child)
+            todo.append(child[0])
+    return found
+
+
+def _stat(entry: Path) -> Optional[Tuple[int, int]]:
+    """Return ``(parent pid, process group)`` of a ``/proc/<pid>`` entry."""
+    try:
+        text = (entry / "stat").read_text()
+    except OSError:
+        return None
+    fields = text.rpartition(")")[2].split()
+    if len(fields) < 3 or fields[0] == "Z":
+        return None
+    return int(fields[1]), int(fields[2])
+
+
+def kill_groups(
+    pid: int, family: List[Tuple[int, int]], proc: Path = Path("/proc")
+) -> None:
+    """SIGKILL the groups of ``family`` that are not ``pid``'s own.
+
+    A process is killed only when it still lives in the same group, so
+    a reused pid is left alone; this server's group is never touched.
+    """
+    own = os.getpgrp()
+    for member, group in family:
+        if group in (pid, own):
+            continue
+        stat = _stat(proc / str(member))
+        if stat is None or stat[1] != group:
+            continue
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
 
 
 def child_environment(environ: Mapping[str, str]) -> Dict[str, str]:
@@ -166,10 +229,12 @@ class SubprocessAnalysisLauncher:
         self.stop(session_id)
 
     def _terminate(self, child: "subprocess.Popen[bytes]") -> None:
-        """Stop the child's whole process group; kill it if it lingers."""
+        """Stop the child's group, then its descendants' own groups."""
+        family = descendants(child.pid)
         try:
             os.killpg(child.pid, signal.SIGTERM)
         except ProcessLookupError:
+            kill_groups(child.pid, family)
             return
         deadline = time.monotonic() + self.grace
         while child.poll() is None and time.monotonic() < deadline:
@@ -180,6 +245,7 @@ class SubprocessAnalysisLauncher:
             except ProcessLookupError:
                 pass
             child.wait()
+        kill_groups(child.pid, family)
 
     def _alive(self, session_id: str) -> bool:
         """Tell whether the child is alive; forget it once it ended."""

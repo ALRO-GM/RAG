@@ -1,7 +1,10 @@
 """Review fixes of #88: retention, limits, cancel, time-out, environment."""
 
 import json
+import os
+import signal
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -10,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.adapters.inbound.http_api import TranscriptRoutes, create_app
+from src.adapters.inbound.skills_cli import exit_on_sigterm
 from src.adapters.outbound.fs_analysis_store import (
     FileSystemAnalysisStore,
     FileSystemSessionOutputs,
@@ -23,6 +27,8 @@ from src.adapters.outbound.fs_transcript_store import (
 from src.adapters.outbound.subprocess_analysis import (
     SubprocessAnalysisLauncher,
     child_environment,
+    descendants,
+    kill_groups,
 )
 from src.application.answering import AnswerService
 from src.application.search import SearchService
@@ -284,3 +290,108 @@ def test_forget_without_analysis_and_outputs_is_harmless(
     transcripts = FileSystemTranscriptStore(str(tmp_path / "t"))
     with pytest.raises(NotFoundError):
         ForgetIngestedTranscript(transcripts, [outputs])("nothing")
+
+
+class Spawner(SubprocessAnalysisLauncher):
+    """The real launcher running a child that starts a judge-like helper.
+
+    The helper (a grandchild) runs in a session of its own, as ``claude
+    -p`` does, and writes its pid to ``helper.pid``.
+    """
+
+    def command(
+        self, session_id: str, restart: bool, synthetic: bool
+    ) -> List[str]:
+        """Start a sleeping grandchild in a new session, then sleep."""
+        target = self.analysis_dir / "helper.pid"
+        return [sys.executable, "-c",
+                "import subprocess, sys, time; "
+                "p = subprocess.Popen([sys.executable, '-c', "
+                "'import time; time.sleep(60)'], start_new_session=True); "
+                f"open({str(target)!r}, 'w').write(str(p.pid)); "
+                "time.sleep(60)"]
+
+
+def gone(pid: int) -> bool:
+    """Tell whether ``pid`` has ended (absent or a zombie)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return True
+    return stat.rpartition(")")[2].split()[0] == "Z"
+
+
+@pytest.mark.skipif(not Path("/proc/self/stat").exists(),
+                    reason="needs /proc")
+def test_stopping_kills_a_helper_in_its_own_session(tmp_path: Path) -> None:
+    """A cancelled analysis leaves no judge process behind."""
+    launcher = Spawner(tmp_path, str(tmp_path / "t"), str(tmp_path / "a"),
+                       grace=2)
+    launcher.start("s1", False, False)
+    marker = tmp_path / "a" / "helper.pid"
+    assert wait_until(lambda: marker.exists() and marker.read_text() != "")
+    helper = int(marker.read_text())
+    assert not gone(helper)
+    assert launcher.stop("s1") is True
+    assert wait_until(lambda: gone(helper))
+
+
+def test_descendants_and_kill_groups_read_proc(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The tree comes from ``stat``; zombies, odd entries and reused pids
+    are skipped; no ``/proc`` means no descendants."""
+    proc = tmp_path / "proc"
+    for pid, text in {
+        10: "10 (a b) S 1 10 x", 11: "11 (judge)) S 10 11 x",
+        12: "12 (helper) S 11 11 x", 13: "13 (dead) Z 10 13 x",
+        14: "14 (x) S", 99: "99 (other) S 1 99 x",
+    }.items():
+        (proc / str(pid)).mkdir(parents=True)
+        (proc / str(pid) / "stat").write_text(text)
+    (proc / "self").mkdir()
+    (proc / "15").mkdir()  # no stat file
+    assert sorted(descendants(10, proc)) == [(11, 11), (12, 11)]
+    assert descendants(10, tmp_path / "missing") == []
+    killed: List[int] = []
+    monkeypatch.setattr(
+        "src.adapters.outbound.subprocess_analysis.os.killpg",
+        lambda group, sig: killed.append(group),
+    )
+    kill_groups(10, [(11, 11), (12, 11), (16, 16), (99, 98), (10, 10)], proc)
+    assert killed == [11, 11]
+
+    def refuse(group: int, sig: int) -> None:
+        raise ProcessLookupError
+
+    monkeypatch.setattr(
+        "src.adapters.outbound.subprocess_analysis.os.killpg", refuse
+    )
+    kill_groups(10, [(11, 11)], proc)
+
+
+def test_sigterm_becomes_a_clean_exit_while_analysing() -> None:
+    """SIGTERM raises SystemExit(143) inside the block, so ``finally``
+    blocks (the judge's group kill) run; the old handler comes back."""
+    before = signal.getsignal(signal.SIGTERM)
+    cleaned: List[str] = []
+    with pytest.raises(SystemExit) as stopped:
+        with exit_on_sigterm():
+            try:
+                os.kill(os.getpid(), signal.SIGTERM)
+                time.sleep(5)
+            finally:
+                cleaned.append("judge killed")
+    assert stopped.value.code == 143
+    assert cleaned == ["judge killed"]
+    assert signal.getsignal(signal.SIGTERM) == before
+    outcome: List[str] = []
+
+    def in_thread() -> None:
+        with exit_on_sigterm():
+            outcome.append("ran")
+
+    worker = threading.Thread(target=in_thread)
+    worker.start()
+    worker.join()
+    assert outcome == ["ran"]

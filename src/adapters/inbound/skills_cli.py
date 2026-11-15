@@ -1,8 +1,13 @@
 """Inbound adapter: soft-skills commands (``python -m src skills ...``)."""
 
 import json
+import signal
+import sys
+import threading
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from types import FrameType
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
 
 from pydantic import ValidationError
 
@@ -79,6 +84,31 @@ from src.domain.skills.transcript import Transcript
 from src.skills_bootstrap import SkillsContainer
 
 Guard = Callable[[Callable[..., Any]], Callable[..., Any]]
+
+
+@contextmanager
+def exit_on_sigterm() -> Iterator[None]:
+    """Turn SIGTERM into ``SystemExit(143)`` while the block runs.
+
+    A stopped analysis (cancel, time-out, deleted session, server
+    shutdown) gets SIGTERM; without this it would die on the spot and
+    the ``finally`` that kills the judge's own process group (``claude
+    -p`` runs in a session of its own) would never run. Outside the
+    main thread signals cannot be handled and nothing changes.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    def leave(signum: int, frame: Optional[FrameType]) -> None:
+        """Exit so that every ``finally`` block runs."""
+        sys.exit(128 + signum)
+
+    previous = signal.signal(signal.SIGTERM, leave)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGTERM, previous)
 
 
 def parse_names(value: Any) -> Optional[List[str]]:
@@ -700,10 +730,11 @@ class SkillsCLI:
 
         print(f"Analysing {session} (results in "
               f"{app.settings.analysis_dir}/{session})", flush=True)
-        run = analysis.run(
-            str(session), bool(restart), bool(synthetic), on_step=show,
-            only=parse_names(steps),
-        )
+        with exit_on_sigterm():
+            run = analysis.run(
+                str(session), bool(restart), bool(synthetic), on_step=show,
+                only=parse_names(steps),
+            )
         print()
         for name, status, seconds, who, detail in step_table(run):
             print(f"{name:<13} {status:<11} {seconds:>7}  {who}")
