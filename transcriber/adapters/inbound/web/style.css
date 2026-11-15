@@ -527,3 +527,15 @@ details.pending, details.samples-box { background: var(--surface); border: 1px s
 .chip { display: inline-block; padding: 0 0.4rem; margin: 0 0.15rem; border-radius: 6px; border: 1px solid var(--line); font-size: 0.85rem; color: var(--muted); }
 .analysis-steps details > summary { min-height: var(--target); display: flex; align-items: center; }
 .analysis-steps .plain > li { overflow-wrap: anywhere; }
+
+/* Help for the analysis (#/help/analysis) */
+.help-list { margin: 0; display: grid; gap: 0.8rem; }
+.help-item { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem 0.9rem; }
+.help-item dt { font-weight: 700; }
+.help-item dd { margin: 0.2rem 0 0; }
+.help-item dd.help-example { color: var(--muted); }
+.help-toc { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.help-competency { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.3rem 0.9rem; }
+.help-competency > summary { min-height: var(--target); display: flex; align-items: center; cursor: pointer; }
+.help-link { display: inline-flex; align-items: center; justify-content: center; min-width: var(--target); min-height: var(--target); font-weight: 700; text-decoration: none; }
+.help-section { margin: 1.2rem 0; }
