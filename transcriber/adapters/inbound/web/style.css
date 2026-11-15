@@ -68,13 +68,23 @@ a { color: var(--accent); }
 .top {
   background: var(--surface);
   border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .top nav {
   display: flex;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 46rem;
-  margin: 0 auto;
 }
+
+/* The ES | EN switch: beside the links, or on its own line above them on a phone. */
+.top .lang { display: flex; align-items: center; gap: 0.1rem; padding: 0 0.4rem; color: var(--muted); }
+.top .lang button { min-height: var(--target); min-width: 2.75rem; padding: 0 0.4rem; border: 0; background: none; color: var(--muted); font-weight: 600; }
+.top .lang button[aria-pressed="true"] { color: var(--text); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.3em; }
+.top .lang button:hover:not(:disabled) { background: var(--active); }
 
 .top a {
   flex: 1;
@@ -451,7 +461,12 @@ kbd { font: 0.75rem ui-monospace, monospace; border: 1px solid var(--line); bord
 .save-state { font-weight: 600; color: var(--muted); }
 .save-state.saved { color: var(--ok); }
 .save-state.failed { color: var(--danger); }
-@media (max-width: 30rem) { .top a { font-size: 0.82rem; padding: 0 0.2rem; overflow-wrap: normal; hyphens: auto; } }
+@media (max-width: 30rem) {
+  .top a { font-size: 0.82rem; padding: 0 0.2rem; overflow-wrap: normal; hyphens: auto; }
+  .top nav { flex-basis: 100%; }
+  .top .lang { order: -1; flex-basis: 100%; justify-content: flex-end; border-bottom: 1px solid var(--line); }
+  .top .lang button { min-height: 36px; font-size: 0.9rem; }
+}
 
 /* Pruebas overview: progress bars, results charts, pending steps, samples. */
 .lab-progress h3 { margin: 0.6rem 0 0; font-size: 1.05rem; }

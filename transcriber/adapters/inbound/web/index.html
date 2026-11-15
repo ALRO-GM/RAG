@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
-  <title>Transcriptor</title>
+  <title data-i18n="app.title">Transcriptor</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="js/main.js"></script>
@@ -19,6 +19,11 @@
       <a href="#/lab" data-i18n="nav.lab">Pruebas</a>
       <a href="research.html" data-i18n="nav.research">Investigación</a>
     </nav>
+    <div class="lang" role="group" data-i18n-label="lang.switch" aria-label="Idioma">
+      <button type="button" data-lang="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
+      <span aria-hidden="true">|</span>
+      <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+    </div>
   </header>
   <main id="app" tabindex="-1"></main>
   <noscript><p class="notice">Esta página necesita JavaScript. / This page needs JavaScript.</p></noscript>

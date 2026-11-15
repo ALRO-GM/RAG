@@ -3,7 +3,7 @@
 // fetched once per run and kept while the tab stays on that run.
 
 import { fill, h, svg } from "../dom.js";
-import { t } from "../i18n.js";
+import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   denoiserTable, heatClass, idPart, pairMatrix, sortRows, withReference,
@@ -22,11 +22,11 @@ export function breathe() {
 }
 
 export function pct(value) {
-  return value === null || value === undefined || !Number.isFinite(value) ? "—" : `${(value * 100).toFixed(1)} %`;
+  return value === null || value === undefined || !Number.isFinite(value) ? "—" : percent(value);
 }
 
 export function num(value, digits = 1) {
-  return value === null || value === undefined || !Number.isFinite(value) ? "—" : value.toFixed(digits);
+  return value === null || value === undefined || !Number.isFinite(value) ? "—" : decimal(value, digits);
 }
 
 /** The run's data, fetched once: { results, tracks() }. */
@@ -282,7 +282,7 @@ function effectSection(results) {
   const effects = results.denoiser_effect ?? [];
   return h("section", { class: "stack" }, h("h2", {}, t("lab.effect")), h("p", { class: "hint" }, t("lab.effect_about")),
     effectTable(denoiserTable(effects, "diarize", "agreement"), pct, t("lab.effect_diarize")),
-    effectTable(denoiserTable(effects, "diarize", "consensus_change"), (v) => (v === null || v === undefined ? "—" : `${v > 0 ? "+" : ""}${(v * 100).toFixed(1)}`), t("lab.effect_consensus")),
+    effectTable(denoiserTable(effects, "diarize", "consensus_change"), (v) => (v === null || v === undefined ? "—" : `${v > 0 ? "+" : ""}${decimal(v * 100)}`), t("lab.effect_consensus")),
     effectTable(denoiserTable(effects, "recognise", "wer"), pct, t("lab.effect_recognise")),
     effects.length ? null : h("p", { class: "hint" }, t("lab.no_effect")));
 }

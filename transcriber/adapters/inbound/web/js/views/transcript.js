@@ -1,7 +1,7 @@
 // Transcript player: one row per utterance, click to hear it.
 
 import { h } from "../dom.js";
-import { t } from "../i18n.js";
+import { t, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { describeEditor } from "../describe.js";
@@ -176,7 +176,7 @@ export async function transcriptView(ctx, root, params) {
     if (note?.doubtful) parts.push(note.alternative ? t("transcript.doubtful_or", { name: note.alternative }) : t("transcript.doubtful"));
     if (note?.overlap) parts.push(note.alternative && !note.doubtful ? t("transcript.overlap_with", { name: note.alternative }) : t("transcript.overlap"));
     if (language) parts.push(t("transcript.other_language", { code: language }));
-    const title = note?.certainty == null ? null : t("transcript.certainty", { value: note.certainty.toFixed(2) });
+    const title = note?.certainty == null ? null : t("transcript.certainty", { value: decimal(note.certainty, 2) });
     return h("span", { class: "doubt", title }, parts.join(" · "));
   }
 

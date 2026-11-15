@@ -7,6 +7,9 @@ export const es = {
   "nav.enrol": "Registrar voz",
   "nav.research": "Investigación",
   "nav.main": "Navegación principal",
+  "lang.switch": "Idioma",
+  "lang.busy": "El idioma se puede cambiar cuando termine la grabación.",
+  "research.title": "Investigación: habilidades blandas",
 
   "action.retry": "Reintentar",
   "action.open": "Ver transcripción",

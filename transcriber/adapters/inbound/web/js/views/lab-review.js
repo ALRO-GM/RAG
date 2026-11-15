@@ -2,7 +2,7 @@
 // right text) and the pipelines' scores against those labels.
 
 import { fill, h } from "../dom.js";
-import { t } from "../i18n.js";
+import { t, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { DEFAULT_LEAD, parseLead } from "../lib/transcript.js";
@@ -164,7 +164,7 @@ export async function fragmentsSection(body, env) {
     const label = labelFor(fragment);
     const groups = groupAnswers(fragment.pipelines);
     const variants = textVariants(fragment.pipelines);
-    const span = `${formatTime(fragment.start)}–${formatTime(fragment.end)} (${(fragment.end - fragment.start).toFixed(1)} s)`;
+    const span = `${formatTime(fragment.start)}–${formatTime(fragment.end)} (${decimal(fragment.end - fragment.start)} s)`;
     const button = (text, kind, speakers, keyHint) => h("button", {
       type: "button", class: label && label.kind === kind && (kind !== "person" || label.speakers[0] === speakers[0]) ? "small chosen" : "small",
       "aria-pressed": label && label.kind === kind && (kind !== "person" || label.speakers[0] === speakers[0]) ? "true" : "false",

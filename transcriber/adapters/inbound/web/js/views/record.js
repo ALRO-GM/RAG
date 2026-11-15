@@ -1,7 +1,7 @@
 // Recording page: consent, who is present, record, upload in numbered chunks.
 
 import { h } from "../dom.js";
-import { t, lang } from "../i18n.js";
+import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { Capture, CaptureError } from "../capture.js";
 import { WakeLock, setLeaveGuard } from "../device.js";
@@ -137,7 +137,7 @@ export async function recordView(ctx, root, params) {
 
   function askForCode(state, then) {
     afterCode = then;
-    const mb = (state.pendingBytes / 1e6).toFixed(1);
+    const mb = decimal(state.pendingBytes / 1e6);
     codeNote.textContent = t("record.paused_auth", { seconds: Math.round(state.pendingSeconds), mb });
     if (codeForm.hidden) {
       codeForm.hidden = false;

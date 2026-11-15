@@ -234,6 +234,16 @@ para ese sitio.
 
 Arriba hay tres enlaces: «Sesiones», «Grabar» y «Registrar voz».
 
+**Idioma.** La web está en español y en inglés. La primera vez sale en
+el idioma del navegador; arriba a la derecha (en el teléfono, en una
+línea encima de los enlaces) hay un selector **ES | EN** que la cambia
+y vuelve a dibujar la pantalla en la que estás (lo escrito en un
+formulario sin enviar se borra). El navegador recuerda la
+elección para la próxima vez. Mientras se graba o queda audio por
+enviar, el selector está desactivado: cámbialo al terminar. La página
+de investigación cambia los menús, pero el artículo solo está en
+español (la versión inglesa está en `docs/skills/RESEARCH.md`).
+
 ### Registrar tu voz
 
 **Para qué sirve.** El programa que escribe las palabras no necesita
