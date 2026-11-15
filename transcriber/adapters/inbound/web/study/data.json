@@ -1588,8 +1588,49 @@
   ],
   "tagger": {
    "issue": 82,
-   "status": "pending",
-   "approaches": []
+   "status": "done",
+   "approaches": [
+    {
+     "approach": "llm:claude-code:opus",
+     "items": 140,
+     "accuracy": 0.7429
+    },
+    {
+     "approach": "combined-es",
+     "items": 1534,
+     "accuracy": 0.7321
+    },
+    {
+     "approach": "encoder-es",
+     "items": 1534,
+     "accuracy": 0.7314
+    },
+    {
+     "approach": "llm:Qwen/Qwen3-8B@4bit",
+     "items": 1534,
+     "accuracy": 0.5535
+    },
+    {
+     "approach": "combined",
+     "items": 1534,
+     "accuracy": 0.5502
+    },
+    {
+     "approach": "rules",
+     "items": 1534,
+     "accuracy": 0.5189
+    },
+    {
+     "approach": "encoder",
+     "items": 1534,
+     "accuracy": 0.4296
+    },
+    {
+     "approach": "encoder+T",
+     "items": 1534,
+     "accuracy": 0.4296
+    }
+   ]
   },
   "events": {
    "issue": 83,

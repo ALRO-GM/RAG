@@ -1,0 +1,7683 @@
+{
+ "mode": "local",
+ "items": 1534,
+ "judge": {
+  "mode": "local",
+  "models": [
+   "Qwen/Qwen3-8B@4bit"
+  ]
+ },
+ "first": [
+  {
+   "id": "dec-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t2.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t3.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t3.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t3.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t8.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t9.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t11.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t12.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t14.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t15.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t15.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t17.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t18.s0",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t19.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t20.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t23.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t24.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t24.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t25.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t26.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-01/t26.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t2.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t2.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t2.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t4.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t9.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t10.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t11.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t12.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t18.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t18.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t22.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t23.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t24.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-02/t24.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t0.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t1.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t1.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t2.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t3.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t6.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t6.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t7.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t7.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t9.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t10.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t15.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t16.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t20.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-03/t24.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t1.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t2.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t5.s0",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t6.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t9.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t13.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t14.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t18.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t18.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t19.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t19.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t20.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t23.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t25.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-04/t26.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t1.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t2.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t3.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t3.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t8.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t8.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t11.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t13.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t16.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t17.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t22.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t25.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "dec-05/t26.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t0.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t0.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t1.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t2.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t3.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t4.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t4.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t8.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t9.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t10.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t11.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t13.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t13.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t18.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t19.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t19.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t20.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t21.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t24.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t25.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t26.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t26.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t27.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t28.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-01/t29.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t0.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t0.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t3.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t4.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t6.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t9.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t10.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t11.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t15.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t16.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t16.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t17.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t18.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t19.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t20.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t23.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t24.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t25.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t26.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t27.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t28.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t29.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t30.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t31.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t32.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t33.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t34.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t34.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-02/t35.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t0.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t0.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t1.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t2.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t9.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t11.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t12.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t13.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t13.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t14.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t15.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t16.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t17.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t18.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t19.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t20.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t21.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t22.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t23.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t25.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t26.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t27.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t28.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t29.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t29.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t30.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-03/t31.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t2.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t2.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t4.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t8.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t10.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t12.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t13.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t17.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t18.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t19.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t20.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t21.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t24.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t25.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t26.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t27.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t28.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "llu-04/t29.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t0.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t0.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t3.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t6.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t8.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t9.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t11.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t13.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t15.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t17.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t18.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t19.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t19.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t21.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t23.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-01/t25.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t0.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t0.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t4.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t5.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t11.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t13.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t14.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t16.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t16.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t19.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t20.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t21.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t22.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t23.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t24.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t24.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t25.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t26.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t27.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t27.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-02/t28.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t5.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t7.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t11.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t12.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t16.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t17.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t17.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t18.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t18.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t18.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t19.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t21.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-03/t23.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t0.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t6.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t7.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t7.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t10.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t11.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t12.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t15.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t17.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t18.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t19.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-04/t20.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t0.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t0.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t9.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t10.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t11.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t12.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t13.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t14.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t15.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t16.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t16.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t19.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t20.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t21.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "pro-05/t23.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t2.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t3.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t4.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t4.s2",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t5.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t7.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t9.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t11.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t12.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t12.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t14.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t14.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t15.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t15.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t16.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t16.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t17.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t18.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t19.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-01/t20.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t1.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t2.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t2.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t4.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t5.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t6.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t7.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t7.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t8.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t9.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t9.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t11.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t14.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t15.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t16.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t17.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-02/t18.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t2.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t4.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t6.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t7.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t8.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t9.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t9.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t10.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t14.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t16.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t18.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t19.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t19.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t20.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t22.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-03/t23.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t0.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t3.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t4.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t6.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t9.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t10.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t11.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t11.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t13.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t16.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t18.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t21.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t22.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-04/t24.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t0.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t1.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t3.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t3.s2",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t4.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t5.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t6.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t10.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t10.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t11.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t12.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t15.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "neg-05/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t2.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t3.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t4.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t6.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t8.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t9.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t14.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t14.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t16.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t17.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t17.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t18.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t19.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t19.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t21.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t22.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t22.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t23.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t24.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t24.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t25.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t26.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t27.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t27.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t28.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t29.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t30.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-01/t31.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t2.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t2.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t7.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t8.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t9.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t9.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t10.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t10.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t12.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t13.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t13.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t14.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t15.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t16.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t17.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t18.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t18.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-02/t20.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t2.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t3.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t7.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t8.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t9.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t11.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t13.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t14.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t16.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t16.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t18.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t19.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t20.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t20.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t20.s2",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-03/t21.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t2.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t9.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t11.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t12.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t12.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t16.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t17.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t17.s1",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t17.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t18.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t18.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t19.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t20.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ent-04/t21.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t2.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t2.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t5.s2",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t6.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t6.s2",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t7.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t10.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t13.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t14.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t15.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t16.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-01/t16.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t0.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t2.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t3.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t4.s1",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t4.s2",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t5.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t7.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t9.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t10.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t11.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t12.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t13.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t14.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-02/t16.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t4.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t8.s1",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t9.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t13.s1",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t14.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t14.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t15.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-03/t16.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t0.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t5.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t6.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t6.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t7.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t7.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t11.s2",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-04/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t2.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t2.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t4.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t4.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t4.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t6.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t6.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t7.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t7.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t9.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t11.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t11.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t12.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t14.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t16.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "fee-05/t17.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t0.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t0.s2",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t1.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t1.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t3.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t5.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t6.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t7.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t8.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t11.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t12.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t12.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t13.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t15.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t15.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t17.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t17.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t19.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t20.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t23.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-01/t23.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t0.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t1.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t3.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t3.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t5.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t9.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t11.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t16.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t17.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t19.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t20.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t21.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t24.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t25.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t26.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t27.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t28.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t29.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-02/t30.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t0.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t2.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t4.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t5.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t7.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t8.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t11.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t12.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t13.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t13.s2",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t14.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t14.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t15.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t15.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t15.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t16.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t16.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t17.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t17.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-03/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t0.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t1.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t3.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t3.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t6.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t7.s0",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t8.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t9.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t9.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t11.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t12.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t18.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t19.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t19.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t20.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t21.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t21.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t22.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t23.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t24.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t25.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t26.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-04/t27.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t0.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t2.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t5.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t7.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t9.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t10.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t12.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t13.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t13.s1",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t15.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "con-05/t17.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t0.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t1.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t1.s1",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t2.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t7.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t7.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t8.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t8.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t10.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t13.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t13.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t14.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t16.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t17.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t18.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t19.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t19.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t20.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t21.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t22.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t23.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-01/t24.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t2.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t2.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t3.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t6.s0",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t10.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t11.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t12.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t12.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t13.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t14.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t15.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t16.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t18.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t18.s2",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t19.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t20.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t21.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-02/t21.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t0.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t1.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t2.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t3.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t4.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t4.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t7.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t7.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t8.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t8.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t8.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t9.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t12.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t13.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t14.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t15.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t16.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-03/t17.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t2.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t3.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t6.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t7.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t9.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t12.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t13.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t14.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t15.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "coa-04/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t2.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t2.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t4.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t4.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t5.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t8.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t9.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t10.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t13.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t17.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t17.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t18.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t19.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-01/t20.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t0.s1",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t2.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t8.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t10.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t10.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t13.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t14.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t18.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t19.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-02/t20.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t1.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t3.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t7.s0",
+   "act": null,
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t8.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t10.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t11.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t13.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t15.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t16.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t17.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t18.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t20.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t21.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-03/t22.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t3.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t5.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t8.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t9.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t10.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t11.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t11.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t12.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t13.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t14.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t15.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t16.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t18.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t20.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-04/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t3.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t7.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t8.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t9.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t15.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t16.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t17.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t19.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t20.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t21.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t22.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t23.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t24.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t24.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "ven-05/t25.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t2.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t2.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t2.s2",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t3.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t3.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t3.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t4.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t5.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t8.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t9.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t10.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t12.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t13.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t16.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t17.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t17.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t18.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t19.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t20.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t21.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t22.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t23.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t24.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t25.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t26.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t27.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t28.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t29.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t30.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t31.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-01/t32.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t0.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t0.s1",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t0.s2",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t1.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t1.s2",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t2.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t4.s1",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t6.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t8.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t9.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t9.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t10.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t11.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t13.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t13.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t14.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t16.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-02/t16.s1",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t2.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t3.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t5.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t6.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t8.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t9.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t9.s1",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t9.s2",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t9.s3",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t9.s4",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t10.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t11.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t11.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t12.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t13.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t14.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t16.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t17.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t18.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-03/t19.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t0.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t0.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t1.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t2.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t2.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t3.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t4.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t4.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t4.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t5.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t5.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t6.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t6.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t9.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t10.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t10.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t12.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t13.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t13.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t15.s1",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t16.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t16.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t17.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-04/t18.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t0.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t2.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t3.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t4.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t5.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t6.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t7.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t8.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t9.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t9.s1",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t10.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t10.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t11.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t12.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t13.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t14.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t15.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t16.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t17.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t18.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t19.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t20.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t21.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t21.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t22.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t23.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t24.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t25.s0",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t26.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-05/t27.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t1.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t2.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t3.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t5.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t8.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t8.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t8.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t9.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t9.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t9.s2",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t10.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t10.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t11.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t12.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t12.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t12.s2",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t13.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t14.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t14.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-06/t15.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t0.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t1.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t1.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t2.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t2.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t3.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t3.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t4.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t5.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t6.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t7.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t8.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t9.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t10.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t10.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t11.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t12.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t13.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t14.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t15.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t15.s1",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t15.s2",
+   "act": "compromiso",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t16.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "seg-07/t17.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t0.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t0.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t1.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t2.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t3.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t4.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t5.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t5.s1",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t6.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t7.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t8.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t9.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t10.s0",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t11.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t11.s1",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t12.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t13.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t13.s1",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t14.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t15.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t15.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t16.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t17.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t18.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t19.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t19.s1",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t20.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t22.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t23.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-01/t24.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t0.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t1.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t2.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t3.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t4.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t5.s0",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t6.s0",
+   "act": "gestion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t6.s1",
+   "act": "otro",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t6.s2",
+   "act": "escucha",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t7.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t8.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t9.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t10.s0",
+   "act": "rechazo",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t11.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t12.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t13.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t14.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t15.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t16.s0",
+   "act": "opinion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t16.s1",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t17.s0",
+   "act": "pregunta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t18.s0",
+   "act": "informacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t19.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t20.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t21.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t22.s0",
+   "act": "peticion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t23.s0",
+   "act": "respuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t24.s0",
+   "act": "propuesta",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t25.s0",
+   "act": "relacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  },
+  {
+   "id": "esp-02/t26.s0",
+   "act": "aceptacion",
+   "model": "Qwen/Qwen3-8B@4bit"
+  }
+ ],
+ "accuracy": 0.5508
+}

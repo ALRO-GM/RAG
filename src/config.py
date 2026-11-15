@@ -231,6 +231,11 @@ class SkillsSettings(BaseModel):
     human-annotated reference data exists. ``min_similarity`` depends
     on the embedding model and has to be set again whenever that
     model changes.
+
+    ``act_card`` is the dialogue-act tagger's settings (#82), written by
+    ``experiments/skills/act_tagger_eval.py``: its outcome table, the
+    fine-tuned encoder's directory and temperature, the routes of the
+    combination and the "dudoso" thresholds.
     """
 
     rubric_dir: str = "knowledge/rubrics"
@@ -251,6 +256,7 @@ class SkillsSettings(BaseModel):
         "selected", "claude_code", "local", "both", "api"
     ] = "selected"
     judge_state_path: str = "data/skills/judge.json"
+    act_card: str = "knowledge/dialogue_acts/act_tagger.json"
     claude_model: str = DEFAULT_CLAUDE_CODE_MODEL
     claude_effort: Optional[
         Literal["low", "medium", "high", "xhigh", "max"]

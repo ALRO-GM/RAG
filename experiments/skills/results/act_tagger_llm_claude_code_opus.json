@@ -1,0 +1,25 @@
+{
+ "approach": "llm:claude-code:opus",
+ "corpus": "own (Spanish set, 5-fold by dialogue)",
+ "items": 140,
+ "top1_accuracy": 0.7429,
+ "top3_accuracy": 0.8786,
+ "macro_f1": 0.6603,
+ "log_loss": 1.1584,
+ "ece": 0.1241,
+ "f1": {
+  "pregunta": 0.8205,
+  "respuesta": 0.85,
+  "informacion": 0.5333,
+  "opinion": 0.7368,
+  "propuesta": 0.8148,
+  "peticion": 0.4,
+  "aceptacion": 0.6957,
+  "rechazo": 0.5882,
+  "compromiso": 0.8,
+  "escucha": 0.7619,
+  "gestion": 0.8421,
+  "relacion": 0.7407,
+  "otro": 0.0
+ }
+}

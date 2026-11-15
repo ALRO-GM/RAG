@@ -1,0 +1,25 @@
+{
+ "approach": "rules",
+ "corpus": "own (Spanish set, 5-fold by dialogue)",
+ "items": 1534,
+ "top1_accuracy": 0.5189,
+ "top3_accuracy": 0.7308,
+ "macro_f1": 0.449,
+ "log_loss": 1.5249,
+ "ece": 0.0267,
+ "f1": {
+  "pregunta": 0.8405,
+  "respuesta": 0.8182,
+  "informacion": 0.4236,
+  "opinion": 0.2677,
+  "propuesta": 0.3649,
+  "peticion": 0.4471,
+  "aceptacion": 0.2745,
+  "rechazo": 0.1228,
+  "compromiso": 0.0198,
+  "escucha": 0.5652,
+  "gestion": 0.1345,
+  "relacion": 0.758,
+  "otro": 0.8
+ }
+}
