@@ -20,13 +20,16 @@ from src.application.skills.gold import (
     validate_annotations,
 )
 from src.application.skills.lab import lab_dataset
+from src.application.skills.person_report import build_person_report
+from src.application.skills.person_report_html import render_person_html
 from src.application.skills.report import render_scorecards
 from src.application.skills.tagging import render_timeline
 from src.config import SkillsSettings
-from src.domain.errors import InvalidInputError, short_reason
+from src.domain.errors import InvalidInputError, NotFoundError, short_reason
 from src.domain.skills.assessment import SessionAssessment
 from src.domain.skills.interaction import describe
 from src.domain.skills.speech import clock, transcript_sentences
+from src.domain.skills.transcript import Transcript
 from src.skills_bootstrap import SkillsContainer
 
 Guard = Callable[[Callable[..., Any]], Callable[..., Any]]
@@ -56,7 +59,7 @@ class SkillsCLI:
         self._container: Optional[SkillsContainer] = None
         for name in (
             "catalogue", "interaction", "evidence", "assess",
-            "sentences", "tag",
+            "sentences", "tag", "report",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset",
         ):
@@ -215,6 +218,84 @@ class SkillsCLI:
             )
             print(f"{card.participant:<16} {cells}")
         print(f"Saved {path} and {report} ({result.seconds:.1f}s)")
+
+    def _report(
+        self,
+        assessment: str,
+        participant: str,
+        format: str = "html",
+        output: str = "",
+        language: str = "es",
+        transcript: str = "",
+        synthetic: bool = False,
+    ) -> None:
+        """Write the report on one participant for a non-technical reader.
+
+        ``html`` is one self-contained page (summary, what it means,
+        charts, strengths and points to improve with their quotes);
+        ``markdown`` is the technical scorecard of that participant.
+
+        Args:
+            assessment: Session assessment JSON written by ``assess``.
+            participant: Speaker name as in the assessment.
+            format: html or markdown.
+            output: File to write (default:
+                <output_dir>/<session>.<participant>.report.<ext>).
+            language: Language of the page (es, en).
+            transcript: Transcript of the session, for the time of each
+                quote (default: <transcripts_dir>/<session>.*, if any).
+            synthetic: Mark the page as made-up sample data.
+        """
+        app = self._app()
+        kind = str(format).lower()
+        if kind not in ("html", "markdown"):
+            raise InvalidInputError(
+                f"Unknown format {format!r}; choose html or markdown."
+            )
+        result = read_model(str(assessment), SessionAssessment)
+        rubric = app.catalogues.load(result.catalogue, str(language))
+        document = self._session_transcript(result.session_id, transcript)
+        name = str(participant)
+        if kind == "html":
+            text = render_person_html(build_person_report(
+                result, rubric, name, document, bool(synthetic)
+            ))
+        else:
+            card = result.scorecard(name)
+            if card is None:
+                raise InvalidInputError(
+                    f"Unknown participant {name!r}. Assessed: "
+                    + ", ".join(c.participant for c in result.scorecards)
+                    + "."
+                )
+            if document is None:
+                raise InvalidInputError(
+                    "The markdown report needs the session transcript "
+                    "(--transcript)."
+                )
+            text = render_scorecards(
+                result.model_copy(update={"scorecards": [card]}),
+                rubric, document,
+            )
+        extension = "html" if kind == "html" else "md"
+        target = str(output) or str(Path(
+            app.settings.output_dir,
+            f"{result.session_id}.{name}.report.{extension}",
+        ))
+        write_text(target, text)
+        print(f"Saved {target}")
+
+    def _session_transcript(
+        self, session_id: str, path: str
+    ) -> Optional[Transcript]:
+        """Read ``path``, or find the session's transcript, if any."""
+        app = self._app()
+        if path:
+            return app.transcripts.read(str(path))
+        try:
+            return app.transcripts.find(session_id)
+        except NotFoundError:
+            return None
 
     def _sentences(self, transcript: str) -> None:
         """List the sentences of a transcript with speaker and time.

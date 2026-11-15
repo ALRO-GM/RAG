@@ -105,7 +105,17 @@
         "Assessment-centre dimension: Communication (Arthur et al. 2003)",
         "Salas, Sims & Burke 2005: closed-loop communication"
       ],
-      "limits": "La voz, el ritmo y la entonación; los apoyos visuales; la comunicación escrita; si el contenido era correcto. No utilizar titubeos, gramática ni acento."
+      "limits": "La voz, el ritmo y la entonación; los apoyos visuales; la comunicación escrita; si el contenido era correcto. No utilizar titubeos, gramática ni acento.",
+      "practice": {
+        "helps": [
+          "En el trabajo: los demás entienden la idea a la primera y no hay que repetir la reunión.",
+          "En una negociación: la otra parte sabe exactamente qué se propone y por qué."
+        ],
+        "hurts": [
+          "En un equipo: cada uno entiende una cosa distinta y el trabajo se hace dos veces.",
+          "En una negociación: un mensaje confuso da pie a malentendidos y a desconfianza."
+        ]
+      }
     },
     {
       "id": "LISTEN",
@@ -200,7 +210,17 @@
         "CATME: Interacting with teammates",
         "SHL Great Eight: Supporting and Cooperating"
       ],
-      "limits": "La atención en silencio, la mirada, tomar notas; si la comprensión era real. No puntuar las señales de seguimiento (\"ajá\", \"sí, sí\"): la transcripción las pierde y varían según la cultura."
+      "limits": "La atención en silencio, la mirada, tomar notas; si la comprensión era real. No puntuar las señales de seguimiento (\"ajá\", \"sí, sí\"): la transcripción las pierde y varían según la cultura.",
+      "practice": {
+        "helps": [
+          "En un equipo: las personas se sienten escuchadas y aportan más ideas.",
+          "En una negociación: resumir lo que dice la otra parte ayuda a encontrar lo que de verdad le importa."
+        ],
+        "hurts": [
+          "En un equipo: se discute sobre cosas que nadie ha dicho y se pierde tiempo.",
+          "En una negociación: no captar lo que pide la otra parte deja fuera acuerdos posibles."
+        ]
+      }
     },
     {
       "id": "INFLU",
@@ -292,7 +312,17 @@
         "SHRM BASK: Relationship Management (negotiation)",
         "Assessment-centre dimension: Influencing others (Arthur et al. 2003)"
       ],
-      "limits": "Si cambió opiniones más allá de la reunión; las gestiones fuera de ella; la calidad de los datos citados; si la decisión del grupo fue buena. Que se adopte una propuesta NO es evidencia: premia el estatus y el tiempo de palabra."
+      "limits": "Si cambió opiniones más allá de la reunión; las gestiones fuera de ella; la calidad de los datos citados; si la decisión del grupo fue buena. Que se adopte una propuesta NO es evidencia: premia el estatus y el tiempo de palabra.",
+      "practice": {
+        "helps": [
+          "En el trabajo: las propuestas salen adelante porque se entienden sus razones.",
+          "En una negociación: los argumentos y los datos convencen más que la insistencia."
+        ],
+        "hurts": [
+          "En un equipo: imponer una idea sin razones hace que otros dejen de opinar.",
+          "En una negociación: presionar sin argumentos endurece a la otra parte."
+        ]
+      }
     },
     {
       "id": "COLLAB",
@@ -391,7 +421,17 @@
         "CATME: Interacting with teammates",
         "Stevens & Campion 1994: interpersonal KSAs"
       ],
-      "limits": "Si la ayuda ofrecida se llegó a prestar; la cantidad y la calidad del trabajo realmente aportado; la confianza; lo que ocurre fuera de la sesión grabada."
+      "limits": "Si la ayuda ofrecida se llegó a prestar; la cantidad y la calidad del trabajo realmente aportado; la confianza; lo que ocurre fuera de la sesión grabada.",
+      "practice": {
+        "helps": [
+          "En un equipo: la información circula y nadie se queda atascado solo.",
+          "En el trabajo: ofrecer y pedir ayuda a tiempo evita retrasos."
+        ],
+        "hurts": [
+          "En un equipo: guardar información o trabajar por libre crea huecos y trabajo repetido.",
+          "En el trabajo: no reconocer lo que hacen otros desmotiva al grupo."
+        ]
+      }
     },
     {
       "id": "INCL",
@@ -485,7 +525,17 @@
         "Salas, Sims & Burke 2005: team leadership",
         "Woolley et al. 2010: equality of conversational turn-taking"
       ],
-      "limits": "La intención de los solapamientos (a menudo cooperativos, sobre todo en español); la mirada y los gestos; si el silencio de alguien es exclusión o elección. La evidencia de pisar a otros es poco fiable cuando los tiempos o las etiquetas de hablante no lo son."
+      "limits": "La intención de los solapamientos (a menudo cooperativos, sobre todo en español); la mirada y los gestos; si el silencio de alguien es exclusión o elección. La evidencia de pisar a otros es poco fiable cuando los tiempos o las etiquetas de hablante no lo son.",
+      "practice": {
+        "helps": [
+          "En un equipo: se oyen también las personas que hablan menos, y con ellas otras ideas.",
+          "En una reunión: repartir la palabra hace que las decisiones las apoye todo el grupo."
+        ],
+        "hurts": [
+          "En un equipo: siempre hablan los mismos y se pierden ideas de los demás.",
+          "En una reunión: quien no puede hablar tampoco se compromete con lo que se decide."
+        ]
+      }
     },
     {
       "id": "CONFL",
@@ -581,7 +631,17 @@
         "LifeComp: S3 Collaboration; P1 Self-regulation",
         "ATC21S: Social regulation"
       ],
-      "limits": "El estado emocional, el tono y el sarcasmo; el desacuerdo que no se expresó; los conflictos anteriores a la grabación. Una sesión sin desacuerdos no aporta evidencia: evidencia insuficiente, no una nota alta. No puntuar fórmulas de cortesía ni atenuaciones."
+      "limits": "El estado emocional, el tono y el sarcasmo; el desacuerdo que no se expresó; los conflictos anteriores a la grabación. Una sesión sin desacuerdos no aporta evidencia: evidencia insuficiente, no una nota alta. No puntuar fórmulas de cortesía ni atenuaciones.",
+      "practice": {
+        "helps": [
+          "En un equipo: los desacuerdos se hablan a tiempo y se convierten en mejores soluciones.",
+          "En una negociación: separar el problema de la persona mantiene la relación mientras se discute."
+        ],
+        "hurts": [
+          "En un equipo: descalificar a alguien cierra la conversación y deja tensión.",
+          "En una negociación: convertir una diferencia en algo personal bloquea el acuerdo."
+        ]
+      }
     },
     {
       "id": "FEEDB",
@@ -677,7 +737,17 @@
         "Marks, Mathieu & Zaccaro 2001: team monitoring and backup",
         "Edmondson 1999: team learning behaviours"
       ],
-      "limits": "Si el feedback era acertado; si quien lo recibió mejoró; el feedback privado o por escrito. En muchas sesiones no hay ningún episodio de feedback: lo habitual será evidencia insuficiente."
+      "limits": "Si el feedback era acertado; si quien lo recibió mejoró; el feedback privado o por escrito. En muchas sesiones no hay ningún episodio de feedback: lo habitual será evidencia insuficiente.",
+      "practice": {
+        "helps": [
+          "En el trabajo: un comentario concreto ayuda a otra persona a mejorar su tarea.",
+          "En un equipo: explicar cómo se hace algo deja al grupo menos dependiente de una sola persona."
+        ],
+        "hurts": [
+          "En el trabajo: una crítica vaga o personal no ayuda a mejorar y molesta.",
+          "En un equipo: no pedir opinión sobre el propio trabajo deja errores sin ver."
+        ]
+      }
     },
     {
       "id": "COORD",
@@ -776,7 +846,17 @@
         "PISA 2015 CPS: Establishing and maintaining team organisation",
         "ATC21S: Task regulation"
       ],
-      "limits": "Si los planes eran realistas o se cumplieron; la coordinación que ocurre en herramientas (tableros, chat). Si la persona tiene asignado el papel de moderar, estas conductas son parte de ese papel: el informe debe indicarlo."
+      "limits": "Si los planes eran realistas o se cumplieron; la coordinación que ocurre en herramientas (tableros, chat). Si la persona tiene asignado el papel de moderar, estas conductas son parte de ese papel: el informe debe indicarlo.",
+      "practice": {
+        "helps": [
+          "En un equipo: todos saben qué hay que hacer, quién lo hace y para cuándo.",
+          "En una reunión: resumir y repartir tareas evita salir sin decisiones."
+        ],
+        "hurts": [
+          "En un equipo: sin reparto claro, unas tareas se hacen dos veces y otras ninguna.",
+          "En una reunión: sin objetivo ni resumen, la conversación da vueltas."
+        ]
+      }
     },
     {
       "id": "SOLVE",
@@ -871,7 +951,17 @@
         "SHL Great Eight: Analyzing and Interpreting; Leading and Deciding",
         "Assessment-centre dimension: Problem solving (Arthur et al. 2003)"
       ],
-      "limits": "Si el análisis era correcto, el conocimiento técnico, lo que se piensa en silencio o por escrito y la calidad de la decisión. La rúbrica valora la contribución al proceso, no tener razón."
+      "limits": "Si el análisis era correcto, el conocimiento técnico, lo que se piensa en silencio o por escrito y la calidad de la decisión. La rúbrica valora la contribución al proceso, no tener razón.",
+      "practice": {
+        "helps": [
+          "En el trabajo: definir bien el problema y comparar opciones lleva a mejores decisiones.",
+          "En una negociación: poner varias opciones sobre la mesa abre acuerdos que convienen a las dos partes."
+        ],
+        "hurts": [
+          "En el trabajo: decidir sin mirar los datos o sin otras opciones aumenta los errores.",
+          "En un equipo: no explicar el porqué de una decisión hace que otros no la entiendan ni la apoyen."
+        ]
+      }
     },
     {
       "id": "INIT",
@@ -969,7 +1059,17 @@
         "Marks, Mathieu & Zaccaro 2001: motivating and confidence building",
         "Kauffeld & Lehmann-Willenbrock 2012 (act4teams): action-oriented statements"
       ],
-      "limits": "El cumplimiento: una transcripción muestra compromisos, no entregas. El esfuerzo, las horas y la calidad del resultado no se observan. La entrega solo se ve enlazando sesiones."
+      "limits": "El cumplimiento: una transcripción muestra compromisos, no entregas. El esfuerzo, las horas y la calidad del resultado no se observan. La entrega solo se ve enlazando sesiones.",
+      "practice": {
+        "helps": [
+          "En el trabajo: ofrecerse y proponer el siguiente paso hace avanzar al grupo.",
+          "En un equipo: cumplir y contar lo prometido genera confianza."
+        ],
+        "hurts": [
+          "En el trabajo: esperar a que otros decidan frena el avance.",
+          "En un equipo: comprometerse sin concretar deja tareas sin dueño."
+        ]
+      }
     },
     {
       "id": "ADAPT",
@@ -1065,7 +1165,17 @@
         "LifeComp: P2 Flexibility; L1 Growth mindset",
         "ATC21S: Social regulation"
       ],
-      "limits": "El aprendizaje real o el cambio posterior de conducta; la reflexión privada; la resiliencia o la tolerancia al estrés. Reconocer errores depende del clima del equipo: que haya pocos puede reflejar al equipo, no a la persona."
+      "limits": "El aprendizaje real o el cambio posterior de conducta; la reflexión privada; la resiliencia o la tolerancia al estrés. Reconocer errores depende del clima del equipo: que haya pocos puede reflejar al equipo, no a la persona.",
+      "practice": {
+        "helps": [
+          "En el trabajo: reconocer un error a tiempo evita que crezca.",
+          "En una negociación: ajustar la propia postura ante información nueva permite llegar a un acuerdo."
+        ],
+        "hurts": [
+          "En un equipo: defender una idea aunque los datos digan otra cosa lleva a errores.",
+          "En el trabajo: no pedir ayuda cuando falta algo retrasa la tarea."
+        ]
+      }
     }
   ],
   "excluded": [

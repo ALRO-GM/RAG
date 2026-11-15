@@ -725,3 +725,64 @@ def test_transcribe_is_gone(project: Path) -> None:
     write_rubrics(project)
     result = skills(["transcribe", "--audio", "x.wav"], project)
     assert result.returncode != 0
+
+
+# --------------------------------------------------------------- report
+
+
+def test_report_html_finds_the_session_transcript(project: Path) -> None:
+    """The page is written next to the scorecards, with quote times."""
+    result = skills(
+        ["--transcripts_dir", "transcripts", "report", "system.json",
+         "Maya", "--synthetic"],
+        project,
+    )
+    assert result.returncode == 0, result.stderr
+    target = project / "out" / "s1.Maya.report.html"
+    assert result.stdout.strip() == f"Saved {Path('out') / target.name}"
+    page = target.read_text(encoding="utf-8")
+    assert page.startswith('<!doctype html>\n<html lang="es">')
+    assert "Datos de ejemplo inventados" in page
+    assert "Maya, minuto 00:00" in page
+    assert "http" not in page
+
+
+def test_report_html_in_english_without_a_transcript(project: Path) -> None:
+    """Without a transcript the quotes cite turn numbers."""
+    result = skills(
+        ["report", "--assessment", "system.json", "--participant", "Tom",
+         "--language", "en", "--output", "pages/tom.html"],
+        project,
+    )
+    assert result.returncode == 0, result.stderr
+    page = (project / "pages" / "tom.html").read_text(encoding="utf-8")
+    assert "Report on Tom" in page and "Tom, turn 4" in page
+    assert "Made-up sample data" not in page
+
+
+def test_report_markdown_is_the_participant_scorecard(project: Path) -> None:
+    """The markdown format keeps only the chosen participant's card."""
+    result = skills(
+        ["report", "system.json", "Maya", "--format", "markdown",
+         "--transcript", EN, "--language", "en"],
+        project,
+    )
+    assert result.returncode == 0, result.stderr
+    text = (project / "out" / "s1.Maya.report.md").read_text("utf-8")
+    assert "## Maya" in text and "## Tom" not in text
+
+
+@pytest.mark.parametrize("args, message", [
+    (["system.json", "Maya", "--format", "pdf"], "Unknown format 'pdf'"),
+    (["system.json", "Zoe"], "Unknown participant 'Zoe'"),
+    (["system.json", "Zoe", "--format", "markdown", "--transcript", EN],
+     "Unknown participant 'Zoe'"),
+    (["system.json", "Maya", "--format", "markdown"],
+     "needs the session transcript"),
+    (["missing.json", "Maya"], "File not found"),
+])
+def test_report_errors(
+    project: Path, args: List[str], message: str
+) -> None:
+    """Bad formats, participants and files are clean errors."""
+    assert_error(skills(["report", *args], project), message)
