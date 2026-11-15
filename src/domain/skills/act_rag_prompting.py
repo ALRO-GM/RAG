@@ -71,7 +71,8 @@ def _chunk_text(chunk: CardChunk) -> str:
         label = chunk.context[i] if i < n - 1 else chunk.category
         who = ""
         if i:
-            who = "otro " if chunk.changes[i - 1] else "mismo "
+            who = ("(otro hablante) " if chunk.changes[i - 1]
+                   else "(mismo hablante) ")
         parts.append(f"[{offset}] {who}{label}: «{text}»")
     return f"- {' → '.join(parts)}  ⇒ objetivo: {chunk.category}"
 

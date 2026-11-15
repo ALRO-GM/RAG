@@ -41,7 +41,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from experiments.skills.act_tagger_eval import (
+from act_tagger_eval import (
     FOLDS,
     Corpus,
     compact,
@@ -66,6 +66,7 @@ from src.application.skills.rag_act_tagger import (
     mix_judged,
 )
 from src.domain.skills.act_calibration import (
+    Array,
     as_probabilities,
     cross_fit_outcomes,
     fit_temperature,
@@ -240,7 +241,7 @@ def view_logits(ev: Sequence[Evidence], views: Dict[str, float]
     return out
 
 
-def set_nll(p: FloatArray, refs: Sequence[Reference]) -> float:
+def set_nll(p: Array, refs: Sequence[Reference]) -> float:
     """Return the mean −ln P(reference set)."""
     total = 0.0
     for row, ref in zip(p, refs):
@@ -265,8 +266,8 @@ def fit_fusion(setup: Setup, ev: Sequence[Evidence], rows: Sequence[int],
                                    "window": ww})
     best: Optional[Tuple[float, FusionWeights]] = None
     for views_w in candidates:
-        logits = view_logits(sub, views_w)
-        t = fit_temperature(logits.astype(np.float64), refs)
+        logits = view_logits(sub, views_w).astype(np.float64)
+        t = fit_temperature(logits, refs)
         nll = set_nll(softmax(logits, t), refs)
         if best is None or nll < best[0]:
             best = (nll, FusionWeights(views=views_w, floor=FLOOR,
@@ -369,7 +370,7 @@ def encoder_predictions(directory: str, setup: Setup, device: str,
         data: List[Probabilities] = json.loads(path.read_text())
         if len(data) == len(setup.records):
             return data
-    from experiments.skills.act_tagger_eval import es_fold_predictions
+    from act_tagger_eval import es_fold_predictions
     data = es_fold_predictions(directory, setup.corpus, device)
     cache.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data))
@@ -560,8 +561,14 @@ def main() -> None:  # noqa: C901 - one linear experiment
             "fold_weights": [w.model_dump() for w in fitted]}
         predictions[f"R views {label}"] = preds
     results["ablation"] = ablation
-    cards_best = max((n for n in results["configs"] if n.startswith("cards/")),
-                     key=lambda n: results["configs"][n]["top1"])
+    _, wf, emb, settings = next(c for c in configs if c[0] == best)
+    if args.run_judge:
+        run_judge(args, setup, theory, corpus, embedders[emb], settings, wf,
+                  ev, out)
+        return
+    cards_only = [n for n in results["configs"] if n.startswith("cards/")]
+    cards_best = max(cards_only, key=lambda n: results["configs"][n]["top1"],
+                     default=best)
     examples_only = corpus_chunks(corpus, theory=False)
     theory_ablation = {}
     for name in dict.fromkeys([best, cards_best]):
@@ -571,11 +578,6 @@ def main() -> None:  # noqa: C901 - one linear experiment
         theory_ablation[f"{name} without definitions/cues/boundaries"] = {
             **headline(compact(score(refs, preds))), **setup.answerer(preds)}
     results["theory_ablation"] = theory_ablation
-    _, wf, emb, settings = next(c for c in configs if c[0] == best)
-    if args.run_judge:
-        run_judge(args, setup, theory, corpus, embedders[emb], settings, wf,
-                  ev, out)
-        return
     rag = predictions[best]
     rules, _ = rules_predictions(setup.corpus)
     baselines: Dict[str, Any] = {
