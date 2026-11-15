@@ -130,9 +130,12 @@ def test_acts_command_writes_labels_next_to_the_transcript(
     assert "rules answered instead of the combined tagger" in result.stdout
     written = tmp_path / Path(ES).parent / "es1.acts.json"
     data = json.loads(written.read_text(encoding="utf-8"))
-    assert data["format"] == "acts.v1" and data["tagger"] == "rules"
-    assert data["version"] == "rules-1" and data["margin"] == 0.1
-    first = data["sentences"][0]
+    assert data["schema"] == "acts.v1" and data["tagger"]["name"] == "rules"
+    assert data["session"] == {"id": "es1"}
+    assert data["tagger"]["version"] == "rules-1"
+    assert data["tagger"]["margin"] == 0.1
+    first = data["utterances"][0]
+    assert first["turn"] == 0
     assert {"id", "speaker", "text", "labels", "rest", "by"} <= set(first)
     assert 1 <= len(first["labels"]) <= 3
     assert sum(lab["weight"] for lab in first["labels"]) + first[

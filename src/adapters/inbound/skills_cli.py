@@ -14,7 +14,7 @@ from src.adapters.outbound.json_dataset_repository import (
     read_model,
     write_model,
 )
-from src.application.skills.act_tagger import tag_acts
+from src.application.skills.act_tagger import ActPlace, tag_acts
 from src.application.skills.conversation_events import (
     ConversationAnalysis,
     analyse,
@@ -745,20 +745,23 @@ class SkillsCLI:
         card = app.act_card()
         items = sentence_inputs(
             [(s.id, s.speaker, s.text) for s in sentences], context)
+        places = [ActPlace(turn=s.turn, start=s.start, end=s.end)
+                  for s in sentences]
         result = tag_acts(document.session_id, items, model,
-                          card.thresholds(), card.margin, note)
+                          card.thresholds(), card.margin, note, places)
         release(model)
         path = Path(str(output)) if output else (
             Path(str(transcript)).parent
             / f"{document.session_id}.acts.json")
-        write_text(str(path), result.model_dump_json(indent=1))
+        write_text(str(path), result.to_json())
         counts: Dict[str, int] = {}
-        for sentence in result.sentences:
+        for sentence in result.utterances:
             counts[sentence.labels[0].label] = counts.get(
                 sentence.labels[0].label, 0) + 1
-        doubtful = sum(s.labels[0].doubtful for s in result.sentences)
-        print(f"{len(result.sentences)} sentences, tagger {result.tagger} "
-              f"({result.version}); first label doubtful in {doubtful}")
+        doubtful = sum(s.labels[0].doubtful for s in result.utterances)
+        print(f"{len(result.utterances)} sentences, tagger "
+              f"{result.tagger.name} ({result.tagger.version}); first "
+              f"label doubtful in {doubtful}")
         for label, count in sorted(counts.items(), key=lambda kv: -kv[1]):
             print(f"  {label}: {count}")
         if note:

@@ -196,33 +196,68 @@ class TaggerCard(BaseModel):
         return doubt_thresholds(self.base_rates, self.margin)
 
 
-class ActSentence(BaseModel):
+class ActPlace(BaseModel):
+    """Where a sentence sits in its transcript (turn and times)."""
+
+    turn: Optional[int] = None
+    start: Optional[float] = None
+    end: Optional[float] = None
+
+
+class ActUtterance(BaseModel):
     """One sentence's labels as the tagger writes them.
 
     ``labels`` are the top 3 in whole % (``doubtful`` below the
     threshold), ``rest`` what is left to 100, ``by`` the approach that
-    answered (a combined tagger's part).
+    answered (a combined tagger's part). ``responds_to`` stays ``None``:
+    the tagger does not link replies (the second layer infers links).
     """
 
     id: str
+    turn: Optional[int] = None
     speaker: str
     text: str
+    start: Optional[float] = None
+    end: Optional[float] = None
     labels: List[WeightedLabel]
     rest: int = Field(ge=0, le=100)
+    responds_to: Optional[str] = None
     by: str
 
 
-class ActsDocument(BaseModel):
-    """What ``skills acts`` writes next to a transcript."""
+class ActSession(BaseModel):
+    """The session the labels belong to."""
 
-    format: str = ACTS_FORMAT
-    session: str
-    tagger: str
+    id: str = Field(min_length=1)
+
+
+class ActTaggerInfo(BaseModel):
+    """Which tagger wrote the labels and with which thresholds."""
+
+    name: str
     version: str
     margin: float
     thresholds: Dict[str, float]
     note: str = ""
-    sentences: List[ActSentence]
+
+
+class ActsDocument(BaseModel):
+    """What ``skills acts`` writes next to a transcript (``acts.v1``).
+
+    The shape the second layer reads (#83): ``session.id`` and, per
+    utterance, its speaker and weighted labels.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    schema_name: str = Field(default=ACTS_FORMAT, alias="schema")
+    session: ActSession
+    tagger: ActTaggerInfo
+    utterances: List[ActUtterance]
+
+    def to_json(self) -> str:
+        """Return the document as indented JSON with its ``schema`` key."""
+        return self.model_dump_json(indent=1, by_alias=True)
 
 
 def tag_acts(
@@ -232,20 +267,30 @@ def tag_acts(
     thresholds: Mapping[str, float],
     margin: float,
     note: str = "",
+    places: Optional[Sequence[ActPlace]] = None,
 ) -> ActsDocument:
-    """Tag every sentence and return the labels in the #73 format."""
+    """Tag every sentence and return the labels in the #73 format.
+
+    ``places`` (one per item) adds each sentence's turn and times.
+    """
+    if places is not None and len(places) != len(items):
+        raise ValueError("need one place per item")
     if isinstance(tagger, CombinedTagger):
         predictions, sources = tagger.predict_with_sources(items)
     else:
         predictions = tagger.predict(items)
         sources = [tagger.name] * len(items)
-    sentences = []
-    for item, p, source in zip(items, predictions, sources):
+    spots = list(places) if places is not None else [ActPlace()] * len(items)
+    utterances = []
+    for item, p, source, place in zip(items, predictions, sources, spots):
         shown = tagger_labels(p, thresholds=thresholds)
-        sentences.append(ActSentence(
-            id=item.id, speaker=item.speaker, text=item.text,
+        utterances.append(ActUtterance(
+            id=item.id, turn=place.turn, speaker=item.speaker,
+            text=item.text, start=place.start, end=place.end,
             labels=shown.labels, rest=shown.rest, by=source))
     return ActsDocument(
-        session=session, tagger=tagger.name, version=tagger.version,
-        margin=margin, thresholds=dict(thresholds), note=note,
-        sentences=sentences)
+        session=ActSession(id=session),
+        tagger=ActTaggerInfo(name=tagger.name, version=tagger.version,
+                             margin=margin, thresholds=dict(thresholds),
+                             note=note),
+        utterances=utterances)

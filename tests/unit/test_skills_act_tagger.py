@@ -127,17 +127,20 @@ def test_tag_acts_writes_top3_rest_and_doubtful() -> None:
     assert thresholds["opinion"] == pytest.approx(0.25)
     document = tag_acts("s1", items()[:1], encoder, thresholds, 0.2,
                         note="n")
-    sentence = document.sentences[0]
-    assert document.format == ACTS_FORMAT
-    assert (document.tagger, document.version, document.note) == (
+    sentence = document.utterances[0]
+    assert document.schema_name == ACTS_FORMAT
+    assert (document.tagger.name, document.tagger.version,
+            document.tagger.note) == (
         "fixed", "1", "n")
     assert [(lab.label, lab.weight, lab.doubtful)
             for lab in sentence.labels] == [
         ("opinion", 55, False), ("informacion", 30, False),
         ("propuesta", 10, True)]
     assert sentence.rest == 5 and sentence.by == "fixed"
-    data = json.loads(document.model_dump_json())
-    assert data["sentences"][0]["id"] == "t0.s0"
+    data = json.loads(document.to_json())
+    assert data["schema"] == "acts.v1" and data["session"] == {"id": "s1"}
+    assert data["utterances"][0]["id"] == "t0.s0"
+    assert data["utterances"][0]["responds_to"] is None
 
 
 def test_tag_acts_records_the_route_of_each_sentence() -> None:
@@ -146,10 +149,10 @@ def test_tag_acts_records_the_route_of_each_sentence() -> None:
         [Route(tagger="rules", categories=["pregunta"])], "encoder")
     rates = {c: 0.0 for c in CATEGORIES}
     document = tag_acts("s1", items(), combined, rates, 0.0)
-    assert [s.by for s in document.sentences] == [
+    assert [s.by for s in document.utterances] == [
         "rules", "encoder", "encoder"]
-    assert document.sentences[1].labels[0].label == "opinion"
-    assert document.sentences[1].rest == 0
+    assert document.utterances[1].labels[0].label == "opinion"
+    assert document.utterances[1].rest == 0
 
 
 def test_sentence_inputs_keep_context_lines() -> None:
