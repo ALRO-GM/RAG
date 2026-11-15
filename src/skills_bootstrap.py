@@ -13,7 +13,10 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
-from src.adapters.outbound.fs_analysis_store import FileSystemAnalysisStore
+from src.adapters.outbound.fs_analysis_store import (
+    FileAnalysisLock,
+    FileSystemAnalysisStore,
+)
 from src.adapters.outbound.fs_assessment_store import (
     FileSystemAssessmentStore,
 )
@@ -402,6 +405,7 @@ class SkillsContainer:
             SubprocessAnalysisLauncher(
                 REPOSITORY_ROOT, transcripts_dir, s.analysis_dir
             ),
+            FileAnalysisLock(s.analysis_dir),
         )
 
     @cached_property
@@ -417,6 +421,7 @@ class SkillsContainer:
             self.tagger,
             self.judge_setup,
             lambda: datetime.now(timezone.utc),
+            FileAnalysisLock(s.analysis_dir),
             acts=self.acts_tagger,
             events=self.event_extractor,
             max_confirmations=s.max_confirmations,

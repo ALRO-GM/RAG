@@ -48,7 +48,7 @@ export function orderedSteps(run) {
 export function startMode(run) {
   if (!run) return "start";
   if (isActive(run)) return "running";
-  if (run.status === "failed") return "resume";
+  if (run.status === "failed" || run.status === "interrupted") return "resume";
   return "again";
 }
 

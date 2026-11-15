@@ -681,6 +681,33 @@ class InMemoryAnalysisStore:
         return self.files[(session_id, name)]
 
 
+class InMemoryAnalysisLock:
+    """Sessions taken by worker id; ``taken`` simulates another process."""
+
+    def __init__(self, pid: int = 4242) -> None:
+        """Nothing taken; this worker's id is ``pid``."""
+        self.pid = pid
+        self.taken: Dict[str, int] = {}
+        self.acquired: List[str] = []
+
+    def acquire(self, session_id: str) -> Optional[int]:
+        """Take the session unless someone holds it."""
+        if session_id in self.taken:
+            return None
+        self.taken[session_id] = self.pid
+        self.acquired.append(session_id)
+        return self.pid
+
+    def release(self, session_id: str) -> None:
+        """Give it back."""
+        if self.taken.get(session_id) == self.pid:
+            del self.taken[session_id]
+
+    def holder(self, session_id: str) -> Optional[int]:
+        """Return who holds the session."""
+        return self.taken.get(session_id)
+
+
 class InMemoryCatalogueRepository:
     """Rubric catalogues kept by (name, language)."""
 

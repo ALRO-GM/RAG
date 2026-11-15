@@ -41,6 +41,7 @@ from src.application.skills.person_report_html import render_person_html
 from src.application.skills.person_report_texts import TEXTS
 from src.application.skills.ports import (
     AnalysisLauncher,
+    AnalysisLock,
     AnalysisStore,
     DialogueActTagger,
     EventExtractor,
@@ -66,6 +67,7 @@ from src.domain.skills.analysis_run import (
     StepName,
     StepRecord,
     new_run,
+    shown_status,
     steps_to_run,
 )
 from src.domain.skills.assessment import SessionAssessment
@@ -195,11 +197,20 @@ class AnalysisRequests:
         results: AnalysisResults,
         transcripts: TranscriptStore,
         launcher: AnalysisLauncher,
+        lock: AnalysisLock,
     ):
-        """Wire the stored results, the transcripts and the launcher."""
+        """Wire the stored results, the transcripts, launcher and lock."""
         self.results = results
         self.transcripts = transcripts
         self.launcher = launcher
+        self.lock = lock
+
+    def _active(self, session_id: str) -> bool:
+        """Tell whether any process (API child or CLI) analyses it now."""
+        return (
+            self.launcher.running(session_id)
+            or self.lock.holder(session_id) is not None
+        )
 
     def start(
         self, session_id: str, restart: bool = False, synthetic: bool = False
@@ -213,7 +224,7 @@ class AnalysisRequests:
         """
         check_session(session_id)
         self.transcripts.get(session_id)
-        if self.launcher.running(session_id):
+        if self._active(session_id):
             raise BusyError(
                 f"The analysis of {session_id!r} is already running."
             )
@@ -221,11 +232,17 @@ class AnalysisRequests:
         return {"session_id": session_id, "active": True}
 
     def status(self, session_id: str) -> Dict[str, Any]:
-        """Return the stored run with ``active``: is it running now."""
+        """Return the stored run with ``active``: is it running now.
+
+        A run left ``running`` by a process that died reads
+        ``interrupted``; starting again resumes it.
+        """
         run = self.results.status(session_id)
+        active = self._active(session_id)
         return {
             **run.model_dump(mode="json"),
-            "active": self.launcher.running(session_id),
+            "status": shown_status(run, active),
+            "active": active,
         }
 
 
@@ -241,6 +258,7 @@ class SessionAnalysis:
         tagger: Candidate indicators by retrieval (step c).
         judges: Builds the judges of steps f and g when first needed.
         clock: The time steps start at (replaced in tests).
+        lock: Keeps one run per session (CLI and API alike).
         acts: The dialogue-act tagger, or ``None`` until it exists.
         events: The event extractor, or ``None`` until it exists.
         max_confirmations: Most sentences the judge reads in step f
@@ -259,6 +277,7 @@ class SessionAnalysis:
         tagger: SentenceTagger,
         judges: Callable[[], JudgeSetup],
         clock: Callable[[], datetime],
+        lock: AnalysisLock,
         acts: Optional[DialogueActTagger] = None,
         events: Optional[EventExtractor] = None,
         max_confirmations: int = 0,
@@ -272,6 +291,7 @@ class SessionAnalysis:
         self.tagger = tagger
         self.judges = judges
         self.clock = clock
+        self.lock = lock
         self.acts = acts
         self.events = events
         self.max_confirmations = max(max_confirmations, 0)
@@ -290,10 +310,36 @@ class SessionAnalysis:
         A failing step is recorded as ``failed`` with its reason and
         stops the run; the earlier results stay, and a later call
         starts again at that step. ``restart`` runs every step anew.
-        ``on_step`` is told each record once its step ends.
+        ``on_step`` is told each record once its step ends. Raises
+        :class:`~src.domain.errors.BusyError` while another process
+        analyses the same session.
         """
         check_session(session_id)
         transcript = self.transcripts.find(session_id)
+        worker = self.lock.acquire(session_id)
+        if worker is None:
+            holder = self.lock.holder(session_id)
+            raise BusyError(
+                f"The analysis of {session_id!r} is already running"
+                + (f" (process {holder})." if holder else ".")
+            )
+        try:
+            return self._run(
+                session_id, transcript, restart, synthetic, on_step, worker
+            )
+        finally:
+            self.lock.release(session_id)
+
+    def _run(
+        self,
+        session_id: str,
+        transcript: Transcript,
+        restart: bool,
+        synthetic: bool,
+        on_step: Optional[Callable[[StepRecord], None]],
+        worker: int,
+    ) -> AnalysisRun:
+        """Run the steps still to do while holding the session."""
         previous = None if restart else self.store.load(session_id)
         todo = steps_to_run(previous, restart)
         run = previous if previous is not None else new_run(
@@ -301,7 +347,7 @@ class SessionAnalysis:
         )
         run = run.model_copy(update={
             "status": "running", "finished_at": None,
-            "synthetic": synthetic or run.synthetic,
+            "synthetic": synthetic or run.synthetic, "worker_pid": worker,
         })
         for name in todo:
             run = run.with_step(StepRecord(name=name))

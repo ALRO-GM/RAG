@@ -207,3 +207,23 @@ class AnalysisLauncher(Protocol):
     def running(self, session_id: str) -> bool:
         """Tell whether the analysis of ``session_id`` is running now."""
         ...
+
+
+class AnalysisLock(Protocol):
+    """One analysis per session at a time, across processes.
+
+    Held for the whole run; released when the run ends or its process
+    dies, so a crashed run never blocks the next one.
+    """
+
+    def acquire(self, session_id: str) -> Optional[int]:
+        """Take the session; return this worker's id, ``None`` if taken."""
+        ...
+
+    def release(self, session_id: str) -> None:
+        """Give the session back."""
+        ...
+
+    def holder(self, session_id: str) -> Optional[int]:
+        """Return the worker id holding the session now, if any."""
+        ...

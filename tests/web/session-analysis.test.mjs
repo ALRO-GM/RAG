@@ -49,6 +49,7 @@ test("a run is active while the RAG says so or a step is running", () => {
   assert.equal(startMode(null), "start");
   assert.equal(startMode({ active: true }), "running");
   assert.equal(startMode({ status: "failed" }), "resume");
+  assert.equal(startMode({ status: "interrupted", active: false }), "resume");
   assert.equal(startMode({ status: "done" }), "again");
 });
 

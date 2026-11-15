@@ -673,7 +673,6 @@ export const en = {
   "sa.count_doubtful": "with a doubtful first label",
   "sa.count_by_encoder": "answered by the encoder",
   "sa.count_by_rules": "answered by the rules",
-  "sa.interrupted": "The process that was analysing stopped without finishing; it can be resumed.",
   "sa.run_interrupted": "Interrupted: the process stopped halfway; it can be resumed.",
   "act.pregunta": "question",
   "act.respuesta": "answer",

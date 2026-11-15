@@ -24,6 +24,7 @@ from src.application.skills.tagging import (
     TaggedSentence,
 )
 from src.domain.errors import (
+    BusyError,
     InvalidInputError,
     NotFoundError,
     QuotaExhaustedError,
@@ -33,6 +34,7 @@ from src.domain.skills.analysis_run import (
     StepRecord,
     is_step,
     new_run,
+    shown_status,
     steps_to_run,
 )
 from src.domain.skills.speech import Sentence
@@ -41,6 +43,7 @@ from tests.fakes import (
     FakeChatModel,
     FakeEmbedder,
     FakeLexicalBuilder,
+    InMemoryAnalysisLock,
     InMemoryAnalysisStore,
     InMemoryTranscriptRepository,
     judge_reply,
@@ -132,6 +135,7 @@ def build(
         make_catalogue,
         lambda name, language: make_catalogue(language, name),
         tagger, kwargs.pop("judges", judges), Clock(),
+        kwargs.pop("lock", InMemoryAnalysisLock()),
         **kwargs,
     )
 
@@ -376,3 +380,41 @@ def test_fallback_and_both_modes_are_recorded() -> None:
     assert stored["judge"]["second_models"] == ["qwen-second"]
     assert "comparison" in stored
     assert "fell back" in step_table(run)[5][4]
+
+
+def test_one_run_per_session_and_the_lock_is_given_back() -> None:
+    """Another worker holds the session: busy; after a run it is free."""
+    lock = InMemoryAnalysisLock()
+    lock.taken["s1"] = 777
+    with pytest.raises(BusyError, match="process 777"):
+        build(lock=lock).run("s1")
+    del lock.taken["s1"]
+    store = InMemoryAnalysisStore()
+    run = build(store=store, lock=lock).run("s1")
+    assert run.worker_pid == 4242
+    assert lock.taken == {} and lock.acquired == ["s1"]
+
+
+def test_the_lock_is_given_back_after_a_crash() -> None:
+    """A store that cannot save still releases the session."""
+    lock = InMemoryAnalysisLock()
+    store = InMemoryAnalysisStore()
+
+    def broken(run: Any) -> None:
+        """Fail to save."""
+        raise OSError("disk full")
+
+    store.save = broken  # type: ignore[method-assign]
+    with pytest.raises(OSError):
+        build(store=store, lock=lock).run("s1")
+    assert lock.taken == {}
+
+
+def test_a_run_left_running_by_a_dead_worker_reads_interrupted() -> None:
+    """``shown_status`` and the API's status say so; a rerun resumes."""
+    run = new_run("s1", T0).model_copy(update={"status": "running"})
+    assert shown_status(run, alive=True) == "running"
+    assert shown_status(run, alive=False) == "interrupted"
+    assert shown_status(run.model_copy(update={"status": "done"}), False) == (
+        "done"
+    )

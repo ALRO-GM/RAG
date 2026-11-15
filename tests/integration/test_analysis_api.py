@@ -1,16 +1,20 @@
 """The RAG's ``/analysis/sessions`` routes and the child-process launcher."""
 
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.adapters.inbound.http_api import TranscriptRoutes, create_app
-from src.adapters.outbound.fs_analysis_store import FileSystemAnalysisStore
+from src.adapters.outbound.fs_analysis_store import (
+    FileAnalysisLock,
+    FileSystemAnalysisStore,
+)
 from src.adapters.outbound.fs_index_repository import (
     FileSystemIndexRepository,
 )
@@ -31,11 +35,11 @@ from src.application.skills.session_analysis import (
     AnalysisResults,
 )
 from src.config import SkillsSettings
-from src.domain.errors import BusyError, RagError
+from src.domain.errors import BusyError, InvalidInputError, RagError
 from src.domain.skills.analysis_run import StepRecord, new_run
 from src.domain.text_analysis import tokenize
 from src.skills_bootstrap import SkillsContainer
-from tests.fakes import FakeEmbedder, FakeGenerator
+from tests.fakes import FakeEmbedder, FakeGenerator, InMemoryAnalysisLock
 from tests.integration.test_transcript_ingest import AUTH, TOKEN, example
 from tests.unit.test_skills_session_analysis import T0
 
@@ -58,8 +62,12 @@ class FakeLauncher:
         return session_id in self.active
 
 
-def client_for(folder: Path, launcher: FakeLauncher) -> TestClient:
+def client_for(
+    folder: Path, launcher: FakeLauncher,
+    lock: Optional[InMemoryAnalysisLock] = None,
+) -> TestClient:
     """The API with a stored transcript and one finished analysis."""
+    lock = lock or InMemoryAnalysisLock()
     transcripts = FileSystemTranscriptStore(str(folder / "transcripts"))
     transcripts.put("demo-es", example())
     store = FileSystemAnalysisStore(str(folder / "analysis"))
@@ -77,7 +85,7 @@ def client_for(folder: Path, launcher: FakeLauncher) -> TestClient:
         IngestTranscript(transcripts), ShowIngestedTranscript(transcripts),
         TOKEN,
         analysis=AnalysisRequests(
-            AnalysisResults(store), transcripts, launcher
+            AnalysisResults(store), transcripts, launcher, lock
         ),
     )
     return TestClient(create_app(
@@ -235,3 +243,67 @@ def test_the_container_builds_the_api_use_case(tmp_path: Path) -> None:
     )
     assert isinstance(requests.launcher, SubprocessAnalysisLauncher)
     assert requests.launcher.analysis_dir == tmp_path / "a"
+
+
+def test_a_cli_run_makes_the_api_busy_and_a_dead_one_interrupted(
+    tmp_path: Path,
+) -> None:
+    """The lock (any process) counts as running; a stale run reads so."""
+    lock = InMemoryAnalysisLock()
+    launcher = FakeLauncher()
+    client = client_for(tmp_path, launcher, lock)
+    store = FileSystemAnalysisStore(str(tmp_path / "analysis"))
+    stale = store.load("demo-es")
+    assert stale is not None
+    store.save(stale.model_copy(update={"status": "running"}))
+    lock.taken["demo-es"] = 999  # a CLI run of the same session
+    status = client.get("/analysis/sessions/demo-es", headers=AUTH).json()
+    assert status["status"] == "running" and status["active"] is True
+    assert client.post(
+        "/analysis/sessions/demo-es", headers=AUTH
+    ).status_code == 409
+    assert launcher.started == []
+    lock.taken.clear()  # that process died
+    status = client.get("/analysis/sessions/demo-es", headers=AUTH).json()
+    assert status["status"] == "interrupted" and status["active"] is False
+
+
+def test_the_file_lock_is_exclusive_and_freed_when_a_process_dies(
+    tmp_path: Path,
+) -> None:
+    """Two workers cannot hold a session; a killed holder frees it."""
+    first = FileAnalysisLock(str(tmp_path), pid=11)
+    second = FileAnalysisLock(str(tmp_path), pid=22)
+    assert first.holder("s1") is None
+    assert first.acquire("s1") == 11
+    assert second.acquire("s1") is None
+    assert second.holder("s1") == 11
+    first.release("s1")
+    assert second.holder("s1") is None
+    assert second.acquire("s1") == 22
+    second.release("s1")
+    second.release("s1")  # nothing held: no error
+    script = (
+        "import fcntl, os, sys, time\n"
+        "f = os.open(sys.argv[1], os.O_RDWR | os.O_CREAT)\n"
+        "fcntl.flock(f, fcntl.LOCK_EX)\n"
+        "os.write(f, str(os.getpid()).encode())\n"
+        "print('held', flush=True)\n"
+        "time.sleep(60)\n"
+    )
+    (tmp_path / "s2").mkdir()
+    child = subprocess.Popen(
+        [sys.executable, "-c", script, str(tmp_path / "s2" / "analysis.lock")],
+        stdout=subprocess.PIPE, text=True,
+    )
+    assert child.stdout is not None
+    assert child.stdout.readline().strip() == "held"
+    assert first.holder("s2") == child.pid
+    assert first.acquire("s2") is None
+    child.kill()
+    child.wait()
+    assert first.holder("s2") is None
+    assert first.acquire("s2") == 11
+    first.release("s2")
+    with pytest.raises(InvalidInputError):
+        first.acquire("../x")

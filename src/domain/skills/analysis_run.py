@@ -98,6 +98,7 @@ class AnalysisRun(BaseModel):
     started_at: datetime
     finished_at: Optional[datetime] = None
     synthetic: bool = False
+    worker_pid: Optional[int] = None
     steps: List[StepRecord]
     open_issues: List[OpenIssue] = Field(default_factory=list)
 
@@ -141,6 +142,18 @@ def steps_to_run(
         if run.step(name).status not in FINISHED:
             return list(STEPS[position:])
     return []
+
+
+def shown_status(run: AnalysisRun, alive: bool) -> str:
+    """Return the run's status as people should read it.
+
+    A run recorded as ``running`` whose worker no longer holds the
+    session (it was killed, the machine stopped) is ``interrupted``:
+    the next run resumes it at the step that was running.
+    """
+    if run.status == "running" and not alive:
+        return "interrupted"
+    return run.status
 
 
 def is_step(name: str) -> bool:

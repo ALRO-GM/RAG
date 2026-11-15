@@ -673,7 +673,6 @@ export const es = {
   "sa.count_doubtful": "con la primera etiqueta dudosa",
   "sa.count_by_encoder": "respondió el codificador",
   "sa.count_by_rules": "respondieron las reglas",
-  "sa.interrupted": "El proceso que analizaba se detuvo sin terminar; se puede reanudar.",
   "sa.run_interrupted": "Interrumpido: el proceso se detuvo a mitad; se puede reanudar.",
   "act.pregunta": "pregunta",
   "act.respuesta": "respuesta",
