@@ -78,6 +78,14 @@ class ModelLoadError(TranscriberError):
     """A model cannot be loaded (not downloaded, or not that kind)."""
 
 
+class GpuBusyError(TranscriberError):
+    """The GPU stayed out of memory after the models were freed.
+
+    Other processes hold the memory a stage needs; the stage was tried
+    twice. The message says who holds the GPU.
+    """
+
+
 class AccessCodeError(TranscriberError):
     """The kept access code cannot be used."""
 

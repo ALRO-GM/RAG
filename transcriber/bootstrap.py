@@ -6,9 +6,11 @@ chosen by ``settings.runtime``, the job runner, the session locks, the
 publisher) into every use case. Building it does no I/O and
 loads no model: directories are created on the first write and models
 on the first job, and the job runner unloads the models after every
-job. The publisher is the directory one or, with ``publisher:
-"http"``, the one that posts to the RAG (:func:`build_publisher`); that
-one also deletes the RAG's copy when a session is deleted.
+job and gives the GPU memory back (:class:`TorchGpuMemory`); a stage
+that runs out of GPU memory frees them and is tried once more. The
+publisher is the directory one or, with ``publisher: "http"``, the one
+that posts to the RAG (:func:`build_publisher`); that one also deletes
+the RAG's copy when a session is deleted.
 :func:`start_container` is for the process that runs the jobs
 (the service): it builds the container and then fails the sessions a
 previous process left queued or running (:class:`RecoverSessions`).
@@ -76,6 +78,7 @@ from transcriber.adapters.outbound.subprocess_lab_tool import (
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.local_name_model import LocalNameModel
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
+from transcriber.adapters.outbound.torch_gpu_memory import TorchGpuMemory
 from transcriber.adapters.outbound.thread_session_locks import (
     ThreadSessionLocks,
 )
@@ -504,17 +507,21 @@ def build_container(
             overlaps.release()
 
     def release_models() -> None:
-        """Unload the models; the runner calls it after every job."""
+        """Unload the speech, voice, overlap and name models."""
         release_speech_models()
         if name_model is not None:
             name_model.release()
+
+    # The runner frees the GPU after every job: the models are unloaded,
+    # collected and PyTorch's cache is given back (#117).
+    gpu = TorchGpuMemory(release_models)
 
     sessions = FileSystemSessionRepository(settings.data_dir)
     voiceprints = FileSystemVoiceprintRepository(
         settings.data_dir, encoder.model_name
     )
     decoder = AvAudioDecoder()
-    runner = ThreadJobRunner(after_job=release_models)
+    runner = ThreadJobRunner(after_job=gpu.free)
     publisher = build_publisher(settings, environ)
     clock = SystemClock()
     locks = ThreadSessionLocks()
@@ -522,6 +529,7 @@ def build_container(
     transcribe = TranscribeSession(
         sessions, voiceprints, decoder, recogniser, encoder, locks,
         parameters, overlaps, diarizer, rule,
+        gpu if settings.runtime != "fake" else None,
     )
     status = TranscriptionStatus(sessions, runner)
     rename = RenameSpeaker(sessions, voiceprints, locks)
@@ -529,6 +537,7 @@ def build_container(
     find_names = FindSpeakerNames(
         sessions, sessions, locks, rename, unname, clock, name_model,
         settings.names.search, free_models=release_speech_models,
+        gpu=gpu if settings.runtime != "fake" else None,
     )
     lab = build_lab(
         settings, sessions, voiceprints, decoder, recogniser, encoder,

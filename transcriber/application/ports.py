@@ -609,3 +609,29 @@ class SpeakerNameStore(Protocol):
     def names(self, session_id: str) -> Optional[SpeakerNames]:
         """Return the stored record of ``session_id``, if any."""
         ...
+
+
+class GpuMemory(Protocol):
+    """The GPU memory the jobs share with other processes (#117).
+
+    The use cases ask it whether a failure was the GPU running out of
+    memory, free every model of the service before trying a stage
+    again, and describe the memory for a debug log or a message. It
+    never stops another process.
+    """
+
+    def out_of_memory(self, error: BaseException) -> bool:
+        """Tell whether ``error`` is the GPU running out of memory."""
+        ...
+
+    def free(self) -> None:
+        """Unload every model of the service and give the memory back."""
+        ...
+
+    def usage(self) -> str:
+        """Return this process's GPU memory in one short line (cheap)."""
+        ...
+
+    def holders(self) -> str:
+        """Return who holds the GPU memory now, for a message."""
+        ...

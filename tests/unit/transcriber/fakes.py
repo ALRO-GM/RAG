@@ -646,3 +646,44 @@ class FakePublishedTranscripts:
         if self.failure is not None:
             raise self.failure
         self.retracted.append(session_id)
+
+
+class FakeOutOfMemory(RuntimeError):
+    """What a model raises when the GPU has no memory left (a stand-in)."""
+
+    def __init__(self) -> None:
+        """Say it like CUDA does."""
+        super().__init__("CUDA out of memory. Tried to allocate 2.00 MiB.")
+
+
+class FakeGpuMemory:
+    """GPU memory that recognises :class:`FakeOutOfMemory` and counts frees.
+
+    ``release`` is what freeing unloads (the service's models).
+    """
+
+    HOLDERS = "worker (pid 7): 6000 MiB"
+
+    def __init__(self, release: Callable[[], None] = lambda: None) -> None:
+        """Nothing freed yet."""
+        self.release = release
+        self.freed = 0
+
+    def out_of_memory(self, error: BaseException) -> bool:
+        """Tell whether ``error`` or its cause is the fake OOM."""
+        return isinstance(error, FakeOutOfMemory) or isinstance(
+            error.__cause__, FakeOutOfMemory
+        )
+
+    def free(self) -> None:
+        """Count the free and unload the models."""
+        self.freed += 1
+        self.release()
+
+    def usage(self) -> str:
+        """A fixed line."""
+        return "fake GPU: 0.00 GB allocated"
+
+    def holders(self) -> str:
+        """A fixed listing."""
+        return self.HOLDERS
