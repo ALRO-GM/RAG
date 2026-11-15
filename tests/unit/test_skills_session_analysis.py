@@ -586,3 +586,24 @@ def test_restart_with_steps_is_refused_and_steps_alone_can_be_partial() -> (
     assert run.status == "partial"
     assert run.step("interaction").status == "pending"
     assert build(store=store).run("s1").status == "done"
+
+
+def test_a_model_moved_to_the_cpu_is_noted_on_the_step_it_happened() -> None:
+    """A shared model's device note lands on the step that added it."""
+    notes: List[str] = []
+    moved = "CUDA ran out of memory: the judge ran on the CPU instead."
+
+    def responder(system: str, user: str) -> str:
+        """Answer as usual; the first call "moves" the model."""
+        if not notes:
+            notes.append(moved)
+        return reply(system, user)
+
+    run = build(
+        judge=FakeChatModel(responder=responder),
+        device_notes=lambda: list(notes),
+    ).run("s1")
+    assert run.status == "done", "a move to the CPU does not fail the run"
+    assert run.step("confirmation").note == moved
+    assert run.step("candidates").note == ""
+    assert run.step("assessment").note == "", "said once, where it happened"

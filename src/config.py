@@ -335,6 +335,15 @@ class SkillsSettings(BaseModel):
     event_min_acceptances: int = Field(default=1, ge=1)
     event_closing_acceptances: int = Field(default=2, ge=1)
     event_closing_window: int = Field(default=12, ge=0)
+    local_on_cpu: Literal["run", "fail"] = "run"
+    """What the local judge does when it cannot use a GPU (#110).
+
+    No GPU in the plan, no CUDA device visible, or CUDA out of memory:
+    ``run`` loads the CPU model (slow, said in the step's note) and
+    ``fail`` stops at once with the reason. It never waits for a GPU
+    that is not there; ``local_wait_seconds`` only bounds the wait for
+    a GPU that exists but is busy.
+    """
 
     def event_rules(self) -> EventRules:
         """Return the second-layer parameters (``event_*`` settings).

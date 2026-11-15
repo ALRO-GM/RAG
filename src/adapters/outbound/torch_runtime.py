@@ -40,11 +40,15 @@ def prepare(plan: Optional[RuntimePlan]) -> str:
     """Apply ``plan`` (or the historical default) and return the device.
 
     Without a plan the process keeps the old behaviour: one thread
-    per logical CPU, on the CPU.
+    per logical CPU, on the CPU. The threads of the first plan stay in
+    force, but an explicit plan's own device is returned: a model sent
+    to the CPU after the GPU ran out of memory (#110) must not be put
+    back on the GPU because an earlier model was loaded there.
     """
     if plan is None:
-        plan = RuntimePlan(threads=os.cpu_count() or 1)
-    return apply_plan(plan).device
+        return apply_plan(RuntimePlan(threads=os.cpu_count() or 1)).device
+    apply_plan(plan)
+    return plan.device
 
 
 HALF_PRECISION_DEVICES = ("cuda",)

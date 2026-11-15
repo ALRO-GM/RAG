@@ -4,11 +4,20 @@ from typing import Dict, List, Sequence
 
 import pytest
 
-from src.application.skills.act_tagger import RuleTagger, TaggerCard
+from src.application.skills.act_tagger import (
+    CombinedTagger,
+    RuleTagger,
+    TaggerCard,
+)
 from src.application.skills.analysis_steps import (
     RULES_NAME,
     RuleEventExtractor,
     TaggerActStep,
+)
+from src.application.skills.device_notes import (
+    device_notes,
+    join_notes,
+    new_notes,
 )
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError
@@ -124,3 +133,52 @@ def test_events_come_from_the_acts_with_the_rules() -> None:
     assert "action_item" in kinds
     with pytest.raises(InvalidInputError, match="step d"):
         RuleEventExtractor(rules).extract(transcript, sentences, None)
+
+
+MOVED = ("CUDA ran out of memory: the act tagger ran on the CPU instead "
+         "(slower).")
+
+
+class MovedTagger(KeywordTagger):
+    """A fake encoder that "ran out of GPU memory" and moved to the CPU."""
+
+    def __init__(self) -> None:
+        """No move yet."""
+        super().__init__()
+        self.device_notes: List[str] = []
+
+    def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:
+        """Answer as the keyword tagger, after noting the move."""
+        self.device_notes = [MOVED]
+        return super().predict(items)
+
+
+def test_the_tagger_step_says_when_the_tagger_left_the_gpu() -> None:
+    """The move to the CPU is in the step's note; the labels are kept."""
+    transcript = meeting()
+    tagger = MovedTagger()
+    out = TaggerActStep(lambda: (tagger, ""), card).tag(
+        transcript, transcript_sentences(transcript)
+    )
+    assert out.counts["by_encoder"] == 5
+    assert out.note == f"Doubtful margin 0.1. {MOVED}"
+    assert tagger.released
+
+
+def test_a_combined_tagger_reports_the_notes_of_its_parts() -> None:
+    """The combined tagger gathers its parts' device notes."""
+    moved = MovedTagger()
+    combined = CombinedTagger(
+        {"rules": RuleTagger(card().rules), "encoder": moved}, [], "encoder"
+    )
+    assert combined.device_notes == []
+    moved.predict([])
+    assert combined.device_notes == [MOVED]
+
+
+def test_device_notes_helpers() -> None:
+    """Missing lists read empty; new notes are counted as a multiset."""
+    assert device_notes(object()) == []
+    assert new_notes(["a"], ["a", "a", "b"]) == ["a", "b"]
+    assert new_notes(["a", "b"], ["a", "b"]) == []
+    assert join_notes("x.", "", "y.", "x.") == "x. y."

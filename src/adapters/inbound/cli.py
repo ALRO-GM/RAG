@@ -325,6 +325,8 @@ class RagCLI:
         claude_model: Optional[str] = None,
         local_bits: Optional[int] = None,
         local_policy: Optional[str] = None,
+        local_wait_seconds: Optional[float] = None,
+        local_on_cpu: Optional[str] = None,
         embedding_model: Optional[str] = None,
         dense_weight: Optional[float] = None,
         candidates: Optional[int] = None,
@@ -368,6 +370,12 @@ class RagCLI:
                 else wait for Qwen3-4B; never smaller), largest_fitting
                 (the largest model the free GPU memory holds) or fixed
                 (``--local_model``, waiting for memory).
+            local_wait_seconds: Most seconds the local judge waits for
+                a busy GPU's memory (default 600); it never waits when
+                no GPU is visible.
+            local_on_cpu: run (default: the CPU model when no GPU can
+                be used, slow, said in the step's note) or fail (stop
+                at once with the reason).
             embedding_model: Multilingual sentence-embedding model.
             dense_weight: Weight of the semantic score in retrieval.
             candidates: Turns shown to the judge per competency.
