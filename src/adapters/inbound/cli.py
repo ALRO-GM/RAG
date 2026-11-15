@@ -332,6 +332,9 @@ class RagCLI:
         min_episodes: Optional[int] = None,
         min_participant_words: Optional[int] = None,
         min_similarity: Optional[float] = None,
+        quote_min_similarity: Optional[float] = None,
+        local_quote_min_similarity: Optional[float] = None,
+        local_prompt: Optional[str] = None,
         lab_dir: Optional[str] = None,
         tags_per_sentence: Optional[int] = None,
         semantic: Optional[bool] = None,
@@ -372,8 +375,15 @@ class RagCLI:
             min_episodes: Separate exchanges those incidents must span.
             min_participant_words: Words a participant must have said
                 to be rated at all.
-            min_similarity: Drop quotes whose cosine with their
-                indicator is below this value (0 keeps all).
+            min_similarity: Drop candidate tags whose cosine with
+                their indicator is below this value.
+            quote_min_similarity: Drop Claude's quotes whose turn has
+                a cosine with their indicator below this value (-1
+                keeps all).
+            local_quote_min_similarity: The same floor for the local
+                models' quotes.
+            local_prompt: Assessment prompt of the local models:
+                precise (default), guided or standard (Claude's).
             lab_dir: Directory of the skills lab (experiments/skills).
             tags_per_sentence: Most candidate tags kept per sentence.
             semantic: Use the embedding model in retrieval

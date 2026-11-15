@@ -5,14 +5,21 @@ from typing import Any, Dict, Optional, Tuple
 
 import pytest
 
-from src.application.skills.assessment import AssessmentService
-from src.application.skills.evidence import EvidenceRetriever
+from src.application.skills.assessment import (
+    AssessmentService,
+    JudgeTuning,
+)
+from src.application.skills.evidence import (
+    EvidenceRetriever,
+    TranscriptIndex,
+)
 from src.domain.errors import InvalidInputError
 from src.domain.skills.assessment import (
     CompetencyAssessment,
     Observation,
     SessionAssessment,
 )
+from src.domain.skills.rubric import Indicator
 from src.domain.skills.transcript import Transcript
 from tests.fakes import (
     MEETING_EN,
@@ -270,6 +277,34 @@ def test_prompt_shows_only_candidate_turns_and_the_rules() -> None:
     assert "L3 (-) Dismisses others" in user
 
 
+def test_tuning_is_chosen_from_the_judge_answering() -> None:
+    """The tuning sees the judge's name; its style reaches the prompt."""
+    seen = []
+
+    def guided_for_fake(name: str) -> JudgeTuning:
+        """Give the fake judge the guided prompt."""
+        seen.append(name)
+        return JudgeTuning("guided", 0.0)
+
+    judge = scripted(SCRIPT)
+    result = service(
+        judge, min_incidents=2, tuning=guided_for_fake
+    ).assess(make_transcript(), CATALOGUE, ["Maya"], ["listening"])
+    (system, _, _), = judge.calls
+    assert set(seen) == {"fake-judge"}
+    assert "one by one" in system
+    assert cell(result, "Maya", "listening").rating == 4
+
+
+def test_standard_prompt_by_default() -> None:
+    """Without a selector every judge gets the standard prompt."""
+    judge = scripted(SCRIPT)
+    service(judge).assess(make_transcript(), CATALOGUE, ["Maya"],
+                          ["listening"])
+    (system, _, _), = judge.calls
+    assert "Most turns are NOT evidence" in system
+
+
 # ---------------------------------------------------------------- cache
 
 
@@ -297,6 +332,15 @@ def test_cache_is_keyed_by_the_prompt() -> None:
     judge, cache = scripted(SCRIPT), InMemoryCache()
     assess(judge, cache=cache, min_incidents=2)
     assess(judge, cache=cache, min_incidents=1)
+    assert len(judge.calls) == 12
+
+
+def test_cache_is_keyed_by_the_prompt_style() -> None:
+    """The guided prompt does not reuse the standard prompt's replies."""
+    judge, cache = scripted(SCRIPT), InMemoryCache()
+    assess(judge, cache=cache)
+    assess(judge, cache=cache,
+           tuning=lambda name: JudgeTuning("guided", 0.0))
     assert len(judge.calls) == 12
 
 
@@ -474,6 +518,24 @@ def test_quotes_far_from_their_indicator_are_unsupported() -> None:
     assert (item.rating, item.flags) == (None, ["below_minimum_evidence"])
 
 
+def test_tuning_sets_the_similarity_floor_of_each_judge() -> None:
+    """The judge's own floor replaces ``min_similarity``, and is recorded."""
+    strict = service(
+        embedder=FakeEmbedder(dim=256), min_similarity=0.0,
+        tuning=lambda name: JudgeTuning("standard", 0.99),
+    )
+    result = strict.assess(make_transcript(), CATALOGUE, ["Maya"],
+                           ["listening"])
+    item = cell(result, "Maya", "listening")
+    assert (len(item.evidence), item.unsupported) == (0, 2)
+    assert result.rules["min_similarity"] == 0.99
+    loose = service(
+        embedder=FakeEmbedder(dim=256), min_similarity=0.99,
+        tuning=lambda name: JudgeTuning("standard", -1.0),
+    ).assess(make_transcript(), CATALOGUE, ["Maya"], ["listening"])
+    assert len(cell(loose, "Maya", "listening").evidence) == 2
+
+
 def test_threshold_above_every_cosine_drops_all_evidence() -> None:
     """``min_similarity`` 1.01 keeps nothing and counts everything."""
     result = service(
@@ -634,6 +696,80 @@ def test_a_quote_below_the_similarity_is_an_observation() -> None:
     assert "weak_match" in item.estimate.reasons
     assert item.estimate.quotes == 2
     assert item.estimate.confidence == "low"
+
+
+class FixedSimilarity(EvidenceRetriever):
+    """A retriever whose second opinion is one fixed cosine."""
+
+    def __init__(self, score: float):
+        """Score every turn against every indicator at ``score``."""
+        super().__init__(FakeLexicalBuilder(), FakeEmbedder(dim=256))
+        self.score = score
+
+    def similarity(
+        self, index: TranscriptIndex, turn: int, indicator: Indicator
+    ) -> Optional[float]:
+        """Return the fixed cosine."""
+        return self.score
+
+
+def per_judge(name: str) -> JudgeTuning:
+    """The defaults of #104: Claude floor 0, local models 0.4, precise."""
+    if name.startswith("Qwen/"):
+        return JudgeTuning("precise", 0.4)
+    return JudgeTuning("standard", 0.0)
+
+
+@pytest.mark.parametrize("judge_name", ["Qwen/Qwen3-8B@4bit",
+                                        "claude-code:opus"])
+def test_the_answering_judges_floor_decides_weak_matches(
+    judge_name: str,
+) -> None:
+    """At 0.35 a local judge's quotes are observations, Claude's evidence."""
+    judge = FakeChatModel(
+        responder=scripted(SCRIPT).responder, model_name=judge_name
+    )
+    result = AssessmentService(
+        FixedSimilarity(0.35), judge, tuning=per_judge,
+    ).assess(make_transcript(), CATALOGUE, ["Maya"], ["listening"])
+    item = cell(result, "Maya", "listening")
+    if judge_name.startswith("Qwen/"):
+        assert result.rules["min_similarity"] == 0.4
+        assert (item.status, item.rating, item.evidence) == (
+            "provisional", None, [],
+        )
+        assert item.unsupported == 2
+        assert [(o.turn, o.source, o.similarity)
+                for o in item.observations] == [
+            (0, "weak_match", 0.35), (3, "weak_match", 0.35),
+        ]
+        assert item.estimate is not None
+        assert "weak_match" in item.estimate.reasons
+        assert item.estimate.confidence == "low"
+    else:
+        assert result.rules["min_similarity"] == 0.0
+        assert (item.status, item.rating, item.unsupported) == (
+            "rated", 4, 0,
+        )
+        assert [e.similarity for e in item.evidence] == [0.35, 0.35]
+        assert (item.estimate, item.observations) == (None, [])
+
+
+def test_claudes_floor_keeps_quotes_out_of_the_weak_reasons() -> None:
+    """One exchange only: Claude's 0.35 quotes give no ``weak_match``."""
+    judge = FakeChatModel(
+        responder=scripted(SCRIPT).responder, model_name="claude-code:opus"
+    )
+    result = AssessmentService(
+        FixedSimilarity(0.35), judge, min_episodes=2, episode_gap=10,
+        tuning=per_judge,
+    ).assess(make_transcript(), CATALOGUE, ["Maya"], ["listening"])
+    item = cell(result, "Maya", "listening")
+    assert item.status == "provisional"
+    assert len(item.evidence) == 2
+    assert item.estimate is not None
+    assert "weak_match" not in item.estimate.reasons
+    assert {o.source for o in item.observed()} == {"below_minimum"}
 
 
 def test_too_few_turns_still_reads_the_confirmations() -> None:

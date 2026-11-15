@@ -1,0 +1,5930 @@
+{
+ "labeller": "Claude (the agent that implemented #104), not a human annotator; not blind to the judge that wrote each quote. One reader's judgement.",
+ "question": "Does this turn of the participant show the behaviour the indicator describes? In the interview a candidate's account of what they did counts (behavioural interview convention).",
+ "sessions": [
+  "sim-reunion-verano",
+  "sim-entrevista-corta"
+ ],
+ "labels": [
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "LISTEN.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "LISTEN.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "LISTEN.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "LISTEN.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 0,
+   "indicator": "COLLAB.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "COLLAB.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "INCL.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 25,
+   "indicator": "CONFL.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 78,
+   "indicator": "CONFL.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 0,
+   "indicator": "COORD.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 19,
+   "indicator": "COORD.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COORD.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 87,
+   "indicator": "COORD.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 101,
+   "indicator": "COORD.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 19,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 71,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 73,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "INIT.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "INIT.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 33,
+   "indicator": "ADAPT.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "ADAPT.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 114,
+   "indicator": "ADAPT.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 98,
+   "indicator": "COMM.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 6,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 22,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INFLU.N4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INFLU.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "COLLAB.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INCL.N4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 26,
+   "indicator": "CONFL.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "CONFL.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "CONFL.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 6,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 8,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "SOLVE.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "INIT.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 92,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "ADAPT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "ADAPT.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 113,
+   "indicator": "ADAPT.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "INFLU.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "COLLAB.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "COLLAB.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 41,
+   "indicator": "COLLAB.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "COLLAB.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "CONFL.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 60,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "CONFL.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "CONFL.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 60,
+   "indicator": "COORD.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 107,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "SOLVE.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "SOLVE.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 32,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 41,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "ADAPT.P4",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 105,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "LISTEN.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "INFLU.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "COLLAB.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "COLLAB.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COLLAB.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "CONFL.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "CONFL.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "CONFL.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 18,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "SOLVE.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 103,
+   "indicator": "INIT.P2",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 19,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "LISTEN.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 67,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 30,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 91,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 91,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 25,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "CONFL.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 33,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 87,
+   "indicator": "COORD.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 101,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "SOLVE.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 73,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 14,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "INIT.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 25,
+   "indicator": "ADAPT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 10,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 22,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 10,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 22,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "CONFL.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 74,
+   "indicator": "COORD.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 8,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "SOLVE.P6",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 41,
+   "indicator": "COLLAB.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 110,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 15,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "SOLVE.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 15,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 110,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "ADAPT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 105,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 70,
+   "indicator": "INFLU.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "COLLAB.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 70,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 40,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 83,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 105,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 111,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 30,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 42,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 91,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 33,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 14,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 59,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "FEEDB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 33,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 71,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 73,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 59,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 78,
+   "indicator": "INIT.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 98,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 10,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 22,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 26,
+   "indicator": "COLLAB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 12,
+   "indicator": "CONFL.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 20,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "CONFL.P5",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 84,
+   "indicator": "CONFL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 20,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 47,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 113,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 31,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "ADAPT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "COMM.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "INCL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 15,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "SOLVE.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 110,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 34,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 54,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 105,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 0,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 14,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "COMM.P6",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "LISTEN.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "COLLAB.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "CONFL.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "CONFL.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "FEEDB.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "FEEDB.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COORD.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INIT.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "ADAPT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "ADAPT.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "ADAPT.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "COMM.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 14,
+   "indicator": "INCL.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "FEEDB.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "COORD.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "INIT.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 10,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 19,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "CONFL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "FEEDB.N2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "CONFL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 19,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "COLLAB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "CONFL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 19,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "SOLVE.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 0,
+   "indicator": "COORD.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "LISTEN.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "INFLU.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "INFLU.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "SOLVE.P1",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "ADAPT.P6",
+   "label": "good",
+   "first_seen": "claude-code:opus (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 30,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "COMM.P2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 42,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 67,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 93,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 85,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "COORD.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "SOLVE.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 61,
+   "indicator": "ADAPT.P6",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 98,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 47,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "FEEDB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 1,
+   "indicator": "COORD.N4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 6,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 74,
+   "indicator": "COORD.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 113,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "SOLVE.P3",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "ADAPT.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 15,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 46,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 110,
+   "indicator": "COLLAB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 60,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "INCL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "CONFL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "SOLVE.P5",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 54,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 70,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 40,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "SOLVE.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 105,
+   "indicator": "INIT.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 83,
+   "indicator": "ADAPT.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 18,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 12,
+   "indicator": "SOLVE.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 3,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COLLAB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 9,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "CONFL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "COORD.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "SOLVE.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "ADAPT.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-8B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 50,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 42,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 78,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 73,
+   "indicator": "SOLVE.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 6,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 47,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 29,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 1,
+   "indicator": "COORD.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "COORD.N1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 113,
+   "indicator": "COORD.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "SOLVE.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 1,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "ADAPT.N1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "ADAPT.N1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 113,
+   "indicator": "ADAPT.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "COMM.P1",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "COMM.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COLLAB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "COLLAB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 41,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "SOLVE.P4",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 32,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 110,
+   "indicator": "INIT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 72,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 34,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "INCL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 75,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "SOLVE.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 16,
+   "indicator": "ADAPT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (standard)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 12,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 10,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 16,
+   "indicator": "CONFL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 2,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Elena",
+   "turn": 10,
+   "indicator": "COORD.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 17,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 11,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 15,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 5,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 7,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-entrevista-corta",
+   "participant": "Tomás",
+   "turn": 13,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "LISTEN.P5",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 30,
+   "indicator": "COLLAB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 59,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "SOLVE.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 80,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 98,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 10,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "INCL.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 55,
+   "indicator": "INCL.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INCL.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "INCL.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "INCL.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 20,
+   "indicator": "CONFL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 26,
+   "indicator": "CONFL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 84,
+   "indicator": "CONFL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "SOLVE.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "INIT.N2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 43,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 3,
+   "indicator": "LISTEN.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 13,
+   "indicator": "LISTEN.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "INCL.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "CONFL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "FEEDB.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 107,
+   "indicator": "COORD.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "ADAPT.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 79,
+   "indicator": "COMM.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "COMM.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "INFLU.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 70,
+   "indicator": "INFLU.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 34,
+   "indicator": "INCL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "CONFL.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 40,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 28,
+   "indicator": "COORD.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 54,
+   "indicator": "INIT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "ADAPT.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (precise)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 97,
+   "indicator": "LISTEN.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 106,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 78,
+   "indicator": "INFLU.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 14,
+   "indicator": "COLLAB.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 104,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 82,
+   "indicator": "FEEDB.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 85,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 101,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 4,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 48,
+   "indicator": "SOLVE.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 91,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 37,
+   "indicator": "ADAPT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Lucía",
+   "turn": 114,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 108,
+   "indicator": "COMM.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 10,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 49,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 96,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 24,
+   "indicator": "INFLU.N2",
+   "label": "good",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 51,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 69,
+   "indicator": "INFLU.N3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 47,
+   "indicator": "COLLAB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 20,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 88,
+   "indicator": "FEEDB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 6,
+   "indicator": "COORD.N1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 47,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Andrés",
+   "turn": 90,
+   "indicator": "INIT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 56,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 62,
+   "indicator": "LISTEN.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 17,
+   "indicator": "INFLU.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 11,
+   "indicator": "COLLAB.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 89,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 81,
+   "indicator": "CONFL.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 66,
+   "indicator": "FEEDB.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 64,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 32,
+   "indicator": "INIT.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 68,
+   "indicator": "INIT.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Nerea",
+   "turn": 99,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "COMM.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "LISTEN.P2",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 83,
+   "indicator": "LISTEN.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "INFLU.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "INFLU.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 36,
+   "indicator": "INCL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 52,
+   "indicator": "INCL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 70,
+   "indicator": "CONFL.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 95,
+   "indicator": "CONFL.P6",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 109,
+   "indicator": "CONFL.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 5,
+   "indicator": "COORD.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 58,
+   "indicator": "COORD.P4",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 38,
+   "indicator": "SOLVE.P3",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "ADAPT.P1",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 77,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  },
+  {
+   "session": "sim-reunion-verano",
+   "participant": "Joaquín",
+   "turn": 83,
+   "indicator": "ADAPT.P5",
+   "label": "bad",
+   "first_seen": "Qwen/Qwen3-4B (guided)"
+  }
+ ]
+}

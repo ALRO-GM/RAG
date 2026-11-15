@@ -49,7 +49,7 @@ from src.application.skills.analysis_steps import (
     RuleEventExtractor,
     TaggerActStep,
 )
-from src.application.skills.assessment import AssessmentService
+from src.application.skills.assessment import AssessmentService, JudgeTuning
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.act_tagger import (
     CombinedTagger,
@@ -369,10 +369,28 @@ class SkillsContainer:
         return AssessmentService(
             self.retriever, judge, self.cache, self.progress,
             candidates=s.candidates, min_incidents=s.min_incidents,
-            max_tokens=s.max_new_tokens, min_similarity=s.min_similarity,
+            max_tokens=s.max_new_tokens,
+            min_similarity=s.quote_min_similarity,
             min_episodes=s.min_episodes, episode_gap=s.episode_gap,
             min_words=s.min_participant_words,
+            tuning=self.judge_tuning,
         )
+
+    def judge_tuning(self, model_name: str) -> JudgeTuning:
+        """Return the assessment prompt and quote floor of a judge.
+
+        The local models (the ladder's, with or without their
+        ``@<bits>bit`` suffix, and a forced ``llm``) get
+        ``local_prompt`` and ``local_quote_min_similarity``; Claude
+        gets the standard prompt and ``quote_min_similarity``.
+        """
+        s = self.settings
+        local = {name for name, _ in s.model_ladder}
+        if s.llm != "auto":
+            local.add(s.llm)
+        if model_name.split("@", 1)[0] in local:
+            return JudgeTuning(s.local_prompt, s.local_quote_min_similarity)
+        return JudgeTuning("standard", s.quote_min_similarity)
 
     @property
     def acts_tagger(self) -> Optional[DialogueActTagger]:

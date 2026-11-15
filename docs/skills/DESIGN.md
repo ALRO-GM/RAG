@@ -42,7 +42,7 @@ The model's output never reaches the scorecard unchecked.
 | Speaker | The turn must be spoken by the assessed participant | Credit for someone else's words |
 | Citation | A quote found in another of the participant's turns is re-attributed to it | Wrong turn number |
 | Indicator | The indicator id must belong to the competency; polarity is read from the rubric, never from the model | Invented indicators, flipped signs |
-| Second opinion | The cosine between the turn and the cited indicator must reach `min_similarity`; below it the quote is only an observation (§13) | A real quote filed under a behaviour it does not show |
+| Second opinion | The cosine between the turn and the cited indicator must reach the floor of the judge that answered (`quote_min_similarity` for Claude, `local_quote_min_similarity` for the local models, measured in [`LOCAL_JUDGE_QUOTES.md`](LOCAL_JUDGE_QUOTES.md)); below it the quote is only an observation (§13) | A real quote filed under a behaviour it does not show |
 | Minimum evidence | A rating needs `min_incidents` (3) distinct turns of surviving evidence from `min_episodes` (2) separate exchanges; with less, a labelled provisional estimate (§13), and "insufficient evidence" only when nothing was seen | Ratings from one remark or one exchange |
 | Breadth at the extremes | The top rating needs two different positive indicators, the bottom one two negative incidents; otherwise it moves one point to the centre | Extreme ratings on narrow evidence |
 | Participation floor | A participant under `min_participant_words` words gets no rating at all | Scoring silence as a deficit |
@@ -630,7 +630,7 @@ The rule (`domain/skills/provisional.py`), with no new judge call:
   flagged `estimate_bounded`.
 - **Confidence.** `medium` with at least two distinct turns from two
   exchanges, a rating from the judge, no quote below the similarity
-  threshold and at least 300 words from the person; `low` otherwise.
+  floor of the judge that answered (§2, #104) and at least 300 words from the person; `low` otherwise.
 - **Reasons.** `few_quotes` (n of the 3 needed), `only_confirmations`,
   `single_episode`, `weak_match`, `no_judge_rating`,
   `short_participation` (under 300 words).
@@ -641,8 +641,10 @@ The rule (`domain/skills/provisional.py`), with no new judge call:
 **Observations** are the real sentences a reviewer should check for a
 competency without a firm level, each with its turn, time and
 indicator (+/−): verified quotes below the minimum (`below_minimum`),
-verified quotes whose cosine is under `min_similarity` (`weak_match`,
-no longer discarded) and the sentences the judge of step f confirmed
+verified quotes whose cosine is under the floor of the judge that
+answered (`quote_min_similarity` for Claude, 0;
+`local_quote_min_similarity` for the local models, 0.4; #104)
+(`weak_match`, no longer discarded) and the sentences the judge of step f confirmed
 (`confirmation`, with their sentence id). Step f's sentences never
 count towards a firm level and are not repeated when the judge quoted
 the same turn and indicator.
