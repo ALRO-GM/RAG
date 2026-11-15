@@ -862,13 +862,19 @@ optional.
    Measures in §6.3.1; annotation rules in
    [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md) §7; format in
    [`DIALOGUE_ACT_DATA.md`](DIALOGUE_ACT_DATA.md) §5.
-3. **Gold set source**: role-plays written/recorded in-house, or real
-   meetings with consent? Who annotates (the psychologist, students)?
-4. **Conversation type**: add an optional `session.type` to
-   `transcript.v1` (declared by the uploader) — yes/no.
-5. **API judge**: may consented recordings be sent to Claude to obtain a
-   ceiling reference?
-6. **SwDA (NC licence)**: evaluation only, or exclude?
+3. **Gold set source** — **decided 2026-11-15 (owner):** we write the
+   Spanish set ourselves (#64: 51 original dialogues, 1,534 sentences in
+   `examples/skills/dialogue_acts/`); a human double annotation of a
+   subset is still needed to measure κ.
+4. **Conversation type** — **decided 2026-11-15 (owner):** yes; optional
+   `session.type` and `session.goal` in `transcript.v1` (#65), context
+   only, never used in a rating.
+5. **External judge** — **decided 2026-11-15 (owner):** consented
+   recordings may be sent to Claude. The paid API is not used; the judge
+   runs through Claude Code on the owner's subscription, with a local
+   model as fallback and a both-judges comparison mode (#74).
+6. **SwDA (NC licence)** — **decided 2026-11-15 (owner):** use it,
+   flagged non-commercial, for internal evaluation only (#64).
 
 ---
 
