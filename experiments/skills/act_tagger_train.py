@@ -96,6 +96,9 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--init", default="")
     parser.add_argument("--spanish-folds", action="store_true")
+    parser.add_argument("--spanish-all", action="store_true",
+                        help="train the shipped model on every Spanish "
+                             "dialogue")
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--dev", type=int, default=4000)
     parser.add_argument("--limit", type=int, default=0,
@@ -106,7 +109,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, stream=sys.stderr,
                         format="%(asctime)s %(message)s")
     config = TrainConfig.model_validate(json.loads(args.config))
-    if not args.spanish_folds:
+    if not (args.spanish_folds or args.spanish_all):
         train, dev = english(args.data, args.corpora.split(","), args.dev,
                              config.seed)
         if args.limit:
@@ -120,6 +123,20 @@ def main() -> None:
         write_json(f"{args.output}/train_report.json", out)
         return
     own = list(records(f"{args.data}/own.jsonl"))
+    if args.spanish_all:
+        # The shipped model: every Spanish dialogue, the same recipe as
+        # a fold (temperature on the last fifth); no held-out figure.
+        train = [pair(r) for r in own]
+        calib = train[-max(len(train) // 5, 1):]
+        report = train_encoder(
+            train[:len(train) - len(calib)], calib, args.output,
+            config.model_copy(update={"version": f"{config.version}-es"}),
+            init=args.init)
+        out = {"mode": "spanish-all", "init": args.init,
+               **report.model_dump()}
+        print(json.dumps(out, indent=1))
+        write_json(f"{args.output}/train_report.json", out)
+        return
     folds = fold_of([r.dialogue for r in own], args.folds)
     reports = []
     for fold in range(args.folds):

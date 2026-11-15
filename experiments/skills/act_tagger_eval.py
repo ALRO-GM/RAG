@@ -79,6 +79,8 @@ from src.domain.skills.dialogue_acts import CATEGORIES, ActRecord
 FOLDS = 5
 PUBLIC = ("ami", "mrda", "swda", "dihana")
 MARGINS = [round(0.05 * i, 2) for i in range(0, 11)]
+COMBINE_GAIN = 0.01
+"""Top-1 a combination must add over the best single approach."""
 
 
 class Corpus:
@@ -290,6 +292,8 @@ def main() -> None:  # noqa: C901 - one linear experiment
     parser.add_argument("--data", default="data/dialogue_acts")
     parser.add_argument("--encoder", required=True)
     parser.add_argument("--es-folds", default="")
+    parser.add_argument("--es-all", default="",
+                        help="model trained on every Spanish dialogue")
     parser.add_argument("--llm", action="append", default=[])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--corpora", default="own,ami,mrda,swda,dihana")
@@ -350,22 +354,41 @@ def main() -> None:  # noqa: C901 - one linear experiment
                 model, judged, predictions = llm_predictions(path, corpus)
                 sub = [refs[n] for n in judged]
                 result[f"llm:{model}"] = compact(score(sub, predictions))
-                for other, values in (("rules", rules),
-                                      ("encoder+T", spanish_t),
-                                      ("combined", combined)):
+                for other, values in pool.items():
                     result[f"{other} (same {len(judged)})"] = compact(
                         score(sub, [values[n] for n in judged]))
-            # Only what can be shipped from these weights competes for
-            # the default: the per-fold Spanish models are a measurement.
-            best = max(("rules", "encoder+T", "combined"),
-                       key=lambda n: (result[n]["top1"],
-                                      -result[n]["log_loss"]))
+            # Candidates for the default are what can be shipped: the
+            # English model (encoder+T, combined) and, with --es-all, the
+            # model trained on every Spanish dialogue, whose held-out
+            # figures are those of the per-fold models (encoder-es,
+            # combined-es). A combination must beat the best single
+            # approach by COMBINE_GAIN top-1 to be worth its parts.
+            singles = ["rules", "encoder+T"]
+            combos = ["combined"]
+            if args.es_all and "encoder-es" in pool:
+                singles.append("encoder-es")
+                combos.append("combined-es")
+
+            def rank(n: str) -> Tuple[float, float]:
+                """Order by top-1, then by lower log-loss."""
+                return (result[n]["top1"], -result[n]["log_loss"])
+
+            best = max(singles, key=rank)
+            combo = max(combos, key=rank)
+            if result[combo]["top1"] >= result[best]["top1"] + COMBINE_GAIN:
+                best = combo
             default = (best, pool[best], corpus)
+            spanish = best.endswith("-es")
+            parts = {"rules": rules,
+                     "encoder": pool["encoder-es"] if spanish else spanish_t}
             routes, fallback = choose_routes(
-                [r.categories for r in refs], outputs)
+                [r.categories for r in refs], parts)
             card_parts = {
                 "rules": fit_outcomes(keys, refs),
-                "temperature": fit_temperature(logits, refs),
+                "encoder": args.es_all if spanish else args.encoder,
+                "temperature": (
+                    EncoderActTagger(args.es_all).card.temperature
+                    if spanish else fit_temperature(logits, refs)),
                 "routes": routes, "fallback": fallback,
                 "base_rates": reference_rates(refs)}
         scores[name] = result
@@ -383,19 +406,23 @@ def main() -> None:  # noqa: C901 - one linear experiment
             "proposed_margin": margin,
             "curve": [p.model_dump() for p in curve]})
         extra.update({"default": chosen, "proposed_margin": margin})
+        combined_default = chosen.startswith("combined")
         card = TaggerCard(
-            name=chosen,
-            rules=card_parts["rules"], encoder=args.encoder,
+            name="combined" if combined_default else (
+                "rules" if chosen == "rules" else "encoder"),
+            rules=card_parts["rules"], encoder=card_parts["encoder"],
             temperature=card_parts["temperature"],
-            routes=card_parts["routes"] if chosen == "combined" else [],
-            fallback=(card_parts["fallback"] if chosen == "combined"
-                      else chosen.split("+")[0]),
+            routes=card_parts["routes"] if combined_default else [],
+            fallback=(card_parts["fallback"] if combined_default
+                      else "rules" if chosen == "rules" else "encoder"),
             base_rates=card_parts["base_rates"],
             margin=margin if margin is not None else MARGINS[-1],
             source="experiments/skills/act_tagger_eval.py on the Spanish "
                    "set; figures in experiments/skills/results/act_tagger")
         write_json(args.card, card.model_dump())
     own = Corpus("own", f"{args.data}/own.jsonl", test_only=False)
+    if args.es_all:
+        encoder = EncoderActTagger(args.es_all, args.device)
     costs = [speed(encoder, own.inputs, "cpu")]
     if torch.cuda.is_available() and args.device.startswith("cuda"):
         costs.append(speed(encoder, own.inputs, args.device))
