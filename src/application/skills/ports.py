@@ -1,13 +1,16 @@
 """Ports of the soft-skills use cases."""
 
 from typing import (
-    Any, Callable, Dict, List, Mapping, Protocol, Sequence, Tuple,
+    Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Protocol,
+    Sequence, Tuple,
 )
 
 from src.domain.skills.act_tagging import ActInput, Probabilities
+from src.domain.skills.analysis_run import AnalysisRun
 from src.domain.skills.assessment import SessionAssessment
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
+from src.domain.skills.speech import Sentence
 from src.domain.skills.transcript import Transcript
 
 
@@ -129,4 +132,64 @@ class ActTagger(Protocol):
 
     def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:
         """Return one distribution per item, in order."""
+        ...
+
+
+class StepOutput(NamedTuple):
+    """What an optional analysis step produced.
+
+    ``data`` is written as the step's JSON file; ``counts`` go to the
+    step's record; ``model`` names who produced it.
+    """
+
+    data: Any
+    counts: Dict[str, int]
+    model: str
+
+
+class DialogueActTagger(Protocol):
+    """Label each sentence with its dialogue acts (step d, #82)."""
+
+    def tag(
+        self, transcript: Transcript, sentences: Sequence[Sentence]
+    ) -> StepOutput:
+        """Return the acts of ``sentences`` (JSON-ready ``data``)."""
+        ...
+
+
+class EventExtractor(Protocol):
+    """Derive decisions, action items, open questions (step e, #83)."""
+
+    def extract(
+        self,
+        transcript: Transcript,
+        sentences: Sequence[Sentence],
+        acts: Optional[Any],
+    ) -> StepOutput:
+        """Return the events; ``acts`` is step d's data, if it ran."""
+        ...
+
+
+class AnalysisStore(Protocol):
+    """Keep the steps and results of each session's analysis.
+
+    ``name`` is a plain file name chosen by the use case (the step
+    outputs, ``report-<n>.html``); implementations refuse anything
+    else, so neither a session id nor a name can reach outside.
+    """
+
+    def load(self, session_id: str) -> Optional[AnalysisRun]:
+        """Return the stored run of ``session_id``, if any."""
+        ...
+
+    def save(self, run: AnalysisRun) -> None:
+        """Store ``run`` (replacing the previous record)."""
+        ...
+
+    def write(self, session_id: str, name: str, text: str) -> str:
+        """Store one result file; return where it went."""
+        ...
+
+    def read(self, session_id: str, name: str) -> str:
+        """Return one result file (``NotFoundError`` when missing)."""
         ...

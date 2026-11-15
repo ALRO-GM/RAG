@@ -46,6 +46,7 @@ from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
 from src.application.skills.profile_report import build_profile_report
 from src.application.skills.profile_report_html import render_profile_html
+from src.application.skills.session_analysis import step_table
 from src.application.skills.report import (
     conversation_context,
     render_scorecards,
@@ -135,6 +136,7 @@ class SkillsCLI:
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
             "dialogue_acts_set", "judge_acts", "events_evaluate", "acts",
+            "analyze",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -650,6 +652,54 @@ class SkillsCLI:
             if "comparison" in record:
                 print_comparison(record["comparison"])
         print(f"Saved {path}")
+
+    def _analyze(
+        self, session: str, restart: bool = False, synthetic: bool = False,
+    ) -> None:
+        """Run the whole flow on a session and keep every step's result.
+
+        Steps, in order: sentences per person, interaction, candidate
+        indicators by retrieval, dialogue acts and derived events (when
+        those modules exist), confirmation by the judge (``--judge``;
+        default the one chosen from the web), evidence and scorecards,
+        one HTML report per person and the session summary. Results go
+        to ``<analysis_dir>/<session>/`` with ``run.json``, the record
+        of each step; a run that fails resumes at the failed step.
+
+        Args:
+            session: Session id; its transcript is found in
+                ``--transcripts_dir`` (a published ``transcript.v1``).
+            restart: Run every step again instead of resuming.
+            synthetic: Mark the reports as made-up sample data.
+        """
+        app = self._app()
+        analysis = app.session_analysis
+
+        def show(record: Any) -> None:
+            """Print a step as soon as it ends."""
+            print(f"  {record.name:<13} {record.status:<11} "
+                  f"{record.seconds or 0:.1f}s", flush=True)
+
+        print(f"Analysing {session} (results in "
+              f"{app.settings.analysis_dir}/{session})", flush=True)
+        run = analysis.run(
+            str(session), bool(restart), bool(synthetic), on_step=show,
+        )
+        print()
+        for name, status, seconds, who, detail in step_table(run):
+            print(f"{name:<13} {status:<11} {seconds:>7}  {who}")
+            if detail:
+                print(f"{'':<13} {detail}")
+        print("\nStill to be done by people:")
+        for issue in run.open_issues:
+            print(f"  - {issue.text}")
+        if run.status == "failed":
+            failed = next(s for s in run.steps if s.status == "failed")
+            raise InvalidInputError(
+                f"Step {failed.name} failed: {failed.error}. Run the same "
+                "command again to resume from it."
+            )
+        print(f"Done: {app.settings.analysis_dir}/{session}/summary.json")
 
     def _judge_acts(
         self, dialogues: str = "examples/skills/dialogue_acts/dialogues.json",

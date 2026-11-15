@@ -336,6 +336,8 @@ class RagCLI:
         tags_per_sentence: Optional[int] = None,
         semantic: Optional[bool] = None,
         act_card: Optional[str] = None,
+        analysis_dir: Optional[str] = None,
+        max_confirmations: Optional[int] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -378,6 +380,12 @@ class RagCLI:
                 (``--semantic=False``: words only, no model is loaded).
             act_card: Settings of the dialogue-act tagger (``skills
                 acts``; default knowledge/dialogue_acts/act_tagger.json).
+            analysis_dir: Where ``analyze`` keeps each session's steps
+                (data/output/skills/analysis).
+            max_confirmations: Most sentences the judge reads in
+                ``analyze`` (best candidates first; 0: all; default
+                150, which keeps a 4-person session under about 200
+                calls).
         """
         options = dict(locals())
         options.pop("self")

@@ -13,6 +13,7 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.fs_analysis_store import FileSystemAnalysisStore
 from src.adapters.outbound.fs_assessment_store import (
     FileSystemAssessmentStore,
 )
@@ -50,8 +51,17 @@ from src.application.skills.judges import (
     JudgeSelection,
 )
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
-from src.application.skills.ports import ActTagger, ChatModel
+from src.application.skills.ports import (
+    ActTagger,
+    ChatModel,
+    DialogueActTagger,
+    EventExtractor,
+)
 from src.application.skills.profile import ProfileService
+from src.application.skills.session_analysis import (
+    JudgeSetup,
+    SessionAnalysis,
+)
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
@@ -341,6 +351,38 @@ class SkillsContainer:
             max_tokens=s.max_new_tokens, min_similarity=s.min_similarity,
             min_episodes=s.min_episodes, episode_gap=s.episode_gap,
             min_words=s.min_participant_words,
+        )
+
+    acts_tagger: Optional[DialogueActTagger] = None
+    """Step d of ``skills analyze``; ``None`` until #82 provides it."""
+    event_extractor: Optional[EventExtractor] = None
+    """Step e of ``skills analyze``; ``None`` until #83 provides it."""
+
+    def judge_setup(self) -> JudgeSetup:
+        """Return the judges of the analysis (built on first use)."""
+        mode = self.judge_mode()
+        return JudgeSetup(
+            mode=mode, first=self.confirmer, assessment=self.assessment,
+            second=self.second_confirmer if mode == "both" else None,
+        )
+
+    @cached_property
+    def session_analysis(self) -> SessionAnalysis:
+        """The whole flow on one session (``skills analyze``)."""
+        s = self.settings
+        catalogues = self.catalogues
+        return SessionAnalysis(
+            self.transcripts,
+            FileSystemAnalysisStore(s.analysis_dir),
+            self.rubric,
+            catalogues.load,
+            self.tagger,
+            self.judge_setup,
+            lambda: datetime.now(timezone.utc),
+            acts=self.acts_tagger,
+            events=self.event_extractor,
+            max_confirmations=s.max_confirmations,
+            embedding_model=s.embedding_model if s.semantic else "",
         )
 
     @cached_property

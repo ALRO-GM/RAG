@@ -45,6 +45,7 @@ from src.domain.models import (
     ScoredChunk,
 )
 from src.domain.priors import RouterModel
+from src.domain.skills.analysis_run import AnalysisRun
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.transcript import Transcript, build_transcript
 from src.domain.text_analysis import tokenize
@@ -645,6 +646,39 @@ class InMemoryTranscriptStore:
     def delete(self, session_id: str) -> bool:
         """Forget the document of ``session_id``; tell whether it was kept."""
         return self.documents.pop(session_id, None) is not None
+
+
+class InMemoryAnalysisStore:
+    """Analysis runs and result files kept in dictionaries.
+
+    ``fail_writes`` names files whose write raises, to test failures.
+    """
+
+    def __init__(self) -> None:
+        """Start empty."""
+        self.runs: Dict[str, AnalysisRun] = {}
+        self.files: Dict[Tuple[str, str], str] = {}
+        self.saved: List[AnalysisRun] = []
+
+    def load(self, session_id: str) -> Optional[AnalysisRun]:
+        """Return the stored run of ``session_id``, if any."""
+        return self.runs.get(session_id)
+
+    def save(self, run: AnalysisRun) -> None:
+        """Keep ``run`` (and remember every save, in order)."""
+        self.runs[run.session_id] = run
+        self.saved.append(run)
+
+    def write(self, session_id: str, name: str, text: str) -> str:
+        """Keep one result file."""
+        self.files[(session_id, name)] = text
+        return f"{session_id}/{name}"
+
+    def read(self, session_id: str, name: str) -> str:
+        """Return one result file."""
+        if (session_id, name) not in self.files:
+            raise NotFoundError(f"No {name} for session {session_id!r}.")
+        return self.files[(session_id, name)]
 
 
 class InMemoryCatalogueRepository:

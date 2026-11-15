@@ -225,6 +225,14 @@ class SkillsSettings(BaseModel):
     derived from act labels); :meth:`event_rules` hands them to the
     domain and ``docs/skills/CONVERSATION_EVENTS.md`` describes each.
 
+    ``skills analyze`` keeps each session's steps and results under
+    ``analysis_dir/<session>``. ``max_confirmations`` bounds the
+    sentences the judge reads when it confirms candidate tags (the
+    ones with the best candidate first; 0: all): with the 11
+    competencies of the core rubric, 4 people add 44 assessment calls,
+    so the default keeps a session under about 200 calls on Claude's
+    quota.
+
     ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
     on synthetic sessions and must be tuned with ``skills lab`` once
@@ -243,6 +251,8 @@ class SkillsSettings(BaseModel):
     rubric_language: str = "auto"
     transcripts_dir: str = "data/transcripts"
     output_dir: str = "data/output/skills"
+    analysis_dir: str = "data/output/skills/analysis"
+    max_confirmations: int = Field(default=150, ge=0)
     semantic: bool = True
     embedding_model: str = DEFAULT_SKILLS_EMBEDDING_MODEL
     embedding_max_tokens: int = Field(default=128, ge=8)
