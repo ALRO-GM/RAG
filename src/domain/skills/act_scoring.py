@@ -28,7 +28,11 @@ from typing import Dict, List, Mapping, Optional, Sequence
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.skills.act_tagging import Probabilities, Reference, top_category
+from src.domain.skills.act_tagging import (
+    Probabilities,
+    Reference,
+    top_category,
+)
 from src.domain.skills.dialogue_acts import CATEGORIES
 
 EPS = 1e-15

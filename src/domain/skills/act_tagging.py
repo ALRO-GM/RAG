@@ -16,7 +16,8 @@ categories, plus the weights of our own set), and the routing of a
 combined tagger.
 """
 
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple
+import hashlib
+from typing import Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -38,6 +39,25 @@ OTHER_SPEAKER = "[>]"
 
 CONTEXT_CHARS = 400
 """Most characters of context an encoder input keeps (the latest)."""
+
+
+Split = Literal["train", "dev", "test"]
+
+
+def split_of(dialogue: str, test: float = 0.15, dev: float = 0.10) -> Split:
+    """Return the split of a public-corpus dialogue (by meeting).
+
+    Our own deterministic split, not a corpus's published one: the
+    first 8 hex digits of the SHA-256 of the dialogue id, as a share of
+    their range, below ``test`` → test, below ``test + dev`` → dev,
+    else train. A whole meeting always falls in one split.
+    """
+    if test < 0 or dev < 0 or test + dev >= 1:
+        raise ValueError("test and dev shares must be >= 0 and sum < 1")
+    share = int(hashlib.sha256(dialogue.encode()).hexdigest()[:8], 16) / 16**8
+    if share < test:
+        return "test"
+    return "dev" if share < test + dev else "train"
 
 
 class _Frozen(BaseModel):
