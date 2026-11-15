@@ -1,0 +1,459 @@
+{
+ "about": "Fichas de teoría de las 13 categorías de actos (#94). Texto original escrito para este proyecto a partir de docs/skills/CONVERSATION.md §5 y docs/skills/DIALOGUE_ACTS_GUIDE.md; los ejemplos son frases nuevas, distintas de las del conjunto de evaluación (examples/skills/dialogue_acts). Los ejemplos de 'no' llevan la categoría vecina a la que pertenecen.",
+ "cards": [
+  {
+   "category": "pregunta",
+   "definition": "La frase busca que otra persona aporte algo que quien habla no tiene: un dato, su parecer, que confirme lo entendido o que escoja entre opciones. Su sentido se cumple cuando llega una contestación.",
+   "function": "Abre un hueco que el siguiente turno debe llenar con una respuesta; reparte la palabra hacia quien sabe o hacia quien debe opinar.",
+   "cues": [
+    "signos de interrogación o entonación de duda",
+    "palabras interrogativas al inicio: qué, cuál, cuántos, cuándo, dónde, quién, cómo, por qué",
+    "verificaciones del tipo «o sea, ¿...?», «¿entonces ...?», «¿verdad?», «¿no?» al final",
+    "petición de aclaración: «¿cómo dices?», «¿qué quieres decir con...?»",
+    "preguntas indirectas: «me gustaría saber si...», «no sé si ya está...»",
+    "ofrecer opciones para que el otro elija: «¿el martes o el miércoles?»"
+   ],
+   "not": [
+    {"category": "peticion", "contrast": "Si lo que se espera es que alguien haga algo y no que conteste, es Petición aunque tenga interrogación.", "examples": ["¿Me acercas la grapadora, que la tienes al lado?", "¿Puedes cerrar la ventana, por favor?"]},
+    {"category": "propuesta", "contrast": "«¿Y si...?» o «¿por qué no...?» ofrecen una idea para decidir: es Propuesta.", "examples": ["¿Y si dejamos la mudanza del archivo para enero?", "¿Por qué no probamos con turnos de cuatro horas?"]},
+    {"category": "rechazo", "contrast": "Una pregunta retórica que quita valor a lo dicho por otro no busca respuesta: es Rechazo.", "examples": ["¿Y quién va a pagar eso, si no hay partida?"]},
+    {"category": "respuesta", "contrast": "La frase que contesta a una pregunta es Respuesta aunque vuelva a preguntar algo al final; si solo pide aclarar antes de contestar, sigue siendo Pregunta."}
+   ],
+   "boundary": [
+    "Sin signos de interrogación (el reconocedor los pierde), una afirmación de verificación cuenta como Pregunta solo si alguien la contesta después.",
+    "Quien responde a una pregunta nunca se etiqueta Pregunta por estar justo después de otra pregunta: lo que importa es lo que hace su propia frase.",
+    "Dar la palabra a alguien preguntándole su parecer mezcla Gestión y Pregunta."
+   ],
+   "examples": [
+    "¿A qué hora abre el almacén los sábados?",
+    "¿Cuántos pacientes quedaron ayer en lista de espera?",
+    "¿Quién llevó la furgoneta al taller la última vez?",
+    "O sea, ¿el pedido sale desde Valencia y no desde aquí?",
+    "¿Te refieres al contrato viejo o al de este año?",
+    "¿Cómo dices? No te he oído bien.",
+    "¿Prefieres que la formación sea por la mañana o por la tarde?",
+    "¿Ya está firmada la orden de compra?",
+    "Me gustaría saber si el seguro cubre también a los becarios.",
+    "Entonces la piscina cierra en agosto, ¿no?",
+    "¿Por qué se canceló la visita de la inspectora?",
+    "¿Qué te pareció la propuesta de los vecinos?",
+    "¿Cuánto tarda el laboratorio en mandar los resultados?",
+    "¿Tú has trabajado antes con este programa de nóminas?"
+   ]
+  },
+  {
+   "category": "respuesta",
+   "definition": "La frase entrega lo que una pregunta anterior pedía: el dato, la elección, la confirmación o el parecer solicitado, o reconoce que no lo sabe. Existe porque antes se preguntó algo.",
+   "function": "Cierra el hueco que abrió una pregunta; es la segunda mitad del par pregunta–respuesta.",
+   "cues": [
+    "va detrás de una pregunta de otra persona (a veces con frases en medio)",
+    "frases cortas que solo tienen sentido con la pregunta delante: «el jueves», «unos treinta», «sí, ya está»",
+    "«no lo sé», «ni idea», «tendría que mirarlo» después de una pregunta",
+    "repite palabras de la pregunta para contestarla",
+    "un sí o un no que contesta una verificación"
+   ],
+   "not": [
+    {"category": "aceptacion", "contrast": "Decir que sí a una propuesta, una oferta o una petición es Aceptación; Respuesta solo contesta preguntas.", "examples": ["Venga, sí, lo probamos con turnos de cuatro horas."]},
+    {"category": "informacion", "contrast": "Un dato que nadie ha pedido es Información, aunque se parezca a una contestación.", "examples": ["El camión de las once llega siempre con retraso los lunes."]},
+    {"category": "opinion", "contrast": "Una valoración espontánea es Opinión; si alguien había preguntado qué opinaba, es Respuesta."},
+    {"category": "pregunta", "contrast": "Si la contestación es otra pregunta para aclarar antes de responder, esa frase es Pregunta."}
+   ],
+   "boundary": [
+    "Aunque la contestación sea una opinión o un dato, si contesta a una pregunta manda Respuesta.",
+    "Si la persona se va por las ramas sin dar lo pedido, no es Respuesta sino Información u Opinión.",
+    "Cuando una misma persona contesta en varias frases seguidas, todas las que siguen dando lo pedido son Respuesta."
+   ],
+   "examples": [
+    "A las ocho y media, como entre semana.",
+    "Quedaron catorce, la mayoría de traumatología.",
+    "La llevó Andrés, me parece que en septiembre.",
+    "No, sale desde aquí, Valencia solo hace la factura.",
+    "Al de este año, el viejo ya no vale.",
+    "Mejor por la mañana, que por la tarde tengo guardia.",
+    "Todavía no, falta la firma del director.",
+    "Pues no lo sé, tendría que preguntarlo en recursos humanos.",
+    "Sí, cierra todo el mes por obras.",
+    "Porque se puso enferma, la pasan a la semana que viene.",
+    "Me pareció razonable, aunque piden demasiado.",
+    "Entre tres y cinco días, depende de la prueba.",
+    "Un poco, en la otra empresa usábamos uno parecido."
+   ]
+  },
+  {
+   "category": "informacion",
+   "definition": "La frase cuenta algo que se puede comprobar: un hecho, una cifra, un suceso, un plan ya fijado o una explicación de cómo funciona algo. Nadie la ha pedido y no busca que el grupo decida nada.",
+   "function": "Aporta material a la conversación; sobre ella otros pueden preguntar, valorar o proponer.",
+   "cues": [
+    "verbos de suceso o de estado en pasado o presente: «llegó», «tenemos», «cuesta», «está cerrado»",
+    "cifras, fechas, nombres de documentos o de personas",
+    "lo que otra persona dijo o decidió, contado por quien habla: «el jefe dijo que...»",
+    "explicaciones del tipo «es que...», «porque...» sin valorar",
+    "acciones ya hechas: «ya lo mandé», «lo subí ayer»"
+   ],
+   "not": [
+    {"category": "opinion", "contrast": "Si lo dicho depende de cómo lo ve quien habla (bueno, malo, arriesgado, mejor) es Opinión; si alguien podría comprobarlo, es Información.", "examples": ["Ese proveedor es el más serio con diferencia."]},
+    {"category": "respuesta", "contrast": "El mismo dato dado porque alguien lo preguntó es Respuesta."},
+    {"category": "compromiso", "contrast": "Lo ya hecho es Información; lo que quien habla promete hacer es Compromiso.", "examples": ["Mañana a primera hora te paso las facturas."]},
+    {"category": "gestion", "contrast": "Un resumen de lo hablado en la propia reunión es Gestión, no Información."}
+   ],
+   "boundary": [
+    "«Creo que la sala era la tres» es un dato dicho con duda: Información.",
+    "Contar la opinión de otro («Clara piensa que no llegamos») es Información sobre lo que dijo Clara.",
+    "Una previsión de calendario («el auditor viene el día doce») es Información; una predicción personal («no vamos a llegar») es Opinión."
+   ],
+   "examples": [
+    "El repartidor dejó las cajas en la puerta de atrás.",
+    "La licencia del programa caduca el treinta de este mes.",
+    "En la planta tercera hay dos camas libres desde esta mañana.",
+    "El ayuntamiento cambió el horario de recogida de cartón.",
+    "Ya subí las fotos al servidor compartido.",
+    "La impresora grande solo funciona con el cable, no por wifi.",
+    "Dirección aprobó ayer la compra de las sillas.",
+    "Ese informe sale de las ventas de los tres últimos meses.",
+    "Marcos comentó que su equipo no podrá venir el viernes.",
+    "El curso tiene veinte plazas y ya hay dieciocho apuntados.",
+    "Es que el sistema se reinicia todas las noches a las dos.",
+    "El cliente pagó la mitad por adelantado.",
+    "Las llaves del archivo las tiene conserjería."
+   ]
+  },
+  {
+   "category": "opinion",
+   "definition": "La frase muestra cómo ve las cosas quien habla: juzga, valora, prefiere, cree o toma postura sobre el tema, una opción o un trabajo. Otro podría pensar distinto sin que ninguno mienta. Se abre sola, sin contestar a una pregunta ni reaccionar a algo que acaban de proponer.",
+   "function": "Pone una postura sobre la mesa para que otros la compartan o la discutan.",
+   "cues": [
+    "marcas de punto de vista: «creo que», «me parece», «para mí», «a mi juicio», «yo lo veo»",
+    "adjetivos que valoran: mejor, peor, caro, arriesgado, absurdo, clave, injusto, cómodo",
+    "predicciones personales: «esto no va a salir», «se nos va a echar el tiempo encima»",
+    "preferencias: «a mí me gusta más...», «prefiero...» cuando nadie ha preguntado",
+    "diagnósticos: «el problema de fondo es...»"
+   ],
+   "not": [
+    {"category": "informacion", "contrast": "Un hecho comprobable, aunque empiece por «creo que», es Información.", "examples": ["Creo que el tren de las nueve para en todas las estaciones."]},
+    {"category": "aceptacion", "contrast": "Una valoración positiva que reacciona a lo que otro acaba de proponer u opinar es Aceptación.", "examples": ["Me parece muy buena idea lo de los turnos."]},
+    {"category": "rechazo", "contrast": "Una valoración negativa que reacciona a una propuesta u opinión de otro es Rechazo.", "examples": ["Uf, eso de los turnos no lo veo nada claro."]},
+    {"category": "propuesta", "contrast": "«Lo mejor sería...» o «convendría...» proponen una acción: Propuesta."},
+    {"category": "relacion", "contrast": "Valorar a la persona y no su trabajo es Relación."}
+   ],
+   "boundary": [
+    "Si alguien preguntó «¿qué opinas?», la opinión que contesta es Respuesta.",
+    "Una opinión que lleva una razón con un dato comprobable sigue siendo Opinión como etiqueta principal.",
+    "Opinión e Información son la frontera más difícil: la prueba es si se podría comprobar."
+   ],
+   "examples": [
+    "Para mí el horario de verano es mucho más cómodo para todos.",
+    "Me parece que estamos complicando demasiado el formulario.",
+    "El problema de fondo es que nadie revisa los pedidos antes de enviarlos.",
+    "Ese programa es lentísimo, la verdad.",
+    "Yo creo que a los clientes les va a costar entender la nueva tarifa.",
+    "Lo de la feria fue una pérdida de dinero.",
+    "A mí el diseño antiguo me gustaba más.",
+    "Sinceramente, la formación online no funciona para este tipo de tareas.",
+    "Esto no lo sacamos en dos semanas ni de broma.",
+    "Lo más importante ahora es no perder a los clientes grandes.",
+    "La sala nueva es demasiado ruidosa para hacer llamadas.",
+    "Creo que el equipo de tarde está muy cargado de trabajo."
+   ]
+  },
+  {
+   "category": "propuesta",
+   "definition": "La frase ofrece una idea, un plan, una solución o un trato para que el grupo o la otra parte lo acepte o lo descarte. Quien la dice no manda a nadie concreto hacerlo: deja la decisión abierta.",
+   "function": "Es la primera mitad de un par que espera aceptación o rechazo; de ella salen las decisiones.",
+   "cues": [
+    "condicionales y sugerencias: «podríamos», «se podría», «habría que», «sería mejor»",
+    "«¿y si...?», «¿por qué no...?»",
+    "«propongo», «mi idea es», «lo que yo haría es»",
+    "ofertas en una negociación: «si me das X, te hago Y»",
+    "ofrecerse si los demás quieren: «si os parece, lo hago yo»"
+   ],
+   "not": [
+    {"category": "peticion", "contrast": "Si hay una persona señalada (tú, Ana, vosotros, alguien) a la que se pide hacerlo, es Petición.", "examples": ["Lorena, revisa tú el inventario antes del jueves."]},
+    {"category": "compromiso", "contrast": "«Lo hago yo» sin condición es Compromiso; «si queréis, lo hago yo» es Propuesta.", "examples": ["Yo me encargo de reservar el autobús."]},
+    {"category": "gestion", "contrast": "Proponer cómo llevar la reunión (orden, turnos, tiempo) es Gestión.", "examples": ["Vamos primero con el presupuesto y luego con las vacaciones."]},
+    {"category": "pregunta", "contrast": "Preguntar qué hacer sin ofrecer una idea es Pregunta."}
+   ],
+   "boundary": [
+    "Una contrapropuesta que corrige otra propuesta puede ser Rechazo más Propuesta; la principal es la que cambia lo que pasa después.",
+    "Una propuesta con su razón valorativa sigue siendo Propuesta como principal."
+   ],
+   "examples": [
+    "Podríamos turnarnos para abrir la tienda los domingos.",
+    "¿Y si mandamos la encuesta también por correo postal?",
+    "Habría que poner un cartel en la entrada con el horario nuevo.",
+    "Propongo que el viaje de fin de curso sea a la sierra.",
+    "Lo que yo haría es pedir dos presupuestos más antes de decidir.",
+    "Si nos rebajáis el transporte, os firmamos el pedido de todo el año.",
+    "Se podría juntar la revisión de enero con la de febrero.",
+    "¿Por qué no cambiamos el proveedor de café por uno de la zona?",
+    "Sería mejor empezar por los pacientes que llevan más tiempo esperando.",
+    "Si os parece, preparo yo una primera versión y la comentamos.",
+    "Igual conviene contratar a alguien solo para la campaña de Navidad.",
+    "Una opción es dividir el almacén en dos zonas por colores."
+   ]
+  },
+  {
+   "category": "peticion",
+   "definition": "La frase pide o manda a alguien concreto —una persona, el grupo como destinatario, «alguien»— que haga algo. Lo que se espera a cambio es una acción, no una contestación ni una decisión sobre una idea.",
+   "function": "Abre un par que espera cumplimiento: compromiso, aceptación o negativa de quien recibe el encargo.",
+   "cues": [
+    "imperativos: «mándame», «revisad», «llama», «trae»",
+    "«¿puedes...?», «¿me pasas...?», «¿te importa...?» con una acción",
+    "«necesito que...», «te pido que...», «a ver si alguien...»",
+    "un nombre o un «tú / vosotros» que señala quién lo hará",
+    "plazos para el otro: «para el lunes», «antes de las tres»"
+   ],
+   "not": [
+    {"category": "propuesta", "contrast": "«Habría que llamar al técnico» no señala a nadie: Propuesta.", "examples": ["Habría que avisar al técnico de la caldera."]},
+    {"category": "pregunta", "contrast": "Si lo que se quiere es saber algo, es Pregunta.", "examples": ["¿Sabes si el técnico vino ayer?"]},
+    {"category": "gestion", "contrast": "Pedir el turno o pedir a alguien que hable en la reunión es Gestión."}
+   ],
+   "boundary": [
+    "Una promesa sobre otra persona («Pedro lo hará») se trata como Petición o Información según el contexto, nunca como Compromiso.",
+    "La cortesía («por favor») no cambia la categoría: sigue siendo Petición."
+   ],
+   "examples": [
+    "Rocío, mándame la lista de asistentes antes de comer.",
+    "¿Puedes llamar tú al fontanero para que venga mañana?",
+    "Revisad las fechas del calendario y me decís si cuadran.",
+    "Necesito que alguien se quede a cerrar el viernes.",
+    "Pásame el número del transportista, por favor.",
+    "Traed el portátil cargado a la formación del jueves.",
+    "¿Te importa imprimir las actas para la reunión de la tarde?",
+    "Cuando puedas, actualiza la hoja de turnos con los cambios.",
+    "A ver si alguien me echa una mano con las cajas.",
+    "Daniel, encárgate tú de responder a la queja del cliente.",
+    "Mandadme vuestras vacaciones antes del día quince."
+   ]
+  },
+  {
+   "category": "aceptacion",
+   "definition": "La frase dice que sí a algo que otra persona acaba de poner sobre la mesa: acepta una propuesta, una oferta o una petición, o se suma a una opinión o a un resumen. Siempre hay algo anterior de otro que se acepta.",
+   "function": "Segunda mitad de un par: hace avanzar la decisión o el encargo. Varias aceptaciones a una propuesta forman un acuerdo.",
+   "cues": [
+    "«vale», «de acuerdo», «venga», «hecho», «me parece bien», «perfecto» después de una propuesta o petición",
+    "«sí, y además...» que apoya y suma",
+    "«totalmente», «tienes razón», «eso es» después de una opinión",
+    "repetir la idea aceptada: «sí, lo de los turnos me convence»"
+   ],
+   "not": [
+    {"category": "escucha", "contrast": "Un «vale» o «sí» mientras otro cuenta algo, sin nada que aceptar, es Señal de escucha.", "examples": ["Ajá, sigue."]},
+    {"category": "respuesta", "contrast": "Un «sí» que contesta una pregunta es Respuesta.", "examples": ["Sí, ya está firmada."]},
+    {"category": "rechazo", "contrast": "«Sí, pero...» pone una objeción: pesa la objeción y es Rechazo.", "examples": ["Sí, pero con ese presupuesto no llegamos."]},
+    {"category": "compromiso", "contrast": "«Vale, lo hago yo» acepta y además promete: la principal es Compromiso.", "examples": ["Vale, me ocupo yo de las entradas."]}
+   ],
+   "boundary": [
+    "Sin algo anterior de otra persona que aceptar, no es Aceptación.",
+    "Aceptar un resumen o un cierre de la reunión («perfecto, quedamos así») también es Aceptación."
+   ],
+   "examples": [
+    "Me parece bien, lo hacemos así.",
+    "De acuerdo, los domingos por turnos.",
+    "Venga, adelante con la sierra.",
+    "Hecho, firmamos el pedido anual.",
+    "Totalmente, y además nos ahorramos el envío.",
+    "Tienes razón, el formulario tiene demasiadas preguntas.",
+    "Perfecto, quedamos así entonces.",
+    "Sí, eso me convence más que lo de antes.",
+    "Por mí no hay problema.",
+    "Claro, me apunto a lo de los dos presupuestos.",
+    "Trato cerrado, entonces."
+   ]
+  },
+  {
+   "category": "rechazo",
+   "definition": "La frase se opone a algo que otra persona acaba de decir: rechaza una propuesta o una petición, discrepa de una opinión, corrige un dato o pone una objeción. Incluye el «sí, pero...» y la pregunta que solo sirve para objetar.",
+   "function": "Segunda mitad de un par que frena una decisión o un encargo y suele abrir negociación o una contrapropuesta.",
+   "cues": [
+    "«no», «no creo», «no estoy de acuerdo», «eso no» después de algo dicho por otro",
+    "«sí, pero...», «ya, pero...», «el problema es que...» como reacción",
+    "correcciones: «no era el martes, era el jueves»",
+    "objeciones con razón: «eso no puede ser porque...»",
+    "preguntas retóricas que quitan valor: «¿y quién lo va a hacer?»"
+   ],
+   "not": [
+    {"category": "opinion", "contrast": "Una valoración negativa que no responde a nadie es Opinión.", "examples": ["La aplicación nueva es un desastre."]},
+    {"category": "relacion", "contrast": "Atacar a la persona en vez de a la idea es Relación."},
+    {"category": "aceptacion", "contrast": "Empezar por «sí» no basta: si sigue una objeción, es Rechazo."}
+   ],
+   "boundary": [
+    "Un rechazo con su motivo comprobable puede llevar Información como segunda etiqueta.",
+    "Corregir un dato que dio otra persona es Rechazo aunque lo dicho sea un hecho."
+   ],
+   "examples": [
+    "No, a la sierra fuimos el año pasado y salió carísimo.",
+    "Ya, pero los domingos no tenemos a nadie con llave.",
+    "Eso no puede ser, el seguro solo cubre a la plantilla.",
+    "No era en la planta tercera, era en la segunda.",
+    "No estoy de acuerdo, el formulario necesita esas preguntas.",
+    "¿Y quién va a hacer la ruta del correo postal, si no hay nadie?",
+    "Lo siento, pero no puedo quedarme el viernes.",
+    "Sí, pero eso nos retrasa todo el calendario.",
+    "Uy, no, ese proveedor nos falló dos veces.",
+    "Yo no lo veo, la gente no se va a leer un cartel.",
+    "Con ese precio no nos sale a cuenta, de verdad."
+   ]
+  },
+  {
+   "category": "compromiso",
+   "definition": "Quien habla se obliga a hacer algo en el futuro. Tienen que darse tres cosas: lo hará la propia persona que habla, es algo por hacer y suena a promesa firme, no a un «quizá» ni a una oferta condicionada.",
+   "function": "Crea una tarea con dueño; muchas veces cierra una petición o concreta una decisión.",
+   "cues": [
+    "primera persona y futuro o presente con valor de futuro: «lo mando», «me encargo», «yo lo hago»",
+    "plazos propios: «esta tarde», «antes del lunes»",
+    "«déjamelo a mí», «cuenta conmigo», «de eso me ocupo yo»",
+    "«vale, te lo paso...» después de una petición"
+   ],
+   "not": [
+    {"category": "propuesta", "contrast": "Ofrecerse si los demás quieren («si os parece, lo hago yo») es Propuesta.", "examples": ["Si queréis, me encargo yo de la cartelería."]},
+    {"category": "informacion", "contrast": "Lo que ya se hizo («ya lo mandé») es Información.", "examples": ["Ya mandé la cartelería a imprenta."]},
+    {"category": "peticion", "contrast": "Prometer por otra persona no es Compromiso."},
+    {"category": "aceptacion", "contrast": "Un «vale» sin promesa de hacer nada es Aceptación."}
+   ],
+   "boundary": [
+    "«Vale, lo hago yo» lleva Compromiso como principal y Aceptación como segunda.",
+    "«Intentaré mirarlo» es débil: Compromiso solo si suena a obligación."
+   ],
+   "examples": [
+    "Yo me encargo de reservar la sala para el martes.",
+    "Te mando el presupuesto esta misma tarde.",
+    "Esta semana hablo con el casero y os cuento.",
+    "Déjamelo a mí, mañana llamo al fontanero.",
+    "Antes del viernes tienes las nóminas revisadas.",
+    "Cuenta conmigo para cerrar el sábado.",
+    "Vale, preparo yo la primera versión para el lunes.",
+    "De las fotos me ocupo yo.",
+    "Mañana a primera hora paso por el banco y lo arreglo.",
+    "Le escribo yo al cliente para disculparnos."
+   ]
+  },
+  {
+   "category": "escucha",
+   "definition": "Una o dos palabras con las que quien escucha muestra que sigue el hilo o que ha entendido, sin tomar la palabra ni añadir contenido, mientras otra persona cuenta algo.",
+   "function": "Anima a quien habla a continuar; no acepta ni rechaza nada.",
+   "cues": [
+    "«ajá», «mhm», «ya», «ya, ya», «sí, sí», «claro», «ah», «anda», «vaya»",
+    "frase muy corta, de quien no tenía el turno, mientras otro explica",
+    "repetir una palabra del otro en tono de seguir: «tres semanas...»",
+    "«ah, vale» que solo indica que se entendió lo contado"
+   ],
+   "not": [
+    {"category": "aceptacion", "contrast": "Si el «vale» cierra una propuesta o una petición, es Aceptación.", "examples": ["Vale, lo hacemos así."]},
+    {"category": "otro", "contrast": "Un «eh...» o «bueno...» para ganar tiempo no es escucha: es Otro."},
+    {"category": "respuesta", "contrast": "Un «sí» que contesta una pregunta es Respuesta."}
+   ],
+   "boundary": [
+    "Si después del «vale» la frase sigue con contenido, se etiqueta por el contenido.",
+    "Las transcripciones automáticas pierden muchas señales de escucha; que falten no dice nada de la persona."
+   ],
+   "examples": [
+    "Mhm.",
+    "Ya, ya, entiendo.",
+    "Ah, vale, ya lo pillo.",
+    "Sí, sí, te sigo.",
+    "Anda.",
+    "Ajá, ajá.",
+    "Vaya.",
+    "Claro, claro, te sigo.",
+    "Hum.",
+    "Ah, mira tú."
+   ]
+  },
+  {
+   "category": "gestion",
+   "definition": "La frase trata de la conversación misma y no del asunto: abrir o cerrar, fijar el orden del día, cambiar de punto, controlar el tiempo, dar o pedir la palabra, o resumir lo hablado y lo decidido.",
+   "function": "Organiza el encuentro; los resúmenes dejan constancia de los acuerdos y abren la aceptación de todos.",
+   "cues": [
+    "«empezamos», «pasamos al siguiente punto», «lo dejamos aquí»",
+    "tiempo de la reunión: «nos quedan cinco minutos», «vamos con prisa»",
+    "dar la palabra: «Ana, ¿quieres decir algo?», «tú primero»",
+    "resúmenes: «resumiendo», «entonces quedamos en...», «recapitulo»",
+    "aplazar un tema: «esto lo vemos otro día»"
+   ],
+   "not": [
+    {"category": "propuesta", "contrast": "Proponer cómo hacer el trabajo es Propuesta; proponer cómo llevar la reunión es Gestión.", "examples": ["Podríamos repartir las rutas por barrios."]},
+    {"category": "informacion", "contrast": "Un resumen de lo hablado en la reunión es Gestión, no Información."},
+    {"category": "pregunta", "contrast": "Dar la palabra preguntando la opinión mezcla las dos; si solo se pregunta por el tema, es Pregunta."}
+   ],
+   "boundary": [
+    "Un cierre con despedida mezcla Gestión y Relación; la principal es la que organiza.",
+    "«Bueno, vamos a ello» al empezar es Gestión."
+   ],
+   "examples": [
+    "Bueno, si estamos todos, arrancamos.",
+    "Pasamos al punto de las vacaciones.",
+    "Nos quedan diez minutos, así que vamos rápido.",
+    "Recapitulo: Sonia llama al banco y Pablo cierra la nómina.",
+    "Esto lo dejamos para la reunión del mes que viene.",
+    "Teresa, no has dicho nada todavía, cuando quieras.",
+    "Volvemos un momento al tema del presupuesto.",
+    "Entonces quedamos en que el pedido sale el lunes.",
+    "Lo dejamos aquí por hoy.",
+    "Antes de seguir, apuntamos lo que llevamos decidido."
+   ]
+  },
+  {
+   "category": "relacion",
+   "definition": "La frase cuida el trato entre personas y no la tarea: saludar, despedirse, dar las gracias, pedir perdón, felicitar o criticar a la persona, animar, bromear o charlar de algo personal.",
+   "function": "Mantiene el clima del grupo; no hace avanzar el asunto.",
+   "cues": [
+    "saludos y despedidas: «buenas tardes», «hasta luego», «nos vemos»",
+    "agradecimientos: «gracias», «te lo agradezco»",
+    "disculpas: «perdona», «siento llegar tarde»",
+    "elogios o críticas dirigidos a la persona: «eres un crack»",
+    "bromas y charla personal: «¿qué tal las vacaciones?»"
+   ],
+   "not": [
+    {"category": "opinion", "contrast": "Elogiar o criticar un trabajo concreto es Opinión; elogiar a la persona en general, Relación.", "examples": ["El cartel que has hecho se lee muy bien desde lejos."]},
+    {"category": "rechazo", "contrast": "Criticar una idea es Rechazo; criticar a la persona, Relación."},
+    {"category": "gestion", "contrast": "Abrir o cerrar la reunión es Gestión; el saludo que lo acompaña es Relación."}
+   ],
+   "boundary": [
+    "Se etiqueta por lo que hace la frase (agradecer, disculparse), nunca por la emoción que parece tener quien habla.",
+    "Un «gracias» que también cede la palabra mezcla Relación y Gestión."
+   ],
+   "examples": [
+    "Buenas tardes a todos, qué calor hace hoy.",
+    "Muchas gracias por quedarte hasta tarde, de verdad.",
+    "Perdona, que te he pisado la frase.",
+    "Enhorabuena por el ascenso, Nuria.",
+    "Siento llegar tarde, había un atasco tremendo.",
+    "Bueno, pues hasta el lunes, que descanséis.",
+    "Eres un sol, no sé qué haríamos sin ti.",
+    "¿Qué tal te fue la mudanza al final?",
+    "Gracias a ti por la paciencia.",
+    "Jaja, menos mal que hoy no se ha roto la cafetera."
+   ]
+  },
+  {
+   "category": "otro",
+   "definition": "La frase no cumple ninguna de las otras funciones: se corta a medias, se abandona, es una muletilla para ganar tiempo, no se entiende o es ruido de la transcripción. Es la última salida, no la primera.",
+   "function": "No hace nada reconocible en la conversación; a veces anuncia que quien habla va a reformular.",
+   "cues": [
+    "puntos suspensivos o frase interrumpida: «es que el...»",
+    "muletillas solas: «eh...», «bueno...», «pues...», «o sea...»",
+    "marcas de la transcripción: «[ininteligible]», «[ruido]»",
+    "arranques que se corrigen enseguida: «el lun-, el martes»",
+    "repetir en voz alta lo que otro dijo mientras se piensa, sin aceptar ni preguntar"
+   ],
+   "not": [
+    {"category": "escucha", "contrast": "Un «ajá» o «ya» que acompaña a quien habla es Señal de escucha."},
+    {"category": "gestion", "contrast": "«Bueno, a ver, voy yo» anuncia que toma la palabra: Gestión."}
+   ],
+   "boundary": [
+    "Si leyendo las frases de alrededor se ve la función, se usa esa categoría.",
+    "Un error de reconocimiento que no impide entender la función no convierte la frase en Otro."
+   ],
+   "examples": [
+    "Es que si el... no sé.",
+    "Eeeh, mmm...",
+    "[ininteligible] de la sala",
+    "Pues lo que te decía, que...",
+    "El lun... bueno.",
+    "O sea, a ver...",
+    "Doce cajas, doce...",
+    "Y entonces el, el de la...",
+    "[ruido de fondo]"
+   ]
+  }
+ ]
+}

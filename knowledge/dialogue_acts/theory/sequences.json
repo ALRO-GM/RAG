@@ -1,0 +1,304 @@
+{
+ "about": "Fichas de secuencias (#94): pares y patrones más largos con el papel de cada posición. Cada posición lleva su categoría y su hablante (A, B, C: mismo o distinto). Texto original para este proyecto; los ejemplos son frases nuevas, distintas de las del conjunto de evaluación. Al recuperar, cada trozo vota solo por la categoría de la posición que se etiqueta, nunca por la de las anteriores.",
+ "sequences": [
+  {
+   "id": "pregunta-respuesta",
+   "description": "Par básico: alguien pide un dato o un parecer y otra persona lo da. La segunda frase es Respuesta aunque contenga un dato o una opinión, y nunca Pregunta por ir detrás de una.",
+   "positions": [
+    {"category": "pregunta", "speaker": "A", "role": "abre el par y espera contestación"},
+    {"category": "respuesta", "speaker": "B", "role": "da lo pedido y cierra el par"}
+   ],
+   "examples": [
+    ["¿Cuándo vence el alquiler del local?", "El treinta de junio."],
+    ["¿Qué tal funcionó la máquina nueva?", "Bien, aunque hace más ruido que la otra."],
+    ["¿Hay sitio en el aparcamiento para la furgoneta?", "Sí, la plaza doce está libre."],
+    ["¿Cuántas personas vienen a la comida?", "Dieciséis, contando a los de la delegación."],
+    ["¿Quién tiene la contraseña del router?", "Ni idea, eso lo llevaba Germán."],
+    ["¿Os llegó el aviso de la mutua?", "No, a nosotros todavía no."]
+   ]
+  },
+  {
+   "id": "pregunta-respuesta-escucha",
+   "description": "Pregunta, contestación y una señal de quien preguntó de que lo ha entendido. La tercera frase no acepta nada: solo registra la información.",
+   "positions": [
+    {"category": "pregunta", "speaker": "A", "role": "pide el dato"},
+    {"category": "respuesta", "speaker": "B", "role": "lo da"},
+    {"category": "escucha", "speaker": "A", "role": "muestra que lo ha recibido"}
+   ],
+   "examples": [
+    ["¿A qué hora pasa el técnico?", "Sobre las cuatro, dijo.", "Ah, vale, ya."],
+    ["¿Cuánto cuesta la tarjeta de socio?", "Treinta euros al año.", "Mhm."],
+    ["¿Dónde quedaron los planos?", "En el armario del pasillo.", "Ya, ya, normal."],
+    ["¿Ha llamado alguien de la gestoría?", "Sí, a primera hora.", "Ah, mira tú."]
+   ]
+  },
+  {
+   "id": "pregunta-aclaracion-respuesta",
+   "description": "Secuencia insertada: ante una pregunta, quien debe contestar pide antes una aclaración; quien preguntó la aclara (Respuesta) y por fin llega la contestación a la pregunta de partida (Respuesta). La pregunta de aclaración es Pregunta; las dos contestaciones son Respuesta.",
+   "positions": [
+    {"category": "pregunta", "speaker": "A", "role": "pregunta de partida"},
+    {"category": "pregunta", "speaker": "B", "role": "pide aclarar antes de contestar"},
+    {"category": "respuesta", "speaker": "A", "role": "aclara lo preguntado"},
+    {"category": "respuesta", "speaker": "B", "role": "contesta la pregunta de partida"}
+   ],
+   "examples": [
+    ["¿Tienes ya las cifras de ventas?", "¿Las del trimestre o las del año?", "Las del trimestre.", "Sí, te las mando ahora."],
+    ["¿Cuántos días te quedan de vacaciones?", "¿Contando los de asuntos propios?", "No, solo vacaciones.", "Me quedan ocho."],
+    ["¿Ha venido el de mantenimiento?", "¿El de la caldera o el de los ascensores?", "El de la caldera.", "Todavía no, viene mañana."],
+    ["¿Qué tal la reunión con el colegio?", "¿Con la directora o con el AMPA?", "Con la directora.", "Bastante bien, aceptó casi todo."]
+   ]
+  },
+  {
+   "id": "pregunta-seguimiento",
+   "description": "Ronda de entrevista: la misma persona pregunta, recibe la contestación y pregunta de nuevo a partir de ella. La segunda pregunta es Pregunta porque la dice quien pregunta, no quien contesta.",
+   "positions": [
+    {"category": "pregunta", "speaker": "A", "role": "primera pregunta"},
+    {"category": "respuesta", "speaker": "B", "role": "contesta"},
+    {"category": "pregunta", "speaker": "A", "role": "pregunta de seguimiento de quien entrevista"},
+    {"category": "respuesta", "speaker": "B", "role": "contesta otra vez"}
+   ],
+   "examples": [
+    ["¿Cuánto tiempo estuviste en la otra empresa?", "Casi cuatro años.", "¿Y por qué te fuiste?", "Cerraron la oficina de aquí."],
+    ["¿Has llevado equipos antes?", "Sí, uno de seis personas.", "¿Qué fue lo más difícil?", "Repartir el trabajo sin que nadie se quemara."],
+    ["¿Qué te falla con la aplicación?", "Que se cierra al guardar.", "¿Te pasa siempre?", "Solo con archivos grandes."]
+   ]
+  },
+  {
+   "id": "propuesta-aceptacion",
+   "description": "Alguien ofrece una idea para decidir y otra persona la acepta. La aceptación necesita la propuesta delante; con varias aceptaciones y ningún rechazo hay acuerdo.",
+   "positions": [
+    {"category": "propuesta", "speaker": "A", "role": "pone la idea sobre la mesa"},
+    {"category": "aceptacion", "speaker": "B", "role": "la acepta"}
+   ],
+   "examples": [
+    ["Podríamos hacer la cena de empresa en el restaurante del puerto.", "Me parece bien, allí se come genial."],
+    ["¿Y si probamos a abrir media hora antes?", "Venga, lo probamos una semana."],
+    ["Habría que poner otra papelera en la sala de espera.", "Sí, totalmente."],
+    ["Propongo que los informes se entreguen los jueves.", "De acuerdo, jueves."],
+    ["Si me hacéis el diez por ciento, me quedo las dos máquinas.", "Hecho, el diez."]
+   ]
+  },
+  {
+   "id": "propuesta-rechazo",
+   "description": "Alguien ofrece una idea y otra persona se opone, a menudo con un «sí, pero» o una razón. La segunda frase es Rechazo aunque empiece por «sí».",
+   "positions": [
+    {"category": "propuesta", "speaker": "A", "role": "pone la idea sobre la mesa"},
+    {"category": "rechazo", "speaker": "B", "role": "la rechaza o pone una objeción"}
+   ],
+   "examples": [
+    ["Podríamos hacer la cena en el restaurante del puerto.", "Ya, pero queda lejísimos para los de fuera."],
+    ["¿Y si abrimos los sábados por la tarde?", "No, no tenemos gente suficiente."],
+    ["Habría que cambiar todas las sillas de la sala.", "Eso es carísimo, no hay presupuesto."],
+    ["Propongo que cada uno se pague su parte.", "Sí, pero entonces no viene la mitad."],
+    ["Lo suyo sería contratar a una empresa externa.", "Uy, no, la última nos dejó tirados."]
+   ]
+  },
+  {
+   "id": "propuesta-rechazo-contrapropuesta",
+   "description": "Negociación: una propuesta, su rechazo y una nueva propuesta de quien rechazó (o de la otra parte), que a su vez espera respuesta.",
+   "positions": [
+    {"category": "propuesta", "speaker": "A", "role": "oferta inicial"},
+    {"category": "rechazo", "speaker": "B", "role": "la rechaza"},
+    {"category": "propuesta", "speaker": "B", "role": "ofrece otra salida"},
+    {"category": "aceptacion", "speaker": "A", "role": "acepta la nueva oferta"}
+   ],
+   "examples": [
+    ["Te dejo la furgoneta a cien euros el día.", "Es demasiado para nosotros.", "¿Y si te la cogemos la semana entera a quinientos?", "Vale, la semana a quinientos."],
+    ["Podemos entregar el pedido en marzo.", "Marzo nos viene tarde.", "Mandadnos la mitad en febrero y el resto en marzo.", "Eso sí lo podemos hacer."],
+    ["Propongo hacer la mudanza en agosto.", "En agosto no hay nadie.", "Hagámosla la primera semana de septiembre.", "Me parece mejor, sí."]
+   ]
+  },
+  {
+   "id": "peticion-compromiso",
+   "description": "Alguien pide a una persona concreta que haga algo y esa persona se obliga a hacerlo. La segunda frase es Compromiso (a veces con una aceptación delante), nunca Petición.",
+   "positions": [
+    {"category": "peticion", "speaker": "A", "role": "encarga la tarea a alguien"},
+    {"category": "compromiso", "speaker": "B", "role": "se obliga a hacerla"}
+   ],
+   "examples": [
+    ["Elena, ¿me mandas el contrato firmado?", "Te lo mando esta tarde sin falta."],
+    ["Necesito que alguien llame al seguro.", "Yo llamo ahora en cuanto acabemos."],
+    ["Revisa el cuadrante antes del viernes, por favor.", "Vale, el jueves lo tienes revisado."],
+    ["Pásame las fotos del evento cuando puedas.", "Mañana te las paso todas."],
+    ["Encárgate tú de pedir el catering.", "De acuerdo, lo pido hoy mismo."]
+   ]
+  },
+  {
+   "id": "peticion-rechazo",
+   "description": "Alguien pide algo y la persona se niega o pone una dificultad. La segunda frase es Rechazo.",
+   "positions": [
+    {"category": "peticion", "speaker": "A", "role": "encarga la tarea"},
+    {"category": "rechazo", "speaker": "B", "role": "no la acepta"}
+   ],
+   "examples": [
+    ["Quédate tú a cerrar el sábado.", "El sábado no puedo, tengo una boda."],
+    ["Mándame el informe hoy, que lo necesito.", "Hoy es imposible, me faltan datos."],
+    ["Encárgate tú de los pedidos de este mes.", "No, que ya llevo las facturas y no me da la vida."]
+   ]
+  },
+  {
+   "id": "peticion-aceptacion-compromiso",
+   "description": "Encargo aceptado en dos frases: primero un sí, después la promesa concreta de la misma persona.",
+   "positions": [
+    {"category": "peticion", "speaker": "A", "role": "encarga la tarea"},
+    {"category": "aceptacion", "speaker": "B", "role": "dice que sí"},
+    {"category": "compromiso", "speaker": "B", "role": "concreta qué hará y cuándo"}
+   ],
+   "examples": [
+    ["Lucas, ocúpate de la cartelería de la feria.", "Vale, sin ningún problema.", "El lunes te enseño un primer diseño."],
+    ["¿Puedes tú hablar con la vecina del ruido?", "Claro que sí, cuenta con ello.", "Esta tarde paso por su casa."],
+    ["Necesito que alguien me cubra el turno del martes.", "Venga, yo.", "Me quedo de ocho a tres."]
+   ]
+  },
+  {
+   "id": "opinion-aceptacion",
+   "description": "Alguien da su parecer sin que se lo pidan y otra persona se suma. La segunda frase es Aceptación, no Opinión, porque reacciona a lo dicho.",
+   "positions": [
+    {"category": "opinion", "speaker": "A", "role": "toma postura"},
+    {"category": "aceptacion", "speaker": "B", "role": "se suma a esa postura"}
+   ],
+   "examples": [
+    ["Para mí el horario partido no tiene sentido en verano.", "Tienes toda la razón."],
+    ["Creo que la web nueva confunde a los clientes.", "Sí, a mí también me lo parece."],
+    ["Lo de la feria salió carísimo para lo que vendimos.", "Totalmente de acuerdo contigo."]
+   ]
+  },
+  {
+   "id": "opinion-rechazo-propuesta",
+   "description": "Alguien toma postura, otra persona discrepa y, a continuación, propone una salida. La discrepancia es Rechazo; la salida, Propuesta.",
+   "positions": [
+    {"category": "opinion", "speaker": "A", "role": "toma postura"},
+    {"category": "rechazo", "speaker": "B", "role": "discrepa"},
+    {"category": "propuesta", "speaker": "B", "role": "ofrece otra salida"}
+   ],
+   "examples": [
+    ["La formación online es una pérdida de tiempo.", "Yo no lo veo así, depende del curso.", "Podríamos probar con uno corto y medir cómo sale."],
+    ["El proveedor nuevo es mucho peor que el de antes.", "No estoy de acuerdo, solo ha fallado una vez.", "Démosle un mes más y lo revisamos."],
+    ["Este local se nos ha quedado pequeño.", "Hombre, pequeño no, está mal organizado.", "Habría que quitar las estanterías del fondo."]
+   ]
+  },
+  {
+   "id": "informacion-escucha",
+   "description": "Alguien cuenta algo en varias frases y quien escucha acompaña con señales cortas. Las señales no aceptan ni contestan nada; las frases del relato siguen siendo Información.",
+   "positions": [
+    {"category": "informacion", "speaker": "A", "role": "cuenta un hecho"},
+    {"category": "escucha", "speaker": "B", "role": "muestra que sigue el relato"},
+    {"category": "informacion", "speaker": "A", "role": "continúa el relato"}
+   ],
+   "examples": [
+    ["Ayer se cayó la red del almacén dos horas.", "Uf, vaya lío.", "Y se quedaron sin salir catorce pedidos."],
+    ["El cliente llamó a primera hora.", "Ajá, ajá, sí.", "Dice que le llegó la mitad de la mercancía."],
+    ["Han cambiado al jefe de obra.", "Anda.", "El nuevo empieza el lunes."],
+    ["La inspectora estuvo aquí el martes.", "Mhm.", "Revisó los extintores y las salidas."]
+   ]
+  },
+  {
+   "id": "informacion-rechazo",
+   "description": "Alguien da un dato y otra persona lo corrige. Corregir lo que dijo otro es Rechazo, aunque lo que se diga sea un hecho.",
+   "positions": [
+    {"category": "informacion", "speaker": "A", "role": "da un dato"},
+    {"category": "rechazo", "speaker": "B", "role": "lo corrige"}
+   ],
+   "examples": [
+    ["La reunión con el banco es el miércoles.", "No, la cambiaron al jueves."],
+    ["El curso tiene veinte plazas.", "Eran veinticinco, lo ampliaron."],
+    ["El contrato lo firmó Ramón.", "Qué va, lo firmó la directora."]
+   ]
+  },
+  {
+   "id": "gestion-cierre-aceptaciones",
+   "description": "Quien lleva la reunión resume lo decidido o cierra un punto y los demás lo aceptan uno a uno. El resumen es Gestión; cada conformidad, Aceptación.",
+   "positions": [
+    {"category": "gestion", "speaker": "A", "role": "resume o cierra"},
+    {"category": "aceptacion", "speaker": "B", "role": "acepta el resumen"},
+    {"category": "aceptacion", "speaker": "C", "role": "otra persona también lo acepta"}
+   ],
+   "examples": [
+    ["Entonces queda así: Pilar pide el catering y Óscar reserva la sala.", "Perfecto, así lo apuntamos.", "Por mí bien, sin pegas."],
+    ["Resumiendo, abrimos media hora antes durante un mes de prueba.", "De acuerdo, un mes de prueba.", "Sí, así."],
+    ["Pues cerramos el tema de las vacaciones con el cuadrante que hay.", "Vale, me parece un reparto justo.", "Conforme."]
+   ]
+  },
+  {
+   "id": "gestion-turno-respuesta",
+   "description": "Quien lleva la reunión da la palabra a alguien preguntándole su parecer; esa persona contesta. La primera mezcla Gestión y Pregunta; la segunda es Respuesta.",
+   "positions": [
+    {"category": "gestion", "speaker": "A", "role": "da la palabra"},
+    {"category": "respuesta", "speaker": "B", "role": "contesta con su parecer"}
+   ],
+   "examples": [
+    ["Irene, tú no has dicho nada, ¿cómo lo ves?", "Pues a mí me parece bien, pero con una prueba antes."],
+    ["Vamos a escuchar a los de turno de noche, ¿qué opináis?", "Que el cambio nos complica bastante el relevo."],
+    ["Antes de cerrar, Paco, ¿algo que añadir?", "Nada, por mi parte está todo."]
+   ]
+  },
+  {
+   "id": "saludo-saludo",
+   "description": "Apertura social: un saludo y su devolución. Las dos son Relación.",
+   "positions": [
+    {"category": "relacion", "speaker": "A", "role": "saluda"},
+    {"category": "relacion", "speaker": "B", "role": "devuelve el saludo"}
+   ],
+   "examples": [
+    ["Hola, ¿qué tal el fin de semana?", "Muy bien, gracias, ¿y el tuyo?"],
+    ["Buenas tardes, perdonad el retraso.", "Nada, tranquila, acabamos de empezar."],
+    ["¡Cuánto tiempo!", "¡Ya ves! Qué alegría verte."]
+   ]
+  },
+  {
+   "id": "compromiso-agradecimiento",
+   "description": "Alguien promete hacer algo y otra persona da las gracias. La promesa es Compromiso; el agradecimiento, Relación (no Aceptación: no se decide nada).",
+   "positions": [
+    {"category": "compromiso", "speaker": "A", "role": "se obliga a hacer algo"},
+    {"category": "relacion", "speaker": "B", "role": "agradece"}
+   ],
+   "examples": [
+    ["Yo te llevo las cajas mañana en el coche.", "Mil gracias, me salvas."],
+    ["Esta tarde te paso los apuntes.", "Gracias, eres un sol."],
+    ["De la llamada al seguro me encargo yo.", "Te lo agradezco mucho."]
+   ]
+  },
+  {
+   "id": "corte-reformulacion",
+   "description": "Quien habla arranca, se corta y reformula. La frase abandonada es Otro; la reformulación se etiqueta por lo que hace.",
+   "positions": [
+    {"category": "otro", "speaker": "A", "role": "arranque abandonado"},
+    {"category": "propuesta", "speaker": "A", "role": "la idea ya formulada"}
+   ],
+   "examples": [
+    ["Es que si el... a ver.", "Podríamos mover la entrega al lunes."],
+    ["Lo que yo, eh...", "¿Y si lo hablamos con el cliente directamente?"],
+    ["O sea, el tema del...", "Habría que revisar los precios antes de enviarlos."]
+   ]
+  },
+  {
+   "id": "propuesta-pregunta-respuesta-aceptacion",
+   "description": "Ante una propuesta, otra persona pregunta un detalle antes de decidir; quien propuso contesta y la propuesta se acepta. La pregunta intermedia es Pregunta; la contestación de quien propuso, Respuesta; la conformidad final, Aceptación.",
+   "positions": [
+    {"category": "propuesta", "speaker": "A", "role": "propone"},
+    {"category": "pregunta", "speaker": "B", "role": "pide un detalle antes de decidir"},
+    {"category": "respuesta", "speaker": "A", "role": "lo aclara"},
+    {"category": "aceptacion", "speaker": "B", "role": "acepta la propuesta"}
+   ],
+   "examples": [
+    ["Podríamos alquilar un autobús para la excursión.", "¿Cuánto saldría por persona?", "Unos doce euros.", "Entonces sí, adelante."],
+    ["¿Y si contratamos a un becario para el verano?", "¿Lo pagaría el proyecto?", "Sí, hay partida.", "Pues me parece buena idea."],
+    ["Propongo cambiar la reunión semanal a los martes.", "¿A la misma hora?", "Sí, a las diez.", "Vale, martes a las diez."]
+   ]
+  },
+  {
+   "id": "pregunta-respuesta-opinion",
+   "description": "Tras contestar, quien contestó (u otra persona) añade por su cuenta una valoración que ya nadie había pedido. La contestación es Respuesta; la valoración añadida, Opinión.",
+   "positions": [
+    {"category": "pregunta", "speaker": "A", "role": "pide un dato"},
+    {"category": "respuesta", "speaker": "B", "role": "lo da"},
+    {"category": "opinion", "speaker": "B", "role": "añade su valoración"}
+   ],
+   "examples": [
+    ["¿Cuánto nos cobran por el mantenimiento?", "Ochocientos al año.", "Me parece un abuso, la verdad."],
+    ["¿Cuántos se apuntaron al taller?", "Solo seis.", "Creo que lo anunciamos demasiado tarde."],
+    ["¿Ha subido la luz este mes?", "Un quince por ciento.", "Así no hay negocio que aguante."]
+   ]
+  }
+ ]
+}
