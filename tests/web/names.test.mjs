@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  NAME_REASONS, nameRows, reasonKey, searchFinished,
+  BUSY_RETRY_MS, NAME_REASONS, nameRows, publishWhenFree, reasonKey, searchFinished,
 } from "../../transcriber/adapters/inbound/web/js/lib/names.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -50,7 +50,45 @@ test("every reason has a sentence in both languages", () => {
     assert.ok(en[key], key);
   }
   assert.equal(reasonKey("bogus"), "names.reason.other");
-  for (const key of ["names.title", "names.search", "names.undo", "names.accept", "stage.names"]) {
+  assert.equal(es["names.busy"], "Buscando los nombres de quién habla…");
+  for (const key of ["names.title", "names.search", "names.undo", "names.accept", "stage.names", "names.busy"]) {
     assert.ok(es[key] && en[key] && es[key] !== en[key], key);
   }
+});
+
+function busyError() {
+  return Object.assign(new Error("busy"), { code: "busy" });
+}
+
+test("the publish waits while names are searched, then goes", async () => {
+  const log = [];
+  const answers = [busyError(), null];
+  const running = [true, false, false];
+  const sent = await publishWhenFree(async () => {
+    log.push("publish");
+    const answer = answers.shift();
+    if (answer) throw answer;
+  }, {
+    busy: async () => running.shift(),
+    onWait: () => log.push("wait"),
+    wait: async (ms) => log.push(`sleep ${ms}`),
+  });
+  assert.equal(sent, true);
+  assert.deepEqual(log, [
+    "wait", `sleep ${BUSY_RETRY_MS}`, // GET /names: running
+    "publish", "wait", `sleep ${BUSY_RETRY_MS}`, // 409 busy
+    "publish",
+  ]);
+});
+
+test("other errors are thrown; leaving the page stops the wait", async () => {
+  const gone = Object.assign(new Error("gone"), { code: "not_found" });
+  await assert.rejects(publishWhenFree(async () => { throw gone; }), (e) => e === gone);
+  let left = false;
+  const sent = await publishWhenFree(async () => { throw busyError(); }, {
+    busy: async () => { throw new Error("names unavailable"); },
+    stopped: () => left,
+    wait: async () => { left = true; },
+  });
+  assert.equal(sent, false);
 });

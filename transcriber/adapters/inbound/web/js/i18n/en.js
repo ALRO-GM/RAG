@@ -209,6 +209,7 @@ export const en = {
   "names.model": "model: {model}",
   "names.auto": "{label} → {name} (automatic)",
   "names.suggested": "Is {label} {name}?",
+  "names.busy": "Finding the names of who is speaking…",
   "names.undo": "Undo",
   "names.accept": "Accept",
   "names.reason.addressed": "said by someone else",

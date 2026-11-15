@@ -28,6 +28,7 @@ import importlib.util
 import logging
 import re
 import time
+import traceback
 from typing import Any, Callable, Dict, Optional, Protocol, Sequence, Tuple
 
 from transcriber.adapters.outbound.torch_runtime import pick_device
@@ -128,37 +129,55 @@ class TransformersChat:
         self, name: str, device: str, bits: int,
         max_input_tokens: int = 4000,
     ) -> None:
-        """Load the tokenizer and the weights on ``device``."""
+        """Load the tokenizer and the weights on ``device``.
+
+        A load that fails part-way (CUDA out of memory while the weights
+        are copied, for instance) leaves nothing behind: the frames that
+        held the partial weights are cleared, they are collected and
+        the CUDA cache is emptied, so the GPU memory is free again for
+        a smaller model or the next job. The failure is a
+        :class:`ModelLoadError` when it is an expected one.
+        """
+        self.device = device
+        self.max_input_tokens = max_input_tokens
+        self.tokenizer: Any = None
+        self.model: Any = None
         try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-
-            self.device = device
-            self.max_input_tokens = max_input_tokens
-            self.tokenizer: Any = AutoTokenizer.from_pretrained(name)
-            options: Dict[str, Any] = {
-                "dtype": torch.float32 if device == "cpu" else torch.float16,
-            }
-            quantised = device == "cuda" and bits < 16
-            if quantised:
-                from transformers import BitsAndBytesConfig
-
-                config: Any = BitsAndBytesConfig
-                options["quantization_config"] = config(
-                    load_in_4bit=True, bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True,
-                )
-                options["device_map"] = {"": 0}
-            model: Any = AutoModelForCausalLM.from_pretrained(name, **options)
-            if not quantised:
-                model.to(device)
-            model.eval()
-            self.model: Any = model
+            self._load(name, device, bits)
         except ImportError as exc:  # pragma: no cover - environment
             raise ModelLoadError(f"Cannot load {name}: {exc}") from exc
-        except (OSError, ValueError, RuntimeError) as exc:
-            raise ModelLoadError(f"Cannot load {name}: {exc}") from exc
+        except BaseException as exc:
+            traceback.clear_frames(exc.__traceback__)
+            self.release()
+            if isinstance(exc, (OSError, ValueError, RuntimeError)):
+                raise ModelLoadError(f"Cannot load {name}: {exc}") from exc
+            raise
+
+    def _load(self, name: str, device: str, bits: int) -> None:
+        """Load the tokenizer, then the weights (4-bit on CUDA if asked)."""
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        self.tokenizer = AutoTokenizer.from_pretrained(name)
+        options: Dict[str, Any] = {
+            "dtype": torch.float32 if device == "cpu" else torch.float16,
+        }
+        quantised = device == "cuda" and bits < 16
+        if quantised:
+            from transformers import BitsAndBytesConfig
+
+            config: Any = BitsAndBytesConfig
+            options["quantization_config"] = config(
+                load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
+            options["device_map"] = {"": 0}
+        model: Any = AutoModelForCausalLM.from_pretrained(name, **options)
+        if not quantised:
+            model.to(device)
+        model.eval()
+        self.model = model
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:
         """Return the reply to ``user`` under ``system``."""

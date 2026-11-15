@@ -209,6 +209,7 @@ export const es = {
   "names.model": "modelo: {model}",
   "names.auto": "{label} → {name} (automático)",
   "names.suggested": "¿{label} es {name}?",
+  "names.busy": "Buscando los nombres de quién habla…",
   "names.undo": "Deshacer",
   "names.accept": "Aceptar",
   "names.reason.addressed": "lo dijo otra persona",

@@ -82,7 +82,8 @@ Reason = Literal[
 ``rules_only``
     the model could not run: rules alone never name anyone;
 ``undone``
-    it was given automatically and a person undid it.
+    it was given automatically and a person undid it (it is never given
+    automatically to that voice again, see :class:`UndoneName`).
 """
 
 NAME_WORD = r"[A-ZÁÉÍÓÚÑÜ][a-záéíóúñüçàèòï'-]+"
@@ -314,13 +315,31 @@ class NameSuggestion(BaseModel):
     count: int = Field(default=1, ge=1)
 
 
+class UndoneName(BaseModel):
+    """An automatic name a person undid for one voice.
+
+    :func:`decide` never gives that name (or the same first name)
+    automatically to ``speaker`` again; it may still be suggested.
+    ``run`` is the transcription run of the transcript it was undone
+    in: after a new transcription the labels may belong to other
+    people, so the entry no longer applies (:func:`kept_undone`).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    speaker: str = Field(min_length=1)
+    name: str = Field(min_length=1, max_length=100)
+    run: Optional[str] = None
+
+
 class SpeakerNames(BaseModel):
     """The outcome of the last search for names in a session.
 
     ``model`` is the model that read the candidates (``None``: rules
     only), ``seconds`` how long the search took, ``candidates`` how
     many sentences were read, ``note`` why the model was not used, if
-    it was not.
+    it was not. ``undone`` lists the automatic names people undid,
+    which later searches never give automatically again.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -333,6 +352,7 @@ class SpeakerNames(BaseModel):
     auto: List[AutoName] = Field(default_factory=list)
     suggestions: List[NameSuggestion] = Field(default_factory=list)
     note: Optional[str] = None
+    undone: List[UndoneName] = Field(default_factory=list)
 
 
 class Decision(NamedTuple):
@@ -625,6 +645,7 @@ def decide(
     previous: Sequence[AutoName] = (),
     auto_confidence: float = 0.8,
     allow_auto: bool = True,
+    undone: Sequence[UndoneName] = (),
 ) -> Decision:
     """Decide which names to give and which only to suggest.
 
@@ -640,7 +661,8 @@ def decide(
     - no other voice was given that name, by itself or by others (two
       people with the same name: both are suggestions);
     - no other speaker of the transcript already has that name;
-    - nobody called it by a different name.
+    - nobody called it by a different name;
+    - a person did not undo that name for that voice (``undone``).
 
     Every other piece of evidence about a voice still unnamed becomes a
     suggestion (one per voice and name, the strongest quote, with how
@@ -684,7 +706,10 @@ def decide(
             not same_name(e.name, best.name) for e in usable
             if e.kind == "addressed" and e.speaker == speaker_id
         )
-        if claimed_elsewhere or taken or called_otherwise:
+        if (
+            claimed_elsewhere or taken or called_otherwise
+            or _was_undone(undone, speaker_id, best.name)
+        ):
             continue
         named_auto[speaker_id] = best.name
         auto.append(AutoName(
@@ -699,7 +724,7 @@ def decide(
         best = _best(items)
         suggestions.append(_suggestion(
             best, _reason(speaker_id, best, usable, speakers, open_set,
-                          auto_confidence, allow_auto),
+                          auto_confidence, allow_auto, undone),
             len(items),
         ))
     clear = [
@@ -718,10 +743,13 @@ def _reason(
     open_set: "set[str]",
     auto_confidence: float,
     allow_auto: bool,
+    undone: Sequence[UndoneName] = (),
 ) -> Reason:
     """Return why ``best`` is only a suggestion for ``speaker_id``."""
     if best.kind == "addressed":
         return "addressed"
+    if _was_undone(undone, speaker_id, best.name):
+        return "undone"
     if not allow_auto:
         return "rules_only"
     if best.confidence < auto_confidence:
@@ -744,6 +772,26 @@ def _reason(
     ):
         return "name_taken"
     return "conflict"
+
+
+def _was_undone(
+    undone: Sequence[UndoneName], speaker_id: str, name: str
+) -> bool:
+    """Tell whether a person undid ``name`` for ``speaker_id``."""
+    return any(
+        u.speaker == speaker_id and same_name(u.name, name) for u in undone
+    )
+
+
+def kept_undone(
+    undone: Sequence[UndoneName], run: Optional[str]
+) -> List[UndoneName]:
+    """Return the undone names that apply to transcription run ``run``.
+
+    Those undone in another run are dropped: a new transcription may
+    give the labels to other people.
+    """
+    return [u for u in undone if u.run == run]
 
 
 def valid_auto(

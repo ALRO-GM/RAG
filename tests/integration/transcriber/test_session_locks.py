@@ -279,7 +279,9 @@ def test_a_delete_waits_for_a_publish_in_flight(tmp_path: Path) -> None:
     finally:
         container.runner.close(5.0)
     rag = BlockingRag()
-    publish = PublishTranscript(container.sessions, rag, container.locks)
+    publish = PublishTranscript(
+        container.sessions, rag, container.locks, container.runner
+    )
     delete = DeleteSession(
         container.sessions, container.locks, FakeLabData(), rag
     )

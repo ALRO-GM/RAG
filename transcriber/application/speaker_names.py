@@ -25,6 +25,7 @@ from typing import Callable, List, Optional, Tuple
 
 from transcriber.application.common import (
     check_speaker_id,
+    job_active,
     require_session,
     require_transcript,
 )
@@ -49,8 +50,10 @@ from transcriber.domain.speaker_names import (
     NameSearchParameters,
     NameSuggestion,
     SpeakerNames,
+    UndoneName,
     decide,
     find_candidates,
+    kept_undone,
     model_prompt,
     open_suggestions,
     parse_reply,
@@ -149,18 +152,20 @@ class FindSpeakerNames:
             earlier = valid_auto(
                 current.speakers, previous.auto if previous else []
             )
+            undone = self._undone(session_id, previous)
             if _fingerprint(current) != _fingerprint(transcript):
                 record = SpeakerNames(
                     session=session_id, searched_at=self._clock.now(),
                     model=model_name, candidates=len(candidates),
                     auto=earlier, note=CHANGED_NOTE,
                     seconds=round(self._timer() - began, 3),
+                    undone=undone,
                 )
                 self._store.save_names(record)
                 return record
             decision = decide(
                 current.speakers, evidence, earlier, p.auto_confidence,
-                allow_auto=model_name is not None,
+                allow_auto=model_name is not None, undone=undone,
             )
             for label in decision.clear:
                 self._unname(session_id, label)
@@ -172,6 +177,7 @@ class FindSpeakerNames:
                 auto=decision.auto if model_name is not None else earlier,
                 suggestions=decision.suggestions,
                 note=note, seconds=round(self._timer() - began, 3),
+                undone=undone,
             )
             self._store.save_names(record)
             return record
@@ -200,15 +206,29 @@ class FindSpeakerNames:
         """Replace the record by an empty one telling ``note``.
 
         So suggestions of an earlier transcript are not shown on a new
-        one. Best effort: a failure here is only logged.
+        one; the names people undid in this transcript are kept. Best
+        effort: a failure here is only logged.
         """
         try:
-            self._store.save_names(SpeakerNames(
-                session=session_id, searched_at=self._clock.now(),
-                note=note[:500],
-            ))
+            with self._locks.hold(session_id):
+                undone = self._undone(
+                    session_id, self._store.names(session_id)
+                )
+                self._store.save_names(SpeakerNames(
+                    session=session_id, searched_at=self._clock.now(),
+                    note=note[:500], undone=undone,
+                ))
         except Exception as exc:
             LOG.warning("Cannot store the names of %s: %s", session_id, exc)
+
+    def _undone(
+        self, session_id: str, previous: Optional[SpeakerNames]
+    ) -> List[UndoneName]:
+        """Return the names undone in the session's current transcript."""
+        if previous is None:
+            return []
+        run = require_session(self._sessions, session_id).run_id
+        return kept_undone(previous.undone, run)
 
     def _done_transcript(self, session_id: str) -> Transcript:
         """Return the transcript of a ``done`` session."""
@@ -262,26 +282,35 @@ class QueueNameSearch:
         sessions: SessionRepository,
         runner: JobRunner,
         find: FindSpeakerNames,
+        locks: SessionLocks,
     ) -> None:
         """Wire the ports and the search the job runs."""
         self._sessions = sessions
         self._runner = runner
         self._find = find
+        self._locks = locks
 
-    def __call__(self, session_id: str) -> None:
+    def __call__(self, session_id: str) -> bool:
         """Queue the search of ``session_id``, which must be ``done``.
 
-        The job reports the ``names`` stage and its note (model not
-        available, transcript changed) on the session's job status.
+        Returns whether a job was queued: while a job of the session (a
+        search, or the tail of its transcription, which searches too)
+        is queued or running, no other is added. The job reports the
+        ``names`` stage and its note (model not available, transcript
+        changed) on the session's job status.
         """
-        session = require_session(self._sessions, session_id)
-        require_state(session, SessionState.DONE)
+        with self._locks.hold(session_id):
+            session = require_session(self._sessions, session_id)
+            require_state(session, SessionState.DONE)
+            if job_active(self._runner, session_id):
+                return False
 
-        def job(progress: Progress) -> None:
-            """Search this session's names."""
-            self._find.after_transcription(session_id, progress)
+            def job(progress: Progress) -> None:
+                """Search this session's names."""
+                self._find.after_transcription(session_id, progress)
 
-        self._runner.submit(session_id, job)
+            self._runner.submit(session_id, job)
+            return True
 
 
 class ShowSpeakerNames:
@@ -308,10 +337,9 @@ class ShowSpeakerNames:
         transcription) is queued or running.
         """
         session = require_session(self._sessions, session_id)
-        job = self._runner.status(session_id)
         running = (
-            session.state is SessionState.DONE and job is not None
-            and job.state in (SessionState.QUEUED, SessionState.RUNNING)
+            session.state is SessionState.DONE
+            and job_active(self._runner, session_id)
         )
         record = self._store.names(session_id)
         transcript = self._sessions.transcript(session_id)
@@ -346,7 +374,9 @@ class UndoAutoName:
 
         Only a name the search gave and the voice still carries can be
         undone (:class:`InvalidInputError` otherwise). The automatic
-        name leaves the record; it comes back as a suggestion.
+        name leaves the record; it comes back as a suggestion, and later
+        searches of this transcript never give it to ``label``
+        automatically again.
         """
         check_speaker_id(label)
         with self._locks.hold(session_id):
@@ -361,7 +391,11 @@ class UndoAutoName:
                     f"{label} has no name given automatically."
                 )
             edited = self._unname(session_id, label)
+            run = require_session(self._sessions, session_id).run_id
             self._store.save_names(record.model_copy(update={
+                "undone": kept_undone(record.undone, run) + [UndoneName(
+                    speaker=label, name=undone.name, run=run,
+                )],
                 "auto": [a for a in record.auto if a.speaker != label],
                 "suggestions": list(record.suggestions) + [
                     _as_suggestion(undone)

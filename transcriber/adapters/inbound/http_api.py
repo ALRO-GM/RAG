@@ -70,6 +70,7 @@ from transcriber.bootstrap import TranscriberContainer
 from transcriber.domain.consent import ConsentNotice
 from transcriber.domain.errors import (
     AnalysisUnavailableError,
+    BusyError,
     ConsentRequiredError,
     ContractError,
     InvalidInputError,
@@ -93,6 +94,7 @@ ERROR_CODES: Tuple[Tuple[Type[TranscriberError], int, str], ...] = (
     (VoiceModelMismatchError, 409, "voice_model_mismatch"),
     (InvalidInputError, 400, "invalid_input"),
     (NotFoundError, 404, "not_found"),
+    (BusyError, 409, "busy"),
     (StateError, 409, "wrong_state"),
     (ModelLoadError, 503, "model_unavailable"),
     (AnalysisUnavailableError, 503, "analysis_unavailable"),

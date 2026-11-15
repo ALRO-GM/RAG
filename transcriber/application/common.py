@@ -8,12 +8,13 @@ adapter behind the port does with it.
 
 import re
 
-from transcriber.application.ports import SessionRepository
+from transcriber.application.ports import JobRunner, SessionRepository
 from transcriber.domain.errors import InvalidInputError, NotFoundError
 from transcriber.domain.models import (
     SESSION_ID_PATTERN,
     SPEAKER_ID_PATTERN,
     Session,
+    SessionState,
     Transcript,
 )
 
@@ -57,3 +58,11 @@ def require_transcript(
     if transcript is None:
         raise NotFoundError(f"Session {session_id} has no transcript.")
     return transcript
+
+
+def job_active(runner: JobRunner, session_id: str) -> bool:
+    """Tell whether the session's job is queued or running."""
+    job = runner.status(session_id)
+    return job is not None and job.state in (
+        SessionState.QUEUED, SessionState.RUNNING
+    )

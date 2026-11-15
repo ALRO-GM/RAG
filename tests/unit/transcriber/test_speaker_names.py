@@ -12,6 +12,7 @@ from tests.unit.transcriber.fakes import (
     FixedClock,
     Line,
     RecordingProgress,
+    RecordingPublisher,
     Scene,
     voice,
 )
@@ -26,6 +27,7 @@ from tests.unit.transcriber.names_fakes import (
     reply,
 )
 from tests.unit.transcriber.test_transcribe import world
+from transcriber.application.publish import PublishTranscript
 from transcriber.application.review import (
     RenameSpeaker,
     ReassignUtterance,
@@ -41,10 +43,12 @@ from transcriber.application.speaker_names import (
     UndoAutoName,
 )
 from transcriber.domain.errors import (
+    BusyError,
     InvalidInputError,
     NotFoundError,
     StateError,
 )
+from transcriber.application.ports import JobStatus
 from transcriber.domain.models import Session, SessionState, Transcript
 
 INTRODUCTIONS = [
@@ -322,6 +326,35 @@ class TestTranscriptionJob:
         record = store.names("s1")
         assert record is not None and len(record.auto) == 2
 
+    def test_no_publish_while_the_names_step_runs(self) -> None:
+        """The session is ``done`` before its names are given: a publish
+        then would hand the RAG ``S1``/``S2`` (the review's race)."""
+        w = world(self.scene())
+        publisher = RecordingPublisher()
+        publish = PublishTranscript(w.sessions, publisher, w.locks, w.runner)
+        refused: List[BusyError] = []
+
+        def model(user: str) -> str:
+            """Answer, after a publish tried while the model runs."""
+            if not refused:
+                with pytest.raises(BusyError, match="names") as caught:
+                    publish("s1")
+                refused.append(caught.value)
+            return understands(user)
+
+        find = FindSpeakerNames(
+            w.sessions, FakeNameStore(), w.locks,
+            RenameSpeaker(w.sessions, w.voiceprints, w.locks),
+            UnnameSpeaker(w.sessions, w.voiceprints, w.locks),
+            FixedClock(NOW), FakeChatModel(model),
+        )
+        w.queue._after = find.after_transcription
+        w.run()
+        assert len(refused) == 1 and publisher.documents == []
+        document = publish("s1")
+        assert {s["name"] for s in document["speakers"]} == {"Ana", "Luis"}
+        assert publisher.documents == [document]
+
     def test_a_failed_transcription_does_not_search(self) -> None:
         w = world(self.scene())
         calls: List[str] = []
@@ -341,10 +374,54 @@ def _boom(*args: object, **kwargs: object) -> None:
     raise RuntimeError("no speech model")
 
 
+def published_names(kit: Kit) -> List[Tuple[str, Optional[str]]]:
+    """Publish ``s1`` with the kit's fakes; return the speakers' names."""
+    document = PublishTranscript(
+        kit.sessions, RecordingPublisher(), kit.locks, kit.runner
+    )("s1")
+    return [(s["id"], s.get("name")) for s in document["speakers"]]
+
+
+class TestPublishWhileSearching:
+    def test_a_queued_or_running_search_refuses_the_publish(self) -> None:
+        kit = Kit()
+        publish = PublishTranscript(
+            kit.sessions, RecordingPublisher(), kit.locks, kit.runner
+        )
+        QueueNameSearch(kit.sessions, kit.runner, kit.find, kit.locks)("s1")
+        with pytest.raises(BusyError):
+            publish("s1")
+        tried: List[str] = []
+
+        def model(user: str) -> str:
+            """Try a publish while the model reads."""
+            if not tried:
+                tried.append("yes")
+                with pytest.raises(BusyError):
+                    publish("s1")
+            return understands(user)
+
+        kit.find._model = FakeChatModel(model)
+        kit.runner.run_all()
+        assert tried == ["yes"]
+        assert published_names(kit) == [
+            ("S1", None), ("S2", "Ana"), ("S3", "Pedro"),
+        ]
+
+    def test_a_failed_job_does_not_block_the_publish(self) -> None:
+        kit = Kit()
+        kit.runner.statuses["s1"] = JobStatus(
+            session_id="s1", state=SessionState.FAILED,
+        )
+        assert published_names(kit)[1] == ("S2", None)
+
+
 class TestQueueAndShow:
     def test_queue_runs_the_search_as_a_job(self) -> None:
         kit = Kit()
-        queue = QueueNameSearch(kit.sessions, kit.runner, kit.find)
+        queue = QueueNameSearch(
+            kit.sessions, kit.runner, kit.find, kit.locks
+        )
         show = ShowSpeakerNames(kit.sessions, kit.store, kit.runner)
         queue("s1")
         record, running = show("s1")
@@ -354,13 +431,32 @@ class TestQueueAndShow:
         assert record is not None and not running
         assert [a.name for a in record.auto] == ["Ana", "Pedro"]
 
+    def test_a_search_already_queued_or_running_is_not_queued_again(
+        self,
+    ) -> None:
+        kit = Kit()
+        queue = QueueNameSearch(
+            kit.sessions, kit.runner, kit.find, kit.locks
+        )
+        assert queue("s1") is True
+        assert queue("s1") is False
+        assert len(kit.runner.pending) == 1
+        kit.runner.statuses["s1"] = JobStatus(
+            session_id="s1", state=SessionState.RUNNING, stage="names",
+        )
+        assert queue("s1") is False and len(kit.runner.pending) == 1
+        kit.runner.run_all()
+        assert queue("s1") is True
+
     def test_only_finished_sessions_are_queued(self) -> None:
         kit = Kit()
         kit.sessions.sessions["s1"] = kit.sessions.sessions["s1"].model_copy(
             update={"state": SessionState.QUEUED}
         )
         with pytest.raises(StateError):
-            QueueNameSearch(kit.sessions, kit.runner, kit.find)("s1")
+            QueueNameSearch(
+                kit.sessions, kit.runner, kit.find, kit.locks
+            )("s1")
 
     def test_show_drops_what_no_longer_applies(self) -> None:
         kit = Kit(lines=INTRODUCTIONS + [("S4", "Gracias, Marta.")])
@@ -397,6 +493,51 @@ class TestUndo:
             ("S2", "undone")
         ]
         assert kit.sessions.unlocked_writes == []
+
+    def test_an_undone_name_is_not_given_again(self) -> None:
+        kit = Kit()
+        kit.find("s1")
+        undo = UndoAutoName(kit.sessions, kit.store, kit.locks, kit.unname)
+        undo("s1", "S2")
+        record = kit.find("s1")
+        assert kit.speakers() == [
+            ("S1", None), ("S2", None), ("S3", "Pedro"),
+        ]
+        assert [(u.speaker, u.name) for u in record.undone] == [
+            ("S2", "Ana")
+        ]
+        assert [(s.speaker, s.name, s.reason) for s in record.suggestions] == [
+            ("S2", "Ana", "undone")
+        ]
+        kit.find.after_transcription("s1", RecordingProgress())
+        assert kit.speakers()[1] == ("S2", None)
+
+    def test_a_failed_search_keeps_what_was_undone(self) -> None:
+        kit = Kit()
+        kit.find("s1")
+        UndoAutoName(kit.sessions, kit.store, kit.locks, kit.unname)(
+            "s1", "S2"
+        )
+        transcript = kit.sessions.transcripts.pop("s1")
+        kit.find.after_transcription("s1", RecordingProgress())
+        record = kit.store.names("s1")
+        assert record is not None and record.auto == []
+        assert [u.name for u in record.undone] == ["Ana"]
+        kit.sessions.transcripts["s1"] = transcript
+        kit.find("s1")
+        assert kit.speakers()[1] == ("S2", None)
+
+    def test_a_new_transcription_run_forgets_what_was_undone(self) -> None:
+        kit = Kit()
+        kit.find("s1")
+        UndoAutoName(kit.sessions, kit.store, kit.locks, kit.unname)(
+            "s1", "S2"
+        )
+        kit.sessions.sessions["s1"] = kit.sessions.sessions["s1"].model_copy(
+            update={"run_id": "c" * 32}
+        )
+        record = kit.find("s1")
+        assert kit.speakers()[1] == ("S2", "Ana") and record.undone == []
 
     def test_only_automatic_names_can_be_undone(self) -> None:
         kit = Kit()

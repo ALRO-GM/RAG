@@ -118,6 +118,8 @@ export async function transcriptView(ctx, root, params) {
     h("div", { class: "row wrap" }, h("strong", {}, t("names.title")), namesButton),
     namesStatus, namesList);
   const list = h("ol", { class: "utterances" });
+  // The analysis waits for the names: its page retries the publish meanwhile.
+  const analysisBusy = h("span", { class: "hint", role: "status", hidden: true }, t("names.busy"));
 
   const bar = h("div", { class: "player" },
     h("div", { class: "row wrap" }, play, back, fwd, clock, speed),
@@ -137,7 +139,8 @@ export async function transcriptView(ctx, root, params) {
     list,
     h("div", { class: "row" },
       h("button", { type: "button", onClick: download }, t("transcript.download")),
-      h("a", { class: "button", href: `#/analysis/${encodeURIComponent(id)}` }, t("nav.analysis"))));
+      h("a", { class: "button", href: `#/analysis/${encodeURIComponent(id)}` }, t("nav.analysis")),
+      analysisBusy));
 
   function skip(delta) {
     audio.currentTime = Math.max(0, audio.currentTime + delta);
@@ -324,6 +327,7 @@ export async function transcriptView(ctx, root, params) {
   function renderNames() {
     const running = Boolean(names?.running);
     namesButton.disabled = running;
+    analysisBusy.hidden = !running;
     const { auto, suggestions } = nameRows(names, transcript.speakers);
     let status;
     if (running) status = t("names.running");

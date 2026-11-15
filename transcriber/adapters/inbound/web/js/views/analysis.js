@@ -12,6 +12,7 @@ import {
   orderedSteps, ratingRows, reasonText, reportBlob, reportFileName, reviewRows, startMode, startRefusal,
   startingRun, stepStatus, stillStarting, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
+import { publishWhenFree } from "../lib/names.js";
 
 const POLL_MS = 3000;
 
@@ -265,7 +266,13 @@ export async function analysisView(ctx, root, [rawId]) {
     restart.disabled = true;
     say(t("sa.publishing"));
     try {
-      await ctx.api.publish(id);
+      // Not while the speakers' names are searched: they would be missing.
+      const sent = await publishWhenFree(() => ctx.api.publish(id), {
+        busy: async () => Boolean((await ctx.api.getNames(id))?.running),
+        onWait: () => say(t("names.busy")),
+        stopped: () => stopped,
+      });
+      if (!sent) return;
     } catch (error) {
       // A session only the RAG has (the simulated one) has nothing to publish.
       if (error?.code !== "not_found") {

@@ -19,7 +19,18 @@ people's speech). The model is Qwen3-8B at 4 bits, Qwen3-4B when the
   speakers when the search ends.
 - On request, with **«Buscar nombres» / «Find names»** on the transcript
   page (`POST /api/sessions/{id}/names`), for a session transcribed
-  before this feature or after renaming by hand.
+  before this feature or after renaming by hand. While a job of the
+  session (a search, or its transcription) is queued or running, the
+  request queues nothing and answers that job's status.
+
+**No publish meanwhile.** The session is `done` before its names are
+given, so `POST /api/sessions/{id}/publish` answers **409 `busy`**
+while the session's job (transcription or search) is queued or
+running: otherwise the RAG would get `S1`/`S2` and nothing republishes
+it afterwards. The analysis page shows «Buscando los nombres de quién
+habla…» (also when `GET …/names` says `running`) and tries the publish
+again every 3 s until it goes through; the transcript page shows the
+same line beside «Análisis» while the search runs.
 
 `names.enabled: false` in the settings removes the step from the job;
 the button still works. A failure never fails the transcription: it is
@@ -66,8 +77,13 @@ logged and told as the job's note.
 6. **Undo:** each automatic name is kept in the session's `names.json`
    with its quote and time; «Deshacer» (`DELETE
    /api/sessions/{id}/names/{label}`) turns the voice back into `S#`
-   and keeps the name as a suggestion. Accepting a suggestion is a
-   normal rename (`PATCH …/speakers/{label}`).
+   and keeps the name as a suggestion. The undone name is also kept in
+   `names.json` (`undone`, with the transcription run): later searches
+   of that transcript never give it (or the same first name)
+   automatically to that voice again, only as a suggestion (`undone`).
+   A new transcription of the session forgets it, since the labels may
+   then be other people. Accepting a suggestion is a normal rename
+   (`PATCH …/speakers/{label}`).
 
 When the model cannot run (no GPU memory after waiting, no 4-bit
 loading installed, missing weights) the rules' findings are kept as
@@ -90,7 +106,9 @@ two packages never import each other):
   other than these two);
 - the speech, voice and overlap models are freed before it loads, and
   it is freed after the search (and by the job runner after every
-  job).
+  job). A load that fails part-way (CUDA out of memory while the
+  weights are copied) drops the partial weights and empties the CUDA
+  cache before the error is reported.
 
 On a machine without CUDA it loads the 4B in float32 (slow).
 
@@ -169,7 +187,22 @@ candidate), sentences given to the wrong voice by the diarizer (a
 self-introduction on the wrong voice would be a wrong automatic name)
 and other phrasings. Measuring on consented real sessions is pending.
 
-## 5. Where things are
+## 5. Known limits
+
+Besides the measurement's (above):
+
+- **A name set by hand equal to the automatic one is treated as
+  automatic.** The record does not say who set a name, only what the
+  search gave: if a person renames `S2` to exactly the name the search
+  had given it, a later search may take it away (when it no longer
+  finds the introduction) or «Deshacer» may undo it.
+- **A names job overwrites the transcription's note.** The job status
+  keeps one note; the search's note (model not available, transcript
+  changed) replaces the transcription job's note when the search runs
+  as its last step, and a search on request replaces the status of the
+  last transcription job.
+
+## 6. Where things are
 
 | Part | File |
 |---|---|

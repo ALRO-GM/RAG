@@ -93,7 +93,8 @@ transcriber/
                      QueueTranscription (the job ends with the search
                      for names), TranscriptionStatus
     recover.py       RecoverSessions (start-up: fail sessions left queued/running)
-    publish.py       PublishTranscript
+    publish.py       PublishTranscript (refused, 409 busy, while the
+                     session's job runs: its names are not given yet)
     review.py        RenameSpeaker, UnnameSpeaker, ReassignUtterance
     speaker_names.py FindSpeakerNames, QueueNameSearch, ShowSpeakerNames,
                      UndoAutoName

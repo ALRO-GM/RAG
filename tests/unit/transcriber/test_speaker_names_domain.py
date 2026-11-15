@@ -10,10 +10,12 @@ from transcriber.domain.speaker_names import (
     AutoName,
     NameEvidence,
     NameSuggestion,
+    UndoneName,
     clean_name,
     contains_name,
     decide,
     find_candidates,
+    kept_undone,
     model_prompt,
     open_suggestions,
     parse_reply,
@@ -327,6 +329,35 @@ class TestDecide:
                    allow_auto=False)
         assert d.auto == []
         assert [s.reason for s in d.suggestions] == ["rules_only"]
+
+    def test_an_undone_name_is_never_given_again_to_that_voice(
+        self,
+    ) -> None:
+        undone = [UndoneName(speaker="S1", name="Ana")]
+        d = decide(anonymous("S1", "S2"), [
+            evidence("S1", "Ana García"), evidence("S2", "Luis", start=3.0),
+        ], undone=undone)
+        assert [(a.speaker, a.name) for a in d.auto] == [("S2", "Luis")]
+        assert [(s.speaker, s.name, s.reason) for s in d.suggestions] == [
+            ("S1", "Ana García", "undone"),
+        ]
+        other = decide(anonymous("S1", "S2"), [evidence("S2", "Ana")],
+                       undone=undone)
+        assert [(a.speaker, a.name) for a in other.auto] == [("S2", "Ana")]
+        renamed = decide(anonymous("S1"), [evidence("S1", "Eva")],
+                         undone=undone)
+        assert [a.name for a in renamed.auto] == ["Eva"]
+
+
+def test_undone_names_apply_to_their_run_only() -> None:
+    run_a, run_b = "a" * 32, "b" * 32
+    undone = [
+        UndoneName(speaker="S1", name="Ana", run=run_a),
+        UndoneName(speaker="S2", name="Luis", run=run_b),
+        UndoneName(speaker="S3", name="Eva"),
+    ]
+    assert [u.speaker for u in kept_undone(undone, run_a)] == ["S1"]
+    assert [u.speaker for u in kept_undone(undone, None)] == ["S3"]
 
 
 def test_what_still_applies() -> None:

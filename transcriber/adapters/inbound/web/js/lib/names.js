@@ -39,3 +39,35 @@ export function searchFinished(before, after) {
 export function reasonKey(reason) {
   return NAME_REASONS.includes(reason) ? `names.reason.${reason}` : "names.reason.other";
 }
+
+/** How long to wait before trying a publish again while names are searched (ms). */
+export const BUSY_RETRY_MS = 3000;
+
+/**
+ * Publish a session once its job has ended. While the speakers' names are
+ * still searched (`busy()` says so, or the publish answers 409 `busy`) the
+ * transcript is about to change, so this calls `onWait()`, waits `delay`
+ * ms and tries again. Resolves true once published, false if `stopped()`
+ * (the page was left); any other error is thrown. `busy` failing counts
+ * as not busy: the publish itself decides.
+ */
+export async function publishWhenFree(publish, {
+  busy = async () => false, onWait = () => {}, stopped = () => false,
+  delay = BUSY_RETRY_MS, wait = (ms) => new Promise((done) => setTimeout(done, ms)),
+} = {}) {
+  for (;;) {
+    if (stopped()) return false;
+    let waiting = await busy().catch(() => false);
+    if (!waiting) {
+      try {
+        await publish();
+        return true;
+      } catch (error) {
+        if (error?.code !== "busy") throw error;
+        waiting = true;
+      }
+    }
+    onWait();
+    await wait(delay);
+  }
+}

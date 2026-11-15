@@ -6,7 +6,9 @@ record on disk, the settings, the composition root and the HTTP routes
 model put in place of the local one).
 """
 
+import threading
 import time
+import weakref
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
@@ -30,6 +32,7 @@ from transcriber.adapters.outbound.fs_session_repository import (
 from transcriber.adapters.outbound.local_name_model import (
     ALLOWED_MODELS,
     LocalNameModel,
+    TransformersChat,
     check_models,
     memory_gb,
 )
@@ -171,6 +174,65 @@ class TestLocalNameModel:
         assert memory_gb("Qwen/Qwen3-4B", 16) == pytest.approx(10.4)
 
 
+class TestTransformersChat:
+    """Loading fails part-way: nothing may stay on the GPU."""
+
+    def patch(
+        self, monkeypatch: pytest.MonkeyPatch, fail: BaseException
+    ) -> Tuple[List[Any], List[str]]:
+        """Make the weights load, then fail to move; record the cleanup."""
+        import torch
+        import transformers
+
+        loaded: List[Any] = []
+        emptied: List[str] = []
+
+        class Partial:
+            """Weights half-way to the GPU."""
+
+            def to(self, device: str) -> None:
+                """Run out of memory."""
+                raise fail
+
+        def load(name: str, **options: Any) -> Partial:
+            """Return the partial weights, keeping only a weak reference."""
+            weights = Partial()
+            loaded.append(weakref.ref(weights))
+            return weights
+
+        monkeypatch.setattr(
+            transformers.AutoTokenizer, "from_pretrained",
+            lambda name: object(),
+        )
+        monkeypatch.setattr(
+            transformers.AutoModelForCausalLM, "from_pretrained", load
+        )
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(
+            torch.cuda, "empty_cache", lambda: emptied.append("yes")
+        )
+        return loaded, emptied
+
+    def test_out_of_memory_drops_the_partial_weights(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        loaded, emptied = self.patch(
+            monkeypatch, RuntimeError("CUDA out of memory")
+        )
+        with pytest.raises(ModelLoadError, match="out of memory"):
+            TransformersChat("Qwen/Qwen3-8B", "cuda", 16)
+        assert len(loaded) == 1 and loaded[0]() is None
+        assert emptied == ["yes"]
+
+    def test_an_unexpected_failure_is_raised_as_it_is(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        loaded, emptied = self.patch(monkeypatch, TypeError("odd"))
+        with pytest.raises(TypeError, match="odd"):
+            TransformersChat("Qwen/Qwen3-8B", "cuda", 16)
+        assert loaded[0]() is None and emptied == ["yes"]
+
+
 class TestSettings:
     def test_defaults(self) -> None:
         names = TranscriberSettings().names
@@ -307,6 +369,37 @@ class TestHttpRoutes:
         view = client.get("/api/sessions/s1/names").json()
         assert [a["speaker"] for a in view["auto"]] == ["S3"]
         assert [s["reason"] for s in view["suggestions"]] == ["undone"]
+
+    def test_no_publish_and_no_second_search_while_one_runs(
+        self, client: TestClient, container: TranscriberContainer
+    ) -> None:
+        reading, go_on = threading.Event(), threading.Event()
+        calls: List[str] = []
+
+        def slow(user: str) -> str:
+            """Hold the first reading until the test lets it go."""
+            calls.append(user)
+            reading.set()
+            assert go_on.wait(WAIT)
+            return understands(user)
+
+        container.find_names._model = FakeChatModel(slow)
+        assert client.post("/api/sessions/s1/names").status_code == 202
+        assert reading.wait(WAIT)
+        refused = client.post("/api/sessions/s1/publish")
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["code"] == "busy"
+        assert "names" in refused.json()["message"]
+        again = client.post("/api/sessions/s1/names")
+        assert again.status_code == 202 and again.json()["running"] is True
+        go_on.set()
+        settled(client)
+        assert len(calls) == len(set(calls)) == 3  # read once: one search
+        published = client.post("/api/sessions/s1/publish")
+        assert published.status_code == 200, published.text
+        assert [s.get("name") for s in published.json()["speakers"]] == [
+            None, "Ana", "Pedro",
+        ]
 
     def test_errors(self, client: TestClient) -> None:
         assert client.get("/api/sessions/nope/names").status_code == 404
