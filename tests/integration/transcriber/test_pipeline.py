@@ -133,6 +133,7 @@ def test_record_transcribe_identify_publish_review(
         "recogniser": "fake/recogniser",
         "voice_model": "fake/voice-encoder",
         "transcriber": "0.1.0",
+        "diarizer": "builtin",
     }
 
     renamed = container.rename_speaker("equipo-a", "S1", name="Luis")

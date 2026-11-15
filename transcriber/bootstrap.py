@@ -19,7 +19,7 @@ its tunnel (a chisel client) and its access code.
 import logging
 import os
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional, Protocol, Tuple
+from typing import Callable, Dict, Mapping, Optional, Protocol, Tuple
 
 from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
 from transcriber.adapters.outbound.chisel_tunnel import (
@@ -56,6 +56,9 @@ from transcriber.adapters.outbound.http_transcript_publisher import (
 from transcriber.adapters.outbound.hf_reference_corpus import (
     CORPORA_DIR,
     HuggingFaceCorpus,
+)
+from transcriber.adapters.outbound.lab_runner_diarizer import (
+    LabRunnerDiarizer,
 )
 from transcriber.adapters.outbound.fs_lab_repository import (
     FileSystemLabRepository,
@@ -115,6 +118,7 @@ from transcriber.application.lab_reference import (
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
+    Diarizer,
     OverlapDetector,
     SessionLocks,
     SessionRepository,
@@ -143,6 +147,8 @@ from transcriber.application.transcribe import (
 )
 from transcriber.config import TranscriberSettings
 from transcriber.domain.comparison import ComparisonParameters
+from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
+from transcriber.domain.lab import BUILTIN_DIARIZER
 
 LOG = logging.getLogger(__name__)
 
@@ -224,6 +230,8 @@ class TranscriberContainer:
     overlaps: Optional[OverlapDetector] = None
     lab: Optional[LabUseCases] = None
     analysis_judge: AnalysisJudgeSetting = AnalysisJudgeSetting(None)
+    diarizer: Optional[Diarizer] = None
+    diarizer_rule: DiarizerRule = BUILTIN_RULE
 
     def release_models(self) -> None:
         """Unload the speech, voice and overlap models (after a job)."""
@@ -247,6 +255,55 @@ def build_overlap_detector(
     if settings.overlap_detector == "fake":
         return FakeOverlapDetector()
     return None
+
+
+DIARIZE_DIR = "diarize"
+"""Directory of ``data_dir`` holding a diarizer's audio while it runs."""
+
+
+def build_diarizer(
+    settings: TranscriberSettings,
+    environ: Mapping[str, str],
+    before_run: Callable[[], None] = lambda: None,
+) -> Tuple[Optional[Diarizer], DiarizerRule]:
+    """Return the lab diarizer and the rule ``settings.diarizer`` gives.
+
+    With ``runtime: "fake"``, or a rule that only picks ``builtin``,
+    there is no diarizer and the built-in grouping is used. Nothing is
+    checked or loaded here (:func:`diarizer_problems` checks).
+    ``before_run`` is called before each runner starts (the service
+    unloads its recogniser there to free GPU memory).
+    """
+    rule = settings.diarizer
+    if settings.runtime == "fake" or all(
+        model == BUILTIN_DIARIZER for model in rule.models()
+    ):
+        return None, BUILTIN_RULE
+    lab = settings.lab
+    environment = FileSystemLabEnvironment(
+        lab.envs_dir, lab.runners_dir, environ
+    )
+    tool = SubprocessLabTool(environment, environ, lab.step_timeout)
+    return LabRunnerDiarizer(
+        tool, environment, JsonCatalogue(lab.catalogue),
+        settings.data_dir / DIARIZE_DIR, before_run,
+    ), rule
+
+
+def diarizer_problems(
+    diarizer: Optional[Diarizer], rule: DiarizerRule
+) -> Dict[str, str]:
+    """Return, per model of ``rule`` that cannot run, why not."""
+    if diarizer is None:
+        return {}
+    problems: Dict[str, str] = {}
+    for model in rule.models():
+        if model == BUILTIN_DIARIZER:
+            continue
+        problem = diarizer.problem(model)
+        if problem is not None:
+            problems[model] = problem
+    return problems
 
 
 def build_models(
@@ -395,6 +452,10 @@ def build_container(
     settings = settings or TranscriberSettings()
     recogniser, encoder = build_models(settings)
     overlaps = build_overlap_detector(settings)
+    environment = os.environ if environ is None else environ
+    diarizer, rule = build_diarizer(
+        settings, environment, recogniser.release
+    )
 
     def release_models() -> None:
         """Unload the models; the runner calls it after every job."""
@@ -415,12 +476,12 @@ def build_container(
     parameters = settings.transcription
     transcribe = TranscribeSession(
         sessions, voiceprints, decoder, recogniser, encoder, locks,
-        parameters, overlaps,
+        parameters, overlaps, diarizer, rule,
     )
     status = TranscriptionStatus(sessions, runner)
     lab = build_lab(
         settings, sessions, voiceprints, decoder, recogniser, encoder,
-        runner, clock, os.environ if environ is None else environ, locks,
+        runner, clock, environment, locks,
     )
     return TranscriberContainer(
         settings=settings,
@@ -474,6 +535,8 @@ def build_container(
             HttpAnalysisJudge(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None
         ),
+        diarizer=diarizer,
+        diarizer_rule=rule,
     )
 
 
@@ -490,6 +553,15 @@ def start_container(
     here is assumed to have no live job.
     """
     container = build_container(settings)
+    problems = diarizer_problems(
+        container.diarizer, container.diarizer_rule
+    )
+    for model, problem in problems.items():
+        LOG.warning(
+            "Diarizer %s cannot run (%s): sessions that would use it get"
+            " the built-in grouping, which over-counts speakers"
+            " (docs/transcriber/LAB.md §13.8).", model, problem,
+        )
     recovery = container.recover_sessions()
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)

@@ -1,0 +1,44 @@
+{
+ "issue": 68,
+ "measure": "mean DER over the sessions of the transcription's turns of attributed words against the corpus reference (experiments/transcriber/service_diarizer.jsonl)",
+ "corpora": {
+  "ami": {
+   "der": 0.2663,
+   "n": 4,
+   "diarizers": [
+    "diarizen-wavlm-large-s80-md-v2"
+   ],
+   "builtin_der": 0.4948,
+   "builtin_n": 4,
+   "diarizer_only_der": 0.09,
+   "speaker_count_error": 0.75,
+   "builtin_speaker_count_error": 5.5,
+   "doubtful_share": 0.4413,
+   "builtin_doubtful_share": 0.574
+  },
+  "callhome": {
+   "der": 0.2232,
+   "n": 10,
+   "diarizers": [
+    "nemotron-3-diarization"
+   ],
+   "builtin_der": 0.3593,
+   "builtin_n": 10,
+   "diarizer_only_der": 0.1089,
+   "speaker_count_error": 0.2,
+   "builtin_speaker_count_error": -0.6,
+   "doubtful_share": 0.3313,
+   "builtin_doubtful_share": 0.107
+  }
+ },
+ "identification_right_share": {
+  "dev_estimated_before": 0.889,
+  "dev_estimated_diarizer": 0.9915,
+  "dev_known_before": 0.9396,
+  "dev_known_diarizer": 0.9915,
+  "test_estimated_before": 0.8168,
+  "test_estimated_diarizer": 0.9809,
+  "test_known_before": 0.9143,
+  "test_known_diarizer": 0.9809
+ }
+}

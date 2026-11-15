@@ -17,6 +17,7 @@ from typing import Any, Dict, Literal, Mapping, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from transcriber.domain.diarization import DiarizerRule
 from transcriber.domain.enrolment import SampleRules
 from transcriber.domain.parameters import TranscriptionParameters
 
@@ -306,6 +307,15 @@ class TranscriberSettings(BaseModel):
     ``publisher`` is not set and ``rag_token_file`` exists. ``api``
     holds the HTTP API's limits and ``tunnel`` the tunnel of
     ``transcriber serve``.
+
+    ``diarizer`` says which model separates the voices of a session
+    (TR-18): a diarizer of the lab's catalogue run in its own
+    environment (``lab.envs_dir``), by default DiariZen, and
+    Nemotron-3 when the session expects two speakers (``by_speakers``);
+    ``{"model": "builtin", "by_speakers": {}}`` keeps the service's own
+    grouping. A model whose environment is missing, or that fails,
+    falls back to the built-in grouping with a warning. With
+    ``runtime: "fake"`` the built-in grouping is always used.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -326,6 +336,7 @@ class TranscriberSettings(BaseModel):
     tunnel: TunnelSettings = TunnelSettings()
     overlap_detector: OverlapDetectorName = "off"
     lab: LabSettings = LabSettings()
+    diarizer: DiarizerRule = DiarizerRule()
 
     @model_validator(mode="after")
     def _absolute_rag_token_file(self) -> "TranscriberSettings":

@@ -71,7 +71,10 @@
       "properties": {
         "recogniser": {"type": "string"},
         "voice_model": {"type": "string"},
-        "transcriber": {"type": "string"}
+        "transcriber": {"type": "string"},
+        "diarizer": {"type": "string"},
+        "diarizer_licence": {"type": "string"},
+        "diarizer_commercial": {"type": "boolean"}
       }
     }
   }

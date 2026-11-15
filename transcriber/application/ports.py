@@ -28,6 +28,7 @@ import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field
 
+from transcriber.domain.diarization import Diarization
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -211,6 +212,29 @@ class OverlapDetector(Protocol):
 
     def release(self) -> None:
         """Unload the model, if one is loaded."""
+        ...
+
+
+class Diarizer(Protocol):
+    """Separate the voices of a recording with a diarization model.
+
+    An alternative to the built-in grouping of voice windows (TR-18):
+    the models are those of the lab's catalogue, named by their id.
+    The model is loaded for the call and freed after it.
+    """
+
+    def problem(self, model: str) -> Optional[str]:
+        """Return why ``model`` cannot run here, or ``None`` if it can."""
+        ...
+
+    def diarize(
+        self, model: str, audio: Audio, num_speakers: Optional[int]
+    ) -> Diarization:
+        """Return who speaks when in ``audio`` according to ``model``.
+
+        ``num_speakers`` is passed to models that take it. Raises an
+        exception (any) when the model fails.
+        """
         ...
 
 
