@@ -41,3 +41,18 @@ export function typeLabel(t, type) {
 export function describeLine(t, session) {
   return [typeLabel(t, session?.type), session?.goal ?? ""].filter(Boolean).join(" · ");
 }
+
+/**
+ * Run `task` calls one after the other: a call made while another is
+ * in flight waits for it, so two quick edits cannot send two requests
+ * whose answers arrive in the wrong order. `task` reads the current
+ * values when it runs, so the last edit is the one that is saved.
+ */
+export function serialised(task) {
+  let tail = Promise.resolve();
+  return () => {
+    const run = tail.then(task);
+    tail = run.catch(() => {});
+    return run;
+  };
+}

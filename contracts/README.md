@@ -12,7 +12,10 @@ fields (a document without them stays valid; the speaker-certainty
 fields of `transcript.v1` were added that way, and so were the
 speaker's `identification`, the utterance's `overlap_source`,
 `language` and `language_differs`, and the session's `type` and
-`goal`); removing or renaming
+`goal`). Deploy order for an added field: update the reader (the RAG's
+`ContractSession` forbids extra fields, so it rejects a document with a
+field it does not know) before the writer (`transcriber/`) starts to
+write it. Removing or renaming
 one is a new version (`transcript.v2`) and both stay readable until
 every consumer has moved. `examples/` holds one valid document per
 contract, used by the contract tests of both sides.

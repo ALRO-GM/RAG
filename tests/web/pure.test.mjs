@@ -17,7 +17,7 @@ import {
   progressPercent, actionsFor, sortSessions, transcriptionBody, stageLabel,
 } from "../../transcriber/adapters/inbound/web/js/lib/sessions.js";
 import {
-  SESSION_TYPES, GOAL_MAX_LENGTH, describeBody, describeChanged, typeLabel, describeLine,
+  SESSION_TYPES, GOAL_MAX_LENGTH, describeBody, describeChanged, serialised, typeLabel, describeLine,
 } from "../../transcriber/adapters/inbound/web/js/lib/describe.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -342,6 +342,31 @@ test("describeChanged compares with the session, unset counting as null", () => 
   assert.equal(describeChanged({ type: "venta", goal: null }, { type: "venta", goal: null }), false);
   assert.equal(describeChanged({ type: "venta" }, { type: "otro", goal: null }), true);
   assert.equal(describeChanged({ type: "venta", goal: "a" }, { type: "venta", goal: null }), true);
+});
+
+test("serialised runs calls one after the other, each reading current values", async () => {
+  const log = [];
+  let value = "a";
+  const save = serialised(async () => {
+    const mine = value;
+    log.push(`start ${mine}`);
+    await new Promise((r) => setTimeout(r, mine === "a" ? 20 : 1));
+    log.push(`end ${mine}`);
+  });
+  const first = save();
+  await new Promise((r) => setTimeout(r, 5)); // the first call is in flight
+  value = "b";
+  const second = save();
+  await Promise.all([first, second]);
+  assert.deepEqual(log, ["start a", "end a", "start b", "end b"]);
+});
+
+test("serialised goes on after a failed call", async () => {
+  let calls = 0;
+  const save = serialised(async () => { calls += 1; if (calls === 1) throw new Error("x"); });
+  await assert.rejects(save());
+  await save();
+  assert.equal(calls, 2);
 });
 
 test("typeLabel and describeLine show the type in the page's language", () => {

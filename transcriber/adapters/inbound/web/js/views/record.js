@@ -12,7 +12,7 @@ import { codeFromInput } from "../lib/net.js";
 import { transcriptionBody } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
 import { describeFields } from "../describe.js";
-import { describeChanged } from "../lib/describe.js";
+import { describeChanged, serialised } from "../lib/describe.js";
 
 export async function recordView(ctx, root, params) {
   const resumeId = params[0] ?? null;
@@ -60,6 +60,7 @@ export async function recordView(ctx, root, params) {
   const describedNote = h("p", { class: "hint", role: "status" });
   const context = h("div", { class: "stack" }, described.element, describedNote);
   let saved = existing ? { type: existing.type ?? null, goal: existing.goal ?? null } : null;
+  const saveDescription = serialised(saveDescriptionNow);
   described.type.addEventListener("change", () => saveDescription());
   described.goal.addEventListener("change", () => saveDescription());
 
@@ -99,6 +100,7 @@ export async function recordView(ctx, root, params) {
   const codeNote = h("p", { class: "warn", role: "alert" });
   const codeButton = h("button", { type: "submit", class: "primary" }, t("record.reauth_use"));
   let afterCode = null; // what to do once a code works
+  let retrySave = false; // a description save was refused: repeat it once a code works
   const codeForm = h("form", { class: "stack reauth", hidden: true, onSubmit: (event) => {
     event.preventDefault();
     tryCode(codeFromInput(codeInput.value));
@@ -116,7 +118,7 @@ export async function recordView(ctx, root, params) {
   setLeaveGuard(() => phase === "recording" || phase === "finishing" || Boolean(uploader && !uploader.state().drained));
 
   /** Save a changed type or goal once the session exists. */
-  async function saveDescription() {
+  async function saveDescriptionNow() {
     if (!saved) return; // not created yet: the values go with the new session
     const body = described.body();
     if (!describeChanged(saved, body)) return;
@@ -127,6 +129,11 @@ export async function recordView(ctx, root, params) {
       describedNote.textContent = t("describe.saved");
     } catch (error) {
       describedNote.textContent = describeError(error);
+      if (error?.kind === "unauthorized") {
+        // The same way as the chunks: ask for a code, then save again.
+        retrySave = true;
+        askForCode(uploader?.state() ?? { pendingBytes: 0, pendingSeconds: 0 }, afterCode);
+      }
     }
   }
 
@@ -174,6 +181,10 @@ export async function recordView(ctx, root, params) {
     const then = afterCode;
     afterCode = null;
     then?.(view);
+    if (retrySave) {
+      retrySave = false;
+      saveDescription();
+    }
   }
 
   // The new link opened in this tab: main.js kept the code without a reload.
