@@ -1,7 +1,10 @@
 """Ports of the soft-skills use cases."""
 
-from typing import Any, Callable, Dict, List, Mapping, Protocol, Tuple
+from typing import (
+    Any, Callable, Dict, List, Mapping, Protocol, Sequence, Tuple,
+)
 
+from src.domain.skills.act_tagging import ActInput, Probabilities
 from src.domain.skills.assessment import SessionAssessment
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
@@ -103,4 +106,27 @@ class AssessmentStore(Protocol):
 
         Raises :class:`~src.domain.errors.NotFoundError` if there is none.
         """
+        ...
+
+
+class ActTagger(Protocol):
+    """An automatic dialogue-act tagger (#82).
+
+    Returns, for each sentence, a probability per category (the 13 of
+    :data:`~src.domain.skills.dialogue_acts.CATEGORIES`), calibrated by
+    whatever the approach uses (temperature, outcome tables).
+    """
+
+    @property
+    def name(self) -> str:
+        """Return the approach's name (``rules``, ``llm``, ``encoder``...)."""
+        ...
+
+    @property
+    def version(self) -> str:
+        """Return what identifies the weights, rules or model used."""
+        ...
+
+    def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:
+        """Return one distribution per item, in order."""
         ...
