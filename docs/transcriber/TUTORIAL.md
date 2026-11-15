@@ -777,11 +777,16 @@ En la página de una sesión transcrita, **Análisis** abre
 La discusión simulada no es una sesión del transcriptor: después de
 `make demo-analysis` se ve en `#/analysis/sim-reunion-verano`.
 
-Pasos 4 y 5 (actos de diálogo; decisiones, tareas y preguntas abiertas)
-salen «aún no disponible» mientras no exista el etiquetador de actos
-(#82). `--provisional_acts` (`python -m src skills --provisional_acts
-analyze --session ID`) los rellena preguntando el acto de cada frase al
-modelo que juzga: una llamada por frase (238 en la simulación).
+Los pasos 4 y 5 (actos de diálogo; decisiones, tareas y preguntas
+abiertas) usan el etiquetador de actos (#82: el codificador entrenado si
+están sus pesos en `data/models/act-tagger/`, si no las reglas, y el
+paso dice cuál respondió) y las reglas de #83; no llaman al modelo que
+juzga. Para añadirlos a un análisis ya hecho sin repetir el resto:
+`python -m src skills analyze --session ID --steps acts,events`.
+
+Solo puede haber un análisis por sesión a la vez (terminal o web); si el
+proceso se cortó a mitad, la página dice «Interrumpido» y **Reanudar**
+sigue desde el paso que quedó a medias.
 
 ### Lo que falta antes de usarlo con personas reales
 

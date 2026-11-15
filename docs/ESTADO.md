@@ -306,7 +306,11 @@ con Claude Code (`opus`) el 2026-11-15, en CPU para la búsqueda: 11,3 s
 de candidatos (101 frases con candidatos), 309,8 s de confirmación (101
 llamadas: 35 confirmadas, 66 rechazadas, 0 sin entender), 361,5 s de
 evidencias (44 llamadas; 7 de 44 competencias con nivel: Lucía 4,
-Andrés 2, Joaquín 1, Nerea 0), sin pasar al modelo local. Son datos
+Andrés 2, Joaquín 1, Nerea 0), sin pasar al modelo local. Después,
+con el etiquetador de #82 ya en `main`, los pasos 4 y 5 sin llamar al
+juez: actos en 11,4 s (codificador, 238 frases, 51 con la primera
+etiqueta dudosa) y acuerdos por reglas (6 decisiones, 18 tareas, 5
+preguntas sin respuesta, 17 propuestas sin respuesta). Son datos
 inventados por una sola persona: muestran que el flujo funciona de
 punta a punta, no que los niveles sean correctos.
 

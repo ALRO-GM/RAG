@@ -696,7 +696,7 @@ def step_table(run: AnalysisRun) -> List[Tuple[str, str, str, str, str]]:
     for s in run.steps:
         who = s.model + (f" ({s.judge})" if s.judge else "")
         counts = ", ".join(f"{k} {v}" for k, v in s.counts.items())
-        detail = s.error or s.note or counts
+        detail = s.error or "; ".join(p for p in (counts, s.note) if p)
         if s.fallback_reason:
             detail += f"; fell back to local: {s.fallback_reason}"
         rows.append((

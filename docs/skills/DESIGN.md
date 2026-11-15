@@ -539,7 +539,7 @@ transcripts the transcriber publishes) and stores each result under
 | a. `sentences`: sentences of each person with their times | `sentences.json` | plain splitting (`domain/skills/speech.py`) |
 | b. `interaction`: turns, words, share, overlaps, response times | `interaction.json` | `domain/skills/interaction.py` |
 | c. `candidates`: candidate rubric indicators per sentence (the RAG step) | `candidates.json` | retrieval, embedding model named in the record |
-| d. `acts`: dialogue acts per sentence | `acts.json` (`acts.v1`) | port `DialogueActTagger`; `unavailable` until #82, or the selected judge with `--provisional_acts` (one call per sentence, marked provisional) |
+| d. `acts`: dialogue acts per sentence, up to three weighted labels, "dudoso" below each category's threshold | `acts.json` (`acts.v1`) | port `DialogueActTagger`, adapter `TaggerActStep` over the #82 tagger (`skills acts`): the card's choice, the fine-tuned encoder (`data/models/act-tagger/…`), or the rules when its weights are missing; the record names the approach, the margin and how many first labels are doubtful; `unavailable` only when no tagger card exists |
 | e. `events`: decisions, action items, open questions, fate of proposals | `events.json` | port `EventExtractor`: the rules of #83 (`conversation_events.analyse`) over step d's acts; `unavailable` without them |
 | f. `confirmation`: the judge confirms or rejects the candidates | `confirmation.json` | the selected judge (§4.3); at most `max_confirmations` sentences, best candidate first |
 | g. `assessment`: evidence per person and scorecards | `assessment.json`, `scorecard.md` | the same judge (§1) |
@@ -550,10 +550,19 @@ transcripts the transcriber publishes) and stores each result under
 (model, judge mode, fallback reason) and counts. It is saved before and
 after every step, so a failure keeps the earlier results; running the
 command again resumes at the first step that is not `done` or
-`unavailable` (`--restart` runs all). Every run also carries the three
+`unavailable` (`--restart` runs all; `--steps acts,events` reruns only
+those, keeping the others and asking no judge). Every run also carries the three
 things the flow leaves to people (`open_issues`): consent and retention
 before real people (#19), human review of the labels, several
 situations per person for a profile (#84).
+
+One analysis per session at a time, whether started from the CLI or
+the API: the run holds an `flock` on `analysis_dir/<id>/analysis.lock`
+(which holds the worker's process id, also stored as `worker_pid` in
+`run.json`); a second run gets `BusyError` (`409` through the API). The
+operating system drops the lock when the worker dies, so a `run.json`
+left `running` without a holder is shown as `interrupted` and the next
+run resumes it at the step that was running.
 
 Judge calls: step f makes one call per sentence with candidates (up to
 `max_confirmations`, default 150) and step g one per person and
@@ -582,3 +591,14 @@ disagreement, proposals and commitments, ~15 minutes, original text)
 becomes `transcript.v1` with `skills simulate` (times from a speaking
 rate of 2.4 words per second, `+` marks a turn that cuts in 0.6 s
 early). `make demo-analysis` runs `simulate` and `analyze` on it.
+
+Demo, steps d and e added afterwards with `--steps acts,events` (no
+judge call; `confirmation.json` byte-identical before and after),
+2026-11-15, CPU: acts 11.4 s, encoder `xlmr-base-ami-mrda-es` on all
+238 sentences, 51 with a doubtful first label (margin 0.45); events
+0.0 s: 18 questions answered, 5 unanswered, 6 proposals accepted, 17
+with no reply, 6 decisions, 18 action items, 6 open issues. First labels:
+información 59, aceptación 32, propuesta 28, pregunta 24, respuesta 20,
+compromiso 18, relación 12, opinión 12, escucha 10, rechazo 10,
+gestión 8, petición 5. Not checked against a human reading of the
+script.
