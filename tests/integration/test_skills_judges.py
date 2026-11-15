@@ -446,8 +446,8 @@ def test_preferred_policy_uses_the_measured_8b_peak() -> None:
     assert judge_with(6.0).model_name == "Qwen/Qwen3-4B@4bit", (
         "5.3 GB estimated, 6.31 GB measured: 6 GB free is not enough"
     )
-    assert judge_with(6.71).model_name == "Qwen/Qwen3-8B@4bit"
-    assert judge_with(3.27).model_name == "Qwen/Qwen3-4B@4bit"
+    assert judge_with(6.8).model_name == "Qwen/Qwen3-8B@4bit"
+    assert judge_with(3.4).model_name == "Qwen/Qwen3-4B@4bit"
 
 
 def test_the_default_preference_is_8b_then_4b() -> None:
