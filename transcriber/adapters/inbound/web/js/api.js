@@ -26,7 +26,7 @@ export class Api {
     this.fetchFn = fetchFn;
   }
 
-  async request(method, path, { query, json, body, contentType, auth = true } = {}) {
+  async request(method, path, { query, json, body, contentType, auth = true, text = false } = {}) {
     const headers = {};
     if (auth) {
       const code = this.getCode();
@@ -60,7 +60,7 @@ export class Api {
     if (response.ok) {
       if (response.status === 204) return null;
       try {
-        return await response.json();
+        return text ? await response.text() : await response.json();
       } catch {
         throw new ApiFailure({ status: response.status, kind: "unavailable", code: "bad_body" });
       }
@@ -163,6 +163,27 @@ export class Api {
 
   /** Choose the judge of the next analyses: claude_code, local or both. */
   setAnalysisJudge(mode) { return this.request("PUT", "/analysis/judge", { json: { mode } }); }
+
+  /** Start the RAG's whole analysis of a published session. */
+  startAnalysis(id, { restart = false, synthetic = false } = {}) {
+    return this.request("POST", `/analysis/sessions/${encodeURIComponent(id)}`, { json: { restart, synthetic } });
+  }
+
+  /** The steps of a session's analysis (status, time, judge, counts). */
+  analysisStatus(id) { return this.request("GET", `/analysis/sessions/${encodeURIComponent(id)}`); }
+
+  /** One step's stored result. */
+  analysisStep(id, step) {
+    return this.request("GET", `/analysis/sessions/${encodeURIComponent(id)}/steps/${encodeURIComponent(step)}`);
+  }
+
+  /** One person's report, as the HTML text of a page to save. */
+  analysisReport(id, position) {
+    return this.request("GET", `/analysis/sessions/${encodeURIComponent(id)}/reports/${Number(position)}`, { text: true });
+  }
+
+  /** Hand the transcript over to the RAG (needed before an analysis). */
+  publish(id) { return this.request("POST", `/sessions/${encodeURIComponent(id)}/publish`); }
 
   // ---- model lab (docs/transcriber/LAB.md §7) ----
 
