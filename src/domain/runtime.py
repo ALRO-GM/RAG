@@ -5,7 +5,7 @@ Pure decision logic. What the machine has is described by a
 a :class:`RuntimePlan`. Nothing here touches the operating system.
 """
 
-from typing import Dict, List, Literal, Optional, Sequence
+from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,18 @@ MEMORY_OVERHEAD = 1.3
 RESERVED_GB = 2.0
 CPU_TOKENS_PER_CORE = 1.4
 MIN_GPU_GB = 1.5
+MEASURED_GPU_PEAK_GB: Dict[Tuple[str, int], float] = {
+    ("Qwen/Qwen3-8B", 4): 6.31,
+    ("Qwen/Qwen3-4B", 4): 2.87,
+}
+"""Measured peak GPU memory of a (model, bits) pair as a judge, in GB.
+
+These replace the formula of :func:`model_memory_gb`, which
+underestimates the 8B at 4 bits (5.3 against 6.31 GB). Measured on
+2026-11-15 on an RTX 3070 Ti with
+``experiments/skills/judge_local_eval.py`` (``docs/skills/DESIGN.md``
+§4.2). The caller still adds its own reserve on top.
+"""
 
 
 class Gpu(BaseModel):
@@ -276,8 +288,13 @@ def model_memory_gb(option: ModelOption, device: str) -> float:
 
     Weights are 4 bytes per parameter on the CPU (float32) and 2 on a
     GPU (half precision), or ``bits / 8`` when quantised, plus 30% for
-    activations and the cache.
+    activations and the cache. On a GPU a measured peak for the model
+    at that precision (:data:`MEASURED_GPU_PEAK_GB`) wins over the
+    formula.
     """
+    measured = MEASURED_GPU_PEAK_GB.get((option.name, option.bits))
+    if device != "cpu" and measured is not None:
+        return measured
     per_param = BYTES_PER_PARAM[device]
     if device != "cpu" and option.bits < 16:
         per_param = option.bits / 8

@@ -428,6 +428,28 @@ def test_preferred_policy_takes_the_first_that_fits_and_never_smaller(
     ), "an explicit --local_model is still honoured"
 
 
+def test_preferred_policy_uses_the_measured_8b_peak() -> None:
+    qwen = [
+        ModelOption(name="Qwen/Qwen3-4B", params_billion=4.0, bits=4),
+        ModelOption(name="Qwen/Qwen3-8B", params_billion=8.2, bits=4),
+    ]
+
+    def judge_with(free: float) -> LocalJudge:
+        """A preferred judge over the real names with ``free`` GB free."""
+        return LocalJudge(
+            qwen, GPU, "cpu-model", build=FakeLocalModel,
+            quantisable=lambda: True, total_gb=lambda: 8.0,
+            free_gb=lambda: free,
+            preference=("Qwen/Qwen3-8B", "Qwen/Qwen3-4B"),
+        )
+
+    assert judge_with(6.0).model_name == "Qwen/Qwen3-4B@4bit", (
+        "5.3 GB estimated, 6.31 GB measured: 6 GB free is not enough"
+    )
+    assert judge_with(6.8).model_name == "Qwen/Qwen3-8B@4bit"
+    assert judge_with(3.4).model_name == "Qwen/Qwen3-4B@4bit"
+
+
 def test_the_default_preference_is_8b_then_4b() -> None:
     from src.config import SkillsSettings
 

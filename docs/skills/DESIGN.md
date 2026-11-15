@@ -166,8 +166,13 @@ The GPU (8 GB) is shared with the live transcriber, the RAG and another
 project's worker, so the free memory changes from job to job.
 `adapters/outbound/local_judge.py` reads the free memory
 (`torch.cuda.mem_get_info`) when a job first needs the judge, keeps
-0.4 GB aside and estimates each model's needs as
-`params × bits/8 × 1.3`. The weights are quantised to 4 bits (NF4)
+0.4 GB aside and takes each model's needs from its measured peak on
+the GPU when there is one (`MEASURED_GPU_PEAK_GB` in
+`domain/runtime.py`: Qwen3-8B at 4 bits 6.31 GB, Qwen3-4B at 4 bits
+2.87 GB, from the table below), otherwise estimates them as
+`params × bits/8 × 1.3`. The formula said 5.3 GB for the 8B, so with
+5.7–6.3 GB free the policy would have tried it and run out of memory;
+it now needs 6.71 GB free (6.31 + 0.4). The weights are quantised to 4 bits (NF4)
 with `bitsandbytes`, installed by `uv sync --group local-judge`
 (`bitsandbytes`, `accelerate`; not a default group). The job releases
 the model when it ends (`release()`), so the memory comes back.
@@ -198,15 +203,19 @@ fails at once, saying to install the group, rather than load another
 model.
 
 Measured on 2026-11-15 on the RTX 3070 Ti (one run each, greedy
-decoding). The figures come from a scratch version of
-`experiments/skills/judge_local_eval.py`, which computes the same
-values; the committed script was not rerun because the GPU was busy.
-To reproduce:
+decoding). The 8B row comes from the committed
+`experiments/skills/judge_local_eval.py`, run on the idle GPU; its
+output is `experiments/skills/results/judge_local_qwen3-8b-4bit.json`
+(GPU memory back to 0.24 GB after release). The 1.7B and 4B rows come
+from a scratch version of the script, which computes the same values,
+and have no committed result file. To reproduce:
 
 ```bash
-HF_HUB_OFFLINE=1 PYTHONPATH=. python experiments/skills/judge_local_eval.py Qwen/Qwen3-4B --bits 4 \
-    --output experiments/skills/results/judge_local_qwen3-4b-4bit.json
+HF_HUB_OFFLINE=1 PYTHONPATH=. python experiments/skills/judge_local_eval.py Qwen/Qwen3-8B --bits 4 \
+    --output experiments/skills/results/judge_local_qwen3-8b-4bit.json
 ```
+
+(`Qwen/Qwen3-4B --bits 4` for the 4B row.)
 
 Dialogue acts: 200
 sentences spread over the 51 dialogues of the synthetic Spanish set,
@@ -218,18 +227,19 @@ confirmation: the synthetic Spanish demo session
 |---|---|---|---|---|---|---|---|
 | Qwen3-1.7B, 16 bit | 3.54 GB | 4.8 s | 0.365 (3) | 0.16 | 40 / 23 / 1 | 35 of 40 | 0 |
 | Qwen3-4B, 4 bit | 2.87 GB | 39.1 s | 0.545 (1) | 0.32 | 63 / 1 / 0 | 10 of 63 | 5 |
+| Qwen3-8B, 4 bit | 6.31 GB | 19.7 s | 0.620 (0) | 0.39 | 58 / 6 / 0 | 13 of 58 | 7 |
 
 The 1.7B run reproduces `AUDIO.md` §4 exactly. The 4B at 4 bits is
 better on dialogue acts (0.545 against 0.365) and its position bias is
 gone, but on tag confirmation it confirms almost everything (63 of 64):
 the failure moved from "always the first indicator" to "never none".
-Neither is a usable assessor of indicators. Qwen3-8B at 4 bits is
-downloaded but **not measured**: the other project's worker held
-5.4–5.9 GB during this work, which leaves too little free memory for
-it. The preferred policy loads it when its estimate fits (5.3 GB + 0.4
-GB margin). Otherwise the policy waits for Qwen3-4B (2.6 + 0.4 GB);
-the 4B's measured peak was 2.87 GB. Measure the 8B with the command
-above before trusting it.
+Qwen3-8B at 4 bits is better than the 4B on both tasks: 0.620 on
+dialogue acts (0.545) and it rejects 6 of 64 tags instead of 1, at
+0.39 s per sentence (tags: 0.99 s). It still confirms most tags (58 of
+64), so none of the three is a usable assessor of indicators; the 8B
+stays first in `local_preference`. The preferred policy loads it when
+6.71 GB are free (measured 6.31 GB + 0.4 GB margin); otherwise it
+waits for Qwen3-4B (2.87 + 0.4 GB). One run on synthetic data each.
 
 ### 4.3 Selection and fallback
 
