@@ -661,6 +661,7 @@ class SkillsCLI:
 
     def _analyze(
         self, session: str, restart: bool = False, synthetic: bool = False,
+        steps: str = "",
     ) -> None:
         """Run the whole flow on a session and keep every step's result.
 
@@ -677,6 +678,8 @@ class SkillsCLI:
                 ``--transcripts_dir`` (a published ``transcript.v1``).
             restart: Run every step again instead of resuming.
             synthetic: Mark the reports as made-up sample data.
+            steps: Comma-separated steps to run again, keeping the
+                others (e.g. ``acts,events``: no judge is asked).
         """
         app = self._app()
         analysis = app.session_analysis
@@ -690,6 +693,7 @@ class SkillsCLI:
               f"{app.settings.analysis_dir}/{session})", flush=True)
         run = analysis.run(
             str(session), bool(restart), bool(synthetic), on_step=show,
+            only=parse_names(steps),
         )
         print()
         for name, status, seconds, who, detail in step_table(run):

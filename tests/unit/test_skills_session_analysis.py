@@ -418,3 +418,22 @@ def test_a_run_left_running_by_a_dead_worker_reads_interrupted() -> None:
     assert shown_status(run.model_copy(update={"status": "done"}), False) == (
         "done"
     )
+
+
+def test_only_reruns_the_named_steps_and_keeps_the_rest() -> None:
+    """Acts and events come later without asking the judge again."""
+    store = InMemoryAnalysisStore()
+    first = build(store=store).run("s1")
+    assert first.step("acts").status == "unavailable"
+    judge = FakeChatModel(responder=reply)
+    analysis = build(judge, store=store, acts=FakeActs(), events=FakeEvents())
+    again = analysis.run("s1", only=["events", "acts"])
+    assert again.status == "done"
+    assert again.step("acts").status == "done"
+    assert again.step("events").status == "done"
+    assert again.step("confirmation") == first.step("confirmation")
+    assert judge.calls == []
+    with pytest.raises(InvalidInputError, match="nope"):
+        build(store=store).run("s1", only=["nope"])
+    with pytest.raises(InvalidInputError):
+        build(store=store).run("s1", only=[" "])

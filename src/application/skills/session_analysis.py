@@ -63,6 +63,7 @@ from src.domain.errors import (
 )
 from src.domain.skills.analysis_run import (
     STEP_OUTPUTS,
+    STEPS,
     AnalysisRun,
     StepName,
     StepRecord,
@@ -141,6 +142,18 @@ def most_promising(
         with_tags, key=lambda n: (-max(t.score for t in tagged[n].tags), n)
     )[:limit]
     return sorted(best)
+
+
+def chosen_steps(names: Sequence[str]) -> List[StepName]:
+    """Return the named steps in running order; refuse unknown names."""
+    wanted = {str(n).strip() for n in names if str(n).strip()}
+    unknown = sorted(wanted - set(STEPS))
+    if unknown or not wanted:
+        raise InvalidInputError(
+            f"Unknown step(s) {', '.join(unknown) or '(none)'}; choose "
+            f"from {', '.join(STEPS)}."
+        )
+    return [name for name in STEPS if name in wanted]
 
 
 def check_session(session_id: str) -> None:
@@ -304,17 +317,22 @@ class SessionAnalysis:
         restart: bool = False,
         synthetic: bool = False,
         on_step: Optional[Callable[[StepRecord], None]] = None,
+        only: Optional[Sequence[str]] = None,
     ) -> AnalysisRun:
         """Run the steps still to do; return the run as stored.
 
         A failing step is recorded as ``failed`` with its reason and
         stops the run; the earlier results stay, and a later call
         starts again at that step. ``restart`` runs every step anew.
-        ``on_step`` is told each record once its step ends. Raises
+        ``on_step`` is told each record once its step ends. ``only``
+        runs exactly those steps again (in running order) and keeps
+        the others as they are, e.g. the acts and events once a tagger
+        exists, without asking the judge again. Raises
         :class:`~src.domain.errors.BusyError` while another process
         analyses the same session.
         """
         check_session(session_id)
+        chosen = None if only is None else chosen_steps(only)
         transcript = self.transcripts.find(session_id)
         worker = self.lock.acquire(session_id)
         if worker is None:
@@ -325,7 +343,8 @@ class SessionAnalysis:
             )
         try:
             return self._run(
-                session_id, transcript, restart, synthetic, on_step, worker
+                session_id, transcript, restart, synthetic, on_step, worker,
+                chosen,
             )
         finally:
             self.lock.release(session_id)
@@ -338,10 +357,11 @@ class SessionAnalysis:
         synthetic: bool,
         on_step: Optional[Callable[[StepRecord], None]],
         worker: int,
+        chosen: Optional[List[StepName]] = None,
     ) -> AnalysisRun:
         """Run the steps still to do while holding the session."""
         previous = None if restart else self.store.load(session_id)
-        todo = steps_to_run(previous, restart)
+        todo = steps_to_run(previous, restart) if chosen is None else chosen
         run = previous if previous is not None else new_run(
             session_id, self.clock(), synthetic
         )
