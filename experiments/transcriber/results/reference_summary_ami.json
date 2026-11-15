@@ -1,0 +1,2400 @@
+{
+  "corpora": [
+    "ami"
+  ],
+  "non_commercial": false,
+  "recordings": [
+    {
+      "session_id": "ami-EN2002b",
+      "corpus": "ami",
+      "recording": "EN2002b",
+      "licence": "CC BY 4.0",
+      "licence_commercial": true,
+      "run_id": "8f3286f6b65b44368f95da0dda3322df",
+      "duration": 1786.848
+    },
+    {
+      "session_id": "ami-ES2004b",
+      "corpus": "ami",
+      "recording": "ES2004b",
+      "licence": "CC BY 4.0",
+      "licence_commercial": true,
+      "run_id": "d1d9805fca8c404098abbe6832dd1251",
+      "duration": 2345.493
+    },
+    {
+      "session_id": "ami-ES2004c",
+      "corpus": "ami",
+      "recording": "ES2004c",
+      "licence": "CC BY 4.0",
+      "licence_commercial": true,
+      "run_id": "d5f449d2e3334456beae4cebc3fd56cf",
+      "duration": 2334.368
+    },
+    {
+      "session_id": "ami-TS3003a",
+      "corpus": "ami",
+      "recording": "TS3003a",
+      "licence": "CC BY 4.0",
+      "licence_commercial": true,
+      "run_id": "d989d8ce3b99493b85c2bda3224ea49b",
+      "duration": 1505.643
+    }
+  ],
+  "unscored": [],
+  "models": [
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+builtin",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.8437,
+          "sd": 0.077,
+          "min": 0.7549,
+          "max": 0.892
+        },
+        "missed_rate": {
+          "n": 3,
+          "mean": 0.7453,
+          "sd": 0.1374,
+          "min": 0.5878,
+          "max": 0.8406
+        },
+        "false_alarm_rate": {
+          "n": 3,
+          "mean": 0.0082,
+          "sd": 0.004,
+          "min": 0.0058,
+          "max": 0.0128
+        },
+        "confusion_rate": {
+          "n": 3,
+          "mean": 0.0902,
+          "sd": 0.0569,
+          "min": 0.0455,
+          "max": 0.1543
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.8248,
+          "sd": 0.0798,
+          "min": 0.7381,
+          "max": 0.8952
+        },
+        "overlap_precision": {
+          "n": 2,
+          "mean": 0.2,
+          "sd": 0.0943,
+          "min": 0.1333,
+          "max": 0.2667
+        },
+        "overlap_recall": {
+          "n": 3,
+          "mean": 0.0005,
+          "sd": 0.0006,
+          "min": 0.0,
+          "max": 0.0011
+        },
+        "speaker_count_error": {
+          "n": 3,
+          "mean": 4.3333,
+          "sd": 1.5275,
+          "min": 3.0,
+          "max": 6.0
+        },
+        "speaker_count_abs_error": {
+          "n": 3,
+          "mean": 4.3333,
+          "sd": 1.5275,
+          "min": 3.0,
+          "max": 6.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+diarizen-wavlm-large-s80-md-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7754,
+          "sd": 0.2003,
+          "min": 0.5151,
+          "max": 0.9994
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7602,
+          "sd": 0.2037,
+          "min": 0.5036,
+          "max": 0.9986
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0008,
+          "sd": 0.0009,
+          "min": 0.0,
+          "max": 0.0018
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0144,
+          "sd": 0.0112,
+          "min": 0.0009,
+          "max": 0.0253
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7706,
+          "sd": 0.1948,
+          "min": 0.5233,
+          "max": 0.9998
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.9363,
+          "sd": 0.019,
+          "min": 0.9187,
+          "max": 0.9564
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.1018,
+          "sd": 0.0997,
+          "min": 0.0,
+          "max": 0.2359
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -1.0,
+          "sd": 2.0,
+          "min": -4.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 2.0,
+          "min": 0.0,
+          "max": 4.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+ecapa-spectral",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7768,
+          "sd": 0.1424,
+          "min": 0.621,
+          "max": 0.9662
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.6485,
+          "sd": 0.2066,
+          "min": 0.4747,
+          "max": 0.9478
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0196,
+          "sd": 0.0063,
+          "min": 0.0134,
+          "max": 0.0251
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.1087,
+          "sd": 0.0708,
+          "min": 0.0036,
+          "max": 0.1572
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.769,
+          "sd": 0.1525,
+          "min": 0.632,
+          "max": 0.9865
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -0.5,
+          "sd": 1.7321,
+          "min": -3.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 1.4142,
+          "min": 0.0,
+          "max": 3.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+nemo-clustering",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7777,
+          "sd": 0.1929,
+          "min": 0.5336,
+          "max": 0.9984
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7409,
+          "sd": 0.2107,
+          "min": 0.4885,
+          "max": 0.9984
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0036,
+          "sd": 0.0028,
+          "min": 0.0,
+          "max": 0.0066
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0331,
+          "sd": 0.0225,
+          "min": 0.0,
+          "max": 0.0479
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7671,
+          "sd": 0.189,
+          "min": 0.5366,
+          "max": 0.9995
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 2.1602,
+          "min": -3.0,
+          "max": 2.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.5,
+          "sd": 1.291,
+          "min": 0.0,
+          "max": 3.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+nemotron-3-diarization",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.799,
+          "sd": 0.1718,
+          "min": 0.5835,
+          "max": 0.9999
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7886,
+          "sd": 0.1777,
+          "min": 0.5692,
+          "max": 0.9999
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.001,
+          "sd": 0.0009,
+          "min": 0.0,
+          "max": 0.0019
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0095,
+          "sd": 0.0065,
+          "min": 0.0,
+          "max": 0.0145
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7897,
+          "sd": 0.1682,
+          "min": 0.5883,
+          "max": 1.0
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.9226,
+          "sd": 0.0339,
+          "min": 0.9001,
+          "max": 0.9616
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0774,
+          "sd": 0.0782,
+          "min": 0.0,
+          "max": 0.1815
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -1.0,
+          "sd": 2.0,
+          "min": -4.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 2.0,
+          "min": 0.0,
+          "max": 4.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+pyannote-3.1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7599,
+          "sd": 0.1999,
+          "min": 0.5103,
+          "max": 0.9948
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7428,
+          "sd": 0.2019,
+          "min": 0.4933,
+          "max": 0.9842
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0036,
+          "sd": 0.003,
+          "min": 0.0003,
+          "max": 0.0074
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0135,
+          "sd": 0.0049,
+          "min": 0.0097,
+          "max": 0.0202
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7496,
+          "sd": 0.1948,
+          "min": 0.5192,
+          "max": 0.9959
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.8362,
+          "sd": 0.1058,
+          "min": 0.7225,
+          "max": 0.9319
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0819,
+          "sd": 0.0763,
+          "min": 0.0,
+          "max": 0.175
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.25,
+          "sd": 0.5,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.25,
+          "sd": 0.5,
+          "min": 0.0,
+          "max": 1.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+pyannote-community-1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7742,
+          "sd": 0.1881,
+          "min": 0.5312,
+          "max": 0.9864
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7428,
+          "sd": 0.2019,
+          "min": 0.4933,
+          "max": 0.9842
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0036,
+          "sd": 0.003,
+          "min": 0.0003,
+          "max": 0.0074
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0278,
+          "sd": 0.0179,
+          "min": 0.0018,
+          "max": 0.0412
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7654,
+          "sd": 0.1886,
+          "min": 0.5331,
+          "max": 0.9951
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.8362,
+          "sd": 0.1058,
+          "min": 0.7225,
+          "max": 0.9319
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0819,
+          "sd": 0.0763,
+          "min": 0.0,
+          "max": 0.175
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -0.5,
+          "sd": 1.7321,
+          "min": -3.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 1.4142,
+          "min": 0.0,
+          "max": 3.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "deepfilternet3+sortformer-streaming-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.7956,
+          "sd": 0.181,
+          "min": 0.5623,
+          "max": 0.9997
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.7867,
+          "sd": 0.1814,
+          "min": 0.5593,
+          "max": 0.9997
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0008,
+          "sd": 0.0009,
+          "min": 0.0,
+          "max": 0.0019
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0081,
+          "sd": 0.0086,
+          "min": 0.0,
+          "max": 0.0184
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.7876,
+          "sd": 0.1782,
+          "min": 0.5641,
+          "max": 0.9999
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.9246,
+          "sd": 0.0103,
+          "min": 0.9133,
+          "max": 0.9334
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0751,
+          "sd": 0.0746,
+          "min": 0.0,
+          "max": 0.1753
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -1.0,
+          "sd": 2.0,
+          "min": -4.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 2.0,
+          "min": 0.0,
+          "max": 4.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+builtin",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.555,
+          "sd": 0.2118,
+          "min": 0.4004,
+          "max": 0.8679
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2722,
+          "sd": 0.1222,
+          "min": 0.1615,
+          "max": 0.3893
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0266,
+          "sd": 0.002,
+          "min": 0.0237,
+          "max": 0.028
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.2561,
+          "sd": 0.1482,
+          "min": 0.0953,
+          "max": 0.4506
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.6052,
+          "sd": 0.2044,
+          "min": 0.4536,
+          "max": 0.901
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.0576,
+          "sd": 0.0997,
+          "min": 0.0,
+          "max": 0.1727
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0002,
+          "sd": 0.0004,
+          "min": 0.0,
+          "max": 0.0009
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 4.25,
+          "sd": 1.2583,
+          "min": 3.0,
+          "max": 6.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 4.25,
+          "sd": 1.2583,
+          "min": 3.0,
+          "max": 6.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+diarizen-wavlm-large-s80-md-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1902,
+          "sd": 0.1258,
+          "min": 0.0788,
+          "max": 0.3175
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.1628,
+          "sd": 0.1288,
+          "min": 0.0512,
+          "max": 0.3011
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0091,
+          "sd": 0.0058,
+          "min": 0.0021,
+          "max": 0.0161
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0183,
+          "sd": 0.0058,
+          "min": 0.0143,
+          "max": 0.0266
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2515,
+          "sd": 0.2089,
+          "min": 0.0798,
+          "max": 0.5171
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.874,
+          "sd": 0.0779,
+          "min": 0.7595,
+          "max": 0.9331
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.4067,
+          "sd": 0.1337,
+          "min": 0.2596,
+          "max": 0.5683
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 2.0,
+          "sd": 0.8165,
+          "min": 1.0,
+          "max": 3.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 2.0,
+          "sd": 0.8165,
+          "min": 1.0,
+          "max": 3.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+ecapa-spectral",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3668,
+          "sd": 0.2028,
+          "min": 0.2,
+          "max": 0.6357
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.1564,
+          "sd": 0.0596,
+          "min": 0.1071,
+          "max": 0.2431
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.1358,
+          "sd": 0.1631,
+          "min": 0.0423,
+          "max": 0.3801
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0746,
+          "sd": 0.064,
+          "min": 0.017,
+          "max": 0.1485
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4072,
+          "sd": 0.3025,
+          "min": 0.1706,
+          "max": 0.8078
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 1.4142,
+          "min": -2.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 0.8165,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+nemo-clustering",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.2772,
+          "sd": 0.1845,
+          "min": 0.1161,
+          "max": 0.4666
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2137,
+          "sd": 0.1518,
+          "min": 0.0771,
+          "max": 0.36
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0201,
+          "sd": 0.0069,
+          "min": 0.0115,
+          "max": 0.0269
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0434,
+          "sd": 0.041,
+          "min": 0.0089,
+          "max": 0.0951
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.376,
+          "sd": 0.3019,
+          "min": 0.1208,
+          "max": 0.7353
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -0.5,
+          "sd": 0.5774,
+          "min": -1.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.5,
+          "sd": 0.5774,
+          "min": 0.0,
+          "max": 1.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+nemotron-3-diarization",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3462,
+          "sd": 0.0536,
+          "min": 0.2669,
+          "max": 0.384
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2903,
+          "sd": 0.081,
+          "min": 0.2002,
+          "max": 0.3753
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0062,
+          "sd": 0.0039,
+          "min": 0.002,
+          "max": 0.0103
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0497,
+          "sd": 0.051,
+          "min": 0.0068,
+          "max": 0.1162
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4357,
+          "sd": 0.1145,
+          "min": 0.3147,
+          "max": 0.5823
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.8724,
+          "sd": 0.0915,
+          "min": 0.739,
+          "max": 0.9454
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.2501,
+          "sd": 0.0858,
+          "min": 0.1309,
+          "max": 0.3339
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.25,
+          "sd": 0.5,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.25,
+          "sd": 0.5,
+          "min": 0.0,
+          "max": 1.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+pyannote-3.1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1758,
+          "sd": 0.094,
+          "min": 0.0893,
+          "max": 0.2726
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.1322,
+          "sd": 0.0867,
+          "min": 0.0511,
+          "max": 0.2118
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0201,
+          "sd": 0.009,
+          "min": 0.0076,
+          "max": 0.0267
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0235,
+          "sd": 0.0147,
+          "min": 0.0113,
+          "max": 0.0413
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2968,
+          "sd": 0.269,
+          "min": 0.0886,
+          "max": 0.6709
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.7619,
+          "sd": 0.1285,
+          "min": 0.5901,
+          "max": 0.8816
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.2484,
+          "sd": 0.0781,
+          "min": 0.1332,
+          "max": 0.3069
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 1.4142,
+          "min": -2.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 0.8165,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+pyannote-community-1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1811,
+          "sd": 0.0936,
+          "min": 0.0988,
+          "max": 0.2667
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.1322,
+          "sd": 0.0867,
+          "min": 0.0511,
+          "max": 0.2118
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0201,
+          "sd": 0.009,
+          "min": 0.0076,
+          "max": 0.0267
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0289,
+          "sd": 0.0159,
+          "min": 0.0114,
+          "max": 0.0475
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.277,
+          "sd": 0.2325,
+          "min": 0.0948,
+          "max": 0.593
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.7619,
+          "sd": 0.1285,
+          "min": 0.5901,
+          "max": 0.8816
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.2484,
+          "sd": 0.0781,
+          "min": 0.1332,
+          "max": 0.3069
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.5,
+          "sd": 1.291,
+          "min": -1.0,
+          "max": 2.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 0.8165,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "mossformer2-se-48k+sortformer-streaming-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3381,
+          "sd": 0.1194,
+          "min": 0.1714,
+          "max": 0.4414
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2475,
+          "sd": 0.0953,
+          "min": 0.162,
+          "max": 0.3539
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0088,
+          "sd": 0.006,
+          "min": 0.004,
+          "max": 0.017
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0818,
+          "sd": 0.0995,
+          "min": 0.0048,
+          "max": 0.2218
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4343,
+          "sd": 0.2235,
+          "min": 0.1758,
+          "max": 0.7071
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.8024,
+          "sd": 0.1527,
+          "min": 0.5744,
+          "max": 0.894
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.2057,
+          "sd": 0.0684,
+          "min": 0.1191,
+          "max": 0.2822
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+builtin",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.4982,
+          "sd": 0.2761,
+          "min": 0.2846,
+          "max": 0.891
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2089,
+          "sd": 0.1154,
+          "min": 0.1046,
+          "max": 0.3176
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0533,
+          "sd": 0.0272,
+          "min": 0.031,
+          "max": 0.0917
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.2359,
+          "sd": 0.1783,
+          "min": 0.1173,
+          "max": 0.4999
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.5359,
+          "sd": 0.2827,
+          "min": 0.248,
+          "max": 0.9095
+        },
+        "overlap_precision": {
+          "n": 3,
+          "mean": 0.2647,
+          "sd": 0.4585,
+          "min": 0.0,
+          "max": 0.7941
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0006,
+          "sd": 0.0013,
+          "min": 0.0,
+          "max": 0.0025
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 5.5,
+          "sd": 0.5774,
+          "min": 5.0,
+          "max": 6.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 5.5,
+          "sd": 0.5774,
+          "min": 5.0,
+          "max": 6.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+diarizen-wavlm-large-s80-md-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.0895,
+          "sd": 0.0364,
+          "min": 0.0536,
+          "max": 0.1356
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.0522,
+          "sd": 0.0335,
+          "min": 0.0211,
+          "max": 0.0927
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0216,
+          "sd": 0.0043,
+          "min": 0.0173,
+          "max": 0.026
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0157,
+          "sd": 0.0022,
+          "min": 0.0138,
+          "max": 0.0183
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.1785,
+          "sd": 0.1895,
+          "min": 0.0627,
+          "max": 0.459
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.8194,
+          "sd": 0.1196,
+          "min": 0.6442,
+          "max": 0.9138
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.7329,
+          "sd": 0.1309,
+          "min": 0.5628,
+          "max": 0.8687
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 1.1547,
+          "min": 0.0,
+          "max": 2.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 1.1547,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+ecapa-spectral",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.521,
+          "sd": 0.1242,
+          "min": 0.4222,
+          "max": 0.7
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.4372,
+          "sd": 0.0797,
+          "min": 0.3768,
+          "max": 0.5518
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0377,
+          "sd": 0.0268,
+          "min": 0.0172,
+          "max": 0.0766
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.046,
+          "sd": 0.0202,
+          "min": 0.0282,
+          "max": 0.0717
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.5607,
+          "sd": 0.2246,
+          "min": 0.4032,
+          "max": 0.8863
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 1.4142,
+          "min": -2.0,
+          "max": 1.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 0.8165,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+nemo-clustering",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.4254,
+          "sd": 0.1752,
+          "min": 0.2704,
+          "max": 0.6644
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.4043,
+          "sd": 0.1781,
+          "min": 0.2563,
+          "max": 0.6579
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0047,
+          "sd": 0.0022,
+          "min": 0.0016,
+          "max": 0.0064
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0163,
+          "sd": 0.0195,
+          "min": 0.0049,
+          "max": 0.0455
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4911,
+          "sd": 0.2471,
+          "min": 0.2594,
+          "max": 0.8168
+        },
+        "overlap_precision": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": -0.75,
+          "sd": 0.9574,
+          "min": -2.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.75,
+          "sd": 0.9574,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+nemotron-3-diarization",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.2975,
+          "sd": 0.0761,
+          "min": 0.1954,
+          "max": 0.3797
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2572,
+          "sd": 0.075,
+          "min": 0.1847,
+          "max": 0.3481
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0081,
+          "sd": 0.0047,
+          "min": 0.0031,
+          "max": 0.0127
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0322,
+          "sd": 0.0392,
+          "min": 0.0057,
+          "max": 0.0887
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.3926,
+          "sd": 0.1843,
+          "min": 0.1962,
+          "max": 0.6268
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.865,
+          "sd": 0.0971,
+          "min": 0.7207,
+          "max": 0.9312
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.3997,
+          "sd": 0.139,
+          "min": 0.1966,
+          "max": 0.5121
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+pyannote-3.1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1297,
+          "sd": 0.0584,
+          "min": 0.0674,
+          "max": 0.1812
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.078,
+          "sd": 0.0493,
+          "min": 0.0306,
+          "max": 0.1263
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0231,
+          "sd": 0.0074,
+          "min": 0.0125,
+          "max": 0.0289
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0286,
+          "sd": 0.0128,
+          "min": 0.0134,
+          "max": 0.0394
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2636,
+          "sd": 0.268,
+          "min": 0.0814,
+          "max": 0.6527
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.8108,
+          "sd": 0.0782,
+          "min": 0.6996,
+          "max": 0.879
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.4727,
+          "sd": 0.1956,
+          "min": 0.1993,
+          "max": 0.6454
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 1.633,
+          "min": -2.0,
+          "max": 2.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.0,
+          "sd": 1.1547,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+pyannote-community-1",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1342,
+          "sd": 0.0628,
+          "min": 0.0713,
+          "max": 0.1942
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.078,
+          "sd": 0.0493,
+          "min": 0.0306,
+          "max": 0.1263
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0231,
+          "sd": 0.0074,
+          "min": 0.0125,
+          "max": 0.0289
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.0331,
+          "sd": 0.018,
+          "min": 0.0173,
+          "max": 0.0554
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2707,
+          "sd": 0.2777,
+          "min": 0.0858,
+          "max": 0.675
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.8108,
+          "sd": 0.0782,
+          "min": 0.6996,
+          "max": 0.879
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.4727,
+          "sd": 0.1956,
+          "min": 0.1993,
+          "max": 0.6454
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.25,
+          "sd": 1.7078,
+          "min": -2.0,
+          "max": 2.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 1.25,
+          "sd": 0.9574,
+          "min": 0.0,
+          "max": 2.0
+        }
+      }
+    },
+    {
+      "kind": "diarization",
+      "id": "none+sortformer-streaming-v2",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3332,
+          "sd": 0.097,
+          "min": 0.2214,
+          "max": 0.4422
+        },
+        "missed_rate": {
+          "n": 4,
+          "mean": 0.2179,
+          "sd": 0.0817,
+          "min": 0.1401,
+          "max": 0.3287
+        },
+        "false_alarm_rate": {
+          "n": 4,
+          "mean": 0.0173,
+          "sd": 0.0132,
+          "min": 0.007,
+          "max": 0.0356
+        },
+        "confusion_rate": {
+          "n": 4,
+          "mean": 0.098,
+          "sd": 0.1004,
+          "min": 0.03,
+          "max": 0.2461
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4428,
+          "sd": 0.1561,
+          "min": 0.3,
+          "max": 0.6258
+        },
+        "overlap_precision": {
+          "n": 4,
+          "mean": 0.7897,
+          "sd": 0.1438,
+          "min": 0.5828,
+          "max": 0.8936
+        },
+        "overlap_recall": {
+          "n": 4,
+          "mean": 0.4218,
+          "sd": 0.1382,
+          "min": 0.2281,
+          "max": 0.549
+        },
+        "speaker_count_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "speaker_count_abs_error": {
+          "n": 4,
+          "mean": 0.0,
+          "sd": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+builtin+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.8437,
+          "sd": 0.077,
+          "min": 0.7549,
+          "max": 0.892
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.8248,
+          "sd": 0.0798,
+          "min": 0.7381,
+          "max": 0.8952
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+diarizen-wavlm-large-s80-md-v2+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7008,
+          "sd": 0.1635,
+          "min": 0.5151,
+          "max": 0.8229
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.6942,
+          "sd": 0.1481,
+          "min": 0.5233,
+          "max": 0.7832
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+ecapa-spectral+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7137,
+          "sd": 0.0806,
+          "min": 0.621,
+          "max": 0.7671
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.6964,
+          "sd": 0.0576,
+          "min": 0.632,
+          "max": 0.743
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+nemo-clustering+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7041,
+          "sd": 0.1528,
+          "min": 0.5336,
+          "max": 0.8287
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.6897,
+          "sd": 0.1326,
+          "min": 0.5366,
+          "max": 0.7698
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+nemotron-3-diarization+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7321,
+          "sd": 0.1319,
+          "min": 0.5835,
+          "max": 0.8353
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.7196,
+          "sd": 0.1137,
+          "min": 0.5883,
+          "max": 0.7879
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+pyannote-3.1+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.6816,
+          "sd": 0.1521,
+          "min": 0.5103,
+          "max": 0.8007
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.6675,
+          "sd": 0.1285,
+          "min": 0.5192,
+          "max": 0.7439
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+pyannote-community-1+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7034,
+          "sd": 0.1519,
+          "min": 0.5312,
+          "max": 0.8181
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.6888,
+          "sd": 0.1349,
+          "min": 0.5331,
+          "max": 0.7701
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "deepfilternet3+sortformer-streaming-v2+whisper-large-v3-turbo",
+      "recordings": 3,
+      "metrics": {
+        "der": {
+          "n": 3,
+          "mean": 0.7276,
+          "sd": 0.1463,
+          "min": 0.5623,
+          "max": 0.8404
+        },
+        "jer": {
+          "n": 3,
+          "mean": 0.7168,
+          "sd": 0.1326,
+          "min": 0.5641,
+          "max": 0.802
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+builtin+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.555,
+          "sd": 0.2118,
+          "min": 0.4004,
+          "max": 0.8679
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.6052,
+          "sd": 0.2044,
+          "min": 0.4536,
+          "max": 0.901
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+diarizen-wavlm-large-s80-md-v2+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1902,
+          "sd": 0.1258,
+          "min": 0.0788,
+          "max": 0.3175
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2515,
+          "sd": 0.2089,
+          "min": 0.0798,
+          "max": 0.5171
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+ecapa-spectral+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3668,
+          "sd": 0.2028,
+          "min": 0.2,
+          "max": 0.6357
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4072,
+          "sd": 0.3025,
+          "min": 0.1706,
+          "max": 0.8078
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+nemo-clustering+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.2772,
+          "sd": 0.1845,
+          "min": 0.1161,
+          "max": 0.4666
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.376,
+          "sd": 0.3019,
+          "min": 0.1208,
+          "max": 0.7353
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+nemotron-3-diarization+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3462,
+          "sd": 0.0536,
+          "min": 0.2669,
+          "max": 0.384
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4357,
+          "sd": 0.1145,
+          "min": 0.3147,
+          "max": 0.5823
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+pyannote-3.1+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1758,
+          "sd": 0.094,
+          "min": 0.0893,
+          "max": 0.2726
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2968,
+          "sd": 0.269,
+          "min": 0.0886,
+          "max": 0.6709
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+pyannote-community-1+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1811,
+          "sd": 0.0936,
+          "min": 0.0988,
+          "max": 0.2667
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.277,
+          "sd": 0.2325,
+          "min": 0.0948,
+          "max": 0.593
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "mossformer2-se-48k+sortformer-streaming-v2+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3381,
+          "sd": 0.1194,
+          "min": 0.1714,
+          "max": 0.4414
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4343,
+          "sd": 0.2235,
+          "min": 0.1758,
+          "max": 0.7071
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+builtin+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.4982,
+          "sd": 0.2761,
+          "min": 0.2846,
+          "max": 0.891
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.5359,
+          "sd": 0.2827,
+          "min": 0.248,
+          "max": 0.9095
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+diarizen-wavlm-large-s80-md-v2+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.0895,
+          "sd": 0.0364,
+          "min": 0.0536,
+          "max": 0.1356
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.1785,
+          "sd": 0.1895,
+          "min": 0.0627,
+          "max": 0.459
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+ecapa-spectral+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.521,
+          "sd": 0.1242,
+          "min": 0.4222,
+          "max": 0.7
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.5607,
+          "sd": 0.2246,
+          "min": 0.4032,
+          "max": 0.8863
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+nemo-clustering+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.4254,
+          "sd": 0.1752,
+          "min": 0.2704,
+          "max": 0.6644
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4911,
+          "sd": 0.2471,
+          "min": 0.2594,
+          "max": 0.8168
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+nemotron-3-diarization+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.2975,
+          "sd": 0.0761,
+          "min": 0.1954,
+          "max": 0.3797
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.3926,
+          "sd": 0.1843,
+          "min": 0.1962,
+          "max": 0.6268
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+pyannote-3.1+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1297,
+          "sd": 0.0584,
+          "min": 0.0674,
+          "max": 0.1812
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2636,
+          "sd": 0.268,
+          "min": 0.0814,
+          "max": 0.6527
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+pyannote-community-1+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.1342,
+          "sd": 0.0628,
+          "min": 0.0713,
+          "max": 0.1942
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.2707,
+          "sd": 0.2777,
+          "min": 0.0858,
+          "max": 0.675
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    },
+    {
+      "kind": "pipeline",
+      "id": "none+sortformer-streaming-v2+whisper-large-v3-turbo",
+      "recordings": 4,
+      "metrics": {
+        "der": {
+          "n": 4,
+          "mean": 0.3332,
+          "sd": 0.097,
+          "min": 0.2214,
+          "max": 0.4422
+        },
+        "jer": {
+          "n": 4,
+          "mean": 0.4428,
+          "sd": 0.1561,
+          "min": 0.3,
+          "max": 0.6258
+        },
+        "wer": {
+          "n": 0,
+          "mean": null,
+          "sd": null,
+          "min": null,
+          "max": null
+        }
+      }
+    }
+  ],
+  "excluded": []
+}

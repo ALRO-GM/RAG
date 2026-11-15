@@ -490,3 +490,28 @@ details.pending, details.samples-box { background: var(--surface); border: 1px s
 .samples .sample { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.4rem 0; border-top: 1px solid var(--line); }
 .samples .sample:first-child { border-top: 0; }
 .samples audio { width: 100%; max-width: 30rem; }
+
+/* Study page (study.html): headline cards and the bar lists. The best
+   combination wears the accent series, the transcriber's current one the
+   second series, the rest grey; names and values are always written. */
+.study .headlines { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin: 0.8rem 0; }
+@media (min-width: 46rem) {
+  .study .headlines { grid-template-columns: 1fr 1fr; }
+}
+.study .headline h3 { margin: 0; font-size: 1.05rem; }
+.study .headline p { margin: 0; }
+.study .big-figure { font-size: 2.2rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text); }
+.study .pipeline { padding-left: 1.4rem; }
+.study .source { margin: 0.2rem 0 0.6rem; }
+.study .panel h3 { margin-top: 1.2rem; }
+.study .notice .badge, .study .callout .badge { margin-right: 0.2rem; }
+.study table.data th.left, .study table.data td.left { text-align: left; }
+.study table.data tr.kind-best th, .study table.data tr.kind-best td { font-weight: 700; }
+.study table.data tr.total th, .study table.data tr.total td { font-weight: 700; }
+.plot .bar-label { font-size: 12px; }
+.plot .bar-label.strong { font-weight: 700; }
+.bar.study-best { fill: var(--c1); stroke: var(--c1); }
+.bar.study-builtin { fill: var(--c2); stroke: var(--c2); }
+.bar.study-other { fill: var(--c0); stroke: var(--c0); }
+.bar.weak.small { fill: var(--surface); stroke-width: 2; stroke-dasharray: 5 3; }
+.study table.data { min-width: 0; }
