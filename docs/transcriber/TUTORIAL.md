@@ -281,6 +281,16 @@ registrada, el sistema puede poner tu **nombre** en cada frase tuya, en
 vez de «S1» o «S2». Sin registro todo funciona, pero las personas salen
 con esas etiquetas y hay que poner los nombres a mano después.
 
+**Nombres dichos en la conversación.** Si alguien se presenta («soy
+Ana», «me llamo Pedro»), al final de la transcripción un modelo que
+corre en el propio ordenador lee esas frases y pone el nombre a esa
+voz, solo cuando está claro. Lo demás («gracias, Marta») sale como
+sugerencia en el recuadro «Nombres dichos en la conversación» de la
+transcripción, con la frase y el minuto: «Aceptar» la pone, y
+«Deshacer» quita un nombre puesto automáticamente. «Buscar nombres»
+lo repite. Nunca cambia un nombre puesto a mano ni el de una voz
+registrada. Detalles y medidas en `docs/transcriber/NAMES.md`.
+
 **Cómo se hace.** Se hace una vez por persona, mejor justo antes de la
 reunión.
 

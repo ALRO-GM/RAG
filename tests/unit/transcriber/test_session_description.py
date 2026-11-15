@@ -165,7 +165,7 @@ class TestDescribeSession:
         assert transcript.session == out
         assert out.state is SessionState.DONE
         document = PublishTranscript(
-            w.sessions, RecordingPublisher(), w.locks
+            w.sessions, RecordingPublisher(), w.locks, w.runner
         )("s1")
         assert document["session"]["type"] == "reunion_decision"
         assert document["session"]["goal"] == "Reparto"
@@ -174,7 +174,7 @@ class TestDescribeSession:
         w = world()
         w.run()
         document = PublishTranscript(
-            w.sessions, RecordingPublisher(), w.locks
+            w.sessions, RecordingPublisher(), w.locks, w.runner
         )("s1")
         assert "type" not in document["session"]
         assert "goal" not in document["session"]

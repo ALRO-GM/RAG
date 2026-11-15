@@ -21,6 +21,14 @@ class StateError(TranscriberError):
     """An action is not allowed in the current state of a session."""
 
 
+class BusyError(StateError):
+    """The session has a job queued or running; try again when it ends.
+
+    For instance a publish while the speakers' names are still searched:
+    the transcript is about to change.
+    """
+
+
 class ConsentRequiredError(InvalidInputError):
     """A voice cannot be enrolled without the person's explicit consent."""
 

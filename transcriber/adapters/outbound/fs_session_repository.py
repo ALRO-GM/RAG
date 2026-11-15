@@ -29,6 +29,10 @@ Layout under ``<root>/sessions/<id>/``:
 ``words.json`` and ``transcript.json``
     the attributed words and the transcript (the transcriber's own
     format, words included; the contract is made from it on publish).
+``names.json``
+    the outcome of the last search for the speakers' names
+    (:class:`~transcriber.domain.speaker_names.SpeakerNames`): names
+    given automatically and suggestions.
 
 JSON and audio files are written atomically (:func:`atomic_write`).
 Chunk appends are made safe by ``chunks.json``: appending chunk ``n``
@@ -89,6 +93,7 @@ from transcriber.domain.models import (
     Transcript,
     Word,
 )
+from transcriber.domain.speaker_names import SpeakerNames
 
 SESSION_FILE = "session.json"
 PCM_FILE = "audio.pcm"
@@ -96,6 +101,7 @@ CHUNKS_FILE = "chunks.json"
 CLOSED_FORMAT = "flac"
 WORDS_FILE = "words.json"
 TRANSCRIPT_FILE = "transcript.json"
+NAMES_FILE = "names.json"
 AUDIO_STEM = "audio"
 IMPORTED_STEM = "imported"
 PLAYBACK_PREFIX = "playback-"
@@ -440,6 +446,21 @@ class FileSystemSessionRepository:
         except FileNotFoundError:
             return None
         return _parse(Transcript.model_validate, data, path)
+
+    def save_names(self, names: SpeakerNames) -> None:
+        """Store the outcome of a search for names in its session."""
+        with self._lock:
+            directory = self._existing(names.session)
+            write_json(directory / NAMES_FILE, names.model_dump(mode="json"))
+
+    def names(self, session_id: str) -> Optional[SpeakerNames]:
+        """Return the outcome of the last search for names, if any."""
+        path = self._existing(session_id) / NAMES_FILE
+        try:
+            data = read_json(path)
+        except FileNotFoundError:
+            return None
+        return _parse(SpeakerNames.model_validate, data, path)
 
 
 def _parse(read: Callable[[Any], T], data: Any, path: Path) -> T:

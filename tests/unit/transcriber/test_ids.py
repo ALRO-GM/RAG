@@ -85,7 +85,7 @@ def session_calls(w: World) -> List[Callable[[str], object]]:
         lambda s: w.transcribe(s),
         lambda s: w.status(s),
         lambda s: PublishTranscript(
-            w.sessions, RecordingPublisher(), w.locks
+            w.sessions, RecordingPublisher(), w.locks, w.runner
         )(s),
         lambda s: rename(s, "S1", name="Ana"),
         lambda s: reassign(s, "t0.s0", "luis"),

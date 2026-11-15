@@ -1,11 +1,13 @@
 """Review: correct who said what in a finished transcript.
 
 :class:`RenameSpeaker` gives an anonymous voice a display name or
-merges it into a known speaker; :class:`ReassignUtterance` moves one
-sentence to another speaker. Both recompute the turns and the previous
-speaker of the whole transcript and keep the stored words in step.
-Neither creates a voiceprint: a voice is only enrolled with consent.
-Both read and write the transcript while holding the session's lock.
+merges it into a known speaker; :class:`UnnameSpeaker` takes the
+display name away again (the voice is ``S#`` once more);
+:class:`ReassignUtterance` moves one sentence to another speaker.
+Renaming and reassigning recompute the turns and the previous speaker
+of the whole transcript and keep the stored words in step. None creates
+a voiceprint: a voice is only enrolled with consent. All read and write
+the transcript while holding the session's lock.
 """
 
 from typing import Dict, List, Optional, Sequence
@@ -230,6 +232,38 @@ class RenameSpeaker(_Review):
             transcript, utterances, known + [target], {},
             relabel={label: target.id},
         )
+
+
+class UnnameSpeaker(_Review):
+    """Take the display name off an anonymous voice."""
+
+    def __call__(self, session_id: str, label: str) -> Transcript:
+        """Remove the display name of anonymous voice ``label``.
+
+        The voice is shown as its label again; nothing else changes. A
+        voice without a name is left as it is; enrolled ids cannot be
+        unnamed.
+        """
+        check_speaker_id(label)
+        with self._locks.hold(session_id):
+            transcript = self._transcript(session_id)
+            source = next(
+                (s for s in transcript.speakers if s.id == label), None
+            )
+            if source is None:
+                raise NotFoundError(f"No speaker {label} in {session_id}.")
+            if source.enrolled:
+                raise InvalidInputError(
+                    f"{label} is an enrolled person; only anonymous voices"
+                    " are unnamed."
+                )
+            if source.name is None:
+                return transcript
+            known = [
+                s.model_copy(update={"name": None}) if s.id == label else s
+                for s in transcript.speakers
+            ]
+            return self._save(transcript, transcript.utterances, known, {})
 
 
 class ReassignUtterance(_Review):
