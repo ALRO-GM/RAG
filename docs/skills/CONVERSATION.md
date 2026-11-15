@@ -13,7 +13,9 @@ Conventions:
   seen there, **[unverified]** when it comes from a search snippet, a
   secondary source or memory. Several sources were read from the
   project's saved copies in `data/research/softskills/papers/` (noted
-  "local copy").
+  "local copy"). On 2026-11-15 the MRDA paper and coding manual, the
+  SWBD-DAMSL manual and Sacks et al. (1974) were read from copies the
+  owner supplied (noted "owner copy", with page numbers).
 - Agreement figures are Cohen's κ unless stated. A κ from another scheme,
   language or unit is quoted as an **analogue**, never as the agreement we
   will obtain.
@@ -114,7 +116,8 @@ horas, no días.
 ### 1.2 How the units are delimited in speech transcripts
 
 - Human segmentation of meeting speech into DAs is itself imperfect:
-  MRDA reports 66.5% strict agreement on segment boundaries [6] [verified].
+  MRDA reports 66.5% strict agreement on segment boundaries [6] [verified,
+  owner copy, p. 3, Table 1; pairs range 61.1–73.5%].
 - NegotiAct avoided measuring segmentation agreement altogether: one coder
   segmented all 18 videos (5,365 units), and κ was computed only on the
   codes assigned to those fixed units [12] [verified, local copy]. act4teams
@@ -159,7 +162,7 @@ drops them (§5.4).
 
 | Concept | Key claim | Source | Consequence for us |
 |---|---|---|---|
-| Turn-taking | Turns are built from turn-constructional units; at each transition-relevance place the next speaker is selected by the current one or self-selects; the system minimises gap and overlap | Sacks, Schegloff & Jefferson 1974 [21] [unverified: page blocked, standard reference] | Turn = speaker change is a valid but coarse unit; interruptions are violations of this order and need overlap detection |
+| Turn-taking | Turns are built from turn-constructional units; at each transition-relevance place the next speaker is selected by the current one or self-selects; the system minimises gap and overlap | Sacks, Schegloff & Jefferson 1974 [21] [verified, owner copy: turn-constructional component p. 702, allocation rules p. 704, minimisation of gap and overlap p. 705] | Turn = speaker change is a valid but coarse unit; interruptions are violations of this order and need overlap detection |
 | Response timing | Across 10 languages the mean response offset after a polar question is +208 ms, mode 0 ms; language means range from +7 ms (Japanese) to +469 ms (Danish). Spanish is not in the sample | Stivers et al. 2009 [26] [verified] | Gaps are short and comparable across languages; a long delay before a reply is informative (often a dispreferred answer), and our word times can measure it |
 | Adjacency pair | Two turns by different speakers, first pair part (question, offer, request, proposal, greeting) makes a type-fitted second part (answer, acceptance/decline, compliance, return greeting) relevant | Schegloff 2007 [22] [unverified, bibliographic] | Core of the category set: first-pair-part categories (question, proposal, request) and second-pair-part categories (answer, acceptance, rejection) |
 | Sequence expansion | A base pair can be expanded before (pre-sequence: "¿Tienes un minuto?"), inside (insert sequence: a clarifying question before the answer) and after (post-expansion: "vale", "ah") | Schegloff 2007 [22] [unverified] | An answer may come several sentences after its question; linking needs a window, not just the previous sentence |
@@ -191,8 +194,8 @@ design of §5.
 |---|---|---|---|---|---|---|---|
 | **ISO 24617-2** (from DIT++) [1][2] | 9 dimensions (Task, Auto-Feedback, Allo-Feedback, Turn Mgmt, Time Mgmt, Discourse Structuring, Own Comm. Mgmt, Partner Comm. Mgmt, Social Obligations Mgmt); 2nd edition (2020) adds Contact Mgmt and plug-ins [verified] | 56 functions (DIT++ has 88); about 26 general-purpose ones in four families: information-seeking (Question, Set-, Propositional-, Choice-, Check-Question), information-providing (Inform, Agreement, Disagreement, Correction, Answer, Confirm, Disconfirm), commissives (Offer, Promise, Address/Accept/Decline Request, Address/Accept/Decline Suggest), directives (Request, Instruct, Suggest, Address/Accept/Decline Offer). The 26/30 split is our count from Table 6.1 | Functional segment | Function κ per dimension (Dutch DIAMOND data; plain/taxonomically weighted): Task .47/.71, Auto-FB .21/.57, Allo-FB .42/.58, Turn .82, Time .58, Discourse Structuring .74, Own Comm. and Social Obligations 1.00. Recognising which dimension applies: .83–.99 [verified, in [1]] | DialogBank (English: Map Task, Switchboard, TRAINS, DBOX; Dutch: OVIS, DIAMOND, Map Task, Schiphol); DBOX: 338 dialogues, 16 h, κ .55–1.00 per dimension [verified] | Standard is paid (ISO); DialogBank online, licence not stated [verified] | Mainly English, Dutch |
 | **DAMSL** [3] | 3 layers: forward-looking, backward-looking, utterance features; several labels per layer | ~ a few dozen | Utterance | 8 TRAINS dialogues, 604 utterances: Statement .66, Influence-on-Addressee-Future-Action .70, Committing-Speaker-Future-Action **.15**, Answer .76, Agreement **.42**, Understanding .57, Response-to .77. Authors: "on average 0.15 lower than the accepted kappa" [verified] | TRAINS | LDC [unverified] | English |
-| **SWBD-DAMSL** [4][5] | Flat after clustering | ~50 basic tags + diacritics, ~220 combinations used, clustered into 42 (Potts' SwDA lists 43) | Slash-unit | 84% agreement, κ = .80 on the 42-tag set [verified, in [5]] | Switchboard DA: 1,155 telephone conversations, 205k utterances, 1.4M words [verified] | SwDA CC BY-NC-SA 3.0 [unverified: HF card snippet]; HF `cgpotts/swda`, SILICONE `swda` | English |
-| **MRDA** (ICSI meetings) [6] | 1 obligatory general tag + 0..n specific tags; adjacency pairs annotated | 11 general + 39 specific; derived sets of 5 / 12 / 52 labels in common preprocessing | DA segment | κ .80 overall on the 6-way map (pairs .75–.82); segmentation 66.5% strict [verified] | 75 meetings, ~72 h, 180,218 tags; statement 68.0%, backchannel 13.4%, floor holder 7.4%, yes/no question 4.9% [verified] | ICSI corpus "and its annotations" CC BY 4.0, free download [verified] (the ICSI page says "some of the annotations" [verified, local copy]: check the DA files specifically); SILICONE `mrda` (5 labels) | English |
+| **SWBD-DAMSL** [4][5] | Flat after clustering | About 60 basic tags plus combinations (*corrected from "~50"*); 220 tags used, 130 of them fewer than 10 times, clustered into 42 (Potts' SwDA lists 43) [verified, manual [4] §1a, §1c] | Slash-unit | 84% agreement, κ = .80 on the 42-tag set [verified, in [5]]; the manual reports average pairwise κ .80 at the end of labelling [verified, [4] §1a] | Switchboard DA: 1,155 telephone conversations, 205k utterances, 1.4M words [verified] | SwDA CC BY-NC-SA 3.0 [unverified: HF card snippet]; HF `cgpotts/swda`, SILICONE `swda` | English |
+| **MRDA** (ICSI meetings) [6] | 1 obligatory general tag + 0..n specific tags; adjacency pairs annotated | 11 general + 39 specific; derived sets of 5 / 12 / 52 labels in common preprocessing | DA segment | κ .80 overall on the 6-way map (pairs .75–.82); segmentation 66.5% strict [verified, owner copy, p. 3, Tables 1–2] | 75 meetings, ~72 h, 180,218 tags in all. *Corrected:* the shares statement 68.0%, backchannel 13.4%, floor holder 7.4%, yes/no question 4.9% are of the 113,560 **general** tags (Table 4); of all 180,218 tags, statement is 42.9% and backchannel 8.4% (Table 3) [verified, owner copy, p. 4] | ICSI corpus "and its annotations" CC BY 4.0, free download [verified] (the ICSI page says "some of the annotations" [verified, local copy]: check the DA files specifically); SILICONE `mrda` (5 labels) | English |
 | **AMI** dialogue acts [7][8] | Flat + adjacency relations + addressee | 15: Backchannel, Stall, Fragment, Inform, Elicit-Inform, Suggest, Offer, Elicit-Offer-or-Suggestion, Assess, Comment-about-Understanding, Elicit-Assessment, Elicit-Comment-about-Understanding, Be-Positive, Be-Negative, Other [verified] | "Single speaker intention" | **"Reliability test results are not currently available"** [verified] | 100 h of meetings, ~2/3 scenario (design team role-play) [verified]; also topic segmentation, extractive/abstractive summaries with DECISIONS and ACTIONS headings [verified] | CC BY 4.0 [verified] | English (many non-native speakers) |
 | **Bales IPA** [16] | 4 areas × 3 (positive socio-emotional, attempted answers, questions, negative socio-emotional), polar pairs | 12 | Act (2–3 per sentence) | No figure found; a training manual "has never been widely available" [verified, encyclopedia] | none public | Book under copyright | English |
 | **act4teams** [13][14] | 4 facets: problem-focused, procedural, socio-emotional, action-oriented [unverified]; solution talk split into defining the objective, solution, describing, arguing for, problem with a solution [verified, local copy] | Code count not confirmed (often quoted as 43–44: **unverified**) | Sense unit | Fleiss κ = .81 on 6 videos / 2,795 units, after **200 h** of coder training [verified, local copy of [14]]; 92 meetings in [13] | Not public | Trademark; manual via the authors / training [unverified] | German (coded from video) |
@@ -420,7 +423,10 @@ show before the category is used for evidence.
   Propuesta/Petición; the gold set (§6.3) must test it. If κ for either
   class falls below .60 the two are merged back (the owner chose to
   collect both so that merging stays possible).
-- **Corpora.** AMI Assess; MRDA statement subtypes [unverified names].
+- **Corpora.** AMI Assess. *Corrected:* MRDA has a single statement tag
+  `s`, no statement subtypes; the nearest specific tags are `ba`
+  assessment/appreciation, `df` defending/explanation and `e` elaboration
+  [verified, MRDA manual pp. 6–7].
 
 #### 5. Propuesta (proposal / suggestion)
 
@@ -444,8 +450,9 @@ show before the category is used for evidence.
   carry the leadership finding (lag-1 z = 4.01) cited in RESEARCH.md.
 - **Analogue agreement.** DAMSL Influence-on-Addressee-Future-Action κ
   .70 [3].
-- **Corpora.** AMI Suggest/Offer/Elicit-Offer-or-Suggestion; MRDA
-  suggestion tags [unverified: exact specific-tag names not checked].
+- **Corpora.** AMI Suggest/Offer/Elicit-Offer-or-Suggestion; MRDA `cs`
+  Suggestion, in the "action motivators" group with `co` Command and `cc`
+  Commitment [verified, MRDA manual p. 7].
 
 #### 6. Petición (request / instruction)
 
@@ -463,7 +470,7 @@ show before the category is used for evidence.
 - **Rubric.** COORD.P3, COORD.N4 (dictates without checking); COLLAB.P2
   (asks for help); FEEDB.P3 (asks for feedback, often as Pregunta).
 - **Analogue agreement.** Same DAMSL class as Propuesta (.70) [3].
-- **Corpora.** MRDA command tag [unverified]; AMI has no separate
+- **Corpora.** MRDA `co` Command [verified, MRDA manual p. 7]; AMI has no separate
   request class (falls under Suggest) [7]; DIHANA no.
 
 #### 7. Aceptación (acceptance / agreement)
@@ -508,7 +515,8 @@ show before the category is used for evidence.
   COLLAB.N4; SOLVE.N3 (ignores disconfirming information); opportunity
   trigger for CONFL for the other speakers.
 - **Analogue agreement.** As Aceptación (.42–.71).
-- **Corpora.** MRDA reject tags [unverified names]; AMI adjacency
+- **Corpora.** MRDA `ar` Reject, `arp` Partial Reject, and the answers
+  `ng` Negative and `nd` Dispreferred [verified, MRDA manual p. 6]; AMI adjacency
   relations (negative); NegotiAct "rejecting offer" (not public).
 
 #### 9. Compromiso (commitment)
@@ -531,8 +539,9 @@ show before the category is used for evidence.
   .36, hierarchical (task, timeframe, owner, agreement) .64–.78 [18]. Rare
   (≈ 1–2% of utterances in ICSI [18]): oversample in the gold set.
 - **Corpora.** ICSI action-item annotations of Purver et al. (18
-  meetings; availability not checked); AMI ACTIONS summaries (weak, not
-  utterance-level).
+  meetings; availability not checked); MRDA `cc` Commitment tag (new,
+  MRDA manual p. 7; its frequency is not in Table 3 of [6]); AMI ACTIONS
+  summaries (weak, not utterance-level).
 
 #### 10. Señal de escucha (backchannel / acknowledgement)
 
@@ -554,7 +563,8 @@ show before the category is used for evidence.
   `interaction.py`.
 - **Analogue agreement.** Function within feedback: ISO Auto-FB κ .21
   plain / .57 weighted; identifying that the dimension applies: .90 [1].
-  MRDA backchannels 13.4% of tags [6].
+  MRDA backchannels 13.4% of general tags, 8.4% of all tags [6, p. 4]
+  (*corrected:* earlier "13.4% of tags").
 - **Corpora.** MRDA, SwDA, AMI Backchannel. **Our transcripts may lack
   most of them** (§5.4).
 
@@ -578,8 +588,9 @@ show before the category is used for evidence.
   related communication.
 - **Analogue agreement.** ISO Discourse Structuring κ .74, Turn .82, Time
   .58 [1].
-- **Corpora.** MRDA (floor grabber/holder, topic change tags
-  [unverified names]); AMI topic segmentation (as phase signal).
+- **Corpora.** MRDA `fg` Floor Grabber, `fh` Floor Holder, `h` Hold, `tc`
+  Topic Change [verified, MRDA manual pp. 6–7]; AMI topic segmentation (as
+  phase signal).
 
 #### 12. Relación (social / relational)
 
@@ -614,7 +625,9 @@ show before the category is used for evidence.
 - **ISO.** Own Communication Management, Stalling; Partner Comm. Mgmt.
 - **Rubric.** COMM.N3 (restarts without resolving) when frequent.
 - **Analogue agreement.** DAMSL Abandoned .64, Unintelligible .14 [3].
-- **Corpora.** AMI Fragment/Stall/Other; MRDA disruption tags.
+- **Corpora.** AMI Fragment/Stall/Other; MRDA disruption forms `%`
+  indecipherable, `%-` interrupted, `%--` abandoned, `x` nonspeech
+  [verified, MRDA manual p. 7].
 
 ### 5.3 Summary table
 
@@ -813,10 +826,11 @@ optional.
 ## 7. Limitations of this study
 
 - **Not all primary sources were read in full.** Several CA works
-  (Sacks et al. 1974, Schegloff 2007, Pomerantz 1984, Schegloff et al.
-  1977) are cited from bibliographic records and standard summaries
-  [unverified]. The SWBD-DAMSL and MRDA (Dhillon et al.) coding manuals
-  could not be opened.
+  (Schegloff 2007, Pomerantz 1984, Schegloff et al. 1977) are cited from
+  bibliographic records and standard summaries [unverified]. Sacks et al.
+  1974, the SWBD-DAMSL manual and the MRDA coding manual (Dhillon et al.)
+  were read on 2026-11-15 from owner copies; this corrected the MRDA tag
+  shares and the SWBD-DAMSL basic-tag count.
 - **Reliability figures are analogues.** They come from other schemes,
   units, languages (ISO figures from Dutch data) and media (act4teams and
   NegotiAct coded from video). None measures our categories on Spanish
@@ -833,8 +847,8 @@ optional.
   validation in what we found; the meeting phases in §4.2 are a composite.
 - **GPU costs are estimates**; only the Qwen3-1.7B figure was measured on
   this machine.
-- **Legal points** rely on RESEARCH.md §7, which read EU texts from
-  unofficial reproductions.
+- **Legal points** rely on RESEARCH.md §7, whose AI Act articles were
+  checked against the Official Journal text on 2026-11-15.
 - This study was compiled by an AI research assistant with web access and
   the project's saved papers; it has not been reviewed by a linguist or
   conversation analyst.
@@ -862,8 +876,8 @@ https://www.eecis.udel.edu/~carberry/CIS-885/Papers/Core-Allen-Coding-Damsl.pdf
 [verified].
 
 [4] Jurafsky, D., Shriberg, E., Biasca, D. (1997). Switchboard SWBD-DAMSL
-shallow-discourse-function annotation coders manual. Manual not reachable
-(TLS error) [unverified]. SwDA: https://compprag.christopherpotts.net/swda.html
+shallow-discourse-function annotation coders manual. Draft 13 (HTML
+version; the PDF is a scan) [verified, owner copy, 2026-11-15]. SwDA: https://compprag.christopherpotts.net/swda.html
 [verified]; https://huggingface.co/datasets/cgpotts/swda (licence CC
 BY-NC-SA 3.0 [unverified, snippet]).
 
@@ -873,7 +887,10 @@ Linguistics* 26(3). https://aclanthology.org/J00-3003.pdf [verified].
 
 [6] Shriberg, E., Dhillon, R., Bhagat, S., Ang, J., Carvey, H. (2004).
 The ICSI Meeting Recorder Dialog Act (MRDA) corpus. SIGdial.
-https://aclanthology.org/W04-2319.pdf [verified]. ICSI licence:
+https://aclanthology.org/W04-2319.pdf [verified]. Coding manual: Dhillon,
+R., Bhagat, S., Carvey, H., Shriberg, E. (2004). Meeting Recorder
+Project: Dialog Act Labeling Guide. ICSI TR-04-002 [verified, owner copy;
+pages cited are the manual's printed pages]. ICSI licence:
 https://groups.inf.ed.ac.uk/ami/icsi/license.shtml [verified]. Preprocessing:
 https://github.com/NathanDuran/MRDA-Corpus [verified].
 
@@ -955,7 +972,7 @@ https://aclanthology.org/P07-1128.pdf [verified].
 [21] Sacks, H., Schegloff, E. A., Jefferson, G. (1974). A simplest
 systematics for the organization of turn-taking for conversation.
 *Language* 50(4), 696–735. https://muse.jhu.edu/article/452679/summary
-[unverified: page blocked].
+[verified, owner copy, 2026-11-15].
 
 [22] Schegloff, E. A. (2007). *Sequence Organization in Interaction*.
 Cambridge University Press.

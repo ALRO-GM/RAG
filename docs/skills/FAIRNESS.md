@@ -3,7 +3,9 @@
 Fecha: 2026-11-15. Ticket #59 (SK-3). Sólo documento; no hay código.
 Esto no es asesoramiento jurídico. Marcas: **[abierto]** = leí la fuente;
 **[no verificado]** = no pude abrirla (o sólo vi un resumen) y va de
-memoria o de fuente secundaria.
+memoria o de fuente secundaria; **[verificado, pág. N]** = comprobado el
+2026-11-15 en una copia oficial aportada por el dueño (AI Act del DOUE,
+regla final de la DCWP, NIST AI 100-1 y 600-1, SIOP 2023).
 
 ## 1. Resumen para el dueño
 
@@ -31,8 +33,11 @@ Tres hechos de nuestro proyecto:
 - **Buena parte del riesgo está en cómo se usa**, no en el modelo: el
   informe es un borrador para un evaluador formado (`DESIGN.md` §2).
 - Con empleados, el AI Act lo trata como **alto riesgo** (Anexo III 4,
-  `RESEARCH.md` §7). Los artículos de datos, supervisión humana y
-  precisión (10, 14, 15) recaerían sobre el proveedor, es decir, nosotros.
+  `RESEARCH.md` §7) [verificado, pág. 127]. Los artículos de datos,
+  supervisión humana y precisión (10, 14, 15) recaerían sobre el
+  proveedor, es decir, nosotros [verificado, págs. 57–62]. La excepción
+  del art. 6(3) no vale si el sistema elabora perfiles de personas
+  [verificado, pág. 54].
 
 Primeras acciones sin datos reales: sección 4.
 
@@ -41,9 +46,10 @@ Primeras acciones sin datos reales: sección 4.
 | Marco | Qué aporta | Aplica a nosotros | Fuente |
 |---|---|---|---|
 | EEOC, 29 CFR 1607.4(D) | Regla 4/5 sobre tasas de selección por grupo; indicio, no prueba; mirar significación y números pequeños | Sí, como umbral de alarma si hay una decisión (selección, ascenso) | [Cornell LII](https://www.law.cornell.edu/cfr/text/29/1607.4) [abierto] |
-| NYC Local Law 144 (DCWP) | Auditoría anual independiente; cociente de impacto por sexo, raza/etnia e intersecciones; resumen público; aviso 10 días hábiles antes | Sólo con clientes en Nueva York; es el **modelo de informe** a copiar | [DCWP](https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page), [regla](https://rules.cityofnewyork.us/rule/automated-employment-decision-tools-updated/) [páginas abiertas; el texto de §5-300/301 no: fórmulas, umbral del 2 % y plazo del resumen son **no verificado**] |
-| EU AI Act (Reg. 2024/1689) | Alto riesgo en RR. HH.: art. 10 (examinar y mitigar sesgos, representatividad), 14 (supervisión humana), 15 (precisión), 26 (deberes del usuario), 27 (FRIA) | Sí, si se usa con trabajadores o candidatos. Art. 5(1)(f): no inferir emociones desde la voz en el trabajo | [art. 10](https://artificialintelligenceact.eu/article/10/), [art. 27](https://artificialintelligenceact.eu/article/27/) [abiertos, copia no oficial]; [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) [no abierto]; arts. 13, 14, 15, 26 **no verificado** |
-| NIST AI RMF 1.0 y SP 1270 | Govern/Map/Measure/Manage; sesgo sistémico, estadístico-computacional y humano; enfoque sociotécnico | Sí, como estructura de proceso (voluntario) | [AI RMF](https://www.nist.gov/itl/ai-risk-management-framework) [página abierta; PDF 100-1 **no verificado**]; [SP 1270](https://nvlpubs.nist.gov/nistpubs/specialpublications/NIST.SP.1270.pdf) [abierto, sólo categorías de sesgo] |
+| NYC Local Law 144 (DCWP) | Auditoría anual independiente; cociente de impacto por sexo, raza/etnia e intersecciones; resumen público; aviso 10 días hábiles antes | Sólo con clientes en Nueva York; es el **modelo de informe** a copiar | [DCWP](https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page), [regla](https://rules.cityofnewyork.us/rule/automated-employment-decision-tools-updated/) [verificado en la regla final, §§ 5-300 a 5-304: cociente = tasa del grupo / tasa del grupo más seleccionado, o, si hay nota, % por encima de la mediana de la muestra / el del grupo que más puntúa (pág. 4); el auditor *puede* excluir un grupo con < 2 % de los datos, justificándolo y publicando igualmente su n y su tasa (pág. 7); auditoría de menos de un año antes del uso (pág. 5); resumen publicado antes del uso y mantenido al menos 6 meses tras el último uso (pág. 9); aviso 10 días hábiles antes (págs. 9–10)] |
+| EU AI Act (Reg. 2024/1689) | Alto riesgo en RR. HH.: art. 10 (examinar y mitigar sesgos, representatividad; 10(5) permite tratar datos de categorías especiales sólo para detectar y corregir sesgos), 13 (transparencia e instrucciones al usuario), 14 (supervisión humana; 14(4)(b) nombra el sesgo de automatización), 15 (precisión declarada), 26 (deberes del usuario; 26(7): el empleador informa a los representantes y a los trabajadores antes del uso), 27 (FRIA) | Sí, si se usa con trabajadores o candidatos. Art. 5(1)(f): no inferir emociones en el trabajo; el límite a datos biométricos (voz) viene del art. 3(39) y los considerandos 18 y 44, no del texto del 5(1)(f). *Corrección:* la FRIA del art. 27 sólo es obligatoria para organismos públicos, entidades privadas que prestan servicios públicos y los usos del Anexo III 5(b)-(c); una empresa privada que use la herramienta con su plantilla no está obligada por el art. 27 (sí puede necesitar una DPIA) | [verificado en el texto del DOUE: arts. 3(39) pág. 48, 5(1)(f) pág. 51, 6(3) pág. 54, 10 págs. 57–58, 13 pág. 59, 14 págs. 60–61, 15 pág. 61, 26 págs. 67–69, 27 pág. 69, Anexo III pág. 127; considerandos 18 pág. 5 y 44 pág. 12] |
+| NIST AI RMF 1.0 y SP 1270 | Govern/Map/Measure/Manage; sesgo sistémico, estadístico-computacional y humano-cognitivo; enfoque sociotécnico. El perfil de IA generativa (NIST AI 600-1, §2.6) avisa de que un LLM puede rendir peor en lenguas distintas del inglés o en ciertos dialectos | Sí, como estructura de proceso (voluntario); el aviso de 600-1 toca a nuestro juez en español (J4) | [AI RMF](https://www.nist.gov/itl/ai-risk-management-framework) [verificado en NIST AI 100-1: tres categorías de sesgo pág. 18, cuatro funciones pág. 20, voluntario pág. 2; NIST AI 600-1 §2.6 pág. 8]; [SP 1270](https://nvlpubs.nist.gov/nistpubs/specialpublications/NIST.SP.1270.pdf) [abierto, sólo categorías de sesgo] |
+| SIOP 2023 (evaluaciones con IA) | Mismos estándares que un test tradicional; un algoritmo validado en otro contexto necesita pruebas en el nuevo; micrófonos, cámaras o conexión distintos por grupo son sesgo de medida; quitar diferencias de grupo dentro del algoritmo no arregla ese sesgo y puede ser ilegal en EE. UU. | Sí, como norma profesional para S1-S3 y T1 | [verificado: págs. 6, 13, 19] |
 | ISO/IEC TR 24027:2021 | Fuentes de sesgo, sesgo de automatización y de confirmación, técnicas de medida, todo el ciclo | Sí, como vocabulario y guía de medida | [ISO](https://www.iso.org/standard/77607.html) [sólo resumen vía buscador; norma de pago] |
 | ISO/IEC 42001:2023 | Sistema de gestión de IA certificable | No ahora; útil si un cliente lo exige | [ISO](https://www.iso.org/standard/81230.html) [no abierto: 403] |
 | ICO (Reino Unido) | Equidad = exactitud estadística + no discriminar; documentar compromisos; DPIA viva | Guía práctica aunque no estemos en UK | [ICO](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/how-do-we-ensure-fairness-in-ai/) [abierto] |
@@ -121,9 +127,9 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 | # | Qué comprobar | Cómo | Métrica y umbral | Evidencia | Cuándo | Estado |
 |---|---|---|---|---|---|---|
 | H1 | Evaluador formado que no delega la decisión (RGPD 22, AI Act 14) | Formación documentada | Registro | Lista de evaluadores | P | no aplica aún |
-| H2 | Sesgo de automatización | El humano anota su juicio antes de ver el del sistema | % de cambio hacia el sistema | Registro | P | no aplica aún |
+| H2 | Sesgo de automatización (AI Act art. 14(4)(b), pág. 60) | El humano anota su juicio antes de ver el del sistema | % de cambio hacia el sistema | Registro | P | no aplica aún |
 | H3 | Derecho a ver, corregir y recurrir | Proceso y canal de contacto | Caso de prueba resuelto | Texto y registro | P | pendiente |
-| H4 | Aviso a participantes antes del uso (NYC: 10 días hábiles) | Texto y fecha de entrega | Aviso entregado | Registro versionado | P | pendiente: hay consentimiento de grabación, no aviso de evaluación |
+| H4 | Aviso a participantes antes del uso (NYC: 10 días hábiles, § 5-304; UE: el empleador informa a representantes y trabajadores, art. 26(7)) | Texto y fecha de entrega | Aviso entregado | Registro versionado | P | pendiente: hay consentimiento de grabación, no aviso de evaluación |
 | H5 | Usos prohibidos: decisión única sobre empleo; emociones desde la voz | Política de uso aceptable | Cláusula | Política | P | pendiente |
 
 ### 3.7 Gobierno
@@ -131,7 +137,7 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 | # | Qué comprobar | Cómo | Métrica y umbral | Evidencia | Cuándo | Estado |
 |---|---|---|---|---|---|---|
 | G1 | Clasificación de riesgo decidida con razones | Nota jurídica | Decisión escrita | Documento fechado | P | pendiente (T-48) |
-| G2 | FRIA (art. 27) y DPIA para el piloto | Plantilla; alinear ambas | Seis elementos del art. 27 cubiertos | Documento | P | pendiente |
+| G2 | FRIA (art. 27, como plantilla voluntaria: sólo obliga a organismos públicos y servicios públicos) y DPIA para el piloto | Plantilla; alinear ambas | Seis elementos del art. 27(1)(a)-(f) cubiertos [verificado, pág. 69] | Documento | P | pendiente |
 | G3 | Registro de riesgos: sesgos conocidos y medidas | Tabla viva (Map/Measure/Manage) | Cada riesgo con dueño y fecha | `docs/` | R | pendiente (acción 5) |
 | G4 | Auditoría independiente y resumen público | Un tercero ejecuta S1 con datos reales | Informe tipo LL144 | Informe | antes de uso comercial | no aplica aún |
 | G5 | Gatillos de reauditoría | Cambio de modelo, umbral, rúbrica o población; anual como mínimo | Calendario | Registro de versiones | R | pendiente |
@@ -168,15 +174,17 @@ sobre personas está hecha.
 - Con pocas personas por grupo no hay potencia estadística: hace falta
   intervalo de confianza y a veces sólo se puede describir.
 - Medir sesgo exige datos de grupo, que son sensibles (RGPD art. 9) y
-  necesitan base legal y voluntariedad.
+  necesitan base legal y voluntariedad. El AI Act art. 10(5) permite al
+  proveedor tratarlos excepcionalmente sólo para detectar y corregir
+  sesgos, con garantías [verificado, pág. 58].
 - Equidad no es validez: una nota igual de mala para todos pasa la prueba
   de equidad y no predice nada. La validez sigue en `RESEARCH.md` y en la
   fase 10 de `ESTADO.md`.
 - Varias medidas de equidad no se pueden cumplir a la vez (paridad frente
   a odds igualadas); hay que elegir y documentar por qué (ICO).
-- No se pudieron abrir: texto oficial del AI Act, arts. 13, 14, 15 y 26,
-  NIST AI RMF 1.0 en PDF, ISO/IEC 42001, ISO/IEC TR 24027 (sólo resumen),
-  IEEE 7003 y la regla LL144 completa.
+- No se pudieron abrir: ISO/IEC 42001, ISO/IEC TR 24027 (sólo resumen) e
+  IEEE 7003 (normas de pago). El texto oficial del AI Act, NIST AI 100-1 y
+  la regla LL144 completa se comprobaron el 2026-11-15.
 
 ## Referencias
 
@@ -184,8 +192,13 @@ sobre personas está hecha.
 - NYC DCWP: <https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page>,
   regla <https://rules.cityofnewyork.us/rule/automated-employment-decision-tools-updated/>
 - AI Act arts. 10 y 27 (copia no oficial): <https://artificialintelligenceact.eu/article/10/>,
-  <https://artificialintelligenceact.eu/article/27/>; oficial (no abierto)
+  <https://artificialintelligenceact.eu/article/27/>; oficial (DOUE L,
+  12.7.2024; páginas citadas = página n/144 del PDF)
   <https://eur-lex.europa.eu/eli/reg/2024/1689/oj>
+- NYC DCWP, Notice of Adoption of Final Rule (§§ 5-300 a 5-304).
+- NIST AI 100-1 (AI RMF 1.0, 2023) y NIST AI 600-1 (perfil de IA generativa, 2024).
+- SIOP (2023). Considerations and Recommendations for the Validation and
+  Use of AI-Based Assessments for Employee Selection.
 - NIST AI RMF: <https://www.nist.gov/itl/ai-risk-management-framework>;
   SP 1270: <https://nvlpubs.nist.gov/nistpubs/specialpublications/NIST.SP.1270.pdf>
 - ISO/IEC TR 24027: <https://www.iso.org/standard/77607.html>;
