@@ -208,8 +208,17 @@ class AnalysisStore(Protocol):
 class AnalysisLauncher(Protocol):
     """Run ``skills analyze`` on a session apart from the caller."""
 
-    def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
-        """Start the analysis of ``session_id`` and return at once."""
+    def start(
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
+        """Start the analysis of ``session_id`` and return at once.
+
+        ``steps``, when not empty, are the only steps run again.
+        """
         ...
 
     def running(self, session_id: str) -> bool:

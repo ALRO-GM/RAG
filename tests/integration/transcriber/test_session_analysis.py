@@ -5,7 +5,7 @@ import http.server
 import json
 import threading
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
@@ -131,16 +131,20 @@ class FakeAnalysis:
     def __init__(self) -> None:
         """Nothing asked yet."""
         self.calls: List[Tuple[Any, ...]] = []
+        self.options: List[Tuple[List[str], Optional[str], bool]] = []
         self.running = False
 
     def start(
-        self, session_id: str, restart: bool, synthetic: bool
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (), job: Optional[str] = None,
+        claude_synthesis: bool = False,
     ) -> Dict[str, Any]:
         """Start, or refuse while running."""
         if self.running:
             raise StateError("already running")
         self.running = True
         self.calls.append(("start", session_id, restart, synthetic))
+        self.options.append((list(steps), job, claude_synthesis))
         return {"session_id": session_id, "active": True}
 
     def status(self, session_id: str) -> Dict[str, Any]:
@@ -272,7 +276,11 @@ def test_cancel_is_forwarded_and_limits_say_why(
     assert api.delete(path, headers=AUTH).status_code == 204
     assert ("cancel", "s1") in port.calls
 
-    def limited(session_id: str, restart: bool, synthetic: bool) -> Any:
+    def limited(
+        session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (), job: Optional[str] = None,
+        claude_synthesis: bool = False,
+    ) -> Any:
         """Refuse like the RAG at its limits."""
         raise LimitReachedError("limits")
 
@@ -280,3 +288,29 @@ def test_cancel_is_forwarded_and_limits_say_why(
     refused = api.post("/api/analysis/sessions/s1", headers=AUTH)
     assert refused.status_code == 429
     assert refused.json()["code"] == "limit_reached"
+
+
+def test_the_job_and_the_steps_are_checked_and_forwarded(
+    rag: Tuple[str, StandInRag], tmp_path: Path,
+) -> None:
+    """Steps, the job sought and the leave to use Claude reach the RAG."""
+    url, stand_in = rag
+    port = HttpSessionAnalysis(url, lambda: TOKEN)
+    port.start("s1", False, False, ["synthesis"], "Shift lead", True)
+    assert json.loads(stand_in.requests[-1]["body"]) == {
+        "restart": False, "synthetic": False, "steps": ["synthesis"],
+        "job": "Shift lead", "claude_synthesis": True,
+    }
+    fake = FakeAnalysis()
+    access = SessionAnalysisAccess(fake)
+    with pytest.raises(InvalidInputError):
+        access.start("s1", steps=["run"])
+    with pytest.raises(InvalidInputError):
+        access.start("s1", job="x" * 4001)
+    assert access.result("s1", "synthesis") == {"step": "synthesis"}
+    api = client(tmp_path, fake)
+    started = api.post("/api/analysis/sessions/s1", json={
+        "steps": ["synthesis"], "job": "Coordinador", "claude_synthesis": True,
+    }, headers=AUTH)
+    assert started.status_code == 202
+    assert fake.options == [(["synthesis"], "Coordinador", True)]

@@ -59,6 +59,7 @@ from transcriber.adapters.inbound.playback import (
     byte_blocks,
     parse_range,
 )
+from transcriber.application.analysis import MAX_JOB
 from transcriber.application.ports import (
     PCM_FORMAT,
     JobStatus,
@@ -190,12 +191,19 @@ class JudgeRequest(BaseModel):
 
 
 class AnalysisRequest(BaseModel):
-    """Body of ``POST /api/analysis/sessions/{id}`` (both optional)."""
+    """Body of ``POST /api/analysis/sessions/{id}`` (all optional).
+
+    ``steps`` runs only those steps again; ``job`` (the job sought) and
+    ``claude_synthesis`` go to the explanatory profiles (#113).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     restart: bool = False
     synthetic: bool = False
+    steps: List[str] = Field(default_factory=list, max_length=16)
+    job: Optional[str] = Field(default=None, max_length=MAX_JOB)
+    claude_synthesis: bool = False
 
 
 REPORT_HEADERS = {
@@ -764,11 +772,12 @@ def create_app(
     ) -> Dict[str, Any]:
         """Start the RAG's whole analysis of a published session."""
         body = parse_json(
-            AnalysisRequest, await read_body(request, 1024), empty_ok=True
+            AnalysisRequest, await read_body(request, 4 * MAX_JOB + 1024),
+            empty_ok=True,
         )
         return await run_in_threadpool(
             c.session_analysis.start, session_id, body.restart,
-            body.synthetic,
+            body.synthetic, body.steps, body.job, body.claude_synthesis,
         )
 
     @api.get("/analysis/sessions/{session_id}")

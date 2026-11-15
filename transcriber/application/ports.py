@@ -410,9 +410,20 @@ class SessionAnalysisPort(Protocol):
     """
 
     def start(
-        self, session_id: str, restart: bool, synthetic: bool
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        steps: Sequence[str] = (),
+        job: Optional[str] = None,
+        claude_synthesis: bool = False,
     ) -> Dict[str, Any]:
-        """Start the analysis; return at once."""
+        """Start the analysis; return at once.
+
+        ``steps`` (not empty) runs only those steps again; ``job`` and
+        ``claude_synthesis`` are the job sought and the leave to use
+        Claude for the profiles, sent only when ``job`` is given.
+        """
         ...
 
     def status(self, session_id: str) -> Dict[str, Any]:

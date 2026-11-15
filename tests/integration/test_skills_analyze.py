@@ -251,3 +251,69 @@ def test_rerunning_assessment_and_reports_adds_the_provisional_tier(
     page = (folder / "report-1.html").read_text()
     assert "Provisional estimates and observations" in page
     assert "provisional ~" in (folder / "scorecard.md").read_text()
+
+
+def test_the_role_reaches_the_synthesis_and_reruns_only_it(
+    skills_project: Path, capsys: Any
+) -> None:
+    """``--role`` text or file; a new one makes the next run redo step i."""
+    from tests.unit.test_skills_session_analysis import profile_reply
+
+    app = SkillsContainer(
+        settings(analysis_dir="analysis"), embedder=FakeEmbedder(dim=256),
+        judge=FakeChatModel(responder=profile_reply),
+    )
+    role = skills_project / "role.txt"
+    role.write_text("Shift lead\nOrganises the morning team.\n")
+    cli(app).analyze(session="s1", role=str(role))
+    folder = skills_project / "analysis" / "s1"
+    run = json.loads((folder / "run.json").read_text())
+    assert run["steps"][-1]["name"] == "synthesis"
+    assert run["steps"][-1]["status"] == "done"
+    synthesis = json.loads((folder / "synthesis.json").read_text())
+    assert synthesis["job"] == "Shift lead\nOrganises the morning team."
+    assert "Job sought: Shift lead" in (folder / "report-1.html").read_text()
+    capsys.readouterr()
+    cli(app).analyze(session="s1", role="Another job",
+                     claude_synthesis=True)
+    out = capsys.readouterr().out
+    assert "synthesis     done" in out and "  reports  " not in out
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Another job", "use_claude": True}
+
+
+def test_the_synthesis_judge_is_claude_code_unless_told_otherwise(
+    skills_project: Path,
+) -> None:
+    """Local without leave: the local model; otherwise Claude Code, never
+    the paid API; one budget for the whole run."""
+    from src.application.skills.judges import CallBudget, FallbackJudge
+
+    def judge_for(judge: str, use_claude: bool) -> Any:
+        """The synthesis judge of a container with ``judge``."""
+        app = SkillsContainer(settings(judge=judge))
+        local = FakeChatModel(model_name="local")
+        app.__dict__["local_judge"] = local
+        app.__dict__["judge"] = (
+            local if judge == "local" else FakeChatModel(model_name="api")
+        )
+        budget = CallBudget(app.judge, 5)
+        chosen = app.synthesis_judge(budget, use_claude)
+        assert isinstance(chosen, CallBudget)
+        return chosen, budget
+
+    chosen, budget = judge_for("local", False)
+    assert chosen is budget and chosen.model_name == "local"
+    chosen, budget = judge_for("local", True)
+    assert isinstance(chosen.judge, FallbackJudge)
+    assert chosen.judge.primary.model_name.startswith("claude-code:")
+    chosen, budget = judge_for("api", False)
+    assert isinstance(chosen.judge, FallbackJudge)
+    chosen, budget = judge_for("claude_code", False)
+    assert chosen is budget
+    shared = SkillsContainer(settings(), judge=FakeChatModel())
+    budget = CallBudget(shared.judge, 1)
+    assert shared.synthesis_judge(budget, True) is budget
+    setup = shared.judge_setup()
+    assert setup.synthesis is not None
+    assert setup.synthesis(False).judge is setup.budget

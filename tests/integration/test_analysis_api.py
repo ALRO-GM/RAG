@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
@@ -50,12 +50,17 @@ class FakeLauncher:
     def __init__(self) -> None:
         """Nothing started."""
         self.started: List[Tuple[str, bool, bool]] = []
+        self.steps: List[List[str]] = []
         self.active: set[str] = set()
         self.stopped: List[str] = []
 
-    def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
+    def start(
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
         """Remember the start and mark the session running."""
         self.started.append((session_id, restart, synthetic))
+        self.steps.append(list(steps))
         self.active.add(session_id)
 
     def running(self, session_id: str) -> bool:
@@ -185,7 +190,10 @@ def test_a_launcher_failure_is_a_server_error(tmp_path: Path) -> None:
     """The launcher cannot start: 500, no detail lost."""
     launcher = FakeLauncher()
 
-    def broken(session_id: str, restart: bool, synthetic: bool) -> None:
+    def broken(
+        session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
         """Fail to start."""
         raise RagError("no python")
 
@@ -199,7 +207,8 @@ class SleepingLauncher(SubprocessAnalysisLauncher):
     """The real launcher running a short sleep instead of the analysis."""
 
     def command(
-        self, session_id: str, restart: bool, synthetic: bool
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
     ) -> List[str]:
         """Sleep a moment and say which session it was."""
         return [sys.executable, "-c",
@@ -316,3 +325,45 @@ def test_the_file_lock_is_exclusive_and_freed_when_a_process_dies(
     first.release("s2")
     with pytest.raises(InvalidInputError):
         first.acquire("../x")
+
+
+def test_the_job_and_the_steps_reach_the_store_and_the_launcher(
+    tmp_path: Path,
+) -> None:
+    """The job sought is kept; only step i is asked again (#113)."""
+    launcher = FakeLauncher()
+    client = client_for(tmp_path, launcher)
+    started = client.post("/analysis/sessions/demo-es", json={
+        "steps": ["synthesis"], "job": " Coordinador \n\n de turno ",
+        "claude_synthesis": True,
+    }, headers=AUTH)
+    assert started.status_code == 202
+    assert launcher.steps == [["synthesis"]]
+    stored = json.loads(
+        (tmp_path / "analysis" / "demo-es" / "job.json").read_text()
+    )
+    assert stored == {"text": "Coordinador\n de turno", "use_claude": True}
+    status = client.get("/analysis/sessions/demo-es", headers=AUTH).json()
+    assert status["job"] == stored
+    launcher.active.clear()
+    for body, code in (
+        ({"steps": ["nope"]}, 400),
+        ({"steps": ["synthesis"], "restart": True}, 400),
+        ({"job": "x" * 4001}, 422),
+    ):
+        answer = client.post(
+            "/analysis/sessions/demo-es", json=body, headers=AUTH
+        )
+        assert answer.status_code == code, body
+    assert launcher.steps == [["synthesis"]]
+
+
+def test_the_launcher_passes_the_steps_to_the_child(tmp_path: Path) -> None:
+    """``--steps=synthesis``; a name that is not a plain word is refused."""
+    launcher = SubprocessAnalysisLauncher(
+        tmp_path, str(tmp_path / "t"), str(tmp_path / "a"),
+    )
+    args = launcher.command("s1", False, False, ["reports", "synthesis"])
+    assert args[-1] == "--steps=reports,synthesis"
+    with pytest.raises(RagError):
+        launcher.command("s1", False, False, ["x;rm"])

@@ -80,6 +80,7 @@ from src.application.skills.session_analysis import (
     SessionAnalysis,
     StartLimits,
 )
+from src.application.skills.synthesis import ProfileSynthesizer
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
@@ -432,7 +433,32 @@ class SkillsContainer:
             assessment=self.assessment_with(budget),
             second=self.second_confirmer if mode == "both" else None,
             budget=budget,
+            synthesis=lambda use_claude: ProfileSynthesizer(
+                self.synthesis_judge(budget, use_claude), self.cache
+            ),
         )
+
+    def synthesis_judge(
+        self, budget: CallBudget, use_claude: bool
+    ) -> ChatModel:
+        """Return the judge of step i (#113), spending ``budget``.
+
+        Claude Code (the local model behind it when its quota is out)
+        whatever the run's judge, except when the run's judge is the
+        local model and the owner did not allow Claude for it: then
+        the local model, and nothing leaves the machine. Never the paid
+        API.
+        """
+        if self._shared_judge is not None:
+            return budget
+        mode = self.judge_mode()
+        if mode == "local" and not use_claude:
+            return budget
+        if mode != "local" and self.settings.judge != "api":
+            return budget
+        return budget.using(FallbackJudge(
+            self.claude_judge, self.local_judge, self.judge_selection
+        ))
 
     def analysis_requests(
         self, transcripts: TranscriptStore, transcripts_dir: str

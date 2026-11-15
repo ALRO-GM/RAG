@@ -31,13 +31,15 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from src.domain.errors import BusyError, LimitError, RagError
 from src.domain.skills.transcript_contract import is_session_id
 
 SECRET = re.compile(r"TOKEN|SECRET|PASSWORD|KEY", re.IGNORECASE)
 """Names of environment variables never handed to a child."""
+STEP_NAME = re.compile(r"[a-z]{1,20}")
+"""A step name handed to the child (checked again by the child)."""
 
 
 def descendants(pid: int, proc: Path = Path("/proc")) -> List[Tuple[int, int]]:
@@ -141,7 +143,11 @@ class SubprocessAnalysisLauncher:
         atexit.register(self.stop_all)
 
     def command(
-        self, session_id: str, restart: bool, synthetic: bool
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        steps: Sequence[str] = (),
     ) -> List[str]:
         """Return the child's argument list."""
         args = [
@@ -154,10 +160,22 @@ class SubprocessAnalysisLauncher:
             args.append("--restart")
         if synthetic:
             args.append("--synthetic")
+        if steps:
+            if not all(STEP_NAME.fullmatch(s) for s in steps):
+                raise RagError("Invalid step name.")
+            args.append(f"--steps={','.join(steps)}")
         return args
 
-    def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
+    def start(
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
         """Start the analysis of ``session_id`` unless it is running.
+
+        ``steps``, when not empty, are the only steps run again.
 
         Raises :class:`~src.domain.errors.BusyError` when this session is
         running and :class:`~src.domain.errors.LimitError` when
@@ -181,7 +199,7 @@ class SubprocessAnalysisLauncher:
                 folder.mkdir(parents=True, exist_ok=True)
                 with open(folder / "analyze.log", "ab") as log:
                     child = subprocess.Popen(
-                        self.command(session_id, restart, synthetic),
+                        self.command(session_id, restart, synthetic, steps),
                         cwd=self.root, stdin=subprocess.DEVNULL,
                         stdout=log, stderr=subprocess.STDOUT,
                         start_new_session=True,

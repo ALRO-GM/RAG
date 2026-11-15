@@ -42,6 +42,7 @@ from src.domain.errors import (
     RagError,
 )
 from src.domain.models import MinimalAnswer, MinimalSource
+from src.domain.skills.synthesis import MAX_JOB, JobSought
 
 TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
 """Largest ``transcript.v1`` body accepted (text only; hours of speech)."""
@@ -74,10 +75,24 @@ REPORT_HEADERS = {
 
 
 class AnalysisStart(BaseModel):
-    """Body of ``POST /analysis/sessions/{id}`` (all optional)."""
+    """Body of ``POST /analysis/sessions/{id}`` (all optional).
+
+    ``steps`` runs only those steps again (``["synthesis"]`` after the
+    job sought changed); ``job`` (the job sought) and
+    ``claude_synthesis`` (leave to use Claude for the profiles when
+    the judge is the local model) are kept with the analysis when
+    ``job`` is given.
+    """
 
     restart: bool = False
     synthetic: bool = False
+    steps: Optional[List[str]] = Field(default=None, max_length=16)
+    job: Optional[str] = Field(default=None, max_length=MAX_JOB)
+    claude_synthesis: bool = False
+
+
+START_MAX_BYTES = 6 * MAX_JOB + 1024
+"""Largest body of an analysis start (the job sought, JSON-escaped)."""
 
 
 class JudgeChoice(BaseModel):
@@ -375,15 +390,18 @@ def mount_analysis(
         session_id: str, request: Request
     ) -> Dict[str, Any]:
         """Start the analysis of an ingested session (409: running)."""
-        body = await read_body(request, 1024)
+        body = await read_body(request, START_MAX_BYTES)
         try:
             options = AnalysisStart.model_validate_json(body or b"{}")
         except ValueError:
             raise HTTPException(status_code=422, detail="Invalid body.")
+        job = None if options.job is None else JobSought(
+            text=options.job, use_claude=options.claude_synthesis
+        )
         try:
             return await run_in_threadpool(
                 requests.start, session_id, options.restart,
-                options.synthetic,
+                options.synthetic, options.steps, job,
             )
         except RagError as exc:
             raise analysis_error(exc)

@@ -75,6 +75,7 @@ from src.domain.skills.simulation import (
     timed_sentences,
 )
 from src.domain.skills.speech import clock, transcript_sentences
+from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript_contract import (
     SCHEMA,
     is_session_id,
@@ -695,7 +696,7 @@ class SkillsCLI:
 
     def _analyze(
         self, session: str, restart: bool = False, synthetic: bool = False,
-        steps: str = "",
+        steps: str = "", role: str = "", claude_synthesis: bool = False,
     ) -> None:
         """Run the whole flow on a session and keep every step's result.
 
@@ -703,7 +704,9 @@ class SkillsCLI:
         indicators by retrieval, dialogue acts and derived events (when
         those modules exist), confirmation by the judge (``--judge``;
         default the one chosen from the web), evidence and scorecards,
-        one HTML report per person and the session summary. Results go
+        one HTML report per person and the session summary, and the
+        explanatory profile of each person by Claude Code (``synthesis``,
+        with ``--role``: the job sought). Results go
         to ``<analysis_dir>/<session>/`` with ``run.json``, the record
         of each step; a run that fails resumes at the failed step.
 
@@ -713,7 +716,13 @@ class SkillsCLI:
             restart: Run every step again instead of resuming.
             synthetic: Mark the reports as made-up sample data.
             steps: Comma-separated steps to run again, keeping the
-                others (e.g. ``acts,events``: no judge is asked).
+                others (e.g. ``acts,events``: no judge is asked;
+                ``synthesis``: only the profiles).
+            role: The job sought (title and a few lines), or a file
+                holding it; kept with the analysis. A new one makes the
+                next run write the profiles again.
+            claude_synthesis: Allow Claude for the profiles when the
+                run's judge is the local model only.
         """
         if not isinstance(session, str) or not is_session_id(session):
             raise InvalidInputError(
@@ -722,6 +731,12 @@ class SkillsCLI:
             )
         app = self._app()
         analysis = app.session_analysis
+        job = None
+        if role or claude_synthesis:
+            text = str(role or "")
+            if text and Path(text).is_file():
+                text = Path(text).read_text(encoding="utf-8")
+            job = JobSought(text=text, use_claude=bool(claude_synthesis))
 
         def show(record: Any) -> None:
             """Print a step as soon as it ends."""
@@ -733,7 +748,7 @@ class SkillsCLI:
         with exit_on_sigterm():
             run = analysis.run(
                 str(session), bool(restart), bool(synthetic), on_step=show,
-                only=parse_names(steps),
+                only=parse_names(steps), job=job,
             )
         print()
         for name, status, seconds, who, detail in step_table(run):

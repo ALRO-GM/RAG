@@ -4,7 +4,8 @@
 order on one ``transcript.v1`` document (``docs/skills/DESIGN.md``
 §12): sentences per person, interaction metrics, candidate rubric
 indicators found by retrieval, dialogue acts, derived events,
-confirmation by the judge, evidence and scorecards, reports. Each step
+confirmation by the judge, evidence and scorecards, reports and the
+explanatory profile of each person (#113). Each step
 leaves a :class:`StepRecord` (status, time, who ran it, counts) in an
 :class:`AnalysisRun`, which is stored after every step, so a failure
 keeps what was done before it and a later run resumes from the first
@@ -14,11 +15,11 @@ step that is not done. Plain data and rules: no I/O, no model.
 from datetime import datetime
 from typing import Dict, List, Literal, Optional, Tuple, get_args
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 StepName = Literal[
     "sentences", "interaction", "candidates", "acts", "events",
-    "confirmation", "assessment", "reports",
+    "confirmation", "assessment", "reports", "synthesis",
 ]
 """The steps, in the order they run."""
 
@@ -46,6 +47,7 @@ STEP_OUTPUTS: Dict[StepName, str] = {
     "confirmation": "confirmation.json",
     "assessment": "assessment.json",
     "reports": "summary.json",
+    "synthesis": "synthesis.json",
 }
 """The file each step writes in the session's analysis directory."""
 
@@ -102,6 +104,20 @@ class AnalysisRun(BaseModel):
     worker_pid: Optional[int] = None
     steps: List[StepRecord]
     open_issues: List[OpenIssue] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def every_step(self) -> "AnalysisRun":
+        """Give a run stored before a step existed that step, pending.
+
+        A run recorded before step i (``synthesis``) was added reads
+        with it pending, so resuming it runs only that step.
+        """
+        known = {s.name: s for s in self.steps}
+        if len(known) < len(STEPS) and set(known) <= set(STEPS):
+            self.steps = [
+                known.get(name) or StepRecord(name=name) for name in STEPS
+            ]
+        return self
 
     def step(self, name: str) -> StepRecord:
         """Return the record of step ``name``."""

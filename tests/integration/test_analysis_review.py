@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
@@ -220,7 +220,8 @@ class Sleeper(SubprocessAnalysisLauncher):
     """The real launcher running a sleep that reports its environment."""
 
     def command(
-        self, session_id: str, restart: bool, synthetic: bool
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
     ) -> List[str]:
         """Print the variables seen, then sleep."""
         return [sys.executable, "-c",
@@ -300,7 +301,8 @@ class Spawner(SubprocessAnalysisLauncher):
     """
 
     def command(
-        self, session_id: str, restart: bool, synthetic: bool
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
     ) -> List[str]:
         """Start a sleeping grandchild in a new session, then sleep."""
         target = self.analysis_dir / "helper.pid"

@@ -10,6 +10,7 @@ from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.judges import CallBudget, FallbackJudge
 from src.application.skills.ports import StepOutput
+from src.application.skills.synthesis import ProfileSynthesizer
 from src.application.skills.session_analysis import (
     AnalysisResults,
     JudgeSetup,
@@ -29,11 +30,13 @@ from src.domain.errors import (
     BusyError,
     InvalidInputError,
     LimitError,
+    ModelError,
     NotFoundError,
     QuotaExhaustedError,
 )
 from src.domain.skills.analysis_run import (
     STEPS,
+    AnalysisRun,
     StepRecord,
     is_step,
     new_run,
@@ -41,6 +44,7 @@ from src.domain.skills.analysis_run import (
     steps_to_run,
 )
 from src.domain.skills.speech import Sentence
+from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript import Transcript
 from tests.fakes import (
     FakeChatModel,
@@ -169,7 +173,9 @@ def test_resume_starts_at_the_first_step_not_finished() -> None:
     run = run.with_step(StepRecord(name="acts", status="unavailable"))
     run = run.with_step(StepRecord(name="events", status="unavailable"))
     run = run.with_step(StepRecord(name="confirmation", status="failed"))
-    assert steps_to_run(run) == ["confirmation", "assessment", "reports"]
+    assert steps_to_run(run) == [
+        "confirmation", "assessment", "reports", "synthesis",
+    ]
     assert steps_to_run(run, restart=True) == list(STEPS)
     for name in STEPS[5:]:
         run = run.with_step(StepRecord(name=name, status="done"))
@@ -208,6 +214,7 @@ def test_the_whole_flow_records_every_step_and_its_results() -> None:
         "sentences": "done", "interaction": "done", "candidates": "done",
         "acts": "unavailable", "events": "unavailable",
         "confirmation": "done", "assessment": "done", "reports": "done",
+        "synthesis": "unavailable",
     }
     assert [r.name for r in seen] == list(STEPS)
     assert all(s.seconds is not None and s.started_at for s in run.steps)
@@ -607,3 +614,191 @@ def test_a_model_moved_to_the_cpu_is_noted_on_the_step_it_happened() -> None:
     assert run.step("confirmation").note == moved
     assert run.step("candidates").note == ""
     assert run.step("assessment").note == "", "said once, where it happened"
+
+
+# --------------------------------------------------- step i: synthesis
+
+
+def profile_reply(system: str, user: str) -> str:
+    """Confirm, rate nothing, and write a profile citing ``Q1``."""
+    if "Items you may cite" in user:
+        return json.dumps({
+            "strengths": [{"text": "Checks what others mean.",
+                           "cites": ["Q1"]},
+                          {"text": "Made up.", "cites": ["Q99"]}],
+            "fit": [{"text": "Useful to coordinate.", "cites": ["Q1"]}],
+            "questions": ["How do you follow up?"],
+        })
+    return reply(system, user)
+
+
+def synthesis_build(
+    store: InMemoryAnalysisStore,
+    model: Any,
+    mode: Any = "claude_code",
+    limit: int = 100,
+    asked: Optional[List[bool]] = None,
+    own: Optional[int] = None,
+) -> SessionAnalysis:
+    """The flow with a budget shared by steps f, g and i."""
+    retriever = EvidenceRetriever(
+        FakeLexicalBuilder(), FakeEmbedder(dim=64), min_words=4
+    )
+
+    def judges() -> JudgeSetup:
+        """One budget over ``model`` for every judge call."""
+        budget = CallBudget(model, limit)
+
+        def writer(use_claude: bool) -> ProfileSynthesizer:
+            """Record the leave to use Claude; same judge."""
+            if asked is not None:
+                asked.append(use_claude)
+            if own is not None:
+                return ProfileSynthesizer(CallBudget(model, own))
+            return ProfileSynthesizer(budget.using(model))
+
+        return JudgeSetup(
+            mode, TagConfirmer(budget),
+            AssessmentService(retriever, budget, min_incidents=1),
+            budget=budget, synthesis=writer,
+        )
+
+    return build(model, store, judges=judges)
+
+
+def test_step_i_writes_checked_profiles_and_puts_them_in_the_reports() -> (
+    None
+):
+    """One call per person with quotes, counted; reports get «Synthesis»."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    run = synthesis_build(store, model).run(
+        "s1", job=JobSought(text=" Shift lead \n\n tasks ")
+    )
+    assert run.status == "done"
+    step = run.step("synthesis")
+    assert step.status == "done" and step.judge == "claude_code"
+    assert step.model == "fake-judge" and step.note == ""
+    people = step.counts["people"]
+    assert people >= 1 and step.counts["judge_calls"] == people
+    assert step.counts["dropped"] == people
+    assert step.counts["points"] == 2 * people
+    stored = json.loads(store.files[("s1", "synthesis.json")])
+    assert stored["job"] == "Shift lead\n tasks"
+    assert stored["judge"]["models"] == ["fake-judge"]
+    done = [p for p in stored["people"] if p["status"] == "done"]
+    assert done[0]["strengths"][0]["cites"][0]["id"] == "Q1"
+    assert done[0]["dropped"] == {"no_citation": 1}
+    page = store.files[("s1", "report-1.html")]
+    assert "Synthesis" in page and "Job sought: Shift lead" in page
+    assert page.index("Synthesis") < page.index("Summary")
+    prompts = [u for _, u, _ in model.calls if "Items you may cite" in u]
+    assert len(prompts) == people and "Shift lead" in prompts[0]
+    analysis = AnalysisResults(store)
+    assert analysis.job("s1") == JobSought(text="Shift lead\n tasks")
+    assert analysis.result("s1", "synthesis")["session_id"] == "s1"
+
+
+def test_a_new_job_reruns_only_the_synthesis() -> None:
+    """Same job: nothing to do; another one: only step i; a restart
+    keeps the job."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model).run("s1", job=JobSought(text="A"))
+    calls = len(model.calls)
+    same = synthesis_build(store, model).run("s1", job=JobSought(text="A"))
+    assert same.status == "done" and len(model.calls) == calls
+    seen: List[StepRecord] = []
+    synthesis_build(store, model).run(
+        "s1", job=JobSought(text="B"), on_step=seen.append
+    )
+    assert [r.name for r in seen] == ["synthesis"]
+    assert json.loads(store.files[("s1", "synthesis.json")])["job"] == "B"
+    asked: List[bool] = []
+    synthesis_build(store, model, asked=asked).run(
+        "s1", job=JobSought(text="B", use_claude=True)
+    )
+    assert asked == [True]
+    synthesis_build(store, model).run("s1", restart=True)
+    assert json.loads(store.files[("s1", "job.json")])["text"] == "B"
+    assert json.loads(store.files[("s1", "synthesis.json")])["job"] == "B"
+
+
+def test_reports_alone_keep_the_stored_profiles() -> None:
+    """Rerunning step h shows the profiles of the last step i."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model).run("s1")
+    store.files.pop(("s1", "report-1.html"))
+    synthesis_build(store, model).run("s1", only=["reports"])
+    page = store.files[("s1", "report-1.html")]
+    assert "What kinds of tasks they look useful for" in page
+
+
+def test_a_failing_model_skips_the_person_and_the_budget_fails_the_step(
+) -> None:
+    """A model error is a reason per person; the call limit fails step i."""
+    store = InMemoryAnalysisStore()
+
+    def down(system: str, user: str) -> str:
+        """Fail on the profiles only."""
+        if "Items you may cite" in user:
+            raise ModelError("Claude Code exited with code 1.")
+        return reply(system, user)
+
+    run = synthesis_build(store, FakeChatModel(responder=down)).run("s1")
+    step = run.step("synthesis")
+    assert step.status == "done" and step.counts["people"] == 0
+    stored = json.loads(store.files[("s1", "synthesis.json")])
+    reasons = {p["reason"] for p in stored["people"]}
+    assert "Claude Code exited with code 1." in reasons
+    tight = synthesis_build(
+        InMemoryAnalysisStore(), FakeChatModel(responder=profile_reply),
+        own=0,
+    ).run("s1")
+    assert tight.step("synthesis").status == "failed"
+    assert "max_judge_calls" in tight.step("synthesis").error
+
+
+def test_a_local_run_without_leave_says_the_local_model_wrote_it() -> None:
+    """The note tells that nothing went to Claude."""
+    asked: List[bool] = []
+    run = synthesis_build(
+        InMemoryAnalysisStore(), FakeChatModel(responder=profile_reply),
+        mode="local", asked=asked,
+    ).run("s1")
+    assert asked == [False]
+    assert "local model wrote it" in run.step("synthesis").note
+
+
+def test_a_run_stored_before_step_i_resumes_with_only_it() -> None:
+    """Old records read with ``synthesis`` pending."""
+    data = new_run("s1", T0).model_dump(mode="json")
+    data["steps"] = [s for s in data["steps"] if s["name"] != "synthesis"]
+    for step in data["steps"]:
+        step["status"] = "done"
+    old = AnalysisRun.model_validate(data)
+    assert old.step("synthesis").status == "pending"
+    assert steps_to_run(old) == ["synthesis"]
+
+
+def test_step_i_needs_the_assessment() -> None:
+    """Without step g's result the step fails with the reason."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model).run("s1")
+    store.files.pop(("s1", "assessment.json"))
+    run = synthesis_build(store, model).run("s1", only=["synthesis"])
+    assert "assessment of step g is missing" in run.step("synthesis").error
+
+
+def test_a_shared_budget_spends_one_limit() -> None:
+    """``using`` wraps another judge but counts in the same limit."""
+    budget = CallBudget(FakeChatModel(model_name="a"), 2)
+    shared = budget.using(FakeChatModel(model_name="b"))
+    budget.complete("s", "u", 1)
+    assert shared.model_name == "b" and shared.calls == 1
+    shared.complete("s", "u", 1)
+    assert budget.calls == 2 and budget.remaining == 0
+    with pytest.raises(LimitError):
+        shared.complete("s", "u", 1)

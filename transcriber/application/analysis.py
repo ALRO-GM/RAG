@@ -12,7 +12,7 @@ token, so the RAG itself stays unreachable from the tunnel
 """
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from transcriber.application.ports import AnalysisJudge, SessionAnalysisPort
 from transcriber.domain.errors import (
@@ -26,9 +26,12 @@ JUDGE_MODES = ("claude_code", "local", "both")
 
 ANALYSIS_STEPS = (
     "sentences", "interaction", "candidates", "acts", "events",
-    "confirmation", "assessment", "reports",
+    "confirmation", "assessment", "reports", "synthesis",
 )
 """The steps whose results the web may read (the RAG checks them too)."""
+
+MAX_JOB = 4000
+"""Longest job description forwarded (the RAG's own limit)."""
 
 MAX_REPORTS = 99
 """Highest report number accepted (one per person of a session)."""
@@ -92,10 +95,33 @@ class SessionAnalysisAccess:
         return self._port_or_none
 
     def start(
-        self, session_id: str, restart: bool = False, synthetic: bool = False
+        self,
+        session_id: str,
+        restart: bool = False,
+        synthetic: bool = False,
+        steps: Sequence[str] = (),
+        job: Optional[str] = None,
+        claude_synthesis: bool = False,
     ) -> Dict[str, Any]:
-        """Start the analysis of a published session."""
-        return self._port(session_id).start(session_id, restart, synthetic)
+        """Start the analysis of a published session.
+
+        ``steps`` runs only those steps again (``synthesis`` after the
+        job sought changed); ``job`` is the job sought, kept with the
+        analysis, and ``claude_synthesis`` the leave to use Claude for
+        the profiles when the RAG's judge is the local model (#113).
+        """
+        port = self._port(session_id)
+        unknown = [s for s in steps if s not in ANALYSIS_STEPS]
+        if unknown:
+            raise InvalidInputError(f"Unknown step {unknown[0]!r}.")
+        if job is not None and len(job) > MAX_JOB:
+            raise InvalidInputError(
+                f"The job description is longer than {MAX_JOB} characters."
+            )
+        return port.start(
+            session_id, restart, synthetic, list(steps), job,
+            claude_synthesis,
+        )
 
     def status(self, session_id: str) -> Dict[str, Any]:
         """Return the steps of the session's analysis."""
