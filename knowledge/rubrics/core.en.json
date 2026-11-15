@@ -104,7 +104,17 @@
         "Assessment-centre dimension: Communication (Arthur et al. 2003)",
         "Salas, Sims & Burke 2005: closed-loop communication"
       ],
-      "limits": "Vocal delivery, pace and prosody; visual aids; written communication; whether the content was correct. Do not use disfluencies, grammar or accent."
+      "limits": "Vocal delivery, pace and prosody; visual aids; written communication; whether the content was correct. Do not use disfluencies, grammar or accent.",
+      "practice": {
+        "helps": [
+          "At work: others get the idea the first time and the meeting does not need repeating.",
+          "In a negotiation: the other side knows exactly what is proposed and why."
+        ],
+        "hurts": [
+          "In a team: each person understands something different and work is done twice.",
+          "In a negotiation: an unclear message invites misunderstanding and distrust."
+        ]
+      }
     },
     {
       "id": "LISTEN",
@@ -198,7 +208,17 @@
         "CATME: Interacting with teammates",
         "SHL Great Eight: Supporting and Cooperating"
       ],
-      "limits": "Silent attention, eye contact, note-taking; whether the understanding was real. Do not score back-channels (\"mm-hm\"): transcription drops them and they vary by culture."
+      "limits": "Silent attention, eye contact, note-taking; whether the understanding was real. Do not score back-channels (\"mm-hm\"): transcription drops them and they vary by culture.",
+      "practice": {
+        "helps": [
+          "In a team: people feel heard and contribute more ideas.",
+          "In a negotiation: summarising what the other side says helps find what really matters to them."
+        ],
+        "hurts": [
+          "In a team: people argue about things nobody said and time is lost.",
+          "In a negotiation: missing what the other side asks for leaves possible deals out."
+        ]
+      }
     },
     {
       "id": "INFLU",
@@ -290,7 +310,17 @@
         "SHRM BASK: Relationship Management (negotiation)",
         "Assessment-centre dimension: Influencing others (Arthur et al. 2003)"
       ],
-      "limits": "Whether minds changed beyond the meeting; lobbying outside it; the quality of the evidence cited; whether the group's choice was good. A proposal being adopted is NOT evidence: it rewards status and talk time."
+      "limits": "Whether minds changed beyond the meeting; lobbying outside it; the quality of the evidence cited; whether the group's choice was good. A proposal being adopted is NOT evidence: it rewards status and talk time.",
+      "practice": {
+        "helps": [
+          "At work: proposals move forward because their reasons are understood.",
+          "In a negotiation: arguments and facts persuade more than insistence."
+        ],
+        "hurts": [
+          "In a team: pushing an idea without reasons makes others stop giving their view.",
+          "In a negotiation: pressure without arguments hardens the other side."
+        ]
+      }
     },
     {
       "id": "COLLAB",
@@ -389,7 +419,17 @@
         "CATME: Interacting with teammates",
         "Stevens & Campion 1994: interpersonal KSAs"
       ],
-      "limits": "Whether the help offered was delivered; the amount and quality of the work actually contributed; trust; behaviour outside the recorded session."
+      "limits": "Whether the help offered was delivered; the amount and quality of the work actually contributed; trust; behaviour outside the recorded session.",
+      "practice": {
+        "helps": [
+          "In a team: information flows and nobody stays stuck alone.",
+          "At work: offering and asking for help in time avoids delays."
+        ],
+        "hurts": [
+          "In a team: keeping information or working alone creates gaps and duplicated work.",
+          "At work: not acknowledging what others do demotivates the group."
+        ]
+      }
     },
     {
       "id": "INCL",
@@ -483,7 +523,17 @@
         "Salas, Sims & Burke 2005: team leadership",
         "Woolley et al. 2010: equality of conversational turn-taking"
       ],
-      "limits": "The intent behind overlapping speech (often cooperative, especially in Spanish); gaze and gesture; whether someone's silence is exclusion or choice. Talking-over evidence is low confidence when timing or speaker labels are unreliable."
+      "limits": "The intent behind overlapping speech (often cooperative, especially in Spanish); gaze and gesture; whether someone's silence is exclusion or choice. Talking-over evidence is low confidence when timing or speaker labels are unreliable.",
+      "practice": {
+        "helps": [
+          "In a team: quieter people are heard too, and their ideas with them.",
+          "In a meeting: sharing the floor means the whole group backs the decisions."
+        ],
+        "hurts": [
+          "In a team: the same people always speak and the others' ideas are lost.",
+          "In a meeting: people who cannot speak do not commit to what is decided either."
+        ]
+      }
     },
     {
       "id": "CONFL",
@@ -579,7 +629,17 @@
         "LifeComp: S3 Collaboration; P1 Self-regulation",
         "ATC21S: Social regulation"
       ],
-      "limits": "Emotional state, tone and sarcasm; disagreement that was not voiced; conflict history outside the recording. A session without disagreement gives no evidence: insufficient evidence, not a high rating. Do not score politeness formulas or hedging."
+      "limits": "Emotional state, tone and sarcasm; disagreement that was not voiced; conflict history outside the recording. A session without disagreement gives no evidence: insufficient evidence, not a high rating. Do not score politeness formulas or hedging.",
+      "practice": {
+        "helps": [
+          "In a team: disagreements are raised in time and turn into better solutions.",
+          "In a negotiation: separating the problem from the person keeps the relationship while arguing."
+        ],
+        "hurts": [
+          "In a team: dismissing someone closes the conversation and leaves tension.",
+          "In a negotiation: making a difference personal blocks the agreement."
+        ]
+      }
     },
     {
       "id": "FEEDB",
@@ -675,7 +735,17 @@
         "Marks, Mathieu & Zaccaro 2001: team monitoring and backup",
         "Edmondson 1999: team learning behaviours"
       ],
-      "limits": "Whether the feedback was accurate; whether the recipient improved; private or written feedback. Many sessions contain no feedback episode: expect insufficient evidence often."
+      "limits": "Whether the feedback was accurate; whether the recipient improved; private or written feedback. Many sessions contain no feedback episode: expect insufficient evidence often.",
+      "practice": {
+        "helps": [
+          "At work: a concrete comment helps another person improve their task.",
+          "In a team: explaining how something is done makes the group less dependent on one person."
+        ],
+        "hurts": [
+          "At work: vague or personal criticism does not help and annoys.",
+          "In a team: not asking for views on one's own work leaves mistakes unseen."
+        ]
+      }
     },
     {
       "id": "COORD",
@@ -774,7 +844,17 @@
         "PISA 2015 CPS: Establishing and maintaining team organisation",
         "ATC21S: Task regulation"
       ],
-      "limits": "Whether the plans were realistic or carried out; coordination done in tools (boards, chat). A designated facilitator showing these behaviours is fulfilling a role: the report must say so."
+      "limits": "Whether the plans were realistic or carried out; coordination done in tools (boards, chat). A designated facilitator showing these behaviours is fulfilling a role: the report must say so.",
+      "practice": {
+        "helps": [
+          "In a team: everyone knows what has to be done, by whom and by when.",
+          "In a meeting: summarising and assigning tasks avoids leaving without decisions."
+        ],
+        "hurts": [
+          "In a team: without a clear split, some tasks are done twice and others not at all.",
+          "In a meeting: without a goal or a summary, the conversation goes round in circles."
+        ]
+      }
     },
     {
       "id": "SOLVE",
@@ -869,7 +949,17 @@
         "SHL Great Eight: Analyzing and Interpreting; Leading and Deciding",
         "Assessment-centre dimension: Problem solving (Arthur et al. 2003)"
       ],
-      "limits": "Whether the analysis was correct, technical expertise, thinking done silently or in writing, and the quality of the decision. The rubric rates the contribution to the process, not being right."
+      "limits": "Whether the analysis was correct, technical expertise, thinking done silently or in writing, and the quality of the decision. The rubric rates the contribution to the process, not being right.",
+      "practice": {
+        "helps": [
+          "At work: defining the problem well and comparing options leads to better decisions.",
+          "In a negotiation: putting several options on the table opens deals that suit both sides."
+        ],
+        "hurts": [
+          "At work: deciding without the facts or without alternatives increases mistakes.",
+          "In a team: not explaining why a decision was taken means others neither understand nor back it."
+        ]
+      }
     },
     {
       "id": "INIT",
@@ -967,7 +1057,17 @@
         "Marks, Mathieu & Zaccaro 2001: motivating and confidence building",
         "Kauffeld & Lehmann-Willenbrock 2012 (act4teams): action-oriented statements"
       ],
-      "limits": "Follow-through: a transcript shows commitments, not delivery. Effort, working hours and the quality of the output are not observable. Delivery can only be seen by linking sessions."
+      "limits": "Follow-through: a transcript shows commitments, not delivery. Effort, working hours and the quality of the output are not observable. Delivery can only be seen by linking sessions.",
+      "practice": {
+        "helps": [
+          "At work: volunteering and proposing the next step moves the group forward.",
+          "In a team: delivering and reporting on what was promised builds trust."
+        ],
+        "hurts": [
+          "At work: waiting for others to decide slows progress.",
+          "In a team: committing without specifics leaves tasks without an owner."
+        ]
+      }
     },
     {
       "id": "ADAPT",
@@ -1063,7 +1163,17 @@
         "LifeComp: P2 Flexibility; L1 Growth mindset",
         "ATC21S: Social regulation"
       ],
-      "limits": "Actual learning or later behaviour change; private reflection; resilience or stress tolerance. Admitting errors depends on the team climate: few admissions may reflect the team, not the person."
+      "limits": "Actual learning or later behaviour change; private reflection; resilience or stress tolerance. Admitting errors depends on the team climate: few admissions may reflect the team, not the person.",
+      "practice": {
+        "helps": [
+          "At work: admitting a mistake early stops it from growing.",
+          "In a negotiation: adjusting one's position to new information makes agreement possible."
+        ],
+        "hurts": [
+          "In a team: holding on to an idea when the facts say otherwise leads to mistakes.",
+          "At work: not asking for help when something is missing delays the task."
+        ]
+      }
     }
   ],
   "excluded": [

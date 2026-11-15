@@ -30,7 +30,7 @@ transcript ──► turns ──► evidence retrieval ──► judge ──�
 | Retrieve | Ranks the participant's own turns against each behavioural indicator of the competency: `bm25/max + w·cosine`, the fusion of the document search | `application/skills/evidence.py` |
 | Judge | A language model receives the rubric, the candidate turns (each after the turn it replies to) and returns quotes, the indicator each quote shows, a rating or null, and a rationale | `domain/skills/prompting.py`, `ChatModel` port |
 | Ground | Deterministic checks on everything the model returned (next section) | `domain/skills/grounding.py` |
-| Report | Scorecard as JSON (machine) and Markdown (reader), each rating followed by its quotes with turn number and timestamp | `application/skills/report.py` |
+| Report | Scorecard as JSON (machine) and Markdown (reader), each rating followed by its quotes with turn number and timestamp; a plain-language HTML page per participant (§10) | `application/skills/report.py`, `person_report*.py` |
 
 ## 2. What is verified, and what is not
 
@@ -127,6 +127,10 @@ uv run python -m src skills evidence --transcript FILE \
 uv run python -m src skills assess --transcript FILE
 uv run python -m src skills --judge api assess --transcript FILE
 
+# One participant, for a non-technical reader (§10) → <session>.<name>.report.html
+uv run python -m src skills report --assessment S.assessment.json \
+    --participant NAME [--language en] [--transcript FILE] [--synthetic]
+
 # Reference data
 uv run python -m src skills annotation_template --transcript FILE --annotator A1
 uv run python -m src skills validate_annotations --annotations F --transcript FILE
@@ -206,3 +210,30 @@ Other open items:
 - Data protection (consent, retention, access control, the EU AI Act
   obligations for employment uses) is out of scope for now and must be
   addressed before any real recording is processed.
+
+## 10. Person report
+
+`skills report --format html` turns one participant's scorecard into a
+single page for someone who is not a specialist: Spanish by default
+(`--language en`), short sentences, no request to any server (inline
+CSS and SVG), readable at phone width, printable, light or dark.
+
+| Part | Content | From |
+|---|---|---|
+| Resumen | 3–5 fixed sentences: length of the session, how many competencies have a level, strengths, points to improve, "draft for a human assessor" | assessment + `person_report_texts.py` |
+| Qué significa | Situations seen (1) against the ~4 recommended (`RESEARCH.md` §1, §6), competencies with a level, length; what a level is; the limits box (no emotion or personality from the voice, speaking time is not leadership) | assessment, transcript, rubric scale |
+| Gráficas | One row per competency: the level on its scale, a written band and a shape (circle strong, square middle, triangle to improve), filled dots for the evidence against the minimum; dashed and "sin datos suficientes" when unrated, never low. A radar of the rated ones only when there are ≥ 5 | assessment |
+| Puntos fuertes / a mejorar | Rated above / below the centre of the scale, with their verified quotes (speaker, minute, indicator) and two examples of how the competency helps or hurts at work, in a team or in a negotiation | assessment, rubric `practice` |
+| Conductas aisladas | Verified negative quotes outside the points to improve: too few for a level, shown for the assessor to check | assessment |
+| Notas | Footnotes for competency, assessor, situation, level and evidence | `person_report_texts.py` |
+
+No sentence is written by a model when the page is built. The
+"helps / hurts" examples are hand-written in the catalogue
+(`practice.helps`, `practice.hurts` per competency, both languages; not
+yet reviewed by assessors) and the judge's free-text rationale is left
+out. `--synthetic` adds a banner saying the data are made up; the
+sample pages are built from `examples/skills/output/demo_es.assessment.json`,
+the run of the 1.7 B local judge, so they show its mistakes as they are
+(for example, Luis's "Eso es una tontería, Marta" filed as active
+listening).
+

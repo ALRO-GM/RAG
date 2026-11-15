@@ -27,6 +27,7 @@ from src.domain.errors import (
     InvalidInputError,
     NotFoundError,
 )
+from src.domain.skills.rubric import RubricCatalogue
 from tests.fakes import catalogue_data
 from tests.skills_samples import (
     meeting_text,
@@ -391,3 +392,23 @@ def test_a_broken_contract_file_is_a_clean_error(tmp_path: Path) -> None:
     path.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(CorruptedDataError, match="utterances.0.turn"):
         FileSystemTranscriptRepository(str(tmp_path)).find("x")
+
+
+def test_real_catalogue_has_practice_examples_in_both_languages() -> None:
+    """Every competency explains how it helps and hurts, in en and es."""
+    repository = JsonCatalogueRepository(str(REAL_RUBRICS))
+    english = repository.load("core", "en")
+    spanish = repository.load("core", "es")
+    for en, es in zip(english.competencies, spanish.competencies):
+        for practice in (en.practice, es.practice):
+            assert len(practice.helps) >= 2 and len(practice.hurts) >= 2
+            assert all(line.strip() for line in practice.helps)
+            assert all(line.strip() for line in practice.hurts)
+        assert len(en.practice.helps) == len(es.practice.helps)
+        assert len(en.practice.hurts) == len(es.practice.hurts)
+
+
+def test_practice_is_optional_in_a_catalogue() -> None:
+    """A catalogue without practice texts still loads, with none."""
+    rubric = RubricCatalogue.model_validate(catalogue_data())
+    assert rubric.competencies[0].practice.helps == []
