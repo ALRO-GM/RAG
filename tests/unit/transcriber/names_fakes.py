@@ -60,6 +60,7 @@ def reply(
 ) -> str:
     """A model answer in the JSON the prompt asks for."""
     return json.dumps({
+        "is_person_name": name is not None,
         "name": name, "kind": kind if name else "none",
         "quote": quote if quote is not None else (name or ""),
         "confidence": confidence,

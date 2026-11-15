@@ -2,9 +2,12 @@
 
 :class:`FindSpeakerNames` reads a finished transcript, picks the
 sentences that may hold a name (``domain/speaker_names.py``), asks the
-local :class:`~transcriber.application.ports.ChatModel` about each one,
-gives a name automatically only where the precision-first policy allows
-it and keeps the rest as suggestions (:class:`SpeakerNameStore`).
+local :class:`~transcriber.application.ports.ChatModel` about a bounded
+number of them (self-introductions first, then a few of every name; the
+other mentions of a name it confirmed count as the rules saw them),
+spreads the evidence over the voices of the whole session (#116), gives
+a name automatically only where the precision-first policy allows it
+and keeps the rest as suggestions (:class:`SpeakerNameStore`).
 Names are given through :class:`~transcriber.application.review.
 RenameSpeaker`, the path a person's rename takes, and an automatic name
 the search no longer supports is taken away with :class:`~transcriber.
@@ -51,12 +54,15 @@ from transcriber.domain.speaker_names import (
     NameSuggestion,
     SpeakerNames,
     UndoneName,
+    attribute,
     decide,
     find_candidates,
+    gated_evidence,
     kept_undone,
     model_prompt,
     open_suggestions,
     parse_reply,
+    pick_for_model,
     rule_evidence,
     valid_auto,
 )
@@ -142,9 +148,7 @@ class FindSpeakerNames:
         with self._locks.hold(session_id):
             transcript = self._done_transcript(session_id)
         p = self._parameters
-        candidates = find_candidates(
-            transcript, p.context, p.max_candidates
-        )
+        candidates = find_candidates(transcript, p.context, limit=None)
         evidence, model_name, note = self._evidence(transcript, candidates)
         with self._locks.hold(session_id):
             current = self._done_transcript(session_id)
@@ -164,8 +168,9 @@ class FindSpeakerNames:
                 self._store.save_names(record)
                 return record
             decision = decide(
-                current.speakers, evidence, earlier, p.auto_confidence,
-                allow_auto=model_name is not None, undone=undone,
+                current.speakers, attribute(current, evidence), earlier,
+                p.auto_confidence, allow_auto=model_name is not None,
+                undone=undone, min_votes=p.min_votes, min_margin=p.margin,
             )
             for label in decision.clear:
                 self._unname(session_id, label)
@@ -241,9 +246,12 @@ class FindSpeakerNames:
     ) -> Tuple[List[NameEvidence], Optional[str], Optional[str]]:
         """Return the evidence, the model that gave it and a note.
 
-        The model reads every candidate; without candidates it is not
-        loaded. When there is no model, or it fails, the rules' own
-        evidence is returned with no model name (suggestions only).
+        The model reads at most ``max_candidates`` candidates
+        (:func:`pick_for_model`); the others count when the model
+        confirmed their name (:func:`gated_evidence`). Without
+        candidates it is not loaded. When there is no model, or it
+        fails, the rules' own evidence is returned with no model name
+        (suggestions only).
         """
         rules = [
             e for e in (rule_evidence(transcript, c) for c in candidates)
@@ -256,15 +264,18 @@ class FindSpeakerNames:
         model = self._model
         try:
             self._free_models()
-            found: List[NameEvidence] = []
-            for candidate in candidates:
+            read: List[Tuple[NameCandidate, Optional[NameEvidence]]] = []
+            for candidate in pick_for_model(
+                candidates, self._parameters.max_candidates
+            ):
                 reply = model.complete(
                     SYSTEM_PROMPT, model_prompt(candidate),
                     self._parameters.max_tokens,
                 )
-                item = parse_reply(transcript, candidate, reply)
-                if item is not None:
-                    found.append(item)
+                read.append(
+                    (candidate, parse_reply(transcript, candidate, reply))
+                )
+            found = gated_evidence(transcript, candidates, read)
             return found, model.model_name, None
         except Exception as exc:  # any model failure: rules, no auto
             LOG.warning("The model for names failed: %s", exc)

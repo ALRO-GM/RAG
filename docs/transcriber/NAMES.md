@@ -1,4 +1,4 @@
-# Names from what people say (TR-20, issue #102)
+# Names from what people say (TR-20, issue #102; multi-party, #116)
 
 After a transcription the voices nobody enrolled are `S1`, `S2`… People
 often say who they are ("soy Ana", "me llamo Pedro", "hola, aquí Luis
@@ -42,39 +42,85 @@ logged and told as the job's note.
    English (`me llamo X`, `mi nombre es X`, `soy X`, `aquí X`,
    `habla X`, `I'm X`, `my name is X`…) and names said to others
    (`gracias, X`, `X, ¿…?`, `¿y tú, X?`, `hola X`, `os presento a X`,
-   `…, X.`). The name must be capitalised, and words that are never
-   names (articles, greetings, numbers, months, interjections, adverbs
-   in *-mente*) are refused, so "soy de Madrid", "me llamo la atención"
-   or "Doce, en realidad" never reach the model. Each candidate keeps
-   one sentence of context before and after; at most 60 per session.
-2. **The model reads each candidate** (greedy decoding, no thinking)
-   and answers JSON `{name, kind: self|addressed|none, quote,
-   confidence}` about one word of one line. The answer is dropped when
-   it is not that JSON or names a word the line does not contain, so
-   the model cannot invent a name.
-3. **Whose name it is** is fixed by the rules, not by the model: a
-   self-introduction names the speaker of the sentence; a name said to
-   someone else names a neighbour. Thanks and acknowledgements answer
-   the person who **just spoke** ("Gracias, Nerea" follows Nerea in the
-   simulated discussion of #88), questions, greetings and
-   introductions call on the person who **speaks next**. (The issue
-   said "the speaker who answers next"; the thanks case showed that
-   the previous speaker is the right side for it.)
-4. **Automatic only when sure** (precision first: a wrong name is
+   `…, X.`), moderators' cues (`tiene la palabra X`, `turno para X`,
+   `le pregunto a X`, `nos acompaña X`, `bienvenido X`, `adelante, X`,
+   `over to you, X`…) and any name after an honorific (`señor X`,
+   `doctora X`, `Mr X`…). The honorific is not part of the name. The
+   name must be capitalised, and words that are never names are
+   refused: articles, greetings, numbers, months, interjections,
+   adverbs in *-mente*, and since #116 pronouns ("Ustedes", "Le"),
+   imperatives and fillers ("Miren", "Fíjense", "Oiga"), verbs that
+   open a sentence, countries, regions and cities, institutions and
+   parties, and imperatives with a pronoun attached ("Déjele",
+   "Recuérdeme"). The list is compared without accents (before #116 its
+   accented words, "señor" or "perdón" among them, never matched).
+   Each candidate keeps one sentence of context before and after.
+2. **The model reads a bounded sample** (greedy decoding, no
+   thinking): every self-introduction, then one sentence of every name
+   per round (cues and thanks before plain mentions), at most 60 per
+   session. It answers JSON `{is_person_name, name, kind:
+   self|addressed|none, quote, confidence}` about one word of one line
+   (prompt v3: it must first say whether the word is a person's name at
+   all, and give 1 only when the line leaves no doubt). The answer is
+   dropped when it is not that JSON, `is_person_name` is not `true`, or
+   it names a word the line does not contain, so the model cannot
+   invent a name. The sentences it did not read count, as the rules
+   saw them, only for a name it confirmed at least once and at least
+   as often as it refused it.
+3. **Whose name it is** is decided over the whole session
+   (`domain/name_votes.py`), not by the nearest neighbour. Each piece of
+   evidence is a vote with a weight and a direction: a
+   self-introduction 3 votes for the speaker; a name with a direction
+   2 votes, for the person who **just spoke** (thanks and
+   acknowledgements: "Gracias, Nerea"; a participant's welcome or
+   greeting by name) or for the person who **speaks next** (questions,
+   introductions, moderators' cues); a plain mention ("como dice el
+   señor Ruiz", a rebuttal "Señor Ruiz, usted…") 1 vote, half for the
+   last other participant who spoke, a quarter for the one before and
+   a quarter for the next. The **moderators** are found by their
+   floor-handing phrases (at least 3 such sentences, and more than
+   twice the median voice plus one, with three voices or more); a
+   participant's rebuttal skips them, and in a moderated session a
+   participant's vocative that is not a question counts as a plain
+   mention, not a hand-over. A voice that says a name to someone loses
+   one vote for that name each time (people do not call themselves
+   "señor Ruiz").
+4. **Spellings are grouped** (`domain/name_variants.py`): honorifics
+   off, case and accents ignored, a rough Spanish sound key (z/s, v/b,
+   tz/ch, silent h…), words split or joined ("Ber Mejo" / "Bermejo"),
+   a first name before a surname, a few letters changed (none in names
+   of up to 4 letters, 1 up to 6, 2 up to 9, 3 above) or one cut short
+   (5 letters in common at the start). A change of the last vowel is
+   never the same name (`Mario` / `María`, `Juan` / `Juana`), and a lone
+   first name joins a longer name only when it fits exactly one, so
+   "Juan" does not merge "Juan Ruiz" and "Juan Gil". A group is shown
+   with its most frequent spelling.
+5. **Automatic only when sure** (precision first: a wrong name is
    worse than `S2`). A voice gets a name automatically only when it is
    anonymous and unnamed (or carries the name an earlier search gave),
-   it introduced itself (`self`) with confidence ≥ 0.8, always with the
-   same name, no other voice was given that name (by itself or by
-   others: two people with the same name), no other speaker already has
-   it, and nobody called it by a different name. Everything else is a
-   **suggestion** with a reason (`addressed`, `unsure`,
+   a person did not undo it, no other speaker already has it, and
+   either (a) it introduced itself (`self`) with confidence ≥ 0.8,
+   always with the same name, no other voice has a vote for that name
+   or introduced itself with it (two people with the same name), and
+   nobody clearly called it by a different name; or (b) names and
+   voices are matched **one to one** over the session (the highest
+   total of votes, Hungarian algorithm), and its match has at least
+   **6 votes** (`min_votes`), beats every rival — another voice for the
+   name, another name for the voice — by **3 votes** (`margin`), the
+   voice said that name to others at most once per ten votes (one
+   sentence on the wrong voice must not veto thirty), and it never
+   introduced itself with another name. Everything else is a
+   **suggestion**, grouped per voice: the voice's match first ("S2:
+   probablemente Ruiz — 6 indicios", with the other spellings), then
+   up to two other names it introduced itself with or that have a
+   clear vote for it. Reasons: `few_votes`, `close`, `unsure`,
    `several_names`, `same_name`, `name_taken`, `conflict`, `undone`,
-   `rules_only`).
-5. **Never overwritten:** enrolled people (voiceprints) and names set
+   `rules_only` (`addressed` is kept for records of #102).
+6. **Never overwritten:** enrolled people (voiceprints) and names set
    by hand are left alone. Names are given through `RenameSpeaker`,
    the same path as a rename by hand; an automatic name the search no
    longer supports is taken away (`UnnameSpeaker`).
-6. **Undo:** each automatic name is kept in the session's `names.json`
+7. **Undo:** each automatic name is kept in the session's `names.json`
    with its quote and time; «Deshacer» (`DELETE
    /api/sessions/{id}/names/{label}`) turns the voice back into `S#`
    and keeps the name as a suggestion. The undone name is also kept in
@@ -113,6 +159,9 @@ two packages never import each other):
 On a machine without CUDA it loads the 4B in float32 (slow).
 
 ## 4. Measurement
+
+### 4.1 Before #116 (single neighbour, #102)
+
 
 Set: `experiments/transcriber/speaker_names/set.json`, 12 Spanish
 conversations written for this test (no real person) plus the
@@ -187,9 +236,86 @@ candidate), sentences given to the wrong voice by the diarizer (a
 self-introduction on the wrong voice would be a wrong automatic name)
 and other phrasings. Measuring on consented real sessions is pending.
 
+### 4.2 Multi-party recordings (#116)
+
+**Set.** Three synthetic sessions were added to `set.json` (written for
+this, no real person): a moderated debate (2 presenters, 4
+participants: honorifics, surnames misspelt, split or with a letter
+changed, rebuttals two turns away, moderators' cues, capitalised
+non-names such as "Ustedes", "Miren", "España", an absent person), a
+panel (a moderator who introduces herself, three guests named with
+`doctora`/`señor`, misspellings) and a team meeting of five by first
+names. 16 sessions, 49 speakers in all. The rows of #102 moved to
+`history.jsonl`. A spelling variant of the true name counts as right
+(the scorer compares with the same grouping as the service); a voice
+whose name nobody says has no right name. Since #116 names said by
+others can be given automatically, so the recall of automatic names
+over "the 18 who introduce themselves" can pass 1.
+
+**Rules mode, before and after** (same scorer and set; "before" is the
+code of `main` at `cf03560`, run from a copy, rows not kept; "after"
+is `results.jsonl`):
+
+| Rules mode | Sessions | Automatic: given / right / wrong | Suggestions: given / right | Suggestion precision | Named or suggested |
+|---|---|---|---|---|---|
+| Before | 13 old | 15 / 12 / 3 | 16 / 13 | 0.812 | 25 / 25 |
+| Before | 3 new | 0 / 0 / 0 | 23 / 10 | 0.435 | 10 / 14 |
+| After | 13 old | 17 / 15 / 2 | 12 / 10 | 0.833 | 25 / 25 |
+| After | 3 new | 8 / 8 / **0** | 6 / 6 | 1.00 | 14 / 14 |
+
+Before, the new sessions got no automatic name and 13 of 23
+suggestions were wrong ("Miren", "Perdón", "Adelante", "Muchas",
+"Señora Valdiviezo" given to the wrong voice…). After, the debate gets
+all six voices but one presenter named (that presenter's name is never
+said), the panel its moderator, the meeting two of five; the others
+are suggested with the right name. The two wrong automatic names left
+in the old sessions are the rules' own self-introduction mistakes of
+#102 (`Géminis`, the quoted `Carmen`); `Sevilla` is now refused as a
+place. The service never names automatically without the model, so
+these rules rows are a baseline, not what a user sees.
+
+**With the model** (prompt v3, all 16 sessions, RTX 3070 Ti, run on
+2026-11-15 after the GPU was freed; rows in `results.jsonl`):
+
+| Mode | Automatic: given / right / wrong | Suggestions: given / right | s per session | GPU peak |
+|---|---|---|---|---|
+| Rules + Qwen3-8B | 18 / 18 / **0** | 24 / 17 | 7.3 | 6.36 GB |
+| Rules + Qwen3-4B | 20 / 20 / **0** | 23 / 18 | 6.6 | 2.9 GB |
+
+No wrong automatic name with either model. On the owner's real debate
+(local, counts only) the 8B gave 4 automatic names, one per participant
+voice (535 s for 60 model reads); the 4B gave none automatically and
+left them as close suggestions (two voices competing for the same
+surname). The slow real-model test was not rerun.
+
+**Tuning, honestly.** `min_votes` = 6 and `margin` = 3, the vote
+weights, the stop-words added and the moderator threshold were chosen
+while looking at the new synthetic sessions and at the owner's real
+debate (below), so the "after" rows are optimistic.
+
+**A real debate (diagnosis only, local, aggregate counts).** The
+owner's 103-minute televised debate (1,198 sentences, 5 voices after
+diarization: the two presenters ended up as one voice) was read
+locally; no name, quote or time of it is written anywhere. Before:
+0 automatic names and 13 suggestions, 1 of them right by my reading of
+the transcript. After, rules mode with automatic names allowed: 135
+candidates, one moderator voice found, **4 automatic names, one per
+participant voice, all four right by my reading** (who is introduced
+before each first answer), 0 suggestions; the presenters' voice stays
+unnamed. The owner's own hand labels of that session disagree with my
+reading on which of two voices is which party, so this needs the
+owner's check. Not run with the model (GPU busy, as above).
+
 ## 5. Known limits
 
 Besides the measurement's (above):
+
+- **Multi-party (#116):** the weights and thresholds were chosen on
+  synthetic sessions and one real debate; a voice that holds two
+  people (two presenters merged by the diarizer) can only get one
+  name; moderators are found by Spanish and English floor-handing
+  phrases only; the stop-list is Spanish and English and cannot list
+  every place or party.
 
 - **A name set by hand equal to the automatic one is treated as
   automatic.** The record does not say who set a name, only what the
@@ -207,6 +333,8 @@ Besides the measurement's (above):
 | Part | File |
 |---|---|
 | Rules, prompt, answer check, decision | `transcriber/domain/speaker_names.py` |
+| Honorifics, spelling variants, groups | `transcriber/domain/name_variants.py` |
+| Moderators, votes, one-to-one matching | `transcriber/domain/name_votes.py` |
 | Use cases: search, queue, show, undo | `transcriber/application/speaker_names.py` |
 | Ports `ChatModel`, `SpeakerNameStore` | `transcriber/application/ports.py` |
 | `UnnameSpeaker` | `transcriber/application/review.py` |

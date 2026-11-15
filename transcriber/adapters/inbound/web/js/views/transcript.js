@@ -328,7 +328,7 @@ export async function transcriptView(ctx, root, params) {
     const running = Boolean(names?.running);
     namesButton.disabled = running;
     analysisBusy.hidden = !running;
-    const { auto, suggestions } = nameRows(names, transcript.speakers);
+    const { auto, suggestions, groups } = nameRows(names, transcript.speakers);
     let status;
     if (running) status = t("names.running");
     else if (!names?.searched_at) status = t("names.never");
@@ -345,13 +345,27 @@ export async function transcriptView(ctx, root, params) {
         h("button", { type: "button", class: "small", onClick: () => playAt(a.start) }, formatTime(a.start)), " ",
         h("button", { type: "button", class: "small", onClick: () => edit(() => ctx.api.undoName(id, a.label)).then(loadNames) },
           t("names.undo")))),
-      ...suggestions.map((s) => h("li", { class: "line" },
-        h("span", {}, t("names.suggested", { label: s.shown, name: s.name })), " ",
-        h("q", {}, s.quote), " ",
-        h("button", { type: "button", class: "small", onClick: () => playAt(s.start) }, formatTime(s.start)), " ",
-        h("span", { class: "hint" }, t(reasonKey(s.reason))), " ",
-        h("button", { type: "button", class: "small", onClick: () => edit(() => ctx.api.renameSpeaker(id, s.label, { name: s.name })).then(loadNames) },
-          t("names.accept")))));
+      ...groups.map((g) => h("li", { class: "stack tight" },
+        ...g.options.map((s, i) => suggestionLine(g, s, i === 0)))));
+  }
+
+  // One option of a voice's suggestions: the first one with the voice's
+  // label ("S2: probablemente Ruiz — 6 indicios"), the others after it.
+  function suggestionLine(group, s, first) {
+    const count = s.count ?? 1;
+    const text = first
+      ? t("names.group", { label: group.shown, name: s.name, count })
+      : t("names.other", { name: s.name, count });
+    const spellings = (s.spellings ?? []).length
+      ? [" ", h("span", { class: "hint" }, t("names.spellings", { list: s.spellings.join(", ") }))]
+      : [];
+    return h("div", { class: "line" },
+      h("span", {}, text), ...spellings, " ",
+      h("q", {}, s.quote), " ",
+      h("button", { type: "button", class: "small", onClick: () => playAt(s.start) }, formatTime(s.start)), " ",
+      h("span", { class: "hint" }, t(reasonKey(s.reason))), " ",
+      h("button", { type: "button", class: "small", onClick: () => edit(() => ctx.api.renameSpeaker(id, s.label, { name: s.name })).then(loadNames) },
+        t("names.accept")));
   }
 
   function playAt(time) {

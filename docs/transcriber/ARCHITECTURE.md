@@ -397,8 +397,12 @@ lets a human check the sample.
   a job reads the sentences where someone may say a name ("soy Ana",
   "gracias, Marta") with a local Qwen3-8B (4B if the 8B does not fit,
   never smaller) and names an anonymous voice only from a clear
-  self-introduction that conflicts with nothing; everything else is a
-  suggestion with its quote and time. Enrolled people and names set by
+  self-introduction that conflicts with nothing, or (#116, debates,
+  panels, meetings) from enough votes over the whole session with a
+  clear margin (honorifics stripped, misspelt variants grouped,
+  moderators' cues hand the floor, names matched to voices one to
+  one: `domain/name_variants.py`, `domain/name_votes.py`); everything
+  else is a suggestion per voice with its quote and time. Enrolled people and names set by
   hand are never touched; an automatic name can be undone. Routes
   `GET/POST /api/sessions/{id}/names`, `DELETE
   /api/sessions/{id}/names/{label}`. Measured on a synthetic Spanish

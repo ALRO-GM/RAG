@@ -1,11 +1,13 @@
-// Speakers' names found in what people said (TR-20, #102): pure helpers
-// for the transcript page. No DOM here, so node --test can check them.
+// Speakers' names found in what people said (TR-20, #102; grouped per
+// voice, #116): pure helpers for the transcript page. No DOM here, so
+// node --test can check them.
 
 import { speakerName } from "./transcript.js";
 
 /** Suggestion reasons the page has a sentence for. */
 export const NAME_REASONS = [
   "addressed", "unsure", "several_names", "same_name", "name_taken", "conflict", "rules_only", "undone",
+  "few_votes", "close",
 ];
 
 /**
@@ -27,7 +29,29 @@ export function nameRows(names, speakers) {
     .sort((a, b) => (order.get(a.speaker) - order.get(b.speaker))
       || ((a.kind === "self" ? 0 : 1) - (b.kind === "self" ? 0 : 1))
       || (a.start - b.start));
-  return { auto, suggestions };
+  return { auto, suggestions, groups: groupByVoice(suggestions) };
+}
+
+/**
+ * The suggestions of each voice together, in the order of `suggestions`
+ * (voices in transcript order): `{ label, shown, options }`, the options
+ * strongest first (more votes, then more pieces, then self-introductions,
+ * then earliest), so the page shows "S2: probably Ruiz — 6 clues" with
+ * the other options after it.
+ */
+export function groupByVoice(suggestions) {
+  const groups = new Map();
+  for (const s of suggestions) {
+    if (!groups.has(s.label)) groups.set(s.label, { label: s.label, shown: s.shown, options: [] });
+    groups.get(s.label).options.push(s);
+  }
+  for (const group of groups.values()) {
+    group.options.sort((a, b) => ((b.votes ?? 0) - (a.votes ?? 0))
+      || ((b.count ?? 1) - (a.count ?? 1))
+      || ((a.kind === "self" ? 0 : 1) - (b.kind === "self" ? 0 : 1))
+      || (a.start - b.start));
+  }
+  return [...groups.values()];
 }
 
 /** Whether a finished search changed something worth reloading the transcript for. */
