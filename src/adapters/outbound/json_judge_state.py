@@ -1,14 +1,19 @@
-"""Judge state store: one small JSON file.
+"""Judge state store: one small JSON file, updated under a file lock.
 
 Holds the judge chosen from the web and the last quota events of
 Claude (:class:`~src.domain.skills.judging.JudgeState`); no transcript
-text. Written to a temporary file and renamed, so a reader never sees
-half a file. A missing or unreadable file reads as an empty state.
+text. Two processes write it (the RAG's web route and an analysis
+job), so every change is a read-modify-write under an exclusive lock
+on ``<file>.lock`` (``fcntl.flock``), and the new content is written
+to a temporary file and renamed, so a reader never sees half a file.
+A missing or unreadable file reads as an empty state.
 """
 
+import fcntl
 import json
 import os
 from pathlib import Path
+from typing import Callable
 
 from pydantic import ValidationError
 
@@ -37,13 +42,27 @@ class JsonJudgeStateStore:
             return JudgeState()
 
     def save(self, state: JudgeState) -> None:
-        """Replace the stored state atomically."""
+        """Replace the stored state (under the lock)."""
+        self.update(lambda _: state)
+
+    def update(self, change: Callable[[JudgeState], JudgeState]) -> JudgeState:
+        """Apply ``change`` to the stored state under the lock."""
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            partial = self.path.with_suffix(self.path.suffix + ".part")
-            partial.write_text(
-                state.model_dump_json(indent=1), encoding="utf-8"
-            )
-            os.replace(partial, self.path)
+            lock = self.path.with_name(self.path.name + ".lock")
+            with open(lock, "a+", encoding="utf-8") as handle:
+                fcntl.flock(handle, fcntl.LOCK_EX)
+                try:
+                    state = change(self.load())
+                    self._write(state)
+                finally:
+                    fcntl.flock(handle, fcntl.LOCK_UN)
         except OSError as exc:
             raise CorruptedDataError(f"Cannot write {self.path}: {exc}")
+        return state
+
+    def _write(self, state: JudgeState) -> None:
+        """Write ``state`` to a temporary file and rename it in place."""
+        partial = self.path.with_name(f"{self.path.name}.{os.getpid()}.part")
+        partial.write_text(state.model_dump_json(indent=1), encoding="utf-8")
+        os.replace(partial, self.path)

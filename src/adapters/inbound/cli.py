@@ -324,6 +324,7 @@ class RagCLI:
         api_model: Optional[str] = None,
         claude_model: Optional[str] = None,
         local_bits: Optional[int] = None,
+        local_policy: Optional[str] = None,
         embedding_model: Optional[str] = None,
         dense_weight: Optional[float] = None,
         candidates: Optional[int] = None,
@@ -357,6 +358,10 @@ class RagCLI:
             local_bits: Weight precision of the local judge on a GPU
                 (4, 8 or 16; 4 and 8 need ``uv sync --group
                 local-judge``).
+            local_policy: preferred (default: Qwen3-8B if it fits,
+                else wait for Qwen3-4B; never smaller), largest_fitting
+                (the largest model the free GPU memory holds) or fixed
+                (``--local_model``, waiting for memory).
             embedding_model: Multilingual sentence-embedding model.
             dense_weight: Weight of the semantic score in retrieval.
             candidates: Turns shown to the judge per competency.

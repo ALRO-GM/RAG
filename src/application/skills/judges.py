@@ -56,6 +56,7 @@ class JudgeStatus(BaseModel):
     claude_quota: QuotaState
     quota_exhausted_at: Optional[datetime] = None
     quota_resets: str = ""
+    quota_resets_at: Optional[datetime] = None
     quota_ok_at: Optional[datetime] = None
 
 
@@ -93,6 +94,7 @@ class JudgeSelection:
             claude_quota=quota_status(state, self.now()),
             quota_exhausted_at=state.quota_exhausted_at,
             quota_resets=state.quota_resets,
+            quota_resets_at=state.quota_resets_at,
             quota_ok_at=state.quota_ok_at,
         )
 
@@ -103,25 +105,29 @@ class JudgeSelection:
                 f"Unknown judge {mode!r}; choose one of "
                 f"{', '.join(JUDGE_MODES)}."
             )
-        state = self.store.load()
-        self.store.save(state.model_copy(update={"mode": mode}))
+        self.store.update(lambda s: s.model_copy(update={"mode": mode}))
         return self.status()
 
     def quota_available(self) -> bool:
         """Tell whether Claude is worth trying (not known to be out)."""
         return self.status().claude_quota != "exhausted"
 
-    def record_exhausted(self, resets: str) -> None:
+    def record_exhausted(
+        self, resets: str, resets_at: Optional[datetime] = None
+    ) -> None:
         """Remember that Claude refused for quota now."""
-        state = self.store.load()
-        self.store.save(state.model_copy(update={
-            "quota_exhausted_at": self.now(), "quota_resets": resets,
+        now = self.now()
+        self.store.update(lambda s: s.model_copy(update={
+            "quota_exhausted_at": now, "quota_resets": resets,
+            "quota_resets_at": resets_at,
         }))
 
     def record_answer(self) -> None:
         """Remember that Claude answered now."""
-        state = self.store.load()
-        self.store.save(state.model_copy(update={"quota_ok_at": self.now()}))
+        now = self.now()
+        self.store.update(
+            lambda s: s.model_copy(update={"quota_ok_at": now})
+        )
 
 
 class FallbackJudge:
@@ -174,7 +180,7 @@ class FallbackJudge:
             except QuotaExhaustedError as exc:
                 self.fallback_reason = str(exc)
                 if self.selection is not None:
-                    self.selection.record_exhausted(exc.resets)
+                    self.selection.record_exhausted(exc.resets, exc.resets_at)
             else:
                 if not self._answered and self.selection is not None:
                     self.selection.record_answer()
@@ -215,7 +221,9 @@ def compare_confirmations(
     Each sentence keeps the first judge's ``decision`` and the second
     one's ``second_decision``. The comparison labels a decision by the
     indicator it confirms, ``none`` or ``?`` (not understood); there is
-    no reference, so it measures agreement only.
+    no reference, so it measures agreement only. Items both decisions
+    of which come from the same model (the first judge fell back to the
+    local one) are left out of it and counted in ``same_judge``.
     """
     a = first.confirm(tagged, rubric, language)
     release(first.judge)
@@ -226,9 +234,26 @@ def compare_confirmations(
         for x, y in zip(a, b)
     ]
     judged = [m for m in merged if m.tags]
-    return merged, compare_labels(
-        [decision_label(m.decision) for m in judged],
-        [decision_label(m.second_decision) for m in judged],
+    distinct = [
+        m for m in judged
+        if not same_model(m.decision, m.second_decision)
+    ]
+    comparison = compare_labels(
+        [decision_label(m.decision) for m in distinct],
+        [decision_label(m.second_decision) for m in distinct],
+    )
+    return merged, comparison.model_copy(
+        update={"same_judge": len(judged) - len(distinct)}
+    )
+
+
+def same_model(
+    first: Optional[TagDecision], second: Optional[TagDecision]
+) -> bool:
+    """Tell whether two decisions were made by the same model."""
+    return (
+        first is not None and second is not None
+        and first.model == second.model
     )
 
 
@@ -330,15 +355,22 @@ def compare_act_judges(
 ) -> Tuple[List[ActVerdict], List[ActVerdict], LabelComparison]:
     """Classify ``items`` with two judges; compare them and the reference.
 
-    A reply that names no category counts as the label ``?``.
+    A reply that names no category counts as the label ``?``. Items
+    both verdicts of which come from the same model (the first judge
+    fell back to the local one) are left out of the comparison and
+    counted in ``same_judge``.
     """
     a = first.classify(items)
     release(first.judge)
     b = second.classify(items)
     release(second.judge)
-    return a, b, compare_labels(
-        [v.act or "?" for v in a], [v.act or "?" for v in b],
-        [item.reference for item in items],
+    kept = [n for n in range(len(items)) if a[n].model != b[n].model]
+    comparison = compare_labels(
+        [a[n].act or "?" for n in kept], [b[n].act or "?" for n in kept],
+        [items[n].reference for n in kept],
+    )
+    return a, b, comparison.model_copy(
+        update={"same_judge": len(items) - len(kept)}
     )
 
 

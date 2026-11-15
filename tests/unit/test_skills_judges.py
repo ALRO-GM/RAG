@@ -1,7 +1,7 @@
 """Judge use cases: selection, fallback on quota, two judges compared."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import pytest
 
@@ -48,6 +48,11 @@ class MemoryStore:
         self.state = state
         self.saves += 1
 
+    def update(self, change: Callable[[JudgeState], JudgeState]) -> JudgeState:
+        """Apply ``change``."""
+        self.save(change(self.state))
+        return self.state
+
 
 class OutOfQuota(FakeChatModel):
     """A Claude that refuses for quota after ``answers`` replies."""
@@ -61,7 +66,9 @@ class OutOfQuota(FakeChatModel):
         """Answer, or refuse once the quota is used."""
         if len(self.calls) >= self.answers:
             self.calls.append((system, user, max_tokens))
-            raise QuotaExhaustedError("limit reached", "3pm")
+            raise QuotaExhaustedError(
+                "limit reached", "3pm", NOW + timedelta(hours=2)
+            )
         return super().complete(system, user, max_tokens)
 
 
@@ -117,7 +124,9 @@ def test_fallback_switches_once_and_for_the_rest_of_the_job() -> None:
     assert judge.fallback_reason == "limit reached"
     assert judge.complete("s", "u3", 9) == "l"
     assert len(claude.calls) == 2 and len(local.calls) == 2
-    assert chosen.status().quota_resets == "3pm"
+    status = chosen.status()
+    assert status.quota_resets == "3pm"
+    assert status.quota_resets_at == NOW + timedelta(hours=2)
 
 
 def test_a_known_exhausted_quota_starts_on_the_local_judge() -> None:
@@ -244,3 +253,43 @@ def test_act_classifier_caches_and_compares_two_judges() -> None:
     )
     assert local.released == 1
     assert act_accuracy([], []) is None
+
+
+def test_a_known_reset_time_replaces_the_five_hours() -> None:
+    state = JudgeState(
+        quota_exhausted_at=NOW, quota_resets_at=NOW + timedelta(hours=1)
+    )
+    later = JudgeSelection(MemoryStore(state),
+                           lambda: NOW + timedelta(hours=1, minutes=1))
+    assert later.status().claude_quota == "available"
+    longer = state.model_copy(
+        update={"quota_resets_at": NOW + timedelta(hours=8)}
+    )
+    after_six = JudgeSelection(MemoryStore(longer),
+                               lambda: NOW + timedelta(hours=6))
+    assert after_six.status().claude_quota == "exhausted"
+
+
+def test_both_mode_leaves_out_items_the_local_judge_answered_twice() -> None:
+    items = act_items(dialogues())
+    claude = OutOfQuota(answers=2, reply='{"act": "relacion"}')
+    local = FakeChatModel(['{"act": "gestion"}'], "local")
+    first = ActClassifier(FallbackJudge(claude, local))
+    a, b, comparison = compare_act_judges(
+        items, first, ActClassifier(local)
+    )
+    assert [v.model for v in a] == ["claude-code:opus"] * 2 + ["local"] * 2
+    assert comparison.same_judge == 2 and comparison.items == 2
+    assert comparison.agreement == 0.0, "only Claude vs local is compared"
+    rubric = make_catalogue()
+    named = rubric.competencies[0].indicators[0].id
+    reply = f'{{"indicator": "{named}", "reason": "r"}}'
+    claude_tags = OutOfQuota(answers=1, reply=reply)
+    local_tags = FakeChatModel(['{"indicator": null, "reason": "r"}'],
+                               "local")
+    merged, compared = compare_confirmations(
+        tagged_sample(), rubric,
+        TagConfirmer(FallbackJudge(claude_tags, local_tags)),
+        TagConfirmer(local_tags),
+    )
+    assert compared.same_judge == 1 and compared.items == 1

@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from pydantic import ValidationError
 
@@ -23,6 +23,7 @@ from src.application.skills.gold import (
     validate_annotations,
 )
 from src.application.skills.judges import (
+    ActVerdict,
     FallbackJudge,
     act_accuracy,
     act_items,
@@ -69,14 +70,23 @@ def fmt(value: Optional[float]) -> str:
     return "n/a" if value is None else f"{value:.3f}"
 
 
-def judge_record(app: SkillsContainer, mode: str) -> Dict[str, Any]:
-    """Return which judge ran and, if it fell back, why (for the output)."""
-    judge = app.confirmer.judge
-    record: Dict[str, Any] = {"mode": mode, "model": judge.model_name}
+def judge_record(
+    mode: str,
+    judge: Any,
+    first: Iterable[str],
+    second: Iterable[str] = (),
+) -> Dict[str, Any]:
+    """Return which judges answered and, after a fallback, why.
+
+    ``first`` and ``second`` are the model names recorded on the items
+    themselves, so the record never asks a released judge for its name
+    (that would pick and load a model again).
+    """
+    record: Dict[str, Any] = {"mode": mode, "models": sorted(set(first))}
     if isinstance(judge, FallbackJudge) and judge.fallback_reason:
         record["fallback_reason"] = judge.fallback_reason
     if mode == "both":
-        record["second_model"] = app.second_confirmer.judge.model_name
+        record["second_models"] = sorted(set(second))
     return record
 
 
@@ -91,6 +101,10 @@ def print_comparison(comparison: Dict[str, Any]) -> None:
               f"second {fmt(comparison['accuracy_b'])}")
     for label, kappa in comparison["per_category"].items():
         print(f"  {label:<14} kappa {fmt(kappa)}")
+    if comparison.get("same_judge"):
+        print(f"Left out: {comparison['same_judge']} items the local judge "
+              "answered for both (Claude's quota ran out); the figures "
+              "above compare the two judges on the other items only.")
 
 
 class SkillsCLI:
@@ -397,7 +411,12 @@ class SkillsCLI:
             else:
                 tagged = app.confirmer.confirm(tagged, rubric, language)
                 release(app.confirmer.judge)
-            record = {"judge": judge_record(app, mode), **record}
+            record = {"judge": judge_record(
+                mode, app.confirmer.judge,
+                (t.decision.model for t in tagged if t.decision),
+                (t.second_decision.model for t in tagged
+                 if t.second_decision),
+            ), **record}
         directory = str(save_directory) or app.settings.output_dir
         path = str(Path(directory) / f"{document.session_id}.tags.json")
         write_text(path, json.dumps({
@@ -419,7 +438,7 @@ class SkillsCLI:
                 )
                 for status in ("confirmed", "rejected", "unparsed")
             }
-            print(f"Judge ({app.confirmer.judge.model_name}): "
+            print(f"Judge ({', '.join(record['judge']['models'])}): "
                   f"{counts['confirmed']} confirmed, "
                   f"{counts['rejected']} rejected, "
                   f"{counts['unparsed']} not understood")
@@ -461,6 +480,7 @@ class SkillsCLI:
         mode = app.judge_mode()
         result: Dict[str, Any] = {"mode": mode, "items": len(items)}
         first = app.act_classifier(app.judge)
+        b: List[ActVerdict] = []
         if mode == "both":
             a, b, comparison = compare_act_judges(
                 items, first, app.act_classifier(app.local_judge)
@@ -470,11 +490,14 @@ class SkillsCLI:
         else:
             a = first.classify(items)
             release(app.judge)
+        result["judge"] = judge_record(
+            mode, app.judge, (v.model for v in a), (v.model for v in b)
+        )
         result["first"] = [v.model_dump() for v in a]
         result["accuracy"] = act_accuracy(items, a)
-        judge = app.judge
-        if isinstance(judge, FallbackJudge) and judge.fallback_reason:
-            result["fallback_reason"] = judge.fallback_reason
+        reason = result["judge"].get("fallback_reason")
+        if reason:
+            result["fallback_reason"] = reason
         path = str(output) or str(
             Path(app.settings.output_dir) / "judge_acts.json"
         )

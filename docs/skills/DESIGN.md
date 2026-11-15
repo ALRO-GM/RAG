@@ -87,7 +87,7 @@ this.
 |---|---|---|---|
 | `selected` (default) | Whatever was chosen from the web (`GET/PUT /analysis/judge`, kept in `judge_state_path`, `data/skills/judge.json`); `claude_code` until something is chosen | as the choice | Tested with fakes; the choice file holds no transcript text |
 | `claude_code` | `claude -p` with `--model opus` (`--claude_model`), isolated as in §4.1; on a quota refusal the job goes on with the local judge (§4.3) | Yes, to Anthropic through the subscription | Run on 20 synthetic sentences (§4.4) |
-| `local` | The largest model of the ladder that fits the GPU memory free when the job starts, at 4 bits (`local_bits`, §4.2); on a CPU, the machine's choice as before; `--local_model` forces one | No | Measured on synthetic data (§4.2) |
+| `local` | On a GPU, Qwen3-8B at 4 bits if it fits the free memory, otherwise Qwen3-4B at 4 bits after waiting for room; never a smaller model (`local_policy`, `local_preference`, §4.2). On a CPU, the machine's choice as before. `--local_model` forces one | No | Measured on synthetic data (§4.2) |
 | `both` | `claude_code` and `local` on the same items; both answers kept, agreement reported | Yes | Run on 20 synthetic sentences (§4.4) |
 | `api` | Claude through the Anthropic SDK (`AnthropicChatModel`) | Yes | Kept, **not to be used** (costs extra money) |
 
@@ -134,30 +134,81 @@ process list), and is never logged nor put in an error message.
   reported as ordinary failures, not as quota.
 
 The JSON result is parsed (`result`, `is_error`, `api_error_status`).
-A usage-limit refusal (status 429, or text such as "usage limit
-reached", "hit your … limit") raises `QuotaExhaustedError` with the
-reset time when the message gives one; a sign-in failure (401/403,
-"/login", "not logged in", "invalid API key") raises `ModelAuthError`
-(run `claude` once and log in); anything else, a time-out
-(`claude_timeout`, 180 s) or a missing program is a `ModelError`. The
-real quota and sign-in messages were not seen (they could not be
-triggered); the patterns come from the messages Claude Code is known
+Failures are sorted into four kinds:
+
+- **Quota**: only the subscription's usage-limit messages ("Claude AI
+  usage limit reached|<timestamp>", "hit your … limit", "5-hour /
+  session / weekly limit reached", "out of extra usage") raise
+  `QuotaExhaustedError`. The reset time is kept as written and, when
+  it is a Unix timestamp, as a moment (`resets_at`).
+- **Transient**: a per-minute rate limit (`429`, "rate limit", "Too
+  Many Requests"), an overload or a `5xx`. These are retried twice
+  (5 s, then 10 s), change no stored state, and end as a plain
+  `ModelError`. They never send the job to the local judge.
+- **Sign-in**: only `401` or the not-logged-in messages ("Not logged
+  in", "Please run /login", "Invalid API key", "OAuth token has
+  expired") raise `ModelAuthError`; the fix is to run `claude` once
+  and log in.
+- **Anything else** (a time-out after `claude_timeout`, 180 s; a
+  missing program; a safeguard refusal) is a `ModelError`.
+
+An error message carries at most Claude Code's own error text, never
+a reply. `claude` starts in a new session (process group); on a
+time-out or any other exception the whole group is killed, and
+helpers left behind by a finished call are killed too. The real
+quota and sign-in messages were not seen, because they could not be
+triggered. The patterns come from the messages Claude Code is known
 to print and are tested with fakes.
 
 ### 4.2 Local judge
 
 The GPU (8 GB) is shared with the live transcriber, the RAG and another
 project's worker, so the free memory changes from job to job.
-`adapters/outbound/local_judge.py` reads it (`torch.cuda.mem_get_info`)
-when a job first needs the judge, keeps 0.4 GB aside and loads the
-largest model of `model_ladder` (Qwen3 0.6B … 14B) whose estimate fits
-(`params × bits/8 × 1.3`); the weights are quantised to 4 bits (NF4)
-with `bitsandbytes`, which needs `uv sync --group local-judge`
+`adapters/outbound/local_judge.py` reads the free memory
+(`torch.cuda.mem_get_info`) when a job first needs the judge, keeps
+0.4 GB aside and estimates each model's needs as
+`params × bits/8 × 1.3`. The weights are quantised to 4 bits (NF4)
+with `bitsandbytes`, installed by `uv sync --group local-judge`
 (`bitsandbytes`, `accelerate`; not a default group). The job releases
 the model when it ends (`release()`), so the memory comes back.
 
-Measured on 2026-11-15 on the RTX 3070 Ti (scratch script around the
-same classes; one run each, greedy decoding). Dialogue acts: 200
+`local_policy` decides which model loads:
+
+- **`preferred`** (default; owner decision on #74):
+  - The list is `local_preference`, by default Qwen3-8B then Qwen3-4B,
+    both at 4 bits.
+  - The first model of the list that fits the free memory now is
+    loaded.
+  - When none fits, the job waits for the last model of the list,
+    checking every 15 s and logging what it waits for. It gives up
+    after `local_wait_seconds` (600 s) with a clear error.
+  - It never takes a model outside the list, so it never downgrades
+    to 1.7B.
+  - The list is a setting, so the 8B can be dropped if it measures
+    worse.
+- **`largest_fitting`**: the largest model of `model_ladder` that fits
+  the free memory now. Without the quantisation packages it logs a
+  warning and chooses among the models that fit at 16 bits.
+- **`fixed`**: pins `--local_model` and waits for it, like `preferred`.
+
+`--local_model` set explicitly loads that model under `preferred` and
+`largest_fitting` too. With `preferred` and no quantisation packages,
+the 8B and 4B do not fit an 8 GB card at 16 bits. The judge then
+fails at once, saying to install the group, rather than load another
+model.
+
+Measured on 2026-11-15 on the RTX 3070 Ti (one run each, greedy
+decoding). The figures come from a scratch version of
+`experiments/skills/judge_local_eval.py`, which computes the same
+values; the committed script was not rerun because the GPU was busy.
+To reproduce:
+
+```bash
+HF_HUB_OFFLINE=1 PYTHONPATH=. python experiments/skills/judge_local_eval.py Qwen/Qwen3-4B --bits 4 \
+    --output experiments/skills/results/judge_local_qwen3-4b-4bit.json
+```
+
+Dialogue acts: 200
 sentences spread over the 51 dialogues of the synthetic Spanish set,
 with the 3 previous sentences, against their intended labels. Tag
 confirmation: the synthetic Spanish demo session
@@ -172,11 +223,13 @@ The 1.7B run reproduces `AUDIO.md` §4 exactly. The 4B at 4 bits is
 better on dialogue acts (0.545 against 0.365) and its position bias is
 gone, but on tag confirmation it confirms almost everything (63 of 64):
 the failure moved from "always the first indicator" to "never none".
-Neither is a usable assessor of indicators. Qwen3-8B at 4 bits was
-being downloaded and is **not measured**; on an idle GPU the ladder
-would pick it (estimate 5.3 GB), with the other project's worker
-loaded (5.6 GB held) only about 2.4 GB are free and the ladder falls
-to Qwen3-1.7B at 4 bits, which is not measured either.
+Neither is a usable assessor of indicators. Qwen3-8B at 4 bits is
+downloaded but **not measured**: the other project's worker held
+5.4–5.9 GB during this work, which leaves too little free memory for
+it. The preferred policy loads it when its estimate fits (5.3 GB + 0.4
+GB margin). Otherwise the policy waits for Qwen3-4B (2.6 + 0.4 GB);
+the 4B's measured peak was 2.87 GB. Measure the 8B with the command
+above before trusting it.
 
 ### 4.3 Selection and fallback
 
@@ -185,17 +238,29 @@ choice and Claude's quota record (`JudgeState`: last refusal, its reset
 time, last answer). `FallbackJudge` asks Claude; on the first
 `QuotaExhaustedError` of a job it records the refusal and answers that
 item and all the following ones with the local judge, giving the reason.
-A job that starts while the quota is known to be out (a refusal less
-than 5 hours old, the subscription's window, and no answer since) goes
-to the local judge without calling Claude. The quota shown in the web
+A job that starts while the quota is known to be out goes to the local
+judge without calling Claude. "Known to be out" means: until the reset
+moment the service gave or, without one, for 5 hours (the
+subscription's window), unless Claude answered since. The state file
+(`judge_state_path`, relative to the repository root, not to the
+working directory) is changed under a file lock. The web's choice and
+a job's quota record therefore never overwrite each other. The web
+shows a reset moment in local time. The quota shown in the web
 is therefore what the last jobs saw (`available`, `exhausted`, or
 `unknown` before the first call), not a live probe: a probe would
 spend quota.
 
+In `both` mode, the first judge falls back to the same local model as
+the second when the quota runs out. Items that one model answered for
+both are left out of the agreement figures and counted in
+`same_judge`, and the command says so. Otherwise κ would tend to 1 by
+comparing the local model with itself.
+
 The RAG serves `GET/PUT /analysis/judge` behind the transcript token
 (`adapters/inbound/http_api.py`); the transcriber forwards
 `GET/PUT /api/analysis/judge` (access code) to it on loopback with the
-same token, so the RAG stays out of the tunnel; the sessions page has
+same token (redirects are never followed with the token, here or when
+publishing), so the RAG stays out of the tunnel; the sessions page has
 a «Análisis de habilidades: modelo que juzga» section with the three
 choices and the quota line.
 

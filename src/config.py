@@ -170,6 +170,10 @@ SKILLS_MODEL_LADDER: Tuple[Tuple[str, float], ...] = (
 )
 """Local judge candidates: (Hugging Face model, billions of parameters)."""
 DEFAULT_SKILLS_API_MODEL = "claude-opus-5-5"
+DEFAULT_LOCAL_PREFERENCE: Tuple[str, ...] = (
+    "Qwen/Qwen3-8B", "Qwen/Qwen3-4B",
+)
+"""Local judges in order of preference (4 bits; owner decision on #74)."""
 DEFAULT_CLAUDE_CODE_MODEL = "opus"
 """Claude Code's alias of the best model of the subscription."""
 
@@ -193,6 +197,15 @@ class SkillsSettings(BaseModel):
     ``local_bits``; on a CPU (``llm = "auto"``) the largest that fits
     this machine's memory and is estimated to reach
     ``min_tokens_per_second``. ``llm`` set to a model name forces it.
+    On a GPU, ``local_policy`` decides which local model loads (owner
+    decision on #74): ``preferred`` (default) takes the first model of
+    ``local_preference`` that fits the free memory now and otherwise
+    waits up to ``local_wait_seconds`` for the last one, never using a
+    smaller model; ``largest_fitting`` takes the largest ladder model
+    that fits now; ``fixed`` pins ``llm`` and waits for it.
+    ``judge_state_path`` is relative to the repository root unless
+    absolute, so the RAG and the CLI share one file whatever
+    their working directory.
 
     A rating needs ``min_incidents`` verified turns from
     ``min_episodes`` separate exchanges (turns within ``episode_gap``
@@ -236,6 +249,11 @@ class SkillsSettings(BaseModel):
     claude_timeout: float = Field(default=180.0, gt=0)
     claude_executable: str = "claude"
     local_bits: Literal[4, 8, 16] = 4
+    local_policy: Literal[
+        "preferred", "largest_fitting", "fixed"
+    ] = "preferred"
+    local_preference: Tuple[str, ...] = DEFAULT_LOCAL_PREFERENCE
+    local_wait_seconds: float = Field(default=600.0, ge=0)
     llm: str = DEFAULT_SKILLS_LLM
     api_model: str = DEFAULT_SKILLS_API_MODEL
     api_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"

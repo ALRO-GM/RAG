@@ -14,6 +14,9 @@ from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
+from transcriber.adapters.outbound.http_transcript_publisher import (
+    HttpTranscriptPublisher,
+)
 from transcriber.application.analysis import AnalysisJudgeSetting
 from transcriber.bootstrap import build_container
 from transcriber.config import TranscriberSettings
@@ -37,6 +40,7 @@ class StandInRag:
         self.requests: List[Dict[str, Any]] = []
         self.status = 200
         self.body: bytes = json.dumps(STATUS).encode()
+        self.location = ""
 
     def handler(self) -> type:
         """Return the request handler class."""
@@ -54,6 +58,8 @@ class StandInRag:
                     "body": self.rfile.read(length),
                 })
                 self.send_response(rag.status)
+                if rag.location:
+                    self.send_header("Location", rag.location)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(rag.body)))
                 self.end_headers()
@@ -65,6 +71,10 @@ class StandInRag:
 
             def do_PUT(self) -> None:  # noqa: N802 - http.server's name
                 """Answer a PUT."""
+                self._answer()
+
+            def do_DELETE(self) -> None:  # noqa: N802 - http.server's name
+                """Answer a DELETE."""
                 self._answer()
 
             def log_message(self, *args: Any) -> None:
@@ -104,6 +114,23 @@ def test_the_adapter_forwards_with_the_token(
         "mode": "local"
     }
     assert get["auth"] == f"Bearer {TOKEN}"
+
+
+def test_redirects_are_not_followed_with_the_token(
+    rag: Tuple[str, StandInRag],
+) -> None:
+    url, stand_in = rag
+    stand_in.status, stand_in.location = 302, "/elsewhere"
+    with pytest.raises(AnalysisUnavailableError, match="302"):
+        HttpAnalysisJudge(url, lambda: TOKEN).status()
+    publisher = HttpTranscriptPublisher(
+        url, "RAG_TOKEN", {"RAG_TOKEN": TOKEN}, retries=0,
+    )
+    with pytest.raises(PublishError, match="302"):
+        publisher.retract("s1")
+    assert [r["path"] for r in stand_in.requests] == [
+        "/rag/analysis/judge", "/rag/transcripts/s1",
+    ], "the redirect target was never asked"
 
 
 def test_the_adapter_reports_every_failure_without_the_token(

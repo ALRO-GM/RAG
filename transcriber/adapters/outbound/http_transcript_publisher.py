@@ -38,6 +38,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional
 
+from transcriber.adapters.outbound.no_redirect import OPENER
 from transcriber.domain.errors import PublishError
 from transcriber.domain.models import SESSION_ID_PATTERN, Transcript
 
@@ -199,7 +200,7 @@ class HttpTranscriptPublisher:
             url, data=body, method=method, headers=headers,
         )
         try:
-            with urllib.request.urlopen(
+            with OPENER.open(
                 request, timeout=wait
             ) as response:
                 response.read()

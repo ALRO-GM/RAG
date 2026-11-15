@@ -59,6 +59,20 @@ from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
 
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+"""The checkout this code runs from (relative data paths start here)."""
+
+
+def judge_state_file(path: str, root: Path = REPOSITORY_ROOT) -> Path:
+    """Return the judge state file: ``path`` itself, or under ``root``.
+
+    The RAG server and the analysis commands may start in different
+    working directories; both must read and write the same file.
+    """
+    candidate = Path(path).expanduser()
+    return candidate if candidate.is_absolute() else root / candidate
+
+
 class SkillsContainer:
     """Build and hold the soft-skills services for given settings.
 
@@ -178,7 +192,9 @@ class SkillsContainer:
     def judge_selection(self) -> JudgeSelection:
         """The judge chosen from the web and Claude's quota record."""
         return JudgeSelection(
-            JsonJudgeStateStore(self.settings.judge_state_path),
+            JsonJudgeStateStore(str(judge_state_file(
+                self.settings.judge_state_path
+            ))),
             lambda: datetime.now(timezone.utc),
         )
 
@@ -218,6 +234,9 @@ class SkillsContainer:
             self.runtime,
             cpu_model=self.local_model(),
             fixed=None if s.llm == "auto" else s.llm,
+            policy=s.local_policy,
+            preference=s.local_preference,
+            wait_seconds=s.local_wait_seconds,
         )
 
     @cached_property

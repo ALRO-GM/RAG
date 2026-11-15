@@ -32,11 +32,19 @@ Transcript text is never logged nor put in an error message.
 import json
 import os
 import re
+import signal
 import subprocess
 import tempfile
+import time
+from datetime import datetime, timezone
 from typing import Any, Callable, List, Mapping, Optional, Sequence
 
-from src.domain.errors import ModelAuthError, ModelError, QuotaExhaustedError
+from src.domain.errors import (
+    ModelAuthError,
+    ModelError,
+    QuotaExhaustedError,
+    TransientModelError,
+)
 
 DEFAULT_CLAUDE_MODEL = "opus"
 """Claude Code's alias of the best model the subscription offers."""
@@ -45,19 +53,44 @@ KEPT_ENVIRONMENT = ("PATH", "HOME", "LANG", "LC_ALL")
 """The only environment variables handed to ``claude``."""
 
 QUOTA_PATTERN = re.compile(
-    r"usage limit|limit reached|hit your (?:\w+ )?limit|"
-    r"out of (?:extra )?usage|quota|rate.?limit|credit balance is too low",
+    r"claude ai usage limit reached|"
+    r"hit your (?:session |weekly |opus |sonnet |5-hour )?limit|"
+    r"(?:5-hour|session|weekly|opus|sonnet) limit reached|"
+    r"out of extra usage",
+    re.IGNORECASE,
+)
+"""The subscription's usage-limit messages (and nothing else).
+
+A per-minute API rate limit (``429``) is not one of them: it is
+transient (:data:`TRANSIENT_PATTERN`) and must not send the next hours
+to the local judge.
+"""
+TRANSIENT_PATTERN = re.compile(
+    r"overloaded|rate.?limit|too many requests|internal server error|"
+    r"service unavailable|bad gateway|gateway time-?out",
     re.IGNORECASE,
 )
 AUTH_PATTERN = re.compile(
-    r"/login|not logged in|log ?in again|invalid api key|"
-    r"authenticat|oauth token|unauthori[sz]ed|credential",
+    r"not logged in|please run /login|invalid api key|"
+    r"oauth token (?:has )?expired|login (?:has )?expired",
     re.IGNORECASE,
 )
 RESET_EPOCH = re.compile(r"\|(\d{9,11})\b")
-RESET_TEXT = re.compile(r"resets?\s+(?:at\s+)?([^.\n]{1,60})", re.IGNORECASE)
+RESET_TEXT = re.compile(r"resets?\s+(?:at\s+)?([^.\n·]{1,60})", re.IGNORECASE)
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
+
+
+def _kill_group(process: "subprocess.Popen[str]") -> None:
+    """Kill ``process`` and every process it started (its session)."""
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def _run(
@@ -67,10 +100,23 @@ def _run(
     env: Mapping[str, str],
     timeout: float,
 ) -> "subprocess.CompletedProcess[str]":
-    """Run ``command`` with ``stdin`` and capture its output."""
-    return subprocess.run(
-        list(command), input=stdin, cwd=cwd, env=dict(env),
-        capture_output=True, text=True, timeout=timeout, check=False,
+    """Run ``command`` with ``stdin`` and capture its output.
+
+    The program starts in a new session, so on a time-out (or any other
+    exception) the whole group is killed, helpers included, and once it
+    exits no helper of it is left behind.
+    """
+    process = subprocess.Popen(
+        list(command), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, cwd=cwd, env=dict(env), text=True,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(stdin, timeout=timeout)
+    finally:
+        _kill_group(process)
+    return subprocess.CompletedProcess(
+        list(command), process.returncode, stdout, stderr
     )
 
 
@@ -78,6 +124,20 @@ def short(text: str, limit: int = 200) -> str:
     """Return the first line of ``text``, cut to ``limit`` characters."""
     line = text.strip().splitlines()[0] if text.strip() else ""
     return line[:limit]
+
+
+def reset_time(message: str) -> "tuple[str, Optional[datetime]]":
+    """Return when a usage-limit message says the quota comes back.
+
+    ``("", None)`` when it does not say; the moment as a UTC datetime
+    when it gives a Unix timestamp (``…|1763215200``), else ``None``.
+    """
+    epoch = RESET_EPOCH.search(message)
+    if epoch:
+        moment = datetime.fromtimestamp(int(epoch.group(1)), timezone.utc)
+        return moment.isoformat(), moment
+    when = RESET_TEXT.search(message)
+    return (when.group(1).strip() if when else ""), None
 
 
 class ClaudeCodeJudge:
@@ -92,6 +152,10 @@ class ClaudeCodeJudge:
             default.
         environ: Where ``PATH``, ``HOME`` and the locale are read from.
         runner: Runs the command (replaced in tests).
+        retries: Further attempts after a transient failure (overload,
+            rate limit, ``5xx``); quota and sign-in failures are final.
+        backoff: Seconds before the first retry, doubled after each.
+        sleep: Waits between attempts (replaced in tests).
     """
 
     def __init__(
@@ -102,8 +166,14 @@ class ClaudeCodeJudge:
         effort: Optional[str] = None,
         environ: Optional[Mapping[str, str]] = None,
         runner: Runner = _run,
+        retries: int = 2,
+        backoff: float = 5.0,
+        sleep: Callable[[float], None] = time.sleep,
     ):
         """Keep the options; nothing runs until :meth:`complete`."""
+        self.retries = max(retries, 0)
+        self.backoff = backoff
+        self._sleep = sleep
         self.model = model
         self.executable = executable
         self.timeout = timeout
@@ -145,8 +215,23 @@ class ClaudeCodeJudge:
         """Return Claude's reply to ``user`` under ``system``.
 
         ``max_tokens`` is not passed on: Claude Code has no such
-        option, and the prompts ask for one short JSON object.
+        option, and the prompts ask for one short JSON object. A
+        transient failure is retried ``retries`` times; it never counts
+        as the quota being used up.
         """
+        delay = self.backoff
+        for attempt in range(self.retries + 1):
+            try:
+                return self._once(system, user)
+            except TransientModelError:
+                if attempt == self.retries:
+                    raise
+                self._sleep(delay)
+                delay *= 2
+        raise ModelError("unreachable")  # pragma: no cover
+
+    def _once(self, system: str, user: str) -> str:
+        """Make one call."""
         with tempfile.TemporaryDirectory(prefix="judge-") as empty:
             try:
                 done = self._runner(
@@ -164,45 +249,55 @@ class ClaudeCodeJudge:
         return self.parse(done.returncode, done.stdout, done.stderr)
 
     def parse(self, returncode: int, stdout: str, stderr: str) -> str:
-        """Return the model's text from ``claude -p`` output, or raise."""
+        """Return the model's text from ``claude -p`` output, or raise.
+
+        Errors carry Claude Code's own error message at most, never the
+        text of a reply.
+        """
         data: Any = None
         try:
             data = json.loads(stdout) if stdout.strip() else None
         except ValueError:
             data = None
         if not isinstance(data, dict):
-            self._fail(returncode, stderr or stdout, None)
+            self._fail(stderr, None)
             raise ModelError(
                 f"Claude Code gave no JSON result (exit {returncode})."
             )
         text = data.get("result")
         status = data.get("api_error_status")
-        if data.get("is_error") or returncode != 0:
-            self._fail(returncode, str(text or stderr), status)
+        if data.get("is_error"):
+            message = str(text or stderr)
+            self._fail(message, status)
             raise ModelError(
-                f"Claude Code failed (exit {returncode}): "
-                f"{short(str(text or stderr))}"
+                f"Claude Code failed (exit {returncode}): {short(message)}"
             )
+        if returncode != 0:
+            self._fail(stderr, status)
+            raise ModelError(f"Claude Code exited with code {returncode}.")
         if not isinstance(text, str) or not text.strip():
             raise ModelError("Claude Code returned an empty reply.")
         return text.strip()
 
-    def _fail(self, returncode: int, message: str, status: Any) -> None:
+    def _fail(self, message: str, status: Any) -> None:
         """Raise the specific error a failure message points to, if any."""
-        if status == 429 or QUOTA_PATTERN.search(message):
-            epoch = RESET_EPOCH.search(message)
-            when = RESET_TEXT.search(message)
-            resets = (
-                epoch.group(1) if epoch
-                else when.group(1).strip() if when else ""
-            )
+        if QUOTA_PATTERN.search(message):
+            resets, resets_at = reset_time(message)
             raise QuotaExhaustedError(
                 "Claude's usage limit is reached"
                 + (f" (resets {resets})" if resets else "") + ".",
-                resets,
+                resets, resets_at,
             )
-        if status in (401, 403) or AUTH_PATTERN.search(message):
+        if status == 401 or AUTH_PATTERN.search(message):
             raise ModelAuthError(
                 "Claude Code is not signed in or its sign-in expired; run "
                 "`claude` once and log in with the subscription."
+            )
+        if (
+            status == 429 or (isinstance(status, int) and status >= 500)
+            or TRANSIENT_PATTERN.search(message)
+        ):
+            raise TransientModelError(
+                f"Claude Code failed for a passing reason "
+                f"(status {status}): {short(message)}"
             )

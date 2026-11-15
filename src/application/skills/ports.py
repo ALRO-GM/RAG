@@ -1,6 +1,6 @@
 """Ports of the soft-skills use cases."""
 
-from typing import Any, Dict, List, Mapping, Protocol, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Protocol, Tuple
 
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
@@ -29,6 +29,14 @@ class JudgeStateStore(Protocol):
 
     def save(self, state: JudgeState) -> None:
         """Replace the stored state."""
+        ...
+
+    def update(self, change: Callable[[JudgeState], JudgeState]) -> JudgeState:
+        """Apply ``change`` to the stored state atomically; return it.
+
+        Concurrent updates (the web choosing a judge while a job
+        records the quota) must not lose each other's fields.
+        """
         ...
 
 

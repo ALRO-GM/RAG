@@ -14,6 +14,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict, Optional
 
+from transcriber.adapters.outbound.no_redirect import OPENER
 from transcriber.domain.errors import AnalysisUnavailableError, PublishError
 
 ROUTE = "/analysis/judge"
@@ -67,7 +68,7 @@ class HttpAnalysisJudge:
             self.url, data=data, method=method, headers=headers
         )
         try:
-            with urllib.request.urlopen(
+            with OPENER.open(
                 request, timeout=self.timeout
             ) as response:
                 answer = json.loads(response.read(65536).decode("utf-8"))

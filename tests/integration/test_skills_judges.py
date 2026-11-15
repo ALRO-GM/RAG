@@ -2,8 +2,12 @@
 and the ``/analysis/judge`` routes of the RAG."""
 
 import json
+import logging
 import os
 import subprocess
+import threading
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -19,7 +23,11 @@ from src.adapters.outbound.fs_transcript_store import (
     FileSystemTranscriptStore,
 )
 from src.adapters.outbound.json_judge_state import JsonJudgeStateStore
-from src.adapters.outbound.local_judge import LocalJudge, cuda_free_gb
+from src.adapters.outbound.local_judge import (
+    LocalJudge,
+    cuda_free_gb,
+    quantisation_installed,
+)
 from src.application.answering import AnswerService
 from src.application.search import SearchService
 from src.application.skills.ingest import (
@@ -124,31 +132,87 @@ def test_claude_code_runs_isolated_with_the_text_on_stdin() -> None:
     assert "--effort" not in judge(runner).command("s")
 
 
-@pytest.mark.parametrize("message, status, resets", [
-    ("Claude AI usage limit reached|1763215200", None, "1763215200"),
-    ("You've hit your session limit · resets 3pm (Europe/Madrid)", None,
-     "3pm (Europe/Madrid)"),
-    ("API Error: 429 Too Many Requests", 429, ""),
+@pytest.mark.parametrize("message, resets, resets_at", [
+    ("Claude AI usage limit reached|1763215200",
+     "2025-11-15T14:00:00+00:00",
+     datetime(2025, 11, 15, 14, 0, tzinfo=timezone.utc)),
+    ("You've hit your session limit · resets 3pm (Europe/Madrid)",
+     "3pm (Europe/Madrid)", None),
+    ("5-hour limit reached ∙ resets 7pm", "7pm", None),
+    ("You're out of extra usage", "", None),
 ])
-def test_quota_refusals_are_told_apart(
-    message: str, status: Optional[int], resets: str
+def test_only_the_subscription_limit_counts_as_quota(
+    message: str, resets: str, resets_at: Optional[datetime]
 ) -> None:
-    runner = FakeRunner(result(message, is_error=True,
-                               api_error_status=status), returncode=1)
+    runner = FakeRunner(result(message, is_error=True), returncode=1)
     with pytest.raises(QuotaExhaustedError) as caught:
         judge(runner).complete("s", "u", 5)
     assert caught.value.resets == resets
+    assert caught.value.resets_at == resets_at
+    assert len(runner.calls) == 1, "a quota refusal is not retried"
 
 
-@pytest.mark.parametrize("output, code", [
-    (result("Invalid API key · Please run /login", is_error=True), 1),
-    (result("expired", is_error=True, api_error_status=401), 1),
-    ("", 1),
+@pytest.mark.parametrize("message, status", [
+    ("API Error: 429 Too Many Requests", 429),
+    ("API Error: rate limit of 50 requests per minute exceeded", None),
+    ("API Error: Overloaded", 529),
+    ("API Error: 500 Internal server error", 500),
 ])
-def test_sign_in_failures_are_told_apart(output: str, code: int) -> None:
-    runner = FakeRunner(output, code, stderr="Not logged in · run /login")
+def test_transient_failures_are_retried_then_plain_errors(
+    message: str, status: Optional[int]
+) -> None:
+    waits: List[float] = []
+    runner = FakeRunner(result(message, is_error=True,
+                               api_error_status=status), returncode=1)
+    with pytest.raises(ModelError) as caught:
+        judge(runner, retries=2, backoff=1.0,
+              sleep=waits.append).complete("s", "u", 5)
+    assert not isinstance(caught.value, (QuotaExhaustedError,
+                                         ModelAuthError))
+    assert len(runner.calls) == 3 and waits == [1.0, 2.0]
+
+
+def test_a_transient_failure_then_an_answer() -> None:
+    class Flaky(FakeRunner):
+        """Overloaded once, then fine."""
+
+        def __call__(self, *args: Any, **kwargs: Any) -> Any:
+            """Change the answer after the first call."""
+            done = super().__call__(*args, **kwargs)
+            self.stdout = result("bien")
+            self.returncode = 0
+            return done
+
+    runner = Flaky(result("Overloaded", is_error=True), returncode=1)
+    assert judge(runner, sleep=lambda _: None).complete("s", "u", 5) == "bien"
+
+
+@pytest.mark.parametrize("output, code, stderr", [
+    (result("Invalid API key · Please run /login", is_error=True), 1, ""),
+    (result("expired", is_error=True, api_error_status=401), 1, ""),
+    (result("OAuth token has expired", is_error=True), 1, ""),
+    ("", 1, "Not logged in · Please run /login"),
+])
+def test_sign_in_failures_are_told_apart(
+    output: str, code: int, stderr: str
+) -> None:
+    runner = FakeRunner(output, code, stderr=stderr)
     with pytest.raises(ModelAuthError, match="log in"):
         judge(runner).complete("s", "u", 5)
+
+
+@pytest.mark.parametrize("message", [
+    "credentials service timeout",
+    "Request failed: authentication proxy unreachable",
+])
+def test_other_messages_naming_credentials_are_not_sign_in(
+    message: str
+) -> None:
+    runner = FakeRunner(result(message, is_error=True), returncode=1)
+    with pytest.raises(ModelError) as caught:
+        judge(runner).complete("s", "u", 5)
+    assert not isinstance(caught.value, (ModelAuthError,
+                                         QuotaExhaustedError))
 
 
 def test_other_failures_are_model_errors_without_the_text() -> None:
@@ -165,14 +229,19 @@ def test_other_failures_are_model_errors_without_the_text() -> None:
         judge(FakeRunner("not json", 2, "boom")).complete("s", "u", 5)
     with pytest.raises(ModelError, match="empty reply"):
         judge(FakeRunner(result("  "))).complete("s", "u", 5)
-    with pytest.raises(ModelError, match="failed"):
-        judge(FakeRunner(result("ok"), 3)).complete("s", "u", 5)
     with pytest.raises(ModelError, match="not installed"):
         judge(FakeRunner(error=FileNotFoundError())).complete("s", "u", 5)
     late = subprocess.TimeoutExpired(["claude"], 1)
     with pytest.raises(ModelError, match="within 180 s"):
         judge(FakeRunner(error=late)).complete("s", "u", 5)
     assert short("a\nb", 1) == "a" and short("  ") == ""
+
+
+def test_a_reply_never_reaches_an_error_message() -> None:
+    reply = result("Luis dijo algo privado sobre Marta")
+    with pytest.raises(ModelError) as caught:
+        judge(FakeRunner(reply, 3)).complete("s", "u", 5)
+    assert str(caught.value) == "Claude Code exited with code 3."
 
 
 def test_the_default_runner_runs_a_program(tmp_path: Path) -> None:
@@ -184,6 +253,58 @@ def test_the_default_runner_runs_a_program(tmp_path: Path) -> None:
     script.chmod(0o755)
     model = ClaudeCodeJudge(executable=str(script), environ={})
     assert model.complete("s", "u", 5) == "hola"
+
+
+def alive(pid: int) -> bool:
+    """Tell whether process ``pid`` still runs (zombies count as gone)."""
+    try:
+        status = Path(f"/proc/{pid}/stat").read_text().split()[2]
+    except OSError:
+        return False
+    return status != "Z"
+
+
+def test_a_time_out_kills_the_helpers_too(tmp_path: Path) -> None:
+    helper = tmp_path / "helper.pid"
+    script = tmp_path / "claude"
+    script.write_text(
+        "#!/bin/sh\n"
+        f"sleep 60 &\necho $! > {helper}\n"
+        "sleep 60\n"
+    )
+    script.chmod(0o755)
+    model = ClaudeCodeJudge(executable=str(script), environ={
+        "PATH": "/usr/bin:/bin",
+    }, timeout=1.0)
+    with pytest.raises(ModelError, match="within 1 s"):
+        model.complete("s", "u", 5)
+    pid = int(helper.read_text())
+    deadline = time.monotonic() + 5
+    while alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert not alive(pid), "the helper outlived the time-out"
+
+
+def test_helpers_left_behind_by_a_finished_call_are_killed(
+    tmp_path: Path,
+) -> None:
+    helper = tmp_path / "helper.pid"
+    script = tmp_path / "claude"
+    script.write_text(
+        "#!/bin/sh\ncat > /dev/null\n"
+        f"sleep 60 > /dev/null 2>&1 &\necho $! > {helper}\n"
+        "echo '{\"is_error\": false, \"result\": \"hola\"}'\n"
+    )
+    script.chmod(0o755)
+    model = ClaudeCodeJudge(executable=str(script), environ={
+        "PATH": "/usr/bin:/bin",
+    })
+    assert model.complete("s", "u", 5) == "hola"
+    pid = int(helper.read_text())
+    deadline = time.monotonic() + 5
+    while alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert not alive(pid)
 
 
 class FakeLocalModel:
@@ -217,33 +338,132 @@ LADDER = [
 GPU = RuntimePlan(device="cuda", threads=4)
 
 
+def local(**kwargs: Any) -> LocalJudge:
+    """A local judge over fake models, with quantisation installed."""
+    options: Dict[str, Any] = {
+        "build": FakeLocalModel, "quantisable": lambda: True,
+        "policy": "largest_fitting", "total_gb": lambda: 8.0,
+    }
+    options.update(kwargs)
+    return LocalJudge(LADDER, GPU, "cpu-model", **options)
+
+
 def test_local_judge_takes_the_largest_model_the_free_memory_holds() -> None:
     free = [6.0]
-    local = LocalJudge(LADDER, GPU, "cpu-model", free_gb=lambda: free[0],
-                       build=FakeLocalModel)
-    assert local.model_name == "large@4bit"
-    assert local.complete("s", "u", 5) == "large"
-    assert "6.0 GB free" in local.choice_reason
-    model = local._model
-    local.release()
+    judge_ = local(free_gb=lambda: free[0])
+    assert judge_.model_name == "large@4bit"
+    assert judge_.complete("s", "u", 5) == "large"
+    assert "6.0 GB free" in judge_.choice_reason
+    model = judge_._model
+    judge_.release()
     assert isinstance(model, FakeLocalModel) and model.released
     free[0] = 3.2
-    assert local.model_name == "medium@4bit"
+    assert judge_.model_name == "medium@4bit"
     free[0] = 0.5
-    local.release()
+    judge_.release()
     with pytest.raises(ModelError, match="smallest local judge"):
-        local.complete("s", "u", 5)
+        judge_.complete("s", "u", 5)
 
 
-def test_local_judge_on_cpu_or_fixed_uses_the_given_model() -> None:
+def test_local_judge_on_cpu_or_forced_uses_the_given_model() -> None:
     cpu = LocalJudge(LADDER, RuntimePlan(threads=4), "cpu-model",
                      build=FakeLocalModel)
     assert cpu.model_name == "cpu-model" and cpu.choice_reason == "CPU plan"
-    fixed = LocalJudge(LADDER, GPU, "cpu-model", fixed="medium",
-                       build=FakeLocalModel)
-    assert fixed.model_name == "medium@4bit"
-    LocalJudge(LADDER, GPU, "x", build=FakeLocalModel).release()
+    assert local(fixed="medium").model_name == "medium@4bit"
+    local().release()
     assert cuda_free_gb() is None or cuda_free_gb() is not None
+    assert isinstance(quantisation_installed(), bool)
+
+
+def test_without_bitsandbytes_the_judge_runs_in_half_precision(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    judge_ = local(quantisable=lambda: False, free_gb=lambda: 9.0)
+    with caplog.at_level(logging.WARNING):
+        assert judge_.model_name == "small", "4 B at 16 bit does not fit"
+    assert "half precision" in caplog.text
+    assert local(quantisable=lambda: False, fixed="small",
+                 free_gb=lambda: 9.0).model_name == "small"
+    with pytest.raises(ModelError, match="smallest"):
+        local(quantisable=lambda: False, free_gb=lambda: 2.0).model_name
+
+
+def test_preferred_policy_takes_the_first_that_fits_and_never_smaller(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    preferred: Dict[str, Any] = {
+        "policy": "preferred", "preference": ("large", "medium"),
+    }
+    assert local(free_gb=lambda: 6.0, **preferred).model_name == (
+        "large@4bit"
+    )
+    assert local(free_gb=lambda: 3.5, **preferred).model_name == (
+        "medium@4bit"
+    )
+    free = iter([1.0, 1.0, 1.5, 3.5])
+    now = [0.0]
+
+    def sleep(seconds: float) -> None:
+        """Advance the fake clock."""
+        now[0] += seconds
+
+    waiting = local(free_gb=lambda: next(free), sleep=sleep,
+                    clock=lambda: now[0], poll_seconds=10, **preferred)
+    with caplog.at_level(logging.WARNING):
+        assert waiting.model_name == "medium@4bit", "waited, not small"
+    assert "waiting for 3.0 GB" in caplog.text
+    late = local(free_gb=lambda: 2.0, sleep=sleep, clock=lambda: now[0],
+                 poll_seconds=10, wait_seconds=30, **preferred)
+    with pytest.raises(ModelError, match="No smaller model is used"):
+        late.complete("s", "u", 5)
+    assert all(b["name"] != "small" for b in FakeLocalModel.built[-3:])
+    with pytest.raises(ModelError, match="must be in model_ladder"):
+        local(policy="preferred", preference=("other",)).complete("s", "u", 5)
+    no_bnb = local(quantisable=lambda: False, free_gb=lambda: 2.0,
+                   **preferred)
+    with pytest.raises(ModelError, match="group local-judge"):
+        no_bnb.complete("s", "u", 5)
+    assert local(policy="preferred", fixed="small").model_name == (
+        "small@4bit"
+    ), "an explicit --local_model is still honoured"
+
+
+def test_the_default_preference_is_8b_then_4b() -> None:
+    from src.config import SkillsSettings
+
+    settings = SkillsSettings()
+    assert settings.local_policy == "preferred"
+    assert settings.local_preference == ("Qwen/Qwen3-8B", "Qwen/Qwen3-4B")
+    assert settings.local_bits == 4
+    names = [name for name, _ in settings.model_ladder]
+    assert all(name in names for name in settings.local_preference)
+
+
+def test_fixed_policy_waits_for_memory_instead_of_downgrading() -> None:
+    free = iter([1.0, 2.0, 6.0])
+    now = [0.0]
+    waits: List[float] = []
+
+    def sleep(seconds: float) -> None:
+        """Advance the fake clock."""
+        waits.append(seconds)
+        now[0] += seconds
+
+    judge_ = local(policy="fixed", fixed="large", free_gb=lambda: next(free),
+                   sleep=sleep, clock=lambda: now[0], poll_seconds=10,
+                   wait_seconds=100)
+    assert judge_.model_name == "large@4bit"
+    assert waits == [10, 10]
+    late = local(policy="fixed", fixed="large", free_gb=lambda: 1.0,
+                 sleep=sleep, clock=lambda: now[0], poll_seconds=10,
+                 wait_seconds=25)
+    with pytest.raises(ModelError, match="Waited 25 s"):
+        late.complete("s", "u", 5)
+    with pytest.raises(ModelError, match="needs the model to pin"):
+        local(policy="fixed").complete("s", "u", 5)
+    other = local(policy="fixed", fixed="other/model")
+    assert other.model_name == "other/model"
+    assert "size unknown" in other.choice_reason
 
 
 def test_state_file_round_trip_and_damage(tmp_path: Path) -> None:
@@ -262,6 +482,46 @@ def test_state_file_round_trip_and_damage(tmp_path: Path) -> None:
     store.path.mkdir()
     with pytest.raises(CorruptedDataError):
         store.load()
+
+
+def test_two_writers_never_lose_each_others_fields(tmp_path: Path) -> None:
+    path = str(tmp_path / "judge.json")
+    web, job = JsonJudgeStateStore(path), JsonJudgeStateStore(path)
+    rounds = 60
+
+    def choose() -> None:
+        """The web keeps choosing a judge."""
+        for n in range(rounds):
+            mode = "local" if n % 2 else "both"
+            web.update(lambda s: s.model_copy(update={"mode": mode}))
+
+    def record() -> None:
+        """A job keeps recording answers."""
+        for n in range(rounds):
+            job.update(lambda s: s.model_copy(
+                update={"quota_resets": f"r{n}"}
+            ))
+
+    threads = [threading.Thread(target=choose),
+               threading.Thread(target=record)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    final = JsonJudgeStateStore(path).load()
+    assert final.mode == "local"
+    assert final.quota_resets == f"r{rounds - 1}"
+
+
+def test_judge_state_path_is_relative_to_the_repository(
+    tmp_path: Path,
+) -> None:
+    from src.skills_bootstrap import REPOSITORY_ROOT, judge_state_file
+
+    assert judge_state_file("data/skills/judge.json") == (
+        REPOSITORY_ROOT / "data/skills/judge.json"
+    )
+    assert judge_state_file(str(tmp_path / "x.json")) == tmp_path / "x.json"
 
 
 def client_with_judge(folder: Path) -> TestClient:

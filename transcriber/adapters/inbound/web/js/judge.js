@@ -3,7 +3,7 @@
 // Loaded when opened, so the list never waits on the RAG.
 
 import { h } from "./dom.js";
-import { t } from "./i18n.js";
+import { t, lang } from "./i18n.js";
 import { describeError } from "./errors.js";
 import { JUDGE_MODES, quotaLine, selectedMode } from "./lib/analysis.js";
 
@@ -17,7 +17,7 @@ export function judgeSection(ctx) {
   function show(answer) {
     select.value = selectedMode(answer);
     select.disabled = false;
-    quota.textContent = quotaLine(t, answer);
+    quota.textContent = quotaLine(t, answer, lang);
     status.textContent = "";
   }
 

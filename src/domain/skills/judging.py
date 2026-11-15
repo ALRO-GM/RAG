@@ -43,12 +43,14 @@ class JudgeState(BaseModel):
     ``mode`` is the choice made from the web (``None``: never chosen).
     ``quota_exhausted_at`` is when Claude last refused for quota,
     ``quota_resets`` when the service said it would come back (as it
-    wrote it), and ``quota_ok_at`` when Claude last answered.
+    wrote it), ``quota_resets_at`` that moment when it was given as a
+    timestamp, and ``quota_ok_at`` when Claude last answered.
     """
 
     mode: Optional[JudgeMode] = None
     quota_exhausted_at: Optional[datetime] = None
     quota_resets: str = ""
+    quota_resets_at: Optional[datetime] = None
     quota_ok_at: Optional[datetime] = None
 
 
@@ -57,10 +59,11 @@ def quota_status(
 ) -> QuotaState:
     """Tell whether Claude's quota is available, as far as is known.
 
-    ``exhausted`` while the last refusal is younger than
-    ``retry_hours`` and no answer came after it; ``available`` once
-    Claude answered after the last refusal (or it is older than that);
-    ``unknown`` when Claude was never called.
+    ``exhausted`` until the reset time the service gave
+    (``quota_resets_at``) or, without one, while the last refusal is
+    younger than ``retry_hours``, unless an answer came after it;
+    ``available`` once Claude answered after the last refusal (or the
+    refusal has expired); ``unknown`` when Claude was never called.
     """
     refused = state.quota_exhausted_at
     answered = state.quota_ok_at
@@ -68,9 +71,8 @@ def quota_status(
         return "unknown" if answered is None else "available"
     if answered is not None and answered >= refused:
         return "available"
-    if now - refused < timedelta(hours=retry_hours):
-        return "exhausted"
-    return "available"
+    until = state.quota_resets_at or refused + timedelta(hours=retry_hours)
+    return "exhausted" if now < until else "available"
 
 
 class LabelComparison(BaseModel):
@@ -82,7 +84,8 @@ class LabelComparison(BaseModel):
     counts items judge A labelled ``a`` and judge B labelled ``b``.
     With reference labels, ``accuracy_a`` and ``accuracy_b`` are the
     share of reference items each judge got right (an item's
-    reference may admit several labels).
+    reference may admit several labels). ``same_judge`` counts items
+    left out because one model answered for both judges (a fallback).
     """
 
     items: int
@@ -91,6 +94,7 @@ class LabelComparison(BaseModel):
     per_category: Dict[str, Optional[float]]
     confusion: Dict[str, Dict[str, int]]
     with_reference: int = 0
+    same_judge: int = 0
     accuracy_a: Optional[float] = None
     accuracy_b: Optional[float] = None
     per_category_accuracy: Dict[str, Dict[str, Optional[float]]] = Field(
