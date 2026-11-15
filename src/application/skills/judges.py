@@ -211,7 +211,23 @@ class CallBudget:
         """Wrap ``judge``; allow ``limit`` calls."""
         self.judge = judge
         self.limit = max(limit, 0)
-        self.calls = 0
+        self._spent = [0]
+
+    @property
+    def calls(self) -> int:
+        """Return how many calls reached the model (shared budgets too)."""
+        return self._spent[0]
+
+    def using(self, judge: ChatModel) -> "CallBudget":
+        """Return a budget over ``judge`` that spends this one's calls.
+
+        The synthesis step (#113) may ask another judge than the run's
+        (Claude when the run's judge is the local model); its calls
+        still count in the one limit of the analysis.
+        """
+        other = CallBudget(judge, self.limit)
+        other._spent = self._spent
+        return other
 
     @property
     def model_name(self) -> str:
@@ -235,7 +251,7 @@ class CallBudget:
                 f"The judge-call limit of this analysis ({self.limit}) is "
                 "reached; raise max_judge_calls to go on."
             )
-        self.calls += 1
+        self._spent[0] += 1
         return self.judge.complete(system, user, max_tokens)
 
     def release(self) -> None:

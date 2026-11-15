@@ -268,6 +268,41 @@ TEXTS: Dict[str, Dict[str, str]] = {
         ),
         "tile_provisional": "Estimaciones provisionales",
         "tile_observations": "{count} observaciones",
+        "syn_title": "Síntesis",
+        "syn_note": (
+            "Borrador generado por Claude a partir de las evidencias; es "
+            "una ayuda para la entrevista, no una decisión."
+        ),
+        "syn_job": "Puesto que se busca: {job}",
+        "syn_strengths": "En qué destaca",
+        "syn_unobserved": "Qué no se ha podido observar",
+        "syn_unobserved_none": (
+            "Todas las competencias tienen al menos alguna observación."
+        ),
+        "syn_fit": "Encaje con el puesto",
+        "syn_tasks": "Para qué tipo de tareas parece útil",
+        "syn_questions": "Qué preguntar o comprobar en la entrevista",
+        "syn_confidence": "Confianza: {level}",
+        "syn_conf_low": "baja",
+        "syn_conf_medium": "media",
+        "syn_conf_high": "alta",
+        "syn_conf_reason": (
+            "{firm} competencias con nivel firme ({firm_quotes} citas), "
+            "{provisional} con estimación provisional, {quotes} citas en "
+            "total y {words} palabras dichas."
+        ),
+        "syn_basis_firm": "nivel firme",
+        "syn_basis_provisional": "estimación provisional",
+        "syn_basis_observation": "observación",
+        "syn_none": "El modelo no dejó ningún punto que cite evidencias.",
+        "syn_skipped": "No se ha escrito la síntesis: {reason}",
+        "syn_no_evidence": "no hay ninguna cita de esta persona.",
+        "syn_dropped": (
+            "Se han descartado {count} puntos del modelo por no citar "
+            "evidencias del análisis o por saltarse las reglas (veredicto, "
+            "comparación, etiqueta de personalidad o dato personal)."
+        ),
+        "syn_model": "Escrito por {model}.",
     },
     "en": {
         "title": "Report on {participant}",
@@ -519,6 +554,41 @@ TEXTS: Dict[str, Dict[str, str]] = {
         ),
         "tile_provisional": "Provisional estimates",
         "tile_observations": "{count} observations",
+        "syn_title": "Synthesis",
+        "syn_note": (
+            "Draft written by Claude from the evidence; an aid for the "
+            "interview, not a decision."
+        ),
+        "syn_job": "Job sought: {job}",
+        "syn_strengths": "What they stand out in",
+        "syn_unobserved": "What could not be observed",
+        "syn_unobserved_none": (
+            "Every competency has at least some observation."
+        ),
+        "syn_fit": "Fit with the job sought",
+        "syn_tasks": "What kinds of tasks they look useful for",
+        "syn_questions": "What to ask or check in the interview",
+        "syn_confidence": "Confidence: {level}",
+        "syn_conf_low": "low",
+        "syn_conf_medium": "medium",
+        "syn_conf_high": "high",
+        "syn_conf_reason": (
+            "{firm} competencies with a firm level ({firm_quotes} quotes), "
+            "{provisional} with a provisional estimate, {quotes} quotes in "
+            "all and {words} words said."
+        ),
+        "syn_basis_firm": "firm level",
+        "syn_basis_provisional": "provisional estimate",
+        "syn_basis_observation": "observation",
+        "syn_none": "The model left no point that cites evidence.",
+        "syn_skipped": "No synthesis was written: {reason}",
+        "syn_no_evidence": "there is no quote of this person.",
+        "syn_dropped": (
+            "{count} points of the model were dropped for citing no "
+            "evidence of the analysis or breaking the rules (a verdict, a "
+            "comparison, a personality label or a personal attribute)."
+        ),
+        "syn_model": "Written by {model}.",
     },
 }
 """Report wording per language; ``{nN}`` marks the footnote calls."""

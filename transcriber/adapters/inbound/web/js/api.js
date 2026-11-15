@@ -3,6 +3,7 @@
 // The code is never put in a URL.
 
 import { classifyFailure } from "./lib/net.js";
+import { startBody } from "./lib/session-analysis.js";
 
 export class ApiFailure extends Error {
   constructor({ status, kind, code = null, message = "", waitSeconds = 0, reason = null }) {
@@ -175,9 +176,13 @@ export class Api {
   /** Choose the judge of the next analyses: claude_code, local or both. */
   setAnalysisJudge(mode) { return this.request("PUT", "/analysis/judge", { json: { mode } }); }
 
-  /** Start the RAG's whole analysis of a published session. */
-  startAnalysis(id, { restart = false, synthetic = false } = {}) {
-    return this.request("POST", `/analysis/sessions/${encodeURIComponent(id)}`, { json: { restart, synthetic } });
+  /**
+   * Start the RAG's whole analysis of a published session. `steps` runs
+   * only those again; `job` (the job sought) and `claudeSynthesis` go to
+   * the explanatory profiles and are sent only when `job` is a string.
+   */
+  startAnalysis(id, options = {}) {
+    return this.request("POST", `/analysis/sessions/${encodeURIComponent(id)}`, { json: startBody(options) });
   }
 
   /** Stop the session's running analysis. */

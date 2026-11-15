@@ -9,7 +9,7 @@ shape and a written label.
 
 import math
 from html import escape
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.application.skills.person_report import (
     NOTE_MARK,
@@ -25,6 +25,12 @@ from src.application.skills.person_report import (
 from src.application.skills.person_report_texts import (
     TEXTS,
     conversation_type_label,
+)
+from src.domain.skills.speech import clock
+from src.domain.skills.synthesis import (
+    Citable,
+    PersonSynthesis,
+    SynthesisPoint,
 )
 
 STYLE = """
@@ -93,6 +99,10 @@ blockquote footer{color:var(--muted);font-size:.9rem}
 .small{color:var(--muted);font-size:.95rem}
 sup a{color:inherit;text-decoration:none;font-weight:700}
 .notes{font-size:.95rem}
+.synthesis{border:2px solid var(--strong);border-radius:10px;
+padding:4px 16px 12px;margin:16px 0}
+.synthesis h2{border-top:0;margin-top:12px}
+.basis{font-size:.9rem;color:var(--muted);font-style:italic}
 svg text{fill:var(--muted);font:12px system-ui,sans-serif}
 @media (max-width:560px){.radar{grid-template-columns:1fr}
 body{font-size:17px}h1{font-size:1.6rem}}
@@ -533,8 +543,119 @@ def _context(report: PersonReport) -> str:
     )
 
 
-def render_person_html(report: PersonReport) -> str:
-    """Return the report as one HTML page with no external resource."""
+def _cited(item: Citable, names: Dict[str, str], language: str) -> str:
+    """Return one cited quote or event with its minute and source."""
+    words = TEXTS[language]
+    when = "" if item.start is None else clock(item.start)
+    when = (when[3:] if when.startswith("00:") else when) or "–"
+    if item.kind == "event":
+        return f'<li class="small">[{escape(when)}] {escape(item.text)}</li>'
+    kind = "neg" if item.polarity == "negative" else "pos"
+    source = names.get(item.competency_id, item.competency_id)
+    basis = words["syn_basis_" + item.kind]
+    return (
+        f'<blockquote class="{kind}"><p>«{escape(item.text)}»</p>'
+        f'<footer>{escape(when)} · {escape(source)} · {escape(basis)}'
+        f'</footer></blockquote>'
+    )
+
+
+def _point(
+    point: SynthesisPoint, names: Dict[str, str], language: str
+) -> str:
+    """Return one point of the synthesis with what it cites."""
+    words = TEXTS[language]
+    quotes = "".join(
+        _cited(c, names, language) for c in point.cites if c.kind != "event"
+    )
+    events = "".join(
+        _cited(c, names, language) for c in point.cites if c.kind == "event"
+    )
+    basis = words["syn_basis_" + point.basis]
+    return (
+        f'<div class="card"><p>{escape(point.text)} '
+        f'<span class="basis">({escape(basis)})</span></p>{quotes}'
+        + (f'<ul>{events}</ul>' if events else "") + "</div>"
+    )
+
+
+def _synthesis(
+    report: PersonReport, profile: Optional[PersonSynthesis], job: str
+) -> str:
+    """Return the «Síntesis» section on top of the report, or nothing."""
+    if profile is None:
+        return ""
+    language = report.language
+    words = TEXTS[language]
+    names = {row.competency_id: row.name for row in report.rows}
+    parts = [
+        f'<section class="synthesis"><h2>{escape(words["syn_title"])}</h2>'
+        f'<p class="banner" role="note">{escape(words["syn_note"])}</p>'
+    ]
+    if job:
+        parts.append(
+            f'<p class="small">{escape(words["syn_job"].format(job=job))}</p>'
+        )
+    if profile.status == "skipped":
+        reason = (
+            words["syn_no_evidence"] if profile.reason == "no_evidence"
+            else profile.reason
+        )
+        text = words["syn_skipped"].format(reason=reason)
+        return "".join(parts) + f"<p>{escape(text)}</p></section>"
+    none = f'<p>{escape(words["syn_none"])}</p>'
+    strengths = "".join(
+        _point(p, names, language) for p in profile.strengths
+    ) or none
+    fit = "".join(_point(p, names, language) for p in profile.fit) or none
+    unobserved = (
+        "<ul>" + "".join(f"<li>{escape(n)}</li>" for n in profile.unobserved)
+        + "</ul>" if profile.unobserved
+        else f'<p>{escape(words["syn_unobserved_none"])}</p>'
+    )
+    questions = "".join(f"<li>{escape(q)}</li>" for q in profile.questions)
+    level = words["syn_conf_" + profile.confidence]
+    reason = words["syn_conf_reason"].format(
+        **profile.confidence_basis.model_dump()
+    )
+    dropped = sum(profile.dropped.values())
+    fit_title = words["syn_fit" if job else "syn_tasks"]
+    parts += [
+        f'<h3>{escape(words["syn_strengths"])}</h3>{strengths}',
+        f'<h3>{escape(words["syn_unobserved"])}</h3>{unobserved}',
+        f'<h3>{escape(fit_title)}</h3>{fit}',
+    ]
+    if questions:
+        parts.append(
+            f'<h3>{escape(words["syn_questions"])}</h3><ul>{questions}</ul>'
+        )
+    parts.append(
+        f'<h3>{escape(words["syn_confidence"].format(level=level))}</h3>'
+        f'<p>{escape(reason)}</p>'
+    )
+    if dropped:
+        text = words["syn_dropped"].format(count=dropped)
+        parts.append(f'<p class="small">{escape(text)}</p>')
+    parts.append(
+        f'<p class="small">{escape(words["limits_more"])} '
+        f'{escape(words["limits_provisional"])}</p>'
+    )
+    if profile.model:
+        text = words["syn_model"].format(model=profile.model)
+        parts.append(f'<p class="small">{escape(text)}</p>')
+    return "".join(parts) + "</section>"
+
+
+def render_person_html(
+    report: PersonReport,
+    synthesis: Optional[PersonSynthesis] = None,
+    job: str = "",
+) -> str:
+    """Return the report as one HTML page with no external resource.
+
+    ``synthesis``, when given, is the person's explanatory profile of
+    step i (#113), shown on top with the job sought (``job``).
+    """
     words = TEXTS[report.language]
     title = words["title"].format(participant=report.participant)
     subtitle = words["subtitle"].format(session=report.session_id)
@@ -571,6 +692,7 @@ def render_person_html(report: PersonReport) -> str:
         f'<title>{escape(title)}</title><style>{STYLE}</style></head>'
         f'<body><main><h1>{escape(title)}</h1>'
         f'<p class="sub">{escape(subtitle)}</p>{_context(report)}{banner}'
+        f'{_synthesis(report, synthesis, job)}'
         f'<section><h2>{escape(words["summary"])}</h2>'
         f'<div class="lead">{summary}</div>{tiers}{_why(report)}</section>'
         f'<section><h2>{escape(words["meaning"])}</h2>{_meaning(report)}'

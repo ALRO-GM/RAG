@@ -557,6 +557,7 @@ transcripts the transcriber publishes) and stores each result under
 | f. `confirmation`: the judge confirms or rejects the candidates | `confirmation.json` | the selected judge (§4.3); at most `max_confirmations` sentences, best candidate first |
 | g. `assessment`: evidence per person and scorecards; provisional estimates and observations from step f and the set-aside quotes (§13) | `assessment.json`, `scorecard.md` | the same judge (§1) |
 | h. `reports`: one HTML page per person, the session summary | `report-<n>.html`, `summary.json` | `person_report*.py` (§10) |
+| i. `synthesis`: an explanatory profile per person, with the job sought (§14) | `synthesis.json`, a «Síntesis» section on top of each report | Claude Code (`claude -p`), one call per person, in the run's call budget |
 
 `run.json` holds one record per step: status (`pending`, `running`,
 `done`, `failed`, `unavailable`), start time, seconds, who ran it
@@ -579,8 +580,8 @@ run resumes it at the step that was running.
 
 Judge calls: step f makes one call per sentence with candidates (up to
 `max_confirmations`, default 150) and step g one per person and
-competency (11 in the core rubric). Replies are cached, so a resumed
-run does not ask again.
+competency (11 in the core rubric), step i one per person (§14).
+Replies are cached, so a resumed run does not ask again.
 
 Through the RAG (`docs/DEPLOYMENT.md`: loopback only, bearer token):
 `POST /analysis/sessions/{id}` (body `{"restart", "synthetic"}`, `202`,
@@ -691,3 +692,79 @@ and 88 observations (54 `weak_match` among them) over 44 person ×
 competency cells; 8 cells have nothing. Per person: Lucía 4 firm,
 5 provisional, 13 observations; Andrés 2, 7, 21; Nerea 0, 9, 33;
 Joaquín 1, 8, 21. Not checked against a human reading of the script.
+
+## 14. Explanatory profile per person (`synthesis`, #113)
+
+Asked by the owner: after the reports, Claude explains each profile
+from everything the analysis found, and how it could help in the job
+sought. Step i of `skills analyze` (also alone: `--steps synthesis`).
+
+**Job sought.** Optional text (a title and a few lines: tasks, team,
+what matters), at most 4000 characters, kept with the analysis in
+`analysis_dir/<id>/job.json` (it survives `--restart`). From the CLI:
+`--role "<text>"` or `--role <file>`; from the web, the field «Puesto
+que se busca» of the «Análisis» page. When the stored profiles were
+written for another job (or another leave to use Claude), the next run
+redoes step i only; the page also has «Rehacer solo la síntesis»
+(`POST /analysis/sessions/{id}` with `{"steps": ["synthesis"], "job",
+"claude_synthesis"}`, forwarded by the transcriber).
+
+**Input** (`application/skills/synthesis.person_facts`): the person's
+participation (turns, words, share, questions), the first dialogue-act
+label of their sentences (step d), the figures and the events they
+took part in (step e, at most 25), every competency with its firm
+level, provisional estimate (marked as a hypothesis) or "no level",
+and every quote behind them: firm evidence, the quotes of a
+provisional estimate and the observations, with minute and indicator.
+Each quote gets an id `Q<n>`, each event `E<n>`.
+
+**Judge.** One `claude -p` call per person with at least one quote
+(the subscription judge of §4.1, never the paid API, even when
+`--judge api`), with the local model behind it when the quota is out
+(the record says so). It counts in the run's `max_judge_calls`; step f
+leaves one call per person for it. When the run's judge is the local
+model only, nothing goes to Claude unless the owner ticks «Usar Claude
+para la síntesis» (`claude_synthesis`, `--claude_synthesis`); without
+it the local model writes the profile and the step's note says so.
+Replies are cached: the same facts and job cost no call. A person the
+model fails on is skipped with the reason; a budget refusal fails the
+step, to resume.
+
+**Output** (`synthesis.json`, and a «Síntesis» section on top of each
+`report-<n>.html` with the note *borrador generado por Claude a partir
+de las evidencias; es una ayuda para la entrevista, no una decisión*):
+per person, *En qué destaca* (2–4 points), *Qué no se ha podido
+observar*, *Encaje con el puesto* (or *Para qué tipo de tareas parece
+útil* without a job) with follow-up questions, and *Confianza*.
+
+**Guardrails.** In the prompt (`domain/skills/synthesis.SYSTEM_PROMPT`):
+only the listed items, every point cites a quote id, provisional
+material said as such, behaviour not person (no personality labels, no
+guesses about age, gender, origin, accent, health, politics, beliefs or
+other personal attributes), no comparison or ranking of the
+participants, no hiring verdict or score, the job description is data
+and not instructions, the session's language. Checked after
+(`check_reply`): a point is kept only when it cites at least one
+existing `Q` id (event ids alone do not count); points and questions
+naming another participant, or matching a coarse word list for a
+hiring verdict, a personality label or a personal attribute, are
+dropped; what was dropped is counted by reason. Each kept point says
+whether it rests on a firm level, a provisional estimate or an
+observation (the firmest of its quotes). *Qué no se ha podido
+observar* (competencies with no level and nothing quoted) and the
+confidence are computed from the analysis, never taken from the model:
+`high` with 4 or more firm levels backed by 8 or more quotes and 300 or
+more words, `medium` with 2 firm levels or 3 firm plus provisional,
+`low` otherwise (display choices, not measured values). The word list
+is a safety net, not a classifier: it can drop a sound point that
+names a colleague and miss a breach phrased otherwise; the report's
+limits (§10) are repeated in the section.
+
+Demo on the simulated discussion (2026-11-15, CPU, judge
+`claude_code`, invented job: «Responsable de turno de obrador …
+coordinar, escuchar al equipo y cerrar acuerdos con fecha»): step i
+alone after the stored steps a–h, 4 Claude Code calls, 53.0 s; 27
+points kept, 2 dropped (both naming another participant). Confidence:
+Lucía, Andrés and Nerea `high`, Joaquín `medium`. Run again with the
+same job: 0 calls (cache). Not checked against a human reading of the
+script; the profiles are a model's draft of invented people.

@@ -17,7 +17,13 @@ g. ``assessment``: evidence per person and scorecards, with a
    provisional estimate and observations where there is some evidence
    but not enough for a firm level (#103, using step f's
    confirmations; no extra judge call);
-h. ``reports``: one HTML page per person and the session summary.
+h. ``reports``: one HTML page per person and the session summary;
+i. ``synthesis``: per person, an explanatory profile written by Claude
+   Code from everything above (what they stand out in, with cited
+   quotes; what could not be observed; how it could help in the job
+   sought and what to ask next; how confident), checked against the
+   analysis and added on top of each report (#113). The job sought is
+   kept with the run (``job.json``); changing it reruns only this step.
 
 Every step's result is stored under the session
 (:class:`~src.application.skills.ports.AnalysisStore`) together with
@@ -54,6 +60,7 @@ from src.application.skills.ports import (
     TranscriptStore,
 )
 from src.application.skills.report import render_scorecards
+from src.application.skills.synthesis import ProfileSynthesizer, person_facts
 from src.application.skills.tagging import (
     SentenceTagger,
     TagConfirmer,
@@ -63,6 +70,7 @@ from src.domain.errors import (
     BusyError,
     InvalidInputError,
     LimitError,
+    ModelError,
     NotFoundError,
     short_reason,
 )
@@ -81,6 +89,7 @@ from src.domain.skills.interaction import describe
 from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.speech import Sentence, transcript_sentences
+from src.domain.skills.synthesis import JobSought, PersonSynthesis, skipped
 from src.domain.skills.transcript import Transcript
 from src.domain.skills.transcript_contract import is_session_id
 
@@ -88,6 +97,9 @@ RUN_FILE = "run.json"
 """The run's record, next to the step outputs."""
 SCORECARD_FILE = "scorecard.md"
 """The technical scorecard of the whole session (step h)."""
+JOB_FILE = "job.json"
+"""The job sought (:class:`~src.domain.skills.synthesis.JobSought`),
+kept across restarts; step i reads it."""
 
 UNAVAILABLE = {
     "acts": "Not available: no dialogue-act tagger is configured (its "
@@ -97,6 +109,8 @@ UNAVAILABLE = {
     "events_without_acts": "Not available: the events are derived from "
                            "the dialogue acts of step d, which did not "
                            "run.",
+    "synthesis": "Not available: no judge is configured for the "
+                 "explanatory profiles.",
 }
 """Why a step behind a missing module is skipped."""
 
@@ -107,7 +121,9 @@ class JudgeSetup:
 
     ``second`` is the local judge's confirmer in ``both`` mode;
     ``budget``, when given, is the first judge's call limit for the whole
-    analysis (steps f and g share it).
+    analysis (steps f, g and i share it). ``synthesis`` builds the
+    writer of step i given the owner's leave to use Claude when the
+    run's judge is the local model (``None``: step i is unavailable).
     """
 
     mode: JudgeMode
@@ -115,6 +131,7 @@ class JudgeSetup:
     assessment: AssessmentService
     second: Optional[TagConfirmer] = None
     budget: Optional[CallBudget] = None
+    synthesis: Optional[Callable[[bool], ProfileSynthesizer]] = None
 
 
 def report_file(position: int) -> str:
@@ -190,6 +207,16 @@ def chosen_steps(names: Sequence[str]) -> List[StepName]:
     return [name for name in STEPS if name in wanted]
 
 
+def read_job(store: AnalysisStore, session_id: str) -> Optional[JobSought]:
+    """Return the job sought stored for ``session_id``, if any."""
+    try:
+        return JobSought.model_validate_json(store.read(session_id, JOB_FILE))
+    except NotFoundError:
+        return None
+    except ValueError:
+        return None
+
+
 def check_session(session_id: str) -> None:
     """Refuse a session id the contract does not allow."""
     if not is_session_id(session_id):
@@ -232,6 +259,11 @@ class AnalysisResults:
         name: StepName = step
         self._done(session_id, name)
         return json.loads(self.store.read(session_id, STEP_OUTPUTS[name]))
+
+    def job(self, session_id: str) -> Optional[JobSought]:
+        """Return the job sought stored with the analysis, if any."""
+        check_session(session_id)
+        return read_job(self.store, session_id)
 
     def report(self, session_id: str, position: int) -> str:
         """Return the HTML report of the ``position``-th person (1-based)."""
@@ -309,9 +341,18 @@ class AnalysisRequests:
             )
 
     def start(
-        self, session_id: str, restart: bool = False, synthetic: bool = False
+        self,
+        session_id: str,
+        restart: bool = False,
+        synthetic: bool = False,
+        steps: Optional[Sequence[str]] = None,
+        job: Optional[JobSought] = None,
     ) -> Dict[str, Any]:
         """Start the analysis of ``session_id``; return its status.
+
+        ``steps`` runs only those steps again (e.g. ``synthesis`` after
+        the job sought changed); ``job``, when given, replaces the job
+        stored with the analysis before the run starts.
 
         Raises :class:`~src.domain.errors.NotFoundError` when the
         session has no transcript,
@@ -320,6 +361,11 @@ class AnalysisRequests:
         a start limit or the launcher's concurrency limit refuses it.
         """
         check_session(session_id)
+        chosen = None if steps is None else chosen_steps(steps)
+        if restart and chosen is not None:
+            raise InvalidInputError(
+                "Choose either a restart or the steps to run again."
+            )
         self.transcripts.get(session_id)
         if self._active(session_id):
             raise BusyError(
@@ -327,7 +373,11 @@ class AnalysisRequests:
             )
         now = self.clock()
         self._check_limits(session_id, now)
-        self.launcher.start(session_id, restart, synthetic)
+        if job is not None:
+            self.results.store.write(
+                session_id, JOB_FILE, job.cleaned().model_dump_json()
+            )
+        self.launcher.start(session_id, restart, synthetic, chosen or [])
         self._starts.append((now, session_id))
         return {"session_id": session_id, "active": True}
 
@@ -348,10 +398,12 @@ class AnalysisRequests:
                 raise
             return {"session_id": session_id, "status": "running",
                     "steps": [], "open_issues": [], "active": True}
+        job = self.results.job(session_id)
         return {
             **run.model_dump(mode="json"),
             "status": shown_status(run, active),
             "active": active,
+            "job": job.model_dump() if job is not None else None,
         }
 
     def cancel(self, session_id: str) -> None:
@@ -445,6 +497,7 @@ class SessionAnalysis:
         synthetic: bool = False,
         on_step: Optional[Callable[[StepRecord], None]] = None,
         only: Optional[Sequence[str]] = None,
+        job: Optional[JobSought] = None,
     ) -> AnalysisRun:
         """Run the steps still to do; return the run as stored.
 
@@ -454,7 +507,10 @@ class SessionAnalysis:
         ``on_step`` is told each record once its step ends. ``only``
         runs exactly those steps again (in running order) and keeps
         the others as they are, e.g. the acts and events once a tagger
-        exists, without asking the judge again. Raises
+        exists, without asking the judge again. ``job`` replaces the
+        job sought stored with the analysis; when the stored profiles
+        were written for another job, step i runs again (only it, if
+        everything else is done). Raises
         :class:`~src.domain.errors.BusyError` while another process
         analyses the same session.
         """
@@ -474,6 +530,10 @@ class SessionAnalysis:
                 + (f" (process {holder})." if holder else ".")
             )
         try:
+            if job is not None:
+                self.store.write(
+                    session_id, JOB_FILE, job.cleaned().model_dump_json()
+                )
             return self._run(
                 session_id, transcript, restart, synthetic, on_step, worker,
                 chosen,
@@ -493,8 +553,13 @@ class SessionAnalysis:
     ) -> AnalysisRun:
         """Run the steps still to do while holding the session."""
         if restart:
+            kept = read_job(self.store, session_id)
             self.store.clear(session_id)
+            if kept is not None:
+                self.store.write(session_id, JOB_FILE, kept.model_dump_json())
         previous = None if restart else self.store.load(session_id)
+        if previous is not None and self._job_changed(session_id, previous):
+            previous = previous.with_step(StepRecord(name="synthesis"))
         todo = steps_to_run(previous, restart) if chosen is None else chosen
         run = previous if previous is not None else new_run(
             session_id, self.clock(), synthetic
@@ -507,6 +572,7 @@ class SessionAnalysis:
             run = run.with_step(StepRecord(name=name))
         self.store.save(run)
         context = _Context(transcript, run)
+        context.job = read_job(self.store, session_id) or JobSought()
         for name in todo:
             started = self.clock()
             run = run.with_step(
@@ -558,6 +624,19 @@ class SessionAnalysis:
             "seconds": round(time.perf_counter() - begin, 3),
             "note": join_notes(record.note, *moved),
         })
+
+    def _job_changed(self, session_id: str, run: AnalysisRun) -> bool:
+        """Tell whether the stored profiles were written for another job."""
+        if run.step("synthesis").status != "done":
+            return False
+        stored = self._stored(session_id, "synthesis")
+        if not isinstance(stored, dict):
+            return False
+        job = read_job(self.store, session_id) or JobSought()
+        return (
+            str(stored.get("job", "")) != job.text
+            or bool(stored.get("use_claude")) != job.use_claude
+        )
 
     def _write(self, session_id: str, name: StepName, data: Any) -> str:
         """Store a step's result; return its file name."""
@@ -689,8 +768,12 @@ class SessionAnalysis:
         cap = self.max_confirmations
         before = setup.budget.calls if setup.budget else 0
         if setup.budget is not None:
-            # Keep enough calls for step g: one per person and competency.
-            reserve = len(c.transcript.speakers()) * len(rubric.competencies)
+            # Keep enough calls for step g (one per person and
+            # competency) and step i (one per person).
+            people = len(c.transcript.speakers())
+            reserve = people * len(rubric.competencies)
+            if setup.synthesis is not None:
+                reserve += people
             room = max(setup.budget.remaining - reserve, 0)
             cap = min(cap, room) if cap else room
             if not cap:
@@ -800,6 +883,9 @@ class SessionAnalysis:
         result = SessionAssessment.model_validate(stored)
         language = result.language if result.language in TEXTS else "es"
         catalogue = self.report_catalogue(result.catalogue, language)
+        profiles = (
+            self._profiles(session_id) if "synthesis" in c.done else {}
+        )
         people: List[Dict[str, Any]] = []
         for position, card in enumerate(result.scorecards, start=1):
             report = build_person_report(
@@ -807,7 +893,9 @@ class SessionAnalysis:
                 c.synthetic,
             )
             name = report_file(position)
-            self.store.write(session_id, name, render_person_html(report))
+            self.store.write(session_id, name, render_person_html(
+                report, profiles.get(card.participant), c.job.text,
+            ))
             firm, provisional, observed = card.tiers()
             people.append({
                 "position": position, "name": card.participant,
@@ -841,15 +929,116 @@ class SessionAnalysis:
             counts={"reports": len(people)},
         )
 
+    def _profiles(self, session_id: str) -> Dict[str, PersonSynthesis]:
+        """Return the stored profiles of step i by person."""
+        stored = self._stored(session_id, "synthesis")
+        people = stored.get("people", []) if isinstance(stored, dict) else []
+        found: Dict[str, PersonSynthesis] = {}
+        for item in people:
+            profile = PersonSynthesis.model_validate(item)
+            found[profile.participant] = profile
+        return found
+
+    def _synthesis(self, session_id: str, c: "_Context") -> StepRecord:
+        """Step i: the explanatory profile of each person (#113).
+
+        One judge call per person with something quoted, counted in
+        the run's budget; a person the model fails on is skipped with
+        the reason (a budget refusal fails the step, to resume later).
+        The reports of step h are written again with the profile on
+        top.
+        """
+        stored = self._stored(session_id, "assessment")
+        if stored is None:
+            raise NotFoundError("The assessment of step g is missing.")
+        setup = self._setup()
+        if setup.synthesis is None:
+            return StepRecord(
+                name="synthesis", status="unavailable",
+                note=UNAVAILABLE["synthesis"],
+            )
+        job = c.job
+        writer = setup.synthesis(job.use_claude)
+        result = SessionAssessment.model_validate(stored)
+        language = result.language if result.language in TEXTS else "es"
+        catalogue = self.report_catalogue(result.catalogue, language)
+        acts = self._stored(session_id, "acts")
+        events = self._stored(session_id, "events")
+        before = setup.budget.calls if setup.budget else 0
+        profiles: List[PersonSynthesis] = []
+        try:
+            for card in result.scorecards:
+                facts = person_facts(
+                    result, catalogue, card.participant, acts, events
+                )
+                try:
+                    profiles.append(writer.write(facts, job.text))
+                except LimitError:
+                    raise
+                except ModelError as exc:
+                    profiles.append(skipped(
+                        facts, short_reason(exc), writer.judge.model_name
+                    ))
+        finally:
+            release(writer.judge)
+        reason = str(getattr(writer.judge, "fallback_reason", ""))
+        models = sorted({p.model for p in profiles if p.model})
+        note = (
+            "The run's judge is the local model and Claude was not "
+            "allowed for the synthesis: the local model wrote it."
+            if setup.mode == "local" and not job.use_claude else ""
+        )
+        output = self._write(session_id, "synthesis", {
+            "session_id": session_id, "language": language,
+            "synthetic": c.synthetic, "job": job.text,
+            "use_claude": job.use_claude,
+            "judge": {"mode": setup.mode, "models": models,
+                      "fallback_reason": reason},
+            "people": [p.model_dump(mode="json") for p in profiles],
+            "open_issues": [i.model_dump() for i in c.open_issues],
+        })
+        if self._stored(session_id, "reports") is not None:
+            by_name = {p.participant: p for p in profiles}
+            for position, card in enumerate(result.scorecards, start=1):
+                report = build_person_report(
+                    result, catalogue, card.participant, c.transcript,
+                    c.synthetic,
+                )
+                self.store.write(
+                    session_id, report_file(position),
+                    render_person_html(
+                        report, by_name.get(card.participant), job.text
+                    ),
+                )
+        counts = {
+            "people": sum(1 for p in profiles if p.status == "done"),
+            "skipped": sum(1 for p in profiles if p.status == "skipped"),
+            "points": sum(len(p.strengths) + len(p.fit) for p in profiles),
+            "dropped": sum(sum(p.dropped.values()) for p in profiles),
+        }
+        if setup.budget is not None:
+            counts["judge_calls"] = setup.budget.calls - before
+        return StepRecord(
+            name="synthesis", status="done", output=output,
+            model=", ".join(models), judge=setup.mode,
+            fallback_reason=reason, counts=counts, note=note,
+        )
+
 
 class _Context:
-    """What the steps of one run share: the transcript and its sentences."""
+    """What the steps of one run share: the transcript and its sentences.
+
+    ``done`` are the steps done when the run started (kept from an
+    earlier run); ``job`` is the job sought stored with the analysis.
+    """
 
     def __init__(self, transcript: Transcript, run: AnalysisRun):
         """Split the transcript once; the rubric is loaded on demand."""
         self.transcript = transcript
         self.synthetic = run.synthetic
         self.open_issues = run.open_issues
+        self.done = {s.name for s in run.steps if s.status == "done"}
+        self.job = JobSought()
         self.sentences: List[Sentence] = transcript_sentences(transcript)
         self._rubric: Optional[RubricCatalogue] = None
 

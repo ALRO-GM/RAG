@@ -5,7 +5,7 @@
 /** The steps in the order they run (the RAG's names). */
 export const STEPS = [
   "sentences", "interaction", "candidates", "acts", "events",
-  "confirmation", "assessment", "reports",
+  "confirmation", "assessment", "reports", "synthesis",
 ];
 
 /** Step statuses the page knows; anything else is shown as "pending". */
@@ -16,7 +16,8 @@ export const COUNT_KEYS = [
   "sentences", "speakers", "turns", "words", "with_candidates", "candidates",
   "sent", "not_sent", "confirmed", "rejected", "unparsed", "participants",
   "judgements", "rated", "evidence", "reports", "doubtful", "by_encoder",
-  "by_rules", "judge_calls", "provisional", "observations",
+  "by_rules", "judge_calls", "provisional", "observations", "people", "skipped",
+  "points", "dropped",
 ];
 
 /** The 13 dialogue-act categories (their names are in the dictionaries). */
@@ -239,6 +240,71 @@ export function stillStarting(since, now) {
 /** The run shown between a start and the worker's first record. */
 export function startingRun(id) {
   return { session_id: id, status: "running", active: true, steps: [], open_issues: [] };
+}
+
+/** Longest job description the RAG keeps (characters). */
+export const MAX_JOB = 4000;
+
+/** The job sought stored with the analysis ("" when none). */
+export function jobOf(run) {
+  return typeof run?.job?.text === "string" ? run.job.text : "";
+}
+
+/** Whether Claude was allowed for the synthesis of the stored run. */
+export function claudeAllowed(run) {
+  return Boolean(run?.job?.use_claude);
+}
+
+/** Whether the page must ask before sending the session to Claude (the judge is the local model only). */
+export function asksForClaude(judge) {
+  return judge?.mode === "local";
+}
+
+/**
+ * The body of a start: always restart and synthetic; the job sought and
+ * the leave to use Claude when a job is given (even empty, to clear it);
+ * the steps to run again when some are named.
+ */
+export function startBody({ restart = false, synthetic = false, job = null, claudeSynthesis = false, steps = [] } = {}) {
+  const body = { restart, synthetic };
+  if (steps.length) body.steps = [...steps];
+  if (typeof job === "string") {
+    body.job = job.slice(0, MAX_JOB);
+    body.claude_synthesis = Boolean(claudeSynthesis);
+  }
+  return body;
+}
+
+/** Whether "redo only the synthesis" makes sense: a finished run whose reports exist. */
+export function canRedoSynthesis(run) {
+  if (!run || isActive(run)) return false;
+  return orderedSteps(run).some((s) => s.name === "reports" && s.status === "done");
+}
+
+/** Confidence levels of a synthesis. */
+export const SYNTHESIS_CONFIDENCE = ["low", "medium", "high"];
+
+/** The people of a synthesis result, each with its quotes and events apart. */
+export function synthesisPeople(result) {
+  const split = (point) => ({
+    text: point?.text ?? "",
+    basis: point?.basis ?? "observation",
+    quotes: (point?.cites ?? []).filter((c) => c.kind !== "event"),
+    events: (point?.cites ?? []).filter((c) => c.kind === "event"),
+  });
+  return (result?.people ?? []).map((p) => ({
+    name: p.participant,
+    status: p.status === "skipped" ? "skipped" : "done",
+    reason: p.reason ?? "",
+    model: p.model ?? "",
+    strengths: (p.strengths ?? []).map(split),
+    fit: (p.fit ?? []).map(split),
+    unobserved: p.unobserved ?? [],
+    questions: p.questions ?? [],
+    confidence: SYNTHESIS_CONFIDENCE.includes(p.confidence) ? p.confidence : "low",
+    basis: p.confidence_basis ?? {},
+    dropped: Object.values(p.dropped ?? {}).reduce((n, x) => n + (Number(x) || 0), 0),
+  }));
 }
 
 /** What to tell when a start is refused, by the transcriber's code. */

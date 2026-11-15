@@ -13,7 +13,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Sequence
 from urllib.parse import quote
 
 from transcriber.adapters.outbound.no_redirect import OPENER
@@ -52,12 +52,22 @@ class HttpSessionAnalysis:
         self.timeout = timeout
 
     def start(
-        self, session_id: str, restart: bool, synthetic: bool
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        steps: Sequence[str] = (),
+        job: Optional[str] = None,
+        claude_synthesis: bool = False,
     ) -> Dict[str, Any]:
         """Ask the RAG to start the analysis (``POST``)."""
-        answer = self._call("POST", session_id, {
-            "restart": restart, "synthetic": synthetic,
-        })
+        body: Dict[str, Any] = {"restart": restart, "synthetic": synthetic}
+        if steps:
+            body["steps"] = list(steps)
+        if job is not None:
+            body["job"] = job
+            body["claude_synthesis"] = claude_synthesis
+        answer = self._call("POST", session_id, body)
         return self._object(json.loads(answer))
 
     def status(self, session_id: str) -> Dict[str, Any]:

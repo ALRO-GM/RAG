@@ -8,9 +8,10 @@ import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { helpHref } from "../lib/help-analysis.js";
 import {
-  COUNT_KEYS, OPEN_ISSUES, SOURCES, actRows, byPerson, cellText, clock, doubtfulCount, eventRows, isActive,
-  orderedSteps, ratingRows, reasonText, reportBlob, reportFileName, reviewRows, startMode, startRefusal,
-  startingRun, stepStatus, stillStarting, tagChip, tagged, transcriptLink, verdict, whyText,
+  COUNT_KEYS, MAX_JOB, OPEN_ISSUES, SOURCES, actRows, asksForClaude, byPerson, canRedoSynthesis, cellText,
+  claudeAllowed, clock, doubtfulCount, eventRows, isActive, jobOf, orderedSteps, ratingRows, reasonText,
+  reportBlob, reportFileName, reviewRows, startMode, startRefusal, startingRun, stepStatus, stillStarting,
+  synthesisPeople, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
 import { publishWhenFree } from "../lib/names.js";
 
@@ -25,6 +26,16 @@ export async function analysisView(ctx, root, [rawId]) {
   const opened = new Map(); // step name -> its result panel, kept open across refreshes
 
   const synthetic = h("input", { type: "checkbox", id: "an-synthetic" });
+  // The job sought (#113): kept with the analysis, read by the synthesis.
+  let jobEdited = false;
+  const job = h("textarea", {
+    id: "an-job", rows: "4", maxlength: String(MAX_JOB), placeholder: t("sa.job_placeholder"),
+    onInput: () => { jobEdited = true; },
+  });
+  const useClaude = h("input", { type: "checkbox", id: "an-claude" });
+  const claudeLabel = h("label", { class: "check" }, useClaude, h("span", {}, t("sa.claude_synthesis")));
+  claudeLabel.hidden = true;
+  const redo = h("button", { type: "button", onClick: () => begin(false, ["synthesis"]) }, t("sa.redo_synthesis"));
   const start = h("button", { type: "button", class: "primary big", onClick: () => begin(false) });
   const restart = h("button", { type: "button", onClick: () => begin(true) }, t("sa.restart"));
   const cancel = h("button", { type: "button", class: "danger", onClick: () => stop() }, t("sa.cancel"));
@@ -42,7 +53,10 @@ export async function analysisView(ctx, root, [rawId]) {
     h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
     h("div", { class: "stack" },
       h("label", { class: "check" }, synthetic, h("span", {}, t("sa.synthetic"))),
-      h("div", { class: "stack" }, start, restart, cancel), message),
+      h("label", { for: "an-job" }, h("strong", {}, t("sa.job_title"))),
+      h("p", { class: "hint" }, t("sa.job_hint")),
+      job, claudeLabel,
+      h("div", { class: "stack" }, start, restart, redo, cancel), message),
     summary, steps);
 
   function say(text, error = false) {
@@ -57,6 +71,11 @@ export async function analysisView(ctx, root, [rawId]) {
     restart.hidden = !run || mode === "running";
     cancel.hidden = mode !== "running";
     if (run?.synthetic) synthetic.checked = true;
+    redo.hidden = !canRedoSynthesis(run);
+    if (run && !jobEdited) {
+      job.value = jobOf(run);
+      useClaude.checked = claudeAllowed(run);
+    }
     summary.textContent = run ? t(`sa.run_${isActive(run) ? "running" : run.status}`) : t("sa.never");
     fill(steps, orderedSteps(run).map(stepItem));
   }
@@ -197,7 +216,52 @@ export async function analysisView(ctx, root, [rawId]) {
           h("button", { type: "button", onClick: () => download(person) }, t("sa.download_report"))))),
       ];
     }
+    if (name === "synthesis") {
+      return [
+        h("p", { class: "notice" }, t("sa.syn_note")),
+        result.job ? h("p", { class: "hint" }, t("sa.syn_job", { job: result.job })) : null,
+        synthesisPeople(result).map((person) => synthesisBlock(person, Boolean(result.job))),
+      ];
+    }
     return h("pre", {}, JSON.stringify(result, null, 1));
+  }
+
+  // One person's explanatory profile: every point with the quotes it
+  // cites, each with its minute linking to the transcript.
+  function synthesisBlock(person, withJob) {
+    const head = h("summary", {}, h("strong", {}, person.name), " · ",
+      t("sa.syn_confidence", { level: t(`sa.syn_conf_${person.confidence}`) }));
+    if (person.status === "skipped") {
+      const reason = person.reason === "no_evidence" ? t("sa.syn_no_evidence") : person.reason;
+      return h("details", { class: "review" }, head, h("p", { class: "hint" }, t("sa.syn_skipped", { reason })));
+    }
+    const point = (p) => h("li", { class: "stack" },
+      h("span", {}, p.text, " ", h("span", { class: "hint" }, `(${t(`sa.syn_basis_${p.basis}`)})`)),
+      h("ul", { class: "plain" }, p.quotes.map((q) => h("li", {}, moment(q.start), " «", q.text, "» ",
+        h("span", { class: "hint" }, `(${q.competency_id} · ${t(`sa.syn_basis_${q.kind}`)})`)))),
+      p.events.length
+        ? h("ul", { class: "plain" }, p.events.map((e) => h("li", { class: "hint" }, moment(e.start), " ", e.text)))
+        : null);
+    const points = (items) => (items.length
+      ? h("ul", { class: "plain" }, items.map(point))
+      : h("p", { class: "hint" }, t("sa.syn_none")));
+    const b = person.basis;
+    return h("details", { class: "review" }, head,
+      h("h3", {}, t("sa.syn_strengths")), points(person.strengths),
+      h("h3", {}, t("sa.syn_unobserved")),
+      person.unobserved.length
+        ? h("ul", {}, person.unobserved.map((n) => h("li", {}, n)))
+        : h("p", { class: "hint" }, t("sa.syn_unobserved_none")),
+      h("h3", {}, t(withJob ? "sa.syn_fit" : "sa.syn_tasks")), points(person.fit),
+      person.questions.length
+        ? [h("h3", {}, t("sa.syn_questions")), h("ul", {}, person.questions.map((q) => h("li", {}, q)))]
+        : null,
+      h("p", { class: "hint" }, t("sa.syn_conf_reason", {
+        firm: b.firm ?? 0, firm_quotes: b.firm_quotes ?? 0, provisional: b.provisional ?? 0,
+        quotes: b.quotes ?? 0, words: b.words ?? 0,
+      })),
+      person.dropped ? h("p", { class: "hint" }, t("sa.syn_dropped", { count: person.dropped })) : null,
+      person.model ? h("p", { class: "hint" }, t("sa.syn_model", { model: person.model })) : null);
   }
 
   // One person's provisional estimates and observations, each sentence
@@ -260,10 +324,11 @@ export async function analysisView(ctx, root, [rawId]) {
     await refresh();
   }
 
-  async function begin(again) {
+  async function begin(again, steps = []) {
     if (again && !confirm(t("sa.restart_confirm"))) return;
     start.disabled = true;
     restart.disabled = true;
+    redo.disabled = true;
     say(t("sa.publishing"));
     try {
       // Not while the speakers' names are searched: they would be missing.
@@ -279,17 +344,23 @@ export async function analysisView(ctx, root, [rawId]) {
         say(describeError(error), true);
         draw();
         restart.disabled = false;
+        redo.disabled = false;
         return;
       }
     }
     try {
-      await ctx.api.startAnalysis(id, { restart: again, synthetic: synthetic.checked });
+      await ctx.api.startAnalysis(id, {
+        restart: again, synthetic: synthetic.checked, steps,
+        job: job.value, claudeSynthesis: !claudeLabel.hidden && useClaude.checked,
+      });
+      jobEdited = false;
       say(t("sa.started"));
       starting = Date.now();
     } catch (error) {
       say(startRefusal(t, error, describeError), true);
     }
     restart.disabled = false;
+    redo.disabled = false;
     await refresh();
   }
 
@@ -309,6 +380,10 @@ export async function analysisView(ctx, root, [rawId]) {
     if (isActive(run) && !stopped) timer = setTimeout(refresh, POLL_MS);
   }
 
+  // Ask before sending this session to Claude only when the judge is the local model.
+  ctx.api.analysisJudge().then((judge) => {
+    claudeLabel.hidden = !asksForClaude(judge);
+  }).catch(() => {});
   draw();
   await refresh();
   return () => {
