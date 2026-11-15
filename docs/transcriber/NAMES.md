@@ -274,15 +274,19 @@ in the old sessions are the rules' own self-introduction mistakes of
 place. The service never names automatically without the model, so
 these rules rows are a baseline, not what a user sees.
 
-**With the model: not measured yet.** The 8B and 4B rows (prompt v3)
-could not be run for this change: the GPU was held by the running
-transcriber service for the whole session (about 0 GB free) and no
-other process is ever stopped. To measure, when the GPU is free:
+**With the model** (prompt v3, all 16 sessions, RTX 3070 Ti, run on
+2026-11-15 after the GPU was freed; rows in `results.jsonl`):
 
-    HF_HUB_OFFLINE=1 PYTHONPATH=. .venv/bin/python \
-        experiments/transcriber/speaker_names_eval.py --mode model \
-        --model Qwen/Qwen3-8B --device cuda
-    (then --model Qwen/Qwen3-4B)
+| Mode | Automatic: given / right / wrong | Suggestions: given / right | s per session | GPU peak |
+|---|---|---|---|---|
+| Rules + Qwen3-8B | 18 / 18 / **0** | 24 / 17 | 7.3 | 6.36 GB |
+| Rules + Qwen3-4B | 20 / 20 / **0** | 23 / 18 | 6.6 | 2.9 GB |
+
+No wrong automatic name with either model. On the owner's real debate
+(local, counts only) the 8B gave 4 automatic names, one per participant
+voice (535 s for 60 model reads); the 4B gave none automatically and
+left them as close suggestions (two voices competing for the same
+surname). The slow real-model test was not rerun.
 
 **Tuning, honestly.** `min_votes` = 6 and `margin` = 3, the vote
 weights, the stop-words added and the moderator threshold were chosen
