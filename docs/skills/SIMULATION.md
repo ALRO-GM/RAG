@@ -111,6 +111,28 @@ two of the four voices come from one model (same recording conditions).
 Word error and speaker attribution measured on it are a best case, not
 an estimate for real meetings (#19 is the real measurement).
 
-## 3. Results
+## 3. Results so far (2026-11-15)
 
-See §4 for the run on the workstation.
+Text level: one real run with Claude Code is in `DESIGN.md` §11 and
+`docs/ESTADO.md` §4.7.
+
+Audio level: **prepared, not yet run end to end.** On the workstation,
+with the GPU busy with other work, everything ran on the CPU
+(`CUDA_VISIBLE_DEVICES=`) in a data directory of its own (never the
+live service's):
+
+- rendering: done (43 s wall time; 14.6 to 14.8 minutes of audio, 238
+  sentences, 6 overlapping starts);
+- enrolment of the four voices with `python -m transcriber enrol`:
+  done, 272 to 544 s per voice on a loaded CPU (the first attempt was
+  refused: samples of 17.5 s, under the 20 s minimum; the paragraph was
+  made longer);
+- `python -m transcriber import --expect lucia,andres,nerea,joaquin
+  --wait`: stopped by hand after 66 minutes without finishing, to free
+  the machine; no transcript, so no word error or attribution figure.
+
+To finish it, run the steps of §2 with the GPU free (`TORCH=cuda`), then
+compare the transcript with the reference (word error over the whole
+text; for each reference sentence, the transcript sentence that
+overlaps it most and whether its speaker is the same person), publish
+and analyse it from the «Análisis» page.
