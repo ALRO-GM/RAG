@@ -250,6 +250,33 @@ def speed(tagger: EncoderActTagger, items: Sequence[ActInput],
     return out
 
 
+def summary_files(own: Dict[str, Dict[str, Any]], directory: str
+                  ) -> List[str]:
+    """Write one ``act_tagger_<approach>.json`` per Spanish-set approach.
+
+    The shape the "Estudio" page charts (#91): ``approach``, ``items``,
+    ``top1_accuracy`` plus top-3, macro-F1, log-loss, ECE and per-category
+    F1. Same-subset rows (``... (same N)``) are left out: they repeat an
+    approach on fewer sentences.
+    """
+    written = []
+    for name, s in own.items():
+        if "(same" in name:
+            continue
+        slug = "".join(c if c.isalnum() else "_" for c in name).strip("_")
+        path = f"{directory}/act_tagger_{slug.lower()}.json"
+        write_json(path, {
+            "approach": name, "corpus": "own (Spanish set, 5-fold by "
+            "dialogue)", "items": s["sentences"],
+            "top1_accuracy": s["top1"], "top3_accuracy": s["top3"],
+            "macro_f1": s["macro_f1"], "log_loss": s["log_loss"],
+            "ece": s["ece"],
+            "f1": {c: v["f1"] for c, v in s["per_category"].items()},
+        })
+        written.append(path)
+    return written
+
+
 def table_row(name: str, s: Dict[str, Any]) -> str:
     """Return one Markdown row of the summary table."""
     f1 = s["macro_f1"]
@@ -396,6 +423,8 @@ def main() -> None:  # noqa: C901 - one linear experiment
                      result.items()}, flush=True)
     out = Path(args.output)
     write_json(str(out / "scores.json"), scores)
+    if "own" in scores:
+        summary_files(scores["own"], str(out.parent))
     if default is not None:
         chosen, predictions, corpus = default
         rates = reference_rates(corpus.references)

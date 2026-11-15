@@ -1,0 +1,5682 @@
+{
+ "own": {
+  "rules": {
+   "sentences": 1534,
+   "top1": 0.5189,
+   "top3": 0.7308,
+   "log_loss": 1.5249,
+   "ece": 0.0267,
+   "macro_f1": 0.449,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8058,
+     "recall": 0.8783,
+     "f1": 0.8405,
+     "support": 189,
+     "predicted": 206,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7634,
+     "recall": 0.8814,
+     "f1": 0.8182,
+     "support": 194,
+     "predicted": 224,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2748,
+     "recall": 0.924,
+     "f1": 0.4236,
+     "support": 171,
+     "predicted": 575,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.1828,
+     "f1": 0.2677,
+     "support": 93,
+     "predicted": 34,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6136,
+     "recall": 0.2596,
+     "f1": 0.3649,
+     "support": 104,
+     "predicted": 44,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5758,
+     "recall": 0.3654,
+     "f1": 0.4471,
+     "support": 52,
+     "predicted": 33,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.3889,
+     "recall": 0.2121,
+     "f1": 0.2745,
+     "support": 165,
+     "predicted": 90,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.4375,
+     "recall": 0.0714,
+     "f1": 0.1228,
+     "support": 98,
+     "predicted": 16,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.25,
+     "recall": 0.0103,
+     "f1": 0.0198,
+     "support": 97,
+     "predicted": 4,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5098,
+     "recall": 0.6341,
+     "f1": 0.5652,
+     "support": 123,
+     "predicted": 153,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.3636,
+     "recall": 0.0825,
+     "f1": 0.1345,
+     "support": 97,
+     "predicted": 22,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7981,
+     "recall": 0.7217,
+     "f1": 0.758,
+     "support": 115,
+     "predicted": 104,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8966,
+     "recall": 0.7222,
+     "f1": 0.8,
+     "support": 36,
+     "predicted": 29,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 166,
+     "propuesta": 4,
+     "peticion": 6,
+     "relacion": 13
+    },
+    "respuesta": {
+     "respuesta": 171,
+     "informacion": 6,
+     "opinion": 3,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 2,
+     "gestion": 4,
+     "relacion": 2
+    },
+    "informacion": {
+     "respuesta": 5,
+     "informacion": 158,
+     "propuesta": 2,
+     "aceptacion": 2,
+     "escucha": 1,
+     "gestion": 2,
+     "relacion": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "informacion": 65,
+     "opinion": 17,
+     "propuesta": 2,
+     "peticion": 2,
+     "aceptacion": 3,
+     "escucha": 1
+    },
+    "propuesta": {
+     "pregunta": 10,
+     "respuesta": 5,
+     "informacion": 48,
+     "opinion": 1,
+     "propuesta": 27,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 6,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "peticion": {
+     "pregunta": 17,
+     "respuesta": 2,
+     "informacion": 12,
+     "propuesta": 1,
+     "peticion": 19,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 16,
+     "informacion": 41,
+     "opinion": 12,
+     "peticion": 4,
+     "aceptacion": 35,
+     "escucha": 55,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "rechazo": {
+     "respuesta": 7,
+     "informacion": 71,
+     "opinion": 1,
+     "propuesta": 1,
+     "aceptacion": 3,
+     "rechazo": 7,
+     "compromiso": 2,
+     "escucha": 2,
+     "gestion": 3,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 13,
+     "informacion": 70,
+     "propuesta": 2,
+     "aceptacion": 4,
+     "rechazo": 5,
+     "compromiso": 1,
+     "gestion": 2
+    },
+    "escucha": {
+     "respuesta": 1,
+     "informacion": 17,
+     "aceptacion": 23,
+     "rechazo": 1,
+     "escucha": 78,
+     "relacion": 1,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 10,
+     "respuesta": 2,
+     "informacion": 65,
+     "propuesta": 4,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 2,
+     "gestion": 8,
+     "relacion": 1
+    },
+    "relacion": {
+     "pregunta": 2,
+     "informacion": 19,
+     "aceptacion": 5,
+     "rechazo": 1,
+     "escucha": 5,
+     "relacion": 83
+    },
+    "otro": {
+     "informacion": 3,
+     "aceptacion": 5,
+     "escucha": 1,
+     "relacion": 1,
+     "otro": 26
+    }
+   }
+  },
+  "encoder": {
+   "sentences": 1534,
+   "top1": 0.4296,
+   "top3": 0.7471,
+   "log_loss": 1.8406,
+   "ece": 0.2062,
+   "macro_f1": 0.3454,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7679,
+     "recall": 0.963,
+     "f1": 0.8545,
+     "support": 189,
+     "predicted": 237,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.5678,
+     "recall": 0.3454,
+     "f1": 0.4295,
+     "support": 194,
+     "predicted": 118,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2512,
+     "recall": 0.9532,
+     "f1": 0.3976,
+     "support": 171,
+     "predicted": 649,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.1552,
+     "recall": 0.2903,
+     "f1": 0.2022,
+     "support": 93,
+     "predicted": 174,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.3492,
+     "recall": 0.2115,
+     "f1": 0.2635,
+     "support": 104,
+     "predicted": 63,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.8,
+     "recall": 0.1538,
+     "f1": 0.2581,
+     "support": 52,
+     "predicted": 10,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.7778,
+     "recall": 0.1697,
+     "f1": 0.2786,
+     "support": 165,
+     "predicted": 36,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.7222,
+     "recall": 0.1327,
+     "f1": 0.2241,
+     "support": 98,
+     "predicted": 18,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 1.0,
+     "recall": 0.0103,
+     "f1": 0.0204,
+     "support": 97,
+     "predicted": 1,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6,
+     "recall": 0.2927,
+     "f1": 0.3934,
+     "support": 123,
+     "predicted": 60,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 97,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8033,
+     "recall": 0.8522,
+     "f1": 0.827,
+     "support": 115,
+     "predicted": 122,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.3043,
+     "recall": 0.3889,
+     "f1": 0.3415,
+     "support": 36,
+     "predicted": 46,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 182,
+     "informacion": 1,
+     "escucha": 1,
+     "relacion": 5
+    },
+    "respuesta": {
+     "respuesta": 67,
+     "informacion": 112,
+     "opinion": 8,
+     "propuesta": 4,
+     "rechazo": 1,
+     "relacion": 2
+    },
+    "informacion": {
+     "respuesta": 3,
+     "informacion": 163,
+     "opinion": 4,
+     "relacion": 1
+    },
+    "opinion": {
+     "respuesta": 3,
+     "informacion": 57,
+     "opinion": 27,
+     "propuesta": 3,
+     "aceptacion": 1,
+     "relacion": 2
+    },
+    "propuesta": {
+     "pregunta": 21,
+     "respuesta": 2,
+     "informacion": 57,
+     "opinion": 2,
+     "propuesta": 22
+    },
+    "peticion": {
+     "pregunta": 25,
+     "informacion": 8,
+     "propuesta": 10,
+     "peticion": 8,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 25,
+     "informacion": 29,
+     "opinion": 55,
+     "propuesta": 3,
+     "peticion": 1,
+     "aceptacion": 28,
+     "escucha": 17,
+     "relacion": 3,
+     "otro": 4
+    },
+    "rechazo": {
+     "respuesta": 5,
+     "informacion": 57,
+     "opinion": 19,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 13,
+     "relacion": 1
+    },
+    "compromiso": {
+     "respuesta": 10,
+     "informacion": 77,
+     "opinion": 2,
+     "propuesta": 5,
+     "aceptacion": 1,
+     "compromiso": 1,
+     "relacion": 1
+    },
+    "escucha": {
+     "respuesta": 2,
+     "informacion": 4,
+     "opinion": 47,
+     "propuesta": 1,
+     "aceptacion": 4,
+     "escucha": 36,
+     "relacion": 3,
+     "otro": 26
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 69,
+     "propuesta": 14,
+     "peticion": 1,
+     "relacion": 4,
+     "otro": 1
+    },
+    "relacion": {
+     "informacion": 7,
+     "opinion": 7,
+     "rechazo": 2,
+     "relacion": 98,
+     "otro": 1
+    },
+    "otro": {
+     "pregunta": 1,
+     "respuesta": 1,
+     "informacion": 8,
+     "opinion": 3,
+     "rechazo": 2,
+     "escucha": 6,
+     "relacion": 1,
+     "otro": 14
+    }
+   }
+  },
+  "encoder+T": {
+   "sentences": 1534,
+   "top1": 0.4296,
+   "top3": 0.7471,
+   "log_loss": 1.7149,
+   "ece": 0.0648,
+   "macro_f1": 0.3454,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7679,
+     "recall": 0.963,
+     "f1": 0.8545,
+     "support": 189,
+     "predicted": 237,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.5678,
+     "recall": 0.3454,
+     "f1": 0.4295,
+     "support": 194,
+     "predicted": 118,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2512,
+     "recall": 0.9532,
+     "f1": 0.3976,
+     "support": 171,
+     "predicted": 649,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.1552,
+     "recall": 0.2903,
+     "f1": 0.2022,
+     "support": 93,
+     "predicted": 174,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.3492,
+     "recall": 0.2115,
+     "f1": 0.2635,
+     "support": 104,
+     "predicted": 63,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.8,
+     "recall": 0.1538,
+     "f1": 0.2581,
+     "support": 52,
+     "predicted": 10,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.7778,
+     "recall": 0.1697,
+     "f1": 0.2786,
+     "support": 165,
+     "predicted": 36,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.7222,
+     "recall": 0.1327,
+     "f1": 0.2241,
+     "support": 98,
+     "predicted": 18,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 1.0,
+     "recall": 0.0103,
+     "f1": 0.0204,
+     "support": 97,
+     "predicted": 1,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6,
+     "recall": 0.2927,
+     "f1": 0.3934,
+     "support": 123,
+     "predicted": 60,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 97,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8033,
+     "recall": 0.8522,
+     "f1": 0.827,
+     "support": 115,
+     "predicted": 122,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.3043,
+     "recall": 0.3889,
+     "f1": 0.3415,
+     "support": 36,
+     "predicted": 46,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 182,
+     "informacion": 1,
+     "escucha": 1,
+     "relacion": 5
+    },
+    "respuesta": {
+     "respuesta": 67,
+     "informacion": 112,
+     "opinion": 8,
+     "propuesta": 4,
+     "rechazo": 1,
+     "relacion": 2
+    },
+    "informacion": {
+     "respuesta": 3,
+     "informacion": 163,
+     "opinion": 4,
+     "relacion": 1
+    },
+    "opinion": {
+     "respuesta": 3,
+     "informacion": 57,
+     "opinion": 27,
+     "propuesta": 3,
+     "aceptacion": 1,
+     "relacion": 2
+    },
+    "propuesta": {
+     "pregunta": 21,
+     "respuesta": 2,
+     "informacion": 57,
+     "opinion": 2,
+     "propuesta": 22
+    },
+    "peticion": {
+     "pregunta": 25,
+     "informacion": 8,
+     "propuesta": 10,
+     "peticion": 8,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 25,
+     "informacion": 29,
+     "opinion": 55,
+     "propuesta": 3,
+     "peticion": 1,
+     "aceptacion": 28,
+     "escucha": 17,
+     "relacion": 3,
+     "otro": 4
+    },
+    "rechazo": {
+     "respuesta": 5,
+     "informacion": 57,
+     "opinion": 19,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 13,
+     "relacion": 1
+    },
+    "compromiso": {
+     "respuesta": 10,
+     "informacion": 77,
+     "opinion": 2,
+     "propuesta": 5,
+     "aceptacion": 1,
+     "compromiso": 1,
+     "relacion": 1
+    },
+    "escucha": {
+     "respuesta": 2,
+     "informacion": 4,
+     "opinion": 47,
+     "propuesta": 1,
+     "aceptacion": 4,
+     "escucha": 36,
+     "relacion": 3,
+     "otro": 26
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 69,
+     "propuesta": 14,
+     "peticion": 1,
+     "relacion": 4,
+     "otro": 1
+    },
+    "relacion": {
+     "informacion": 7,
+     "opinion": 7,
+     "rechazo": 2,
+     "relacion": 98,
+     "otro": 1
+    },
+    "otro": {
+     "pregunta": 1,
+     "respuesta": 1,
+     "informacion": 8,
+     "opinion": 3,
+     "rechazo": 2,
+     "escucha": 6,
+     "relacion": 1,
+     "otro": 14
+    }
+   }
+  },
+  "combined": {
+   "sentences": 1534,
+   "top1": 0.5502,
+   "top3": 0.7386,
+   "log_loss": 1.5081,
+   "ece": 0.0601,
+   "macro_f1": 0.4842,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8058,
+     "recall": 0.8783,
+     "f1": 0.8405,
+     "support": 189,
+     "predicted": 206,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7703,
+     "recall": 0.8814,
+     "f1": 0.8221,
+     "support": 194,
+     "predicted": 222,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2926,
+     "recall": 0.924,
+     "f1": 0.4444,
+     "support": 171,
+     "predicted": 540,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.1828,
+     "f1": 0.2677,
+     "support": 93,
+     "predicted": 34,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6136,
+     "recall": 0.2596,
+     "f1": 0.3649,
+     "support": 104,
+     "predicted": 44,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5946,
+     "recall": 0.4231,
+     "f1": 0.4944,
+     "support": 52,
+     "predicted": 37,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5283,
+     "recall": 0.3394,
+     "f1": 0.4133,
+     "support": 165,
+     "predicted": 106,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.625,
+     "recall": 0.2041,
+     "f1": 0.3077,
+     "support": 98,
+     "predicted": 32,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.5,
+     "recall": 0.0103,
+     "f1": 0.0202,
+     "support": 97,
+     "predicted": 2,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5862,
+     "recall": 0.6911,
+     "f1": 0.6343,
+     "support": 123,
+     "predicted": 145,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.4211,
+     "recall": 0.0825,
+     "f1": 0.1379,
+     "support": 97,
+     "predicted": 19,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7373,
+     "recall": 0.7565,
+     "f1": 0.7468,
+     "support": 115,
+     "predicted": 118,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8966,
+     "recall": 0.7222,
+     "f1": 0.8,
+     "support": 36,
+     "predicted": 29,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 166,
+     "propuesta": 4,
+     "peticion": 6,
+     "relacion": 13
+    },
+    "respuesta": {
+     "respuesta": 171,
+     "informacion": 5,
+     "opinion": 3,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "escucha": 2,
+     "gestion": 4,
+     "relacion": 3
+    },
+    "informacion": {
+     "respuesta": 5,
+     "informacion": 158,
+     "propuesta": 2,
+     "aceptacion": 2,
+     "escucha": 1,
+     "gestion": 2,
+     "relacion": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "informacion": 62,
+     "opinion": 17,
+     "propuesta": 2,
+     "peticion": 2,
+     "aceptacion": 4,
+     "escucha": 1,
+     "relacion": 2
+    },
+    "propuesta": {
+     "pregunta": 10,
+     "respuesta": 5,
+     "informacion": 48,
+     "opinion": 1,
+     "propuesta": 27,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 6,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "peticion": {
+     "pregunta": 17,
+     "respuesta": 2,
+     "informacion": 9,
+     "propuesta": 1,
+     "peticion": 22,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 15,
+     "informacion": 36,
+     "opinion": 12,
+     "peticion": 4,
+     "aceptacion": 56,
+     "escucha": 39,
+     "relacion": 3
+    },
+    "rechazo": {
+     "respuesta": 6,
+     "informacion": 59,
+     "opinion": 1,
+     "propuesta": 1,
+     "aceptacion": 5,
+     "rechazo": 20,
+     "compromiso": 1,
+     "escucha": 2,
+     "gestion": 2,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 13,
+     "informacion": 70,
+     "propuesta": 2,
+     "aceptacion": 4,
+     "rechazo": 5,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "escucha": {
+     "respuesta": 1,
+     "informacion": 14,
+     "aceptacion": 19,
+     "rechazo": 1,
+     "escucha": 85,
+     "relacion": 1,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 10,
+     "respuesta": 2,
+     "informacion": 62,
+     "propuesta": 4,
+     "peticion": 2,
+     "aceptacion": 3,
+     "escucha": 1,
+     "gestion": 8,
+     "relacion": 5
+    },
+    "relacion": {
+     "pregunta": 2,
+     "informacion": 15,
+     "aceptacion": 5,
+     "rechazo": 2,
+     "escucha": 4,
+     "relacion": 87
+    },
+    "otro": {
+     "informacion": 2,
+     "aceptacion": 2,
+     "rechazo": 1,
+     "escucha": 4,
+     "relacion": 1,
+     "otro": 26
+    }
+   }
+  },
+  "encoder-es": {
+   "sentences": 1534,
+   "top1": 0.7314,
+   "top3": 0.9374,
+   "log_loss": 0.7991,
+   "ece": 0.0211,
+   "macro_f1": 0.693,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8852,
+     "recall": 0.9788,
+     "f1": 0.9296,
+     "support": 189,
+     "predicted": 209,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8479,
+     "recall": 0.9485,
+     "f1": 0.8954,
+     "support": 194,
+     "predicted": 217,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6784,
+     "recall": 0.6784,
+     "f1": 0.6784,
+     "support": 171,
+     "predicted": 171,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4717,
+     "recall": 0.2688,
+     "f1": 0.3425,
+     "support": 93,
+     "predicted": 53,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6981,
+     "recall": 0.7115,
+     "f1": 0.7048,
+     "support": 104,
+     "predicted": 106,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.7436,
+     "recall": 0.5577,
+     "f1": 0.6374,
+     "support": 52,
+     "predicted": 39,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.6627,
+     "recall": 0.6788,
+     "f1": 0.6707,
+     "support": 165,
+     "predicted": 169,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5583,
+     "recall": 0.6837,
+     "f1": 0.6147,
+     "support": 98,
+     "predicted": 120,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.6964,
+     "recall": 0.8041,
+     "f1": 0.7464,
+     "support": 97,
+     "predicted": 112,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6833,
+     "recall": 0.6667,
+     "f1": 0.6749,
+     "support": 123,
+     "predicted": 120,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.6377,
+     "recall": 0.4536,
+     "f1": 0.5301,
+     "support": 97,
+     "predicted": 69,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8455,
+     "recall": 0.9043,
+     "f1": 0.8739,
+     "support": 115,
+     "predicted": 123,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8462,
+     "recall": 0.6111,
+     "f1": 0.7097,
+     "support": 36,
+     "predicted": 26,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 185,
+     "propuesta": 1,
+     "peticion": 3
+    },
+    "respuesta": {
+     "respuesta": 184,
+     "informacion": 2,
+     "aceptacion": 3,
+     "rechazo": 2,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 8,
+     "informacion": 116,
+     "opinion": 12,
+     "propuesta": 6,
+     "peticion": 1,
+     "aceptacion": 2,
+     "rechazo": 9,
+     "compromiso": 6,
+     "escucha": 2,
+     "gestion": 7,
+     "relacion": 1,
+     "otro": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "informacion": 18,
+     "opinion": 25,
+     "propuesta": 4,
+     "aceptacion": 10,
+     "rechazo": 22,
+     "compromiso": 1,
+     "escucha": 3,
+     "gestion": 5,
+     "relacion": 4
+    },
+    "propuesta": {
+     "pregunta": 6,
+     "respuesta": 3,
+     "informacion": 4,
+     "opinion": 1,
+     "propuesta": 74,
+     "peticion": 2,
+     "aceptacion": 4,
+     "rechazo": 2,
+     "compromiso": 6,
+     "gestion": 1,
+     "otro": 1
+    },
+    "peticion": {
+     "pregunta": 8,
+     "informacion": 1,
+     "propuesta": 6,
+     "peticion": 29,
+     "compromiso": 3,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 9,
+     "informacion": 4,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 112,
+     "rechazo": 3,
+     "compromiso": 4,
+     "escucha": 23,
+     "gestion": 2,
+     "relacion": 2
+    },
+    "rechazo": {
+     "respuesta": 4,
+     "informacion": 13,
+     "opinion": 7,
+     "propuesta": 2,
+     "aceptacion": 1,
+     "rechazo": 67,
+     "compromiso": 2,
+     "gestion": 1,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 7,
+     "propuesta": 3,
+     "aceptacion": 5,
+     "rechazo": 3,
+     "compromiso": 78,
+     "gestion": 1
+    },
+    "escucha": {
+     "opinion": 2,
+     "aceptacion": 29,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 82,
+     "gestion": 1,
+     "relacion": 5,
+     "otro": 1
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 13,
+     "opinion": 1,
+     "propuesta": 8,
+     "peticion": 4,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "compromiso": 9,
+     "escucha": 1,
+     "gestion": 44,
+     "relacion": 4
+    },
+    "relacion": {
+     "opinion": 1,
+     "aceptacion": 1,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 4,
+     "gestion": 2,
+     "relacion": 104
+    },
+    "otro": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "rechazo": 5,
+     "escucha": 5,
+     "relacion": 1,
+     "otro": 22
+    }
+   }
+  },
+  "combined-es": {
+   "sentences": 1534,
+   "top1": 0.7321,
+   "top3": 0.9381,
+   "log_loss": 0.7924,
+   "ece": 0.021,
+   "macro_f1": 0.6988,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8894,
+     "recall": 0.9788,
+     "f1": 0.932,
+     "support": 189,
+     "predicted": 208,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8558,
+     "recall": 0.9485,
+     "f1": 0.8998,
+     "support": 194,
+     "predicted": 215,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6784,
+     "recall": 0.6784,
+     "f1": 0.6784,
+     "support": 171,
+     "predicted": 171,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4717,
+     "recall": 0.2688,
+     "f1": 0.3425,
+     "support": 93,
+     "predicted": 53,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6981,
+     "recall": 0.7115,
+     "f1": 0.7048,
+     "support": 104,
+     "predicted": 106,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.7436,
+     "recall": 0.5577,
+     "f1": 0.6374,
+     "support": 52,
+     "predicted": 39,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.6627,
+     "recall": 0.6788,
+     "f1": 0.6707,
+     "support": 165,
+     "predicted": 169,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5492,
+     "recall": 0.6837,
+     "f1": 0.6091,
+     "support": 98,
+     "predicted": 122,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.6852,
+     "recall": 0.7629,
+     "f1": 0.722,
+     "support": 97,
+     "predicted": 108,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6864,
+     "recall": 0.6585,
+     "f1": 0.6722,
+     "support": 123,
+     "predicted": 118,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.6377,
+     "recall": 0.4536,
+     "f1": 0.5301,
+     "support": 97,
+     "predicted": 69,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8455,
+     "recall": 0.9043,
+     "f1": 0.8739,
+     "support": 115,
+     "predicted": 123,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8485,
+     "recall": 0.7778,
+     "f1": 0.8116,
+     "support": 36,
+     "predicted": 33,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 185,
+     "propuesta": 1,
+     "peticion": 3
+    },
+    "respuesta": {
+     "respuesta": 184,
+     "informacion": 2,
+     "aceptacion": 3,
+     "rechazo": 2,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 8,
+     "informacion": 116,
+     "opinion": 12,
+     "propuesta": 6,
+     "peticion": 1,
+     "aceptacion": 2,
+     "rechazo": 9,
+     "compromiso": 6,
+     "escucha": 2,
+     "gestion": 7,
+     "relacion": 1,
+     "otro": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "informacion": 18,
+     "opinion": 25,
+     "propuesta": 4,
+     "aceptacion": 10,
+     "rechazo": 22,
+     "compromiso": 1,
+     "escucha": 3,
+     "gestion": 5,
+     "relacion": 4
+    },
+    "propuesta": {
+     "pregunta": 6,
+     "respuesta": 3,
+     "informacion": 4,
+     "opinion": 1,
+     "propuesta": 74,
+     "peticion": 2,
+     "aceptacion": 4,
+     "rechazo": 2,
+     "compromiso": 6,
+     "gestion": 1,
+     "otro": 1
+    },
+    "peticion": {
+     "pregunta": 8,
+     "informacion": 1,
+     "propuesta": 6,
+     "peticion": 29,
+     "compromiso": 3,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 9,
+     "informacion": 4,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 112,
+     "rechazo": 3,
+     "compromiso": 4,
+     "escucha": 23,
+     "gestion": 2,
+     "relacion": 2
+    },
+    "rechazo": {
+     "respuesta": 4,
+     "informacion": 13,
+     "opinion": 7,
+     "propuesta": 2,
+     "aceptacion": 1,
+     "rechazo": 67,
+     "compromiso": 2,
+     "gestion": 1,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 7,
+     "propuesta": 3,
+     "aceptacion": 5,
+     "rechazo": 7,
+     "compromiso": 74,
+     "gestion": 1
+    },
+    "escucha": {
+     "opinion": 2,
+     "aceptacion": 29,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 81,
+     "gestion": 1,
+     "relacion": 5,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 13,
+     "opinion": 1,
+     "propuesta": 8,
+     "peticion": 4,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "compromiso": 9,
+     "escucha": 1,
+     "gestion": 44,
+     "relacion": 4
+    },
+    "relacion": {
+     "opinion": 1,
+     "aceptacion": 1,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 4,
+     "gestion": 2,
+     "relacion": 104
+    },
+    "otro": {
+     "rechazo": 3,
+     "escucha": 4,
+     "relacion": 1,
+     "otro": 28
+    }
+   }
+  },
+  "llm:Qwen/Qwen3-8B@4bit": {
+   "sentences": 1534,
+   "top1": 0.5535,
+   "top3": 0.7777,
+   "log_loss": 1.5476,
+   "ece": 0.0183,
+   "macro_f1": 0.509,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7833,
+     "recall": 0.8413,
+     "f1": 0.8112,
+     "support": 189,
+     "predicted": 203,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.5106,
+     "recall": 0.2474,
+     "f1": 0.3333,
+     "support": 194,
+     "predicted": 94,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.4621,
+     "recall": 0.7485,
+     "f1": 0.5714,
+     "support": 171,
+     "predicted": 277,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.54,
+     "recall": 0.2903,
+     "f1": 0.3776,
+     "support": 93,
+     "predicted": 50,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.3814,
+     "recall": 0.7885,
+     "f1": 0.5141,
+     "support": 104,
+     "predicted": 215,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.2941,
+     "recall": 0.6731,
+     "f1": 0.4094,
+     "support": 52,
+     "predicted": 119,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5662,
+     "recall": 0.7515,
+     "f1": 0.6458,
+     "support": 165,
+     "predicted": 219,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.6545,
+     "recall": 0.3673,
+     "f1": 0.4706,
+     "support": 98,
+     "predicted": 55,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.7083,
+     "recall": 0.3505,
+     "f1": 0.469,
+     "support": 97,
+     "predicted": 48,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6939,
+     "recall": 0.5528,
+     "f1": 0.6154,
+     "support": 123,
+     "predicted": 98,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.75,
+     "recall": 0.2474,
+     "f1": 0.3721,
+     "support": 97,
+     "predicted": 32,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.6818,
+     "recall": 0.6522,
+     "f1": 0.6667,
+     "support": 115,
+     "predicted": 110,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.6429,
+     "recall": 0.25,
+     "f1": 0.36,
+     "support": 36,
+     "predicted": 14,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 159,
+     "respuesta": 4,
+     "opinion": 1,
+     "propuesta": 4,
+     "peticion": 5,
+     "aceptacion": 1,
+     "gestion": 1,
+     "relacion": 13,
+     "otro": 1
+    },
+    "respuesta": {
+     "pregunta": 7,
+     "respuesta": 48,
+     "informacion": 83,
+     "opinion": 3,
+     "propuesta": 24,
+     "peticion": 3,
+     "aceptacion": 8,
+     "rechazo": 3,
+     "compromiso": 2,
+     "escucha": 9,
+     "relacion": 3,
+     "otro": 1
+    },
+    "informacion": {
+     "pregunta": 2,
+     "respuesta": 9,
+     "informacion": 128,
+     "opinion": 1,
+     "propuesta": 17,
+     "peticion": 7,
+     "aceptacion": 1,
+     "rechazo": 2,
+     "gestion": 1,
+     "relacion": 2,
+     "otro": 1
+    },
+    "opinion": {
+     "pregunta": 4,
+     "respuesta": 5,
+     "informacion": 21,
+     "opinion": 27,
+     "propuesta": 10,
+     "peticion": 5,
+     "aceptacion": 10,
+     "rechazo": 5,
+     "relacion": 6
+    },
+    "propuesta": {
+     "pregunta": 4,
+     "respuesta": 2,
+     "informacion": 6,
+     "propuesta": 82,
+     "peticion": 7,
+     "compromiso": 1,
+     "relacion": 2
+    },
+    "peticion": {
+     "pregunta": 9,
+     "informacion": 1,
+     "propuesta": 7,
+     "peticion": 35
+    },
+    "aceptacion": {
+     "respuesta": 6,
+     "informacion": 3,
+     "opinion": 2,
+     "propuesta": 7,
+     "peticion": 5,
+     "aceptacion": 124,
+     "rechazo": 1,
+     "compromiso": 7,
+     "escucha": 8,
+     "relacion": 2
+    },
+    "rechazo": {
+     "pregunta": 3,
+     "respuesta": 5,
+     "informacion": 21,
+     "opinion": 14,
+     "propuesta": 9,
+     "peticion": 6,
+     "aceptacion": 1,
+     "rechazo": 36,
+     "escucha": 1,
+     "relacion": 2
+    },
+    "compromiso": {
+     "respuesta": 5,
+     "informacion": 4,
+     "propuesta": 21,
+     "peticion": 25,
+     "aceptacion": 7,
+     "compromiso": 34,
+     "gestion": 1
+    },
+    "escucha": {
+     "respuesta": 5,
+     "informacion": 2,
+     "peticion": 1,
+     "aceptacion": 43,
+     "rechazo": 2,
+     "escucha": 68,
+     "relacion": 1,
+     "otro": 1
+    },
+    "gestion": {
+     "pregunta": 6,
+     "respuesta": 1,
+     "informacion": 6,
+     "opinion": 1,
+     "propuesta": 33,
+     "peticion": 17,
+     "aceptacion": 4,
+     "compromiso": 3,
+     "gestion": 24,
+     "relacion": 2
+    },
+    "relacion": {
+     "pregunta": 2,
+     "respuesta": 1,
+     "informacion": 1,
+     "opinion": 1,
+     "peticion": 2,
+     "aceptacion": 19,
+     "rechazo": 5,
+     "escucha": 3,
+     "gestion": 5,
+     "relacion": 75,
+     "otro": 1
+    },
+    "otro": {
+     "pregunta": 7,
+     "respuesta": 3,
+     "informacion": 1,
+     "propuesta": 1,
+     "peticion": 1,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "compromiso": 1,
+     "escucha": 9,
+     "relacion": 2,
+     "otro": 9
+    }
+   }
+  },
+  "rules (same 1534)": {
+   "sentences": 1534,
+   "top1": 0.5189,
+   "top3": 0.7308,
+   "log_loss": 1.5249,
+   "ece": 0.0267,
+   "macro_f1": 0.449,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8058,
+     "recall": 0.8783,
+     "f1": 0.8405,
+     "support": 189,
+     "predicted": 206,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7634,
+     "recall": 0.8814,
+     "f1": 0.8182,
+     "support": 194,
+     "predicted": 224,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2748,
+     "recall": 0.924,
+     "f1": 0.4236,
+     "support": 171,
+     "predicted": 575,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.1828,
+     "f1": 0.2677,
+     "support": 93,
+     "predicted": 34,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6136,
+     "recall": 0.2596,
+     "f1": 0.3649,
+     "support": 104,
+     "predicted": 44,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5758,
+     "recall": 0.3654,
+     "f1": 0.4471,
+     "support": 52,
+     "predicted": 33,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.3889,
+     "recall": 0.2121,
+     "f1": 0.2745,
+     "support": 165,
+     "predicted": 90,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.4375,
+     "recall": 0.0714,
+     "f1": 0.1228,
+     "support": 98,
+     "predicted": 16,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.25,
+     "recall": 0.0103,
+     "f1": 0.0198,
+     "support": 97,
+     "predicted": 4,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5098,
+     "recall": 0.6341,
+     "f1": 0.5652,
+     "support": 123,
+     "predicted": 153,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.3636,
+     "recall": 0.0825,
+     "f1": 0.1345,
+     "support": 97,
+     "predicted": 22,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7981,
+     "recall": 0.7217,
+     "f1": 0.758,
+     "support": 115,
+     "predicted": 104,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8966,
+     "recall": 0.7222,
+     "f1": 0.8,
+     "support": 36,
+     "predicted": 29,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 166,
+     "propuesta": 4,
+     "peticion": 6,
+     "relacion": 13
+    },
+    "respuesta": {
+     "respuesta": 171,
+     "informacion": 6,
+     "opinion": 3,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 2,
+     "gestion": 4,
+     "relacion": 2
+    },
+    "informacion": {
+     "respuesta": 5,
+     "informacion": 158,
+     "propuesta": 2,
+     "aceptacion": 2,
+     "escucha": 1,
+     "gestion": 2,
+     "relacion": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "informacion": 65,
+     "opinion": 17,
+     "propuesta": 2,
+     "peticion": 2,
+     "aceptacion": 3,
+     "escucha": 1
+    },
+    "propuesta": {
+     "pregunta": 10,
+     "respuesta": 5,
+     "informacion": 48,
+     "opinion": 1,
+     "propuesta": 27,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 6,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "peticion": {
+     "pregunta": 17,
+     "respuesta": 2,
+     "informacion": 12,
+     "propuesta": 1,
+     "peticion": 19,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 16,
+     "informacion": 41,
+     "opinion": 12,
+     "peticion": 4,
+     "aceptacion": 35,
+     "escucha": 55,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "rechazo": {
+     "respuesta": 7,
+     "informacion": 71,
+     "opinion": 1,
+     "propuesta": 1,
+     "aceptacion": 3,
+     "rechazo": 7,
+     "compromiso": 2,
+     "escucha": 2,
+     "gestion": 3,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 13,
+     "informacion": 70,
+     "propuesta": 2,
+     "aceptacion": 4,
+     "rechazo": 5,
+     "compromiso": 1,
+     "gestion": 2
+    },
+    "escucha": {
+     "respuesta": 1,
+     "informacion": 17,
+     "aceptacion": 23,
+     "rechazo": 1,
+     "escucha": 78,
+     "relacion": 1,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 10,
+     "respuesta": 2,
+     "informacion": 65,
+     "propuesta": 4,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 2,
+     "gestion": 8,
+     "relacion": 1
+    },
+    "relacion": {
+     "pregunta": 2,
+     "informacion": 19,
+     "aceptacion": 5,
+     "rechazo": 1,
+     "escucha": 5,
+     "relacion": 83
+    },
+    "otro": {
+     "informacion": 3,
+     "aceptacion": 5,
+     "escucha": 1,
+     "relacion": 1,
+     "otro": 26
+    }
+   }
+  },
+  "encoder+T (same 1534)": {
+   "sentences": 1534,
+   "top1": 0.4296,
+   "top3": 0.7471,
+   "log_loss": 1.7149,
+   "ece": 0.0648,
+   "macro_f1": 0.3454,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7679,
+     "recall": 0.963,
+     "f1": 0.8545,
+     "support": 189,
+     "predicted": 237,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.5678,
+     "recall": 0.3454,
+     "f1": 0.4295,
+     "support": 194,
+     "predicted": 118,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2512,
+     "recall": 0.9532,
+     "f1": 0.3976,
+     "support": 171,
+     "predicted": 649,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.1552,
+     "recall": 0.2903,
+     "f1": 0.2022,
+     "support": 93,
+     "predicted": 174,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.3492,
+     "recall": 0.2115,
+     "f1": 0.2635,
+     "support": 104,
+     "predicted": 63,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.8,
+     "recall": 0.1538,
+     "f1": 0.2581,
+     "support": 52,
+     "predicted": 10,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.7778,
+     "recall": 0.1697,
+     "f1": 0.2786,
+     "support": 165,
+     "predicted": 36,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.7222,
+     "recall": 0.1327,
+     "f1": 0.2241,
+     "support": 98,
+     "predicted": 18,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 1.0,
+     "recall": 0.0103,
+     "f1": 0.0204,
+     "support": 97,
+     "predicted": 1,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6,
+     "recall": 0.2927,
+     "f1": 0.3934,
+     "support": 123,
+     "predicted": 60,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 97,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8033,
+     "recall": 0.8522,
+     "f1": 0.827,
+     "support": 115,
+     "predicted": 122,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.3043,
+     "recall": 0.3889,
+     "f1": 0.3415,
+     "support": 36,
+     "predicted": 46,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 182,
+     "informacion": 1,
+     "escucha": 1,
+     "relacion": 5
+    },
+    "respuesta": {
+     "respuesta": 67,
+     "informacion": 112,
+     "opinion": 8,
+     "propuesta": 4,
+     "rechazo": 1,
+     "relacion": 2
+    },
+    "informacion": {
+     "respuesta": 3,
+     "informacion": 163,
+     "opinion": 4,
+     "relacion": 1
+    },
+    "opinion": {
+     "respuesta": 3,
+     "informacion": 57,
+     "opinion": 27,
+     "propuesta": 3,
+     "aceptacion": 1,
+     "relacion": 2
+    },
+    "propuesta": {
+     "pregunta": 21,
+     "respuesta": 2,
+     "informacion": 57,
+     "opinion": 2,
+     "propuesta": 22
+    },
+    "peticion": {
+     "pregunta": 25,
+     "informacion": 8,
+     "propuesta": 10,
+     "peticion": 8,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 25,
+     "informacion": 29,
+     "opinion": 55,
+     "propuesta": 3,
+     "peticion": 1,
+     "aceptacion": 28,
+     "escucha": 17,
+     "relacion": 3,
+     "otro": 4
+    },
+    "rechazo": {
+     "respuesta": 5,
+     "informacion": 57,
+     "opinion": 19,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 13,
+     "relacion": 1
+    },
+    "compromiso": {
+     "respuesta": 10,
+     "informacion": 77,
+     "opinion": 2,
+     "propuesta": 5,
+     "aceptacion": 1,
+     "compromiso": 1,
+     "relacion": 1
+    },
+    "escucha": {
+     "respuesta": 2,
+     "informacion": 4,
+     "opinion": 47,
+     "propuesta": 1,
+     "aceptacion": 4,
+     "escucha": 36,
+     "relacion": 3,
+     "otro": 26
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 69,
+     "propuesta": 14,
+     "peticion": 1,
+     "relacion": 4,
+     "otro": 1
+    },
+    "relacion": {
+     "informacion": 7,
+     "opinion": 7,
+     "rechazo": 2,
+     "relacion": 98,
+     "otro": 1
+    },
+    "otro": {
+     "pregunta": 1,
+     "respuesta": 1,
+     "informacion": 8,
+     "opinion": 3,
+     "rechazo": 2,
+     "escucha": 6,
+     "relacion": 1,
+     "otro": 14
+    }
+   }
+  },
+  "combined (same 1534)": {
+   "sentences": 1534,
+   "top1": 0.5502,
+   "top3": 0.7386,
+   "log_loss": 1.5081,
+   "ece": 0.0601,
+   "macro_f1": 0.4842,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8058,
+     "recall": 0.8783,
+     "f1": 0.8405,
+     "support": 189,
+     "predicted": 206,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7703,
+     "recall": 0.8814,
+     "f1": 0.8221,
+     "support": 194,
+     "predicted": 222,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.2926,
+     "recall": 0.924,
+     "f1": 0.4444,
+     "support": 171,
+     "predicted": 540,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.1828,
+     "f1": 0.2677,
+     "support": 93,
+     "predicted": 34,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6136,
+     "recall": 0.2596,
+     "f1": 0.3649,
+     "support": 104,
+     "predicted": 44,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5946,
+     "recall": 0.4231,
+     "f1": 0.4944,
+     "support": 52,
+     "predicted": 37,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5283,
+     "recall": 0.3394,
+     "f1": 0.4133,
+     "support": 165,
+     "predicted": 106,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.625,
+     "recall": 0.2041,
+     "f1": 0.3077,
+     "support": 98,
+     "predicted": 32,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.5,
+     "recall": 0.0103,
+     "f1": 0.0202,
+     "support": 97,
+     "predicted": 2,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5862,
+     "recall": 0.6911,
+     "f1": 0.6343,
+     "support": 123,
+     "predicted": 145,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.4211,
+     "recall": 0.0825,
+     "f1": 0.1379,
+     "support": 97,
+     "predicted": 19,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7373,
+     "recall": 0.7565,
+     "f1": 0.7468,
+     "support": 115,
+     "predicted": 118,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8966,
+     "recall": 0.7222,
+     "f1": 0.8,
+     "support": 36,
+     "predicted": 29,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 166,
+     "propuesta": 4,
+     "peticion": 6,
+     "relacion": 13
+    },
+    "respuesta": {
+     "respuesta": 171,
+     "informacion": 5,
+     "opinion": 3,
+     "propuesta": 1,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "escucha": 2,
+     "gestion": 4,
+     "relacion": 3
+    },
+    "informacion": {
+     "respuesta": 5,
+     "informacion": 158,
+     "propuesta": 2,
+     "aceptacion": 2,
+     "escucha": 1,
+     "gestion": 2,
+     "relacion": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "informacion": 62,
+     "opinion": 17,
+     "propuesta": 2,
+     "peticion": 2,
+     "aceptacion": 4,
+     "escucha": 1,
+     "relacion": 2
+    },
+    "propuesta": {
+     "pregunta": 10,
+     "respuesta": 5,
+     "informacion": 48,
+     "opinion": 1,
+     "propuesta": 27,
+     "peticion": 1,
+     "aceptacion": 4,
+     "escucha": 6,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "peticion": {
+     "pregunta": 17,
+     "respuesta": 2,
+     "informacion": 9,
+     "propuesta": 1,
+     "peticion": 22,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 15,
+     "informacion": 36,
+     "opinion": 12,
+     "peticion": 4,
+     "aceptacion": 56,
+     "escucha": 39,
+     "relacion": 3
+    },
+    "rechazo": {
+     "respuesta": 6,
+     "informacion": 59,
+     "opinion": 1,
+     "propuesta": 1,
+     "aceptacion": 5,
+     "rechazo": 20,
+     "compromiso": 1,
+     "escucha": 2,
+     "gestion": 2,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 13,
+     "informacion": 70,
+     "propuesta": 2,
+     "aceptacion": 4,
+     "rechazo": 5,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "escucha": {
+     "respuesta": 1,
+     "informacion": 14,
+     "aceptacion": 19,
+     "rechazo": 1,
+     "escucha": 85,
+     "relacion": 1,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 10,
+     "respuesta": 2,
+     "informacion": 62,
+     "propuesta": 4,
+     "peticion": 2,
+     "aceptacion": 3,
+     "escucha": 1,
+     "gestion": 8,
+     "relacion": 5
+    },
+    "relacion": {
+     "pregunta": 2,
+     "informacion": 15,
+     "aceptacion": 5,
+     "rechazo": 2,
+     "escucha": 4,
+     "relacion": 87
+    },
+    "otro": {
+     "informacion": 2,
+     "aceptacion": 2,
+     "rechazo": 1,
+     "escucha": 4,
+     "relacion": 1,
+     "otro": 26
+    }
+   }
+  },
+  "encoder-es (same 1534)": {
+   "sentences": 1534,
+   "top1": 0.7314,
+   "top3": 0.9374,
+   "log_loss": 0.7991,
+   "ece": 0.0211,
+   "macro_f1": 0.693,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8852,
+     "recall": 0.9788,
+     "f1": 0.9296,
+     "support": 189,
+     "predicted": 209,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8479,
+     "recall": 0.9485,
+     "f1": 0.8954,
+     "support": 194,
+     "predicted": 217,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6784,
+     "recall": 0.6784,
+     "f1": 0.6784,
+     "support": 171,
+     "predicted": 171,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4717,
+     "recall": 0.2688,
+     "f1": 0.3425,
+     "support": 93,
+     "predicted": 53,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6981,
+     "recall": 0.7115,
+     "f1": 0.7048,
+     "support": 104,
+     "predicted": 106,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.7436,
+     "recall": 0.5577,
+     "f1": 0.6374,
+     "support": 52,
+     "predicted": 39,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.6627,
+     "recall": 0.6788,
+     "f1": 0.6707,
+     "support": 165,
+     "predicted": 169,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5583,
+     "recall": 0.6837,
+     "f1": 0.6147,
+     "support": 98,
+     "predicted": 120,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.6964,
+     "recall": 0.8041,
+     "f1": 0.7464,
+     "support": 97,
+     "predicted": 112,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6833,
+     "recall": 0.6667,
+     "f1": 0.6749,
+     "support": 123,
+     "predicted": 120,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.6377,
+     "recall": 0.4536,
+     "f1": 0.5301,
+     "support": 97,
+     "predicted": 69,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8455,
+     "recall": 0.9043,
+     "f1": 0.8739,
+     "support": 115,
+     "predicted": 123,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8462,
+     "recall": 0.6111,
+     "f1": 0.7097,
+     "support": 36,
+     "predicted": 26,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 185,
+     "propuesta": 1,
+     "peticion": 3
+    },
+    "respuesta": {
+     "respuesta": 184,
+     "informacion": 2,
+     "aceptacion": 3,
+     "rechazo": 2,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 8,
+     "informacion": 116,
+     "opinion": 12,
+     "propuesta": 6,
+     "peticion": 1,
+     "aceptacion": 2,
+     "rechazo": 9,
+     "compromiso": 6,
+     "escucha": 2,
+     "gestion": 7,
+     "relacion": 1,
+     "otro": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "informacion": 18,
+     "opinion": 25,
+     "propuesta": 4,
+     "aceptacion": 10,
+     "rechazo": 22,
+     "compromiso": 1,
+     "escucha": 3,
+     "gestion": 5,
+     "relacion": 4
+    },
+    "propuesta": {
+     "pregunta": 6,
+     "respuesta": 3,
+     "informacion": 4,
+     "opinion": 1,
+     "propuesta": 74,
+     "peticion": 2,
+     "aceptacion": 4,
+     "rechazo": 2,
+     "compromiso": 6,
+     "gestion": 1,
+     "otro": 1
+    },
+    "peticion": {
+     "pregunta": 8,
+     "informacion": 1,
+     "propuesta": 6,
+     "peticion": 29,
+     "compromiso": 3,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 9,
+     "informacion": 4,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 112,
+     "rechazo": 3,
+     "compromiso": 4,
+     "escucha": 23,
+     "gestion": 2,
+     "relacion": 2
+    },
+    "rechazo": {
+     "respuesta": 4,
+     "informacion": 13,
+     "opinion": 7,
+     "propuesta": 2,
+     "aceptacion": 1,
+     "rechazo": 67,
+     "compromiso": 2,
+     "gestion": 1,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 7,
+     "propuesta": 3,
+     "aceptacion": 5,
+     "rechazo": 3,
+     "compromiso": 78,
+     "gestion": 1
+    },
+    "escucha": {
+     "opinion": 2,
+     "aceptacion": 29,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 82,
+     "gestion": 1,
+     "relacion": 5,
+     "otro": 1
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 13,
+     "opinion": 1,
+     "propuesta": 8,
+     "peticion": 4,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "compromiso": 9,
+     "escucha": 1,
+     "gestion": 44,
+     "relacion": 4
+    },
+    "relacion": {
+     "opinion": 1,
+     "aceptacion": 1,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 4,
+     "gestion": 2,
+     "relacion": 104
+    },
+    "otro": {
+     "pregunta": 1,
+     "respuesta": 2,
+     "rechazo": 5,
+     "escucha": 5,
+     "relacion": 1,
+     "otro": 22
+    }
+   }
+  },
+  "combined-es (same 1534)": {
+   "sentences": 1534,
+   "top1": 0.7321,
+   "top3": 0.9381,
+   "log_loss": 0.7924,
+   "ece": 0.021,
+   "macro_f1": 0.6988,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.8894,
+     "recall": 0.9788,
+     "f1": 0.932,
+     "support": 189,
+     "predicted": 208,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8558,
+     "recall": 0.9485,
+     "f1": 0.8998,
+     "support": 194,
+     "predicted": 215,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6784,
+     "recall": 0.6784,
+     "f1": 0.6784,
+     "support": 171,
+     "predicted": 171,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4717,
+     "recall": 0.2688,
+     "f1": 0.3425,
+     "support": 93,
+     "predicted": 53,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.6981,
+     "recall": 0.7115,
+     "f1": 0.7048,
+     "support": 104,
+     "predicted": 106,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.7436,
+     "recall": 0.5577,
+     "f1": 0.6374,
+     "support": 52,
+     "predicted": 39,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.6627,
+     "recall": 0.6788,
+     "f1": 0.6707,
+     "support": 165,
+     "predicted": 169,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5492,
+     "recall": 0.6837,
+     "f1": 0.6091,
+     "support": 98,
+     "predicted": 122,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.6852,
+     "recall": 0.7629,
+     "f1": 0.722,
+     "support": 97,
+     "predicted": 108,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6864,
+     "recall": 0.6585,
+     "f1": 0.6722,
+     "support": 123,
+     "predicted": 118,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.6377,
+     "recall": 0.4536,
+     "f1": 0.5301,
+     "support": 97,
+     "predicted": 69,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.8455,
+     "recall": 0.9043,
+     "f1": 0.8739,
+     "support": 115,
+     "predicted": 123,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8485,
+     "recall": 0.7778,
+     "f1": 0.8116,
+     "support": 36,
+     "predicted": 33,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 185,
+     "propuesta": 1,
+     "peticion": 3
+    },
+    "respuesta": {
+     "respuesta": 184,
+     "informacion": 2,
+     "aceptacion": 3,
+     "rechazo": 2,
+     "compromiso": 1,
+     "gestion": 1,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 8,
+     "informacion": 116,
+     "opinion": 12,
+     "propuesta": 6,
+     "peticion": 1,
+     "aceptacion": 2,
+     "rechazo": 9,
+     "compromiso": 6,
+     "escucha": 2,
+     "gestion": 7,
+     "relacion": 1,
+     "otro": 1
+    },
+    "opinion": {
+     "pregunta": 1,
+     "informacion": 18,
+     "opinion": 25,
+     "propuesta": 4,
+     "aceptacion": 10,
+     "rechazo": 22,
+     "compromiso": 1,
+     "escucha": 3,
+     "gestion": 5,
+     "relacion": 4
+    },
+    "propuesta": {
+     "pregunta": 6,
+     "respuesta": 3,
+     "informacion": 4,
+     "opinion": 1,
+     "propuesta": 74,
+     "peticion": 2,
+     "aceptacion": 4,
+     "rechazo": 2,
+     "compromiso": 6,
+     "gestion": 1,
+     "otro": 1
+    },
+    "peticion": {
+     "pregunta": 8,
+     "informacion": 1,
+     "propuesta": 6,
+     "peticion": 29,
+     "compromiso": 3,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "aceptacion": {
+     "respuesta": 9,
+     "informacion": 4,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 112,
+     "rechazo": 3,
+     "compromiso": 4,
+     "escucha": 23,
+     "gestion": 2,
+     "relacion": 2
+    },
+    "rechazo": {
+     "respuesta": 4,
+     "informacion": 13,
+     "opinion": 7,
+     "propuesta": 2,
+     "aceptacion": 1,
+     "rechazo": 67,
+     "compromiso": 2,
+     "gestion": 1,
+     "otro": 1
+    },
+    "compromiso": {
+     "respuesta": 7,
+     "propuesta": 3,
+     "aceptacion": 5,
+     "rechazo": 7,
+     "compromiso": 74,
+     "gestion": 1
+    },
+    "escucha": {
+     "opinion": 2,
+     "aceptacion": 29,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 81,
+     "gestion": 1,
+     "relacion": 5,
+     "otro": 2
+    },
+    "gestion": {
+     "pregunta": 8,
+     "informacion": 13,
+     "opinion": 1,
+     "propuesta": 8,
+     "peticion": 4,
+     "aceptacion": 2,
+     "rechazo": 3,
+     "compromiso": 9,
+     "escucha": 1,
+     "gestion": 44,
+     "relacion": 4
+    },
+    "relacion": {
+     "opinion": 1,
+     "aceptacion": 1,
+     "rechazo": 2,
+     "compromiso": 1,
+     "escucha": 4,
+     "gestion": 2,
+     "relacion": 104
+    },
+    "otro": {
+     "rechazo": 3,
+     "escucha": 4,
+     "relacion": 1,
+     "otro": 28
+    }
+   }
+  },
+  "llm:claude-code:opus": {
+   "sentences": 140,
+   "top1": 0.7429,
+   "top3": 0.8786,
+   "log_loss": 1.1584,
+   "ece": 0.1241,
+   "macro_f1": 0.6603,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9412,
+     "recall": 0.7273,
+     "f1": 0.8205,
+     "support": 22,
+     "predicted": 17,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7727,
+     "recall": 0.9444,
+     "f1": 0.85,
+     "support": 18,
+     "predicted": 22,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 1.0,
+     "recall": 0.3636,
+     "f1": 0.5333,
+     "support": 11,
+     "predicted": 4,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.7778,
+     "recall": 0.7,
+     "f1": 0.7368,
+     "support": 10,
+     "predicted": 9,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.8462,
+     "recall": 0.7857,
+     "f1": 0.8148,
+     "support": 14,
+     "predicted": 13,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.4,
+     "recall": 0.4,
+     "f1": 0.4,
+     "support": 5,
+     "predicted": 5,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5333,
+     "recall": 1.0,
+     "f1": 0.6957,
+     "support": 8,
+     "predicted": 15,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5,
+     "recall": 0.7143,
+     "f1": 0.5882,
+     "support": 7,
+     "predicted": 10,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.8889,
+     "recall": 0.7273,
+     "f1": 0.8,
+     "support": 11,
+     "predicted": 9,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.8889,
+     "recall": 0.6667,
+     "f1": 0.7619,
+     "support": 12,
+     "predicted": 9,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.7273,
+     "recall": 1.0,
+     "f1": 0.8421,
+     "support": 8,
+     "predicted": 11,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.625,
+     "recall": 0.9091,
+     "f1": 0.7407,
+     "support": 11,
+     "predicted": 16,
+     "measurable": true
+    },
+    "otro": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 3,
+     "predicted": 0,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 16,
+     "rechazo": 1,
+     "gestion": 3,
+     "relacion": 2
+    },
+    "respuesta": {
+     "respuesta": 17,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 3,
+     "informacion": 4,
+     "peticion": 1,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "relacion": 1
+    },
+    "opinion": {
+     "opinion": 7,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "relacion": 1
+    },
+    "propuesta": {
+     "propuesta": 11,
+     "peticion": 2,
+     "compromiso": 1
+    },
+    "peticion": {
+     "propuesta": 2,
+     "peticion": 2,
+     "rechazo": 1
+    },
+    "aceptacion": {
+     "aceptacion": 8
+    },
+    "rechazo": {
+     "opinion": 2,
+     "rechazo": 5
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "aceptacion": 1,
+     "compromiso": 8
+    },
+    "escucha": {
+     "aceptacion": 3,
+     "escucha": 8,
+     "relacion": 1
+    },
+    "gestion": {
+     "gestion": 8
+    },
+    "relacion": {
+     "aceptacion": 1,
+     "relacion": 10
+    },
+    "otro": {
+     "pregunta": 1,
+     "rechazo": 1,
+     "escucha": 1
+    }
+   }
+  },
+  "rules (same 140)": {
+   "sentences": 140,
+   "top1": 0.4786,
+   "top3": 0.6643,
+   "log_loss": 1.6567,
+   "ece": 0.1083,
+   "macro_f1": 0.355,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9048,
+     "recall": 0.8636,
+     "f1": 0.8837,
+     "support": 22,
+     "predicted": 21,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8824,
+     "recall": 0.8333,
+     "f1": 0.8571,
+     "support": 18,
+     "predicted": 17,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.1698,
+     "recall": 0.8182,
+     "f1": 0.2812,
+     "support": 11,
+     "predicted": 53,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.2,
+     "f1": 0.2857,
+     "support": 10,
+     "predicted": 4,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.5,
+     "recall": 0.2857,
+     "f1": 0.3636,
+     "support": 14,
+     "predicted": 8,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5,
+     "recall": 0.2,
+     "f1": 0.2857,
+     "support": 5,
+     "predicted": 2,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.125,
+     "recall": 0.125,
+     "f1": 0.125,
+     "support": 8,
+     "predicted": 8,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.5,
+     "recall": 0.1429,
+     "f1": 0.2222,
+     "support": 7,
+     "predicted": 2,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 11,
+     "predicted": 0,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5833,
+     "recall": 0.5833,
+     "f1": 0.5833,
+     "support": 12,
+     "predicted": 12,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 8,
+     "predicted": 2,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7273,
+     "recall": 0.7273,
+     "f1": 0.7273,
+     "support": 11,
+     "predicted": 11,
+     "measurable": true
+    },
+    "otro": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 3,
+     "predicted": 0,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 19,
+     "propuesta": 1,
+     "relacion": 2
+    },
+    "respuesta": {
+     "respuesta": 15,
+     "informacion": 2,
+     "relacion": 1
+    },
+    "informacion": {
+     "informacion": 9,
+     "propuesta": 1,
+     "gestion": 1
+    },
+    "opinion": {
+     "informacion": 7,
+     "opinion": 2,
+     "peticion": 1
+    },
+    "propuesta": {
+     "pregunta": 2,
+     "informacion": 6,
+     "propuesta": 4,
+     "aceptacion": 1,
+     "escucha": 1
+    },
+    "peticion": {
+     "informacion": 2,
+     "propuesta": 1,
+     "peticion": 1,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "informacion": 3,
+     "opinion": 2,
+     "aceptacion": 1,
+     "escucha": 2
+    },
+    "rechazo": {
+     "informacion": 5,
+     "propuesta": 1,
+     "rechazo": 1
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "informacion": 9
+    },
+    "escucha": {
+     "informacion": 1,
+     "aceptacion": 3,
+     "rechazo": 1,
+     "escucha": 7
+    },
+    "gestion": {
+     "informacion": 6,
+     "aceptacion": 1,
+     "escucha": 1
+    },
+    "relacion": {
+     "informacion": 2,
+     "escucha": 1,
+     "relacion": 8
+    },
+    "otro": {
+     "informacion": 1,
+     "aceptacion": 2
+    }
+   }
+  },
+  "encoder+T (same 140)": {
+   "sentences": 140,
+   "top1": 0.4143,
+   "top3": 0.7357,
+   "log_loss": 1.7404,
+   "ece": 0.0816,
+   "macro_f1": 0.2999,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7778,
+     "recall": 0.9545,
+     "f1": 0.8571,
+     "support": 22,
+     "predicted": 27,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.6667,
+     "recall": 0.3333,
+     "f1": 0.4444,
+     "support": 18,
+     "predicted": 9,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.1833,
+     "recall": 1.0,
+     "f1": 0.3099,
+     "support": 11,
+     "predicted": 60,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.3077,
+     "recall": 0.4,
+     "f1": 0.3478,
+     "support": 10,
+     "predicted": 13,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 14,
+     "predicted": 4,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 5,
+     "predicted": 0,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 1.0,
+     "recall": 0.125,
+     "f1": 0.2222,
+     "support": 8,
+     "predicted": 1,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 1.0,
+     "recall": 0.2857,
+     "f1": 0.4444,
+     "support": 7,
+     "predicted": 2,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 11,
+     "predicted": 0,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5,
+     "recall": 0.1667,
+     "f1": 0.25,
+     "support": 12,
+     "predicted": 4,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 8,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7143,
+     "recall": 0.9091,
+     "f1": 0.8,
+     "support": 11,
+     "predicted": 14,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.1667,
+     "recall": 0.3333,
+     "f1": 0.2222,
+     "support": 3,
+     "predicted": 6,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 21,
+     "relacion": 1
+    },
+    "respuesta": {
+     "respuesta": 6,
+     "informacion": 9,
+     "opinion": 1,
+     "propuesta": 1,
+     "relacion": 1
+    },
+    "informacion": {
+     "informacion": 11
+    },
+    "opinion": {
+     "informacion": 5,
+     "opinion": 4,
+     "propuesta": 1
+    },
+    "propuesta": {
+     "pregunta": 5,
+     "informacion": 9
+    },
+    "peticion": {
+     "pregunta": 1,
+     "informacion": 2,
+     "propuesta": 2
+    },
+    "aceptacion": {
+     "informacion": 2,
+     "opinion": 4,
+     "aceptacion": 1,
+     "escucha": 1
+    },
+    "rechazo": {
+     "informacion": 4,
+     "opinion": 1,
+     "rechazo": 2
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "informacion": 9
+    },
+    "escucha": {
+     "respuesta": 1,
+     "informacion": 2,
+     "opinion": 3,
+     "escucha": 2,
+     "otro": 4
+    },
+    "gestion": {
+     "informacion": 6,
+     "relacion": 2
+    },
+    "relacion": {
+     "relacion": 10,
+     "otro": 1
+    },
+    "otro": {
+     "informacion": 1,
+     "escucha": 1,
+     "otro": 1
+    }
+   }
+  },
+  "combined (same 140)": {
+   "sentences": 140,
+   "top1": 0.5071,
+   "top3": 0.6857,
+   "log_loss": 1.6098,
+   "ece": 0.0931,
+   "macro_f1": 0.3908,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9048,
+     "recall": 0.8636,
+     "f1": 0.8837,
+     "support": 22,
+     "predicted": 21,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8824,
+     "recall": 0.8333,
+     "f1": 0.8571,
+     "support": 18,
+     "predicted": 17,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.1875,
+     "recall": 0.8182,
+     "f1": 0.3051,
+     "support": 11,
+     "predicted": 48,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5,
+     "recall": 0.2,
+     "f1": 0.2857,
+     "support": 10,
+     "predicted": 4,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.5,
+     "recall": 0.2857,
+     "f1": 0.3636,
+     "support": 14,
+     "predicted": 8,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.5,
+     "recall": 0.2,
+     "f1": 0.2857,
+     "support": 5,
+     "predicted": 2,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.25,
+     "recall": 0.25,
+     "f1": 0.25,
+     "support": 8,
+     "predicted": 8,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.75,
+     "recall": 0.4286,
+     "f1": 0.5455,
+     "support": 7,
+     "predicted": 4,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 11,
+     "predicted": 0,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.5833,
+     "recall": 0.5833,
+     "f1": 0.5833,
+     "support": 12,
+     "predicted": 12,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 8,
+     "predicted": 2,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.6429,
+     "recall": 0.8182,
+     "f1": 0.72,
+     "support": 11,
+     "predicted": 14,
+     "measurable": true
+    },
+    "otro": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 3,
+     "predicted": 0,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 19,
+     "propuesta": 1,
+     "relacion": 2
+    },
+    "respuesta": {
+     "respuesta": 15,
+     "informacion": 2,
+     "relacion": 1
+    },
+    "informacion": {
+     "informacion": 9,
+     "propuesta": 1,
+     "gestion": 1
+    },
+    "opinion": {
+     "informacion": 7,
+     "opinion": 2,
+     "peticion": 1
+    },
+    "propuesta": {
+     "pregunta": 2,
+     "informacion": 6,
+     "propuesta": 4,
+     "aceptacion": 1,
+     "escucha": 1
+    },
+    "peticion": {
+     "informacion": 2,
+     "propuesta": 1,
+     "peticion": 1,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "informacion": 2,
+     "opinion": 2,
+     "aceptacion": 2,
+     "escucha": 2
+    },
+    "rechazo": {
+     "informacion": 3,
+     "propuesta": 1,
+     "rechazo": 3
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "informacion": 9
+    },
+    "escucha": {
+     "informacion": 1,
+     "aceptacion": 3,
+     "rechazo": 1,
+     "escucha": 7
+    },
+    "gestion": {
+     "informacion": 5,
+     "aceptacion": 1,
+     "relacion": 2
+    },
+    "relacion": {
+     "informacion": 1,
+     "escucha": 1,
+     "relacion": 9
+    },
+    "otro": {
+     "informacion": 1,
+     "aceptacion": 1,
+     "escucha": 1
+    }
+   }
+  },
+  "encoder-es (same 140)": {
+   "sentences": 140,
+   "top1": 0.7,
+   "top3": 0.9143,
+   "log_loss": 0.8661,
+   "ece": 0.0854,
+   "macro_f1": 0.6368,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9545,
+     "recall": 0.9545,
+     "f1": 0.9545,
+     "support": 22,
+     "predicted": 22,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8095,
+     "recall": 0.9444,
+     "f1": 0.8718,
+     "support": 18,
+     "predicted": 21,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6,
+     "recall": 0.5455,
+     "f1": 0.5714,
+     "support": 11,
+     "predicted": 10,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.6667,
+     "recall": 0.4,
+     "f1": 0.5,
+     "support": 10,
+     "predicted": 6,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.7143,
+     "recall": 0.7143,
+     "f1": 0.7143,
+     "support": 14,
+     "predicted": 14,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 1.0,
+     "recall": 0.4,
+     "f1": 0.5714,
+     "support": 5,
+     "predicted": 2,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.4,
+     "recall": 0.5,
+     "f1": 0.4444,
+     "support": 8,
+     "predicted": 10,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.4167,
+     "recall": 0.7143,
+     "f1": 0.5263,
+     "support": 7,
+     "predicted": 12,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.5385,
+     "recall": 0.6364,
+     "f1": 0.5833,
+     "support": 11,
+     "predicted": 13,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6,
+     "recall": 0.5,
+     "f1": 0.5455,
+     "support": 12,
+     "predicted": 10,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.8,
+     "recall": 0.5,
+     "f1": 0.6154,
+     "support": 8,
+     "predicted": 5,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7857,
+     "recall": 1.0,
+     "f1": 0.88,
+     "support": 11,
+     "predicted": 14,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 1.0,
+     "recall": 0.3333,
+     "f1": 0.5,
+     "support": 3,
+     "predicted": 1,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 21,
+     "propuesta": 1
+    },
+    "respuesta": {
+     "respuesta": 17,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 1,
+     "informacion": 6,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "compromiso": 2
+    },
+    "opinion": {
+     "informacion": 3,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 1
+    },
+    "propuesta": {
+     "pregunta": 1,
+     "propuesta": 10,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "compromiso": 1
+    },
+    "peticion": {
+     "peticion": 2,
+     "compromiso": 2,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 1,
+     "aceptacion": 4,
+     "rechazo": 1,
+     "escucha": 2
+    },
+    "rechazo": {
+     "informacion": 1,
+     "opinion": 1,
+     "rechazo": 5
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "propuesta": 1,
+     "rechazo": 1,
+     "compromiso": 7
+    },
+    "escucha": {
+     "opinion": 1,
+     "aceptacion": 3,
+     "rechazo": 1,
+     "escucha": 6,
+     "relacion": 1
+    },
+    "gestion": {
+     "rechazo": 1,
+     "compromiso": 1,
+     "escucha": 1,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "relacion": {
+     "relacion": 11
+    },
+    "otro": {
+     "rechazo": 1,
+     "escucha": 1,
+     "otro": 1
+    }
+   }
+  },
+  "combined-es (same 140)": {
+   "sentences": 140,
+   "top1": 0.7,
+   "top3": 0.9143,
+   "log_loss": 0.8677,
+   "ece": 0.0918,
+   "macro_f1": 0.6368,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9545,
+     "recall": 0.9545,
+     "f1": 0.9545,
+     "support": 22,
+     "predicted": 22,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8095,
+     "recall": 0.9444,
+     "f1": 0.8718,
+     "support": 18,
+     "predicted": 21,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6,
+     "recall": 0.5455,
+     "f1": 0.5714,
+     "support": 11,
+     "predicted": 10,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.6667,
+     "recall": 0.4,
+     "f1": 0.5,
+     "support": 10,
+     "predicted": 6,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": 0.7143,
+     "recall": 0.7143,
+     "f1": 0.7143,
+     "support": 14,
+     "predicted": 14,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 1.0,
+     "recall": 0.4,
+     "f1": 0.5714,
+     "support": 5,
+     "predicted": 2,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.4,
+     "recall": 0.5,
+     "f1": 0.4444,
+     "support": 8,
+     "predicted": 10,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.4167,
+     "recall": 0.7143,
+     "f1": 0.5263,
+     "support": 7,
+     "predicted": 12,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.5385,
+     "recall": 0.6364,
+     "f1": 0.5833,
+     "support": 11,
+     "predicted": 13,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.6,
+     "recall": 0.5,
+     "f1": 0.5455,
+     "support": 12,
+     "predicted": 10,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.8,
+     "recall": 0.5,
+     "f1": 0.6154,
+     "support": 8,
+     "predicted": 5,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7857,
+     "recall": 1.0,
+     "f1": 0.88,
+     "support": 11,
+     "predicted": 14,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 1.0,
+     "recall": 0.3333,
+     "f1": 0.5,
+     "support": 3,
+     "predicted": 1,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 21,
+     "propuesta": 1
+    },
+    "respuesta": {
+     "respuesta": 17,
+     "relacion": 1
+    },
+    "informacion": {
+     "respuesta": 1,
+     "informacion": 6,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "compromiso": 2
+    },
+    "opinion": {
+     "informacion": 3,
+     "opinion": 4,
+     "propuesta": 2,
+     "aceptacion": 1
+    },
+    "propuesta": {
+     "pregunta": 1,
+     "propuesta": 10,
+     "aceptacion": 1,
+     "rechazo": 1,
+     "compromiso": 1
+    },
+    "peticion": {
+     "peticion": 2,
+     "compromiso": 2,
+     "gestion": 1
+    },
+    "aceptacion": {
+     "respuesta": 1,
+     "aceptacion": 4,
+     "rechazo": 1,
+     "escucha": 2
+    },
+    "rechazo": {
+     "informacion": 1,
+     "opinion": 1,
+     "rechazo": 5
+    },
+    "compromiso": {
+     "respuesta": 2,
+     "propuesta": 1,
+     "rechazo": 1,
+     "compromiso": 7
+    },
+    "escucha": {
+     "opinion": 1,
+     "aceptacion": 3,
+     "rechazo": 1,
+     "escucha": 6,
+     "relacion": 1
+    },
+    "gestion": {
+     "rechazo": 1,
+     "compromiso": 1,
+     "escucha": 1,
+     "gestion": 4,
+     "relacion": 1
+    },
+    "relacion": {
+     "relacion": 11
+    },
+    "otro": {
+     "rechazo": 1,
+     "escucha": 1,
+     "otro": 1
+    }
+   }
+  }
+ },
+ "ami": {
+  "rules": {
+   "sentences": 22805,
+   "top1": 0.5209,
+   "top3": 0.7504,
+   "log_loss": 1.5232,
+   "ece": 0.0168,
+   "macro_f1": 0.3764,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7133,
+     "recall": 0.6993,
+     "f1": 0.7062,
+     "support": 1480,
+     "predicted": 1451,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.4277,
+     "recall": 0.3181,
+     "f1": 0.3649,
+     "support": 1163,
+     "predicted": 865,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.4926,
+     "recall": 0.8695,
+     "f1": 0.6289,
+     "support": 5986,
+     "predicted": 10567,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4375,
+     "recall": 0.0059,
+     "f1": 0.0117,
+     "support": 2361,
+     "predicted": 32,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 2257,
+     "predicted": 537,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "aceptacion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 1365,
+     "predicted": 0,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 326,
+     "predicted": 0,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": 0.5585,
+     "recall": 0.8137,
+     "f1": 0.6623,
+     "support": 3317,
+     "predicted": 4833,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "relacion": {
+     "precision": 0.9246,
+     "recall": 0.3601,
+     "f1": 0.5183,
+     "support": 511,
+     "predicted": 199,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.4788,
+     "recall": 0.5123,
+     "f1": 0.495,
+     "support": 4039,
+     "predicted": 4321,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1035,
+     "respuesta": 12,
+     "informacion": 325,
+     "propuesta": 16,
+     "escucha": 14,
+     "otro": 78
+    },
+    "respuesta": {
+     "pregunta": 12,
+     "respuesta": 370,
+     "informacion": 407,
+     "opinion": 5,
+     "propuesta": 24,
+     "escucha": 205,
+     "otro": 140
+    },
+    "informacion": {
+     "pregunta": 76,
+     "respuesta": 123,
+     "informacion": 5205,
+     "propuesta": 84,
+     "escucha": 35,
+     "relacion": 1,
+     "otro": 462
+    },
+    "opinion": {
+     "pregunta": 31,
+     "respuesta": 46,
+     "informacion": 1051,
+     "opinion": 14,
+     "propuesta": 18,
+     "escucha": 648,
+     "relacion": 2,
+     "otro": 551
+    },
+    "propuesta": {
+     "pregunta": 118,
+     "respuesta": 31,
+     "informacion": 1619,
+     "propuesta": 303,
+     "escucha": 13,
+     "relacion": 1,
+     "otro": 172
+    },
+    "aceptacion": {
+     "pregunta": 11,
+     "respuesta": 39,
+     "informacion": 442,
+     "opinion": 10,
+     "propuesta": 9,
+     "escucha": 542,
+     "otro": 312
+    },
+    "rechazo": {
+     "pregunta": 5,
+     "respuesta": 10,
+     "informacion": 241,
+     "propuesta": 2,
+     "escucha": 32,
+     "relacion": 1,
+     "otro": 35
+    },
+    "escucha": {
+     "pregunta": 86,
+     "respuesta": 81,
+     "informacion": 62,
+     "opinion": 2,
+     "propuesta": 1,
+     "escucha": 2699,
+     "relacion": 7,
+     "otro": 379
+    },
+    "relacion": {
+     "pregunta": 28,
+     "respuesta": 7,
+     "informacion": 148,
+     "opinion": 1,
+     "propuesta": 16,
+     "escucha": 4,
+     "relacion": 184,
+     "otro": 123
+    },
+    "otro": {
+     "pregunta": 49,
+     "respuesta": 146,
+     "informacion": 1067,
+     "propuesta": 64,
+     "escucha": 641,
+     "relacion": 3,
+     "otro": 2069
+    }
+   }
+  },
+  "encoder": {
+   "sentences": 22805,
+   "top1": 0.6604,
+   "top3": 0.9018,
+   "log_loss": 0.9962,
+   "ece": 0.0062,
+   "macro_f1": 0.5528,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7421,
+     "recall": 0.7797,
+     "f1": 0.7605,
+     "support": 1480,
+     "predicted": 1555,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.4489,
+     "recall": 0.4531,
+     "f1": 0.451,
+     "support": 1163,
+     "predicted": 1174,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.7019,
+     "recall": 0.8099,
+     "f1": 0.752,
+     "support": 5986,
+     "predicted": 6907,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.4624,
+     "recall": 0.2656,
+     "f1": 0.3374,
+     "support": 2361,
+     "predicted": 1356,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 2222,
+     "predicted": 1913,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 35,
+     "predicted": 58,
+     "measurable": false
+    },
+    "aceptacion": {
+     "precision": 0.3345,
+     "recall": 0.2791,
+     "f1": 0.3043,
+     "support": 1365,
+     "predicted": 1139,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.2677,
+     "recall": 0.2546,
+     "f1": 0.261,
+     "support": 326,
+     "predicted": 310,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": 0.6687,
+     "recall": 0.8107,
+     "f1": 0.7329,
+     "support": 3317,
+     "predicted": 4021,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 8,
+     "measurable": false
+    },
+    "relacion": {
+     "precision": 0.8315,
+     "recall": 0.4442,
+     "f1": 0.5791,
+     "support": 511,
+     "predicted": 273,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.792,
+     "recall": 0.8022,
+     "f1": 0.797,
+     "support": 4039,
+     "predicted": 4091,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1154,
+     "respuesta": 24,
+     "informacion": 163,
+     "opinion": 11,
+     "propuesta": 48,
+     "peticion": 3,
+     "aceptacion": 4,
+     "rechazo": 3,
+     "escucha": 8,
+     "relacion": 3,
+     "otro": 59
+    },
+    "respuesta": {
+     "pregunta": 10,
+     "respuesta": 527,
+     "informacion": 215,
+     "opinion": 47,
+     "propuesta": 54,
+     "aceptacion": 90,
+     "rechazo": 69,
+     "escucha": 98,
+     "relacion": 3,
+     "otro": 50
+    },
+    "informacion": {
+     "pregunta": 86,
+     "respuesta": 185,
+     "informacion": 4848,
+     "opinion": 193,
+     "propuesta": 399,
+     "peticion": 6,
+     "aceptacion": 55,
+     "rechazo": 24,
+     "escucha": 20,
+     "gestion": 2,
+     "relacion": 5,
+     "otro": 163
+    },
+    "opinion": {
+     "pregunta": 25,
+     "respuesta": 139,
+     "informacion": 419,
+     "opinion": 627,
+     "propuesta": 47,
+     "peticion": 1,
+     "aceptacion": 330,
+     "rechazo": 46,
+     "escucha": 511,
+     "gestion": 1,
+     "relacion": 16,
+     "otro": 199
+    },
+    "propuesta": {
+     "pregunta": 92,
+     "respuesta": 26,
+     "informacion": 680,
+     "opinion": 25,
+     "propuesta": 1258,
+     "peticion": 2,
+     "aceptacion": 34,
+     "rechazo": 3,
+     "escucha": 15,
+     "gestion": 2,
+     "relacion": 1,
+     "otro": 84
+    },
+    "peticion": {
+     "informacion": 1,
+     "peticion": 27,
+     "aceptacion": 1,
+     "relacion": 2,
+     "otro": 4
+    },
+    "aceptacion": {
+     "pregunta": 7,
+     "respuesta": 112,
+     "informacion": 117,
+     "opinion": 192,
+     "propuesta": 19,
+     "aceptacion": 381,
+     "rechazo": 33,
+     "escucha": 415,
+     "gestion": 2,
+     "relacion": 3,
+     "otro": 84
+    },
+    "rechazo": {
+     "pregunta": 7,
+     "respuesta": 25,
+     "informacion": 112,
+     "opinion": 47,
+     "propuesta": 14,
+     "aceptacion": 14,
+     "rechazo": 83,
+     "escucha": 2,
+     "gestion": 1,
+     "otro": 21
+    },
+    "escucha": {
+     "pregunta": 85,
+     "respuesta": 74,
+     "informacion": 54,
+     "opinion": 67,
+     "propuesta": 5,
+     "peticion": 1,
+     "aceptacion": 151,
+     "rechazo": 30,
+     "escucha": 2689,
+     "relacion": 4,
+     "otro": 157
+    },
+    "relacion": {
+     "pregunta": 29,
+     "respuesta": 14,
+     "informacion": 94,
+     "opinion": 59,
+     "propuesta": 30,
+     "peticion": 3,
+     "aceptacion": 11,
+     "rechazo": 2,
+     "escucha": 12,
+     "relacion": 227,
+     "otro": 30
+    },
+    "otro": {
+     "pregunta": 60,
+     "respuesta": 48,
+     "informacion": 204,
+     "opinion": 88,
+     "propuesta": 39,
+     "peticion": 15,
+     "aceptacion": 68,
+     "rechazo": 17,
+     "escucha": 251,
+     "relacion": 9,
+     "otro": 3240
+    }
+   }
+  }
+ },
+ "mrda": {
+  "rules": {
+   "sentences": 18507,
+   "top1": 0.6572,
+   "top3": 0.8232,
+   "log_loss": 1.1668,
+   "ece": 0.1862,
+   "macro_f1": 0.2676,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7729,
+     "recall": 0.8093,
+     "f1": 0.7906,
+     "support": 1274,
+     "predicted": 1334,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 533,
+     "predicted": 0,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 7019,
+     "predicted": 8619,
+     "measurable": false
+    },
+    "opinion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "propuesta": {
+     "precision": 0.4525,
+     "recall": 0.2062,
+     "f1": 0.2833,
+     "support": 485,
+     "predicted": 221,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 109,
+     "predicted": 0,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5895,
+     "recall": 0.1028,
+     "f1": 0.1751,
+     "support": 1089,
+     "predicted": 190,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 153,
+     "predicted": 0,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 58,
+     "predicted": 0,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.8,
+     "recall": 0.6765,
+     "f1": 0.7331,
+     "support": 4470,
+     "predicted": 3780,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 689,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7627,
+     "recall": 0.2941,
+     "f1": 0.4245,
+     "support": 153,
+     "predicted": 59,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.4229,
+     "recall": 0.7354,
+     "f1": 0.537,
+     "support": 2475,
+     "predicted": 4304,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1031,
+     "informacion": 184,
+     "propuesta": 4,
+     "escucha": 17,
+     "relacion": 3,
+     "otro": 35
+    },
+    "respuesta": {
+     "pregunta": 7,
+     "informacion": 314,
+     "propuesta": 7,
+     "aceptacion": 5,
+     "escucha": 4,
+     "otro": 196
+    },
+    "informacion": {
+     "pregunta": 92,
+     "informacion": 6030,
+     "propuesta": 72,
+     "aceptacion": 3,
+     "escucha": 23,
+     "relacion": 4,
+     "otro": 795
+    },
+    "propuesta": {
+     "pregunta": 44,
+     "informacion": 310,
+     "propuesta": 100,
+     "otro": 31
+    },
+    "peticion": {
+     "pregunta": 5,
+     "informacion": 76,
+     "propuesta": 4,
+     "otro": 24
+    },
+    "aceptacion": {
+     "pregunta": 2,
+     "informacion": 215,
+     "propuesta": 4,
+     "aceptacion": 112,
+     "escucha": 523,
+     "relacion": 1,
+     "otro": 232
+    },
+    "rechazo": {
+     "pregunta": 3,
+     "informacion": 55,
+     "propuesta": 1,
+     "aceptacion": 17,
+     "escucha": 28,
+     "relacion": 1,
+     "otro": 48
+    },
+    "compromiso": {
+     "pregunta": 2,
+     "informacion": 51,
+     "otro": 5
+    },
+    "escucha": {
+     "pregunta": 50,
+     "informacion": 444,
+     "propuesta": 3,
+     "aceptacion": 46,
+     "escucha": 3024,
+     "relacion": 4,
+     "otro": 899
+    },
+    "gestion": {
+     "pregunta": 35,
+     "informacion": 348,
+     "propuesta": 7,
+     "aceptacion": 5,
+     "escucha": 106,
+     "relacion": 1,
+     "otro": 187
+    },
+    "relacion": {
+     "pregunta": 10,
+     "informacion": 62,
+     "aceptacion": 1,
+     "escucha": 3,
+     "relacion": 45,
+     "otro": 32
+    },
+    "otro": {
+     "pregunta": 53,
+     "informacion": 530,
+     "propuesta": 19,
+     "aceptacion": 1,
+     "escucha": 52,
+     "otro": 1820
+    }
+   }
+  },
+  "encoder": {
+   "sentences": 18507,
+   "top1": 0.7762,
+   "top3": 0.9469,
+   "log_loss": 0.6853,
+   "ece": 0.0294,
+   "macro_f1": 0.5457,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.801,
+     "recall": 0.8348,
+     "f1": 0.8176,
+     "support": 1283,
+     "predicted": 1337,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.4035,
+     "recall": 0.4228,
+     "f1": 0.4129,
+     "support": 544,
+     "predicted": 570,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 6270,
+     "predicted": 6688,
+     "measurable": false
+    },
+    "opinion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 293,
+     "predicted": 205,
+     "measurable": false
+    },
+    "propuesta": {
+     "precision": 0.5094,
+     "recall": 0.3823,
+     "f1": 0.4368,
+     "support": 497,
+     "predicted": 373,
+     "measurable": true
+    },
+    "peticion": {
+     "precision": 0.6604,
+     "recall": 0.3211,
+     "f1": 0.4321,
+     "support": 109,
+     "predicted": 53,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.5416,
+     "recall": 0.3639,
+     "f1": 0.4353,
+     "support": 1091,
+     "predicted": 733,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.6118,
+     "recall": 0.6582,
+     "f1": 0.6341,
+     "support": 158,
+     "predicted": 170,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": 0.4865,
+     "recall": 0.3,
+     "f1": 0.3711,
+     "support": 60,
+     "predicted": 37,
+     "measurable": true
+    },
+    "escucha": {
+     "precision": 0.8043,
+     "recall": 0.8723,
+     "f1": 0.8369,
+     "support": 4512,
+     "predicted": 4894,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": 0.4669,
+     "recall": 0.2442,
+     "f1": 0.3207,
+     "support": 692,
+     "predicted": 362,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.7246,
+     "recall": 0.3268,
+     "f1": 0.4505,
+     "support": 153,
+     "predicted": 69,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.8306,
+     "recall": 0.8805,
+     "f1": 0.8548,
+     "support": 2845,
+     "predicted": 3016,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1071,
+     "respuesta": 4,
+     "informacion": 145,
+     "opinion": 2,
+     "propuesta": 12,
+     "aceptacion": 3,
+     "compromiso": 1,
+     "escucha": 23,
+     "gestion": 4,
+     "relacion": 3,
+     "otro": 15
+    },
+    "respuesta": {
+     "pregunta": 8,
+     "respuesta": 230,
+     "informacion": 195,
+     "opinion": 12,
+     "propuesta": 7,
+     "aceptacion": 45,
+     "rechazo": 8,
+     "escucha": 28,
+     "gestion": 5,
+     "otro": 6
+    },
+    "informacion": {
+     "pregunta": 94,
+     "respuesta": 157,
+     "informacion": 5549,
+     "propuesta": 119,
+     "peticion": 9,
+     "aceptacion": 15,
+     "rechazo": 9,
+     "compromiso": 14,
+     "escucha": 65,
+     "gestion": 25,
+     "relacion": 7,
+     "otro": 207
+    },
+    "opinion": {
+     "pregunta": 2,
+     "respuesta": 18,
+     "opinion": 111,
+     "propuesta": 4,
+     "aceptacion": 27,
+     "rechazo": 7,
+     "escucha": 105,
+     "gestion": 6,
+     "otro": 13
+    },
+    "propuesta": {
+     "pregunta": 37,
+     "respuesta": 7,
+     "informacion": 216,
+     "opinion": 6,
+     "propuesta": 190,
+     "peticion": 7,
+     "aceptacion": 2,
+     "rechazo": 2,
+     "compromiso": 4,
+     "escucha": 3,
+     "gestion": 9,
+     "relacion": 1,
+     "otro": 13
+    },
+    "peticion": {
+     "pregunta": 5,
+     "informacion": 47,
+     "propuesta": 12,
+     "peticion": 35,
+     "aceptacion": 1,
+     "escucha": 2,
+     "gestion": 3,
+     "otro": 4
+    },
+    "aceptacion": {
+     "pregunta": 1,
+     "respuesta": 54,
+     "informacion": 27,
+     "opinion": 9,
+     "propuesta": 3,
+     "aceptacion": 397,
+     "rechazo": 16,
+     "escucha": 532,
+     "gestion": 38,
+     "relacion": 1,
+     "otro": 13
+    },
+    "rechazo": {
+     "pregunta": 4,
+     "respuesta": 16,
+     "informacion": 17,
+     "opinion": 1,
+     "propuesta": 3,
+     "aceptacion": 1,
+     "rechazo": 104,
+     "escucha": 2,
+     "gestion": 4,
+     "relacion": 1,
+     "otro": 5
+    },
+    "compromiso": {
+     "pregunta": 1,
+     "informacion": 29,
+     "propuesta": 6,
+     "aceptacion": 1,
+     "compromiso": 18,
+     "gestion": 3,
+     "otro": 2
+    },
+    "escucha": {
+     "pregunta": 43,
+     "respuesta": 51,
+     "informacion": 135,
+     "opinion": 52,
+     "propuesta": 2,
+     "peticion": 1,
+     "aceptacion": 160,
+     "rechazo": 12,
+     "escucha": 3936,
+     "gestion": 52,
+     "relacion": 5,
+     "otro": 63
+    },
+    "gestion": {
+     "pregunta": 33,
+     "respuesta": 8,
+     "informacion": 101,
+     "opinion": 3,
+     "propuesta": 6,
+     "aceptacion": 69,
+     "rechazo": 4,
+     "escucha": 131,
+     "gestion": 169,
+     "relacion": 1,
+     "otro": 167
+    },
+    "relacion": {
+     "pregunta": 10,
+     "respuesta": 3,
+     "informacion": 65,
+     "opinion": 5,
+     "propuesta": 1,
+     "peticion": 1,
+     "aceptacion": 4,
+     "rechazo": 1,
+     "escucha": 8,
+     "gestion": 2,
+     "relacion": 50,
+     "otro": 3
+    },
+    "otro": {
+     "pregunta": 28,
+     "respuesta": 22,
+     "informacion": 162,
+     "opinion": 4,
+     "propuesta": 8,
+     "aceptacion": 8,
+     "rechazo": 7,
+     "escucha": 59,
+     "gestion": 42,
+     "otro": 2505
+    }
+   }
+  }
+ },
+ "swda": {
+  "rules": {
+   "sentences": 30176,
+   "top1": 0.6723,
+   "top3": 0.9191,
+   "log_loss": 1.0007,
+   "ece": 0.0025,
+   "macro_f1": 0.3768,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7838,
+     "recall": 0.7136,
+     "f1": 0.747,
+     "support": 1372,
+     "predicted": 1249,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.7668,
+     "recall": 0.2828,
+     "f1": 0.4132,
+     "support": 930,
+     "predicted": 343,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.6829,
+     "recall": 0.856,
+     "f1": 0.7598,
+     "support": 11343,
+     "predicted": 14218,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.5257,
+     "recall": 0.1346,
+     "f1": 0.2143,
+     "support": 4102,
+     "predicted": 1050,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 19,
+     "predicted": 0,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 97,
+     "predicted": 0,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.904,
+     "recall": 0.087,
+     "f1": 0.1587,
+     "support": 1839,
+     "predicted": 177,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 48,
+     "predicted": 0,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": 0.6461,
+     "recall": 0.9311,
+     "f1": 0.7628,
+     "support": 6979,
+     "predicted": 10058,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 156,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.927,
+     "recall": 0.248,
+     "f1": 0.3914,
+     "support": 512,
+     "predicted": 137,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.6783,
+     "recall": 0.7186,
+     "f1": 0.6979,
+     "support": 2779,
+     "predicted": 2944,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 979,
+     "informacion": 306,
+     "opinion": 1,
+     "escucha": 22,
+     "relacion": 1,
+     "otro": 63
+    },
+    "respuesta": {
+     "respuesta": 263,
+     "informacion": 237,
+     "opinion": 13,
+     "aceptacion": 2,
+     "escucha": 401,
+     "otro": 14
+    },
+    "informacion": {
+     "pregunta": 71,
+     "informacion": 9710,
+     "opinion": 400,
+     "aceptacion": 1,
+     "escucha": 649,
+     "relacion": 3,
+     "otro": 509
+    },
+    "opinion": {
+     "pregunta": 25,
+     "informacion": 2967,
+     "opinion": 552,
+     "escucha": 325,
+     "relacion": 2,
+     "otro": 231
+    },
+    "propuesta": {
+     "pregunta": 1,
+     "informacion": 18
+    },
+    "peticion": {
+     "pregunta": 4,
+     "informacion": 70,
+     "escucha": 22,
+     "otro": 1
+    },
+    "aceptacion": {
+     "pregunta": 5,
+     "respuesta": 23,
+     "informacion": 124,
+     "opinion": 31,
+     "aceptacion": 160,
+     "escucha": 1474,
+     "otro": 22
+    },
+    "rechazo": {
+     "informacion": 7,
+     "escucha": 40,
+     "relacion": 1
+    },
+    "escucha": {
+     "pregunta": 123,
+     "respuesta": 55,
+     "informacion": 178,
+     "opinion": 33,
+     "aceptacion": 14,
+     "escucha": 6498,
+     "otro": 78
+    },
+    "gestion": {
+     "pregunta": 6,
+     "informacion": 107,
+     "opinion": 1,
+     "escucha": 23,
+     "otro": 19
+    },
+    "relacion": {
+     "pregunta": 10,
+     "respuesta": 2,
+     "informacion": 174,
+     "opinion": 12,
+     "escucha": 177,
+     "relacion": 127,
+     "otro": 10
+    },
+    "otro": {
+     "pregunta": 25,
+     "informacion": 320,
+     "opinion": 7,
+     "escucha": 427,
+     "relacion": 3,
+     "otro": 1997
+    }
+   }
+  },
+  "encoder": {
+   "sentences": 30176,
+   "top1": 0.6463,
+   "top3": 0.9055,
+   "log_loss": 1.0836,
+   "ece": 0.0668,
+   "macro_f1": 0.4325,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.7982,
+     "recall": 0.7784,
+     "f1": 0.7882,
+     "support": 1372,
+     "predicted": 1338,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.3463,
+     "recall": 0.3834,
+     "f1": 0.3639,
+     "support": 926,
+     "predicted": 1025,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": 0.7162,
+     "recall": 0.8082,
+     "f1": 0.7595,
+     "support": 11327,
+     "predicted": 12782,
+     "measurable": true
+    },
+    "opinion": {
+     "precision": 0.3116,
+     "recall": 0.1899,
+     "f1": 0.236,
+     "support": 4118,
+     "predicted": 2510,
+     "measurable": true
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 19,
+     "predicted": 483,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": 0.4667,
+     "recall": 0.1443,
+     "f1": 0.2205,
+     "support": 97,
+     "predicted": 30,
+     "measurable": true
+    },
+    "aceptacion": {
+     "precision": 0.6077,
+     "recall": 0.2577,
+     "f1": 0.362,
+     "support": 1839,
+     "predicted": 780,
+     "measurable": true
+    },
+    "rechazo": {
+     "precision": 0.1181,
+     "recall": 0.5769,
+     "f1": 0.1961,
+     "support": 52,
+     "predicted": 254,
+     "measurable": true
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 3,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": 0.843,
+     "recall": 0.7707,
+     "f1": 0.8052,
+     "support": 6979,
+     "predicted": 6381,
+     "measurable": true
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 156,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.6955,
+     "recall": 0.3301,
+     "f1": 0.4477,
+     "support": 512,
+     "predicted": 243,
+     "measurable": true
+    },
+    "otro": {
+     "precision": 0.4739,
+     "recall": 0.7413,
+     "f1": 0.5782,
+     "support": 2779,
+     "predicted": 4347,
+     "measurable": true
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1068,
+     "respuesta": 7,
+     "informacion": 175,
+     "opinion": 26,
+     "propuesta": 10,
+     "escucha": 9,
+     "relacion": 1,
+     "otro": 76
+    },
+    "respuesta": {
+     "respuesta": 355,
+     "informacion": 53,
+     "opinion": 27,
+     "propuesta": 1,
+     "aceptacion": 55,
+     "rechazo": 139,
+     "escucha": 162,
+     "otro": 134
+    },
+    "informacion": {
+     "pregunta": 52,
+     "respuesta": 312,
+     "informacion": 9155,
+     "opinion": 828,
+     "propuesta": 216,
+     "peticion": 3,
+     "aceptacion": 11,
+     "rechazo": 3,
+     "compromiso": 2,
+     "escucha": 20,
+     "relacion": 22,
+     "otro": 703
+    },
+    "opinion": {
+     "pregunta": 18,
+     "respuesta": 67,
+     "informacion": 2728,
+     "opinion": 782,
+     "propuesta": 147,
+     "aceptacion": 21,
+     "rechazo": 4,
+     "escucha": 15,
+     "relacion": 12,
+     "otro": 324
+    },
+    "propuesta": {
+     "pregunta": 1,
+     "propuesta": 17,
+     "peticion": 1
+    },
+    "peticion": {
+     "pregunta": 2,
+     "informacion": 26,
+     "opinion": 1,
+     "propuesta": 36,
+     "peticion": 14,
+     "escucha": 1,
+     "relacion": 5,
+     "otro": 12
+    },
+    "aceptacion": {
+     "pregunta": 10,
+     "respuesta": 85,
+     "informacion": 54,
+     "opinion": 210,
+     "propuesta": 3,
+     "aceptacion": 474,
+     "rechazo": 53,
+     "escucha": 650,
+     "otro": 300
+    },
+    "rechazo": {
+     "respuesta": 3,
+     "informacion": 5,
+     "opinion": 3,
+     "rechazo": 30,
+     "escucha": 1,
+     "relacion": 1,
+     "otro": 9
+    },
+    "escucha": {
+     "pregunta": 122,
+     "respuesta": 47,
+     "informacion": 53,
+     "opinion": 466,
+     "propuesta": 4,
+     "peticion": 2,
+     "aceptacion": 206,
+     "rechazo": 16,
+     "escucha": 5379,
+     "relacion": 26,
+     "otro": 658
+    },
+    "gestion": {
+     "pregunta": 11,
+     "respuesta": 2,
+     "informacion": 109,
+     "opinion": 15,
+     "propuesta": 4,
+     "escucha": 6,
+     "relacion": 1,
+     "otro": 8
+    },
+    "relacion": {
+     "pregunta": 13,
+     "respuesta": 10,
+     "informacion": 77,
+     "opinion": 111,
+     "propuesta": 17,
+     "peticion": 2,
+     "aceptacion": 5,
+     "escucha": 45,
+     "relacion": 169,
+     "otro": 63
+    },
+    "otro": {
+     "pregunta": 41,
+     "respuesta": 137,
+     "informacion": 347,
+     "opinion": 41,
+     "propuesta": 28,
+     "peticion": 8,
+     "aceptacion": 8,
+     "rechazo": 9,
+     "compromiso": 1,
+     "escucha": 93,
+     "relacion": 6,
+     "otro": 2060
+    }
+   }
+  }
+ },
+ "dihana": {
+  "rules": {
+   "sentences": 3012,
+   "top1": 0.7141,
+   "top3": 1.0,
+   "log_loss": 0.581,
+   "ece": 0.0337,
+   "macro_f1": 0.6625,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.6927,
+     "recall": 0.9287,
+     "f1": 0.7935,
+     "support": 1682,
+     "predicted": 2255,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.8023,
+     "recall": 0.1953,
+     "f1": 0.3142,
+     "support": 727,
+     "predicted": 177,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "opinion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "aceptacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "rechazo": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "gestion": {
+     "precision": 0.8842,
+     "recall": 1.0,
+     "f1": 0.9385,
+     "support": 252,
+     "predicted": 285,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.661,
+     "recall": 0.5556,
+     "f1": 0.6037,
+     "support": 351,
+     "predicted": 295,
+     "measurable": true
+    },
+    "otro": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 1562,
+     "gestion": 21,
+     "relacion": 99
+    },
+    "respuesta": {
+     "pregunta": 572,
+     "respuesta": 142,
+     "gestion": 12,
+     "relacion": 1
+    },
+    "gestion": {
+     "gestion": 252
+    },
+    "relacion": {
+     "pregunta": 121,
+     "respuesta": 35,
+     "relacion": 195
+    }
+   }
+  },
+  "encoder": {
+   "sentences": 3012,
+   "top1": 0.3815,
+   "top3": 0.6902,
+   "log_loss": 2.3346,
+   "ece": 0.301,
+   "macro_f1": 0.4003,
+   "per_category": {
+    "pregunta": {
+     "precision": 0.9986,
+     "recall": 0.4215,
+     "f1": 0.5928,
+     "support": 1682,
+     "predicted": 710,
+     "measurable": true
+    },
+    "respuesta": {
+     "precision": 0.4818,
+     "recall": 0.2301,
+     "f1": 0.3115,
+     "support": 691,
+     "predicted": 330,
+     "measurable": true
+    },
+    "informacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 1144,
+     "measurable": false
+    },
+    "opinion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "propuesta": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 152,
+     "measurable": false
+    },
+    "peticion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 130,
+     "measurable": false
+    },
+    "aceptacion": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 1,
+     "predicted": 1,
+     "measurable": false
+    },
+    "rechazo": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 35,
+     "predicted": 123,
+     "measurable": false
+    },
+    "compromiso": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 0,
+     "measurable": false
+    },
+    "escucha": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 2,
+     "measurable": false
+    },
+    "gestion": {
+     "precision": null,
+     "recall": 0.0,
+     "f1": 0.0,
+     "support": 252,
+     "predicted": 0,
+     "measurable": true
+    },
+    "relacion": {
+     "precision": 0.6899,
+     "recall": 0.7037,
+     "f1": 0.6968,
+     "support": 351,
+     "predicted": 358,
+     "measurable": true
+    },
+    "otro": {
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "support": 0,
+     "predicted": 62,
+     "measurable": false
+    }
+   },
+   "confusion": {
+    "pregunta": {
+     "pregunta": 709,
+     "respuesta": 158,
+     "informacion": 648,
+     "propuesta": 24,
+     "aceptacion": 1,
+     "relacion": 110,
+     "otro": 32
+    },
+    "respuesta": {
+     "pregunta": 1,
+     "respuesta": 159,
+     "informacion": 496,
+     "propuesta": 7,
+     "escucha": 2,
+     "relacion": 1,
+     "otro": 25
+    },
+    "aceptacion": {
+     "otro": 1
+    },
+    "rechazo": {
+     "rechazo": 34,
+     "otro": 1
+    },
+    "gestion": {
+     "propuesta": 121,
+     "peticion": 130,
+     "otro": 1
+    },
+    "relacion": {
+     "respuesta": 13,
+     "rechazo": 89,
+     "relacion": 247,
+     "otro": 2
+    }
+   }
+  }
+ }
+}

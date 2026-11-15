@@ -1,0 +1,22 @@
+[
+ {
+  "device": "cpu",
+  "sentences": 1534,
+  "seconds": 64.58,
+  "sentences_per_s": 23.8,
+  "threads": 12
+ },
+ {
+  "device": "cuda",
+  "sentences": 1534,
+  "seconds": 0.84,
+  "sentences_per_s": 1821.0,
+  "peak_vram_gb": 0.69
+ },
+ {
+  "device": "cpu",
+  "approach": "rules",
+  "sentences": 1534,
+  "sentences_per_s": 44290.0
+ }
+]
