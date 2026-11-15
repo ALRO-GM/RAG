@@ -122,12 +122,15 @@ class AssessmentService:
             scorecards=[
                 ParticipantScorecard(
                     participant=p,
+                    person_id=transcript.people.get(p),
                     interaction=team.of(p),
                     assessments=[results[(p, c.id)] for c in competencies],
                 )
                 for p in chosen
             ],
             seconds=round(time.perf_counter() - start, 3),
+            started_at=transcript.started_at,
+            conversation_type=transcript.conversation_type,
         )
 
     def _too_quiet(self, competency: Competency) -> CompetencyAssessment:

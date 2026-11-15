@@ -1,0 +1,237 @@
+{
+  "schema": "transcript.v1",
+  "session": {
+    "id": "perfil_s3",
+    "title": "Revisión del sprint",
+    "language": "es",
+    "started_at": "2026-10-23T11:00:00+02:00",
+    "duration": 142.0,
+    "type": "feedback",
+    "goal": "Decir qué ha ido bien y qué cambiaríamos, sin buscar culpables"
+  },
+  "speakers": [
+    {
+      "id": "pablo",
+      "name": "Pablo",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "marta",
+      "name": "Marta",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "luis",
+      "name": "Luis",
+      "enrolled": true,
+      "identification": "threshold"
+    }
+  ],
+  "utterances": [
+    {
+      "id": "t0.s0",
+      "turn": 0,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 2.0,
+      "end": 10.5,
+      "text": "Esta es la revisión del sprint. La idea es decirnos qué ha ido bien y qué cambiaríamos, sin buscar culpables. ¿Empieza alguien?",
+      "previous_speaker": null,
+      "previous_utterance": null
+    },
+    {
+      "id": "t1.s0",
+      "turn": 1,
+      "index": 0,
+      "speaker": "marta",
+      "start": 11.0,
+      "end": 21.5,
+      "text": "Empiezo yo. Luis, la prueba de carga que montaste el jueves nos ahorró por lo menos dos días: con esos números decidimos en diez minutos.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t0.s0"
+    },
+    {
+      "id": "t2.s0",
+      "turn": 2,
+      "index": 0,
+      "speaker": "luis",
+      "start": 22.0,
+      "end": 31.5,
+      "text": "Gracias. Y os cuento que el parche sigue puesto y aguanta: llevamos una semana sin caídas, lo he mirado esta mañana.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t1.s0"
+    },
+    {
+      "id": "t3.s0",
+      "turn": 3,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 32.0,
+      "end": 34.5,
+      "text": "Genial. ¿Y qué cambiaríais?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t2.s0"
+    },
+    {
+      "id": "t4.s0",
+      "turn": 4,
+      "index": 0,
+      "speaker": "luis",
+      "start": 35.0,
+      "end": 44.5,
+      "text": "Las revisiones de código tardan demasiado. Propongo que cada uno revise como mucho al día siguiente, y me apunto el primero.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t3.s0"
+    },
+    {
+      "id": "t5.s0",
+      "turn": 5,
+      "index": 0,
+      "speaker": "marta",
+      "start": 45.0,
+      "end": 57.5,
+      "text": "Estoy de acuerdo con el plazo. Y propondría algo más: que quien revisa deje al menos una sugerencia concreta, no solo un visto bueno, porque así aprendemos todos.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t4.s0"
+    },
+    {
+      "id": "t6.s0",
+      "turn": 6,
+      "index": 0,
+      "speaker": "luis",
+      "start": 58.0,
+      "end": 60.5,
+      "text": "Bueno, eso ya lo hacemos.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t5.s0"
+    },
+    {
+      "id": "t7.s0",
+      "turn": 7,
+      "index": 0,
+      "speaker": "marta",
+      "start": 61.0,
+      "end": 68.5,
+      "text": "Lo hacemos a veces. En las últimas diez revisiones, siete eran solo un «ok». Si quieres te lo enseño.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t6.s0"
+    },
+    {
+      "id": "t8.s0",
+      "turn": 8,
+      "index": 0,
+      "speaker": "luis",
+      "start": 69.0,
+      "end": 72.5,
+      "text": "Vale, no lo sabía. Entonces sí, me parece bien.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t7.s0"
+    },
+    {
+      "id": "t9.s0",
+      "turn": 9,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 73.0,
+      "end": 76.5,
+      "text": "Marta, ¿y tú qué te llevas de este sprint?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t8.s0"
+    },
+    {
+      "id": "t10.s0",
+      "turn": 10,
+      "index": 0,
+      "speaker": "marta",
+      "start": 77.0,
+      "end": 88.5,
+      "text": "Que me cuesta decir que no estoy de acuerdo en el momento. En la reunión de la base de datos me callé y luego me arrepentí. ¿Cómo lo veis vosotros?",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t9.s0"
+    },
+    {
+      "id": "t11.s0",
+      "turn": 11,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 89.0,
+      "end": 99.5,
+      "text": "Yo lo noté. Cuando por fin explicaste lo de las consultas, nos convenciste a todos. Te diría que lo plantees con los números desde el principio, como hoy.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t10.s0"
+    },
+    {
+      "id": "t12.s0",
+      "turn": 12,
+      "index": 0,
+      "speaker": "luis",
+      "start": 100.0,
+      "end": 104.5,
+      "text": "Y yo a veces voy muy lanzado, lo sé. Si me paso, decídmelo.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t11.s0"
+    },
+    {
+      "id": "t13.s0",
+      "turn": 13,
+      "index": 0,
+      "speaker": "marta",
+      "start": 105.0,
+      "end": 112.5,
+      "text": "Vale. Luis, ¿me explicas cómo montaste el entorno de la prueba de carga? Así la próxima la preparo yo.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t12.s0"
+    },
+    {
+      "id": "t14.s0",
+      "turn": 14,
+      "index": 0,
+      "speaker": "luis",
+      "start": 113.0,
+      "end": 120.5,
+      "text": "Claro. Mañana a las diez te lo enseño paso a paso, y si algo no queda claro lo vemos juntos.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t13.s0"
+    },
+    {
+      "id": "t15.s0",
+      "turn": 15,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 121.0,
+      "end": 125.5,
+      "text": "Antes de cerrar, ¿alguien cree que se nos queda algo? Luis, Marta.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t14.s0"
+    },
+    {
+      "id": "t16.s0",
+      "turn": 16,
+      "index": 0,
+      "speaker": "marta",
+      "start": 126.0,
+      "end": 135.5,
+      "text": "Solo una cosa: propongo probar lo de las sugerencias dos semanas y ver si las revisiones mejoran. Si no sirve, lo quitamos y ya está.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t15.s0"
+    },
+    {
+      "id": "t17.s0",
+      "turn": 17,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 136.0,
+      "end": 142.0,
+      "text": "¿Estamos todos de acuerdo? Entonces: revisiones en un día, con una sugerencia concreta, a prueba dos semanas. Lo apunto.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t16.s0"
+    }
+  ],
+  "pipeline": {
+    "recogniser": "none (hand-written example)",
+    "voice_model": "none (hand-written example)",
+    "transcriber": "none (hand-written example)"
+  }
+}

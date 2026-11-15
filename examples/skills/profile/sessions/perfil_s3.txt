@@ -1,0 +1,18 @@
+[00:00:02] Pablo: Esta es la revisión del sprint. La idea es decirnos qué ha ido bien y qué cambiaríamos, sin buscar culpables. ¿Empieza alguien?
+[00:00:11] Marta: Empiezo yo. Luis, la prueba de carga que montaste el jueves nos ahorró por lo menos dos días: con esos números decidimos en diez minutos.
+[00:00:22] Luis: Gracias. Y os cuento que el parche sigue puesto y aguanta: llevamos una semana sin caídas, lo he mirado esta mañana.
+[00:00:32] Pablo: Genial. ¿Y qué cambiaríais?
+[00:00:35] Luis: Las revisiones de código tardan demasiado. Propongo que cada uno revise como mucho al día siguiente, y me apunto el primero.
+[00:00:45] Marta: Estoy de acuerdo con el plazo. Y propondría algo más: que quien revisa deje al menos una sugerencia concreta, no solo un visto bueno, porque así aprendemos todos.
+[00:00:58] Luis: Bueno, eso ya lo hacemos.
+[00:01:01] Marta: Lo hacemos a veces. En las últimas diez revisiones, siete eran solo un «ok». Si quieres te lo enseño.
+[00:01:09] Luis: Vale, no lo sabía. Entonces sí, me parece bien.
+[00:01:13] Pablo: Marta, ¿y tú qué te llevas de este sprint?
+[00:01:17] Marta: Que me cuesta decir que no estoy de acuerdo en el momento. En la reunión de la base de datos me callé y luego me arrepentí. ¿Cómo lo veis vosotros?
+[00:01:29] Pablo: Yo lo noté. Cuando por fin explicaste lo de las consultas, nos convenciste a todos. Te diría que lo plantees con los números desde el principio, como hoy.
+[00:01:40] Luis: Y yo a veces voy muy lanzado, lo sé. Si me paso, decídmelo.
+[00:01:45] Marta: Vale. Luis, ¿me explicas cómo montaste el entorno de la prueba de carga? Así la próxima la preparo yo.
+[00:01:53] Luis: Claro. Mañana a las diez te lo enseño paso a paso, y si algo no queda claro lo vemos juntos.
+[00:02:01] Pablo: Antes de cerrar, ¿alguien cree que se nos queda algo? Luis, Marta.
+[00:02:06] Marta: Solo una cosa: propongo probar lo de las sugerencias dos semanas y ver si las revisiones mejoran. Si no sirve, lo quitamos y ya está.
+[00:02:16] Pablo: ¿Estamos todos de acuerdo? Entonces: revisiones en un día, con una sugerencia concreta, a prueba dos semanas. Lo apunto.

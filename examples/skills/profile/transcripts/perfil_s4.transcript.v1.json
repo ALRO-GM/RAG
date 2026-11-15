@@ -1,0 +1,259 @@
+{
+  "schema": "transcript.v1",
+  "session": {
+    "id": "perfil_s4",
+    "title": "Plazos de entrega con producto",
+    "language": "es",
+    "started_at": "2026-11-04T09:30:00+01:00",
+    "duration": 136.0,
+    "type": "negociacion",
+    "goal": "Acordar qué se entrega antes de la feria del cliente"
+  },
+  "speakers": [
+    {
+      "id": "irene",
+      "name": "Irene",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "luis",
+      "name": "Luis",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "marta",
+      "name": "Marta",
+      "enrolled": true,
+      "identification": "threshold"
+    }
+  ],
+  "utterances": [
+    {
+      "id": "t0.s0",
+      "turn": 0,
+      "index": 0,
+      "speaker": "irene",
+      "start": 3.0,
+      "end": 12.5,
+      "text": "Gracias por venir. Producto quiere el panel nuevo para el día quince. Sé que es pronto, pero el cliente tiene una feria el dieciocho.",
+      "previous_speaker": null,
+      "previous_utterance": null
+    },
+    {
+      "id": "t1.s0",
+      "turn": 1,
+      "index": 0,
+      "speaker": "luis",
+      "start": 13.0,
+      "end": 16.5,
+      "text": "Imposible. El quince no llegamos ni de broma.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t0.s0"
+    },
+    {
+      "id": "t2.s0",
+      "turn": 2,
+      "index": 0,
+      "speaker": "marta",
+      "start": 17.0,
+      "end": 29.5,
+      "text": "A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t1.s0"
+    },
+    {
+      "id": "t3.s0",
+      "turn": 3,
+      "index": 0,
+      "speaker": "irene",
+      "start": 30.0,
+      "end": 37.5,
+      "text": "Buena pregunta. Para la feria le bastan la pantalla de resumen y la de alertas. El resto puede esperar.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t2.s0"
+    },
+    {
+      "id": "t4.s0",
+      "turn": 4,
+      "index": 0,
+      "speaker": "luis",
+      "start": 38.0,
+      "end": 41.5,
+      "text": "Ya, pero luego siempre quieren más.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t3.s0"
+    },
+    {
+      "id": "t5.s0",
+      "turn": 5,
+      "index": 0,
+      "speaker": "marta",
+      "start": 42.0,
+      "end": 52.5,
+      "text": "Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t4.s0"
+    },
+    {
+      "id": "t6.s0",
+      "turn": 6,
+      "index": 0,
+      "speaker": "irene",
+      "start": 53.0,
+      "end": 56.5,
+      "text": "¿Y las otras tres pantallas, para cuándo?",
+      "previous_speaker": "marta",
+      "previous_utterance": "t5.s0"
+    },
+    {
+      "id": "t7.s0",
+      "turn": 7,
+      "index": 0,
+      "speaker": "luis",
+      "start": 57.0,
+      "end": 61.5,
+      "text": "Para final de mes, como pronto, y si no nos cambian nada.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t6.s0"
+    },
+    {
+      "id": "t8.s0",
+      "turn": 8,
+      "index": 0,
+      "speaker": "irene",
+      "start": 62.0,
+      "end": 67.5,
+      "text": "Producto no va a querer esperar tanto. ¿No podéis meter a otra persona?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t7.s0"
+    },
+    {
+      "id": "t9.s0",
+      "turn": 9,
+      "index": 0,
+      "speaker": "marta",
+      "start": 68.0,
+      "end": 71.5,
+      "text": "Bueno... si lo necesitáis así, lo intentamos.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t8.s0"
+    },
+    {
+      "id": "t10.s0",
+      "turn": 10,
+      "index": 0,
+      "speaker": "luis",
+      "start": 72.0,
+      "end": 75.5,
+      "text": "Marta, eso no es lo que acabamos de decir hace un momento.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t9.s0"
+    },
+    {
+      "id": "t11.s0",
+      "turn": 11,
+      "index": 0,
+      "speaker": "marta",
+      "start": 76.0,
+      "end": 90.5,
+      "text": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t10.s0"
+    },
+    {
+      "id": "t12.s0",
+      "turn": 12,
+      "index": 0,
+      "speaker": "irene",
+      "start": 91.0,
+      "end": 96.5,
+      "text": "El veintiocho... Lo tengo que hablar con producto. ¿Y si alguna se retrasa?",
+      "previous_speaker": "marta",
+      "previous_utterance": "t11.s0"
+    },
+    {
+      "id": "t13.s0",
+      "turn": 13,
+      "index": 0,
+      "speaker": "marta",
+      "start": 97.0,
+      "end": 103.5,
+      "text": "Entonces te aviso en cuanto lo sepamos, no el último día. Te mando cada viernes cómo vamos.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t12.s0"
+    },
+    {
+      "id": "t14.s0",
+      "turn": 14,
+      "index": 0,
+      "speaker": "irene",
+      "start": 104.0,
+      "end": 107.5,
+      "text": "Vale, eso me sirve. Lo llevo a producto.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t13.s0"
+    },
+    {
+      "id": "t15.s0",
+      "turn": 15,
+      "index": 0,
+      "speaker": "luis",
+      "start": 108.0,
+      "end": 113.5,
+      "text": "Y yo me encargo de las alertas, que es lo más delicado. Las tengo el diez.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t14.s0"
+    },
+    {
+      "id": "t16.s0",
+      "turn": 16,
+      "index": 0,
+      "speaker": "irene",
+      "start": 114.0,
+      "end": 117.5,
+      "text": "Una cosa más: producto pidió también exportar a Excel.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t15.s0"
+    },
+    {
+      "id": "t17.s0",
+      "turn": 17,
+      "index": 0,
+      "speaker": "marta",
+      "start": 118.0,
+      "end": 122.5,
+      "text": "Eh... bueno, vale, lo metemos también si hace falta.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t16.s0"
+    },
+    {
+      "id": "t18.s0",
+      "turn": 18,
+      "index": 0,
+      "speaker": "luis",
+      "start": 123.0,
+      "end": 129.5,
+      "text": "Marta, eso son otros tres días. Irene, el Excel para el veintiocho, no para la feria.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t17.s0"
+    },
+    {
+      "id": "t19.s0",
+      "turn": 19,
+      "index": 0,
+      "speaker": "irene",
+      "start": 130.0,
+      "end": 136.0,
+      "text": "De acuerdo. Lo apunto: dos pantallas el catorce, el resto y el Excel el veintiocho, y un correo cada viernes.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t18.s0"
+    }
+  ],
+  "pipeline": {
+    "recogniser": "none (hand-written example)",
+    "voice_model": "none (hand-written example)",
+    "transcriber": "none (hand-written example)"
+  }
+}

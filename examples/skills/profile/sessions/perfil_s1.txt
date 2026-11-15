@@ -1,0 +1,20 @@
+[00:00:04] Pablo: Bueno, empezamos. La idea es salir de aquí sabiendo qué base de datos usamos para el proyecto. Primero que cada uno cuente lo que ha mirado, ¿vale?
+[00:00:15] Luis: Yo lo tengo clarísimo, Postgres. Llevo años con Postgres y nunca me ha fallado.
+[00:00:22] Marta: Vale, Luis, entonces lo que tú valoras es que es fiable y que ya lo conoces, ¿no? ¿Has mirado cómo va con los datos de los sensores, que llegan a ráfagas?
+[00:00:36] Luis: Eso da igual, aguanta lo que le eches.
+[00:00:40] Pablo: Marta, ¿tú qué has mirado?
+[00:00:43] Marta: Yo he mirado una base de series temporales. Con los datos de prueba de la semana pasada, las consultas por rango de fechas iban unas diez veces más rápido.
+[00:00:57] Luis: Ya, pero eso es otra herramienta más que mantener. Es lo de siempre, cada semana una moda nueva.
+[00:01:05] Marta: Bueno, puede ser. Si lo veis tan claro, vamos con Postgres.
+[00:01:11] Pablo: Espera, Marta, no lo dejes ahí. Lo de las consultas por fechas me parece importante. ¿Lo puedes explicar un poco más?
+[00:01:20] Marta: Vale. Lo que decía Pablo al principio, que el panel tiene que cargar en menos de un segundo: con Postgres tal cual no llegamos con un año de datos.
+[00:01:34] Luis: Con un índice bien puesto llega de sobra.
+[00:01:38] Marta: Puede ser, Luis, no lo sé. No quiero liarla.
+[00:01:43] Pablo: Luis, ¿has probado el índice con los datos de prueba, o lo dices por experiencia?
+[00:01:50] Luis: Por experiencia. Pero vamos, que lo pruebo yo esta tarde y os lo paso mañana.
+[00:01:57] Marta: Entonces, si te he entendido, Luis, haces la prueba con índice con el mismo año de datos, y si no baja del segundo miramos lo de series temporales. ¿Es así?
+[00:02:10] Luis: Sí, eso.
+[00:02:12] Pablo: Perfecto. Antes de cerrar, ¿alguien ve algo en contra? Marta, Luis, decidlo ahora.
+[00:02:19] Marta: No, nada. Bueno, me preocupa el tiempo de carga, pero da igual, ya lo hablamos otro día.
+[00:02:28] Luis: Yo me encargo de la prueba y del informe para el jueves.
+[00:02:33] Pablo: Pues queda así: Luis hace la prueba para el jueves, y el viernes decidimos con los números delante.

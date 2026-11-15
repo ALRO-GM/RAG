@@ -48,14 +48,15 @@ flowchart LR
     classDef falta fill:#f6cccc,stroke:#a02020,color:#000
     class A,B,C,D hecho
     class E parcial
-    class F,G parcial
-    class H,I falta
+    class F,G,H parcial
+    class I falta
 ```
 
 Verde: hecho. Amarillo: existe pero no es fiable o está incompleto.
 Rojo: no existe. El paso "Evidencia por persona" existe como `skills
-assess` para una sola sesión; el perfil entre sesiones no existe
-(`docs/skills/DESIGN.md` §9).
+assess` para una sola sesión; el perfil entre sesiones existe como
+`skills profile` (`docs/skills/DESIGN.md` §11), probado sólo con un
+ejemplo inventado.
 
 ### Dónde corre cada cosa
 
@@ -302,8 +303,14 @@ intercambios, regla de amplitud, suelo de participación) y emiten una
 puntuación por persona de **una sesión** (T-33, `DESIGN.md`). Si no hay
 evidencia suficiente, el resultado es "insufficient evidence".
 
-No hecho (`DESIGN.md` §9): perfil entre varias sesiones (mediana y
-rango de al menos 3), llamada 2 (puntuar sólo desde etiquetas
+Hecho después (#84): `skills profile` une las sesiones de una persona
+por el identificador con que la registró el transcriptor y da, por
+competencia, el nivel de cada sesión, la mediana sólo con 3 sesiones
+con pruebas o más ("en construcción" si no), rango, tendencia y una
+fiabilidad proyectada; página HTML en modo perfil (`DESIGN.md` §11).
+Sólo probado con datos inventados.
+
+No hecho (`DESIGN.md` §9): llamada 2 (puntuar sólo desde etiquetas
 confirmadas), control de oportunidad (si nadie discrepó no hay evidencia
 sobre cómo se gestiona el desacuerdo), calidad por incidente, perfil de
 equipo. Certeza muy baja: `RESEARCH.md` §1 dice que una reunión es un solo

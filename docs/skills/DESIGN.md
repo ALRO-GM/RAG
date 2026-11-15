@@ -313,9 +313,9 @@ adds its own.
 
 | Layer | New | Reused |
 |---|---|---|
-| Domain | `languages`, `skills/transcript`, `rubric`, `assessment`, `interaction`, `grounding`, `agreement`, `prompting` | `ranking` (fusion, top-k), `experiments` (metrics, bootstrap, Pareto) |
-| Application | `skills/evidence`, `assessment`, `gold`, `evaluation`, `lab`, `report`; ports `ChatModel`, `TranscriptRepository`, `CatalogueRepository` | ports `Embedder`, `LexicalIndexBuilder`, `Cache`, `Progress`, `TrialStore`; `ExperimentService`, `Tuner`, `AnalysisService` |
-| Adapters out | `fs_transcript_repository`, `json_catalogue_repository`, `transformers_chat_model`, `local_judge`, `claude_code_judge`, `json_judge_state`, `anthropic_chat_model` (kept, not used) | `bm25_index`, `minilm_embedder`, `sqlite_cache`, `jsonl_trial_store` |
+| Domain | `languages`, `skills/transcript`, `rubric`, `assessment`, `interaction`, `grounding`, `agreement`, `prompting`, `profile` | `ranking` (fusion, top-k), `experiments` (metrics, bootstrap, Pareto) |
+| Application | `skills/evidence`, `assessment`, `gold`, `evaluation`, `lab`, `report`, `person_report*`, `profile`, `profile_report*`; ports `ChatModel`, `TranscriptRepository`, `CatalogueRepository`, `AssessmentStore` | ports `Embedder`, `LexicalIndexBuilder`, `Cache`, `Progress`, `TrialStore`; `ExperimentService`, `Tuner`, `AnalysisService` |
+| Adapters out | `fs_transcript_repository`, `fs_assessment_store`, `json_catalogue_repository`, `transformers_chat_model`, `local_judge`, `claude_code_judge`, `json_judge_state`, `anthropic_chat_model` (kept, not used) | `bm25_index`, `minilm_embedder`, `sqlite_cache`, `jsonl_trial_store` |
 | Adapters in | `skills_cli` | `lab_cli` (now hosted by any container offering `experiments`, `tuner`, `analysis`) |
 | Composition | `skills_bootstrap.SkillsContainer`, `config.SkillsSettings` | |
 
@@ -346,6 +346,11 @@ uv run python -m src skills --judge both judge_acts --sample 20
 # One participant, for a non-technical reader (§10) → <session>.<name>.report.html
 uv run python -m src skills report --assessment S.assessment.json \
     --participant NAME [--language en] [--transcript FILE] [--synthetic]
+
+# One person across sessions (§11) → <output_dir>/<person id>.profile.html
+uv run python -m src skills profile --participant PERSON_ID \
+    [--sessions S1,S2,...] [--assessments_dir DIR] [--format json] \
+    [--language en] [--synthetic]
 
 # Reference data
 uv run python -m src skills annotation_template --transcript FILE --annotator A1
@@ -414,7 +419,7 @@ Recommended by `THEORY.md` and not implemented yet:
 | Opportunity gating: no disagreement or feedback episode in the session → insufficient evidence for everybody | Left to the judge and the evidence rules |
 | Frequency normalised by opportunity and capped | Only the minimum-evidence and breadth rules |
 | Low-confidence evidence from transcription confidence and overlap | Turns can carry a confidence (from `transcript.v1`, `AUDIO.md`); the transcriber's Whisper adapter reports none yet and overlap is not detected |
-| Person-level profile from ≥ 3 sessions (median and range), commitments log across sessions | Session level only |
+| Person-level profile from ≥ 3 sessions (median and range), commitments log across sessions | Profile done (`skills profile`, §11), exercised on a synthetic example only; commitments log not done |
 | Team interaction profile (Bales / act4teams categories), leadership profile | Participation counts only |
 | Validation with assessors, fairness checks | Tooling ready (§8), no data |
 
@@ -453,3 +458,71 @@ the run of the 1.7 B local judge, so they show its mistakes as they are
 (for example, Luis's "Eso es una tontería, Marta" filed as active
 listening).
 
+## 11. Profile across sessions
+
+One conversation is one situation, and the same competency agrees only
+about .27 between two situations (Putka & Hoffman 2013, `RESEARCH.md`
+§6c): a person profile needs several sessions. `skills profile
+--participant ID` joins the assessments of one person and shows, per
+competency, each session's level and evidence side by side.
+
+**Identity.** Sessions are joined by the id the transcriber enrolled
+the speaker under: a `transcript.v1` speaker with `enrolled: true`
+keeps its `id` as `Transcript.people`, and `skills assess` writes it
+as `ParticipantScorecard.person_id` (with the session's `started_at`
+and `conversation_type`). Names are never used to join: two Anas in
+two sessions are not assumed to be one person. A session without
+person ids (a text transcript, an older assessment, anonymous voices)
+cannot be joined; when it is named with `--sessions` it is listed as
+left out with the reason, never dropped silently. A person named
+through the expected-speakers floor (`identification:
+expected_floor`) is joined like any other; that weaker identification
+is not yet down-weighted in the profile.
+
+**Store.** The assessments are the `<session>.assessment.json` files
+`assess` writes (`FileSystemAssessmentStore` over `output_dir`, or
+`--assessments_dir`). Without `--sessions`, every stored session where
+the person id appears is used; `--sessions` takes session ids or file
+paths.
+
+| Per competency | Rule | Where |
+|---|---|---|
+| Sessions | One cell per session in date order (undated after, by id); a competency not assessed in a session is an empty cell | `domain/skills/profile.py` |
+| Situations with evidence | Sessions where the competency has a level; their declared conversation types (#65) are counted | same |
+| Overall level | Median of those levels, only when at least `profile_min_situations` (setting, default 3) sessions have one. Sessions without a level are left out, never counted as zero. Below the minimum: "en construcción", with how many more sessions are missing | same |
+| Consistency | Range and standard deviation of the levels; "consistent" when the range is at most one level | same |
+| Trend | Least-squares slope of level against session number, with ≥ 3 levels; ±0.25 per session or more is up or down, otherwise flat | same |
+| Reliability | With ≥ 3 levels: Spearman-Brown from .27 per situation (a projection from a published figure, not a measurement; about 6 situations for .70). When the store has at least three enrolled people with two or more levels in that competency, also ICC(1) among them, projected the same way | same |
+| Repeated strengths / points to improve | Competencies in the same band (above or below the centre of the scale) in two sessions or more, with one verified quote per session | `application/skills/profile_report.py` |
+
+The thresholds for "consistent" (range ≤ 1), the trend step (0.25)
+and the two sessions for "repeats" are choices, not measurements; with
+a handful of sessions a trend can be chance and the page says so.
+
+**Page.** `--format html` (default) is the profile mode of the person
+report (§10), same style and constraints: summary sentences, sessions
+seen against the ~4 recommended and the ~6 one competency needs, what
+the overall level is, the limits box (the person behaves differently
+by situation; no emotion or personality; speaking time is not
+leadership), a strip of session boxes per competency (dashed box: no
+evidence in that session, never low), competencies never seen listed
+apart, repeated strengths and points to improve with their quotes and
+the rubric's `practice` lines, the list of sessions and those left out,
+and footnotes. `--format json` writes the `PersonProfile` model.
+Wording: `application/skills/profile_report_texts.py` (es, en).
+
+**Example.** `examples/skills/profile/` holds four invented Spanish
+conversations (decision meeting, problem solving, sprint review,
+negotiation) of the same four invented people (Marta, Luis, Pablo,
+Irene), with levels written by hand and checked against the evidence
+rules of §2 by `experiments/skills/build_profile_example.py`, which
+also writes the `transcript.v1` documents and the assessments (`check`
+fails if they are out of date). It exercises the tooling and shows
+nothing about real people:
+
+```bash
+uv run python -m src skills \
+    --transcripts_dir examples/skills/profile/transcripts \
+    profile --participant marta \
+    --assessments_dir examples/skills/profile/output --synthetic
+```
