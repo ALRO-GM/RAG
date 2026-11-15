@@ -13,7 +13,7 @@ import shutil
 import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pytest
 
@@ -260,3 +260,84 @@ def test_the_lab_tab_is_reachable_and_keeps_the_code_out_of_urls() -> None:
     for path in sorted((WEB / "js" / "views").glob("lab*.js")):
         text = path.read_text(encoding="utf-8")
         assert "getCode" not in text and "X-Access-Code" not in text, path
+
+
+class Header(HTMLParser):
+    """Collect the header's links and language buttons of one page."""
+
+    def __init__(self) -> None:
+        """Start outside the header."""
+        super().__init__()
+        self.inside = False
+        self.links: List[Dict[str, Optional[str]]] = []
+        self.buttons: List[Dict[str, Optional[str]]] = []
+        self.groups: List[Dict[str, Optional[str]]] = []
+        self.title: Dict[str, Optional[str]] = {}
+
+    def handle_starttag(
+        self, tag: str, attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        """Note the header's parts and the page's <title>."""
+        names = dict(attrs)
+        if tag == "title":
+            self.title = names
+        if tag == "header":
+            self.inside = True
+        if not self.inside:
+            return
+        if tag == "a":
+            self.links.append(names)
+        if tag == "button":
+            self.buttons.append(names)
+        if names.get("role") == "group":
+            self.groups.append(names)
+
+    def handle_endtag(self, tag: str) -> None:
+        """Leave the header."""
+        if tag == "header":
+            self.inside = False
+
+
+def dictionary_keys(language: str) -> Set[str]:
+    """The keys of one of the pages' dictionaries."""
+    text = (WEB / "js" / "i18n" / f"{language}.js").read_text(
+        encoding="utf-8"
+    )
+    return set(re.findall(r'^\s*"([\w.]+)":', text, re.M))
+
+
+@pytest.mark.parametrize("page", ["index.html", "research.html"])
+def test_every_page_has_the_language_switch(page: str) -> None:
+    """ES | EN buttons in the header; the header and title translatable."""
+    header = Header()
+    header.feed((WEB / page).read_text(encoding="utf-8"))
+    langs = [b.get("data-lang") for b in header.buttons]
+    assert langs == ["es", "en"]
+    assert all(b.get("type") == "button" for b in header.buttons)
+    assert all(b.get("aria-pressed") in ("true", "false")
+               for b in header.buttons)
+    assert [g.get("data-i18n-label") for g in header.groups] == [
+        "lang.switch"
+    ]
+    keys = dictionary_keys("es") & dictionary_keys("en")
+    assert header.title.get("data-i18n") in keys
+    assert header.links
+    for link in header.links:
+        assert link.get("data-i18n") in keys, link
+
+
+@pytest.mark.parametrize("module", ["js/main.js", "js/research/main.js"])
+def test_every_entry_point_installs_the_switch(module: str) -> None:
+    """Each page's script wires the switch and translates the header."""
+    text = (WEB / module).read_text(encoding="utf-8")
+    assert "installLanguageSwitch(" in text
+    assert "translateStatic(document)" in text
+
+
+def test_the_chosen_language_is_kept_safely() -> None:
+    """localStorage only behind try/catch; switch off while recording."""
+    i18n = (WEB / "js" / "i18n.js").read_text(encoding="utf-8")
+    assert i18n.count("localStorage") == 2
+    assert i18n.count("try {") == 2
+    switch = (WEB / "js" / "lang-switch.js").read_text(encoding="utf-8")
+    assert "isBusy()" in switch

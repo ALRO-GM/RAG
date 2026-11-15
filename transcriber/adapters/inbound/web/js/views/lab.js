@@ -4,7 +4,7 @@
 // shows a run's comparison, timeline, fragments to label and scores.
 
 import { h } from "../dom.js";
-import { t, lang } from "../i18n.js";
+import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { sortSessions } from "../lib/sessions.js";
@@ -189,7 +189,7 @@ async function chooseView(ctx, root, session) {
       h("ol", { class: "steps" }, status.steps.map((step) => h("li", { class: `step state-${step.state}` },
         h("span", { class: "badge" }, t(`lab.step_state.${step.state}`)), " ", stepLabel(step),
         step.cached ? h("span", { class: "hint" }, ` · ${t("lab.cached")}`) : null,
-        Number.isFinite(step.seconds) ? h("span", { class: "hint" }, ` · ${step.seconds.toFixed(1)} s`) : null,
+        Number.isFinite(step.seconds) ? h("span", { class: "hint" }, ` · ${decimal(step.seconds)} s`) : null,
         step.error ? h("p", { class: "error" }, `${step.error.code}: ${step.error.message}`) : null)))));
   }
 

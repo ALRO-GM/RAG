@@ -9,6 +9,8 @@ import {
   noteLine, figureDetail, entryDetail, filterSources, familiesOf, entriesOf, clip,
   spearmanBrown, situationsFor,
 } from "./charts.js";
+import { lang, translateStatic } from "../i18n.js";
+import { installLanguageSwitch } from "../lang-switch.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -347,4 +349,13 @@ async function start() {
   enableFilters(data);
 }
 
+/** The header follows the chosen language; the article itself is only in Spanish. */
+function applyLanguage() {
+  translateStatic(document);
+  const note = document.getElementById("only-spanish");
+  if (note) note.hidden = lang !== "en";
+}
+
+applyLanguage();
+installLanguageSwitch(document.querySelector(".top .lang"), applyLanguage);
 start();

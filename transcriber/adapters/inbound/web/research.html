@@ -6,21 +6,27 @@
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="Qué dice la evidencia sobre evaluar habilidades blandas a partir de conversaciones grabadas: fiabilidad, validez, métodos y límites.">
-  <title>Investigación: habilidades blandas</title>
+  <title data-i18n="research.title">Investigación: habilidades blandas</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="js/research/main.js"></script>
 </head>
 <body class="research">
   <header class="top">
-    <nav aria-label="Navegación principal">
-      <a href="index.html#/">Sesiones</a>
-      <a href="index.html#/record">Grabar</a>
-      <a href="index.html#/enrol">Registrar voz</a>
-      <a href="research.html" aria-current="page">Investigación</a>
+    <nav data-i18n-label="nav.main" aria-label="Navegación principal">
+      <a href="index.html#/" data-i18n="nav.sessions">Sesiones</a>
+      <a href="index.html#/record" data-i18n="nav.record">Grabar</a>
+      <a href="index.html#/enrol" data-i18n="nav.enrol">Registrar voz</a>
+      <a href="research.html" aria-current="page" data-i18n="nav.research">Investigación</a>
     </nav>
+    <div class="lang" role="group" data-i18n-label="lang.switch" aria-label="Idioma">
+      <button type="button" data-lang="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
+      <span aria-hidden="true">|</span>
+      <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+    </div>
   </header>
-  <main id="research" class="prose">
+  <main id="research" class="prose" lang="es">
+    <p class="notice" id="only-spanish" lang="en" hidden>This article is only in Spanish. The English version is in the repository, in <code>docs/skills/RESEARCH.md</code>.</p>
     <h1>Evaluar habilidades blandas a partir de conversaciones: qué dice la evidencia</h1>
     <p class="meta">Síntesis de seis rastreos bibliográficos (noviembre de 2026). Cada cifra lleva su fuente y el nivel al que se leyó: <span class="ref-level ref-full-text">texto completo</span>, <span class="ref-level ref-abstract-only">solo resumen</span> o <span class="ref-level ref-secondary">fuente secundaria</span>. Los datos publicados y la versión en inglés están en el repositorio, en <code>docs/skills/RESEARCH.md</code> y <code>docs/skills/research/</code>.</p>
 

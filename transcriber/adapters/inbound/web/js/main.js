@@ -6,6 +6,7 @@ import { t, translateStatic } from "./i18n.js";
 import { Api } from "./api.js";
 import { adoptCodeFrom } from "./lib/net.js";
 import { isBusy, setLeaveGuard } from "./device.js";
+import { installLanguageSwitch } from "./lang-switch.js";
 import { sessionsView } from "./views/sessions.js";
 import { recordView } from "./views/record.js";
 import { enrolView } from "./views/enrol.js";
@@ -162,6 +163,8 @@ function blocking(error, retry) {
 
 setLeaveGuard(() => false);
 translateStatic(document);
+// A new language redraws the current view (the switch is off while recording).
+installLanguageSwitch(document.querySelector(".top .lang"), () => route());
 let lastHash = location.hash;
 let reverting = false;
 window.addEventListener("hashchange", () => {
