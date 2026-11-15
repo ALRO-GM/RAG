@@ -174,6 +174,8 @@ class EncoderActTagger:
 
     def logits(self, items: Sequence[ActInput]) -> Array:
         """Return the raw logits (sentence × category)."""
+        if not items:
+            return np.zeros((0, len(CATEGORIES)))
         self._load()
         out: List[Array] = []
         with torch.inference_mode():
@@ -184,8 +186,6 @@ class EncoderActTagger:
                                     enabled=self.device.startswith("cuda")):
                     logits = self._model(**batch).logits
                 out.append(logits.float().cpu().numpy())
-        if not out:
-            return np.zeros((0, len(CATEGORIES)))
         return np.concatenate(out).astype(np.float64)
 
     def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:

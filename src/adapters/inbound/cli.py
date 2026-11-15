@@ -335,6 +335,7 @@ class RagCLI:
         lab_dir: Optional[str] = None,
         tags_per_sentence: Optional[int] = None,
         semantic: Optional[bool] = None,
+        act_card: Optional[str] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -375,6 +376,8 @@ class RagCLI:
             tags_per_sentence: Most candidate tags kept per sentence.
             semantic: Use the embedding model in retrieval
                 (``--semantic=False``: words only, no model is loaded).
+            act_card: Settings of the dialogue-act tagger (``skills
+                acts``; default knowledge/dialogue_acts/act_tagger.json).
         """
         options = dict(locals())
         options.pop("self")
