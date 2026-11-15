@@ -8,6 +8,7 @@ from src.adapters.outbound.cross_encoder_reranker import (
     DEFAULT_RERANK_MODEL,
 )
 from src.adapters.outbound.fs_corpus import DEFAULT_EXTENSIONS
+from src.domain.skills.conversation_events import EventRules
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_LLM = "Qwen/Qwen3-0.6B"
@@ -216,6 +217,11 @@ class SkillsSettings(BaseModel):
     Recordings are transcribed by the separate ``transcriber`` package;
     the analyzer reads its ``transcript.v1`` documents.
 
+    The ``event_*`` settings are the parameters of the second layer
+    (decisions, action items, unanswered questions, ignored proposals
+    derived from act labels); :meth:`event_rules` hands them to the
+    domain and ``docs/skills/CONVERSATION_EVENTS.md`` describes each.
+
     ``min_similarity``, ``semantic_weight``,
     ``candidates`` and ``min_words`` are provisional: they were set
     on synthetic sessions and must be tuned with ``skills lab`` once
@@ -275,3 +281,29 @@ class SkillsSettings(BaseModel):
     runtime_plan_path: str = "data/runtime_plan.json"
     min_tokens_per_second: float = Field(default=4.0, gt=0)
     model_ladder: Tuple[Tuple[str, float], ...] = SKILLS_MODEL_LADDER
+    event_reply_window: int = Field(default=4, ge=1)
+    event_link_decay: float = Field(default=0.15, ge=0.0, le=1.0)
+    event_min_link_confidence: float = Field(default=0.3, ge=0.0, le=1.0)
+    event_min_label_weight: int = Field(default=30, ge=1, le=100)
+    event_use_doubtful: bool = False
+    event_min_acceptances: int = Field(default=1, ge=1)
+    event_closing_acceptances: int = Field(default=2, ge=1)
+    event_closing_window: int = Field(default=12, ge=0)
+
+    def event_rules(self) -> EventRules:
+        """Return the second-layer parameters (``event_*`` settings).
+
+        Their meaning and the rule each one feeds are in
+        ``docs/skills/CONVERSATION_EVENTS.md``; the defaults were set by
+        reading the Spanish set, not tuned on reference data.
+        """
+        return EventRules(
+            reply_window=self.event_reply_window,
+            link_decay=self.event_link_decay,
+            min_link_confidence=self.event_min_link_confidence,
+            min_label_weight=self.event_min_label_weight,
+            use_doubtful=self.event_use_doubtful,
+            min_acceptances=self.event_min_acceptances,
+            closing_acceptances=self.event_closing_acceptances,
+            closing_window=self.event_closing_window,
+        )

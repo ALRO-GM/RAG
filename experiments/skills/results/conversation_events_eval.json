@@ -1,0 +1,179 @@
+{
+  "note": "Expected conversation events for 8 dialogues of the Spanish set, written on 2026-11-15 by the AI coding assistant that wrote the event rules (#83), from reading each dialogue's content before running the rules on it. It is the author's reading, not human gold: one reader, no agreement measured, and the same author designed the rules. What counts as a question or a proposal follows the set's first-layer labels (pregunta, propuesta); whether it was answered, accepted, rejected, contested or ignored, what was decided and who took which task are read from the content, so a reply the labels do not link (an idea offered in answer to '¿Alguna más?', support voiced as an opinion) still counts here. Decisions name one sentence that states them; action items name their owner and one sentence of the task; open issues are what a reader would still consider unresolved when the dialogue ends.",
+  "dialogues": [
+    "dec-02",
+    "dec-04",
+    "llu-01",
+    "pro-01",
+    "neg-01",
+    "con-01",
+    "ven-01",
+    "seg-01"
+  ],
+  "rules": {
+    "reply_window": 4,
+    "link_decay": 0.15,
+    "min_link_confidence": 0.3,
+    "min_label_weight": 30,
+    "use_doubtful": false,
+    "min_acceptances": 1,
+    "closing_acceptances": 2,
+    "closing_window": 12
+  },
+  "given_links": [
+    {
+      "type": "question_answered",
+      "expected": 22,
+      "derived": 21,
+      "matched": 21,
+      "precision": 1.0,
+      "recall": 0.955
+    },
+    {
+      "type": "question_unanswered",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+    },
+    {
+      "type": "proposal_accepted",
+      "expected": 10,
+      "derived": 9,
+      "matched": 9,
+      "precision": 1.0,
+      "recall": 0.9
+    },
+    {
+      "type": "proposal_rejected",
+      "expected": 8,
+      "derived": 8,
+      "matched": 8,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "type": "proposal_contested",
+      "expected": 2,
+      "derived": 0,
+      "matched": 0,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "type": "proposal_ignored",
+      "expected": 1,
+      "derived": 4,
+      "matched": 1,
+      "precision": 0.25,
+      "recall": 1.0
+    },
+    {
+      "type": "decision",
+      "expected": 11,
+      "derived": 9,
+      "matched": 9,
+      "precision": 1.0,
+      "recall": 0.818
+    },
+    {
+      "type": "action_item",
+      "expected": 16,
+      "derived": 18,
+      "matched": 16,
+      "precision": 0.889,
+      "recall": 1.0
+    },
+    {
+      "type": "open_issue",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+    }
+  ],
+  "inferred_links": [
+    {
+      "type": "question_answered",
+      "expected": 22,
+      "derived": 21,
+      "matched": 21,
+      "precision": 1.0,
+      "recall": 0.955
+    },
+    {
+      "type": "question_unanswered",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+    },
+    {
+      "type": "proposal_accepted",
+      "expected": 10,
+      "derived": 8,
+      "matched": 8,
+      "precision": 1.0,
+      "recall": 0.8
+    },
+    {
+      "type": "proposal_rejected",
+      "expected": 8,
+      "derived": 7,
+      "matched": 6,
+      "precision": 0.857,
+      "recall": 0.75
+    },
+    {
+      "type": "proposal_contested",
+      "expected": 2,
+      "derived": 2,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "type": "proposal_ignored",
+      "expected": 1,
+      "derived": 4,
+      "matched": 1,
+      "precision": 0.25,
+      "recall": 1.0
+    },
+    {
+      "type": "decision",
+      "expected": 11,
+      "derived": 9,
+      "matched": 7,
+      "precision": 0.778,
+      "recall": 0.636
+    },
+    {
+      "type": "action_item",
+      "expected": 16,
+      "derived": 19,
+      "matched": 16,
+      "precision": 0.842,
+      "recall": 1.0
+    },
+    {
+      "type": "open_issue",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+    }
+  ],
+  "links": {
+    "known": 88,
+    "recovered": 72,
+    "wrong": 13,
+    "missed": 3,
+    "spurious": 1,
+    "accuracy": 0.818
+  }
+}

@@ -7,11 +7,20 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 from pydantic import ValidationError
 
 from src.adapters.inbound.lab_cli import LabCLI, parse_paths, write_text
+from src.adapters.outbound.act_sessions import read_act_sessions
 from src.adapters.outbound.dialogue_act_corpora import READERS
 from src.adapters.outbound.jsonl_act_records import JsonlActRecordSink
 from src.adapters.outbound.json_dataset_repository import (
     read_model,
     write_model,
+)
+from src.application.skills.conversation_events import (
+    ConversationAnalysis,
+    analyse,
+    evaluate_events,
+    person_context,
+    pick_session,
+    render_events,
 )
 from src.application.skills.dialogue_acts import import_corpus
 from src.application.skills.evaluation import evaluate
@@ -48,6 +57,7 @@ from src.domain.skills.dialogue_act_set import (
     to_transcript_like,
     weighted_count,
 )
+from src.domain.skills.event_evaluation import ExpectedEvents
 from src.domain.skills.interaction import describe
 from src.domain.skills.speech import clock, transcript_sentences
 from src.domain.skills.transcript import Transcript
@@ -120,7 +130,7 @@ class SkillsCLI:
             "sentences", "tag", "report",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
-            "dialogue_acts_set", "judge_acts",
+            "dialogue_acts_set", "judge_acts", "events_evaluate",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -184,13 +194,73 @@ class SkillsCLI:
             for item in rubric.excluded:
                 print(f"  {item.name}: {item.reason}")
 
-    def _interaction(self, transcript: str) -> None:
-        """Print who spoke, how much and how evenly (no model needed).
+    def _interaction(
+        self,
+        transcript: str = "",
+        acts: str = "",
+        session: str = "",
+        relink: bool = False,
+        output: str = "",
+    ) -> None:
+        """Print who spoke and how much, and the conversation events.
+
+        No model is called. With ``--acts`` the second layer is added:
+        answered and unanswered questions, the fate of each proposal,
+        decisions, action items, open issues and per-person counts
+        (``docs/skills/CONVERSATION_EVENTS.md``).
 
         Args:
             transcript: Transcript file (JSON or ``Speaker: text``).
+            acts: Labelled sentences: a tagger's ``<session>.acts.json``,
+                the Spanish set's ``dialogues.json``, one of its ``.txt``
+                files or their directory.
+            session: Session id inside ``acts`` (default: the
+                transcript's, or the only one).
+            relink: Ignore the reply links of ``acts`` and infer them all.
+            output: Also write the events as JSON to this file.
         """
-        document = self._app().transcripts.read(str(transcript))
+        if not transcript and not acts:
+            raise InvalidInputError("Give --transcript, --acts or both.")
+        document = (
+            self._app().transcripts.read(str(transcript)) if transcript
+            else None
+        )
+        if document is not None:
+            self._participation(document)
+        if acts:
+            analysis = self._events(
+                str(acts), str(session) or (
+                    document.session_id if document is not None else ""),
+                bool(relink),
+            )
+            if document is not None:
+                print()
+            for line in render_events(analysis):
+                print(line)
+            if output:
+                write_text(str(output), json.dumps(
+                    analysis.model_dump(), indent=2, ensure_ascii=False
+                ) + "\n")
+                print(f"Saved {output}")
+
+    def _events(
+        self, acts: str, session: str, relink: bool
+    ) -> ConversationAnalysis:
+        """Read the labelled sessions in ``acts`` and analyse one.
+
+        A file with a single session is used whatever its id, so a
+        transcript and its ``.acts.json`` need not repeat the same id.
+        """
+        sessions = read_act_sessions(acts)
+        if len(sessions) == 1:
+            session = ""
+        return analyse(
+            pick_session(sessions, session),
+            self._app().settings.event_rules(), relink,
+        )
+
+    def _participation(self, document: Transcript) -> None:
+        """Print the participation counts of a transcript."""
         team = describe(document)
         context = conversation_context(document)
         if context:
@@ -210,6 +280,52 @@ class SkillsCLI:
             print(f"  {s.speaker:<16} turns {s.turns:>3}  words "
                   f"{s.words:>5} ({s.word_share:.0%})  questions "
                   f"{s.questions}{extra}")
+
+    def _events_evaluate(
+        self,
+        expected: str = "examples/skills/dialogue_acts/expected_events.json",
+        acts: str = "examples/skills/dialogue_acts",
+        output: str = "",
+    ) -> None:
+        """Measure the event rules against hand-written expected events.
+
+        Prints precision and recall per event type twice: with the
+        links of the set, and with every link removed and inferred
+        again (plus how many links came back right).
+
+        Args:
+            expected: Expected events (``ExpectedEvents`` JSON).
+            acts: The labelled dialogues (as for ``interaction``).
+            output: Also write the scores as JSON to this file.
+        """
+        result = evaluate_events(
+            read_act_sessions(str(acts)),
+            read_model(str(expected), ExpectedEvents),
+            self._app().settings.event_rules(),
+        )
+        print(f"{len(result.dialogues)} dialogues: "
+              f"{', '.join(result.dialogues)}")
+        print(result.note)
+        for title, scores in (
+            ("Links of the set", result.given_links),
+            ("Links inferred", result.inferred_links),
+        ):
+            print(f"\n{title}:")
+            print(f"  {'event':<20} {'expected':>8} {'derived':>8} "
+                  f"{'matched':>8} {'precision':>9} {'recall':>7}")
+            for row in scores:
+                print(f"  {row.type:<20} {row.expected:>8} {row.derived:>8} "
+                      f"{row.matched:>8} {fmt(row.precision):>9} "
+                      f"{fmt(row.recall):>7}")
+        links = result.links
+        print(f"\nInferred links: {links.recovered} of {links.known} known "
+              f"links recovered ({fmt(links.accuracy)}), {links.wrong} "
+              f"wrong, {links.missed} missed, {links.spurious} on sentences "
+              "without a known link.")
+        if output:
+            write_text(str(output), json.dumps(
+                result.model_dump(), indent=2, ensure_ascii=False) + "\n")
+            print(f"Saved {output}")
 
     def _evidence(
         self, transcript: str, participant: str, competency: str, k: int = 8
@@ -291,6 +407,7 @@ class SkillsCLI:
         language: str = "es",
         transcript: str = "",
         synthetic: bool = False,
+        acts: str = "",
     ) -> None:
         """Write the report on one participant for a non-technical reader.
 
@@ -308,6 +425,9 @@ class SkillsCLI:
             transcript: Transcript of the session, for the time of each
                 quote (default: <transcripts_dir>/<session>.*, if any).
             synthetic: Mark the page as made-up sample data.
+            acts: Labelled sentences of the session (as for
+                ``interaction``): adds the participant's conversation
+                event counts as context to the html page.
         """
         app = self._app()
         kind = str(format).lower()
@@ -320,8 +440,13 @@ class SkillsCLI:
         document = self._session_transcript(result.session_id, transcript)
         name = str(participant)
         if kind == "html":
+            lines = person_context(
+                self._events(str(acts), result.session_id, False).summary,
+                name, str(language),
+            ) if acts else []
             text = render_person_html(build_person_report(
-                result, rubric, name, document, bool(synthetic)
+                result, rubric, name, document, bool(synthetic),
+                conversation_lines=lines,
             ))
         else:
             card = result.scorecard(name)

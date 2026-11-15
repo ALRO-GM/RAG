@@ -804,3 +804,88 @@ def test_report_errors(
 ) -> None:
     """Bad formats, participants and files are clean errors."""
     assert_error(skills(["report", *args], project), message)
+
+
+# ------------------------------------------------- conversation events
+
+SET_DIR = Path(__file__).resolve().parents[2] / (
+    "examples/skills/dialogue_acts"
+)
+
+ACTS = {
+    "schema": "acts.v1", "session": {"id": "s1"},
+    "utterances": [
+        {"id": "t0.s0", "speaker": "Maya", "text": "Shall we try it?",
+         "labels": [{"label": "propuesta", "weight": 90}]},
+        {"id": "t1.s0", "speaker": "Tom", "text": "Yes, fine.",
+         "act": "aceptacion"},
+        {"id": "t2.s0", "speaker": "Maya", "text": "I write it today.",
+         "act": "compromiso"},
+    ],
+}
+
+
+def test_interaction_with_acts_prints_the_events(project: Path) -> None:
+    """A set file with ``--session`` gives events and per-person counts."""
+    result = skills(
+        ["interaction", "--acts", str(SET_DIR / "01_reunion_decision.txt"),
+         "--session", "dec-01", "--output", "events.json"], project)
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[0].startswith("Conversation events (given links kept")
+    assert "Decisions:" in lines and "Per person:" in lines
+    assert any("Luis (asked by Marta)" in line for line in lines)
+    saved = json.loads((project / "events.json").read_text("utf-8"))
+    assert saved["session_id"] == "dec-01" and saved["events"]
+    assert lines[-1] == "Saved events.json"
+
+
+def test_interaction_with_a_transcript_and_its_acts(project: Path) -> None:
+    """Participation first, then the events of the acts file."""
+    (project / "s1.acts.json").write_text(json.dumps(ACTS), "utf-8")
+    result = skills(["interaction", EN, "--acts", "s1.acts.json",
+                     "--relink"], project)
+    assert result.returncode == 0, result.stderr
+    text = result.stdout
+    assert text.index("3 speakers") < text.index("Conversation events")
+    assert "every link inferred" in text
+    assert "proposal_accepted   Maya → Tom" in text
+
+
+@pytest.mark.parametrize("args, message", [
+    ([], "Give --transcript, --acts or both"),
+    (["--acts", str(SET_DIR)], "choose one with --session"),
+    (["--acts", "nowhere.json"], "No such file"),
+])
+def test_interaction_events_errors(
+    project: Path, args: List[str], message: str
+) -> None:
+    """Missing inputs and ambiguous files are clean errors."""
+    assert_error(skills(["interaction", *args], project), message)
+
+
+def test_events_evaluate_on_the_committed_expectation(project: Path) -> None:
+    """The command scores both link modes and saves the result."""
+    result = skills(
+        ["events_evaluate", "--expected",
+         str(SET_DIR / "expected_events.json"), "--acts", str(SET_DIR),
+         "--output", "eval.json"], project)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("8 dialogues: ")
+    assert "Links of the set:" in result.stdout
+    assert "Links inferred:" in result.stdout
+    assert "known links recovered" in result.stdout
+    saved = json.loads((project / "eval.json").read_text("utf-8"))
+    assert len(saved["given_links"]) == 9
+
+
+def test_report_html_with_conversation_events(project: Path) -> None:
+    """``--acts`` adds the participant's event counts as context."""
+    (project / "s1.acts.json").write_text(json.dumps(ACTS), "utf-8")
+    result = skills(
+        ["report", "system.json", "Maya", "--acts", "s1.acts.json",
+         "--output", "maya.html"], project)
+    assert result.returncode == 0, result.stderr
+    page = (project / "maya.html").read_text(encoding="utf-8")
+    assert "Hizo 1 propuesta(s): 1 aceptada(s)" in page
+    assert "Asumió 1 tarea(s)." in page

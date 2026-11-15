@@ -79,6 +79,13 @@ python -m src skills dialogue_acts_import --corpus own \
     --source examples/skills/dialogue_acts --output data/dialogue_acts/own.jsonl
 ```
 
+`expected_events.json` (#83) lists the conversation events (questions
+answered, fate of proposals, decisions, action items, open issues) a
+reader expects in 8 of the dialogues. It is the author's reading of the
+content, written by the same assistant that wrote the event rules, not
+human gold; `skills events_evaluate` scores the rules against it
+(`docs/skills/CONVERSATION_EVENTS.md` §6).
+
 ## Contents (measured with `dialogue_acts_set`, 2026-11-15)
 
 51 dialogues, 1,534 sentences, 1,188 turns, 10,557 words (6.9 per

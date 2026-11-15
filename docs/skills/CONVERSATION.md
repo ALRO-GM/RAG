@@ -326,6 +326,8 @@ context only and should not be labelled from one recording.
   - *Unanswered question*: Pregunta with no Respuesta in the next N
     sentences (rubric COMM.N4).
   - *Ignored proposal*: Propuesta with no second part.
+  The rules as implemented, their parameters and a first check are in
+  `CONVERSATION_EVENTS.md` (#83).
 - **Context labels:** conversation type (declared) and phase (derived).
 - The names describe **acts**, not attitudes or emotions (§5.5).
 

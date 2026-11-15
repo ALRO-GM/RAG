@@ -119,6 +119,7 @@ class PersonReport:
     summary: List[str]
     conversation_type: Optional[str] = None
     conversation_goal: Optional[str] = None
+    conversation_lines: List[str] = field(default_factory=list)
 
     @property
     def rated(self) -> List[Row]:
@@ -240,6 +241,7 @@ def build_person_report(
     participant: str,
     transcript: Optional[Transcript] = None,
     synthetic: bool = False,
+    conversation_lines: Optional[List[str]] = None,
 ) -> PersonReport:
     """Return the report on ``participant`` in the catalogue's language.
 
@@ -249,7 +251,9 @@ def build_person_report(
     points to improve become isolated signals to watch. The transcript
     is optional: it adds the session length, the time of each quote and
     the conversation's declared type and goal (shown as context, never
-    used for a level).
+    used for a level). ``conversation_lines`` are the participant's
+    conversation-event counts (``conversation_events.person_context``),
+    also shown as context only.
     """
     language = catalogue.language
     if language not in TEXTS:
@@ -312,6 +316,7 @@ def build_person_report(
         conversation_goal=(
             transcript.conversation_goal if transcript else None
         ),
+        conversation_lines=list(conversation_lines or []),
     )
 
 
