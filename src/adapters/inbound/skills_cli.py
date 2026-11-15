@@ -7,10 +7,13 @@ from typing import Any, Callable, Dict, List, Optional
 from pydantic import ValidationError
 
 from src.adapters.inbound.lab_cli import LabCLI, parse_paths, write_text
+from src.adapters.outbound.dialogue_act_corpora import READERS
+from src.adapters.outbound.jsonl_act_records import JsonlActRecordSink
 from src.adapters.outbound.json_dataset_repository import (
     read_model,
     write_model,
 )
+from src.application.skills.dialogue_acts import import_corpus
 from src.application.skills.evaluation import evaluate
 from src.application.skills.gold import (
     AnnotationSet,
@@ -27,6 +30,11 @@ from src.application.skills.tagging import render_timeline
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError, short_reason
 from src.domain.skills.assessment import SessionAssessment
+from src.domain.skills.dialogue_act_set import (
+    parse_set,
+    set_distribution,
+    to_transcript_like,
+)
 from src.domain.skills.interaction import describe
 from src.domain.skills.speech import clock, transcript_sentences
 from src.domain.skills.transcript import Transcript
@@ -61,7 +69,8 @@ class SkillsCLI:
             "catalogue", "interaction", "evidence", "assess",
             "sentences", "tag", "report",
             "annotation_template", "validate_annotations", "agreement",
-            "consensus", "evaluate", "lab_dataset",
+            "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
+            "dialogue_acts_set",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -499,3 +508,80 @@ class SkillsCLI:
         target = Path(str(output))
         path = write_model(str(target.parent), target.name, dataset)
         print(f"Wrote {len(dataset.rag_questions)} questions to {path}")
+
+    def _dialogue_acts_import(
+        self, corpus: str, source: str, output: str, context: int = 3,
+        limit: Optional[int] = None,
+    ) -> None:
+        """Import a dialogue-act corpus into the common JSONL format.
+
+        Prints only aggregates (counts per category and per source label
+        left unmapped); the sentences stay in ``output``, which belongs
+        under the git-ignored ``data/``.
+
+        Args:
+            corpus: ami, mrda, swda, dihana or own.
+            source: The corpus archive as downloaded (own: the
+                directory of ``*.txt`` dialogue files).
+            output: JSONL file to write.
+            context: Earlier sentences kept with each record.
+            limit: Stop after this many dialogues.
+        """
+        reader = READERS.get(str(corpus))
+        if reader is None:
+            raise InvalidInputError(
+                f"Unknown corpus {corpus!r}; known: "
+                f"{', '.join(sorted(READERS))}.")
+        if not isinstance(context, int) or isinstance(context, bool):
+            raise InvalidInputError("--context must be an integer.")
+        if limit is not None and (
+                not isinstance(limit, int) or isinstance(limit, bool)):
+            raise InvalidInputError("--limit must be an integer.")
+        summary = import_corpus(
+            reader(str(source)), JsonlActRecordSink(str(output)),
+            context=context, limit=limit)
+        flag = " (non-commercial: internal evaluation only)" if (
+            summary.non_commercial) else ""
+        print(f"{summary.corpus}: {summary.dialogues} dialogues, "
+              f"{summary.records} sentences, {summary.mapped} mapped; "
+              f"licence {summary.licence}{flag}")
+        for key, count in summary.distribution.items():
+            print(f"  {key}: {count}")
+        if summary.unmapped_labels:
+            top = list(summary.unmapped_labels.items())[:10]
+            print("  unmapped source labels: " + ", ".join(
+                f"{label or '(none)'} {count}" for label, count in top))
+        print(f"Wrote {output}")
+
+    def _dialogue_acts_set(self, source: str, output: str = "") -> None:
+        """Check our Spanish dialogue-act set and count its labels.
+
+        Args:
+            source: Directory of the set's ``*.txt`` files.
+            output: Optional JSON file for the set in
+                ``transcript.v1``-like form.
+        """
+        dialogues = [
+            dialogue
+            for path in sorted(Path(str(source)).glob("*.txt"))
+            for dialogue in parse_set(path.read_text(encoding="utf-8"),
+                                      path.name)
+        ]
+        if not dialogues:
+            raise NotFoundError(f"No dialogues in {source}/*.txt.")
+        counts = set_distribution(dialogues)
+        types: Dict[str, int] = {}
+        for dialogue in dialogues:
+            types[dialogue.session.type] = types.get(
+                dialogue.session.type, 0) + 1
+        print(f"{len(dialogues)} dialogues, {sum(counts.values())} "
+              "sentences")
+        for key, count in counts.items():
+            print(f"  {key}: {count}")
+        print("  types: " + ", ".join(
+            f"{key} {count}" for key, count in sorted(types.items())))
+        if output:
+            document = [to_transcript_like(d) for d in dialogues]
+            write_text(str(output), json.dumps(
+                document, ensure_ascii=False, indent=1) + "\n")
+            print(f"Wrote {output}")
