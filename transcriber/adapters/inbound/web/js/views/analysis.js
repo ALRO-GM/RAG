@@ -6,6 +6,7 @@
 import { h, fill } from "../dom.js";
 import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
+import { helpHref } from "../lib/help-analysis.js";
 import {
   COUNT_KEYS, OPEN_ISSUES, actRows, byPerson, clock, doubtfulCount, eventRows, isActive,
   orderedSteps, ratingRows, reportBlob, reportFileName, startMode, startRefusal,
@@ -36,7 +37,7 @@ export async function analysisView(ctx, root, [rawId]) {
     h("p", { class: "meta" }, id, " · ",
       h("a", { href: `#/s/${encodeURIComponent(id)}` }, t("sa.back_session")), " · ",
       h("a", { href: "#/" }, t("nav.sessions"))),
-    h("p", { class: "hint" }, t("sa.intro")),
+    h("p", { class: "hint" }, t("sa.intro"), " ", h("a", { href: helpHref() }, t("help.link"))),
     h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
     h("div", { class: "stack" },
       h("label", { class: "check" }, synthetic, h("span", {}, t("sa.synthetic"))),
@@ -69,6 +70,7 @@ export async function analysisView(ctx, root, [rawId]) {
     const lines = [
       h("div", { class: "row" },
         h("strong", {}, t(`sa.step_${step.name}`)),
+        h("a", { class: "help-link", href: helpHref(step.name), title: t("help.hint"), "aria-label": t("help.hint") }, "?"),
         h("span", { class: "badge" }, t(`sa.status_${status}`)),
         seconds ? h("span", { class: "hint" }, seconds) : null),
       who.length ? h("p", { class: "hint" }, who.join(" · ")) : null,
