@@ -78,11 +78,13 @@ from transcriber.domain.diarization import (
     DiarizerRule,
     label_order,
     label_windows,
+    name_labels,
     segment_spans,
     segment_voices,
 )
 from transcriber.domain.errors import (
     InvalidInputError,
+    LabStepError,
     NotFoundError,
     VoiceModelMismatchError,
 )
@@ -258,17 +260,24 @@ STOPPED_NOTE = (
 )
 
 
+class _Stopped(Exception):
+    """The run is no longer the session's: stop quietly, save nothing."""
+
+
 class _Voices(NamedTuple):
     """The voices of a run: labelled words and what identification needs.
 
     ``seeded`` is set when the voiceprints seeded the grouping;
-    ``vectors`` holds one vector per voice label otherwise.
+    ``vectors`` holds one vector per voice label otherwise. ``heard``,
+    when set, holds the label numbers that have a voice to match (a
+    lab diarizer's label with no window has none and stays anonymous).
     """
 
     words: List[Word]
     vectors: FloatArray
     evidence: Optional[VoiceEvidence]
     seeded: Optional[SeededVoices]
+    heard: Optional[AbstractSet[int]] = None
 
 
 class _Result(NamedTuple):
@@ -374,6 +383,9 @@ class TranscribeSession:
         try:
             result = self._run(running, options, advance, report)
             saved = self._commit(running, result)
+        except _Stopped:
+            report.note(STOPPED_NOTE)
+            return None
         except BaseException as exc:
             reason = str(exc).strip() or type(exc).__name__
             self._fail(running, f"{stage}: {reason}")
@@ -465,14 +477,14 @@ class TranscribeSession:
             self._voiceprints, options, self.voice_model
         )
         listed = expected_rule(options, candidates.voiceprints)
-        external = self._external(audio, options, report)
+        external = self._external(running, audio, options, report)
         if external is not None:
             voices = self._segment_voices(audio, words, external)
         else:
             voices = self._grouped_voices(
                 audio, words, options, candidates.voiceprints, listed
             )
-        words, vectors, evidence, seeded = voices
+        words, vectors, evidence, seeded, heard = voices
         if p.smoothing_run:
             words = smooth_speakers(words, p.smoothing_run)
         moved: List[Tuple[float, float]] = []
@@ -494,7 +506,7 @@ class TranscribeSession:
         else:
             names = self._identify(
                 words, vectors, candidates.voiceprints, taken,
-                p.expected_floor if listed else p.match_threshold,
+                p.expected_floor if listed else p.match_threshold, heard,
             )
         words = [
             w.model_copy(update={"speaker": names[w.speaker or ""].speaker})
@@ -602,8 +614,22 @@ class TranscribeSession:
         return _Voices(assign_speakers(words, spans), vectors, evidence,
                        seeded)
 
+    def _stale(self, running: Session) -> bool:
+        """Tell whether the stored session is no longer the run ``running``.
+
+        Read without the lock: it is only polled to stop a diarizer early
+        (the session was deleted or queued again); saving still checks
+        under the lock.
+        """
+        stored = self._sessions.get(running.id)
+        return (
+            stored is None or stored.run_id != running.run_id
+            or stored.state is not SessionState.RUNNING
+        )
+
     def _external(
-        self, audio: Audio, options: TranscriptionOptions, report: Progress,
+        self, running: Session, audio: Audio, options: TranscriptionOptions,
+        report: Progress,
     ) -> Optional[Diarization]:
         """Run the lab diarizer the rule picks; ``None``: use the built-in.
 
@@ -611,6 +637,10 @@ class TranscribeSession:
         rule picks ``builtin``, the model cannot run here (its
         environment is missing), it fails, or it hears no one; each case
         but the first two is logged as a warning and noted on the job.
+        A diarizer stopped because the session was deleted or queued
+        again stops the run quietly (nothing is saved); one stopped
+        because the service is stopping fails the job. Neither falls
+        back.
         """
         if self._diarizer is None:
             return None
@@ -621,8 +651,16 @@ class TranscribeSession:
         if problem is None:
             try:
                 found = self._diarizer.diarize(
-                    model, audio, options.num_speakers
+                    model, audio, options.num_speakers,
+                    lambda: self._stale(running),
                 )
+            except LabStepError as exc:
+                if exc.code == "cancelled":
+                    if self._stale(running):
+                        raise _Stopped() from exc
+                    raise
+                LOG.warning("The diarizer %s failed.", model, exc_info=True)
+                problem = str(exc).strip() or exc.code
             except Exception as exc:
                 LOG.warning("The diarizer %s failed.", model, exc_info=True)
                 problem = str(exc).strip() or type(exc).__name__
@@ -675,7 +713,8 @@ class TranscribeSession:
         vectors = voices.vectors
         if vectors.shape[1] == 0:
             vectors = np.zeros((0, 0), dtype=np.float32)
-        return _Voices(words, vectors, evidence, None)
+        return _Voices(words, vectors, evidence, None,
+                       frozenset(voices.heard))
 
     def _scored(
         self, audio: Audio, words: List[Word], language: Optional[str],
@@ -774,11 +813,15 @@ class TranscribeSession:
         candidates: Sequence[Voiceprint],
         taken: AbstractSet[str],
         threshold: float,
+        heard: Optional[AbstractSet[int]] = None,
     ) -> Dict[str, Attribution]:
         """Return the attribution of each diarizer label of ``words``.
 
         A group takes a voiceprint at ``threshold`` or more (the match
-        threshold, or the floor of the expected-speakers rule).
+        threshold, or the floor of the expected-speakers rule). With
+        ``heard``, only those group numbers may take one; the others
+        stay anonymous (:func:`~transcriber.domain.diarization.
+        name_labels`).
 
         Groups are passed to the matching in order of first appearance
         in the final words, so ``S1`` is the first unknown voice heard;
@@ -795,10 +838,18 @@ class TranscribeSession:
             )
         else:
             rows = {speaker_label(n): n for n in range(vectors.shape[0])}
-            matched = match_voices(
-                vectors[[rows[label] for label in order]], candidates,
-                threshold, self._parameters.normaliser(), taken=taken,
-            )
+            picked = vectors[[rows[label] for label in order]]
+            if heard is None:
+                matched = match_voices(
+                    picked, candidates, threshold,
+                    self._parameters.normaliser(), taken=taken,
+                )
+            else:
+                matched = name_labels(
+                    picked, [rows[label] in heard for label in order],
+                    candidates, threshold, self._parameters.normaliser(),
+                    taken,
+                )
         return dict(zip(order, matched))
 
     def _speakers(

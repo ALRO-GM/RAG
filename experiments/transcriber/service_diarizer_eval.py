@@ -54,7 +54,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 
 import numpy as np
 
@@ -152,11 +152,12 @@ class Recording:
         return self.inner.problem(model)
 
     def diarize(
-        self, model: str, audio: Audio, num_speakers: Optional[int]
+        self, model: str, audio: Audio, num_speakers: Optional[int],
+        cancelled: Callable[[], bool] = lambda: False,
     ) -> Diarization:
         """Diarize and keep the result and the time it took."""
         began = time.perf_counter()
-        self.last = self.inner.diarize(model, audio, num_speakers)
+        self.last = self.inner.diarize(model, audio, num_speakers, cancelled)
         self.seconds = time.perf_counter() - began
         return self.last
 

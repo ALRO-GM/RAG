@@ -1,5 +1,7 @@
 """The lab's diarizers as the transcription's diarizer (TR-18)."""
 
+import threading
+import time
 import wave
 from pathlib import Path
 from typing import List
@@ -9,6 +11,7 @@ import pytest
 
 from tests.integration.transcriber.lab_sandbox import make_lab
 from transcriber.adapters.outbound.lab_runner_diarizer import (
+    SCRATCH_PREFIX,
     LabRunnerDiarizer,
     write_wav,
 )
@@ -22,6 +25,7 @@ from transcriber.bootstrap import (
     DIARIZE_DIR,
     build_diarizer,
     diarizer_problems,
+    start_container,
 )
 from transcriber.config import LabSettings, TranscriberSettings
 from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
@@ -168,3 +172,79 @@ class TestComposition:
         rule = TranscriberSettings().diarizer
         assert rule.model_for(None) == "diarizen-wavlm-large-s80-md-v2"
         assert rule.model_for(2) == "nemotron-3-diarization"
+
+
+class TestStopping:
+    """A runner never outlives its job or the service (fake-slow sleeps)."""
+
+    def test_a_cancelled_job_kills_its_runner(
+        self, lab: LabSettings, tmp_path: Path
+    ) -> None:
+        adapter = diarizer(lab, tmp_path, [])
+        began = time.monotonic()
+        with pytest.raises(LabStepError) as raised:
+            adapter.diarize("fake-slow", audio(), None,
+                            lambda: time.monotonic() - began > 0.5)
+        assert raised.value.code == "cancelled"
+        assert time.monotonic() - began < 10
+        assert adapter.running() == 0
+        assert list((tmp_path / "diarize").iterdir()) == []
+
+    def test_close_kills_the_runner_and_refuses_new_ones(
+        self, lab: LabSettings, tmp_path: Path
+    ) -> None:
+        adapter = diarizer(lab, tmp_path, [])
+        errors: List[LabStepError] = []
+
+        def run() -> None:
+            try:
+                adapter.diarize("fake-slow", audio(), None)
+            except LabStepError as exc:
+                errors.append(exc)
+
+        worker = threading.Thread(target=run)
+        worker.start()
+        deadline = time.monotonic() + 10
+        while adapter.running() == 0 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert adapter.running() == 1
+        adapter.close()
+        worker.join(10)
+        assert not worker.is_alive()
+        assert errors[0].code == "cancelled"
+        assert adapter.running() == 0
+        with pytest.raises(LabStepError):
+            adapter.diarize("fake-diarize", audio(), None)
+
+    def test_sweep_deletes_left_run_folders_only(
+        self, lab: LabSettings, tmp_path: Path
+    ) -> None:
+        adapter = diarizer(lab, tmp_path, [])
+        assert adapter.sweep() == 0
+        left = tmp_path / "diarize" / f"{SCRATCH_PREFIX}abc"
+        left.mkdir(parents=True)
+        (left / "audio.wav").write_bytes(b"RIFF")
+        other = tmp_path / "diarize" / "keep"
+        other.mkdir()
+        assert adapter.sweep() == 1
+        assert not left.exists() and other.exists()
+
+    def test_the_service_sweeps_at_start_and_stops_runners(
+        self, lab: LabSettings, tmp_path: Path
+    ) -> None:
+        data = tmp_path / "data"
+        left = data / DIARIZE_DIR / f"{SCRATCH_PREFIX}old"
+        left.mkdir(parents=True)
+        settings = TranscriberSettings(
+            data_dir=data, lab=lab,
+            diarizer=DiarizerRule(model="fake-diarize", by_speakers={}),
+        )
+        container = start_container(settings)
+        assert not left.exists()
+        assert container.diarizer is not None
+        container.stop_runners()
+        with pytest.raises(LabStepError):
+            container.diarizer.diarize("fake-diarize", audio(), None)
+        fake = start_container(TranscriberSettings(
+            data_dir=tmp_path / "fake", runtime="fake"))
+        fake.stop_runners()  # nothing to stop

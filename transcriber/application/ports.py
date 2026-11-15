@@ -228,12 +228,15 @@ class Diarizer(Protocol):
         ...
 
     def diarize(
-        self, model: str, audio: Audio, num_speakers: Optional[int]
+        self, model: str, audio: Audio, num_speakers: Optional[int],
+        cancelled: Callable[[], bool] = lambda: False,
     ) -> Diarization:
         """Return who speaks when in ``audio`` according to ``model``.
 
         ``num_speakers`` is passed to models that take it. Raises an
-        exception (any) when the model fails.
+        exception (any) when the model fails. ``cancelled`` is polled
+        while the model runs: when it turns true the model is stopped
+        and a ``LabStepError`` with code ``cancelled`` is raised.
         """
         ...
 

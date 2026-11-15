@@ -429,6 +429,23 @@ monetised):
   starts the service unloads its own recogniser (Whisper is not needed
   again in that job), so the card (8 GB, shared with the RAG and
   another project's worker) holds the diarizer and little else.
+- The runner and its copy of the audio never outlive the job. The
+  runner runs in its own process group, so the service kills it
+  itself: when the session is deleted or queued again (the job polls
+  the stored session every half second and stops quietly, saving
+  nothing), and when the service stops (Ctrl-C, SIGTERM, or at exit:
+  `TranscriberContainer.stop_runners`, which also refuses to start
+  another runner; the job then fails and is recovered as interrupted
+  at the next start). Deleting a session whose job is running is
+  refused anyway (§3), so a running job's audio is never orphaned by a
+  deletion. A `diarize-*` folder left by a service killed mid-run
+  (`SIGKILL`, power loss: no `finally` runs) is deleted when the
+  service starts (`LabRunnerDiarizer.sweep`, one service per data
+  directory). A runner left by such a kill is not tracked across
+  restarts: it ends when its model finishes or fails.
+- A diarizer label too short for any voice window has no voice vector
+  and is never matched with a voiceprint (it stays `S1`, `S2`…) in any
+  normalisation (`domain/diarization.py`, `name_labels`).
 - No denoiser runs first (`LAB.md` §13.8: cleaning did not help).
 - Each word takes the diarizer segment it overlaps most. Each label's
   voice is embedded with the service's voice model over the stretches
@@ -494,9 +511,9 @@ process peaks at 1.9–2.5 GB (Whisper, released before the runner
 starts, then WavLM); the whole card peaked at 4.4–4.5 GB on AMI and
 2.8–3.3 GB on the calls. One call (`callhome-data-0008`) was measured
 on the CPU while another project held the card (76 minutes for 300 s
-of audio, DER 0.168; on the GPU in a first trial 0.173); its GPU
-figures are not counted. Time on the GPU: 31–57 s for a 5–10 min
-call, 131–212 s for a 25–39 min meeting.
+of audio, DER 0.168, `service_diarizer.jsonl`); its time and memory
+are left out of the GPU figures. Time on the GPU: 31–57 s for a 5–10
+min call, 131–212 s for a 25–39 min meeting.
 
 ## 7. Listening to a sentence
 

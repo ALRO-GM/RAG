@@ -16,6 +16,7 @@ previous process left queued or running (:class:`RecoverSessions`).
 its tunnel (a chisel client) and its access code.
 """
 
+import atexit
 import logging
 import os
 from dataclasses import dataclass
@@ -230,7 +231,7 @@ class TranscriberContainer:
     overlaps: Optional[OverlapDetector] = None
     lab: Optional[LabUseCases] = None
     analysis_judge: AnalysisJudgeSetting = AnalysisJudgeSetting(None)
-    diarizer: Optional[Diarizer] = None
+    diarizer: Optional[LabRunnerDiarizer] = None
     diarizer_rule: DiarizerRule = BUILTIN_RULE
 
     def release_models(self) -> None:
@@ -239,6 +240,15 @@ class TranscriberContainer:
         self.encoder.release()
         if self.overlaps is not None:
             self.overlaps.release()
+
+    def stop_runners(self) -> None:
+        """Kill a lab diarizer's runner in progress; start no other one.
+
+        The service calls it when it stops (and at exit): a runner lives
+        in its own process group and would outlive the service.
+        """
+        if self.diarizer is not None:
+            self.diarizer.close()
 
 
 def build_overlap_detector(
@@ -265,7 +275,7 @@ def build_diarizer(
     settings: TranscriberSettings,
     environ: Mapping[str, str],
     before_run: Callable[[], None] = lambda: None,
-) -> Tuple[Optional[Diarizer], DiarizerRule]:
+) -> Tuple[Optional[LabRunnerDiarizer], DiarizerRule]:
     """Return the lab diarizer and the rule ``settings.diarizer`` gives.
 
     With ``runtime: "fake"``, or a rule that only picks ``builtin``,
@@ -553,6 +563,14 @@ def start_container(
     here is assumed to have no live job.
     """
     container = build_container(settings)
+    if container.diarizer is not None:
+        swept = container.diarizer.sweep()
+        if swept:
+            LOG.warning(
+                "Deleted %d diarizer work folder(s) left by a stopped"
+                " service.", swept,
+            )
+        atexit.register(container.stop_runners)
     problems = diarizer_problems(
         container.diarizer, container.diarizer_rule
     )

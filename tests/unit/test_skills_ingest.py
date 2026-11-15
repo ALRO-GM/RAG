@@ -131,6 +131,50 @@ def test_the_conversation_type_and_goal_are_read_and_optional(
     assert read_contract(document).session.type is None
 
 
+def test_the_diarizer_and_its_licence_are_read_and_optional(
+    validator: Draft202012Validator,
+) -> None:
+    """``pipeline.diarizer`` and its licence terms (#68), added compatibly."""
+    document = example()
+    for key in ("diarizer", "diarizer_licence", "diarizer_commercial"):
+        document["pipeline"].pop(key, None)
+    validator.validate(document)
+    plain = read_contract(document).pipeline
+    assert (plain.diarizer, plain.diarizer_licence,
+            plain.diarizer_commercial) == (None, None, None)
+    document["pipeline"].update({
+        "diarizer": "diarizen-wavlm-large-s80-md-v2",
+        "diarizer_licence": "CC-BY-NC-4.0 (weights); MIT (code)",
+        "diarizer_commercial": False,
+    })
+    validator.validate(document)
+    pipeline = read_contract(document).pipeline
+    assert pipeline.diarizer == "diarizen-wavlm-large-s80-md-v2"
+    assert str(pipeline.diarizer_licence).startswith("CC-BY-NC")
+    assert pipeline.diarizer_commercial is False
+    document["pipeline"] = {
+        **document["pipeline"], "diarizer": "builtin",
+    }
+    del document["pipeline"]["diarizer_licence"]
+    del document["pipeline"]["diarizer_commercial"]
+    validator.validate(document)
+    assert read_contract(document).pipeline.diarizer == "builtin"
+
+
+@pytest.mark.parametrize("change", [
+    {"diarizer_commercial": "no"}, {"diarizer": 3},
+    {"diarizer_licence": 7}, {"diarizer_weights": "x"},
+])
+def test_a_wrong_diarizer_field_is_refused(
+    validator: Draft202012Validator, change: Dict[str, Any],
+) -> None:
+    document = example()
+    document["pipeline"].update(change)
+    assert list(validator.iter_errors(document))
+    with pytest.raises(InvalidInputError):
+        read_contract(document)
+
+
 def test_the_types_and_goal_limit_are_the_schemas() -> None:
     schema = json.loads(SCHEMA_PATH.read_text("utf-8"))
     session = schema["properties"]["session"]["properties"]

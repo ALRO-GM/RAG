@@ -22,6 +22,7 @@ Plain arithmetic on times and vectors: no model, no I/O.
 """
 
 from typing import (
+    AbstractSet,
     Dict,
     List,
     Mapping,
@@ -41,7 +42,17 @@ from transcriber.domain.speakers import (
     analysis_windows,
     speaker_label,
 )
-from transcriber.domain.voices import FloatArray, centre, unit_rows
+from transcriber.domain.models import Voiceprint
+from transcriber.domain.voices import (
+    Attribution,
+    FloatArray,
+    Normalisation,
+    anonymous_label,
+    centre,
+    match_voices,
+    unit_rows,
+    unit_vectors,
+)
 
 FRAME = 0.01
 """Time step (seconds) of the exclusive-speech grid."""
@@ -205,14 +216,18 @@ class SegmentVoices(NamedTuple):
     """The voice of each diarizer label and the windows' cosines.
 
     ``vectors`` has one raw unit-length mean per label (row ``n`` is
-    label ``n``; a label with no window is a zero row, which matches no
-    voiceprint). ``fine_scores`` holds, per short analysis window
-    (row) and label (column), the cosine of the window with the label's
+    label ``n``; a label with no window is a zero row). ``heard`` lists
+    the labels that have a window: only those may be matched with a
+    voiceprint (:func:`name_labels`), since a zero row is not a voice
+    and some normalisations (centring on the session) would turn it
+    into one. ``fine_scores`` holds, per short analysis window (row)
+    and label (column), the cosine of the window with the label's
     voice; ``None`` with fewer than two heard labels or no window.
     """
 
     vectors: FloatArray
     fine_scores: Optional[FloatArray] = None
+    heard: Tuple[int, ...] = ()
 
 
 def segment_voices(
@@ -244,7 +259,7 @@ def segment_voices(
             vectors[number] = _unit(raw[rows].mean(axis=0))
             heard.append(number)
     if len(heard) < 2 or fine.ndim != 2 or fine.shape[0] == 0:
-        return SegmentVoices(vectors)
+        return SegmentVoices(vectors, None, tuple(heard))
     if fine.shape[1] != width:
         raise ValueError("Label windows and short windows differ in size.")
     if centre_windows:
@@ -261,7 +276,53 @@ def segment_voices(
     for number in range(labels):
         if number not in heard:
             scores[:, number] = -1.0
-    return SegmentVoices(vectors, scores)
+    return SegmentVoices(vectors, scores, tuple(heard))
+
+
+def name_labels(
+    vectors: FloatArray,
+    heard: Sequence[bool],
+    candidates: Sequence[Voiceprint],
+    threshold: float,
+    normalisation: Normalisation = unit_vectors,
+    taken: AbstractSet[str] = frozenset(),
+) -> List[Attribution]:
+    """Attribute each row of ``vectors`` to a person or an anonymous label.
+
+    Only the rows marked ``heard`` are matched (one to one, at
+    ``threshold``, after ``normalisation``:
+    :func:`~transcriber.domain.voices.match_voices`); the others stay
+    anonymous whatever the normalisation. Anonymous labels ``S1``,
+    ``S2``... are numbered in row order, skipping the candidates' ids
+    and ``taken``.
+    """
+    if len(heard) != vectors.shape[0]:
+        raise ValueError("One heard flag per row is required.")
+    rows = [i for i, flag in enumerate(heard) if flag]
+    matched: Dict[int, Attribution] = {}
+    if rows and candidates:
+        found = match_voices(vectors[rows], candidates, threshold,
+                             normalisation, taken=taken)
+        matched = {rows[k]: a for k, a in enumerate(found)}
+    skip = set(taken) | {v.speaker_id for v in candidates}
+    out: List[Attribution] = []
+    number = 1
+    for row in range(len(heard)):
+        found_row = matched.get(row)
+        if found_row is not None and found_row.enrolled:
+            out.append(found_row.model_copy(update={"group": row}))
+            continue
+        while anonymous_label(number) in skip:
+            number += 1
+        out.append(Attribution(
+            group=row, speaker=anonymous_label(number), enrolled=False,
+            nearest=found_row.nearest if found_row else None,
+            nearest_similarity=(
+                found_row.nearest_similarity if found_row else None
+            ),
+        ))
+        number += 1
+    return out
 
 
 def _unit(vector: FloatArray) -> FloatArray:

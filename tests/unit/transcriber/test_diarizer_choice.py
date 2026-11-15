@@ -1,7 +1,8 @@
 """Transcription with a lab diarizer (TR-18): rule, voices, fallback."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -15,6 +16,7 @@ from tests.unit.transcriber.fakes import (
     FakeSessionRepository,
     FakeVoiceEncoder,
     FakeVoiceprintRepository,
+    Line,
     RecordingProgress,
     Scene,
     meeting,
@@ -37,13 +39,22 @@ from transcriber.domain.diarization import (
     exclusive_regions,
     label_order,
     label_windows,
+    name_labels,
     segment_spans,
     segment_voices,
     spread,
 )
+from transcriber.domain.errors import LabStepError
 from transcriber.domain.lab import Segment
-from transcriber.domain.models import Transcript
+from transcriber.domain.models import SessionState, Transcript, Voiceprint
 from transcriber.domain.parameters import TranscriptionParameters
+from transcriber.domain.voices import (
+    FloatArray,
+    Normalisation,
+    centre_on_session,
+    match_voices,
+    unit_vectors,
+)
 
 
 @dataclass
@@ -60,13 +71,15 @@ class FakeDiarizer:
     silent: bool = False
     overlaps: List[Tuple[float, float]] = field(default_factory=list)
     calls: List[Tuple[str, Optional[int]]] = field(default_factory=list)
+    extra: List[Segment] = field(default_factory=list)
 
     def problem(self, model: str) -> Optional[str]:
         """Return the configured problem of ``model``."""
         return self.problems.get(model)
 
     def diarize(
-        self, model: str, audio: Audio, num_speakers: Optional[int]
+        self, model: str, audio: Audio, num_speakers: Optional[int],
+        cancelled: Callable[[], bool] = lambda: False,
     ) -> Diarization:
         """Return one segment per line, labelled by person (``spkN``)."""
         self.calls.append((model, num_speakers))
@@ -78,7 +91,7 @@ class FakeDiarizer:
             Segment(start=line.start, end=line.end,
                     speaker=f"spk{people.index(line.speaker)}")
             for line in self.scene.lines
-        ]
+        ] + list(self.extra)
         return Diarization(
             model=model, licence="CC-BY-NC-4.0",
             commercial=model != DEFAULT_DIARIZER and None,
@@ -102,6 +115,7 @@ def setup(
     rule: DiarizerRule = DiarizerRule(),
     diarizer: Optional[FakeDiarizer] = None,
     overlaps: Optional[FakeOverlapDetector] = None,
+    parameters: TranscriptionParameters = TranscriptionParameters(),
 ) -> Setup:
     """Wire a transcription that uses ``diarizer`` by ``rule``."""
     scene = scene or meeting()
@@ -112,7 +126,7 @@ def setup(
     diarizer = diarizer or FakeDiarizer(scene)
     transcribe = TranscribeSession(
         sessions, voiceprints, FakeDecoder(scene), FakeRecogniser(scene),
-        FakeVoiceEncoder(scene), locks, TranscriptionParameters(),
+        FakeVoiceEncoder(scene), locks, parameters,
         overlaps, diarizer, rule,
     )
     return Setup(sessions, voiceprints, diarizer, transcribe, locks)
@@ -308,15 +322,6 @@ class TestTranscribeWithDiarizer:
         transcript = run(s)
         assert turns(transcript) == ["S1", "luis", "S1"]
 
-    def test_expected_speakers_take_the_floor(self) -> None:
-        s = setup()
-        s.voiceprints.enrol("ana", voice(0), name="Ana")
-        s.voiceprints.enrol("luis", voice(1), name="Luis")
-        transcript = run(s, TranscriptionOptions(
-            num_speakers=2, expected_speakers=["ana", "luis"]
-        ))
-        assert turns(transcript) == ["ana", "luis", "ana"]
-
     def test_sentences_keep_their_certainty(self) -> None:
         transcript = run(setup())
         assert any(
@@ -330,15 +335,6 @@ class TestTranscribeWithDiarizer:
         first = transcript.utterances[0]
         assert first.overlap is True
         assert first.overlap_source in ("detector", "both")
-
-    def test_diarizer_and_detector_overlaps_are_joined(self) -> None:
-        scene = meeting()
-        s = setup(
-            scene, diarizer=FakeDiarizer(scene, overlaps=[(1.0, 4.0)]),
-            overlaps=FakeOverlapDetector(),
-        )
-        transcript = run(s)
-        assert transcript.utterances[0].overlap is True
 
     def test_builtin_rule_does_not_call_the_diarizer(self) -> None:
         s = setup(rule=BUILTIN_RULE)
@@ -396,3 +392,223 @@ class TestFallback:
             model=DEFAULT_DIARIZER, reason="out of memory"
         )
         assert expected in progress.notes
+
+
+def print_of(speaker_id: str, vector: FloatArray) -> Voiceprint:
+    """A voiceprint of ``vector`` (unit length) for ``speaker_id``."""
+    unit = vector / np.linalg.norm(vector)
+    return Voiceprint(
+        speaker_id=speaker_id, model="fake-voice",
+        vector=[float(x) for x in unit], consent_version="consent-1",
+        enrolled_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+class TestNameLabels:
+    """A label with no voice window is never matched (review of #68)."""
+
+    a, b = voice(0), voice(1)
+    rows = np.stack([a, b, np.zeros_like(a)]).astype(np.float32)
+    # Centred on the session, the zero row becomes -mean: a voiceprint
+    # along -(a + b) then looks exactly like it.
+    carla = print_of("carla", -(a + b))
+
+    def test_the_hazard_is_real_with_centring(self) -> None:
+        matched = match_voices(self.rows, [self.carla], 0.95,
+                               centre_on_session)
+        assert matched[2].speaker == "carla"
+
+    @pytest.mark.parametrize("normalisation", [
+        unit_vectors, centre_on_session,
+    ])
+    def test_a_label_without_window_stays_anonymous(
+        self, normalisation: Normalisation,
+    ) -> None:
+        names = name_labels(
+            self.rows, [True, True, False],
+            [self.carla, print_of("ana", self.a)], 0.95, normalisation,
+        )
+        assert [n.group for n in names] == [0, 1, 2]
+        assert not names[2].enrolled and names[2].speaker.startswith("S")
+        assert all(n.speaker != "carla" for n in names)
+
+    def test_heard_labels_are_matched_and_anonymous_ones_numbered(
+        self,
+    ) -> None:
+        names = name_labels(
+            self.rows, [True, True, False], [print_of("ana", self.a)],
+            0.95, taken={"S1"},
+        )
+        assert [n.speaker for n in names] == ["ana", "S2", "S3"]
+        assert names[0].similarity is not None
+        assert names[1].nearest == "ana"
+
+    def test_nobody_to_match(self) -> None:
+        names = name_labels(self.rows, [False, False, False], [], 0.95)
+        assert [n.speaker for n in names] == ["S1", "S2", "S3"]
+
+    def test_one_flag_per_row(self) -> None:
+        with pytest.raises(ValueError):
+            name_labels(self.rows, [True], [], 0.95)
+
+    def test_segment_voices_lists_the_heard_labels(self) -> None:
+        voices = segment_voices(
+            np.stack([self.a, self.b]).astype(np.float32), [0, 2], 3,
+            np.stack([self.a]).astype(np.float32),
+        )
+        assert voices.heard == (0, 2)
+
+    def test_the_transcription_leaves_a_windowless_label_anonymous(
+        self,
+    ) -> None:
+        # Eva says one word of 0.3 s: too short for any voice window, so
+        # her label has a zero vector. Centred on the session (three
+        # labels), that zero row would look like a voiceprint along
+        # -(Ana + Luis); before the fix it took that person's name.
+        scene = Scene(
+            lines=[
+                Line("ana", 0.0, 12.0, "Hola a todos. Hoy repartimos las"
+                     " tareas del proyecto nuevo y lo revisamos."),
+                Line("eva", 12.2, 12.5, "Sí."),
+                Line("luis", 13.0, 25.0, "Vale. Yo me encargo de la"
+                     " interfaz y de las pruebas del sistema."),
+            ],
+            voices={"ana": voice(0), "eva": voice(2), "luis": voice(1)},
+        )
+        s = setup(scene, parameters=TranscriptionParameters(
+            normalisation="centre_on_session"))
+        s.voiceprints.enrol("carla", -(voice(0) + voice(1)), name="Carla")
+        transcript = run(s)
+        said = {u.text: u.speaker for u in transcript.utterances}
+        assert said["Sí."].startswith("S")
+        assert "carla" not in {sp.id for sp in transcript.speakers}
+
+
+class TestFloorAndJoin:
+    def test_the_floor_names_only_listed_people(self) -> None:
+        # Ana's voiceprint is ~0.88 from her voice: below the match
+        # threshold (0.95), above the expected floor (0.8).
+        off = voice(0).copy()
+        off[5] = 0.56
+        cosine = float(off @ voice(0) / np.linalg.norm(off)
+                       / np.linalg.norm(voice(0)))
+        p = TranscriptionParameters()
+        assert p.expected_floor < cosine < p.match_threshold
+        listed = setup()
+        listed.voiceprints.enrol("ana", off, name="Ana")
+        listed.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = run(listed, TranscriptionOptions(
+            num_speakers=2, expected_speakers=["ana", "luis"]
+        ))
+        assert turns(transcript) == ["ana", "luis", "ana"]
+        ana = next(s for s in transcript.speakers if s.id == "ana")
+        assert ana.identification == "expected_floor"
+        open_session = setup()
+        open_session.voiceprints.enrol("ana", off, name="Ana")
+        open_session.voiceprints.enrol("luis", voice(1), name="Luis")
+        transcript = run(open_session, TranscriptionOptions(num_speakers=2))
+        assert turns(transcript) == ["S1", "luis", "S1"]
+
+    def test_diarizer_and_detector_overlaps_are_joined(self) -> None:
+        scene = meeting()
+        s = setup(
+            scene, diarizer=FakeDiarizer(scene, overlaps=[(1.0, 4.0)]),
+            overlaps=FakeOverlapDetector([(27.0, 30.0)]),
+        )
+        transcript = run(s)
+
+        def source(at: float) -> Optional[str]:
+            sentence = next(u for u in transcript.utterances
+                            if u.start <= at <= u.end)
+            assert sentence.overlap is True
+            return sentence.overlap_source
+
+        assert source(2.0) in ("detector", "both")  # the diarizer's
+        assert source(28.0) in ("detector", "both")  # the detector's
+
+
+@dataclass
+class CancellingDiarizer(FakeDiarizer):
+    """A diarizer that lets the test act mid-run, then polls cancelled."""
+
+    during: Callable[[], None] = lambda: None
+    saw: List[bool] = field(default_factory=list)
+
+    def diarize(
+        self, model: str, audio: Audio, num_speakers: Optional[int],
+        cancelled: Callable[[], bool] = lambda: False,
+    ) -> Diarization:
+        """Run ``during``, record ``cancelled()``, stop if it is true."""
+        self.saw.append(cancelled())
+        self.during()
+        self.saw.append(cancelled())
+        if self.saw[-1]:
+            raise LabStepError("cancelled", "The run was cancelled.")
+        return super().diarize(model, audio, num_speakers, cancelled)
+
+
+class TestCancellation:
+    def _queued(self, s: Setup) -> str:
+        ImportRecording(s.sessions, s.locks)(
+            "s1", "es", RecordedAudio(b"audio", "wav")
+        )
+        QueueTranscription(
+            s.sessions, s.voiceprints, FakeJobRunner(), s.transcribe,
+            s.locks,
+        )("s1")
+        session = s.sessions.get("s1")
+        assert session is not None and session.run_id is not None
+        return session.run_id
+
+    def test_a_session_queued_again_cancels_the_diarizer(self) -> None:
+        scene = meeting()
+        diarizer = CancellingDiarizer(scene)
+        s = setup(scene, diarizer=diarizer)
+        run_id = self._queued(s)
+
+        def queue_again() -> None:
+            session = s.sessions.get("s1")
+            assert session is not None
+            with s.locks.hold("s1"):
+                s.sessions.save(session.model_copy(update={
+                    "run_id": "another", "state": SessionState.QUEUED,
+                }))
+
+        diarizer.during = queue_again
+        progress = RecordingProgress()
+        assert s.transcribe("s1", progress=progress, run_id=run_id) is None
+        assert diarizer.saw == [False, True]
+        # stopped, not fallen back to the built-in grouping
+        assert not any("built-in" in n for n in progress.notes)
+
+    def test_a_deleted_session_cancels_the_diarizer(self) -> None:
+        scene = meeting()
+        diarizer = CancellingDiarizer(scene)
+        s = setup(scene, diarizer=diarizer)
+        run_id = self._queued(s)
+
+        def delete() -> None:
+            with s.locks.hold("s1"):
+                s.sessions.delete("s1")
+
+        diarizer.during = delete
+        assert s.transcribe("s1", run_id=run_id) is None
+        assert diarizer.saw == [False, True]
+        assert s.sessions.get("s1") is None
+
+    def test_a_stopping_service_fails_the_job_without_fallback(
+        self,
+    ) -> None:
+        scene = meeting()
+        diarizer = CancellingDiarizer(scene)
+        s = setup(scene, diarizer=diarizer)
+        run_id = self._queued(s)
+
+        def stop() -> None:
+            raise LabStepError("cancelled", "The service is stopping.")
+
+        diarizer.during = stop
+        with pytest.raises(LabStepError):
+            s.transcribe("s1", run_id=run_id)
+        session = s.sessions.get("s1")
+        assert session is not None and session.state is SessionState.FAILED

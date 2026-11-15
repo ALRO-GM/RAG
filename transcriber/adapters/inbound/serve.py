@@ -286,6 +286,7 @@ def serve(
         watcher.join(POLL_SECONDS * 2)
         if tunnel is not None:
             tunnel.stop()
+        container.stop_runners()
         container.runner.close(STOP_JOBS_TIMEOUT)
         if bound is not None:
             bound.close()
