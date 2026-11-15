@@ -2,7 +2,9 @@
 
 The report is a view of a :class:`SessionAssessment`: which
 competencies were rated, where each rating sits on the scale, how much
-evidence backs it, and the verified quotes. The wording comes from
+evidence backs it, and the verified quotes. Provisional estimates and
+observations (#103) are shown apart, labelled as hypotheses to
+review. The wording comes from
 ``person_report_texts`` and the rubric catalogue, so nothing on the
 page is written by a model when the report is built.
 """
@@ -15,14 +17,17 @@ from src.application.skills.person_report_texts import TEXTS
 from src.domain.errors import InvalidInputError
 from src.domain.skills.assessment import (
     CompetencyAssessment,
+    Estimate,
     Evidence,
+    Observation,
     SessionAssessment,
 )
+from src.domain.skills.provisional import why_few_firm
 from src.domain.skills.rubric import Competency, RubricCatalogue
 from src.domain.skills.speech import clock
 from src.domain.skills.transcript import Transcript
 
-Band = Literal["strong", "middle", "weak", "none"]
+Band = Literal["strong", "middle", "weak", "provisional", "none"]
 
 RECOMMENDED_SITUATIONS = 4
 """Comparable situations for a person-level reliability near .70
@@ -55,6 +60,7 @@ class Quote:
     seconds: Optional[float]
     indicator: str
     positive: bool
+    source: str = ""
 
     def when(self, language: str) -> str:
         """Return who said it and when, e.g. ``Ana, minuto 01:13``."""
@@ -77,6 +83,27 @@ class Row:
     rating: Optional[int]
     incidents: int
     band: Band
+    estimate: Optional[int] = None
+    confidence: str = ""
+
+
+@dataclass(frozen=True)
+class Review:
+    """A competency with no firm level but something to check.
+
+    ``estimate`` is the provisional level (``None``: observations
+    only); ``reasons`` are the codes of why it is not firm and
+    ``details`` the numbers they are written with.
+    """
+
+    competency_id: str
+    name: str
+    definition: str
+    estimate: Optional[int]
+    confidence: str
+    reasons: List[str]
+    details: Dict[str, int]
+    observations: List[Quote]
 
 
 @dataclass(frozen=True)
@@ -120,6 +147,19 @@ class PersonReport:
     conversation_type: Optional[str] = None
     conversation_goal: Optional[str] = None
     conversation_lines: List[str] = field(default_factory=list)
+    reviews: List[Review] = field(default_factory=list)
+    why: List[str] = field(default_factory=list)
+    tiers: List[str] = field(default_factory=list)
+
+    @property
+    def provisional(self) -> List[Review]:
+        """Return the competencies with a provisional estimate."""
+        return [r for r in self.reviews if r.estimate is not None]
+
+    @property
+    def observations(self) -> int:
+        """Return how many observations there are to review."""
+        return sum(len(r.observations) for r in self.reviews)
 
     @property
     def rated(self) -> List[Row]:
@@ -163,14 +203,16 @@ def session_minutes(transcript: Optional[Transcript]) -> Optional[float]:
 
 
 def _quote(
-    item: Evidence,
+    item: Evidence | Observation,
     participant: str,
     competency: Competency,
     transcript: Optional[Transcript],
 ) -> Quote:
     """Return an evidence item with its time and indicator text."""
-    seconds = None
-    if transcript is not None and 0 <= item.turn < len(transcript.turns):
+    seconds = item.start
+    if seconds is None and transcript is not None and (
+        0 <= item.turn < len(transcript.turns)
+    ):
         seconds = transcript.turns[item.turn].start
     indicator = competency.indicator(item.indicator_id)
     return Quote(
@@ -178,7 +220,35 @@ def _quote(
         seconds=seconds,
         indicator=indicator.text if indicator else item.indicator_id,
         positive=item.polarity == "positive",
+        source=item.source if isinstance(item, Observation) else "",
     )
+
+
+def _details(estimate: Optional[Estimate], words: int) -> Dict[str, int]:
+    """Return the numbers the reasons of an estimate are written with."""
+    if estimate is None:
+        return {"words": words}
+    return {
+        "quotes": estimate.quotes, "needed": estimate.needed,
+        "confirmations": estimate.confirmations, "words": estimate.words,
+    }
+
+
+def _tiers(language: str, firm: int, reviews: List[Review]) -> List[str]:
+    """Return the line "N firm, M provisional, K observations" and,
+    when there are provisional estimates, what they are."""
+    words = TEXTS[language]
+    estimated = sum(1 for r in reviews if r.estimate is not None)
+    lines = [words["s_tiers"].format(
+        firm=firm, provisional=estimated,
+        observations=sum(len(r.observations) for r in reviews),
+    )]
+    if estimated:
+        lines.append(
+            words["s_provisional_one"] if estimated == 1
+            else words["s_provisional"].format(count=estimated)
+        )
+    return lines
 
 
 def _summary(
@@ -190,7 +260,11 @@ def _summary(
     weaknesses: List[Point],
     signals: int,
 ) -> List[str]:
-    """Return the three to five sentences that open the report."""
+    """Return the three to five sentences that open the report.
+
+    Signals come only from rated competencies, so a person with no
+    level has none; what they did is in the reviews instead.
+    """
     words = TEXTS[language]
     duration = (
         "" if minutes is None
@@ -226,11 +300,6 @@ def _summary(
             else words["s_signal"] if signals == 1
             else words["s_signals"].format(count=signals)
         )
-    elif signals:
-        sentences.append(
-            words["s_signal"] if signals == 1
-            else words["s_signals"].format(count=signals)
-        )
     sentences.append(words["s_draft"].format(n2=note(2)))
     return sentences
 
@@ -247,8 +316,12 @@ def build_person_report(
 
     Strengths are rated competencies above the centre of the scale,
     points to improve those below it; a competency without a rating is
-    "not enough evidence", never low. Negative quotes outside the
-    points to improve become isolated signals to watch. The transcript
+    "not enough evidence", never low. Negative quotes of a rated
+    competency outside the points to improve become isolated signals
+    to watch. Competencies without a firm level but with a provisional
+    estimate or observations are listed apart (``reviews``), never
+    among the strengths or points to improve; ``why`` says why there
+    are few firm levels, when there are. The transcript
     is optional: it adds the session length, the time of each quote and
     the conversation's declared type and goal (shown as context, never
     used for a level). ``conversation_lines`` are the participant's
@@ -273,19 +346,44 @@ def build_person_report(
     strengths: List[Point] = []
     weaknesses: List[Point] = []
     signals: List[Point] = []
+    reviews: List[Review] = []
     for item in card.assessments:
         competency = catalogue.competency(item.competency_id)
+        guess = item.estimate
         rows.append(Row(
             competency_id=competency.id, name=competency.name,
             rating=item.rating, incidents=len(item.evidence),
-            band=band(item.rating, midpoint),
+            band="provisional" if guess is not None
+            else band(item.rating, midpoint),
+            estimate=guess.rating if guess else None,
+            confidence=guess.confidence if guess else "",
         ))
         _place(
             item, competency, participant, transcript, midpoint,
             strengths, weaknesses, signals,
         )
-    order = {"strong": 0, "middle": 1, "weak": 2, "none": 3}
-    rows.sort(key=lambda r: (order[r.band], -(r.rating or 0), r.name))
+        observed = item.observed()
+        if guess is not None or observed:
+            reviews.append(Review(
+                competency_id=competency.id, name=competency.name,
+                definition=competency.definition,
+                estimate=guess.rating if guess else None,
+                confidence=guess.confidence if guess else "",
+                reasons=list(guess.reasons) if guess else [],
+                details=_details(guess, card.interaction.words),
+                observations=[
+                    _quote(o, participant, competency, transcript)
+                    for o in observed
+                ],
+            ))
+    order = {"strong": 0, "middle": 1, "weak": 2, "provisional": 3,
+             "none": 4}
+    rows.sort(key=lambda r: (
+        order[r.band], -(r.rating or r.estimate or 0), r.name
+    ))
+    reviews.sort(key=lambda r: (
+        r.estimate is None, -len(r.observations), r.name
+    ))
     strengths.sort(key=lambda p: -(p.rating or 0))
     weaknesses.sort(key=lambda p: p.rating or 0)
     minutes = session_minutes(transcript)
@@ -310,6 +408,9 @@ def build_person_report(
             language, participant, minutes, rows, strengths, weaknesses,
             signal_count,
         ),
+        tiers=_tiers(
+            language, sum(1 for r in rows if r.rating is not None), reviews
+        ),
         conversation_type=(
             transcript.conversation_type if transcript else None
         ),
@@ -317,6 +418,8 @@ def build_person_report(
             transcript.conversation_goal if transcript else None
         ),
         conversation_lines=list(conversation_lines or []),
+        reviews=reviews,
+        why=why_few_firm(card, assessment.min_incidents, minutes),
     )
 
 
@@ -330,7 +433,13 @@ def _place(
     weaknesses: List[Point],
     signals: List[Point],
 ) -> None:
-    """File one competency as a strength, a point to improve or a signal."""
+    """File one competency as a strength, a point to improve or a signal.
+
+    Only firm levels are filed: the quotes of a competency without one
+    are shown with its provisional estimate or observations instead.
+    """
+    if item.rating is None:
+        return
     quotes = [
         _quote(e, participant, competency, transcript) for e in item.evidence
     ]

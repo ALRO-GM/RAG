@@ -5,7 +5,9 @@ import {
   ACTS, COUNT_KEYS, OPEN_ISSUES, STATUSES, STEPS, actRows, byPerson, clock, doubtfulCount, eventRows,
   isActive, orderedSteps, ratingRows, reportBlob, reportFileName, startMode, stepStatus,
   STARTING_MS, startRefusal, startingRun, stillStarting, tagChip, tagged, verdict,
+  REASONS, SOURCES, WHY, cellOf, cellText, observed, reasonText, reviewRows, transcriptLink, whyText,
 } from "../../transcriber/adapters/inbound/web/js/lib/session-analysis.js";
+import { translate } from "../../transcriber/adapters/inbound/web/js/lib/i18n.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
 
@@ -106,7 +108,8 @@ test("ratings, acts, events and the report's file name", () => {
     { participant: "Luis", assessments: [{ competency_id: "B", rating: 2 }] },
   ] });
   assert.deepEqual(rows.competencies, ["A", "B"]);
-  assert.deepEqual(rows.people, [{ name: "Ana", ratings: [4, null] }, { name: "Luis", ratings: [null, 2] }]);
+  assert.deepEqual(rows.people.map((p) => [p.name, p.ratings]), [["Ana", [4, null]], ["Luis", [null, 2]]]);
+  assert.deepEqual(rows.people[0].cells, [{ kind: "firm", rating: 4 }, { kind: "none", rating: null }]);
   const acts = { utterances: [
     { id: "t0.s0", speaker: "A", text: "x", by: "encoder", labels: [{ label: "otro", weight: 60, doubtful: true }, { label: "opinion", weight: 30 }] },
     { id: "t1.s0", speaker: "B", text: "y", act: "pregunta" },
@@ -162,4 +165,74 @@ test("cancel is a DELETE of the run, with the code", async () => {
   assert.equal(calls[0].url, "/api/analysis/sessions/s%201/run");
   assert.equal(calls[0].init.method, "DELETE");
   assert.equal(calls[0].init.headers["X-Access-Code"], "code-123");
+});
+
+// ---- provisional estimates and observations (#103)
+
+const ASSESSMENT = {
+  min_incidents: 3,
+  scorecards: [{
+    participant: "Ana",
+    interaction: { words: 125 },
+    assessments: [
+      { competency_id: "COMM", status: "rated", rating: 4, evidence: [{ turn: 1, quote: "a" }], observations: [] },
+      {
+        competency_id: "COORD", status: "provisional", rating: null,
+        evidence: [{ turn: 7, quote: "q7", indicator_id: "COORD.P1", polarity: "positive", start: 70 }],
+        estimate: { rating: 3, confidence: "low", reasons: ["few_quotes", "short_participation"], quotes: 1, needed: 3, words: 125 },
+        observations: [{ turn: 2, quote: "s2", indicator_id: "COORD.N1", polarity: "negative", source: "confirmation", start: 20.4 }],
+      },
+      { competency_id: "LISTEN", status: "insufficient_evidence", rating: null, evidence: [],
+        observations: [{ turn: 4, quote: "s4", indicator_id: "LISTEN.P1", polarity: "positive", source: "weak_match" }] },
+      { competency_id: "INFLU", status: "insufficient_evidence", rating: null },
+    ],
+  }],
+};
+
+test("a cell is firm, provisional (~) or empty; old analyses have no estimates", () => {
+  const cells = ASSESSMENT.scorecards[0].assessments.map(cellOf);
+  assert.deepEqual(cells.map((c) => [c.kind, cellText(c)]), [["firm", "4"], ["provisional", "~3"], ["none", "–"], ["none", "–"]]);
+  assert.equal(cells[1].confidence, "low");
+  assert.deepEqual(cellOf({ status: "insufficient_evidence", rating: null }), { kind: "none", rating: null });
+  assert.deepEqual(cellOf(undefined), { kind: "none", rating: null });
+});
+
+test("what to review: quotes below the minimum and observations, in speaking order", () => {
+  const [, coord, listen, influ] = ASSESSMENT.scorecards[0].assessments;
+  assert.deepEqual(observed(coord).map((o) => [o.turn, o.source]), [[2, "confirmation"], [7, "below_minimum"]]);
+  assert.deepEqual(observed(listen).map((o) => o.source), ["weak_match"]);
+  assert.deepEqual(observed(influ), []);
+  assert.deepEqual(observed(ASSESSMENT.scorecards[0].assessments[0]), []);
+  const [ana] = reviewRows(ASSESSMENT);
+  assert.deepEqual([ana.name, ana.words, ana.firm, ana.provisional, ana.observations], ["Ana", 125, 1, 1, 3]);
+  assert.deepEqual(ana.review.map((r) => [r.competency, Boolean(r.estimate)]), [["COORD", true], ["LISTEN", false]]);
+  assert.deepEqual(reviewRows(undefined), []);
+});
+
+test("reasons, why and sources are written in both languages", () => {
+  for (const dict of [es, en]) {
+    const t = (key, values) => translate({ dict }, "dict", key, values);
+    const estimate = ASSESSMENT.scorecards[0].assessments[1].estimate;
+    for (const code of REASONS) assert.ok(!reasonText(t, code, estimate).startsWith("sa."), code);
+    for (const code of WHY) assert.ok(!whyText(t, code, { name: "Ana", words: 125 }, 3).startsWith("sa."), code);
+    for (const code of SOURCES) assert.ok(dict[`sa.source_${code}`], code);
+    for (const key of ["sa.tiers", "sa.person_tiers", "sa.estimate", "sa.estimate_title", "sa.confidence_low",
+      "sa.confidence_medium", "sa.observations_only", "sa.not_firm", "sa.provisional_note", "sa.why_title", "sa.open_moment"]) {
+      assert.ok(dict[key], key);
+    }
+  }
+  const t = (key, values) => translate({ es }, "es", key, values);
+  assert.equal(reasonText(t, "few_quotes", { quotes: 1, needed: 3 }), "1 de 3 citas necesarias");
+  assert.equal(reasonText(t, "short_participation", { words: 125 }), "participación corta: 125 palabras");
+  assert.equal(reasonText(t, "new_code", {}), "new_code");
+  assert.equal(whyText(t, "little_participation", { name: "Ana", words: 125 }, 3), "Ana habló poco: unas 125 palabras.");
+  assert.equal(whyText(t, "odd", {}, 3), "odd");
+  assert.equal(t("sa.person_tiers", { name: "Ana", firm: 1, provisional: 1, observations: 3 }),
+    "Ana: 1 firmes, 1 provisionales, 3 observaciones");
+});
+
+test("an observation links to its moment of the transcript", () => {
+  assert.equal(transcriptLink("s 1", 20.9), "#/s/s%201/t/20");
+  assert.equal(transcriptLink("s1", null), "#/s/s1");
+  assert.equal(transcriptLink("s1", -1), "#/s/s1");
 });

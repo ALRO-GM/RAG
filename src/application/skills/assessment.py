@@ -1,7 +1,7 @@
 """Use case: produce evidence-backed scorecards for a session."""
 
 import time
-from typing import List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from src.application.caching import cache_key
 from src.application.ports import Cache, NoProgress, Progress
@@ -12,8 +12,10 @@ from src.application.skills.evidence import (
 from src.application.skills.ports import ChatModel
 from src.domain.errors import InvalidInputError
 from src.domain.skills.assessment import (
+    FORMAT_VERSION,
     CompetencyAssessment,
     Evidence,
+    Observation,
     ParticipantScorecard,
     SessionAssessment,
 )
@@ -24,6 +26,7 @@ from src.domain.skills.prompting import (
     system_prompt,
     user_prompt,
 )
+from src.domain.skills.provisional import estimate
 from src.domain.skills.rubric import Competency, RubricCatalogue
 from src.domain.skills.transcript import Transcript
 
@@ -35,6 +38,11 @@ class AssessmentService:
     turns closest to the rubric, the judge quotes and rates, and the
     grounding rules of the domain discard what the transcript does not
     support. Nothing the judge says reaches the scorecard unverified.
+
+    Without a firm level, what was verified still counts (#103): the
+    quotes, those the similarity check set apart and the sentences
+    step f confirmed become a provisional estimate and observations
+    for a reviewer, with no further call to the judge.
     """
 
     def __init__(
@@ -74,8 +82,14 @@ class AssessmentService:
         catalogue: RubricCatalogue,
         participants: Optional[Sequence[str]] = None,
         competency_ids: Optional[Sequence[str]] = None,
+        confirmed: Sequence[Observation] = (),
     ) -> SessionAssessment:
-        """Return the scorecards of ``participants`` (default: all)."""
+        """Return the scorecards of ``participants`` (default: all).
+
+        ``confirmed`` are the sentences the judge of step f confirmed,
+        as observations; they feed provisional estimates and never
+        count towards a firm level.
+        """
         start = time.perf_counter()
         speakers = transcript.speakers()
         chosen = list(participants) if participants else speakers
@@ -94,9 +108,14 @@ class AssessmentService:
         quiet = {
             p for p in chosen if team.of(p).words < self.min_words
         }
+        seen = by_person_and_competency(confirmed, transcript, catalogue)
         results = {
-            (p, c.id): self._too_quiet(c) if p in quiet
-            else self._assess_one(index, catalogue, p, c)
+            (p, c.id): self._too_quiet(c, seen.get((p, c.id), []))
+            if p in quiet
+            else self._assess_one(
+                index, catalogue, p, c, seen.get((p, c.id), []),
+                team.of(p).words,
+            )
             for p, c in self.progress.track(
                 pairs, len(pairs), "Assessing competencies"
             )
@@ -131,18 +150,23 @@ class AssessmentService:
             seconds=round(time.perf_counter() - start, 3),
             started_at=transcript.started_at,
             conversation_type=transcript.conversation_type,
+            format_version=FORMAT_VERSION,
         )
 
-    def _too_quiet(self, competency: Competency) -> CompetencyAssessment:
+    def _too_quiet(
+        self, competency: Competency, confirmed: List[Observation]
+    ) -> CompetencyAssessment:
         """Return the result for a participant below the speech floor.
 
-        Someone who barely spoke gets no rating at all: silence is
-        not evidence of a low level.
+        Someone who barely spoke gets no rating at all, not even a
+        provisional one: silence is not evidence of a low level. What
+        step f confirmed is kept as observations.
         """
         return CompetencyAssessment(
             competency_id=competency.id,
             status="insufficient_evidence",
             flags=["below_participation_floor"],
+            observations=confirmed,
         )
 
     def _reply(self, system: str, user: str) -> str:
@@ -167,6 +191,8 @@ class AssessmentService:
         catalogue: RubricCatalogue,
         participant: str,
         competency: Competency,
+        confirmed: List[Observation],
+        words: int,
     ) -> CompetencyAssessment:
         """Assess one competency of one participant."""
         found = self.retriever.candidates(
@@ -175,11 +201,17 @@ class AssessmentService:
         )
         turn_ids: List[int] = sorted(c.turn for c in found)
         if len(found) < self.min_incidents:
+            guess, more = estimate(
+                None, [], [], confirmed, catalogue.scale,
+                self.min_incidents, words, self.episode_gap,
+            )
             return CompetencyAssessment(
                 competency_id=competency.id,
-                status="insufficient_evidence",
+                status="provisional" if guess else "insufficient_evidence",
                 candidate_turns=turn_ids,
-                flags=["too_few_turns"],
+                flags=["too_few_turns", *more],
+                estimate=guess,
+                observations=confirmed,
             )
         turns = self.retriever.turns(index, found)
         reply = self._reply(
@@ -195,16 +227,34 @@ class AssessmentService:
         verified, rejected = ground(
             judgement.evidence, turns, participant, competency
         )
-        evidence = self._supported(index, competency, verified)
+        evidence, weak = self._supported(index, competency, verified)
         rating, flags = decide_rating(
             judgement.rating, evidence, catalogue.scale, self.min_incidents,
             self.min_episodes, self.episode_gap,
         )
         if judgement.parse_error:
             flags.append("unparseable_reply")
+        guess = None
+        observations: List[Observation] = []
+        if rating is None:
+            quoted = {(e.turn, e.indicator_id) for e in verified}
+            extra = [
+                o for o in confirmed
+                if (o.turn, o.indicator_id) not in quoted
+            ]
+            guess, more = estimate(
+                judgement.rating, evidence, weak, extra, catalogue.scale,
+                self.min_incidents, words, self.episode_gap,
+            )
+            flags += more
+            observations = sorted(weak + extra, key=lambda o: o.turn)
         return CompetencyAssessment(
             competency_id=competency.id,
-            status="rated" if rating is not None else "insufficient_evidence",
+            status=(
+                "rated" if rating is not None
+                else "provisional" if guess is not None
+                else "insufficient_evidence"
+            ),
             rating=rating,
             evidence=evidence,
             rationale=judgement.rationale,
@@ -213,6 +263,8 @@ class AssessmentService:
             rejected=rejected,
             unsupported=len(verified) - len(evidence),
             flags=flags,
+            estimate=guess,
+            observations=observations,
         )
 
     def _supported(
@@ -220,21 +272,56 @@ class AssessmentService:
         index: TranscriptIndex,
         competency: Competency,
         verified: List[Evidence],
-    ) -> List[Evidence]:
-        """Score each quote against its indicator; drop the distant ones.
+    ) -> Tuple[List[Evidence], List[Observation]]:
+        """Score each quote against its indicator; set the distant apart.
 
         The judge decides which indicator a quote shows; the embedding
         model checks that decision. Below ``min_similarity`` the quote
-        is real but does not look like the behaviour, so it is dropped.
+        is real but does not look like the behaviour: it is not
+        evidence, only an observation (``weak_match``) for a reviewer.
         """
         kept: List[Evidence] = []
+        weak: List[Observation] = []
         for item in verified:
             indicator = competency.indicator(item.indicator_id)
             assert indicator is not None
             score = self.retriever.similarity(index, item.turn, indicator)
+            rounded = None if score is None else round(score, 4)
             if score is not None and score < self.min_similarity:
+                weak.append(Observation(
+                    turn=item.turn, quote=item.quote,
+                    indicator_id=item.indicator_id, polarity=item.polarity,
+                    source="weak_match", start=item.start,
+                    similarity=rounded,
+                ))
                 continue
-            kept.append(item.model_copy(update={
-                "similarity": None if score is None else round(score, 4)
-            }))
-        return kept
+            kept.append(item.model_copy(update={"similarity": rounded}))
+        return kept, weak
+
+
+def by_person_and_competency(
+    confirmed: Sequence[Observation],
+    transcript: Transcript,
+    catalogue: RubricCatalogue,
+) -> Dict[Tuple[str, str], List[Observation]]:
+    """Group step f's confirmed sentences by speaker and competency.
+
+    The speaker is read from the transcript turn, so a sentence of a
+    turn the transcript does not have, or an indicator the catalogue
+    does not know, is left out. One sentence per turn and indicator.
+    """
+    owner = {
+        i.id: c.id for c in catalogue.competencies for i in c.indicators
+    }
+    grouped: Dict[Tuple[str, str], List[Observation]] = {}
+    seen: set[Tuple[int, str]] = set()
+    for item in confirmed:
+        competency = owner.get(item.indicator_id)
+        if competency is None or not 0 <= item.turn < len(transcript.turns):
+            continue
+        if (item.turn, item.indicator_id) in seen:
+            continue
+        seen.add((item.turn, item.indicator_id))
+        speaker = transcript.turns[item.turn].speaker
+        grouped.setdefault((speaker, competency), []).append(item)
+    return grouped

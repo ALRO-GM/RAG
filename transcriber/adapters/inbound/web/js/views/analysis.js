@@ -8,9 +8,9 @@ import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { helpHref } from "../lib/help-analysis.js";
 import {
-  COUNT_KEYS, OPEN_ISSUES, actRows, byPerson, clock, doubtfulCount, eventRows, isActive,
-  orderedSteps, ratingRows, reportBlob, reportFileName, startMode, startRefusal,
-  startingRun, stepStatus, stillStarting, tagChip, tagged, verdict,
+  COUNT_KEYS, OPEN_ISSUES, SOURCES, actRows, byPerson, cellText, clock, doubtfulCount, eventRows, isActive,
+  orderedSteps, ratingRows, reasonText, reportBlob, reportFileName, reviewRows, startMode, startRefusal,
+  startingRun, stepStatus, stillStarting, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
 
 const POLL_MS = 3000;
@@ -170,7 +170,11 @@ export async function analysisView(ctx, root, [rawId]) {
         h("div", { class: "table-wrap" }, h("table", { class: "data" },
           h("thead", {}, h("tr", {}, h("th", {}, t("sa.col_person")), competencies.map((c) => h("th", {}, c)))),
           h("tbody", {}, people.map((p) => h("tr", {}, h("td", {}, p.name),
-            p.ratings.map((r) => h("td", {}, r === null ? "–" : String(r)))))))),
+            p.cells.map((c) => h("td", c.kind === "provisional"
+              ? { class: "provisional", title: t("sa.estimate_title", { confidence: t(`sa.confidence_${c.confidence}`) }) }
+              : {}, cellText(c)))))))),
+        h("p", { class: "notice" }, t("sa.provisional_note")),
+        reviewRows(result).map((person) => reviewBlock(person, result.min_incidents)),
       ];
     }
     if (name === "reports") {
@@ -180,12 +184,50 @@ export async function analysisView(ctx, root, [rawId]) {
         h("ul", { class: "plain" }, (result.people ?? []).map((person) => h("li", { class: "stack" },
           h("strong", {}, person.name),
           h("span", { class: "hint" }, t("sa.rated", { rated: person.rated, total: person.competencies })),
+          typeof person.provisional === "number"
+            ? h("span", {}, t("sa.tiers", { firm: person.rated, provisional: person.provisional, observations: person.observations ?? 0 }))
+            : null,
+          person.why?.length
+            ? h("div", { class: "notice" }, h("strong", {}, t("sa.why_title")),
+              h("ul", {}, person.why.map((code) => h("li", {}, whyText(t, code, person, result.min_incidents)))))
+            : null,
           person.strengths?.length ? h("span", {}, t("sa.strengths", { list: person.strengths.join(", ") })) : null,
           person.to_improve?.length ? h("span", {}, t("sa.to_improve", { list: person.to_improve.join(", ") })) : null,
           h("button", { type: "button", onClick: () => download(person) }, t("sa.download_report"))))),
       ];
     }
     return h("pre", {}, JSON.stringify(result, null, 1));
+  }
+
+  // One person's provisional estimates and observations, each sentence
+  // with its minute linking to that moment of the transcript.
+  function reviewBlock(person, needed) {
+    const summaryLine = t("sa.person_tiers", {
+      name: person.name, firm: person.firm, provisional: person.provisional, observations: person.observations,
+    });
+    if (!person.review.length) return h("p", { class: "hint" }, summaryLine);
+    return h("details", { class: "review" }, h("summary", {}, summaryLine),
+      h("ul", { class: "plain" }, person.review.map((item) => h("li", { class: "stack" },
+        h("strong", {}, item.competency, " — ", item.estimate
+          ? t("sa.estimate", { rating: item.estimate.rating, confidence: t(`sa.confidence_${item.estimate.confidence}`) })
+          : t("sa.observations_only")),
+        item.estimate?.reasons?.length
+          ? h("span", { class: "hint" }, t("sa.not_firm", {
+            reasons: item.estimate.reasons.map((code) => reasonText(t, code, { needed, ...item.estimate })).join("; "),
+          }))
+          : null,
+        h("ul", { class: "plain" }, item.observations.map((o) => h("li", {},
+          moment(o.start), " ",
+          h("strong", {}, `${o.polarity === "negative" ? "−" : "+"}${o.indicator_id}`), " «", o.quote, "» ",
+          h("span", { class: "hint" }, `(${SOURCES.includes(o.source) ? t(`sa.source_${o.source}`) : o.source})`))))))));
+  }
+
+  // The minute of a sentence; a link into the transcript unless the
+  // session is simulated (it only exists in the analysis).
+  function moment(seconds) {
+    const text = `[${clock(seconds) || "–"}]`;
+    if (run?.synthetic || typeof seconds !== "number") return h("span", { class: "hint" }, text);
+    return h("a", { href: transcriptLink(id, seconds), title: t("sa.open_moment") }, text);
   }
 
   async function download(person) {

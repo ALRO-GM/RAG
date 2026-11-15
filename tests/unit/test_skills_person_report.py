@@ -17,7 +17,9 @@ from src.application.skills.person_report_html import render_person_html
 from src.domain.errors import InvalidInputError
 from src.domain.skills.assessment import (
     CompetencyAssessment,
+    Estimate,
     Evidence,
+    Observation,
     ParticipantScorecard,
     SessionAssessment,
 )
@@ -229,7 +231,10 @@ def test_four_rated_competencies_draw_no_radar() -> None:
 
 
 def test_negative_quotes_outside_weak_points_are_signals() -> None:
-    """A negative quote in a strength or an unrated cell is a signal."""
+    """A negative quote in a strength is a signal; an unrated one is not.
+
+    Without a firm level the quote goes to the reviews (#103).
+    """
     report = build([
         ("listening", 4, [(0, "What do you mean", "L1"),
                           (1, "That is nonsense", "L3")]),
@@ -238,23 +243,36 @@ def test_negative_quotes_outside_weak_points_are_signals() -> None:
     assert [q.text for q in report.strengths[0].quotes] == [
         "What do you mean"
     ]
-    assert [p.competency_id for p in report.signals] == [
-        "listening", "planning"
-    ]
-    assert report.signals[1].practice == ["hurts one", "hurts two"]
+    assert [p.competency_id for p in report.signals] == ["listening"]
+    assert report.signals[0].practice == ["hurts one", "hurts two"]
     text = plain(report.summary[3])
-    assert text.endswith("pero sí 2 conductas aisladas que conviene vigilar.")
+    assert text.endswith("pero sí una conducta aislada que conviene "
+                         "vigilar.")
+    assert [r.competency_id for r in report.reviews] == ["planning"]
     page = render_person_html(report)
     assert "Conductas aisladas a vigilar" in page
 
 
-def test_a_single_signal_without_ratings() -> None:
-    """With no rating, one signal is mentioned before the closing line."""
+def test_an_unrated_quote_is_an_observation_not_a_signal() -> None:
+    """With no rating, a quote is listed for review, not as a signal."""
     report = build([("listening", None, [(1, "That is nonsense", "L3")]),
                     ("planning", None, [])])
     text = [plain(s) for s in report.summary]
-    assert "una conducta aislada" in text[2]
+    assert not report.signals
+    assert not any("conducta aislada" in line for line in text)
     assert text[-1].startswith("Es un borrador para un evaluador humano")
+    review, = report.reviews
+    assert (review.estimate, review.reasons) == (None, [])
+    assert [(q.text, q.source, q.positive) for q in review.observations] == [
+        ("That is nonsense", "below_minimum", False)
+    ]
+    assert report.tiers == [
+        "Valoraciones firmes: 0 · estimaciones provisionales: 0 · "
+        "observaciones: 1."
+    ]
+    page = render_person_html(report)
+    assert "Sin estimación: solo observaciones" in page
+    assert "cita comprobada; no llega al mínimo" in page
 
 
 @pytest.mark.parametrize("cells, count", [
@@ -438,3 +456,94 @@ def test_a_type_without_a_label_is_shown_as_it_came() -> None:
     assert "Tipo de conversación: nuevo." in render_person_html(
         build(ONE, transcript=odd)
     )
+
+
+# ------------------------------------------ provisional estimates (#103)
+
+
+def provisional_report(language: str = "es") -> PersonReport:
+    """Return Maya's report with one firm and one provisional cell."""
+    base = assessment(ONE)
+    card = base.scorecards[0]
+    planning = CompetencyAssessment(
+        competency_id="planning", status="provisional",
+        evidence=[Evidence(turn=6, quote="I will do it", indicator_id="P1",
+                           polarity="positive", start=121.0)],
+        estimate=Estimate(
+            rating=4, confidence="low",
+            reasons=["few_quotes", "single_episode", "short_participation"],
+            quotes=1, confirmations=1, needed=2, words=40, judge_rating=5,
+        ),
+        observations=[Observation(
+            turn=6, quote="Planning matters to me", indicator_id="P1",
+            polarity="positive", source="confirmation", start=125.5,
+            sentence_id="t6.s1",
+        )],
+    )
+    cells = [card.assessments[0], planning]
+    changed = base.model_copy(update={"scorecards": [
+        card.model_copy(update={"assessments": cells})
+    ]})
+    return build_person_report(
+        changed, catalogue(language), "Maya", TIMED
+    )
+
+
+def test_a_provisional_estimate_is_labelled_and_never_a_strength() -> None:
+    """The estimate has its own row, card, reasons and observations."""
+    report = provisional_report()
+    assert [p.competency_id for p in report.strengths] == ["listening"]
+    assert not report.weaknesses and not report.signals
+    row = next(r for r in report.rows if r.competency_id == "planning")
+    assert (row.rating, row.estimate, row.band, row.confidence) == (
+        None, 4, "provisional", "low",
+    )
+    review, = report.provisional
+    assert [q.source for q in review.observations] == [
+        "below_minimum", "confirmation",
+    ]
+    assert review.observations[1].when("es") == "Maya, minuto 02:05"
+    assert report.observations == 2
+    assert report.tiers == [
+        "Valoraciones firmes: 1 · estimaciones provisionales: 1 · "
+        "observaciones: 2.",
+        "En una competencia hay una estimación provisional: una hipótesis "
+        "para que el entrevistador la revise, no una valoración.",
+    ]
+    assert 3 <= len(report.summary) <= 5
+    page = render_person_html(report)
+    assert ("Estimación provisional — revisar: nivel 4 de 5, confianza "
+            "baja") in page
+    assert "~4 <small>/ 5</small>" in page
+    assert "1 de 2 citas necesarias" in page
+    assert "un solo momento de la conversación" in page
+    assert "participación corta: 40 palabras" in page
+    assert "confirmada por el juez frase a frase" in page
+    assert "«Planning matters to me»" in page
+    assert "hipótesis para el entrevistador, no valoraciones" in page
+    assert 'fill="none" stroke="var(--fg)"' in page
+
+
+def test_provisional_wording_in_english() -> None:
+    """Every new line has its English wording."""
+    page = render_person_html(provisional_report("en"))
+    assert ("Provisional estimate — review: level 4 of 5, low "
+            "confidence") in page
+    assert ("Firm levels: 1 · provisional estimates: 1 · observations: "
+            "2.") in page
+    assert "1 of 2 quotes needed" in page
+    assert "hypotheses for the interviewer, not assessments" in page
+
+
+def test_why_few_firm_levels_is_explained() -> None:
+    """Few firm levels: the page says why; enough of them: nothing."""
+    report = build(EMPTY)
+    assert report.why == [
+        "short_recording", "little_participation", "few_quotes_proposed",
+    ]
+    page = render_person_html(report)
+    assert "Por qué hay pocas valoraciones firmes" in page
+    assert "La grabación es corta." in page
+    assert "Maya habló poco" in page
+    assert "No hay estimaciones provisionales ni observaciones" in page
+    assert build(many(6), count=6).why == []

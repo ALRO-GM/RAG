@@ -7,7 +7,7 @@ import { pickLanguage, translate } from "../../transcriber/adapters/inbound/web/
 import {
   seekTime, parseLead, activeIndex, sortUtterances, speakerName, filterBySpeaker,
   isAnonymous, mergeTargets, previousHint, needsReview, filterUtterances, doubtNote,
-  namedByFloor, weakSpeakers, otherLanguage, sentenceNamedByFloor,
+  namedByFloor, weakSpeakers, otherLanguage, sentenceNamedByFloor, parseMoment,
 } from "../../transcriber/adapters/inbound/web/js/lib/transcript.js";
 import {
   classifyFailure, isRetryable, nextPollMs, codeFromFragment, fragmentWithoutCode,
@@ -92,6 +92,15 @@ test("both dictionaries have exactly the same keys and placeholders", () => {
   assert.deepEqual(Object.keys(en).sort(), Object.keys(es).sort());
   const holes = (s) => (s.match(/\{\w+\}/g) ?? []).sort().join();
   for (const k of Object.keys(es)) assert.equal(holes(en[k]), holes(es[k]), k);
+});
+
+test("parseMoment reads the seconds of a transcript link, or null", () => {
+  assert.equal(parseMoment("125"), 125);
+  assert.equal(parseMoment("0"), 0);
+  assert.equal(parseMoment(undefined), null);
+  assert.equal(parseMoment("-3"), null);
+  assert.equal(parseMoment("1e3"), null);
+  assert.equal(parseMoment("1234567"), null);
 });
 
 test("seekTime applies the lead and never goes below zero", () => {

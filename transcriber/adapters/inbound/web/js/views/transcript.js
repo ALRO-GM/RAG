@@ -8,7 +8,7 @@ import { describeEditor } from "../describe.js";
 import { describeLine } from "../lib/describe.js";
 import {
   DEFAULT_LEAD, activeIndex, doubtNote, filterUtterances, isAnonymous, mergeTargets,
-  namedByFloor, otherLanguage, parseLead, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
+  namedByFloor, otherLanguage, parseLead, parseMoment, previousHint, seekTime, sentenceNamedByFloor, sortUtterances,
   speakerName, weakSpeakers,
 } from "../lib/transcript.js";
 
@@ -33,6 +33,7 @@ function storeLead(value) {
 
 export async function transcriptView(ctx, root, params) {
   const id = decodeURIComponent(params[0] ?? "");
+  const moment = parseMoment(params[1]); // opened from an observation of the analysis
   const session = await ctx.api.getSession(id);
   let transcript = null; // loaded below once the session is done
   // The conversation's type and goal, editable in any state.
@@ -295,6 +296,10 @@ export async function transcriptView(ctx, root, params) {
 
   renderSpeakers();
   build();
+  if (moment !== null) {
+    audio.currentTime = moment; // the row stays highlighted after the seek
+    highlight(moment, true);
+  }
 
   return () => {
     audio.pause();

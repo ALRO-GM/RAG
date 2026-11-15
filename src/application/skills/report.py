@@ -1,12 +1,16 @@
 """Render a session assessment as a Markdown scorecard report."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Sequence, Union
 
 from src.application.skills.person_report_texts import (
+    TEXTS,
     conversation_type_label,
 )
 from src.domain.skills.assessment import (
     CompetencyAssessment,
+    Estimate,
+    Evidence,
+    Observation,
     SessionAssessment,
 )
 from src.domain.skills.rubric import RubricCatalogue
@@ -15,9 +19,56 @@ from src.domain.skills.transcript import Transcript
 
 def _rating(item: CompetencyAssessment, maximum: int) -> str:
     """Return the rating cell of a competency."""
-    if item.rating is None:
-        return "insufficient evidence"
-    return f"{item.rating} / {maximum}"
+    if item.rating is not None:
+        return f"{item.rating} / {maximum}"
+    if item.estimate is not None:
+        return (
+            f"provisional ~{item.estimate.rating} / {maximum} "
+            f"({item.estimate.confidence} confidence) — review"
+        )
+    return "insufficient evidence"
+
+
+def _not_firm(estimate: Estimate) -> str:
+    """Return why a provisional estimate is not a firm level."""
+    words = TEXTS["en"]
+    values = {
+        "quotes": estimate.quotes, "needed": estimate.needed,
+        "words": estimate.words,
+    }
+    reasons = "; ".join(
+        words[f"reason.{code}"].format(**values) for code in estimate.reasons
+    )
+    return f"Not firm: {reasons or 'below the minimum evidence'}."
+
+
+def _quote_line(
+    found: Union[Evidence, Observation],
+    transcript: Transcript,
+    indicators: Dict[str, str],
+) -> str:
+    """Return one quote with its turn, time, indicator and origin."""
+    start = found.start
+    if start is None and 0 <= found.turn < len(transcript.turns):
+        start = transcript.turns[found.turn].start
+    clock = (
+        "" if start is None
+        else f", {int(start // 60):02d}:{int(start % 60):02d}"
+    )
+    sign = "+" if found.polarity == "positive" else "−"
+    match = (
+        "" if found.similarity is None
+        else f" (match {found.similarity:.2f})"
+    )
+    origin = (
+        f" [{TEXTS['en']['source.' + found.source]}]"
+        if isinstance(found, Observation) else ""
+    )
+    return (
+        f"- ({sign}) \"{found.quote}\" — turn {found.turn}{clock}. "
+        f"*{found.indicator_id}: {indicators.get(found.indicator_id, '')}*"
+        f"{match}{origin}"
+    )
 
 
 def conversation_context(transcript: Optional[Transcript]) -> str:
@@ -51,7 +102,9 @@ def render_scorecards(
     """Return the report: team participation, then one card per person.
 
     Every rating is followed by the quotes it rests on, with their
-    turn number and timestamp, so a reader can check each of them.
+    turn number and timestamp, so a reader can check each of them. A
+    competency without a firm level lists its provisional estimate, why
+    it is not firm and its observations, each with where it came from.
     """
     team = assessment.team
     names = {c.id: c.name for c in catalogue.competencies}
@@ -72,6 +125,10 @@ def render_scorecards(
         "Ratings describe behaviour observed in this session only. They "
         "are a draft for a human assessor, not a decision.",
         "",
+        "Provisional estimates (some evidence, below the minimum) are "
+        "hypotheses for the interviewer, not assessments; their "
+        "observations are real sentences to check in the transcript.",
+        "",
         "## Participation",
         "",
         f"{team.speakers} speakers, {team.turns} turns, {team.words} words. "
@@ -87,7 +144,10 @@ def render_scorecards(
             f"{speaker.word_share:.0%} | {speaker.questions} |"
         )
     for card in assessment.scorecards:
+        firm, provisional, noted = card.tiers()
         lines += ["", f"## {card.participant}", "",
+                  f"{firm} firm, {provisional} provisional, {noted} "
+                  "observations.", "",
                   "| Competency | Rating | Evidence | Flags |",
                   "|---|---|---|---|"]
         for item in card.assessments:
@@ -97,27 +157,18 @@ def render_scorecards(
                 f"{', '.join(item.flags) or '—'} |"
             )
         for item in card.assessments:
-            if not item.evidence:
+            observed = item.observed()
+            if not item.evidence and not observed:
                 continue
             lines += ["", f"### {names.get(item.competency_id)} — "
                       f"{_rating(item, maximum)}", ""]
+            if item.estimate is not None:
+                lines += [_not_firm(item.estimate), ""]
             if item.rationale:
                 lines += [item.rationale, ""]
-            for evidence in item.evidence:
-                turn = transcript.turns[evidence.turn]
-                clock = (
-                    "" if turn.start is None
-                    else f", {int(turn.start // 60):02d}:"
-                         f"{int(turn.start % 60):02d}"
-                )
-                sign = "+" if evidence.polarity == "positive" else "−"
-                match = (
-                    "" if evidence.similarity is None
-                    else f" (match {evidence.similarity:.2f})"
-                )
-                lines.append(
-                    f"- ({sign}) \"{evidence.quote}\" — turn "
-                    f"{evidence.turn}{clock}. *{evidence.indicator_id}: "
-                    f"{indicators.get(evidence.indicator_id, '')}*{match}"
-                )
+            shown: Sequence[Union[Evidence, Observation]] = (
+                item.evidence if item.status == "rated" else observed
+            )
+            for found in shown:
+                lines.append(_quote_line(found, transcript, indicators))
     return "\n".join(lines) + "\n"

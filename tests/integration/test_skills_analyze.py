@@ -216,3 +216,38 @@ def test_the_cli_parses_a_quoted_numeric_id(skills_project: Path) -> None:
          "--session=1_0"], skills_project,
     )
     assert "must be quoted" in bare.stderr
+
+
+def test_rerunning_assessment_and_reports_adds_the_provisional_tier(
+    skills_project: Path,
+) -> None:
+    """``--steps assessment,reports`` over an old analysis (#103).
+
+    The fake judge rates nothing, so nothing is firm; step f's
+    confirmations become provisional estimates and observations, and
+    an assessment written before them (format 1) still makes reports.
+    """
+    commands = cli(container(analysis_dir="analysis", max_confirmations=5))
+    commands.analyze(session="s1", synthetic=True)
+    folder = skills_project / "analysis" / "s1"
+    stored = json.loads((folder / "assessment.json").read_text())
+    for card in stored["scorecards"]:
+        for item in card["assessments"]:
+            for key in ("estimate", "observations"):
+                item.pop(key, None)
+            item["status"] = "insufficient_evidence"
+    stored.pop("format_version")
+    (folder / "assessment.json").write_text(json.dumps(stored))
+    commands.analyze(session="s1", steps="reports")
+    old = json.loads((folder / "summary.json").read_text())
+    assert all(p["provisional"] == 0 for p in old["people"])
+    commands.analyze(session="s1", steps="assessment,reports")
+    fresh = json.loads((folder / "assessment.json").read_text())
+    assert fresh["format_version"] == 2
+    summary = json.loads((folder / "summary.json").read_text())
+    assert sum(p["provisional"] for p in summary["people"]) > 0
+    assert sum(p["observations"] for p in summary["people"]) > 0
+    assert all(p["rated"] == 0 and p["why"] for p in summary["people"])
+    page = (folder / "report-1.html").read_text()
+    assert "Provisional estimates and observations" in page
+    assert "provisional ~" in (folder / "scorecard.md").read_text()

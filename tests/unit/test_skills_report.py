@@ -5,7 +5,9 @@ from typing import List, Optional
 from src.application.skills.report import render_scorecards
 from src.domain.skills.assessment import (
     CompetencyAssessment,
+    Estimate,
     Evidence,
+    Observation,
     ParticipantScorecard,
     SessionAssessment,
 )
@@ -156,3 +158,41 @@ def test_report_shows_the_declared_type_and_goal_as_context() -> None:
     assert "Conversation:" not in report()
     goal_only = TIMED.model_copy(update={"conversation_goal": "Ideas"})
     assert "Conversation: goal: Ideas (" in report(goal_only)
+
+
+def test_report_shows_provisional_estimates_and_observations() -> None:
+    """A provisional cell says so, why, and lists what to check (#103)."""
+    team = describe(TIMED)
+    cell = CompetencyAssessment(
+        competency_id="planning", status="provisional",
+        evidence=[evidence(4, "Planning is a waste of time", "P2")],
+        estimate=Estimate(
+            rating=2, confidence="low", reasons=["few_quotes"], quotes=1,
+            needed=2, words=30, judge_rating=1,
+        ),
+        observations=[Observation(
+            turn=7, quote="I will finish it by Friday", indicator_id="P1",
+            polarity="positive", source="confirmation", start=131.0,
+        )],
+    )
+    assessment = SessionAssessment(
+        session_id="s1", language="en", catalogue="core",
+        catalogue_version="1.0", judge_model="fake-judge",
+        embedding_model="", min_incidents=2, team=team,
+        scorecards=[ParticipantScorecard(
+            participant="Tom", interaction=team.of("Tom"),
+            assessments=[cell],
+        )],
+    )
+    text = render_scorecards(assessment, CATALOGUE, TIMED)
+    assert "0 firm, 1 provisional, 2 observations." in text
+    assert ("| Planning | provisional ~2 / 5 (low confidence) — review | "
+            "1 | — |") in text
+    assert "Not firm: 1 of 2 quotes needed." in text
+    assert ('- (−) "Planning is a waste of time" — turn 4, 01:41. '
+            "*P2: Refuses to plan* [checked quote; below the "
+            "minimum]") in text
+    assert ('- (+) "I will finish it by Friday" — turn 7, 02:11. '
+            "*P1: Commits to a deadline* [confirmed by the judge sentence "
+            "by sentence]") in text
+    assert "hypotheses for the interviewer, not assessments" in text

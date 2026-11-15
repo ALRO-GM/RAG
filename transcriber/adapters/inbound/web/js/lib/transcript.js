@@ -17,6 +17,12 @@ export function seekTime(start, lead) {
   return Math.max(0, start - l);
 }
 
+/** The moment a link opens the transcript at (`#/s/<id>/t/<seconds>`), or null. */
+export function parseMoment(raw) {
+  if (typeof raw !== "string" || !/^\d{1,6}$/.test(raw)) return null;
+  return Number(raw);
+}
+
 /** Read the lead field: a non-negative number, else the default. */
 export function parseLead(text, fallback = DEFAULT_LEAD) {
   const n = Number.parseFloat(String(text).replace(",", "."));

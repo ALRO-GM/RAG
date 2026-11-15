@@ -141,6 +141,7 @@ def ground(
             quote=passage,
             indicator_id=indicator.id,
             polarity=indicator.polarity,
+            start=turn.start,
         ))
     kept.sort(key=lambda e: (e.turn, e.indicator_id))
     return kept, rejected

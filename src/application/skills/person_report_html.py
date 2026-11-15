@@ -18,6 +18,7 @@ from src.application.skills.person_report import (
     PersonReport,
     Point,
     Quote,
+    Review,
     Row,
     note,
 )
@@ -71,6 +72,10 @@ color:var(--muted);font-size:.95rem}
 .tag{font-weight:700}
 .tag.strong{color:var(--strong)}.tag.weak{color:var(--weak)}
 .tag.middle{color:var(--middle)}.tag.none{color:var(--none)}
+.tag.provisional{color:var(--fg);font-style:italic}
+.card.review{background:var(--bg);border:2px dashed var(--line)}
+.why{border-left:4px solid var(--line);padding:4px 12px;margin:12px 0}
+.why ul{margin:4px 0 0;padding-left:1.2em}
 .dots{letter-spacing:2px}
 .radar{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:16px;
 align-items:center}
@@ -97,7 +102,10 @@ h2{break-after:avoid}.row,.tile,.limits{break-inside:avoid}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 """
 
-SHAPES = {"strong": "circle", "middle": "square", "weak": "triangle"}
+SHAPES = {
+    "strong": "circle", "middle": "square", "weak": "triangle",
+    "provisional": "ring",
+}
 
 
 def _text(value: str) -> str:
@@ -109,8 +117,14 @@ def _text(value: str) -> str:
 
 
 def _mark(kind: str, x: float, y: float, size: float = 7) -> str:
-    """Return the SVG shape of a band: circle, square or triangle."""
+    """Return the SVG shape of a band: circle, square, triangle or ring.
+
+    The ring (hollow) marks a provisional estimate.
+    """
     colour = f"var(--{kind})"
+    if SHAPES.get(kind) == "ring":
+        return (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{size:.1f}" '
+                f'fill="none" stroke="var(--fg)" stroke-width="2.5"/>')
     if SHAPES.get(kind) == "circle":
         return (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{size:.1f}" '
                 f'fill="{colour}"/>')
@@ -158,6 +172,8 @@ def _track(row: Row, report: PersonReport) -> str:
         )
     if row.rating is not None:
         parts.append(_mark(row.band, at(row.rating), 16, 9))
+    elif row.estimate is not None:
+        parts.append(_mark("provisional", at(row.estimate), 16, 8))
     label = escape(_band_label(row, report))
     return (f'<svg class="track" viewBox="0 0 {width} 42" '
             f'role="img" aria-label="{label}">'
@@ -168,12 +184,26 @@ def _band_label(row: Row, report: PersonReport) -> str:
     """Return the written level of a row, e.g. ``Punto fuerte``."""
     words = TEXTS[report.language]
     name = words[f"band_{row.band}"]
+    if row.estimate is not None:
+        label = _estimate_label(row.estimate, row.confidence, report)
+        return f"{row.name}: {label}"
     if row.rating is None:
         return f"{row.name}: {name}"
     level = words["level_label"].format(
         rating=row.rating, maximum=report.maximum
     )
     return f"{row.name}: {level}, {name}"
+
+
+def _estimate_label(
+    rating: int, confidence: str, report: PersonReport
+) -> str:
+    """Return e.g. ``Estimación provisional — revisar: nivel 3 de 5…``."""
+    words = TEXTS[report.language]
+    return words["estimate_label"].format(
+        rating=rating, maximum=report.maximum,
+        confidence=words.get(f"confidence_{confidence}", confidence),
+    )
 
 
 def _dots(count: int, needed: int) -> str:
@@ -186,9 +216,18 @@ def _row(row: Row, report: PersonReport) -> str:
     """Return one competency of the chart."""
     words = TEXTS[report.language]
     needed = report.min_incidents
-    score = (
-        "—" if row.rating is None
-        else f"{row.rating} <small>/ {report.maximum}</small>"
+    if row.rating is not None:
+        score = f"{row.rating} <small>/ {report.maximum}</small>"
+    elif row.estimate is not None:
+        score = (
+            escape(words["estimate_score"].format(rating=row.estimate))
+            + f" <small>/ {report.maximum}</small>"
+        )
+    else:
+        score = "—"
+    tag = (
+        _estimate_label(row.estimate, row.confidence, report)
+        if row.estimate is not None else words["band_" + row.band]
     )
     evidence = words[
         "evidence_enough" if row.incidents >= needed else "evidence"
@@ -197,7 +236,7 @@ def _row(row: Row, report: PersonReport) -> str:
         f'<div class="row"><div class="name">{escape(row.name)}</div>'
         f'<div class="score">{score}</div>{_track(row, report)}'
         f'<div class="meta"><span class="tag {row.band}">'
-        f'{escape(words["band_" + row.band])}</span>'
+        f'{escape(tag)}</span>'
         f'<span><span class="dots" aria-hidden="true">'
         f'{_dots(row.incidents, needed)}</span> {escape(evidence)}</span>'
         f'</div></div>'
@@ -260,10 +299,15 @@ def _radar(report: PersonReport) -> str:
 def _quote(quote: Quote, language: str) -> str:
     """Return a verified quote with who said it and when."""
     kind = "pos" if quote.positive else "neg"
+    source = (
+        f" · {TEXTS[language]['source.' + quote.source]}"
+        if quote.source else ""
+    )
+    sign = "" if not quote.source else "(+) " if quote.positive else "(−) "
     return (
         f'<blockquote class="{kind}"><p>«{escape(quote.text)}»</p>'
         f'<footer>{escape(quote.when(language))} · '
-        f'{escape(quote.indicator)}</footer></blockquote>'
+        f'{escape(sign + quote.indicator + source)}</footer></blockquote>'
     )
 
 
@@ -348,6 +392,8 @@ def _meaning(report: PersonReport) -> str:
          words["tile_of"].format(count=RECOMMENDED_SITUATIONS)),
         (str(len(report.rated)), words["tile_rated"],
          words["tile_rated_of"].format(count=len(report.rows))),
+        (str(len(report.provisional)), words["tile_provisional"],
+         words["tile_observations"].format(count=report.observations)),
         (big, words["tile_duration"], unit),
     ]
     tile_html = "".join(
@@ -362,7 +408,64 @@ def _meaning(report: PersonReport) -> str:
         f'<h3>{escape(words["level"])}</h3><p>{_text(level)}</p>'
         f'<div class="limits"><strong>{escape(words["limits_title"])}'
         f'</strong><p>{escape(limits)}</p>'
-        f'<p>{escape(words["limits_more"])}</p></div>'
+        f'<p>{escape(words["limits_more"])}</p>'
+        f'<p>{escape(words["limits_provisional"])}</p></div>'
+    )
+
+
+def _why(report: PersonReport) -> str:
+    """Return why there are few firm levels, or nothing."""
+    if not report.why:
+        return ""
+    words = TEXTS[report.language]
+    values = {
+        "participant": report.participant, "words": report.words,
+        "needed": report.min_incidents,
+    }
+    items = "".join(
+        f"<li>{escape(words['why.' + code].format(**values))}</li>"
+        for code in report.why
+    )
+    return (
+        f'<div class="why"><strong>{escape(words["why_title"])}</strong>'
+        f'<ul>{items}</ul></div>'
+    )
+
+
+def _review(item: Review, report: PersonReport) -> str:
+    """Return a provisional estimate or a set of observations."""
+    words = TEXTS[report.language]
+    heading = (
+        _estimate_label(item.estimate, item.confidence, report)
+        if item.estimate is not None else words["observations_only"]
+    )
+    reasons = "".join(
+        f"<li>{escape(words['reason.' + code].format(**item.details))}</li>"
+        for code in item.reasons
+    )
+    quotes = "".join(
+        _quote(q, report.language) for q in item.observations
+    )
+    return (
+        f'<div class="card review"><h3>{escape(item.name)} — '
+        f'<span class="tag provisional">{escape(heading)}</span></h3>'
+        f'<p class="small">{escape(item.definition)}</p>'
+        + (f'<p><strong>{escape(words["why_not_firm"])}</strong></p>'
+           f'<ul>{reasons}</ul>' if reasons else "")
+        + (f'<p><strong>{escape(words["observed_items"])}</strong></p>'
+           f'{quotes}' if quotes else "")
+        + "</div>"
+    )
+
+
+def _reviews(report: PersonReport) -> str:
+    """Return the section of provisional estimates and observations."""
+    words = TEXTS[report.language]
+    if not report.reviews:
+        return f'<p>{escape(words["review_none"])}</p>'
+    return (
+        f'<p class="small">{escape(words["review_text"])}</p>'
+        + "".join(_review(item, report) for item in report.reviews)
     )
 
 
@@ -374,13 +477,14 @@ def _charts(report: PersonReport) -> str:
     legend: Dict[str, str] = {
         "strong": words["legend_strong"].format(low=low),
         "weak": words["legend_weak"].format(high=high),
+        "provisional": words["legend_provisional"],
         "none": words["legend_none"],
     }
     if report.midpoint == int(report.midpoint):
         legend["middle"] = words["legend_middle"].format(
             mid=int(report.midpoint)
         )
-    order = ["strong", "middle", "weak", "none"]
+    order = ["strong", "middle", "weak", "provisional", "none"]
     items = "".join(
         f"<li>{_legend_icon(kind)}<span>{escape(legend[kind])}</span></li>"
         for kind in order if kind in legend
@@ -439,6 +543,11 @@ def render_person_html(report: PersonReport) -> str:
         if report.synthetic else ""
     )
     summary = "".join(f"<p>{_text(s)}</p>" for s in report.summary)
+    tiers = "".join(
+        f'<p class="tiers"><strong>{escape(s)}</strong></p>'
+        if i == 0 else f'<p>{escape(s)}</p>'
+        for i, s in enumerate(report.tiers)
+    )
     strengths = "".join(
         _card(p, report, "helps") for p in report.strengths
     ) or f'<p>{escape(words["none_strengths"])}</p>'
@@ -463,7 +572,7 @@ def render_person_html(report: PersonReport) -> str:
         f'<body><main><h1>{escape(title)}</h1>'
         f'<p class="sub">{escape(subtitle)}</p>{_context(report)}{banner}'
         f'<section><h2>{escape(words["summary"])}</h2>'
-        f'<div class="lead">{summary}</div></section>'
+        f'<div class="lead">{summary}</div>{tiers}{_why(report)}</section>'
         f'<section><h2>{escape(words["meaning"])}</h2>{_meaning(report)}'
         f'</section>'
         f'<section><h2>{escape(words["charts"])}</h2>{_charts(report)}'
@@ -472,6 +581,8 @@ def render_person_html(report: PersonReport) -> str:
         f'</section>'
         f'<section><h2>{escape(words["weaknesses"])}</h2>{weaknesses}'
         f'{signals}</section>'
+        f'<section><h2>{escape(words["review"])}</h2>{_reviews(report)}'
+        f'</section>'
         f'<section><h2>{escape(words["notes"])}</h2>{_notes(report)}'
         f'<p class="small">{escape(made)}</p></section>'
         f'</main></body></html>\n'

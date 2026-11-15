@@ -92,7 +92,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -104,7 +106,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -116,7 +120,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -128,7 +134,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -140,7 +148,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -152,7 +162,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -164,7 +176,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -176,14 +190,16 @@
               "quote": "Gracias por venir. Producto quiere el panel nuevo para el día quince. Sé que es pronto, pero el cliente tiene una feria el dieciocho.",
               "indicator_id": "COORD.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 19,
               "quote": "De acuerdo. Lo apunto: dos pantallas el catorce, el resto y el Excel el veintiocho, y un correo cada viernes.",
               "indicator_id": "COORD.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -191,7 +207,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -203,21 +221,24 @@
               "quote": "Buena pregunta. Para la feria le bastan la pantalla de resumen y la de alertas. El resto puede esperar.",
               "indicator_id": "SOLVE.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 6,
               "quote": "¿Y las otras tres pantallas, para cuándo?",
               "indicator_id": "SOLVE.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 12,
               "quote": "El veintiocho... Lo tengo que hablar con producto. ¿Y si alguna se retrasa?",
               "indicator_id": "SOLVE.P6",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -225,7 +246,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -237,7 +260,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -249,7 +274,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -280,7 +307,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -292,21 +321,24 @@
               "quote": "Imposible. El quince no llegamos ni de broma.",
               "indicator_id": "LISTEN.N1",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 4,
               "quote": "Ya, pero luego siempre quieren más.",
               "indicator_id": "LISTEN.N1",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 10,
               "quote": "Marta, eso no es lo que acabamos de decir hace un momento.",
               "indicator_id": "LISTEN.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -314,7 +346,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -326,7 +360,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -338,7 +374,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -350,7 +388,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -362,14 +402,16 @@
               "quote": "Imposible. El quince no llegamos ni de broma.",
               "indicator_id": "CONFL.N2",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 18,
               "quote": "Marta, eso son otros tres días. Irene, el Excel para el veintiocho, no para la feria.",
               "indicator_id": "CONFL.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -377,7 +419,9 @@
           "proposed": 2,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -389,7 +433,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -401,7 +447,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -413,7 +461,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -425,21 +475,24 @@
               "quote": "Imposible. El quince no llegamos ni de broma.",
               "indicator_id": "INIT.N3",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 7,
               "quote": "Para final de mes, como pronto, y si no nos cambian nada.",
               "indicator_id": "INIT.P2",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 15,
               "quote": "Y yo me encargo de las alertas, que es lo más delicado. Las tengo el diez.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -447,7 +500,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -459,7 +514,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     },
@@ -490,7 +547,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "LISTEN",
@@ -502,21 +561,24 @@
               "quote": "A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?",
               "indicator_id": "LISTEN.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 5,
               "quote": "Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.",
               "indicator_id": "LISTEN.P4",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 11,
               "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
               "indicator_id": "LISTEN.P3",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -524,7 +586,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INFLU",
@@ -536,21 +600,24 @@
               "quote": "A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?",
               "indicator_id": "INFLU.P6",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 5,
               "quote": "Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.",
               "indicator_id": "INFLU.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 11,
               "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
               "indicator_id": "INFLU.P5",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -558,7 +625,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COLLAB",
@@ -570,7 +639,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INCL",
@@ -582,7 +653,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "CONFL",
@@ -594,21 +667,24 @@
               "quote": "Bueno... si lo necesitáis así, lo intentamos.",
               "indicator_id": "CONFL.N4",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 11,
               "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
               "indicator_id": "CONFL.P6",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             },
             {
               "turn": 17,
               "quote": "Eh... bueno, vale, lo metemos también si hace falta.",
               "indicator_id": "CONFL.N4",
               "polarity": "negative",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -616,7 +692,9 @@
           "proposed": 3,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "FEEDB",
@@ -628,7 +706,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "COORD",
@@ -640,7 +720,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "SOLVE",
@@ -652,7 +734,9 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "INIT",
@@ -664,7 +748,8 @@
               "quote": "Entonces te aviso en cuanto lo sepamos, no el último día. Te mando cada viernes cómo vamos.",
               "indicator_id": "INIT.P1",
               "polarity": "positive",
-              "similarity": null
+              "similarity": null,
+              "start": null
             }
           ],
           "rationale": "",
@@ -672,7 +757,9 @@
           "proposed": 1,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         },
         {
           "competency_id": "ADAPT",
@@ -684,12 +771,15 @@
           "proposed": 0,
           "rejected": 0,
           "unsupported": 0,
-          "flags": []
+          "flags": [],
+          "estimate": null,
+          "observations": []
         }
       ]
     }
   ],
   "seconds": 0.0,
   "started_at": "2026-11-04T09:30:00+01:00",
-  "conversation_type": "negociacion"
+  "conversation_type": "negociacion",
+  "format_version": 1
 }
