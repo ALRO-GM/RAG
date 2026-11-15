@@ -1,0 +1,168 @@
+# Lote 4: negociaciones. Diálogos inventados para este proyecto.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== neg-01 | negociacion | Renovación del contrato de limpieza
+-- fase: posicionamiento
+Marta: Buenos días, Hugo, gracias por venir hasta aquí. | relacion
+Hugo: Nada, encantado, me pilla de camino. | relacion
+Marta: Bueno, pues ya sabes a lo que venimos, el contrato vence en diciembre. | gestion
+Hugo: Sí. | escucha
+Hugo: Os adelanto que para el año que viene tenemos que subir un seis por ciento. | informacion #i1
+Marta: Uf, un seis. | escucha
+Marta: Mira, Hugo, nosotros estamos contentos con el servicio, eso primero. | opinion
+Marta: Pero un seis por ciento ahora mismo no lo podemos asumir. | rechazo >i1
+-- fase: problema
+Hugo: Entiendo. | escucha
+Hugo: ¿Qué margen tenéis? | pregunta #q1
+Marta: Como mucho, un dos y medio. | respuesta >q1 #z1
+Hugo: Eso no me cubre ni la subida del convenio. | rechazo >z1
+Marta: ¿Cuánto ha subido el convenio? | pregunta #q2
+Hugo: Un cuatro. | respuesta >q2
+Marta: Vale. | escucha
+-- fase: soluciones
+Hugo: Os puedo dejar el cuatro si firmamos por dos años. | propuesta #p1
+Marta: Por dos años… | otro
+Marta: ¿Y el segundo año qué subida tendría? | pregunta #q3
+Hugo: El segundo año lo que suba el IPC. | respuesta >q3
+Marta: Eh, no, prefiero un tope. | rechazo >p1
+Marta: Que no pase del tres, por ejemplo. | propuesta #p2
+Hugo: Del tres y medio. | rechazo >p2
+Hugo: Y dejo el cuatro el primer año. | propuesta #p3
+Marta: Mm. | escucha
+Marta: Si quitáis la limpieza de cristales de los sábados, que casi no la usamos, te acepto el cuatro. | propuesta #p4
+Hugo: Eso me ahorra una persona, sí. | aceptacion >p4
+Hugo: Venga, trato hecho: cuatro el primer año, tope del tres y medio el segundo, sin cristales los sábados. | gestion #s1
+Marta: Trato hecho. | aceptacion >s1
+-- fase: cierre
+Marta: Te mando el borrador del contrato la semana que viene. | compromiso
+Hugo: Y yo te paso el calendario nuevo sin los sábados. | compromiso
+Marta: Perfecto, un placer como siempre. | relacion
+
+=== neg-02 | negociacion | Subida de sueldo
+-- fase: posicionamiento
+Belén: Hola, Javier, ¿puedo pasar? | pregunta #q0
+Javier: Claro, pasa, siéntate. | respuesta >q0
+Belén: Gracias. | relacion
+Belén: Quería hablar contigo de mi sueldo. | gestion
+Javier: Vale, te escucho. | escucha
+Belén: Llevo tres años en el puesto y desde marzo coordino también al equipo de Sevilla. | informacion
+Belén: Creo que mi sueldo no refleja eso. | opinion #o1
+Javier: Ya. | escucha
+-- fase: problema
+Javier: ¿Qué tenías en mente? | pregunta #q1
+Belén: Un quince por ciento más. | respuesta >q1 #a1
+Javier: Un quince es mucho, Belén. | rechazo >a1
+Javier: La política de la empresa es no pasar del ocho en una revisión. | informacion #z2
+Belén: Lo entiendo, pero lo que hago no es una revisión, es otro puesto. | rechazo >z2
+Javier: Hombre, otro puesto… | otro
+Javier: Sigues siendo analista, con más responsabilidades, eso sí. | opinion
+Belén: Con un equipo de cuatro personas a mi cargo. | informacion #z3
+Javier: Vale, tienes razón en eso. | aceptacion >z3
+-- fase: soluciones
+Javier: Mira, te puedo ofrecer un ocho ahora y cambiar el puesto a coordinadora en enero. | propuesta #p1
+Belén: ¿Con el sueldo de coordinadora en enero? | pregunta #q2
+Javier: Con la banda de coordinadora, que empieza un poco por encima de lo que tendrías. | respuesta >q2
+Belén: ¿Y eso me lo puedes poner por escrito? | peticion #r1
+Javier: Sí, eso sí. | aceptacion >r1
+Javier: Lo hablo con recursos humanos esta semana y te lo mando por correo. | compromiso
+Belén: Vale. | escucha
+Belén: Entonces acepto el ocho ahora, con el cambio de puesto en enero por escrito. | aceptacion >p1
+Javier: Perfecto. | escucha
+-- fase: cierre
+Javier: Gracias por plantearlo así de claro, Belén, se agradece. | relacion
+Belén: Gracias a ti por escucharme. | relacion
+
+=== neg-03 | negociacion | Compra de ordenadores para el colegio
+-- fase: posicionamiento
+Raúl: Buenas tardes, soy Raúl, el director del colegio. | relacion
+Elena: Encantada, Elena, de la distribuidora. | relacion
+Raúl: Necesitamos treinta portátiles para el aula de informática. | informacion
+Elena: Vale, os mandé la oferta el lunes, ¿la habéis podido ver? | pregunta #q1
+Raúl: Sí, sí, la vimos. | respuesta >q1
+Raúl: El precio está bien, pero el plazo de entrega es un problema. | opinion
+Elena: ¿Qué plazo necesitáis? | pregunta #q2
+Raúl: Antes del quince de septiembre, que empieza el curso. | respuesta >q2
+-- fase: problema
+Elena: Pues con ese modelo es difícil, el fabricante los entrega en octubre. | informacion #z4
+Raúl: Octubre no nos vale. | rechazo >z4
+Elena: Lo entiendo. | escucha
+Elena: ¿Os importa mucho que sea ese modelo en concreto? | pregunta #q3
+Raúl: Importar importa, porque tiene la pantalla táctil que pidió el claustro. | respuesta >q3
+Elena: Ya. | escucha
+-- fase: soluciones
+Elena: Tengo otro con pantalla táctil, un poco menos potente, que sí tengo en almacén. | propuesta #p1
+Raúl: ¿Cuánto menos potente? | pregunta #q4
+Elena: Para lo que lo vais a usar, la verdad, no vais a notar diferencia. | respuesta >q4
+Raúl: ¿Y el precio? | pregunta #q5
+Elena: Cuarenta euros menos por unidad. | respuesta >q5
+Raúl: Eso está muy bien. | aceptacion >p1
+Raúl: Pero quiero tres años de garantía, no dos. | propuesta #p2
+Elena: Tres años me sube el precio otra vez veinte euros. | rechazo >p2
+Raúl: Pues lo dejamos en veinte euros menos y tres años de garantía. | propuesta #p3
+Elena: Echo. | aceptacion >p3
+-- fase: cierre
+Elena: Os preparo la oferta nueva esta tarde. | compromiso
+Raúl: Mándamela a mí directamente, por favor. | peticion #r1
+Elena: Claro. | aceptacion >r1
+Raúl: Gracias, Elena, nos has salvado el curso. | relacion
+Elena: Nada, para eso estamos. | relacion
+
+=== neg-04 | negociacion | Reparto de tareas en el piso compartido
+-- fase: posicionamiento
+Clara: Chicos, ¿tenéis un momento? | pregunta #q0
+Tomás: Sí, dime. | respuesta >q0
+Óscar: Mm, sí. | respuesta >q0
+Clara: Es que yo siento que siempre limpio yo la cocina. | opinion #o1
+Tomás: Bueno, siempre siempre… | rechazo >o1
+Clara: Esta semana, cuatro de cinco días. | informacion #z5
+Óscar: Es verdad, esta semana sí. | aceptacion >z5
+-- fase: problema
+Tomás: Yo es que llego muy tarde los martes y los jueves. | informacion #z6
+Clara: Ya, pero los otros días no. | rechazo >z6
+Óscar: Yo lo que no soporto es limpiar el baño. | opinion
+Tomás: Pues a mí el baño me da igual. | opinion
+Clara: Ah, mira. | escucha
+-- fase: soluciones
+Clara: ¿Y si Tomás se queda con el baño y Óscar y yo nos turnamos la cocina? | propuesta #p1
+Tomás: Por mí bien, pero entonces yo no saco la basura. | aceptacion >p1
+Óscar: Vale, la basura la saco yo. | compromiso
+Clara: Espera, entonces Óscar tiene cocina y basura, y Tomás solo el baño. | opinion #z7
+Tomás: El baño cuesta más que la cocina. | rechazo >z7 #z8
+Clara: No, eso no es verdad. | rechazo >z8
+Óscar: Bueno, da igual, a mí no me importa la basura. | opinion #z9
+Clara: Vale, como queráis. | aceptacion >z9
+Clara: Pero ponemos un cuadrante en la nevera y lo revisamos en un mes. | propuesta #p2
+Tomás: De acuerdo. | aceptacion >p2
+Óscar: Sí. | aceptacion >p2
+-- fase: cierre
+Clara: Yo hago el cuadrante esta noche. | compromiso
+Tomás: Y yo empiezo con el baño el sábado. | compromiso
+Óscar: Pues ya está, mira qué fácil. | opinion
+Clara: Gracias, de verdad, me quedo más tranquila. | relacion
+
+=== neg-05 | negociacion | Alquiler del local de la academia
+-- fase: posicionamiento
+Andrés: Bueno, Irene, ¿te ha llegado mi propuesta? | pregunta #q1
+Irene: Sí, me llegó ayer. | respuesta >q1
+Irene: Te soy sincera, mil ochocientos al mes me parece caro para la zona. | opinion #o1
+Andrés: Es que el local está reformado entero, con aire acondicionado nuevo. | rechazo >o1
+Irene: Ya, ya lo vi, está muy bien. | escucha
+-- fase: problema
+Irene: Mi problema es que el primer año la academia no va a tener muchos alumnos. | informacion
+Irene: Necesito un par de meses de carencia o algo así. | peticion #r1
+Andrés: Un par de meses gratis no puedo. | rechazo >r1
+Andrés: Tengo la hipoteca del local. | informacion
+Irene: Lo entiendo. | escucha
+-- fase: soluciones
+Andrés: Lo que te puedo hacer es mil quinientos los seis primeros meses y luego mil ochocientos. | propuesta #p1
+Irene: ¿Y si es mil cuatrocientos los seis primeros y firmo por cinco años? | propuesta #p2
+Andrés: ¿Cinco años? | pregunta #q2
+Irene: Cinco, sí, con la opción de salir al tercero avisando con tiempo. | respuesta >q2
+Andrés: Eh, con la salida al tercero no. | rechazo >p2
+Andrés: Si firmas cinco años sin salida, mil cuatrocientos los seis primeros meses. | propuesta #p3
+Irene: Déjame que lo piense hasta el lunes. | gestion
+Andrés: Claro, claro, piénsalo con calma. | escucha
+Irene: Y la fianza, ¿cuántos meses son? | pregunta #q3
+Andrés: Dos meses. | respuesta >q3
+Irene: Vale, te llamo el lunes sin falta. | compromiso
+Andrés: Perfecto, espero tu llamada. | relacion

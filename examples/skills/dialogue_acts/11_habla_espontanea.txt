@@ -1,0 +1,75 @@
+# Lote 11: habla muy espontánea, con solapes, frases a medias, muletillas,
+# fragmentos ininteligibles y errores de reconocimiento de voz (a propósito).
+# Diálogos inventados para este proyecto.
+
+=== esp-01 | reunion_decision | Organizar el turno de guardias del puente
+-- fase: apertura
+Sergio: Bueno, a ver, eh… | otro
+Sergio: Lo del puente, que hay que cerrarlo hoy. | gestion
+Ana: ¿El de diciembre o el de noviembre? | pregunta #q1
+Sergio: El de diciembre, el de diciembre. | respuesta >q1
+Ana: Vale. | escucha
+-- fase: discusión
+Sergio: Necesito dos personas el día seis y dos el ocho. | informacion
+Raúl: Yo el seis no puedo, que tengo… | otro
+Raúl: Bueno, que no puedo. | informacion
+Ana: Yo el seis sí, si me dejáis el siete libre. | propuesta #p1
+Sergio: Hecho, el siete libre. | aceptacion >p1
+Pablo: [ininteligible] | otro
+Sergio: ¿Cómo? | pregunta #q2
+Pablo: Que yo el ocho, digo, que yo puedo el ocho. | respuesta >q2
+Sergio: Vale, Pablo el ocho. | escucha
+Sergio: Falta uno para el seis y otro para el ocho. | informacion
+Raúl: Pues el ocho me lo quedo yo. | compromiso
+Sergio: Bien. | escucha
+Sergio: ¿Y el seis? | pregunta #q3
+Ana: Pregúntale a Lucía, que no ha venido hoy. | peticion #r1
+Sergio: Sí, le escribo. | aceptacion >r1
+Sergio: Si no puede, me lo quedo yo, que no hay más remedio. | compromiso
+Raúl: Eh, y lo de las horas extra, ¿cómo… cómo va eso? | pregunta #q4
+Sergio: Lo de siempre, se pagan doble. | respuesta >q4
+Raúl: Ah, bueno, vale, vale. | escucha
+Ana: Oye, y si… | otro
+Ana: No, nada, da igual. | otro
+-- fase: cierre
+Sergio: Pues queda: Ana el seis, Raúl y Pablo el ocho, y el otro del seis Lucía o yo. | gestion #s1
+Pablo: Vale. | aceptacion >s1
+Ana: Echo. | aceptacion >s1
+Sergio: Mandadme un mensaje si cambia algo, porfa. | peticion #r2
+Raúl: Sí, sí. | aceptacion >r2
+
+=== esp-02 | resolucion_problemas | Se ha caído la web de reservas
+-- fase: orientación
+Elena: ¿Hola? ¿Estáis? | pregunta #q0
+Hugo: Sí, sí, aquí. | respuesta >q0
+Elena: Se ha caído la web de reservas, nos están llamando clientes. | informacion
+Hugo: ¿Desde cuándo? | pregunta #q1
+Elena: Desde hace… no sé, veinte minutos. | respuesta >q1
+Clara: Mm. | escucha
+Hugo: Vale, a ver, déjame que mire el… el panel. | gestion
+Hugo: Eh… | otro
+Hugo: Uf. | otro
+Clara: ¿Qué pasa? | pregunta #q2
+Hugo: Que el servidor está al cien por cien de memoria. | respuesta >q2
+-- fase: análisis
+Clara: Eso es la actualización de esta mañana, seguro. | opinion #o1
+Hugo: No, la actualización fue a las nueve y hasta hace veinte minutos iba bien. | rechazo >o1
+Clara: Bueno, pues no sé. | escucha
+Hugo: Hay muchísimas visitas de golpe, como diez veces más de lo normal. | informacion
+Elena: ¡Ah! Es por el anuncio de la tele, que salió a las once. | informacion #z1
+Hugo: Ahí está. | aceptacion >z1
+-- fase: soluciones
+Clara: Reinicia el servidor y ya está. | propuesta #p1
+Hugo: Si reinicio vuelve a caer en dos minutos con tanta gente. | rechazo >p1
+Hugo: Lo que hago es subir dos servidores más un rato. | compromiso
+Elena: ¿Eso cuánto tarda? | pregunta #q3
+Hugo: Diez minutos, más o menos. | respuesta >q3
+Elena: Vale, mientras tanto pongo un aviso en las redes. | compromiso
+Hugo: Clara, ¿me vigilas el panel mientras subo los servidores? | peticion #r1
+Clara: Vale, te digo si sube algo. | aceptacion >r1
+Elena: Y avisadme cuando vuelva, por favor. | peticion #r2
+Hugo: Claro, te escribo al momento. | compromiso >r2
+-- fase: cierre
+Elena: Y para la próxima, que nos avisen de los anuncios, ¿eh? | peticion #r3
+Hugo: Jaja, eso díselo a marketing. | rechazo >r3
+Elena: Se lo diré, se lo diré. | compromiso

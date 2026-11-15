@@ -1,0 +1,187 @@
+# Lote 7: conflictos y mediación. Diálogos inventados para este proyecto.
+# Hay interrupciones (frases cortadas con "—"), autocorrecciones y algún
+# error típico de reconocimiento de voz a propósito.
+
+=== con-01 | conflicto | Vacaciones de agosto que coinciden
+-- fase: apertura
+Rosa: Gracias por venir los dos. | relacion
+Rosa: La idea es que cada uno cuente su versión sin interrumpir y luego buscamos una salida. | gestion
+Rosa: Luis, empieza tú, si quieres. | gestion #g1
+Luis: Vale. | aceptacion >g1
+-- fase: intercambio
+Luis: Yo pedí la primera quincena de agosto en enero, como todos los años. | informacion
+Luis: Y ahora me entero de que se la habéis dado a Irene. | informacion
+Irene: Perdona, pero yo la pedí en diciem— | otro
+Rosa: Irene, un momento, luego te toca. | gestion
+Irene: Vale, vale, perdón. | relacion
+Luis: Pues eso, que no me parece justo. | opinion #o1
+Luis: Tengo los billetes casi comprados para ir a ver a mi familia. | informacion
+Rosa: Entendido. | escucha
+Rosa: Irene, cuéntanos. | gestion #g2
+Irene: Yo la pedí en diciembre, por correo, a Pablo, que era el jefe entonces. | respuesta >g2
+Irene: Y él me dijo que sí. | informacion #z1
+Luis: Eso no consta en ningún sitio. | rechazo >z1 #z2
+Irene: Consta en mi correo, te lo puedo enseñar. | rechazo >z2
+Luis: Pues no lo sabía nadie. | opinion
+Rosa: A ver, a ver, que no se trata de quién tiene razón. | gestion
+-- fase: intereses
+Rosa: Luis, ¿qué es lo que más te importa: la fecha exacta o poder ir a ver a tu familia? | pregunta #q1
+Luis: Ir a ver a mi familia, claro. | respuesta >q1
+Luis: Las fechas me dan un poco igual si son en verano. | informacion
+Rosa: ¿Y a ti, Irene? | pregunta #q2
+Irene: A mí la fecha sí me importa, es la boda de mi hermana el día ocho. | respuesta >q2
+Luis: Ah. | escucha
+Luis: No lo sabía. | informacion
+-- fase: opciones
+Rosa: ¿Y si Luis coge la segunda quincena de julio, que está libre? | propuesta #p1
+Luis: Eh… | otro
+Luis: La segunda de julio puede valer, sí, si me la confirmáis hoy. | aceptacion >p1
+Irene: Por mí perfecto, y gracias, Luis. | relacion
+Luis: Nada, mujer, una boda es una boda. | relacion
+-- fase: acuerdo
+Rosa: Entonces: Irene la primera de agosto y Luis la segunda de julio. | gestion #s1
+Irene: Sí. | aceptacion >s1
+Luis: De acuerdo. | aceptacion >s1
+Rosa: Yo lo dejo apuntado en el calendario hoy mismo. | compromiso
+Rosa: Y a partir de ahora las vacaciones se piden solo por la aplicación, para que no vuelva a pasar. | informacion
+
+=== con-02 | conflicto | Ruido en la oficina compartida
+-- fase: apertura
+Carmen: Bueno, os he juntado porque hay un tema que se está enquistando. | gestion
+Carmen: Lo del ruido en la zona abierta. | gestion
+-- fase: intercambio
+Hugo: Yo lo digo claro: no se puede trabajar con las llamadas de ventas al lado. | opinion #o1
+Belén: Hombre, es que nuestro trabajo es llamar por teléfono. | rechazo >o1 #z3
+Hugo: Ya, pero hay maneras y maneras. | rechazo >z3
+Hugo: Hay gente que habla como si estuviera en un campo de fútbol. | opinion
+Belén: ¿Lo dices por mí? | pregunta #q1
+Hugo: No lo digo por nadie en concreto. | respuesta >q1
+Belén: Pues parece que sí. | opinion
+Carmen: Vale, vamos a intentar no personalizar, ¿de acuerdo? | gestion #g1
+Hugo: Vale. | aceptacion >g1
+Belén: Sí. | aceptacion >g1
+Carmen: Hugo, ¿en qué momentos te molesta más? | pregunta #q2
+Hugo: Por la mañana, que es cuando tengo que programar con concentración. | respuesta >q2
+Belén: Y por la mañana es justo cuando más llamamos, porque los clientes están en la oficina. | informacion
+Carmen: Mm. | escucha
+-- fase: opciones
+Belén: Podríamos usar la sala pequeña para las llamadas largas. | propuesta #p1
+Hugo: Eso estaría muy bien. | aceptacion >p1
+Carmen: La sala pequeña está reservada casi todas las mañanas para entrevistas. | rechazo >p1
+Belén: Ah, vaya. | escucha
+Hugo: ¿Y si yo me pongo en la mesa del fondo, la de al lado de la ventana? | propuesta #p2
+Belén: Esa mesa es de Óscar. | informacion
+Hugo: Óscar teletrabaja martes y jueves. | informacion
+Carmen: Se lo puedo preguntar a Óscar. | compromiso
+Hugo: Y otra cosa: unos auriculares con cancelación de ruido, que los pague la empresa. | peticion #r1
+Carmen: Eso lo apruebo ya. | aceptacion >r1
+Belén: Y nosotros intentamos bajar el tono, de verdad. | compromiso
+Hugo: Gracias, Belén, y perdona si antes he sonado borde. | relacion
+Belén: Tranquilo, yo también. | relacion
+-- fase: acuerdo
+Carmen: Resumo: auriculares para Hugo, pregunto a Óscar por la mesa y ventas intenta hablar más bajo. | gestion #s1
+Hugo: Perfecto. | aceptacion >s1
+Belén: De acuerdo. | aceptacion >s1
+Carmen: Nos vemos en dos semanas para ver si ha mejorado. | gestion
+
+=== con-03 | conflicto | Un error en el informe al cliente
+-- fase: intercambio
+Javier: Elena, tenemos que hablar de lo del informe. | gestion
+Elena: Si es por la cifra mal, ya lo sé. | informacion #z4
+Javier: No es solo la cifra. | rechazo >z4
+Javier: Es que el cliente lo vio antes que nosotros y me llamó enfadadísimo. | informacion
+Elena: Yo te lo mandé el martes para que lo revisaras. | informacion #z5
+Javier: El martes estaba de viaje, te lo dije. | rechazo >z5 #z6
+Elena: No, me dijiste que volvías el martes por la mañana. | rechazo >z6 #z7
+Javier: El martes por la noche. | rechazo >z7
+Elena: Bueno, pues sería un malentendido. | opinion #z8
+Javier: Vale, puede ser. | aceptacion >z8
+Javier: Pero aunque yo no lo revise, tú tienes que revisar las cifras antes de mandarlo. | opinion #c9
+Elena: Las cifras me las pasa contabilidad, yo las copio tal cual. | informacion
+Javier: ¿Y no las compruebas? | pregunta #q1
+Elena: Nunca habían venido mal. | respuesta >q1
+Javier: Pues esta vez vinieron. | opinion
+Elena: Ya. | escucha
+-- fase: opciones
+Elena: Mira, tienes razón en que debería haberlo comprobado. | aceptacion >c9
+Elena: Lo siento. | relacion
+Javier: Gracias. | relacion
+Javier: Yo también te pido perdón por cómo te he hablado esta mañana. | relacion
+Elena: Vale, gracias. | relacion
+Elena: ¿Te parece que a partir de ahora compare siempre con el mes anterior? | propuesta #p1
+Elena: Si algo cambia más de un diez por ciento, lo pregunto. | propuesta
+Javier: Me parece muy bien. | aceptacion >p1
+Javier: Y yo te digo siempre por escrito cuándo estoy de viaje. | compromiso
+-- fase: acuerdo
+Javier: ¿Llamas tú al cliente para explicárselo o lo llamo yo? | pregunta #q2
+Elena: Lo llamo yo, que lo hice yo. | respuesta >q2
+Elena: Lo llamo esta tarde. | compromiso
+Javier: Vale, gracias. | escucha
+
+=== con-04 | conflicto | Desacuerdo sobre el reparto del trabajo en un proyecto
+-- fase: apertura
+Óscar: ¿Empezamos? | gestion #g0
+Lucía: Sí. | aceptacion >g0
+Raúl: Sí, venga. | aceptacion >g0
+-- fase: intercambio
+Lucía: Yo quiero decir algo y lo digo con todo el cariño. | gestion
+Lucía: Siento que estoy haciendo la mitad del proyecto yo sola. | opinion #o1
+Raúl: ¿La mitad? | pregunta #q1
+Lucía: La mitad de las horas, sí, lo tengo apuntado. | respuesta >q1
+Lucía: Sesenta horas de ciento veinte. | informacion
+Raúl: Hombre, es que tú te has cogido las partes más largas. | rechazo >o1 #z9
+Lucía: Me las cogí porque nadie las quería. | rechazo >z9 #z10
+Óscar: Eso es verdad, en la primera reunión nadie se ofreció. | aceptacion >z10
+Raúl: Ya, bueno… | otro
+Raúl: Yo es que tengo otro proyecto a la vez, no puedo con más. | informacion #z11
+Lucía: Pero eso no lo sabíamos. | rechazo >z11
+Raúl: Pues lo digo ahora. | informacion
+Óscar: Pues lo dices ahora, vale, pero hace un mes nos habría ayudado saberlo. | opinion #z12
+Raúl: Vale, eso sí, lo reconozco. | aceptacion >z12
+-- fase: opciones
+Óscar: Propongo que repasemos lo que queda y lo repartamos por horas, no por partes. | propuesta #p1
+Lucía: Me parece bien. | aceptacion >p1
+Raúl: Vale, pero con mis horas reales, que son menos. | aceptacion >p1
+Óscar: ¿Cuántas horas puedes a la semana? | pregunta #q2
+Raúl: Seis, siete como mucho. | respuesta >q2
+Lucía: ¿Seis? | pregunta #q3
+Lucía: Eso es muy poco, Raúl. | opinion
+Raúl: Es lo que hay. | opinion
+Óscar: Vale, yo cojo más horas este mes, que tengo menos trabajo. | compromiso
+Óscar: Raúl, ¿te encargas tú de la bibliografía, que se puede hacer en ratos sueltos? | peticion #r1
+Raúl: Vale, eso sí. | aceptacion >r1
+Raúl: La tengo para el día veinte. | compromiso
+Lucía: Y yo hago la parte de resultados, que ya la tengo empezada. | compromiso
+-- fase: acuerdo
+Óscar: Y si alguien se agobia, lo dice antes, no al final. | propuesta #p2
+Lucía: Sí, por favor. | aceptacion >p2
+Raúl: De acuerdo. | aceptacion >p2
+Lucía: Gracias, de verdad, me quedo mucho más tranquila. | relacion
+
+=== con-05 | conflicto | Queja de una vecina en la comunidad
+-- fase: apertura
+Tomás: Buenas tardes, soy el presidente de la comunidad. | relacion
+Tomás: Os he llamado a las dos porque hay una queja por las humedades del tercero. | gestion
+-- fase: intercambio
+Clara: Yo lo tengo muy claro, la mancha viene de su terraza. | opinion #o1
+Nuria: No, perdona, mi terraza la impermeabilizamos el año pasado. | rechazo >o1 #z13
+Clara: Pues la mancha está justo debajo de tu terraza. | rechazo >z13 #z14
+Nuria: También está debajo de la bajante general, que es de la comunidad. | rechazo >z14
+Tomás: Mm, eso es verdad. | escucha
+Clara: ¿Y la bajante cómo sé yo que pierde? | pregunta #q1
+Tomás: Hay que mandar a alguien a mirarlo, a ojo no lo vamos a saber. | respuesta >q1
+-- fase: opciones
+Tomás: Propongo que venga el fontanero de la comunidad a mirar las dos cosas, terraza y bajante. | propuesta #p1
+Nuria: Por mí bien. | aceptacion >p1
+Clara: ¿Y quién paga al fontanero? | pregunta #q2
+Tomás: La visita la paga la comunidad. | respuesta >q2
+Tomás: Y la reparación, el que tenga la culpa, la terraza o la comunidad. | informacion
+Clara: Vale, me parece justo. | aceptacion >p1
+Nuria: Y si es mi terraza, lo arreglo, eso que quede claro. | compromiso
+Clara: Gracias, Nuria. | relacion
+Clara: Y perdona si he estado un poco brusca, es que llevo un mes con la pared negra. | relacion
+Nuria: Lo entiendo, no te preocupes. | relacion
+-- fase: acuerdo
+Tomás: Pues llamo al fontanero mañana y os aviso a las dos del día que viene. | compromiso
+Clara: Perfecto. | escucha
+Nuria: Gracias, Tomás. | relacion

@@ -1,0 +1,151 @@
+# Lote 6: conversaciones de feedback y evaluación. Diálogos inventados.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== fee-01 | feedback | Evaluación anual de un técnico de soporte
+-- fase: apertura
+Elena: Hola, Sergio, pasa. | relacion
+Sergio: Hola, Elena. | relacion
+Elena: Como sabes, esto es la conversación de final de año. | gestion
+Elena: Primero me gustaría que me contaras cómo lo ves tú y luego te doy mi visión. | gestion #z1
+Sergio: Vale. | aceptacion >z1
+-- fase: autoevaluación
+Elena: ¿Cómo valoras tu año? | pregunta #q1
+Sergio: Pues bien, en general. | respuesta >q1
+Sergio: He cerrado más incidencias que nadie del equipo. | informacion #d0
+Sergio: Lo que peor llevo es la documentación, eso lo reconozco. | opinion #d1
+Elena: Ajá. | escucha
+-- fase: valoración
+Elena: Coincido en lo de las incidencias, son unas novecientas, un treinta por ciento más que la media. | aceptacion >d0
+Elena: Y los clientes te valoran muy bien en las encuestas. | informacion
+Sergio: Me alegra oír eso. | relacion
+Elena: Lo de la documentación también lo he notado. | aceptacion >d1
+Elena: En tres casos de este trimestre otro compañero tuvo que repetir tu diagnóstico porque no había notas. | informacion #z2
+Sergio: Bueno, en uno de esos sí había notas, lo que pasa es que estaban en el correo. | rechazo >z2 #z3
+Elena: Vale, entonces en dos. | aceptacion >z3
+Elena: Pero el correo no lo ve el resto del equipo, ese es el problema. | opinion #z4
+Sergio: Ya, eso es verdad. | aceptacion >z4
+-- fase: acuerdos
+Elena: ¿Qué crees que te ayudaría a documentar más? | pregunta #q2
+Sergio: Una plantilla corta. | respuesta >q2 #d2
+Sergio: Lo que hay ahora tiene quince campos y no hay tiempo. | informacion
+Elena: Me parece buena idea. | aceptacion >d2
+Elena: ¿Te animas a proponer tú la plantilla? | peticion #r1
+Sergio: Sí, me animo. | aceptacion >r1
+Sergio: Te la paso antes de fin de mes. | compromiso
+Elena: Y yo me comprometo a que el equipo la use si es buena. | compromiso
+Elena: Gracias por el año, Sergio, de verdad que se nota tu trabajo. | relacion
+
+=== fee-02 | feedback | Feedback tras una presentación a un cliente
+-- fase: apertura
+Javier: Clara, ¿tienes diez minutos para hablar de la presentación de esta mañana? | pregunta #q0
+Clara: Sí, claro, dime. | respuesta >q0
+-- fase: autoevaluación
+Javier: Antes de nada, ¿cómo te has quedado tú? | pregunta #q1
+Clara: Uf, nerviosa. | respuesta >q1
+Clara: Creo que me lié un poco con las cifras del segundo trimestre. | opinion #z5
+Javier: Mm. | escucha
+-- fase: valoración
+Javier: Mira, lo de las cifras se notó poco. | rechazo >z5
+Javier: Lo que sí se notó es que te saltaste la parte de los riesgos. | informacion
+Clara: ¿Me la salté? | pregunta #q2
+Javier: Sí, pasaste de la diapositiva siete a la nueve. | respuesta >q2
+Clara: Ay, no me di cuenta. | escucha
+Javier: Y el cliente preguntó justo por eso al final. | informacion #z6
+Clara: Es verdad. | aceptacion >z6
+Javier: Lo bueno: la demostración del producto fue lo mejor de la mañana. | opinion
+Javier: Lo explicaste con un caso de su propia empresa y eso les encantó. | informacion
+Clara: Gracias, lo preparé ayer por la noche. | relacion
+-- fase: acuerdos
+Javier: Para la próxima te propongo una cosa. | gestion
+Javier: Que la ensayemos juntos el día antes, aunque sea media hora. | propuesta #p1
+Clara: Vale, sí, me vendría muy bien. | aceptacion >p1
+Clara: ¿Podrías hacer tú de cliente difícil? | peticion #r1
+Javier: Jaja, eso se me da muy bien. | aceptacion >r1
+Clara: Te reservo media hora el jueves que viene. | compromiso
+Javier: Perfecto. | escucha
+Javier: Y lo de hoy, bien, ¿eh? No te quedes con lo malo. | relacion
+
+=== fee-03 | feedback | Revisión de objetivos de una coordinadora
+-- fase: apertura
+Tomás: Bueno, Nuria, revisamos los objetivos del semestre. | gestion
+Nuria: Vale. | escucha
+-- fase: valoración
+Tomás: El primer objetivo era reducir el tiempo de entrega de los informes a cinco días. | informacion
+Tomás: Estáis en seis y medio. | informacion #z7
+Nuria: Sí, pero hay que tener en cuenta que en marzo estuvimos con una persona menos. | rechazo >z7 #z8
+Tomás: Eso lo tengo en cuenta. | aceptacion >z8
+Tomás: Aun así, en abril y mayo, con el equipo completo, fueron seis. | informacion
+Nuria: Ya. | escucha
+Nuria: Es que los datos nos llegan tarde de contabilidad. | informacion
+Tomás: ¿Cuánto tarde? | pregunta #q1
+Nuria: Dos días de media. | respuesta >q1
+Tomás: Eso no lo sabía. | escucha
+Tomás: Pues eso no es culpa vuestra, eso lo tengo que hablar yo con contabilidad. | opinion
+Nuria: Te lo agradecería mucho. | relacion
+Tomás: El segundo objetivo, la formación del equipo nuevo, perfecto. | opinion
+Tomás: Todos han pasado la evaluación a la primera. | informacion
+Nuria: Sí, estoy muy contenta con eso. | opinion
+-- fase: acuerdos
+Tomás: Para el próximo semestre quiero que bajemos a cinco días otra vez. | propuesta #p1
+Nuria: Con los datos a tiempo, sí. | aceptacion >p1
+Nuria: Sin eso no te lo puedo prometer. | rechazo >p1
+Tomás: Justo. | escucha
+Tomás: Yo hablo con contabilidad esta semana. | compromiso
+Tomás: Y tú, ¿me mandas cada lunes cuántos informes van con retraso? | peticion #r1
+Nuria: Echo, cada lunes a primera hora. | compromiso >r1
+Tomás: Genial. | escucha
+Tomás: Buen semestre, Nuria. | relacion
+
+=== fee-04 | feedback | Feedback entre compañeros sobre una reunión
+-- fase: apertura
+Andrés: Belén, ¿puedo decirte una cosa de la reunión de ayer? | pregunta #q0
+Belén: Claro, dime. | respuesta >q0
+-- fase: valoración
+Andrés: Cuando presenté la propuesta de los horarios, me interrumpiste tres o cuatro veces. | informacion
+Belén: ¿Tantas? | pregunta #q1
+Andrés: Bueno, tres seguro. | respuesta >q1
+Belén: Pues no me di cuenta, perdona. | relacion
+Andrés: Ya sé que no lo haces a propósito. | opinion
+Andrés: Pero me hizo perder el hilo y al final no expliqué la parte de los turnos. | informacion
+Belén: Lo siento de verdad. | relacion
+Belén: Es que me emociono cuando algo me interesa, y lo de los horarios me interesa mucho. | informacion
+Andrés: Ya, ya. | escucha
+-- fase: acuerdos
+Belén: ¿Qué te parece si cuando lo haga me haces una seña? | propuesta #p1
+Andrés: Vale, te levanto el boli, así. | aceptacion >p1
+Belén: Jaja, vale. | escucha
+Belén: Y oye, ¿me explicas ahora lo de los turnos? | peticion #r1
+Belén: Que me quedé con ganas. | informacion
+Andrés: Claro, a la vuelta del café te lo cuento. | compromiso >r1
+Belén: Gracias por decírmelo, de verdad. | relacion
+
+=== fee-05 | feedback | Evaluación del periodo de prueba
+-- fase: apertura
+Marta: Hola, David, ¿cómo estás? | pregunta #q0
+David: Bien, un poco nervioso. | respuesta >q0
+Marta: Tranquilo, que va a ser una buena conversación. | relacion
+Marta: Hoy terminas el periodo de prueba y quería repasar estos dos meses contigo. | gestion
+-- fase: valoración
+Marta: Lo primero: te quedas. | informacion
+David: ¡Ah! Qué bien, gracias. | relacion
+Marta: Ahora te digo lo que más me ha gustado y lo que tienes que mejorar. | gestion
+Marta: Me ha gustado mucho que preguntas cuando no sabes algo, en vez de inventártelo. | opinion
+Marta: Y el informe de ventas que hiciste la semana pasada estaba muy claro. | opinion
+David: Me costó lo suyo. | informacion
+Marta: Se notó. | escucha
+Marta: Lo que tienes que mejorar es la puntualidad en las reuniones de la mañana. | opinion
+David: Ya… | otro
+David: Es que el autobús de las ocho viene siempre tarde. | informacion #z9
+Marta: Lo entiendo, pero llegar diez minutos tarde tres días por semana se nota. | rechazo >z9 #z10
+David: Sí, tienes razón. | aceptacion >z10
+-- fase: acuerdos
+Marta: ¿Hay algo que podamos hacer? | pregunta #q1
+David: Podría coger el de las siete y media. | respuesta >q1
+David: O si no, ¿podríamos mover la reunión a las nueve y cuarto? | propuesta #p1
+Marta: Mover la reunión no, que hay gente que entra a las siete. | rechazo >p1
+David: Vale, pues el de las siete y media. | compromiso
+Marta: Perfecto. | escucha
+Marta: Y si un día pasa algo, me escribes antes, ¿vale? | peticion #r1
+David: Vale, sin problema. | aceptacion >r1
+Marta: Pues enhorabuena, David, bienvenido de verdad al equipo. | relacion
+David: Gracias, Marta. | relacion

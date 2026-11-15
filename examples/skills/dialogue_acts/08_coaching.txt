@@ -1,0 +1,142 @@
+# Lote 8: sesiones de coaching y mentoría. Diálogos inventados.
+# Algunas frases llevan errores típicos de reconocimiento de voz a propósito.
+
+=== coa-01 | coaching | Hablar en público
+-- fase: objetivo
+Irene: Bueno, Pablo, ¿de qué te gustaría que habláramos hoy? | pregunta #q1
+Pablo: Pues de las presentaciones. | respuesta >q1
+Pablo: Me bloqueo cada vez que tengo que hablar delante de dirección. | informacion
+Irene: Ajá. | escucha
+Irene: ¿Qué te gustaría conseguir al final de estas sesiones? | pregunta #q2
+Pablo: Poder presentar los resultados del trimestre sin que me tiemble la voz. | respuesta >q2
+-- fase: realidad
+Irene: ¿Qué pasa exactamente cuando te bloqueas? | pregunta #q3
+Pablo: Pues que empiezo bien y en cuanto alguien me hace una pregunta me quedo en blanco. | respuesta >q3
+Irene: ¿Siempre que te preguntan? | pregunta #q4
+Pablo: No, siempre no… | otro
+Pablo: Cuando pregunta el director financiero. | respuesta >q4
+Irene: Mm. | escucha
+Irene: ¿Y qué tiene de especial él? | pregunta #q5
+Pablo: Que pregunta cosas muy concretas, cifras, y yo no me las sé de memoria. | respuesta >q5
+Irene: O sea, que no es tanto hablar en público como no tener la cifra a mano. | gestion #g1
+Pablo: Visto así… sí, puede ser. | aceptacion >g1
+-- fase: opciones
+Irene: ¿Qué podrías hacer para tener las cifras a mano? | pregunta #q6
+Pablo: Llevar una hoja con los datos principales. | respuesta >q6
+Pablo: O preparar las preguntas que creo que me va a hacer. | propuesta #p1
+Irene: ¿Alguna idea más? | pregunta #q7
+Pablo: Ensayar con alguien que haga de director financiero. | respuesta >q7
+Irene: ¿Cuál de las tres te parece más fácil de empezar? | pregunta #q8
+Pablo: La hoja, sin duda. | respuesta >q8
+-- fase: compromiso
+Irene: ¿Y qué vas a hacer exactamente antes de la próxima presentación? | pregunta #q9
+Pablo: Voy a hacer una hoja de una página con las diez cifras clave. | compromiso
+Pablo: Y le voy a pedir a Marta que me haga dos o tres preguntas el día antes. | compromiso
+Irene: ¿Cuándo es la próxima presentación? | pregunta #q10
+Pablo: El día catorce. | respuesta >q10
+Irene: Pues en la sesión del quince me cuentas cómo fue. | peticion #r1
+Pablo: Hecho. | aceptacion >r1
+Irene: Muy bien, Pablo, buen trabajo hoy. | relacion
+
+=== coa-02 | coaching | Delegar en el equipo
+-- fase: objetivo
+Andrés: Hola, Nuria. | relacion
+Nuria: Hola, Andrés, ¿cómo va la semana? | pregunta #q0
+Andrés: Agotadora, la verdad. | respuesta >q0
+Andrés: Por eso quería hablar de delegar, que no llego a todo. | gestion #z1
+Nuria: Vale, vamos con eso. | aceptacion >z1
+-- fase: realidad
+Nuria: ¿Qué tareas haces tú que podría hacer otra persona? | pregunta #q1
+Andrés: Uf, casi todas. | respuesta >q1
+Andrés: Los informes semanales, las reuniones con proveedores, revisar los pedidos y halla lo que sea. | informacion
+Nuria: ¿Y por qué no las delegas? | pregunta #q2
+Andrés: Porque si las hace otro tengo que revisarlas y tardo lo mismo. | respuesta >q2
+Nuria: ¿Lo has probado? | pregunta #q3
+Andrés: Una vez, con los informes, y salió regular. | respuesta >q3
+Nuria: ¿Regular cómo? | pregunta #q4
+Andrés: Pues que faltaban datos de dos clientes y tuve que rehacerlo. | respuesta >q4
+Nuria: Mm, ajá. | escucha
+Nuria: ¿Le explicaste qué datos tenían que salir? | pregunta #q5
+Andrés: Eh… | otro
+Andrés: Pues no, la verdad, di por hecho que lo sabía. | respuesta >q5
+Nuria: Vale. | escucha
+-- fase: opciones
+Nuria: ¿Qué harías distinto la próxima vez? | pregunta #q6
+Andrés: Hacerle una lista de lo que tiene que salir. | respuesta >q6
+Andrés: Y revisar solo la primera semana, no siempre. | informacion
+Nuria: ¿Qué tarea delegarías primero? | pregunta #q7
+Andrés: Los informes, que me quitan tres horas cada lunes. | respuesta >q7
+Nuria: ¿Y a quién? | pregunta #q8
+Andrés: A Lucía, que es muy cuidadosa. | respuesta >q8
+-- fase: compromiso
+Andrés: Esta semana le explico los informes a Lucía con la lista. | compromiso
+Andrés: Y le reviso los dos primeros, nada más. | compromiso
+Nuria: ¿Cómo sabrás que ha funcionado? | pregunta #q9
+Andrés: Si dentro de un mes los lunes salgo a mi hora. | respuesta >q9
+Nuria: Me parece un buen indicador. | opinion
+Nuria: Nos vemos en un mes, entonces. | gestion
+
+=== coa-03 | coaching | Mentoría a una programadora junior
+-- fase: objetivo
+Óscar: Venga, Clara, cuéntame, ¿qué tal tus primeras semanas? | pregunta #q1
+Clara: Bien, aunque me siento un poco perdida con el código. | respuesta >q1
+Clara: Es enorme. | opinion
+Óscar: Normal, a todos nos pasó. | opinion
+-- fase: realidad
+Óscar: ¿Qué parte te cuesta más? | pregunta #q2
+Clara: La parte de pagos, el modulo de pagos. | respuesta >q2
+Clara: No entiendo por qué hay tres sitios donde se calcula el precio. | informacion
+Óscar: Jaja, nadie lo entiende. | opinion
+Óscar: Es herencia de hace años. | informacion
+Clara: Ah, vale, pensaba que era yo. | escucha
+Óscar: ¿Cuándo te bloqueas, a quién preguntas? | pregunta #q3
+Clara: A nadie, intento sacarlo yo sola. | respuesta >q3
+Clara: Me da vergüenza molestar. | informacion
+Óscar: Eso te va a hacer perder muchas horas. | opinion
+Óscar: Aquí preguntar está bien visto, de verdad. | opinion
+-- fase: opciones
+Óscar: Te propongo una regla: si llevas más de media hora atascada, preguntas. | propuesta #p1
+Clara: Media hora… | otro
+Clara: Vale, puedo intentarlo. | aceptacion >p1
+Óscar: Y otra cosa, ¿por qué no haces un dibujo de cómo va el flujo de pagos? | propuesta #p2
+Clara: ¿Un dibujo? | pregunta #q4
+Óscar: Sí, con cajitas, a mano. | respuesta >q4
+Óscar: Y luego lo revisamos juntos. | propuesta
+Clara: Me gusta, así lo entiendo mejor. | aceptacion >p2
+-- fase: compromiso
+Clara: Lo hago esta semana y te lo enseño el viernes. | compromiso
+Óscar: Genial. | escucha
+Óscar: Apúntate también las preguntas que te surjan. | peticion #r1
+Clara: Vale. | aceptacion >r1
+Óscar: Y lo estás haciendo muy bien, ¿eh?, no lo olvides. | relacion
+Clara: Gracias, Óscar. | relacion
+
+=== coa-04 | coaching | Volver de una baja
+-- fase: objetivo
+Marta: Hola, Sergio, me alegro mucho de verte de vuelta. | relacion
+Sergio: Gracias, yo también me alegro. | relacion
+Marta: ¿Cómo te gustaría que usáramos esta conversación? | pregunta #q1
+Sergio: Para organizar la vuelta, que me da un poco de miedo. | respuesta >q1
+-- fase: realidad
+Marta: ¿Miedo de qué? | pregunta #q2
+Sergio: De no llegar, de que todo haya cambiado. | respuesta >q2
+Marta: Ajá. | escucha
+Marta: ¿Qué sabes de lo que ha cambiado? | pregunta #q3
+Sergio: Que hay una herramienta nueva de proyectos y dos personas nuevas en el equipo. | respuesta >q3
+Sergio: Y poco más. | informacion
+Marta: ¿Y qué te ayudaría a ponerte al día? | pregunta #q4
+Sergio: Pues un rato con alguien que me enseñe la herramienta. | respuesta >q4
+Sergio: Y conocer a los nuevos antes de trabajar con ellos. | informacion
+-- fase: opciones
+Marta: ¿Qué te parecería volver a media jornada las dos primeras semanas? | propuesta #p1
+Sergio: Eso sería ideal. | aceptacion >p1
+Sergio: Pero ¿se puede? | pregunta #q5
+Marta: Sí, lo hemos hablado con recursos humanos. | respuesta >q5
+Sergio: Ah, genial. | escucha
+Sergio: Entonces quiero media jornada, por favor. | aceptacion >p1
+-- fase: compromiso
+Marta: Yo te organizo un café con los dos nuevos esta semana. | compromiso
+Marta: Y le pido a Hugo que te enseñe la herramienta el miércoles. | compromiso
+Sergio: Yo me leo esta tarde las actas de las últimas reuniones. | compromiso
+Marta: Y cualquier cosa, me escribes, ¿vale? | peticion #r1
+Sergio: Vale, gracias, de verdad. | aceptacion >r1

@@ -1,0 +1,249 @@
+# Lote 10: reuniones de seguimiento y conversaciones de tareas, con más
+# peticiones, fragmentos, interrupciones y errores de reconocimiento de voz
+# (puestos a propósito). Diálogos inventados para este proyecto.
+
+=== seg-01 | reunion_decision | Seguimiento semanal del equipo de marketing
+-- fase: apertura
+Nuria: Buenos días, ¿estamos todos? | gestion #g0
+Óscar: Falta Clara, que está con un cliente. | respuesta >g0
+Nuria: Vale, pues empezamos sin ella. | gestion
+Nuria: Como siempre: cada uno lo que hizo, lo que va a hacer y si tiene algún bloqueo. | gestion
+Nuria: Óscar, empiezas tú. | gestion #g1
+-- fase: ronda
+Óscar: Vale. | aceptacion >g1
+Óscar: La semana pasada terminé los anuncios de la campaña de otoño. | informacion
+Óscar: Están subidos y aprobados. | informacion
+Nuria: Bien. | escucha
+Óscar: Esta semana me pongo con el boletín de noviembre. | compromiso
+Óscar: Bloqueo: necesito las fotos de producto nuevas, que no me han llegado. | informacion
+Nuria: ¿A quién se las pediste? | pregunta #q1
+Óscar: A los de… eh… al estudio de foto, el de siempre. | respuesta >q1
+Nuria: Llámales hoy, por favor, que el boletín sale el día cinco. | peticion #r1
+Óscar: Vale, les llamo después de la reunión. | compromiso >r1
+Nuria: Sergio. | gestion #g2
+Sergio: Sí. | aceptacion >g2
+Sergio: Yo estuve con el análisis de la web, eh, las visitas han caído un diez por ciento. | informacion
+Nuria: ¿Un diez? | pregunta #q2
+Sergio: Un diez respecto a septiembre. | respuesta >q2
+Sergio: Creo que es por el cambio del buscador, no por nosotros. | opinion #o1
+Óscar: O por la página nueva de productos, que carga lentísimo. | rechazo >o1 #z1
+Sergio: Puede ser, también. | aceptacion >z1
+Nuria: ¿Lo puedes comprobar? | peticion #r2
+Sergio: Sí, lo miro con los datos por página. | compromiso >r2
+Sergio: El jueves te digo algo. | compromiso
+-- fase: interrupción
+Clara: Hola, perdón, perdón, se ha alargado lo del cliente. | relacion
+Nuria: Nada, siéntate, estamos con la ronda. | gestion
+Clara: Vale. | escucha
+Nuria: ¿Te toca ahora, cuéntanos? | gestion #g3
+Clara: Sí, eh, lo del cliente: quieren adelantar la campaña de Navidad dos semanas. | respuesta >g3
+Óscar: ¿Dos semanas? Eso es una locu— | otro
+Clara: Espera, que no he terminado. | gestion
+Clara: Dicen que si no llegamos, lo hablamos, que no es obligatorio. | informacion
+Óscar: Ah, vale, vale. | escucha
+Nuria: Pues yo creo que podemos adelantar una semana, dos no. | opinion #o2
+Clara: Yo también lo veo así. | aceptacion >o2
+Óscar: Una semana, si me llegan las fotos, sí. | aceptacion >o2
+-- fase: cierre
+Nuria: Resumo: Óscar llama hoy al estudio, Sergio mira la velocidad de la web y Clara le dice al cliente que una semana. | gestion #s1
+Clara: Vale, le escribo esta mañana. | compromiso
+Sergio: Perfecto. | aceptacion >s1
+Nuria: Gracias a todos, hasta el lunes. | relacion
+
+=== seg-02 | reunion_decision | Seguimiento de la mudanza de oficina
+-- fase: apertura
+Pablo: Venga, que tenemos poco tiempo. | gestion
+Pablo: Punto uno, la mudanza. | gestion
+Pablo: Irene, ¿cómo vamos? | gestion #g1
+-- fase: estado
+Irene: Pues más o menos bien. | respuesta >g1
+Irene: La empresa de mudanzas confirma el sábado veinte. | informacion
+Irene: Lo que no está es la conexión a internet en la oficina nueva. | informacion
+Pablo: ¿Cómo que no está? | pregunta #q1
+Irene: La compañía dice que tardan quince días en instalar la fibra. | respuesta >q1
+Pablo: Quince días… | otro
+Pablo: Eso es un problema muy gordo. | opinion
+Andrés: Podemos tirar de los datos del móvil unos días. | propuesta #p1
+Pablo: Con veinte personas no, no aguanta. | rechazo >p1 #z2
+Andrés: Bueno, con unos routers de esos portátiles sí. | rechazo >z2
+Irene: Lo que podemos hacer es pedir que lo pongan con prioridad, que somos clientes de empresa. | propuesta #p2
+Pablo: Eso primero. | aceptacion >p2
+Pablo: Irene, ¿llamas tú a la compañía? | peticion #r1
+Irene: Sí, les llamo hoy. | compromiso >r1
+Pablo: Y Andrés, mira por si acaso lo de los routers, cuánto cuestan. | peticion #r2
+Andrés: Vale, lo miro. | aceptacion >r2
+-- fase: tareas
+Pablo: Lo otro es que cada uno tiene que empaquetar su mesa el viernes. | informacion
+Pablo: Que se le diga a todo el mundo, por favor. | peticion #r3
+Irene: Lo mando por correo hoy. | compromiso >r3
+Andrés: Y yo pongo un cartel en la cocina, que el correo no lo lee nadie. | compromiso #z3
+Pablo: Jaja, también es verdad. | aceptacion >z3
+Pablo: Pues ya está, gracias. | relacion
+
+=== seg-03 | resolucion_problemas | Llamada con el proveedor por un pedido incompleto
+-- fase: orientación
+Javier: ¿Hola? ¿Me oyes? | pregunta #q0
+Lucía: Sí, ahora sí, antes se cortaba. | respuesta >q0
+Javier: Vale. | escucha
+Javier: Te llamo por el pedido de la semana pasada, el de las sillas. | gestion
+Lucía: Sí, dime. | escucha
+Javier: Nos han llegado ochenta y pedimos cien. | informacion
+Lucía: ¿Ochenta? | pregunta #q1
+Javier: Ochenta, las he contado yo. | respuesta >q1
+Lucía: Pues aquí en el sistema pone cien enviadas. | informacion #z4
+Javier: Pues ochenta llegaron. | rechazo >z4
+-- fase: análisis
+Lucía: Vale, déjame que mire el albarán. | gestion
+Lucía: Eh… | otro
+Lucía: A ver… | otro
+Lucía: Vale, aquí lo veo, salieron en dos camiones. | informacion
+Lucía: El segundo camión tenía que llegar ayer. | informacion
+Javier: Pues ayer no vino nadie. | informacion
+Lucía: Qué raro. | opinion
+Lucía: Me pongo en contacto con el transportista y te digo algo. | compromiso
+Javier: ¿Cuándo? | pregunta #q2
+Lucía: Antes de las dos. | respuesta >q2
+-- fase: soluciones
+Javier: Y si no aparece el camión, ¿qué hacemos? | pregunta #q3
+Lucía: Te mandamos otras veinte del almacén de Zaragoza, sin coste. | respuesta >q3
+Javier: Vale, eso me tranquiliza. | escucha
+Javier: Pero necesito que estén antes del lunes, que inauguramos. | peticion #r1
+Lucía: Antes del lunes te lo garantizo. | compromiso >r1
+Javier: Muchas gracias, Lucía. | relacion
+Lucía: Perdona las molestias, de verdad. | relacion
+
+=== seg-04 | feedback | Revisión de un documento con la jefa
+-- fase: apertura
+Carmen: Hugo, he leído el documento del proyecto. | informacion
+Carmen: ¿Tienes un rato para comentarlo? | pregunta #q0
+Hugo: Sí, claro, ahora mismo. | respuesta >q0
+-- fase: valoración
+Carmen: En general está muy bien, ¿eh? | opinion
+Carmen: La parte del presupuesto, muy clara. | opinion
+Hugo: Gracias. | relacion
+Carmen: Te digo tres cosas que cambiaría. | gestion
+Carmen: La primera, el resumen del principio es muy largo. | opinion #o1
+Carmen: Dirección se lee la primera página y ya. | informacion
+Hugo: Vale. | escucha
+Hugo: ¿Cuánto debería ocupar? | pregunta #q1
+Carmen: Media página, como mucho. | respuesta >q1
+Carmen: La segunda: en el calendario faltan las vacaciones de agosto. | informacion #z5
+Hugo: No, sí que están, en la pestaña dos. | rechazo >z5
+Carmen: Ah, ¿sí? | pregunta #q2
+Hugo: Sí, en la segunda pestaña del calendario. | respuesta >q2
+Carmen: Pues no la vi, perdona. | relacion
+Carmen: Entonces ponlas también en la primera, que si no nadie las ve. | peticion #r1
+Hugo: Vale. | aceptacion >r1
+Carmen: Y la tercera: los riesgos. | gestion
+Carmen: Pones que no hay riesgos importantes y eso no se lo cree nadie. | opinion
+Hugo: Jaja, ya. | escucha
+Hugo: Es que no quería asustar. | informacion
+Carmen: Mejor que lo vean ahora y no cuando pase. | opinion #o2
+Hugo: Tienes razón. | aceptacion >o2
+-- fase: acuerdos
+Hugo: Lo corrijo hoy y te lo vuelvo a mandar mañana a primera hora. | compromiso
+Carmen: Perfecto. | escucha
+Carmen: Y apúntate los dos riesgos que hablamos el otro día, el del proveedor y el de las licencias. | peticion #r2
+Hugo: Vale, apuntados. | aceptacion >r2
+Carmen: Buen trabajo, de verdad. | relacion
+
+=== seg-05 | lluvia_ideas | Ideas para el boletín interno
+-- fase: apertura
+Elena: Bueno, el boletín interno no lo lee nadie, eso lo sabemos todos. | opinion
+Raúl: Jaja. | otro
+Elena: Necesito ideas para que la gente lo lea. | gestion
+-- fase: divergencia
+Raúl: Hacerlo más corto. | propuesta #p1
+Belén: Fotos de la gente de la empresa, no de stock. | propuesta #p2
+Tomás: Una sección de quién es quién, presentando a un compañero cada mes. | propuesta #p3
+Elena: Ajá. | escucha
+Raúl: Mandarlo por el chat, no por correo. | propuesta #p4
+Belén: Un concurso con algún premio, algo pequeño. | propuesta #p5
+Tomás: Eh, y… | otro
+Tomás: No, nada, se me ha ido. | otro
+Elena: Ya volverá. | relacion
+-- fase: convergencia
+Elena: ¿Cuál os parece que funcionaría mejor? | pregunta #q1
+Belén: Lo de presentar a un compañero, a la gente le encanta cotillear. | respuesta >q1 #b1
+Raúl: Jaja, eso es verdad. | aceptacion >b1
+Tomás: Pero hay gente que no quiere salir. | rechazo >b1 #z6
+Belén: Pues solo sale el que quiera. | rechazo >z6 #z7
+Tomás: Vale, así sí. | aceptacion >z7
+Raúl: Y lo del chat, a mí me parece clave. | opinion #z8
+Elena: El chat no deja maquetar bien. | rechazo >z8 #z9
+Raúl: Se puede mandar un enlace. | rechazo >z9 #z10
+Elena: Mm, vale, eso sí. | aceptacion >z10
+Tomás: Ah, ya me acuerdo: una encuesta de una pregunta cada número. | propuesta #p6
+Elena: Me gusta. | aceptacion >p6
+-- fase: cierre
+Elena: Pues probamos: más corto, por el chat con enlace, el compañero del mes y una encuesta. | gestion #s1
+Belén: Genial. | aceptacion >s1
+Elena: Belén, ¿te encargas tú de buscar al primer compañero? | peticion #r1
+Belén: Sí, se lo pido a alguien de almacén, que nunca salen. | compromiso >r1
+Tomás: Y yo preparo la encuesta. | compromiso
+Elena: Y Raúl, ¿me ayudas a recortar los textos? | peticion #r2
+Raúl: Venga, vale. | aceptacion >r2
+
+=== seg-06 | entrevista | Entrevista para un puesto de recepción
+-- fase: apertura
+Marta: Hola, buenos días, ¿eres Rosa? | pregunta #q0
+Rosa: Sí, buenos días. | respuesta >q0
+Marta: Siéntate, por favor. | peticion #r0
+Rosa: Gracias. | relacion
+-- fase: preguntas
+Marta: ¿Has trabajado antes en atención al público? | pregunta #q1
+Rosa: Sí, cuatro años en la recepción de un hotel. | respuesta >q1
+Marta: ¿Y por qué lo dejaste? | pregunta #q2
+Rosa: Cerró el hotel durante la obra, lo están reformando. | respuesta >q2
+Marta: Ah, vale. | escucha
+Marta: Aquí la recepción es de un centro médico, la gente viene preocupada a veces. | informacion
+Marta: ¿Cómo tratarías a alguien que llega enfadado porque lleva una hora esperando? | pregunta #q3
+Rosa: Primero le escucharía sin interrumpir. | respuesta >q3
+Rosa: Luego miraría cuánto le queda y se lo diría con sinceridad. | informacion
+Rosa: Y si se puede, le ofrecería algo, un vaso de agua, una revista… | informacion
+Marta: Muy bien. | escucha
+Marta: ¿Manejas programas de citas? | pregunta #q4
+Rosa: En el hotel usábamos uno de reservas, imagino que será parecido. | respuesta >q4
+Marta: Bastante, sí. | opinion
+Marta: El horario es de tarde, de tres a nueve. | informacion
+Marta: ¿Te viene bien? | pregunta #q5
+Rosa: Sí, perfecto, por las mañanas llevo a mis hijos al colegio. | respuesta >q5
+-- fase: preguntas del candidato
+Rosa: ¿Puedo preguntar cuándo empezaría? | pregunta #q6
+Marta: El uno del mes que viene, si todo va bien. | respuesta >q6
+-- fase: cierre
+Marta: Te llamamos esta semana. | compromiso
+Rosa: Muchas gracias. | relacion
+
+=== seg-07 | coaching | Organizar el tiempo
+-- fase: objetivo
+Luis: ¿Por dónde empezamos hoy? | pregunta #q0
+David: Por el tiempo, que no me da la vida. | respuesta >q0
+David: Termino todos los días a las ocho y aun así voy atrasado. | informacion
+Luis: Ajá. | escucha
+-- fase: realidad
+Luis: ¿En qué se te va el tiempo? | pregunta #q1
+David: En reuniones, sobre todo. | respuesta >q1
+David: Tengo unas veinte a la semana. | informacion
+Luis: ¿Veinte? | pregunta #q2
+David: Veinte, o más. | respuesta >q2
+Luis: ¿En cuántas haces falta de verdad? | pregunta #q3
+David: Pues… | otro
+David: No sé, en la mitad, quizás. | respuesta >q3
+Luis: ¿Y en las otras qué haces? | pregunta #q4
+David: Escuchar y contestar correos a la vez. | respuesta >q4
+Luis: Jaja, como todos. | relacion
+-- fase: opciones
+Luis: ¿Qué podrías hacer con esas diez reuniones en las que no haces falta? | pregunta #q5
+David: Dejar de ir, supongo. | respuesta >q5
+David: Pero me da apuro decir que no. | informacion
+Luis: ¿Y si en vez de decir que no pides el resumen por escrito? | propuesta #p1
+David: Eso sí lo veo. | aceptacion >p1
+David: Nadie se va a ofender por eso. | opinion
+-- fase: compromiso
+Luis: ¿Con qué reuniones empezarías? | pregunta #q6
+David: Con las de seguimiento de los martes, que son tres seguidas. | respuesta >q6
+David: Esta semana escribo a los organizadores para pedir el resumen. | compromiso
+David: Y bloqueo dos mañanas a la semana sin reuniones. | compromiso
+Luis: ¿Me cuentas en dos semanas cómo ha ido? | peticion #r1
+David: Claro. | aceptacion >r1

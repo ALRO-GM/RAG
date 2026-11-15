@@ -1,0 +1,171 @@
+# Lote 2: lluvias de ideas. Diálogos inventados para este proyecto.
+
+=== llu-01 | lluvia_ideas | Ideas para la fiesta de fin de año
+-- fase: apertura
+Nuria: Bueno, chicos, a ver qué se nos ocurre para la cena de fin de año. | gestion
+Nuria: La regla es que ahora vale todo, luego ya filtramos. | gestion
+-- fase: divergencia
+Óscar: Yo diría una cena en un restaurante de los de siempre y ya está. | propuesta #p1
+Lucía: Uy, qué aburrido. | rechazo >p1
+Nuria: Eh, eh, que ahora no se critica, ¿eh? | gestion
+Lucía: Vale, perdón, perdón. | relacion
+Lucía: Pues una escape room por equipos y luego unas tapas. | propuesta #p2
+Andrés: O una clase de cocina, que la hacemos y luego nos lo comemos. | propuesta #p3
+Nuria: Mm, ajá. | escucha
+Óscar: Una ruta de vinos por, eh, por la sierra. | propuesta #p4
+Andrés: Karaoke. | propuesta #p5
+Lucía: Jaja, no. | rechazo >p5
+Nuria: Apuntado todo. | gestion
+Nuria: ¿Alguna más? | pregunta #q1
+Andrés: Ah, y lo de hacer algo solidario, como cocinar para un comedor social. | propuesta #p6
+Lucía: Oye, esa me gusta mucho. | opinion
+-- fase: convergencia
+Nuria: Vale, pues ahora vamos a filtrar. | gestion
+Nuria: El criterio es que pueda venir todo el mundo, también Tomás con la silla de ruedas. | informacion
+Lucía: Entonces la ruta de vinos por la sierra fuera, que hay mucha cuesta. | rechazo >p4
+Andrés: Y la escape room depende del local, muchas están en sótanos. | informacion
+Lucía: Podríamos llamar y preguntar si tienen acceso. | propuesta #p7
+Nuria: Sí, bien. | aceptacion >p7
+Óscar: La clase de cocina me parece la más segura. | opinion #o1
+Andrés: Hombre, a mí me tira más lo del comedor social. | rechazo >o1
+Andrés: Es diferente y deja buen sabor de boca. | opinion #o2
+Lucía: Ya, pero eso igual a alguien no le apetece en su noche libre. | rechazo >o2
+Andrés: Ya… también es verdad. | escucha
+Nuria: ¿Y si hacemos la clase de cocina y donamos lo que cocinamos? | propuesta #p8
+Lucía: ¡Ah, mira, eso está genial! | aceptacion >p8
+Óscar: Me apunto. | aceptacion >p8
+Andrés: Vale, así sí. | aceptacion >p8
+-- fase: cierre
+Nuria: Pues decidido, clase de cocina solidaria. | gestion #s1
+Nuria: Óscar, ¿buscas tú escuelas de cocina que tengan acceso adaptado? | peticion #r1
+Óscar: Sí, la semana que viene te paso tres opciones. | compromiso >r1
+Andrés: Yo hablo con el comedor para ver si aceptan comida hecha. | compromiso
+Nuria: Gracias, ha sido rápido y productivo. | relacion
+
+=== llu-02 | lluvia_ideas | Cómo reducir las devoluciones
+-- fase: apertura
+Pablo: Os he juntado para pensar ideas sobre las devoluciones. | gestion
+Pablo: Este trimestre han subido un quince por ciento. | informacion
+Carmen: ¿Un quince? | pregunta #q1
+Pablo: Quince, sí, sobre todo en ropa. | respuesta >q1
+Carmen: Madre mía. | escucha
+-- fase: divergencia
+Pablo: Así que, eh, todo vale, decid lo que se os ocurra. | gestion
+Carmen: Mejorar la guía de tallas, que la que tenemos no la entiende nadie. | propuesta #p1
+Sergio: Fotos de gente real llevando la ropa, no solo maniquí. | propuesta #p2
+Belén: Un vídeo corto de cada prenda. | propuesta #p3
+Pablo: Ajá. | escucha
+Sergio: Cobrar la devolución. | propuesta #p4
+Carmen: Uf… | otro
+Belén: Preguntar al cliente cuando devuelve por qué devuelve, con un formulario. | propuesta #p5
+Pablo: Eso ya lo hacemos, ¿no? | pregunta #q2
+Belén: Sí, pero es opcional y lo rellena muy poca gente. | respuesta >q2
+Belén: Un uno por ciento o así. | informacion
+Sergio: Pues obligatorio. | propuesta #p6
+Carmen: Mm, sí, sí. | escucha
+-- fase: convergencia
+Pablo: Vale, vamos a ordenar. | gestion
+Pablo: ¿Cuál creéis que tendría más efecto? | pregunta #q3
+Carmen: Para mí la guía de tallas, la mitad de las devoluciones son por talla. | respuesta >q3
+Sergio: ¿La mitad? ¿De dónde sale eso? | pregunta #q4
+Carmen: Del formulario ese que rellena el uno por ciento. | respuesta >q4 #a4
+Sergio: Pues con ese uno por ciento yo no sacaría conclusiones. | rechazo >a4
+Carmen: Bueno, es lo que hay. | opinion
+Belén: Por eso hay que hacer el formulario obligatorio, primero tener datos. | aceptacion >p6
+Pablo: Lo de cobrar la devolución lo descarto, la competencia no cobra. | rechazo >p4
+Sergio: Sí, sí, era por decirlo. | escucha
+Pablo: Las fotos con gente real son caras. | opinion #o3
+Belén: No tanto si las hacemos nosotros con el móvil y alguien de la plantilla. | rechazo >o3
+Pablo: Hombre, la calidad… | otro
+Belén: Hay marcas que lo hacen así y quedan muy naturales. | informacion
+-- fase: cierre
+Pablo: Bueno, lo resumo: formulario obligatorio y guía de tallas nueva ya; las fotos las probamos con diez prendas. | gestion #s1
+Carmen: Me parece bien. | aceptacion >s1
+Sergio: Bien. | aceptacion >s1
+Belén: Yo me ofrezco para las fotos. | compromiso
+Carmen: Y yo rehago la guía de tallas, que me quejo tanto. | compromiso
+Pablo: Jaja, perfecto. | relacion
+Pablo: Sergio, ¿puedes hablar con los de la web para lo del formulario? | peticion #r1
+Sergio: Hecho, hoy mismo les escribo. | compromiso >r1
+
+=== llu-03 | lluvia_ideas | Nombre para el nuevo producto
+-- fase: apertura
+Irene: Tenemos que buscarle nombre a la crema nueva. | gestion
+Irene: Diez minutos de ideas sin filtro y luego votamos. | gestion
+-- fase: divergencia
+David: Hidra plus. | propuesta #p1
+Elena: Suave. | propuesta #p2
+Hugo: Brisa de mar. | propuesta #p3
+Irene: Mm. | escucha
+David: Algo con agua, en otro idioma, ¿no? | propuesta #p4
+Elena: Aqua algo. | propuesta #p5
+Hugo: O en euskera, ur es agua. | informacion
+Elena: ¿Ur? | pregunta #q1
+Hugo: Sí, ur. | respuesta >q1
+David: Ur crema. | propuesta #p6
+Irene: Ajá, apunto. | escucha
+Elena: Rocío. | propuesta #p7
+-- fase: convergencia
+Irene: Vale, tiempo. | gestion
+Irene: Vamos quitando los que no os convencen. | gestion
+Elena: Hidra plus suena a medicamento. | rechazo >p1 #x1
+David: Bueno, es mía, pero sí, lo reconozco. | aceptacion >x1
+David: Brisa de mar ya existe, es un ambientador. | rechazo >p3
+Irene: ¿Seguro? | pregunta #q2
+David: Segurísimo, lo tiene mi madre en el baño. | respuesta >q2
+Elena: Jajaja. | otro
+Irene: Me quedo con Rocío y con Ur. | opinion
+David: Rocío me encanta, es corto y fresco. | aceptacion >p7
+Hugo: A mí Ur me gusta pero no sé si se entiende fuera del País Vasco. | opinion #o4
+Elena: Eso es un problema, sí. | aceptacion >o4
+-- fase: cierre
+Irene: ¿Votamos? | gestion #g1
+David: Venga. | aceptacion >g1
+Irene: ¿Quién prefiere Rocío? | pregunta #q3
+Elena: Yo. | respuesta >q3
+David: Yo también. | respuesta >q3
+Hugo: Venga, yo también, que no voy a ser el raro. | respuesta >q3
+Irene: Pues Rocío, por unanimidad. | gestion
+Irene: Hugo, mira por favor si el nombre está registrado. | peticion #r1
+Hugo: Lo miro esta tarde en la web del registro. | compromiso >r1
+Irene: Gracias a todos, muy creativos. | relacion
+
+=== llu-04 | lluvia_ideas | Atraer a más voluntarios a la asociación
+-- fase: apertura
+Rosa: Hola, hola, ¿me oís bien desde casa? | pregunta #q0
+Tomás: Perfectamente. | respuesta >q0
+Rosa: Genial. | escucha
+Rosa: El objetivo hoy es sacar ideas para conseguir más voluntarios. | gestion
+Rosa: Ahora mismo somos dieciocho y el año pasado éramos treinta. | informacion
+-- fase: divergencia
+Tomás: Ir a los institutos a contar lo que hacemos. | propuesta #p1
+Clara: Redes sociales, eh, sobre todo vídeos cortos. | propuesta #p2
+Tomás: Que cada voluntario traiga a un amigo a una jornada. | propuesta #p3
+Rosa: Ajá. | escucha
+Clara: Horarios más flexibles. | propuesta #p4
+Raúl: Un día de puertas abiertas con merienda. | propuesta #p5
+Tomás: Certificados de horas para los estudiantes, que les sirve para la universidad. | propuesta #p6
+Rosa: Muy bien, muy bien. | escucha
+-- fase: convergencia
+Rosa: Vale, ¿cuáles hacemos ya? | pregunta #q1
+Clara: Yo creo que el problema es lo de los horarios. | respuesta >q1
+Clara: Mucha gente se fue porque no podía los sábados por la mañana. | informacion #i1
+Raúl: Eso no es así, la mayoría se fue por la mudanza al barrio nuevo. | rechazo >i1 #i2
+Clara: Hombre, algunos, pero no la mayoría. | rechazo >i2
+Rosa: Bueno, bueno, las dos cosas pasaron. | gestion
+Tomás: Lo de los certificados es fácil y no cuesta nada. | opinion #o5
+Rosa: Totalmente. | aceptacion >o5
+Raúl: Lo de traer un amigo a mí no me convence, da un poco de apuro pedirlo. | rechazo >p3 #o6
+Clara: Pues a mí no me daría apuro. | rechazo >o6
+Raúl: Ya, tú eres muy lanzada. | relacion
+Clara: Jaja. | otro
+Rosa: ¿Y si probamos horarios de tarde un mes, a ver si viene más gente? | propuesta #p7
+Clara: Sí, por favor. | aceptacion >p7
+Raúl: Vale, probemos. | aceptacion >p7
+-- fase: cierre
+Rosa: Quedamos en: certificados de horas, puertas abiertas con merienda y un mes con horario de tarde. | gestion #s1
+Tomás: Perfecto. | aceptacion >s1
+Raúl: Yo organizo la merienda, que tengo contactos en la panadería. | compromiso
+Tomás: Y yo me encargo de los certificados. | compromiso
+Clara: Yo grabo un par de vídeos para las redes. | compromiso
+Rosa: Mil gracias, de verdad. | relacion
