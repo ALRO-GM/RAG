@@ -24,6 +24,7 @@ from src.adapters.outbound.json_catalogue_repository import (
 )
 from src.adapters.outbound.json_dataset_repository import (
     JsonDatasetRepository,
+    read_model,
 )
 from src.adapters.outbound.json_judge_state import JsonJudgeStateStore
 from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
@@ -38,13 +39,18 @@ from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
+from src.application.skills.act_tagger import (
+    CombinedTagger,
+    RuleTagger,
+    TaggerCard,
+)
 from src.application.skills.judges import (
     ActClassifier,
     FallbackJudge,
     JudgeSelection,
 )
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
-from src.application.skills.ports import ChatModel
+from src.application.skills.ports import ActTagger, ChatModel
 from src.application.skills.profile import ProfileService
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
@@ -64,6 +70,9 @@ from src.domain.skills.rubric import RubricCatalogue
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+ACT_TAGGERS = ("rules", "encoder", "combined")
+"""Dialogue-act taggers ``skills acts --tagger`` can build."""
 """The checkout this code runs from (relative data paths start here)."""
 
 
@@ -203,6 +212,44 @@ class SkillsContainer:
     def act_classifier(self, judge: ChatModel) -> ActClassifier:
         """Return a dialogue-act classifier over ``judge``."""
         return ActClassifier(judge, self.cache, self.progress)
+
+    def act_card(self) -> TaggerCard:
+        """Return the dialogue-act tagger's measured settings."""
+        return read_model(self.settings.act_card, TaggerCard)
+
+    def act_tagger(self, kind: str = "default") -> Tuple[ActTagger, str]:
+        """Return the dialogue-act tagger asked for and a note.
+
+        ``kind`` is ``default`` (the card's choice), ``rules``,
+        ``encoder`` or ``combined``. Without the fine-tuned weights
+        (git-ignored, trained on the workstation) the rules answer and
+        the note says so.
+        """
+        card = self.act_card()
+        kind = card.name.split("+")[0] if kind == "default" else kind
+        if kind not in ACT_TAGGERS:
+            raise InvalidInputError(
+                f"Unknown tagger {kind!r}; choose one of "
+                f"default, {', '.join(ACT_TAGGERS)}.")
+        rules = RuleTagger(card.rules)
+        if kind == "rules":
+            return rules, ""
+        from src.adapters.outbound.encoder_act_tagger import (
+            CARD,
+            EncoderActTagger,
+        )
+
+        if not (Path(card.encoder) / CARD).is_file():
+            return rules, (
+                f"No fine-tuned weights in {card.encoder or '(none)'}: "
+                f"the rules answered instead of the {kind} tagger.")
+        device = "cuda" if self.runtime.device == "cuda" else "cpu"
+        encoder = EncoderActTagger(card.encoder, device,
+                                   temperature=card.temperature)
+        if kind == "encoder":
+            return encoder, ""
+        return CombinedTagger({"rules": rules, "encoder": encoder},
+                              card.routes, card.fallback), ""
 
     @cached_property
     def judge_selection(self) -> JudgeSelection:

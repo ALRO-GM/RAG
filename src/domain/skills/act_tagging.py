@@ -206,3 +206,55 @@ def route(
             continue
         return step.tagger, out
     return fallback, outputs[fallback]
+
+
+def category_precision(
+    categories: Sequence[Sequence[str]], predictions: Sequence[Probabilities]
+) -> Dict[str, Tuple[int, int]]:
+    """Return, per predicted top-1 category, ``(right, predicted)``.
+
+    ``categories`` holds each sentence's compatible set.
+    """
+    counts: Dict[str, Tuple[int, int]] = {}
+    for gold, p in zip(categories, predictions):
+        top = top_category(p)
+        right, total = counts.get(top, (0, 0))
+        counts[top] = (right + int(top in gold), total + 1)
+    return counts
+
+
+def choose_routes(
+    categories: Sequence[Sequence[str]],
+    outputs: Mapping[str, Sequence[Probabilities]],
+    min_predicted: int = 5,
+) -> Tuple[List[Route], str]:
+    """Choose, per category, the tagger whose claims of it are most right.
+
+    For every category, the tagger with the highest precision when its
+    top-1 is that category (at least ``min_predicted`` such sentences)
+    gets a route; routes are ordered by that precision, so the most
+    reliable claim on a sentence wins. The fallback is the tagger with
+    the most right top-1 answers overall. Ties go to the tagger listed
+    first.
+    """
+    if not outputs:
+        raise ValueError("no taggers to choose from")
+    names = list(outputs)
+    stats = {n: category_precision(categories, outputs[n]) for n in names}
+    claims: List[Tuple[float, int, str, str]] = []
+    for c in CATEGORIES:
+        best: Optional[Tuple[float, int, str]] = None
+        for order, n in enumerate(names):
+            right, total = stats[n].get(c, (0, 0))
+            if total < min_predicted:
+                continue
+            precision = right / total
+            if best is None or precision > best[0]:
+                best = (precision, order, n)
+        if best is not None:
+            claims.append((best[0], best[1], best[2], c))
+    claims.sort(key=lambda x: (-x[0], x[1], CATEGORIES.index(x[3])))
+    routes = [Route(tagger=n, categories=[c]) for _, _, n, c in claims]
+    fallback = max(names, key=lambda n: (
+        sum(r for r, _ in stats[n].values()), -names.index(n)))
+    return routes, fallback

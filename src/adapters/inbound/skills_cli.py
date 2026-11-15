@@ -14,6 +14,7 @@ from src.adapters.outbound.json_dataset_repository import (
     read_model,
     write_model,
 )
+from src.application.skills.act_tagger import tag_acts
 from src.application.skills.conversation_events import (
     ConversationAnalysis,
     analyse,
@@ -53,6 +54,7 @@ from src.application.skills.tagging import render_timeline
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError, short_reason
 from src.domain.skills.assessment import SessionAssessment
+from src.domain.skills.act_tagging import sentence_inputs
 from src.domain.skills.dialogue_act_set import (
     parse_set,
     set_distribution,
@@ -132,7 +134,7 @@ class SkillsCLI:
             "sentences", "tag", "report", "profile",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
-            "dialogue_acts_set", "judge_acts", "events_evaluate",
+            "dialogue_acts_set", "judge_acts", "events_evaluate", "acts",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -710,6 +712,57 @@ class SkillsCLI:
                   f"{result['fallback_reason']}")
         if "comparison" in result:
             print_comparison(result["comparison"])
+        print(f"Saved {path}")
+
+    def _acts(
+        self, transcript: str, tagger: str = "default", context: int = 3,
+        output: str = "",
+    ) -> None:
+        """Tag the dialogue act of every sentence of a transcript.
+
+        Each sentence gets its top 3 acts with a calibrated % and the
+        rest, a label below its category's threshold marked "dudoso",
+        as in ``docs/skills/DIALOGUE_ACT_TAGGER.md``. Labels are
+        evidence for a person to review, not a decision.
+
+        Args:
+            transcript: Transcript file (``transcript.v1`` or text).
+            tagger: default (the measured choice), rules, encoder or
+                combined.
+            context: Sentences before each one the tagger reads.
+            output: File to write (default: <session>.acts.json next
+                to the transcript).
+        """
+        if not isinstance(context, int) or isinstance(context, bool) or (
+                context < 0):
+            raise InvalidInputError("--context must be an integer >= 0.")
+        app = self._app()
+        document = app.transcripts.read(str(transcript))
+        sentences = transcript_sentences(document)
+        if not sentences:
+            raise InvalidInputError(f"{transcript} has no sentences.")
+        model, note = app.act_tagger(str(tagger))
+        card = app.act_card()
+        items = sentence_inputs(
+            [(s.id, s.speaker, s.text) for s in sentences], context)
+        result = tag_acts(document.session_id, items, model,
+                          card.thresholds(), card.margin, note)
+        release(model)
+        path = Path(str(output)) if output else (
+            Path(str(transcript)).parent
+            / f"{document.session_id}.acts.json")
+        write_text(str(path), result.model_dump_json(indent=1))
+        counts: Dict[str, int] = {}
+        for sentence in result.sentences:
+            counts[sentence.labels[0].label] = counts.get(
+                sentence.labels[0].label, 0) + 1
+        doubtful = sum(s.labels[0].doubtful for s in result.sentences)
+        print(f"{len(result.sentences)} sentences, tagger {result.tagger} "
+              f"({result.version}); first label doubtful in {doubtful}")
+        for label, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+            print(f"  {label}: {count}")
+        if note:
+            print(note)
         print(f"Saved {path}")
 
     def _annotation_template(

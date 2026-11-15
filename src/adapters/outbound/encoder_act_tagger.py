@@ -16,6 +16,7 @@ free memory (bounded) and never touches other processes; word
 embeddings may be frozen and the optimiser kept in 8 bits to fit.
 """
 
+import importlib
 import json
 import logging
 import math
@@ -129,8 +130,13 @@ class EncoderActTagger:
     """The fine-tuned encoder behind the ``ActTagger`` port."""
 
     def __init__(self, directory: str, device: str = "cpu",
-                 batch_size: int = 64):
-        """Load the weights and card from ``directory`` (lazily)."""
+                 batch_size: int = 64,
+                 temperature: Optional[float] = None):
+        """Load the card from ``directory``; the weights load lazily.
+
+        ``temperature`` replaces the one fitted at training time (the
+        default tagger uses one fitted on the Spanish set).
+        """
         self.directory = Path(directory)
         self.device = device
         self.batch_size = batch_size
@@ -145,6 +151,7 @@ class EncoderActTagger:
             raise ModelError(f"{path}: categories differ from ours.")
         self._model: Any = None
         self._tokenizer: Any = None
+        self.temperature = temperature or self.card.temperature
 
     @property
     def name(self) -> str:
@@ -184,7 +191,7 @@ class EncoderActTagger:
     def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:
         """Return the temperature-scaled distribution of each item."""
         return as_probabilities(softmax(self.logits(items),
-                                        self.card.temperature))
+                                        self.temperature))
 
     def release(self) -> None:
         """Free the model's memory."""
@@ -230,10 +237,9 @@ def _optimizer(model: Any, config: TrainConfig) -> Any:
     params = [p for p in model.parameters() if p.requires_grad]
     if config.optimizer_8bit and config.device.startswith("cuda"):
         try:
-            import bitsandbytes as bnb
-
-            return bnb.optim.AdamW8bit(params, lr=config.learning_rate,
-                                       weight_decay=0.01)
+            optim: Any = importlib.import_module("bitsandbytes.optim")
+            return optim.AdamW8bit(params, lr=config.learning_rate,
+                                   weight_decay=0.01)
         except ImportError:
             LOG.warning("bitsandbytes missing: 32-bit AdamW")
     return torch.optim.AdamW(params, lr=config.learning_rate,
@@ -305,7 +311,8 @@ def train_encoder(
                         enabled=config.device.startswith("cuda")):
                     logits = model(**batch).logits
                 loss = set_loss(logits, mask) / config.accumulation
-                scaler.scale(loss).backward()
+                scaled: Any = scaler.scale(loss)
+                scaled.backward()
             except torch.OutOfMemoryError:
                 # Another process took the memory: drop this batch and
                 # the partial accumulation, wait, go on.
@@ -354,12 +361,13 @@ def train_encoder(
     dev_refs = [r for _, r in dev]
     logits_dev = tagger.logits(dev_items)
     temperature = fit_temperature(logits_dev, dev_refs)
-    mask = set_masks(dev_refs)
+    dev_mask = set_masks(dev_refs)
 
     def nll(t: float) -> float:
         """Return the dev log-loss at temperature ``t``."""
         p = softmax(logits_dev, t)
-        return float(-np.log(np.clip((p * mask).sum(1), 1e-15, 1)).mean())
+        return float(
+            -np.log(np.clip((p * dev_mask).sum(1), 1e-15, 1)).mean())
 
     report = TrainReport(
         sentences=seen, steps=steps, seconds=round(seconds, 1),
