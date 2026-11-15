@@ -114,7 +114,7 @@ corpus públicos; sólo sintética; sin medir.
 | 4 | Corpus teórico y rúbrica | parcial | ~60 | media-baja: sin revisión de experto | `docs/skills/THEORY.md`; `RESEARCH.md`; `knowledge/rubrics/` | Ningún experto ha revisado los indicadores; lo validado es observacional con evaluadores formados | T-38: revisión por psicólogo o panel |
 | 5 | RAG y recuperación de fragmentos | hecho | ~90 | alta en corpus 42 y BEIR; sin medir en la rúbrica | `README.md` "Performance analysis"; `experiments/REPORT.md`; `docs/benchmarks/` | No hay referencias reales de "qué indicador corresponde a qué frase" | Medir con las anotaciones de T-36 |
 | 6 | RAG en el ordenador de casa, alimentado por el transcriptor | hecho | ~100 | alta | `docs/TASKS.md` TR-09, TR-13; `docs/DEPLOYMENT.md` | Ninguno conocido; el flujo depende de que el ordenador esté encendido | Mantener |
-| 7 | Análisis de la conversación | parcial | ~45 | baja | `docs/skills/AUDIO.md` §4; `docs/skills/DESIGN.md` §4; TASKS T-46, T-47, T-50, SK-7, SK-8 | La recuperación acierta la competencia pero no el indicador; ningún juez local medido sirve para confirmar indicadores | Medir Claude Code en más frases; anotaciones humanas (T-36) |
+| 7 | Análisis de la conversación | parcial | ~55 | baja | `docs/skills/AUDIO.md` §4; `docs/skills/DESIGN.md` §4, §11; TASKS T-46, T-47, T-50, SK-7, SK-8, SK-14 | La recuperación acierta la competencia pero no el indicador; ningún juez local medido sirve para confirmar indicadores | Medir Claude Code en más frases; anotaciones humanas (T-36) |
 | 8 | Extraer preguntas, propuestas, respuestas, acuerdos | no empezado | ~5 | sin medir | `src/domain/skills/interaction.py` (`count_questions`) | Sólo hay un contador de signos de interrogación; ninguna clasificación de actos de habla | Decidir el esquema de actos (`DESIGN.md` §9, "team interaction profile") |
 | 9 | Evidencia por persona y perfil | parcial | ~20 | muy baja | `docs/skills/DESIGN.md` §1, §2, §9; `src/application/skills/assessment.py` | Ningún instrumento validado puntúa a una persona con una sola reunión; hacen falta unas 4 situaciones por persona para fiabilidad .70 | Perfil entre sesiones (T-39) cuando haya datos |
 | 10 | Validación con evaluadores humanos | parcial | ~30 | sin medir | `docs/skills/ANNOTATION_GUIDE.md`; TASKS T-34, T-36 | Herramientas hechas, datos reales ninguno | T-36: grabar, formar 3 anotadores, medir acuerdo |
@@ -257,7 +257,7 @@ cual (TR-10, TR-13). Hay pruebas de contrato y de punta a punta
 (`docs/TASKS.md`). Certeza alta: lo único que se comprobó es la
 tubería, que es determinista.
 
-### 4.7 Análisis de la conversación (~45 %)
+### 4.7 Análisis de la conversación (~55 %)
 
 Hecho: separación en frases (`skills sentences`), métricas de
 interacción por tiempos y turnos (reparto de palabras, igualdad de
@@ -291,6 +291,24 @@ Lo medido, sólo con una sesión sintética de demostración:
   más margen).
   Prueba de humo de 20 frases: Claude 0,70, local 0,50, κ entre ellos
   0,36 (no es una comparación fiable).
+
+Flujo completo en una pasada (#88, SK-14): `skills analyze --session
+ID` (y la página «Análisis» de cada sesión en la web, `#/analysis/ID`)
+ejecuta y guarda, paso a paso, frases por persona, interacción,
+indicadores candidatos (el RAG), actos de diálogo y acuerdos (cuando
+existan, #82/#83), confirmación por el juez, evidencias y niveles, e
+informes HTML por persona; cada paso registra estado, segundos, modelo
+o juez y recuentos, y un fallo se reanuda desde el paso que falló
+(`docs/skills/DESIGN.md` §11). Prueba con la discusión simulada
+(`make demo-analysis`; 4 personas inventadas, 117 turnos, 238 frases,
+2.045 palabras, 15,5 min por tiempos estimados), una sola pasada real
+con Claude Code (`opus`) el 2026-11-15, en CPU para la búsqueda: 11,3 s
+de candidatos (101 frases con candidatos), 309,8 s de confirmación (101
+llamadas: 35 confirmadas, 66 rechazadas, 0 sin entender), 361,5 s de
+evidencias (44 llamadas; 7 de 44 competencias con nivel: Lucía 4,
+Andrés 2, Joaquín 1, Nerea 0), sin pasar al modelo local. Son datos
+inventados por una sola persona: muestran que el flujo funciona de
+punta a punta, no que los niveles sean correctos.
 
 ### 4.8 Extraer preguntas, propuestas, respuestas, acuerdos (~5 %)
 
@@ -369,7 +387,7 @@ y los textos legales eran reproducciones no oficiales (`RESEARCH.md` §7,
 | Llamada 2: puntuar sólo desde etiquetas confirmadas | No se debe calcular ninguna puntuación desde las etiquetas actuales | T-39 |
 | Varias situaciones por persona y perfil entre sesiones | Una reunión no basta para fiabilidad | T-39 |
 | Extracción de actos de habla (preguntas, propuestas, acuerdos) | No existe | sin ticket |
-| Interfaz de informe para el evaluador | Hoy el resultado son ficheros `.scorecard.md` y la línea de tiempo | sin ticket |
+| Interfaz de informe para el evaluador | Hay informe HTML por persona y una página «Análisis» por sesión (#88); falta una vista para que el evaluador corrija y apruebe las etiquetas | sin ticket |
 | Auditoría de sesgo y equidad | Exigencia de la propia investigación para uso con personas | sin ticket |
 | Login de 42 en el README | Formato obligatorio de la entrega 42 | T-17 |
 
