@@ -11,10 +11,13 @@ from transcriber.domain.speaker_names import (
     NameEvidence,
     NameSuggestion,
     UndoneName,
+    attribute,
     clean_name,
     contains_name,
     decide,
     find_candidates,
+    gated_evidence,
+    pick_for_model,
     kept_undone,
     model_prompt,
     open_suggestions,
@@ -248,7 +251,7 @@ class TestDecide:
         ])
         assert d.auto == []
         (only,) = d.suggestions
-        assert (only.reason, only.count, only.start) == ("addressed", 2, 0.0)
+        assert (only.reason, only.count, only.start) == ("few_votes", 2, 0.0)
 
     def test_two_voices_with_the_same_name_get_none(self) -> None:
         d = decide(anonymous("S1", "S2"), [
@@ -265,7 +268,7 @@ class TestDecide:
         ])
         assert d.auto == []
         assert sorted((s.speaker, s.reason) for s in d.suggestions) == [
-            ("S1", "same_name"), ("S3", "addressed"),
+            ("S1", "same_name"), ("S3", "few_votes"),
         ]
 
     def test_a_voice_with_two_names_gets_none(self) -> None:
@@ -290,7 +293,7 @@ class TestDecide:
         ])
         assert d.auto == []
         reasons = {(s.name, s.reason) for s in d.suggestions}
-        assert reasons == {("Ana", "conflict"), ("Marta", "addressed")}
+        assert reasons == {("Ana", "conflict"), ("Marta", "few_votes")}
 
     def test_called_the_same_by_others_is_fine(self) -> None:
         d = decide(anonymous("S1", "S2"), [
@@ -375,3 +378,207 @@ def test_what_still_applies() -> None:
     assert [s.speaker for s in open_suggestions(speakers, suggestions)] == [
         "S3"
     ]
+
+
+class TestMultiPartyRules:
+    """Stricter names, honorifics and moderators' cues (#116)."""
+
+    @pytest.mark.parametrize("text", [
+        "Ustedes, con sus medidas, no arreglan nada.",
+        "Le pregunto, sí o no.",
+        "Miren, los datos son claros.",
+        "Fíjense, eso no es así.",
+        "España, con esos sueldos, no avanza.",
+        "Déjele, por favor.",
+        "Perdón, una cosa.",
+        "Señor, por favor.",
+        "Mal, sinceramente.",
+    ])
+    def test_non_names_are_refused(self, text: str) -> None:
+        assert found(text) == []
+
+    @pytest.mark.parametrize("text, expected", [
+        ("Señor Ruiz, usted dijo otra cosa.", [("addressed", "Ruiz")]),
+        ("Como dice el señor Gil Pons, no basta.",
+         [("addressed", "Gil Pons")]),
+        ("Gracias señor Ruiz.", [("addressed", "Ruiz")]),
+        ("Tiene la palabra la señora Vera.", [("addressed", "Vera")]),
+        ("Turno para el doctor Larrañaga.", [("addressed", "Larrañaga")]),
+        ("Le pregunto al señor Gil por los impuestos.",
+         [("addressed", "Gil")]),
+        ("Nos acompaña también el señor Ruiz.", [("addressed", "Ruiz")]),
+        ("Over to you, Kate.", [("addressed", "Kate")]),
+    ])
+    def test_honorifics_and_cues(
+        self, text: str, expected: List[Tuple[str, str]]
+    ) -> None:
+        assert found(text) == expected
+
+    def test_directions(self) -> None:
+        t = conversation([
+            ("S1", "Tiene la palabra la señora Vera."),
+            ("S2", "Como dice el señor Gil, no basta."),
+            ("S1", "Gracias, señora Vera."),
+        ])
+        assert [c.towards for c in find_candidates(t)] == [
+            "next", "around", "previous",
+        ]
+
+    def test_clean_name_strips_honorifics(self) -> None:
+        assert clean_name("Señor Ruiz") == "Ruiz"
+        assert clean_name("Mr. Smith Jones") == "Smith Jones"
+        assert clean_name("Señora") is None
+
+    def test_the_model_must_say_it_is_a_person(self) -> None:
+        t = conversation([("S1", "Hola."), ("S2", "Gracias, Ana.")])
+        (cand,) = find_candidates(t)
+        no = reply("Ana", "addressed").replace(
+            '"is_person_name": true', '"is_person_name": false'
+        )
+        missing = reply("Ana", "addressed").replace(
+            '"is_person_name": true, ', ''
+        )
+        assert parse_reply(t, cand, no) is None
+        assert parse_reply(t, cand, missing) is None
+        item = parse_reply(t, cand, reply("Señor Ana", "addressed"))
+        assert item is not None
+        assert (item.name, item.said_by, item.towards) == (
+            "Ana", "S2", "previous"
+        )
+
+
+def _mentions(*names: str) -> List[Tuple[str, str]]:
+    """A session where S1 names each of ``names`` in turn, S2 answers."""
+    lines: List[Tuple[str, str]] = [("S1", "Soy Eva.")]
+    for name in names:
+        lines += [("S1", f"Gracias, {name}."), ("S2", "Vale.")]
+    return lines
+
+
+class TestModelSample:
+    def test_self_first_then_every_name_in_turns(self) -> None:
+        t = conversation(_mentions("Ruiz", "Ruiz", "Ruis", "Gil", "Vera"))
+        cands = find_candidates(t, limit=None)
+        picked = pick_for_model(cands, 4)
+        assert [c.name for c in picked] == ["Eva", "Ruiz", "Gil", "Vera"]
+        assert [c.name for c in pick_for_model(cands, 1)] == ["Eva"]
+        assert len(find_candidates(t, limit=5)) == 5
+
+    def test_unread_mentions_follow_the_model(self) -> None:
+        t = conversation(_mentions("Ruiz", "Ruis", "Gil", "Gil", "Gil"))
+        cands = find_candidates(t, limit=None)
+        by_name = {c.name: c for c in cands}
+        ruiz, gil = by_name["Ruiz"], by_name["Gil"]
+        ok = parse_reply(t, ruiz, reply("Ruiz", "addressed"))
+        kept = gated_evidence(t, cands, [(ruiz, ok), (gil, None)])
+        assert sorted(e.name for e in kept) == ["Ruis", "Ruiz"]
+        assert sorted(e.source for e in kept) == ["model", "rules"]
+
+
+DEBATE = [
+    ("S1", "Bienvenidos al debate."),
+    ("S1", "Tiene la palabra la señora Ruiz."),
+    ("S2", "Gracias."),
+    ("S1", "Turno para el señor Gil."),
+    ("S3", "Señora Ruiz, eso no es verdad."),
+    ("S1", "Le pregunto a la señora Ruiz."),
+    ("S2", "Bienvenido, Gil, a este debate."),
+]
+
+
+class TestAttribute:
+    def test_cues_rebuttals_and_greetings(self) -> None:
+        t = conversation(DEBATE)
+        cands = find_candidates(t, limit=None)
+        items = attribute(t, [
+            e for e in (rule_evidence(t, c) for c in cands) if e
+        ])
+        votes = [(e.name, e.towards, dict(e.votes)) for e in items]
+        assert votes[0] == ("Ruiz", "next", {"S2": 2.0})
+        assert votes[1] == ("Gil", "next", {"S3": 2.0})
+        assert votes[2][:2] == ("Ruiz", "around")
+        assert set(votes[2][2]) == {"S2"}
+        assert votes[4] == ("Gil", "previous", {"S1": 2.0})
+
+    def test_pieces_without_a_speaker_or_sentence_are_kept(self) -> None:
+        t = conversation(DEBATE)
+        loose = evidence("S2", "Ruiz", "addressed")
+        moved = loose.model_copy(update={"said_by": "S1", "utterance": "x"})
+        assert attribute(t, [loose, moved]) == [loose, moved]
+
+    def test_a_self_piece_from_the_model_keeps_its_speaker(self) -> None:
+        t = conversation([("S1", "Hola."), ("S2", "Soy Ana.")])
+        (cand,) = find_candidates(t)
+        item = parse_reply(t, cand, reply("Ana"))
+        assert item is not None
+        (with_votes,) = attribute(t, [item])
+        assert with_votes.votes == (("S2", 3.0),)
+
+
+def voted(
+    speaker: str, name: str, votes: Dict[str, float], said_by: str = "S9",
+    start: float = 0.0,
+) -> NameEvidence:
+    """A piece of evidence said by someone else, with its votes."""
+    return evidence(speaker, name, "addressed", start=start).model_copy(
+        update={"votes": tuple(votes.items()), "said_by": said_by}
+    )
+
+
+class TestDecideByVotes:
+    def test_a_clear_win_is_given_and_one_to_one(self) -> None:
+        pieces = [
+            voted("S1", "Ruiz", {"S1": 2.0}, start=n) for n in range(4)
+        ]
+        pieces += [voted("S2", "Gil", {"S2": 2.0, "S1": 0.5})] * 4
+        d = decide(anonymous("S1", "S2"), pieces)
+        assert sorted((a.speaker, a.name) for a in d.auto) == [
+            ("S1", "Ruiz"), ("S2", "Gil"),
+        ]
+        assert d.suggestions == []
+        assert all(0 < a.confidence <= 1 for a in d.auto)
+
+    def test_a_close_call_is_only_suggested(self) -> None:
+        pieces = [voted("S1", "Ruiz", {"S1": 2.0})] * 4
+        pieces += [voted("S2", "Ruis", {"S2": 2.0})] * 3
+        d = decide(anonymous("S1", "S2"), pieces)
+        assert d.auto == []
+        reasons = {(s.speaker, s.reason) for s in d.suggestions}
+        assert ("S1", "close") in reasons
+        first = next(s for s in d.suggestions if s.speaker == "S1")
+        assert first.name == "Ruiz" and first.spellings == ["Ruis"]
+
+    def test_few_votes_or_without_the_model_only_suggest(self) -> None:
+        pieces = [voted("S1", "Ruiz", {"S1": 2.0})] * 2
+        d = decide(anonymous("S1"), pieces)
+        assert d.auto == [] and d.suggestions[0].reason == "few_votes"
+        d = decide(anonymous("S1"), pieces * 3, allow_auto=False)
+        assert d.auto == [] and d.suggestions[0].reason == "rules_only"
+        assert (d.suggestions[0].votes, d.suggestions[0].count) == (12.0, 6)
+
+    def test_a_voice_that_keeps_saying_the_name_is_not_it(self) -> None:
+        pieces = [voted("S1", "Ruiz", {"S1": 2.0})] * 5
+        pieces += [voted("S2", "Ruiz", {"S2": 0.1}, said_by="S1")] * 3
+        d = decide(anonymous("S1", "S2"), pieces, min_margin=0)
+        assert d.auto == []
+        once = [voted("S1", "Ruiz", {"S1": 2.0})] * 11 + pieces[5:6]
+        d = decide(anonymous("S1", "S2"), once, min_margin=0)
+        assert [a.name for a in d.auto] == ["Ruiz"]
+
+    def test_taken_and_undone_names_are_respected(self) -> None:
+        pieces = [voted("S2", "Ruiz", {"S2": 2.0})] * 5
+        speakers = anonymous("S1", "S2", named={"S1": "Ruiz"})
+        d = decide(speakers, pieces)
+        assert d.auto == [] and d.suggestions[0].reason == "name_taken"
+        d = decide(anonymous("S2"), pieces, undone=[
+            UndoneName(speaker="S2", name="Ruis"),
+        ])
+        assert d.auto == [] and d.suggestions[0].reason == "undone"
+
+    def test_alternatives_are_capped(self) -> None:
+        pieces = [
+            voted("S1", name, {"S1": 2.0})
+            for name in ("Ruiz", "Gil", "Vera", "Pons")
+        ]
+        d = decide(anonymous("S1"), pieces)
+        assert len(d.suggestions) == 3

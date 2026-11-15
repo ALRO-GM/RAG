@@ -50,6 +50,7 @@ from transcriber.domain.errors import (
 )
 from transcriber.application.ports import JobStatus
 from transcriber.domain.models import Session, SessionState, Transcript
+from transcriber.domain.speaker_names import NameSearchParameters
 
 INTRODUCTIONS = [
     ("S1", "Buenos días, empezamos."),
@@ -83,6 +84,7 @@ class Kit:
         names: Optional[Dict[str, str]] = None,
         enrolled: Sequence[str] = (),
         no_model: bool = False,
+        parameters: NameSearchParameters = NameSearchParameters(),
     ) -> None:
         """Store the transcript of ``lines`` and wire the use cases."""
         self.locks = FakeSessionLocks()
@@ -106,7 +108,7 @@ class Kit:
         self.ticks = iter(range(0, 1000, 2))
         self.find = FindSpeakerNames(
             self.sessions, self.store, self.locks, self.rename, self.unname,
-            FixedClock(NOW), self.model,
+            FixedClock(NOW), self.model, parameters,
             free_models=lambda: self.freed.append("speech"),
             timer=lambda: float(next(self.ticks)),
         )
@@ -255,6 +257,80 @@ class TestFindSpeakerNames:
             kit.find("s1")
         with pytest.raises(NotFoundError):
             kit.find("nope")
+
+
+DEBATE = [
+    ("S1", "Buenas noches, empezamos el debate."),
+    ("S1", "Tiene la palabra la señora Ruiz."),
+    ("S2", "Gracias."),
+    ("S2", "Ustedes no han hecho nada en cuatro años."),
+    ("S1", "Turno para el señor Gil."),
+    ("S3", "Señora Ruis, eso no es verdad."),
+    ("S1", "Le pregunto al señor Gil por los impuestos."),
+    ("S3", "Los bajaremos."),
+    ("S2", "Señor Gil, ustedes los subieron."),
+    ("S1", "Muchas gracias, señora Ruiz."),
+    ("S1", "Turno para el señor Gil."),
+    ("S3", "Gracias."),
+    ("S1", "Tiene la palabra la señora Ruiz."),
+    ("S2", "Miren, el problema es otro."),
+    ("S1", "Gracias, señor Gil."),
+]
+
+
+def persons(user: str) -> str:
+    """A model that takes every judged word for a participant's name."""
+    return reply(judged(user), "addressed", 0.9)
+
+
+class TestMultiParty:
+    """A moderated debate (#116): votes over the session, one to one."""
+
+    def test_names_said_by_others_are_given_on_a_clear_win(self) -> None:
+        kit = Kit(DEBATE, model=FakeChatModel(persons))
+        record = kit.find("s1")
+        assert sorted((a.speaker, a.name) for a in record.auto) == [
+            ("S2", "Ruiz"), ("S3", "Gil"),
+        ]
+        assert ("S2", "Ruiz") in kit.speakers()
+        assert all(s.speaker == "S1" for s in record.suggestions)
+
+    def test_without_the_model_they_are_only_suggested(self) -> None:
+        kit = Kit(DEBATE, no_model=True)
+        record = kit.find("s1")
+        assert record.auto == []
+        grouped = {(s.speaker, s.name, s.reason) for s in record.suggestions}
+        assert ("S2", "Ruiz", "rules_only") in grouped
+        ruiz = next(s for s in record.suggestions if s.name == "Ruiz")
+        assert ruiz.spellings == ["Ruis"] and ruiz.count >= 4
+
+    def test_the_model_reads_a_bounded_sample_of_every_name(self) -> None:
+        kit = Kit(
+            DEBATE, model=FakeChatModel(persons),
+            parameters=NameSearchParameters(max_candidates=2),
+        )
+        record = kit.find("s1")
+        assert kit.model is not None
+        assert sorted(judged(p) for p in kit.model.prompts) == [
+            "Gil", "Ruiz",
+        ]
+        assert sorted(a.name for a in record.auto) == ["Gil", "Ruiz"]
+        assert record.candidates > 2
+
+    def test_a_name_the_model_refuses_is_dropped_everywhere(self) -> None:
+        def refuses_gil(user: str) -> str:
+            """Ruiz is a person, Gil is not."""
+            if judged(user) == "Gil":
+                return reply(None)
+            return persons(user)
+
+        kit = Kit(
+            DEBATE, model=FakeChatModel(refuses_gil),
+            parameters=NameSearchParameters(max_candidates=2),
+        )
+        record = kit.find("s1")
+        assert [a.name for a in record.auto] == ["Ruiz"]
+        assert all(s.name != "Gil" for s in record.suggestions)
 
 
 class TestAfterTranscription:

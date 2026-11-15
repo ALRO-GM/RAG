@@ -12,8 +12,12 @@ modes:
 ``model``
     the rules pick the candidates and the local model
     (:class:`~transcriber.adapters.outbound.local_name_model.
-    LocalNameModel`, pinned to one model with ``--model``) reads each
-    one, as the service does.
+    LocalNameModel`, pinned to one model with ``--model``) reads at
+    most ``max_candidates`` of them, as the service does (#116: the
+    other mentions of a name it confirmed count as the rules saw them).
+
+Either way the evidence is spread over the voices of the session and
+decided as the service does (``attribute`` then ``decide``, #116).
 
 For every session it counts, per speaker, the names given
 automatically (right when it is the speaker's true name) and the
@@ -21,7 +25,9 @@ suggestions, and writes one JSON row per run to ``--out`` (default
 ``experiments/transcriber/speaker_names/results.jsonl``):
 
 - automatic names: precision (right / given) and recall (right / the
-  speakers who clearly introduce themselves);
+  speakers who clearly introduce themselves; since #116 names said by
+  others can be given too, so ``auto_recall_named`` divides by the
+  speakers who introduce themselves or whose name is said);
 - suggestions: precision (right / given) and recall (speakers whose
   name is said anywhere who end up with the right name automatically
   or among their suggestions / those speakers);
@@ -60,16 +66,20 @@ from transcriber.domain.speaker_names import (
     PROMPT_VERSION,
     SYSTEM_PROMPT,
     Decision,
+    NameCandidate,
     NameEvidence,
     NameSearchParameters,
+    attribute,
     contains_name,
     decide,
     find_candidates,
+    gated_evidence,
     model_prompt,
     parse_reply,
+    pick_for_model,
     rule_evidence,
-    same_name,
 )
+from transcriber.domain.name_variants import similar_names
 
 ROOT = Path(__file__).resolve().parents[2]
 SET = ROOT / "experiments/transcriber/speaker_names/set.json"
@@ -143,27 +153,32 @@ def evidence_of(
     model: Optional[LocalNameModel],
 ) -> Tuple[List[NameEvidence], int]:
     """Return the evidence of the mode and how many candidates were read."""
-    candidates = find_candidates(
-        transcript, params.context, params.max_candidates
-    )
+    candidates = find_candidates(transcript, params.context, limit=None)
     if model is None:
         found = [rule_evidence(transcript, c) for c in candidates]
         return [e for e in found if e is not None], len(candidates)
-    items = []
-    for candidate in candidates:
+    read: List[Tuple[NameCandidate, Optional[NameEvidence]]] = []
+    for candidate in pick_for_model(candidates, params.max_candidates):
         reply = model.complete(
             SYSTEM_PROMPT, model_prompt(candidate), params.max_tokens
         )
-        item = parse_reply(transcript, candidate, reply)
-        if item is not None:
-            items.append(item)
-    return items, len(candidates)
+        read.append((candidate, parse_reply(transcript, candidate, reply)))
+    return gated_evidence(transcript, candidates, read), len(read)
+
+
+def right(name: str, truth: Optional[str]) -> bool:
+    """Tell whether ``name`` is ``truth`` (any spelling of it).
+
+    A voice whose name is never said (``truth`` empty) has no right
+    name.
+    """
+    return bool(truth) and similar_names(name, str(truth))
 
 
 def score(decision: Decision, gold: Gold) -> Dict[str, Any]:
     """Count right and wrong names of one session."""
     auto_right = [
-        a for a in decision.auto if same_name(a.name, gold[a.speaker]["name"])
+        a for a in decision.auto if right(a.name, gold[a.speaker]["name"])
     ]
     auto_wrong = [
         f"{a.speaker}={a.name} (is {gold[a.speaker]['name']})"
@@ -171,7 +186,7 @@ def score(decision: Decision, gold: Gold) -> Dict[str, Any]:
     ]
     sugg_right = [
         s for s in decision.suggestions
-        if same_name(s.name, gold[s.speaker]["name"])
+        if right(s.name, gold[s.speaker]["name"])
     ]
     found = {a.speaker for a in auto_right} | {s.speaker for s in sugg_right}
     said = [s for s, g in gold.items() if g["said"]]
@@ -179,6 +194,9 @@ def score(decision: Decision, gold: Gold) -> Dict[str, Any]:
         "auto_given": len(decision.auto),
         "auto_right": len(auto_right),
         "auto_target": sum(1 for g in gold.values() if g["introduces"]),
+        "named_target": sum(
+            1 for g in gold.values() if g["introduces"] or g["said"]
+        ),
         "auto_wrong": auto_wrong,
         "suggestions": len(decision.suggestions),
         "suggestions_right": len(sugg_right),
@@ -234,7 +252,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         began = time.monotonic()
         evidence, read = evidence_of(transcript, params, model)
         decision = decide(
-            transcript.speakers, evidence, (), params.auto_confidence
+            transcript.speakers, attribute(transcript, evidence), (),
+            params.auto_confidence, min_votes=params.min_votes,
+            min_margin=params.margin,
         )
         seconds = round(time.monotonic() - began, 2)
         rows.append({
@@ -244,7 +264,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         print(session_id, rows[-1]["auto"], rows[-1]["suggested"],
               f"{seconds} s", flush=True)
     total = {key: sum(r[key] for r in rows) for key in (
-        "auto_given", "auto_right", "auto_target", "suggestions",
+        "auto_given", "auto_right", "auto_target", "named_target",
+        "suggestions",
         "suggestions_right", "said", "said_found", "candidates",
     )}
     summary = {
@@ -256,6 +277,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         **total,
         "auto_precision": ratio(total["auto_right"], total["auto_given"]),
         "auto_recall": ratio(total["auto_right"], total["auto_target"]),
+        "auto_recall_named": ratio(
+            total["auto_right"], total["named_target"]
+        ),
         "auto_wrong": [w for r in rows for w in r["auto_wrong"]],
         "suggestion_precision": ratio(
             total["suggestions_right"], total["suggestions"]

@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BUSY_RETRY_MS, NAME_REASONS, nameRows, publishWhenFree, reasonKey, searchFinished,
+  BUSY_RETRY_MS, NAME_REASONS, groupByVoice, nameRows, publishWhenFree, reasonKey, searchFinished,
 } from "../../transcriber/adapters/inbound/web/js/lib/names.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -33,7 +33,35 @@ test("rows carry the label and the name shown, suggestions in order", () => {
 
 test("no record and missing lists give no rows", () => {
   assert.deepEqual(nameRows(null, speakers), { auto: [], suggestions: [] });
-  assert.deepEqual(nameRows({}, speakers), { auto: [], suggestions: [] });
+  assert.deepEqual(nameRows({}, speakers), { auto: [], suggestions: [], groups: [] });
+});
+
+test("suggestions are grouped per voice, strongest option first (#116)", () => {
+  const names = {
+    suggestions: [
+      { speaker: "S3", name: "Ruiz", kind: "addressed", start: 40, reason: "few_votes", count: 6, votes: 5.5,
+        spellings: ["Ruis"] },
+      { speaker: "S1", name: "Gil", kind: "addressed", start: 9, reason: "close", count: 2, votes: 3 },
+      { speaker: "S1", name: "Vera", kind: "addressed", start: 3, reason: "few_votes", count: 4, votes: 4.5 },
+      { speaker: "S3", name: "Gil", kind: "addressed", start: 2, reason: "few_votes", count: 1, votes: 1 },
+    ],
+  };
+  const { groups } = nameRows(names, speakers);
+  assert.deepEqual(groups.map((g) => [g.label, g.shown, g.options.map((o) => o.name)]), [
+    ["S1", "S1", ["Vera", "Gil"]],
+    ["S3", "S3", ["Ruiz", "Gil"]],
+  ]);
+  assert.deepEqual(groups[1].options[0].spellings, ["Ruis"]);
+});
+
+test("ties fall back to pieces, self-introductions and time", () => {
+  const rows = [
+    { label: "S1", shown: "S1", name: "B", kind: "addressed", start: 1 },
+    { label: "S1", shown: "S1", name: "A", kind: "self", start: 5 },
+    { label: "S1", shown: "S1", name: "C", kind: "addressed", start: 0, count: 3 },
+  ];
+  assert.deepEqual(groupByVoice(rows)[0].options.map((o) => o.name), ["C", "A", "B"]);
+  assert.deepEqual(groupByVoice([]), []);
 });
 
 test("a search finished when it was running and is not any more", () => {
@@ -51,7 +79,8 @@ test("every reason has a sentence in both languages", () => {
   }
   assert.equal(reasonKey("bogus"), "names.reason.other");
   assert.equal(es["names.busy"], "Buscando los nombres de quién habla…");
-  for (const key of ["names.title", "names.search", "names.undo", "names.accept", "stage.names", "names.busy"]) {
+  for (const key of ["names.title", "names.search", "names.undo", "names.accept", "stage.names", "names.busy",
+    "names.group", "names.other", "names.spellings", "names.reason.few_votes", "names.reason.close"]) {
     assert.ok(es[key] && en[key] && es[key] !== en[key], key);
   }
 });
