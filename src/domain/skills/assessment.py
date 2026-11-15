@@ -50,9 +50,15 @@ class CompetencyAssessment(BaseModel):
 
 
 class ParticipantScorecard(BaseModel):
-    """Every assessed competency of one participant."""
+    """Every assessed competency of one participant.
+
+    ``person_id`` is the id the transcriber enrolled the participant
+    under, when the session came with one: only scorecards that carry
+    it can be joined into a profile across sessions.
+    """
 
     participant: str
+    person_id: Optional[str] = None
     interaction: SpeakerInteraction
     assessments: List[CompetencyAssessment]
 
@@ -65,7 +71,12 @@ class ParticipantScorecard(BaseModel):
 
 
 class SessionAssessment(BaseModel):
-    """The scorecards of a session and how they were produced."""
+    """The scorecards of a session and how they were produced.
+
+    ``started_at`` (ISO 8601) and ``conversation_type`` come from the
+    transcript when it has them; a profile across sessions uses them to
+    order the sessions and to count the kinds of situation seen.
+    """
 
     session_id: str
     language: str
@@ -78,11 +89,22 @@ class SessionAssessment(BaseModel):
     team: TeamInteraction
     scorecards: List[ParticipantScorecard]
     seconds: float = 0.0
+    started_at: Optional[str] = None
+    conversation_type: Optional[str] = None
 
     def scorecard(self, participant: str) -> Optional[ParticipantScorecard]:
         """Return the scorecard of a participant, if present."""
         for card in self.scorecards:
             if card.participant == participant:
+                return card
+        return None
+
+    def scorecard_of_person(
+        self, person_id: str
+    ) -> Optional[ParticipantScorecard]:
+        """Return the scorecard of an enrolled person, if present."""
+        for card in self.scorecards:
+            if card.person_id == person_id:
                 return card
         return None
 

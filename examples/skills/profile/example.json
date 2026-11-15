@@ -1,0 +1,109 @@
+{
+  "note": "Synthetic example: invented people and conversations, ratings written by hand to exercise 'skills profile'. Not a measurement of anyone.",
+  "catalogue": "core",
+  "language": "es",
+  "judge_model": "ninguno: valoraciones escritas a mano (ejemplo inventado)",
+  "people": {"Marta": "marta", "Luis": "luis", "Pablo": "pablo", "Irene": "irene"},
+  "sessions": [
+    {
+      "id": "perfil_s1",
+      "title": "Elegir la base de datos",
+      "type": "reunion_decision",
+      "goal": "Decidir qué base de datos usa el proyecto",
+      "started_at": "2026-10-06T10:00:00+02:00",
+      "ratings": {
+        "marta": {
+          "LISTEN": [4, [[2, "LISTEN.P1"], [9, "LISTEN.P4"], [14, "LISTEN.P1"]]],
+          "INFLU": [3, [[5, "INFLU.P1"], [9, "INFLU.P2"], [14, "INFLU.P5"]]],
+          "CONFL": [2, [[7, "CONFL.N4"], [11, "CONFL.N4"], [17, "CONFL.N4"]]]
+        },
+        "luis": {
+          "LISTEN": [2, [[3, "LISTEN.N1"], [6, "LISTEN.N1"], [10, "LISTEN.N1"]]],
+          "INIT": [null, [[13, "INIT.P1"], [18, "INIT.P1"]]],
+          "INFLU": [null, [[1, "INFLU.N2"], [6, "INFLU.N4"]]]
+        },
+        "pablo": {
+          "INCL": [4, [[4, "INCL.P1"], [8, "INCL.P2"], [16, "INCL.P3"]]],
+          "COORD": [null, [[0, "COORD.P2"], [19, "COORD.P5"]]],
+          "SOLVE": [null, [[12, "SOLVE.P2"]]]
+        }
+      }
+    },
+    {
+      "id": "perfil_s2",
+      "title": "El servidor se cae con muchos clientes",
+      "type": "resolucion_problemas",
+      "goal": "Entender por qué se cae el servidor antes de tocar nada",
+      "started_at": "2026-10-14T16:30:00+02:00",
+      "ratings": {
+        "marta": {
+          "LISTEN": [4, [[4, "LISTEN.P4"], [6, "LISTEN.P1"], [17, "LISTEN.P4"]]],
+          "INFLU": [null, [[11, "INFLU.P2"], [13, "INFLU.P5"]]],
+          "CONFL": [null, [[11, "CONFL.P1"], [13, "CONFL.P2"]]]
+        },
+        "luis": {
+          "LISTEN": [2, [[3, "LISTEN.N1"], [7, "LISTEN.N2"], [10, "LISTEN.N1"]]],
+          "INIT": [4, [[1, "INIT.P1"], [14, "INIT.P1"], [18, "INIT.P1"]]],
+          "CONFL": [null, [[12, "CONFL.N2"]]],
+          "INFLU": [null, [[10, "INFLU.N2"]]]
+        },
+        "irene": {
+          "SOLVE": [4, [[2, "SOLVE.P5"], [5, "SOLVE.P1"], [9, "SOLVE.P3"]]]
+        },
+        "pablo": {
+          "COORD": [4, [[0, "COORD.P1"], [15, "COORD.P3"], [19, "COORD.P5"]]],
+          "INCL": [null, [[8, "INCL.P2"]]]
+        }
+      }
+    },
+    {
+      "id": "perfil_s3",
+      "title": "Revisión del sprint",
+      "type": "feedback",
+      "goal": "Decir qué ha ido bien y qué cambiaríamos, sin buscar culpables",
+      "started_at": "2026-10-23T11:00:00+02:00",
+      "ratings": {
+        "marta": {
+          "INFLU": [4, [[5, "INFLU.P1"], [7, "INFLU.P1"], [16, "INFLU.P3"]]],
+          "FEEDB": [null, [[1, "FEEDB.P1"], [10, "FEEDB.P3"]]],
+          "COLLAB": [null, [[1, "COLLAB.P4"], [13, "COLLAB.P2"]]],
+          "CONFL": [null, [[7, "CONFL.P1"]]]
+        },
+        "luis": {
+          "INIT": [4, [[2, "INIT.P3"], [4, "INIT.P1"], [14, "INIT.P1"]]],
+          "FEEDB": [null, [[12, "FEEDB.P3"], [14, "FEEDB.P4"]]],
+          "LISTEN": [null, [[8, "LISTEN.P6"]]]
+        },
+        "pablo": {
+          "INCL": [4, [[9, "INCL.P1"], [15, "INCL.P3"], [17, "INCL.P4"]]],
+          "COORD": [null, [[0, "COORD.P1"], [17, "COORD.P5"]]],
+          "FEEDB": [null, [[11, "FEEDB.P2"]]]
+        }
+      }
+    },
+    {
+      "id": "perfil_s4",
+      "title": "Plazos de entrega con producto",
+      "type": "negociacion",
+      "goal": "Acordar qué se entrega antes de la feria del cliente",
+      "started_at": "2026-11-04T09:30:00+01:00",
+      "ratings": {
+        "marta": {
+          "LISTEN": [4, [[2, "LISTEN.P1"], [5, "LISTEN.P4"], [11, "LISTEN.P3"]]],
+          "INFLU": [4, [[2, "INFLU.P6"], [5, "INFLU.P1"], [11, "INFLU.P5"]]],
+          "CONFL": [2, [[9, "CONFL.N4"], [11, "CONFL.P6"], [17, "CONFL.N4"]]],
+          "INIT": [null, [[13, "INIT.P1"]]]
+        },
+        "luis": {
+          "LISTEN": [3, [[1, "LISTEN.N1"], [4, "LISTEN.N1"], [10, "LISTEN.P4"]]],
+          "INIT": [3, [[1, "INIT.N3"], [7, "INIT.P2"], [15, "INIT.P1"]]],
+          "CONFL": [null, [[1, "CONFL.N2"], [18, "CONFL.P1"]]]
+        },
+        "irene": {
+          "SOLVE": [3, [[3, "SOLVE.P1"], [6, "SOLVE.P2"], [12, "SOLVE.P6"]]],
+          "COORD": [null, [[0, "COORD.P1"], [19, "COORD.P5"]]]
+        }
+      }
+    }
+  ]
+}

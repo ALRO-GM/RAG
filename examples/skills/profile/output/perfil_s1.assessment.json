@@ -1,0 +1,688 @@
+{
+  "session_id": "perfil_s1",
+  "language": "es",
+  "catalogue": "core",
+  "catalogue_version": "0.1.0",
+  "judge_model": "ninguno: valoraciones escritas a mano (ejemplo inventado)",
+  "embedding_model": "",
+  "min_incidents": 3,
+  "rules": {
+    "min_incidents": 3.0,
+    "min_episodes": 2.0,
+    "episode_gap": 3.0,
+    "min_similarity": 0.3,
+    "min_participant_words": 40.0,
+    "candidates": 8.0
+  },
+  "team": {
+    "speakers": 3,
+    "turns": 20,
+    "words": 332,
+    "participation_equality": 0.7620481927710844,
+    "dominant_speaker": "Marta",
+    "dominant_share": 0.46987951807228917,
+    "has_timestamps": true,
+    "per_speaker": [
+      {
+        "speaker": "Pablo",
+        "turns": 6,
+        "words": 99,
+        "word_share": 0.29819277108433734,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 16.5,
+        "questions": 5,
+        "seconds": 40.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 146.7,
+        "median_response_seconds": 0.5
+      },
+      {
+        "speaker": "Luis",
+        "turns": 7,
+        "words": 77,
+        "word_share": 0.2319277108433735,
+        "turn_share": 0.35,
+        "mean_words_per_turn": 11.0,
+        "questions": 0,
+        "seconds": 33.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 137.9,
+        "median_response_seconds": 0.5
+      },
+      {
+        "speaker": "Marta",
+        "turns": 7,
+        "words": 156,
+        "word_share": 0.46987951807228917,
+        "turn_share": 0.35,
+        "mean_words_per_turn": 22.285714285714285,
+        "questions": 3,
+        "seconds": 71.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 130.9,
+        "median_response_seconds": 0.5
+      }
+    ]
+  },
+  "scorecards": [
+    {
+      "participant": "Pablo",
+      "person_id": "pablo",
+      "interaction": {
+        "speaker": "Pablo",
+        "turns": 6,
+        "words": 99,
+        "word_share": 0.29819277108433734,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 16.5,
+        "questions": 5,
+        "seconds": 40.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 146.7,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "Marta, ¿tú qué has mirado?",
+              "indicator_id": "INCL.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 8,
+              "quote": "Espera, Marta, no lo dejes ahí. Lo de las consultas por fechas me parece importante. ¿Lo puedes explicar un poco más?",
+              "indicator_id": "INCL.P2",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 16,
+              "quote": "Perfecto. Antes de cerrar, ¿alguien ve algo en contra? Marta, Luis, decidlo ahora.",
+              "indicator_id": "INCL.P3",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 0,
+              "quote": "Bueno, empezamos. La idea es salir de aquí sabiendo qué base de datos usamos para el proyecto. Primero que cada uno cuente lo que ha mirado, ¿vale?",
+              "indicator_id": "COORD.P2",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 19,
+              "quote": "Pues queda así: Luis hace la prueba para el jueves, y el viernes decidimos con los números delante.",
+              "indicator_id": "COORD.P5",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 2,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 12,
+              "quote": "Luis, ¿has probado el índice con los datos de prueba, o lo dices por experiencia?",
+              "indicator_id": "SOLVE.P2",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "participant": "Luis",
+      "person_id": "luis",
+      "interaction": {
+        "speaker": "Luis",
+        "turns": 7,
+        "words": 77,
+        "word_share": 0.2319277108433735,
+        "turn_share": 0.35,
+        "mean_words_per_turn": 11.0,
+        "questions": 0,
+        "seconds": 33.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 137.9,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 2,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Eso da igual, aguanta lo que le eches.",
+              "indicator_id": "LISTEN.N1",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 6,
+              "quote": "Ya, pero eso es otra herramienta más que mantener. Es lo de siempre, cada semana una moda nueva.",
+              "indicator_id": "LISTEN.N1",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 10,
+              "quote": "Con un índice bien puesto llega de sobra.",
+              "indicator_id": "LISTEN.N1",
+              "polarity": "negative",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Yo lo tengo clarísimo, Postgres. Llevo años con Postgres y nunca me ha fallado.",
+              "indicator_id": "INFLU.N2",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 6,
+              "quote": "Ya, pero eso es otra herramienta más que mantener. Es lo de siempre, cada semana una moda nueva.",
+              "indicator_id": "INFLU.N4",
+              "polarity": "negative",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 2,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 13,
+              "quote": "Por experiencia. Pero vamos, que lo pruebo yo esta tarde y os lo paso mañana.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 18,
+              "quote": "Yo me encargo de la prueba y del informe para el jueves.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 2,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "participant": "Marta",
+      "person_id": "marta",
+      "interaction": {
+        "speaker": "Marta",
+        "turns": 7,
+        "words": 156,
+        "word_share": 0.46987951807228917,
+        "turn_share": 0.35,
+        "mean_words_per_turn": 22.285714285714285,
+        "questions": 3,
+        "seconds": 71.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 130.9,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 2,
+              "quote": "Vale, Luis, entonces lo que tú valoras es que es fiable y que ya lo conoces, ¿no? ¿Has mirado cómo va con los datos de los sensores, que llegan a ráfagas?",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 9,
+              "quote": "Vale. Lo que decía Pablo al principio, que el panel tiene que cargar en menos de un segundo: con Postgres tal cual no llegamos con un año de datos.",
+              "indicator_id": "LISTEN.P4",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 14,
+              "quote": "Entonces, si te he entendido, Luis, haces la prueba con índice con el mismo año de datos, y si no baja del segundo miramos lo de series temporales. ¿Es así?",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "rated",
+          "rating": 3,
+          "evidence": [
+            {
+              "turn": 5,
+              "quote": "Yo he mirado una base de series temporales. Con los datos de prueba de la semana pasada, las consultas por rango de fechas iban unas diez veces más rápido.",
+              "indicator_id": "INFLU.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 9,
+              "quote": "Vale. Lo que decía Pablo al principio, que el panel tiene que cargar en menos de un segundo: con Postgres tal cual no llegamos con un año de datos.",
+              "indicator_id": "INFLU.P2",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 14,
+              "quote": "Entonces, si te he entendido, Luis, haces la prueba con índice con el mismo año de datos, y si no baja del segundo miramos lo de series temporales. ¿Es así?",
+              "indicator_id": "INFLU.P5",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "rated",
+          "rating": 2,
+          "evidence": [
+            {
+              "turn": 7,
+              "quote": "Bueno, puede ser. Si lo veis tan claro, vamos con Postgres.",
+              "indicator_id": "CONFL.N4",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 11,
+              "quote": "Puede ser, Luis, no lo sé. No quiero liarla.",
+              "indicator_id": "CONFL.N4",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 17,
+              "quote": "No, nada. Bueno, me preocupa el tiempo de carga, pero da igual, ya lo hablamos otro día.",
+              "indicator_id": "CONFL.N4",
+              "polarity": "negative",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    }
+  ],
+  "seconds": 0.0,
+  "started_at": "2026-10-06T10:00:00+02:00",
+  "conversation_type": "reunion_decision"
+}

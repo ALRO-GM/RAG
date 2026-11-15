@@ -1,0 +1,695 @@
+{
+  "session_id": "perfil_s4",
+  "language": "es",
+  "catalogue": "core",
+  "catalogue_version": "0.1.0",
+  "judge_model": "ninguno: valoraciones escritas a mano (ejemplo inventado)",
+  "embedding_model": "",
+  "min_incidents": 3,
+  "rules": {
+    "min_incidents": 3.0,
+    "min_episodes": 2.0,
+    "episode_gap": 3.0,
+    "min_similarity": 0.3,
+    "min_participant_words": 40.0,
+    "candidates": 8.0
+  },
+  "team": {
+    "speakers": 3,
+    "turns": 20,
+    "words": 307,
+    "participation_equality": 0.8241042345276872,
+    "dominant_speaker": "Marta",
+    "dominant_share": 0.40390879478827363,
+    "has_timestamps": true,
+    "per_speaker": [
+      {
+        "speaker": "Irene",
+        "turns": 8,
+        "words": 113,
+        "word_share": 0.36807817589576547,
+        "turn_share": 0.4,
+        "mean_words_per_turn": 14.125,
+        "questions": 3,
+        "seconds": 44.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 152.4,
+        "median_response_seconds": 0.5
+      },
+      {
+        "speaker": "Luis",
+        "turns": 6,
+        "words": 70,
+        "word_share": 0.2280130293159609,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 11.666666666666666,
+        "questions": 0,
+        "seconds": 27.0,
+        "overlapping_starts": 0,
+        "words_per_minute": 155.6,
+        "median_response_seconds": 0.5
+      },
+      {
+        "speaker": "Marta",
+        "turns": 6,
+        "words": 124,
+        "word_share": 0.40390879478827363,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 20.666666666666668,
+        "questions": 2,
+        "seconds": 52.0,
+        "overlapping_starts": 0,
+        "words_per_minute": 143.1,
+        "median_response_seconds": 0.5
+      }
+    ]
+  },
+  "scorecards": [
+    {
+      "participant": "Irene",
+      "person_id": "irene",
+      "interaction": {
+        "speaker": "Irene",
+        "turns": 8,
+        "words": 113,
+        "word_share": 0.36807817589576547,
+        "turn_share": 0.4,
+        "mean_words_per_turn": 14.125,
+        "questions": 3,
+        "seconds": 44.5,
+        "overlapping_starts": 0,
+        "words_per_minute": 152.4,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 0,
+              "quote": "Gracias por venir. Producto quiere el panel nuevo para el día quince. Sé que es pronto, pero el cliente tiene una feria el dieciocho.",
+              "indicator_id": "COORD.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 19,
+              "quote": "De acuerdo. Lo apunto: dos pantallas el catorce, el resto y el Excel el veintiocho, y un correo cada viernes.",
+              "indicator_id": "COORD.P5",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 2,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "rated",
+          "rating": 3,
+          "evidence": [
+            {
+              "turn": 3,
+              "quote": "Buena pregunta. Para la feria le bastan la pantalla de resumen y la de alertas. El resto puede esperar.",
+              "indicator_id": "SOLVE.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 6,
+              "quote": "¿Y las otras tres pantallas, para cuándo?",
+              "indicator_id": "SOLVE.P2",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 12,
+              "quote": "El veintiocho... Lo tengo que hablar con producto. ¿Y si alguna se retrasa?",
+              "indicator_id": "SOLVE.P6",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "participant": "Luis",
+      "person_id": "luis",
+      "interaction": {
+        "speaker": "Luis",
+        "turns": 6,
+        "words": 70,
+        "word_share": 0.2280130293159609,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 11.666666666666666,
+        "questions": 0,
+        "seconds": 27.0,
+        "overlapping_starts": 0,
+        "words_per_minute": 155.6,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 3,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Imposible. El quince no llegamos ni de broma.",
+              "indicator_id": "LISTEN.N1",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 4,
+              "quote": "Ya, pero luego siempre quieren más.",
+              "indicator_id": "LISTEN.N1",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 10,
+              "quote": "Marta, eso no es lo que acabamos de decir hace un momento.",
+              "indicator_id": "LISTEN.P4",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Imposible. El quince no llegamos ni de broma.",
+              "indicator_id": "CONFL.N2",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 18,
+              "quote": "Marta, eso son otros tres días. Irene, el Excel para el veintiocho, no para la feria.",
+              "indicator_id": "CONFL.P1",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 2,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "rated",
+          "rating": 3,
+          "evidence": [
+            {
+              "turn": 1,
+              "quote": "Imposible. El quince no llegamos ni de broma.",
+              "indicator_id": "INIT.N3",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 7,
+              "quote": "Para final de mes, como pronto, y si no nos cambian nada.",
+              "indicator_id": "INIT.P2",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 15,
+              "quote": "Y yo me encargo de las alertas, que es lo más delicado. Las tengo el diez.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "participant": "Marta",
+      "person_id": "marta",
+      "interaction": {
+        "speaker": "Marta",
+        "turns": 6,
+        "words": 124,
+        "word_share": 0.40390879478827363,
+        "turn_share": 0.3,
+        "mean_words_per_turn": 20.666666666666668,
+        "questions": 2,
+        "seconds": 52.0,
+        "overlapping_starts": 0,
+        "words_per_minute": 143.1,
+        "median_response_seconds": 0.5
+      },
+      "assessments": [
+        {
+          "competency_id": "COMM",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "LISTEN",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 2,
+              "quote": "A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?",
+              "indicator_id": "LISTEN.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 5,
+              "quote": "Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.",
+              "indicator_id": "LISTEN.P4",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 11,
+              "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
+              "indicator_id": "LISTEN.P3",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INFLU",
+          "status": "rated",
+          "rating": 4,
+          "evidence": [
+            {
+              "turn": 2,
+              "quote": "A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?",
+              "indicator_id": "INFLU.P6",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 5,
+              "quote": "Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.",
+              "indicator_id": "INFLU.P1",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 11,
+              "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
+              "indicator_id": "INFLU.P5",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COLLAB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INCL",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "CONFL",
+          "status": "rated",
+          "rating": 2,
+          "evidence": [
+            {
+              "turn": 9,
+              "quote": "Bueno... si lo necesitáis así, lo intentamos.",
+              "indicator_id": "CONFL.N4",
+              "polarity": "negative",
+              "similarity": null
+            },
+            {
+              "turn": 11,
+              "quote": "Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.",
+              "indicator_id": "CONFL.P6",
+              "polarity": "positive",
+              "similarity": null
+            },
+            {
+              "turn": 17,
+              "quote": "Eh... bueno, vale, lo metemos también si hace falta.",
+              "indicator_id": "CONFL.N4",
+              "polarity": "negative",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 3,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "FEEDB",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "COORD",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "SOLVE",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "INIT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [
+            {
+              "turn": 13,
+              "quote": "Entonces te aviso en cuanto lo sepamos, no el último día. Te mando cada viernes cómo vamos.",
+              "indicator_id": "INIT.P1",
+              "polarity": "positive",
+              "similarity": null
+            }
+          ],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 1,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        },
+        {
+          "competency_id": "ADAPT",
+          "status": "insufficient_evidence",
+          "rating": null,
+          "evidence": [],
+          "rationale": "",
+          "candidate_turns": [],
+          "proposed": 0,
+          "rejected": 0,
+          "unsupported": 0,
+          "flags": []
+        }
+      ]
+    }
+  ],
+  "seconds": 0.0,
+  "started_at": "2026-11-04T09:30:00+01:00",
+  "conversation_type": "negociacion"
+}

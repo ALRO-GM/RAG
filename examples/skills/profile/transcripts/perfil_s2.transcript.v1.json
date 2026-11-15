@@ -1,0 +1,265 @@
+{
+  "schema": "transcript.v1",
+  "session": {
+    "id": "perfil_s2",
+    "title": "El servidor se cae con muchos clientes",
+    "language": "es",
+    "started_at": "2026-10-14T16:30:00+02:00",
+    "duration": 156.0,
+    "type": "resolucion_problemas",
+    "goal": "Entender por qué se cae el servidor antes de tocar nada"
+  },
+  "speakers": [
+    {
+      "id": "pablo",
+      "name": "Pablo",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "luis",
+      "name": "Luis",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "irene",
+      "name": "Irene",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "marta",
+      "name": "Marta",
+      "enrolled": true,
+      "identification": "threshold"
+    }
+  ],
+  "utterances": [
+    {
+      "id": "t0.s0",
+      "turn": 0,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 3.0,
+      "end": 13.5,
+      "text": "Vale, el problema es que ayer el servidor se cayó dos veces con unos trescientos clientes conectados. Hoy quiero que entendamos por qué antes de tocar nada.",
+      "previous_speaker": null,
+      "previous_utterance": null
+    },
+    {
+      "id": "t1.s0",
+      "turn": 1,
+      "index": 0,
+      "speaker": "luis",
+      "start": 14.0,
+      "end": 21.5,
+      "text": "Es la memoria, seguro. Si queréis, esta tarde amplío la memoria de la máquina y mañana lo vemos.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t0.s0"
+    },
+    {
+      "id": "t2.s0",
+      "turn": 2,
+      "index": 0,
+      "speaker": "irene",
+      "start": 22.0,
+      "end": 30.5,
+      "text": "Yo he mirado los registros. La memoria estaba al cuarenta por ciento cuando se cayó, así que no creo que sea eso.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t1.s0"
+    },
+    {
+      "id": "t3.s0",
+      "turn": 3,
+      "index": 0,
+      "speaker": "luis",
+      "start": 31.0,
+      "end": 35.5,
+      "text": "Pues entonces será la red, que siempre da problemas.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t2.s0"
+    },
+    {
+      "id": "t4.s0",
+      "turn": 4,
+      "index": 0,
+      "speaker": "marta",
+      "start": 36.0,
+      "end": 44.5,
+      "text": "Irene, has dicho que la memoria estaba al cuarenta por ciento. ¿Y el número de conexiones abiertas, lo viste en los registros?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t3.s0"
+    },
+    {
+      "id": "t5.s0",
+      "turn": 5,
+      "index": 0,
+      "speaker": "irene",
+      "start": 45.0,
+      "end": 54.5,
+      "text": "Sí, y ahí está el problema: las conexiones se quedaban abiertas. Iban subiendo hasta unas mil y entonces se paraba todo.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t4.s0"
+    },
+    {
+      "id": "t6.s0",
+      "turn": 6,
+      "index": 0,
+      "speaker": "marta",
+      "start": 55.0,
+      "end": 62.5,
+      "text": "Entonces, si lo he entendido bien, el problema no es cuánta gente entra, sino que las conexiones no se cierran.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t5.s0"
+    },
+    {
+      "id": "t7.s0",
+      "turn": 7,
+      "index": 0,
+      "speaker": "luis",
+      "start": 63.0,
+      "end": 66.5,
+      "text": "Eso es lo que he dicho yo, que es la red.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t6.s0"
+    },
+    {
+      "id": "t8.s0",
+      "turn": 8,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 67.0,
+      "end": 71.5,
+      "text": "No exactamente, Luis. Irene, sigue, que antes te hemos cortado.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t7.s0"
+    },
+    {
+      "id": "t9.s0",
+      "turn": 9,
+      "index": 0,
+      "speaker": "irene",
+      "start": 72.0,
+      "end": 84.5,
+      "text": "Veo dos opciones: poner un tiempo máximo a cada conexión, o revisar el código que las cierra. Yo empezaría por el código, porque lo otro solo esconde el fallo.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t8.s0"
+    },
+    {
+      "id": "t10.s0",
+      "turn": 10,
+      "index": 0,
+      "speaker": "luis",
+      "start": 85.0,
+      "end": 90.5,
+      "text": "El código está bien, lo escribí yo. Ponemos el tiempo máximo y nos olvidamos.",
+      "previous_speaker": "irene",
+      "previous_utterance": "t9.s0"
+    },
+    {
+      "id": "t11.s0",
+      "turn": 11,
+      "index": 0,
+      "speaker": "marta",
+      "start": 91.0,
+      "end": 102.5,
+      "text": "Yo estoy con Irene. Si solo ponemos el tiempo máximo, el día de la demo con quinientas personas nos vuelve a pasar, y la demo es justo el objetivo de este mes.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t10.s0"
+    },
+    {
+      "id": "t12.s0",
+      "turn": 12,
+      "index": 0,
+      "speaker": "luis",
+      "start": 103.0,
+      "end": 105.5,
+      "text": "Que no, que es perder el tiempo.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t11.s0"
+    },
+    {
+      "id": "t13.s0",
+      "turn": 13,
+      "index": 0,
+      "speaker": "marta",
+      "start": 106.0,
+      "end": 117.5,
+      "text": "Te entiendo, Luis, lo del tiempo máximo es rápido y algo arregla. ¿Qué te parece si lo ponemos hoy como parche y a la vez Irene y yo revisamos el código?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t12.s0"
+    },
+    {
+      "id": "t14.s0",
+      "turn": 14,
+      "index": 0,
+      "speaker": "luis",
+      "start": 118.0,
+      "end": 121.5,
+      "text": "Bueno, vale. Yo pongo el parche esta tarde.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t13.s0"
+    },
+    {
+      "id": "t15.s0",
+      "turn": 15,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 122.0,
+      "end": 126.5,
+      "text": "Irene, ¿cuánto crees que os lleva revisar el cierre de las conexiones?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t14.s0"
+    },
+    {
+      "id": "t16.s0",
+      "turn": 16,
+      "index": 0,
+      "speaker": "irene",
+      "start": 127.0,
+      "end": 131.5,
+      "text": "Dos días, si Marta me ayuda con las pruebas de carga.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t15.s0"
+    },
+    {
+      "id": "t17.s0",
+      "turn": 17,
+      "index": 0,
+      "speaker": "marta",
+      "start": 132.0,
+      "end": 143.5,
+      "text": "Sí, yo preparo las pruebas de carga para mañana por la mañana. Irene, ¿te va bien empezar por el módulo de sesiones, que es donde viste las mil conexiones?",
+      "previous_speaker": "irene",
+      "previous_utterance": "t16.s0"
+    },
+    {
+      "id": "t18.s0",
+      "turn": 18,
+      "index": 0,
+      "speaker": "luis",
+      "start": 144.0,
+      "end": 149.5,
+      "text": "Y el viernes os cuento cómo ha ido el parche en producción, con los números.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t17.s0"
+    },
+    {
+      "id": "t19.s0",
+      "turn": 19,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 150.0,
+      "end": 156.0,
+      "text": "Resumiendo: Luis pone el parche hoy, Marta e Irene revisan el código en dos días y el viernes lo vemos juntos.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t18.s0"
+    }
+  ],
+  "pipeline": {
+    "recogniser": "none (hand-written example)",
+    "voice_model": "none (hand-written example)",
+    "transcriber": "none (hand-written example)"
+  }
+}

@@ -43,6 +43,8 @@ from src.application.skills.judges import (
 from src.application.skills.lab import lab_dataset
 from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
+from src.application.skills.profile_report import build_profile_report
+from src.application.skills.profile_report_html import render_profile_html
 from src.application.skills.report import (
     conversation_context,
     render_scorecards,
@@ -127,7 +129,7 @@ class SkillsCLI:
         self._container: Optional[SkillsContainer] = None
         for name in (
             "catalogue", "interaction", "evidence", "assess",
-            "sentences", "tag", "report",
+            "sentences", "tag", "report", "profile",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
             "dialogue_acts_set", "judge_acts", "events_evaluate",
@@ -469,6 +471,79 @@ class SkillsCLI:
         target = str(output) or str(Path(
             app.settings.output_dir,
             f"{result.session_id}.{name}.report.{extension}",
+        ))
+        write_text(target, text)
+        print(f"Saved {target}")
+
+    def _profile(
+        self,
+        participant: str,
+        sessions: str = "",
+        assessments_dir: str = "",
+        format: str = "html",
+        output: str = "",
+        language: str = "es",
+        synthetic: bool = False,
+    ) -> None:
+        """Profile one person across sessions (docs/skills/DESIGN.md §11).
+
+        Joins the person's scorecards by the id the transcriber enrolled
+        them under; a session without person ids cannot be joined. Per
+        competency: every session's level and evidence, how many
+        situations and kinds of conversation show it, an overall level
+        only from ``profile_min_situations`` sessions with evidence
+        (otherwise "under construction"), the spread and the trend.
+
+        Args:
+            participant: Person id (the transcriber's enrolled user id).
+            sessions: Comma-separated session ids or assessment files
+                (default: every stored session where the person appears).
+            assessments_dir: Where the assessments are (default: the
+                configured output directory).
+            format: html (a page for a non-technical reader) or json.
+            output: File to write (default:
+                <output_dir>/<person>.profile.<ext>).
+            language: Language of the page (es, en).
+            synthetic: Mark the page as made-up sample data.
+        """
+        app = self._app()
+        kind = str(format).lower()
+        if kind not in ("html", "json"):
+            raise InvalidInputError(
+                f"Unknown format {format!r}; choose html or json."
+            )
+        person = str(participant)
+        profile = app.profiles(str(assessments_dir)).profile(
+            person, parse_names(sessions)
+        )
+        for item in profile.competencies:
+            cells = " ".join(
+                "-" if s.rating is None else str(s.rating)
+                for s in item.sessions
+            )
+            overall = (
+                f"overall {item.aggregate:g}" if item.aggregate is not None
+                else f"building, {item.missing} more"
+                if item.rated else "no level in any session"
+            )
+            print(f"{item.competency_id:<8} [{cells}] {item.rated}/"
+                  f"{len(profile.sessions)} sessions; {overall}")
+        for left in profile.excluded:
+            print(f"Left out {left.session_id}: {left.reason}")
+        if kind == "json":
+            text = profile.model_dump_json(indent=2) + "\n"
+        else:
+            rubric = app.catalogues.load(profile.catalogue, str(language))
+            transcripts = {
+                ref.session_id: found for ref in profile.sessions
+                if (found := self._session_transcript(ref.session_id, ""))
+                is not None
+            }
+            text = render_profile_html(build_profile_report(
+                profile, rubric, transcripts, bool(synthetic)
+            ))
+        target = str(output) or str(Path(
+            app.settings.output_dir, f"{person}.profile.{kind}"
         ))
         write_text(target, text)
         print(f"Saved {target}")

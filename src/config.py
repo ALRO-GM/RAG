@@ -212,7 +212,10 @@ class SkillsSettings(BaseModel):
     ``min_episodes`` separate exchanges (turns within ``episode_gap``
     of each other are one exchange); a participant with fewer than
     ``min_participant_words`` words is not rated at all. These rules
-    follow ``docs/skills/THEORY.md`` §4.3.
+    follow ``docs/skills/THEORY.md`` §4.3. A profile across sessions
+    gives a competency an aggregate level only when at least
+    ``profile_min_situations`` sessions show it (``docs/skills/DESIGN.md``
+    §11).
 
     Recordings are transcribed by the separate ``transcriber`` package;
     the analyzer reads its ``transcript.v1`` documents.
@@ -269,6 +272,7 @@ class SkillsSettings(BaseModel):
     episode_gap: int = Field(default=3, ge=0)
     min_participant_words: int = Field(default=40, ge=0)
     min_similarity: float = Field(default=0.3, ge=-1.0, le=1.0)
+    profile_min_situations: int = Field(default=3, ge=1)
     tags_per_sentence: int = Field(default=2, ge=1)
     max_new_tokens: int = Field(default=700, ge=16)
     use_cache: bool = True

@@ -13,6 +13,9 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.fs_assessment_store import (
+    FileSystemAssessmentStore,
+)
 from src.adapters.outbound.fs_transcript_repository import (
     FileSystemTranscriptRepository,
 )
@@ -42,6 +45,7 @@ from src.application.skills.judges import (
 )
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
 from src.application.skills.ports import ChatModel
+from src.application.skills.profile import ProfileService
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
@@ -129,6 +133,18 @@ class SkillsContainer:
     def transcripts(self) -> FileSystemTranscriptRepository:
         """Transcript files."""
         return FileSystemTranscriptRepository(self.settings.transcripts_dir)
+
+    def profiles(self, directory: str = "") -> ProfileService:
+        """Profiles across the assessments kept in ``directory``.
+
+        The default directory is ``output_dir``, where ``assess``
+        writes them.
+        """
+        s = self.settings
+        return ProfileService(
+            FileSystemAssessmentStore(directory or s.output_dir),
+            s.profile_min_situations,
+        )
 
     @cached_property
     def catalogues(self) -> JsonCatalogueRepository:

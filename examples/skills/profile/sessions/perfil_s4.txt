@@ -1,0 +1,20 @@
+[00:00:03] Irene: Gracias por venir. Producto quiere el panel nuevo para el día quince. Sé que es pronto, pero el cliente tiene una feria el dieciocho.
+[00:00:13] Luis: Imposible. El quince no llegamos ni de broma.
+[00:00:17] Marta: A ver, Irene, para entenderlo: lo que de verdad necesita el cliente el dieciocho es enseñar el panel en la feria, ¿no? ¿Necesita todas las pantallas o le valen algunas?
+[00:00:30] Irene: Buena pregunta. Para la feria le bastan la pantalla de resumen y la de alertas. El resto puede esperar.
+[00:00:38] Luis: Ya, pero luego siempre quieren más.
+[00:00:42] Marta: Puede ser, pero si solo son dos pantallas, eso son unos seis días de trabajo, según lo que estimamos el lunes. Llegaríamos el catorce.
+[00:00:53] Irene: ¿Y las otras tres pantallas, para cuándo?
+[00:00:57] Luis: Para final de mes, como pronto, y si no nos cambian nada.
+[00:01:02] Irene: Producto no va a querer esperar tanto. ¿No podéis meter a otra persona?
+[00:01:08] Marta: Bueno... si lo necesitáis así, lo intentamos.
+[00:01:12] Luis: Marta, eso no es lo que acabamos de decir hace un momento.
+[00:01:16] Marta: Ya, perdona. Irene, lo que decía Luis es que con otra persona tardaríamos más en explicarle el código que en hacerlo. Lo que sí podemos es darte dos pantallas el catorce y las otras tres el veintiocho.
+[00:01:31] Irene: El veintiocho... Lo tengo que hablar con producto. ¿Y si alguna se retrasa?
+[00:01:37] Marta: Entonces te aviso en cuanto lo sepamos, no el último día. Te mando cada viernes cómo vamos.
+[00:01:44] Irene: Vale, eso me sirve. Lo llevo a producto.
+[00:01:48] Luis: Y yo me encargo de las alertas, que es lo más delicado. Las tengo el diez.
+[00:01:54] Irene: Una cosa más: producto pidió también exportar a Excel.
+[00:01:58] Marta: Eh... bueno, vale, lo metemos también si hace falta.
+[00:02:03] Luis: Marta, eso son otros tres días. Irene, el Excel para el veintiocho, no para la feria.
+[00:02:10] Irene: De acuerdo. Lo apunto: dos pantallas el catorce, el resto y el Excel el veintiocho, y un correo cada viernes.

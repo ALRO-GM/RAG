@@ -106,7 +106,11 @@ class Transcript(BaseModel):
     ``conversation_type`` and ``conversation_goal`` are the session's
     declared kind and goal (``transcript.v1`` ``session.type`` and
     ``session.goal``), when the source has them: context to show next
-    to an analysis, never an input to it.
+    to an analysis, never an input to it. ``people`` maps a shown
+    speaker name to the person id the transcriber enrolled it under
+    (``transcript.v1`` speakers with ``enrolled: true``): the only link
+    between one person's sessions. ``started_at`` is when the session
+    started (ISO 8601), when the source says so.
     """
 
     session_id: str
@@ -114,6 +118,8 @@ class Transcript(BaseModel):
     turns: List[Turn]
     conversation_type: Optional[str] = None
     conversation_goal: Optional[str] = None
+    people: Dict[str, str] = Field(default_factory=dict)
+    started_at: Optional[str] = None
 
     def speakers(self) -> List[str]:
         """Return the speakers in order of first appearance."""
@@ -252,7 +258,8 @@ def from_contract(contract: ContractTranscript) -> Transcript:
     the previous speaker are shown as :func:`speaker_names` says, and
     the speaker's identification is kept (``named_through_floor``). The
     turn's confidence is the mean of its utterances' when they have one.
-    The session's declared type and goal are kept as they came.
+    The session's declared type and goal are kept as they came, and so
+    are its start and the person id of every enrolled speaker.
     """
     names = speaker_names(contract)
     turns: List[Turn] = []
@@ -286,6 +293,13 @@ def from_contract(contract: ContractTranscript) -> Transcript:
         turns=turns,
         conversation_type=contract.session.type,
         conversation_goal=contract.session.goal,
+        people={
+            names[s.id]: s.id for s in contract.speakers if s.enrolled
+        },
+        started_at=(
+            None if contract.session.started_at is None
+            else contract.session.started_at.isoformat()
+        ),
     )
 
 

@@ -1,0 +1,20 @@
+[00:00:03] Pablo: Vale, el problema es que ayer el servidor se cayó dos veces con unos trescientos clientes conectados. Hoy quiero que entendamos por qué antes de tocar nada.
+[00:00:14] Luis: Es la memoria, seguro. Si queréis, esta tarde amplío la memoria de la máquina y mañana lo vemos.
+[00:00:22] Irene: Yo he mirado los registros. La memoria estaba al cuarenta por ciento cuando se cayó, así que no creo que sea eso.
+[00:00:31] Luis: Pues entonces será la red, que siempre da problemas.
+[00:00:36] Marta: Irene, has dicho que la memoria estaba al cuarenta por ciento. ¿Y el número de conexiones abiertas, lo viste en los registros?
+[00:00:45] Irene: Sí, y ahí está el problema: las conexiones se quedaban abiertas. Iban subiendo hasta unas mil y entonces se paraba todo.
+[00:00:55] Marta: Entonces, si lo he entendido bien, el problema no es cuánta gente entra, sino que las conexiones no se cierran.
+[00:01:03] Luis: Eso es lo que he dicho yo, que es la red.
+[00:01:07] Pablo: No exactamente, Luis. Irene, sigue, que antes te hemos cortado.
+[00:01:12] Irene: Veo dos opciones: poner un tiempo máximo a cada conexión, o revisar el código que las cierra. Yo empezaría por el código, porque lo otro solo esconde el fallo.
+[00:01:25] Luis: El código está bien, lo escribí yo. Ponemos el tiempo máximo y nos olvidamos.
+[00:01:31] Marta: Yo estoy con Irene. Si solo ponemos el tiempo máximo, el día de la demo con quinientas personas nos vuelve a pasar, y la demo es justo el objetivo de este mes.
+[00:01:43] Luis: Que no, que es perder el tiempo.
+[00:01:46] Marta: Te entiendo, Luis, lo del tiempo máximo es rápido y algo arregla. ¿Qué te parece si lo ponemos hoy como parche y a la vez Irene y yo revisamos el código?
+[00:01:58] Luis: Bueno, vale. Yo pongo el parche esta tarde.
+[00:02:02] Pablo: Irene, ¿cuánto crees que os lleva revisar el cierre de las conexiones?
+[00:02:07] Irene: Dos días, si Marta me ayuda con las pruebas de carga.
+[00:02:12] Marta: Sí, yo preparo las pruebas de carga para mañana por la mañana. Irene, ¿te va bien empezar por el módulo de sesiones, que es donde viste las mil conexiones?
+[00:02:24] Luis: Y el viernes os cuento cómo ha ido el parche en producción, con los números.
+[00:02:30] Pablo: Resumiendo: Luis pone el parche hoy, Marta e Irene revisan el código en dos días y el viernes lo vemos juntos.

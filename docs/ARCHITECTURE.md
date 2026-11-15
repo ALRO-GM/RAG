@@ -125,16 +125,17 @@ src/
 ├── domain/
 │   ├── languages.py         Spanish analyzer, language detection
 │   └── skills/              transcript, rubric, assessment, interaction,
-│                            grounding, agreement, prompting,
+│                            grounding, agreement, prompting, profile,
 │                            act_sequence, conversation_events,
 │                            conversation_summary, event_evaluation
 ├── application/skills/      ports (ChatModel, TranscriptRepository,
-│                            CatalogueRepository), evidence, assessment,
-│                            gold, evaluation, lab, report,
-│                            conversation_events
+│                            CatalogueRepository, AssessmentStore),
+│                            evidence, assessment, gold, evaluation, lab,
+│                            report, person_report*, profile,
+│                            profile_report*, conversation_events
 └── adapters/
     ├── inbound/skills_cli.py
-    └── outbound/            fs_transcript_repository,
+    └── outbound/            fs_transcript_repository, fs_assessment_store,
                              json_catalogue_repository, act_sessions,
                              transformers_chat_model, anthropic_chat_model
 ```

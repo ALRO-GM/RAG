@@ -1,0 +1,259 @@
+{
+  "schema": "transcript.v1",
+  "session": {
+    "id": "perfil_s1",
+    "title": "Elegir la base de datos",
+    "language": "es",
+    "started_at": "2026-10-06T10:00:00+02:00",
+    "duration": 159.0,
+    "type": "reunion_decision",
+    "goal": "Decidir qué base de datos usa el proyecto"
+  },
+  "speakers": [
+    {
+      "id": "pablo",
+      "name": "Pablo",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "luis",
+      "name": "Luis",
+      "enrolled": true,
+      "identification": "threshold"
+    },
+    {
+      "id": "marta",
+      "name": "Marta",
+      "enrolled": true,
+      "identification": "threshold"
+    }
+  ],
+  "utterances": [
+    {
+      "id": "t0.s0",
+      "turn": 0,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 4.0,
+      "end": 14.5,
+      "text": "Bueno, empezamos. La idea es salir de aquí sabiendo qué base de datos usamos para el proyecto. Primero que cada uno cuente lo que ha mirado, ¿vale?",
+      "previous_speaker": null,
+      "previous_utterance": null
+    },
+    {
+      "id": "t1.s0",
+      "turn": 1,
+      "index": 0,
+      "speaker": "luis",
+      "start": 15.0,
+      "end": 21.5,
+      "text": "Yo lo tengo clarísimo, Postgres. Llevo años con Postgres y nunca me ha fallado.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t0.s0"
+    },
+    {
+      "id": "t2.s0",
+      "turn": 2,
+      "index": 0,
+      "speaker": "marta",
+      "start": 22.0,
+      "end": 35.5,
+      "text": "Vale, Luis, entonces lo que tú valoras es que es fiable y que ya lo conoces, ¿no? ¿Has mirado cómo va con los datos de los sensores, que llegan a ráfagas?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t1.s0"
+    },
+    {
+      "id": "t3.s0",
+      "turn": 3,
+      "index": 0,
+      "speaker": "luis",
+      "start": 36.0,
+      "end": 39.5,
+      "text": "Eso da igual, aguanta lo que le eches.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t2.s0"
+    },
+    {
+      "id": "t4.s0",
+      "turn": 4,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 40.0,
+      "end": 42.5,
+      "text": "Marta, ¿tú qué has mirado?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t3.s0"
+    },
+    {
+      "id": "t5.s0",
+      "turn": 5,
+      "index": 0,
+      "speaker": "marta",
+      "start": 43.0,
+      "end": 56.5,
+      "text": "Yo he mirado una base de series temporales. Con los datos de prueba de la semana pasada, las consultas por rango de fechas iban unas diez veces más rápido.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t4.s0"
+    },
+    {
+      "id": "t6.s0",
+      "turn": 6,
+      "index": 0,
+      "speaker": "luis",
+      "start": 57.0,
+      "end": 64.5,
+      "text": "Ya, pero eso es otra herramienta más que mantener. Es lo de siempre, cada semana una moda nueva.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t5.s0"
+    },
+    {
+      "id": "t7.s0",
+      "turn": 7,
+      "index": 0,
+      "speaker": "marta",
+      "start": 65.0,
+      "end": 70.5,
+      "text": "Bueno, puede ser. Si lo veis tan claro, vamos con Postgres.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t6.s0"
+    },
+    {
+      "id": "t8.s0",
+      "turn": 8,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 71.0,
+      "end": 79.5,
+      "text": "Espera, Marta, no lo dejes ahí. Lo de las consultas por fechas me parece importante. ¿Lo puedes explicar un poco más?",
+      "previous_speaker": "marta",
+      "previous_utterance": "t7.s0"
+    },
+    {
+      "id": "t9.s0",
+      "turn": 9,
+      "index": 0,
+      "speaker": "marta",
+      "start": 80.0,
+      "end": 93.5,
+      "text": "Vale. Lo que decía Pablo al principio, que el panel tiene que cargar en menos de un segundo: con Postgres tal cual no llegamos con un año de datos.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t8.s0"
+    },
+    {
+      "id": "t10.s0",
+      "turn": 10,
+      "index": 0,
+      "speaker": "luis",
+      "start": 94.0,
+      "end": 97.5,
+      "text": "Con un índice bien puesto llega de sobra.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t9.s0"
+    },
+    {
+      "id": "t11.s0",
+      "turn": 11,
+      "index": 0,
+      "speaker": "marta",
+      "start": 98.0,
+      "end": 102.5,
+      "text": "Puede ser, Luis, no lo sé. No quiero liarla.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t10.s0"
+    },
+    {
+      "id": "t12.s0",
+      "turn": 12,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 103.0,
+      "end": 109.5,
+      "text": "Luis, ¿has probado el índice con los datos de prueba, o lo dices por experiencia?",
+      "previous_speaker": "marta",
+      "previous_utterance": "t11.s0"
+    },
+    {
+      "id": "t13.s0",
+      "turn": 13,
+      "index": 0,
+      "speaker": "luis",
+      "start": 110.0,
+      "end": 116.5,
+      "text": "Por experiencia. Pero vamos, que lo pruebo yo esta tarde y os lo paso mañana.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t12.s0"
+    },
+    {
+      "id": "t14.s0",
+      "turn": 14,
+      "index": 0,
+      "speaker": "marta",
+      "start": 117.0,
+      "end": 129.5,
+      "text": "Entonces, si te he entendido, Luis, haces la prueba con índice con el mismo año de datos, y si no baja del segundo miramos lo de series temporales. ¿Es así?",
+      "previous_speaker": "luis",
+      "previous_utterance": "t13.s0"
+    },
+    {
+      "id": "t15.s0",
+      "turn": 15,
+      "index": 0,
+      "speaker": "luis",
+      "start": 130.0,
+      "end": 131.5,
+      "text": "Sí, eso.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t14.s0"
+    },
+    {
+      "id": "t16.s0",
+      "turn": 16,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 132.0,
+      "end": 138.5,
+      "text": "Perfecto. Antes de cerrar, ¿alguien ve algo en contra? Marta, Luis, decidlo ahora.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t15.s0"
+    },
+    {
+      "id": "t17.s0",
+      "turn": 17,
+      "index": 0,
+      "speaker": "marta",
+      "start": 139.0,
+      "end": 147.5,
+      "text": "No, nada. Bueno, me preocupa el tiempo de carga, pero da igual, ya lo hablamos otro día.",
+      "previous_speaker": "pablo",
+      "previous_utterance": "t16.s0"
+    },
+    {
+      "id": "t18.s0",
+      "turn": 18,
+      "index": 0,
+      "speaker": "luis",
+      "start": 148.0,
+      "end": 152.5,
+      "text": "Yo me encargo de la prueba y del informe para el jueves.",
+      "previous_speaker": "marta",
+      "previous_utterance": "t17.s0"
+    },
+    {
+      "id": "t19.s0",
+      "turn": 19,
+      "index": 0,
+      "speaker": "pablo",
+      "start": 153.0,
+      "end": 159.0,
+      "text": "Pues queda así: Luis hace la prueba para el jueves, y el viernes decidimos con los números delante.",
+      "previous_speaker": "luis",
+      "previous_utterance": "t18.s0"
+    }
+  ],
+  "pipeline": {
+    "recogniser": "none (hand-written example)",
+    "voice_model": "none (hand-written example)",
+    "transcriber": "none (hand-written example)"
+  }
+}

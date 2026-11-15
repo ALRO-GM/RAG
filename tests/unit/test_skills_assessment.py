@@ -526,3 +526,20 @@ def test_word_floor_is_exclusive_and_off_by_default() -> None:
         "below_participation_floor"
     ]
     assert cell(assess(), "Tom", "planning").rating == 3
+
+
+def test_person_ids_start_and_type_come_from_the_transcript() -> None:
+    """Enrolled speakers keep their person id; others have none."""
+    transcript = make_transcript().model_copy(update={
+        "people": {"Maya": "maya-1"},
+        "started_at": "2026-10-01T10:00:00+02:00",
+        "conversation_type": "feedback",
+    })
+    result = assess(transcript=transcript)
+    assert result.started_at == "2026-10-01T10:00:00+02:00"
+    assert result.conversation_type == "feedback"
+    card = result.scorecard_of_person("maya-1")
+    assert card is not None and card.participant == "Maya"
+    tom = result.scorecard("Tom")
+    assert tom is not None and tom.person_id is None
+    assert result.scorecard_of_person("nobody") is None

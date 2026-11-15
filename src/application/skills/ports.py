@@ -2,6 +2,7 @@
 
 from typing import Any, Callable, Dict, List, Mapping, Protocol, Tuple
 
+from src.domain.skills.assessment import SessionAssessment
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.transcript import Transcript
@@ -87,4 +88,19 @@ class CatalogueRepository(Protocol):
 
     def available(self) -> List[Tuple[str, str]]:
         """Return the (name, language) pairs that can be loaded."""
+        ...
+
+
+class AssessmentStore(Protocol):
+    """Keep the assessment of every session (``skills assess`` output)."""
+
+    def all(self) -> List[SessionAssessment]:
+        """Return every stored assessment."""
+        ...
+
+    def get(self, reference: str) -> SessionAssessment:
+        """Return one assessment by session id or file path.
+
+        Raises :class:`~src.domain.errors.NotFoundError` if there is none.
+        """
         ...
