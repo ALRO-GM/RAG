@@ -50,13 +50,27 @@ Marta: Pero un seis por ciento ahora mismo no lo podemos asumir. | rechazo >i1
 
 `=== id | type | title` opens a dialogue (`session.type`), `-- fase:`
 sets the phase of what follows, consecutive sentences of one speaker are
-one turn. The grammar and its checks are in
+one turn.
+
+A sentence that clearly does two or three things carries **weighted
+labels** (owner decision 2 on #57, issue #73): `etiqueta:peso` with whole
+%, steps of 10, primary first, summing to 100; a bare label is the same
+as `etiqueta:100`, so every single-label line stays valid:
+
+```
+Javier: Vale, se lo digo hoy. | compromiso:70 aceptacion:30 >r1
+```
+
+A reply rule holds for every label of the sentence (the `aceptacion:30`
+above still needs its `>r1`). The grammar and its checks are in
 `src/domain/skills/dialogue_act_set.py`.
 
 `dialogues.json` is the same set in a `transcript.v1`-like shape
 (`session` with `type`; `speakers`; `utterances` with `id` `t<turn>.s<n>`,
-`turn`, `index`, `speaker`, `text`, `act`, `responds_to`, `phase`; no
-times or audio; `"synthetic": true`). It is generated, never edited:
+`turn`, `index`, `speaker`, `text`, `act` (the primary label),
+`responds_to`, `phase`, and `labels` (`label`, `weight`) only on the
+sentences with more than one label; no times or audio;
+`"synthetic": true`). It is generated, never edited:
 
 ```sh
 python -m src skills dialogue_acts_set --source examples/skills/dialogue_acts \
@@ -68,7 +82,14 @@ python -m src skills dialogue_acts_import --corpus own \
 ## Contents (measured with `dialogue_acts_set`, 2026-11-15)
 
 51 dialogues, 1,534 sentences, 1,188 turns, 10,557 words (6.9 per
-sentence), 20 speakers, 479 reply links.
+sentence), 20 speakers, 479 reply links. 6 sentences carry weighted
+labels (#73, 2026-11-15): four promises answering a request
+(`compromiso:70 aceptacion:30`) and two invitations to speak
+(`gestion:60 pregunta:40`). They were added to exercise the format; the
+rest of the set was **not** relabelled, so most sentences that could
+carry a second act still have one label.
+
+Counts below are by primary label.
 
 | Category | Sentences | Share |
 |---|---:|---:|
@@ -140,7 +161,9 @@ of `CONVERSATION.md` §4.2 and are **not** an empirical phase scheme.
   Aceptación, during a telling Señal de escucha; an invitation to speak
   ("Nuria, ¿tú cómo lo ves?") is Gestión and its answer a Respuesta; a
   request accepted with a promise is split into Aceptación + Compromiso
-  where the text allows it, else labelled Compromiso. A second label is
-  not given (decision 2 of #57 is still open).
+  where the text allows it, else labelled Compromiso. Second and third
+  labels were allowed after the set was written (decision 2 of #57); only
+  the 6 sentences above carry them, so the set says nothing about how
+  often real sentences need one.
 - **For development and a first baseline only**, never for validating the
   categories or for any statement about a real person.

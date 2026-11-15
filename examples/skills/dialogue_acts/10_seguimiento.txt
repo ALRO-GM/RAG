@@ -19,7 +19,7 @@ Nuria: Bien. | escucha
 Nuria: ¿A quién se las pediste? | pregunta #q1
 Óscar: A los de… eh… al estudio de foto, el de siempre. | respuesta >q1
 Nuria: Llámales hoy, por favor, que el boletín sale el día cinco. | peticion #r1
-Óscar: Vale, les llamo después de la reunión. | compromiso >r1
+Óscar: Vale, les llamo después de la reunión. | compromiso:70 aceptacion:30 >r1
 Nuria: Sergio. | gestion #g2
 Sergio: Sí. | aceptacion >g2
 Sergio: Yo estuve con el análisis de la web, eh, las visitas han caído un diez por ciento. | informacion

@@ -86,7 +86,7 @@ Belén: Yo me ofrezco para las fotos. | compromiso
 Carmen: Y yo rehago la guía de tallas, que me quejo tanto. | compromiso
 Pablo: Jaja, perfecto. | relacion
 Pablo: Sergio, ¿puedes hablar con los de la web para lo del formulario? | peticion #r1
-Sergio: Hecho, hoy mismo les escribo. | compromiso >r1
+Sergio: Hecho, hoy mismo les escribo. | compromiso:70 aceptacion:30 >r1
 
 === llu-03 | lluvia_ideas | Nombre para el nuevo producto
 -- fase: apertura

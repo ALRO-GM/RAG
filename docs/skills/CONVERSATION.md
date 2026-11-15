@@ -60,7 +60,7 @@ grupos y con qué etiquetas de contexto.
    gruesas los modelos entrenados pasan del 90 % [6][9]. Conclusión: pocas
    categorías, bien definidas.
 
-**Grupos recomendados (capa 1, una etiqueta principal por frase). Son 13 tras la decisión 1 del dueño (2026-11-15): Opinión separada de Información, y Propuesta y Petición por separado:**
+**Grupos recomendados (capa 1, una etiqueta principal por frase y, si la frase hace claramente dos o tres cosas, hasta dos más con su peso en %, decisión 2). Son 13 tras la decisión 1 del dueño (2026-11-15): Opinión separada de Información, y Propuesta y Petición por separado:**
 
 | # | Categoría | En una frase |
 |---|---|---|
@@ -95,7 +95,16 @@ baratas: reglas, un modelo de lenguaje local con ejemplos, y un
 clasificador pequeño entrenado con AMI/ICSI traducidos. Coste de GPU:
 horas, no días.
 
-**Decisiones (Alberto, 2026-11-15):** ver §6.4. Tomadas: 1 (13 grupos separados), 3 (el set español lo creamos nosotros, #64), 4 (tipo de conversación en la sesión, #65), 5 (se pueden mandar grabaciones con consentimiento a la API de Claude) y 6 (usar Switchboard-DA, no comercial, solo evaluación). Abierta: la 2 (segunda etiqueta).
+**Decisiones (Alberto, 2026-11-15):** ver §6.4. Tomadas todas: 1 (13 grupos separados), 2 (una frase puede llevar una segunda y una tercera etiqueta, cada una con su % de certeza, #73), 3 (el set español lo creamos nosotros, #64), 4 (tipo de conversación en la sesión, #65), 5 (se pueden mandar grabaciones con consentimiento a la API de Claude) y 6 (usar Switchboard-DA, no comercial, solo evaluación).
+
+**Cómo se mide con varias etiquetas (decisión 2, §6.3).** Entre
+anotadores: κ de la etiqueta principal, global y por categoría, con su
+intervalo del 95 % (la regla de mantener/provisional/quitar no cambia), y
+para los pesos el **solapamiento medio** (cuánto de la función de la frase
+reparten igual los dos anotadores) y la **α de Krippendorff** con la
+distancia 1 − solapamiento (el mismo solapamiento descontando el azar).
+Para el etiquetador: acierto en la primera y entre las tres primeras,
+log-loss y error de calibración (ECE).
 
 ---
 
@@ -704,7 +713,14 @@ set: of the labels given 70 %, about 70 % are right). A label whose
 confidence is not clearly above the **base rate** of its category (its
 share among all sentences in the gold set) is shown as **"dudoso"** or not
 shown. The margin over the base rate and the "dudoso"/hidden cut-off are
-**not fixed yet**: they are set on the gold set when it exists. Reported
+**not fixed yet**: they are set on the gold set when it exists. With
+weighted labels (decision 2, #73) the tagger gives its **top 3** labels in
+the same shape as a human annotation, each with its calibrated
+probability in whole %, plus an explicit **rest** (not renormalised to
+100, which would inflate the confidences); the base rate of a category
+is its mean weight in the gold set, and each of the three labels is
+checked against it (`src/domain/skills/act_agreement.py`:
+`tagger_labels`, `base_rates`, `doubt_thresholds`). Reported
 next to each per-category κ: the tagger's κ against the consensus (§6.3).
 
 ### 5.4 What text-only loses
@@ -769,7 +785,7 @@ use SwDA for evaluation only unless a legal review says otherwise.
 ### 6.2 Recommended first step
 
 1. **Write the annotation guide** for the 13 categories (done:
-   [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md); §5.2 is its basis), with `responds_to` and the optional second label.
+   [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md); §5.2 is its basis), with `responds_to` and the optional second and third weighted labels.
 2. **Annotate a Spanish gold set** (two annotators, independently, then
    consensus): ~1,500 sentences from 6–10 meetings (role-played or with
    consent), oversampling meetings with decisions and task assignment so
@@ -790,12 +806,38 @@ which is the first decision the issue asks for.
 
 | Question | Data | Metric | Pass mark |
 |---|---|---|---|
-| Are the categories reliable for people? | Spanish gold set, 2 annotators | Cohen's κ per category and overall; confusion matrix; % sentences annotators wanted to split | κ ≥ .60 per category (else merge or mark provisional) |
-| Does the tagger match people? | Gold set consensus | Per-class precision/recall/F1, macro-F1, κ system vs consensus, compared with annotator–annotator κ (the ceiling) | System κ within .10 of the human κ |
+| Are the categories reliable for people? | Spanish gold set, 2 annotators | Cohen's κ on the primary label, per category and overall, with bootstrap 95 % CI; confusion matrix; share of sentences with a 2nd/3rd label; mean overlap and weighted α of the weights (§6.3.1) | κ ≥ .60 per category (else merge or mark provisional) |
+| Does the tagger match people? | Gold set consensus | Per-class precision/recall/F1, macro-F1, κ system vs consensus, compared with annotator–annotator κ (the ceiling); top-1 and top-3 accuracy, log-loss and ECE (§6.3.1) | System κ within .10 of the human κ |
 | Does it transfer? | AMI and MRDA test splits mapped to our categories; DIHANA L1 for Pregunta/Respuesta | Macro-F1 by corpus | Reported, not gating (different domain) |
 | Does ASR hurt? | Gold set on human-corrected vs raw `transcript.v1` text | Δ macro-F1 | Reported; flag sentences with low `confidence` |
 | Is layer 2 right? | Gold set decisions and action items marked by annotators | Precision/recall of derived decisions and action items | Reported; action items need κ for the four parts [18] |
 | Is it fair? | Gold set by speaker gender, accent, native vs non-native | Per-group F1 and error-rate ratios | Ratio ≥ .80 (four-fifths, RESEARCH.md §7) |
+
+#### 6.3.1 Measures for weighted labels (decision 2, #73)
+
+A sentence carries 1 to 3 labels with weights in whole % summing to 100
+(human annotation: steps of 10, primary first; see
+[`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md) §7). The measures,
+all pure functions in `src/domain/skills/act_agreement.py` (generic α in
+`agreement.py`), and why:
+
+| Measure | What it answers | Why this one |
+|---|---|---|
+| Cohen's κ on the **primary** label, overall and per category (one category against the rest), percentile bootstrap 95 % CI over sentences | Is each category reliable? (the keep / provisional / drop rule of §5.3.1 b) | Unchanged from before the decision, so the borrowed κ of §5.3.1 a stay comparable: published κ are single-label. Per-category κ is the binary κ of that category against the rest, the usual way to give each category its own figure |
+| **Mean overlap**: Σ over categories of the smaller weight, /100, averaged over sentences | How much of each sentence's function the two annotators split the same way | Reads directly in the annotators' own unit (% of the sentence); 1 − overlap is the total variation distance, a proper metric between distributions |
+| **Krippendorff's α** with δ = 1 − overlap between the two label distributions | The overlap corrected for chance | α accepts any distance and any number of annotators and missing ratings [50]; with one label per sentence δ is 0/1 and it is exactly the nominal α (tested against Krippendorff's published example, .743), so single-label and weighted data are on one scale. It is the distribution analogue of MASI-weighted α for set-valued labels [51] |
+| Top-1 and top-3 accuracy (against the primary label) | Is the right act first, or at least among the three shown? | The tagger shows three labels; top-3 says whether the reviewer will see the right one |
+| Log-loss (cross-entropy against the reference weights / 100) | Are the probabilities right, including the secondary acts? | With one reference label it is the usual log-loss; with weights it rewards a tagger that gives "compromiso 70, aceptación 30" over "compromiso 100". Categories outside the top 3 share the explicit rest equally |
+| Expected calibration error (top-1 confidence, 10 equal-width bins [52]) | Of the labels given 70 %, are about 70 % right? | §5.3.1 c needs calibrated confidences before "dudoso" thresholds can mean anything |
+
+Considered and not used: **Jensen–Shannon divergence** between label
+distributions (log-based, so a 10-point disagreement costs differently
+depending on where it falls, hard to explain to annotators, and it adds
+nothing α with the overlap distance does not already give); a **κ over
+every label** (it would need a rule for how much a secondary label
+counts, which is exactly what the weights already say). The thresholds
+for the weighted measures are **not set**: they are reported next to
+the primary κ until the gold set shows what values are reachable.
 
 Sample-size note: with ~1,500 sentences and a majority class near 50–70%
 (Información), rare categories will have tens of instances; κ for a
@@ -811,15 +853,28 @@ optional.
    for each, and they are merged later only if the gold set shows κ below
    .60 (§5.3). Recorded in §0, §5.2 and
    [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md).
-2. **Second label** (open): allow a secondary label per sentence (more faithful,
-   costlier to annotate) or force one?
-3. **Gold set source**: role-plays written/recorded in-house, or real
-   meetings with consent? Who annotates (the psychologist, students)?
-4. **Conversation type**: add an optional `session.type` to
-   `transcript.v1` (declared by the uploader) — yes/no.
-5. **API judge**: may consented recordings be sent to Claude to obtain a
-   ceiling reference?
-6. **SwDA (NC licence)**: evaluation only, or exclude?
+2. **Second label** — **decided 2026-11-15 (owner):** a sentence may
+   carry a second and a third label, weighted, each with its % of
+   certainty (#73). Human annotation: 1–3 labels, whole %, steps of 10,
+   primary first, summing to 100; a single label is 100. Tagger: its top
+   3 calibrated probabilities in the same shape plus an explicit rest,
+   labels not clearly above their base rate marked "dudoso" (§5.3.1 c).
+   Measures in §6.3.1; annotation rules in
+   [`DIALOGUE_ACTS_GUIDE.md`](DIALOGUE_ACTS_GUIDE.md) §7; format in
+   [`DIALOGUE_ACT_DATA.md`](DIALOGUE_ACT_DATA.md) §5.
+3. **Gold set source** — **decided 2026-11-15 (owner):** we write the
+   Spanish set ourselves (#64: 51 original dialogues, 1,534 sentences in
+   `examples/skills/dialogue_acts/`); a human double annotation of a
+   subset is still needed to measure κ.
+4. **Conversation type** — **decided 2026-11-15 (owner):** yes; optional
+   `session.type` and `session.goal` in `transcript.v1` (#65), context
+   only, never used in a rating.
+5. **External judge** — **decided 2026-11-15 (owner):** consented
+   recordings may be sent to Claude. The paid API is not used; the judge
+   runs through Claude Code on the owner's subscription, with a local
+   model as fallback and a both-judges comparison mode (#74).
+6. **SwDA (NC licence)** — **decided 2026-11-15 (owner):** use it,
+   flagged non-commercial, for internal evaluation only (#64).
 
 ---
 
@@ -1098,3 +1153,17 @@ https://www.routledge.com/SPIN-Selling-1st-Edition/Rackham/p/book/9780566076893
 *Psychological Bulletin* 63(6), 384–399.
 https://garfield.library.upenn.edu/classics1984/A1984TD25600001.pdf
 [unverified].
+
+[50] Krippendorff, K. (2011). Computing Krippendorff's alpha-reliability.
+University of Pennsylvania, Annenberg School for Communication. Worked
+example (4 observers, 12 units) reproduced in
+`tests/unit/test_skills_agreement.py` and
+`tests/unit/test_skills_act_agreement.py`
+https://repository.upenn.edu/asc_papers/43 [unverified link].
+
+[51] Passonneau, R. (2006). Measuring agreement on set-valued items
+(MASI) for semantic and pragmatic annotation. *LREC 2006* [unverified].
+
+[52] Guo, C., Pleiss, G., Sun, Y., Weinberger, K. Q. (2017). On
+calibration of modern neural networks. *ICML 2017*, PMLR 70 (expected
+calibration error, equal-width bins) [unverified].

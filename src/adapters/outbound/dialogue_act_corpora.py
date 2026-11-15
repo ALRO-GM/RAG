@@ -44,6 +44,7 @@ from src.domain.skills.dialogue_acts import (
     CorpusInfo,
     SourceDialogue,
     SourceUtterance,
+    format_labels,
 )
 
 NITE = "{http://nite.sourceforge.net/}"
@@ -481,7 +482,8 @@ class OwnSpanishSet:
                     utterances=[
                         SourceUtterance(
                             id=u.id, speaker=u.speaker, text=u.text,
-                            source_label=u.act, responds_to=u.responds_to)
+                            source_label=format_labels(u.labels),
+                            responds_to=u.responds_to, labels=u.labels)
                         for u in dialogue.utterances
                     ])
 

@@ -83,7 +83,17 @@
     "text": "Luis, tú has mirado los números, ¿no?",
     "act": "gestion",
     "responds_to": null,
-    "phase": "información"
+    "phase": "información",
+    "labels": [
+     {
+      "label": "gestion",
+      "weight": 60
+     },
+     {
+      "label": "pregunta",
+      "weight": 40
+     }
+    ]
    },
    {
     "id": "t4.s0",
@@ -567,7 +577,17 @@
     "text": "Nuria, ¿tú cómo lo ves?",
     "act": "gestion",
     "responds_to": null,
-    "phase": "discusión"
+    "phase": "discusión",
+    "labels": [
+     {
+      "label": "gestion",
+      "weight": 60
+     },
+     {
+      "label": "pregunta",
+      "weight": 40
+     }
+    ]
    },
    {
     "id": "t12.s0",
@@ -1739,7 +1759,17 @@
     "text": "Vale, mañana lo tienes.",
     "act": "compromiso",
     "responds_to": "t22.s0",
-    "phase": "tareas"
+    "phase": "tareas",
+    "labels": [
+     {
+      "label": "compromiso",
+      "weight": 70
+     },
+     {
+      "label": "aceptacion",
+      "weight": 30
+     }
+    ]
    },
    {
     "id": "t24.s0",
@@ -2597,7 +2627,17 @@
     "text": "Hecho, hoy mismo les escribo.",
     "act": "compromiso",
     "responds_to": "t34.s1",
-    "phase": "cierre"
+    "phase": "cierre",
+    "labels": [
+     {
+      "label": "compromiso",
+      "weight": 70
+     },
+     {
+      "label": "aceptacion",
+      "weight": 30
+     }
+    ]
    }
   ],
   "synthetic": true
@@ -4407,7 +4447,17 @@
     "text": "Vale, se lo digo hoy.",
     "act": "compromiso",
     "responds_to": "t19.s1",
-    "phase": "soluciones"
+    "phase": "soluciones",
+    "labels": [
+     {
+      "label": "compromiso",
+      "weight": 70
+     },
+     {
+      "label": "aceptacion",
+      "weight": 30
+     }
+    ]
    },
    {
     "id": "t21.s0",
@@ -13976,7 +14026,17 @@
     "text": "Vale, les llamo después de la reunión.",
     "act": "compromiso",
     "responds_to": "t8.s0",
-    "phase": "ronda"
+    "phase": "ronda",
+    "labels": [
+     {
+      "label": "compromiso",
+      "weight": 70
+     },
+     {
+      "label": "aceptacion",
+      "weight": 30
+     }
+    ]
    },
    {
     "id": "t10.s0",

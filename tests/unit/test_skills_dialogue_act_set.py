@@ -7,6 +7,7 @@ from src.domain.skills.dialogue_act_set import (
     parse_set,
     set_distribution,
     to_transcript_like,
+    weighted_count,
 )
 
 GOOD = """\
@@ -63,6 +64,44 @@ def test_transcript_like_shape() -> None:
 HEAD = "=== d | conflicto | T\n"
 
 
+WEIGHTED = HEAD + """\
+A: Pásame el informe hoy. | peticion #p
+B: Vale, te lo mando a las cuatro. | compromiso:70 aceptacion:30 >p
+A: ¿Lo tienes? | gestion:60 pregunta:40 #q
+B: Sí. | respuesta >q
+"""
+
+
+def test_weighted_labels_are_read_and_the_primary_is_the_act() -> None:
+    (dialogue,) = parse_set(WEIGHTED)
+    promise = dialogue.utterances[1]
+    assert promise.act == "compromiso"
+    assert [(x.label, x.weight) for x in promise.labels] == [
+        ("compromiso", 70), ("aceptacion", 30)]
+    assert promise.responds_to == "t0.s0"
+    assert dialogue.utterances[0].labels[0].weight == 100
+    assert dialogue.utterances[3].responds_to == "t2.s0"
+    counts = set_distribution([dialogue])
+    assert counts["compromiso"] == 1 and counts["aceptacion"] == 0
+    assert weighted_count([dialogue]) == 2
+
+
+def test_an_answer_may_reply_to_a_secondary_question() -> None:
+    (dialogue,) = parse_set(HEAD + "A: Es así, ¿no? | informacion:60 "
+                            "pregunta:40 #a\nB: Sí. | respuesta >a\n")
+    assert dialogue.utterances[1].responds_to == "t0.s0"
+
+
+def test_transcript_like_adds_labels_only_when_weighted() -> None:
+    document = to_transcript_like(parse_set(WEIGHTED)[0])
+    utterances = document["utterances"]
+    assert "labels" not in utterances[0]  # type: ignore[index]
+    assert utterances[1]["act"] == "compromiso"  # type: ignore[index]
+    assert utterances[1]["labels"] == [  # type: ignore[index]
+        {"label": "compromiso", "weight": 70},
+        {"label": "aceptacion", "weight": 30}]
+
+
 @pytest.mark.parametrize("text, message", [
     ("A: hola | pregunta\n", "before any"),
     ("=== d | otra | T\n", "unknown conversation type"),
@@ -81,6 +120,18 @@ HEAD = "=== d | conflicto | T\n"
     (HEAD + "-- tipo: x\n", "expected '-- fase"),
     (HEAD + HEAD + "A: a | otro\n", "is empty"),
     (HEAD + "A: a | otro\n" + HEAD, "already defined"),
+    (HEAD + "A: a | otro:70 gestion:30 extra\n", "unexpected"),
+    (HEAD + "A: a | otro:75 gestion:25\n", "steps of 10"),
+    (HEAD + "A: a | otro:70 gestion\n", "add up to 70"),
+    (HEAD + "A: a | otro:70 gestion:20\n", "add up to 90"),
+    (HEAD + "A: a | gestion:30 otro:70\n", "primary label goes first"),
+    (HEAD + "A: a | otro:70 saludo:30\n", "unknown label"),
+    (HEAD + "A: Haz esto. | peticion #p\n"
+     "B: Vale, lo hago. | compromiso:70 aceptacion:30\n",
+     "a aceptacion needs '>anchor"),
+    (HEAD + "A: Ajá. | escucha #a\n"
+     "B: Vale, lo hago. | compromiso:70 aceptacion:30 >a\n",
+     "cannot reply to a escucha"),
 ])
 def test_errors_name_the_line(text: str, message: str) -> None:
     with pytest.raises(InvalidInputError, match=message):

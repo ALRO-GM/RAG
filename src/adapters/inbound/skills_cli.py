@@ -37,6 +37,7 @@ from src.domain.skills.dialogue_act_set import (
     parse_set,
     set_distribution,
     to_transcript_like,
+    weighted_count,
 )
 from src.domain.skills.interaction import describe
 from src.domain.skills.speech import clock, transcript_sentences
@@ -582,7 +583,8 @@ class SkillsCLI:
             types[dialogue.session.type] = types.get(
                 dialogue.session.type, 0) + 1
         print(f"{len(dialogues)} dialogues, {sum(counts.values())} "
-              "sentences")
+              f"sentences ({weighted_count(dialogues)} with weighted "
+              "labels)")
         for key, count in counts.items():
             print(f"  {key}: {count}")
         print("  types: " + ", ".join(
