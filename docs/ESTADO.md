@@ -108,7 +108,7 @@ corpus públicos; sólo sintética; sin medir.
 | # | Fase | Estado | % | Certeza | Evidencia | Riesgo principal | Siguiente paso |
 |---|---|---|---|---|---|---|---|
 | 1 | Grabación y transcripción | hecho | ~85 | media-baja: sintética | `docs/skills/AUDIO.md` §2; `docs/transcriber/ARCHITECTURE.md` | WER 5,4 % es habla leída, sin solape; en conversación real no hay texto de referencia | #19: reunión real con consentimiento y corrección a mano |
-| 2 | Diarización y persona de cada frase | hecho | ~80 | media: sintética y una reunión pública | `docs/transcriber/IDENTIFICATION.md` §3.2; `LAB.md` §13.4 | Voces y micrófonos distintos en el corpus de prueba; en casa todas las voces pasan por un móvil | #44 (en curso) y #19 |
+| 2 | Diarización y persona de cada frase | hecho | ~80 | media: sintética y corpus públicos (4 reuniones AMI, 10 llamadas CALLHOME en español) | `docs/transcriber/IDENTIFICATION.md` §3.2; `LAB.md` §13.4, §13.8 | Voces y micrófonos distintos en el corpus de prueba; en casa todas las voces pasan por un móvil | #19 |
 | 3 | Laboratorio de modelos y pestaña Pruebas | hecho | ~90 | alta como herramienta | `lab/STATUS.md`; `LAB.md` §7, §11.7, §13 | Sin etiquetas del dueño, sus cifras propias son acuerdo entre modelos | Etiquetar fragmentos discutidos (`LAB.md` §11.6) |
 | 4 | Corpus teórico y rúbrica | parcial | ~60 | media-baja: sin revisión de experto | `docs/skills/THEORY.md`; `RESEARCH.md`; `knowledge/rubrics/` | Ningún experto ha revisado los indicadores; lo validado es observacional con evaluadores formados | T-38: revisión por psicólogo o panel |
 | 5 | RAG y recuperación de fragmentos | hecho | ~90 | alta en corpus 42 y BEIR; sin medir en la rúbrica | `README.md` "Performance analysis"; `experiments/REPORT.md`; `docs/benchmarks/` | No hay referencias reales de "qué indicador corresponde a qué frase" | Medir con las anotaciones de T-36 |
@@ -161,6 +161,8 @@ frases que no se parten en un cambio de voz dudoso (TR-02 a TR-19).
 | Misma medida en el camino antiguo (ya retirado) | 91,5 % de media | `AUDIO.md` §2 |
 | Número de personas estimado | 88,2 % en `test`, 90,2 % en el camino antiguo | `IDENTIFICATION.md` §3.2; `AUDIO.md` §2 |
 | Reunión real pública AMI, una grabación (4 personas, 1787 s) | pyannote-community-1: DER 0,1819; sortformer: DER 0,2907 | `LAB.md` §13.4 |
+| Laboratorio contra referencia humana, audio original: 4 reuniones AMI (4 personas) | DER medio: DiariZen 0,089 (no comercial), pyannote-3.1 0,130, pyannote-community-1 0,134, Nemotron 0,297, Sortformer 0,333 | `LAB.md` §13.8.1 |
+| Igual, 10 llamadas CALLHOME en español (2 personas, teléfono) | DER medio: Nemotron 0,106, Sortformer 0,122, DiariZen 0,163, pyannote-community-1 0,195; el orden cambia entre corpus | `LAB.md` §13.8.2 |
 
 DER es la proporción de tiempo de habla mal asignado u omitido (perdido,
 falsa alarma o confusión). 0,18 significa que el 18 % del habla de
@@ -186,6 +188,8 @@ humana (DER, JER, solape); pestaña "Pruebas" con resumen de progreso,
 resultados, pendientes y audios; reanudación tras fallos de memoria de la
 GPU; omisión de grabaciones sin habla o con referencia inválida (LAB-2 a
 LAB-8 en `docs/TASKS.md`; `lab/STATUS.md`).
+Resultados contra referencia humana (4 reuniones AMI y 10 llamadas CALLHOME
+en español, 3 reductores de ruido x 8 diarizadores): `LAB.md` §13.8.
 
 Certeza alta **como herramienta**: está probada con datos de prueba y en
 una ejecución real completa. Pendiente (`lab/STATUS.md`): etiquetas del

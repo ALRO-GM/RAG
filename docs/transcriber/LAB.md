@@ -999,6 +999,10 @@ ran**: the full run `e7a37b38` of session R1 has all 224 pipelines
 Left: the owner's labels on the disputed fragments (§11.6), which
 decide every "which is right" question; DiariZen v1 / base if wanted.
 
+Scored against the public references (§13): the lab suite ran on four AMI
+meetings and ten CALLHOME Spanish calls and its results are in §13.8
+(#44). Still no scores on a recording of our own.
+
 Resumability was checked twice on R1. The second run of the same suite
 found 59 of its 83 steps in the cache and recomputed only the 24 that
 depended on the two revised denoisers. The full run found 83 of 90 steps
@@ -1333,3 +1337,260 @@ With the shard already downloaded, `lab import-reference callhome
 without speech, row 12 as `skipped: invalid reference (Invalid
 reference turn from 342.684 s to -56.71 s)` and imports rows 1, 4–8,
 10, 11 and 13.
+
+### 13.8 Results of #44 (2026-11-15)
+
+The suite of §13 ran on four AMI meetings and ten CALLHOME Spanish
+calls, scored against the human reference. The figures below come from
+`lab reference-summary --corpus ami --json` and `--corpus callhome
+--json` (aggregates only; the audio and the runs stay in the private
+data directory, §6).
+
+**Setup.**
+
+| | AMI | CALLHOME Spanish |
+|---|---|---|
+| Recordings | 4 meetings: EN2002b (1787 s), ES2004b (2345 s), ES2004c (2334 s), TS3003a (1506 s) | 10 calls of 300–605 s (`data-0001`, `0004`–`0008`, `0010`, `0011`, `0013`, `0014`) |
+| Language, audio | English, single distant microphone (`sdm`) | Spanish, telephone |
+| Speakers in the reference | 4 | 2 |
+| Left out | none | `0002`, `0003`, `0009` (no speech, §13.5, §13.6); `0012` (invalid reference, §13.7) |
+| Licence of the data | CC BY 4.0 | CC BY-NC-SA 4.0: results are non-commercial |
+
+- Suite: denoisers `none`, `deepfilternet3` (revision 2, 30 s pieces,
+  #45) and `mossformer2-se-48k` × the 8 diarizers of §9 ×
+  `whisper-large-v3-turbo`. Every diarizer estimates the number of
+  speakers; none is told it. DER and JER as in §13.2 (collar 0.25 s).
+- Neither corpus has reference words, so there is **no WER** (the `wer`
+  entry of the pipeline rows has no value). The recogniser does not
+  change the speaker turns: the DER of a pipeline on `none` equals the
+  DER of its diarizer (checked for all 8 on both corpora), so the
+  tables use the diarizer rows (24 per corpus).
+- Each figure is the mean over recordings (SD between recordings,
+  `n` = recordings). Missed, false alarm and confusion are fractions of
+  the reference speech time and add up to the DER. "Speakers" is the
+  estimated number minus the true one, averaged (positive = too many),
+  and in brackets the mean absolute difference. Overlap P / R are
+  precision and recall of the overlapped-speech regions; "–" for
+  precision means the diarizer marked no overlap at all (recall 0).
+- The GPU was shared with other jobs during the run; out-of-memory on
+  `deepfilternet3` was handled by the 30 s pieces (#45) and by a
+  supervisor that resumed the run. On AMI one recording has no
+  `deepfilternet3` + `builtin` result (n = 3 in that row, and 3 recordings
+  in every `deepfilternet3` pipeline row); the cause was not looked at.
+  The row stays in the table with its n.
+
+#### 13.8.1 AMI (4 meetings, 4 speakers each)
+
+| # | denoiser | diarizer | n | DER (mean ± SD) | missed | false alarm | confusion | JER | overlap P / R | speakers: error (abs. error) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | none | diarizen (NC) | 4 | 0.089 ± 0.036 | 0.052 | 0.022 | 0.016 | 0.178 | 0.82 / 0.73 | +1.00 (1.00) |
+| 2 | none | pyannote-3.1 | 4 | 0.130 ± 0.058 | 0.078 | 0.023 | 0.029 | 0.264 | 0.81 / 0.47 | +0.00 (1.00) |
+| 3 | none | pyannote-community-1 | 4 | 0.134 ± 0.063 | 0.078 | 0.023 | 0.033 | 0.271 | 0.81 / 0.47 | +0.25 (1.25) |
+| 4 | mossformer2-se-48k | pyannote-3.1 | 4 | 0.176 ± 0.094 | 0.132 | 0.020 | 0.024 | 0.297 | 0.76 / 0.25 | +0.00 (1.00) |
+| 5 | mossformer2-se-48k | pyannote-community-1 | 4 | 0.181 ± 0.094 | 0.132 | 0.020 | 0.029 | 0.277 | 0.76 / 0.25 | +0.50 (1.00) |
+| 6 | mossformer2-se-48k | diarizen (NC) | 4 | 0.190 ± 0.126 | 0.163 | 0.009 | 0.018 | 0.252 | 0.87 / 0.41 | +2.00 (2.00) |
+| 7 | mossformer2-se-48k | nemo-clustering | 4 | 0.277 ± 0.184 | 0.214 | 0.020 | 0.043 | 0.376 | – / 0.00 | -0.50 (0.50) |
+| 8 | none | nemotron-3 | 4 | 0.297 ± 0.076 | 0.257 | 0.008 | 0.032 | 0.393 | 0.86 / 0.40 | +0.00 (0.00) |
+| 9 | none | sortformer-v2 | 4 | 0.333 ± 0.097 | 0.218 | 0.017 | 0.098 | 0.443 | 0.79 / 0.42 | +0.00 (0.00) |
+| 10 | mossformer2-se-48k | sortformer-v2 | 4 | 0.338 ± 0.119 | 0.247 | 0.009 | 0.082 | 0.434 | 0.80 / 0.21 | +0.00 (0.00) |
+| 11 | mossformer2-se-48k | nemotron-3 | 4 | 0.346 ± 0.054 | 0.290 | 0.006 | 0.050 | 0.436 | 0.87 / 0.25 | +0.25 (0.25) |
+| 12 | mossformer2-se-48k | ecapa-spectral | 4 | 0.367 ± 0.203 | 0.156 | 0.136 | 0.075 | 0.407 | – / 0.00 | +0.00 (1.00) |
+| 13 | none | nemo-clustering | 4 | 0.425 ± 0.175 | 0.404 | 0.005 | 0.016 | 0.491 | – / 0.00 | -0.75 (0.75) |
+| 14 | none | builtin | 4 | 0.498 ± 0.276 | 0.209 | 0.053 | 0.236 | 0.536 | 0.26 / 0.00 | +5.50 (5.50) |
+| 15 | none | ecapa-spectral | 4 | 0.521 ± 0.124 | 0.437 | 0.038 | 0.046 | 0.561 | – / 0.00 | +0.00 (1.00) |
+| 16 | mossformer2-se-48k | builtin | 4 | 0.555 ± 0.212 | 0.272 | 0.027 | 0.256 | 0.605 | 0.06 / 0.00 | +4.25 (4.25) |
+| 17 | deepfilternet3 | pyannote-3.1 | 4 | 0.760 ± 0.200 | 0.743 | 0.004 | 0.013 | 0.750 | 0.84 / 0.08 | +0.25 (0.25) |
+| 18 | deepfilternet3 | pyannote-community-1 | 4 | 0.774 ± 0.188 | 0.743 | 0.004 | 0.028 | 0.765 | 0.84 / 0.08 | -0.50 (1.00) |
+| 19 | deepfilternet3 | diarizen (NC) | 4 | 0.775 ± 0.200 | 0.760 | 0.001 | 0.014 | 0.771 | 0.94 / 0.10 | -1.00 (1.00) |
+| 20 | deepfilternet3 | ecapa-spectral | 4 | 0.777 ± 0.142 | 0.648 | 0.020 | 0.109 | 0.769 | – / 0.00 | -0.50 (1.00) |
+| 21 | deepfilternet3 | nemo-clustering | 4 | 0.778 ± 0.193 | 0.741 | 0.004 | 0.033 | 0.767 | – / 0.00 | +0.00 (1.50) |
+| 22 | deepfilternet3 | sortformer-v2 | 4 | 0.796 ± 0.181 | 0.787 | 0.001 | 0.008 | 0.788 | 0.92 / 0.08 | -1.00 (1.00) |
+| 23 | deepfilternet3 | nemotron-3 | 4 | 0.799 ± 0.172 | 0.789 | 0.001 | 0.009 | 0.790 | 0.92 / 0.08 | -1.00 (1.00) |
+| 24 | deepfilternet3 | builtin | 3 | 0.844 ± 0.077 | 0.745 | 0.008 | 0.090 | 0.825 | 0.20 / 0.00 | +4.33 (4.33) |
+
+| diarizer | none | deepfilternet3 | mossformer2-se-48k |
+|---|---|---|---|
+| diarizen (NC) | 0.089 | 0.775 | 0.190 |
+| pyannote-3.1 | 0.130 | 0.760 | 0.176 |
+| pyannote-community-1 | 0.134 | 0.774 | 0.181 |
+| nemotron-3 | 0.297 | 0.799 | 0.346 |
+| sortformer-v2 | 0.333 | 0.796 | 0.338 |
+| nemo-clustering | 0.425 | 0.778 | 0.277 |
+| builtin | 0.498 | 0.844 | 0.555 |
+| ecapa-spectral | 0.521 | 0.777 | 0.367 |
+
+Top 5 by DER: DiariZen on the original (0.089), pyannote-3.1 (0.130),
+pyannote-community-1 (0.134) and the same two on `mossformer2-se-48k`
+(0.176, 0.181).
+
+#### 13.8.2 CALLHOME Spanish (10 calls, 2 speakers each)
+
+| # | denoiser | diarizer | n | DER (mean ± SD) | missed | false alarm | confusion | JER | overlap P / R | speakers: error (abs. error) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | none | nemotron-3 | 10 | 0.106 ± 0.041 | 0.075 | 0.019 | 0.011 | 0.119 | 0.82 / 0.61 | +0.20 (0.20) |
+| 2 | none | sortformer-v2 | 10 | 0.122 ± 0.068 | 0.073 | 0.022 | 0.027 | 0.149 | 0.77 / 0.63 | +0.20 (0.40) |
+| 3 | none | diarizen (NC) | 10 | 0.163 ± 0.048 | 0.145 | 0.010 | 0.008 | 0.174 | 0.89 / 0.45 | +0.10 (0.10) |
+| 4 | mossformer2-se-48k | sortformer-v2 | 10 | 0.174 ± 0.066 | 0.123 | 0.011 | 0.040 | 0.216 | 0.79 / 0.36 | +0.40 (0.80) |
+| 5 | mossformer2-se-48k | diarizen (NC) | 10 | 0.188 ± 0.040 | 0.173 | 0.007 | 0.009 | 0.201 | 0.90 / 0.29 | +0.10 (0.10) |
+| 6 | mossformer2-se-48k | nemo-clustering | 10 | 0.193 ± 0.051 | 0.154 | 0.015 | 0.025 | 0.218 | – / 0.00 | +0.00 (0.00) |
+| 7 | mossformer2-se-48k | nemotron-3 | 10 | 0.194 ± 0.057 | 0.161 | 0.007 | 0.027 | 0.236 | 0.89 / 0.28 | -0.10 (0.10) |
+| 8 | none | pyannote-community-1 | 10 | 0.195 ± 0.046 | 0.151 | 0.015 | 0.028 | 0.217 | 0.81 / 0.39 | +0.00 (0.00) |
+| 9 | none | nemo-clustering | 10 | 0.211 ± 0.063 | 0.160 | 0.011 | 0.040 | 0.226 | – / 0.00 | +0.30 (0.30) |
+| 10 | mossformer2-se-48k | pyannote-community-1 | 10 | 0.230 ± 0.033 | 0.192 | 0.010 | 0.028 | 0.254 | 0.78 / 0.19 | +0.00 (0.00) |
+| 11 | mossformer2-se-48k | ecapa-spectral | 10 | 0.243 ± 0.090 | 0.195 | 0.005 | 0.043 | 0.298 | – / 0.00 | -0.20 (0.20) |
+| 12 | none | pyannote-3.1 | 10 | 0.248 ± 0.126 | 0.151 | 0.015 | 0.081 | 0.297 | 0.81 / 0.39 | -0.20 (0.20) |
+| 13 | none | ecapa-spectral | 10 | 0.248 ± 0.105 | 0.201 | 0.006 | 0.042 | 0.304 | – / 0.00 | -0.20 (0.20) |
+| 14 | mossformer2-se-48k | pyannote-3.1 | 10 | 0.283 ± 0.116 | 0.192 | 0.010 | 0.081 | 0.332 | 0.78 / 0.19 | -0.20 (0.20) |
+| 15 | deepfilternet3 | diarizen (NC) | 10 | 0.287 ± 0.120 | 0.246 | 0.004 | 0.036 | 0.316 | 0.94 / 0.21 | -0.10 (0.10) |
+| 16 | deepfilternet3 | nemo-clustering | 10 | 0.289 ± 0.168 | 0.174 | 0.013 | 0.102 | 0.349 | – / 0.00 | -0.30 (0.50) |
+| 17 | deepfilternet3 | nemotron-3 | 10 | 0.298 ± 0.103 | 0.256 | 0.004 | 0.039 | 0.351 | 0.94 / 0.16 | -0.10 (0.30) |
+| 18 | deepfilternet3 | sortformer-v2 | 10 | 0.314 ± 0.138 | 0.211 | 0.007 | 0.096 | 0.365 | 0.82 / 0.19 | +0.30 (0.70) |
+| 19 | deepfilternet3 | pyannote-community-1 | 10 | 0.361 ± 0.151 | 0.252 | 0.008 | 0.100 | 0.419 | 0.75 / 0.11 | -0.30 (0.30) |
+| 20 | deepfilternet3 | pyannote-3.1 | 10 | 0.381 ± 0.165 | 0.252 | 0.008 | 0.121 | 0.472 | 0.75 / 0.11 | -0.40 (0.40) |
+| 21 | deepfilternet3 | ecapa-spectral | 10 | 0.395 ± 0.158 | 0.265 | 0.003 | 0.128 | 0.513 | – / 0.00 | -0.90 (0.90) |
+| 22 | none | builtin | 10 | 0.487 ± 0.146 | 0.189 | 0.013 | 0.284 | 0.488 | 0.06 / 0.00 | +6.40 (6.40) |
+| 23 | mossformer2-se-48k | builtin | 10 | 0.506 ± 0.153 | 0.199 | 0.015 | 0.292 | 0.507 | 0.11 / 0.00 | +7.00 (7.00) |
+| 24 | deepfilternet3 | builtin | 10 | 0.586 ± 0.186 | 0.282 | 0.012 | 0.291 | 0.584 | 0.21 / 0.00 | +6.50 (6.50) |
+
+| diarizer | none | deepfilternet3 | mossformer2-se-48k |
+|---|---|---|---|
+| nemotron-3 | 0.106 | 0.298 | 0.194 |
+| sortformer-v2 | 0.122 | 0.314 | 0.174 |
+| diarizen (NC) | 0.163 | 0.287 | 0.188 |
+| pyannote-community-1 | 0.195 | 0.361 | 0.230 |
+| nemo-clustering | 0.211 | 0.289 | 0.193 |
+| pyannote-3.1 | 0.248 | 0.381 | 0.283 |
+| ecapa-spectral | 0.248 | 0.395 | 0.243 |
+| builtin | 0.487 | 0.586 | 0.506 |
+
+Top 5 by DER: Nemotron on the original (0.106), Sortformer (0.122),
+DiariZen (0.163), then Sortformer and DiariZen on `mossformer2-se-48k`
+(0.174, 0.188).
+
+#### 13.8.3 Effect of the denoiser
+
+Mean DER over the 8 diarizers (each diarizer counts once; the same
+rows as the tables):
+
+| Denoiser | AMI | CALLHOME |
+|---|---|---|
+| none | 0.304 | 0.223 |
+| mossformer2-se-48k | 0.304 | 0.251 |
+| deepfilternet3 | 0.788 | 0.364 |
+
+- `mossformer2-se-48k` is better than the original for only 2 of 8
+  diarizers on each corpus (AMI: ECAPA 0.521 → 0.367, NeMo clustering
+  0.425 → 0.277; CALLHOME: ECAPA 0.248 → 0.243, NeMo clustering 0.211 →
+  0.193) and worse for the rest. The equal AMI means hide that: the
+  two big gains are on the two weakest diarizers, the best ones lose
+  (DiariZen 0.089 → 0.190, pyannote-3.1 0.130 → 0.176, Nemotron 0.297 →
+  0.346). On the original the best commercial option is always better
+  than the best option on any denoised audio.
+- On AMI `deepfilternet3` leaves most of the speech unlabelled: the
+  missed rate is 0.74–0.79 for seven of the eight diarizers (0.648 for
+  ECAPA) with false alarm and confusion at or
+  below 0.03 for the overlap-aware models. Consistent with §12, where
+  the output on one minute of TS3003a was almost silent at the
+  recording's level: the denoiser treats far-field speech as noise.
+  On the telephone calls it is milder (DER 0.287–0.395 for the seven,
+  0.586 for the built-in) but worse than the original for every
+  diarizer.
+- With less overlap marked on the denoised audio the overlap recall
+  falls (pyannote 0.47 → 0.25 with `mossformer2-se-48k` and 0.08 with
+  `deepfilternet3` on AMI; Sortformer 0.63 → 0.36 → 0.19 on CALLHOME),
+  while precision stays at 0.75–0.94.
+
+#### 13.8.4 Licence column
+
+| Diarizer | Licence (catalogue) | Commercial use |
+|---|---|---|
+| builtin | project | yes |
+| pyannote-3.1 | MIT (gated) | yes |
+| pyannote-community-1 | CC-BY-4.0 (gated) | yes |
+| sortformer-streaming-v2 | CC-BY-4.0 | yes |
+| nemotron-3-diarization | OpenMDW-1.1 (card: commercial use allowed) | yes |
+| diarizen-wavlm-large-s80-md-v2 | CC-BY-NC-4.0 (weights); MIT (code) | **no** |
+| ecapa-spectral | Apache-2.0 (weights) | yes |
+| nemo-clustering | CC-BY-4.0 (TitaNet-L); NeMo VAD weights per NGC | yes |
+
+Denoisers: `deepfilternet3` MIT OR Apache-2.0, `mossformer2-se-48k`
+Apache-2.0. The best AMI result is therefore not usable in a product;
+the best commercial one is pyannote-3.1 (0.130). The CALLHOME audio is
+CC BY-NC-SA, so using it for evaluation is allowed here but the data
+cannot go into a product; the summary carries `non_commercial: true`.
+
+#### 13.8.5 Findings
+
+1. **The ranking flips between corpora.** On the original audio the
+   order on AMI is DiariZen 0.089, pyannote 0.130 / 0.134, Nemotron
+   0.297, Sortformer 0.333; on CALLHOME it is Nemotron 0.106,
+   Sortformer 0.122, DiariZen 0.163, pyannote-community-1 0.195. Nemotron
+   and Sortformer, best on two-person calls, have the highest missed
+   rates among the overlap-aware models on the meetings (0.257 and
+   0.218; Sortformer also confusion 0.098) and count exactly 4
+   speakers on every meeting (error 0.00), so the loss is missed speech,
+   not the speaker count. DiariZen is first on AMI and third on
+   CALLHOME. pyannote-community-1 is third of eight on AMI and fourth
+   on CALLHOME, the most stable of the commercial options;
+   pyannote-3.1 is second on AMI but sixth (tied with ECAPA) on CALLHOME
+   (0.248, SD 0.126, worst call 0.479; confusion 0.081 against 0.028 for
+   community-1). Nothing here says which will rank first on our own
+   home recordings.
+2. **Denoising does not help on average**, and the denoiser that helps
+   only the weakest diarizers does not change which diarizer is best
+   (§13.8.3). `deepfilternet3` is the worst on both corpora and removes
+   most of the speech on the quiet distant-microphone meetings.
+3. **The built-in diarizer is the worst of the eight on CALLHOME and
+   second worst on AMI** (DER 0.487 on CALLHOME and 0.498 on AMI on the
+   original, only ECAPA 0.521 is worse on AMI). Its confusion (0.28 and
+   0.24) is far above the next highest on the original (0.081 on CALLHOME,
+   0.098 on AMI) because it over-counts: +6.4 speakers on two-person calls, +5.5 on four-person
+   meetings. It marks almost no overlap (precision 0.06 and 0.26, recall
+   below 0.001).
+4. **The overlap detectors catch about half or less of the overlap**:
+   recall 0.73 (DiariZen) and 0.47 (pyannote) on AMI, 0.61–0.63
+   (Nemotron, Sortformer) and 0.39 (pyannote) on CALLHOME; precision is
+   0.77–0.89 for all of them. ECAPA, NeMo clustering and the built-in
+   do not model overlap, so their overlap recall is 0.
+5. **Speaker count.** On two-person calls every model except the
+   built-in is within 0.4 speakers on average (|error| 0.00–0.40 on the
+   original). On AMI only Nemotron and Sortformer are exact; DiariZen
+   over-counts by 1 on the original and by 2 on `mossformer2-se-48k`.
+
+#### 13.8.6 Against §11 (R1, agreement between models)
+
+§11 could only measure agreement. The pipelines that agreed most there
+were on denoised audio (`mossformer2-se-48k` with pyannote, DiariZen or
+Nemotron, 0.90–0.92) and the original was the best only for DiariZen
+(0.859; §11.5). Against a human reference, `mossformer2-se-48k` is
+**worse** than the original for those three diarizers on both corpora
+(AMI: pyannote 0.130 → 0.176 / 0.181, DiariZen 0.089 → 0.190, Nemotron
+0.297 → 0.346; CALLHOME: pyannote-community-1 0.195 → 0.230, DiariZen
+0.163 → 0.188, Nemotron 0.106 → 0.194). So the agreement of §11 did not
+predict accuracy: denoised tracks agree with each other because they
+lose the same overlap and quiet speech, not because they are right,
+which is the caveat §11.5 already made. R1 is a private home recording
+of a different kind, so the two rankings are compared in direction
+only, not figure by figure.
+
+#### 13.8.7 Limits
+
+- **Four meetings and ten calls**: the SD between recordings is large
+  (up to 0.28 on the built-in; DiariZen on AMI 0.036 but a
+  JER SD of 0.19). Differences of a few hundredths between two
+  diarizers (pyannote-3.1 against community-1, the two on the same
+  segmentation) are inside that noise.
+- **Different data**: English far-field meetings with 4 speakers
+  against Spanish telephone calls with 2. Neither is a home
+  recording through a phone with several people; DER on one corpus
+  does not transfer.
+- **No WER**: nothing here says whether denoising helps the words, only
+  the turns. The §11 word-level figures are still disagreement.
+- **CALLHOME is non-commercial** (CC BY-NC-SA) and DiariZen's weights
+  are CC-BY-NC: those figures are for choosing, not for shipping.
+- **Collar 0.25 s**; a different collar
+  changes the absolute DER (the ranking was not recomputed with other
+  settings).
+- The AMI `deepfilternet3` result of 0.76–0.84 measures a denoiser
+  that removes the speech; it says nothing about the diarizers
+  themselves.
