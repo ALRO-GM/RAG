@@ -93,7 +93,7 @@ baratas: reglas, un modelo de lenguaje local con ejemplos, y un
 clasificador pequeño entrenado con AMI/ICSI traducidos. Coste de GPU:
 horas, no días.
 
-**Decisiones pendientes (Alberto):** ver §6.4. La 1 está tomada; de la 2 a la 6 siguen abiertas.
+**Decisiones (Alberto, 2026-11-15):** ver §6.4. Tomadas: 1 (13 grupos separados), 3 (el set español lo creamos nosotros, #64), 4 (tipo de conversación en la sesión, #65), 5 (se pueden mandar grabaciones con consentimiento a la API de Claude) y 6 (usar Switchboard-DA, no comercial, solo evaluación). Abierta: la 2 (segunda etiqueta).
 
 ---
 
