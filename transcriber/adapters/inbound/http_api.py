@@ -184,6 +184,28 @@ class JudgeRequest(BaseModel):
     mode: str = Field(max_length=32)
 
 
+class AnalysisRequest(BaseModel):
+    """Body of ``POST /api/analysis/sessions/{id}`` (both optional)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    restart: bool = False
+    synthetic: bool = False
+
+
+REPORT_HEADERS = {
+    "Content-Security-Policy": (
+        "sandbox; default-src 'none'; style-src 'unsafe-inline'; "
+        "img-src data:; base-uri 'none'; form-action 'none'; "
+        "frame-ancestors 'none'"
+    ),
+    "Cache-Control": "no-store",
+}
+"""Headers of a person report: a sandboxed page without scripts (its
+CSS and charts are inline), sent as a download, never run in the
+pages' origin."""
+
+
 class RenameRequest(BaseModel):
     """Body of ``PATCH /api/sessions/{id}/speakers/{label}``."""
 
@@ -692,6 +714,47 @@ def create_app(
         """Set the judge of the RAG's next analyses (forwarded on loopback)."""
         body = parse_json(JudgeRequest, await read_body(request, 1024))
         return await run_in_threadpool(c.analysis_judge.choose, body.mode)
+
+    @api.post("/analysis/sessions/{session_id}", status_code=202)
+    async def start_analysis(
+        session_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Start the RAG's whole analysis of a published session."""
+        body = parse_json(
+            AnalysisRequest, await read_body(request, 1024), empty_ok=True
+        )
+        return await run_in_threadpool(
+            c.session_analysis.start, session_id, body.restart,
+            body.synthetic,
+        )
+
+    @api.get("/analysis/sessions/{session_id}")
+    async def analysis_status(session_id: str) -> Dict[str, Any]:
+        """Return the steps of a session's analysis (forwarded)."""
+        return await run_in_threadpool(c.session_analysis.status, session_id)
+
+    @api.get("/analysis/sessions/{session_id}/steps/{step}")
+    async def analysis_step(session_id: str, step: str) -> Any:
+        """Return one step's result (forwarded)."""
+        return await run_in_threadpool(
+            c.session_analysis.result, session_id, step
+        )
+
+    @api.get("/analysis/sessions/{session_id}/reports/{position}")
+    async def analysis_report(session_id: str, position: int) -> Response:
+        """Return one person's report: sandboxed HTML, as a download."""
+        page = await run_in_threadpool(
+            c.session_analysis.report, session_id, position
+        )
+        return Response(
+            page, media_type="text/html; charset=utf-8", headers={
+                **REPORT_HEADERS,
+                "Content-Disposition": (
+                    f'attachment; filename="{session_id}-informe-'
+                    f'{position}.html"'
+                ),
+            },
+        )
 
     @api.get("/speakers")
     async def speakers() -> Dict[str, Any]:

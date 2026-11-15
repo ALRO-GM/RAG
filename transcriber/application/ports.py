@@ -395,6 +395,38 @@ class AnalysisJudge(Protocol):
         ...
 
 
+class SessionAnalysisPort(Protocol):
+    """The RAG's whole analysis of a published session (#88).
+
+    Answers are the RAG's own JSON (the run's steps; a step's result)
+    or the report's HTML. Raises
+    :class:`~transcriber.domain.errors.NotFoundError` for an unknown
+    analysis, step or report,
+    :class:`~transcriber.domain.errors.StateError` when the analysis is
+    already running and
+    :class:`~transcriber.domain.errors.AnalysisUnavailableError` when
+    the RAG cannot be reached or refuses.
+    """
+
+    def start(
+        self, session_id: str, restart: bool, synthetic: bool
+    ) -> Dict[str, Any]:
+        """Start the analysis; return at once."""
+        ...
+
+    def status(self, session_id: str) -> Dict[str, Any]:
+        """Return every step's record and whether it runs now."""
+        ...
+
+    def result(self, session_id: str, step: str) -> Any:
+        """Return one step's result."""
+        ...
+
+    def report(self, session_id: str, position: int) -> str:
+        """Return the HTML report of the ``position``-th person."""
+        ...
+
+
 class Progress(Protocol):
     """Receive the stages of a long job as it runs."""
 

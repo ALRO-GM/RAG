@@ -51,6 +51,9 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
+from transcriber.adapters.outbound.http_session_analysis import (
+    HttpSessionAnalysis,
+)
 from transcriber.adapters.outbound.http_transcript_publisher import (
     HttpTranscriptPublisher,
 )
@@ -129,7 +132,10 @@ from transcriber.application.ports import (
     VoiceEncoder,
     VoiceprintRepository,
 )
-from transcriber.application.analysis import AnalysisJudgeSetting
+from transcriber.application.analysis import (
+    AnalysisJudgeSetting,
+    SessionAnalysisAccess,
+)
 from transcriber.application.publish import PublishTranscript
 from transcriber.application.record import (
     AppendAudio,
@@ -233,6 +239,7 @@ class TranscriberContainer:
     analysis_judge: AnalysisJudgeSetting = AnalysisJudgeSetting(None)
     diarizer: Optional[LabRunnerDiarizer] = None
     diarizer_rule: DiarizerRule = BUILTIN_RULE
+    session_analysis: SessionAnalysisAccess = SessionAnalysisAccess(None)
 
     def release_models(self) -> None:
         """Unload the speech, voice and overlap models (after a job)."""
@@ -547,6 +554,10 @@ def build_container(
         ),
         diarizer=diarizer,
         diarizer_rule=rule,
+        session_analysis=SessionAnalysisAccess(
+            HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
+            if isinstance(publisher, HttpTranscriptPublisher) else None
+        ),
     )
 
 
