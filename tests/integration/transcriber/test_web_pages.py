@@ -306,7 +306,7 @@ def dictionary_keys(language: str) -> Set[str]:
     return set(re.findall(r'^\s*"([\w.]+)":', text, re.M))
 
 
-@pytest.mark.parametrize("page", ["index.html", "research.html"])
+@pytest.mark.parametrize("page", ["index.html", "research.html", "study.html"])
 def test_every_page_has_the_language_switch(page: str) -> None:
     """ES | EN buttons in the header; the header and title translatable."""
     header = Header()
@@ -326,7 +326,9 @@ def test_every_page_has_the_language_switch(page: str) -> None:
         assert link.get("data-i18n") in keys, link
 
 
-@pytest.mark.parametrize("module", ["js/main.js", "js/research/main.js"])
+@pytest.mark.parametrize(
+    "module", ["js/main.js", "js/research/main.js", "js/study.js"]
+)
 def test_every_entry_point_installs_the_switch(module: str) -> None:
     """Each page's script wires the switch and translates the header."""
     text = (WEB / module).read_text(encoding="utf-8")
@@ -341,3 +343,12 @@ def test_the_chosen_language_is_kept_safely() -> None:
     assert i18n.count("try {") == 2
     switch = (WEB / "js" / "lang-switch.js").read_text(encoding="utf-8")
     assert "isBusy()" in switch
+
+
+@pytest.mark.parametrize("page", ["index.html", "research.html", "study.html"])
+def test_every_page_links_to_the_study(page: str) -> None:
+    """The study page is reachable from the header of every page."""
+    header = Header()
+    header.feed((WEB / page).read_text(encoding="utf-8"))
+    links = {link.get("href"): link for link in header.links}
+    assert links["study.html"].get("data-i18n") == "nav.study"

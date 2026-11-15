@@ -165,7 +165,7 @@ def test_every_link_is_https_to_doi_org_or_a_recorded_host() -> None:
         else:
             assert link == source["url"]
     for href in re.findall(r'href="([^"#][^"]*)"', HTML):
-        if href in ("style.css", "icon.svg", "research.html",
+        if href in ("style.css", "icon.svg", "research.html", "study.html",
                     "index.html#/", "index.html#/record",
                     "index.html#/enrol"):
             continue

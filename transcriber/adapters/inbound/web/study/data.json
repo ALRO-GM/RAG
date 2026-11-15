@@ -1,0 +1,1760 @@
+{
+ "schema": "study.v1",
+ "updated": "2026-11-15",
+ "sources": {
+  "lab_r1": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "11. Results on R1 (first run, 2026-11-14)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#11-results-on-r1-first-run-2026-11-14"
+  },
+  "lab_r1_denoise": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "11.5 Effect of each denoiser (against the same model on the original)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#115-effect-of-each-denoiser-against-the-same-model-on-the-original"
+  },
+  "lab_r1_full": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "11.7 Full run with `whisper-large-v3` (run `e7a37b38`, 224 pipelines)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#117-full-run-with-whisper-large-v3-run-e7a37b38-224-pipelines"
+  },
+  "lab_reference": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13. Scoring against a public reference (AMI, CALLHOME)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#13-scoring-against-a-public-reference-ami-callhome"
+  },
+  "lab_scores": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.2 Scores",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#132-scores"
+  },
+  "lab_no_speech": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.6 Recordings with no speech (2026-11-14)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#136-recordings-with-no-speech-2026-11-14"
+  },
+  "lab_invalid": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.7 Rows with an invalid reference (#53, 2026-11-15)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#137-rows-with-an-invalid-reference-53-2026-11-15"
+  },
+  "lab_results": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8 Results of #44 (2026-11-15)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#138-results-of-44-2026-11-15"
+  },
+  "lab_ami": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.1 AMI (4 meetings, 4 speakers each)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1381-ami-4-meetings-4-speakers-each"
+  },
+  "lab_callhome": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.2 CALLHOME Spanish (10 calls, 2 speakers each)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1382-callhome-spanish-10-calls-2-speakers-each"
+  },
+  "lab_denoiser": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.3 Effect of the denoiser",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1383-effect-of-the-denoiser"
+  },
+  "lab_licences": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.4 Licence column",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1384-licence-column"
+  },
+  "lab_findings": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.5 Findings",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1385-findings"
+  },
+  "lab_against_r1": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.6 Against §11 (R1, agreement between models)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1386-against-11-r1-agreement-between-models"
+  },
+  "lab_limits": {
+   "path": "docs/transcriber/LAB.md",
+   "section": "13.8.7 Limits",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/transcriber/LAB.md#1387-limits"
+  },
+  "acts_set": {
+   "path": "examples/skills/dialogue_acts/README.md",
+   "section": "Contents (measured with `dialogue_acts_set`, 2026-11-15)",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/examples/skills/dialogue_acts/README.md#contents-measured-with-dialogue_acts_set-2026-11-15"
+  },
+  "judges_local": {
+   "path": "docs/skills/DESIGN.md",
+   "section": "4.2 Local judge",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/DESIGN.md#42-local-judge"
+  },
+  "judges_both": {
+   "path": "docs/skills/DESIGN.md",
+   "section": "4.4 Both mode",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/DESIGN.md#44-both-mode"
+  },
+  "events": {
+   "path": "docs/skills/CONVERSATION_EVENTS.md",
+   "section": "6. Evaluation",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/CONVERSATION_EVENTS.md#6-evaluation"
+  }
+ },
+ "issues": {
+  "68": {
+   "url": "https://github.com/ALRO-GM/RAG/issues/68"
+  },
+  "82": {
+   "url": "https://github.com/ALRO-GM/RAG/issues/82"
+  },
+  "83": {
+   "url": "https://github.com/ALRO-GM/RAG/issues/83"
+  }
+ },
+ "bench": {
+  "own_recording": {
+   "seconds": 388,
+   "people": 2,
+   "pipelines": 224,
+   "mean_agreement": 0.861,
+   "best_agreement": 0.923,
+   "source": "lab_r1"
+  },
+  "acts_set": {
+   "dialogues": 51,
+   "sentences": 1534,
+   "source": "acts_set"
+  },
+  "denoisers": 3,
+  "diarizers": 8
+ },
+ "separation": {
+  "source": "lab_results",
+  "corpora": [
+   {
+    "id": "ami",
+    "source": "lab_ami",
+    "recordings": 4,
+    "seconds": 7972,
+    "speakers": 4,
+    "licence": "CC BY 4.0",
+    "non_commercial": false,
+    "excluded_no_speech": 0,
+    "excluded_invalid": 0,
+    "combinations": 24,
+    "headline": {
+     "best": "none+diarizen-wavlm-large-s80-md-v2",
+     "success": 0.9105,
+     "builtin": {
+      "id": "none+builtin",
+      "success": 0.5018,
+      "points": 0.4087,
+      "error_reduction": 0.8204
+     },
+     "next": {
+      "id": "none+pyannote-3.1",
+      "success": 0.8703,
+      "points": 0.0402,
+      "error_reduction": 0.3099
+     },
+     "best_commercial": {
+      "id": "none+pyannote-3.1",
+      "success": 0.8703,
+      "points": 0.0402,
+      "error_reduction": 0.3099
+     }
+    },
+    "denoisers": [
+     {
+      "denoiser": "none",
+      "denoiser_name": "none",
+      "diarizers": 8,
+      "success": 0.6964
+     },
+     {
+      "denoiser": "mossformer2-se-48k",
+      "denoiser_name": "MossFormer2",
+      "diarizers": 8,
+      "success": 0.6962
+     },
+     {
+      "denoiser": "deepfilternet3",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizers": 8,
+      "success": 0.2122
+     }
+    ],
+    "rows": [
+     {
+      "id": "none+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "none",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "none",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 4,
+      "der": 0.0895,
+      "der_sd": 0.0364,
+      "success": 0.9105,
+      "missed": 0.0522,
+      "false_alarm": 0.0216,
+      "confusion": 0.0157,
+      "jer": 0.1785,
+      "overlap_precision": 0.8194,
+      "overlap_recall": 0.7329,
+      "speaker_error": 1.0,
+      "speaker_abs_error": 1.0,
+      "rank": 1,
+      "best": true,
+      "builtin": false,
+      "gain": {
+       "points": 0.0,
+       "error_reduction": 0.0
+      }
+     },
+     {
+      "id": "none+pyannote-3.1",
+      "denoiser": "none",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "none",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.1297,
+      "der_sd": 0.0584,
+      "success": 0.8703,
+      "missed": 0.078,
+      "false_alarm": 0.0231,
+      "confusion": 0.0286,
+      "jer": 0.2636,
+      "overlap_precision": 0.8108,
+      "overlap_recall": 0.4727,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 1.0,
+      "rank": 2,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0402,
+       "error_reduction": 0.3099
+      }
+     },
+     {
+      "id": "none+pyannote-community-1",
+      "denoiser": "none",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "none",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.1342,
+      "der_sd": 0.0628,
+      "success": 0.8658,
+      "missed": 0.078,
+      "false_alarm": 0.0231,
+      "confusion": 0.0331,
+      "jer": 0.2707,
+      "overlap_precision": 0.8108,
+      "overlap_recall": 0.4727,
+      "speaker_error": 0.25,
+      "speaker_abs_error": 1.25,
+      "rank": 3,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0447,
+       "error_reduction": 0.3331
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+pyannote-3.1",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.1758,
+      "der_sd": 0.094,
+      "success": 0.8242,
+      "missed": 0.1322,
+      "false_alarm": 0.0201,
+      "confusion": 0.0235,
+      "jer": 0.2968,
+      "overlap_precision": 0.7619,
+      "overlap_recall": 0.2484,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 1.0,
+      "rank": 4,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0863,
+       "error_reduction": 0.4909
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+pyannote-community-1",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.1811,
+      "der_sd": 0.0936,
+      "success": 0.8189,
+      "missed": 0.1322,
+      "false_alarm": 0.0201,
+      "confusion": 0.0289,
+      "jer": 0.277,
+      "overlap_precision": 0.7619,
+      "overlap_recall": 0.2484,
+      "speaker_error": 0.5,
+      "speaker_abs_error": 1.0,
+      "rank": 5,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0916,
+       "error_reduction": 0.5058
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 4,
+      "der": 0.1902,
+      "der_sd": 0.1258,
+      "success": 0.8098,
+      "missed": 0.1628,
+      "false_alarm": 0.0091,
+      "confusion": 0.0183,
+      "jer": 0.2515,
+      "overlap_precision": 0.874,
+      "overlap_recall": 0.4067,
+      "speaker_error": 2.0,
+      "speaker_abs_error": 2.0,
+      "rank": 6,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1007,
+       "error_reduction": 0.5294
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+nemo-clustering",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.2772,
+      "der_sd": 0.1845,
+      "success": 0.7228,
+      "missed": 0.2137,
+      "false_alarm": 0.0201,
+      "confusion": 0.0434,
+      "jer": 0.376,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.5,
+      "speaker_abs_error": 0.5,
+      "rank": 7,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1877,
+       "error_reduction": 0.6771
+      }
+     },
+     {
+      "id": "none+nemotron-3-diarization",
+      "denoiser": "none",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "none",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.2975,
+      "der_sd": 0.0761,
+      "success": 0.7025,
+      "missed": 0.2572,
+      "false_alarm": 0.0081,
+      "confusion": 0.0322,
+      "jer": 0.3926,
+      "overlap_precision": 0.865,
+      "overlap_recall": 0.3997,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 8,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.208,
+       "error_reduction": 0.6992
+      }
+     },
+     {
+      "id": "none+sortformer-streaming-v2",
+      "denoiser": "none",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "none",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.3332,
+      "der_sd": 0.097,
+      "success": 0.6668,
+      "missed": 0.2179,
+      "false_alarm": 0.0173,
+      "confusion": 0.098,
+      "jer": 0.4428,
+      "overlap_precision": 0.7897,
+      "overlap_recall": 0.4218,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 9,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2437,
+       "error_reduction": 0.7314
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+sortformer-streaming-v2",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.3381,
+      "der_sd": 0.1194,
+      "success": 0.6619,
+      "missed": 0.2475,
+      "false_alarm": 0.0088,
+      "confusion": 0.0818,
+      "jer": 0.4343,
+      "overlap_precision": 0.8024,
+      "overlap_recall": 0.2057,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 10,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2486,
+       "error_reduction": 0.7353
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+nemotron-3-diarization",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.3462,
+      "der_sd": 0.0536,
+      "success": 0.6538,
+      "missed": 0.2903,
+      "false_alarm": 0.0062,
+      "confusion": 0.0497,
+      "jer": 0.4357,
+      "overlap_precision": 0.8724,
+      "overlap_recall": 0.2501,
+      "speaker_error": 0.25,
+      "speaker_abs_error": 0.25,
+      "rank": 11,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2567,
+       "error_reduction": 0.7415
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+ecapa-spectral",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.3668,
+      "der_sd": 0.2028,
+      "success": 0.6332,
+      "missed": 0.1564,
+      "false_alarm": 0.1358,
+      "confusion": 0.0746,
+      "jer": 0.4072,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 1.0,
+      "rank": 12,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2773,
+       "error_reduction": 0.756
+      }
+     },
+     {
+      "id": "none+nemo-clustering",
+      "denoiser": "none",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "none",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.4254,
+      "der_sd": 0.1752,
+      "success": 0.5746,
+      "missed": 0.4043,
+      "false_alarm": 0.0047,
+      "confusion": 0.0163,
+      "jer": 0.4911,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.75,
+      "speaker_abs_error": 0.75,
+      "rank": 13,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.3359,
+       "error_reduction": 0.7896
+      }
+     },
+     {
+      "id": "none+builtin",
+      "denoiser": "none",
+      "diarizer": "builtin",
+      "denoiser_name": "none",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.4982,
+      "der_sd": 0.2761,
+      "success": 0.5018,
+      "missed": 0.2089,
+      "false_alarm": 0.0533,
+      "confusion": 0.2359,
+      "jer": 0.5359,
+      "overlap_precision": 0.2647,
+      "overlap_recall": 0.0006,
+      "speaker_error": 5.5,
+      "speaker_abs_error": 5.5,
+      "rank": 14,
+      "best": false,
+      "builtin": true,
+      "gain": {
+       "points": 0.4087,
+       "error_reduction": 0.8204
+      }
+     },
+     {
+      "id": "none+ecapa-spectral",
+      "denoiser": "none",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "none",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.521,
+      "der_sd": 0.1242,
+      "success": 0.479,
+      "missed": 0.4372,
+      "false_alarm": 0.0377,
+      "confusion": 0.046,
+      "jer": 0.5607,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 1.0,
+      "rank": 15,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.4315,
+       "error_reduction": 0.8282
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+builtin",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "builtin",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.555,
+      "der_sd": 0.2118,
+      "success": 0.445,
+      "missed": 0.2722,
+      "false_alarm": 0.0266,
+      "confusion": 0.2561,
+      "jer": 0.6052,
+      "overlap_precision": 0.0576,
+      "overlap_recall": 0.0002,
+      "speaker_error": 4.25,
+      "speaker_abs_error": 4.25,
+      "rank": 16,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.4655,
+       "error_reduction": 0.8387
+      }
+     },
+     {
+      "id": "deepfilternet3+pyannote-3.1",
+      "denoiser": "deepfilternet3",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.7599,
+      "der_sd": 0.1999,
+      "success": 0.2401,
+      "missed": 0.7428,
+      "false_alarm": 0.0036,
+      "confusion": 0.0135,
+      "jer": 0.7496,
+      "overlap_precision": 0.8362,
+      "overlap_recall": 0.0819,
+      "speaker_error": 0.25,
+      "speaker_abs_error": 0.25,
+      "rank": 17,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.6704,
+       "error_reduction": 0.8822
+      }
+     },
+     {
+      "id": "deepfilternet3+pyannote-community-1",
+      "denoiser": "deepfilternet3",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.7742,
+      "der_sd": 0.1881,
+      "success": 0.2258,
+      "missed": 0.7428,
+      "false_alarm": 0.0036,
+      "confusion": 0.0278,
+      "jer": 0.7654,
+      "overlap_precision": 0.8362,
+      "overlap_recall": 0.0819,
+      "speaker_error": -0.5,
+      "speaker_abs_error": 1.0,
+      "rank": 18,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.6847,
+       "error_reduction": 0.8844
+      }
+     },
+     {
+      "id": "deepfilternet3+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "deepfilternet3",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 4,
+      "der": 0.7754,
+      "der_sd": 0.2003,
+      "success": 0.2246,
+      "missed": 0.7602,
+      "false_alarm": 0.0008,
+      "confusion": 0.0144,
+      "jer": 0.7706,
+      "overlap_precision": 0.9363,
+      "overlap_recall": 0.1018,
+      "speaker_error": -1.0,
+      "speaker_abs_error": 1.0,
+      "rank": 19,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.6859,
+       "error_reduction": 0.8846
+      }
+     },
+     {
+      "id": "deepfilternet3+ecapa-spectral",
+      "denoiser": "deepfilternet3",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.7768,
+      "der_sd": 0.1424,
+      "success": 0.2232,
+      "missed": 0.6485,
+      "false_alarm": 0.0196,
+      "confusion": 0.1087,
+      "jer": 0.769,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.5,
+      "speaker_abs_error": 1.0,
+      "rank": 20,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.6873,
+       "error_reduction": 0.8848
+      }
+     },
+     {
+      "id": "deepfilternet3+nemo-clustering",
+      "denoiser": "deepfilternet3",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.7777,
+      "der_sd": 0.1929,
+      "success": 0.2223,
+      "missed": 0.7409,
+      "false_alarm": 0.0036,
+      "confusion": 0.0331,
+      "jer": 0.7671,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 1.5,
+      "rank": 21,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.6882,
+       "error_reduction": 0.8849
+      }
+     },
+     {
+      "id": "deepfilternet3+sortformer-streaming-v2",
+      "denoiser": "deepfilternet3",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.7956,
+      "der_sd": 0.181,
+      "success": 0.2044,
+      "missed": 0.7867,
+      "false_alarm": 0.0008,
+      "confusion": 0.0081,
+      "jer": 0.7876,
+      "overlap_precision": 0.9246,
+      "overlap_recall": 0.0751,
+      "speaker_error": -1.0,
+      "speaker_abs_error": 1.0,
+      "rank": 22,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.7061,
+       "error_reduction": 0.8875
+      }
+     },
+     {
+      "id": "deepfilternet3+nemotron-3-diarization",
+      "denoiser": "deepfilternet3",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 4,
+      "der": 0.799,
+      "der_sd": 0.1718,
+      "success": 0.201,
+      "missed": 0.7886,
+      "false_alarm": 0.001,
+      "confusion": 0.0095,
+      "jer": 0.7897,
+      "overlap_precision": 0.9226,
+      "overlap_recall": 0.0774,
+      "speaker_error": -1.0,
+      "speaker_abs_error": 1.0,
+      "rank": 23,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.7095,
+       "error_reduction": 0.888
+      }
+     },
+     {
+      "id": "deepfilternet3+builtin",
+      "denoiser": "deepfilternet3",
+      "diarizer": "builtin",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 3,
+      "der": 0.8437,
+      "der_sd": 0.077,
+      "success": 0.1563,
+      "missed": 0.7453,
+      "false_alarm": 0.0082,
+      "confusion": 0.0902,
+      "jer": 0.8248,
+      "overlap_precision": 0.2,
+      "overlap_recall": 0.0005,
+      "speaker_error": 4.3333,
+      "speaker_abs_error": 4.3333,
+      "rank": 24,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.7542,
+       "error_reduction": 0.8939
+      }
+     }
+    ]
+   },
+   {
+    "id": "callhome",
+    "source": "lab_callhome",
+    "recordings": 10,
+    "seconds": 5419,
+    "speakers": 2,
+    "licence": "CC BY-NC-SA 4.0",
+    "non_commercial": true,
+    "excluded_no_speech": 3,
+    "excluded_invalid": 1,
+    "combinations": 24,
+    "headline": {
+     "best": "none+nemotron-3-diarization",
+     "success": 0.8938,
+     "builtin": {
+      "id": "none+builtin",
+      "success": 0.5133,
+      "points": 0.3805,
+      "error_reduction": 0.7818
+     },
+     "next": {
+      "id": "none+sortformer-streaming-v2",
+      "success": 0.878,
+      "points": 0.0158,
+      "error_reduction": 0.1295
+     },
+     "best_commercial": null
+    },
+    "denoisers": [
+     {
+      "denoiser": "none",
+      "denoiser_name": "none",
+      "diarizers": 8,
+      "success": 0.7774
+     },
+     {
+      "denoiser": "mossformer2-se-48k",
+      "denoiser_name": "MossFormer2",
+      "diarizers": 8,
+      "success": 0.7487
+     },
+     {
+      "denoiser": "deepfilternet3",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizers": 8,
+      "success": 0.6361
+     }
+    ],
+    "rows": [
+     {
+      "id": "none+nemotron-3-diarization",
+      "denoiser": "none",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "none",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.1062,
+      "der_sd": 0.0407,
+      "success": 0.8938,
+      "missed": 0.0754,
+      "false_alarm": 0.0195,
+      "confusion": 0.0113,
+      "jer": 0.1188,
+      "overlap_precision": 0.8229,
+      "overlap_recall": 0.6124,
+      "speaker_error": 0.2,
+      "speaker_abs_error": 0.2,
+      "rank": 1,
+      "best": true,
+      "builtin": false,
+      "gain": {
+       "points": 0.0,
+       "error_reduction": 0.0
+      }
+     },
+     {
+      "id": "none+sortformer-streaming-v2",
+      "denoiser": "none",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "none",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.122,
+      "der_sd": 0.0683,
+      "success": 0.878,
+      "missed": 0.0734,
+      "false_alarm": 0.0217,
+      "confusion": 0.0269,
+      "jer": 0.1487,
+      "overlap_precision": 0.7686,
+      "overlap_recall": 0.6266,
+      "speaker_error": 0.2,
+      "speaker_abs_error": 0.4,
+      "rank": 2,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0158,
+       "error_reduction": 0.1295
+      }
+     },
+     {
+      "id": "none+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "none",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "none",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 10,
+      "der": 0.1629,
+      "der_sd": 0.0477,
+      "success": 0.8371,
+      "missed": 0.1447,
+      "false_alarm": 0.0098,
+      "confusion": 0.0084,
+      "jer": 0.1741,
+      "overlap_precision": 0.8876,
+      "overlap_recall": 0.4531,
+      "speaker_error": 0.1,
+      "speaker_abs_error": 0.1,
+      "rank": 3,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0567,
+       "error_reduction": 0.3481
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+sortformer-streaming-v2",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.1737,
+      "der_sd": 0.0655,
+      "success": 0.8263,
+      "missed": 0.1232,
+      "false_alarm": 0.0108,
+      "confusion": 0.0397,
+      "jer": 0.2162,
+      "overlap_precision": 0.7916,
+      "overlap_recall": 0.3568,
+      "speaker_error": 0.4,
+      "speaker_abs_error": 0.8,
+      "rank": 4,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0675,
+       "error_reduction": 0.3886
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 10,
+      "der": 0.1881,
+      "der_sd": 0.0403,
+      "success": 0.8119,
+      "missed": 0.1726,
+      "false_alarm": 0.007,
+      "confusion": 0.0085,
+      "jer": 0.2008,
+      "overlap_precision": 0.898,
+      "overlap_recall": 0.2925,
+      "speaker_error": 0.1,
+      "speaker_abs_error": 0.1,
+      "rank": 5,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0819,
+       "error_reduction": 0.4354
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+nemo-clustering",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.1934,
+      "der_sd": 0.0508,
+      "success": 0.8066,
+      "missed": 0.1537,
+      "false_alarm": 0.0152,
+      "confusion": 0.0245,
+      "jer": 0.2185,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 6,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0872,
+       "error_reduction": 0.4509
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+nemotron-3-diarization",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.1943,
+      "der_sd": 0.0567,
+      "success": 0.8057,
+      "missed": 0.1605,
+      "false_alarm": 0.0072,
+      "confusion": 0.0266,
+      "jer": 0.2356,
+      "overlap_precision": 0.8921,
+      "overlap_recall": 0.276,
+      "speaker_error": -0.1,
+      "speaker_abs_error": 0.1,
+      "rank": 7,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0881,
+       "error_reduction": 0.4534
+      }
+     },
+     {
+      "id": "none+pyannote-community-1",
+      "denoiser": "none",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "none",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.1954,
+      "der_sd": 0.0458,
+      "success": 0.8046,
+      "missed": 0.1515,
+      "false_alarm": 0.0155,
+      "confusion": 0.0284,
+      "jer": 0.2173,
+      "overlap_precision": 0.8129,
+      "overlap_recall": 0.3938,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 8,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.0892,
+       "error_reduction": 0.4565
+      }
+     },
+     {
+      "id": "none+nemo-clustering",
+      "denoiser": "none",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "none",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.211,
+      "der_sd": 0.0631,
+      "success": 0.789,
+      "missed": 0.1599,
+      "false_alarm": 0.0111,
+      "confusion": 0.04,
+      "jer": 0.2263,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": 0.3,
+      "speaker_abs_error": 0.3,
+      "rank": 9,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1048,
+       "error_reduction": 0.4967
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+pyannote-community-1",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.23,
+      "der_sd": 0.0333,
+      "success": 0.77,
+      "missed": 0.192,
+      "false_alarm": 0.0103,
+      "confusion": 0.0276,
+      "jer": 0.2541,
+      "overlap_precision": 0.7844,
+      "overlap_recall": 0.1931,
+      "speaker_error": 0.0,
+      "speaker_abs_error": 0.0,
+      "rank": 10,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1238,
+       "error_reduction": 0.5383
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+ecapa-spectral",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2426,
+      "der_sd": 0.0901,
+      "success": 0.7574,
+      "missed": 0.1952,
+      "false_alarm": 0.0048,
+      "confusion": 0.0426,
+      "jer": 0.298,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.2,
+      "speaker_abs_error": 0.2,
+      "rank": 11,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1364,
+       "error_reduction": 0.5622
+      }
+     },
+     {
+      "id": "none+pyannote-3.1",
+      "denoiser": "none",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "none",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2482,
+      "der_sd": 0.1263,
+      "success": 0.7518,
+      "missed": 0.1515,
+      "false_alarm": 0.0155,
+      "confusion": 0.0812,
+      "jer": 0.297,
+      "overlap_precision": 0.8129,
+      "overlap_recall": 0.3938,
+      "speaker_error": -0.2,
+      "speaker_abs_error": 0.2,
+      "rank": 12,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.142,
+       "error_reduction": 0.5721
+      }
+     },
+     {
+      "id": "none+ecapa-spectral",
+      "denoiser": "none",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "none",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2485,
+      "der_sd": 0.1051,
+      "success": 0.7515,
+      "missed": 0.2005,
+      "false_alarm": 0.0058,
+      "confusion": 0.0422,
+      "jer": 0.3037,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.2,
+      "speaker_abs_error": 0.2,
+      "rank": 13,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1423,
+       "error_reduction": 0.5726
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+pyannote-3.1",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2829,
+      "der_sd": 0.1157,
+      "success": 0.7171,
+      "missed": 0.192,
+      "false_alarm": 0.0103,
+      "confusion": 0.0806,
+      "jer": 0.3323,
+      "overlap_precision": 0.7844,
+      "overlap_recall": 0.1931,
+      "speaker_error": -0.2,
+      "speaker_abs_error": 0.2,
+      "rank": 14,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1767,
+       "error_reduction": 0.6246
+      }
+     },
+     {
+      "id": "deepfilternet3+diarizen-wavlm-large-s80-md-v2",
+      "denoiser": "deepfilternet3",
+      "diarizer": "diarizen-wavlm-large-s80-md-v2",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "DiariZen",
+      "non_commercial": true,
+      "n": 10,
+      "der": 0.2869,
+      "der_sd": 0.1201,
+      "success": 0.7131,
+      "missed": 0.2465,
+      "false_alarm": 0.0041,
+      "confusion": 0.0363,
+      "jer": 0.3157,
+      "overlap_precision": 0.9366,
+      "overlap_recall": 0.2108,
+      "speaker_error": -0.1,
+      "speaker_abs_error": 0.1,
+      "rank": 15,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1807,
+       "error_reduction": 0.6298
+      }
+     },
+     {
+      "id": "deepfilternet3+nemo-clustering",
+      "denoiser": "deepfilternet3",
+      "diarizer": "nemo-clustering",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "NeMo clustering",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2892,
+      "der_sd": 0.1684,
+      "success": 0.7108,
+      "missed": 0.1742,
+      "false_alarm": 0.0134,
+      "confusion": 0.1016,
+      "jer": 0.3493,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.3,
+      "speaker_abs_error": 0.5,
+      "rank": 16,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.183,
+       "error_reduction": 0.6328
+      }
+     },
+     {
+      "id": "deepfilternet3+nemotron-3-diarization",
+      "denoiser": "deepfilternet3",
+      "diarizer": "nemotron-3-diarization",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Nemotron-3",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.2985,
+      "der_sd": 0.1029,
+      "success": 0.7015,
+      "missed": 0.2557,
+      "false_alarm": 0.0041,
+      "confusion": 0.0388,
+      "jer": 0.3513,
+      "overlap_precision": 0.944,
+      "overlap_recall": 0.1627,
+      "speaker_error": -0.1,
+      "speaker_abs_error": 0.3,
+      "rank": 17,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.1923,
+       "error_reduction": 0.6442
+      }
+     },
+     {
+      "id": "deepfilternet3+sortformer-streaming-v2",
+      "denoiser": "deepfilternet3",
+      "diarizer": "sortformer-streaming-v2",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Sortformer v2",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.314,
+      "der_sd": 0.1384,
+      "success": 0.686,
+      "missed": 0.2108,
+      "false_alarm": 0.0071,
+      "confusion": 0.096,
+      "jer": 0.3646,
+      "overlap_precision": 0.8194,
+      "overlap_recall": 0.189,
+      "speaker_error": 0.3,
+      "speaker_abs_error": 0.7,
+      "rank": 18,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2078,
+       "error_reduction": 0.6618
+      }
+     },
+     {
+      "id": "deepfilternet3+pyannote-community-1",
+      "denoiser": "deepfilternet3",
+      "diarizer": "pyannote-community-1",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "pyannote community-1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.3606,
+      "der_sd": 0.1511,
+      "success": 0.6394,
+      "missed": 0.2523,
+      "false_alarm": 0.008,
+      "confusion": 0.1003,
+      "jer": 0.4192,
+      "overlap_precision": 0.7531,
+      "overlap_recall": 0.1118,
+      "speaker_error": -0.3,
+      "speaker_abs_error": 0.3,
+      "rank": 19,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2544,
+       "error_reduction": 0.7055
+      }
+     },
+     {
+      "id": "deepfilternet3+pyannote-3.1",
+      "denoiser": "deepfilternet3",
+      "diarizer": "pyannote-3.1",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "pyannote 3.1",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.381,
+      "der_sd": 0.1647,
+      "success": 0.619,
+      "missed": 0.2523,
+      "false_alarm": 0.008,
+      "confusion": 0.1207,
+      "jer": 0.472,
+      "overlap_precision": 0.7531,
+      "overlap_recall": 0.1118,
+      "speaker_error": -0.4,
+      "speaker_abs_error": 0.4,
+      "rank": 20,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.2748,
+       "error_reduction": 0.7213
+      }
+     },
+     {
+      "id": "deepfilternet3+ecapa-spectral",
+      "denoiser": "deepfilternet3",
+      "diarizer": "ecapa-spectral",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "ECAPA",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.3952,
+      "der_sd": 0.1583,
+      "success": 0.6048,
+      "missed": 0.2645,
+      "false_alarm": 0.0032,
+      "confusion": 0.1275,
+      "jer": 0.5134,
+      "overlap_precision": null,
+      "overlap_recall": 0.0,
+      "speaker_error": -0.9,
+      "speaker_abs_error": 0.9,
+      "rank": 21,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.289,
+       "error_reduction": 0.7313
+      }
+     },
+     {
+      "id": "none+builtin",
+      "denoiser": "none",
+      "diarizer": "builtin",
+      "denoiser_name": "none",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.4867,
+      "der_sd": 0.1465,
+      "success": 0.5133,
+      "missed": 0.1894,
+      "false_alarm": 0.013,
+      "confusion": 0.2842,
+      "jer": 0.4881,
+      "overlap_precision": 0.06,
+      "overlap_recall": 0.0003,
+      "speaker_error": 6.4,
+      "speaker_abs_error": 6.4,
+      "rank": 22,
+      "best": false,
+      "builtin": true,
+      "gain": {
+       "points": 0.3805,
+       "error_reduction": 0.7818
+      }
+     },
+     {
+      "id": "mossformer2-se-48k+builtin",
+      "denoiser": "mossformer2-se-48k",
+      "diarizer": "builtin",
+      "denoiser_name": "MossFormer2",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.5057,
+      "der_sd": 0.1532,
+      "success": 0.4943,
+      "missed": 0.1991,
+      "false_alarm": 0.0148,
+      "confusion": 0.2917,
+      "jer": 0.5066,
+      "overlap_precision": 0.1121,
+      "overlap_recall": 0.0002,
+      "speaker_error": 7.0,
+      "speaker_abs_error": 7.0,
+      "rank": 23,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.3995,
+       "error_reduction": 0.79
+      }
+     },
+     {
+      "id": "deepfilternet3+builtin",
+      "denoiser": "deepfilternet3",
+      "diarizer": "builtin",
+      "denoiser_name": "DeepFilterNet3",
+      "diarizer_name": "Built-in",
+      "non_commercial": false,
+      "n": 10,
+      "der": 0.5858,
+      "der_sd": 0.1861,
+      "success": 0.4142,
+      "missed": 0.2824,
+      "false_alarm": 0.0123,
+      "confusion": 0.2911,
+      "jer": 0.5839,
+      "overlap_precision": 0.2063,
+      "overlap_recall": 0.0003,
+      "speaker_error": 6.5,
+      "speaker_abs_error": 6.5,
+      "rank": 24,
+      "best": false,
+      "builtin": false,
+      "gain": {
+       "points": 0.4796,
+       "error_reduction": 0.8187
+      }
+     }
+    ]
+   }
+  ],
+  "rule": {
+   "issue": 68,
+   "status": "pending",
+   "corpora": {}
+  }
+ },
+ "labelling": {
+  "judges": [
+   {
+    "model": "Qwen3-1.7B",
+    "bits": 16,
+    "kind": "local",
+    "items": 200,
+    "accuracy": 0.365,
+    "tags_confirmed": 40,
+    "tags_rejected": 23,
+    "small_sample": false,
+    "source": "judges_local"
+   },
+   {
+    "model": "Qwen3-4B",
+    "bits": 4,
+    "kind": "local",
+    "items": 200,
+    "accuracy": 0.545,
+    "tags_confirmed": 63,
+    "tags_rejected": 1,
+    "small_sample": false,
+    "source": "judges_local"
+   },
+   {
+    "model": "Qwen3-8B",
+    "bits": 4,
+    "kind": "local",
+    "items": 200,
+    "accuracy": 0.62,
+    "tags_confirmed": 58,
+    "tags_rejected": 6,
+    "small_sample": false,
+    "source": "judges_local"
+   },
+   {
+    "model": "Claude Code (opus)",
+    "bits": null,
+    "kind": "hosted",
+    "items": 20,
+    "accuracy": 0.7,
+    "tags_confirmed": null,
+    "tags_rejected": null,
+    "small_sample": true,
+    "source": "judges_both"
+   }
+  ],
+  "tagger": {
+   "issue": 82,
+   "status": "pending",
+   "approaches": []
+  },
+  "events": {
+   "issue": 83,
+   "source": "events",
+   "dialogues": 8,
+   "given_links": {
+    "rows": [
+     {
+      "type": "question_answered",
+      "expected": 22,
+      "derived": 21,
+      "matched": 21,
+      "precision": 1.0,
+      "recall": 0.955
+     },
+     {
+      "type": "question_unanswered",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+     },
+     {
+      "type": "proposal_accepted",
+      "expected": 10,
+      "derived": 9,
+      "matched": 9,
+      "precision": 1.0,
+      "recall": 0.9
+     },
+     {
+      "type": "proposal_rejected",
+      "expected": 8,
+      "derived": 8,
+      "matched": 8,
+      "precision": 1.0,
+      "recall": 1.0
+     },
+     {
+      "type": "proposal_contested",
+      "expected": 2,
+      "derived": 0,
+      "matched": 0,
+      "precision": null,
+      "recall": 0.0
+     },
+     {
+      "type": "proposal_ignored",
+      "expected": 1,
+      "derived": 4,
+      "matched": 1,
+      "precision": 0.25,
+      "recall": 1.0
+     },
+     {
+      "type": "decision",
+      "expected": 11,
+      "derived": 9,
+      "matched": 9,
+      "precision": 1.0,
+      "recall": 0.818
+     },
+     {
+      "type": "action_item",
+      "expected": 16,
+      "derived": 18,
+      "matched": 16,
+      "precision": 0.889,
+      "recall": 1.0
+     },
+     {
+      "type": "open_issue",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+     }
+    ],
+    "expected": 70,
+    "derived": 71,
+    "precision": 0.9014,
+    "recall": 0.9143
+   },
+   "inferred_links": {
+    "rows": [
+     {
+      "type": "question_answered",
+      "expected": 22,
+      "derived": 21,
+      "matched": 21,
+      "precision": 1.0,
+      "recall": 0.955
+     },
+     {
+      "type": "question_unanswered",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+     },
+     {
+      "type": "proposal_accepted",
+      "expected": 10,
+      "derived": 8,
+      "matched": 8,
+      "precision": 1.0,
+      "recall": 0.8
+     },
+     {
+      "type": "proposal_rejected",
+      "expected": 8,
+      "derived": 7,
+      "matched": 6,
+      "precision": 0.857,
+      "recall": 0.75
+     },
+     {
+      "type": "proposal_contested",
+      "expected": 2,
+      "derived": 2,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": 0.0
+     },
+     {
+      "type": "proposal_ignored",
+      "expected": 1,
+      "derived": 4,
+      "matched": 1,
+      "precision": 0.25,
+      "recall": 1.0
+     },
+     {
+      "type": "decision",
+      "expected": 11,
+      "derived": 9,
+      "matched": 7,
+      "precision": 0.778,
+      "recall": 0.636
+     },
+     {
+      "type": "action_item",
+      "expected": 16,
+      "derived": 19,
+      "matched": 16,
+      "precision": 0.842,
+      "recall": 1.0
+     },
+     {
+      "type": "open_issue",
+      "expected": 0,
+      "derived": 1,
+      "matched": 0,
+      "precision": 0.0,
+      "recall": null
+     }
+    ],
+    "expected": 70,
+    "derived": 72,
+    "precision": 0.8194,
+    "recall": 0.8429
+   }
+  }
+ }
+}
