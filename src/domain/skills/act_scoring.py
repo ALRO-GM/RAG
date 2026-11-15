@@ -197,10 +197,10 @@ def per_category(references: Sequence[Reference],
         measurable = c in alone
         precision = _ratio(tp, predicted) if measurable else None
         recall = _ratio(tp, support) if measurable else None
-        f1 = None
-        if precision is not None and recall is not None:
-            f1 = (2 * precision * recall / (precision + recall)
-                  if precision + recall else 0.0)
+        # 2·TP / (support + predicted): 0 when a referenced category is
+        # never predicted, undefined only when it never occurs at all.
+        f1 = (_ratio(2 * tp, support + predicted) if measurable
+              else None)
         scores[c] = CategoryScore(
             precision=precision, recall=recall, f1=f1, support=support,
             predicted=predicted, measurable=measurable)

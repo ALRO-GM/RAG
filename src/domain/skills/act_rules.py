@@ -165,16 +165,16 @@ def rule_key(item: ActInput) -> str:
         return "otro:empty"
     if _cut(raw):
         return "otro:cut"
-    if all(w in FILLERS for w in words.split()):
-        return "otro:filler"
-    if words in YES_NO and after_q:
+    question = raw.endswith("?") or raw.startswith("¿") or "?" in raw
+    if words in YES_NO and after_q and not question:
         return "respuesta:yes_no_after_question"
-    if words in BACKCHANNELS:
+    if words in BACKCHANNELS and not question:
         return ("escucha:backchannel_after_other" if after_other
                 else "escucha:backchannel")
+    if all(w in FILLERS for w in words.split()):
+        return "otro:filler"
     if _RELATION.search(words) and n <= 8:
         return "relacion:formula"
-    question = raw.endswith("?") or raw.startswith("¿") or "?" in raw
     if question and _REQUEST_QUESTION.search(words):
         return "peticion:can_you_question"
     if question and _PROPOSAL.search(words):
