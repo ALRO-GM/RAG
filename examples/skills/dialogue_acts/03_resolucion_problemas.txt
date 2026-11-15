@@ -111,7 +111,7 @@ Javier: Le doy hasta mañana a mediodía. | propuesta #p2
 Javier: Si no aparece, llamo al otro que nos recomendó tu cuñado. | propuesta
 Rosa: Vale, me parece bien. | aceptacion >p2
 Rosa: Y pídele al de los azulejos que los traiga el jueves como muy tarde. | peticion #r1
-Javier: Vale, se lo digo hoy. | compromiso >r1
+Javier: Vale, se lo digo hoy. | compromiso:70 aceptacion:30 >r1
 Rosa: Y mantenme informada, por favor, que si no me pongo nerviosa. | peticion #r2
 Javier: Claro, te escribo mañana a la una. | compromiso >r2
 Rosa: Gracias, Javier. | relacion

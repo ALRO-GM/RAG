@@ -12,16 +12,19 @@ ver lo que diga el sistema.
 
 Estado: guía de trabajo, escrita antes de anotar nada. Los números de
 acuerdo que aparecen son **prestados** de otros estudios; se cambian por
-los nuestros cuando los midamos (§11). Los puntos marcados **(pendiente de
-decisión 2)** dependen de una decisión del dueño que aún no está tomada.
+los nuestros cuando los midamos (§11). Decisión 2 del dueño (2026-11-15):
+una frase puede llevar una **segunda y una tercera etiqueta, cada una con
+su peso en %** (§7).
 
 ---
 
 ## 1. Qué se anota
 
-Cada **frase** de la transcripción recibe **una etiqueta** (la categoría
-que mejor dice qué hace esa frase en la conversación) y, si la frase
-responde a otra anterior, el **identificador de esa frase anterior**.
+Cada **frase** de la transcripción recibe **una etiqueta principal** (la
+categoría que mejor dice qué hace esa frase en la conversación), y como
+mucho **dos más con su peso** si hace claramente varias cosas (§7), y, si
+la frase responde a otra anterior, el **identificador de esa frase
+anterior**.
 
 - La unidad es la frase tal como viene en `transcript.v1`: tiene un
   identificador como `t3.s0` (turno 3, frase 0), un hablante y un texto.
@@ -35,8 +38,12 @@ responde a otra anterior, el **identificador de esa frase anterior**.
   No se mira lo que viene después, salvo para saber si algo se contestó
   (§5, categorías 1 y 2).
 - Todavía no hay formulario para esto. Mientras tanto, una tabla con
-  columnas `frase` (id), `etiqueta`, `responde_a` (id o vacío) y
-  `segunda` (solo si se permite, §7). Formato provisional.
+  columnas `frase` (id), `etiquetas` y `responde_a` (id o vacío). En
+  `etiquetas` va una categoría sola (`compromiso`, que vale 100 %) o
+  hasta tres con su peso, la principal primero:
+  `compromiso:70 aceptacion:30` (§7). Es la misma forma que usa el
+  conjunto de ejemplos (`examples/skills/dialogue_acts/`), así que una
+  tabla se puede comprobar con el mismo programa.
 
 ## 2. Las 13 categorías de un vistazo
 
@@ -350,7 +357,7 @@ o decidido.
 - *Propuesta*: proponer cómo hacer el **trabajo** es Propuesta; proponer
   cómo llevar la **reunión** es Gestión.
 - *Pregunta*: "Irene, no has dicho nada, ¿cómo lo ves?" da la palabra:
-  primaria Gestión, segunda Pregunta (§7).
+  Gestión 60, Pregunta 40 (§7).
 - *Información*: un resumen que repite lo hablado es Gestión, no
   Información.
 
@@ -439,38 +446,58 @@ Reglas:
 - **Nunca se deja una frase sin etiqueta.** Otro es una etiqueta, no un
   hueco.
 
-## 7. Segunda etiqueta
+## 7. Segunda y tercera etiqueta, con peso
 
-**(pendiente de decisión 2 del dueño: permitir una segunda etiqueta o
-forzar una sola).** Esta sección se escribe para que valga en los dos
-casos.
+**Decisión 2 del dueño (2026-11-15):** una frase puede llevar una
+segunda y una tercera etiqueta, cada una con su % de certeza. El peso
+dice **qué parte de lo que hace la frase** corresponde a cada acto.
 
-**Si se permite segunda etiqueta.** Se escribe en la columna `segunda`
-solo cuando la frase hace **claramente dos cosas** de las categorías de
-esta guía. Hay que poder decir las dos con la regla de §4; no vale "a lo
-mejor también". Casos habituales:
+**Cuándo se añade.** Solo cuando la frase hace **claramente dos (o tres)
+cosas** de las categorías de esta guía. Hay que poder decir cada una con
+la regla de §4; no vale "a lo mejor también". Casi todas las frases
+llevan una sola etiqueta; si te ves poniendo dos en muchas, relee §4.
+La tercera es rara: una frase corta casi nunca hace tres cosas.
 
-| Frase | Primaria | Segunda |
+**Cómo se reparte el peso.**
+
+1. Los pesos son **números enteros que suman 100**, en **pasos de 10**
+   (10, 20, 30...). No hay más precisión que esa: nadie distingue un 65
+   de un 70.
+2. La **principal va primero** y es la que más pesa (si dos pesan lo
+   mismo, va primero la que se dice antes). Con estas reglas la
+   principal siempre tiene **40 o más**.
+3. Repartos de partida: **70 / 30** si la segunda cosa es claramente
+   menor (lo normal); **60 / 40** si las dos pesan casi igual; **50 /
+   50** solo si de verdad no se puede decir cuál pesa más (y entonces
+   la principal es la primera que se dice); **40 / 30 / 30** o
+   **60 / 20 / 20** con tres. 90 / 10 no merece la pena: si la segunda
+   cosa pesa tan poco, no se pone.
+4. Una etiqueta sola se escribe sin peso y vale 100.
+5. Si la frase responde a algo, la regla de §5 vale para **todas** sus
+   etiquetas: un `aceptacion:30` también necesita `responde_a`.
+
+**Cuál es la principal.** La que cambia lo que pasa a continuación en la
+conversación (la que pide o hace algo); la segunda es la que lo sostiene.
+Si hay duda, la **primera cosa que dice la frase**. La principal es la
+que cuenta para κ (§10), así que es la decisión más importante.
+
+**Ejemplos resueltos.**
+
+| Frase | Etiquetas | Por qué |
 |---|---|---|
-| "Irene, no has dicho nada del reparto, ¿cómo lo ves?" | Gestión | Pregunta |
-| "Vale, te lo mando a las cuatro." (a una petición) | Compromiso | Aceptación |
-| "No, el cliente quiere un solo documento y lo dijo por escrito." | Rechazo | Información |
-| "Podríamos dividirlo en dos, porque así se revisa antes." | Propuesta | Información |
+| "Vale, te lo mando a las cuatro." (a una petición) | `compromiso:70 aceptacion:30` | lo que cambia la conversación es la promesa; el "vale" acepta, pero es menor |
+| "Irene, no has dicho nada del reparto, ¿cómo lo ves?" | `gestion:60 pregunta:40` | da la palabra (Gestión) y a la vez pide su opinión; las dos pesan casi igual |
+| "No, el cliente quiere un solo documento y lo dijo por escrito." | `rechazo:70 informacion:30` | rechaza; la razón es un dato comprobable que lo sostiene |
+| "Podríamos dividirlo en dos, porque así se revisa antes." | `propuesta:70 opinion:30` | propone; "se revisa antes" valora, no es un dato |
+| "Gracias, Luis; Irene, ¿tú cómo lo ves?" | `gestion:40 pregunta:30 relacion:30` | da la palabra (lo que cambia la conversación), pide opinión y agradece; tres cosas claras, ninguna pesa mucho más |
+| "Sí, sí." (alguien está contando algo) | `escucha` | una sola cosa: no se añade nada |
 
-Orden: la **primaria** es la que cambia lo que pasa a continuación en la
-conversación (la que pide o hace algo) y la segunda es la que lo sostiene.
-Si hay duda sobre cuál es primaria, es la **primera cosa que dice la
-frase**.
-
-**Si se fuerza una sola etiqueta.** Se anota solo la **primaria** con el
-mismo criterio. La columna `segunda` no existe. Los casos de la tabla se
-resuelven igual: Gestión, Compromiso, Rechazo, Propuesta. Se pierde la
-información de la segunda cosa (por ejemplo la razón de un rechazo), y
-eso es el coste de esa decisión: lo mide el equipo, no el anotador.
-
-En ningún caso se usa la segunda etiqueta para evitar decidir: una frase
-dudosa entre Información y Opinión no es "Información + Opinión", se
-decide con la regla de §4.4.
+**En ningún caso se usa la segunda etiqueta para evitar decidir.** Una
+frase dudosa entre Información y Opinión no es "información:50
+opinion:50": se decide con la regla de §4.4 y se marca como dudosa (§6).
+El peso dice cuánto de la frase hace cada cosa, **no lo seguro que
+estás**. (El etiquetador automático sí usa el peso como probabilidad:
+§11.)
 
 ## 8. Errores de transcripción, frases cortadas y señales de escucha
 
@@ -519,12 +546,12 @@ diferencia.
 | p6 | Pablo | Más o menos una semana. | Respuesta | p5 | contesta la pregunta |
 | p7 | Irene | Podríamos dividir el informe en dos entregas. | Propuesta | | idea para el grupo, sin destinatario |
 | p8 | Luis | Sí, y así el cliente ve algo antes. | Aceptación | p7 | acepta y añade |
-| p9 | Pablo | No, el cliente quiere un solo documento y lo dijo por escrito. | Rechazo (segunda: Información) | p7 | rechaza con razón |
+| p9 | Pablo | No, el cliente quiere un solo documento y lo dijo por escrito. | Rechazo 70, Información 30 | p7 | rechaza con razón |
 | p10 | Marta | Ajá. | Señal de escucha | | solo muestra atención |
 | p11 | Irene | Pablo, mándame el borrador antes de las cinco. | Petición | | pide a Pablo |
-| p12 | Pablo | Vale, te lo mando a las cuatro. | Compromiso (segunda: Aceptación) | p11 | se obliga, con hora |
+| p12 | Pablo | Vale, te lo mando a las cuatro. | Compromiso 70, Aceptación 30 | p11 | se obliga, con hora; el "vale" acepta |
 | p13 | Luis | Es que el... bueno, no. | Otro | | frase abandonada |
-| p14 | Marta | Irene, no has dicho nada del reparto, ¿cómo lo ves? | Gestión (segunda: Pregunta) | | da la palabra |
+| p14 | Marta | Irene, no has dicho nada del reparto, ¿cómo lo ves? | Gestión 60, Pregunta 40 | | da la palabra y pide opinión |
 | p15 | Irene | Para mí el reparto actual está bien. | Respuesta | p14 | contesta a una pregunta, aunque sea una opinión |
 | p16 | Luis | Perdona, Pablo, antes te he interrumpido. | Relación | | disculpa |
 | p17 | Marta | Entonces, resumiendo: entrega única el día quince y Pablo manda el borrador a las cuatro. | Gestión | | resume lo decidido |
@@ -533,7 +560,10 @@ diferencia.
 | p20 | Luis | Yo me encargo de las cifras. | Compromiso | | quien habla se obliga |
 
 Las 13 categorías aparecen al menos una vez. Si fallas más de cuatro,
-repasa los puntos de confusión de las categorías que fallaste.
+repasa los puntos de confusión de las categorías que fallaste. Al
+comparar cuenta primero la **principal**; en p9, p12 y p14 un reparto
+distinto (60/40 en vez de 70/30) no es un fallo, pero poner una segunda
+etiqueta en las demás frases sí lo es.
 
 ## 10. Acuerdo entre anotadores y cómo se resuelven las diferencias
 
@@ -541,8 +571,12 @@ repasa los puntos de confusión de las categorías que fallaste.
   antes de usar una categoría como prueba de nada. Qué es κ y cuánta
   certeza se espera de cada categoría: §11.
 - **Cómo se mide.** Dos anotadores marcan las mismas frases por separado,
-  sin hablar entre ellos y sin ver nada del sistema. Se calcula κ por
-  categoría y global, con su intervalo de confianza del 95 %. Para esto
+  sin hablar entre ellos y sin ver nada del sistema. Se calcula κ de la
+  **etiqueta principal** por categoría y global, con su intervalo de
+  confianza del 95 %. Los pesos se miden aparte: cuánto coinciden los
+  repartos de los dos anotadores (solapamiento medio) y lo mismo
+  descontando el azar (α de Krippendorff); ver
+  [`CONVERSATION.md`](CONVERSATION.md) §6.3.1. Para esto
   hacen falta **al menos 50 ejemplos de cada categoría** (por eso la
   muestra incluye reuniones con tareas y desacuerdos); con menos, la cifra
   baila demasiado.
@@ -610,8 +644,10 @@ supere el azar con margen). Las uniones previstas son Propuesta + Petición,
 Información + Opinión y Aceptación + Señal de escucha; el veredicto de la
 unión se calcula sobre la categoría unida.
 
-**Cuando haya etiquetador automático.** Cada etiqueta que ponga irá con
-una **confianza calibrada en %** (de las etiquetas con 70 %, unas 70 de
+**Cuando haya etiquetador automático.** Dará sus **tres etiquetas más
+probables** con la misma forma que una anotación, más un **resto** (lo
+que queda hasta 100 para las demás categorías). Cada etiqueta que ponga
+irá con una **confianza calibrada en %** (de las etiquetas con 70 %, unas 70 de
 cada 100 deben ser correctas). Si la confianza **no supera con claridad la
 frecuencia habitual de esa categoría** (su porcentaje entre todas las
 frases), la etiqueta se muestra como **"dudosa"** o no se muestra. El

@@ -12,6 +12,13 @@ unlabelled). A model's prediction for a sentence counts as right when
 it falls inside that set; categories a corpus can never tell apart are
 listed in ``docs/skills/DIALOGUE_ACT_DATA.md``.
 
+A sentence of our own data may carry up to three **weighted labels**
+(owner decision 2 on #57): how much of the sentence's function each act
+carries, in whole percent summing to 100 ("Vale, lo hago" →
+``compromiso:70 aceptacion:30``). The first label is the primary one.
+An automatic tagger uses the same shape for its calibrated top-3
+probabilities, with what is left to 100 kept as an explicit ``rest``.
+
 Everything here is plain data and string handling: the readers of each
 corpus's files are adapters.
 """
@@ -29,7 +36,7 @@ from typing import (
     Tuple,
 )
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 CATEGORIES: Tuple[str, ...] = (
     "pregunta", "respuesta", "informacion", "opinion", "propuesta",
@@ -47,6 +54,12 @@ SESSION_TYPES: Tuple[str, ...] = (
     "venta",
 )
 """Declared conversation types (CONVERSATION.md §4.2)."""
+
+MAX_LABELS = 3
+"""Most labels one sentence may carry."""
+
+WEIGHT_STEP = 10
+"""Human annotators split a sentence's weight in steps of this many %."""
 
 Categories = Tuple[str, ...]
 
@@ -71,12 +84,36 @@ class CorpusInfo(_Frozen):
     url: str = ""
 
 
+class WeightedLabel(_Frozen):
+    """One of a sentence's acts with the share of its function, in %.
+
+    For a human annotation ``weight`` is how much of what the sentence
+    does this act carries; for the tagger it is its calibrated
+    probability. ``doubtful`` marks a tagger label whose probability is
+    not clearly above its category's base rate (``CONVERSATION.md``
+    §5.3.1 c); human labels never set it.
+    """
+
+    label: str
+    weight: int = Field(ge=1, le=100)
+    doubtful: bool = False
+
+    @field_validator("label")
+    @classmethod
+    def _known(cls, value: str) -> str:
+        """Refuse a label that is not one of the 13 categories."""
+        if value not in CATEGORIES:
+            raise ValueError(f"unknown category {value!r}")
+        return value
+
+
 class SourceUtterance(_Frozen):
     """One labelled segment as a corpus stores it.
 
     ``responds_to`` is the id of the segment it replies to, when the
     corpus links them (adjacency pairs); ``reply_type`` is the kind of
-    link the corpus gives (AMI: positive, negative, …).
+    link the corpus gives (AMI: positive, negative, …). ``labels`` are
+    weighted labels when the source gives them (our own set only).
     """
 
     id: str = Field(min_length=1)
@@ -85,6 +122,7 @@ class SourceUtterance(_Frozen):
     source_label: str
     responds_to: Optional[str] = None
     reply_type: Optional[str] = None
+    labels: List[WeightedLabel] = []
 
 
 class SourceDialogue(_Frozen):
@@ -108,7 +146,12 @@ class ActRecord(_Frozen):
     ``categories`` are the categories of ours the source label is
     compatible with (empty: not usable for evaluation);
     ``source_label`` keeps the corpus's own tag so a mapping can be
-    revised without re-reading the corpus.
+    revised without re-reading the corpus. ``labels`` are the weighted
+    labels of our own set (1–3, primary first, summing to 100); public
+    corpora leave it empty, since they give one tag per segment and
+    ``categories`` already says what it is compatible with. Records
+    written before weighted labels existed have no ``labels`` field and
+    still load.
     """
 
     corpus: str
@@ -125,6 +168,7 @@ class ActRecord(_Frozen):
     categories: List[str]
     responds_to: Optional[str] = None
     session_type: Optional[str] = None
+    labels: List[WeightedLabel] = []
 
 
 Mapper = Callable[[SourceUtterance, Optional[SourceUtterance]], Categories]
@@ -168,6 +212,7 @@ def to_records(
             categories=list(mapper(utterance, first)),
             responds_to=utterance.responds_to,
             session_type=dialogue.session_type,
+            labels=list(utterance.labels),
         ))
         previous.append(ContextLine(speaker=utterance.speaker, text=text))
     return records
@@ -190,15 +235,106 @@ def label_distribution(records: Iterable[ActRecord]) -> Dict[str, int]:
     return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
 
 
+# --- Weighted labels -----------------------------------------------------
+
+
+def check_labels(labels: Sequence[WeightedLabel], complete: bool = True
+                 ) -> None:
+    """Refuse a label list a sentence cannot carry.
+
+    1 to :data:`MAX_LABELS` distinct categories, primary first (weights
+    never increase along the list) and weights summing to 100, or to at
+    most 100 when ``complete`` is false (a tagger's top labels, the rest
+    left to the other categories). Raises :class:`ValueError`.
+    """
+    if not 1 <= len(labels) <= MAX_LABELS:
+        raise ValueError(
+            f"a sentence carries 1 to {MAX_LABELS} labels, not "
+            f"{len(labels)}")
+    names = [lab.label for lab in labels]
+    if len(set(names)) != len(names):
+        raise ValueError(f"a label is repeated: {' '.join(names)}")
+    weights = [lab.weight for lab in labels]
+    if any(b > a for a, b in zip(weights, weights[1:])):
+        raise ValueError("the primary label goes first: weights must not "
+                         "increase along the list")
+    total = sum(weights)
+    if complete and total != 100:
+        raise ValueError(f"weights add up to {total}, not 100")
+    if total > 100:
+        raise ValueError(f"weights add up to {total}, more than 100")
+
+
+def check_annotation(labels: Sequence[WeightedLabel]) -> None:
+    """Refuse a human annotation that breaks the guide's weight rules.
+
+    On top of :func:`check_labels`: weights in steps of
+    :data:`WEIGHT_STEP` (``DIALOGUE_ACTS_GUIDE.md`` §7). With at most
+    three labels, primary first and a sum of 100, that leaves the
+    primary at least 40 (40 + 30 + 30), as the guide asks. Raises
+    :class:`ValueError`.
+    """
+    check_labels(labels)
+    if any(lab.weight % WEIGHT_STEP for lab in labels):
+        raise ValueError(f"weights go in steps of {WEIGHT_STEP}")
+
+
+def parse_labels(text: str) -> List[WeightedLabel]:
+    """Read ``etiqueta`` or ``etiqueta:peso etiqueta:peso ...``.
+
+    A single label without a weight carries 100; several labels must
+    all give their weight. The result passes :func:`check_labels`.
+    Raises :class:`ValueError` naming the problem.
+    """
+    tokens = text.split()
+    labels: List[WeightedLabel] = []
+    for token in tokens:
+        name, colon, weight = token.partition(":")
+        if name not in CATEGORIES:
+            raise ValueError(f"unknown label {name!r}")
+        if not colon:
+            if len(tokens) > 1:
+                raise ValueError(
+                    f"{name} needs a weight: with several labels each is "
+                    "written 'etiqueta:peso'")
+            labels.append(WeightedLabel(label=name, weight=100))
+            continue
+        if not weight.isdigit() or not 1 <= int(weight) <= 100:
+            raise ValueError(f"weight of {name} must be 1 to 100, "
+                             f"not {weight!r}")
+        labels.append(WeightedLabel(label=name, weight=int(weight)))
+    check_labels(labels)
+    return labels
+
+
+def format_labels(labels: Sequence[WeightedLabel]) -> str:
+    """Write labels back in the syntax :func:`parse_labels` reads.
+
+    A single label at 100 is written bare, as single-label data always
+    was.
+    """
+    if len(labels) == 1 and labels[0].weight == 100:
+        return labels[0].label
+    return " ".join(f"{lab.label}:{lab.weight}" for lab in labels)
+
+
 # --- Our own set: the source label is already our category -------------
 
 
 def own_categories(
     utterance: SourceUtterance, first: Optional[SourceUtterance]
 ) -> Categories:
-    """Map a sentence of our Spanish set: its label is the category."""
-    return (utterance.source_label,) if is_category(
-        utterance.source_label) else ()
+    """Map a sentence of our Spanish set: its primary label.
+
+    The source label is the written label (``compromiso`` or
+    ``compromiso:70 aceptacion:30``); a prediction is right when it is
+    the primary act, and the weights travel in ``labels``.
+    """
+    try:
+        labels = parse_labels(utterance.source_label)
+    except ValueError:
+        return ()
+    return (labels[0].label,)
 
 
 # --- AMI (15 dialogue-act types + adjacency pairs) ---------------------

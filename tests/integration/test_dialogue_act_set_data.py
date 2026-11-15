@@ -16,6 +16,7 @@ from src.domain.skills.dialogue_act_set import (
     parse_set,
     set_distribution,
     to_transcript_like,
+    weighted_count,
 )
 from src.domain.skills.dialogue_acts import SECOND_PARTS, SESSION_TYPES
 
@@ -77,3 +78,13 @@ def test_datasheet_counts_match_the_set() -> None:
     assert table == COUNTS
     total = f"{sum(COUNTS.values()):,}"
     assert f"{len(DIALOGUES)} dialogues, {total} sentences" in sheet
+
+
+def test_weighted_examples_are_few_and_in_the_datasheet() -> None:
+    weighted = [u for d in DIALOGUES for u in d.utterances
+                if len(u.labels) > 1]
+    assert len(weighted) == weighted_count(DIALOGUES)
+    assert 1 <= len(weighted) <= 20
+    assert all(u.act == u.labels[0].label for u in weighted)
+    sheet = (SET_DIR / "README.md").read_text(encoding="utf-8")
+    assert f"{len(weighted)} sentences carry weighted" in sheet

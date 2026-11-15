@@ -216,10 +216,18 @@ def test_broken_xml_member(tmp_path: Path) -> None:
 def test_own_set_reader(tmp_path: Path) -> None:
     (tmp_path / "a.txt").write_text(
         "=== d1 | venta | T\nAna: ¿Lo quiere? | pregunta #q\n"
-        "Luis: Sí. | respuesta >q\n", encoding="utf-8")
+        "Luis: Sí. | respuesta >q\n"
+        "Ana: Firme aquí. | peticion #p\n"
+        "Luis: Vale, firmo. | compromiso:70 aceptacion:30 >p\n",
+        encoding="utf-8")
     (dialogue,) = OwnSpanishSet(str(tmp_path)).dialogues()
     assert dialogue.session_type == "venta"
     assert dialogue.utterances[1].responds_to == "t0.s0"
+    assert dialogue.utterances[1].source_label == "respuesta"
+    assert dialogue.utterances[1].labels[0].weight == 100
+    weighted = dialogue.utterances[3]
+    assert weighted.source_label == "compromiso:70 aceptacion:30"
+    assert [x.weight for x in weighted.labels] == [70, 30]
     with pytest.raises(NotFoundError):
         list(OwnSpanishSet(str(tmp_path / "empty")).dialogues())
     (tmp_path / "empty").mkdir()
@@ -288,7 +296,8 @@ class TestCli:
         result = skills(["dialogue_acts_set", "--source", "set",
                          "--output", "set.json"], tmp_path)
         assert result.returncode == 0, result.stderr
-        assert "1 dialogues, 2 sentences" in result.stdout
+        assert "1 dialogues, 2 sentences (0 with weighted labels)" in (
+            result.stdout)
         assert "types: venta 1" in result.stdout
         document = json.loads((tmp_path / "set.json").read_text())
         assert document[0]["utterances"][1]["act"] == "respuesta"

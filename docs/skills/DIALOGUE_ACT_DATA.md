@@ -32,6 +32,11 @@ git-ignored `data/dialogue_acts/`.
   nuestras con las que es compatible**. Si el corpus no distingue algo
   (MRDA no separa hecho de opinión), la frase vale para las dos, y esa
   distinción no se puede medir con ese corpus (tabla §3).
+- **Varias etiquetas con peso** (decisión 2 de #57, #73): una frase de
+  nuestro conjunto puede llevar hasta tres, `compromiso:70 aceptacion:30`
+  (enteros, pasos de 10, la principal primero, suman 100); una sola
+  etiqueta vale 100, así que los datos de antes siguen valiendo. Los
+  corpus públicos no tienen pesos.
 - `python -m src skills dialogue_acts_import --corpus ami --source
   <zip> --output data/dialogue_acts/ami.jsonl` importa un corpus a un
   formato JSONL común y escribe solo recuentos en pantalla.
@@ -281,10 +286,25 @@ One JSON object per line (`ActRecord`):
 | `dialogue`, `id`, `order` | Meeting/conversation, the corpus's segment id, position |
 | `speaker`, `text` | Who and what (markup removed) |
 | `context` | The previous 3 segments (`--context N`), speaker and text |
-| `source_label` | The corpus's own tag, unchanged |
-| `categories` | Our compatible categories (empty: unusable) |
+| `source_label` | The corpus's own tag, unchanged (our set: the written label, `compromiso` or `compromiso:70 aceptacion:30`) |
+| `categories` | Our compatible categories (empty: unusable); for our set, the primary label |
 | `responds_to` | Segment id of the first part (AMI, MRDA, our set) |
 | `session_type` | Declared conversation type (our set only) |
+| `labels` | Weighted labels, `[{"label", "weight", "doubtful"}]`, primary first, weights in whole % summing to 100 (our set only; empty for public corpora) |
+
+**Weighted labels** (owner decision 2 on #57, issue #73). A sentence may
+carry 1 to 3 labels with their share of its function in whole %. Human
+annotation: steps of 10, primary first, summing to 100
+(`DIALOGUE_ACTS_GUIDE.md` §7); in the set's text format they are written
+`etiqueta:peso`, and a bare label means 100, so every single-label file
+and every JSONL written before the field existed still loads (a missing
+`labels` reads as empty). A tagger fills the same shape with its top-3
+calibrated probabilities, whatever is left to 100 kept as an explicit
+rest rather than renormalised, and `doubtful: true` on a label below its
+category's threshold (`CONVERSATION.md` §5.3.1 c). Public corpora keep
+`labels` empty: they give one tag per segment, and what it is compatible
+with is already in `categories`. The agreement and accuracy measures for
+weighted labels are in `CONVERSATION.md` §6.3.1.
 
 Commands:
 

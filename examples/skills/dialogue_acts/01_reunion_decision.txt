@@ -10,7 +10,7 @@ Irene: Hola, buenos días. | relacion
 Marta: Bueno, pues si os parece empezamos, que tenemos media hora justa. | gestion
 Marta: Hoy hay un solo punto: decidir si cambiamos de empresa de mensajería o no. | gestion
 -- fase: información
-Marta: Luis, tú has mirado los números, ¿no? | gestion #g1
+Marta: Luis, tú has mirado los números, ¿no? | gestion:60 pregunta:40 #g1
 Luis: Sí, sí, los tengo aquí. | respuesta >g1
 Luis: Eh, el año pasado tuvimos cuarenta y tantas incidencias con los envíos. | informacion
 Irene: Ajá. | escucha
@@ -62,7 +62,7 @@ Carmen: Mm, ajá. | escucha
 Raúl: Ya, pero eso a quien tiene niños le complica la vida. | rechazo >a1
 Nuria: Hola, perdonad el retraso, el metro. | relacion
 Carmen: Nada, tranquila, estamos con el horario. | relacion
-Carmen: Nuria, ¿tú cómo lo ves? | gestion #g2
+Carmen: Nuria, ¿tú cómo lo ves? | gestion:60 pregunta:40 #g2
 Nuria: Pues a mí los turnos me parecen bien si se puede cambiar la semana entre nosotros. | respuesta #n1 >g2
 Sergio: Claro, eso sí. | aceptacion >n1
 Raúl: Bueno, si se puede cambiar, vale, lo acepto. | aceptacion >n1
@@ -192,7 +192,7 @@ Clara: Sí. | aceptacion >s1
 Hugo: Vale. | aceptacion >s1
 -- fase: tareas
 Javier: Lucía, prepara un mensaje para los usuarios explicando que el pago llega después, por favor. | peticion #r1
-Lucía: Vale, mañana lo tienes. | compromiso >r1
+Lucía: Vale, mañana lo tienes. | compromiso:70 aceptacion:30 >r1
 Hugo: Yo llamo al banco para meterles prisa. | compromiso
 Clara: Y yo congelo las peticiones nuevas hasta el lanzamiento. | compromiso
 Javier: Gracias, equipo, buen trabajo. | relacion

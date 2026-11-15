@@ -5,12 +5,23 @@ data is reliable enough to be a reference, and between the system and
 the human consensus, to know how good the system is.
 """
 
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
 import numpy as np
 import numpy.typing as npt
 
 Rating = Optional[float]
+Value = TypeVar("Value", bound=Hashable)
 
 ALPHA_RELIABLE = 0.80
 ALPHA_TENTATIVE = 0.667
@@ -138,6 +149,48 @@ def krippendorff_alpha(
             delta = _distance(level, totals, c, j)
             observed += coincidence[c, j] * delta
             expected += totals[c] * totals[j] * delta
+    if expected == 0.0:
+        return 1.0
+    return 1.0 - (n - 1) * observed / expected
+
+
+def krippendorff_alpha_distance(
+    ratings: Sequence[Sequence[Optional[Value]]],
+    distance: Callable[[Value, Value], float],
+) -> Optional[float]:
+    """Return Krippendorff's alpha for any values and distance function.
+
+    The general form of :func:`krippendorff_alpha`: values are anything
+    hashable (a label distribution, a set) and ``distance`` is the
+    metric δ² between two of them, 0 for equal values. Same layout as
+    :func:`krippendorff_alpha` (one row per rater, ``None`` for a unit
+    not rated); with ``distance`` 1 between different values it is the
+    nominal alpha. Returns ``None`` when no unit has two ratings and 1.0
+    when there is no expected disagreement.
+    """
+    coincidence: Dict[Tuple[Value, Value], float] = {}
+    n_units = len(ratings[0]) if ratings else 0
+    for unit in range(n_units):
+        values: List[Value] = [
+            v for row in ratings if (v := row[unit]) is not None]
+        m = len(values)
+        if m < 2:
+            continue
+        for i, a in enumerate(values):
+            for j, b in enumerate(values):
+                if i != j:
+                    coincidence[a, b] = coincidence.get((a, b), 0.0) + (
+                        1.0 / (m - 1))
+    totals: Dict[Value, float] = {}
+    for (a, _), count in coincidence.items():
+        totals[a] = totals.get(a, 0.0) + count
+    n = sum(totals.values())
+    if n <= 1:
+        return None
+    observed = sum(count * distance(a, b)
+                   for (a, b), count in coincidence.items())
+    expected = sum(totals[a] * totals[b] * distance(a, b)
+                   for a in totals for b in totals)
     if expected == 0.0:
         return 1.0
     return 1.0 - (n - 1) * observed / expected
