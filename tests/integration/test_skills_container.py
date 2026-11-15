@@ -13,9 +13,12 @@ from src.adapters.inbound.lab_cli import LabCLI
 from src.adapters.inbound.skills_cli import SkillsCLI, fmt, parse_names
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
+from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.local_judge import LocalJudge
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
+from src.application.skills.judges import FallbackJudge
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.experiments import TrialResult
@@ -139,8 +142,8 @@ def test_listing_a_catalogue_builds_no_model(
         """Fail if a model adapter is constructed."""
         raise AssertionError("a model adapter was constructed")
 
-    for name in ("SentenceTransformerEmbedder", "TransformersChatModel",
-                 "AnthropicChatModel", "SqliteCache"):
+    for name in ("SentenceTransformerEmbedder", "LocalJudge",
+                 "ClaudeCodeJudge", "AnthropicChatModel", "SqliteCache"):
         monkeypatch.setattr(bootstrap, name, forbidden)
     app = SkillsContainer(settings())
     assert app.catalogues.load("core", "es").language == "es"
@@ -164,10 +167,15 @@ def test_container_uses_the_shared_embedder_and_judge(
 
 def test_container_builds_lazy_model_adapters(skills_project: Path) -> None:
     """The default adapters are configured but load nothing."""
-    local = SkillsContainer(settings(llm="some/local-model"))
-    assert isinstance(local.judge, TransformersChatModel)
+    local = SkillsContainer(settings(llm="some/local-model", judge="local"))
+    assert isinstance(local.judge, LocalJudge)
     assert local.judge.model_name == "some/local-model"
-    assert local.judge._model is None
+    built = local.judge._model
+    assert isinstance(built, TransformersChatModel) and built._model is None
+    claude = SkillsContainer(settings(judge="claude_code"))
+    assert isinstance(claude.judge, FallbackJudge)
+    assert isinstance(claude.judge.primary, ClaudeCodeJudge)
+    assert claude.judge.fallback is claude.local_judge
     api = SkillsContainer(settings(
         judge="api", api_model="claude-haiku-5-5", api_effort="low"
     ))

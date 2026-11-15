@@ -156,6 +156,14 @@ export class Api {
     return this.request("GET", "/enrolment/text", { query: { language, name } });
   }
 
+  // ---- analysis (docs/skills/DESIGN.md §4) ----
+
+  /** The RAG's analysis judge and whether Claude's quota is available. */
+  analysisJudge() { return this.request("GET", "/analysis/judge"); }
+
+  /** Choose the judge of the next analyses: claude_code, local or both. */
+  setAnalysisJudge(mode) { return this.request("PUT", "/analysis/judge", { json: { mode } }); }
+
   // ---- model lab (docs/transcriber/LAB.md §7) ----
 
   labCatalogue() { return this.request("GET", "/lab/catalogue"); }

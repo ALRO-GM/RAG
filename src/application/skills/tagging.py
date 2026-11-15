@@ -72,12 +72,14 @@ class TaggedSentence(BaseModel):
     """A sentence with its candidate tags, best first.
 
     ``decision`` is set once a classifier has read the sentence;
-    sentences without candidates are never sent to it.
+    sentences without candidates are never sent to it. With two judges
+    (``judge = "both"``), ``second_decision`` is the second one's.
     """
 
     sentence: Sentence
     tags: List[SentenceTag]
     decision: Optional[TagDecision] = None
+    second_decision: Optional[TagDecision] = None
 
 
 class SentenceTagger:
@@ -199,7 +201,11 @@ class TagConfirmer:
             return cached
         reply = self.judge.complete(system, user, self.max_tokens)
         if self.cache:
-            self.cache.set(key, reply)
+            # Keyed by the judge that answered: a fallback judge may have
+            # taken over during the call.
+            self.cache.set(
+                cache_key("tag", self.judge.model_name, system, user), reply
+            )
         return reply
 
     def confirm(

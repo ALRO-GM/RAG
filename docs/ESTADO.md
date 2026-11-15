@@ -113,7 +113,7 @@ corpus públicos; sólo sintética; sin medir.
 | 4 | Corpus teórico y rúbrica | parcial | ~60 | media-baja: sin revisión de experto | `docs/skills/THEORY.md`; `RESEARCH.md`; `knowledge/rubrics/` | Ningún experto ha revisado los indicadores; lo validado es observacional con evaluadores formados | T-38: revisión por psicólogo o panel |
 | 5 | RAG y recuperación de fragmentos | hecho | ~90 | alta en corpus 42 y BEIR; sin medir en la rúbrica | `README.md` "Performance analysis"; `experiments/REPORT.md`; `docs/benchmarks/` | No hay referencias reales de "qué indicador corresponde a qué frase" | Medir con las anotaciones de T-36 |
 | 6 | RAG en el ordenador de casa, alimentado por el transcriptor | hecho | ~100 | alta | `docs/TASKS.md` TR-09, TR-13; `docs/DEPLOYMENT.md` | Ninguno conocido; el flujo depende de que el ordenador esté encendido | Mantener |
-| 7 | Análisis de la conversación | parcial | ~40 | baja | `docs/skills/AUDIO.md` §4; TASKS T-46, T-47, T-50 | La recuperación acierta la competencia pero no el indicador; el juez local de 1,7 B no sirve | T-50: juez mayor y orden aleatorio; T-37: juez por API |
+| 7 | Análisis de la conversación | parcial | ~45 | baja | `docs/skills/AUDIO.md` §4; `docs/skills/DESIGN.md` §4; TASKS T-46, T-47, T-50, SK-7 | La recuperación acierta la competencia pero no el indicador; ningún juez local medido sirve para confirmar indicadores | Medir Qwen3-8B a 4 bits y Claude Code en más frases; anotaciones humanas (T-36) |
 | 8 | Extraer preguntas, propuestas, respuestas, acuerdos | no empezado | ~5 | sin medir | `src/domain/skills/interaction.py` (`count_questions`) | Sólo hay un contador de signos de interrogación; ninguna clasificación de actos de habla | Decidir el esquema de actos (`DESIGN.md` §9, "team interaction profile") |
 | 9 | Evidencia por persona y perfil | parcial | ~20 | muy baja | `docs/skills/DESIGN.md` §1, §2, §9; `src/application/skills/assessment.py` | Ningún instrumento validado puntúa a una persona con una sola reunión; hacen falta unas 4 situaciones por persona para fiabilidad .70 | Perfil entre sesiones (T-39) cuando haya datos |
 | 10 | Validación con evaluadores humanos | parcial | ~30 | sin medir | `docs/skills/ANNOTATION_GUIDE.md`; TASKS T-34, T-36 | Herramientas hechas, datos reales ninguno | T-36: grabar, formar 3 anotadores, medir acuerdo |
@@ -246,7 +246,7 @@ cual (TR-10, TR-13). Hay pruebas de contrato y de punta a punta
 (`docs/TASKS.md`). Certeza alta: lo único que se comprobó es la
 tubería, que es determinista.
 
-### 4.7 Análisis de la conversación (~40 %)
+### 4.7 Análisis de la conversación (~45 %)
 
 Hecho: separación en frases (`skills sentences`), métricas de
 interacción por tiempos y turnos (reparto de palabras, igualdad de
@@ -266,9 +266,17 @@ Lo medido, sólo con una sesión sintética de demostración:
   no confirmó ningún indicador negativo (`AUDIO.md` §4; T-47, T-50).
 - Con ese juez, evidencia sobre la sesión sintética: precisión 0,19,
   recall 0,43 (`DESIGN.md` §4). "A wiring test, not a usable assessor."
-- El juez por API (Claude) está implementado y probado con un cliente
-  falso; **no se ha ejecutado contra la API real** (T-37, necesita
-  credenciales y consentimiento para tratamiento externo).
+- Jueces (#74, SK-7): Claude a través de Claude Code con la
+  suscripción (la API de pago no se usa), aislado (sin CLAUDE.md,
+  memoria, herramientas ni MCP; comprobado con llamadas reales), con el
+  modelo local de reserva si se agota el cupo, y un modo «los dos» que
+  mide su acuerdo. Se elige desde la web (sección de la página de
+  sesiones). Medido sólo con datos sintéticos: en 200 frases del
+  conjunto español de actos de diálogo, Qwen3-1.7B acierta 0,365 y
+  Qwen3-4B a 4 bits 0,545 (2,87 GB de VRAM); en la confirmación de
+  etiquetas el 4B confirma 63 de 64 frases, así que tampoco sirve.
+  Prueba de humo de 20 frases: Claude 0,70, local 0,50, κ entre ellos
+  0,36 (no es una comparación fiable). Qwen3-8B sin medir.
 
 ### 4.8 Extraer preguntas, propuestas, respuestas, acuerdos (~5 %)
 

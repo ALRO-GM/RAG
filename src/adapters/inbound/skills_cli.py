@@ -22,6 +22,14 @@ from src.application.skills.gold import (
     consensus,
     validate_annotations,
 )
+from src.application.skills.judges import (
+    FallbackJudge,
+    act_accuracy,
+    act_items,
+    compare_act_judges,
+    compare_confirmations,
+    release,
+)
 from src.application.skills.lab import lab_dataset
 from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
@@ -61,6 +69,30 @@ def fmt(value: Optional[float]) -> str:
     return "n/a" if value is None else f"{value:.3f}"
 
 
+def judge_record(app: SkillsContainer, mode: str) -> Dict[str, Any]:
+    """Return which judge ran and, if it fell back, why (for the output)."""
+    judge = app.confirmer.judge
+    record: Dict[str, Any] = {"mode": mode, "model": judge.model_name}
+    if isinstance(judge, FallbackJudge) and judge.fallback_reason:
+        record["fallback_reason"] = judge.fallback_reason
+    if mode == "both":
+        record["second_model"] = app.second_confirmer.judge.model_name
+    return record
+
+
+def print_comparison(comparison: Dict[str, Any]) -> None:
+    """Print the agreement of two judges (and accuracy, if measured)."""
+    print(f"Two judges on {comparison['items']} items: agreement "
+          f"{fmt(comparison['agreement'])}, "
+          f"kappa {fmt(comparison['kappa'])}")
+    if comparison.get("with_reference"):
+        print(f"Against the reference ({comparison['with_reference']} "
+              f"items): first {fmt(comparison['accuracy_a'])}, "
+              f"second {fmt(comparison['accuracy_b'])}")
+    for label, kappa in comparison["per_category"].items():
+        print(f"  {label:<14} kappa {fmt(kappa)}")
+
+
 class SkillsCLI:
     """Soft-skills analyzer: evidence-backed competency scorecards."""
 
@@ -74,7 +106,7 @@ class SkillsCLI:
             "sentences", "tag", "report",
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
-            "dialogue_acts_set",
+            "dialogue_acts_set", "judge_acts",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -342,22 +374,37 @@ class SkillsCLI:
             save_directory: Where to write <session>.tags.json
                 (default: the configured output directory).
             show: Print the tagged timeline.
-            confirm: Ask the judge (``--judge local`` or ``api``) to
-                confirm or reject the candidates.
+            confirm: Ask the judge (``--judge``: ``claude_code``,
+                ``local``, ``both``; default the one chosen from the
+                web) to confirm or reject the candidates. With ``both``
+                each sentence keeps both decisions and the file gets
+                their agreement.
         """
         app = self._app()
         document = app.transcripts.read(str(transcript))
         language = app.retriever.language_of(document)
         rubric = app.rubric(language)
         tagged = app.tagger.tag(document, rubric)
+        record: Dict[str, Any] = {}
         if confirm:
-            tagged = app.confirmer.confirm(tagged, rubric, language)
+            mode = app.judge_mode()
+            if mode == "both":
+                tagged, comparison = compare_confirmations(
+                    tagged, rubric, app.confirmer, app.second_confirmer,
+                    language,
+                )
+                record["comparison"] = comparison.model_dump()
+            else:
+                tagged = app.confirmer.confirm(tagged, rubric, language)
+                release(app.confirmer.judge)
+            record = {"judge": judge_record(app, mode), **record}
         directory = str(save_directory) or app.settings.output_dir
         path = str(Path(directory) / f"{document.session_id}.tags.json")
         write_text(path, json.dumps({
             "session_id": document.session_id,
             "catalogue": rubric.name,
             "catalogue_language": rubric.language,
+            **record,
             "sentences": [t.model_dump(exclude_none=True) for t in tagged],
         }, ensure_ascii=False, indent=1))
         if show:
@@ -376,6 +423,70 @@ class SkillsCLI:
                   f"{counts['confirmed']} confirmed, "
                   f"{counts['rejected']} rejected, "
                   f"{counts['unparsed']} not understood")
+            reason = record["judge"].get("fallback_reason")
+            if reason:
+                print(f"Fell back to the local judge: {reason}")
+            if "comparison" in record:
+                print_comparison(record["comparison"])
+        print(f"Saved {path}")
+
+    def _judge_acts(
+        self, dialogues: str = "examples/skills/dialogue_acts/dialogues.json",
+        sample: int = 20, context: int = 3, output: str = "",
+    ) -> None:
+        """Classify sentences of the Spanish set with the judge(s).
+
+        Each sentence (with the ``context`` sentences before it) gets
+        one of the 13 dialogue-act categories; the answers are compared
+        with the set's intended labels and, with ``--judge both``,
+        between the two judges (kappa per category, confusion).
+        Synthetic data only: never point it at private recordings.
+
+        Args:
+            dialogues: The set exported as JSON (``dialogues.json``).
+            sample: How many sentences, spread over the whole set
+                (0: all of them).
+            context: Sentences shown before each one.
+            output: File for the verdicts and the comparison
+                (default: <output_dir>/judge_acts.json).
+        """
+        app = self._app()
+        try:
+            documents = json.loads(
+                Path(str(dialogues)).read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError) as exc:
+            raise NotFoundError(f"Cannot read {dialogues}: {exc}")
+        items = act_items(documents, int(context), int(sample) or None)
+        mode = app.judge_mode()
+        result: Dict[str, Any] = {"mode": mode, "items": len(items)}
+        first = app.act_classifier(app.judge)
+        if mode == "both":
+            a, b, comparison = compare_act_judges(
+                items, first, app.act_classifier(app.local_judge)
+            )
+            result["comparison"] = comparison.model_dump()
+            result["second"] = [v.model_dump() for v in b]
+        else:
+            a = first.classify(items)
+            release(app.judge)
+        result["first"] = [v.model_dump() for v in a]
+        result["accuracy"] = act_accuracy(items, a)
+        judge = app.judge
+        if isinstance(judge, FallbackJudge) and judge.fallback_reason:
+            result["fallback_reason"] = judge.fallback_reason
+        path = str(output) or str(
+            Path(app.settings.output_dir) / "judge_acts.json"
+        )
+        write_text(path, json.dumps(result, ensure_ascii=False, indent=1))
+        models = sorted({v.model for v in a})
+        print(f"{len(items)} sentences, judge {', '.join(models)}: "
+              f"accuracy {fmt(result['accuracy'])}")
+        if "fallback_reason" in result:
+            print(f"Fell back to the local judge: "
+                  f"{result['fallback_reason']}")
+        if "comparison" in result:
+            print_comparison(result["comparison"])
         print(f"Saved {path}")
 
     def _annotation_template(

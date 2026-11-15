@@ -95,10 +95,15 @@ class RuntimePlan(BaseModel):
 
 
 class ModelOption(BaseModel):
-    """A language model the analyzer may pick, with its size."""
+    """A language model the analyzer may pick, with its size.
+
+    ``bits`` is the weight precision on a GPU: 16 (half precision) or
+    4 and 8 (quantised). The CPU always uses 32.
+    """
 
     name: str
     params_billion: float = Field(gt=0)
+    bits: int = 16
 
 
 class ModelChoice(BaseModel):
@@ -270,9 +275,24 @@ def model_memory_gb(option: ModelOption, device: str) -> float:
     """Estimate the memory a model needs on a device, in GB.
 
     Weights are 4 bytes per parameter on the CPU (float32) and 2 on a
-    GPU (half precision), plus 30% for activations and the cache.
+    GPU (half precision), or ``bits / 8`` when quantised, plus 30% for
+    activations and the cache.
     """
-    return option.params_billion * BYTES_PER_PARAM[device] * MEMORY_OVERHEAD
+    per_param = BYTES_PER_PARAM[device]
+    if device != "cpu" and option.bits < 16:
+        per_param = option.bits / 8
+    return option.params_billion * per_param * MEMORY_OVERHEAD
+
+
+def largest_fitting(
+    ladder: Sequence[ModelOption], device: str, budget_gb: float
+) -> Optional[ModelOption]:
+    """Return the largest model whose estimate fits ``budget_gb``, if any."""
+    fitting = [
+        option for option in ladder
+        if model_memory_gb(option, device) <= budget_gb
+    ]
+    return max(fitting, key=lambda m: m.params_billion, default=None)
 
 
 def estimate_cpu_speed(option: ModelOption, plan: RuntimePlan) -> float:

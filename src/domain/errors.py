@@ -25,6 +25,24 @@ class ModelError(RagError):
     """A machine-learning model could not be loaded or run."""
 
 
+class QuotaExhaustedError(ModelError):
+    """A hosted model refused because the usage quota is used up.
+
+    ``resets`` says when the quota comes back, as the service wrote it
+    (empty when it did not say). A judge that can fall back to the
+    local model does so instead of failing.
+    """
+
+    def __init__(self, message: str, resets: str = ""):
+        """Keep the message and when the quota resets."""
+        super().__init__(message)
+        self.resets = resets
+
+
+class ModelAuthError(ModelError):
+    """A hosted model refused the credentials (not logged in, expired)."""
+
+
 def short_reason(exc: Exception) -> str:
     """Return a one-line reason for a (pydantic) validation error."""
     errors = getattr(exc, "errors", None)

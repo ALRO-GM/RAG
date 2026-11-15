@@ -150,7 +150,12 @@ class AssessmentService:
             return cached
         reply = self.judge.complete(system, user, self.max_tokens)
         if self.cache:
-            self.cache.set(key, reply)
+            # Keyed by the judge that answered: a fallback judge may have
+            # taken over during the call.
+            self.cache.set(
+                cache_key("judge", self.judge.model_name, system, user),
+                reply,
+            )
         return reply
 
     def _assess_one(

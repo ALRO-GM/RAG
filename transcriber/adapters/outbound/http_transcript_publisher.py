@@ -84,7 +84,8 @@ class HttpTranscriptPublisher:
         """Keep the target and the policies; nothing is sent yet."""
         if not url.startswith(("http://", "https://")):
             raise ValueError("The RAG url must start with http:// or https://")
-        self.endpoint = url.rstrip("/") + ROUTE
+        self.base_url = url.rstrip("/")
+        self.endpoint = self.base_url + ROUTE
         self.token_env = token_env
         self._environ = environ
         self.timeout = timeout
@@ -155,6 +156,14 @@ class HttpTranscriptPublisher:
         )
         if failure is not None:
             raise PublishError(f"Could not delete {url}: {failure}")
+
+    def bearer_token(self) -> str:
+        """Return the RAG's token (for the other routes of the same RAG).
+
+        Raises :class:`~transcriber.domain.errors.PublishError` when it
+        is missing or its file is unsafe.
+        """
+        return self._token()
 
     def _token(self) -> str:
         """Return the token, from the file or the environment."""

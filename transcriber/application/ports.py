@@ -13,6 +13,7 @@ from typing import (
     Any,
     Callable,
     ContextManager,
+    Dict,
     List,
     Literal,
     Mapping,
@@ -346,6 +347,24 @@ class PublishedTranscripts(Protocol):
         Raises :class:`~transcriber.domain.errors.PublishError` when the
         RAG refuses or cannot be reached.
         """
+        ...
+
+
+class AnalysisJudge(Protocol):
+    """The judge setting of the RAG's soft-skills analysis.
+
+    Answers are the RAG's own JSON objects (``mode``, ``modes``,
+    ``claude_quota`` and when the quota was last seen). Raises
+    :class:`~transcriber.domain.errors.AnalysisUnavailableError` when
+    the RAG cannot be reached or refuses.
+    """
+
+    def status(self) -> Dict[str, Any]:
+        """Return the judge in use and Claude's quota status."""
+        ...
+
+    def choose(self, mode: str) -> Dict[str, Any]:
+        """Set the judge of the next analyses; return the new status."""
         ...
 
 

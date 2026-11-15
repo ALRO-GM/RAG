@@ -343,6 +343,7 @@ come from `TRANSCRIBER_CONFIG` (a JSON file), `TRANSCRIBER_DATA_DIR`,
 | A long recording must survive a dropped connection | The page captures PCM (16 kHz, mono, 16-bit) and uploads it in numbered chunks of a few seconds; the service appends them and tolerates a retried chunk. No codec is involved. A screen wake lock keeps the phone awake. |
 | A recording made with another app | `transcriber import FILE` or the upload form; decoded with PyAV (bundles the FFmpeg libraries; nothing to install). |
 | One GPU | Jobs run one at a time in a worker thread; the API reports `queued / running (stage, %) / done / failed`. Enrolment uses the same queue. |
+| Choosing the analysis judge from the phone | `GET/PUT /api/analysis/judge` (access code) are forwarded by the transcriber to the RAG's `/analysis/judge` on loopback with the RAG's bearer token (`adapters/outbound/http_analysis_judge.py`, same URL and token as the HTTP publisher); the RAG stays out of the tunnel. Without the HTTP publisher they answer 503 `analysis_unavailable`. `docs/skills/DESIGN.md` §4. |
 
 The results site that used to live on this domain was retired on
 2026-11-14; the benchmark documents remain in the repository

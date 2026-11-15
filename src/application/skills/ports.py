@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Mapping, Protocol, Tuple
 
+from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.transcript import Transcript
 
@@ -16,6 +17,18 @@ class ChatModel(Protocol):
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:
         """Return the model's reply."""
+        ...
+
+
+class JudgeStateStore(Protocol):
+    """Keep the judge chosen from the web and what is known of the quota."""
+
+    def load(self) -> JudgeState:
+        """Return the stored state (an empty one when nothing is stored)."""
+        ...
+
+    def save(self, state: JudgeState) -> None:
+        """Replace the stored state."""
         ...
 
 
