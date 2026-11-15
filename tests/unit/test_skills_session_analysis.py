@@ -156,14 +156,14 @@ def test_resume_starts_at_the_first_step_not_finished() -> None:
     """Done and unavailable steps are kept; the rest runs again."""
     run = new_run("s1", T0)
     assert steps_to_run(None) == list(STEPS)
-    for name in ("sentences", "interaction", "candidates"):
+    for name in STEPS[:3]:
         run = run.with_step(StepRecord(name=name, status="done"))
     run = run.with_step(StepRecord(name="acts", status="unavailable"))
     run = run.with_step(StepRecord(name="events", status="unavailable"))
     run = run.with_step(StepRecord(name="confirmation", status="failed"))
     assert steps_to_run(run) == ["confirmation", "assessment", "reports"]
     assert steps_to_run(run, restart=True) == list(STEPS)
-    for name in ("confirmation", "assessment", "reports"):
+    for name in STEPS[5:]:
         run = run.with_step(StepRecord(name=name, status="done"))
     assert steps_to_run(run) == []
 
