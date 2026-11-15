@@ -156,8 +156,10 @@ def describe(
     its value and ``None`` clears it. A goal is trimmed, and an empty
     one is ``None``. Raises :class:`InvalidInputError` for another
     field, a type not in :data:`~transcriber.domain.models.SESSION_TYPES`
-    or a goal longer than
-    :data:`~transcriber.domain.models.GOAL_MAX_LENGTH` characters.
+    a goal longer than
+    :data:`~transcriber.domain.models.GOAL_MAX_LENGTH` characters or a
+    goal with a control character (a newline, an escape) other than a
+    tab.
     """
     unknown = sorted(set(changes) - set(DESCRIPTION_FIELDS))
     if unknown:
@@ -178,6 +180,12 @@ def describe(
         if goal is not None and len(goal) > GOAL_MAX_LENGTH:
             raise InvalidInputError(
                 f"A goal has at most {GOAL_MAX_LENGTH} characters."
+            )
+        if goal is not None and any(
+            ord(c) < 32 and c != "\t" or ord(c) == 127 for c in goal
+        ):
+            raise InvalidInputError(
+                "A goal is one line of text without control characters."
             )
         update["goal"] = goal
     return session.model_copy(update=update)

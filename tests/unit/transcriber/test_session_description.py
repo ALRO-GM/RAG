@@ -6,6 +6,8 @@ must not lose an edit made while it ran, and the publish that carries
 them in ``transcript.v1``.
 """
 
+import json
+from pathlib import Path
 from typing import Callable, Optional
 
 import pytest
@@ -38,11 +40,13 @@ SESSION = Session(id="s1", language="es")
 
 class TestDescribe:
     def test_the_types_are_the_eleven_of_the_study(self) -> None:
-        assert SESSION_TYPES == (
-            "reunion_decision", "lluvia_ideas", "resolucion_problemas",
-            "negociacion", "entrevista", "feedback", "conflicto",
-            "coaching", "venta", "conversacion_libre", "otro",
+        schema = json.loads(
+            (Path(__file__).parents[3] / "contracts"
+             / "transcript.v1.schema.json").read_text(encoding="utf-8")
         )
+        enum = schema["properties"]["session"]["properties"]["type"]["enum"]
+        assert list(SESSION_TYPES) == [v for v in enum if v is not None]
+        assert len(SESSION_TYPES) == 11
 
     def test_unset_by_default(self) -> None:
         assert SESSION.type is None and SESSION.goal is None
@@ -65,6 +69,9 @@ class TestDescribe:
         ({"type": "meeting"}, "Unknown conversation type"),
         ({"goal": "x" * (GOAL_MAX_LENGTH + 1)}, "at most"),
         ({"title": "x"}, "Unknown session field"),
+        ({"goal": "a\nb"}, "control characters"),
+        ({"goal": "a\x1b[31mb"}, "control characters"),
+        ({"goal": "a\x7fb"}, "control characters"),
     ])
     def test_invalid_changes(
         self, changes: dict[str, Optional[str]], message: str
