@@ -152,3 +152,33 @@ def test_simulate_errors(skills_project: Path) -> None:
     bad.write_text("id: x\nAna: hola\nAna: otra\n", encoding="utf-8")
     with pytest.raises(InvalidInputError, match="in a row"):
         commands.simulate(script=str(bad))
+
+
+def test_provisional_acts_let_the_events_step_run(
+    skills_project: Path,
+) -> None:
+    """With ``provisional_acts`` steps d and e run (fake judge)."""
+    app = container(analysis_dir="analysis", provisional_acts=True)
+    cli(app).analyze(session="s1")
+    folder = skills_project / "analysis" / "s1"
+    run = json.loads((folder / "run.json").read_text())
+    steps = {s["name"]: s for s in run["steps"]}
+    assert steps["acts"]["status"] == "done"
+    assert steps["acts"]["model"].endswith("(provisional tagger)")
+    assert steps["events"]["status"] == "done"
+    acts = json.loads((folder / "acts.json").read_text())
+    assert acts["schema"] == "acts.v1" and acts["provisional"] is True
+    events = json.loads((folder / "events.json").read_text())
+    assert events["session_id"] == "s1"
+
+
+def test_without_acts_the_events_step_says_why(skills_project: Path) -> None:
+    """The extractor exists but has no acts to read."""
+    app = container(analysis_dir="analysis")
+    cli(app).analyze(session="s1")
+    run = json.loads(
+        (skills_project / "analysis" / "s1" / "run.json").read_text()
+    )
+    events = run["steps"][4]
+    assert events["status"] == "unavailable"
+    assert "step d" in events["note"]

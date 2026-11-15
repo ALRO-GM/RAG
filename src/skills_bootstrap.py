@@ -41,6 +41,10 @@ from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
+from src.application.skills.analysis_steps import (
+    ProvisionalActTagger,
+    RuleEventExtractor,
+)
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.act_tagger import (
@@ -359,10 +363,22 @@ class SkillsContainer:
             min_words=s.min_participant_words,
         )
 
-    acts_tagger: Optional[DialogueActTagger] = None
-    """Step d of ``skills analyze``; ``None`` until #82 provides it."""
-    event_extractor: Optional[EventExtractor] = None
-    """Step e of ``skills analyze``; ``None`` until #83 provides it."""
+    @property
+    def acts_tagger(self) -> Optional[DialogueActTagger]:
+        """Step d of ``skills analyze``.
+
+        ``None`` until the tagger of #82 exists, unless
+        ``provisional_acts`` asks the selected judge instead (one call
+        per sentence).
+        """
+        if not self.settings.provisional_acts:
+            return None
+        return ProvisionalActTagger(lambda: self.act_classifier(self.judge))
+
+    @property
+    def event_extractor(self) -> EventExtractor:
+        """Step e of ``skills analyze``: the rules of #83 over the acts."""
+        return RuleEventExtractor(self.settings.event_rules())
 
     def judge_setup(self) -> JudgeSetup:
         """Return the judges of the analysis (built on first use)."""

@@ -213,12 +213,13 @@ def test_the_launcher_runs_one_child_per_session(tmp_path: Path) -> None:
 def test_the_launcher_command_and_a_failed_start(tmp_path: Path) -> None:
     """The child gets both directories; a missing python is a RagError."""
     launcher = SubprocessAnalysisLauncher(
-        tmp_path, "t", "a", python="/no/such/python"
+        tmp_path, str(tmp_path / "t"), str(tmp_path / "a"),
+        python="/no/such/python",
     )
     args = launcher.command("s1", True, True)
     assert args[1:4] == ["-m", "src", "skills"]
     assert args[args.index("--transcripts_dir") + 1] == str(
-        Path("t").resolve()
+        tmp_path / "t"
     )
     assert args[-4:] == ["--session", "s1", "--restart", "--synthetic"]
     with pytest.raises(RagError, match="Cannot start"):

@@ -86,6 +86,9 @@ UNAVAILABLE = {
             "connected.",
     "events": "Not available yet: decisions, action items and open "
               "questions (#83) are not connected.",
+    "events_without_acts": "Not available yet: the events are derived "
+                           "from the dialogue acts of step d, which did "
+                           "not run (#82).",
 }
 """Why a step behind a missing module is skipped."""
 
@@ -446,6 +449,11 @@ class SessionAnalysis:
                 note=UNAVAILABLE["events"],
             )
         acts = self._stored(session_id, "acts")
+        if acts is None:
+            return StepRecord(
+                name="events", status="unavailable",
+                note=UNAVAILABLE["events_without_acts"],
+            )
         return self._optional(
             "events", session_id,
             lambda: extractor.extract(c.transcript, c.sentences, acts),
