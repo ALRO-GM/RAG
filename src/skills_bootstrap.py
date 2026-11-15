@@ -34,6 +34,9 @@ from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
 from src.adapters.outbound.sqlite_cache import SqliteCache
+from src.adapters.outbound.subprocess_analysis import (
+    SubprocessAnalysisLauncher,
+)
 from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
@@ -56,9 +59,12 @@ from src.application.skills.ports import (
     ChatModel,
     DialogueActTagger,
     EventExtractor,
+    TranscriptStore,
 )
 from src.application.skills.profile import ProfileService
 from src.application.skills.session_analysis import (
+    AnalysisRequests,
+    AnalysisResults,
     JudgeSetup,
     SessionAnalysis,
 )
@@ -364,6 +370,23 @@ class SkillsContainer:
         return JudgeSetup(
             mode=mode, first=self.confirmer, assessment=self.assessment,
             second=self.second_confirmer if mode == "both" else None,
+        )
+
+    def analysis_requests(
+        self, transcripts: TranscriptStore, transcripts_dir: str
+    ) -> AnalysisRequests:
+        """Return the API's analysis use case over the ingested sessions.
+
+        Analyses run as ``skills analyze`` children reading
+        ``transcripts_dir`` (where ``transcripts`` keeps them).
+        """
+        s = self.settings
+        return AnalysisRequests(
+            AnalysisResults(FileSystemAnalysisStore(s.analysis_dir)),
+            transcripts,
+            SubprocessAnalysisLauncher(
+                REPOSITORY_ROOT, transcripts_dir, s.analysis_dir
+            ),
         )
 
     @cached_property

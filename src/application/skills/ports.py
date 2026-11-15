@@ -193,3 +193,15 @@ class AnalysisStore(Protocol):
     def read(self, session_id: str, name: str) -> str:
         """Return one result file (``NotFoundError`` when missing)."""
         ...
+
+
+class AnalysisLauncher(Protocol):
+    """Run ``skills analyze`` on a session apart from the caller."""
+
+    def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
+        """Start the analysis of ``session_id`` and return at once."""
+        ...
+
+    def running(self, session_id: str) -> bool:
+        """Tell whether the analysis of ``session_id`` is running now."""
+        ...

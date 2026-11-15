@@ -40,11 +40,13 @@ from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
 from src.application.skills.person_report_texts import TEXTS
 from src.application.skills.ports import (
+    AnalysisLauncher,
     AnalysisStore,
     DialogueActTagger,
     EventExtractor,
     StepOutput,
     TranscriptRepository,
+    TranscriptStore,
 )
 from src.application.skills.report import render_scorecards
 from src.application.skills.tagging import (
@@ -52,7 +54,12 @@ from src.application.skills.tagging import (
     TagConfirmer,
     TaggedSentence,
 )
-from src.domain.errors import InvalidInputError, NotFoundError, short_reason
+from src.domain.errors import (
+    BusyError,
+    InvalidInputError,
+    NotFoundError,
+    short_reason,
+)
 from src.domain.skills.analysis_run import (
     STEP_OUTPUTS,
     AnalysisRun,
@@ -131,6 +138,94 @@ def most_promising(
     return sorted(best)
 
 
+def check_session(session_id: str) -> None:
+    """Refuse a session id the contract does not allow."""
+    if not is_session_id(session_id):
+        raise InvalidInputError(f"Invalid session id {session_id!r}.")
+
+
+class AnalysisResults:
+    """Read what an analysis stored: its run, step results, reports.
+
+    It needs only the store, so serving the results never builds a
+    model.
+    """
+
+    def __init__(self, store: AnalysisStore):
+        """Wire the store."""
+        self.store = store
+
+    def status(self, session_id: str) -> AnalysisRun:
+        """Return the stored run of ``session_id``."""
+        check_session(session_id)
+        run = self.store.load(session_id)
+        if run is None:
+            raise NotFoundError(f"No analysis of session {session_id!r}.")
+        return run
+
+    def result(self, session_id: str, step: str) -> Any:
+        """Return the stored result of one step, as JSON data."""
+        check_session(session_id)
+        if step not in STEP_OUTPUTS:
+            raise InvalidInputError(f"Unknown step {step!r}.")
+        name = STEP_OUTPUTS[step]
+        return json.loads(self.store.read(session_id, name))
+
+    def report(self, session_id: str, position: int) -> str:
+        """Return the HTML report of the ``position``-th person (1-based)."""
+        check_session(session_id)
+        if position < 1:
+            raise InvalidInputError("Reports are numbered from 1.")
+        return self.store.read(session_id, report_file(position))
+
+
+class AnalysisRequests:
+    """Start an analysis in the background and report on it (the API).
+
+    The launcher runs ``skills analyze`` apart from the server, so a
+    long analysis neither blocks the API nor keeps its models loaded
+    in it; the run's record is what both share.
+    """
+
+    def __init__(
+        self,
+        results: AnalysisResults,
+        transcripts: TranscriptStore,
+        launcher: AnalysisLauncher,
+    ):
+        """Wire the stored results, the transcripts and the launcher."""
+        self.results = results
+        self.transcripts = transcripts
+        self.launcher = launcher
+
+    def start(
+        self, session_id: str, restart: bool = False, synthetic: bool = False
+    ) -> Dict[str, Any]:
+        """Start the analysis of ``session_id``; return its status.
+
+        Raises :class:`~src.domain.errors.NotFoundError` when the
+        session has no transcript and
+        :class:`~src.domain.errors.BusyError` when its analysis is
+        already running.
+        """
+        check_session(session_id)
+        self.transcripts.get(session_id)
+        if self.launcher.running(session_id):
+            raise BusyError(
+                f"The analysis of {session_id!r} is already running."
+            )
+        self.launcher.start(session_id, restart, synthetic)
+        return {"session_id": session_id, "active": True}
+
+    def status(self, session_id: str) -> Dict[str, Any]:
+        """Return the stored run with ``active``: is it running now."""
+        run = self.results.status(session_id)
+        return {
+            **run.model_dump(mode="json"),
+            "active": self.launcher.running(session_id),
+        }
+
+
 class SessionAnalysis:
     """Run, record and resume the whole analysis of a session.
 
@@ -180,35 +275,6 @@ class SessionAnalysis:
         self.embedding_model = embedding_model
         self._judges: Optional[JudgeSetup] = None
 
-    def status(self, session_id: str) -> AnalysisRun:
-        """Return the stored run of ``session_id``."""
-        self._check(session_id)
-        run = self.store.load(session_id)
-        if run is None:
-            raise NotFoundError(f"No analysis of session {session_id!r}.")
-        return run
-
-    def result(self, session_id: str, step: str) -> Any:
-        """Return the stored result of one step, as JSON data."""
-        self._check(session_id)
-        if step not in STEP_OUTPUTS:
-            raise InvalidInputError(f"Unknown step {step!r}.")
-        name = STEP_OUTPUTS[step]
-        return json.loads(self.store.read(session_id, name))
-
-    def report(self, session_id: str, position: int) -> str:
-        """Return the HTML report of the ``position``-th person (1-based)."""
-        self._check(session_id)
-        if position < 1:
-            raise InvalidInputError("Reports are numbered from 1.")
-        return self.store.read(session_id, report_file(position))
-
-    @staticmethod
-    def _check(session_id: str) -> None:
-        """Refuse a session id the contract does not allow."""
-        if not is_session_id(session_id):
-            raise InvalidInputError(f"Invalid session id {session_id!r}.")
-
     def run(
         self,
         session_id: str,
@@ -223,7 +289,7 @@ class SessionAnalysis:
         starts again at that step. ``restart`` runs every step anew.
         ``on_step`` is told each record once its step ends.
         """
-        self._check(session_id)
+        check_session(session_id)
         transcript = self.transcripts.find(session_id)
         previous = None if restart else self.store.load(session_id)
         todo = steps_to_run(previous, restart)

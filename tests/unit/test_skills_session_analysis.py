@@ -11,6 +11,7 @@ from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.judges import FallbackJudge
 from src.application.skills.ports import StepOutput
 from src.application.skills.session_analysis import (
+    AnalysisResults,
     JudgeSetup,
     SessionAnalysis,
     most_promising,
@@ -236,8 +237,9 @@ def test_the_whole_flow_records_every_step_and_its_results() -> None:
 
 def test_results_and_reports_are_read_back_by_step() -> None:
     """The stored results are served by step name and report number."""
-    analysis = build()
-    analysis.run("s1")
+    store = InMemoryAnalysisStore()
+    build(store=store).run("s1")
+    analysis = AnalysisResults(store)
     assert analysis.status("s1").status == "done"
     assert analysis.result("s1", "sentences")["speakers"][0]["name"] == "Maya"
     assert analysis.result("s1", "reports")["people"][0]["report"] == (

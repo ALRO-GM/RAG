@@ -778,10 +778,14 @@ class RagCLI:
         else:
             print(f"Transcripts: routes off (set ${variable} or "
                   "--token_file to receive them)")
+        skills = SkillsContainer(SkillsSettings())
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
             forget=app.forget_transcript,
-            judge=SkillsContainer(SkillsSettings()).judge_selection,
+            judge=skills.judge_selection,
+            analysis=skills.analysis_requests(
+                app.transcript_store, app.settings.transcripts_dir
+            ),
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)
