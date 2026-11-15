@@ -34,6 +34,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from src.application.skills.assessment import AssessmentService
+from src.application.skills.device_notes import join_notes, new_notes
 from src.application.skills.judges import (
     CallBudget,
     compare_confirmations,
@@ -400,6 +401,9 @@ class SessionAnalysis:
             the calls made on a hosted judge's quota.
         embedding_model: Name of the retrieval's embedding model, for
             step c's record (``""``: words only).
+        device_notes: Reads the notes of the shared models that left
+            the GPU (out of memory, none visible); a step that added
+            one has it in its note (#110).
     """
 
     def __init__(
@@ -416,6 +420,7 @@ class SessionAnalysis:
         events: Optional[EventExtractor] = None,
         max_confirmations: int = 0,
         embedding_model: str = "",
+        device_notes: Callable[[], List[str]] = list,
     ):
         """Wire the steps; nothing runs yet."""
         self.transcripts = transcripts
@@ -430,6 +435,7 @@ class SessionAnalysis:
         self.events = events
         self.max_confirmations = max(max_confirmations, 0)
         self.embedding_model = embedding_model
+        self.device_notes = device_notes
         self._judges: Optional[JudgeSetup] = None
 
     def run(
@@ -530,8 +536,13 @@ class SessionAnalysis:
         self, name: StepName, session_id: str, context: "_Context",
         started: datetime,
     ) -> StepRecord:
-        """Run one step and return its record (never raises)."""
+        """Run one step and return its record (never raises).
+
+        Notes the shared models added meanwhile (a move to the CPU)
+        are appended to the step's note.
+        """
         begin = time.perf_counter()
+        before = self.device_notes()
         try:
             step: Callable[[str, _Context], StepRecord] = getattr(
                 self, f"_{name}"
@@ -541,9 +552,11 @@ class SessionAnalysis:
             record = StepRecord(
                 name=name, status="failed", error=short_reason(exc),
             )
+        moved = new_notes(before, self.device_notes())
         return record.model_copy(update={
             "started_at": started,
             "seconds": round(time.perf_counter() - begin, 3),
+            "note": join_notes(record.note, *moved),
         })
 
     def _write(self, session_id: str, name: StepName, data: Any) -> str:

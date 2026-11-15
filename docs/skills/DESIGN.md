@@ -87,7 +87,7 @@ this.
 |---|---|---|---|
 | `selected` (default) | Whatever was chosen from the web (`GET/PUT /analysis/judge`, kept in `judge_state_path`, `data/skills/judge.json`); `claude_code` until something is chosen | as the choice | Tested with fakes; the choice file holds no transcript text |
 | `claude_code` | `claude -p` with `--model opus` (`--claude_model`), isolated as in §4.1; on a quota refusal the job goes on with the local judge (§4.3) | Yes, to Anthropic through the subscription | Run on 20 synthetic sentences (§4.4) |
-| `local` | On a GPU, Qwen3-8B at 4 bits if it fits the free memory, otherwise Qwen3-4B at 4 bits after waiting for room; never a smaller model (`local_policy`, `local_preference`, §4.2). On a CPU, the machine's choice as before. `--local_model` forces one | No | Measured on synthetic data (§4.2) |
+| `local` | On a GPU, Qwen3-8B at 4 bits if it fits the free memory, otherwise Qwen3-4B at 4 bits after waiting for room; never a smaller model (`local_policy`, `local_preference`, §4.2). On a CPU (or with no usable GPU), Qwen3-4B without waiting, noted as slow (§4.2). `--local_model` forces one | No | Measured on synthetic data (§4.2) |
 | `both` | `claude_code` and `local` on the same items; both answers kept, agreement reported | Yes | Run on 20 synthetic sentences (§4.4) |
 | `api` | Claude through the Anthropic SDK (`AnthropicChatModel`) | Yes | Kept, **not to be used** (costs extra money) |
 
@@ -201,6 +201,18 @@ the model when it ends (`release()`), so the memory comes back.
 the 8B and 4B do not fit an 8 GB card at 16 bits. The judge then
 fails at once, saying to install the group, rather than load another
 model.
+
+Without a usable GPU (#110) the judge never waits: waiting is only for
+a GPU that exists but is busy. With a CPU plan, a GPU plan but no
+visible CUDA device (`CUDA_VISIBLE_DEVICES=`), or a CUDA out-of-memory
+error while loading or answering, it loads the CPU model: under
+`preferred` the last model of the list (Qwen3-4B, in full precision),
+otherwise the machine's choice; `--local_model` always wins. The step's
+note says the judge ran on the CPU and is much slower.
+`--local_on_cpu fail` stops at once with the reason instead. The
+act tagger (XLM-R) and the embeddings also retry on the CPU when CUDA
+runs out of memory, and their step's note says so; the run goes on.
+No timing of these CPU fallbacks has been measured.
 
 Measured on 2026-11-15 on the RTX 3070 Ti (one run each, greedy
 decoding). The 8B row comes from the committed

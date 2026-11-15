@@ -14,6 +14,8 @@ training figures) are written to a directory under the git-ignored
 ``data/models/``. Training on the workstation's shared GPU waits for
 free memory (bounded) and never touches other processes; word
 embeddings may be frozen and the optimiser kept in 8 bits to fit.
+Tagging on a GPU that runs out of memory retries on the CPU and says
+so in :attr:`EncoderActTagger.device_notes` (#110).
 """
 
 import importlib
@@ -30,6 +32,11 @@ import torch
 from pydantic import BaseModel, Field
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+from src.adapters.outbound.gpu_fallback import (
+    cpu_fallback_note,
+    free_cuda_memory,
+    is_cuda_oom,
+)
 from src.domain.errors import ModelError
 from src.domain.skills.act_calibration import (
     Array,
@@ -121,21 +128,46 @@ def wait_for_gpu(
         waited += poll
 
 
+def load_pretrained(directory: str, device: str) -> Tuple[Any, Any]:
+    """Return the tokenizer and the classifier of ``directory`` on ``device``.
+
+    Half precision on a GPU: half the memory of a shared card.
+    """
+    tokenizer = AutoTokenizer.from_pretrained(directory)
+    dtype = torch.float16 if device.startswith("cuda") else torch.float32
+    model = AutoModelForSequenceClassification.from_pretrained(
+        directory, dtype=dtype)
+    return tokenizer, model.to(device).eval()
+
+
+ENCODER_NOTE = "the act tagger (XLM-R)"
+"""How the tagger is named in the note of a move to the CPU."""
+
+
 def _batches(n: int, size: int) -> List[Tuple[int, int]]:
     """Return ``(start, end)`` of consecutive batches covering ``n``."""
     return [(i, min(i + size, n)) for i in range(0, n, size)]
 
 
 class EncoderActTagger:
-    """The fine-tuned encoder behind the ``ActTagger`` port."""
+    """The fine-tuned encoder behind the ``ActTagger`` port.
+
+    On a GPU that runs out of memory (while loading or tagging) it
+    frees what it took, reloads on the CPU, tags again there and adds
+    a line to :attr:`device_notes`; it stays on the CPU afterwards.
+    """
 
     def __init__(self, directory: str, device: str = "cpu",
                  batch_size: int = 64,
-                 temperature: Optional[float] = None):
+                 temperature: Optional[float] = None,
+                 load: Callable[[str, str], Tuple[Any, Any]] = (
+                     load_pretrained),
+                 is_oom: Callable[[BaseException], bool] = is_cuda_oom):
         """Load the card from ``directory``; the weights load lazily.
 
         ``temperature`` replaces the one fitted at training time (the
-        default tagger uses one fitted on the Spanish set).
+        default tagger uses one fitted on the Spanish set). ``load``
+        and ``is_oom`` are replaced in tests.
         """
         self.directory = Path(directory)
         self.device = device
@@ -152,6 +184,9 @@ class EncoderActTagger:
         self._model: Any = None
         self._tokenizer: Any = None
         self.temperature = temperature or self.card.temperature
+        self._loader = load
+        self._is_oom = is_oom
+        self.device_notes: List[str] = []
 
     @property
     def name(self) -> str:
@@ -166,20 +201,37 @@ class EncoderActTagger:
     def _load(self) -> None:
         """Load tokenizer and model on first use."""
         if self._model is None:
-            self._tokenizer = AutoTokenizer.from_pretrained(
-                str(self.directory))
-            # Half precision on a GPU: half the memory of a shared card.
-            dtype = (torch.float16 if self.device.startswith("cuda")
-                     else torch.float32)
-            model = AutoModelForSequenceClassification.from_pretrained(
-                str(self.directory), dtype=dtype)
-            self._model = model.to(self.device).eval()
+            self._tokenizer, self._model = self._loader(
+                str(self.directory), self.device)
+
+    def _to_cpu(self) -> None:
+        """Free the GPU copy and reload the model on the CPU."""
+        LOG.warning("CUDA out of memory: the act tagger moves to the CPU.")
+        self._model = None
+        free_cuda_memory()
+        self.device = "cpu"
+        self.device_notes.append(cpu_fallback_note(ENCODER_NOTE))
+        self._load()
 
     def logits(self, items: Sequence[ActInput]) -> Array:
-        """Return the raw logits (sentence × category)."""
+        """Return the raw logits (sentence × category).
+
+        A CUDA out-of-memory error moves the model to the CPU and tags
+        every item again there.
+        """
         if not items:
             return np.zeros((0, len(CATEGORIES)))
-        self._load()
+        try:
+            self._load()
+            return self._logits(items)
+        except Exception as exc:
+            if not (self.device.startswith("cuda") and self._is_oom(exc)):
+                raise
+        self._to_cpu()
+        return self._logits(items)
+
+    def _logits(self, items: Sequence[ActInput]) -> Array:
+        """Return the logits on the current device (model loaded)."""
         out: List[Array] = []
         with torch.inference_mode():
             for a, b in _batches(len(items), self.batch_size):
@@ -197,7 +249,7 @@ class EncoderActTagger:
                                         self.temperature))
 
     def release(self) -> None:
-        """Free the model's memory."""
+        """Free the model's memory (the notes stay)."""
         self._model = None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

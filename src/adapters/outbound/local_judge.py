@@ -19,8 +19,17 @@ Quantised weights need ``bitsandbytes`` and ``accelerate`` (``uv sync
 half precision, choosing among the models that fit at 16 bits, so a
 missing optional package never stops a job (nor the fallback from
 Claude). The model is freed when the job ends
-(:meth:`LocalJudge.release`). On the CPU it loads the model chosen for
-the machine.
+(:meth:`LocalJudge.release`).
+
+On the CPU (#110) it never waits for a GPU: with a CPU plan, when the
+plan wanted the GPU but no CUDA device is visible, or when the GPU runs
+out of memory while loading or answering, it loads the CPU model
+(``preferred``: the last model of the preference, so never one outside
+the list; otherwise the model chosen for the machine; an explicit model
+always) and adds a "slow" line to :attr:`LocalJudge.device_notes`.
+``on_cpu = "fail"`` refuses instead, at once and with the reason.
+Waiting stays only for a GPU that exists but is busy, up to
+``wait_seconds``.
 """
 
 import importlib.util
@@ -28,6 +37,7 @@ import logging
 import time
 from typing import Callable, List, Literal, Optional, Protocol, Sequence
 
+from src.adapters.outbound.gpu_fallback import is_cuda_oom
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
@@ -42,6 +52,10 @@ from src.domain.runtime import (
 LOG = logging.getLogger(__name__)
 
 LocalPolicy = Literal["preferred", "largest_fitting", "fixed"]
+OnCpu = Literal["run", "fail"]
+
+NO_CUDA = "no CUDA device is visible"
+CUDA_OOM = "the GPU ran out of memory"
 
 
 class LoadableModel(Protocol):
@@ -124,6 +138,10 @@ class LocalJudge:
         quantisable: Tells whether quantised loading is installed.
         sleep: Waits between looks (replaced in tests).
         clock: Monotonic seconds (replaced in tests).
+        on_cpu: ``run`` the CPU model when the GPU cannot be used
+            (slow, said in :attr:`device_notes`) or ``fail`` at once.
+        is_oom: Recognises a CUDA out-of-memory error (replaced in
+            tests).
     """
 
     def __init__(
@@ -142,6 +160,8 @@ class LocalJudge:
         quantisable: Callable[[], bool] = quantisation_installed,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        on_cpu: OnCpu = "run",
+        is_oom: Callable[[BaseException], bool] = is_cuda_oom,
     ):
         """Keep the choices; nothing is measured or loaded yet."""
         self.ladder = list(ladder)
@@ -160,6 +180,10 @@ class LocalJudge:
         self._clock = clock
         self._model: Optional[LoadableModel] = None
         self.choice_reason = ""
+        self.on_cpu = on_cpu
+        self._is_oom = is_oom
+        self._cpu_reason = ""
+        self.device_notes: List[str] = []
 
     def _options(self) -> List[ModelOption]:
         """Return the ladder, at 16 bits when quantising is impossible."""
@@ -171,15 +195,47 @@ class LocalJudge:
         )
         return [m.model_copy(update={"bits": 16}) for m in self.ladder]
 
+    def _cpu_choice(self) -> str:
+        """Return the model the judge runs on the CPU."""
+        if self.fixed:
+            return self.fixed
+        if self.policy == "preferred" and self.preference:
+            return self.preference[-1]
+        return self.cpu_model
+
+    def _on_cpu(self, reason: str) -> LoadableModel:
+        """Build the CPU model, or refuse at once when told to."""
+        name = self._cpu_choice()
+        if self.on_cpu == "fail":
+            raise ModelError(
+                f"The local judge cannot use a GPU ({reason}) and "
+                "local_on_cpu is 'fail', so it does not run on the CPU. "
+                "Make a GPU visible or set local_on_cpu to 'run' (slow)."
+            )
+        self.choice_reason = reason
+        LOG.warning("Local judge on the CPU (%s): %s, slow.", reason, name)
+        self.device_notes.append(
+            f"The local judge ran {name} on the CPU ({reason}): much "
+            "slower than on the GPU."
+        )
+        plan = (self.plan or RuntimePlan()).model_copy(
+            update={"device": "cpu"}
+        )
+        self._model = self._build(name, plan=plan, bits=16)
+        return self._model
+
     def _pick(self) -> LoadableModel:
         """Choose and build the model for the memory free now."""
         if self._model is not None:
             return self._model
         on_gpu = self.plan is not None and self.plan.device == "cuda"
+        if on_gpu and not self._cpu_reason and self._total_gb() is None:
+            self._cpu_reason = NO_CUDA
         if not on_gpu:
-            name, bits = self.fixed or self.cpu_model, 16
-            self.choice_reason = "CPU plan"
-        elif self.policy == "fixed":
+            return self._on_cpu("CPU plan")
+        if self._cpu_reason:
+            return self._on_cpu(self._cpu_reason)
+        if self.policy == "fixed":
             name, bits = self._wait_for_fixed()
         elif self.policy == "preferred" and not self.fixed:
             name, bits = self._preferred()
@@ -261,7 +317,13 @@ class LocalJudge:
         deadline = self._clock() + self.wait_seconds
         waited = False
         while True:
-            free = self._free_gb() or 0.0
+            reading = self._free_gb()
+            if reading is None:
+                raise ModelError(
+                    f"The GPU disappeared while the local judge waited "
+                    f"for {need:.1f} GB for {option.name}."
+                )
+            free = reading
             if free >= need:
                 self.choice_reason = f"{why}, {free:.1f} GB free"
                 if waited:
@@ -289,7 +351,21 @@ class LocalJudge:
         return f"{model.model_name}{suffix}"
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:
-        """Return the local model's reply."""
+        """Return the local model's reply.
+
+        When the GPU runs out of memory (loading or answering), the
+        model is freed and the question asked again of the CPU model.
+        """
+        model = self._pick()
+        try:
+            return model.complete(system, user, max_tokens)
+        except Exception as exc:
+            if self._cpu_reason or not self._is_oom(exc) or (
+                self.plan is None or self.plan.device != "cuda"
+            ):
+                raise
+        self.release()
+        self._cpu_reason = CUDA_OOM
         return self._pick().complete(system, user, max_tokens)
 
     def release(self) -> None:
@@ -297,3 +373,4 @@ class LocalJudge:
         if self._model is not None:
             self._model.release()
         self._model = None
+        self._cpu_reason = ""

@@ -4,7 +4,8 @@
 dialogue-act tagger of #82 (``skills acts``: by default the fine-tuned
 encoder, the rules when its weights are missing) and returns the
 ``acts.v1`` document, recording which approach answered, the "dudoso"
-margin and how many first labels are doubtful.
+margin and how many first labels are doubtful (and, in the note, when
+the tagger had to leave a full GPU for the CPU).
 :class:`RuleEventExtractor` (step e) derives decisions, action items,
 open questions and the fate of proposals from those acts with the
 fixed rules of ``docs/skills/CONVERSATION_EVENTS.md`` (#83).
@@ -15,6 +16,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 
 from src.application.skills.act_tagger import ActPlace, TaggerCard, tag_acts
 from src.application.skills.conversation_events import analyse
+from src.application.skills.device_notes import device_notes, join_notes
 from src.application.skills.judges import release
 from src.application.skills.ports import ActTagger, StepOutput
 from src.domain.errors import InvalidInputError
@@ -68,6 +70,7 @@ class TaggerActStep:
                 card.margin, note, places,
             )
         finally:
+            moved = device_notes(model)
             release(model)
         counts: Dict[str, int] = {
             "sentences": len(document.utterances),
@@ -79,9 +82,7 @@ class TaggerActStep:
             key = f"by_{u.by}"
             counts[key] = counts.get(key, 0) + 1
         info = document.tagger
-        text = f"Doubtful margin {info.margin}."
-        if note:
-            text += f" {note}"
+        text = join_notes(f"Doubtful margin {info.margin}.", note, *moved)
         return StepOutput(
             json.loads(document.to_json()), counts,
             f"{info.name} ({info.version})", text,

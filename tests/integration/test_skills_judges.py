@@ -367,7 +367,7 @@ def test_local_judge_takes_the_largest_model_the_free_memory_holds() -> None:
 
 def test_local_judge_on_cpu_or_forced_uses_the_given_model() -> None:
     cpu = LocalJudge(LADDER, RuntimePlan(threads=4), "cpu-model",
-                     build=FakeLocalModel)
+                     build=FakeLocalModel, policy="largest_fitting")
     assert cpu.model_name == "cpu-model" and cpu.choice_reason == "CPU plan"
     assert local(fixed="medium").model_name == "medium@4bit"
     local().release()

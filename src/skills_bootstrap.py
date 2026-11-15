@@ -8,7 +8,7 @@ that are specific to transcripts and rubrics.
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
@@ -50,6 +50,7 @@ from src.application.skills.analysis_steps import (
     TaggerActStep,
 )
 from src.application.skills.assessment import AssessmentService, JudgeTuning
+from src.application.skills.device_notes import collect_notes
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.act_tagger import (
     CombinedTagger,
@@ -327,6 +328,19 @@ class SkillsContainer:
             policy=s.local_policy,
             preference=s.local_preference,
             wait_seconds=s.local_wait_seconds,
+            on_cpu=s.local_on_cpu,
+        )
+
+    def device_notes(self) -> List[str]:
+        """Return the moves to the CPU of the models the steps share (#110).
+
+        The embeddings and the local judge, when they were built; the
+        act tagger reports its own in step d.
+        """
+        built = self.__dict__
+        return collect_notes(
+            built[name] for name in ("embedder", "local_judge")
+            if name in built
         )
 
     @cached_property
@@ -465,6 +479,7 @@ class SkillsContainer:
             events=self.event_extractor,
             max_confirmations=s.max_confirmations,
             embedding_model=s.embedding_model if s.semantic else "",
+            device_notes=self.device_notes,
         )
 
     @cached_property

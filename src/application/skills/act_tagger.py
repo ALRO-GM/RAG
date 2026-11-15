@@ -24,6 +24,7 @@ from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.application.skills.device_notes import collect_notes
 from src.application.skills.judges import ActClassifier, ActItem
 from src.application.skills.ports import ActTagger
 from src.domain.skills.act_agreement import doubt_thresholds, tagger_labels
@@ -143,6 +144,11 @@ class CombinedTagger:
         """Return the versions of the parts, ``name=version`` joined."""
         return " ".join(f"{n}={t.version}"
                         for n, t in sorted(self.taggers.items()))
+
+    @property
+    def device_notes(self) -> List[str]:
+        """Return the device notes of the parts (e.g. a move to the CPU)."""
+        return collect_notes(t for _, t in sorted(self.taggers.items()))
 
     def predict_with_sources(
         self, items: Sequence[ActInput]
