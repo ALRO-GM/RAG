@@ -236,7 +236,8 @@ class SkillsSettings(BaseModel):
     f leaves room for step g. Through the API, an analysis runs at most
     ``analysis_timeout`` seconds, at most ``max_running_analyses`` run
     at once, a session is started again only ``analysis_min_interval``
-    seconds after its last start, and at most ``analysis_daily_starts``
+    seconds after its last start (0, the default for now: no wait), and at
+    most ``analysis_daily_starts``
     are started in 24 hours.
 
     ``min_similarity``, ``semantic_weight``,
@@ -262,7 +263,7 @@ class SkillsSettings(BaseModel):
     max_judge_calls: int = Field(default=200, ge=1)
     analysis_timeout: float = Field(default=3600.0, gt=0)
     max_running_analyses: int = Field(default=1, ge=1)
-    analysis_min_interval: float = Field(default=300.0, ge=0)
+    analysis_min_interval: float = Field(default=0.0, ge=0)
     analysis_daily_starts: int = Field(default=20, ge=1)
     semantic: bool = True
     embedding_model: str = DEFAULT_SKILLS_EMBEDDING_MODEL
