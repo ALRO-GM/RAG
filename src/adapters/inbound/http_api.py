@@ -7,9 +7,12 @@ deletes the session (``DELETE /transcripts/{id}``, mounted when a
 delete use case is given). ``GET/PUT /analysis/judge`` read and
 change the judge of the soft-skills analysis (``claude_code``,
 ``local`` or ``both``) and tell whether Claude's quota is available;
-the transcriber's web forwards them. These routes need a bearer token,
-compared in constant time; when no token is configured they are not
-mounted at all, so they are never open.
+the transcriber's web forwards them. ``/analysis/sessions/{id}`` starts
+the whole analysis of an ingested session (``skills analyze``, in a
+child process), ``DELETE …/run`` stops it, and the others serve its
+step records, step results and person reports. These routes need a
+bearer token, compared in constant time; when no token is configured
+they are not mounted at all, so they are never open.
 """
 
 import hmac
@@ -25,12 +28,19 @@ from pydantic import BaseModel, Field
 from src.application.answering import AnswerService
 from src.application.search import SearchService
 from src.application.skills.judges import JudgeSelection
+from src.application.skills.session_analysis import AnalysisRequests
 from src.application.skills.ingest import (
     ForgetIngestedTranscript,
     IngestTranscript,
     ShowIngestedTranscript,
 )
-from src.domain.errors import InvalidInputError, NotFoundError, RagError
+from src.domain.errors import (
+    BusyError,
+    InvalidInputError,
+    LimitError,
+    NotFoundError,
+    RagError,
+)
 from src.domain.models import MinimalAnswer, MinimalSource
 
 TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
@@ -48,6 +58,26 @@ class SearchRequest(BaseModel):
 
 class AnswerRequest(SearchRequest):
     """Body of ``POST /answer``."""
+
+
+REPORT_HEADERS = {
+    "Content-Security-Policy": (
+        "sandbox; default-src 'none'; style-src 'unsafe-inline'; "
+        "img-src data:; base-uri 'none'; form-action 'none'; "
+        "frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-store",
+}
+"""Headers of a served person report: a sandboxed, script-less page
+(its CSS and charts are inline), never run in the app's origin."""
+
+
+class AnalysisStart(BaseModel):
+    """Body of ``POST /analysis/sessions/{id}`` (all optional)."""
+
+    restart: bool = False
+    synthetic: bool = False
 
 
 class JudgeChoice(BaseModel):
@@ -89,7 +119,8 @@ class TranscriptRoutes:
     ``token`` is the bearer token the transcriber sends; an empty one
     leaves the routes unmounted. ``max_bytes`` bounds a request body.
     ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
-    the ``/analysis/judge`` routes.
+    the ``/analysis/judge`` routes, ``analysis`` the
+    ``/analysis/sessions`` ones.
     """
 
     ingest: IngestTranscript
@@ -98,6 +129,7 @@ class TranscriptRoutes:
     max_bytes: int = TRANSCRIPT_MAX_BYTES
     forget: Optional[ForgetIngestedTranscript] = None
     judge: Optional[JudgeSelection] = None
+    analysis: Optional[AnalysisRequests] = None
 
 
 def create_app(
@@ -227,6 +259,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
     guard = [Depends(require_token)]
     if routes.judge is not None:
         mount_judge(app, routes.judge, guard)
+    if routes.analysis is not None:
+        mount_analysis(app, routes.analysis, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -312,3 +346,99 @@ def mount_judge(
         except RagError as exc:
             raise http_error(exc)
         return status.model_dump(mode="json")
+
+
+def analysis_error(exc: RagError) -> HTTPException:
+    """Map an analysis error: 400 input, 404 missing, 409 busy, 429 limit."""
+    if isinstance(exc, InvalidInputError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, NotFoundError):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, BusyError):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, LimitError):
+        return HTTPException(status_code=429, detail=str(exc))
+    return HTTPException(status_code=500, detail=str(exc))
+
+
+def mount_analysis(
+    app: FastAPI, requests: AnalysisRequests, guard: List[Any]
+) -> None:
+    """Add the ``/analysis/sessions/{id}`` routes behind ``guard``."""
+    results = requests.results
+
+    @app.post(
+        "/analysis/sessions/{session_id}", dependencies=guard,
+        status_code=202,
+    )
+    async def start_analysis(
+        session_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Start the analysis of an ingested session (409: running)."""
+        body = await read_body(request, 1024)
+        try:
+            options = AnalysisStart.model_validate_json(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid body.")
+        try:
+            return await run_in_threadpool(
+                requests.start, session_id, options.restart,
+                options.synthetic,
+            )
+        except RagError as exc:
+            raise analysis_error(exc)
+
+    @app.get("/analysis/sessions/{session_id}", dependencies=guard)
+    async def show_analysis(session_id: str) -> Dict[str, Any]:
+        """Return the steps of a session's analysis and ``active``."""
+        try:
+            return await run_in_threadpool(requests.status, session_id)
+        except RagError as exc:
+            raise analysis_error(exc)
+
+    @app.delete(
+        "/analysis/sessions/{session_id}/run", dependencies=guard,
+        status_code=204,
+    )
+    async def cancel_analysis(session_id: str) -> Response:
+        """Stop the running analysis (404: none; 409: from the terminal)."""
+        try:
+            await run_in_threadpool(requests.cancel, session_id)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return Response(status_code=204)
+
+    @app.get(
+        "/analysis/sessions/{session_id}/steps/{step}", dependencies=guard
+    )
+    async def step_result(session_id: str, step: str) -> Any:
+        """Return the stored result of one step."""
+        try:
+            return await run_in_threadpool(results.result, session_id, step)
+        except RagError as exc:
+            raise analysis_error(exc)
+
+    @app.get(
+        "/analysis/sessions/{session_id}/reports/{position}",
+        dependencies=guard,
+    )
+    async def person_report(session_id: str, position: int) -> Response:
+        """Return one person's HTML report as a download (octet-stream)."""
+        try:
+            page = await run_in_threadpool(
+                results.report, session_id, position
+            )
+        except RagError as exc:
+            raise analysis_error(exc)
+        # Bytes to save, never a page of this origin (the CSP sandboxes
+        # it too, should a browser render it anyway).
+        return Response(
+            page.encode("utf-8"), media_type="application/octet-stream",
+            headers={
+                **REPORT_HEADERS,
+                "Content-Disposition": (
+                    f'attachment; filename="{session_id}-report-'
+                    f'{position}.html"'
+                ),
+            },
+        )

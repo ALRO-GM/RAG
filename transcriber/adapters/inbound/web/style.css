@@ -515,3 +515,15 @@ details.pending, details.samples-box { background: var(--surface); border: 1px s
 .bar.study-other { fill: var(--c0); stroke: var(--c0); }
 .bar.weak.small { fill: var(--surface); stroke-width: 2; stroke-dasharray: 5 3; }
 .study table.data { min-width: 0; }
+/* Analysis page (#/analysis/<id>): the steps and their results. */
+.analysis-steps { display: flex; flex-direction: column; gap: 0.8rem; list-style: none; padding-left: 0; }
+.analysis-steps .badge { white-space: nowrap; }
+.analysis-steps > li { padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+.analysis-steps .row { align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.analysis-steps p { margin: 0.2rem 0; }
+.step.state-done .badge { border-color: var(--ok); color: var(--ok); }
+.step.state-unavailable .badge { color: var(--muted); font-weight: 500; }
+.chip.doubtful { border-style: dashed; font-style: italic; }
+.chip { display: inline-block; padding: 0 0.4rem; margin: 0 0.15rem; border-radius: 6px; border: 1px solid var(--line); font-size: 0.85rem; color: var(--muted); }
+.analysis-steps details > summary { min-height: var(--target); display: flex; align-items: center; }
+.analysis-steps .plain > li { overflow-wrap: anywhere; }

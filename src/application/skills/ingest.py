@@ -9,9 +9,9 @@ deletes a session it asks the RAG to delete its copy too
 (:class:`ForgetIngestedTranscript`).
 """
 
-from typing import Any, Dict, NamedTuple
+from typing import Any, Dict, NamedTuple, Sequence
 
-from src.application.skills.ports import TranscriptStore
+from src.application.skills.ports import SessionEraser, TranscriptStore
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.skills.transcript_contract import is_session_id, read_contract
 
@@ -63,20 +63,32 @@ class ShowIngestedTranscript:
 
 
 class ForgetIngestedTranscript:
-    """Delete a stored ``transcript.v1`` document."""
+    """Delete a stored ``transcript.v1`` document and what came of it.
 
-    def __init__(self, store: TranscriptStore) -> None:
-        """Wire the store."""
+    ``erasers`` delete what other modules derived from the session (its
+    analysis, scorecards, reports, acts): they must not outlive the
+    transcript (retention, ``docs/DEPLOYMENT.md``).
+    """
+
+    def __init__(
+        self, store: TranscriptStore, erasers: Sequence[SessionEraser] = ()
+    ) -> None:
+        """Wire the store and the erasers."""
         self._store = store
+        self._erasers = list(erasers)
 
     def __call__(self, session_id: str) -> None:
         """Delete the document of ``session_id``.
 
         Raises :class:`~src.domain.errors.InvalidInputError` for an id
         the contract does not allow and
-        :class:`~src.domain.errors.NotFoundError` when none is stored.
+        :class:`~src.domain.errors.NotFoundError` when none is stored
+        (what was derived from it is deleted all the same).
         """
         if not is_session_id(session_id):
             raise InvalidInputError(f"Invalid session id {session_id!r}.")
-        if not self._store.delete(session_id):
+        deleted = self._store.delete(session_id)
+        for eraser in self._erasers:
+            eraser.erase(session_id)
+        if not deleted:
             raise NotFoundError(f"No transcript for session {session_id!r}.")

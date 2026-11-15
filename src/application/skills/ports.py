@@ -1,13 +1,16 @@
 """Ports of the soft-skills use cases."""
 
 from typing import (
-    Any, Callable, Dict, List, Mapping, Protocol, Sequence, Tuple,
+    Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Protocol,
+    Sequence, Tuple,
 )
 
 from src.domain.skills.act_tagging import ActInput, Probabilities
+from src.domain.skills.analysis_run import AnalysisRun
 from src.domain.skills.assessment import SessionAssessment
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
+from src.domain.skills.speech import Sentence
 from src.domain.skills.transcript import Transcript
 
 
@@ -129,4 +132,118 @@ class ActTagger(Protocol):
 
     def predict(self, items: Sequence[ActInput]) -> List[Probabilities]:
         """Return one distribution per item, in order."""
+        ...
+
+
+class StepOutput(NamedTuple):
+    """What an optional analysis step produced.
+
+    ``data`` is written as the step's JSON file; ``counts`` go to the
+    step's record; ``model`` names who produced it and ``note`` how
+    (which approach answered, thresholds).
+    """
+
+    data: Any
+    counts: Dict[str, int]
+    model: str
+    note: str = ""
+
+
+class DialogueActTagger(Protocol):
+    """Label each sentence with its dialogue acts (step d, #82)."""
+
+    def tag(
+        self, transcript: Transcript, sentences: Sequence[Sentence]
+    ) -> StepOutput:
+        """Return the acts of ``sentences`` (JSON-ready ``data``)."""
+        ...
+
+
+class EventExtractor(Protocol):
+    """Derive decisions, action items, open questions (step e, #83)."""
+
+    def extract(
+        self,
+        transcript: Transcript,
+        sentences: Sequence[Sentence],
+        acts: Optional[Any],
+    ) -> StepOutput:
+        """Return the events; ``acts`` is step d's data, if it ran."""
+        ...
+
+
+class AnalysisStore(Protocol):
+    """Keep the steps and results of each session's analysis.
+
+    ``name`` is a plain file name chosen by the use case (the step
+    outputs, ``report-<n>.html``); implementations refuse anything
+    else, so neither a session id nor a name can reach outside.
+    """
+
+    def load(self, session_id: str) -> Optional[AnalysisRun]:
+        """Return the stored run of ``session_id``, if any."""
+        ...
+
+    def save(self, run: AnalysisRun) -> None:
+        """Store ``run`` (replacing the previous record)."""
+        ...
+
+    def write(self, session_id: str, name: str, text: str) -> str:
+        """Store one result file; return where it went."""
+        ...
+
+    def read(self, session_id: str, name: str) -> str:
+        """Return one result file (``NotFoundError`` when missing)."""
+        ...
+
+    def clear(self, session_id: str) -> None:
+        """Delete the previous run's record and results (a restart)."""
+        ...
+
+    def erase(self, session_id: str) -> None:
+        """Delete everything kept of the session (it was deleted)."""
+        ...
+
+
+class AnalysisLauncher(Protocol):
+    """Run ``skills analyze`` on a session apart from the caller."""
+
+    def start(self, session_id: str, restart: bool, synthetic: bool) -> None:
+        """Start the analysis of ``session_id`` and return at once."""
+        ...
+
+    def running(self, session_id: str) -> bool:
+        """Tell whether the analysis of ``session_id`` is running now."""
+        ...
+
+    def stop(self, session_id: str) -> bool:
+        """Stop the analysis of ``session_id``; tell whether one ran."""
+        ...
+
+
+class AnalysisLock(Protocol):
+    """One analysis per session at a time, across processes.
+
+    Held for the whole run; released when the run ends or its process
+    dies, so a crashed run never blocks the next one.
+    """
+
+    def acquire(self, session_id: str) -> Optional[int]:
+        """Take the session; return this worker's id, ``None`` if taken."""
+        ...
+
+    def release(self, session_id: str) -> None:
+        """Give the session back."""
+        ...
+
+    def holder(self, session_id: str) -> Optional[int]:
+        """Return the worker id holding the session now, if any."""
+        ...
+
+
+class SessionEraser(Protocol):
+    """Delete what other modules derived from a session (retention)."""
+
+    def erase(self, session_id: str) -> None:
+        """Delete it; nothing when there is none."""
         ...

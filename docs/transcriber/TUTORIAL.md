@@ -7,7 +7,7 @@ Este tutorial explica cómo usar el transcriptor
 - **Quien se sienta a la mesa** (participantes): secciones 2 y 3.
 
 Después vienen lo que puede fallar (3), la privacidad (4) y una lista
-de comprobación (5).
+de comprobación (5); la sección 7 enseña a probar todo el flujo de análisis.
 
 En resumen: un teléfono graba la mesa. El ordenador de quien organiza
 convierte el audio en una lista de frases. Cada frase tiene la hora, el
@@ -728,3 +728,80 @@ donde corregiste el texto, WER), siempre con los segundos etiquetados, y
 lo mejor por etapa. **Descargar etiquetas y puntuaciones** guarda un JSON
 en tu equipo.
 
+
+## 7. Probar todo el flujo
+
+Para ver de principio a fin qué hace la plataforma con una conversación:
+las frases de cada persona, la clasificación con la rúbrica (el RAG),
+el juicio de Claude y los informes. Se puede hacer con una **discusión
+simulada** (cuatro personas inventadas de un obrador inventado, unos
+15 minutos de una reunión para decidir el plan del verano, con
+desacuerdos, propuestas y compromisos; texto escrito para esto) o con
+cualquier sesión ya transcrita.
+
+### Con la discusión simulada, desde la terminal
+
+```sh
+make demo-analysis TORCH=cuda      # usa el modelo que juzga elegido en la web (Claude por defecto)
+make demo-analysis JUDGE=local     # sin salir del ordenador
+```
+
+Lee como mucho `MAX_CONFIRM` frases con el modelo que juzga (150 por
+defecto) y además una llamada por persona y competencia (4 × 11 = 44):
+con Claude, unas 150 llamadas de la cuota de la suscripción.
+`RESTART=1` repite todos los pasos; sin él, un análisis que falló sigue
+desde el paso que falló. Los resultados quedan en
+`data/output/skills/analysis/sim-reunion-verano/`: `run.json` (los
+pasos, cuánto tardó cada uno, qué modelo lo hizo, recuentos), un JSON
+por paso, `scorecard.md` y `report-1.html` … `report-4.html`.
+
+### Desde la web
+
+En la página de una sesión transcrita, **Análisis** abre
+`#/analysis/<id>`. Con el RAG del ordenador conectado (sección 1,
+«Entregar las transcripciones al RAG»):
+
+1. Marca «Datos inventados (simulación)» si lo son.
+2. **Empezar el análisis**: entrega la transcripción al RAG y arranca
+   los pasos. La página se actualiza sola cada 3 segundos.
+3. Cada paso dice su estado (hecho, en curso, falló, aún no
+   disponible), los segundos, quién lo hizo (modelo de búsqueda, Claude
+   o el modelo local, y si se pasó al local porque se acabó la cuota) y
+   los recuentos. **Ver el resultado** muestra las frases por persona,
+   la participación, las frases con sus indicadores candidatos, lo que
+   confirmó el modelo que juzga, los niveles por competencia y la lista
+   de informes.
+4. **Descargar el informe** guarda la página de cada persona en tu
+   equipo; se abre aparte, nunca dentro de la web.
+
+La discusión simulada no es una sesión del transcriptor: después de
+`make demo-analysis` se ve en `#/analysis/sim-reunion-verano`.
+
+Los pasos 4 y 5 (actos de diálogo; decisiones, tareas y preguntas
+abiertas) usan el etiquetador de actos (#82: el codificador entrenado si
+están sus pesos en `data/models/act-tagger/`, si no las reglas, y el
+paso dice cuál respondió) y las reglas de #83; no llaman al modelo que
+juzga. Para añadirlos a un análisis ya hecho sin repetir el resto:
+`python -m src skills analyze --session ID --steps acts,events`.
+
+Solo puede haber un análisis por sesión a la vez (terminal o web); si el
+proceso se cortó a mitad, la página dice «Interrumpido» y **Reanudar**
+sigue desde el paso que quedó a medias.
+
+### Lo que falta antes de usarlo con personas reales
+
+Cada análisis lo repite arriba de la página y al final del comando:
+
+- decidir consentimiento, conservación y quién ve los resultados antes
+  de analizar a nadie real (#19);
+- las etiquetas y los niveles son un borrador: los revisa una persona
+  formada;
+- una conversación es una situación; un perfil necesita varias por
+  persona (#84).
+
+### Con audio sintético
+
+`docs/skills/SIMULATION.md` explica cómo convertir la misma discusión
+en audio con una voz distinta por persona (Piper, en su propio entorno),
+registrar las cuatro voces, subir el audio, transcribirlo y analizarlo,
+y qué demuestra (y qué no) una prueba con voces sintéticas.

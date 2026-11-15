@@ -123,7 +123,9 @@ export async function transcriptView(ctx, root, params) {
     bar, options, audio, message, weakNotice,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
     list,
-    h("button", { type: "button", onClick: download }, t("transcript.download")));
+    h("div", { class: "row" },
+      h("button", { type: "button", onClick: download }, t("transcript.download")),
+      h("a", { class: "button", href: `#/analysis/${encodeURIComponent(id)}` }, t("nav.analysis"))));
 
   function skip(delta) {
     audio.currentTime = Math.max(0, audio.currentTime + delta);

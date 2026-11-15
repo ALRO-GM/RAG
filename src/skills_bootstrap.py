@@ -13,6 +13,11 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.fs_analysis_store import (
+    FileAnalysisLock,
+    FileSystemAnalysisStore,
+    FileSystemSessionOutputs,
+)
 from src.adapters.outbound.fs_assessment_store import (
     FileSystemAssessmentStore,
 )
@@ -33,10 +38,17 @@ from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
 from src.adapters.outbound.sqlite_cache import SqliteCache
+from src.adapters.outbound.subprocess_analysis import (
+    SubprocessAnalysisLauncher,
+)
 from src.adapters.outbound.tqdm_progress import TqdmProgress
 from src.application.analysis import AnalysisService
 from src.application.experiments import ExperimentService
 from src.application.ports import Cache, Embedder
+from src.application.skills.analysis_steps import (
+    RuleEventExtractor,
+    TaggerActStep,
+)
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.evidence import EvidenceRetriever
 from src.application.skills.act_tagger import (
@@ -46,12 +58,27 @@ from src.application.skills.act_tagger import (
 )
 from src.application.skills.judges import (
     ActClassifier,
+    CallBudget,
     FallbackJudge,
     JudgeSelection,
 )
 from src.application.skills.lab import SkillsLabPipeline, load_rubric
-from src.application.skills.ports import ActTagger, ChatModel
+from src.application.skills.ports import (
+    ActTagger,
+    ChatModel,
+    DialogueActTagger,
+    EventExtractor,
+    SessionEraser,
+    TranscriptStore,
+)
 from src.application.skills.profile import ProfileService
+from src.application.skills.session_analysis import (
+    AnalysisRequests,
+    AnalysisResults,
+    JudgeSetup,
+    SessionAnalysis,
+    StartLimits,
+)
 from src.application.skills.tagging import SentenceTagger, TagConfirmer
 from src.application.tuning import Tuner
 from src.bootstrap import resolve_runtime
@@ -334,13 +361,92 @@ class SkillsContainer:
     @cached_property
     def assessment(self) -> AssessmentService:
         """Scorecard use case."""
+        return self.assessment_with(self.judge)
+
+    def assessment_with(self, judge: ChatModel) -> AssessmentService:
+        """Return the scorecard use case over ``judge``."""
         s = self.settings
         return AssessmentService(
-            self.retriever, self.judge, self.cache, self.progress,
+            self.retriever, judge, self.cache, self.progress,
             candidates=s.candidates, min_incidents=s.min_incidents,
             max_tokens=s.max_new_tokens, min_similarity=s.min_similarity,
             min_episodes=s.min_episodes, episode_gap=s.episode_gap,
             min_words=s.min_participant_words,
+        )
+
+    @property
+    def acts_tagger(self) -> Optional[DialogueActTagger]:
+        """Step d of ``skills analyze``: the tagger of #82 (``skills acts``).
+
+        The card's choice (the fine-tuned encoder, the rules when its
+        weights are missing); ``None`` when the card itself is missing.
+        """
+        if not Path(self.settings.act_card).is_file():
+            return None
+        return TaggerActStep(lambda: self.act_tagger("default"), self.act_card)
+
+    @property
+    def event_extractor(self) -> EventExtractor:
+        """Step e of ``skills analyze``: the rules of #83 over the acts."""
+        return RuleEventExtractor(self.settings.event_rules())
+
+    def judge_setup(self) -> JudgeSetup:
+        """Return the judges of the analysis (built on first use)."""
+        mode = self.judge_mode()
+        budget = CallBudget(self.judge, self.settings.max_judge_calls)
+        return JudgeSetup(
+            mode=mode,
+            first=TagConfirmer(budget, self.cache, self.progress),
+            assessment=self.assessment_with(budget),
+            second=self.second_confirmer if mode == "both" else None,
+            budget=budget,
+        )
+
+    def analysis_requests(
+        self, transcripts: TranscriptStore, transcripts_dir: str
+    ) -> AnalysisRequests:
+        """Return the API's analysis use case over the ingested sessions.
+
+        Analyses run as ``skills analyze`` children reading
+        ``transcripts_dir`` (where ``transcripts`` keeps them).
+        """
+        s = self.settings
+        return AnalysisRequests(
+            AnalysisResults(FileSystemAnalysisStore(s.analysis_dir)),
+            transcripts,
+            SubprocessAnalysisLauncher(
+                REPOSITORY_ROOT, transcripts_dir, s.analysis_dir,
+                timeout=s.analysis_timeout,
+                max_running=s.max_running_analyses,
+            ),
+            FileAnalysisLock(s.analysis_dir),
+            StartLimits(s.analysis_min_interval, s.analysis_daily_starts),
+        )
+
+    def session_outputs(self, transcripts_dir: str) -> SessionEraser:
+        """Return the eraser of the other commands' per-session files."""
+        return FileSystemSessionOutputs(
+            self.settings.output_dir, transcripts_dir
+        )
+
+    @cached_property
+    def session_analysis(self) -> SessionAnalysis:
+        """The whole flow on one session (``skills analyze``)."""
+        s = self.settings
+        catalogues = self.catalogues
+        return SessionAnalysis(
+            self.transcripts,
+            FileSystemAnalysisStore(s.analysis_dir),
+            self.rubric,
+            catalogues.load,
+            self.tagger,
+            self.judge_setup,
+            lambda: datetime.now(timezone.utc),
+            FileAnalysisLock(s.analysis_dir),
+            acts=self.acts_tagger,
+            events=self.event_extractor,
+            max_confirmations=s.max_confirmations,
+            embedding_model=s.embedding_model if s.semantic else "",
         )
 
     @cached_property

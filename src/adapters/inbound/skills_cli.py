@@ -1,8 +1,13 @@
 """Inbound adapter: soft-skills commands (``python -m src skills ...``)."""
 
 import json
+import signal
+import sys
+import threading
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from types import FrameType
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional
 
 from pydantic import ValidationError
 
@@ -46,6 +51,7 @@ from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
 from src.application.skills.profile_report import build_profile_report
 from src.application.skills.profile_report_html import render_profile_html
+from src.application.skills.session_analysis import step_table
 from src.application.skills.report import (
     conversation_context,
     render_scorecards,
@@ -63,11 +69,46 @@ from src.domain.skills.dialogue_act_set import (
 )
 from src.domain.skills.event_evaluation import ExpectedEvents
 from src.domain.skills.interaction import describe
+from src.domain.skills.simulation import (
+    parse_script,
+    script_transcript,
+    timed_sentences,
+)
 from src.domain.skills.speech import clock, transcript_sentences
+from src.domain.skills.transcript_contract import (
+    SCHEMA,
+    is_session_id,
+    read_contract,
+)
 from src.domain.skills.transcript import Transcript
 from src.skills_bootstrap import SkillsContainer
 
 Guard = Callable[[Callable[..., Any]], Callable[..., Any]]
+
+
+@contextmanager
+def exit_on_sigterm() -> Iterator[None]:
+    """Turn SIGTERM into ``SystemExit(143)`` while the block runs.
+
+    A stopped analysis (cancel, time-out, deleted session, server
+    shutdown) gets SIGTERM; without this it would die on the spot and
+    the ``finally`` that kills the judge's own process group (``claude
+    -p`` runs in a session of its own) would never run. Outside the
+    main thread signals cannot be handled and nothing changes.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    def leave(signum: int, frame: Optional[FrameType]) -> None:
+        """Exit so that every ``finally`` block runs."""
+        sys.exit(128 + signum)
+
+    previous = signal.signal(signal.SIGTERM, leave)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGTERM, previous)
 
 
 def parse_names(value: Any) -> Optional[List[str]]:
@@ -135,6 +176,7 @@ class SkillsCLI:
             "annotation_template", "validate_annotations", "agreement",
             "consensus", "evaluate", "lab_dataset", "dialogue_acts_import",
             "dialogue_acts_set", "judge_acts", "events_evaluate", "acts",
+            "analyze", "simulate",
         ):
             setattr(self, name, guard(getattr(self, f"_{name}")))
 
@@ -650,6 +692,106 @@ class SkillsCLI:
             if "comparison" in record:
                 print_comparison(record["comparison"])
         print(f"Saved {path}")
+
+    def _analyze(
+        self, session: str, restart: bool = False, synthetic: bool = False,
+        steps: str = "",
+    ) -> None:
+        """Run the whole flow on a session and keep every step's result.
+
+        Steps, in order: sentences per person, interaction, candidate
+        indicators by retrieval, dialogue acts and derived events (when
+        those modules exist), confirmation by the judge (``--judge``;
+        default the one chosen from the web), evidence and scorecards,
+        one HTML report per person and the session summary. Results go
+        to ``<analysis_dir>/<session>/`` with ``run.json``, the record
+        of each step; a run that fails resumes at the failed step.
+
+        Args:
+            session: Session id; its transcript is found in
+                ``--transcripts_dir`` (a published ``transcript.v1``).
+            restart: Run every step again instead of resuming.
+            synthetic: Mark the reports as made-up sample data.
+            steps: Comma-separated steps to run again, keeping the
+                others (e.g. ``acts,events``: no judge is asked).
+        """
+        if not isinstance(session, str) or not is_session_id(session):
+            raise InvalidInputError(
+                f"Invalid session id {session!r}. An id that looks like a "
+                "number must be quoted: --session='\"1e5\"'."
+            )
+        app = self._app()
+        analysis = app.session_analysis
+
+        def show(record: Any) -> None:
+            """Print a step as soon as it ends."""
+            print(f"  {record.name:<13} {record.status:<11} "
+                  f"{record.seconds or 0:.1f}s", flush=True)
+
+        print(f"Analysing {session} (results in "
+              f"{app.settings.analysis_dir}/{session})", flush=True)
+        with exit_on_sigterm():
+            run = analysis.run(
+                str(session), bool(restart), bool(synthetic), on_step=show,
+                only=parse_names(steps),
+            )
+        print()
+        for name, status, seconds, who, detail in step_table(run):
+            print(f"{name:<13} {status:<11} {seconds:>7}  {who}")
+            if detail:
+                print(f"{'':<13} {detail}")
+        print("\nStill to be done by people:")
+        for issue in run.open_issues:
+            print(f"  - {issue.text}")
+        if run.status == "failed":
+            failed = next(s for s in run.steps if s.status == "failed")
+            raise InvalidInputError(
+                f"Step {failed.name} failed: {failed.error}. Run the same "
+                "command again to resume from it."
+            )
+        print(f"Done: {app.settings.analysis_dir}/{session}/summary.json")
+
+    def _simulate(
+        self, script: str, output: str = "", words_per_second: float = 2.4,
+    ) -> None:
+        """Turn a written discussion script into a ``transcript.v1``.
+
+        The script's header gives the session (id, title, language,
+        type, goal); each ``Name: text`` line is a turn and a line
+        starting with ``+`` cuts in before the previous turn ends.
+        Times come from a speaking rate, not from audio.
+
+        Args:
+            script: The script file
+                (``examples/skills/simulated/*.txt``).
+            output: File to write (default:
+                <transcripts_dir>/<id>.transcript.v1.json, where
+                ``analyze --session <id>`` finds it).
+            words_per_second: Speaking rate used for the times.
+        """
+        try:
+            text = Path(str(script)).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise NotFoundError(f"Cannot read {script}: {exc}")
+        parsed = parse_script(text)
+        document = script_transcript(
+            parsed, timed_sentences(parsed, float(words_per_second))
+        )
+        read_contract(document)
+        session = document["session"]
+        target = str(output) or str(Path(
+            self._app().settings.transcripts_dir,
+            f"{session['id']}.{SCHEMA}.json",
+        ))
+        write_text(target, json.dumps(
+            document, ensure_ascii=False, indent=1) + "\n")
+        words = sum(len(u["text"].split()) for u in document["utterances"])
+        overlaps = sum(1 for u in document["utterances"] if u["overlap"])
+        print(f"{session['id']}: {len(parsed.speakers())} speakers, "
+              f"{len(parsed.turns)} turns, {len(document['utterances'])} "
+              f"sentences, {words} words, {overlaps} overlaps, "
+              f"{session['duration'] / 60:.1f} min")
+        print(f"Wrote {target}")
 
     def _judge_acts(
         self, dialogues: str = "examples/skills/dialogue_acts/dialogues.json",

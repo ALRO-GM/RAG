@@ -21,6 +21,14 @@ class NotFoundError(RagError):
     """A required file, directory or index does not exist."""
 
 
+class BusyError(RagError):
+    """The work asked for is already running."""
+
+
+class LimitError(RagError):
+    """A usage limit refuses the request now (try again later)."""
+
+
 class CorruptedDataError(RagError):
     """A file exists but cannot be parsed or is inconsistent."""
 

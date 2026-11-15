@@ -336,6 +336,8 @@ class RagCLI:
         tags_per_sentence: Optional[int] = None,
         semantic: Optional[bool] = None,
         act_card: Optional[str] = None,
+        analysis_dir: Optional[str] = None,
+        max_confirmations: Optional[int] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -378,6 +380,12 @@ class RagCLI:
                 (``--semantic=False``: words only, no model is loaded).
             act_card: Settings of the dialogue-act tagger (``skills
                 acts``; default knowledge/dialogue_acts/act_tagger.json).
+            analysis_dir: Where ``analyze`` keeps each session's steps
+                (data/output/skills/analysis).
+            max_confirmations: Most sentences the judge reads in
+                ``analyze`` (best candidates first; 0: all; default
+                150, which keeps a 4-person session under about 200
+                calls).
         """
         options = dict(locals())
         options.pop("self")
@@ -741,6 +749,7 @@ class RagCLI:
         import uvicorn
 
         from src.adapters.inbound.http_api import TranscriptRoutes, create_app
+        from src.application.skills.ingest import ForgetIngestedTranscript
         from src.adapters.outbound.token_file import read_token_file
 
         port = as_int(port, "port")
@@ -770,10 +779,19 @@ class RagCLI:
         else:
             print(f"Transcripts: routes off (set ${variable} or "
                   "--token_file to receive them)")
+        skills = SkillsContainer(SkillsSettings())
+        analysis = skills.analysis_requests(
+            app.transcript_store, app.settings.transcripts_dir
+        )
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
-            forget=app.forget_transcript,
-            judge=SkillsContainer(SkillsSettings()).judge_selection,
+            # Deleting a session deletes what was analysed of it.
+            forget=ForgetIngestedTranscript(app.transcript_store, [
+                analysis,
+                skills.session_outputs(app.settings.transcripts_dir),
+            ]),
+            judge=skills.judge_selection,
+            analysis=analysis,
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)

@@ -12,6 +12,7 @@ import { recordView } from "./views/record.js";
 import { enrolView } from "./views/enrol.js";
 import { transcriptView } from "./views/transcript.js";
 import { labView } from "./views/lab.js";
+import { analysisView } from "./views/analysis.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -64,6 +65,7 @@ const ROUTES = [
   [/^#\/record(?:\/([^/]+))?$/, recordView],
   [/^#\/enrol$/, enrolView],
   [/^#\/s\/([^/]+)$/, transcriptView],
+  [/^#\/analysis\/([^/]+)$/, analysisView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],
 ];
 
