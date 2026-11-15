@@ -1,0 +1,25 @@
+{
+ "approach": "rag cards+folds/e5-small/dense",
+ "corpus": "own (Spanish set, 5-fold by dialogue)",
+ "items": 1534,
+ "top1_accuracy": 0.618,
+ "top3_accuracy": 0.852,
+ "macro_f1": 0.5526,
+ "log_loss": 1.2712,
+ "ece": 0.0706,
+ "f1": {
+  "pregunta": 0.8756,
+  "respuesta": 0.7727,
+  "informacion": 0.5425,
+  "opinion": 0.25,
+  "propuesta": 0.3497,
+  "peticion": 0.3056,
+  "aceptacion": 0.5982,
+  "rechazo": 0.4945,
+  "compromiso": 0.599,
+  "escucha": 0.6897,
+  "gestion": 0.3312,
+  "relacion": 0.7983,
+  "otro": 0.5769
+ }
+}

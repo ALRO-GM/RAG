@@ -1,0 +1,2227 @@
+{
+ "judge": "claude_code",
+ "calls": 70,
+ "seconds": 223.1,
+ "verdicts": [
+  {
+   "id": "dec-02/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      65
+     ],
+     [
+      "propuesta",
+      35
+     ]
+    ],
+    "reason": "«Pero eso se arregla» discrepa de la objeción de Raúl y apunta a una solución (turnos); no es la aceptación que sugieren las fichas de par, porque contradice a otro hablante."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-02/t15.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      85
+     ],
+     [
+      "rechazo",
+      15
+     ]
+    ],
+    "reason": "Ficha de pregunta, 'no es propuesta': «¿Y si...?» ofrece una idea para decidir. Además plantea una alternativa a los turnos que el grupo acababa de aceptar."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-02/t24.s1",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      100
+     ]
+    ],
+    "reason": "Primera persona con plazo propio («yo se lo comunico ... mañana»), como en la ficha de compromiso y el ejemplo «Vale, le escribo esta mañana»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-01/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      85
+     ],
+     [
+      "opinion",
+      15
+     ]
+    ],
+    "reason": "Nuria abre una lluvia de ideas y Óscar lanza un plan para que el grupo lo adopte o descarte («yo diría...»); la ficha de propuesta lo recoge como sugerencia, y no es compromiso porque no se encarga de nada."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-01/t10.s1",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      75
+     ],
+     [
+      "gestion",
+      25
+     ]
+    ],
+    "reason": "Interrogación que pide al grupo más ideas tras «Apuntado todo», como el par «Pues por nuestra parte ya está.» → «¿Tienes alguna pregunta?»; además ordena la recogida de ideas (gestion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-01/t19.s1",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      100
+     ]
+    ],
+    "reason": "Valoración personal («diferente», «deja buen sabor de boca») que justifica su preferencia anterior; ficha opinion: adjetivos que valoran, otro podría pensar lo contrario."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-01/t29.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      80
+     ],
+     [
+      "opinion",
+      20
+     ]
+    ],
+    "reason": "Agradecimiento de cierre tras los compromisos, como la ficha de frase sola «Gracias, equipo, buen trabajo.» (relacion); «ha sido rápido y productivo» añade una valoración de la reunión."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-02/t0.s1",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      75
+     ],
+     [
+      "gestion",
+      25
+     ]
+    ],
+    "reason": "Ficha informacion: hecho comprobable (los clientes se quejan del retraso) contado sin que nadie lo pida; el par «gracias por venir»→problema sugiere cierto tono de arranque (gestion), pero el contenido es sobre el asunto."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-02/t8.s1",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      60
+     ],
+     [
+      "informacion",
+      40
+     ]
+    ],
+    "reason": "Belén completa su respuesta a la pregunta de Clara con una cifra estimada («siete de cada diez»); la ficha de informacion lo cubre en parte (cifras), pero va pedido por la pregunta, así que domina respuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-02/t16.s2",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "Segunda de las «dos cosas» que Clara «propone»: es una forma de actuar que el grupo puede adoptar, sin encargársela a nadie en concreto («que alguien revise»). Encaja con la ficha de propuesta («propongo», idea lanzada para que el grupo decida)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-02/t25.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      80
+     ],
+     [
+      "aceptacion",
+      20
+     ]
+    ],
+    "reason": "Promesa en primera persona con plazo propio («el lunes lo tienes») tras un encargo, como en el par «¿te encargas tú…?» → «Sí, les escribo hoy» (compromiso); el «sí» acepta la petición, no contesta una pregunta de información."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-02/t6.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      75
+     ],
+     [
+      "propuesta",
+      25
+     ]
+    ],
+    "reason": "Contesta a «¿Qué tenías en mente?» con una frase corta que solo tiene sentido tras la pregunta (ficha respuesta; par «¿Qué margen tenéis?» → «Como mucho, un dos y medio»), y a la vez plantea la cifra que pide en la negociación salarial (propuesta)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-02/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      75
+     ],
+     [
+      "informacion",
+      25
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Belén sobre el sueldo en enero, como en los pares pregunta→respuesta de la ficha; añade el dato de que la banda empieza por encima."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-02/t2.s2",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Interrogativa «¿Cuánto...?» que pide un dato a Raúl, igual que los ejemplos de frase sola («¿Cuántas horas puedes a la semana?»); ficha pregunta: palabra interrogativa al inicio."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-02/t9.s2",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "Raúl sigue contestando a «¿Qué haces cuando un cliente te dice que no?» con su práctica habitual; no es compromiso porque no promete nada futuro, y encaja en informacion como «cómo funciona algo»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-02/t15.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Pide un dato (cómo es la parte variable del sueldo); la ficha de frase sola «¿Puedo preguntarle por qué se va...?» es pregunta, y «¿puedo...?» no encarga una acción a nadie, así que no es petición."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-01/t6.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      100
+     ]
+    ],
+    "reason": "Ficha escucha: «ajá» breve de Elena, que no tenía el turno, acompañando el relato de Sergio sin tomar la palabra; frase sola, par y ventana coinciden en escucha."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-01/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      75
+     ],
+     [
+      "propuesta",
+      25
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Elena «¿Qué crees que te ayudaría…?», como en el par «¿Y qué te ayudaría a ponerte al día?» → respuesta; además sugiere una solución (propuesta)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-02/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      70
+     ],
+     [
+      "opinion",
+      30
+     ]
+    ],
+    "reason": "«Ya, pero...» no es escucha ni aceptación: Hugo discrepa de la justificación de Belén y mantiene su postura (rechazo), valorando cómo se hacen las llamadas (opinión)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-02/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      100
+     ]
+    ],
+    "reason": "Ficha escucha: «Mm.» es un sonido mínimo con que Carmen acompaña lo que explica Belén sin tomar la palabra; no contesta ninguna pregunta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-02/t24.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      60
+     ],
+     [
+      "informacion",
+      40
+     ]
+    ],
+    "reason": "Tras aceptarse los auriculares, Belén se obliga a «bajar el tono», en presente con valor de futuro, así que es compromiso. Si «intentamos» describe lo que ya hacen, encaja con la ficha de informacion («lo que ya se hizo»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-01/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      80
+     ],
+     [
+      "informacion",
+      20
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Irene «¿Qué pasa exactamente cuando te bloqueas?»; la ficha de par ([-1] pregunta → [0] respuesta, «A nadie, intento sacarlo yo sola») encaja, y aporta además un hecho descriptivo sobre sí mismo."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-01/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      80
+     ],
+     [
+      "propuesta",
+      20
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Irene «¿Qué podrías hacer...?», como en el par «¿Qué harías distinto...?» → «Hacerle una lista...» (respuesta); no hay promesa firme en primera persona para ser compromiso."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-01/t22.s0",
+   "judged": {
+    "labels": [
+     [
+      "peticion",
+      85
+     ],
+     [
+      "gestion",
+      15
+     ]
+    ],
+    "reason": "Irene pide a Pablo que le cuente cómo fue en la sesión del quince; no es compromiso (quien actúa es el otro, «me cuentas», no ella) ni respuesta (Pablo ya contestó con «el día catorce»), y fija el punto en una sesión futura"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-05/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      75
+     ],
+     [
+      "informacion",
+      25
+     ]
+    ],
+    "reason": "Ficha 'respuesta': contesta con «sí» a la pregunta de Hugo («¿les puedo ayudar?»), como en el par «¿eres Rosa?» → «Sí, buenos días»; además informa de lo que están haciendo (mirando cocinas)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-05/t10.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      80
+     ],
+     [
+      "opinion",
+      20
+     ]
+    ],
+    "reason": "Valoración positiva que reacciona a la recomendación de Hugo (muebles hasta el techo): según la ficha, 'no es opinion' → aceptación, como «Me gusta.»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-05/t21.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      70
+     ],
+     [
+      "pregunta",
+      30
+     ]
+    ],
+    "reason": "Hugo ofrece una fecha concreta para que el grupo la acepte o descarte, como en el par «¿Le parece que lo instalemos el lunes que viene?» ⇒ propuesta; con forma interrogativa de confirmación (pregunta)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-02/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Pide aclaración sobre la falta de internet que acaba de contar Irene; la ficha de par «¿Cómo que no eran?» tras una información de otro hablante se etiqueta como pregunta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-02/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "peticion",
+      100
+     ]
+    ],
+    "reason": "Imperativo «mira» dirigido a Andrés para que averigüe el precio de los routers; encaja con la ficha de peticion (encargo con destinatario concreto) y con el par «Y mantenme informada...»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-07/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      70
+     ],
+     [
+      "pregunta",
+      30
+     ]
+    ],
+    "reason": "Abre la reunión y pregunta por el orden del día: la ficha de gestion cita «empezamos» y el orden del día; lleva interrogación, de ahí el peso secundario de pregunta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-07/t7.s1",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      100
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Luis «¿En cuántas haces falta de verdad?» con una estimación vacilante; encaja con la ficha de respuesta («el dato... o un 'no lo sé' después de una pregunta») y con el ejemplo «Desde hace… no sé, veinte minutos»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-07/t15.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Luis «¿Con qué reuniones empezarías?», como el par «¿Qué tarea delegarías primero?» → «Los informes, que me quitan tres horas...»; el dato «tres seguidas» añade algo de información."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-03/t6.s1",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      100
+     ]
+    ],
+    "reason": "Contesta a la pregunta de David [-2] «¿Cuántas veces...?» tras la vacilación «Eh…»; ficha respuesta: 'el mismo dato dado porque alguien lo preguntó es Respuesta', no información."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-03/t15.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      60
+     ],
+     [
+      "opinion",
+      40
+     ]
+    ],
+    "reason": "Según la ficha de rechazo, «no», «eso no» tras lo dicho por otro descarta la opción de tres mil al año; también valora, como el ejemplo de opinion «…ni de broma»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-02/t9.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "Sigue una lluvia de ideas tras «Ajá» (ficha par: «Horarios más flexibles» ⇒ propuesta); lanza otra idea para el grupo: cobrar la devolución."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-02/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      75
+     ],
+     [
+      "rechazo",
+      25
+     ]
+    ],
+    "reason": "Ficha pregunta: interrogación y «de dónde» piden la fuente del dato de Carmen; el tono escéptico añade algo de rechazo, como en los pares «¿La mitad?» ⇒ pregunta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-02/t29.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      80
+     ],
+     [
+      "aceptacion",
+      20
+     ]
+    ],
+    "reason": "«Bueno, lo resumo» resume decisiones de la reunión, como el ejemplo de frase sola gestion «Pues queda así: ...»; acepta implícitamente probar las fotos que defendía Belén."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-03/t5.s1",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Ficha 'pregunta': palabra interrogativa «qué» y signos de interrogación; pide un dato que falta, como en el par «Uf.» → «¿Qué pasa?»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-03/t15.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      60
+     ],
+     [
+      "peticion",
+      40
+     ]
+    ],
+    "reason": "Rosa reacciona al problema del fontanero planteando otra forma de actuar («búscate otro») con un imperativo dirigido a Javier; no se opone a lo dicho (no es rechazo) ni se obliga ella (no es compromiso), así que ninguna ficha candidata encaja."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-03/t22.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      85
+     ],
+     [
+      "aceptacion",
+      15
+     ]
+    ],
+    "reason": "Responde a la petición de Rosa con promesa en primera persona y plazo propio («te escribo mañana a la una»), como en la ficha de compromiso: «Vale, lo hago yo» acepta y además promete."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-03/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      60
+     ],
+     [
+      "peticion",
+      40
+     ]
+    ],
+    "reason": "Expone un dato comprobable («tenemos/necesitamos», cifra), como en la ficha de información («Me dijiste que tu equipo necesitaba...»). Dicho al proveedor, también es un encargo implícito de los portátiles."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-03/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      85
+     ],
+     [
+      "aceptacion",
+      15
+     ]
+    ],
+    "reason": "Ficha escucha: «ya» mínimo de otro hablante tras la respuesta/explicación de Raúl, sin tomar la palabra; coincide con el par respuesta→«Ya…» etiquetado escucha; leve matiz de dar la razón."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-03/t19.s1",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      100
+     ]
+    ],
+    "reason": "Primera persona con plazo propio («os preparo… esta tarde»), igual que la ficha de compromiso y el par «Trato hecho» → «Te mando el borrador…»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-03/t2.s1",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      85
+     ],
+     [
+      "gestion",
+      15
+     ]
+    ],
+    "reason": "Bienvenida y agradecimiento son gestos de trato social según la ficha de relacion («gracias», saludos); el «bueno» marca el arranque de la reunión (gestion), pero 'no es gestion': el saludo que acompaña la apertura es Relación."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-03/t11.s1",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      60
+     ],
+     [
+      "informacion",
+      40
+     ]
+    ],
+    "reason": "Hugo completa su respuesta a «¿Qué programas manejas?» con un hecho comprobable sobre sí mismo; la ficha de informacion encaja (dato contado por iniciativa propia, como en la ventana «Y aquí trabajáis con análisis clínicos...»), pero sigue contestando a la pregunta de Irene."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-03/t20.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Hugo sobre quedarse después; ficha 'respuesta': va detrás de una pregunta de otra persona, incluye el parecer o un «no lo sé»; no es rechazo porque no se opone a nada planteado."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-02/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      100
+     ]
+    ],
+    "reason": "Contesta a la pregunta «¿cómo te has quedado tú?»; como en el par «¿cómo estás?» → «Bien, un poco nervioso.» (respuesta), el «uf» no es escucha porque responde a una pregunta"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-02/t10.s0",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      100
+     ]
+    ],
+    "reason": "Valoración espontánea de un trabajo concreto («lo mejor de la mañana»): la ficha de opinion dice que los adjetivos valorativos como «mejor» marcan Opinión, y nadie había preguntado."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-03/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "Elena responde a la queja de Javier con un hecho pasado que desplaza la culpa: objeta lo dicho por otro (ficha rechazo: «corregir/objetar» como reacción); no es compromiso, pues no promete nada futuro."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-03/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      70
+     ],
+     [
+      "aceptacion",
+      30
+     ]
+    ],
+    "reason": "Ficha escucha: «ya» corto de otro hablante tras la réplica de Javier, como en el PAR con «Ya.» ⇒ escucha; deja cierto reconocimiento de que esta vez sí vinieron mal (aceptacion secundaria)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-03/t17.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      70
+     ],
+     [
+      "respuesta",
+      30
+     ]
+    ],
+    "reason": "Ficha compromiso: primera persona con presente de valor futuro («lo llamo yo»), que además contesta a la pregunta de Javier, como en el par «¿llamas tú a la compañía?» → «Sí, les llamo hoy.»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-02/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      60
+     ],
+     [
+      "propuesta",
+      40
+     ]
+    ],
+    "reason": "Ficha pregunta: 'por qué' busca el motivo tras la lista de tareas de Andrés (como «¿Y por qué lo dejaste?»), aunque el «¿por qué no...?» insinúa delegar (no es propuesta)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-02/t13.s1",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Interrogativa con «qué» que pide el parecer de Andrés; encaja con la ficha de pregunta y con el par «Vale.» → «¿Habéis cambiado algo esta semana?»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-02/t21.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      70
+     ],
+     [
+      "opinion",
+      30
+     ]
+    ],
+    "reason": "Nuria da conformidad al indicador que plantea Andrés; ficha aceptacion: «me parece bien» tras lo que otro plantea, con matiz valorativo («buen indicador»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-01/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      100
+     ]
+    ],
+    "reason": "Saludo y agradecimiento al inicio, como en la ficha de relacion («buenos días», «gracias»); coincide con el ejemplo «Muchas gracias por recibirme.»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-01/t8.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      80
+     ],
+     [
+      "escucha",
+      20
+     ]
+    ],
+    "reason": "Lucía da la razón a la valoración de Carmen («es mucho dinero»); la ficha de aceptacion incluye «darle la razón en su opinión», como «Ya, eso es verdad»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-01/t16.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      70
+     ],
+     [
+      "pregunta",
+      30
+     ]
+    ],
+    "reason": "Plantea una fecha de instalación para que Carmen decida («¿Le parece que...?»); como en el par «¿Les va bien el jueves por la tarde?», también pide su parecer."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-03/t2.s1",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      70
+     ],
+     [
+      "gestion",
+      30
+     ]
+    ],
+    "reason": "Presenta el motivo de la llamada (el pedido de las sillas), como en la ventana «Le traigo la oferta de las furgonetas...» ⇒ informacion; tiene algo de gestión al abrir el tema."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-03/t9.s4",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      100
+     ]
+    ],
+    "reason": "Dato comprobable (fecha prevista de llegada del segundo camión) que Lucía lee sin que nadie lo pida; la ficha de informacion cubre «fechas, sucesos» contados por quien habla, y no hay pregunta previa que lo haga respuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-03/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      90
+     ],
+     [
+      "aceptacion",
+      10
+     ]
+    ],
+    "reason": "Agradecimiento tras el compromiso de Lucía; la ficha relacion incluye «gracias» y el par compromiso→«Muchas gracias.» se etiqueta relacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-04/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      100
+     ]
+    ],
+    "reason": "Respuesta de cortesía a un agradecimiento («Nada» = de nada), como en el par «Gracias... → Nada, para eso estamos» etiquetado relacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-04/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      80
+     ],
+     [
+      "rechazo",
+      20
+     ]
+    ],
+    "reason": "Eco interrogativo que pide confirmar la cifra de Andrés, como en la ficha de frase sola «¿La mitad?» → pregunta; puede sugerir cierta extrañeza ante la propuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-04/t19.s0",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      80
+     ],
+     [
+      "aceptacion",
+      20
+     ]
+    ],
+    "reason": "Calcula la consecuencia de la propuesta de Rosa con cifras («siete mil», «nos quedan cinco»), como la ficha de informacion «Entonces nos quedan tres»; asume implícitamente los quinientos por persona."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-03/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "En una lluvia de ideas para nombrar la crema, «Suave» es una nueva idea de nombre para que el grupo vote (propuesta), no un «bien» de escucha o aceptación como en las fichas."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-03/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      70
+     ],
+     [
+      "escucha",
+      30
+     ]
+    ],
+    "reason": "Irene, que va apuntando, cierra la ronda con «tiempo»: es gestión del tiempo de la reunión. El «vale» de escucha («Vale» tras un dato, como en la ficha de par) solo acompaña, porque no hay propuesta que aceptar."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-03/t21.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      60
+     ],
+     [
+      "opinion",
+      40
+     ]
+    ],
+    "reason": "Reacciona a la propuesta de Irene (Ur) con un «sí, pero...»: «me gusta pero no sé si se entiende», que la ficha de rechazo recoge como objeción; queda una parte de opinión por la valoración personal («a mí me gusta»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-03/t31.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      85
+     ],
+     [
+      "gestion",
+      15
+     ]
+    ],
+    "reason": "Agradecimiento y elogio al grupo («Gracias, equipo, buen trabajo» en ficha frase sola: relacion); cierra el punto de la reunión, de ahí algo de gestion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-04/t6.s1",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "«Entonces es por el tamaño de las fotos, apuesto lo que quieras» es una conjetura con postura propia («apuesto»), no un hecho comprobable como pide la ficha de informacion; tampoco es aceptacion ni pregunta, pues no lleva interrogación."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-04/t15.s1",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "«¿Y si...?» ofrece una idea alternativa para decidir tras rechazar la de David; la ficha de pregunta dice 'no es propuesta' para «¿Y si...?»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-04/t6.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      85
+     ],
+     [
+      "rechazo",
+      15
+     ]
+    ],
+    "reason": "Da la razón al dato de Clara («cuatro de cinco días»), como en la ficha de aceptacion («Es verdad», «Claro, eso sí»); «esta semana sí» matiza de forma implícita el «siempre»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-04/t16.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      100
+     ]
+    ],
+    "reason": "Ficha rechazo: «no», «eso no» después de algo dicho por otro; Clara niega directamente la afirmación de Tomás de que el baño cuesta más."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-04/t7.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      100
+     ]
+    ],
+    "reason": "Ficha respuesta: frase corta con cifra que contesta a «¿Cuántas personas tiene a su cargo?», como el par «¿Cuántas personas serían?» → «Ocho, con niveles muy distintos.»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-04/t14.s0",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      75
+     ],
+     [
+      "escucha",
+      25
+     ]
+    ],
+    "reason": "Óscar no discrepa de Rosa: cuenta un hecho comprobable sobre su fábrica (no tienen torno). No encaja en la ficha de rechazo («eso no» como oposición) y el «Ah» acusa recibo, como en el ejemplo de escucha «Ah, no lo sabía»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-04/t20.s1",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Primera persona (plural) con futuro y plazo propio («en unos diez días»), como el ejemplo de compromiso «Te llamamos esta semana»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-03/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      100
+     ]
+    ],
+    "reason": "Abre la reunión y fija el tema a tratar; la ficha de gestion cubre arrancar y el orden del día («Elena, tenemos que hablar de lo del informe»), y no hay saludo que justifique relacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-03/t8.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "Tomás acusa recibo del dato que él mismo pidió sin aportar contenido nuevo, como el par «Ah, no lo sabía.» ⇒ escucha; deja constancia de que lo desconocía (informacion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-03/t14.s2",
+   "judged": {
+    "labels": [
+     [
+      "peticion",
+      75
+     ],
+     [
+      "pregunta",
+      25
+     ]
+    ],
+    "reason": "Tiene la forma interrogativa de la ficha de pregunta («¿me mandas...?»), pero lo que hace es pedir a Nuria una tarea periódica a cambio de su propio compromiso con contabilidad: es una petición."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-04/t6.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      70
+     ],
+     [
+      "opinion",
+      30
+     ]
+    ],
+    "reason": "Raúl objeta el dato de Lucía con «Hombre, es que...» como reacción, encaja con la ficha de rechazo («ya, pero...», «el problema es que...»); la valoración de las partes «más largas» aporta un matiz de opinión."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-04/t16.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "«Vale» acepta la propuesta de Óscar con una condición, como en el ejemplo de aceptación «Vale, pero que rote entre nosotros»; añade el dato de que sus horas reales son menos."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-04/t24.s0",
+   "judged": {
+    "labels": [
+     [
+      "peticion",
+      70
+     ],
+     [
+      "propuesta",
+      30
+     ]
+    ],
+    "reason": "Óscar pide al grupo que avise antes si se agobia (petición al grupo); no hay promesa propia (no es compromiso) ni acepta lo anterior, y puede leerse como norma propuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-03/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      60
+     ],
+     [
+      "relacion",
+      40
+     ]
+    ],
+    "reason": "Ficha escucha: «ah, vale» de quien recibe la explicación de Óscar sin propuesta que aceptar; «pensaba que era yo» añade un matiz de alivio y autoironía (relacion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-03/t12.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      75
+     ],
+     [
+      "informacion",
+      25
+     ]
+    ],
+    "reason": "Contesta la pregunta de confirmación «¿Un dibujo?» con un «sí» y precisa cómo hacerlo (ficha respuesta: frase corta que solo tiene sentido con la pregunta delante, como «Sí, a las diez»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-02/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      70
+     ],
+     [
+      "gestion",
+      30
+     ]
+    ],
+    "reason": "Raúl se obliga en primera persona a durar poco («se lo prometo»), igual que el ejemplo de compromiso «Le robo quince minutos como mucho, se lo prometo»; además habla del tiempo del propio encuentro, como en la ficha de gestion"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-02/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Pide un dato que falta con «cuánto» e interrogación, igual que el par «¿Cuánto menos potente?» ⇒ pregunta"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-04/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      75
+     ],
+     [
+      "aceptacion",
+      25
+     ]
+    ],
+    "reason": "Carmen va por la primera de tres cosas y el «Vale» la acompaña sin cerrar ninguna propuesta; la ficha de escucha dice que un «vale» mientras otro cuenta algo, sin nada que aceptar, es escucha. Algo de aceptación porque puede dar por buena la crítica al resumen."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-04/t12.s1",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      70
+     ],
+     [
+      "rechazo",
+      30
+     ]
+    ],
+    "reason": "Ficha opinion: juicio personal («eso no se lo cree nadie») sobre lo escrito por Hugo; además discrepa de su contenido (rechazo)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-05/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      85
+     ],
+     [
+      "gestion",
+      15
+     ]
+    ],
+    "reason": "Como en la ventana «¿Hola? ¿Me oyes?» → «Sí, ahora sí…» → «Vale.» (escucha), Javier recibe la respuesta a su prueba de audio sin aceptar propuesta alguna; leve matiz de gestión al dar por buena la conexión."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-05/t9.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "La ficha de pregunta indica que «¿Y si...?» ofrece una idea para decidir y es Propuesta: Javier plantea lanzar sin pago con tarjeta como solución al retraso del banco."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-05/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      75
+     ],
+     [
+      "propuesta",
+      25
+     ]
+    ],
+    "reason": "«Entonces:» recapitula lo acordado, como el ejemplo de gestion «Entonces, resumiendo: hacemos la prueba...»; la ficha dice que resumir lo hablado es Gestión, con matiz de plan para cerrar decisión."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-04/t8.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      100
+     ]
+    ],
+    "reason": "Lluvia de ideas: lanza una idea para que el grupo la adopte, como en la ficha de par «Yo diría una cena en un restaurante...» ⇒ propuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-04/t17.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      65
+     ],
+     [
+      "opinion",
+      35
+     ]
+    ],
+    "reason": "Raúl discrepa de la idea de «traer un amigo» («no me convence») y la valora («da apuro»), como el rechazo de la ventana «No, a mí el espacio…»; no plantea un plan (no es propuesta), no encarga nada (no es petición) ni da la razón (no es aceptación)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "llu-04/t28.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      100
+     ]
+    ],
+    "reason": "Primera persona con presente de valor futuro («yo grabo»), en la misma cadena de reparto de tareas que el par «Yo me ofrezco para las fotos» → «Y yo rehago la guía de tallas», etiquetado como compromiso."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-05/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      85
+     ],
+     [
+      "escucha",
+      15
+     ]
+    ],
+    "reason": "Repite el dato con interrogación para confirmarlo, como en el par «¿A la mitad?» y la ficha 'frase sola' «¿Seis?» ⇒ pregunta; matiz de sorpresa/escucha."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-05/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      75
+     ],
+     [
+      "compromiso",
+      25
+     ]
+    ],
+    "reason": "Ofrecimiento condicionado («si me dan libre el día dos») para que el grupo decida: la ficha de compromiso dice que ofrecerse con condición es Propuesta, como «Os puedo dejar el cuatro si firmamos por dos años»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-05/t20.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      75
+     ],
+     [
+      "aceptacion",
+      25
+     ]
+    ],
+    "reason": "Como en el par «¿te encargas tú de preguntarles?» → «Sí, les escribo hoy.» (compromiso): Nuria contesta a una petición formulada como pregunta y se obliga a hacerlo con un plazo propio («a las tres los veo»); el «sí» acepta el encargo."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-05/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Ficha respuesta: «sí» que contesta la pregunta de Andrés («¿te ha llegado mi propuesta?»); añade el dato «me llegó ayer», no acepta ninguna propuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-05/t8.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      85
+     ],
+     [
+      "otro",
+      15
+     ]
+    ],
+    "reason": "Eco interrogativo que pide confirmar un dato antes de contestar a la oferta de Irene, como «¿Un año?» en las fichas; la regla de frontera dice que una contestación que solo pide aclarar sigue siendo Pregunta. Se deja algo de peso a otro porque también puede ser una forma de ganar tiempo, como el «Po"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-04/t6.s1",
+   "judged": {
+    "labels": [
+     [
+      "informacion",
+      55
+     ],
+     [
+      "relacion",
+      30
+     ],
+     [
+      "gestion",
+      15
+     ]
+    ],
+    "reason": "Cuenta un hecho comprobable ('no expliqué la parte de los turnos'), como en la ficha de información («el cliente lo vio antes... me llamó enfadadísimo»), con un reproche implícito a Belén (relacion) sobre lo ocurrido en la propia reunión (gestion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-05/t6.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      70
+     ],
+     [
+      "rechazo",
+      30
+     ]
+    ],
+    "reason": "Ficha pregunta: interrogación con «cómo» que pide a otro un dato; además cuestiona la idea de Nuria de que la culpa sea de la bajante, con un matiz de discrepancia (rechazo)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-05/t14.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      80
+     ],
+     [
+      "aceptacion",
+      20
+     ]
+    ],
+    "reason": "Responde a una disculpa («perdona si he estado brusca») quitándole importancia: gesto de trato social (ficha relacion: disculpas), como en el par «Yo también te pido perdón...» → «Vale, gracias.» (relacion); con matiz de aceptar la disculpa."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-04/t2.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      60
+     ],
+     [
+      "gestion",
+      40
+     ]
+    ],
+    "reason": "Pregunta abierta («¿cómo te gustaría...?») como el ejemplo «¿de qué te gustaría que habláramos hoy?», pero trata sobre cómo organizar la propia conversación, rasgo de gestion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "coa-04/t10.s0",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      70
+     ],
+     [
+      "pregunta",
+      30
+     ]
+    ],
+    "reason": "«¿Qué te parecería...?» plantea una forma de actuar (media jornada dos semanas) para que Sergio decida; no es pregunta pura (ficha pregunta) ni encargo (no es peticion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-03/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      80
+     ],
+     [
+      "pregunta",
+      20
+     ]
+    ],
+    "reason": "Saludo de apertura («Buenos días») con un «¿qué tal todo?» de cortesía; la ficha de relacion incluye los saludos, y la pregunta es fática, por lo que pesa poco."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-03/t8.s1",
+   "judged": {
+    "labels": [
+     [
+      "propuesta",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Oferta comercial lanzada para que el cliente la acepte o descarte, como la ficha de propuesta «Os puedo dejar el cuatro si firmamos por dos años» y «Tengo otro con pantalla táctil...»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-03/t17.s0",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      70
+     ],
+     [
+      "aceptacion",
+      30
+     ]
+    ],
+    "reason": "Javier valora la oferta («cambia bastante las cosas»), como la ficha de frase sola opinion «Es enorme.»; apoya en parte la oferta sin aceptarla del todo, así que no es un «vale» de aceptación ni una escucha mínima"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-05/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "otro",
+      70
+     ],
+     [
+      "escucha",
+      30
+     ]
+    ],
+    "reason": "Risa sola sin función reconocible; la ficha de frase sola y el par «Jaja.» tras una opinión la etiquetan como otro, aunque puede acompañar a Elena como escucha."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-05/t10.s1",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Ficha pregunta: «cuál» al inicio pide al grupo una elección entre opciones, igual que «¿Cuál creéis que tendría más efecto?»; no ofrece idea propia, así que no es propuesta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-05/t21.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      100
+     ]
+    ],
+    "reason": "Valoración positiva que reacciona a la propuesta de Tomás; la ficha de opinión dice 'no es aceptacion' en ese caso, y el par «Me gusta, así lo entiendo mejor.» tras propuesta es aceptacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "esp-01/t5.s0",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "Responde a la petición de Sergio declinando el día seis, como en el par «El sábado no puedo, tengo una boda» ⇒ rechazo; la frase queda cortada, pero su función se entiende."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "esp-01/t13.s1",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      80
+     ],
+     [
+      "peticion",
+      20
+     ]
+    ],
+    "reason": "Ficha de pregunta: pide un dato que falta (quién se queda el seis), como «¿Y a quién?»; además invita implícitamente a que alguien lo asuma."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "esp-01/t22.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      100
+     ]
+    ],
+    "reason": "«Echo» (por «Hecho») cierra el reparto resumido por Sergio; la ficha de aceptación lista «hecho» tras una propuesta o resumen, como en la ventana «Pues queda así...» → «Hecho.»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-01/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      100
+     ]
+    ],
+    "reason": "Saludo inicial; la ficha de relacion incluye saludos como «buenas tardes» y los ejemplos parecidos («Buenos días, pase, pase.») son relacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-01/t7.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Eco interrogativo que pide confirmar el dato de Luis; coincide con la ficha 'frase sola' y 'par' (informacion → «¿A la mitad?» ⇒ pregunta)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-01/t16.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      80
+     ],
+     [
+      "opinion",
+      20
+     ]
+    ],
+    "reason": "Marta valora positivamente («me gusta») la propuesta de Irene de probar un mes; la ficha de opinion indica que una valoración positiva que reacciona a una propuesta de otro es aceptación, como en el par «¿Y si probamos...?» → «Venga, lo probamos»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "dec-01/t25.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      100
+     ]
+    ],
+    "reason": "Primera persona con presente de valor futuro («Yo preparo la lista...»): la ficha de compromiso lo describe como promesa de hacer algo más adelante, igual que el par «Yo me leo esta tarde las actas»."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-01/t7.s0",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      85
+     ],
+     [
+      "aceptacion",
+      15
+     ]
+    ],
+    "reason": "Hugo saca una conclusión propia y especulativa («seguro que es el controlador»), igual que el par «Pues ya está, ahí está el problema» ⇒ opinion; matiz de apoyo a lo dicho por Elena."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "pro-01/t17.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      70
+     ],
+     [
+      "informacion",
+      30
+     ]
+    ],
+    "reason": "«Vale» tras la oferta de Hugo encaja con la ficha de aceptacion («vale» después de una oferta); la justificación añade un hecho comprobable (informática tarda tres días), pista de informacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-01/t4.s2",
+   "judged": {
+    "labels": [
+     [
+      "rechazo",
+      80
+     ],
+     [
+      "opinion",
+      20
+     ]
+    ],
+    "reason": "Marta rechaza la subida del seis por ciento que anunció Hugo; encaja con el ejemplo de frase sola «Sí, pero con ese presupuesto no llegamos» (rechazo), y algo de opinion por la valoración propia de no poder asumirlo."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-01/t13.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      85
+     ],
+     [
+      "propuesta",
+      15
+     ]
+    ],
+    "reason": "Contesta la pregunta de Marta sobre la subida del segundo año; ficha 'respuesta': va detrás de una pregunta de otra persona y solo tiene sentido con ella delante, como en el par «¿cuántos meses son?» → «Dos meses»; matiz de propuesta porque fija una condición de la oferta."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "neg-01/t19.s0",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      100
+     ]
+    ],
+    "reason": "Promesa en primera persona con presente de valor futuro («yo te paso»), como en la ficha de compromiso y el par «Y yo congelo las peticiones nuevas...»"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-01/t1.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      55
+     ],
+     [
+      "relacion",
+      45
+     ]
+    ],
+    "reason": "«Sí» contesta la pregunta de confirmación «¿verdad?» (ficha respuesta: el sí o el no), y «hola, buenos días» es saludo (ficha relacion, como «Hola, buenas tardes.»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-01/t9.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      100
+     ]
+    ],
+    "reason": "Ficha escucha: «ajá» corto de otro hablante mientras Lucía cuenta su trayectoria, sin tomar la palabra; coincide con todos los pares y ventanas."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-01/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "pregunta",
+      100
+     ]
+    ],
+    "reason": "Carmen pide a Lucía que cuente qué hizo; coincide con la ficha de frase sola y par «¿Y qué hiciste?» ⇒ pregunta (palabra interrogativa «qué» y signos de interrogación)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ent-01/t26.s0",
+   "judged": {
+    "labels": [
+     [
+      "respuesta",
+      100
+     ]
+    ],
+    "reason": "Contesta a la pregunta de Lucía «¿cómo son los turnos?», como en el par de la ficha «¿Con turnos cómo?» → respuesta"
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-05/t0.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      70
+     ],
+     [
+      "pregunta",
+      30
+     ]
+    ],
+    "reason": "Saludo de apertura («Hola, David») con un «¿cómo estás?» de cortesía; la ficha de pregunta da ejemplos parecidos, pero su función principal es social (relacion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-05/t6.s1",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      70
+     ],
+     [
+      "peticion",
+      30
+     ]
+    ],
+    "reason": "Marta valora el desempeño de David, al estilo del par «tú tienes que revisar las cifras» (opinion); también le pide implícitamente que sea más puntual."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "fee-05/t14.s1",
+   "judged": {
+    "labels": [
+     [
+      "peticion",
+      100
+     ]
+    ],
+    "reason": "Encargo a David («me escribes antes, ¿vale?»), casi idéntico al ejemplo de frase sola «Y cualquier cosa, me escribes, ¿vale?» etiquetado como peticion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-01/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      85
+     ],
+     [
+      "peticion",
+      15
+     ]
+    ],
+    "reason": "Rosa ordena los turnos de palabra («luego te toca»), lo que la ficha de gestion describe como 'turnos de palabra'; secundariamente pide a Irene que espere."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-01/t11.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      60
+     ],
+     [
+      "opinion",
+      40
+     ]
+    ],
+    "reason": "Rosa corta la discusión entre Luis e Irene para reconducir la conversación («a ver, a ver»), lo que encaja en gestion aunque ninguna ficha la recoge; además valora de qué debería tratar el debate, como en la ficha de opinion («juicio personal ofrecido por iniciativa propia»)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "con-01/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      65
+     ],
+     [
+      "relacion",
+      35
+     ]
+    ],
+    "reason": "«Por mí perfecto» acepta la propuesta de Rosa ya asumida por Luis (como en el par «Por mí bien» ⇒ aceptacion), y «gracias, Luis» añade el agradecimiento (ficha relacion)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-04/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      70
+     ],
+     [
+      "respuesta",
+      30
+     ]
+    ],
+    "reason": "Tomás confirma el resumen que Belén hace de lo que él dijo; la ficha de aceptacion incluye «eso es» para dar la razón en un resumen, y en parte responde a esa comprobación implícita."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "ven-04/t12.s1",
+   "judged": {
+    "labels": [
+     [
+      "opinion",
+      85
+     ],
+     [
+      "respuesta",
+      15
+     ]
+    ],
+    "reason": "Ficha opinion: marca de punto de vista «yo recomiendo» y preferencia valorativa (presencial mejor para soltura), matiza su propia respuesta sobre online."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-01/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      85
+     ],
+     [
+      "escucha",
+      15
+     ]
+    ],
+    "reason": "Según la ficha de aceptacion, «vale» tras una petición es Aceptación: Óscar acepta el encargo de Nuria («Óscar, empiezas tú») y toma el turno."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-01/t10.s0",
+   "judged": {
+    "labels": [
+     [
+      "gestion",
+      80
+     ],
+     [
+      "peticion",
+      20
+     ]
+    ],
+    "reason": "Cerrado el encargo de Óscar, Nuria nombra a Sergio para darle el turno, lo que entra en gestión (turnos); no es saludo como en «Hola, Sergio, pasa» (ficha de relación)."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-01/t18.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      85
+     ],
+     [
+      "informacion",
+      15
+     ]
+    ],
+    "reason": "Saludo y disculpa por llegar tarde, como en la ficha relacion («Hola, perdonad el retraso, el metro»); la causa del retraso añade un dato secundario."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-01/t28.s0",
+   "judged": {
+    "labels": [
+     [
+      "aceptacion",
+      75
+     ],
+     [
+      "compromiso",
+      25
+     ]
+    ],
+    "reason": "Óscar da el sí a la propuesta de adelantar una semana con una condición («si me llegan las fotos»), como en la ficha de aceptacion «Vale, pero con mis horas reales»; implica cierto compromiso condicionado."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-06/t3.s0",
+   "judged": {
+    "labels": [
+     [
+      "relacion",
+      100
+     ]
+    ],
+    "reason": "«Gracias» tras «Siéntate, por favor» es un agradecimiento; la ficha de relacion recoge «gracias» como pista y todos los ejemplos de par y ventana dan relacion."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "seg-06/t10.s0",
+   "judged": {
+    "labels": [
+     [
+      "escucha",
+      65
+     ],
+     [
+      "aceptacion",
+      35
+     ]
+    ],
+    "reason": "Following the 'frase sola' card and the interview-style pairs, Marta's short «Muy bien.» acknowledges Rosa's explanation without taking the floor; it carries a lesser share of approval because it closes her finished answer."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "esp-02/t6.s2",
+   "judged": {
+    "labels": [
+     [
+      "otro",
+      85
+     ],
+     [
+      "escucha",
+      15
+     ]
+    ],
+    "reason": "Hugo tiene el turno y mira el panel tras un «Eh…»: «Uf.» es una interjección propia sin función clara, no acompaña un relato ajeno (ficha escucha exige que no tenga el turno); como el par «Eh…»→«A ver…» del mismo hablante ⇒ otro."
+   },
+   "model": "claude-code:opus"
+  },
+  {
+   "id": "esp-02/t16.s1",
+   "judged": {
+    "labels": [
+     [
+      "compromiso",
+      65
+     ],
+     [
+      "propuesta",
+      35
+     ]
+    ],
+    "reason": "Primera persona y presente con valor de futuro sin condición («lo hago»), que según la ficha de compromiso es compromiso y no propuesta; también plantea una solución alternativa a reiniciar el servidor."
+   },
+   "model": "claude-code:opus"
+  }
+ ]
+}

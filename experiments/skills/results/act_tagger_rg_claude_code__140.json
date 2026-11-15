@@ -1,0 +1,25 @@
+{
+ "approach": "RG claude_code (140)",
+ "corpus": "own (Spanish set, 5-fold by dialogue)",
+ "items": 140,
+ "top1_accuracy": 0.8643,
+ "top3_accuracy": 0.9857,
+ "macro_f1": 0.8488,
+ "log_loss": 0.4581,
+ "ece": 0.0817,
+ "f1": {
+  "pregunta": 0.9,
+  "respuesta": 0.8947,
+  "informacion": 0.6667,
+  "opinion": 0.8889,
+  "propuesta": 0.9286,
+  "peticion": 0.8,
+  "aceptacion": 0.7619,
+  "rechazo": 0.8235,
+  "compromiso": 0.9167,
+  "escucha": 0.9091,
+  "gestion": 0.875,
+  "relacion": 0.8696,
+  "otro": 0.8
+ }
+}

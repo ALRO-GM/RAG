@@ -1,0 +1,25 @@
+{
+ "approach": "encoder-es + R ensemble",
+ "corpus": "own (Spanish set, 5-fold by dialogue)",
+ "items": 1534,
+ "top1_accuracy": 0.7347,
+ "top3_accuracy": 0.9426,
+ "macro_f1": 0.6941,
+ "log_loss": 0.7911,
+ "ece": 0.0209,
+ "f1": {
+  "pregunta": 0.9246,
+  "respuesta": 0.8976,
+  "informacion": 0.6916,
+  "opinion": 0.3776,
+  "propuesta": 0.7081,
+  "peticion": 0.6087,
+  "aceptacion": 0.6804,
+  "rechazo": 0.6095,
+  "compromiso": 0.7393,
+  "escucha": 0.6805,
+  "gestion": 0.5333,
+  "relacion": 0.8739,
+  "otro": 0.6984
+ }
+}

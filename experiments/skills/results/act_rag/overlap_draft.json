@@ -1,0 +1,96 @@
+{
+ "cards": "draft, commit ab7d97b",
+ "theory_version": "theory-5d255c78f7",
+ "overlap": {
+  "minilm-multi": {
+   "embedder": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+   "closest": [
+    {
+     "a": "propuesta",
+     "b": "peticion",
+     "cosine": 0.8281
+    },
+    {
+     "a": "peticion",
+     "b": "aceptacion",
+     "cosine": 0.8237
+    },
+    {
+     "a": "pregunta",
+     "b": "opinion",
+     "cosine": 0.8176
+    },
+    {
+     "a": "propuesta",
+     "b": "aceptacion",
+     "cosine": 0.8128
+    },
+    {
+     "a": "aceptacion",
+     "b": "rechazo",
+     "cosine": 0.8108
+    },
+    {
+     "a": "pregunta",
+     "b": "informacion",
+     "cosine": 0.7766
+    },
+    {
+     "a": "informacion",
+     "b": "opinion",
+     "cosine": 0.7634
+    },
+    {
+     "a": "pregunta",
+     "b": "aceptacion",
+     "cosine": 0.7547
+    }
+   ]
+  },
+  "e5-small": {
+   "embedder": "intfloat/multilingual-e5-small",
+   "closest": [
+    {
+     "a": "aceptacion",
+     "b": "rechazo",
+     "cosine": 0.9451
+    },
+    {
+     "a": "propuesta",
+     "b": "aceptacion",
+     "cosine": 0.9361
+    },
+    {
+     "a": "propuesta",
+     "b": "rechazo",
+     "cosine": 0.9219
+    },
+    {
+     "a": "propuesta",
+     "b": "peticion",
+     "cosine": 0.9201
+    },
+    {
+     "a": "aceptacion",
+     "b": "gestion",
+     "cosine": 0.9197
+    },
+    {
+     "a": "pregunta",
+     "b": "respuesta",
+     "cosine": 0.9186
+    },
+    {
+     "a": "pregunta",
+     "b": "opinion",
+     "cosine": 0.917
+    },
+    {
+     "a": "peticion",
+     "b": "aceptacion",
+     "cosine": 0.9162
+    }
+   ]
+  }
+ }
+}
