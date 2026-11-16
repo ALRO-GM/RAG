@@ -61,7 +61,8 @@ an original enrolment paragraph (31 to 45 s; the transcriber asks for
 at least 20 s). Sentences are laid out one after the other with the
 same pauses as the text level; a `+` turn starts 0.6 s before the
 previous sentence ends and is mixed over it. Rendering took 43 s of
-wall time on the workstation's CPU (20 threads). Piper adds random
+wall time on the workstation's CPU (20 threads), and 31.5 s on
+2026-11-16. Piper adds random
 noise to durations, so two renderings differ slightly in length
 (14.6 and 14.8 minutes were seen); the reference file always matches
 its own WAV.
@@ -95,7 +96,17 @@ attribution if the audio is published; the audio is not committed.
    **Empezar el análisis** (it publishes the transcript to the RAG
    first).
 5. Compare what the transcriber produced with
-   `sim-reunion-verano.reference.json`.
+   `sim-reunion-verano.reference.json`:
+   `python experiments/skills/score_audio_simulation.py
+   sim-reunion-verano.reference.json <transcript.json>`; and the
+   analysis with the one of the script:
+   `python experiments/skills/compare_analyses.py
+   data/output/skills/analysis/sim-reunion-verano
+   data/output/skills/analysis/<session>`.
+
+Use a data directory of its own for the synthetic voices
+(`TRANSCRIBER_DATA_DIR=…`): enrolled in the live service's registry
+they would sit next to real people's voices.
 
 ### What a synthetic recording shows, and what it does not
 
@@ -111,28 +122,148 @@ two of the four voices come from one model (same recording conditions).
 Word error and speaker attribution measured on it are a best case, not
 an estimate for real meetings (#19 is the real measurement).
 
-## 3. Results so far (2026-11-15)
+
+## 3. Results (2026-11-16, #96)
 
 Text level: one real run with Claude Code is in `DESIGN.md` §12 and
 `docs/ESTADO.md` §4.7.
 
-Audio level: **prepared, not yet run end to end.** On the workstation,
-with the GPU busy with other work, everything ran on the CPU
-(`CUDA_VISIBLE_DEVICES=`) in a data directory of its own (never the
-live service's):
+Audio level: run end to end once, on the workstation with the GPU free
+(RTX 3070 Ti), on the code of `main` at 4d323c6. A first attempt on
+2026-11-15 ran on the CPU and was stopped after 66 minutes of
+transcription without a result (enrolment took 272 to 544 s per voice
+there).
 
-- rendering: done (43 s wall time; 14.6 to 14.8 minutes of audio, 238
-  sentences, 6 overlapping starts);
-- enrolment of the four voices with `python -m transcriber enrol`:
-  done, 272 to 544 s per voice on a loaded CPU (the first attempt was
-  refused: samples of 17.5 s, under the 20 s minimum; the paragraph was
-  made longer);
-- `python -m transcriber import --expect lucia,andres,nerea,joaquin
-  --wait`: stopped by hand after 66 minutes without finishing, to free
-  the machine; no transcript, so no word error or attribution figure.
+**What was run.** The real path minus the web upload: the commands of
+§2 in a data directory of their own
+(`TRANSCRIBER_DATA_DIR=~/.local/share/ragputin/sim96/data`), never the
+live service's, so the synthetic voices never entered its registry.
 
-To finish it, run the steps of §2 with the GPU free (`TORCH=cuda`), then
-compare the transcript with the reference (word error over the whole
-text; for each reference sentence, the transcript sentence that
-overlaps it most and whether its speaker is the same person), publish
-and analyse it from the «Análisis» page.
+| Step | Command | Wall time |
+|---|---|---|
+| Render (Piper, CPU) | `render_simulation.py` | 31.5 s; 881.8 s of audio (14.7 min), 238 sentences, 6 overlapping starts |
+| Enrol 4 voices | `python -m transcriber enrol --consent --id …` | 5.5 to 5.8 s each, model load included |
+| Transcribe | `python -m transcriber import --id sim-reunion-verano-audio --type reunion_decision --expect lucia,andres,nerea,joaquin --wait` | 93.4 s (9.4× real time); peak resident memory 18.6 GB |
+| Publish | `python -m transcriber publish sim-reunion-verano-audio` (`TRANSCRIBER_LOCAL_RAG=1`) | to the live RAG's `POST /transcripts` |
+| Analyse | `python -m src skills --judge=claude_code --max_confirmations=102 analyze --session=sim-reunion-verano-audio --synthetic --role=…` | 11 min 14 s |
+
+The transcript records `openai/whisper-large-v3-turbo`, the voice model
+`microsoft/wavlm-base-plus-sv` and the diarizer
+`diarizen-wavlm-large-s80-md-v2`. The search for names
+(`Qwen/Qwen3-8B@4bit`, 17.4 s) proposed none: the four voices were
+already enrolled. The session is published as
+`sim-reunion-verano-audio`, next to the text-level
+`sim-reunion-verano`, so both analyses can be opened from the web.
+The analysis ran from the terminal (not «Empezar el análisis») to cap
+Claude's calls with `--max_confirmations`.
+
+### The transcriber against the script
+
+Scored with `experiments/skills/score_audio_simulation.py` (reference:
+the rendered `sim-reunion-verano.reference.json`):
+
+| Measure | Result |
+|---|---|
+| Word error over the whole text | **0.088** (85 substitutions, 56 deletions, 38 insertions; 2,045 words in the script, 2,027 transcribed) |
+| Sentences: script 238, transcript | 227 utterances, the four enrolled ids, no unknown speaker |
+| Best-overlap utterance has the right person | **227 of 238** (0.954); 6 wrong, 5 missed (no utterance over them) |
+| Per person | Lucía 75/75, Andrés 61/64 (1 wrong, 2 missed), Nerea 51/56 (2 wrong, 3 missed), Joaquín 40/43 (3 wrong) |
+| The 6 sentences that start over the previous one | 5 of 6 right; 1 merged into the sentence it cuts into |
+| The 6 sentences they cut into | 6 of 6 right |
+| Speech time covered by the right person | 0.892 |
+
+Where the errors come from, read from the alignment and the audio:
+
+- **The last 14.7 s of the recording are missing** from the transcript:
+  the last word ends at 867.14 s; Nerea's «Gracias. Andrés, te mando la
+  lista en cuanto la tenga.» and Andrés's «Vale. Me voy, que la masa no
+  se hace sola.» (20 words) are not there, though the WAV has speech
+  up to 880.8 s. These are 4 of the 5 missed sentences and 20 of the 56
+  deleted words. Why the recogniser lost the end was not found in this
+  run.
+- **Numbers written as digits**: the transcript has 21 tokens written
+  in digits («11», «12», «9 000», «300») where the script spells the
+  number out; each counts as an error though the meaning is kept.
+- **Nerea's voice** (`es_ES-mls_10246-low`) stretches short sentences:
+  12 of her sentences last more than 1.2 s per word (one word,
+  «Apuntado.», 6.5 s; «Es mi trabajo.», 8.9 s), with babble instead of
+  speech. The worst stretches of the transcript sit there: «Doce, en
+  realidad.» → «eren pide el río de a deidse jafre…», «Es un riesgo,
+  sí.» → «rodriguesco es una sin», and after the overlap of t13 about
+  12 s of her turn («Yo. Es mi trabajo. Y prefiero decirle eso en
+  junio que pedirle…») are lost. This is the text-to-speech engine,
+  not a property of the transcriber.
+- Ordinary recognition errors on clean speech remain: «me quedo» →
+  «me quiero», «Nerea» → «Andrea», «el viernes» → «elnes», «venden»
+  → «cenden», «cierran» → «hierran», «retrasos» → «detrás».
+- The overlapping start the transcriber missed is t13.s0 («Yo.», one
+  word, 1 s, over Andrés); the other 5 got their own utterance with the
+  right person, and the transcriber marked 6 utterances as overlaps.
+  The other wrong attributions are short turns next to another
+  person's: Andrés's «Eso ayudaría mucho, la verdad.» given to
+  Joaquín, Joaquín's «Hecho. Mañana llamo al taller.» given to Andrés,
+  and Joaquín's «¿Cuánto sería la subida?» joined to Nerea's answer.
+
+### The analysis on the transcript against the analysis on the script
+
+Same judge as the text-level demo (Claude Code `opus`, `--judge
+claude_code`), same job description, same catalogue and settings;
+`--max_confirmations=102` (the transcript had 102 sentences with
+candidates, so nothing was left out). Compared with
+`experiments/skills/compare_analyses.py`:
+
+| | Script (2026-11-15) | Transcript (2026-11-16) |
+|---|---|---|
+| Sentences / with candidates / candidates | 238 / 101 / 150 | 227 / 102 / 150 |
+| Dialogue acts: doubtful | 51 | 47 |
+| Events: decisions, action items, unanswered questions | 6, 18, 5 | 8, 15, 5 |
+| Events: proposals accepted, ignored, rejected | 6, 17, 0 | 8, 11, 1 |
+| Confirmation: confirmed / rejected | 35 / 66 | 34 / 68 |
+| Firm levels / provisional / evidence / observations | 21 / 15 / 111 / 26 | 22 / 11 / 104 / 22 |
+| Profile points (synthesis) / dropped | 27 / 2 | 28 / 2 |
+| Claude calls | 145 (101 confirmation, 44 assessment; the synthesis, added later, records 0 calls) | 135 (87 confirmation, 15 more answered from the cache; 44 assessment; 4 synthesis) |
+
+Of the 44 cells (4 people × 11 competencies), **29 are the same** (15
+firm with the same level, 7 provisional with the same level, 7 without
+a level). Of the other 15: 4 firm levels moved by one (Lucía INIT 4→3,
+SOLVE 3→4; Nerea CONFL 4→3, INFLU 4→3), one provisional level moved by
+one (Lucía INCL 4→3), and 10 changed tier (firm→provisional 2,
+provisional→firm 3, provisional→none 4, none→provisional 1). No level
+moved by more than one point. Andrés has no change; Lucía 6, Nerea 5,
+Joaquín 4.
+
+The evidence changes more than the levels: 104 quotes against 111;
+per person 15 of 27–28 (Andrés), 19 of 29 (Lucía), 11 of 21–24
+(Joaquín) and 5 of 26–31 (Nerea) are the same indicator with the same
+words. Of the 104 quotes of the transcript run, 25 are not word for
+word in the script: by my reading about half only write numbers in
+digits, the rest carry recognition errors into the report («en agosto
+me quiero con dos panaderos menos», «Perdona, Andrea», «cerrar el
+pedido del domingo elnes»); 1 is credited to the wrong person
+(Joaquín's «Hecho. Mañana llamo al taller.» as evidence for Andrés).
+Nerea, whose voice rendered worst, keeps the fewest of her quotes.
+
+What this comparison cannot tell apart: the judge answers differently
+from one run to the next on the same text, and no second run of the
+script without the cache was made (it would cost about 145 more calls).
+So the 15 changed cells mix the transcription's effect with the
+judge's own variation; only the 15 confirmations answered from the
+cache are known to be the judge's same answer to the same prompt.
+
+### What this shows, and what it does not
+
+It shows that the real path runs end to end on the GPU in minutes:
+render, enrol, transcribe with the expected voices, publish to the
+RAG, analyse with the same judge as the text level; that the enrolled
+voices are recognised (95 % of sentences with the right person, all
+four ids, no stranger); that short overlaps mostly get their own
+utterance; and that a word error near 9 % and a few wrong attributions
+leave most levels in place but put wrong words and one wrong person
+into the evidence the reports quote.
+
+It does not show how the transcriber does on people: §2's limits
+hold (clean read speech, no noise, two voices from one model), and one
+of the four voices is worse than a person would be (stretched short
+sentences). Each figure is one run. Open points for follow-up: the
+lost last 14.7 s, and the judge's run-to-run variation on the same
+text.
