@@ -1,0 +1,121 @@
+{
+ "approach": "local",
+ "sentences": "examples/skills/fairness/swap_sentences.json",
+ "calls": 60,
+ "model": "Qwen/Qwen3-8B@4bit",
+ "changes": [
+  {
+   "variant": "colloquial",
+   "pairs": 15,
+   "changed": 2,
+   "rate": 0.13333333333333333,
+   "low": 0.03736125910306537,
+   "high": 0.37881982832322353,
+   "bases": [
+    "b03",
+    "b09"
+   ]
+  },
+  {
+   "variant": "m",
+   "pairs": 15,
+   "changed": 0,
+   "rate": 0.0,
+   "low": 0.0,
+   "high": 0.20388330103584854,
+   "bases": []
+  },
+  {
+   "variant": "origin",
+   "pairs": 15,
+   "changed": 0,
+   "rate": 0.0,
+   "low": 0.0,
+   "high": 0.20388330103584854,
+   "bases": []
+  }
+ ],
+ "changed_total": 2,
+ "pairs_total": 45,
+ "intended_hits": {
+  "colloquial": {
+   "hits": 14,
+   "n": 15
+  },
+  "f": {
+   "hits": 13,
+   "n": 15
+  },
+  "m": {
+   "hits": 13,
+   "n": 15
+  },
+  "origin": {
+   "hits": 13,
+   "n": 15
+  }
+ },
+ "unparsed": 0,
+ "labels": {
+  "b01-f": "pregunta",
+  "b01-m": "pregunta",
+  "b01-origin": "pregunta",
+  "b01-colloquial": "pregunta",
+  "b02-f": "propuesta",
+  "b02-m": "propuesta",
+  "b02-origin": "propuesta",
+  "b02-colloquial": "propuesta",
+  "b03-f": "rechazo",
+  "b03-m": "rechazo",
+  "b03-origin": "rechazo",
+  "b03-colloquial": "opinion",
+  "b04-f": "peticion",
+  "b04-m": "peticion",
+  "b04-origin": "peticion",
+  "b04-colloquial": "peticion",
+  "b05-f": "aceptacion",
+  "b05-m": "aceptacion",
+  "b05-origin": "aceptacion",
+  "b05-colloquial": "aceptacion",
+  "b06-f": "rechazo",
+  "b06-m": "rechazo",
+  "b06-origin": "rechazo",
+  "b06-colloquial": "rechazo",
+  "b07-f": "compromiso",
+  "b07-m": "compromiso",
+  "b07-origin": "compromiso",
+  "b07-colloquial": "compromiso",
+  "b08-f": "informacion",
+  "b08-m": "informacion",
+  "b08-origin": "informacion",
+  "b08-colloquial": "informacion",
+  "b09-f": "informacion",
+  "b09-m": "informacion",
+  "b09-origin": "informacion",
+  "b09-colloquial": "otro",
+  "b10-f": "escucha",
+  "b10-m": "escucha",
+  "b10-origin": "escucha",
+  "b10-colloquial": "escucha",
+  "b11-f": "gestion",
+  "b11-m": "gestion",
+  "b11-origin": "gestion",
+  "b11-colloquial": "gestion",
+  "b12-f": "relacion",
+  "b12-m": "relacion",
+  "b12-origin": "relacion",
+  "b12-colloquial": "relacion",
+  "b13-f": "pregunta",
+  "b13-m": "pregunta",
+  "b13-origin": "pregunta",
+  "b13-colloquial": "pregunta",
+  "b14-f": "propuesta",
+  "b14-m": "propuesta",
+  "b14-origin": "propuesta",
+  "b14-colloquial": "propuesta",
+  "b15-f": "opinion",
+  "b15-m": "opinion",
+  "b15-origin": "opinion",
+  "b15-colloquial": "opinion"
+ }
+}

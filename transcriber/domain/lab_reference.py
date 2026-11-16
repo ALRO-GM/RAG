@@ -16,6 +16,9 @@ rates rather than agreement between models:
 * WER against the reference words is
   :func:`~transcriber.domain.comparison.compare_transcripts` with the
   reference as the reference transcript (the lab's normalisation);
+* :func:`score_speakers`: the same errors split by reference speaker
+  (who is missed or given to someone else), for comparing groups of
+  speakers (#86);
 * :func:`spread`: mean and spread of one metric over recordings.
 
 This module holds plain data and arithmetic, with no I/O.
@@ -38,6 +41,7 @@ from transcriber.domain.comparison import (
     frame_count,
     jaccard_error,
     local_names,
+    mapped,
     summarise_track,
     to_frames,
 )
@@ -337,6 +341,57 @@ def score_track(
         hypothesis_speakers=len(found.speakers),
         speaker_count_error=len(found.speakers) - len(heard.speakers),
     )
+
+
+class SpeakerScore(BaseModel):
+    """One reference speaker's share of a track's errors.
+
+    Over the frames where ``speaker`` talks according to the reference
+    and that DER scores (outside the collar of the reference's
+    boundaries): ``speech`` seconds; ``missed`` seconds where the track
+    marks nobody at all; ``unattributed`` seconds where the track's
+    label paired with this speaker (DER's one-to-one mapping) is not
+    active, which is the missed time plus the time given to another
+    label (confusion). ``missed_rate`` and ``error_rate`` are those over
+    ``speech`` (``None`` without scored speech). False alarm belongs to
+    no reference speaker and is not split.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    speaker: str
+    speech: float
+    missed: float
+    unattributed: float
+    missed_rate: Optional[float]
+    error_rate: Optional[float]
+
+
+def score_speakers(
+    reference: SessionReference, hypothesis: Track,
+    p: ComparisonParameters = ComparisonParameters(),
+) -> List[SpeakerScore]:
+    """Split ``hypothesis``'s errors by reference speaker (see the class)."""
+    truth = reference.track()
+    frames = frame_count(reference.duration, p.frame)
+    ref = to_frames(local_names(truth), frames, p.frame)
+    hyp = to_frames(local_names(hypothesis), frames, p.frame)
+    scored = ~collar_mask(truth.segments, frames, p.frame, p.collar)
+    left, right = mapped(ref, hyp, scored)
+    nobody = ~right.any(axis=1)
+    scores: List[SpeakerScore] = []
+    for n, name in enumerate(ref.names):
+        talks = left[:, n] & scored
+        speech = float(talks.sum()) * p.frame
+        missed = float((talks & nobody).sum()) * p.frame
+        wrong = float((talks & ~right[:, n]).sum()) * p.frame
+        scores.append(SpeakerScore(
+            speaker=name, speech=round(speech, 3), missed=round(missed, 3),
+            unattributed=round(wrong, 3),
+            missed_rate=_round(share(missed, speech)),
+            error_rate=_round(share(wrong, speech)),
+        ))
+    return scores
 
 
 class ReferenceTrackRow(ReferenceTrackScore):

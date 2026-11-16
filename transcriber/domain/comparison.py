@@ -287,6 +287,19 @@ def _mapped(reference: Frames, hypothesis: Frames, scored: BoolArray) -> Tuple[
     return left, right
 
 
+def mapped(
+    reference: Frames, hypothesis: Frames, scored: BoolArray
+) -> Tuple[BoolArray, BoolArray]:
+    """Return both grids with the hypothesis mapped one to one.
+
+    The public name of the mapping DER uses: column ``n`` of both
+    results is reference speaker ``reference.names[n]`` and the
+    hypothesis label paired with it (columns past the reference's are
+    hypothesis labels left unpaired).
+    """
+    return _mapped(reference, hypothesis, scored)
+
+
 def change_times(grid: Frames, frame: float) -> List[float]:
     """Return the times at which the set of speakers changes."""
     active = grid.active

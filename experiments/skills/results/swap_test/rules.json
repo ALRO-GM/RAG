@@ -1,0 +1,136 @@
+{
+ "approach": "rules",
+ "sentences": "examples/skills/fairness/swap_sentences.json",
+ "model": "rules:rules-1",
+ "changes": [
+  {
+   "variant": "colloquial",
+   "pairs": 15,
+   "changed": 8,
+   "rate": 0.5333333333333333,
+   "low": 0.30116980025498397,
+   "high": 0.7519046463426261,
+   "bases": [
+    "b02",
+    "b03",
+    "b06",
+    "b07",
+    "b09",
+    "b11",
+    "b12",
+    "b15"
+   ]
+  },
+  {
+   "variant": "m",
+   "pairs": 15,
+   "changed": 0,
+   "rate": 0.0,
+   "low": 0.0,
+   "high": 0.20388330103584854,
+   "bases": []
+  },
+  {
+   "variant": "origin",
+   "pairs": 15,
+   "changed": 0,
+   "rate": 0.0,
+   "low": 0.0,
+   "high": 0.20388330103584854,
+   "bases": []
+  }
+ ],
+ "changed_total": 8,
+ "pairs_total": 45,
+ "intended_hits": {
+  "colloquial": {
+   "hits": 5,
+   "n": 15
+  },
+  "f": {
+   "hits": 10,
+   "n": 15
+  },
+  "m": {
+   "hits": 10,
+   "n": 15
+  },
+  "origin": {
+   "hits": 10,
+   "n": 15
+  }
+ },
+ "unparsed": 0,
+ "mean_total_variation": {
+  "colloquial": 0.3892,
+  "m": 0.0,
+  "origin": 0.0
+ },
+ "max_total_variation": {
+  "colloquial": 0.8908,
+  "m": 0.0,
+  "origin": 0.0
+ },
+ "labels": {
+  "b01-f": "pregunta",
+  "b01-m": "pregunta",
+  "b01-origin": "pregunta",
+  "b01-colloquial": "pregunta",
+  "b02-f": "propuesta",
+  "b02-m": "propuesta",
+  "b02-origin": "propuesta",
+  "b02-colloquial": "informacion",
+  "b03-f": "opinion",
+  "b03-m": "opinion",
+  "b03-origin": "opinion",
+  "b03-colloquial": "respuesta",
+  "b04-f": "peticion",
+  "b04-m": "peticion",
+  "b04-origin": "peticion",
+  "b04-colloquial": "peticion",
+  "b05-f": "respuesta",
+  "b05-m": "respuesta",
+  "b05-origin": "respuesta",
+  "b05-colloquial": "respuesta",
+  "b06-f": "informacion",
+  "b06-m": "informacion",
+  "b06-origin": "informacion",
+  "b06-colloquial": "respuesta",
+  "b07-f": "compromiso",
+  "b07-m": "compromiso",
+  "b07-origin": "compromiso",
+  "b07-colloquial": "respuesta",
+  "b08-f": "respuesta",
+  "b08-m": "respuesta",
+  "b08-origin": "respuesta",
+  "b08-colloquial": "respuesta",
+  "b09-f": "respuesta",
+  "b09-m": "respuesta",
+  "b09-origin": "respuesta",
+  "b09-colloquial": "pregunta",
+  "b10-f": "informacion",
+  "b10-m": "informacion",
+  "b10-origin": "informacion",
+  "b10-colloquial": "informacion",
+  "b11-f": "gestion",
+  "b11-m": "gestion",
+  "b11-origin": "gestion",
+  "b11-colloquial": "informacion",
+  "b12-f": "informacion",
+  "b12-m": "informacion",
+  "b12-origin": "informacion",
+  "b12-colloquial": "relacion",
+  "b13-f": "pregunta",
+  "b13-m": "pregunta",
+  "b13-origin": "pregunta",
+  "b13-colloquial": "pregunta",
+  "b14-f": "propuesta",
+  "b14-m": "propuesta",
+  "b14-origin": "propuesta",
+  "b14-colloquial": "propuesta",
+  "b15-f": "opinion",
+  "b15-m": "opinion",
+  "b15-origin": "opinion",
+  "b15-colloquial": "informacion"
+ }
+}
