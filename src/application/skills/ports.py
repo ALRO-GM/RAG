@@ -245,6 +245,14 @@ class AnalysisLock(Protocol):
         """Give the session back."""
         ...
 
+    def discard(self, session_id: str) -> None:
+        """Give the session back, leaving no trace of the lock.
+
+        For a session found to have no transcript: what taking the lock
+        created is removed when the session holds nothing else.
+        """
+        ...
+
     def holder(self, session_id: str) -> Optional[int]:
         """Return the worker id holding the session now, if any."""
         ...

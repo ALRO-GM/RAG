@@ -80,6 +80,15 @@ _LABEL = re.compile(
     r"temperamento|temperament)\b",
     re.IGNORECASE,
 )
+_THINGS_EN = (
+    r"versions?|plans?|drafts?|models?|documents?|data|figures?|"
+    r"proposals?|approach(?:es)?|systems?|releases?|files?|polic(?:y|ies)|"
+    r"ideas?|process(?:es)?|tools?|editions?|cop(?:y|ies)|reports?|"
+    r"methods?|budgets?|schedules?|rotas?|records?|notes?|emails?|"
+    r"agreements?|contracts?|figures?|numbers?|machines?|equipment|"
+    r"software|stock|issues?|projects?|items?|orders?"
+)
+"""Things "older" may describe without speaking of anyone's age."""
 _PERSONAL = re.compile(
     r"\b(?:edad|g[eé]nero|sexo|embarazad\w*|religi\w*|ideolog\w*|"
     r"enfermedad\w*|discapacidad\w*|nacionalidad\w*|[eé]tnic\w*|"
@@ -89,34 +98,49 @@ _PERSONAL = re.compile(
     r"j[oó]ven(?:es)?|viej[oa]s?|ancian[oa]s?|"
     r"(?:persona|personas|gente|se[nñ]ora?) mayor(?:es)?|"
     r"(?:muy|demasiado) mayor|de edad avanzada|"
-    r"(?:es|era|siendo|como|ser|parece|ha sido) (?:una? )?"
-    r"(?:madre|padre|mam[aá]|pap[aá])|(?:madre|padre) de (?:familia|"
-    r"(?:dos|tres|cuatro|\d+) hij\w*)|"
-    r"(?:tiene|tener|tenga|sin|con) (?:\w+ )?hij[oa]s|"
-    r"(?:su|sus) (?:hij[oa]s?|marido|esposa|esposo|pareja|mujer)|"
+    r"(?<!los )(?<!las )(?<!unos )(?<!unas )(?:madres?|padres?)|"
+    r"mam[aá]|pap[aá]|hij[oa]s?|"
+    r"(?:su|sus) (?:marido|esposa|esposo|pareja|mujer)|"
     r"maternidad|paternidad|embarazo|casad[oa]s?|"
     r"solter[oa]s?|divorciad[oa]s?|"
     r"(?:es|era|parece|siendo|como|ser) (?:una? )?(?:mujer|hombre|"
     r"chic[oa]|se[nñ]ora|se[nñ]or)|"
     r"young|younger|youthful|elderly|"
-    r"older (?:man|woman|men|women|person|people|candidate|worker|"
-    r"employee|adult|participant|speaker|colleague)s?|"
-    r"(?:is|are|looks?|seems?|sounds?|being) older|"
-    r"(?:is|as|being) (?:an? )?(?:mother|father|mum|mom|dad|parent|"
-    r"woman|man|girl|boy|lady|guy)|"
-    r"(?:mother|father|parent) of (?:two|three|four|\d+)|"
+    r"older(?! (?:" + _THINGS_EN + r")\b)|"
+    r"mothers?|fathers?|mums?|moms?|dads?|parents?|"
+    r"(?:is|as|being) (?:an? )?(?:woman|man|girl|boy|lady|guy)|"
     r"(?:has|have|with|without) (?:\w+ )?(?:kids|children)|"
     r"(?:his|her|their) (?:kids|children|husband|wife|partner)|"
     r"maternity|paternity|pregnancy|married|divorced)\b",
     re.IGNORECASE,
 )
-_AGE_SUBJECTLESS = re.compile(
-    r"(?:^|[.;:!?]\s+|\by\s+)(?:es|parece|est[aá]|se (?:le|la) ve)"
-    r"(?: \w+)? mayor\b",
+_MAYOR = re.compile(
+    r"\b(?:es|era|parece|est[aá]|algo|bastante|ya) mayor\b", re.IGNORECASE
+)
+"""«Es mayor», «parece algo mayor»: age, unless the clause names a thing
+as its subject (see :data:`_THINGS_ES`)."""
+_THINGS_ES = re.compile(
+    r"\b(?:impacto|efecto|riesgo|coste|costo|beneficio|diferencia|"
+    r"n[uú]mero|cantidad|parte|peso|valor|ventaja|problema|presi[oó]n|"
+    r"demanda|propuesta|nivel|porcentaje|volumen|tama[nñ]o|grado|"
+    r"inter[eé]s|esfuerzo|carga|apoyo|alcance|importancia|"
+    r"probabilidad|margen|precio|gasto|ahorro|retraso|plazo|"
+    r"presupuesto|ganancia|p[eé]rdida|mejora|aumento|cambio|"
+    r"impresi[oó]n|tensi[oó]n|acuerdo|consenso)\b",
     re.IGNORECASE,
 )
-"""«Es mayor», «parece algo mayor»: with no subject the person is
-meant (age); «el impacto es mayor» names its own subject and passes."""
+"""Nouns that, before «es mayor» in the same clause, make it a size."""
+
+
+def _age_mayor(text: str) -> bool:
+    """Tell whether a «… mayor» of ``text`` speaks of a person's age."""
+    for match in _MAYOR.finditer(text):
+        clause = re.split(r"[.;:!?,]", text[:match.start()])[-1]
+        if not _THINGS_ES.search(clause):
+            return True
+    return False
+
+
 _GROUP_ES = (
     r"(?:tod[oa]s?(?: (?:el|la|los|las) \w+)?|(?:el )?grupo|"
     r"(?:la )?reuni[oó]n|(?:el )?equipo|(?:la )?sesi[oó]n|la mesa|"
@@ -158,8 +182,9 @@ _RANKING = re.compile(
     r"\b(?:better|worse|stronger|weaker|more|less|fewer)\b(?: \w+){0,3}? "
     r"than (?:the others|the rest|everyone|everybody|anyone|anybody|"
     r"any other|the other \w+|most (?:others|people|participants|of "
-    r"them|of the \w+)|other (?:participants|people|members|speakers|"
-    r"candidates|colleagues)|others\b|(?:his|her|their) (?:peers|"
+    r"them|of the \w+)|most(?=\s*(?:[.,;:!?)]|$))|"
+    r"other (?:participants|people|members|speakers|candidates|"
+    r"colleagues)|others\b|(?:his|her|their) (?:peers|"
     r"colleagues|teammates))|"
     r"\boutperform\w*",
     re.IGNORECASE,
@@ -485,7 +510,7 @@ def refusal(text: str, others: Sequence[str]) -> str:
         return "verdict"
     if _LABEL.search(text):
         return "label"
-    if _PERSONAL.search(text) or _AGE_SUBJECTLESS.search(text):
+    if _PERSONAL.search(text) or _age_mayor(text):
         return "personal"
     if _RANKING.search(text):
         return "comparison"

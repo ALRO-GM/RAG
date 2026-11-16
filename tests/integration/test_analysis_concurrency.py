@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Iterator, List, Optional, Sequence
+from typing import Any, Iterator, List, Optional, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
@@ -206,6 +206,38 @@ def test_no_run_can_take_the_session_while_its_transcript_is_deleted(
     after.release("demo-es")
     with pytest.raises(NotFoundError):
         transcripts.get("demo-es")
+
+
+def test_a_start_racing_a_deletion_writes_nothing(tmp_path: Path) -> None:
+    """The session is deleted right after the first transcript check.
+
+    The start looks again under its lock: no launch, no ``job.json``
+    in the erased session (#121 review).
+    """
+    launcher = FakeLauncher()
+    lock = FileAnalysisLock(str(tmp_path / "analysis"))
+    requests = requests_for(tmp_path, launcher, lock)
+    transcripts = requests.transcripts
+    assert isinstance(transcripts, FileSystemTranscriptStore)
+    real_get = transcripts.get
+    forget = ForgetIngestedTranscript(transcripts, guard=requests)
+    calls: List[str] = []
+
+    def get_then_delete(session_id: str) -> Any:
+        """Answer, then let the deletion run (first call only)."""
+        document = real_get(session_id)
+        if not calls:
+            calls.append(session_id)
+            forget(session_id)
+        return document
+
+    transcripts.get = get_then_delete  # type: ignore[method-assign]
+    with pytest.raises(NotFoundError):
+        requests.start("demo-es", job=JobSought(text="Nuevo"))
+    folder = tmp_path / "analysis" / "demo-es"
+    assert launcher.started == []
+    assert not (folder / "job.json").exists()
+    assert not (folder / "run.json").exists()
 
 
 def test_the_launcher_counts_terminal_runs(
@@ -459,3 +491,27 @@ def test_a_restart_that_never_ran_shows_the_results_again(
     launcher.active.clear()  # died before clearing anything
     assert requests.status("demo-es")["active"] is False
     assert requests.results.result("demo-es", "sentences") == {"old": True}
+
+
+def test_a_run_of_a_session_without_transcript_leaves_no_lock_file(
+    tmp_path: Path,
+) -> None:
+    """The lock is taken first; a missing session leaves nothing (#121)."""
+    from tests.unit.test_skills_session_analysis import build
+
+    directory = tmp_path / "analysis"
+    lock = FileAnalysisLock(str(directory))
+    analysis = build(lock=lock)
+    with pytest.raises(NotFoundError):
+        analysis.run("tipo-errado")
+    assert not (directory / "tipo-errado").exists()
+    kept = directory / "s2"
+    kept.mkdir(parents=True)
+    (kept / "run.json").write_text("{}")
+    with pytest.raises(NotFoundError):
+        analysis.run("s2")
+    assert sorted(p.name for p in kept.iterdir()) == [
+        "analysis.lock", "run.json",
+    ]
+    assert lock.holder("s2") is None and lock.acquire("s2") is not None
+    lock.release("s2")

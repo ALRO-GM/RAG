@@ -451,7 +451,13 @@ class AnalysisRequests:
         chosen: Optional[List[StepName]],
         job: Optional[JobSought],
     ) -> Dict[str, Any]:
-        """Check, write the job and launch (one start at a time)."""
+        """Check, write the job and launch (one start at a time).
+
+        The transcript is looked up again here: a deletion of the
+        session holds the same in-process lock, so a start that waited
+        for it finds no transcript and writes nothing (#121).
+        """
+        self.transcripts.get(session_id)
         if self._active(session_id):
             raise BusyError(
                 f"The analysis of {session_id!r} is already running."
@@ -677,7 +683,11 @@ class SessionAnalysis:
             # Read under the lock: a deletion holds it until the
             # transcript is gone, so a run never revives an erased
             # analysis (#121).
-            transcript = self.transcripts.find(session_id)
+            try:
+                transcript = self.transcripts.find(session_id)
+            except NotFoundError:
+                self.lock.discard(session_id)
+                raise
             if job is not None:
                 self.store.write(
                     session_id, JOB_FILE, job.cleaned().model_dump_json()

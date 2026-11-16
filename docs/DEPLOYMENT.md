@@ -263,7 +263,11 @@ TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-cod
   and everything derived from it (the run would write its files
   again); only that answer is asked again, twice, after the
   publisher's back-off (1 s, then 2 s by default; #121), which covers a
-  run that is just ending. Still `409` after that, the transcriber logs
+  run that is just ending. The session's lock in the transcriber (and
+  the web request deleting it) is then held for at most 3 tries × 5 s
+  (`retract_timeout`) + 1 s + 2 s = 18 s with the defaults, if every
+  `409` came just before the time-out (a time-out itself is not
+  retried); a RAG answering `409` at once takes about 3 s. Still `409` after that, the transcriber logs
   the failure like the others: stop the run, then
   `DELETE /transcripts/{id}` again. The directory
   publisher's files are not touched by a deletion.

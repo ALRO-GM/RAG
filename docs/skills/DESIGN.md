@@ -596,7 +596,11 @@ nothing is deleted (neither the analysis, the other outputs nor the
 transcript): stop the run there and delete again. A run, from the
 terminal or the API, takes the lock before it reads the transcript, so
 one started during a deletion is refused (busy) or finds no transcript,
-and never writes the erased analysis again (#121). The transcriber asks
+and never writes the erased analysis again; a run that finds no
+transcript removes the lock file and folder it created when they hold
+nothing else, and an API start looks for the transcript again under the
+in-process lock, so one that waited for a deletion launches nothing and
+writes no `job.json` (#121). The transcriber asks
 again after a `409` twice, 1 s and 2 s later, then logs the failure
 (`docs/DEPLOYMENT.md`). Stopping this server's child waits up to the
 launcher's grace period (about 10 s); other starts and deletions in the

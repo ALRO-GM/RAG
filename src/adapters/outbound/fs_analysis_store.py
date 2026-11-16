@@ -206,6 +206,24 @@ class FileAnalysisLock:
             fcntl.flock(handle, fcntl.LOCK_UN)
             os.close(handle)
 
+    def discard(self, session_id: str) -> None:
+        """Give the session back; drop the lock file and its folder.
+
+        Only when this process holds the session and the folder holds
+        nothing but the lock file (a session with no analysis, e.g. a
+        mistyped id): the file is removed while still locked, so no
+        other process held it meanwhile (#121).
+        """
+        if session_id in self._held:
+            path = self._path(session_id)
+            try:
+                if [p.name for p in path.parent.iterdir()] == [LOCK_FILE]:
+                    path.unlink()
+                    path.parent.rmdir()
+            except OSError:
+                pass  # left behind: harmless, it holds only a pid
+        self.release(session_id)
+
     def holder(self, session_id: str) -> Optional[int]:
         """Return the pid of the process holding the session, if any."""
         path = self._path(session_id)
