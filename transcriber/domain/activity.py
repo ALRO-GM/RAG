@@ -47,14 +47,26 @@ class SpeechActivity(NamedTuple):
             return False
         return bool(self.active[first:min(last, count)].any())
 
-    def seconds_after(self, time: float) -> float:
-        """Return the seconds of active frames from ``time`` on.
+    def longest_stretch_after(self, time: float, gap: float) -> float:
+        """Return the seconds of the longest stretch of speech after ``time``.
 
-        The frame that holds ``time`` (when it does not start exactly
+        A stretch runs from an active frame to an active frame and
+        bridges runs of inactive frames of at most ``gap`` seconds (the
+        pauses between words); a longer pause ends it. Scattered active
+        frames (a click, a chair) make stretches of a frame or two. The
+        frame that holds ``time`` (when it does not start exactly
         there) does not count.
         """
         first = max(int(math.ceil(time / self.frame)), 0)
-        return float(self.active[first:].sum()) * self.frame
+        found = np.flatnonzero(self.active[first:])
+        if not found.size:
+            return 0.0
+        bridged = max(int(math.floor(gap / self.frame + 1e-9)), 0)
+        cuts = np.flatnonzero(np.diff(found) - 1 > bridged) + 1
+        longest = max(
+            int(part[-1] - part[0]) + 1 for part in np.split(found, cuts)
+        )
+        return longest * self.frame
 
 
 def speech_activity(
@@ -95,16 +107,20 @@ def heard_words(
 
 
 def unheard_tail(
-    words: Sequence[Word], activity: SpeechActivity, minimum: float
+    words: Sequence[Word], activity: SpeechActivity, minimum: float,
+    gap: float,
 ) -> Optional[float]:
     """Return where the speech after the last of ``words`` begins.
 
     That is the latest end of ``words``, when the frames after it hold
-    at least ``minimum`` seconds of activity (the recogniser stopped
-    before the speech did); ``None`` otherwise, for no words or for a
-    ``minimum`` that is not positive (the check is off).
+    a stretch of speech level of at least ``minimum`` seconds (pauses
+    of at most ``gap`` seconds bridged:
+    :meth:`SpeechActivity.longest_stretch_after`), so the recogniser
+    stopped before the speech did; ``None`` otherwise, for no words or
+    for a ``minimum`` that is not positive (the check is off).
     """
     if not words or not minimum > 0:
         return None
     end = max(w.end for w in words)
-    return end if activity.seconds_after(end) >= minimum else None
+    stretch = activity.longest_stretch_after(end, gap)
+    return end if stretch >= minimum else None

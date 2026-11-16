@@ -8,7 +8,9 @@ import pytest
 
 from tests.unit.transcriber.fakes import (
     FakeDecoder,
+    FakeGpuMemory,
     FakeJobRunner,
+    FakeOutOfMemory,
     FakeRecogniser,
     FakeSessionLocks,
     FakeSessionRepository,
@@ -41,7 +43,12 @@ from transcriber.domain.errors import (
     StateError,
     VoiceModelMismatchError,
 )
-from transcriber.domain.models import Session, SessionState, Transcript
+from transcriber.domain.models import (
+    Session,
+    SessionState,
+    Transcript,
+    Word,
+)
 from transcriber.domain.parameters import TranscriptionParameters
 
 
@@ -649,7 +656,8 @@ class EarlyStopRecogniser(FakeRecogniser):
     from that start on up to the first of ``stops`` after the start,
     and nothing after it. Each stop is used once (read again from
     before it, the passage goes on). ``starts`` keeps where each call
-    began.
+    began; ``tail_failures`` are raised, one per call, by the calls
+    that do not start at 0 (the reads of the tail).
     """
 
     def __init__(self, scene: Scene, stops: List[float]) -> None:
@@ -657,6 +665,7 @@ class EarlyStopRecogniser(FakeRecogniser):
         super().__init__(scene)
         self.stops = stops
         self.starts: List[float] = []
+        self.tail_failures: List[Exception] = []
 
     def recognise(
         self, audio: Audio, language: Optional[str] = None
@@ -665,6 +674,8 @@ class EarlyStopRecogniser(FakeRecogniser):
         self.languages.append(language)
         offset = round(self.scene.duration - audio.duration, 3)
         self.starts.append(offset)
+        if offset > 0 and self.tail_failures:
+            raise self.tail_failures.pop(0)
         stop = min([t for t in self.stops if t > offset],
                    default=self.scene.duration)
         if stop in self.stops:
@@ -685,16 +696,42 @@ def to_the_end() -> Scene:
     return Scene(lines=scene.lines, voices=scene.voices, duration=36.0)
 
 
+class EchoRecogniser(EarlyStopRecogniser):
+    """Stop at the given times; every read of the tail hears ``echo``.
+
+    ``echo`` is in the read's own times (0 is where the read starts),
+    like a recogniser that invents a word at the start of a window.
+    """
+
+    def __init__(
+        self, scene: Scene, stops: List[float], echo: List[Word]
+    ) -> None:
+        """Remember the words every read of the tail returns."""
+        super().__init__(scene, stops)
+        self.echo = echo
+
+    def recognise(
+        self, audio: Audio, language: Optional[str] = None
+    ) -> RecognisedSpeech:
+        """The first read as the parent's; later ones only ``echo``."""
+        if round(self.scene.duration - audio.duration, 3) == 0:
+            return super().recognise(audio, language)
+        self.languages.append(language)
+        return RecognisedSpeech(words=list(self.echo), language=language)
+
+
 def stopping(
     stops: List[float],
     parameters: TranscriptionParameters = TranscriptionParameters(),
+    gpu: Optional[FakeGpuMemory] = None,
+    recogniser: Optional[EarlyStopRecogniser] = None,
 ) -> World:
     """A world whose recogniser stops at ``stops`` (speech to the end)."""
     w = world(to_the_end(), parameters)
-    w.recogniser = EarlyStopRecogniser(w.scene, stops)
+    w.recogniser = recogniser or EarlyStopRecogniser(w.scene, stops)
     w.transcribe = TranscribeSession(
         w.sessions, w.voiceprints, w.decoder, w.recogniser, w.encoder,
-        w.locks, parameters,
+        w.locks, parameters, gpu=gpu,
     )
     w.queue = QueueTranscription(w.sessions, w.voiceprints, w.runner,
                                  w.transcribe, w.locks)
@@ -778,6 +815,81 @@ class TestUnreadTail:
         w.run()
         assert w.sessions.words("s1")[-1].end <= 30.0
         assert w.recogniser.languages == ["es"]
+
+    def test_clicks_after_the_last_word_are_not_read(self) -> None:
+        """0.05 s of sound every second (a chair, a click): no speech."""
+        w = stopping([30.0])
+        w.decoder.silent.extend(
+            (30.0 + n, 30.95 + n) for n in range(6)
+        )
+        w.run()
+        assert w.sessions.words("s1")[-1].end <= 30.0
+        assert w.recogniser.languages == ["es"]
+
+    def test_a_word_of_no_length_is_not_appended_again_and_again(
+        self,
+    ) -> None:
+        """Every read hears " Gracias." from 0 to 0 s: taken never."""
+        scene = to_the_end()
+        echo = [Word(text=" Gracias.", start=0.0, end=0.0)]
+        w = stopping([30.0], recogniser=EchoRecogniser(scene, [30.0], echo))
+        w.run()
+        texts = [wd.text for wd in w.sessions.words("s1")]
+        assert " Gracias." not in texts
+        assert texts[-1] == "revisamos"
+        assert w.recogniser.languages == ["es", "es"]
+
+    def test_the_words_at_the_junction(self) -> None:
+        """A word from the read's start on is kept; one of no length not."""
+        scene = to_the_end()
+        echo = [
+            Word(text=" Gracias.", start=0.0, end=0.0),
+            Word(text=" el", start=0.0, end=1.25),
+            Word(text=" lunes", start=1.25, end=2.5),
+        ]
+        w = stopping([30.0], TranscriptionParameters(tail_reads=1),
+                     recogniser=EchoRecogniser(scene, [30.0], echo))
+        w.run()
+        words = w.sessions.words("s1")
+        texts = [wd.text for wd in words[-3:]]
+        assert texts == ["revisamos", " el", " lunes"]
+        assert words[-3].end == pytest.approx(29.75)
+        assert (words[-2].start, words[-1].end) == pytest.approx(
+            (29.75, 32.25)
+        )
+        starts = [wd.start for wd in words]
+        assert starts == sorted(starts)
+        assert w.recogniser.languages == ["es"] * 2
+
+    def test_a_tail_longer_than_the_bound_is_left_and_logged(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        w = stopping([30.0], TranscriptionParameters(tail_max=5.0))
+        with caplog.at_level("WARNING"):
+            w.run()
+        assert w.sessions.words("s1")[-1].end <= 30.0
+        assert w.recogniser.languages == ["es"]
+        assert "6.25 s of audio" in caplog.text
+        assert "not read again" in caplog.text
+
+    def test_the_reads_are_logged(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        w = stopping([30.0])
+        with caplog.at_level("INFO"):
+            w.run()
+        assert "stopped at 29.75 s with 6.25 s of audio" in caplog.text
+        assert "again 1 time(s); 5 word(s) added" in caplog.text
+
+    def test_a_tail_read_out_of_gpu_memory_is_run_once_more(self) -> None:
+        gpu = FakeGpuMemory()
+        w = stopping([30.0], gpu=gpu)
+        assert isinstance(w.recogniser, EarlyStopRecogniser)
+        w.recogniser.tail_failures.append(FakeOutOfMemory())
+        w.run()
+        assert gpu.freed == 1
+        assert w.sessions.words("s1")[-1].end == pytest.approx(36.0)
+        assert w.recogniser.starts == pytest.approx([0.0, 29.75, 29.75])
 
 
 class TestVoiceModels:
