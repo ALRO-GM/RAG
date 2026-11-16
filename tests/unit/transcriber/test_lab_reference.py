@@ -42,6 +42,7 @@ from transcriber.domain.lab_reference import (
     recording_name,
     recording_session_id,
     reference_segments,
+    score_speakers,
     score_track,
     spread,
 )
@@ -184,6 +185,37 @@ class TestScoringByHand:
         assert silent.der == 1.0 and silent.jer == 1.0
         assert silent.overlap_precision is None
         assert silent.speaker_count_error == -2
+
+    def test_errors_split_by_reference_speaker(self) -> None:
+        """No collar: A loses 3.8-4 to ~y (0.2 s of 4); B loses 3-3.5 to
+        ~x and 6-7.5 to ~z (2.0 s of 5). Nobody is silent while A or B
+        talks, so nothing is missed outright; the unattributed time adds
+        up to DER's missed + confusion (0.7 + 1.5)."""
+        a, b = score_speakers(ten_seconds(), HYPOTHESIS, NO_COLLAR)
+        assert (a.speaker, b.speaker) == ("A", "B")
+        assert (a.speech, b.speech) == (pytest.approx(4.0),
+                                        pytest.approx(5.0))
+        assert a.missed == b.missed == 0.0
+        assert a.unattributed == pytest.approx(0.2)
+        assert b.unattributed == pytest.approx(2.0)
+        assert (a.error_rate, b.error_rate) == (0.05, 0.4)
+        assert a.unattributed + b.unattributed == pytest.approx(
+            score_track(ten_seconds(), HYPOTHESIS, NO_COLLAR).missed
+            + score_track(ten_seconds(), HYPOTHESIS, NO_COLLAR).confusion
+        )
+
+    def test_speaker_scores_of_a_silent_track_and_the_collar(self) -> None:
+        silent = score_speakers(ten_seconds(), Track("none+mute", [], "m"))
+        assert [s.missed_rate for s in silent] == [1.0, 1.0]
+        assert [s.error_rate for s in silent] == [1.0, 1.0]
+        a, b = score_speakers(ten_seconds(), HYPOTHESIS)
+        assert (a.speech, b.speech) == (pytest.approx(3.0),
+                                        pytest.approx(4.0))
+        short = make_reference(AMI, "test", "x", 10.0,
+                               [seg(1.0, 1.4, "A"), seg(3.0, 8.0, "B")],
+                               None)
+        tiny = score_speakers(short, HYPOTHESIS)[0]
+        assert tiny.speech == 0.0 and tiny.error_rate is None
 
     def test_jaccard_edges(self) -> None:
         nobody = np.zeros((10, 2), dtype=bool)
