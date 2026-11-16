@@ -67,7 +67,10 @@ class ForgetIngestedTranscript:
 
     ``erasers`` delete what other modules derived from the session (its
     analysis, scorecards, reports, acts): they must not outlive the
-    transcript (retention, ``docs/DEPLOYMENT.md``).
+    transcript (retention, ``docs/DEPLOYMENT.md``). They run before the
+    document is deleted, so an eraser that refuses (an analysis running
+    from the command line, #99) leaves the session as it was and the
+    deletion can be asked again.
     """
 
     def __init__(
@@ -81,14 +84,16 @@ class ForgetIngestedTranscript:
         """Delete the document of ``session_id``.
 
         Raises :class:`~src.domain.errors.InvalidInputError` for an id
-        the contract does not allow and
+        the contract does not allow,
+        :class:`~src.domain.errors.BusyError` when an eraser refuses
+        (nothing is deleted then) and
         :class:`~src.domain.errors.NotFoundError` when none is stored
         (what was derived from it is deleted all the same).
         """
         if not is_session_id(session_id):
             raise InvalidInputError(f"Invalid session id {session_id!r}.")
-        deleted = self._store.delete(session_id)
         for eraser in self._erasers:
             eraser.erase(session_id)
+        deleted = self._store.delete(session_id)
         if not deleted:
             raise NotFoundError(f"No transcript for session {session_id!r}.")

@@ -258,8 +258,12 @@ TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-cod
   another service on the port) and every other failure (RAG stopped,
   wrong token) is logged with the session id and the reason, never the
   transcript, and does not undo the deletion; delete the file by hand
-  then. The directory publisher's files are not
-  touched by a deletion.
+  then. While an analysis of the session runs from the terminal
+  (`skills analyze`), the RAG answers `409` and keeps the transcript
+  and everything derived from it (the run would write its files
+  again); the transcriber logs that failure like the others: stop the
+  run, then `DELETE /transcripts/{id}` again. The directory
+  publisher's files are not touched by a deletion.
 - The tunnel forwards only `127.0.0.1:8770` (the transcriber); the RAG
   listens on another port and on loopback only, so nothing reaches it
   from outside the workstation (`tests/integration/test_rag_workstation.py`

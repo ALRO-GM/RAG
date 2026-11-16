@@ -34,6 +34,7 @@ resumes at the step that failed.
 """
 
 import json
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -55,6 +56,7 @@ from src.application.skills.ports import (
     AnalysisStore,
     DialogueActTagger,
     EventExtractor,
+    StartLog,
     StepOutput,
     TranscriptRepository,
     TranscriptStore,
@@ -234,12 +236,39 @@ class AnalysisResults:
     It needs only the store, so serving the results never builds a
     model. A step's result is served only while that step is ``done``
     in the stored run, so a restarted analysis never shows the files of
-    the run before it.
+    the run before it. Between a restart's launch and the moment its
+    process clears the old run, that run is :meth:`hide`-den: no step
+    result or report of it is served (#99).
     """
 
     def __init__(self, store: AnalysisStore):
         """Wire the store."""
         self.store = store
+        self._hidden: Dict[str, datetime] = {}
+        self._guard = threading.Lock()
+
+    def hide(self, session_id: str) -> None:
+        """Serve no result of the run stored now (it is being replaced)."""
+        run = self.store.load(session_id)
+        if run is not None:
+            with self._guard:
+                self._hidden[session_id] = run.started_at
+
+    def show(self, session_id: str) -> None:
+        """Serve the stored run's results again (nothing replaces it)."""
+        with self._guard:
+            self._hidden.pop(session_id, None)
+
+    def _replaced(self, run: AnalysisRun) -> bool:
+        """Tell whether ``run`` is a hidden run not yet cleared."""
+        with self._guard:
+            hidden = self._hidden.get(run.session_id)
+            if hidden is None:
+                return False
+            if hidden == run.started_at:
+                return True
+            del self._hidden[run.session_id]
+            return False
 
     def status(self, session_id: str) -> AnalysisRun:
         """Return the stored run of ``session_id``."""
@@ -251,7 +280,8 @@ class AnalysisResults:
 
     def _done(self, session_id: str, step: StepName) -> None:
         """Refuse (not found) a step that is not done in the stored run."""
-        if self.status(session_id).step(step).status != "done":
+        run = self.status(session_id)
+        if self._replaced(run) or run.step(step).status != "done":
             raise NotFoundError(
                 f"Step {step} of {session_id!r} has no result now."
             )
@@ -293,14 +323,34 @@ class StartLimits:
     daily_starts: int = 20
 
 
+class MemoryStartLog:
+    """Starts kept in memory only (a restart of the process forgets them)."""
+
+    def __init__(self) -> None:
+        """No start yet."""
+        self.starts: List[Tuple[float, str]] = []
+
+    def load(self) -> List[Tuple[float, str]]:
+        """Return the starts kept."""
+        return list(self.starts)
+
+    def save(self, starts: Sequence[Tuple[float, str]]) -> None:
+        """Keep ``starts``."""
+        self.starts = list(starts)
+
+
 class AnalysisRequests:
     """Start, follow, cancel and forget analyses (the API).
 
     The launcher runs ``skills analyze`` apart from the server, so a
     long analysis neither blocks the API nor keeps its models loaded
     in it; the run's record is what both share. Starts are kept in
-    memory to apply :class:`StartLimits` (a server restart forgets
-    them).
+    ``starts`` to apply :class:`StartLimits` (in memory unless a
+    persistent log is given).
+
+    A start (check, job write, launch, start log) and an erase run one
+    at a time, so two simultaneous requests can neither both pass the
+    limits nor let a refused one touch the job of an accepted one (#99).
     """
 
     def __init__(
@@ -311,6 +361,7 @@ class AnalysisRequests:
         lock: AnalysisLock,
         limits: StartLimits = StartLimits(),
         clock: Callable[[], float] = time.time,
+        starts: Optional[StartLog] = None,
     ):
         """Wire the stored results, the transcripts, launcher and lock."""
         self.results = results
@@ -319,7 +370,10 @@ class AnalysisRequests:
         self.lock = lock
         self.limits = limits
         self.clock = clock
-        self._starts: List[Tuple[float, str]] = []
+        self.starts: StartLog = starts if starts is not None else (
+            MemoryStartLog()
+        )
+        self._serial = threading.Lock()
 
     def _active(self, session_id: str) -> bool:
         """Tell whether any process (API child or CLI) analyses it now."""
@@ -328,22 +382,27 @@ class AnalysisRequests:
             or self.lock.holder(session_id) is not None
         )
 
-    def _check_limits(self, session_id: str, now: float) -> None:
-        """Refuse a start too soon after the last one, or one too many."""
-        self._starts = [(t, s) for t, s in self._starts if now - t < 86400]
-        if len(self._starts) >= self.limits.daily_starts:
+    def _check_limits(
+        self, session_id: str, now: float
+    ) -> List[Tuple[float, str]]:
+        """Refuse a start too soon after the last one, or one too many.
+
+        Return the starts of the last 24 hours.
+        """
+        starts = [(t, s) for t, s in self.starts.load() if now - t < 86400]
+        if len(starts) >= self.limits.daily_starts:
             raise LimitError(
                 f"{self.limits.daily_starts} analyses were started in the "
                 "last 24 hours, the most allowed; try again later."
             )
-        last = max((t for t, s in self._starts if s == session_id),
-                   default=None)
+        last = max((t for t, s in starts if s == session_id), default=None)
         if last is not None and now - last < self.limits.min_interval:
             wait = int(self.limits.min_interval - (now - last)) + 1
             raise LimitError(
                 f"This session's analysis was started {int(now - last)} s "
                 f"ago; wait {wait} s before starting it again."
             )
+        return starts
 
     def start(
         self,
@@ -375,12 +434,24 @@ class AnalysisRequests:
                 "Choose either a restart or the steps to run again."
             )
         self.transcripts.get(session_id)
+        with self._serial:
+            return self._start(session_id, restart, synthetic, chosen, job)
+
+    def _start(
+        self,
+        session_id: str,
+        restart: bool,
+        synthetic: bool,
+        chosen: Optional[List[StepName]],
+        job: Optional[JobSought],
+    ) -> Dict[str, Any]:
+        """Check, write the job and launch (one start at a time)."""
         if self._active(session_id):
             raise BusyError(
                 f"The analysis of {session_id!r} is already running."
             )
         now = self.clock()
-        self._check_limits(session_id, now)
+        starts = self._check_limits(session_id, now)
         store = self.results.store
         before: Optional[str] = None
         if job is not None:
@@ -389,13 +460,16 @@ class AnalysisRequests:
             except NotFoundError:
                 before = JobSought().model_dump_json()
             store.write(session_id, JOB_FILE, job.cleaned().model_dump_json())
+        if restart:
+            self.results.hide(session_id)
         try:
             self.launcher.start(session_id, restart, synthetic, chosen or [])
         except Exception:
+            self.results.show(session_id)
             if before is not None:
                 store.write(session_id, JOB_FILE, before)
             raise
-        self._starts.append((now, session_id))
+        self.starts.save(starts + [(now, session_id)])
         return {"session_id": session_id, "active": True}
 
     def status(self, session_id: str) -> Dict[str, Any]:
@@ -408,6 +482,8 @@ class AnalysisRequests:
         """
         check_session(session_id)
         active = self._active(session_id)
+        if not active:
+            self.results.show(session_id)
         try:
             run = self.results.status(session_id)
         except NotFoundError:
@@ -443,11 +519,28 @@ class AnalysisRequests:
         """Stop and delete everything analysed of ``session_id``.
 
         Called when the session's transcript is deleted: its sentences,
-        quotes and reports must not outlive it.
+        quotes and reports must not outlive it. The analysis this
+        server started is stopped first; the session's lock is then
+        held while its files are deleted, so no run can write them
+        meanwhile. Raises :class:`~src.domain.errors.BusyError`, deleting
+        nothing, while the analysis runs from the command line (it would
+        write its files again): stop it there, then delete (#99).
         """
         check_session(session_id)
-        self.launcher.stop(session_id)
-        self.results.store.erase(session_id)
+        with self._serial:
+            self.launcher.stop(session_id)
+            if self.lock.acquire(session_id) is None:
+                holder = self.lock.holder(session_id)
+                raise BusyError(
+                    "The analysis of this session runs from the command "
+                    "line" + (f" (process {holder})" if holder else "")
+                    + "; stop it there before deleting the session."
+                )
+            try:
+                self.results.store.erase(session_id)
+            finally:
+                self.lock.release(session_id)
+            self.results.show(session_id)
 
 
 class SessionAnalysis:
