@@ -586,7 +586,7 @@ erase of a deleted session run one at a time in the server (one
 in-process lock), so two simultaneous `POST`s can neither both pass the
 per-session or daily limit nor make the refused one write or restore
 the accepted one's job. The start limits are kept in
-`analysis_dir/starts.json`, so a server restart does not reset them (an
+`analysis_dir/.starts.json`, so a server restart does not reset them (an
 unreadable file counts as no start). Deleting a session
 (`DELETE /transcripts/{id}`) first stops this server's child, then
 takes the session's lock while the analysis directory is deleted; while

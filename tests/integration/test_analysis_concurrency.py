@@ -1,6 +1,8 @@
 """Terminal runs and simultaneous requests of the analysis API (#99)."""
 
+import fcntl
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -13,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from src.adapters.inbound.http_api import TranscriptRoutes, create_app
 from src.adapters.outbound.fs_analysis_store import (
+    SHARED_WAIT,
     STARTS_FILE,
     FileAnalysisLock,
     FileSystemAnalysisStore,
@@ -40,6 +43,7 @@ from src.application.skills.session_analysis import (
 from src.domain.errors import BusyError, LimitError
 from src.domain.skills.analysis_run import StepRecord, new_run
 from src.domain.skills.synthesis import JobSought
+from src.domain.skills.transcript_contract import is_session_id
 from src.domain.text_analysis import tokenize
 from tests.fakes import FakeEmbedder, FakeGenerator
 from tests.integration.test_analysis_api import FakeLauncher, RefusingLauncher
@@ -198,6 +202,46 @@ def test_held_ignores_free_locks_and_other_files(tmp_path: Path) -> None:
     (tmp_path / "s2").mkdir()
     (tmp_path / STARTS_FILE).write_text("[]")
     assert lock.held() == []
+
+
+def test_the_start_log_never_takes_a_session_name(tmp_path: Path) -> None:
+    """No session id can name the start log; a session ``starts.json``
+    is analysed, held and erased apart from it (#99 review)."""
+    assert not is_session_id(STARTS_FILE)
+    log = JsonStartLog(str(tmp_path))
+    log.save([(5.0, "starts.json")])
+    store = FileSystemAnalysisStore(str(tmp_path))
+    store.save(new_run("starts.json", T0))
+    lock = FileAnalysisLock(str(tmp_path))
+    assert lock.acquire("starts.json") is not None
+    assert lock.held() == ["starts.json"]
+    lock.release("starts.json")
+    store.erase("starts.json")
+    assert log.load() == [(5.0, "starts.json")]
+    assert sorted(p.name for p in tmp_path.iterdir()) == [STARTS_FILE]
+
+
+def test_a_status_poll_never_makes_the_session_busy(tmp_path: Path) -> None:
+    """A reader's instant shared lock is waited for; a holder is not."""
+    lock = FileAnalysisLock(str(tmp_path))
+    path = tmp_path / "demo-es" / "analysis.lock"
+    path.parent.mkdir()
+    reader = os.open(path, os.O_RDWR | os.O_CREAT)
+    try:
+        fcntl.flock(reader, fcntl.LOCK_SH)
+        timer = threading.Timer(
+            SHARED_WAIT / 5, fcntl.flock, (reader, fcntl.LOCK_UN)
+        )
+        timer.start()
+        assert lock.acquire("demo-es") == lock.pid
+        timer.join()
+        lock.release("demo-es")
+        fcntl.flock(reader, fcntl.LOCK_EX)  # a real holder
+        assert FileAnalysisLock(str(tmp_path), pid=7).acquire(
+            "demo-es"
+        ) is None
+    finally:
+        os.close(reader)
 
 
 class SlowLauncher(FakeLauncher):

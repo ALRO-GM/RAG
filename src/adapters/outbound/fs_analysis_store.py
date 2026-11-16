@@ -8,7 +8,7 @@ the same directory, flushed, renamed), so a reader polling the run
 never sees half a file. Session ids are checked against the
 contract's pattern and file names against a plain-name pattern before
 any path is built, so neither can reach outside the directory.
-``<directory>/starts.json`` keeps the analyses started through the API
+``<directory>/.starts.json`` keeps the analyses started through the API
 (:class:`JsonStartLog`), so the start limits survive a server restart.
 """
 
@@ -18,6 +18,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -36,10 +37,41 @@ RUN_FILE = "run.json"
 """The run's record inside a session's directory."""
 LOCK_FILE = "analysis.lock"
 """Held (``flock``) by the process analysing the session; holds its pid."""
-STARTS_FILE = "starts.json"
-"""The API's analysis starts, at the top of the analysis directory."""
+STARTS_FILE = ".starts.json"
+"""The API's analysis starts, at the top of the analysis directory.
+
+Its leading dot keeps it out of the session ids' pattern, so no session
+directory can take its name (#99 review)."""
+SHARED_WAIT = 0.05
+"""Seconds an exclusive lock waits once when only a reader holds it."""
 
 _NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}\.(json|md|html)$")
+
+
+def _exclusive(handle: int) -> bool:
+    """Lock ``handle`` exclusively; tell whether it was taken.
+
+    :meth:`FileAnalysisLock.holder` takes a shared lock for an instant
+    to see whether the file is held; a reader alone never makes the
+    session busy: when a shared lock can be had (no exclusive holder),
+    the exclusive one is tried once more after :data:`SHARED_WAIT`.
+    """
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except BlockingIOError:
+        pass
+    try:
+        fcntl.flock(handle, fcntl.LOCK_SH | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return False
+    fcntl.flock(handle, fcntl.LOCK_UN)
+    time.sleep(SHARED_WAIT)
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except BlockingIOError:
+        return False
 
 
 class FileSystemAnalysisStore:
@@ -159,9 +191,7 @@ class FileAnalysisLock:
             handle = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
         except OSError as exc:
             raise RagError(f"Cannot open {path}: {exc}")
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+        if not _exclusive(handle):
             os.close(handle)
             return None
         os.ftruncate(handle, 0)
@@ -217,7 +247,7 @@ class JsonStartLog:
     """
 
     def __init__(self, directory: str) -> None:
-        """Keep the log in ``directory/starts.json``."""
+        """Keep the log in ``directory/.starts.json``."""
         self.path = Path(directory) / STARTS_FILE
 
     def load(self) -> List[Tuple[float, str]]:
