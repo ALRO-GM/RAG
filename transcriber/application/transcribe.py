@@ -68,7 +68,12 @@ from transcriber.application.ports import (
     VoiceEncoder,
     VoiceprintRepository,
 )
-from transcriber.domain.activity import heard_words, speech_activity
+from transcriber.domain.activity import (
+    SpeechActivity,
+    heard_words,
+    speech_activity,
+    unheard_tail,
+)
 from transcriber.domain.certainty import (
     VoiceEvidence,
     add_detected_overlaps,
@@ -497,6 +502,7 @@ class TranscribeSession:
         )
         if not words:
             raise InvalidInputError("No speech recognised.")
+        words = self._with_tail(audio, words, activity, language, report)
         words, languages = self._scored(audio, words, language, report)
         advance()  # voices
         # Only voiceprints of this voice model can be compared.
@@ -593,6 +599,57 @@ class TranscribeSession:
             ),
         )
         return _Result(transcript, words)
+
+    def _with_tail(
+        self,
+        audio: Audio,
+        words: List[Word],
+        activity: SpeechActivity,
+        language: Optional[str],
+        report: Progress,
+    ) -> List[Word]:
+        """Return ``words`` with the speech the recogniser left unread.
+
+        A recogniser can stop before the speech does: the Whisper
+        pipeline's last window sometimes ends its text at a closing
+        phrase with seconds of speech still to come, and no later window
+        reads them (#125). While the audio after the last word holds
+        ``tail_speech`` seconds of speech level
+        (:func:`~transcriber.domain.activity.unheard_tail`), the audio
+        from that word's end on is recognised again, at most
+        ``tail_reads`` times; the words found there (seams resolved,
+        only those on speech, moved to the recording's times) are
+        appended. A read that finds nothing new ends the loop.
+        """
+        p = self._parameters
+        for _ in range(p.tail_reads):
+            start = unheard_tail(words, activity, p.tail_speech)
+            if start is None:
+                break
+            rest = Audio(
+                samples=audio.cut(start, audio.duration),
+                sample_rate=audio.sample_rate,
+            )
+            LOG.info(
+                "The recogniser stopped at %.2f s of %.2f s with speech"
+                " after it; reading the rest again.", start, audio.duration,
+            )
+            speech = self._retried(
+                "recognise",
+                lambda: self._recogniser.recognise(rest, language), report,
+            )
+            found = heard_words([
+                w.model_copy(update={
+                    "start": min(w.start + start, audio.duration),
+                    "end": min(w.end + start, audio.duration),
+                })
+                for w in resolve_seams(speech.words) if w.text.strip()
+            ], activity)
+            found = [w for w in found if w.start >= start]
+            if not found:
+                break
+            words = words + found
+        return words
 
     def _grouped_voices(
         self, audio: Audio, words: List[Word],

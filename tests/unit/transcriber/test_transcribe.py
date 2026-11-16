@@ -640,6 +640,146 @@ class TestSilence:
             w.run()
 
 
+class EarlyStopRecogniser(FakeRecogniser):
+    """Stop reading at given times, as the Whisper pipeline's last window.
+
+    Each call hears the audio it is given, which is the end of the
+    scene's recording (its start is the recording's length minus the
+    audio's): it returns, in the audio's own times, the scene's words
+    from that start on up to the first of ``stops`` after the start,
+    and nothing after it. Each stop is used once (read again from
+    before it, the passage goes on). ``starts`` keeps where each call
+    began.
+    """
+
+    def __init__(self, scene: Scene, stops: List[float]) -> None:
+        """Remember the scene and the times the reading stops at."""
+        super().__init__(scene)
+        self.stops = stops
+        self.starts: List[float] = []
+
+    def recognise(
+        self, audio: Audio, language: Optional[str] = None
+    ) -> RecognisedSpeech:
+        """The words of the audio's stretch up to the next stop."""
+        self.languages.append(language)
+        offset = round(self.scene.duration - audio.duration, 3)
+        self.starts.append(offset)
+        stop = min([t for t in self.stops if t > offset],
+                   default=self.scene.duration)
+        if stop in self.stops:
+            self.stops.remove(stop)
+        words = [
+            w.model_copy(update={
+                "start": w.start - offset, "end": w.end - offset,
+                "probability": None,
+            })
+            for w in self.scene.words() if offset <= w.start and w.end <= stop
+        ]
+        return RecognisedSpeech(words=words, language=language)
+
+
+def to_the_end() -> Scene:
+    """The meeting with no silence after Ana's last sentence."""
+    scene = meeting()
+    return Scene(lines=scene.lines, voices=scene.voices, duration=36.0)
+
+
+def stopping(
+    stops: List[float],
+    parameters: TranscriptionParameters = TranscriptionParameters(),
+) -> World:
+    """A world whose recogniser stops at ``stops`` (speech to the end)."""
+    w = world(to_the_end(), parameters)
+    w.recogniser = EarlyStopRecogniser(w.scene, stops)
+    w.transcribe = TranscribeSession(
+        w.sessions, w.voiceprints, w.decoder, w.recogniser, w.encoder,
+        w.locks, parameters,
+    )
+    w.queue = QueueTranscription(w.sessions, w.voiceprints, w.runner,
+                                 w.transcribe, w.locks)
+    return w
+
+
+class TestUnreadTail:
+    """The recogniser stops before the speech does (#125)."""
+
+    def test_speech_to_the_end_of_the_file_is_all_transcribed(self) -> None:
+        w = world(to_the_end())
+        transcript = w.run()
+        assert transcript.utterances[-1].text == (
+            "Lo revisamos el lunes en la reunión."
+        )
+        assert w.sessions.words("s1")[-1].end == pytest.approx(36.0)
+        assert w.recogniser.languages == ["es"]
+
+    def test_a_tail_the_recogniser_left_is_read_again(self) -> None:
+        w = stopping([30.0])
+        transcript = w.run()
+        words = w.sessions.words("s1")
+        assert [wd.text for wd in words] == [
+            wd.text for wd in w.scene.words()
+        ]
+        assert [wd.start for wd in words] == pytest.approx(
+            [wd.start for wd in w.scene.words()]
+        )
+        assert words[-1].end == pytest.approx(36.0)
+        assert transcript.utterances[-1].text.endswith("en la reunión.")
+        assert transcript.utterances[-1].end == pytest.approx(36.0)
+        assert isinstance(w.recogniser, EarlyStopRecogniser)
+        last_kept = max(wd.end for wd in w.scene.words() if wd.end <= 30.0)
+        assert w.recogniser.starts == pytest.approx([0.0, last_kept])
+        assert w.recogniser.languages == ["es", "es"]
+        # The words read again are scored with the others, once.
+        [scored] = w.recogniser.scored
+        assert len(scored) == len(w.scene.words())
+
+    def test_a_tail_that_stops_again_is_read_until_the_end(self) -> None:
+        w = stopping([27.0, 31.0])
+        w.run()
+        words = w.sessions.words("s1")
+        assert [wd.text for wd in words] == [
+            wd.text for wd in w.scene.words()
+        ]
+        assert w.recogniser.languages == ["es"] * 3
+
+    def test_the_reads_are_bounded(self) -> None:
+        w = stopping([27.0, 31.0],
+                     TranscriptionParameters(tail_reads=1))
+        w.run()
+        words = w.sessions.words("s1")
+        assert words[-1].end <= 31.0
+        assert w.recogniser.languages == ["es"] * 2
+
+    def test_no_reads_leave_the_tail_out(self) -> None:
+        w = stopping([30.0], TranscriptionParameters(tail_reads=0))
+        transcript = w.run()
+        assert w.sessions.words("s1")[-1].end <= 30.0
+        assert not transcript.utterances[-1].text.endswith("reunión.")
+        assert w.recogniser.languages == ["es"]
+
+    def test_a_read_that_finds_nothing_ends_the_reading(self) -> None:
+        # The second read stops before its first word ends.
+        w = stopping([30.0, 29.8])
+        w.run()
+        assert w.sessions.words("s1")[-1].end <= 30.0
+        assert w.recogniser.languages == ["es"] * 2
+
+    def test_too_little_speech_after_the_last_word_is_not_read(
+        self,
+    ) -> None:
+        w = stopping([30.0], TranscriptionParameters(tail_speech=60.0))
+        w.run()
+        assert w.recogniser.languages == ["es"]
+
+    def test_silence_after_the_last_word_is_not_read(self) -> None:
+        w = stopping([30.0])
+        w.decoder.silent.append((30.0, 36.0))
+        w.run()
+        assert w.sessions.words("s1")[-1].end <= 30.0
+        assert w.recogniser.languages == ["es"]
+
+
 class TestVoiceModels:
     def test_an_expected_speaker_of_another_model_is_refused(self) -> None:
         w = world()

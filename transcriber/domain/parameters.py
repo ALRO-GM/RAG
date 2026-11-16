@@ -64,6 +64,16 @@ class TranscriptionParameters(BaseModel):
     (seconds) and a frame whose RMS level reaches the threshold (full
     scale is 1) is speech; a recognised word with no such frame in its
     span is dropped (recognisers invent words over silence).
+    ``tail_speech``/``tail_reads``: when the frames after the last word
+    kept hold at least ``tail_speech`` seconds of speech level, the
+    recogniser stopped before the speech did (the Whisper pipeline's
+    last window can end its text early, #125) and the audio from that
+    word on is read again, at most ``tail_reads`` times (0 never).
+    Judgements, not measurements: 1 s of speech-level frames is more
+    than a click or a breath; three reads cover a tail that stops early
+    again. On the 14.7-minute synthetic meeting of #96 the first read
+    stopped 14.7 s before the end with 6.2 s of speech-level frames
+    left.
     ``doubt_margin``: a sentence whose speaker margin (the voice windows'
     cosine with its speaker minus that with the closest other voice;
     :mod:`transcriber.domain.certainty`) is below this is ``doubtful``;
@@ -141,6 +151,8 @@ class TranscriptionParameters(BaseModel):
     turn_gap: float = Field(default=1.0, ge=0, allow_inf_nan=False)
     activity_frame: float = Field(default=0.025, gt=0, allow_inf_nan=False)
     activity_threshold: float = Field(default=0.003, ge=0, le=1)
+    tail_speech: float = Field(default=1.0, ge=0, allow_inf_nan=False)
+    tail_reads: int = Field(default=3, ge=0)
     doubt_margin: float = Field(
         default=DEFAULT_DOUBT_MARGIN, ge=0, le=2, allow_inf_nan=False
     )
