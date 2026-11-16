@@ -321,12 +321,16 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
 
         ``204`` once deleted; ``404`` with ``code``
         :data:`TRANSCRIPT_NOT_FOUND` when there is none, so the
-        transcriber tells it apart from a route that does not exist.
+        transcriber tells it apart from a route that does not exist;
+        ``409`` (nothing deleted) while its analysis runs from the
+        command line.
         """
         try:
             await run_in_threadpool(forget, session_id)
         except InvalidInputError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        except BusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
         except NotFoundError as exc:
             return JSONResponse(
                 {"detail": str(exc), "code": TRANSCRIPT_NOT_FOUND},

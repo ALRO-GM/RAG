@@ -17,6 +17,7 @@ from src.adapters.outbound.fs_analysis_store import (
     FileAnalysisLock,
     FileSystemAnalysisStore,
     FileSystemSessionOutputs,
+    JsonStartLog,
 )
 from src.adapters.outbound.fs_assessment_store import (
     FileSystemAssessmentStore,
@@ -479,6 +480,7 @@ class SkillsContainer:
             ),
             FileAnalysisLock(s.analysis_dir),
             StartLimits(s.analysis_min_interval, s.analysis_daily_starts),
+            starts=JsonStartLog(s.analysis_dir),
         )
 
     def session_outputs(self, transcripts_dir: str) -> SessionEraser:

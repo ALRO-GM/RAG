@@ -17,7 +17,9 @@ child's group (the child turns it into a clean exit that kills its
 judge) and, once the child is gone, kills the groups of every
 descendant it had started in a session of its own (``claude -p``), so
 no judge outlives a cancelled analysis. At most ``max_running``
-children run at once. Session ids are checked by the caller and again
+analyses run at once, counting those started from the terminal (their
+session's lock file is held, :meth:`FileAnalysisLock.held`). Session ids
+are checked by the caller and again
 here, passed as one quoted argument so the command line never turns an
 id like ``1e5`` into a number, and never go through a shell.
 """
@@ -33,6 +35,7 @@ import time
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
+from src.adapters.outbound.fs_analysis_store import FileAnalysisLock
 from src.domain.errors import BusyError, LimitError, RagError
 from src.domain.skills.transcript_contract import is_session_id
 
@@ -115,7 +118,8 @@ class SubprocessAnalysisLauncher:
         analysis_dir: Where each session's analysis is kept.
         python: The interpreter (default: this one).
         timeout: Seconds a child may run before it is stopped.
-        max_running: Most children running at once.
+        max_running: Most analyses running at once (this server's
+            children and terminal runs alike).
         grace: Seconds a stopped child gets before it is killed.
     """
 
@@ -140,6 +144,7 @@ class SubprocessAnalysisLauncher:
         self._children: Dict[str, "subprocess.Popen[bytes]"] = {}
         self._timers: Dict[str, threading.Timer] = {}
         self._lock = threading.Lock()
+        self._locks = FileAnalysisLock(str(self.analysis_dir))
         atexit.register(self.stop_all)
 
     def command(
@@ -179,7 +184,7 @@ class SubprocessAnalysisLauncher:
 
         Raises :class:`~src.domain.errors.BusyError` when this session is
         running and :class:`~src.domain.errors.LimitError` when
-        ``max_running`` analyses already run.
+        ``max_running`` analyses already run (a terminal run counts).
         """
         if not is_session_id(session_id):
             raise RagError(f"Invalid session id {session_id!r}.")
@@ -188,7 +193,8 @@ class SubprocessAnalysisLauncher:
                 raise BusyError(
                     f"The analysis of {session_id!r} is already running."
                 )
-            running = [s for s in list(self._children) if self._alive(s)]
+            running = {s for s in list(self._children) if self._alive(s)}
+            running.update(self._locks.held())
             if len(running) >= self.max_running:
                 raise LimitError(
                     f"{len(running)} analysis already running (at most "

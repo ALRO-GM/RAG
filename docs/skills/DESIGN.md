@@ -578,6 +578,25 @@ operating system drops the lock when the worker dies, so a `run.json`
 left `running` without a holder is shown as `interrupted` and the next
 run resumes it at the step that was running.
 
+Terminal runs and simultaneous requests (#99). The API's limit of
+`max_running_analyses` (default 1) counts every held lock under
+`analysis_dir`, so a run started from the terminal takes the place too.
+A start (busy check, start limits, `job.json` write, launch) and the
+erase of a deleted session run one at a time in the server (one
+in-process lock), so two simultaneous `POST`s can neither both pass the
+per-session or daily limit nor make the refused one write or restore
+the accepted one's job. The start limits are kept in
+`analysis_dir/starts.json`, so a server restart does not reset them (an
+unreadable file counts as no start). Deleting a session
+(`DELETE /transcripts/{id}`) first stops this server's child, then
+takes the session's lock while the analysis directory is deleted; while
+a terminal run holds it the answer is `409` and nothing is deleted
+(neither the analysis, the other outputs nor the transcript): stop the
+run there and delete again. After `POST … {"restart": true}` the old
+run's step results and reports are not served (`404`) until the child
+has replaced `run.json`, or until the status shows no run active (a
+child that died before clearing).
+
 Judge calls: step f makes one call per sentence with candidates (up to
 `max_confirmations`, default 150) and step g one per person and
 competency (11 in the core rubric), step i one per person (§14).

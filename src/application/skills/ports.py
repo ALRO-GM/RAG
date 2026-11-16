@@ -250,6 +250,22 @@ class AnalysisLock(Protocol):
         ...
 
 
+class StartLog(Protocol):
+    """The analyses started through the API, kept across server restarts.
+
+    Each start is ``(time in seconds since the epoch, session id)``;
+    the start limits are counted on them.
+    """
+
+    def load(self) -> List[Tuple[float, str]]:
+        """Return the starts kept (empty when none)."""
+        ...
+
+    def save(self, starts: Sequence[Tuple[float, str]]) -> None:
+        """Keep ``starts`` (replacing the previous ones)."""
+        ...
+
+
 class SessionEraser(Protocol):
     """Delete what other modules derived from a session (retention)."""
 

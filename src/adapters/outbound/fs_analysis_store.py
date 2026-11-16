@@ -8,6 +8,8 @@ the same directory, flushed, renamed), so a reader polling the run
 never sees half a file. Session ids are checked against the
 contract's pattern and file names against a plain-name pattern before
 any path is built, so neither can reach outside the directory.
+``<directory>/starts.json`` keeps the analyses started through the API
+(:class:`JsonStartLog`), so the start limits survive a server restart.
 """
 
 import fcntl
@@ -17,7 +19,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from pydantic import ValidationError
 
@@ -34,6 +36,8 @@ RUN_FILE = "run.json"
 """The run's record inside a session's directory."""
 LOCK_FILE = "analysis.lock"
 """Held (``flock``) by the process analysing the session; holds its pid."""
+STARTS_FILE = "starts.json"
+"""The API's analysis starts, at the top of the analysis directory."""
 
 _NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}\.(json|md|html)$")
 
@@ -191,6 +195,56 @@ class FileAnalysisLock:
             return None
         finally:
             os.close(handle)
+
+    def held(self) -> List[str]:
+        """Return the sessions some process analyses now (any process)."""
+        try:
+            folders = sorted(self.directory.iterdir())
+        except OSError:
+            return []
+        return [
+            f.name for f in folders
+            if is_session_id(f.name) and (f / LOCK_FILE).is_file()
+            and self.holder(f.name) is not None
+        ]
+
+
+class JsonStartLog:
+    """The API's analysis starts in one small JSON file.
+
+    Written atomically; an unreadable file counts as no start (the
+    limits bound spending, they are not a record to defend).
+    """
+
+    def __init__(self, directory: str) -> None:
+        """Keep the log in ``directory/starts.json``."""
+        self.path = Path(directory) / STARTS_FILE
+
+    def load(self) -> List[Tuple[float, str]]:
+        """Return the starts kept (empty when none or unreadable)."""
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+            return [(float(t), str(s)) for t, s in data]
+        except (OSError, ValueError, TypeError):
+            return []
+
+    def save(self, starts: Sequence[Tuple[float, str]]) -> None:
+        """Replace the starts kept with ``starts``."""
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            handle, temporary = tempfile.mkstemp(
+                prefix=f".{STARTS_FILE}.", suffix=".tmp",
+                dir=self.path.parent,
+            )
+            try:
+                with os.fdopen(handle, "w", encoding="utf-8") as stream:
+                    json.dump([[t, s] for t, s in starts], stream)
+                os.replace(temporary, self.path)
+            except BaseException:
+                Path(temporary).unlink(missing_ok=True)
+                raise
+        except OSError as exc:
+            raise RagError(f"Cannot write {self.path}: {exc}")
 
 
 class FileSystemSessionOutputs:
