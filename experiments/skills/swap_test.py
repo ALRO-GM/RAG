@@ -120,6 +120,20 @@ def summarise(
     return out
 
 
+def stored_path(path: str) -> str:
+    """Return ``path`` relative to the repository when it is inside it.
+
+    Results are committed: an absolute path would carry the user name
+    and the checkout's location.
+    """
+    root = Path(__file__).resolve().parents[2]
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(root).as_posix()
+    except ValueError:
+        return Path(path).name
+
+
 def main(argv: Optional[List[str]] = None) -> None:
     """Label the swap sentences with one approach and write the counts."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -143,7 +157,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                          "local_policy": "largest_fitting"})
     app = SkillsContainer(SkillsSettings.model_validate(settings))
     result: Dict[str, Any] = {"approach": args.approach,
-                              "sentences": args.sentences}
+                              "sentences": stored_path(args.sentences)}
     probabilities: Optional[List[Dict[str, float]]] = None
     if args.approach in ("rules", "encoder"):
         model, labels, probabilities = tagger_labels(

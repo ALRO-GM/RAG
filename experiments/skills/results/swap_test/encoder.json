@@ -1,6 +1,6 @@
 {
  "approach": "encoder",
- "sentences": "/home/alberto/Desktop/ideas/RAGPutin/.claude/worktrees/agent-abeb0a9c8390cf47c/examples/skills/fairness/swap_sentences.json",
+ "sentences": "examples/skills/fairness/swap_sentences.json",
  "model": "encoder:xlmr-base-ami-mrda-es",
  "changes": [
   {

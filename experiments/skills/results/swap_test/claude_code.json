@@ -1,6 +1,6 @@
 {
  "approach": "claude",
- "sentences": "/home/alberto/Desktop/ideas/RAGPutin/.claude/worktrees/agent-abeb0a9c8390cf47c/examples/skills/fairness/swap_sentences.json",
+ "sentences": "examples/skills/fairness/swap_sentences.json",
  "calls": 60,
  "model": "claude-code:opus",
  "changes": [

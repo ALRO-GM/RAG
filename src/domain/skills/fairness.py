@@ -33,15 +33,17 @@ bootstrap has a fixed seed.
 
 import math
 from statistics import NormalDist
-from typing import Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple
 
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Direction = Literal["higher_is_better", "lower_is_better"]
 AuditKind = Literal["rate", "mean"]
-RowStatus = Literal["reference", "ok", "flagged", "described_only"]
+RowStatus = Literal[
+    "reference", "ok", "flagged", "zero_reference", "described_only"
+]
 
 FOUR_FIFTHS = 0.80
 """EEOC 29 CFR 1607.4(D): a selection rate under 4/5 of the highest is
@@ -80,33 +82,60 @@ class AuditPolicy(BaseModel):
     """Rules of an audit table.
 
     ``threshold`` is the ratio past which a group is flagged (see the
-    module); ``min_units`` and ``min_share`` decide which groups are
-    only described; ``resamples`` and ``seed`` drive the bootstrap of
-    mean tables.
+    module); left out, it follows ``direction`` (0.80 when higher is
+    better, 1.25 when lower is better), and a threshold on the wrong
+    side of 1 for the direction is refused. ``min_units`` and
+    ``min_share`` decide which groups are only described;
+    ``resamples`` and ``seed`` drive the bootstrap of mean tables.
     """
 
     model_config = ConfigDict(frozen=True)
 
     direction: Direction = "higher_is_better"
-    threshold: float = Field(default=FOUR_FIFTHS, gt=0)
+    threshold: float = Field(default=0.0, gt=0)
+    """Never left at 0.0: ``_default_threshold`` always fills it."""
     min_units: int = Field(default=5, ge=1)
     min_share: float = Field(default=MIN_SHARE, ge=0, lt=1)
     confidence: float = Field(default=0.95, gt=0, lt=1)
     resamples: int = Field(default=2000, ge=100)
     seed: int = 0
 
+    @model_validator(mode="before")
+    @classmethod
+    def _default_threshold(cls, data: Any) -> Any:
+        """Fill a missing threshold from the direction."""
+        if isinstance(data, dict) and data.get("threshold") is None:
+            lower = data.get("direction") == "lower_is_better"
+            data = {**data,
+                    "threshold": ERROR_RATIO if lower else FOUR_FIFTHS}
+        return data
+
+    @model_validator(mode="after")
+    def _threshold_matches_direction(self) -> "AuditPolicy":
+        """Refuse a threshold that could never flag a worse group."""
+        if self.direction == "higher_is_better" and self.threshold >= 1:
+            raise ValueError("higher is better needs a threshold below 1")
+        if self.direction == "lower_is_better" and self.threshold <= 1:
+            raise ValueError("lower is better needs a threshold above 1")
+        return self
+
 
 class AuditRow(BaseModel):
     """One group of an audit table.
 
     ``n`` people (``share`` of all people in the table); ``value`` is
-    the rate or the mean, with ``low``/``high`` its interval;
+    the rate or the mean, with ``low``/``high`` its interval (``None``
+    for a mean over fewer than two distinct values, where a bootstrap
+    interval would only repeat the point);
     ``selected`` is the count behind a rate (``None`` for a mean).
     ``ratio`` is ``value`` over the reference group's, with its
     interval (none for the reference itself, whose ratio is 1);
     ``None`` for groups only described or when the reference value is
-    0. ``certain`` tells whether the ratio's whole interval is
-    on one side of the threshold.
+    0. ``difference`` is ``value`` minus the reference's, for every
+    group with a ratio or with status ``zero_reference``: a group worse
+    than a reference whose value is 0, which has no ratio and is never
+    counted as within the threshold. ``certain`` tells whether the
+    ratio's whole interval is on one side of the threshold.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -116,8 +145,9 @@ class AuditRow(BaseModel):
     share: float
     selected: Optional[int] = None
     value: float
-    low: float
-    high: float
+    low: Optional[float]
+    high: Optional[float]
+    difference: Optional[float] = None
     ratio: Optional[float] = None
     ratio_low: Optional[float] = None
     ratio_high: Optional[float] = None
@@ -140,6 +170,10 @@ class AuditTable(BaseModel):
     def flagged(self) -> List[str]:
         """Return the groups whose ratio is past the threshold."""
         return [r.group for r in self.rows if r.status == "flagged"]
+
+    def zero_reference(self) -> List[str]:
+        """Return the groups worse than a reference whose value is 0."""
+        return [r.group for r in self.rows if r.status == "zero_reference"]
 
 
 def _z(confidence: float) -> float:
@@ -268,16 +302,21 @@ def _reference(
 
 def _status(
     group: str, reference: Optional[str], ratio: Optional[float],
-    eligible: bool, policy: AuditPolicy,
+    difference: Optional[float], eligible: bool, policy: AuditPolicy,
 ) -> RowStatus:
-    """Return a row's status."""
+    """Return a row's status.
+
+    With a reference value of 0 there is no ratio: a group with the
+    same value is ``ok``, any other is ``zero_reference`` (it can only
+    be worse, as the reference is the best).
+    """
     if not eligible:
         return "described_only"
     if group == reference:
         return "reference"
-    if ratio is not None and _past(ratio, policy):
-        return "flagged"
-    return "ok"
+    if ratio is None:
+        return "ok" if not difference else "zero_reference"
+    return "flagged" if _past(ratio, policy) else "ok"
 
 
 def rate_audit(
@@ -309,6 +348,10 @@ def rate_audit(
         ratio: Optional[float] = None
         interval: Optional[Tuple[float, float]] = None
         ok = group in eligible
+        difference = (
+            rates[group] - rates[reference]
+            if ok and reference is not None else None
+        )
         if ok and reference is not None and rates[reference] > 0:
             ref_selected, ref_n = counts[reference]
             ratio = rates[group] / rates[reference]
@@ -318,10 +361,11 @@ def rate_audit(
                 )
         rows.append(AuditRow(
             group=group, n=n, share=n / total, selected=selected,
-            value=rates[group], low=low, high=high, ratio=ratio,
+            value=rates[group], low=low, high=high, difference=difference,
+            ratio=ratio,
             ratio_low=None if interval is None else interval[0],
             ratio_high=None if interval is None else interval[1],
-            status=_status(group, reference, ratio, ok, policy),
+            status=_status(group, reference, ratio, difference, ok, policy),
             certain=_certain(interval, policy),
         ))
     return AuditTable(metric=metric, kind="rate", policy=policy,
@@ -339,16 +383,16 @@ def _percentiles(
 
 def mean_audit(
     measurements: Sequence[Measurement], metric: str,
-    policy: AuditPolicy = AuditPolicy(
-        direction="lower_is_better", threshold=ERROR_RATIO
-    ),
+    policy: AuditPolicy = AuditPolicy(direction="lower_is_better"),
 ) -> AuditTable:
     """Return the mean table of ``measurements`` (people may repeat).
 
     Each person's measurements are averaged; the group mean is the mean
     over its people. The bootstrap resamples people within each group
     (``policy.resamples`` times, seed ``policy.seed``); the ratio's
-    interval comes from the same resamples of both groups.
+    interval comes from the same resamples of both groups. A group with
+    fewer than two distinct values gets no interval (nor does a ratio
+    involving it); with few people the intervals are only indicative.
     """
     people = _per_unit(measurements)
     if not people:
@@ -369,26 +413,35 @@ def mean_audit(
         picks = rng.integers(0, len(values),
                              size=(policy.resamples, len(values)))
         draws[group] = values[picks].mean(axis=1)
+    varied = {g: len(set(v)) >= 2 for g, v in by_group.items()}
     rows: List[AuditRow] = []
     for group in sorted(by_group):
-        low, high = _percentiles(list(draws[group]), policy.confidence)
+        low: Optional[float] = None
+        high: Optional[float] = None
+        if varied[group]:
+            low, high = _percentiles(list(draws[group]), policy.confidence)
         ratio: Optional[float] = None
         interval: Optional[Tuple[float, float]] = None
         ok = group in eligible
+        difference = (
+            means[group] - means[reference]
+            if ok and reference is not None else None
+        )
         if ok and reference is not None and means[reference] > 0:
             ratio = means[group] / means[reference]
             base = draws[reference]
             kept = base > 0
             ratios = draws[group][kept] / base[kept]
-            if group != reference and ratios.size:
+            if (group != reference and ratios.size
+                    and varied[group] and varied[reference]):
                 interval = _percentiles(list(ratios), policy.confidence)
         rows.append(AuditRow(
             group=group, n=len(by_group[group]),
             share=len(by_group[group]) / total, value=means[group],
-            low=low, high=high, ratio=ratio,
+            low=low, high=high, difference=difference, ratio=ratio,
             ratio_low=None if interval is None else interval[0],
             ratio_high=None if interval is None else interval[1],
-            status=_status(group, reference, ratio, ok, policy),
+            status=_status(group, reference, ratio, difference, ok, policy),
             certain=_certain(interval, policy),
         ))
     return AuditTable(metric=metric, kind="mean", policy=policy,

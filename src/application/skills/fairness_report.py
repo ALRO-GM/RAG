@@ -15,8 +15,6 @@ from typing import Dict, List, Literal, Optional, Sequence, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.skills.fairness import (
-    ERROR_RATIO,
-    FOUR_FIFTHS,
     MIN_SHARE,
     AuditKind,
     AuditPolicy,
@@ -60,17 +58,12 @@ class AuditSpec(BaseModel):
 
     def policy(self) -> AuditPolicy:
         """Return the table's rules with the default threshold filled."""
-        default = (
-            FOUR_FIFTHS if self.direction == "higher_is_better"
-            else ERROR_RATIO
-        )
-        return AuditPolicy(
-            direction=self.direction,
-            threshold=default if self.threshold is None else self.threshold,
-            min_units=self.min_units, min_share=self.min_share,
-            confidence=self.confidence, resamples=self.resamples,
-            seed=self.seed,
-        )
+        return AuditPolicy.model_validate({
+            "direction": self.direction, "threshold": self.threshold,
+            "min_units": self.min_units, "min_share": self.min_share,
+            "confidence": self.confidence, "resamples": self.resamples,
+            "seed": self.seed,
+        })
 
 
 class AuditResults(BaseModel):
@@ -156,6 +149,13 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "rate": "Tasa", "mean": "Media",
         "reference": "referencia", "ok": "dentro", "flagged": "pasa el umbral",
         "described_only": "sólo descrito",
+        "zero_reference": (
+            "sin cociente: la referencia es 0 (diferencia {difference})"
+        ),
+        "summary_zero": (
+            "Sin cociente porque la referencia es 0, peores que ella: "
+            "{groups}."
+        ),
         "uncertain": " (el IC cruza el umbral)",
         "rules_rate_higher": (
             "Cociente = tasa del grupo / tasa del grupo de referencia (el "
@@ -187,7 +187,9 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "rules_ci_mean": (
             "Cada persona cuenta una vez (media de sus medidas). IC: "
             "bootstrap de percentiles sobre personas, {resamples} "
-            "remuestreos, semilla {seed}."
+            "remuestreos, semilla {seed}. Con pocas personas por grupo "
+            "los intervalos son sólo orientativos; un grupo con menos de "
+            "dos valores distintos no tiene intervalo (—)."
         ),
         "scoring": (
             "Tasa de puntuación (LL144): proporción del grupo por encima "
@@ -216,6 +218,12 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "rate": "Rate", "mean": "Mean",
         "reference": "reference", "ok": "within", "flagged": "past threshold",
         "described_only": "described only",
+        "zero_reference": (
+            "no ratio: the reference is 0 (difference {difference})"
+        ),
+        "summary_zero": (
+            "No ratio as the reference is 0, worse than it: {groups}."
+        ),
         "uncertain": " (CI crosses the threshold)",
         "rules_rate_higher": (
             "Ratio = group rate / reference group rate (the highest). "
@@ -245,7 +253,9 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "rules_ci_mean": (
             "Each person counts once (mean of their measurements). CI: "
             "percentile bootstrap over people, {resamples} resamples, "
-            "seed {seed}."
+            "seed {seed}. With few people per group the intervals are "
+            "only indicative; a group with fewer than two distinct values "
+            "has no interval (—)."
         ),
         "scoring": (
             "Scoring rate (LL144): share of the group above the median of "
@@ -272,15 +282,28 @@ def _short(value: float, language: Language) -> str:
     return _number(value, language).rstrip("0").rstrip(",.")
 
 
+def _signed(value: Optional[float], language: Language) -> str:
+    """Return a difference with its sign (+0,500)."""
+    if value is None:
+        return "—"
+    return ("+" if value >= 0 else "") + _number(value, language)
+
+
 def _row(row: AuditRow, language: Language) -> str:
     """Return one Markdown table row."""
     t = TEXTS[language]
-    status = t[row.status]
+    status = t[row.status].format(
+        difference=_signed(row.difference, language)
+    )
     if row.certain is False and row.status in ("ok", "flagged"):
         status += t["uncertain"]
     value = _number(row.value, language)
     if row.selected is not None:
         value += f" ({row.selected}/{row.n})"
+    interval = (
+        "—" if row.low is None or row.high is None else
+        f"{_number(row.low, language)}–{_number(row.high, language)}"
+    )
     ratio_ci = (
         "—" if row.ratio_low is None or row.ratio_high is None else
         f"{_number(row.ratio_low, language)}–"
@@ -288,8 +311,7 @@ def _row(row: AuditRow, language: Language) -> str:
     )
     return (
         f"| {row.group} | {row.n} | {_number(100 * row.share, language)} | "
-        f"{value} | {_number(row.low, language)}–"
-        f"{_number(row.high, language)} | {_number(row.ratio, language)} | "
+        f"{value} | {interval} | {_number(row.ratio, language)} | "
         f"{ratio_ci} | {status} |"
     )
 
@@ -334,11 +356,15 @@ def render_audit(
         f"## {t['summary']}", "",
     ]
     for audit in filled:
-        groups = audit.table.flagged()
-        verdict = (
-            t["summary_flagged"].format(groups=", ".join(groups)) if groups
-            else t["none_flagged"]
-        )
+        parts = []
+        flagged = audit.table.flagged()
+        zero = audit.table.zero_reference()
+        if flagged:
+            parts.append(
+                t["summary_flagged"].format(groups=", ".join(flagged)))
+        if zero:
+            parts.append(t["summary_zero"].format(groups=", ".join(zero)))
+        verdict = " ".join(parts) if parts else t["none_flagged"]
         out.append(f"- `{audit.table.metric}`: {verdict}")
     for audit, spec in zip(filled, results.audits):
         table = audit.table

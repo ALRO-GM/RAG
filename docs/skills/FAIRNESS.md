@@ -218,9 +218,10 @@ grupo con más error frente al otro, IC 95 %):
 **Lectura.** No hay conclusión sobre el sexo. Con las 4 reuniones 6 de
 8 diarizadores fallan más con los hombres; quitando TS3003a (sólo
 hombres, dos de ellos casi callados) el signo se invierte en 5 de 8 y
-7 de 8 fallan más con las mujeres. Lo que mueve la cifra es la reunión y cuánto habla cada persona, no
-el sexo, y 4 personas por grupo no bastan para separar una cosa de
-otra. Con 4 personas el bootstrap tiene muy pocas muestras distintas:
+7 de 8 fallan más con las mujeres. La diferencia puede deberse a la
+reunión o al tiempo de habla de cada persona
+tanto como al sexo: con 4 reuniones y 4 personas por grupo no se
+pueden separar. Con 4 personas el bootstrap tiene muy pocas muestras distintas:
 los intervalos son orientativos. Para medir D1 de verdad hace falta un
 corpus con muchas más personas por grupo (p. ej. todo el test de AMI, 16
 grabaciones, o CALLHOME con metadatos de sexo), no disponible sin
@@ -277,6 +278,13 @@ Wilson). Resultados en `experiments/skills/results/swap_test/`.
   1,25 para errores), grupos con menos de `min_units` (5) personas o
   menos del 2 % sólo se describen (n, valor, IC) y no reciben cociente
   ni son referencia; se marca si el IC del cociente cruza el umbral.
+  El umbral por omisión sigue la dirección y se rechaza uno del lado
+  equivocado de 1. Si la referencia vale 0 no hay cociente: un grupo
+  peor que ella queda como «sin cociente: la referencia es 0», con la
+  diferencia absoluta, y nunca cuenta como dentro del umbral. En las
+  tablas de medias, un grupo con menos de dos valores distintos no
+  tiene intervalo (—); con pocas personas los intervalos son
+  orientativos.
 
 `src/application/skills/fairness_report.py` llena la plantilla a
 partir de un documento `fairness.results.v1` (contexto: sistema, datos,

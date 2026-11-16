@@ -35,7 +35,7 @@ Parte del habla puntuada de cada persona que `none+builtin` no dio a la etiqueta
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+diarizen-wavlm-large-s80-md-v2`
@@ -49,7 +49,7 @@ Parte del habla puntuada de cada persona que `none+diarizen-wavlm-large-s80-md-v
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+ecapa-spectral`
@@ -63,7 +63,7 @@ Parte del habla puntuada de cada persona que `none+ecapa-spectral` no dio a la e
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+nemo-clustering`
@@ -77,7 +77,7 @@ Parte del habla puntuada de cada persona que `none+nemo-clustering` no dio a la 
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+nemotron-3-diarization`
@@ -91,7 +91,7 @@ Parte del habla puntuada de cada persona que `none+nemotron-3-diarization` no di
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+pyannote-3.1`
@@ -105,7 +105,7 @@ Parte del habla puntuada de cada persona que `none+pyannote-3.1` no dio a la eti
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+pyannote-community-1`
@@ -119,7 +119,7 @@ Parte del habla puntuada de cada persona que `none+pyannote-community-1` no dio 
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `unattributed:none+sortformer-streaming-v2`
@@ -133,7 +133,7 @@ Parte del habla puntuada de cada persona que `none+sortformer-streaming-v2` no d
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+builtin`
@@ -147,7 +147,7 @@ Parte del habla puntuada de cada persona que `none+builtin` marcó como silencio
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+diarizen-wavlm-large-s80-md-v2`
@@ -161,7 +161,7 @@ Parte del habla puntuada de cada persona que `none+diarizen-wavlm-large-s80-md-v
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+ecapa-spectral`
@@ -175,7 +175,7 @@ Parte del habla puntuada de cada persona que `none+ecapa-spectral` marcó como s
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+nemo-clustering`
@@ -189,7 +189,7 @@ Parte del habla puntuada de cada persona que `none+nemo-clustering` marcó como 
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+nemotron-3-diarization`
@@ -203,7 +203,7 @@ Parte del habla puntuada de cada persona que `none+nemotron-3-diarization` marc�
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+pyannote-3.1`
@@ -217,7 +217,7 @@ Parte del habla puntuada de cada persona que `none+pyannote-3.1` marcó como sil
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+pyannote-community-1`
@@ -231,7 +231,7 @@ Parte del habla puntuada de cada persona que `none+pyannote-community-1` marcó 
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## `missed:none+sortformer-streaming-v2`
@@ -245,7 +245,7 @@ Parte del habla puntuada de cada persona que `none+sortformer-streaming-v2` marc
 
 - Cociente = media del grupo / media del grupo de referencia (el de menor media). Umbral 1,25 (nuestro, provisional): por encima se marca.
 - Grupos con menos de 3 personas o menos del 2 % del total: se dan n, valor e intervalo, sin cociente.
-- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0.
+- Cada persona cuenta una vez (media de sus medidas). IC: bootstrap de percentiles sobre personas, 2000 remuestreos, semilla 0. Con pocas personas por grupo los intervalos son sólo orientativos; un grupo con menos de dos valores distintos no tiene intervalo (—).
 - 8 personas.
 
 ## Notas

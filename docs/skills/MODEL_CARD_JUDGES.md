@@ -104,7 +104,8 @@ Synthetic data, one run each, greedy decoding for the local models.
 | Grounded quotes that show their indicator: Claude vs Qwen3-8B vs Qwen3-4B | 122 of 131 vs 60 of 174 vs 50 of 215 | `LOCAL_JUDGE_QUOTES.md` §2 |
 | Similarity floor: Claude / local | 0 / 0.4 | `LOCAL_JUDGE_QUOTES.md` §4 |
 | Peak VRAM, Qwen3-8B / 4B at 4 bits | 6.31 GB / 2.87 GB | `DESIGN.md` §4.2 |
-| By group (sex, age, language, accent) | not measured | `FAIRNESS.md` §3.3 J1, J4, J6 |
+| Swap test (J1): label changes of 15 per variant, gender / name origin / colloquial register, 60 synthetic Spanish sentences, dialogue acts only | Qwen3-8B 4 bit 0 / 0 / 2; Claude `opus` 0 / 0 / 0 (with 15 pairs, 0 means a rate under about 20 %, 95 % Wilson upper bound 0.204) | `FAIRNESS.md` §6.2 |
+| By group of real people (sex, age, language, accent) | not measured | `FAIRNESS.md` §3.3 J4, J6 |
 
 ## 9. Ethical considerations
 
@@ -119,9 +120,12 @@ Synthetic data, one run each, greedy decoding for the local models.
   about a half after) means a quote under a rating can misrepresent a
   person; the floor trades recall for precision on that reasoning
   (`LOCAL_JUDGE_QUOTES.md` §4).
-- Open fairness checks (`FAIRNESS.md` §3.3): J1 swap test, J2 order and
-  length bias, J4 Spanish-English parity, J6 rejection rate by group:
-  all pending. NIST AI 600-1 warns that an LLM may do worse in
+- Fairness checks (`FAIRNESS.md` §3.3): the J1 swap test was run once
+  on dialogue acts (`FAIRNESS.md` §6.2: Qwen3-8B changed 0 of 15 labels
+  for gender, 0 for name origin and 2 for register; Claude `opus` 0, 0
+  and 0); tag confirmation and assessment were not swap-tested. J2
+  order and length bias, J4 Spanish-English parity and J6 rejection
+  rate by group are pending. NIST AI 600-1 warns that an LLM may do worse in
   languages other than English or in some dialects (`FAIRNESS.md` §2).
 
 ## 10. Caveats and recommendations

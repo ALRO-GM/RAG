@@ -109,6 +109,38 @@ def test_an_uncertain_flag_and_no_reference_are_said() -> None:
     assert "- `none`: Ningún grupo pasa del umbral." in text
 
 
+def test_the_summary_never_calls_a_zero_reference_gap_within() -> None:
+    document = simulated()
+    document["audits"] = [
+        {"metric": "wrong", "kind": "rate", "direction": "lower_is_better",
+         "observations": [
+             {"unit": f"{g}{i}", "group": g, "selected": i < k}
+             for g, k in (("A", 0), ("B", 5)) for i in range(10)]},
+        {"metric": "error", "kind": "mean", "direction": "lower_is_better",
+         "min_units": 1, "observations": [
+             {"unit": "a", "group": "A", "value": 0.0},
+             {"unit": "b", "group": "B", "value": 0.3}]},
+    ]
+    results = AuditResults.model_validate(document)
+    text = render_audit(results, fill_audit(results))
+    assert "Ningún grupo pasa del umbral" not in text
+    assert ("- `wrong`: Sin cociente porque la referencia es 0, peores "
+            "que ella: B.") in text
+    assert "sin cociente: la referencia es 0 (diferencia +0,500)" in text
+    assert "| A | 1 | 50,000 | 0,000 | — |" in text
+    assert "dos valores distintos no tiene intervalo" in text
+    english = render_audit(results, fill_audit(results), "en")
+    assert "No ratio as the reference is 0, worse than it: B." in english
+    assert "no ratio: the reference is 0 (difference +0.300)" in english
+
+
+def test_an_inconsistent_threshold_is_refused() -> None:
+    document = simulated()
+    document["audits"][1]["threshold"] = 0.8
+    with pytest.raises(ValueError):
+        fill_audit(AuditResults.model_validate(document))
+
+
 @pytest.mark.parametrize("change", [
     {"kind": "rate", "observations": [{"unit": "x", "group": "A",
                                        "value": 1.0}]},

@@ -2,7 +2,7 @@
 
 Reuses the lab's stored outputs (no model is run)::
 
-    python experiments/transcriber/speaker_groups.py \\
+    PYTHONPATH=. python experiments/transcriber/speaker_groups.py \\
         data/transcriber/lab experiments/transcriber/results/ami_speaker_sex
 
 For every imported ``ami-*`` lab session it takes the newest ``done``

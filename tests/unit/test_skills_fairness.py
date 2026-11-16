@@ -94,7 +94,7 @@ def test_small_groups_are_described_but_get_no_ratio() -> None:
     rows = {r.group: r for r in table.rows}
     assert rows["C"].status == "described_only" and rows["C"].ratio is None
     assert rows["C"].value == pytest.approx(1 / 3)
-    assert rows["D"].low == 0.0 and rows["D"].high > 0
+    assert rows["D"].low == 0.0 and (rows["D"].high or 0) > 0
     tiny = rate_audit(people("A", 50, 300) + people("B", 5, 7), "sel",
                       AuditPolicy(min_units=1, min_share=0.02))
     assert tiny.reference_group == "B"
@@ -147,6 +147,7 @@ def test_mean_audit_counts_a_person_once_and_flags_the_gap() -> None:
     f, m = table.rows
     assert table.units == 10 and (f.n, m.n) == (5, 5)
     assert f.value == pytest.approx(0.10) and m.value == pytest.approx(0.20)
+    assert f.low is not None and f.high is not None
     assert f.low <= f.value <= f.high
     assert table.reference_group == "F"
     assert m.ratio == pytest.approx(2.0) and m.status == "flagged"
@@ -157,18 +158,69 @@ def test_mean_audit_counts_a_person_once_and_flags_the_gap() -> None:
 
 def test_mean_audit_higher_is_better_and_zero_reference() -> None:
     up = mean_audit(
-        [Measurement(unit=f"{g}{i}", group=g, value=v)
+        [Measurement(unit=f"{g}{i}", group=g, value=v + 0.01 * i)
          for g, v in (("A", 4.0), ("B", 3.5)) for i in range(5)],
         "score", AuditPolicy(direction="higher_is_better"),
     )
-    assert up.reference_group == "A"
-    assert up.rows[1].ratio == pytest.approx(0.875)
+    assert up.reference_group == "A" and up.policy.threshold == 0.80
+    assert up.rows[1].ratio == pytest.approx(3.52 / 4.02)
     assert up.rows[1].status == "ok" and up.rows[1].certain
     zero = mean_audit(
         [Measurement(unit=f"{g}{i}", group=g, value=0.0)
          for g in "AB" for i in range(5)], "error",
     )
     assert all(r.ratio is None for r in zero.rows)
+    assert zero.rows[1].status == "ok" and zero.zero_reference() == []
+
+
+def test_mean_audit_a_zero_reference_is_never_within_the_threshold() -> None:
+    """A errs 0.0 for all, B 0.3: no ratio, but B is not 'ok' either."""
+    table = mean_audit(
+        [Measurement(unit=f"{g}{i}", group=g, value=v)
+         for g, v in (("A", 0.0), ("B", 0.3)) for i in range(5)], "error",
+    )
+    a, b = table.rows
+    assert table.reference_group == "A" and a.status == "reference"
+    assert (b.status, b.ratio) == ("zero_reference", None)
+    assert b.difference == pytest.approx(0.3)
+    assert table.zero_reference() == ["B"] and table.flagged() == []
+
+
+def test_rate_audit_a_zero_reference_is_never_within_the_threshold() -> None:
+    """Misattribution A 0/10, B 5/10, lower is better: B has no ratio."""
+    table = rate_audit(people("A", 0, 10) + people("B", 5, 10), "wrong",
+                       AuditPolicy(direction="lower_is_better"))
+    assert table.policy.threshold == 1.25
+    b = table.rows[1]
+    assert (b.status, b.ratio) == ("zero_reference", None)
+    assert b.difference == 0.5
+    assert table.zero_reference() == ["B"]
+
+
+def test_mean_audit_gives_no_interval_without_two_distinct_values() -> None:
+    """One person (or identical values): no interval, nor for the ratio."""
+    table = mean_audit(
+        [Measurement(unit="a0", group="A", value=0.1)]
+        + [Measurement(unit=f"b{i}", group="B", value=0.2 + 0.01 * i)
+           for i in range(5)],
+        "error", AuditPolicy(direction="lower_is_better", min_units=1),
+    )
+    a, b = table.rows
+    assert (a.low, a.high) == (None, None)
+    assert b.low is not None and b.high is not None and b.low < b.high
+    assert b.ratio == pytest.approx(2.2) and b.ratio_low is None
+    assert b.certain is None
+
+
+def test_policy_threshold_follows_the_direction() -> None:
+    assert AuditPolicy().threshold == 0.80
+    assert AuditPolicy(direction="lower_is_better").threshold == 1.25
+    assert AuditPolicy(direction="lower_is_better",
+                       threshold=1.5).threshold == 1.5
+    with pytest.raises(ValueError):
+        AuditPolicy(direction="lower_is_better", threshold=0.8)
+    with pytest.raises(ValueError):
+        AuditPolicy(direction="higher_is_better", threshold=1.25)
 
 
 def test_mean_audit_refuses_bad_input() -> None:

@@ -2,8 +2,8 @@
 
 ::
 
-    python experiments/skills/fairness_audit.py results.fairness.json \\
-        report.md [--language es|en]
+    PYTHONPATH=. python experiments/skills/fairness_audit.py \\
+        results.fairness.json report.md [--language es|en]
 
 The results document is ``fairness.results.v1``
 (:class:`src.application.skills.fairness_report.AuditResults`): the
