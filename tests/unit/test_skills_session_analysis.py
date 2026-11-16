@@ -735,6 +735,39 @@ def test_reports_alone_keep_the_stored_profiles() -> None:
     assert "What kinds of tasks they look useful for" in page
 
 
+@pytest.mark.parametrize("steps", [
+    ["assessment", "reports"], ["confirmation"],
+    ["confirmation", "assessment", "reports"],
+])
+def test_rerunning_f_or_g_sets_the_profiles_back_to_pending(
+    steps: List[str],
+) -> None:
+    """Profiles of an earlier assessment are never shown (#115)."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model).run("s1")
+    run = synthesis_build(store, model).run("s1", only=steps)
+    assert run.step("synthesis").status == "pending"
+    assert run.status == "partial"
+    if "reports" in steps:
+        page = store.files[("s1", "report-1.html")]
+        assert "What kinds of tasks they look useful for" not in page
+    with pytest.raises(NotFoundError):
+        AnalysisResults(store).result("s1", "synthesis")
+    again = synthesis_build(store, model).run("s1")
+    assert again.status == "done"
+    assert again.step("synthesis").status == "done"
+
+
+def test_rerunning_other_steps_keeps_the_profiles() -> None:
+    """Steps that do not feed the profiles leave step i done."""
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model).run("s1")
+    run = synthesis_build(store, model).run("s1", only=["interaction"])
+    assert run.step("synthesis").status == "done" and run.status == "done"
+
+
 def test_a_failing_model_skips_the_person_and_the_budget_fails_the_step(
 ) -> None:
     """A model error is a reason per person; the call limit fails step i."""
