@@ -36,9 +36,12 @@ resumes at the step that failed.
 import json
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple,
+)
 
 from src.application.skills.assessment import AssessmentService
 from src.application.skills.device_notes import join_notes, new_notes
@@ -103,10 +106,12 @@ JOB_FILE = "job.json"
 """The job sought (:class:`~src.domain.skills.synthesis.JobSought`),
 kept across restarts; step i reads it."""
 
-SYNTHESIS_INPUTS = frozenset({"confirmation", "assessment"})
-"""Steps whose rerun makes the stored profiles stale: step i goes back
-to pending, so the reports never show profiles of an earlier
-assessment (#115)."""
+SYNTHESIS_INPUTS = frozenset(
+    {"acts", "events", "confirmation", "assessment"}
+)
+"""Steps step i reads, whose rerun makes the stored profiles stale:
+a done step i goes back to pending, so the reports never show profiles
+of earlier acts, events or assessment (#115, #121)."""
 
 UNAVAILABLE = {
     "acts": "Not available: no dialogue-act tagger is configured (its "
@@ -417,9 +422,10 @@ class AnalysisRequests:
         ``steps`` runs only those steps again (e.g. ``synthesis`` after
         the job sought changed); ``job``, when given, replaces the job
         stored with the analysis before the run starts. It is written
-        before the launch, so the run always reads it, and put back as
-        it was when the launcher refuses: a refused start changes
-        nothing (#115).
+        before the launch, so the run always reads it, and put back when
+        the launcher refuses: the earlier job, or, when there was none,
+        the empty default job (no text, no leave to use Claude), which
+        every reader takes as no job (#115, #121).
 
         Raises :class:`~src.domain.errors.NotFoundError` when the
         session has no transcript,
@@ -482,8 +488,14 @@ class AnalysisRequests:
         """
         check_session(session_id)
         active = self._active(session_id)
-        if not active:
-            self.results.show(session_id)
+        if not active and self._serial.acquire(blocking=False):
+            # Only between starts: a start in progress has hidden the
+            # old run and not launched yet (#121).
+            try:
+                if not self._active(session_id):
+                    self.results.show(session_id)
+            finally:
+                self._serial.release()
         try:
             run = self.results.status(session_id)
         except NotFoundError:
@@ -519,12 +531,25 @@ class AnalysisRequests:
         """Stop and delete everything analysed of ``session_id``.
 
         Called when the session's transcript is deleted: its sentences,
-        quotes and reports must not outlive it. The analysis this
-        server started is stopped first; the session's lock is then
-        held while its files are deleted, so no run can write them
-        meanwhile. Raises :class:`~src.domain.errors.BusyError`, deleting
-        nothing, while the analysis runs from the command line (it would
-        write its files again): stop it there, then delete (#99).
+        quotes and reports must not outlive it. See :meth:`erasing`.
+        """
+        with self.erasing(session_id):
+            pass
+
+    @contextmanager
+    def erasing(self, session_id: str) -> Iterator[None]:
+        """Hold ``session_id`` for the block, then delete its analysis.
+
+        The analysis this server started is stopped first (up to the
+        launcher's grace period, about 10 s, during which other starts
+        and erases of this server wait); the session's lock is then
+        held while the block runs (the transcript's deletion) and its
+        files are deleted, so no run can read the transcript and write
+        them meanwhile (#121). The files go last because the lock file
+        is among them. Raises :class:`~src.domain.errors.BusyError`,
+        deleting nothing, while the analysis runs from the command line
+        (it would write its files again): stop it there, then delete
+        (#99).
         """
         check_session(session_id)
         with self._serial:
@@ -537,6 +562,7 @@ class AnalysisRequests:
                     + "; stop it there before deleting the session."
                 )
             try:
+                yield
                 self.results.store.erase(session_id)
             finally:
                 self.lock.release(session_id)
@@ -622,14 +648,16 @@ class SessionAnalysis:
         ``on_step`` is told each record once its step ends. ``only``
         runs exactly those steps again (in running order) and keeps
         the others as they are, e.g. the acts and events once a tagger
-        exists, without asking the judge again; rerunning step f or g
-        without step i sets step i back to pending (its profiles were
-        written on the earlier assessment). ``job`` replaces the
+        exists, without asking the judge again; rerunning step d, e, f
+        or g without step i sets step i back to pending (its profiles
+        were written on the earlier results). ``job`` replaces the
         job sought stored with the analysis; when the stored profiles
         were written for another job, step i runs again (only it, if
         everything else is done). Raises
         :class:`~src.domain.errors.BusyError` while another process
-        analyses the same session.
+        analyses the same session (or its deletion holds it) and
+        :class:`~src.domain.errors.NotFoundError` when it has no
+        transcript (read once the session is held).
         """
         check_session(session_id)
         chosen = None if only is None else chosen_steps(only)
@@ -638,7 +666,6 @@ class SessionAnalysis:
                 "Choose either a restart or the steps to run again, not "
                 "both: a restart clears every earlier result."
             )
-        transcript = self.transcripts.find(session_id)
         worker = self.lock.acquire(session_id)
         if worker is None:
             holder = self.lock.holder(session_id)
@@ -647,6 +674,10 @@ class SessionAnalysis:
                 + (f" (process {holder})." if holder else ".")
             )
         try:
+            # Read under the lock: a deletion holds it until the
+            # transcript is gone, so a run never revives an erased
+            # analysis (#121).
+            transcript = self.transcripts.find(session_id)
             if job is not None:
                 self.store.write(
                     session_id, JOB_FILE, job.cleaned().model_dump_json()
@@ -685,9 +716,13 @@ class SessionAnalysis:
             "status": "running", "finished_at": None,
             "synthetic": synthetic or run.synthetic, "worker_pid": worker,
         })
+        stale = (
+            "synthesis" not in todo and bool(SYNTHESIS_INPUTS & set(todo))
+            and run.step("synthesis").status == "done"
+        )
         for name in todo:
             run = run.with_step(StepRecord(name=name))
-        if "synthesis" not in todo and SYNTHESIS_INPUTS & set(todo):
+        if stale:
             run = run.with_step(StepRecord(name="synthesis"))
         self.store.save(run)
         context = _Context(transcript, run)

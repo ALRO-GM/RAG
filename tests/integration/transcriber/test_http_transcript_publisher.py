@@ -376,6 +376,30 @@ def test_a_failed_retraction_is_reported_without_retries(
     assert waits == []
 
 
+def test_a_busy_rag_is_asked_again_with_back_off(rag: StandIn) -> None:
+    """A ``409`` (analysis running from its terminal) is retried (#121)."""
+    rag.answer((409, 0.0), (409, 0.0), (204, 0.0))
+    sender, waits = publisher(rag.url, backoff_initial=0.5)
+    sender.retract("demo-es")
+    assert [r["method"] for r in rag.received.requests] == ["DELETE"] * 3
+    assert waits == [0.5, 1.0]
+
+
+def test_a_rag_still_busy_after_the_retries_is_a_failure(
+    rag: StandIn,
+) -> None:
+    rag.answer((409, 0.0), (409, 0.0), (409, 0.0), (409, 0.0))
+    rag.received.extra = {"detail": "runs from the command line"}
+    sender, waits = publisher(rag.url, retract_retries=1)
+    with pytest.raises(PublishError, match=r"after 2 attempt\(s\).*409"):
+        sender.retract("demo-es")
+    assert len(rag.received.requests) == 2 and waits == [1.0]
+    sender, waits = publisher(rag.url, retract_retries=-1)
+    with pytest.raises(PublishError, match="busy"):
+        sender.retract("demo-es")
+    assert len(rag.received.requests) == 3 and waits == []
+
+
 def test_retract_refuses_an_unreachable_rag_or_a_bad_id(
     rag: StandIn,
 ) -> None:

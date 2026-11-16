@@ -269,11 +269,30 @@ def test_refusal_names_the_broken_rule(text: str, reason: str) -> None:
     ("Resume la mayor parte de los acuerdos.", ""),
     ("Proposes the best option for the rota.", ""),
     ("Explains the most important point first.", ""),
+    # #121: rankings and attributes the #115 lists let through.
+    ("Es la que más habla de todo el grupo.", "comparison"),
+    ("Mejor que la mayoría al resumir.", "comparison"),
+    ("Es el más claro de los cuatro.", "comparison"),
+    ("Usa más ejemplos que otros participantes.", "comparison"),
+    ("The most organised person in the group.", "comparison"),
+    ("The best in the room at summarising.", "comparison"),
+    ("She was the strongest voice in the discussion.", "comparison"),
+    ("Es una mujer que escucha.", "personal"),
+    ("Es mayor y escucha con calma.", "personal"),
+    ("Lo explica mejor que nadie.", "comparison"),
+    ("Su mujer trabaja en el sector.", "personal"),
+    # #121: sound points the #115 lists dropped.
+    ("El impacto de su propuesta es mayor.", ""),
+    ("Older version of the plan is cited.", ""),
+    ("Escucha a los padres de los clientes.", ""),
+    ("Habla más que otras veces.", ""),
+    ("Pide más datos que otras sesiones.", ""),
+    ("The risk is higher than last week.", ""),
 ])
 def test_refusal_catches_rankings_and_personal_attributes_phrased_otherwise(
     text: str, reason: str
 ) -> None:
-    """Rankings within the group and age or family status (#115)."""
+    """Rankings, age, gender or family status; sound points pass (#121)."""
     assert refusal(text, ["Tom"]) == reason
 
 

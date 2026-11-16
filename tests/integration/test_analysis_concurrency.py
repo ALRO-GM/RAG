@@ -40,7 +40,7 @@ from src.application.skills.session_analysis import (
     AnalysisResults,
     StartLimits,
 )
-from src.domain.errors import BusyError, LimitError
+from src.domain.errors import BusyError, LimitError, NotFoundError
 from src.domain.skills.analysis_run import StepRecord, new_run
 from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript_contract import is_session_id
@@ -139,7 +139,7 @@ def client_for(folder: Path, requests: AnalysisRequests) -> TestClient:
     routes = TranscriptRoutes(
         IngestTranscript(transcripts), ShowIngestedTranscript(transcripts),
         TOKEN,
-        forget=ForgetIngestedTranscript(transcripts, [requests]),
+        forget=ForgetIngestedTranscript(transcripts, guard=requests),
         analysis=requests,
     )
     return TestClient(create_app(
@@ -171,6 +171,41 @@ def test_a_terminal_run_refuses_the_delete_until_it_ends(
     assert not folder.exists()
     assert client.get("/transcripts/demo-es", headers=AUTH).status_code \
         == 404
+
+
+def test_no_run_can_take_the_session_while_its_transcript_is_deleted(
+    tmp_path: Path,
+) -> None:
+    """The lock is held until the transcript is gone (#121).
+
+    A terminal run that starts in between finds the session held and,
+    once the deletion is over, finds no transcript: it never writes the
+    erased analysis again.
+    """
+    lock = FileAnalysisLock(str(tmp_path / "analysis"))
+    requests = requests_for(tmp_path, FakeLauncher(), lock)
+    transcripts = requests.transcripts
+    assert isinstance(transcripts, FileSystemTranscriptStore)
+    folder = tmp_path / "analysis" / "demo-es"
+    seen: List[Optional[int]] = []
+    delete = transcripts.delete
+
+    def deleting(session_id: str) -> bool:
+        """Try to start a terminal run during the deletion."""
+        seen.append(FileAnalysisLock(str(tmp_path / "analysis"),
+                                     pid=7).acquire(session_id))
+        assert (folder / "run.json").is_file()
+        return delete(session_id)
+
+    transcripts.delete = deleting  # type: ignore[method-assign]
+    ForgetIngestedTranscript(transcripts, guard=requests)("demo-es")
+    assert seen == [None]
+    assert not (folder / "run.json").exists()
+    after = FileAnalysisLock(str(tmp_path / "analysis"), pid=8)
+    assert after.acquire("demo-es") == 8
+    after.release("demo-es")
+    with pytest.raises(NotFoundError):
+        transcripts.get("demo-es")
 
 
 def test_the_launcher_counts_terminal_runs(
@@ -362,6 +397,49 @@ def test_a_restart_hides_the_previous_results_until_they_are_cleared(
     ))
     store.write("demo-es", "sentences.json", '{"new": true}')
     assert client.get(step, headers=AUTH).json() == {"new": True}
+
+
+class PausedLauncher(FakeLauncher):
+    """Stops inside ``start`` until told to go on."""
+
+    def __init__(self) -> None:
+        """Not entered yet."""
+        super().__init__()
+        self.entered = threading.Event()
+        self.go = threading.Event()
+
+    def start(
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
+        """Say it entered, wait, then start."""
+        self.entered.set()
+        assert self.go.wait(5)
+        super().start(session_id, restart, synthetic, steps)
+
+
+def test_a_status_poll_during_a_restart_keeps_the_old_run_hidden(
+    tmp_path: Path,
+) -> None:
+    """Between ``hide`` and the launch a poll must not show it (#121)."""
+    launcher = PausedLauncher()
+    lock = FileAnalysisLock(str(tmp_path / "analysis"))
+    requests = requests_for(tmp_path, launcher, lock)
+    starting = threading.Thread(
+        target=requests.start, args=("demo-es",), kwargs={"restart": True},
+    )
+    starting.start()
+    try:
+        assert launcher.entered.wait(5)
+        assert requests.status("demo-es")["active"] is False
+        with pytest.raises(NotFoundError, match="no result now"):
+            requests.results.result("demo-es", "sentences")
+    finally:
+        launcher.go.set()
+        starting.join()
+    assert requests.status("demo-es")["active"] is True
+    with pytest.raises(NotFoundError, match="no result now"):
+        requests.results.result("demo-es", "sentences")
 
 
 def test_a_restart_that_never_ran_shows_the_results_again(

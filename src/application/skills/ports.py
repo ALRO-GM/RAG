@@ -1,8 +1,8 @@
 """Ports of the soft-skills use cases."""
 
 from typing import (
-    Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Protocol,
-    Sequence, Tuple,
+    Any, Callable, ContextManager, Dict, List, Mapping, NamedTuple,
+    Optional, Protocol, Sequence, Tuple,
 )
 
 from src.domain.skills.act_tagging import ActInput, Probabilities
@@ -271,4 +271,22 @@ class SessionEraser(Protocol):
 
     def erase(self, session_id: str) -> None:
         """Delete it; nothing when there is none."""
+        ...
+
+
+class SessionGuard(Protocol):
+    """Hold a session while its transcript is deleted (#121).
+
+    No analysis may start, read the transcript and write its files
+    while the transcript is being deleted; the analysis is deleted
+    last, still holding the session.
+    """
+
+    def erasing(self, session_id: str) -> ContextManager[None]:
+        """Hold the session for the block, then delete its analysis.
+
+        Raises :class:`~src.domain.errors.BusyError`, before the block
+        runs, when the session cannot be held (its analysis runs
+        elsewhere); nothing is deleted then.
+        """
         ...

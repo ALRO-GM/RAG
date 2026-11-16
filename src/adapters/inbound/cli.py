@@ -804,10 +804,11 @@ class RagCLI:
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
             # Deleting a session deletes what was analysed of it.
-            forget=ForgetIngestedTranscript(app.transcript_store, [
-                analysis,
-                skills.session_outputs(app.settings.transcripts_dir),
-            ]),
+            forget=ForgetIngestedTranscript(
+                app.transcript_store,
+                [skills.session_outputs(app.settings.transcripts_dir)],
+                guard=analysis,
+            ),
             judge=skills.judge_selection,
             analysis=analysis,
         )

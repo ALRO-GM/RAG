@@ -9,9 +9,14 @@ deletes a session it asks the RAG to delete its copy too
 (:class:`ForgetIngestedTranscript`).
 """
 
-from typing import Any, Dict, NamedTuple, Sequence
+from contextlib import nullcontext
+from typing import Any, ContextManager, Dict, NamedTuple, Optional, Sequence
 
-from src.application.skills.ports import SessionEraser, TranscriptStore
+from src.application.skills.ports import (
+    SessionEraser,
+    SessionGuard,
+    TranscriptStore,
+)
 from src.domain.errors import InvalidInputError, NotFoundError
 from src.domain.skills.transcript_contract import is_session_id, read_contract
 
@@ -70,15 +75,22 @@ class ForgetIngestedTranscript:
     transcript (retention, ``docs/DEPLOYMENT.md``). They run before the
     document is deleted, so an eraser that refuses (an analysis running
     from the command line, #99) leaves the session as it was and the
-    deletion can be asked again.
+    deletion can be asked again. ``guard`` (the analysis) holds the
+    session while the erasers and the deletion run and then deletes the
+    analysis, so no analysis can read the transcript meanwhile and write
+    its files again (#121).
     """
 
     def __init__(
-        self, store: TranscriptStore, erasers: Sequence[SessionEraser] = ()
+        self,
+        store: TranscriptStore,
+        erasers: Sequence[SessionEraser] = (),
+        guard: Optional[SessionGuard] = None,
     ) -> None:
-        """Wire the store and the erasers."""
+        """Wire the store, the erasers and the guard."""
         self._store = store
         self._erasers = list(erasers)
+        self._guard = guard
 
     def __call__(self, session_id: str) -> None:
         """Delete the document of ``session_id``.
@@ -92,8 +104,13 @@ class ForgetIngestedTranscript:
         """
         if not is_session_id(session_id):
             raise InvalidInputError(f"Invalid session id {session_id!r}.")
-        for eraser in self._erasers:
-            eraser.erase(session_id)
-        deleted = self._store.delete(session_id)
+        held: ContextManager[None] = (
+            nullcontext() if self._guard is None
+            else self._guard.erasing(session_id)
+        )
+        with held:
+            for eraser in self._erasers:
+                eraser.erase(session_id)
+            deleted = self._store.delete(session_id)
         if not deleted:
             raise NotFoundError(f"No transcript for session {session_id!r}.")

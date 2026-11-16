@@ -20,10 +20,12 @@ number of times with exponential back-off; a ``4xx`` answer (wrong
 token, rejected document) is final and is not retried.
 
 When the transcriber deletes a session, ``retract`` asks the RAG to
-delete its copy (``DELETE <url>/transcripts/<id>``) once, without
-retries and with a short time-out: it is best effort, and a copy that
-was never there (the RAG's ``404`` with code ``transcript_not_found``)
-is not an error.
+delete its copy (``DELETE <url>/transcripts/<id>``) with a short
+time-out: it is best effort, and a copy that was never there (the
+RAG's ``404`` with code ``transcript_not_found``) is not an error. Only
+a ``409`` (the RAG refuses while the session's analysis runs from its
+command line, or is just ending) is asked again, ``retract_retries``
+times with the same back-off; any other failure is final at once.
 """
 
 import json
@@ -43,6 +45,8 @@ from transcriber.domain.errors import PublishError
 from transcriber.domain.models import SESSION_ID_PATTERN, Transcript
 
 ROUTE = "/transcripts"
+BUSY = "the RAG is busy with the session (409)"
+"""Start of the reason of a ``409`` answer to a deletion (retried)."""
 ABSENT_CODE = "transcript_not_found"
 """``code`` of the RAG's ``404`` when it has no copy to delete."""
 TOKEN_PATTERN = r"^[A-Za-z0-9_.~+/=-]{32,256}$"
@@ -67,6 +71,8 @@ class HttpTranscriptPublisher:
             ``token_env`` when given (``~`` is expanded).
         retract_timeout: Seconds a deletion of the RAG's copy waits at
             most (short: it runs while a session is being deleted).
+        retract_retries: Further deletions after a ``409`` (an analysis
+            of the session running from the RAG's command line).
     """
 
     def __init__(
@@ -81,6 +87,7 @@ class HttpTranscriptPublisher:
         sleep: Callable[[float], None] = time.sleep,
         token_file: Optional[Path] = None,
         retract_timeout: float = 5.0,
+        retract_retries: int = 2,
     ) -> None:
         """Keep the target and the policies; nothing is sent yet."""
         if not url.startswith(("http://", "https://")):
@@ -96,6 +103,7 @@ class HttpTranscriptPublisher:
         self._sleep = sleep
         self.token_file = token_file
         self.retract_timeout = retract_timeout
+        self.retract_retries = max(retract_retries, 0)
 
     def __repr__(self) -> str:
         """Describe the publisher without its token."""
@@ -142,21 +150,35 @@ class HttpTranscriptPublisher:
             delay *= self.backoff_factor
 
     def retract(self, session_id: str) -> None:
-        """Ask the RAG to delete its copy of ``session_id``, once.
+        """Ask the RAG to delete its copy of ``session_id``.
 
-        A copy the RAG does not have (``404``) is not an error. Raises
-        :class:`~transcriber.domain.errors.PublishError` when the token
-        is missing, the RAG refuses or cannot be reached.
+        A copy the RAG does not have (``404``) is not an error. A
+        ``409`` (busy) is asked again up to :attr:`retract_retries`
+        times, after the publisher's back-off; nothing else is retried.
+        Raises :class:`~transcriber.domain.errors.PublishError` when the
+        token is missing, the RAG refuses (still busy after the last
+        try included) or cannot be reached.
         """
         if not re.fullmatch(SESSION_ID_PATTERN, session_id):
             raise PublishError(f"Invalid session id {session_id!r}.")
         token = self._token()
         url = f"{self.endpoint}/{urllib.parse.quote(session_id, safe='')}"
-        failure = self._attempt(
-            "DELETE", url, None, token, self.retract_timeout, absent_ok=True
-        )
-        if failure is not None:
-            raise PublishError(f"Could not delete {url}: {failure}")
+        delay = self.backoff_initial
+        for attempt in range(self.retract_retries + 1):
+            failure = self._attempt(
+                "DELETE", url, None, token, self.retract_timeout,
+                absent_ok=True,
+            )
+            if failure is None:
+                return
+            busy = failure.startswith(BUSY)
+            if not busy or attempt == self.retract_retries:
+                raise PublishError(
+                    f"Could not delete {url} after {attempt + 1} "
+                    f"attempt(s): {failure}"
+                )
+            self._sleep(delay)
+            delay *= self.backoff_factor
 
     def bearer_token(self) -> str:
         """Return the RAG's token (for the other routes of the same RAG).
@@ -186,8 +208,10 @@ class HttpTranscriptPublisher:
         ``timeout`` defaults to the publisher's. A final refusal
         (``4xx``) raises at once, except, with ``absent_ok`` (deleting),
         a ``404`` whose answer carries the RAG's :data:`ABSENT_CODE`:
-        the copy is not there, which is success. Any other ``404`` (a
-        route that does not exist, another service) is a refusal.
+        the copy is not there, which is success, and a ``409``, returned
+        as a :data:`BUSY` reason for the caller to retry. Any other
+        ``404`` (a route that does not exist, another service) is a
+        refusal.
         """
         wait = self.timeout if timeout is None else timeout
         headers = {
@@ -220,6 +244,8 @@ class HttpTranscriptPublisher:
                     f" is missing{detail}: is the RAG listening there,"
                     " with its transcript routes on?"
                 ) from None
+            if status == 409 and absent_ok:
+                return f"{BUSY}{detail}"
             if status == 401:
                 raise PublishError(
                     f"The RAG refused the token in {self.token_source()} "

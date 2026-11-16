@@ -250,7 +250,7 @@ TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-cod
   session is deleted in the transcriber; a new publish of the same
   session replaces it. Deleting a session (web or `sessions delete`)
   with the HTTP publisher active then sends `DELETE
-  /transcripts/{id}` once (5 s at most, `publish_http.retract_timeout`)
+  /transcripts/{id}` (5 s at most per try, `publish_http.retract_timeout`)
   while still holding the session's lock, which a publish also holds
   until the RAG answers, so a publish in flight cannot leave a copy
   behind. The RAG's `404` with `"code": "transcript_not_found"` (no
@@ -261,8 +261,11 @@ TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS='--keep-cod
   then. While an analysis of the session runs from the terminal
   (`skills analyze`), the RAG answers `409` and keeps the transcript
   and everything derived from it (the run would write its files
-  again); the transcriber logs that failure like the others: stop the
-  run, then `DELETE /transcripts/{id}` again. The directory
+  again); only that answer is asked again, twice, after the
+  publisher's back-off (1 s, then 2 s by default; #121), which covers a
+  run that is just ending. Still `409` after that, the transcriber logs
+  the failure like the others: stop the run, then
+  `DELETE /transcripts/{id}` again. The directory
   publisher's files are not touched by a deletion.
 - The tunnel forwards only `127.0.0.1:8770` (the transcriber); the RAG
   listens on another port and on loopback only, so nothing reaches it

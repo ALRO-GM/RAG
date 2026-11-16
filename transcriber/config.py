@@ -229,7 +229,9 @@ class HttpPublishSettings(BaseModel):
     answer is final. With ``token_file`` (an absolute path, or one
     starting with ``~/``) the token is read from that private file
     instead of ``token_env``. Deleting the RAG's copy of a deleted
-    session waits ``retract_timeout`` seconds at most, once.
+    session waits ``retract_timeout`` seconds at most per try; only a
+    ``409`` (an analysis of the session running from the RAG's
+    terminal) is tried again, twice, after the same back-off.
     """
 
     model_config = ConfigDict(frozen=True)

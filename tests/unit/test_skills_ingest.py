@@ -11,8 +11,9 @@ schema cannot express.
 import copy
 import json
 import math
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Sequence, Tuple
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
@@ -22,7 +23,7 @@ from src.application.skills.ingest import (
     IngestTranscript,
     ShowIngestedTranscript,
 )
-from src.domain.errors import InvalidInputError, NotFoundError
+from src.domain.errors import BusyError, InvalidInputError, NotFoundError
 from src.domain.skills.speech import sentence_transcript, transcript_sentences
 from src.domain.skills.transcript import from_contract
 from src.domain.skills.transcript_contract import (
@@ -449,3 +450,69 @@ def test_forget_checks_the_id_first() -> None:
     with pytest.raises(InvalidInputError, match="Invalid session id"):
         ForgetIngestedTranscript(store)("../demo-es")
     assert list(store.documents) == ["demo-es"]
+
+
+class Guard:
+    """Records when it holds the session; refuses when ``busy``."""
+
+    def __init__(self, log: List[str], busy: bool = False) -> None:
+        """Write to ``log``."""
+        self.log = log
+        self.busy = busy
+
+    @contextmanager
+    def erasing(self, session_id: str) -> Iterator[None]:
+        """Hold, run the block, then erase (#121)."""
+        if self.busy:
+            raise BusyError("runs from the command line")
+        self.log.append("hold")
+        yield
+        self.log.append("erase analysis")
+        self.log.append("release")
+
+
+class Eraser:
+    """Records its erase."""
+
+    def __init__(self, log: List[str]) -> None:
+        """Write to ``log``."""
+        self.log = log
+
+    def erase(self, session_id: str) -> None:
+        """Note it."""
+        self.log.append("erase outputs")
+
+
+def test_forget_deletes_the_document_while_the_guard_holds_it() -> None:
+    """Erasers and deletion inside the hold; the analysis goes last."""
+    store = InMemoryTranscriptStore()
+    IngestTranscript(store)(example())
+    log: List[str] = []
+    real_delete = store.delete
+
+    def delete(session_id: str) -> bool:
+        """Note the deletion."""
+        log.append("delete document")
+        return real_delete(session_id)
+
+    store.delete = delete  # type: ignore[method-assign]
+    forget = ForgetIngestedTranscript(store, [Eraser(log)], Guard(log))
+    forget("demo-es")
+    assert log == ["hold", "erase outputs", "delete document",
+                   "erase analysis", "release"]
+    log.clear()
+    with pytest.raises(NotFoundError):
+        forget("demo-es")
+    assert log[-2:] == ["erase analysis", "release"]
+
+
+def test_a_busy_guard_deletes_nothing() -> None:
+    store = InMemoryTranscriptStore()
+    IngestTranscript(store)(example())
+    log: List[str] = []
+    forget = ForgetIngestedTranscript(
+        store, [Eraser(log)], Guard(log, busy=True)
+    )
+    with pytest.raises(BusyError):
+        forget("demo-es")
+    assert log == [] and list(store.documents) == ["demo-es"]

@@ -717,7 +717,8 @@ class SkillsCLI:
             restart: Run every step again instead of resuming.
             synthetic: Mark the reports as made-up sample data.
             steps: Comma-separated steps to run again, keeping the
-                others (e.g. ``acts,events``: no judge is asked;
+                others (e.g. ``acts,events``: no judge is asked, and
+                profiles already written go back to pending;
                 ``synthesis``: only the profiles).
             role: The job sought (title and a few lines), or a file
                 holding it; kept with the analysis. A new one makes the
