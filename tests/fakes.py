@@ -713,6 +713,10 @@ class InMemoryAnalysisLock:
         if self.taken.get(session_id) == self.pid:
             del self.taken[session_id]
 
+    def discard(self, session_id: str) -> None:
+        """Give it back (nothing else to remove in memory)."""
+        self.release(session_id)
+
     def holder(self, session_id: str) -> Optional[int]:
         """Return who holds the session."""
         return self.taken.get(session_id)

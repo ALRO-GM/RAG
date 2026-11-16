@@ -316,6 +316,36 @@ def test_role_and_leave_merge_with_the_stored_job(
     capsys.readouterr()
 
 
+def test_fire_parses_the_leave_flags_of_analyze(
+    skills_project: Path, capsys: Any
+) -> None:
+    """``--noclaude_synthesis`` reaches the command as given (#121)."""
+    import fire
+
+    from tests.unit.test_skills_session_analysis import profile_reply
+
+    app = SkillsContainer(
+        settings(analysis_dir="analysis"), embedder=FakeEmbedder(dim=256),
+        judge=FakeChatModel(responder=profile_reply),
+    )
+    folder = skills_project / "analysis" / "s1"
+    folder.mkdir(parents=True)
+    (folder / "job.json").write_text(
+        json.dumps({"text": "Shift lead", "use_claude": True})
+    )
+    commands = cli(app)
+    fire.Fire(commands, ["analyze", "--session=s1", "--noclaude_synthesis"])
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Shift lead", "use_claude": False}
+    fire.Fire(commands, ["analyze", "--session=s1", "--claude_synthesis"])
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Shift lead", "use_claude": True}
+    fire.Fire(commands, ["analyze", "--session=s1", "--role=Store manager"])
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Store manager", "use_claude": True}
+    capsys.readouterr()
+
+
 def test_the_synthesis_judge_is_claude_code_unless_told_otherwise(
     skills_project: Path,
 ) -> None:

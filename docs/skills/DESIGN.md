@@ -589,13 +589,30 @@ the accepted one's job. The start limits are kept in
 `analysis_dir/.starts.json`, so a server restart does not reset them (an
 unreadable file counts as no start). Deleting a session
 (`DELETE /transcripts/{id}`) first stops this server's child, then
-takes the session's lock while the analysis directory is deleted; while
-a terminal run holds it the answer is `409` and nothing is deleted
-(neither the analysis, the other outputs nor the transcript): stop the
-run there and delete again. After `POST … {"restart": true}` the old
-run's step results and reports are not served (`404`) until the child
-has replaced `run.json`, or until the status shows no run active (a
-child that died before clearing).
+takes the session's lock and keeps it while the other outputs and the
+transcript are deleted and, last, the analysis directory (the lock file
+is in it); while a terminal run holds it the answer is `409` and
+nothing is deleted (neither the analysis, the other outputs nor the
+transcript): stop the run there and delete again. A run, from the
+terminal or the API, takes the lock before it reads the transcript, so
+one started during a deletion is refused (busy) or finds no transcript,
+and never writes the erased analysis again; a run that finds no
+transcript removes the lock file and folder it created when they hold
+nothing else, and an API start looks for the transcript again under the
+in-process lock, so one that waited for a deletion launches nothing and
+writes no `job.json` (#121). The transcriber asks
+again after a `409` twice, 1 s and 2 s later, then logs the failure
+(`docs/DEPLOYMENT.md`). Stopping this server's child waits up to the
+launcher's grace period (about 10 s); other starts and deletions in the
+same server wait meanwhile (#121). After `POST … {"restart": true}` the
+old run's step results and reports are not served (`404`) until the
+child has replaced `run.json`, or until a status poll finds no run
+active and no start under way (a child that died before clearing; a
+poll during a start leaves the old run hidden, #121). That hiding is
+kept in the server's memory: a server restarted in between serves the
+old results again until the child clears them, and a rerun of chosen
+steps (`{"steps": [...]}`) hides nothing (the other steps' results stay
+valid; the chosen ones are served again once done).
 
 Judge calls: step f makes one call per sentence with candidates (up to
 `max_confirmations`, default 150) and step g one per person and
@@ -731,12 +748,15 @@ option changes only its own part of the stored job (`--claude_synthesis`
 alone keeps the job text, `--role` alone keeps the leave,
 `--noclaude_synthesis` withdraws it), and a job over 4000 characters is
 an input error. A start the launcher refuses (another analysis running)
-leaves `job.json` as it was (#115).
+puts the earlier job back in `job.json`; with no earlier job it leaves
+the empty default job (no text, no leave to use Claude), which reads the
+same as none (#115, #121).
 
-**Staleness.** Rerunning step f or g without step i (e.g. `--steps
-assessment,reports`) sets step i back to pending: the reports are drawn
-without profiles and the run is `partial` until step i runs on the new
-assessment (#115).
+**Staleness.** Rerunning step d, e, f or g without step i (e.g.
+`--steps assessment,reports` or `--steps acts,events`) sets a done step
+i back to pending: the reports are drawn without profiles and the run
+is `partial` until step i runs on the new results (#115; d and e since
+#121, as step i reads the acts and events too).
 
 **Input** (`application/skills/synthesis.person_facts`): the person's
 participation (turns, words, share, questions), the first dialogue-act
@@ -777,10 +797,16 @@ and not instructions, the session's language. Checked after
 existing `Q` id (event ids alone do not count); points and questions
 naming another participant, or matching a coarse word list for a
 hiring verdict, a personality label, a personal attribute (including
-age and family status: «joven», «madre», «parece mayor», "young
-father") or a ranking within the group («la mejor del grupo», «mejor
-que el resto», "the strongest participant", "stronger than the
-others", counted as `comparison`; #115), are dropped; what was dropped is counted by reason. Each kept point says
+age, gender and family status: «joven», «madre», «parece mayor», «es
+una mujer», "young father") or a ranking within the group («la mejor
+del grupo», «mejor que el resto», «la que más habla de todo el grupo»,
+«el más claro de los cuatro», «mejor que la mayoría», "the strongest
+participant", "stronger than the others", "the best in the room",
+counted as `comparison`; #115, #121), are dropped; words that name an
+attribute only when they describe the person count only in that use
+(«el impacto de su propuesta es mayor», "older version of the plan",
+«escucha a los padres de los clientes», «habla más que otras veces»
+pass, #121); what was dropped is counted by reason. Each kept point says
 whether it rests on a firm level, a provisional estimate or an
 observation (the firmest of its quotes). *Qué no se ha podido
 observar* (competencies with no level and nothing quoted) and the

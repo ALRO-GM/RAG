@@ -463,6 +463,25 @@ def test_one_run_per_session_and_the_lock_is_given_back() -> None:
     assert lock.taken == {} and lock.acquired == ["s1"]
 
 
+def test_the_transcript_is_read_only_once_the_session_is_held() -> None:
+    """A deletion holds the session until the transcript is gone (#121)."""
+    lock = InMemoryAnalysisLock()
+    store = InMemoryAnalysisStore()
+    analysis = build(store=store, lock=lock)
+    repository = analysis.transcripts
+    assert isinstance(repository, InMemoryTranscriptRepository)
+    lock.taken["s1"] = 777
+    with pytest.raises(BusyError):
+        analysis.run("s1")
+    assert repository.finds == []
+    del lock.taken["s1"]
+    del repository.transcripts["s1"]
+    with pytest.raises(NotFoundError):
+        analysis.run("s1", job=JobSought(text="Shift lead"))
+    assert repository.finds == ["s1"]
+    assert lock.taken == {} and store.runs == {} and store.files == {}
+
+
 def test_the_lock_is_given_back_after_a_crash() -> None:
     """A store that cannot save still releases the session."""
     lock = InMemoryAnalysisLock()
@@ -738,11 +757,12 @@ def test_reports_alone_keep_the_stored_profiles() -> None:
 @pytest.mark.parametrize("steps", [
     ["assessment", "reports"], ["confirmation"],
     ["confirmation", "assessment", "reports"],
+    ["acts"], ["events"], ["acts", "events"],
 ])
-def test_rerunning_f_or_g_sets_the_profiles_back_to_pending(
+def test_rerunning_d_e_f_or_g_sets_the_profiles_back_to_pending(
     steps: List[str],
 ) -> None:
-    """Profiles of an earlier assessment are never shown (#115)."""
+    """Profiles of earlier inputs are never shown (#115, #121)."""
     store = InMemoryAnalysisStore()
     model = FakeChatModel(responder=profile_reply)
     synthesis_build(store, model).run("s1")

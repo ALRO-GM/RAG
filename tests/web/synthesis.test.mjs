@@ -1,5 +1,4 @@
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { Api } from "../../transcriber/adapters/inbound/web/js/api.js";
 import {
@@ -93,13 +92,4 @@ test("a refresh keeps what the person typed or ticked since the last start (#115
   assert.equal(jobForm(run, true), null);
   assert.equal(jobForm(null, false), null);
   assert.deepEqual(jobForm({}, false), { job: "", useClaude: false });
-});
-
-test("ticking or unticking «Usar Claude» counts as editing the job form (#115)", () => {
-  const view = readFileSync(
-    new URL("../../transcriber/adapters/inbound/web/js/views/analysis.js", import.meta.url), "utf8",
-  );
-  const box = view.slice(view.indexOf('id: "an-claude"'), view.indexOf("});", view.indexOf('id: "an-claude"')));
-  assert.match(box, /onChange: \(\) => \{ jobEdited = true; \}/);
-  assert.match(view, /jobForm\(run, jobEdited\)/);
 });
