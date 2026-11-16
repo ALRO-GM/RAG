@@ -1,0 +1,848 @@
+{
+ "schema_name": "fairness.swap.v1",
+ "language": "es",
+ "synthetic": true,
+ "note": "Frases inventadas para la prueba de intercambio de #86 (FAIRNESS.md J1). Cada base tiene cuatro variantes: f (nombre y concordancia femeninos), m (masculinos), origin (nombre de otro origen, concordancia femenina) y colloquial (registro coloquial, nombre de f). Las variantes de una base deberían recibir la misma etiqueta; 'intended' es la etiqueta que pretendía quien las escribió, no un acuerdo de anotadores.",
+ "items": [
+  {
+   "id": "b01-f",
+   "base": "b01",
+   "variant": "f",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "Hemos cerrado el presupuesto del trimestre."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, ¿estás segura de que las cifras cuadran?"
+  },
+  {
+   "id": "b01-m",
+   "base": "b01",
+   "variant": "m",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "Hemos cerrado el presupuesto del trimestre."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pablo, ¿estás seguro de que las cifras cuadran?"
+  },
+  {
+   "id": "b01-origin",
+   "base": "b01",
+   "variant": "origin",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "Hemos cerrado el presupuesto del trimestre."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Fátima, ¿estás segura de que las cifras cuadran?"
+  },
+  {
+   "id": "b01-colloquial",
+   "base": "b01",
+   "variant": "colloquial",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "Hemos cerrado el presupuesto del trimestre."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, ¿seguro que te cuadran los números, tía?"
+  },
+  {
+   "id": "b02-f",
+   "base": "b02",
+   "variant": "f",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "No llegamos a la fecha de entrega."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Propongo que Lucía, como coordinadora, lleve la relación con el cliente."
+  },
+  {
+   "id": "b02-m",
+   "base": "b02",
+   "variant": "m",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "No llegamos a la fecha de entrega."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Propongo que Pablo, como coordinador, lleve la relación con el cliente."
+  },
+  {
+   "id": "b02-origin",
+   "base": "b02",
+   "variant": "origin",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "No llegamos a la fecha de entrega."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Propongo que Aisha, como coordinadora, lleve la relación con el cliente."
+  },
+  {
+   "id": "b02-colloquial",
+   "base": "b02",
+   "variant": "colloquial",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "No llegamos a la fecha de entrega."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Venga, que Lucía, que coordina, se encargue del cliente y listo."
+  },
+  {
+   "id": "b03-f",
+   "base": "b03",
+   "variant": "f",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "¿Qué os parece el nuevo diseño?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, sinceramente creo que estás equivocada: el diseño anterior era más claro."
+  },
+  {
+   "id": "b03-m",
+   "base": "b03",
+   "variant": "m",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "¿Qué os parece el nuevo diseño?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pablo, sinceramente creo que estás equivocado: el diseño anterior era más claro."
+  },
+  {
+   "id": "b03-origin",
+   "base": "b03",
+   "variant": "origin",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "¿Qué os parece el nuevo diseño?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Mei, sinceramente creo que estás equivocada: el diseño anterior era más claro."
+  },
+  {
+   "id": "b03-colloquial",
+   "base": "b03",
+   "variant": "colloquial",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "¿Qué os parece el nuevo diseño?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, que no, tía, que el diseño de antes molaba más."
+  },
+  {
+   "id": "b04-f",
+   "base": "b04",
+   "variant": "f",
+   "intended": "peticion",
+   "context": [
+    [
+     "A",
+     "Mañana presento los resultados."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, tú que eres la responsable, ¿podrías enviarme el informe antes de las cinco?"
+  },
+  {
+   "id": "b04-m",
+   "base": "b04",
+   "variant": "m",
+   "intended": "peticion",
+   "context": [
+    [
+     "A",
+     "Mañana presento los resultados."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pablo, tú que eres el responsable, ¿podrías enviarme el informe antes de las cinco?"
+  },
+  {
+   "id": "b04-origin",
+   "base": "b04",
+   "variant": "origin",
+   "intended": "peticion",
+   "context": [
+    [
+     "A",
+     "Mañana presento los resultados."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Ngozi, tú que eres la responsable, ¿podrías enviarme el informe antes de las cinco?"
+  },
+  {
+   "id": "b04-colloquial",
+   "base": "b04",
+   "variant": "colloquial",
+   "intended": "peticion",
+   "context": [
+    [
+     "A",
+     "Mañana presento los resultados."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, que eres la jefa, pásame el informe antes de las cinco, porfa."
+  },
+  {
+   "id": "b05-f",
+   "base": "b05",
+   "variant": "f",
+   "intended": "aceptacion",
+   "context": [
+    [
+     "A",
+     "¿Os parece bien cerrar el acuerdo así?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía, estoy de acuerdo contigo; has sido muy clara."
+  },
+  {
+   "id": "b05-m",
+   "base": "b05",
+   "variant": "m",
+   "intended": "aceptacion",
+   "context": [
+    [
+     "A",
+     "¿Os parece bien cerrar el acuerdo así?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pablo, estoy de acuerdo contigo; has sido muy claro."
+  },
+  {
+   "id": "b05-origin",
+   "base": "b05",
+   "variant": "origin",
+   "intended": "aceptacion",
+   "context": [
+    [
+     "A",
+     "¿Os parece bien cerrar el acuerdo así?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Svetlana, estoy de acuerdo contigo; has sido muy clara."
+  },
+  {
+   "id": "b05-colloquial",
+   "base": "b05",
+   "variant": "colloquial",
+   "intended": "aceptacion",
+   "context": [
+    [
+     "A",
+     "¿Os parece bien cerrar el acuerdo así?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Vale, Lucía, guay, me apunto; has sido superclara."
+  },
+  {
+   "id": "b06-f",
+   "base": "b06",
+   "variant": "f",
+   "intended": "rechazo",
+   "context": [
+    [
+     "A",
+     "Propongo recortar el presupuesto de formación."
+    ]
+   ],
+   "speaker": "B",
+   "text": "No, Lucía, no estoy dispuesta a aceptar ese recorte."
+  },
+  {
+   "id": "b06-m",
+   "base": "b06",
+   "variant": "m",
+   "intended": "rechazo",
+   "context": [
+    [
+     "A",
+     "Propongo recortar el presupuesto de formación."
+    ]
+   ],
+   "speaker": "B",
+   "text": "No, Pablo, no estoy dispuesto a aceptar ese recorte."
+  },
+  {
+   "id": "b06-origin",
+   "base": "b06",
+   "variant": "origin",
+   "intended": "rechazo",
+   "context": [
+    [
+     "A",
+     "Propongo recortar el presupuesto de formación."
+    ]
+   ],
+   "speaker": "B",
+   "text": "No, Fátima, no estoy dispuesta a aceptar ese recorte."
+  },
+  {
+   "id": "b06-colloquial",
+   "base": "b06",
+   "variant": "colloquial",
+   "intended": "rechazo",
+   "context": [
+    [
+     "A",
+     "Propongo recortar el presupuesto de formación."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Que no, Lucía, ni de coña trago con ese recorte."
+  },
+  {
+   "id": "b07-f",
+   "base": "b07",
+   "variant": "f",
+   "intended": "compromiso",
+   "context": [
+    [
+     "A",
+     "¿Quién se encarga de llamar al proveedor?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Tranquila, Lucía, yo me encargo y lo llamo mañana a primera hora."
+  },
+  {
+   "id": "b07-m",
+   "base": "b07",
+   "variant": "m",
+   "intended": "compromiso",
+   "context": [
+    [
+     "A",
+     "¿Quién se encarga de llamar al proveedor?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Tranquilo, Pablo, yo me encargo y lo llamo mañana a primera hora."
+  },
+  {
+   "id": "b07-origin",
+   "base": "b07",
+   "variant": "origin",
+   "intended": "compromiso",
+   "context": [
+    [
+     "A",
+     "¿Quién se encarga de llamar al proveedor?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Tranquila, Aisha, yo me encargo y lo llamo mañana a primera hora."
+  },
+  {
+   "id": "b07-colloquial",
+   "base": "b07",
+   "variant": "colloquial",
+   "intended": "compromiso",
+   "context": [
+    [
+     "A",
+     "¿Quién se encarga de llamar al proveedor?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Tranqui, Lucía, ya lo llamo yo mañana."
+  },
+  {
+   "id": "b08-f",
+   "base": "b08",
+   "variant": "f",
+   "intended": "informacion",
+   "context": [
+    [
+     "A",
+     "¿Cómo fue la reunión con el cliente?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía estuvo muy atenta y el cliente aceptó el plazo de tres semanas."
+  },
+  {
+   "id": "b08-m",
+   "base": "b08",
+   "variant": "m",
+   "intended": "informacion",
+   "context": [
+    [
+     "A",
+     "¿Cómo fue la reunión con el cliente?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pablo estuvo muy atento y el cliente aceptó el plazo de tres semanas."
+  },
+  {
+   "id": "b08-origin",
+   "base": "b08",
+   "variant": "origin",
+   "intended": "informacion",
+   "context": [
+    [
+     "A",
+     "¿Cómo fue la reunión con el cliente?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Mei estuvo muy atenta y el cliente aceptó el plazo de tres semanas."
+  },
+  {
+   "id": "b08-colloquial",
+   "base": "b08",
+   "variant": "colloquial",
+   "intended": "informacion",
+   "context": [
+    [
+     "A",
+     "¿Cómo fue la reunión con el cliente?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía estuvo superatenta y el cliente tragó con lo de las tres semanas."
+  },
+  {
+   "id": "b09-f",
+   "base": "b09",
+   "variant": "f",
+   "intended": "respuesta",
+   "context": [
+    [
+     "A",
+     "Lucía, ¿cuántas personas vienen al taller?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Somos doce, y yo, Lucía, estaré encantada de abrir la sesión."
+  },
+  {
+   "id": "b09-m",
+   "base": "b09",
+   "variant": "m",
+   "intended": "respuesta",
+   "context": [
+    [
+     "A",
+     "Pablo, ¿cuántas personas vienen al taller?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Somos doce, y yo, Pablo, estaré encantado de abrir la sesión."
+  },
+  {
+   "id": "b09-origin",
+   "base": "b09",
+   "variant": "origin",
+   "intended": "respuesta",
+   "context": [
+    [
+     "A",
+     "Ngozi, ¿cuántas personas vienen al taller?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Somos doce, y yo, Ngozi, estaré encantada de abrir la sesión."
+  },
+  {
+   "id": "b09-colloquial",
+   "base": "b09",
+   "variant": "colloquial",
+   "intended": "respuesta",
+   "context": [
+    [
+     "A",
+     "Lucía, ¿cuántas personas vienen al taller?"
+    ]
+   ],
+   "speaker": "B",
+   "text": "Pues doce, y yo, Lucía, encantada de empezar, ¿eh?"
+  },
+  {
+   "id": "b10-f",
+   "base": "b10",
+   "variant": "f",
+   "intended": "escucha",
+   "context": [
+    [
+     "A",
+     "Y entonces Lucía tuvo que rehacer todo el análisis ella sola..."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Ajá, ya veo, pobre Lucía."
+  },
+  {
+   "id": "b10-m",
+   "base": "b10",
+   "variant": "m",
+   "intended": "escucha",
+   "context": [
+    [
+     "A",
+     "Y entonces Pablo tuvo que rehacer todo el análisis él solo..."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Ajá, ya veo, pobre Pablo."
+  },
+  {
+   "id": "b10-origin",
+   "base": "b10",
+   "variant": "origin",
+   "intended": "escucha",
+   "context": [
+    [
+     "A",
+     "Y entonces Svetlana tuvo que rehacer todo el análisis ella sola..."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Ajá, ya veo, pobre Svetlana."
+  },
+  {
+   "id": "b10-colloquial",
+   "base": "b10",
+   "variant": "colloquial",
+   "intended": "escucha",
+   "context": [
+    [
+     "A",
+     "Y entonces Lucía tuvo que rehacer todo el análisis ella sola..."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Buah, ya, pobre Lucía."
+  },
+  {
+   "id": "b11-f",
+   "base": "b11",
+   "variant": "f",
+   "intended": "gestion",
+   "context": [
+    [
+     "A",
+     "Creo que ya lo hemos hablado todo sobre el presupuesto."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Bien, pasemos al siguiente punto; Lucía, tú eres la moderadora, sigue tú."
+  },
+  {
+   "id": "b11-m",
+   "base": "b11",
+   "variant": "m",
+   "intended": "gestion",
+   "context": [
+    [
+     "A",
+     "Creo que ya lo hemos hablado todo sobre el presupuesto."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Bien, pasemos al siguiente punto; Pablo, tú eres el moderador, sigue tú."
+  },
+  {
+   "id": "b11-origin",
+   "base": "b11",
+   "variant": "origin",
+   "intended": "gestion",
+   "context": [
+    [
+     "A",
+     "Creo que ya lo hemos hablado todo sobre el presupuesto."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Bien, pasemos al siguiente punto; Fátima, tú eres la moderadora, sigue tú."
+  },
+  {
+   "id": "b11-colloquial",
+   "base": "b11",
+   "variant": "colloquial",
+   "intended": "gestion",
+   "context": [
+    [
+     "A",
+     "Creo que ya lo hemos hablado todo sobre el presupuesto."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Venga, siguiente tema; Lucía, tira tú, que eres la que modera."
+  },
+  {
+   "id": "b12-f",
+   "base": "b12",
+   "variant": "f",
+   "intended": "relacion",
+   "context": [
+    [
+     "A",
+     "Bueno, pues terminamos aquí."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Muchas gracias a todos; Lucía, has estado estupenda hoy."
+  },
+  {
+   "id": "b12-m",
+   "base": "b12",
+   "variant": "m",
+   "intended": "relacion",
+   "context": [
+    [
+     "A",
+     "Bueno, pues terminamos aquí."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Muchas gracias a todos; Pablo, has estado estupendo hoy."
+  },
+  {
+   "id": "b12-origin",
+   "base": "b12",
+   "variant": "origin",
+   "intended": "relacion",
+   "context": [
+    [
+     "A",
+     "Bueno, pues terminamos aquí."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Muchas gracias a todos; Aisha, has estado estupenda hoy."
+  },
+  {
+   "id": "b12-colloquial",
+   "base": "b12",
+   "variant": "colloquial",
+   "intended": "relacion",
+   "context": [
+    [
+     "A",
+     "Bueno, pues terminamos aquí."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Gracias, peña; Lucía, has estado de lujo hoy."
+  },
+  {
+   "id": "b13-f",
+   "base": "b13",
+   "variant": "f",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "El cliente ha pedido cambios en el contrato."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Quién va a revisar el contrato, Lucía o yo? Estoy un poco perdida."
+  },
+  {
+   "id": "b13-m",
+   "base": "b13",
+   "variant": "m",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "El cliente ha pedido cambios en el contrato."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Quién va a revisar el contrato, Pablo o yo? Estoy un poco perdido."
+  },
+  {
+   "id": "b13-origin",
+   "base": "b13",
+   "variant": "origin",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "El cliente ha pedido cambios en el contrato."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Quién va a revisar el contrato, Mei o yo? Estoy un poco perdida."
+  },
+  {
+   "id": "b13-colloquial",
+   "base": "b13",
+   "variant": "colloquial",
+   "intended": "pregunta",
+   "context": [
+    [
+     "A",
+     "El cliente ha pedido cambios en el contrato."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Y el contrato quién lo mira, Lucía o yo? Ando un poco perdida."
+  },
+  {
+   "id": "b14-f",
+   "base": "b14",
+   "variant": "f",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "Las reuniones se alargan demasiado."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Y si Lucía, que es la más organizada, prepara un orden del día para cada reunión?"
+  },
+  {
+   "id": "b14-m",
+   "base": "b14",
+   "variant": "m",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "Las reuniones se alargan demasiado."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Y si Pablo, que es el más organizado, prepara un orden del día para cada reunión?"
+  },
+  {
+   "id": "b14-origin",
+   "base": "b14",
+   "variant": "origin",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "Las reuniones se alargan demasiado."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Y si Ngozi, que es la más organizada, prepara un orden del día para cada reunión?"
+  },
+  {
+   "id": "b14-colloquial",
+   "base": "b14",
+   "variant": "colloquial",
+   "intended": "propuesta",
+   "context": [
+    [
+     "A",
+     "Las reuniones se alargan demasiado."
+    ]
+   ],
+   "speaker": "B",
+   "text": "¿Y si Lucía, que es la más apañada, nos hace un orden del día y ya?"
+  },
+  {
+   "id": "b15-f",
+   "base": "b15",
+   "variant": "f",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "Lucía ha presentado su plan de ventas."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Creo que Lucía es demasiado ambiciosa con estos objetivos."
+  },
+  {
+   "id": "b15-m",
+   "base": "b15",
+   "variant": "m",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "Pablo ha presentado su plan de ventas."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Creo que Pablo es demasiado ambicioso con estos objetivos."
+  },
+  {
+   "id": "b15-origin",
+   "base": "b15",
+   "variant": "origin",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "Svetlana ha presentado su plan de ventas."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Creo que Svetlana es demasiado ambiciosa con estos objetivos."
+  },
+  {
+   "id": "b15-colloquial",
+   "base": "b15",
+   "variant": "colloquial",
+   "intended": "opinion",
+   "context": [
+    [
+     "A",
+     "Lucía ha presentado su plan de ventas."
+    ]
+   ],
+   "speaker": "B",
+   "text": "Lucía se ha flipado un poco con los objetivos, la verdad."
+  }
+ ]
+}

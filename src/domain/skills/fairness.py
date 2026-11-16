@@ -25,7 +25,10 @@ the 1.25 is ours and provisional). Groups with fewer than
 ``min_units`` people or less than ``min_share`` of them are described
 (n, rate, interval) but get no ratio and are never the reference
 (LL144 lets the auditor leave out groups under 2 % if they are still
-reported). Pure computation: no I/O, the bootstrap has a fixed seed.
+reported). ``swap_changes`` counts how often a model's label changes
+when only a name, the gender or the register of a sentence changes
+(the swap test, ``FAIRNESS.md`` J1). Pure computation: no I/O, the
+bootstrap has a fixed seed.
 """
 
 import math
@@ -390,3 +393,53 @@ def mean_audit(
         ))
     return AuditTable(metric=metric, kind="mean", policy=policy,
                       units=total, reference_group=reference, rows=rows)
+
+
+class SwapChange(BaseModel):
+    """How often one kind of variant changed the label (swap test, J1).
+
+    ``pairs`` bases have both the reference variant and ``variant``;
+    ``changed`` of them got a different label (a missing label, ``None``,
+    counts as a label of its own). ``low``/``high``: Wilson interval of
+    ``rate``; ``bases`` lists the bases that changed.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    variant: str
+    pairs: int
+    changed: int
+    rate: float
+    low: float
+    high: float
+    bases: List[str]
+
+
+def swap_changes(
+    labels: Dict[Tuple[str, str], Optional[str]], reference: str,
+    confidence: float = 0.95,
+) -> List[SwapChange]:
+    """Count label changes of every variant against ``reference``.
+
+    ``labels`` maps (base, variant) to the label a model gave. One row
+    per variant other than ``reference``, sorted by name; bases without
+    the reference variant are skipped.
+    """
+    variants = sorted({v for _, v in labels} - {reference})
+    rows: List[SwapChange] = []
+    for variant in variants:
+        bases = sorted(
+            b for b, v in labels
+            if v == variant and (b, reference) in labels
+        )
+        if not bases:
+            continue
+        changed = [b for b in bases
+                   if labels[(b, variant)] != labels[(b, reference)]]
+        low, high = wilson_interval(len(changed), len(bases), confidence)
+        rows.append(SwapChange(
+            variant=variant, pairs=len(bases), changed=len(changed),
+            rate=len(changed) / len(bases), low=low, high=high,
+            bases=changed,
+        ))
+    return rows

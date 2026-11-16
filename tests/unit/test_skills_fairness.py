@@ -13,6 +13,7 @@ from src.domain.skills.fairness import (
     mean_audit,
     rate_audit,
     ratio_interval,
+    swap_changes,
     wilson_interval,
 )
 
@@ -188,3 +189,17 @@ def test_above_median_is_the_ll144_scoring_rate() -> None:
     assert [o.selected for o in outcomes] == [False, False, False,
                                               True, True, True]
     assert above_median([]) == []
+
+
+def test_swap_changes_counts_changes_against_the_reference_variant() -> None:
+    labels = {
+        ("b1", "f"): "pregunta", ("b1", "m"): "pregunta",
+        ("b1", "c"): "opinion",
+        ("b2", "f"): "rechazo", ("b2", "m"): None, ("b2", "c"): "rechazo",
+        ("b3", "m"): "otro",
+    }
+    c, m = swap_changes(labels, "f")
+    assert (c.variant, c.pairs, c.changed, c.bases) == ("c", 2, 1, ["b1"])
+    assert (m.variant, m.pairs, m.changed, m.bases) == ("m", 2, 1, ["b2"])
+    assert m.rate == 0.5 and m.low < 0.5 < m.high
+    assert swap_changes({("b1", "m"): "x"}, "f") == []

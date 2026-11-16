@@ -193,8 +193,7 @@ class TestScoringByHand:
         up to DER's missed + confusion (0.7 + 1.5)."""
         a, b = score_speakers(ten_seconds(), HYPOTHESIS, NO_COLLAR)
         assert (a.speaker, b.speaker) == ("A", "B")
-        assert (a.speech, b.speech) == (pytest.approx(4.0),
-                                        pytest.approx(5.0))
+        assert (a.speech, b.speech) == pytest.approx((4.0, 5.0))
         assert a.missed == b.missed == 0.0
         assert a.unattributed == pytest.approx(0.2)
         assert b.unattributed == pytest.approx(2.0)
@@ -209,8 +208,7 @@ class TestScoringByHand:
         assert [s.missed_rate for s in silent] == [1.0, 1.0]
         assert [s.error_rate for s in silent] == [1.0, 1.0]
         a, b = score_speakers(ten_seconds(), HYPOTHESIS)
-        assert (a.speech, b.speech) == (pytest.approx(3.0),
-                                        pytest.approx(4.0))
+        assert (a.speech, b.speech) == pytest.approx((3.0, 4.0))
         short = make_reference(AMI, "test", "x", 10.0,
                                [seg(1.0, 1.4, "A"), seg(3.0, 8.0, "B")],
                                None)

@@ -1,6 +1,7 @@
 # Equidad: lista de comprobación para auditar sesgos
 
-Fecha: 2026-11-15. Ticket #59 (SK-3). Sólo documento; no hay código.
+Fecha: 2026-11-15. Ticket #59 (SK-3). Primeras acciones hechas el
+2026-11-16 en #86 (SK-13): sección 6.
 Esto no es asesoramiento jurídico. Marcas: **[abierto]** = leí la fuente;
 **[no verificado]** = no pude abrirla (o sólo vi un resumen) y va de
 memoria o de fuente secundaria; **[verificado, pág. N]** = comprobado el
@@ -83,9 +84,9 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 
 | # | Qué comprobar | Cómo | Métrica y umbral | Evidencia | Cuándo | Estado |
 |---|---|---|---|---|---|---|
-| D1 | Error de diarización (DER) por grupo y nº de hablantes | AMI y CALLHOME (`LAB.md` §13), por sexo si el corpus lo da | DER por grupo; cociente ≤ 1,25 (nuestro) | Tabla del laboratorio | R, D | pendiente: el laboratorio mide DER global |
+| D1 | Error de diarización (DER) por grupo y nº de hablantes | AMI y CALLHOME (`LAB.md` §13), por sexo si el corpus lo da | DER por grupo; cociente ≤ 1,25 (nuestro) | Tabla del laboratorio | R, D | hecho en AMI por sexo (§6.1), sin conclusión: 12 personas y el signo cambia con la reunión TS3003a; CALLHOME no da sexo |
 | D2 | Una voz no se atribuye siempre a otra persona (se puntúa a quien no es) | Confusión de hablante por grupo | % de frases mal atribuidas por grupo | Matriz de confusión | R | pendiente |
-| D3 | Quien habla poco o solapa no queda mal representado | Error de tiempo de habla por persona | Error por persona | Tabla | R | pendiente: el solape no se detecta |
+| D3 | Quien habla poco o solapa no queda mal representado | Error de tiempo de habla por persona | Error por persona | Tabla | R | pendiente: el solape no se detecta; ya hay error por hablante de referencia (`score_speakers`, §6.1) |
 | D4 | Huella de voz con consentimiento y retirada | Flujo de inscripción y `speakers forget` | Borrado funcional | Consentimiento versionado | P | hecho (`ESTADO.md` §4.11) |
 | D5 | Voz no inscrita no se identifica | Prueba con voz desconocida | Sale "desconocido" | Prueba automática | R | pendiente: confirmar |
 
@@ -93,7 +94,7 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 
 | # | Qué comprobar | Cómo | Métrica y umbral | Evidencia | Cuándo | Estado |
 |---|---|---|---|---|---|---|
-| J1 | La etiqueta no cambia por rasgos irrelevantes | Prueba de intercambio: misma frase con otro nombre, género o registro | Cambios de etiqueta < 2 % (nuestro) | Pares y resultados por modelo | R | pendiente (acción 2) |
+| J1 | La etiqueta no cambia por rasgos irrelevantes | Prueba de intercambio: misma frase con otro nombre, género o registro | Cambios de etiqueta < 2 % (nuestro) | Pares y resultados por modelo | R | hecho, primera medida (§6.2): 60 frases sintéticas; con 15 pares por variante no se puede afirmar < 2 % |
 | J2 | Sesgo de orden, longitud y verbosidad del juez | Orden aleatorio (T-50); correlación nota-longitud | Variación por orden; correlación | Informe del juez | R | pendiente: T-50 |
 | J3 | Citas literales existen y son de la persona | Anclaje (`DESIGN.md` §2) | Tasa de rechazo; por grupo cuando haya | Contadores `proposed/rejected/unsupported` | R | hecho (global) |
 | J4 | Mismo comportamiento, misma etiqueta entre español e inglés | Frases equivalentes | Acuerdo entre variantes | Pares y resultados | R | pendiente |
@@ -104,7 +105,7 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 
 | # | Qué comprobar | Cómo | Métrica y umbral | Evidencia | Cuándo | Estado |
 |---|---|---|---|---|---|---|
-| S1 | Cociente de impacto: tasa de personas sobre un corte, por grupo | Fórmula tipo LL144 y 4/5, con Fairlearn o Aequitas; grupos pequeños sólo descritos | Cociente ≥ 0,80 con intervalo | Tabla, tamaños, fecha, versión | P, R | no aplica aún |
+| S1 | Cociente de impacto: tasa de personas sobre un corte, por grupo | Fórmula tipo LL144 y 4/5, con Fairlearn o Aequitas; grupos pequeños sólo descritos | Cociente ≥ 0,80 con intervalo | Tabla, tamaños, fecha, versión | P, R | no aplica aún; plantilla y cálculo listos (§6.3) |
 | S2 | Brecha de nota entre grupos frente a la brecha de evaluadores humanos | Comparar con el consenso humano | Brecha sistema − humana, con intervalo | Tabla | P | no aplica aún (T-36) |
 | S3 | Acuerdo con humanos igual para todos | `skills evaluate` por grupo | Diferencia de acuerdo con intervalo | Informe | P, R | no aplica aún |
 | S4 | Abstención justa ("evidencia insuficiente") | Tabla evaluado/no evaluado por grupo | Diferencia de tasa | Tabla | P | no aplica aún |
@@ -119,7 +120,7 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 | I1 | Citas, tiempos, límites y rótulo de borrador | Revisar la plantilla | Todo ítem con cita; aviso visible | Plantilla versionada | R | hecho (`report.py`) |
 | I2 | Sin lenguaje de rasgos ni emociones | Lista de palabras y prueba sobre plantillas y salida del juez | 0 apariciones | Prueba automática | R | pendiente |
 | I3 | Incertidumbre y datos que faltan visibles | "Evidencia insuficiente"; confianza de transcripción | Presente en todo informe | Muestra de informes | R | pendiente: lo primero hecho, lo segundo no |
-| I4 | Model card del juez y datasheets de rúbrica y datos de prueba | Fichas cortas: uso, límites, datos, métricas por grupo | Ficha completa | `docs/skills/` | P, R | pendiente (acción 4) |
+| I4 | Model card del juez y datasheets de rúbrica y datos de prueba | Fichas cortas: uso, límites, datos, métricas por grupo | Ficha completa | `docs/skills/` | P, R | hecho (§6.4); sin métricas por grupo, que no existen |
 | I5 | Explicación comprensible de la nota | Cita + indicador + regla | Revisión por un evaluador | Prueba de usuario | P | no aplica aún |
 
 ### 3.6 Uso humano
@@ -143,7 +144,8 @@ sistema nunca los infiere. Los umbrales marcados "nuestro" son provisionales.
 | G5 | Gatillos de reauditoría | Cambio de modelo, umbral, rúbrica o población; anual como mínimo | Calendario | Registro de versiones | R | pendiente |
 | G6 | Registro de qué versión puntuó a quién | Modelo, rúbrica y constantes en cada scorecard | Metadatos en cada informe | Scorecards | R | pendiente: confirmar qué guarda hoy |
 
-Recuento de las 38 filas: 5 hechas, 11 no aplican aún, 22 pendientes.
+Recuento de las 38 filas (2026-11-16, tras #86): 8 hechas, 11 no aplican
+aún, 19 pendientes. Antes de #86: 5, 11 y 22.
 Casi todo lo "hecho" son reglas del pipeline; ninguna medida de equidad
 sobre personas está hecha.
 
@@ -165,6 +167,135 @@ sobre personas está hecha.
    (I4, T2).** Una página cada una.
 5. **Registro de riesgos y hoja de clasificación de riesgo (G1, G3).** El
    dueño la firma antes de grabar a nadie.
+
+## 6. Primeras acciones hechas (#86, 2026-11-16)
+
+Sin datos de participantes. La acción 5 (registro de riesgos y hoja de
+clasificación) sigue pendiente.
+
+### 6.1 Diarización por sexo del hablante en AMI (D1)
+
+- **Sexo en el corpus.** AMI lo da en el id de participante:
+  `[MF][IET][EDO]nnn`, primera letra M o F (página oficial del corpus,
+  <https://groups.inf.ed.ac.uk/ami/corpus/participantids.shtml>
+  [abierto 2026-11-16]). Es la etiqueta del corpus, binaria; el sistema
+  no la infiere. CALLHOME (`A`/`B`) no da sexo: no se mide en él.
+- **Datos.** Las 4 reuniones AMI de #44 (`ami-EN2002b`, `ES2004b`,
+  `ES2004c`, `TS3003a`, test, sdm), salidas ya guardadas del
+  laboratorio (no se volvió a ejecutar ningún diarizador). 12 personas
+  distintas: 4 mujeres, 8 hombres; ES2004b y c son las mismas 4
+  personas (se promedian y cuentan una vez); TS3003a son 4 hombres, dos
+  de los cuales hablan 26 y 40 s.
+- **Medida.** `score_speakers` (`transcriber/domain/lab_reference.py`)
+  reparte el error por hablante de referencia con el mismo collar
+  (0,25 s) y el mismo emparejamiento uno a uno del DER: *no atribuido* =
+  parte del habla de la persona que la pista no da a la etiqueta
+  emparejada con ella (perdida o dada a otra); *perdido* = parte en que
+  la pista no marca a nadie. La falsa alarma no es de nadie y no se
+  reparte. Comprobado: en las 95 pistas, la suma de lo no atribuido
+  coincide con perdido + confusión del DER guardado (diferencia < 0,05 s).
+- **Cálculo.** `experiments/transcriber/speaker_groups.py` →
+  `experiments/skills/fairness_audit.py`; resultados en
+  `experiments/transcriber/results/ami_speaker_sex*.{json,md}` (también
+  la parte perdida). Media por grupo sobre personas, IC bootstrap de
+  percentiles (2.000 remuestreos), cociente frente al grupo con menos
+  error, umbral 1,25, grupos de al menos 3 personas.
+
+Parte no atribuida, audio original (media F / media M; cociente del
+grupo con más error frente al otro, IC 95 %):
+
+| Diarizador | 4 reuniones, F 4 / M 8 | Cociente | Sólo reuniones mixtas, F 4 / M 4 | Cociente |
+|---|---|---|---|---|
+| builtin | 0,523 / 0,562 | M 1,07 (0,58–1,88) | 0,523 / 0,272 | F 1,92 (1,00–4,45) |
+| pyannote-3.1 | 0,128 / 0,349 | M 2,73 (0,79–7,46) | 0,128 / 0,097 | F 1,32 (0,54–3,04) |
+| pyannote-community-1 | 0,128 / 0,346 | M 2,71 (0,79–7,02) | 0,128 / 0,097 | F 1,31 (0,57–3,20) |
+| diarizen-wavlm-large-s80-md-v2 | 0,081 / 0,214 | M 2,63 (0,68–8,48) | 0,081 / 0,054 | F 1,51 (0,66–3,18) |
+| nemotron-3-diarization | 0,252 / 0,471 | M 1,87 (1,15–2,93) | 0,252 / 0,331 | M 1,31 (0,77–2,16) |
+| sortformer-streaming-v2 | 0,408 / 0,374 | F 1,09 (0,53–2,19) | 0,408 / 0,174 | F 2,34 (1,25–3,79) |
+| ecapa-spectral | 0,549 / 0,608 | M 1,11 (0,75–1,50) | 0,549 / 0,352 | F 1,56 (1,24–2,08) |
+| nemo-clustering | 0,571 / 0,526 | F 1,08 (0,63–2,03) | 0,571 / 0,238 | F 2,40 (1,53–3,85) |
+
+**Lectura.** No hay conclusión sobre el sexo. Con las 4 reuniones 6 de
+8 diarizadores fallan más con los hombres; quitando TS3003a (sólo
+hombres, dos de ellos casi callados) el signo se invierte en 5 de 8 y
+7 de 8 fallan más con las mujeres. Lo que mueve la cifra es la reunión y cuánto habla cada persona, no
+el sexo, y 4 personas por grupo no bastan para separar una cosa de
+otra. Con 4 personas el bootstrap tiene muy pocas muestras distintas:
+los intervalos son orientativos. Para medir D1 de verdad hace falta un
+corpus con muchas más personas por grupo (p. ej. todo el test de AMI, 16
+grabaciones, o CALLHOME con metadatos de sexo), no disponible sin
+descargar más (#44 importó 4).
+
+### 6.2 Prueba de intercambio (J1)
+
+`examples/skills/fairness/swap_sentences.json`: 15 frases base de
+reunión, en español, inventadas, cada una en 4 variantes: `f` (nombre y
+concordancia femeninos, «Lucía… segura»), `m` (masculinos, «Pablo…
+seguro»), `origin` (nombre de otro origen con concordancia femenina:
+Fátima, Aisha, Mei, Ngozi, Svetlana) y `colloquial` (la de `f` en
+registro coloquial). 60 frases, una frase de contexto cada una. Cuenta
+(`experiments/skills/swap_test.py`, `swap_changes`): bases cuya etiqueta
+de acto cambia frente a la variante `f` (15 pares por variante, IC de
+Wilson). Resultados en `experiments/skills/results/swap_test/`.
+
+| Modelo | `m` | `origin` | `colloquial` | Acierto con la etiqueta pretendida (f/m/origin/coloquial, de 15) |
+|---|---|---|---|---|
+| Reglas (`rules-1`) | 0 (0–0,20) | 0 (0–0,20) | 8 (0,30–0,75) | 10 / 10 / 10 / 5 |
+| Codificador XLM-R (`xlmr-base-ami-mrda-es`, por defecto en el paso d) | 1 (0,01–0,30) | 0 (0–0,20) | 1 (0,01–0,30) | 10 / 11 / 10 / 10 |
+| Qwen3-8B 4 bits (juez local) | 0 (0–0,20) | 0 (0–0,20) | 2 (0,04–0,38) | 13 / 13 / 13 / 14 |
+| Claude Code `opus` (60 llamadas, suscripción) | 0 (0–0,20) | 0 (0–0,20) | 0 (0–0,20) | 11 / 11 / 11 / 11 |
+
+- El único cambio por género: el codificador etiqueta «Tranquila,
+  Lucía, yo me encargo y lo llamo mañana…» como `relacion` y la misma
+  frase con «Tranquilo, Pablo» como `compromiso` (b07). El
+  codificador cambia la distribución de probabilidad poco con el
+  género y el origen (variación total media 0,032 y 0,026, máxima 0,165
+  y 0,084) y más con el registro (media 0,134, máxima 0,537).
+- El registro coloquial es lo que más cambia las etiquetas, sobre todo
+  en las reglas (8 de 15), que dependen de fórmulas y signos.
+- Límites: 15 pares por variante sólo permiten decir que la tasa de
+  cambio está por debajo de ~20 % cuando es 0; el umbral de 2 % no se
+  puede comprobar con este tamaño. Frases escritas por nosotros, sin
+  revisión humana de las etiquetas pretendidas. Sólo actos de diálogo:
+  la confirmación de etiquetas de la rúbrica (paso f) y la evaluación
+  (paso g) no se probaron. Una sola pasada por modelo (sin medir la
+  variación de una pasada a otra de los jueces). J4 (español frente a
+  inglés) no se hizo.
+
+### 6.3 Plantilla de informe de equidad (S1-S4)
+
+`src/domain/skills/fairness.py` (sin E/S) calcula las tablas:
+
+- **Tasa** (`rate_audit`): por grupo n, seleccionados, tasa con IC de
+  Wilson, cociente frente al grupo con mejor tasa (cociente de impacto
+  de LL144; 4/5 de la EEOC) con IC de Katz (logaritmo; 0,5 por celda si
+  una está vacía). `above_median` da la tasa de puntuación de LL144
+  (proporción del grupo sobre la mediana de toda la muestra).
+- **Media** (`mean_audit`): para errores u otras medidas por persona;
+  cada persona cuenta una vez; IC bootstrap sobre personas, semilla fija.
+- **Reglas**: dirección (más es mejor o peor), umbral (0,80 para tasas,
+  1,25 para errores), grupos con menos de `min_units` (5) personas o
+  menos del 2 % sólo se describen (n, valor, IC) y no reciben cociente
+  ni son referencia; se marca si el IC del cociente cruza el umbral.
+
+`src/application/skills/fairness_report.py` llena la plantilla a
+partir de un documento `fairness.results.v1` (contexto: sistema, datos,
+origen de los grupos, fecha, notas; y por medida las observaciones por
+persona) y la escribe en Markdown, en español o inglés:
+`experiments/skills/fairness_audit.py results.json informe.md`. Probado
+con datos simulados (`tests/unit/test_skills_fairness*.py`); el primer
+uso real es §6.1.
+
+### 6.4 Fichas (I4)
+
+`MODEL_CARD_JUDGES.md` (jueces: Claude Code y local, cuándo se usa cada
+uno, cifras sintéticas medidas), `DATASHEET_RUBRIC.md` (rúbrica `core`
+0.1.0, en y es) y `DATASHEET_DIALOGUE_ACTS.md` (las 13 categorías, el
+conjunto español sintético y los corpus públicos). Ninguna tiene
+métricas por grupo, porque no existen; dicen qué no se sabe (licencias
+de los modelos Qwen no anotadas, demografía de los hablantes no
+registrada). T2 sigue pendiente: falta el inventario de acentos y
+micrófonos de los datos de prueba del audio.
 
 ## 5. Límites
 
