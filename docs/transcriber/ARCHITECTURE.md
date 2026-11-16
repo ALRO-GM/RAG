@@ -56,6 +56,7 @@ transcriber/
     sessions.py      session states and moves, chunk acceptance, interruption
     parameters.py    TranscriptionParameters: every threshold of a transcription
     activity.py      speech activity from frame energy; drops words over silence
+                     and finds speech after the last word (unread tail)
     seams.py         keeps once the passages the recogniser returned twice
                      at the seams of its windows; words back in time order
     languages.py     a session's language code or "auto"; validation
@@ -86,7 +87,8 @@ transcriber/
     consent.py       ShowConsentNotice
     record.py        OpenSession, AppendAudio, CloseSession, ImportRecording,
                      DeleteSession
-    transcribe.py    TranscribeSession (recognise → seams → score words →
+    transcribe.py    TranscribeSession (recognise → seams → unread tail
+                     read again → score words →
                      diarize (lab diarizer, or built-in grouping) →
                      sentences kept whole → identify →
                      sentences → certainty),
@@ -253,6 +255,35 @@ marked `slow`.
   window farther from its edge. The step is idempotent; it drops a
   word said once only in favour of at least as many other words heard
   at the same moment, so one word never erases two.
+- The end of the recording is read again when the recogniser stopped
+  before the speech did (#125). The Whisper pipeline's last window can
+  end its text at a closing phrase with speech still to come, and no
+  later window covers it: on the 14.7-minute synthetic meeting of #96
+  the last word ended at 867.14 s with speech up to 880.8 s (the
+  window alone, from 860 s, stopped at the same word). When the frames
+  after the last word kept hold a stretch of speech level of at least
+  `tail_speech` (1 s), pauses of at most `tail_gap` (0.3 s) bridged, the
+  use case recognises the audio from that word's end on again and
+  appends the words found there (seams resolved, words over silence
+  dropped, and only words that last some time and end after the read's
+  start, so every read moves the end forward), up to `tail_reads` (3)
+  times while a read adds words. A tail longer than `tail_max` (300 s)
+  is not read: a WARNING gives its length. Each read and the total of
+  words added are logged at INFO. All four values are judgements.
+  Scattered sound (clicks, a chair) does not start a read; steady room
+  noise above the activity level does, and what Whisper invents over
+  it is kept (no measurement on real recordings yet). On that
+  recording the longest stretch after the last word was 2.425 s
+  (1.525 s with no pause bridged). The read starts at the word's
+  end, with no context: started 2 s earlier, at 865 s, Whisper stopped
+  again at the same closing phrase. Without context the tail came back
+  without punctuation or capitals, so it is cut into sentences only
+  where the speaker changes or a pause starts a new turn: a tail of
+  the same speaker that follows within `turn_gap` joins the last
+  sentence before it (on that recording the speaker changed at the
+  junction). Measured on that recording (`score_audio_simulation.py`,
+  #96): last word 867.14 s → 880.50 s, sentences with no utterance
+  over them 5 → 1, word error 0.088 → 0.081 (deletions 56 → 37).
 - A change of speaker inside a sentence is undone only when the
   windows do not support it (`whole_sentences`, measured in
   `IDENTIFICATION.md`, appendix): a stretch of at most

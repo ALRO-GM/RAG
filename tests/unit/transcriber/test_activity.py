@@ -7,6 +7,7 @@ from transcriber.domain.activity import (
     SpeechActivity,
     heard_words,
     speech_activity,
+    unheard_tail,
 )
 from transcriber.domain.errors import InvalidInputError
 from transcriber.domain.models import Word
@@ -95,3 +96,56 @@ class TestHeardWords:
         ]
         assert heard_words(words, self.activity()) == [words[1]]
         assert heard_words([], self.activity()) == []
+
+
+class TestUnheardTail:
+    """Speech that goes on after the last recognised word (#125)."""
+
+    def activity(self) -> SpeechActivity:
+        """Frames of 0.1 s; 0.0-0.3 s and 0.5-0.8 s are active."""
+        return SpeechActivity(0.1, np.array(
+            [True, True, True, False, False, True, True, True], dtype=bool
+        ))
+
+    def test_the_longest_stretch_from_a_time_on(self) -> None:
+        activity = self.activity()
+        assert activity.longest_stretch_after(0.0, 0.0) == pytest.approx(0.3)
+        # A pause of 0.2 s is bridged with a gap of 0.2 s, not 0.1 s.
+        assert activity.longest_stretch_after(0.0, 0.2) == pytest.approx(0.8)
+        assert activity.longest_stretch_after(0.0, 0.1) == pytest.approx(0.3)
+        # The frame holding 0.55 s is not counted.
+        assert activity.longest_stretch_after(0.55, 1.0) == pytest.approx(
+            0.2
+        )
+        assert activity.longest_stretch_after(0.8, 1.0) == 0.0
+        assert activity.longest_stretch_after(5.0, 1.0) == 0.0
+
+    def test_scattered_frames_over_a_long_silence_are_no_stretch(
+        self,
+    ) -> None:
+        """A click every second for a minute: lots of frames, no speech."""
+        active = np.zeros(600, dtype=bool)
+        active[::10] = True
+        activity = SpeechActivity(0.1, active)
+        assert float(active.sum()) * 0.1 == pytest.approx(6.0)
+        assert activity.longest_stretch_after(0.0, 0.3) == pytest.approx(0.1)
+        words = [Word(text=" Hola", start=0.0, end=0.05)]
+        assert unheard_tail(words, activity, 1.0, 0.3) is None
+
+    def test_speech_after_the_last_word_starts_at_its_end(self) -> None:
+        words = [
+            Word(text=" Hola", start=0.25, end=0.3),
+            Word(text=" ya.", start=0.0, end=0.2),
+        ]
+        activity = self.activity()
+        assert unheard_tail(words, activity, 0.3, 0.0) == pytest.approx(0.3)
+        assert unheard_tail(words, activity, 0.31, 0.0) is None
+
+    def test_no_tail_when_the_words_reach_the_end(self) -> None:
+        words = [Word(text=" adiós.", start=0.5, end=0.8)]
+        assert unheard_tail(words, self.activity(), 0.1, 0.3) is None
+
+    def test_no_words_or_no_minimum_turn_the_check_off(self) -> None:
+        words = [Word(text=" Hola", start=0.0, end=0.1)]
+        assert unheard_tail([], self.activity(), 0.1, 0.3) is None
+        assert unheard_tail(words, self.activity(), 0.0, 0.3) is None
