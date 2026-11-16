@@ -255,6 +255,16 @@ export function claudeAllowed(run) {
   return Boolean(run?.job?.use_claude);
 }
 
+/**
+ * What the job form shows after a refresh: the stored job and leave, or
+ * null to keep what the person typed or ticked since the last start
+ * (#115: polling must not undo an unticked «Usar Claude»).
+ */
+export function jobForm(run, edited) {
+  if (!run || edited) return null;
+  return { job: jobOf(run), useClaude: claudeAllowed(run) };
+}
+
 /** Whether the page must ask before sending the session to Claude (the judge is the local model only). */
 export function asksForClaude(judge) {
   return judge?.mode === "local";

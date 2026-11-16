@@ -101,6 +101,11 @@ JOB_FILE = "job.json"
 """The job sought (:class:`~src.domain.skills.synthesis.JobSought`),
 kept across restarts; step i reads it."""
 
+SYNTHESIS_INPUTS = frozenset({"confirmation", "assessment"})
+"""Steps whose rerun makes the stored profiles stale: step i goes back
+to pending, so the reports never show profiles of an earlier
+assessment (#115)."""
+
 UNAVAILABLE = {
     "acts": "Not available: no dialogue-act tagger is configured (its "
             "settings card is missing).",
@@ -352,7 +357,10 @@ class AnalysisRequests:
 
         ``steps`` runs only those steps again (e.g. ``synthesis`` after
         the job sought changed); ``job``, when given, replaces the job
-        stored with the analysis before the run starts.
+        stored with the analysis before the run starts. It is written
+        before the launch, so the run always reads it, and put back as
+        it was when the launcher refuses: a refused start changes
+        nothing (#115).
 
         Raises :class:`~src.domain.errors.NotFoundError` when the
         session has no transcript,
@@ -373,11 +381,20 @@ class AnalysisRequests:
             )
         now = self.clock()
         self._check_limits(session_id, now)
+        store = self.results.store
+        before: Optional[str] = None
         if job is not None:
-            self.results.store.write(
-                session_id, JOB_FILE, job.cleaned().model_dump_json()
-            )
-        self.launcher.start(session_id, restart, synthetic, chosen or [])
+            try:
+                before = store.read(session_id, JOB_FILE)
+            except NotFoundError:
+                before = JobSought().model_dump_json()
+            store.write(session_id, JOB_FILE, job.cleaned().model_dump_json())
+        try:
+            self.launcher.start(session_id, restart, synthetic, chosen or [])
+        except Exception:
+            if before is not None:
+                store.write(session_id, JOB_FILE, before)
+            raise
         self._starts.append((now, session_id))
         return {"session_id": session_id, "active": True}
 
@@ -490,6 +507,11 @@ class SessionAnalysis:
         self.device_notes = device_notes
         self._judges: Optional[JudgeSetup] = None
 
+    def job(self, session_id: str) -> Optional[JobSought]:
+        """Return the job sought stored with the analysis, if any."""
+        check_session(session_id)
+        return read_job(self.store, session_id)
+
     def run(
         self,
         session_id: str,
@@ -507,7 +529,9 @@ class SessionAnalysis:
         ``on_step`` is told each record once its step ends. ``only``
         runs exactly those steps again (in running order) and keeps
         the others as they are, e.g. the acts and events once a tagger
-        exists, without asking the judge again. ``job`` replaces the
+        exists, without asking the judge again; rerunning step f or g
+        without step i sets step i back to pending (its profiles were
+        written on the earlier assessment). ``job`` replaces the
         job sought stored with the analysis; when the stored profiles
         were written for another job, step i runs again (only it, if
         everything else is done). Raises
@@ -570,6 +594,8 @@ class SessionAnalysis:
         })
         for name in todo:
             run = run.with_step(StepRecord(name=name))
+        if "synthesis" not in todo and SYNTHESIS_INPUTS & set(todo):
+            run = run.with_step(StepRecord(name="synthesis"))
         self.store.save(run)
         context = _Context(transcript, run)
         context.job = read_job(self.store, session_id) or JobSought()

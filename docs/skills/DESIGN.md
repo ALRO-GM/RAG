@@ -707,7 +707,17 @@ que se busca» of the «Análisis» page. When the stored profiles were
 written for another job (or another leave to use Claude), the next run
 redoes step i only; the page also has «Rehacer solo la síntesis»
 (`POST /analysis/sessions/{id}` with `{"steps": ["synthesis"], "job",
-"claude_synthesis"}`, forwarded by the transcriber).
+"claude_synthesis"}`, forwarded by the transcriber). On the CLI each
+option changes only its own part of the stored job (`--claude_synthesis`
+alone keeps the job text, `--role` alone keeps the leave,
+`--noclaude_synthesis` withdraws it), and a job over 4000 characters is
+an input error. A start the launcher refuses (another analysis running)
+leaves `job.json` as it was (#115).
+
+**Staleness.** Rerunning step f or g without step i (e.g. `--steps
+assessment,reports`) sets step i back to pending: the reports are drawn
+without profiles and the run is `partial` until step i runs on the new
+assessment (#115).
 
 **Input** (`application/skills/synthesis.person_facts`): the person's
 participation (turns, words, share, questions), the first dialogue-act
@@ -747,8 +757,11 @@ and not instructions, the session's language. Checked after
 (`check_reply`): a point is kept only when it cites at least one
 existing `Q` id (event ids alone do not count); points and questions
 naming another participant, or matching a coarse word list for a
-hiring verdict, a personality label or a personal attribute, are
-dropped; what was dropped is counted by reason. Each kept point says
+hiring verdict, a personality label, a personal attribute (including
+age and family status: «joven», «madre», «parece mayor», "young
+father") or a ranking within the group («la mejor del grupo», «mejor
+que el resto», "the strongest participant", "stronger than the
+others", counted as `comparison`; #115), are dropped; what was dropped is counted by reason. Each kept point says
 whether it rests on a firm level, a provisional estimate or an
 observation (the firmest of its quotes). *Qué no se ha podido
 observar* (competencies with no level and nothing quoted) and the

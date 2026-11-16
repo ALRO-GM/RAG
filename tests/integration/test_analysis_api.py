@@ -35,7 +35,12 @@ from src.application.skills.session_analysis import (
     AnalysisResults,
 )
 from src.config import SkillsSettings
-from src.domain.errors import BusyError, InvalidInputError, RagError
+from src.domain.errors import (
+    BusyError,
+    InvalidInputError,
+    LimitError,
+    RagError,
+)
 from src.domain.skills.analysis_run import StepRecord, new_run
 from src.domain.text_analysis import tokenize
 from src.skills_bootstrap import SkillsContainer
@@ -356,6 +361,37 @@ def test_the_job_and_the_steps_reach_the_store_and_the_launcher(
         )
         assert answer.status_code == code, body
     assert launcher.steps == [["synthesis"]]
+
+
+class RefusingLauncher(FakeLauncher):
+    """Refuses every start, as when the concurrency limit is reached."""
+
+    def start(
+        self, session_id: str, restart: bool, synthetic: bool,
+        steps: Sequence[str] = (),
+    ) -> None:
+        """Refuse the start."""
+        raise LimitError("1 analysis already running.")
+
+
+def test_a_refused_start_leaves_the_stored_job_as_it_was(
+    tmp_path: Path,
+) -> None:
+    """The job changes only with a run that starts (#115)."""
+    client = client_for(tmp_path, RefusingLauncher())
+    job = tmp_path / "analysis" / "demo-es" / "job.json"
+    body = {"steps": ["synthesis"], "job": "Nuevo", "claude_synthesis": True}
+    refused = client.post("/analysis/sessions/demo-es", json=body,
+                          headers=AUTH)
+    assert refused.status_code == 429
+    assert json.loads(job.read_text()) == {"text": "", "use_claude": False}
+    status = client.get("/analysis/sessions/demo-es", headers=AUTH).json()
+    assert status["job"] == {"text": "", "use_claude": False}
+    job.write_text('{"text": "Antiguo", "use_claude": false}')
+    refused = client.post("/analysis/sessions/demo-es", json=body,
+                          headers=AUTH)
+    assert refused.status_code == 429
+    assert job.read_text() == '{"text": "Antiguo", "use_claude": false}'
 
 
 def test_the_launcher_passes_the_steps_to_the_child(tmp_path: Path) -> None:

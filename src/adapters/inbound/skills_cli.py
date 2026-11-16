@@ -75,7 +75,7 @@ from src.domain.skills.simulation import (
     timed_sentences,
 )
 from src.domain.skills.speech import clock, transcript_sentences
-from src.domain.skills.synthesis import JobSought
+from src.domain.skills.synthesis import updated_job
 from src.domain.skills.transcript_contract import (
     SCHEMA,
     is_session_id,
@@ -696,7 +696,8 @@ class SkillsCLI:
 
     def _analyze(
         self, session: str, restart: bool = False, synthetic: bool = False,
-        steps: str = "", role: str = "", claude_synthesis: bool = False,
+        steps: str = "", role: Optional[str] = None,
+        claude_synthesis: Optional[bool] = None,
     ) -> None:
         """Run the whole flow on a session and keep every step's result.
 
@@ -720,9 +721,12 @@ class SkillsCLI:
                 ``synthesis``: only the profiles).
             role: The job sought (title and a few lines), or a file
                 holding it; kept with the analysis. A new one makes the
-                next run write the profiles again.
+                next run write the profiles again; not given, the
+                stored job stays.
             claude_synthesis: Allow Claude for the profiles when the
-                run's judge is the local model only.
+                run's judge is the local model only
+                (``--noclaude_synthesis`` withdraws it; not given, the
+                stored leave stays).
         """
         if not isinstance(session, str) or not is_session_id(session):
             raise InvalidInputError(
@@ -732,11 +736,14 @@ class SkillsCLI:
         app = self._app()
         analysis = app.session_analysis
         job = None
-        if role or claude_synthesis:
-            text = str(role or "")
+        if role is not None or claude_synthesis is not None:
+            text = None if role is None else str(role)
             if text and Path(text).is_file():
                 text = Path(text).read_text(encoding="utf-8")
-            job = JobSought(text=text, use_claude=bool(claude_synthesis))
+            job = updated_job(
+                analysis.job(str(session)), text,
+                None if claude_synthesis is None else bool(claude_synthesis),
+            )
 
         def show(record: Any) -> None:
             """Print a step as soon as it ends."""

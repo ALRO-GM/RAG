@@ -282,6 +282,40 @@ def test_the_role_reaches_the_synthesis_and_reruns_only_it(
     assert job == {"text": "Another job", "use_claude": True}
 
 
+def test_role_and_leave_merge_with_the_stored_job(
+    skills_project: Path, capsys: Any
+) -> None:
+    """One option never erases the other one stored (#115)."""
+    from tests.unit.test_skills_session_analysis import profile_reply
+
+    app = SkillsContainer(
+        settings(analysis_dir="analysis"), embedder=FakeEmbedder(dim=256),
+        judge=FakeChatModel(responder=profile_reply),
+    )
+    folder = skills_project / "analysis" / "s1"
+    folder.mkdir(parents=True)
+    (folder / "job.json").write_text(
+        json.dumps({"text": "Shift lead", "use_claude": True})
+    )
+    cli(app).analyze(session="s1", claude_synthesis=False)
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Shift lead", "use_claude": False}
+    cli(app).analyze(session="s1", claude_synthesis=True)
+    cli(app).analyze(session="s1", role="Store manager")
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Store manager", "use_claude": True}
+    cli(app).analyze(session="s1")
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Store manager", "use_claude": True}
+    role = skills_project / "long-role.txt"
+    role.write_text("x" * 4001)
+    with pytest.raises(InvalidInputError, match="at most 4000"):
+        cli(app).analyze(session="s1", role=str(role))
+    job = json.loads((folder / "job.json").read_text())
+    assert job == {"text": "Store manager", "use_claude": True}
+    capsys.readouterr()
+
+
 def test_the_synthesis_judge_is_claude_code_unless_told_otherwise(
     skills_project: Path,
 ) -> None:

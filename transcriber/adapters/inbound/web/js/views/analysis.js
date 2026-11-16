@@ -9,7 +9,7 @@ import { describeError } from "../errors.js";
 import { helpHref } from "../lib/help-analysis.js";
 import {
   COUNT_KEYS, MAX_JOB, OPEN_ISSUES, SOURCES, actRows, asksForClaude, byPerson, canRedoSynthesis, cellText,
-  claudeAllowed, clock, doubtfulCount, eventRows, isActive, jobOf, orderedSteps, ratingRows, reasonText,
+  clock, doubtfulCount, eventRows, isActive, jobForm, orderedSteps, ratingRows, reasonText,
   reportBlob, reportFileName, reviewRows, startMode, startRefusal, startingRun, stepStatus, stillStarting,
   synthesisPeople, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
@@ -32,7 +32,10 @@ export async function analysisView(ctx, root, [rawId]) {
     id: "an-job", rows: "4", maxlength: String(MAX_JOB), placeholder: t("sa.job_placeholder"),
     onInput: () => { jobEdited = true; },
   });
-  const useClaude = h("input", { type: "checkbox", id: "an-claude" });
+  const useClaude = h("input", {
+    type: "checkbox", id: "an-claude",
+    onChange: () => { jobEdited = true; },
+  });
   const claudeLabel = h("label", { class: "check" }, useClaude, h("span", {}, t("sa.claude_synthesis")));
   claudeLabel.hidden = true;
   const redo = h("button", { type: "button", onClick: () => begin(false, ["synthesis"]) }, t("sa.redo_synthesis"));
@@ -72,9 +75,10 @@ export async function analysisView(ctx, root, [rawId]) {
     cancel.hidden = mode !== "running";
     if (run?.synthetic) synthetic.checked = true;
     redo.hidden = !canRedoSynthesis(run);
-    if (run && !jobEdited) {
-      job.value = jobOf(run);
-      useClaude.checked = claudeAllowed(run);
+    const form = jobForm(run, jobEdited);
+    if (form) {
+      job.value = form.job;
+      useClaude.checked = form.useClaude;
     }
     summary.textContent = run ? t(`sa.run_${isActive(run) ? "running" : run.status}`) : t("sa.never");
     fill(steps, orderedSteps(run).map(stepItem));

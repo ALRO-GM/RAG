@@ -8,7 +8,7 @@ import pytest
 from src.application.skills.person_report import build_person_report
 from src.application.skills.person_report_html import render_person_html
 from src.application.skills.synthesis import ProfileSynthesizer, person_facts
-from src.domain.errors import ModelError
+from src.domain.errors import InvalidInputError, ModelError
 from src.domain.skills.assessment import (
     CompetencyAssessment,
     Estimate,
@@ -28,6 +28,7 @@ from src.domain.skills.synthesis import (
     refusal,
     skipped,
     system_prompt,
+    updated_job,
     user_prompt,
 )
 from tests.fakes import (
@@ -247,6 +248,35 @@ def test_refusal_names_the_broken_rule(text: str, reason: str) -> None:
     assert refusal(text, ["Tom"]) == reason
 
 
+@pytest.mark.parametrize("text, reason", [
+    ("Es la mejor del grupo coordinando.", "comparison"),
+    ("Fue el peor de la reunión al escuchar.", "comparison"),
+    ("La más organizada del grupo.", "comparison"),
+    ("Negocia mejor que el resto.", "comparison"),
+    ("Escucha más que sus compañeros.", "comparison"),
+    ("Destaca por encima de los demás.", "comparison"),
+    ("She is the best of the group at planning.", "comparison"),
+    ("The strongest participant in the room.", "comparison"),
+    ("Stronger than the others at follow-up.", "comparison"),
+    ("He outperformed his peers.", "comparison"),
+    ("Parece joven y madre de familia.", "personal"),
+    ("Es mayor que la media del equipo.", "personal"),
+    ("Como padre entiende los turnos.", "personal"),
+    ("Tiene hijos pequeños.", "personal"),
+    ("A young father of two.", "personal"),
+    ("An older, married candidate.", "personal"),
+    ("Escucha a los demás antes de proponer.", ""),
+    ("Resume la mayor parte de los acuerdos.", ""),
+    ("Proposes the best option for the rota.", ""),
+    ("Explains the most important point first.", ""),
+])
+def test_refusal_catches_rankings_and_personal_attributes_phrased_otherwise(
+    text: str, reason: str
+) -> None:
+    """Rankings within the group and age or family status (#115)."""
+    assert refusal(text, ["Tom"]) == reason
+
+
 def test_confidence_follows_the_amount_and_firmness_of_evidence() -> None:
     """High, medium and low from firm levels, quotes and words."""
     def facts(firm: int, provisional: int, quotes: int,
@@ -369,3 +399,24 @@ def test_every_drop_reason_is_known() -> None:
     seen: List[str] = ["no_citation", "verdict", "comparison", "label",
                        "personal"]
     assert list(DROP_REASONS) == seen
+
+
+def test_updated_job_replaces_only_what_was_given() -> None:
+    """The leave alone keeps the job; a job alone keeps the leave (#115)."""
+    stored = JobSought(text="Jefe de turno", use_claude=True)
+    assert updated_job(stored, use_claude=False) == JobSought(
+        text="Jefe de turno", use_claude=False
+    )
+    assert updated_job(stored, "  Encargado\n\n de tienda ") == JobSought(
+        text="Encargado\n de tienda", use_claude=True
+    )
+    assert updated_job(None, use_claude=True) == JobSought(use_claude=True)
+    assert updated_job(stored, "") == JobSought(use_claude=True)
+    assert updated_job(None) == JobSought()
+
+
+def test_updated_job_refuses_a_text_over_the_limit_cleanly() -> None:
+    """Too long a job is an input error, not a bare validation error."""
+    assert len(updated_job(None, "x" * 4000 + "\n\n").text) == 4000
+    with pytest.raises(InvalidInputError, match="4001 characters"):
+        updated_job(None, "x" * 4001)

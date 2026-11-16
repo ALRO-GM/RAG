@@ -1,8 +1,9 @@
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { Api } from "../../transcriber/adapters/inbound/web/js/api.js";
 import {
-  MAX_JOB, SYNTHESIS_CONFIDENCE, asksForClaude, canRedoSynthesis, claudeAllowed, jobOf, startBody,
+  MAX_JOB, SYNTHESIS_CONFIDENCE, asksForClaude, canRedoSynthesis, claudeAllowed, jobForm, jobOf, startBody,
   synthesisPeople,
 } from "../../transcriber/adapters/inbound/web/js/lib/session-analysis.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -84,4 +85,21 @@ test("every synthesis text has words in both languages", () => {
     assert.ok(en[key], `en: ${key}`);
   }
   assert.match(es["sa.syn_note"], /no una decisión/);
+});
+
+test("a refresh keeps what the person typed or ticked since the last start (#115)", () => {
+  const run = { job: { text: "Jefe de turno", use_claude: true } };
+  assert.deepEqual(jobForm(run, false), { job: "Jefe de turno", useClaude: true });
+  assert.equal(jobForm(run, true), null);
+  assert.equal(jobForm(null, false), null);
+  assert.deepEqual(jobForm({}, false), { job: "", useClaude: false });
+});
+
+test("ticking or unticking «Usar Claude» counts as editing the job form (#115)", () => {
+  const view = readFileSync(
+    new URL("../../transcriber/adapters/inbound/web/js/views/analysis.js", import.meta.url), "utf8",
+  );
+  const box = view.slice(view.indexOf('id: "an-claude"'), view.indexOf("});", view.indexOf('id: "an-claude"')));
+  assert.match(box, /onChange: \(\) => \{ jobEdited = true; \}/);
+  assert.match(view, /jobForm\(run, jobEdited\)/);
 });

@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field
 
+from src.domain.errors import InvalidInputError
 from src.domain.skills.speech import clock
 
 Basis = Literal["firm", "provisional", "observation", "event"]
@@ -84,7 +85,34 @@ _PERSONAL = re.compile(
     r"enfermedad\w*|discapacidad\w*|nacionalidad\w*|[eé]tnic\w*|"
     r"raza|acento|orientaci[oó]n sexual|age|aged|years old|gender|sex|"
     r"pregnan\w*|illness\w*|disabilit\w*|nationality|"
-    r"ethnic\w*|race|accent|sexual orientation|political|politics)\b",
+    r"ethnic\w*|race|accent|sexual orientation|political|politics|"
+    r"j[oó]ven(?:es)?|viej[oa]s?|ancian[oa]s?|persona mayor|"
+    r"(?:es|parece|muy|algo|bastante|demasiado) mayor|madres?|padres?|"
+    r"maternidad|paternidad|embarazo|hij[oa]s?|casad[oa]s?|"
+    r"solter[oa]s?|divorciad[oa]s?|young|younger|youthful|older|"
+    r"elderly|mothers?|fathers?|mum|mom|dad|parents?|maternity|"
+    r"paternity|pregnancy|married|divorced)\b",
+    re.IGNORECASE,
+)
+_RANKING = re.compile(
+    r"\b(?:(?:el|la|los|las) )?(?:mejor|peor)(?:es)? "
+    r"(?:del grupo|de la reuni[oó]n|del equipo|de todos|de todas|"
+    r"de entre|de los|de las|de la sesi[oó]n|participante)|"
+    r"\b(?:el|la|los|las) (?:m[aá]s|menos) \w+ (?:del grupo|"
+    r"de la reuni[oó]n|del equipo|de todos|de todas|de la sesi[oó]n)|"
+    r"\b(?:m[aá]s|menos|mejor|peor) que (?:los dem[aá]s|las dem[aá]s|"
+    r"el resto|nadie|sus compa[nñ]er\w*|cualquier\w*|otr[oa]s)|"
+    r"\bpor (?:encima|debajo) (?:del resto|de los dem[aá]s|"
+    r"de las dem[aá]s|de sus compa[nñ]er\w*)|"
+    r"\bthe (?:best|worst|strongest|weakest)(?: \w+)? "
+    r"(?:of|in|among|on) (?:the )?(?:group|team|panel|meeting|session|"
+    r"all|them|everyone|participants)|"
+    r"\bthe (?:best|worst|strongest|weakest) (?:one|participant|"
+    r"candidate|speaker|member)|"
+    r"\b(?:better|worse|stronger|weaker|more \w+|less \w+) than "
+    r"(?:the others|the rest|everyone|anyone|any other|the other|"
+    r"(?:his|her|their) (?:peers|colleagues|teammates))|"
+    r"\boutperform\w*",
     re.IGNORECASE,
 )
 
@@ -106,6 +134,33 @@ class JobSought(BaseModel):
         lines = [line.rstrip() for line in self.text.strip().splitlines()]
         kept = "\n".join(line for line in lines if line.strip())
         return self.model_copy(update={"text": kept})
+
+
+def updated_job(
+    stored: Optional[JobSought],
+    text: Optional[str] = None,
+    use_claude: Optional[bool] = None,
+) -> JobSought:
+    """Return the stored job with only what was given replaced.
+
+    ``text`` (``None``: keep the stored text) and ``use_claude``
+    (``None``: keep the stored leave) change one part each, so giving
+    the leave never erases the job and a new job never drops the leave
+    given elsewhere. Raises :class:`~src.domain.errors.InvalidInputError`
+    when the text is longer than :data:`MAX_JOB` characters.
+    """
+    base = stored or JobSought()
+    raw = base.text if text is None else str(text)
+    kept = JobSought.model_construct(text=raw).cleaned().text
+    if len(kept) > MAX_JOB:
+        raise InvalidInputError(
+            f"The job sought has {len(kept)} characters; at most "
+            f"{MAX_JOB} are accepted."
+        )
+    return JobSought(
+        text=kept,
+        use_claude=base.use_claude if use_claude is None else use_claude,
+    )
 
 
 class Citable(BaseModel):
@@ -368,8 +423,10 @@ def refusal(text: str, others: Sequence[str]) -> str:
     """Return why a text breaks a guardrail, or ``""`` when it does not.
 
     A coarse word check after the prompt's own rules: a hiring verdict,
-    a personality label, a personal or protected attribute, or the name
-    of another participant (a comparison).
+    a personality label, a personal or protected attribute (age,
+    parenthood and family status included), or a comparison: the name
+    of another participant or a ranking within the group ("la mejor
+    del grupo", "stronger than the others").
     """
     if _VERDICT.search(text):
         return "verdict"
@@ -377,6 +434,8 @@ def refusal(text: str, others: Sequence[str]) -> str:
         return "label"
     if _PERSONAL.search(text):
         return "personal"
+    if _RANKING.search(text):
+        return "comparison"
     lowered = text.lower()
     for name in others:
         if name and re.search(rf"\b{re.escape(name.lower())}\b", lowered):
