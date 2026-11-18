@@ -93,10 +93,11 @@ def test_the_default_judge_is_claude_code_until_one_is_chosen() -> None:
     assert (status.mode, status.chosen, status.claude_quota) == (
         "claude_code", False, "unknown",
     )
-    assert status.modes == ["claude_code", "local", "both"]
+    assert status.modes == ["claude_code", "local", "both", "opencode"]
     after = chosen.choose("both")
     assert (after.mode, after.chosen) == ("both", True)
     assert chosen.mode() == "both"
+    assert chosen.choose("opencode").mode == "opencode"
     with pytest.raises(InvalidInputError, match="Unknown judge"):
         chosen.choose("api")
 

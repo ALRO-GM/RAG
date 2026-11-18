@@ -634,9 +634,9 @@ class SkillsCLI:
                 (default: the configured output directory).
             show: Print the tagged timeline.
             confirm: Ask the judge (``--judge``: ``claude_code``,
-                ``local``, ``both``; default the one chosen from the
-                web) to confirm or reject the candidates. With ``both``
-                each sentence keeps both decisions and the file gets
+                ``local``, ``both``, ``opencode``; default the one chosen
+                from the web) to confirm or reject the candidates. With
+                ``both`` each sentence keeps both decisions and the file gets
                 their agreement.
         """
         app = self._app()

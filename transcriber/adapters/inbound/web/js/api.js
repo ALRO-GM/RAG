@@ -173,7 +173,7 @@ export class Api {
   /** The RAG's analysis judge and whether Claude's quota is available. */
   analysisJudge() { return this.request("GET", "/analysis/judge"); }
 
-  /** Choose the judge of the next analyses: claude_code, local or both. */
+  /** Choose the judge: claude_code, local, both or opencode. */
   setAnalysisJudge(mode) { return this.request("PUT", "/analysis/judge", { json: { mode } }); }
 
   /**

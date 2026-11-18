@@ -465,6 +465,7 @@ export const en = {
   "analysis.mode_claude_code": "Claude (subscription), local as backup",
   "analysis.mode_local": "Local model only (nothing leaves the computer)",
   "analysis.mode_both": "Both, to compare them",
+  "analysis.mode_opencode": "OpenCode (model chosen in the CLI)",
   "analysis.quota_available": "Claude quota: available.",
   "analysis.quota_exhausted": "Claude quota: used up; the local model is used.",
   "analysis.quota_unknown": "Claude quota: not checked yet.",

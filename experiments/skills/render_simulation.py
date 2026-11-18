@@ -36,7 +36,9 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import numpy.typing as npt
-from piper import PiperVoice, SynthesisConfig  # type: ignore[import-not-found]
+from piper import (  # type: ignore[import-not-found, unused-ignore]
+    PiperVoice, SynthesisConfig,
+)
 
 Audio = npt.NDArray[np.float64]
 """Mono audio samples in -1..1."""

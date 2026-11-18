@@ -289,7 +289,7 @@ def test_embeddings_raise_other_errors_and_keep_the_gpu_when_it_fits() -> (
 # ---------------------------------------------------------- act tagger
 
 
-class FakeBatch(dict):  # type: ignore[type-arg]
+class FakeBatch(dict):  # type: ignore[type-arg, unused-ignore]
     """Tokenised inputs that run out of memory when sent to a full GPU."""
 
     full = False
