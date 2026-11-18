@@ -465,6 +465,7 @@ export const es = {
   "analysis.mode_claude_code": "Claude (suscripción), con el local de reserva",
   "analysis.mode_local": "Solo el modelo local (nada sale del equipo)",
   "analysis.mode_both": "Los dos, para compararlos",
+  "analysis.mode_opencode": "OpenCode (modelo elegido en la CLI)",
   "analysis.quota_available": "Cupo de Claude: disponible.",
   "analysis.quota_exhausted": "Cupo de Claude: agotado; se usa el modelo local.",
   "analysis.quota_unknown": "Cupo de Claude: aún sin comprobar.",

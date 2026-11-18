@@ -4,7 +4,8 @@
 :class:`SessionAnalysisAccess`: start the whole analysis of a session
 and read its steps, results and person reports (#88).
 
-The web chooses the judge (``claude_code``, ``local`` or ``both``) and
+The web chooses the judge (``claude_code``, ``local``, ``both`` or
+``opencode``) and
 sees whether Claude's quota is available. The RAG keeps the setting;
 the transcriber only forwards the request on loopback with the RAG's
 token, so the RAG itself stays unreachable from the tunnel
@@ -21,7 +22,7 @@ from transcriber.domain.errors import (
 )
 from transcriber.domain.models import SESSION_ID_PATTERN
 
-JUDGE_MODES = ("claude_code", "local", "both")
+JUDGE_MODES = ("claude_code", "local", "both", "opencode")
 """The judges the web may choose (the RAG checks them again)."""
 
 ANALYSIS_STEPS = (

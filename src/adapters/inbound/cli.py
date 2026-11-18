@@ -323,6 +323,9 @@ class RagCLI:
         local_model: Optional[str] = None,
         api_model: Optional[str] = None,
         claude_model: Optional[str] = None,
+        opencode_model: Optional[str] = None,
+        opencode_agent: Optional[str] = None,
+        opencode_timeout: Optional[float] = None,
         local_bits: Optional[int] = None,
         local_policy: Optional[str] = None,
         local_wait_seconds: Optional[float] = None,
@@ -359,10 +362,16 @@ class RagCLI:
             judge: selected (the web's choice, default), claude_code
                 (Claude Code on the subscription, local when its quota
                 runs out), local (nothing leaves the machine), both
-                (the two, compared) or api (paid API; not to be used).
+                (the two, compared), opencode (any model of
+                ``opencode models``) or api (paid API; not to be used).
             local_model: Hugging Face model of the local judge.
             api_model: Model of the API judge.
             claude_model: Claude Code model (opus, sonnet, a full name).
+            opencode_model: Model of the opencode judge, e.g.
+                ``opencode/deepseek-v4.1-flash-free``; choose any id from
+                ``opencode models``.
+            opencode_agent: Name of the inline opencode judge agent.
+            opencode_timeout: Seconds allowed for each opencode reply.
             local_bits: Weight precision of the local judge on a GPU
                 (4, 8 or 16; 4 and 8 need ``uv sync --group
                 local-judge``).

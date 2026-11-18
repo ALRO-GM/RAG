@@ -15,6 +15,7 @@ from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
 from src.adapters.outbound.local_judge import LocalJudge
+from src.adapters.outbound.opencode_judge import OpencodeJudge
 from src.adapters.outbound.transformers_chat_model import (
     TransformersChatModel,
 )
@@ -177,6 +178,12 @@ def test_container_builds_lazy_model_adapters(skills_project: Path) -> None:
     assert isinstance(claude.judge, FallbackJudge)
     assert isinstance(claude.judge.primary, ClaudeCodeJudge)
     assert claude.judge.fallback is claude.local_judge
+    opencode = SkillsContainer(settings(
+        judge="opencode", opencode_model="opencode/beam-free"
+    ))
+    assert isinstance(opencode.judge, OpencodeJudge)
+    assert opencode.judge.model == "opencode/beam-free"
+    assert opencode.judge_mode() == "opencode"
     api = SkillsContainer(settings(
         judge="api", api_model="claude-haiku-5-5", api_effort="low"
     ))

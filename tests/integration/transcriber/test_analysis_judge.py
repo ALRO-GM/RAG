@@ -29,7 +29,7 @@ from transcriber.domain.errors import (
 CODE = "a-long-enough-access-code"
 TOKEN = "r" * 40
 STATUS = {"mode": "claude_code", "chosen": False, "claude_quota": "unknown",
-          "modes": ["claude_code", "local", "both"]}
+          "modes": ["claude_code", "local", "both", "opencode"]}
 
 
 class StandInRag:

@@ -1,6 +1,6 @@
 // The analysis judge control: pure helpers (no DOM), tested in node.
 
-export const JUDGE_MODES = ["claude_code", "local", "both"];
+export const JUDGE_MODES = ["claude_code", "local", "both", "opencode"];
 
 /**
  * When the quota comes back, for people: the exact moment in local time

@@ -6,7 +6,8 @@ transcriber publishes (``POST /transcripts``), gives them back
 deletes the session (``DELETE /transcripts/{id}``, mounted when a
 delete use case is given). ``GET/PUT /analysis/judge`` read and
 change the judge of the soft-skills analysis (``claude_code``,
-``local`` or ``both``) and tell whether Claude's quota is available;
+``local``, ``both`` or ``opencode``) and tell whether Claude's quota
+is available;
 the transcriber's web forwards them. ``/analysis/sessions/{id}`` starts
 the whole analysis of an ingested session (``skills analyze``, in a
 child process), ``DELETE …/run`` stops it, and the others serve its

@@ -35,6 +35,7 @@ from src.adapters.outbound.json_dataset_repository import (
 from src.adapters.outbound.json_judge_state import JsonJudgeStateStore
 from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
 from src.adapters.outbound.local_judge import LocalJudge
+from src.adapters.outbound.opencode_judge import OpencodeJudge
 from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
@@ -314,6 +315,14 @@ class SkillsContainer:
         )
 
     @cached_property
+    def opencode_judge(self) -> OpencodeJudge:
+        """An opencode model through its command line."""
+        s = self.settings
+        return OpencodeJudge(
+            s.opencode_model, s.opencode_agent, s.opencode_timeout
+        )
+
+    @cached_property
     def local_judge(self) -> ChatModel:
         """The local model, picked by the memory free when it is needed."""
         if self._shared_judge is not None:
@@ -350,13 +359,16 @@ class SkillsContainer:
         """Language model that quotes, rates and confirms tags.
 
         Claude Code (also the first judge of ``both``) has the local
-        model behind it for when its quota runs out.
+        model behind it for when its quota runs out; opencode and the
+        local model answer on their own.
         """
         if self._shared_judge is not None:
             return self._shared_judge
         s = self.settings
         if s.judge == "api":
             return AnthropicChatModel(s.api_model, s.api_effort)
+        if self.judge_mode() == "opencode":
+            return self.opencode_judge
         if self.judge_mode() == "local":
             return self.local_judge
         return FallbackJudge(

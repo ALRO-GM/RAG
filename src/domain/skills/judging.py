@@ -20,8 +20,8 @@ from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field
 
-JudgeMode = Literal["claude_code", "local", "both"]
-JUDGE_MODES: Tuple[str, ...] = ("claude_code", "local", "both")
+JudgeMode = Literal["claude_code", "local", "both", "opencode"]
+JUDGE_MODES: Tuple[str, ...] = ("claude_code", "local", "both", "opencode")
 """The judges the web and the settings may choose."""
 
 DEFAULT_JUDGE_MODE: JudgeMode = "claude_code"

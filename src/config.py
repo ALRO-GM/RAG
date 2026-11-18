@@ -8,6 +8,10 @@ from src.adapters.outbound.cross_encoder_reranker import (
     DEFAULT_RERANK_MODEL,
 )
 from src.adapters.outbound.fs_corpus import DEFAULT_EXTENSIONS
+from src.adapters.outbound.opencode_judge import (
+    DEFAULT_OPENCODE_AGENT,
+    DEFAULT_OPENCODE_MODEL,
+)
 from src.domain.skills.conversation_events import EventRules
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -286,7 +290,7 @@ class SkillsSettings(BaseModel):
     bm25_k1: float = 1.2
     bm25_b: float = 0.5
     judge: Literal[
-        "selected", "claude_code", "local", "both", "api"
+        "selected", "claude_code", "local", "both", "api", "opencode"
     ] = "selected"
     judge_state_path: str = "data/skills/judge.json"
     act_card: str = "knowledge/dialogue_acts/act_tagger.json"
@@ -296,6 +300,9 @@ class SkillsSettings(BaseModel):
     ] = None
     claude_timeout: float = Field(default=180.0, gt=0)
     claude_executable: str = "claude"
+    opencode_model: str = DEFAULT_OPENCODE_MODEL
+    opencode_agent: str = DEFAULT_OPENCODE_AGENT
+    opencode_timeout: float = Field(default=180.0, gt=0)
     local_bits: Literal[4, 8, 16] = 4
     local_policy: Literal[
         "preferred", "largest_fitting", "fixed"
