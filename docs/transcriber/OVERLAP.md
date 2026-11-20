@@ -505,3 +505,62 @@ Doubtful 13 / 9 / 6, overlaps 11 / 8 / 7, out of order 0 / 0 / 0; seams
 2 / 7 / 1 with 24 / 77 / 11 words dropped (16 / 58 / 11 with a kept
 copy). Names as above. What forcing Spanish did to the English text
 was not measured (no reference transcript).
+
+## 10. Re-tuning the flags on the lab-diarizer path (TR-19, #95)
+
+After #68 the service separates voices with DiariZen (AMI) or Nemotron
+(CALLHOME). `flag_capture.py` ran the service's own path on the 14
+lab sessions of AMI (4) and CALLHOME (10) with a usable reference (3
+CALLHOME sessions were skipped as excluded by the lab) and stored the
+inputs of the flags; `flag_retune.py` recomputes the flags with any
+thresholds and checks them against the human reference
+(`results/flag_retune.json`; the recomputation with today's thresholds
+reproduces the service's own flags in 3071 of 3071 sentences).
+"Wrong" means the reference speaker who talks most in the sentence is
+not the one its label is matched to (one-to-one by shared seconds); 3032
+sentences are scored, 463 (15.3 %) are wrong. Not done: the synthetic
+identification benchmark (only the real corpora were used).
+
+### 10.1 Doubtful flag
+
+| doubtful vs wrong | flagged | precision | recall | F1 |
+|---|---|---|---|---|
+| today (margin 0.1) | 38.7 % | 0.236 (Wilson 0.213 to 0.261) | 0.598 (0.553 to 0.642) | 0.339 |
+| leave-one-session-out grid | 33.6 % | 0.256 (0.230 to 0.284) | 0.547 (0.502 to 0.591) | 0.349 |
+
+Over sessions the bootstrap intervals are 0.209 to 0.266 (precision,
+before) and 0.228 to 0.283 (after): the two overlap. Moving the margin
+only trades precision for recall along one curve (margin 0.05: 32.9 %
+flagged, precision 0.256, recall 0.551; 0.3: 59.4 %, 0.187, 0.726);
+setting the "kept whole" margin to 0.0 changes F1 by 0.001 to 0.01.
+A doubtful flag is a weak predictor of a wrong attribution (the base
+rate is 15 %, the precision about 24 %): no threshold makes it a good
+one. **Decision: the margins stay (doubt 0.1, whole 0.1)**; the gain of
+the best grid point is inside the noise, and the first row's 38.7 %
+share is the flag's honest recall cost, not a mis-tuning.
+
+### 10.2 Overlap flag and combining the sources
+
+Against the reference's own overlaps (at least 0.5 s with two speakers
+in the sentence, which 1086 of the 3032 sentences have):
+
+| source of the flag | flagged | precision | recall | F1 |
+|---|---|---|---|---|
+| diarizer's and windows' (before) | 41.0 % | 0.687 | 0.786 | 0.733 |
+| windows only | 19.9 % | 0.469 | 0.261 | 0.335 |
+| diarizer only | 29.3 % | 0.910 | 0.745 | 0.819 |
+| both agree | 8.3 % | 0.952 | 0.220 | 0.358 |
+
+The windows' own overlap flag adds many false overlaps (a quick
+exchange is not simultaneous speech) next to
+a diarizer that already marks real ones. **Decision: with a lab
+diarizer only its overlaps (and the detector's, if configured) flag a
+sentence** (`add_detected_overlaps(use_windows=False)`); the built-in
+grouping, which has no other source, keeps the windows' flag. The
+diarizer-only flag is also the better predictor of a wrong
+attribution (precision 0.214, recall 0.410 against 0.176 and 0.471
+with both). The 0.5 s minimum was not re-tuned.
+
+Reproduce: `PYTHONPATH=. python experiments/transcriber/flag_capture.py
+--data-dir data/transcriber --out <dir>` (GPU), then
+`flag_retune.py --captures <dir> --out experiments/transcriber/results/flag_retune.json`.

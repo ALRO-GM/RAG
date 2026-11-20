@@ -443,6 +443,7 @@ def add_detected_overlaps(
     utterances: Sequence[Utterance],
     detected: Sequence[Tuple[float, float]],
     min_seconds: float = DEFAULT_OVERLAP_SECONDS,
+    use_windows: bool = True,
 ) -> List[Utterance]:
     """Flag the utterances an overlap detector heard two voices in.
 
@@ -453,7 +454,10 @@ def add_detected_overlaps(
     detector (``detector``) or only the windows (``voices``). An
     utterance the detector heard no overlap in keeps the windows'
     verdict, and one without any (no voice evidence) becomes ``False``:
-    the detector listened to it.
+    the detector listened to it. With ``use_windows`` off the windows'
+    verdict is dropped and only the detected stretches decide (TR-19:
+    next to a lab diarizer's own overlaps the windows' flag was the
+    weaker predictor, see docs/transcriber/OVERLAP.md).
     """
     merged: List[Tuple[float, float]] = []
     for left, right in sorted(detected):
@@ -469,7 +473,7 @@ def add_detected_overlaps(
             for left, right in spans.inside(utterance.start, utterance.end)
         )
         heard = seconds >= min_seconds and seconds > 0
-        windows = utterance.overlap is True
+        windows = use_windows and utterance.overlap is True
         source = (
             "both" if heard and windows else "detector" if heard
             else "voices" if windows else None
