@@ -635,6 +635,7 @@ class SessionAnalysis:
         self.embedding_model = embedding_model
         self.device_notes = device_notes
         self._judges: Optional[JudgeSetup] = None
+        self._base: Optional[StepUsage] = None
 
     def job(self, session_id: str) -> Optional[JobSought]:
         """Return the job sought stored with the analysis, if any."""
@@ -777,7 +778,7 @@ class SessionAnalysis:
         """
         begin = time.perf_counter()
         before = self.device_notes()
-        used_before = self._usage()
+        used_before = self._usage() if self._judges is not None else None
         try:
             step: Callable[[str, _Context], StepRecord] = getattr(
                 self, f"_{name}"
@@ -789,6 +790,10 @@ class SessionAnalysis:
             )
         moved = new_notes(before, self.device_notes())
         used = self._usage()
+        if used_before is None:
+            # The judges were built during this step: what the ledger
+            # held then (other work of the process) is not the step's.
+            used_before = self._base
         spent = (
             used.minus(used_before) if used is not None
             and used_before is not None else used
@@ -832,6 +837,8 @@ class SessionAnalysis:
         """Return the judges, built once per analysis."""
         if self._judges is None:
             self._judges = self.judges()
+            ledger = self._judges.usage
+            self._base = ledger.snapshot() if ledger is not None else None
         return self._judges
 
     # ----------------------------------------------------------- steps

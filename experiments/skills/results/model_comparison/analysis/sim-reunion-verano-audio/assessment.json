@@ -1,0 +1,2399 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "language": "es",
+ "catalogue": "core",
+ "catalogue_version": "0.1.0",
+ "judge_model": "claude-code:haiku",
+ "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+ "min_incidents": 3,
+ "rules": {
+  "min_incidents": 3.0,
+  "min_episodes": 2.0,
+  "episode_gap": 3.0,
+  "min_similarity": 0.0,
+  "min_participant_words": 40.0,
+  "candidates": 8.0
+ },
+ "team": {
+  "speakers": 4,
+  "turns": 111,
+  "words": 2027,
+  "participation_equality": 0.8636737378720604,
+  "dominant_speaker": "Lucía",
+  "dominant_share": 0.3019240256536754,
+  "has_timestamps": true,
+  "per_speaker": [
+   {
+    "speaker": "Lucía",
+    "turns": 34,
+    "words": 612,
+    "word_share": 0.3019240256536754,
+    "turn_share": 0.3063063063063063,
+    "mean_words_per_turn": 18.0,
+    "questions": 16,
+    "seconds": 215.48,
+    "overlapping_starts": 0,
+    "words_per_minute": 170.4,
+    "median_response_seconds": 0.4
+   },
+   {
+    "speaker": "Andrés",
+    "turns": 32,
+    "words": 477,
+    "word_share": 0.2353231376418352,
+    "turn_share": 0.2882882882882883,
+    "mean_words_per_turn": 14.90625,
+    "questions": 2,
+    "seconds": 156.44,
+    "overlapping_starts": 0,
+    "words_per_minute": 182.9,
+    "median_response_seconds": 0.5
+   },
+   {
+    "speaker": "Nerea",
+    "turns": 25,
+    "words": 571,
+    "word_share": 0.2816970892945239,
+    "turn_share": 0.22522522522522523,
+    "mean_words_per_turn": 22.84,
+    "questions": 6,
+    "seconds": 300.3,
+    "overlapping_starts": 2,
+    "words_per_minute": 114.1,
+    "median_response_seconds": 0.4
+   },
+   {
+    "speaker": "Joaquín",
+    "turns": 20,
+    "words": 367,
+    "word_share": 0.18105574740996547,
+    "turn_share": 0.18018018018018017,
+    "mean_words_per_turn": 18.35,
+    "questions": 2,
+    "seconds": 123.82,
+    "overlapping_starts": 0,
+    "words_per_minute": 177.8,
+    "median_response_seconds": 0.36
+   }
+  ]
+ },
+ "scorecards": [
+  {
+   "participant": "Lucía",
+   "person_id": "lucia",
+   "interaction": {
+    "speaker": "Lucía",
+    "turns": 34,
+    "words": 612,
+    "word_share": 0.3019240256536754,
+    "turn_share": 0.3063063063063063,
+    "mean_words_per_turn": 18.0,
+    "questions": 16,
+    "seconds": 215.48,
+    "overlapping_starts": 0,
+    "words_per_minute": 170.4,
+    "median_response_seconds": 0.4
+   },
+   "assessments": [
+    {
+     "competency_id": "COMM",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 48,
+       "quote": "Entonces propongo que lo preguntes esta semana sin compromiso",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.4971,
+       "start": 406.22
+      },
+      {
+       "turn": 50,
+       "quote": "No te pido que prometas el resultado, solo que lo preguntes",
+       "indicator_id": "COMM.P3",
+       "polarity": "positive",
+       "similarity": 0.1039,
+       "start": 416.76
+      },
+      {
+       "turn": 60,
+       "quote": "lo pongo el primero en la próxima reunión",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "similarity": 0.4835,
+       "start": 475.42
+      },
+      {
+       "turn": 102,
+       "quote": "Repasemos quién hace qué y para cuándo",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "similarity": 0.4801,
+       "start": 804.2
+      }
+     ],
+     "rationale": "Lucía enuncia sus propuestas al inicio, aclara la petición cuando Andrés muestra reservas y concreta quién hace qué y para cuándo, lo que hace sus intervenciones fáciles de seguir. No hay evidencia de los indicadores negativos, pero hay pocas intervenciones largas que permitan valorar la estructura y la comprobación de comprensión, por lo que no llega al nivel 5.",
+     "candidate_turns": [
+      19,
+      30,
+      37,
+      48,
+      50,
+      60,
+      93,
+      102
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "LISTEN",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 37,
+       "quote": "Cuánto tiempo necesitarías para la prueba",
+       "indicator_id": "LISTEN.P2",
+       "polarity": "positive",
+       "similarity": 0.3021,
+       "start": 335.88
+      },
+      {
+       "turn": 89,
+       "quote": "La propuesta que se está formando es catálogo de 12 productos para restaurantes en julio y agosto",
+       "indicator_id": "LISTEN.P1",
+       "polarity": "positive",
+       "similarity": 0.185,
+       "start": 719.66
+      },
+      {
+       "turn": 89,
+       "quote": "a ver si lo he entendido",
+       "indicator_id": "LISTEN.P5",
+       "polarity": "positive",
+       "similarity": 0.2145,
+       "start": 719.66
+      },
+      {
+       "turn": 93,
+       "quote": "Qué cifra usamos para decir que no llegamos",
+       "indicator_id": "LISTEN.P2",
+       "polarity": "positive",
+       "similarity": 0.4601,
+       "start": 755.5
+      }
+     ],
+     "rationale": "Lucía resume la propuesta colectiva antes de cerrarla y hace preguntas de seguimiento que dependen de lo dicho por Joaquín y Andrés, aunque en los extractos aparece solo en unos pocos momentos y rara vez nombra a quien construye. Por eso se sitúa entre 3 y 5.",
+     "candidate_turns": [
+      0,
+      4,
+      37,
+      79,
+      83,
+      89,
+      93,
+      102
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INFLU",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 60,
+       "quote": "Tienes razón, lo pongo el primero en la próxima reunión",
+       "indicator_id": "INFLU.P4",
+       "polarity": "positive",
+       "similarity": 0.4113,
+       "start": 475.42
+      },
+      {
+       "turn": 64,
+       "quote": "Subir el precio el mismo verano en que quitamos productos puede sonar a que damos menos y cobramos más",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.2003,
+       "start": 533.28
+      },
+      {
+       "turn": 75,
+       "quote": "Pues tienes razón en recordarlo y perdona que se quedara ahí",
+       "indicator_id": "INFLU.P4",
+       "polarity": "positive",
+       "similarity": 0.5039,
+       "start": 623.86
+      },
+      {
+       "turn": 97,
+       "quote": "Si en una semana de julio hay más de dos retrasos de más de una hora, se contrata al segundo panadero",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "similarity": 0.1537,
+       "start": 771.34
+      }
+     ],
+     "rationale": "Lucía acepta contraargumentos y ajusta la propuesta diciéndolo, y aporta una razón ante la preocupación sobre el mensaje de la subida. Sin embargo, rara vez vincula sus propuestas a un objetivo fijado por el grupo ni anticipa objeciones.",
+     "candidate_turns": [
+      4,
+      33,
+      48,
+      60,
+      64,
+      75,
+      89,
+      97
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COLLAB",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 0,
+       "quote": "La idea es salir de aquí con una decisión sobre el verano, no con otra lista de problemas",
+       "indicator_id": "COLLAB.P5",
+       "polarity": "positive",
+       "similarity": 0.2389,
+       "start": 0.0
+      },
+      {
+       "turn": 37,
+       "quote": "Me gusta la idea de probar antes de decidir",
+       "indicator_id": "COLLAB.P4",
+       "polarity": "positive",
+       "similarity": 0.2094,
+       "start": 335.88
+      }
+     ],
+     "rationale": "Solo hay dos turnos con evidencia clara (plantea el objetivo en términos del grupo y reconoce la idea de Joaquín), y no se alcanzan las tres necesarias para asignar nivel. Sus preguntas a los compañeros no son ofrecimientos de ayuda ni peticiones de ayuda propias.",
+     "candidate_turns": [
+      0,
+      14,
+      21,
+      30,
+      37,
+      64,
+      87,
+      100
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 0,
+      "needed": 3,
+      "words": 612,
+      "judge_rating": null
+     },
+     "observations": []
+    },
+    {
+     "competency_id": "INCL",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 4,
+       "quote": "Alguien quiere añadir algo al diagnóstico antes de pasar a las propuestas",
+       "indicator_id": "INCL.P3",
+       "polarity": "positive",
+       "similarity": 0.3194,
+       "start": 51.62
+      },
+      {
+       "turn": 79,
+       "quote": "Entonces lo damos por aprobado",
+       "indicator_id": "INCL.N3",
+       "polarity": "negative",
+       "similarity": 0.2554,
+       "start": 654.0
+      }
+     ],
+     "rationale": "Solo hay evidencia clara en dos turnos (uno a favor, en el que pregunta si alguien quiere añadir algo antes de cerrar, y otro en contra, en el que da por aprobada una propuesta sin consultar al grupo), por lo que no se alcanzan las tres intervenciones necesarias para valorar el nivel. La ausencia de más evidencia no indica un nivel bajo.",
+     "candidate_turns": [
+      2,
+      4,
+      44,
+      48,
+      50,
+      79,
+      87,
+      93
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 1,
+      "needed": 3,
+      "words": 612,
+      "judge_rating": null
+     },
+     "observations": [
+      {
+       "turn": 42,
+       "quote": "Había una cuarta, la de adelantar el turno de noche, ¿verdad Andrés?",
+       "indicator_id": "INCL.P1",
+       "polarity": "positive",
+       "source": "confirmation",
+       "start": 376.04,
+       "sentence_id": "t42.s1",
+       "similarity": null
+      }
+     ]
+    },
+    {
+     "competency_id": "CONFL",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 25,
+       "quote": "vamos a separar los números de cómo nos sentimos porque las dos cosas importan",
+       "indicator_id": "CONFL.P4",
+       "polarity": "positive",
+       "similarity": 0.2935,
+       "start": 246.52
+      },
+      {
+       "turn": 37,
+       "quote": "Me gusta la idea de probar antes de decidir",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "similarity": 0.3994,
+       "start": 335.88
+      }
+     ],
+     "rationale": "Lucía reconduce el comentario de Andrés hacia los números y acepta proponer una prueba antes de decidir, pero no expresa ningún desacuerdo propio con razones en los fragmentos. Con solo dos turnos de evidencia y sin desacuerdo explícito, no se puede puntuar el nivel.",
+     "candidate_turns": [
+      14,
+      19,
+      25,
+      33,
+      37,
+      60,
+      75,
+      102
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 2,
+      "needed": 3,
+      "words": 612,
+      "judge_rating": null
+     },
+     "observations": [
+      {
+       "turn": 25,
+       "quote": "El año pasado fue muy duro, pero vamos a separar los números de cómo nos sentimos porque las dos cosas importan.",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "source": "confirmation",
+       "start": 248.72,
+       "sentence_id": "t25.s1",
+       "similarity": null
+      },
+      {
+       "turn": 75,
+       "quote": "Pues tienes razón en recordarlo y perdona que se quedara ahí.",
+       "indicator_id": "CONFL.P6",
+       "polarity": "positive",
+       "source": "confirmation",
+       "start": 623.86,
+       "sentence_id": "t75.s0",
+       "similarity": null
+      }
+     ]
+    },
+    {
+     "competency_id": "FEEDB",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "No hay evidencia suficiente: Lucía modera, decide y asigna tareas, pero apenas da feedback sobre el trabajo de otros, y el único reconocimiento (\"Buena pregunta\") es breve y genérico. No hay explicaciones del porqué ni peticiones de feedback sobre su propia aportación.",
+     "candidate_turns": [
+      4,
+      58,
+      73,
+      79,
+      81,
+      97,
+      100,
+      102
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COORD",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 0,
+       "quote": "La idea es salir de aquí con una decisión sobre el verano",
+       "indicator_id": "COORD.P1",
+       "polarity": "positive",
+       "similarity": 0.4343,
+       "start": 0.0
+      },
+      {
+       "turn": 50,
+       "quote": "Te parece bien tenerlo para el jueves",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.5383,
+       "start": 416.76
+      },
+      {
+       "turn": 60,
+       "quote": "lo pongo el primero en la próxima reunión",
+       "indicator_id": "COORD.P2",
+       "polarity": "positive",
+       "similarity": 0.3809,
+       "start": 475.42
+      },
+      {
+       "turn": 83,
+       "quote": "Volvamos a la producción",
+       "indicator_id": "COORD.P6",
+       "polarity": "positive",
+       "similarity": 0.5485,
+       "start": 679.08
+      },
+      {
+       "turn": 97,
+       "quote": "Pues queda así",
+       "indicator_id": "COORD.P5",
+       "polarity": "positive",
+       "similarity": 0.3034,
+       "start": 771.34
+      }
+     ],
+     "rationale": "Lucía enuncia el objetivo de la sesión, acuerda plazos y responsables, reconduce la discusión tras una digresión y cierra con una decisión concreta. No se observa que vigile el tiempo ni que haga un resumen completo de las decisiones y lo pendiente, por lo que no alcanza el nivel 5.",
+     "candidate_turns": [
+      0,
+      19,
+      33,
+      37,
+      50,
+      60,
+      83,
+      97
+     ],
+     "proposed": 5,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "SOLVE",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 2,
+       "quote": "El verano pasado los pedidos de restaurantes casi se duplicaron en julio y en agosto y fallamos 11 entregas",
+       "indicator_id": "SOLVE.P1",
+       "polarity": "positive",
+       "similarity": 0.2005,
+       "start": 17.76
+      },
+      {
+       "turn": 19,
+       "quote": "Qué otras opciones hay sobre la mesa",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "similarity": 0.3832,
+       "start": 207.68
+      },
+      {
+       "turn": 37,
+       "quote": "Cuánto tiempo necesitarías para la prueba",
+       "indicator_id": "SOLVE.P2",
+       "polarity": "positive",
+       "similarity": 0.4561,
+       "start": 335.88
+      },
+      {
+       "turn": 68,
+       "quote": "Lo del recargo lo estudiamos con números antes de decidir",
+       "indicator_id": "SOLVE.P2",
+       "polarity": "positive",
+       "similarity": 0.5492,
+       "start": 577.9
+      }
+     ],
+     "rationale": "Lucía define el problema con datos concretos, pide alternativas y pide información antes de valorar opciones, pero apenas explicita criterios de valoración ni comprueba la decisión frente al objetivo o a los riesgos que quedan.",
+     "candidate_turns": [
+      0,
+      2,
+      19,
+      37,
+      48,
+      68,
+      70,
+      102
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INIT",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 48,
+       "quote": "Entonces propongo que lo preguntes esta semana sin compromiso y que nos digas cuántos estarían dispuestos",
+       "indicator_id": "INIT.P2",
+       "polarity": "positive",
+       "similarity": 0.465,
+       "start": 406.22
+      },
+      {
+       "turn": 60,
+       "quote": "lo pongo el primero en la próxima reunión",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.5174,
+       "start": 475.42
+      },
+      {
+       "turn": 75,
+       "quote": "perdona que se quedara ahí",
+       "indicator_id": "INIT.P4",
+       "polarity": "positive",
+       "similarity": 0.3662,
+       "start": 623.86
+      }
+     ],
+     "rationale": "Lucía propone pasos concretos cuando el grupo se atasca y se compromete a una acción con referencia temporal, pero delega casi todas las tareas en otros y no se ofrece a entregables propios. Reconoce un punto estancado sin replanificarlo de forma abierta, lo que sitúa su nivel en el ancla 3.",
+     "candidate_turns": [
+      14,
+      33,
+      48,
+      58,
+      60,
+      75,
+      87,
+      100
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "ADAPT",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 60,
+       "quote": "Tienes razón, lo pongo el primero en la próxima reunión",
+       "indicator_id": "ADAPT.P6",
+       "polarity": "positive",
+       "similarity": 0.3645,
+       "start": 475.42
+      },
+      {
+       "turn": 110,
+       "quote": "La próxima a las 11 y empezamos por los domingos",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.1108,
+       "start": 859.32
+      }
+     ],
+     "rationale": "Lucía acepta una corrección de Nerea y dice qué incluirá en la próxima reunión, y ajusta la hora de la reunión a la petición de Andrés. Solo hay dos turnos con evidencia clara, por lo que no se alcanza el mínimo de tres para asignar una valoración.",
+     "candidate_turns": [
+      2,
+      25,
+      33,
+      37,
+      48,
+      60,
+      100,
+      110
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 0,
+      "needed": 3,
+      "words": 612,
+      "judge_rating": null
+     },
+     "observations": []
+    }
+   ]
+  },
+  {
+   "participant": "Andrés",
+   "person_id": "andres",
+   "interaction": {
+    "speaker": "Andrés",
+    "turns": 32,
+    "words": 477,
+    "word_share": 0.2353231376418352,
+    "turn_share": 0.2882882882882883,
+    "mean_words_per_turn": 14.90625,
+    "questions": 2,
+    "seconds": 156.44,
+    "overlapping_starts": 0,
+    "words_per_minute": 182.9,
+    "median_response_seconds": 0.5
+   },
+   "assessments": [
+    {
+     "competency_id": "COMM",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 31,
+       "quote": "La lista de Nerea con las cantidades por día de la semana",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.1324,
+       "start": 283.26
+      },
+      {
+       "turn": 51,
+       "quote": "El jueves, de acuerdo",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "similarity": 0.5935,
+       "start": 423.22
+      },
+      {
+       "turn": 84,
+       "quote": "Yo sigo pensando que con un solo panadero vamos justos",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.2756,
+       "start": 683.28
+      },
+      {
+       "turn": 94,
+       "quote": "Si hay más de dos retrasos en una semana, no llegamos",
+       "indicator_id": "COMM.P4",
+       "polarity": "positive",
+       "similarity": 0.1,
+       "start": 759.88
+      },
+      {
+       "turn": 104,
+       "quote": "el jueves os digo cuántos del equipo aceptarían entrar a las dos",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "similarity": 0.4515,
+       "start": 821.66
+      }
+     ],
+     "rationale": "Andrés suele enunciar primero su postura o petición y confirma después lo que hará y cuándo, y responde de forma concreta cuando le piden una cifra. No hay evidencia de intervenciones largas estructuradas ni de aclaraciones ante confusión, por lo que no alcanza el nivel 5.",
+     "candidate_turns": [
+      31,
+      43,
+      49,
+      51,
+      84,
+      92,
+      94,
+      104
+     ],
+     "proposed": 5,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "LISTEN",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 49,
+       "quote": "Vale, lo pregunto",
+       "indicator_id": "LISTEN.P1",
+       "polarity": "positive",
+       "similarity": 0.3263,
+       "start": 413.28
+      }
+     ],
+     "rationale": "Solo un turno muestra con claridad una reformulación de lo dicho por otra persona (LISTEN.P1). Las demás aportaciones responden al tema tratado sin parafrasear, preguntar ni nombrar a un compañero, así que no hay evidencia suficiente para puntuar.",
+     "candidate_turns": [
+      1,
+      10,
+      22,
+      49,
+      80,
+      84,
+      86,
+      92
+     ],
+     "proposed": 1,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "single_episode",
+       "no_judge_rating"
+      ],
+      "quotes": 1,
+      "confirmations": 0,
+      "needed": 3,
+      "words": 477,
+      "judge_rating": null
+     },
+     "observations": []
+    },
+    {
+     "competency_id": "INFLU",
+     "status": "rated",
+     "rating": 2,
+     "evidence": [
+      {
+       "turn": 6,
+       "quote": "El problema no es el tráfico",
+       "indicator_id": "INFLU.N4",
+       "polarity": "negative",
+       "similarity": 0.1093,
+       "start": 66.7
+      },
+      {
+       "turn": 10,
+       "quote": "la chapata es justo la que más trabajo lleva",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.2365,
+       "start": 103.92
+      },
+      {
+       "turn": 24,
+       "quote": "Luego los que nos quedamos hasta las tantas somos nosotros",
+       "indicator_id": "INFLU.N2",
+       "polarity": "negative",
+       "similarity": 0.1865,
+       "start": 240.22
+      },
+      {
+       "turn": 66,
+       "quote": "si fallamos otra vez, da igual el precio",
+       "indicator_id": "INFLU.P2",
+       "polarity": "positive",
+       "similarity": 0.1372,
+       "start": 565.06
+      },
+      {
+       "turn": 92,
+       "quote": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "similarity": 0.2263,
+       "start": 747.12
+      }
+     ],
+     "rationale": "Andrés aporta alguna razón para sus posturas y en un caso vincula su propuesta a no fallar entregas, y ofrece una condición concreta para acordar. Sin embargo, descarta la objeción de Joaquín sin entrar en su contenido y apela a la experiencia y al esfuerzo del equipo en lugar de dar razones, por lo que su nivel queda entre 1 y 3.",
+     "candidate_turns": [
+      1,
+      6,
+      10,
+      24,
+      51,
+      66,
+      92,
+      104
+     ],
+     "proposed": 5,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COLLAB",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 86,
+       "quote": "Hay una chica que hizo prácticas con nosotros en primavera",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "similarity": 0.1915,
+       "start": 706.68
+      }
+     ],
+     "rationale": "Solo un turno (86) muestra clara y espontáneamente un comportamiento de colaboración, al compartir una candidata útil para el refuerzo que el grupo necesitaba. Los demás turnos son respuestas a preguntas o planteamientos de problemas sin ofrecer ayuda, pedirla ni reconocer a compañeros, por lo que no hay evidencia suficiente para puntuar.",
+     "candidate_turns": [
+      6,
+      10,
+      43,
+      47,
+      49,
+      71,
+      84,
+      86
+     ],
+     "proposed": 1,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "single_episode",
+       "no_judge_rating"
+      ],
+      "quotes": 1,
+      "confirmations": 0,
+      "needed": 3,
+      "words": 477,
+      "judge_rating": null
+     },
+     "observations": []
+    },
+    {
+     "competency_id": "INCL",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [],
+     "rationale": "Andrés responde y aporta sus propias opiniones, pero las intervenciones citadas no muestran invitar a otros, devolver la palabra, pedir opiniones contrarias ni comprobar el acuerdo del grupo, y no hay al menos tres turnos que den evidencia clara, así que no se puede valorar. La ausencia de evidencia no indica un nivel bajo.",
+     "candidate_turns": [
+      22,
+      24,
+      51,
+      55,
+      66,
+      80,
+      84,
+      92
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 2,
+      "confidence": "low",
+      "reasons": [
+       "only_confirmations",
+       "single_episode",
+       "no_judge_rating"
+      ],
+      "quotes": 0,
+      "confirmations": 1,
+      "needed": 3,
+      "words": 477,
+      "judge_rating": null
+     },
+     "observations": [
+      {
+       "turn": 24,
+       "quote": "Eso es lo que dice siempre el departamento comercial.",
+       "indicator_id": "INCL.N4",
+       "polarity": "negative",
+       "source": "confirmation",
+       "start": 240.22,
+       "sentence_id": "t24.s0",
+       "similarity": null
+      }
+     ]
+    },
+    {
+     "competency_id": "CONFL",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 26,
+       "quote": "Perdona, Andrea. No iba por ti",
+       "indicator_id": "CONFL.P6",
+       "polarity": "positive",
+       "similarity": 0.4534,
+       "start": 255.7
+      },
+      {
+       "turn": 43,
+       "quote": "Pero ahí te digo ya que la gente no va a querer",
+       "indicator_id": "CONFL.P1",
+       "polarity": "positive",
+       "similarity": 0.2796,
+       "start": 380.92
+      },
+      {
+       "turn": 84,
+       "quote": "Yo sigo pensando que con un solo panadero vamos justos. Si alguien se pone malo, se cae todo",
+       "indicator_id": "CONFL.P1",
+       "polarity": "positive",
+       "similarity": 0.3763,
+       "start": 683.28
+      },
+      {
+       "turn": 92,
+       "quote": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "similarity": 0.3526,
+       "start": 747.12
+      }
+     ],
+     "rationale": "Andrés expresa sus discrepancias con razones concretas, se disculpa para rebajar la tensión y propone una prueba de decisión (revisar en la primera semana de julio), aunque reconoce poco la postura contraria antes de discrepar.",
+     "candidate_turns": [
+      8,
+      20,
+      26,
+      43,
+      51,
+      80,
+      84,
+      92
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "FEEDB",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "No hay episodios claros de feedback dirigido al trabajo de un compañero, ni petición de feedback sobre su propia aportación, ni explicaciones a alguien que lo necesitara; las intervenciones son propuestas y argumentos sobre la producción. La evidencia es insuficiente para valorar la competencia.",
+     "candidate_turns": [
+      8,
+      10,
+      20,
+      29,
+      47,
+      66,
+      71,
+      84
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COORD",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 51,
+       "quote": "El jueves, de acuerdo",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.5667,
+       "start": 423.22
+      },
+      {
+       "turn": 71,
+       "quote": "Una cosa cada vez",
+       "indicator_id": "COORD.P2",
+       "polarity": "positive",
+       "similarity": 0.2149,
+       "start": 605.34
+      },
+      {
+       "turn": 92,
+       "quote": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.4553,
+       "start": 747.12
+      }
+     ],
+     "rationale": "Andrés acepta un plazo concreto para la tarea pedida, propone un método de trabajo (ir de una cuestión en cada vez) y fija una condición con fecha para la decisión de contratación, pero no fija objetivos, no vigila el tiempo ni resume lo decidido. Su participación encaja con seguir la estructura marcada por otros y aportar de vez en cuando un paso o un plazo.",
+     "candidate_turns": [
+      1,
+      24,
+      43,
+      51,
+      71,
+      84,
+      92,
+      109
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "SOLVE",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 6,
+       "quote": "El problema no es el tráfico. El problema es que en agosto me quiero con dos panaderos menos",
+       "indicator_id": "SOLVE.P1",
+       "polarity": "positive",
+       "similarity": 0.0349,
+       "start": 66.7
+      },
+      {
+       "turn": 8,
+       "quote": "Si faltan dos, son 80 horas menos con el doble de períodos",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "similarity": 0.1258,
+       "start": 81.5
+      },
+      {
+       "turn": 29,
+       "quote": "Tendría que mirarlo con los turnos delante",
+       "indicator_id": "SOLVE.P2",
+       "polarity": "positive",
+       "similarity": 0.3104,
+       "start": 276.18
+      },
+      {
+       "turn": 66,
+       "quote": "si fallamos otra vez, da igual el precio",
+       "indicator_id": "SOLVE.P4",
+       "polarity": "positive",
+       "similarity": 0.3065,
+       "start": 565.06
+      },
+      {
+       "turn": 77,
+       "quote": "la masa de las bases de pizza llega pasada",
+       "indicator_id": "SOLVE.P6",
+       "polarity": "positive",
+       "similarity": 0.1943,
+       "start": 635.92
+      }
+     ],
+     "rationale": "Andrés redefine el problema como falta de personal en agosto, cuantifica la carga con un razonamiento explícito, pide ver los turnos antes de valorar una opción y nombra riesgos como fallar entregas o la masa pasada. Sin embargo, no compara sistemáticamente las opciones ni pide datos de precios de forma activa, por lo que el nivel queda en un punto intermedio.",
+     "candidate_turns": [
+      6,
+      8,
+      10,
+      29,
+      43,
+      47,
+      66,
+      77
+     ],
+     "proposed": 5,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INIT",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 80,
+       "quote": "Mañana llamo al taller",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.3915,
+       "start": 661.36
+      },
+      {
+       "turn": 88,
+       "quote": "Sí, la llamo esta tarde",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.4361,
+       "start": 717.74
+      },
+      {
+       "turn": 104,
+       "quote": "el jueves os digo cuántos del equipo aceptarían entrar a las dos",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.3817,
+       "start": 821.66
+      }
+     ],
+     "rationale": "Andrés acepta las tareas que se le asignan con plazos concretos (taller mañana, chica esta tarde) y en una ocasión se ofrece por iniciativa propia con fecha (el jueves). Sus compromisos son concretos, pero la iniciativa propia aparece poco en el fragmento.",
+     "candidate_turns": [
+      1,
+      6,
+      31,
+      47,
+      80,
+      86,
+      88,
+      104
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "ADAPT",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 66,
+       "quote": "Yo de precios no sé, la verdad",
+       "indicator_id": "ADAPT.P1",
+       "polarity": "positive",
+       "similarity": 0.4153,
+       "start": 565.06
+      },
+      {
+       "turn": 92,
+       "quote": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.3913,
+       "start": 747.12
+      },
+      {
+       "turn": 109,
+       "quote": "Que la próxima vez la reunión sea a las 11",
+       "indicator_id": "ADAPT.P5",
+       "polarity": "positive",
+       "similarity": 0.3289,
+       "start": 853.1
+      }
+     ],
+     "rationale": "Andrés admite con claridad que no sabe de precios y propone una salida condicionada si el plan no funciona en julio, además de sugerir un cambio concreto para la próxima reunión. No hay evidencia de que cambie de postura tras un argumento ni de que pregunte cómo lo enfocarían otros, así que el nivel queda en 3.",
+     "candidate_turns": [
+      12,
+      22,
+      24,
+      43,
+      66,
+      80,
+      92,
+      109
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    }
+   ]
+  },
+  {
+   "participant": "Nerea",
+   "person_id": "nerea",
+   "interaction": {
+    "speaker": "Nerea",
+    "turns": 25,
+    "words": 571,
+    "word_share": 0.2816970892945239,
+    "turn_share": 0.22522522522522523,
+    "mean_words_per_turn": 22.84,
+    "questions": 6,
+    "seconds": 300.3,
+    "overlapping_starts": 2,
+    "words_per_minute": 114.1,
+    "median_response_seconds": 0.4
+   },
+   "assessments": [
+    {
+     "competency_id": "COMM",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 46,
+       "quote": "Yo no lo descartaría",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.306,
+       "start": 391.68
+      },
+      {
+       "turn": 56,
+       "quote": "Podríamos cerrar el pedido del domingo elnes, a mediodía",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.2693,
+       "start": 442.28
+      },
+      {
+       "turn": 61,
+       "quote": "Podríamos subir un poco el precio a los restaurantes en verano",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.5472,
+       "start": 479.42
+      },
+      {
+       "turn": 85,
+       "quote": "El refuerzo no es tan caro y tenemos margen",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.2428,
+       "start": 689.42
+      }
+     ],
+     "rationale": "Nerea suele enunciar su propuesta o postura antes de apoyarla con razones, y se le entiende en la mayoría de sus intervenciones. Sin embargo, no hay evidencia clara de estructurar intervenciones largas, comprobar la comprensión ni cerrar el circuito de las peticiones, y algunas de sus frases son poco claras, por lo que el nivel es intermedio.",
+     "candidate_turns": [
+      3,
+      15,
+      46,
+      56,
+      59,
+      61,
+      65,
+      85
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "LISTEN",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 3,
+       "quote": "Diode, entonces fueron retrasos de más de una hora",
+       "indicator_id": "LISTEN.P1",
+       "polarity": "positive",
+       "similarity": 0.3303,
+       "start": 30.42
+      },
+      {
+       "turn": 11,
+       "quote": "Precisamente, por eso traigo una propuesta",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "similarity": 0.1209,
+       "start": 108.08
+      },
+      {
+       "turn": 65,
+       "quote": "Por eso digo que abriña que explicarlo bien",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "similarity": 0.3627,
+       "start": 542.16
+      },
+      {
+       "turn": 78,
+       "quote": "Y tiene sentido hablar de mensajeros si nuestra propia furgoneta no está bien",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "similarity": 0.1763,
+       "start": 642.34
+      }
+     ],
+     "rationale": "Nerea responde al contenido de lo que dicen Andrés y Lucía y en varias ocasiones retoma sus ideas (la carga de la chapata, la preocupación por el mensaje, la furgoneta), pero casi no parafrasea de forma explícita, no hace preguntas de seguimiento ni nombra a sus compañeros para construir sobre sus ideas; la transcripción es además muy ruidosa.",
+     "candidate_turns": [
+      3,
+      11,
+      46,
+      59,
+      61,
+      63,
+      65,
+      78
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INFLU",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 11,
+       "quote": "Si nos cerramos con los doce que más cenden cubrimos casi el noventa por ciento",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.3199,
+       "start": 108.08
+      },
+      {
+       "turn": 17,
+       "quote": "por lo que vimos en septiembre cuando faltó harina de centeno la mayoría cambió otro pan nuestro",
+       "indicator_id": "INFLU.P3",
+       "polarity": "positive",
+       "similarity": 0.1715,
+       "start": 187.74
+      },
+      {
+       "turn": 46,
+       "quote": "A lo mejor, alguno prefiere entrar antes y salir antes con el calor que hace en agosto",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.2756,
+       "start": 391.68
+      },
+      {
+       "turn": 56,
+       "quote": "Así Andrés sabe con tiempo lo que tiene que hacer",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "similarity": 0.0992,
+       "start": 442.28
+      },
+      {
+       "turn": 95,
+       "quote": "Para medir lo mismo que el año pasado",
+       "indicator_id": "INFLU.P2",
+       "polarity": "positive",
+       "similarity": 0.191,
+       "start": 762.22
+      }
+     ],
+     "rationale": "Nerea acompaña sus propuestas con datos y ejemplos y responde una objeción con un caso concreto, y en un par de ocasiones vincula su propuesta a los intereses de Andrés o a un criterio de comparación compartido. Sin embargo, no se aprecian ajustes explícitos de su propuesta tras un contraargumento ni preguntas sobre lo que necesitan los demás, por lo que el nivel queda en 3.",
+     "candidate_turns": [
+      11,
+      17,
+      32,
+      41,
+      46,
+      56,
+      59,
+      95
+     ],
+     "proposed": 5,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COLLAB",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 41,
+       "quote": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "similarity": 0.3047,
+       "start": 363.32
+      },
+      {
+       "turn": 106,
+       "quote": "El lunes os paso los dos esterarios del recargo de verano",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "similarity": 0.2669,
+       "start": 838.76
+      }
+     ],
+     "rationale": "Solo hay dos turnos con evidencia clara de compartir información por iniciativa propia (41 y 106), por lo que no se alcanza el mínimo de tres turnos para asignar valoración. No hay evidencia de retención, menosprecio ni atribución de trabajo ajeno.",
+     "candidate_turns": [
+      3,
+      11,
+      41,
+      61,
+      63,
+      69,
+      85,
+      106
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 1,
+      "needed": 3,
+      "words": 571,
+      "judge_rating": null
+     },
+     "observations": [
+      {
+       "turn": 41,
+       "quote": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado.",
+       "indicator_id": "COLLAB.P1",
+       "polarity": "positive",
+       "source": "confirmation",
+       "start": 363.32,
+       "sentence_id": "t41.s0",
+       "similarity": null
+      }
+     ]
+    },
+    {
+     "competency_id": "INCL",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "Nerea responde a las peticiones de sus compañeros y propone ideas, pero en los turnos disponibles no invita a nadie que no haya hablado, no devuelve la palabra ni pide opiniones contrarias ni comprueba el acuerdo del grupo. No hay al menos tres turnos con evidencia clara de los indicadores, así que no se puede valorar el nivel.",
+     "candidate_turns": [
+      3,
+      32,
+      41,
+      56,
+      59,
+      61,
+      78,
+      85
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "CONFL",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 46,
+       "quote": "A lo mejor, alguno prefiere entrar antes y salir antes con el calor que hace en agosto",
+       "indicator_id": "CONFL.P1",
+       "polarity": "positive",
+       "similarity": 0.1778,
+       "start": 391.68
+      },
+      {
+       "turn": 63,
+       "quote": "mira el dato el año pasado subimos un cinco por ciento en enero y no perdimos ni un cliente por eso",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "similarity": 0.3445,
+       "start": 493.36
+      },
+      {
+       "turn": 65,
+       "quote": "Si les contamos que es para no fallar entregas, la mayoría lo entiende",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "similarity": 0.444,
+       "start": 542.16
+      },
+      {
+       "turn": 85,
+       "quote": "Y si buscamos a alguien que pueda hacer media jornada en septiembre",
+       "indicator_id": "CONFL.P5",
+       "polarity": "positive",
+       "similarity": 0.2708,
+       "start": 689.42
+      }
+     ],
+     "rationale": "Nerea discrepa con razones y respalda sus posturas con datos y propuestas concretas para resolver las objeciones (comunicación, contratación parcial). No se observa con claridad el reconocimiento explícito de la postura contraria ni la rebaja de tensión, por lo que no alcanza el nivel 5.",
+     "candidate_turns": [
+      3,
+      39,
+      46,
+      59,
+      61,
+      63,
+      65,
+      85
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "FEEDB",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [],
+     "rationale": "En las intervenciones de Nerea no aparece feedback dirigido al trabajo concreto de un compañero, ni petición de feedback sobre su aportación, ni explicaciones a alguien que lo necesitara para aprender. Sus frases justifican propuestas y responden a objeciones, pero no cumplen los indicadores, así que la evidencia es insuficiente para puntuar.",
+     "candidate_turns": [
+      17,
+      46,
+      56,
+      59,
+      63,
+      69,
+      78,
+      85
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "only_confirmations",
+       "single_episode",
+       "no_judge_rating"
+      ],
+      "quotes": 0,
+      "confirmations": 1,
+      "needed": 3,
+      "words": 571,
+      "judge_rating": null
+     },
+     "observations": [
+      {
+       "turn": 56,
+       "quote": "Así Andrés sabe con tiempo lo que tiene que hacer.",
+       "indicator_id": "FEEDB.P4",
+       "polarity": "positive",
+       "source": "confirmation",
+       "start": 447.5,
+       "sentence_id": "t56.s1",
+       "similarity": null
+      }
+     ]
+    },
+    {
+     "competency_id": "COORD",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 56,
+       "quote": "Así Andrés sabe con tiempo lo que tiene que hacer",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.4408,
+       "start": 442.28
+      },
+      {
+       "turn": 90,
+       "quote": "Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.2393,
+       "start": 739.98
+      },
+      {
+       "turn": 103,
+       "quote": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "similarity": 0.2742,
+       "start": 809.06
+      }
+     ],
+     "rationale": "Nerea propone en varios momentos plazos y responsables concretos (pedido del domingo, aviso antes del 20 de mayo, su propia tarea para hoy), pero no fija objetivos, no propone método, no vigila el tiempo ni resume decisiones; Lucía lidera la estructura de la sesión, lo que encaja con un papel de moderación no asignado a Nerea.",
+     "candidate_turns": [
+      15,
+      41,
+      46,
+      56,
+      59,
+      85,
+      90,
+      103
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "SOLVE",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 63,
+       "quote": "estaba pensando en un recarto de verano del cuatro por ciento sólo julio y agosto",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "similarity": 0.1921,
+       "start": 493.36
+      },
+      {
+       "turn": 63,
+       "quote": "subimos un cinco por ciento en enero y no perdimos ni un cliente por eso",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "similarity": 0.1902,
+       "start": 493.36
+      },
+      {
+       "turn": 65,
+       "quote": "Si les contamos que es para no fallar entregas, la mayoría lo entiende",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "similarity": 0.5133,
+       "start": 542.16
+      },
+      {
+       "turn": 69,
+       "quote": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "similarity": 0.3043,
+       "start": 587.76
+      },
+      {
+       "turn": 85,
+       "quote": "El refuerzo no es tan caro y tenemos margen",
+       "indicator_id": "SOLVE.P4",
+       "polarity": "positive",
+       "similarity": 0.259,
+       "start": 689.42
+      },
+      {
+       "turn": 95,
+       "quote": "Para medir lo mismo que el año pasado",
+       "indicator_id": "SOLVE.P4",
+       "polarity": "positive",
+       "similarity": 0.1495,
+       "start": 762.22
+      }
+     ],
+     "rationale": "Nerea aporta datos del año anterior, plantea alternativas (recargo solo en julio y agosto, dos escenarios de pérdida de clientes) y valora opciones con criterios como el coste y la comparabilidad con el año anterior, explicando parte de su razonamiento. No se observa que defina explícitamente el problema ni que compruebe la decisión frente al objetivo nombrando riesgos restantes, por lo que queda en un nivel intermedio-alto.",
+     "candidate_turns": [
+      41,
+      46,
+      56,
+      63,
+      65,
+      69,
+      85,
+      95
+     ],
+     "proposed": 6,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INIT",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 32,
+       "quote": "La preparo hoy misma. La tienes antes de las 5",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.677,
+       "start": 291.8
+      },
+      {
+       "turn": 69,
+       "quote": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.3958,
+       "start": 587.76
+      },
+      {
+       "turn": 106,
+       "quote": "El lunes os paso los dos esterarios del recargo de verano",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.5514,
+       "start": 838.76
+      }
+     ],
+     "rationale": "Nerea se ofrece a tareas concretas con entregable y plazo (la lista para antes de las 5, los escenarios para el lunes), a veces por iniciativa propia. No aparecen en las transcripciones informes de estado sin que se los pidan ni replanificaciones de compromisos retrasados, así que no llega al nivel 5.",
+     "candidate_turns": [
+      3,
+      9,
+      15,
+      17,
+      32,
+      41,
+      69,
+      106
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "ADAPT",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 41,
+       "quote": "que algunos no son los mismos que el año pasado",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.1031,
+       "start": 363.32
+      },
+      {
+       "turn": 56,
+       "quote": "Así Andrés sabe con tiempo lo que tiene que hacer",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.1974,
+       "start": 442.28
+      },
+      {
+       "turn": 69,
+       "quote": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.3369,
+       "start": 587.76
+      }
+     ],
+     "rationale": "Nerea ajusta su propuesta cuando cambian las condiciones (contactos distintos, obrador con tres personas, petición de Lucía de estudiar escenarios), pero no reconoce errores ni explica cambios de postura de forma explícita, ni pregunta cómo lo enfocarían otros.",
+     "candidate_turns": [
+      17,
+      27,
+      41,
+      56,
+      63,
+      65,
+      69,
+      95
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    }
+   ]
+  },
+  {
+   "participant": "Joaquín",
+   "person_id": "joaquin",
+   "interaction": {
+    "speaker": "Joaquín",
+    "turns": 20,
+    "words": 367,
+    "word_share": 0.18105574740996547,
+    "turn_share": 0.18018018018018017,
+    "mean_words_per_turn": 18.35,
+    "questions": 2,
+    "seconds": 123.82,
+    "overlapping_starts": 0,
+    "words_per_minute": 177.8,
+    "median_response_seconds": 0.36
+   },
+   "assessments": [
+    {
+     "competency_id": "COMM",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 38,
+       "quote": "Dos semanas de junio serían suficientes",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.269,
+       "start": 341.26
+      },
+      {
+       "turn": 76,
+       "quote": "El taller me dijo unos 600 euros más la revisión",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.278,
+       "start": 629.24
+      },
+      {
+       "turn": 101,
+       "quote": "Sí. Cada lunes os mando un resumen con los retrasos de la semana anterior",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "similarity": 0.3535,
+       "start": 799.38
+      },
+      {
+       "turn": 105,
+       "quote": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "similarity": 0.5863,
+       "start": 827.34
+      }
+     ],
+     "rationale": "Joaquín suele responder primero con la idea principal y después la apoya, y al final confirma las acciones que asume. No hay intervenciones largas que permitan valorar la estructuración explícita ni comprobaciones de comprensión, por lo que no alcanza el nivel 5.",
+     "candidate_turns": [
+      16,
+      36,
+      38,
+      52,
+      54,
+      76,
+      101,
+      105
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "LISTEN",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 16,
+       "quote": "Si quitamos productos, los pedidos llegan más pequeños",
+       "indicator_id": "LISTEN.P2",
+       "polarity": "positive",
+       "similarity": 0.3434,
+       "start": 176.26
+      },
+      {
+       "turn": 36,
+       "quote": "Eso pensé yo también. Por eso pregunté cómo cargan",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "similarity": 0.22,
+       "start": 326.28
+      },
+      {
+       "turn": 57,
+       "quote": "Eso ayudaría mucho, la verdad",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "similarity": 0.1706,
+       "start": 450.94
+      }
+     ],
+     "rationale": "Joaquín responde al contenido de lo que dicen Lucía, Andrés y Nerea y retoma sus ideas (p. ej., la propuesta del pedido del domingo), pero casi nunca parafrasea, nombra a los compañeros ni hace preguntas de seguimiento claramente dependientes de lo dicho.",
+     "candidate_turns": [
+      16,
+      34,
+      36,
+      38,
+      52,
+      57,
+      72,
+      76
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INFLU",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 34,
+       "quote": "Una de ellas cubriría la costa por unos 300 euros a la semana",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.1567,
+       "start": 310.52
+      },
+      {
+       "turn": 36,
+       "quote": "Usan cajas cerradas y no apilan más de cuatro alturas",
+       "indicator_id": "INFLU.P3",
+       "polarity": "positive",
+       "similarity": 0.2982,
+       "start": 326.28
+      },
+      {
+       "turn": 52,
+       "quote": "El año pasado fueron el peor día",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "similarity": 0.1293,
+       "start": 425.26
+      },
+      {
+       "turn": 67,
+       "quote": "En eso tienes razón, Andrés",
+       "indicator_id": "INFLU.P4",
+       "polarity": "positive",
+       "similarity": 0.2206,
+       "start": 570.82
+      }
+     ],
+     "rationale": "Joaquín acompaña sus propuestas con datos concretos (precio de la mensajería, condiciones de carga, experiencia del año anterior), responde a la objeción de Andrés sobre el manejo del pan y reconoce su contraargumento. Vincula menos sus propuestas explícitamente a objetivos fijados por el grupo, por lo que no llega al nivel 5.",
+     "candidate_turns": [
+      16,
+      18,
+      34,
+      36,
+      38,
+      52,
+      67,
+      74
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COLLAB",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 36,
+       "quote": "Por eso pregunté cómo cargan. Usan cajas cerradas y no apilan más de cuatro alturas",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "similarity": 0.3204,
+       "start": 326.28
+      },
+      {
+       "turn": 52,
+       "quote": "Una cosa que no hemos hablado",
+       "indicator_id": "COLLAB.P5",
+       "polarity": "positive",
+       "similarity": 0.237,
+       "start": 425.26
+      },
+      {
+       "turn": 72,
+       "quote": "Otra cosa que me preocupa es la fulgoneta pequeña",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "similarity": 0.159,
+       "start": 608.5
+      }
+     ],
+     "rationale": "Joaquín comparte por iniciativa propia información útil para el grupo (turnos 36 y 72) y plantea un problema en términos colectivos (turno 52), pero no se observan ofrecimientos de ayuda concreta a un compañero, peticiones de ayuda ni reconocimientos explícitos a otros. Su cooperación es real pero aparece de forma puntual.",
+     "candidate_turns": [
+      5,
+      16,
+      36,
+      38,
+      52,
+      54,
+      72,
+      91
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INCL",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "Las intervenciones de Joaquín tratan el contenido de la ruta y los pedidos, pero ninguna muestra claramente invitar a otros, devolver la palabra, pedir opiniones contrarias o comprobar el acuerdo del grupo. Sin al menos tres turnos con evidencia clara no se puede asignar una valoración.",
+     "candidate_turns": [
+      16,
+      18,
+      34,
+      36,
+      40,
+      52,
+      74,
+      91
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "CONFL",
+     "status": "provisional",
+     "rating": null,
+     "evidence": [
+      {
+       "turn": 36,
+       "quote": "Puedo pedir que nos hagan una prueba",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "similarity": 0.3205,
+       "start": 326.28
+      },
+      {
+       "turn": 67,
+       "quote": "En eso tienes razón, Andrés",
+       "indicator_id": "CONFL.P2",
+       "polarity": "positive",
+       "similarity": 0.2805,
+       "start": 570.82
+      }
+     ],
+     "rationale": "Joaquín apenas expresa un desacuerdo explícito en la sesión; solo hay dos turnos con evidencia clara (propone una prueba y reconoce la razón de Andrés), por lo que no se alcanzan las tres evidencias necesarias para puntuar. La ausencia de desacuerdo no equivale a un nivel bajo.",
+     "candidate_turns": [
+      5,
+      16,
+      36,
+      38,
+      67,
+      76,
+      91,
+      105
+     ],
+     "proposed": 2,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": {
+      "rating": 4,
+      "confidence": "low",
+      "reasons": [
+       "few_quotes",
+       "no_judge_rating"
+      ],
+      "quotes": 2,
+      "confirmations": 0,
+      "needed": 3,
+      "words": 367,
+      "judge_rating": null
+     },
+     "observations": []
+    },
+    {
+     "competency_id": "FEEDB",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "Los turnos de Joaquín son sobre todo propuestas e información sobre el trabajo, no feedback dirigido a un compañero. No hay episodios claros de feedback dado, pedido, reconocimiento ni comprobación de comprensión, así que la evidencia es insuficiente para valorar la competencia.",
+     "candidate_turns": [
+      16,
+      36,
+      38,
+      40,
+      52,
+      74,
+      76,
+      91
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "COORD",
+     "status": "insufficient_evidence",
+     "rating": null,
+     "evidence": [],
+     "rationale": "Joaquín aporta datos y propone ideas sobre pedidos y la furgoneta, pero en los turnos citados no fija objetivos, método, responsables ni plazos, ni resume decisiones; sus aperturas de temas nuevos (turnos 52 y 72) no bastan para evidenciar el indicador de tema ajeno reiterado. Al no haber al menos tres turnos con evidencia clara, no se asigna valoración.",
+     "candidate_turns": [
+      18,
+      28,
+      52,
+      54,
+      57,
+      72,
+      74,
+      76
+     ],
+     "proposed": 0,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "SOLVE",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 16,
+       "quote": "Si quitamos productos, los pedidos llegan más pequeños",
+       "indicator_id": "SOLVE.P2",
+       "polarity": "positive",
+       "similarity": 0.4209,
+       "start": 176.26
+      },
+      {
+       "turn": 18,
+       "quote": "entonces para reparto no cambia mucho",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "similarity": 0.2838,
+       "start": 202.16
+      },
+      {
+       "turn": 28,
+       "quote": "Y si fuera uno en vez de dos, uno contratado más el catálogo reducido",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "similarity": 0.4221,
+       "start": 271.4
+      },
+      {
+       "turn": 38,
+       "quote": "Si lo hacemos la segunda y la tercera semana, tenemos datos antes de julio",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "similarity": 0.228,
+       "start": 341.26
+      },
+      {
+       "turn": 52,
+       "quote": "Qué hacemos con los pedidos del domingo? El año pasado fueron el peor día",
+       "indicator_id": "SOLVE.P1",
+       "polarity": "positive",
+       "similarity": 0.1491,
+       "start": 425.26
+      },
+      {
+       "turn": 76,
+       "quote": "Si se hace en mayo, llegamos a junio sin problema",
+       "indicator_id": "SOLVE.P6",
+       "polarity": "positive",
+       "similarity": 0.1986,
+       "start": 629.24
+      }
+     ],
+     "rationale": "Joaquín pide información, plantea alternativas, señala un problema no tratado hasta entonces y explicita su razonamiento con frecuencia, aunque no formula criterios explícitos ni compara sistemáticamente las opciones.",
+     "candidate_turns": [
+      16,
+      18,
+      28,
+      38,
+      52,
+      74,
+      76,
+      91
+     ],
+     "proposed": 6,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "INIT",
+     "status": "rated",
+     "rating": 4,
+     "evidence": [
+      {
+       "turn": 76,
+       "quote": "Si se hace en mayo, llegamos a junio sin problema",
+       "indicator_id": "INIT.P6",
+       "polarity": "positive",
+       "similarity": 0.2761,
+       "start": 629.24
+      },
+      {
+       "turn": 101,
+       "quote": "Cada lunes os mando un resumen con los retrasos de la semana anterior",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.739,
+       "start": 799.38
+      },
+      {
+       "turn": 105,
+       "quote": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.5591,
+       "start": 827.34
+      },
+      {
+       "turn": 107,
+       "quote": "Y mañana pido cita en el taller para la furgoneta",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "similarity": 0.569,
+       "start": 843.26
+      }
+     ],
+     "rationale": "Joaquín se compromete con acciones concretas y con plazos (resumen semanal, prueba al mensajero, cita en el taller) y expresa confianza ligada a un plan de mayo. No se observa que informe del estado de compromisos anteriores ni que replanifique abiertamente, por lo que no alcanza el nivel 5.",
+     "candidate_turns": [
+      18,
+      54,
+      57,
+      76,
+      99,
+      101,
+      105,
+      107
+     ],
+     "proposed": 4,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    },
+    {
+     "competency_id": "ADAPT",
+     "status": "rated",
+     "rating": 3,
+     "evidence": [
+      {
+       "turn": 18,
+       "quote": "entonces para reparto no cambia mucho",
+       "indicator_id": "ADAPT.P2",
+       "polarity": "positive",
+       "similarity": 0.2776,
+       "start": 202.16
+      },
+      {
+       "turn": 36,
+       "quote": "Puedo pedir que nos hagan una prueba",
+       "indicator_id": "ADAPT.P4",
+       "polarity": "positive",
+       "similarity": 0.1461,
+       "start": 326.28
+      },
+      {
+       "turn": 57,
+       "quote": "Eso ayudaría mucho, la verdad",
+       "indicator_id": "ADAPT.P2",
+       "polarity": "positive",
+       "similarity": 0.2408,
+       "start": 450.94
+      }
+     ],
+     "rationale": "Joaquín incorpora la información nueva del equipo y ajusta su valoración (turnos 18 y 57) y propone una prueba para atender la preocupación de Andrés (turno 36). No reconoce errores propios ni explica qué haría distinto en el futuro, así que su apertura queda en un nivel intermedio.",
+     "candidate_turns": [
+      16,
+      18,
+      28,
+      36,
+      38,
+      52,
+      57,
+      74
+     ],
+     "proposed": 3,
+     "rejected": 0,
+     "unsupported": 0,
+     "flags": [],
+     "estimate": null,
+     "observations": []
+    }
+   ]
+  }
+ ],
+ "seconds": 416.44,
+ "started_at": null,
+ "conversation_type": "reunion_decision",
+ "format_version": 2
+}

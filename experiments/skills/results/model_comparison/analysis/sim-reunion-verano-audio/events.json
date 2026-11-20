@@ -1,0 +1,2158 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "synthetic": false,
+ "relinked": false,
+ "rules": {
+  "reply_window": 4,
+  "link_decay": 0.15,
+  "min_link_confidence": 0.3,
+  "min_label_weight": 30,
+  "use_doubtful": false,
+  "min_acceptances": 1,
+  "closing_acceptances": 2,
+  "closing_window": 12
+ },
+ "links": [
+  {
+   "source": "t6.s0",
+   "target": "t5.s2",
+   "inferred": true,
+   "confidence": 0.6,
+   "turns": 1
+  },
+  {
+   "source": "t8.s0",
+   "target": "t7.s2",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t9.s0",
+   "target": "t8.s2",
+   "inferred": true,
+   "confidence": 0.6,
+   "turns": 1
+  },
+  {
+   "source": "t10.s0",
+   "target": "t9.s3",
+   "inferred": true,
+   "confidence": 0.6,
+   "turns": 1
+  },
+  {
+   "source": "t14.s0",
+   "target": "t11.s3",
+   "inferred": true,
+   "confidence": 0.7,
+   "turns": 3
+  },
+  {
+   "source": "t20.s0",
+   "target": "t19.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t22.s0",
+   "target": "t21.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t23.s0",
+   "target": "t21.s0",
+   "inferred": true,
+   "confidence": 0.85,
+   "turns": 2
+  },
+  {
+   "source": "t27.s0",
+   "target": "t25.s1",
+   "inferred": true,
+   "confidence": 0.51,
+   "turns": 2
+  },
+  {
+   "source": "t31.s0",
+   "target": "t30.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t34.s0",
+   "target": "t33.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t36.s0",
+   "target": "t35.s2",
+   "inferred": true,
+   "confidence": 0.5,
+   "turns": 1
+  },
+  {
+   "source": "t38.s0",
+   "target": "t37.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t40.s0",
+   "target": "t39.s1",
+   "inferred": true,
+   "confidence": 0.3,
+   "turns": 1
+  },
+  {
+   "source": "t40.s1",
+   "target": "t39.s1",
+   "inferred": true,
+   "confidence": 0.6,
+   "turns": 1
+  },
+  {
+   "source": "t43.s0",
+   "target": "t39.s1",
+   "inferred": true,
+   "confidence": 0.55,
+   "turns": 4
+  },
+  {
+   "source": "t45.s0",
+   "target": "t44.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t47.s0",
+   "target": "t46.s2",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t49.s1",
+   "target": "t46.s2",
+   "inferred": true,
+   "confidence": 0.7,
+   "turns": 3
+  },
+  {
+   "source": "t50.s0",
+   "target": "t46.s2",
+   "inferred": true,
+   "confidence": 0.55,
+   "turns": 4
+  },
+  {
+   "source": "t51.s0",
+   "target": "t50.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t53.s0",
+   "target": "t52.s2",
+   "inferred": true,
+   "confidence": 0.5,
+   "turns": 1
+  },
+  {
+   "source": "t54.s0",
+   "target": "t53.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t57.s0",
+   "target": "t56.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t59.s0",
+   "target": "t57.s2",
+   "inferred": true,
+   "confidence": 0.425,
+   "turns": 2
+  },
+  {
+   "source": "t67.s0",
+   "target": "t66.s1",
+   "inferred": true,
+   "confidence": 0.5,
+   "turns": 1
+  },
+  {
+   "source": "t74.s0",
+   "target": "t73.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t76.s0",
+   "target": "t75.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t80.s0",
+   "target": "t79.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t80.s1",
+   "target": "t79.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t80.s3",
+   "target": "t79.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t82.s0",
+   "target": "t81.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t86.s0",
+   "target": "t85.s0",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t89.s2",
+   "target": "t85.s0",
+   "inferred": true,
+   "confidence": 0.55,
+   "turns": 4
+  },
+  {
+   "source": "t92.s0",
+   "target": "t90.s0",
+   "inferred": true,
+   "confidence": 0.85,
+   "turns": 2
+  },
+  {
+   "source": "t92.s1",
+   "target": "t90.s0",
+   "inferred": true,
+   "confidence": 0.85,
+   "turns": 2
+  },
+  {
+   "source": "t93.s0",
+   "target": "t92.s2",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t94.s0",
+   "target": "t93.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t95.s1",
+   "target": "t93.s1",
+   "inferred": true,
+   "confidence": 0.85,
+   "turns": 2
+  },
+  {
+   "source": "t96.s0",
+   "target": "t95.s0",
+   "inferred": true,
+   "confidence": 0.3,
+   "turns": 1
+  },
+  {
+   "source": "t101.s0",
+   "target": "t100.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  },
+  {
+   "source": "t103.s0",
+   "target": "t99.s0",
+   "inferred": true,
+   "confidence": 0.33,
+   "turns": 4
+  },
+  {
+   "source": "t109.s0",
+   "target": "t108.s1",
+   "inferred": true,
+   "confidence": 0.3,
+   "turns": 1
+  },
+  {
+   "source": "t110.s0",
+   "target": "t109.s1",
+   "inferred": true,
+   "confidence": 1.0,
+   "turns": 1
+  }
+ ],
+ "events": [
+  {
+   "id": "e1",
+   "type": "question_unanswered",
+   "key": "t4.s2",
+   "sentences": [
+    "t4.s2"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 4,
+   "order": 13,
+   "start": 54.26,
+   "text": "¿Alguien quiere añadir algo al diagnóstico antes de pasar a las propuestas?",
+   "confidence": 0.74,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e2",
+   "type": "question_answered",
+   "key": "t7.s2",
+   "sentences": [
+    "t7.s2",
+    "t8.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 7,
+   "order": 21,
+   "start": 76.5,
+   "text": "¿Cuántas horas de obrador te faltan más o menos en una semana normal de agosto?",
+   "confidence": 0.97,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e3",
+   "type": "question_unanswered",
+   "key": "t12.s0",
+   "sentences": [
+    "t12.s0"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 12,
+   "order": 34,
+   "start": 136.7,
+   "text": "¿Y quién le dice al restaurante de lale",
+   "confidence": 0.82,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e4",
+   "type": "question_answered",
+   "key": "t19.s1",
+   "sentences": [
+    "t19.s1",
+    "t20.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 19,
+   "order": 45,
+   "start": 210.88,
+   "text": "¿Qué otras opciones hay sobre la mesa?",
+   "confidence": 0.98,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e5",
+   "type": "question_answered",
+   "key": "t21.s0",
+   "sentences": [
+    "t21.s0",
+    "t22.s0",
+    "t23.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés",
+    "Nerea"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés",
+    "Nerea"
+   ],
+   "turn": 21,
+   "order": 49,
+   "start": 221.38,
+   "text": "¿Has mirado cuánto cuesta?",
+   "confidence": 0.85,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e6",
+   "type": "question_answered",
+   "key": "t30.s0",
+   "sentences": [
+    "t30.s0",
+    "t31.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 30,
+   "order": 66,
+   "start": 281.42,
+   "text": "¿Qué necesitas para mirarlo?",
+   "confidence": 0.98,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e7",
+   "type": "question_answered",
+   "key": "t33.s1",
+   "sentences": [
+    "t33.s1",
+    "t34.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 33,
+   "order": 72,
+   "start": 308.96,
+   "text": "¿Qué propones ahí?",
+   "confidence": 0.93,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e8",
+   "type": "question_answered",
+   "key": "t37.s1",
+   "sentences": [
+    "t37.s1",
+    "t38.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 37,
+   "order": 83,
+   "start": 338.34,
+   "text": "¿Cuánto tiempo necesitarías para la prueba?",
+   "confidence": 0.98,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e9",
+   "type": "question_unanswered",
+   "key": "t39.s0",
+   "sentences": [
+    "t39.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 39,
+   "order": 86,
+   "start": 348.84,
+   "text": "¿Y los que irían antes de la posta?",
+   "confidence": 0.96,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e10",
+   "type": "question_answered",
+   "key": "t39.s1",
+   "sentences": [
+    "t39.s1",
+    "t40.s0",
+    "t40.s1",
+    "t43.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Joaquín",
+    "Andrés"
+   ],
+   "people": [
+    "Nerea",
+    "Joaquín",
+    "Andrés"
+   ],
+   "turn": 39,
+   "order": 87,
+   "start": 350.86,
+   "text": "¿Serían que les hiciera otra repasación?",
+   "confidence": 0.3,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e11",
+   "type": "question_answered",
+   "key": "t44.s0",
+   "sentences": [
+    "t44.s0",
+    "t45.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 44,
+   "order": 95,
+   "start": 386.24,
+   "text": "¿Lo has hablado con ellos?",
+   "confidence": 0.97,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e12",
+   "type": "question_unanswered",
+   "key": "t52.s1",
+   "sentences": [
+    "t52.s1"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 52,
+   "order": 109,
+   "start": 426.88,
+   "text": "¿Qué hacemos con los pedidos del domingo?",
+   "confidence": 0.94,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e13",
+   "type": "question_answered",
+   "key": "t53.s1",
+   "sentences": [
+    "t53.s1",
+    "t54.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 53,
+   "order": 112,
+   "start": 432.5,
+   "text": "¿Por qué fue el peor?",
+   "confidence": 0.99,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e14",
+   "type": "question_unanswered",
+   "key": "t63.s4",
+   "sentences": [
+    "t63.s4"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 63,
+   "order": 132,
+   "start": 514.78,
+   "text": "¿Cuánto sería la subida? estaba pensando en un recarto de verano del cuatro por ciento sólo julio y agosto.",
+   "confidence": 0.65,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e15",
+   "type": "question_answered",
+   "key": "t73.s0",
+   "sentences": [
+    "t73.s0",
+    "t74.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 73,
+   "order": 156,
+   "start": 617.06,
+   "text": "¿Desde cuándo pasa eso?",
+   "confidence": 0.98,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e16",
+   "type": "question_answered",
+   "key": "t75.s1",
+   "sentences": [
+    "t75.s1",
+    "t76.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 75,
+   "order": 160,
+   "start": 627.44,
+   "text": "¿Cuánto costaría adelarlo?",
+   "confidence": 0.98,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e17",
+   "type": "question_answered",
+   "key": "t93.s1",
+   "sentences": [
+    "t93.s1",
+    "t94.s0",
+    "t95.s1"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés",
+    "Nerea"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés",
+    "Nerea"
+   ],
+   "turn": 93,
+   "order": 196,
+   "start": 756.7,
+   "text": "¿Qué cifra usamos para decir que no llegamos?",
+   "confidence": 0.85,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e18",
+   "type": "question_answered",
+   "key": "t95.s0",
+   "sentences": [
+    "t95.s0",
+    "t96.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés"
+   ],
+   "turn": 95,
+   "order": 198,
+   "start": 762.22,
+   "text": "¿Dos retrasos de más de una hora?",
+   "confidence": 0.3,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e19",
+   "type": "question_answered",
+   "key": "t99.s0",
+   "sentences": [
+    "t99.s0",
+    "t103.s0"
+   ],
+   "by": "Joaquín",
+   "responders": [
+    "Nerea"
+   ],
+   "people": [
+    "Joaquín",
+    "Nerea"
+   ],
+   "turn": 99,
+   "order": 205,
+   "start": 787.76,
+   "text": "quién mira los retrasos cada semana?",
+   "confidence": 0.33,
+   "latency_turns": 4,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e20",
+   "type": "question_answered",
+   "key": "t108.s1",
+   "sentences": [
+    "t108.s1",
+    "t109.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 108,
+   "order": 220,
+   "start": 851.56,
+   "text": "¿Algo más?",
+   "confidence": 0.3,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e21",
+   "type": "proposal_ignored",
+   "key": "t11.s1",
+   "sentences": [
+    "t11.s1"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 11,
+   "order": 31,
+   "start": 113.6,
+   "text": "Podríamos producir el catálogo de restaurantes en verano.",
+   "confidence": 0.95,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e22",
+   "type": "proposal_accepted",
+   "key": "t11.s3",
+   "sentences": [
+    "t11.s3",
+    "t14.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Nerea",
+    "Lucía"
+   ],
+   "turn": 11,
+   "order": 33,
+   "start": 129.16,
+   "text": "Si nos cerramos con los doce que más cenden cubrimos casi el noventa por ciento de lo que factoramos con ellos.",
+   "confidence": 0.64,
+   "latency_turns": 3,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e23",
+   "type": "proposal_ignored",
+   "key": "t23.s2",
+   "sentences": [
+    "t23.s2"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 23,
+   "order": 54,
+   "start": 237.6,
+   "text": "Económico, el thriller.",
+   "confidence": 0.71,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e24",
+   "type": "proposal_ignored",
+   "key": "t28.s0",
+   "sentences": [
+    "t28.s0"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 28,
+   "order": 63,
+   "start": 271.4,
+   "text": "Y si fuera uno en vez de dos, uno contratado más el catálogo reducido.",
+   "confidence": 0.95,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e25",
+   "type": "proposal_ignored",
+   "key": "t29.s0",
+   "sentences": [
+    "t29.s0"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 29,
+   "order": 64,
+   "start": 276.18,
+   "text": "Con uno y doce productos podría salir.",
+   "confidence": 0.52,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e26",
+   "type": "proposal_ignored",
+   "key": "t29.s1",
+   "sentences": [
+    "t29.s1"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 29,
+   "order": 65,
+   "start": 278.84,
+   "text": "Tendría que mirarlo con los turnos delante.",
+   "confidence": 0.7,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e27",
+   "type": "proposal_ignored",
+   "key": "t36.s3",
+   "sentences": [
+    "t36.s3"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 36,
+   "order": 81,
+   "start": 333.34,
+   "text": "Puedo pedir que nos hagan una prueba.",
+   "confidence": 0.88,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e28",
+   "type": "proposal_rejected",
+   "key": "t46.s2",
+   "sentences": [
+    "t46.s2",
+    "t49.s1",
+    "t50.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés",
+    "Lucía"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 46,
+   "order": 99,
+   "start": 396.0,
+   "text": "A lo mejor, alguno prefiere entrar antes y salir antes con el calor que hace en agosto.",
+   "confidence": 0.55,
+   "latency_turns": 3,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e29",
+   "type": "proposal_accepted",
+   "key": "t50.s1",
+   "sentences": [
+    "t50.s1",
+    "t51.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 50,
+   "order": 106,
+   "start": 420.8,
+   "text": "Te parece bien tenerlo para el jueves.",
+   "confidence": 0.69,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e30",
+   "type": "proposal_accepted",
+   "key": "t56.s0",
+   "sentences": [
+    "t56.s0",
+    "t57.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Nerea",
+    "Joaquín"
+   ],
+   "turn": 56,
+   "order": 115,
+   "start": 442.28,
+   "text": "¿Podríamos cerrar el pedido del domingo elnes, a mediodía.",
+   "confidence": 0.89,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e31",
+   "type": "proposal_ignored",
+   "key": "t61.s1",
+   "sentences": [
+    "t61.s1"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 61,
+   "order": 125,
+   "start": 484.82,
+   "text": "Podríamos subir un poco el precio a los restaurantes en verano.",
+   "confidence": 0.94,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e32",
+   "type": "proposal_ignored",
+   "key": "t68.s1",
+   "sentences": [
+    "t68.s1"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 68,
+   "order": 146,
+   "start": 579.6,
+   "text": "Lo del recargo lo estudiamos con números antes de decidir.",
+   "confidence": 0.64,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e33",
+   "type": "proposal_ignored",
+   "key": "t68.s2",
+   "sentences": [
+    "t68.s2"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 68,
+   "order": 147,
+   "start": 582.74,
+   "text": "Nerea, ¿podrías calcular qué pasaría si perdiéramos dos o tres clientes por la subida.",
+   "confidence": 0.59,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e34",
+   "type": "proposal_ignored",
+   "key": "t69.s0",
+   "sentences": [
+    "t69.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 69,
+   "order": 148,
+   "start": 587.76,
+   "text": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños.",
+   "confidence": 0.85,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e35",
+   "type": "proposal_ignored",
+   "key": "t71.s1",
+   "sentences": [
+    "t71.s1"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 71,
+   "order": 153,
+   "start": 606.3,
+   "text": "Una cosa cada vez.",
+   "confidence": 0.53,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e36",
+   "type": "proposal_accepted",
+   "key": "t85.s0",
+   "sentences": [
+    "t85.s0",
+    "t86.s0",
+    "t89.s2"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés",
+    "Lucía"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 85,
+   "order": 179,
+   "start": 689.42,
+   "text": "Y si buscamos a alguien que pueda hacer media jornada en septiembre, también dirte así.",
+   "confidence": 0.55,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e37",
+   "type": "proposal_accepted",
+   "key": "t90.s0",
+   "sentences": [
+    "t90.s0",
+    "t92.s1"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés"
+   ],
+   "turn": 90,
+   "order": 190,
+   "start": 739.98,
+   "text": "Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo.",
+   "confidence": 0.81,
+   "latency_turns": 2,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e38",
+   "type": "proposal_accepted",
+   "key": "t92.s2",
+   "sentences": [
+    "t92.s2",
+    "t93.s0"
+   ],
+   "by": "Andrés",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 92,
+   "order": 194,
+   "start": 750.28,
+   "text": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.",
+   "confidence": 0.65,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e39",
+   "type": "proposal_accepted",
+   "key": "t100.s1",
+   "sentences": [
+    "t100.s1",
+    "t101.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 100,
+   "order": 208,
+   "start": 794.98,
+   "text": "Puedes hacerlo tú, Joaquín.",
+   "confidence": 0.72,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e40",
+   "type": "proposal_accepted",
+   "key": "t109.s1",
+   "sentences": [
+    "t109.s1",
+    "t110.s0"
+   ],
+   "by": "Andrés",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 109,
+   "order": 222,
+   "start": 853.74,
+   "text": "Que la próxima vez la reunión sea a las 11.",
+   "confidence": 0.58,
+   "latency_turns": 1,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e41",
+   "type": "decision",
+   "key": "t11.s3",
+   "sentences": [
+    "t11.s3",
+    "t14.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Nerea",
+    "Lucía"
+   ],
+   "turn": 11,
+   "order": 33,
+   "start": 129.16,
+   "text": "Si nos cerramos con los doce que más cenden cubrimos casi el noventa por ciento de lo que factoramos con ellos.",
+   "confidence": 0.64,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e42",
+   "type": "decision",
+   "key": "t50.s1",
+   "sentences": [
+    "t50.s1",
+    "t51.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 50,
+   "order": 106,
+   "start": 420.8,
+   "text": "Te parece bien tenerlo para el jueves.",
+   "confidence": 0.69,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e43",
+   "type": "decision",
+   "key": "t56.s0",
+   "sentences": [
+    "t56.s0",
+    "t57.s0"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Nerea",
+    "Joaquín"
+   ],
+   "turn": 56,
+   "order": 115,
+   "start": 442.28,
+   "text": "¿Podríamos cerrar el pedido del domingo elnes, a mediodía.",
+   "confidence": 0.89,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e44",
+   "type": "decision",
+   "key": "t85.s0",
+   "sentences": [
+    "t85.s0",
+    "t86.s0",
+    "t89.s2"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés",
+    "Lucía"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 85,
+   "order": 179,
+   "start": 689.42,
+   "text": "Y si buscamos a alguien que pueda hacer media jornada en septiembre, también dirte así.",
+   "confidence": 0.55,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e45",
+   "type": "decision",
+   "key": "t90.s0",
+   "sentences": [
+    "t90.s0",
+    "t92.s1"
+   ],
+   "by": "Nerea",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Nerea",
+    "Andrés"
+   ],
+   "turn": 90,
+   "order": 190,
+   "start": 739.98,
+   "text": "Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo.",
+   "confidence": 0.81,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e46",
+   "type": "decision",
+   "key": "t92.s2",
+   "sentences": [
+    "t92.s2",
+    "t93.s0"
+   ],
+   "by": "Andrés",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 92,
+   "order": 194,
+   "start": 750.28,
+   "text": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.",
+   "confidence": 0.65,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e47",
+   "type": "decision",
+   "key": "t100.s1",
+   "sentences": [
+    "t100.s1",
+    "t101.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Joaquín"
+   ],
+   "people": [
+    "Lucía",
+    "Joaquín"
+   ],
+   "turn": 100,
+   "order": 208,
+   "start": 794.98,
+   "text": "Puedes hacerlo tú, Joaquín.",
+   "confidence": 0.72,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e48",
+   "type": "decision",
+   "key": "t109.s1",
+   "sentences": [
+    "t109.s1",
+    "t110.s0"
+   ],
+   "by": "Andrés",
+   "responders": [
+    "Lucía"
+   ],
+   "people": [
+    "Andrés",
+    "Lucía"
+   ],
+   "turn": 109,
+   "order": 222,
+   "start": 853.74,
+   "text": "Que la próxima vez la reunión sea a las 11.",
+   "confidence": 0.58,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e49",
+   "type": "action_item",
+   "key": "t79.s1",
+   "sentences": [
+    "t79.s1",
+    "t80.s0",
+    "t80.s1",
+    "t80.s3"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 79,
+   "order": 167,
+   "start": 656.28,
+   "text": "Joaquín pide cita en el taller para mayo y me pasas el presupuesto por escrito.",
+   "confidence": 0.53,
+   "latency_turns": null,
+   "owner": "Andrés",
+   "what": "Mañana llamo al taller.",
+   "deadline": "Mañana",
+   "source": null
+  },
+  {
+   "id": "e50",
+   "type": "action_item",
+   "key": "t81.s0",
+   "sentences": [
+    "t81.s0",
+    "t82.s0"
+   ],
+   "by": "Lucía",
+   "responders": [
+    "Andrés"
+   ],
+   "people": [
+    "Lucía",
+    "Andrés"
+   ],
+   "turn": 81,
+   "order": 172,
+   "start": 672.22,
+   "text": "Apúntalo y lo vemos en la próxima.",
+   "confidence": 0.54,
+   "latency_turns": null,
+   "owner": "Andrés",
+   "what": "Apúntalo y lo vemos en la próxima.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e51",
+   "type": "action_item",
+   "key": "t32.s0",
+   "sentences": [
+    "t32.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 32,
+   "order": 69,
+   "start": 291.8,
+   "text": "La preparo hoy misma.",
+   "confidence": 0.96,
+   "latency_turns": null,
+   "owner": "Nerea",
+   "what": "La preparo hoy misma.",
+   "deadline": "hoy",
+   "source": null
+  },
+  {
+   "id": "e52",
+   "type": "action_item",
+   "key": "t40.s1",
+   "sentences": [
+    "t40.s1",
+    "t39.s1"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín",
+    "Nerea"
+   ],
+   "turn": 40,
+   "order": 89,
+   "start": 360.4,
+   "text": "Yo les llamaría uno a uno antes de empezar.",
+   "confidence": 0.6,
+   "latency_turns": null,
+   "owner": "Joaquín",
+   "what": "Yo les llamaría uno a uno antes de empezar.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e53",
+   "type": "action_item",
+   "key": "t41.s0",
+   "sentences": [
+    "t41.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 41,
+   "order": 90,
+   "start": 363.32,
+   "text": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado.",
+   "confidence": 0.74,
+   "latency_turns": null,
+   "owner": "Nerea",
+   "what": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e54",
+   "type": "action_item",
+   "key": "t58.s1",
+   "sentences": [
+    "t58.s1"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 58,
+   "order": 121,
+   "start": 462.22,
+   "text": "Lo dejamos apuntado y lo tratamos en la siguiente reunión.",
+   "confidence": 0.61,
+   "latency_turns": null,
+   "owner": "Lucía",
+   "what": "Lo dejamos apuntado y lo tratamos en la siguiente reunión.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e55",
+   "type": "action_item",
+   "key": "t60.s0",
+   "sentences": [
+    "t60.s0"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 60,
+   "order": 123,
+   "start": 475.42,
+   "text": "Tienes razón, lo pongo el primero en la próxima reunión.",
+   "confidence": 0.68,
+   "latency_turns": null,
+   "owner": "Lucía",
+   "what": "Tienes razón, lo pongo el primero en la próxima reunión.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e56",
+   "type": "action_item",
+   "key": "t88.s0",
+   "sentences": [
+    "t88.s0"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 88,
+   "order": 186,
+   "start": 717.74,
+   "text": "Sí, la llamo esta tarde.",
+   "confidence": 0.76,
+   "latency_turns": null,
+   "owner": "Andrés",
+   "what": "Sí, la llamo esta tarde.",
+   "deadline": "esta tarde",
+   "source": null
+  },
+  {
+   "id": "e57",
+   "type": "action_item",
+   "key": "t101.s1",
+   "sentences": [
+    "t101.s1"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 101,
+   "order": 211,
+   "start": 799.9,
+   "text": "Cada lunes os mando un resumen con los retrasos de la semana anterior.",
+   "confidence": 0.91,
+   "latency_turns": null,
+   "owner": "Joaquín",
+   "what": "Cada lunes os mando un resumen con los retrasos de la semana anterior.",
+   "deadline": null,
+   "source": null
+  },
+  {
+   "id": "e58",
+   "type": "action_item",
+   "key": "t103.s0",
+   "sentences": [
+    "t103.s0",
+    "t99.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea",
+    "Joaquín"
+   ],
+   "turn": 103,
+   "order": 214,
+   "start": 809.06,
+   "text": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día y antes del 20 de mayo de aviso a todos los restaurantes del catálogo de verano.",
+   "confidence": 0.33,
+   "latency_turns": null,
+   "owner": "Nerea",
+   "what": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día y antes del 20 de mayo de aviso a todos los restaurantes del catálogo de verano.",
+   "deadline": "hoy",
+   "source": null
+  },
+  {
+   "id": "e59",
+   "type": "action_item",
+   "key": "t104.s0",
+   "sentences": [
+    "t104.s0"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 104,
+   "order": 215,
+   "start": 821.66,
+   "text": "Yo llamo esta tarde a la chica de prácticas y el jueves os digo cuántos del equipo aceptarían entrar a las dos.",
+   "confidence": 0.96,
+   "latency_turns": null,
+   "owner": "Andrés",
+   "what": "Yo llamo esta tarde a la chica de prácticas y el jueves os digo cuántos del equipo aceptarían entrar a las dos.",
+   "deadline": "esta tarde",
+   "source": null
+  },
+  {
+   "id": "e60",
+   "type": "action_item",
+   "key": "t105.s0",
+   "sentences": [
+    "t105.s0"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 105,
+   "order": 216,
+   "start": 827.34,
+   "text": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.",
+   "confidence": 0.96,
+   "latency_turns": null,
+   "owner": "Joaquín",
+   "what": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.",
+   "deadline": "esta semana",
+   "source": null
+  },
+  {
+   "id": "e61",
+   "type": "action_item",
+   "key": "t106.s0",
+   "sentences": [
+    "t106.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 106,
+   "order": 217,
+   "start": 838.76,
+   "text": "El lunes os paso los dos esterarios del recargo de verano.",
+   "confidence": 0.93,
+   "latency_turns": null,
+   "owner": "Nerea",
+   "what": "El lunes os paso los dos esterarios del recargo de verano.",
+   "deadline": "El lunes",
+   "source": null
+  },
+  {
+   "id": "e62",
+   "type": "action_item",
+   "key": "t107.s0",
+   "sentences": [
+    "t107.s0"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 107,
+   "order": 218,
+   "start": 843.26,
+   "text": "Y mañana pido cita en el taller para la furgoneta.",
+   "confidence": 0.93,
+   "latency_turns": null,
+   "owner": "Joaquín",
+   "what": "Y mañana pido cita en el taller para la furgoneta.",
+   "deadline": "mañana",
+   "source": null
+  },
+  {
+   "id": "e63",
+   "type": "action_item",
+   "key": "t108.s0",
+   "sentences": [
+    "t108.s0"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 108,
+   "order": 219,
+   "start": 846.5,
+   "text": "Y yo hablo con la gestoría para saber el coste real del contrato y lo comparto el viernes.",
+   "confidence": 0.93,
+   "latency_turns": null,
+   "owner": "Lucía",
+   "what": "Y yo hablo con la gestoría para saber el coste real del contrato y lo comparto el viernes.",
+   "deadline": "el viernes",
+   "source": null
+  },
+  {
+   "id": "e64",
+   "type": "open_issue",
+   "key": "t4.s2",
+   "sentences": [
+    "t4.s2"
+   ],
+   "by": "Lucía",
+   "responders": [],
+   "people": [
+    "Lucía"
+   ],
+   "turn": 4,
+   "order": 13,
+   "start": 54.26,
+   "text": "¿Alguien quiere añadir algo al diagnóstico antes de pasar a las propuestas?",
+   "confidence": 0.74,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": "e1"
+  },
+  {
+   "id": "e65",
+   "type": "open_issue",
+   "key": "t12.s0",
+   "sentences": [
+    "t12.s0"
+   ],
+   "by": "Andrés",
+   "responders": [],
+   "people": [
+    "Andrés"
+   ],
+   "turn": 12,
+   "order": 34,
+   "start": 136.7,
+   "text": "¿Y quién le dice al restaurante de lale",
+   "confidence": 0.82,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": "e3"
+  },
+  {
+   "id": "e66",
+   "type": "open_issue",
+   "key": "t39.s0",
+   "sentences": [
+    "t39.s0"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 39,
+   "order": 86,
+   "start": 348.84,
+   "text": "¿Y los que irían antes de la posta?",
+   "confidence": 0.96,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": "e9"
+  },
+  {
+   "id": "e67",
+   "type": "open_issue",
+   "key": "t52.s1",
+   "sentences": [
+    "t52.s1"
+   ],
+   "by": "Joaquín",
+   "responders": [],
+   "people": [
+    "Joaquín"
+   ],
+   "turn": 52,
+   "order": 109,
+   "start": 426.88,
+   "text": "¿Qué hacemos con los pedidos del domingo?",
+   "confidence": 0.94,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": "e12"
+  },
+  {
+   "id": "e68",
+   "type": "open_issue",
+   "key": "t63.s4",
+   "sentences": [
+    "t63.s4"
+   ],
+   "by": "Nerea",
+   "responders": [],
+   "people": [
+    "Nerea"
+   ],
+   "turn": 63,
+   "order": 132,
+   "start": 514.78,
+   "text": "¿Cuánto sería la subida? estaba pensando en un recarto de verano del cuatro por ciento sólo julio y agosto.",
+   "confidence": 0.65,
+   "latency_turns": null,
+   "owner": null,
+   "what": null,
+   "deadline": null,
+   "source": "e14"
+  }
+ ],
+ "summary": {
+  "session_id": "sim-reunion-verano-audio",
+  "sentences": 227,
+  "links_given": 0,
+  "links_inferred": 44,
+  "counts": {
+   "question_answered": 15,
+   "question_unanswered": 5,
+   "proposal_accepted": 8,
+   "proposal_rejected": 1,
+   "proposal_contested": 0,
+   "proposal_ignored": 11,
+   "decision": 8,
+   "action_item": 15,
+   "open_issue": 5
+  },
+  "median_reply_turns": 1.0,
+  "ignored_by": {
+   "Lucía": 2,
+   "Andrés": 3,
+   "Nerea": 4,
+   "Joaquín": 2
+  },
+  "per_person": [
+   {
+    "speaker": "Lucía",
+    "questions_asked": 13,
+    "questions_answered": 12,
+    "questions_unanswered": 1,
+    "answer_rate": 0.923,
+    "answers_given": 0,
+    "proposals_made": 4,
+    "proposals_accepted": 2,
+    "proposals_rejected": 0,
+    "proposals_contested": 0,
+    "proposals_ignored": 2,
+    "acceptance_rate": 0.5,
+    "ignored_rate": 0.5,
+    "acceptances_given": 5,
+    "rejections_given": 1,
+    "commitments": 3,
+    "decisions_involved": 6,
+    "median_reply_turns": 3.0
+   },
+   {
+    "speaker": "Andrés",
+    "questions_asked": 1,
+    "questions_answered": 0,
+    "questions_unanswered": 1,
+    "answer_rate": 0.0,
+    "answers_given": 9,
+    "proposals_made": 5,
+    "proposals_accepted": 2,
+    "proposals_rejected": 0,
+    "proposals_contested": 0,
+    "proposals_ignored": 3,
+    "acceptance_rate": 0.4,
+    "ignored_rate": 0.6,
+    "acceptances_given": 13,
+    "rejections_given": 4,
+    "commitments": 4,
+    "decisions_involved": 5,
+    "median_reply_turns": 1.0
+   },
+   {
+    "speaker": "Nerea",
+    "questions_asked": 4,
+    "questions_answered": 2,
+    "questions_unanswered": 2,
+    "answer_rate": 0.5,
+    "answers_given": 3,
+    "proposals_made": 9,
+    "proposals_accepted": 4,
+    "proposals_rejected": 1,
+    "proposals_contested": 0,
+    "proposals_ignored": 4,
+    "acceptance_rate": 0.444,
+    "ignored_rate": 0.444,
+    "acceptances_given": 2,
+    "rejections_given": 4,
+    "commitments": 4,
+    "decisions_involved": 4,
+    "median_reply_turns": 2.0
+   },
+   {
+    "speaker": "Joaquín",
+    "questions_asked": 2,
+    "questions_answered": 1,
+    "questions_unanswered": 1,
+    "answer_rate": 0.5,
+    "answers_given": 6,
+    "proposals_made": 2,
+    "proposals_accepted": 0,
+    "proposals_rejected": 0,
+    "proposals_contested": 0,
+    "proposals_ignored": 2,
+    "acceptance_rate": 0.0,
+    "ignored_rate": 1.0,
+    "acceptances_given": 5,
+    "rejections_given": 1,
+    "commitments": 4,
+    "decisions_involved": 2,
+    "median_reply_turns": 1.0
+   }
+  ]
+ }
+}

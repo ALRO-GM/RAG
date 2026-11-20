@@ -127,3 +127,25 @@ def test_runs_without_a_ledger_or_stored_before_read_as_unknown() -> None:
     assert StepRecord.model_validate_json(
         record.model_dump_json()
     ).usage == StepUsage(cache_hits=2)
+
+
+def test_work_done_before_the_judges_exist_is_not_the_steps() -> None:
+    ledger = UsageLedger()
+    model = MeteredModel(responder=reply)
+    ledger.record("earlier", A)
+    budget = CallBudget(model, 500, ledger)
+    retriever = EvidenceRetriever(
+        FakeLexicalBuilder(), FakeEmbedder(dim=64), min_words=4
+    )
+
+    def judges() -> JudgeSetup:
+        """Judges over a ledger that already holds other work."""
+        return JudgeSetup(
+            "claude_code", TagConfirmer(budget),
+            AssessmentService(retriever, budget, min_incidents=1),
+            budget=budget, usage=ledger,
+        )
+
+    run = build(judges=judges).run("s1")
+    assert run.usage is not None and "earlier" not in run.usage.models
+    assert run.usage.total().calls == budget.calls

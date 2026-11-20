@@ -1,0 +1,294 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "language": "es",
+ "synthetic": true,
+ "judge_model": "claude-code:haiku",
+ "scorecard": "scorecard.md",
+ "people": [
+  {
+   "position": 1,
+   "name": "Lucía",
+   "report": "report-1.html",
+   "rated": 6,
+   "provisional": 4,
+   "observations": 11,
+   "why": [],
+   "words": 612,
+   "competencies": 11,
+   "strengths": [
+    "Comunicación clara",
+    "Escucha activa",
+    "Coordinación y seguimiento del trabajo",
+    "Resolución de problemas y toma de decisiones en grupo"
+   ],
+   "to_improve": [],
+   "signals": 0,
+   "ratings": {
+    "COMM": 4,
+    "LISTEN": 4,
+    "INFLU": 3,
+    "COLLAB": null,
+    "INCL": null,
+    "CONFL": null,
+    "FEEDB": null,
+    "COORD": 4,
+    "SOLVE": 4,
+    "INIT": 3,
+    "ADAPT": null
+   },
+   "estimates": {
+    "COLLAB": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 0,
+     "needed": 3,
+     "words": 612,
+     "judge_rating": null
+    },
+    "INCL": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 1,
+     "needed": 3,
+     "words": 612,
+     "judge_rating": null
+    },
+    "CONFL": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 2,
+     "needed": 3,
+     "words": 612,
+     "judge_rating": null
+    },
+    "ADAPT": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 0,
+     "needed": 3,
+     "words": 612,
+     "judge_rating": null
+    }
+   }
+  },
+  {
+   "position": 2,
+   "name": "Andrés",
+   "report": "report-2.html",
+   "rated": 7,
+   "provisional": 3,
+   "observations": 3,
+   "why": [],
+   "words": 477,
+   "competencies": 11,
+   "strengths": [
+    "Comunicación clara",
+    "Desacuerdo constructivo y gestión del conflicto",
+    "Resolución de problemas y toma de decisiones en grupo"
+   ],
+   "to_improve": [
+    "Influencia con argumentos"
+   ],
+   "signals": 0,
+   "ratings": {
+    "COMM": 4,
+    "LISTEN": null,
+    "INFLU": 2,
+    "COLLAB": null,
+    "INCL": null,
+    "CONFL": 4,
+    "FEEDB": null,
+    "COORD": 3,
+    "SOLVE": 4,
+    "INIT": 3,
+    "ADAPT": 3
+   },
+   "estimates": {
+    "LISTEN": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "single_episode",
+      "no_judge_rating"
+     ],
+     "quotes": 1,
+     "confirmations": 0,
+     "needed": 3,
+     "words": 477,
+     "judge_rating": null
+    },
+    "COLLAB": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "single_episode",
+      "no_judge_rating"
+     ],
+     "quotes": 1,
+     "confirmations": 0,
+     "needed": 3,
+     "words": 477,
+     "judge_rating": null
+    },
+    "INCL": {
+     "rating": 2,
+     "confidence": "low",
+     "reasons": [
+      "only_confirmations",
+      "single_episode",
+      "no_judge_rating"
+     ],
+     "quotes": 0,
+     "confirmations": 1,
+     "needed": 3,
+     "words": 477,
+     "judge_rating": null
+    }
+   }
+  },
+  {
+   "position": 3,
+   "name": "Nerea",
+   "report": "report-3.html",
+   "rated": 8,
+   "provisional": 2,
+   "observations": 4,
+   "why": [],
+   "words": 571,
+   "competencies": 11,
+   "strengths": [
+    "Desacuerdo constructivo y gestión del conflicto",
+    "Resolución de problemas y toma de decisiones en grupo",
+    "Iniciativa y compromiso con la acción"
+   ],
+   "to_improve": [],
+   "signals": 0,
+   "ratings": {
+    "COMM": 3,
+    "LISTEN": 3,
+    "INFLU": 3,
+    "COLLAB": null,
+    "INCL": null,
+    "CONFL": 4,
+    "FEEDB": null,
+    "COORD": 3,
+    "SOLVE": 4,
+    "INIT": 4,
+    "ADAPT": 3
+   },
+   "estimates": {
+    "COLLAB": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 1,
+     "needed": 3,
+     "words": 571,
+     "judge_rating": null
+    },
+    "FEEDB": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "only_confirmations",
+      "single_episode",
+      "no_judge_rating"
+     ],
+     "quotes": 0,
+     "confirmations": 1,
+     "needed": 3,
+     "words": 571,
+     "judge_rating": null
+    }
+   }
+  },
+  {
+   "position": 4,
+   "name": "Joaquín",
+   "report": "report-4.html",
+   "rated": 7,
+   "provisional": 1,
+   "observations": 2,
+   "why": [],
+   "words": 367,
+   "competencies": 11,
+   "strengths": [
+    "Comunicación clara",
+    "Influencia con argumentos",
+    "Resolución de problemas y toma de decisiones en grupo",
+    "Iniciativa y compromiso con la acción"
+   ],
+   "to_improve": [],
+   "signals": 0,
+   "ratings": {
+    "COMM": 4,
+    "LISTEN": 3,
+    "INFLU": 4,
+    "COLLAB": 3,
+    "INCL": null,
+    "CONFL": null,
+    "FEEDB": null,
+    "COORD": null,
+    "SOLVE": 4,
+    "INIT": 4,
+    "ADAPT": 3
+   },
+   "estimates": {
+    "CONFL": {
+     "rating": 4,
+     "confidence": "low",
+     "reasons": [
+      "few_quotes",
+      "no_judge_rating"
+     ],
+     "quotes": 2,
+     "confirmations": 0,
+     "needed": 3,
+     "words": 367,
+     "judge_rating": null
+    }
+   }
+  }
+ ],
+ "min_incidents": 3,
+ "open_issues": [
+  {
+   "id": "consent",
+   "text": "Consent, retention and who sees the results must be decided before analysing real people (#19)."
+  },
+  {
+   "id": "human_review",
+   "text": "The labels and levels are a model's draft: a trained person must review them before any use."
+  },
+  {
+   "id": "situations",
+   "text": "One conversation is one situation; a profile needs several situations per person (#84)."
+  }
+ ]
+}
