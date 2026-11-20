@@ -37,6 +37,7 @@ from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from src.adapters.outbound.fs_analysis_store import FileAnalysisLock
 from src.domain.errors import BusyError, LimitError, RagError
+from src.domain.skills.claude_models import ClaudeModels, check_claude_model
 from src.domain.skills.transcript_contract import is_session_id
 
 SECRET = re.compile(r"TOKEN|SECRET|PASSWORD|KEY", re.IGNORECASE)
@@ -153,14 +154,24 @@ class SubprocessAnalysisLauncher:
         restart: bool,
         synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> List[str]:
-        """Return the child's argument list."""
+        """Return the child's argument list.
+
+        ``models``: the Claude model chosen per judged step, passed as
+        ``--claude_<step>_model`` (each checked again against the
+        allow-list pattern, and quoted so the command line reads it as
+        text).
+        """
         args = [
             self.python, "-m", "src", "skills",
             "--transcripts_dir", self.transcripts_dir,
             "--analysis_dir", str(self.analysis_dir),
-            "analyze", f'--session="{session_id}"',
         ]
+        for step, model in (models.chosen() if models else {}).items():
+            name = check_claude_model(model)
+            args.append(f'--claude_{step}_model="{name}"')
+        args += ["analyze", f'--session="{session_id}"']
         if restart:
             args.append("--restart")
         if synthetic:
@@ -177,10 +188,12 @@ class SubprocessAnalysisLauncher:
         restart: bool,
         synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Start the analysis of ``session_id`` unless it is running.
 
-        ``steps``, when not empty, are the only steps run again.
+        ``steps``, when not empty, are the only steps run again;
+        ``models`` the Claude model chosen per judged step.
 
         Raises :class:`~src.domain.errors.BusyError` when this session is
         running and :class:`~src.domain.errors.LimitError` when
@@ -205,7 +218,9 @@ class SubprocessAnalysisLauncher:
                 folder.mkdir(parents=True, exist_ok=True)
                 with open(folder / "analyze.log", "ab") as log:
                     child = subprocess.Popen(
-                        self.command(session_id, restart, synthetic, steps),
+                        self.command(
+                            session_id, restart, synthetic, steps, models
+                        ),
                         cwd=self.root, stdin=subprocess.DEVNULL,
                         stdout=log, stderr=subprocess.STDOUT,
                         start_new_session=True,

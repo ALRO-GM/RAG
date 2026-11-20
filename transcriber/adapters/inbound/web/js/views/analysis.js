@@ -1,19 +1,26 @@
-// "Análisis" of a session (#/analysis/<id>): start the RAG's whole analysis,
-// watch the steps advance (status, time, judge, fallback) and open what
-// each step produced. Person reports are downloaded as files: they are
-// pages of their own, never shown inside this one.
+// "Análisis" of a session (#/analysis/<id>): the results for a person in
+// HR first (the session at a glance, one card per person, every detail
+// expandable: views/analysis-results.js), then the form that starts or
+// resumes the RAG's analysis (the job sought, the Claude model of each
+// judged step), and, collapsed, the technical details: the steps as they
+// advance (status, time, judge, tokens) and what each produced. Person
+// reports are downloaded as files: they are pages of their own, never
+// shown inside this one.
 
 import { h, fill } from "../dom.js";
 import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { helpHref } from "../lib/help-analysis.js";
 import {
-  COUNT_KEYS, MAX_JOB, OPEN_ISSUES, SOURCES, actRows, asksForClaude, byPerson, canRedoSynthesis, cellText,
-  clock, doubtfulCount, eventRows, isActive, jobForm, orderedSteps, ratingRows, reasonText,
+  COUNT_KEYS, JUDGE_STEPS, MAX_JOB, MODEL_CHOICES, OPEN_ISSUES, SOURCES, actRows, asksForClaude, byPerson,
+  canRedoSynthesis, cellText, chosenModels, clock, doubtfulCount, eventRows, isActive, jobForm, orderedSteps,
+  ratingRows, reasonText,
   reportBlob, reportFileName, reviewRows, usageRows, startMode, startRefusal, startingRun, stepStatus, stillStarting,
   synthesisPeople, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
 import { publishWhenFree } from "../lib/names.js";
+import { doneResultSteps, hasResults, progressOf, resultsKey } from "../lib/analysis-results.js";
+import { resultsPanel, resultsState } from "./analysis-results.js";
 
 const POLL_MS = 3000;
 
@@ -47,21 +54,56 @@ export async function analysisView(ctx, root, [rawId]) {
   const steps = h("ol", { class: "steps analysis-steps" });
   const usageTotal = h("div", { class: "usage" });
   const issues = h("ul", {}, OPEN_ISSUES.map((key) => h("li", {}, t(`sa.issue_${key}`))));
+  const progress = h("div", { class: "run-progress", role: "status" });
+  const results = h("div", { class: "results-host" }, resultsState("loading"));
+  let shownKey = null; // resultsKey of the results on screen
 
-  root.append(
-    h("h1", {}, t("sa.title")),
-    h("p", { class: "meta" }, id, " · ",
-      h("a", { href: `#/s/${encodeURIComponent(id)}` }, t("sa.back_session")), " · ",
-      h("a", { href: "#/" }, t("nav.sessions"))),
-    h("p", { class: "hint" }, t("sa.intro"), " ", h("a", { href: helpHref() }, t("help.link"))),
-    h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
+  // The Claude model of each judged step: the server's default unless chosen.
+  const modelInputs = Object.fromEntries(JUDGE_STEPS.map((step) => {
+    const custom = h("input", {
+      type: "text", id: `an-model-${step}-custom`, maxlength: "64", spellcheck: false, autocomplete: "off",
+      placeholder: t("sa.model_custom_placeholder"), "aria-label": t("sa.model_custom_label", { step: t(`sa.model_step_${step}`) }),
+    });
+    custom.hidden = true;
+    const select = h("select", {
+      id: `an-model-${step}`,
+      onChange: () => { custom.hidden = select.value !== "custom"; },
+    }, MODEL_CHOICES.map((choice) => h("option", { value: choice }, t(`sa.model_${choice || "default"}`))));
+    return [step, { select, custom }];
+  }));
+  const models = h("fieldset", { class: "models" },
+    h("legend", {}, t("sa.models_title")),
+    h("p", { class: "hint" }, t("sa.models_hint")),
+    JUDGE_STEPS.map((step) => h("div", { class: "field" },
+      h("label", { for: `an-model-${step}` }, t(`sa.model_step_${step}`)),
+      h("div", { class: "row wrap" }, modelInputs[step].select, modelInputs[step].custom))),
+    h("details", { class: "tradeoff" }, h("summary", {}, t("sa.tradeoff_title")),
+      h("ul", {}, ["haiku", "sonnet", "opus"].map((m) => h("li", {}, t(`sa.tradeoff_${m}`)))),
+      h("p", { class: "hint" }, t("sa.tradeoff_source"))));
+
+  const tech = h("details", { class: "upload tech no-print" },
+    h("summary", {}, t("sa.tech_title")),
+    h("div", { class: "stack" },
+      h("p", { class: "hint" }, t("sa.intro"), " ", h("a", { href: helpHref() }, t("help.link"))),
+      summary, usageTotal, steps));
+  const controls = h("details", { class: "upload controls no-print" },
+    h("summary", {}, t("sa.controls_title")),
     h("div", { class: "stack" },
       h("label", { class: "check" }, synthetic, h("span", {}, t("sa.synthetic"))),
       h("label", { for: "an-job" }, h("strong", {}, t("sa.job_title"))),
       h("p", { class: "hint" }, t("sa.job_hint")),
-      job, claudeLabel,
-      h("div", { class: "stack" }, start, restart, redo, cancel), message),
-    summary, usageTotal, steps);
+      job, claudeLabel, models,
+      h("div", { class: "stack" }, start, restart, redo, cancel), message));
+
+  root.append(
+    h("h1", {}, t("sa.title")),
+    h("p", { class: "meta no-print" }, id, " · ",
+      h("a", { href: `#/s/${encodeURIComponent(id)}` }, t("sa.back_session")), " · ",
+      h("a", { href: "#/" }, t("nav.sessions")), " · ",
+      h("button", { type: "button", class: "link", onClick: () => printPage() }, t("res.print"))),
+    progress, results,
+    h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
+    controls, tech);
 
   function say(text, error = false) {
     message.textContent = text;
@@ -84,7 +126,82 @@ export async function analysisView(ctx, root, [rawId]) {
     summary.textContent = run ? t(`sa.run_${isActive(run) ? "running" : run.status}`) : t("sa.never");
     fill(steps, orderedSteps(run).map(stepItem));
     fill(usageTotal, usageLines(run?.usage, "sa.usage_total"));
+    drawProgress();
+    if (loaded && !autoOpened) {
+      autoOpened = true;
+      controls.open = !hasResults(run);
+    }
   }
+
+  let loaded = false; // the first status answer arrived
+  let autoOpened = false; // the form was opened (or not) once, after it
+  let statusError = null; // why the last status could not be read
+
+  function drawProgress() {
+    const p = progressOf(run);
+    if (!p.active) {
+      fill(progress);
+      return;
+    }
+    fill(progress,
+      h("p", {}, p.current
+        ? t("res.progress_step", { done: p.done, total: p.total, step: t(`sa.step_${p.current}`) })
+        : t("res.progress_start")),
+      h("progress", { max: String(p.total), value: String(p.done) }));
+  }
+
+  // The overview: read again only when the stored results changed.
+  async function loadResults() {
+    if (!run && statusError) {
+      shownKey = null;
+      fill(results, resultsState("error", { reason: describeError(statusError), onRetry: () => refresh() }));
+      return;
+    }
+    if (!run || !hasResults(run)) {
+      shownKey = null;
+      fill(results, resultsState(isActive(run) ? "running" : "empty"));
+      return;
+    }
+    const key = resultsKey(run);
+    if (key === shownKey) return;
+    shownKey = key;
+    if (!results.querySelector?.(".results")) fill(results, resultsState("loading"));
+    const names = doneResultSteps(run);
+    const answers = await Promise.allSettled(names.map((name) => ctx.api.analysisStep(id, name)));
+    if (stopped || key !== shownKey) return;
+    const data = {};
+    let failure = null;
+    answers.forEach((answer, i) => {
+      if (answer.status === "fulfilled") data[names[i]] = answer.value;
+      else failure = failure ?? answer.reason;
+    });
+    if (failure && !data.assessment && !data.reports) {
+      shownKey = null;
+      if (failure?.kind === "unauthorized") return ctx.fail(failure);
+      fill(results, resultsState("error", { reason: describeError(failure), onRetry: () => loadResults() }));
+      return;
+    }
+    fill(results, resultsPanel({ id, run, data }));
+  }
+
+  // Printing shows every section open; what was closed closes again after.
+  function printPage() {
+    globalThis.print?.();
+  }
+  const reopened = [];
+  const beforePrint = () => {
+    for (const d of results.querySelectorAll?.("details") ?? []) {
+      if (!d.open) {
+        d.open = true;
+        reopened.push(d);
+      }
+    }
+  };
+  const afterPrint = () => {
+    for (const d of reopened.splice(0)) d.open = false;
+  };
+  globalThis.addEventListener?.("beforeprint", beforePrint);
+  globalThis.addEventListener?.("afterprint", afterPrint);
 
   function usageLines(usage, titleKey) {
     const rows = usageRows(usage);
@@ -370,10 +487,21 @@ export async function analysisView(ctx, root, [rawId]) {
         return;
       }
     }
+    const chosen = chosenModels(Object.fromEntries(JUDGE_STEPS.map((step) => [step, {
+      choice: modelInputs[step].select.value, custom: modelInputs[step].custom.value,
+    }])));
+    if (chosen.invalid.length) {
+      say(t("sa.model_invalid", { steps: chosen.invalid.map((step) => t(`sa.model_step_${step}`)).join(", ") }), true);
+      draw();
+      restart.disabled = false;
+      redo.disabled = false;
+      return;
+    }
     try {
       await ctx.api.startAnalysis(id, {
         restart: again, synthetic: synthetic.checked, steps,
         job: job.value, claudeSynthesis: !claudeLabel.hidden && useClaude.checked,
+        claudeModels: chosen.models,
       });
       jobEdited = false;
       say(t("sa.started"));
@@ -389,15 +517,19 @@ export async function analysisView(ctx, root, [rawId]) {
   async function refresh() {
     if (stopped) return;
     clearTimeout(timer);
+    statusError = null;
     try {
       run = await ctx.api.analysisStatus(id);
     } catch (error) {
+      if (error?.code !== "not_found") statusError = error;
       // Just after a start the worker may not have written its record yet.
       if (error?.code === "not_found") run = stillStarting(starting, Date.now()) ? startingRun(id) : null;
       else if (error?.kind === "unauthorized") return ctx.fail(error);
       else say(error?.code === "analysis_unavailable" ? t("analysis.unavailable") : describeError(error), true);
     }
+    loaded = true;
     draw();
+    loadResults();
     for (const [name, panel] of opened) if (isActive(run)) load(name, panel);
     if (isActive(run) && !stopped) timer = setTimeout(refresh, POLL_MS);
   }
@@ -408,8 +540,12 @@ export async function analysisView(ctx, root, [rawId]) {
   }).catch(() => {});
   draw();
   await refresh();
+  root.classList?.add("wide");
   return () => {
+    root.classList?.remove("wide");
     stopped = true;
     clearTimeout(timer);
+    globalThis.removeEventListener?.("beforeprint", beforePrint);
+    globalThis.removeEventListener?.("afterprint", afterPrint);
   };
 }

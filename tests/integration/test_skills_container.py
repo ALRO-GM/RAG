@@ -737,3 +737,87 @@ def test_comparison_print_says_what_was_left_out(
     assert "Left out: 4 items" in capsys.readouterr().out
     record = judge_record("both", object(), ["a", "a"], ["b"])
     assert record == {"mode": "both", "models": ["a"], "second_models": ["b"]}
+
+
+def test_each_judged_step_uses_its_chosen_claude_model(
+    skills_project: Path,
+) -> None:
+    """Confirmation, assessment and synthesis get their own Claude model.
+
+    Steps on the same model share one judge (and its switch to the
+    local one); the budget records the tokens under each model's name,
+    which is also part of every cache key.
+    """
+    app = SkillsContainer(settings(
+        judge="claude_code", claude_confirmation_model="haiku",
+        claude_synthesis_model="claude-sonnet-4-5",
+    ))
+    setup = app.judge_setup()
+    first = setup.first.judge
+    assessment = setup.assessment.judge
+    assert setup.synthesis is not None
+    synthesis = setup.synthesis(False).judge
+    assert first.model_name == "claude-code:haiku"
+    assert assessment.model_name == "claude-code:opus"
+    assert synthesis.model_name == "claude-code:claude-sonnet-4-5"
+    assert app.claude_with_fallback("opus") is app.judge
+    assert app.step_judge("assessment") is app.judge
+    assert app.claude_judge_for("haiku") is app.claude_judge_for("haiku")
+    assert app.claude_judge_for("haiku").command("s")[
+        app.claude_judge_for("haiku").command("s").index("--model") + 1
+    ] == "haiku"
+
+
+def test_the_default_keeps_one_model_for_every_step(
+    skills_project: Path,
+) -> None:
+    """Nothing chosen: every step asks ``claude_model`` as before."""
+    app = SkillsContainer(settings(judge="claude_code"))
+    setup = app.judge_setup()
+    assert setup.synthesis is not None
+    names = {setup.first.judge.model_name, setup.assessment.judge.model_name,
+             setup.synthesis(False).judge.model_name}
+    assert names == {"claude-code:opus"}
+
+
+def test_a_step_model_does_not_touch_other_judges(
+    skills_project: Path,
+) -> None:
+    """Local and opencode runs ignore the choice; local may still use it
+    for the profiles when Claude is allowed."""
+    local = SkillsContainer(settings(
+        judge="local", llm="some/local-model",
+        claude_confirmation_model="haiku", claude_synthesis_model="haiku",
+    ))
+    assert local.step_judge("confirmation") is local.judge
+    setup = local.judge_setup()
+    assert setup.synthesis is not None
+    assert setup.synthesis(False).judge.model_name == "some/local-model"
+    assert setup.synthesis(True).judge.model_name == "claude-code:haiku"
+    opencode = SkillsContainer(settings(
+        judge="opencode", claude_assessment_model="haiku",
+    ))
+    assert opencode.step_judge("assessment") is opencode.judge
+
+
+@pytest.mark.parametrize("field", [
+    "claude_model", "claude_confirmation_model", "claude_assessment_model",
+    "claude_synthesis_model",
+])
+def test_settings_refuse_a_model_off_the_allow_list(field: str) -> None:
+    """A model name that could be read as an option never gets in."""
+    with pytest.raises(ValueError):
+        SkillsSettings.model_validate({field: "--dangerously-skip"})
+    assert SkillsSettings().claude_models().chosen() == {}
+
+
+def test_the_cli_takes_a_model_per_step(skills_project: Path) -> None:
+    """``skills --claude_<step>_model`` reaches the settings, checked."""
+    options: Dict[str, Any] = {
+        "claude_confirmation_model": "haiku", "no_cache": None,
+    }
+    cli = SkillsCLI(safe_command, options)
+    assert cli._app().settings.claude_confirmation_model == "haiku"
+    bad = SkillsCLI(safe_command, {"claude_synthesis_model": "opus;id"})
+    with pytest.raises(InvalidInputError):
+        bad._app()

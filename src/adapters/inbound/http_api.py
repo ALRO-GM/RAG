@@ -43,6 +43,7 @@ from src.domain.errors import (
     RagError,
 )
 from src.domain.models import MinimalAnswer, MinimalSource
+from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import MAX_JOB, JobSought
 
 TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
@@ -82,7 +83,9 @@ class AnalysisStart(BaseModel):
     job sought changed); ``job`` (the job sought) and
     ``claude_synthesis`` (leave to use Claude for the profiles when
     the judge is the local model) are kept with the analysis when
-    ``job`` is given.
+    ``job`` is given. ``claude_models`` chooses the Claude model of
+    each judged step for this run (``confirmation``, ``assessment``,
+    ``synthesis``: an alias or a full id; empty: the configured one).
     """
 
     restart: bool = False
@@ -90,6 +93,7 @@ class AnalysisStart(BaseModel):
     steps: Optional[List[str]] = Field(default=None, max_length=16)
     job: Optional[str] = Field(default=None, max_length=MAX_JOB)
     claude_synthesis: bool = False
+    claude_models: ClaudeModels = Field(default_factory=ClaudeModels)
 
 
 START_MAX_BYTES = 6 * MAX_JOB + 1024
@@ -407,6 +411,7 @@ def mount_analysis(
             return await run_in_threadpool(
                 requests.start, session_id, options.restart,
                 options.synthetic, options.steps, job,
+                options.claude_models,
             )
         except RagError as exc:
             raise analysis_error(exc)

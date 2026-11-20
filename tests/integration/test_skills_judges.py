@@ -623,3 +623,33 @@ def test_claude_code_without_usage_or_after_a_failure_has_none() -> None:
     with pytest.raises(Exception):
         broken.complete("S", "u", 10)
     assert broken.last_usage is None
+
+
+def test_each_claude_model_has_its_own_cached_answers() -> None:
+    """A reply cached for Opus is never served when Haiku is chosen.
+
+    The cache key holds the judge's name (``claude-code:<model>``), so
+    switching a step's model asks that model again, and switching back
+    is answered from the cache.
+    """
+    from src.application.skills.tagging import TagConfirmer
+    from tests.fakes import InMemoryCache
+    from tests.unit.test_skills_tagging import CATALOGUE, answer, candidates
+
+    cache = InMemoryCache()
+    opus_runner = FakeRunner(result(answer("L3")))
+    TagConfirmer(judge(opus_runner, model="opus"), cache).confirm(
+        candidates(), CATALOGUE
+    )
+    assert opus_runner.calls
+    haiku_runner = FakeRunner(result(answer(None)))
+    TagConfirmer(judge(haiku_runner, model="haiku"), cache).confirm(
+        candidates(), CATALOGUE
+    )
+    assert len(haiku_runner.calls) == len(opus_runner.calls)
+    assert all("haiku" in c["command"] for c in haiku_runner.calls)
+    again = FakeRunner(result(answer(None)))
+    TagConfirmer(judge(again, model="opus"), cache).confirm(
+        candidates(), CATALOGUE
+    )
+    assert again.calls == []

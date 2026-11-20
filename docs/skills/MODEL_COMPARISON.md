@@ -73,3 +73,16 @@ established. In the Haiku `run.json` the confirmation step's usage was
 corrected by subtracting the earlier phases' calls of the same process
 (a bug fixed in `SessionAnalysis`; the per-phase figures in `haiku.json`
 were measured directly).
+
+## Choosing the model per step
+
+The Claude model of each judged step of `skills analyze` can be chosen
+(default: `claude_model`, `opus`): from the web «Análisis» page when an
+analysis is started or resumed, with `skills --claude_confirmation_model
+haiku --claude_assessment_model … --claude_synthesis_model … analyze`, or
+with the same settings in a profile. Accepted names are the aliases
+`haiku`, `sonnet`, `opus` or a full id such as `claude-haiku-4-5`
+(allow-list pattern in `src/domain/skills/claude_models.py`; checked again
+by the transcriber and the RAG). The choice only applies when the judge is
+Claude Code; each model has its own cache namespace and its own row in the
+per-step token usage of `run.json`.

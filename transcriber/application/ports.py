@@ -417,12 +417,15 @@ class SessionAnalysisPort(Protocol):
         steps: Sequence[str] = (),
         job: Optional[str] = None,
         claude_synthesis: bool = False,
+        claude_models: Optional[Mapping[str, str]] = None,
     ) -> Dict[str, Any]:
         """Start the analysis; return at once.
 
         ``steps`` (not empty) runs only those steps again; ``job`` and
         ``claude_synthesis`` are the job sought and the leave to use
-        Claude for the profiles, sent only when ``job`` is given.
+        Claude for the profiles, sent only when ``job`` is given;
+        ``claude_models`` the checked Claude model per judged step
+        (sent only when not empty).
         """
         ...
 

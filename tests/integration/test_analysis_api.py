@@ -42,6 +42,7 @@ from src.domain.errors import (
     RagError,
 )
 from src.domain.skills.analysis_run import StepRecord, new_run
+from src.domain.skills.claude_models import ClaudeModels
 from src.domain.text_analysis import tokenize
 from src.skills_bootstrap import SkillsContainer
 from tests.fakes import FakeEmbedder, FakeGenerator, InMemoryAnalysisLock
@@ -56,16 +57,19 @@ class FakeLauncher:
         """Nothing started."""
         self.started: List[Tuple[str, bool, bool]] = []
         self.steps: List[List[str]] = []
+        self.models: List[Optional[ClaudeModels]] = []
         self.active: set[str] = set()
         self.stopped: List[str] = []
 
     def start(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Remember the start and mark the session running."""
         self.started.append((session_id, restart, synthetic))
         self.steps.append(list(steps))
+        self.models.append(models)
         self.active.add(session_id)
 
     def running(self, session_id: str) -> bool:
@@ -198,6 +202,7 @@ def test_a_launcher_failure_is_a_server_error(tmp_path: Path) -> None:
     def broken(
         session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Fail to start."""
         raise RagError("no python")
@@ -214,6 +219,7 @@ class SleepingLauncher(SubprocessAnalysisLauncher):
     def command(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> List[str]:
         """Sleep a moment and say which session it was."""
         return [sys.executable, "-c",
@@ -369,6 +375,7 @@ class RefusingLauncher(FakeLauncher):
     def start(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Refuse the start."""
         raise LimitError("1 analysis already running.")
@@ -403,3 +410,50 @@ def test_the_launcher_passes_the_steps_to_the_child(tmp_path: Path) -> None:
     assert args[-1] == "--steps=reports,synthesis"
     with pytest.raises(RagError):
         launcher.command("s1", False, False, ["x;rm"])
+
+
+def test_the_launcher_passes_the_chosen_models_before_the_command(
+    tmp_path: Path,
+) -> None:
+    """``--claude_<step>_model="…"`` go between ``skills`` and ``analyze``."""
+    launcher = SubprocessAnalysisLauncher(
+        tmp_path, str(tmp_path / "t"), str(tmp_path / "a"),
+    )
+    args = launcher.command("s1", False, False, (), ClaudeModels(
+        confirmation="haiku", synthesis="claude-sonnet-4-5",
+    ))
+    at = args.index("analyze")
+    assert args[at - 2:at] == [
+        '--claude_confirmation_model="haiku"',
+        '--claude_synthesis_model="claude-sonnet-4-5"',
+    ]
+    assert not any("assessment" in a for a in args)
+    assert "analyze" in launcher.command("s1", False, False)
+
+
+def test_the_api_forwards_the_models_and_refuses_bad_ones(
+    tmp_path: Path,
+) -> None:
+    """Valid choices reach the launcher; bad names and steps get a 422."""
+    launcher = FakeLauncher()
+    client = client_for(tmp_path, launcher)
+    body = {"claude_models": {"confirmation": "haiku", "assessment": ""}}
+    answer = client.post("/analysis/sessions/demo-es", json=body,
+                         headers=AUTH)
+    assert answer.status_code == 202
+    assert launcher.models[-1] == ClaudeModels(confirmation="haiku")
+    launcher.active.clear()
+    for bad in ({"confirmation": "opus --tools Bash"}, {"acts": "haiku"}):
+        answer = client.post("/analysis/sessions/demo-es",
+                             json={"claude_models": bad}, headers=AUTH)
+        assert answer.status_code == 422, bad
+    assert len(launcher.models) == 1
+
+
+def test_a_start_without_models_passes_none(tmp_path: Path) -> None:
+    """No choice: the launcher gets no models (the configured ones run)."""
+    launcher = FakeLauncher()
+    client = client_for(tmp_path, launcher)
+    answer = client.post("/analysis/sessions/demo-es", headers=AUTH)
+    assert answer.status_code == 202
+    assert launcher.models == [None]

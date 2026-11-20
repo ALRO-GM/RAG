@@ -194,7 +194,9 @@ class AnalysisRequest(BaseModel):
     """Body of ``POST /api/analysis/sessions/{id}`` (all optional).
 
     ``steps`` runs only those steps again; ``job`` (the job sought) and
-    ``claude_synthesis`` go to the explanatory profiles (#113).
+    ``claude_synthesis`` go to the explanatory profiles (#113);
+    ``claude_models`` chooses the Claude model of a judged step
+    (``confirmation``, ``assessment``, ``synthesis``).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -204,6 +206,7 @@ class AnalysisRequest(BaseModel):
     steps: List[str] = Field(default_factory=list, max_length=16)
     job: Optional[str] = Field(default=None, max_length=MAX_JOB)
     claude_synthesis: bool = False
+    claude_models: Dict[str, str] = Field(default_factory=dict, max_length=3)
 
 
 REPORT_HEADERS = {
@@ -778,6 +781,7 @@ def create_app(
         return await run_in_threadpool(
             c.session_analysis.start, session_id, body.restart,
             body.synthetic, body.steps, body.job, body.claude_synthesis,
+            body.claude_models,
         )
 
     @api.get("/analysis/sessions/{session_id}")

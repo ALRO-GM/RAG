@@ -246,7 +246,14 @@ def test_the_pure_logic_passes_its_node_tests() -> None:
         ["node", "--test", *map(str, tests)],
         cwd=ROOT, capture_output=True, text=True, check=False, timeout=300,
     )
-    assert done.returncode == 0, done.stdout[-3000:] + done.stderr[-2000:]
+    failing = [
+        line for line in done.stdout.splitlines()
+        if line.lstrip().startswith("not ok")
+    ]
+    assert done.returncode == 0, (
+        "\n".join(failing) + "\n" + done.stdout[-3000:]
+        + done.stderr[-2000:]
+    )
 
 
 def test_the_lab_tab_is_reachable_and_keeps_the_code_out_of_urls() -> None:

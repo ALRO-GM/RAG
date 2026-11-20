@@ -142,3 +142,61 @@ test("typing a job survives the next refresh", async () => {
     page.restore();
   }
 });
+
+test("the Claude model chosen for a step is sent with the start; a bad id is not", async () => {
+  const timers = [];
+  const saved = {
+    document: globalThis.document, Node: globalThis.Node,
+    setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout,
+  };
+  globalThis.document = {
+    createElement: (tag) => new FakeElement(tag),
+    createElementNS: (_ns, tag) => new FakeElement(tag),
+    createTextNode: (text) => new FakeText(text),
+  };
+  globalThis.Node = FakeNode;
+  globalThis.setTimeout = (callback) => timers.push(callback);
+  globalThis.clearTimeout = () => {};
+  try {
+    const { analysisView } = await import("../../transcriber/adapters/inbound/web/js/views/analysis.js");
+    const starts = [];
+    const ctx = {
+      api: {
+        analysisStatus: async () => ({ session_id: "demo-es", status: "done", active: false, steps: [] }),
+        analysisJudge: async () => ({ mode: "claude_code" }),
+        analysisStep: async () => ({}),
+        publish: async () => ({}),
+        getNames: async () => ({ running: false }),
+        startAnalysis: async (_id, options) => { starts.push(options); },
+      },
+      fail: () => {},
+    };
+    const root = new FakeElement("main");
+    const close = await analysisView(ctx, root, ["demo-es"]);
+    const start = () => findButton(root, "primary big");
+    root.find("an-model-confirmation").value = "haiku";
+    const synthesis = root.find("an-model-synthesis");
+    synthesis.value = "custom";
+    synthesis.dispatch("change");
+    const custom = root.find("an-model-synthesis-custom");
+    assert.equal(custom.hidden, false);
+    custom.value = "opus --tools Bash";
+    await start().listeners.click[0]();
+    assert.equal(starts.length, 0, "an invalid id is not sent");
+    custom.value = "claude-sonnet-4-5";
+    await start().listeners.click[0]();
+    assert.deepEqual(starts[0].claudeModels, { confirmation: "haiku", synthesis: "claude-sonnet-4-5" });
+    close();
+  } finally {
+    Object.assign(globalThis, saved);
+  }
+});
+
+function findButton(node, className) {
+  if (node.tagName === "BUTTON" && node.className === className) return node;
+  for (const child of node.children ?? []) {
+    const found = findButton(child, className);
+    if (found) return found;
+  }
+  return null;
+}

@@ -13,7 +13,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 from urllib.parse import quote
 
 from transcriber.adapters.outbound.no_redirect import OPENER
@@ -59,6 +59,7 @@ class HttpSessionAnalysis:
         steps: Sequence[str] = (),
         job: Optional[str] = None,
         claude_synthesis: bool = False,
+        claude_models: Optional[Mapping[str, str]] = None,
     ) -> Dict[str, Any]:
         """Ask the RAG to start the analysis (``POST``)."""
         body: Dict[str, Any] = {"restart": restart, "synthetic": synthetic}
@@ -67,6 +68,8 @@ class HttpSessionAnalysis:
         if job is not None:
             body["job"] = job
             body["claude_synthesis"] = claude_synthesis
+        if claude_models:
+            body["claude_models"] = dict(claude_models)
         answer = self._call("POST", session_id, body)
         return self._object(json.loads(answer))
 

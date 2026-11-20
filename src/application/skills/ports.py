@@ -8,6 +8,7 @@ from typing import (
 from src.domain.skills.act_tagging import ActInput, Probabilities
 from src.domain.skills.analysis_run import AnalysisRun
 from src.domain.skills.assessment import SessionAssessment
+from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.judging import JudgeState
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.speech import Sentence
@@ -214,10 +215,12 @@ class AnalysisLauncher(Protocol):
         restart: bool,
         synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Start the analysis of ``session_id`` and return at once.
 
-        ``steps``, when not empty, are the only steps run again.
+        ``steps``, when not empty, are the only steps run again;
+        ``models``, when given, the Claude model of each judged step.
         """
         ...
 

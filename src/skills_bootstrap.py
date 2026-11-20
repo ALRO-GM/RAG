@@ -98,6 +98,7 @@ from src.domain.runtime import (
     RuntimePlan,
     choose_model,
 )
+from src.domain.skills.claude_models import JudgeStep
 from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
 
@@ -310,11 +311,61 @@ class SkillsContainer:
     @cached_property
     def claude_judge(self) -> ClaudeCodeJudge:
         """Claude through the ``claude`` command line (subscription)."""
+        return self.claude_judge_for(self.settings.claude_model)
+
+    def claude_judge_for(self, model: str) -> ClaudeCodeJudge:
+        """Return Claude Code with ``model`` (one per model, reused)."""
+        judges = self._claude_judges
+        if model not in judges:
+            s = self.settings
+            judges[model] = ClaudeCodeJudge(
+                model, s.claude_executable, s.claude_timeout, s.claude_effort,
+            )
+        return judges[model]
+
+    @cached_property
+    def _claude_judges(self) -> Dict[str, ClaudeCodeJudge]:
+        """The Claude Code judges built so far, by model."""
+        return {}
+
+    @cached_property
+    def _claude_fallbacks(self) -> Dict[str, FallbackJudge]:
+        """Claude (by model) with the local judge behind it, built so far."""
+        return {}
+
+    def claude_with_fallback(self, model: str) -> FallbackJudge:
+        """Return Claude Code with ``model``, the local judge behind it.
+
+        One per model, so the steps that use the same model share the
+        switch to the local judge once its quota runs out.
+        """
+        fallbacks = self._claude_fallbacks
+        if model not in fallbacks:
+            fallbacks[model] = FallbackJudge(
+                self.claude_judge_for(model), self.local_judge,
+                self.judge_selection,
+            )
+        return fallbacks[model]
+
+    def step_judge(self, step: JudgeStep) -> ChatModel:
+        """Return the judge of one judged step of ``skills analyze``.
+
+        When the run's judge is Claude Code (alone or first of
+        ``both``), the step's chosen Claude model
+        (``claude_<step>_model``, else ``claude_model``); any other
+        judge (local, opencode, the API, a shared one) answers every
+        step as before.
+        """
+        if self._shared_judge is not None or self.settings.judge == "api":
+            return self.judge
+        if self.judge_mode() not in ("claude_code", "both"):
+            return self.judge
+        return self.claude_with_fallback(self.claude_model_of(step))
+
+    def claude_model_of(self, step: JudgeStep) -> str:
+        """Return the Claude model ``step`` uses (chosen or default)."""
         s = self.settings
-        return ClaudeCodeJudge(
-            s.claude_model, s.claude_executable, s.claude_timeout,
-            s.claude_effort,
-        )
+        return s.claude_models().model_for(step, s.claude_model)
 
     @cached_property
     def opencode_judge(self) -> OpencodeJudge:
@@ -373,9 +424,7 @@ class SkillsContainer:
             return self.opencode_judge
         if self.judge_mode() == "local":
             return self.local_judge
-        return FallbackJudge(
-            self.claude_judge, self.local_judge, self.judge_selection
-        )
+        return self.claude_with_fallback(s.claude_model)
 
     @cached_property
     def cache(self) -> Cache:
@@ -447,12 +496,15 @@ class SkillsContainer:
         """Return the judges of the analysis (built on first use)."""
         mode = self.judge_mode()
         budget = CallBudget(
-            self.judge, self.settings.max_judge_calls, self.usage
+            self.step_judge("confirmation"), self.settings.max_judge_calls,
+            self.usage,
         )
         return JudgeSetup(
             mode=mode,
             first=TagConfirmer(budget, self.cache, self.progress),
-            assessment=self.assessment_with(budget),
+            assessment=self.assessment_with(
+                budget.using(self.step_judge("assessment"))
+            ),
             second=self.second_confirmer if mode == "both" else None,
             budget=budget,
             usage=self.usage,
@@ -470,18 +522,21 @@ class SkillsContainer:
         whatever the run's judge, except when the run's judge is the
         local model and the owner did not allow Claude for it: then
         the local model, and nothing leaves the machine. Never the paid
-        API.
+        API. Claude answers with the model chosen for the synthesis
+        (``claude_synthesis_model``, else ``claude_model``).
         """
         if self._shared_judge is not None:
             return budget
         mode = self.judge_mode()
         if mode == "local" and not use_claude:
             return budget
-        if mode != "local" and self.settings.judge != "api":
+        s = self.settings
+        if mode == "opencode" and s.judge != "api":
             return budget
-        return budget.using(FallbackJudge(
-            self.claude_judge, self.local_judge, self.judge_selection
-        ))
+        model = self.claude_model_of("synthesis")
+        if mode != "local" and s.judge != "api" and model == s.claude_model:
+            return budget
+        return budget.using(self.claude_with_fallback(model))
 
     def analysis_requests(
         self, transcripts: TranscriptStore, transcripts_dir: str

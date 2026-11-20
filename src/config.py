@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Literal, Optional, Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.adapters.outbound.cross_encoder_reranker import (
     DEFAULT_RERANK_MODEL,
@@ -12,6 +12,8 @@ from src.adapters.outbound.opencode_judge import (
     DEFAULT_OPENCODE_AGENT,
     DEFAULT_OPENCODE_MODEL,
 )
+from src.domain.errors import InvalidInputError
+from src.domain.skills.claude_models import ClaudeModels, check_claude_model
 from src.domain.skills.conversation_events import EventRules
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -183,6 +185,14 @@ DEFAULT_CLAUDE_CODE_MODEL = "opus"
 """Claude Code's alias of the best model of the subscription."""
 
 
+def _model_or_error(value: str, empty_ok: bool) -> str:
+    """Return a checked Claude model name; a ``ValueError`` if invalid."""
+    try:
+        return check_claude_model(value, empty_ok=empty_ok)
+    except InvalidInputError as exc:
+        raise ValueError(str(exc)) from exc
+
+
 class SkillsSettings(BaseModel):
     """Configuration of the soft-skills analyzer.
 
@@ -262,6 +272,14 @@ class SkillsSettings(BaseModel):
     ``precise`` (default: more good quotes at the same share), or
     ``guided`` and Claude's ``standard``.
 
+    ``claude_model`` is the Claude Code model of every judged step;
+    ``claude_confirmation_model``, ``claude_assessment_model`` and
+    ``claude_synthesis_model`` replace it for one step (``""``: keep
+    ``claude_model``). Each is an alias (``haiku``, ``sonnet``,
+    ``opus``) or a full model id, checked against an allow-list
+    pattern (:mod:`src.domain.skills.claude_models`); the measured
+    trade-off is in ``docs/skills/MODEL_COMPARISON.md``.
+
     ``act_card`` is the dialogue-act tagger's settings (#82), written by
     ``experiments/skills/act_tagger_eval.py``: its outcome table, the
     fine-tuned encoder's directory and temperature, the routes of the
@@ -295,6 +313,9 @@ class SkillsSettings(BaseModel):
     judge_state_path: str = "data/skills/judge.json"
     act_card: str = "knowledge/dialogue_acts/act_tagger.json"
     claude_model: str = DEFAULT_CLAUDE_CODE_MODEL
+    claude_confirmation_model: str = ""
+    claude_assessment_model: str = ""
+    claude_synthesis_model: str = ""
     claude_effort: Optional[
         Literal["low", "medium", "high", "xhigh", "max"]
     ] = None
@@ -351,6 +372,29 @@ class SkillsSettings(BaseModel):
     that is not there; ``local_wait_seconds`` only bounds the wait for
     a GPU that exists but is busy.
     """
+
+    @field_validator("claude_model")
+    @classmethod
+    def _claude_model(cls, value: str) -> str:
+        """Accept only Claude model names of the allow-list pattern."""
+        return _model_or_error(value, empty_ok=False)
+
+    @field_validator(
+        "claude_confirmation_model", "claude_assessment_model",
+        "claude_synthesis_model",
+    )
+    @classmethod
+    def _step_model(cls, value: str) -> str:
+        """Accept a Claude model name for one step, or ``""`` (default)."""
+        return _model_or_error(value, empty_ok=True)
+
+    def claude_models(self) -> ClaudeModels:
+        """Return the Claude model chosen per judged step."""
+        return ClaudeModels(
+            confirmation=self.claude_confirmation_model,
+            assessment=self.claude_assessment_model,
+            synthesis=self.claude_synthesis_model,
+        )
 
     def event_rules(self) -> EventRules:
         """Return the second-layer parameters (``event_*`` settings).
