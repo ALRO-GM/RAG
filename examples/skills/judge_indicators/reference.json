@@ -1,0 +1,1660 @@
+{
+ "schema": "judge_indicators.es.v1",
+ "note": "Synthetic, written by the author. expect = the indicator the sentence shows, or null when it shows none of the offered ones.",
+ "items": [
+  {
+   "id": "t01",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Luis: ¿Cómo vamos de plazos?"
+   ],
+   "speaker": "Marta",
+   "text": "La idea principal es que no llegamos a la fecha: faltan dos módulos y el cliente no ha validado el diseño.",
+   "expect": "COMM.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t02",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Os cuento tres cosas: primero el presupuesto, después los plazos y por último quién se encarga de qué.",
+   "expect": "COMM.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t03",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: ¿Qué es eso del rollback?"
+   ],
+   "speaker": "Pablo",
+   "text": "Perdona, es volver a la versión anterior si la nueva falla; por ejemplo, si el viernes se cae el pago, restauramos la del jueves.",
+   "expect": "COMM.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t04",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Marta: Sofía, ¿puedes resumirnos tu postura?"
+   ],
+   "speaker": "Sofía",
+   "text": "En una frase: prefiero lanzar en septiembre porque así probamos con calma.",
+   "expect": "COMM.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t05",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Sofía: Necesito los datos antes del jueves."
+   ],
+   "speaker": "Luis",
+   "text": "Vale, te los mando el miércoles por la mañana; así el jueves ya los tienes para la reunión.",
+   "expect": "COMM.P6",
+   "kind": "true"
+  },
+  {
+   "id": "t06",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Marta: Pablo, ¿qué pasó con el cliente?",
+    "Luis: No te sigo, ¿qué quieres decir?"
+   ],
+   "speaker": "Pablo",
+   "text": "Es que, bueno, lo del informe, que no el informe sino lo otro, o sea, lo que dijo el cliente, que no sé si era del informe o de la reunión, total que eso.",
+   "expect": "COMM.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t07",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: Luis, ¿cuánto nos va a costar el cambio?"
+   ],
+   "speaker": "Luis",
+   "text": "Mirad la siguiente diapositiva, que tiene un gráfico muy bonito.",
+   "expect": "COMM.N4",
+   "kind": "true"
+  },
+  {
+   "id": "t08",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Pablo: No es cuestión de dinero, es que no nos da el tiempo."
+   ],
+   "speaker": "Irene",
+   "text": "Si te he entendido bien, dices que el problema es el calendario y no el presupuesto; en ese caso yo movería la entrega.",
+   "expect": "LISTEN.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t09",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Luis: He hablado con el proveedor y no puede enviar hasta el día 20."
+   ],
+   "speaker": "Marta",
+   "text": "¿Y ese día 20 incluye el montaje o solo la entrega?",
+   "expect": "LISTEN.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t10",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: El formulario actual solo tiene tres campos."
+   ],
+   "speaker": "Sofía",
+   "text": "Partiendo de lo que ha dicho Irene sobre el formulario, podríamos usar el mismo diseño para la versión móvil.",
+   "expect": "LISTEN.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t11",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Luis: Y con el color, ¿qué hacemos?"
+   ],
+   "speaker": "Marta",
+   "text": "Antes Pablo comentó que el cliente prefería el azul; volvamos a eso.",
+   "expect": "LISTEN.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t12",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: Hay que cerrar la fase antes de fin de mes."
+   ],
+   "speaker": "Luis",
+   "text": "No me ha quedado claro a qué te refieres con cerrar la fase: ¿cuando se entrega o cuando se factura?",
+   "expect": "LISTEN.P5",
+   "kind": "true"
+  },
+  {
+   "id": "t13",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Irene: Pablo, ¿puedes revisar mi parte del informe esta tarde?"
+   ],
+   "speaker": "Pablo",
+   "text": "Ayer vi un partido buenísimo, ¿lo visteis?",
+   "expect": "LISTEN.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t14",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Sofía: Yo propondría repartir las tareas por semanas.",
+    "Marta: Vale, apuntado."
+   ],
+   "speaker": "Luis",
+   "text": "Pues yo propongo que repartamos las tareas por semanas.",
+   "expect": "LISTEN.N2",
+   "kind": "true"
+  },
+  {
+   "id": "t15",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Marta: La reunión es el jueves a las cinco."
+   ],
+   "speaker": "Luis",
+   "text": "¿Cuándo era la reunión?",
+   "expect": "LISTEN.N3",
+   "kind": "true"
+  },
+  {
+   "id": "t16",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Yo cambiaría de proveedor, porque el actual ha fallado tres entregas este trimestre.",
+   "expect": "INFLU.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t17",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Luis: ¿Y por qué migrar a la nube?"
+   ],
+   "speaker": "Irene",
+   "text": "Esto encaja con el objetivo que fijamos de reducir costes un diez por ciento este año.",
+   "expect": "INFLU.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t18",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Sé que alguien dirá que es caro, pero el ahorro en mantenimiento lo compensa en un año.",
+   "expect": "INFLU.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t19",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Luis: Con ese plan no llegamos a tiempo para la demo."
+   ],
+   "speaker": "Marta",
+   "text": "Tienes razón en lo de la demo, así que recorto el alcance a dos pantallas.",
+   "expect": "INFLU.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t20",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [
+    "Pablo: Yo no quiero perder mis clientes.",
+    "Sofía: Ni yo."
+   ],
+   "speaker": "Irene",
+   "text": "Podríamos hacer una prueba piloto con Pablo en su zona y Sofía en la suya, así cada uno conserva su cartera.",
+   "expect": "INFLU.P5",
+   "kind": "true"
+  },
+  {
+   "id": "t21",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Pablo: Hay que migrar ya.",
+    "Luis: ¿Por qué?",
+    "Pablo: Pues hay que migrar ya."
+   ],
+   "speaker": "Pablo",
+   "text": "Hay que migrar ya, os lo repito, hay que migrar ya.",
+   "expect": "INFLU.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t22",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [
+    "Irene: ¿Podrías explicar por qué esa arquitectura?"
+   ],
+   "speaker": "Pablo",
+   "text": "Llevo quince años en esto, así que hacedme caso y ya está.",
+   "expect": "INFLU.N2",
+   "kind": "true"
+  },
+  {
+   "id": "t23",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [
+    "Luis: Me están costando las tablas del informe."
+   ],
+   "speaker": "Irene",
+   "text": "Si quieres, esta tarde te ayudo a montar las tablas del informe.",
+   "expect": "COLLAB.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t24",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Me he atascado con la conexión a la base de datos, ¿alguien me echa una mano?",
+   "expect": "COLLAB.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t25",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Os aviso de que el cliente ha cambiado la fecha de entrega al día 12; lo digo porque afecta a vuestras tareas.",
+   "expect": "COLLAB.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t26",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "La idea de Irene de agrupar las incidencias por cliente nos ha ahorrado mucho trabajo.",
+   "expect": "COLLAB.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t27",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [
+    "Marta: Alguien tendría que ordenar el archivo compartido, pero es un rollo."
+   ],
+   "speaker": "Pablo",
+   "text": "Yo me encargo de ordenar el archivo compartido, que nadie quiere hacerlo.",
+   "expect": "COLLAB.P6",
+   "kind": "true"
+  },
+  {
+   "id": "t28",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [
+    "Sofía: Luis, ¿me pasas el contacto del proveedor? Lo necesito hoy."
+   ],
+   "speaker": "Luis",
+   "text": "No lo tengo a mano, búscalo tú.",
+   "expect": "COLLAB.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t29",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [
+    "Irene: He automatizado el informe semanal."
+   ],
+   "speaker": "Pablo",
+   "text": "Eso lo habría hecho cualquiera, Irene; tampoco es que sea difícil.",
+   "expect": "COLLAB.N2",
+   "kind": "true"
+  },
+  {
+   "id": "t30",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [
+    "Luis: Entonces cambiamos el proceso."
+   ],
+   "speaker": "Marta",
+   "text": "Sofía, tú no has dicho nada de esto todavía, ¿cómo lo ves?",
+   "expect": "INCL.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t31",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [
+    "Irene: Yo quería añadir que—",
+    "Luis: Da igual, sigamos."
+   ],
+   "speaker": "Marta",
+   "text": "Irene, antes te hemos cortado, sigue con lo que decías.",
+   "expect": "INCL.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t32",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Antes de cerrar este punto, ¿alguien ve algún motivo para no hacerlo así?",
+   "expect": "INCL.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t33",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Termino ya para dejaros sitio; solo añado que mi parte está lista.",
+   "expect": "INCL.P5",
+   "kind": "true"
+  },
+  {
+   "id": "t34",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [
+    "Pablo: No sé, igual es una tontería, pero quizá deberíamos probar con menos usuarios."
+   ],
+   "speaker": "Marta",
+   "text": "No es ninguna tontería: Pablo propone probar con menos usuarios, ¿lo tenemos en cuenta?",
+   "expect": "INCL.P6",
+   "kind": "true"
+  },
+  {
+   "id": "t35",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [
+    "Irene: Yo quería decir que—"
+   ],
+   "speaker": "Luis",
+   "text": "Da igual, hablo yo, que esto lo explico mejor.",
+   "expect": "INCL.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t36",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [
+    "Pablo: Propongo el modelo B.",
+    "Marta: ...",
+    "Irene: ..."
+   ],
+   "speaker": "Pablo",
+   "text": "Como todos estamos de acuerdo, pasamos al siguiente punto.",
+   "expect": "INCL.N3",
+   "kind": "true"
+  },
+  {
+   "id": "t37",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [
+    "Sofía: Creo que el plazo es demasiado corto."
+   ],
+   "speaker": "Luis",
+   "text": "Eso lo dice Sofía, que es la nueva, así que no lo tendría en cuenta.",
+   "expect": "INCL.N4",
+   "kind": "true"
+  },
+  {
+   "id": "t38",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "No estoy de acuerdo con subir el precio, porque los clientes actuales ya se quejan.",
+   "expect": "CONFL.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t39",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [
+    "Luis: Mi plan acaba una semana antes."
+   ],
+   "speaker": "Pablo",
+   "text": "Es verdad que tu plan es más rápido, pero yo veo un riesgo en la calidad.",
+   "expect": "CONFL.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t40",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [
+    "Luis: Son tres semanas.",
+    "Irene: No, dos."
+   ],
+   "speaker": "Marta",
+   "text": "Parece que discrepamos en el plazo; propongo que lo decida una prueba de una semana.",
+   "expect": "CONFL.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t41",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [
+    "Luis: Es que tú siempre llegas tarde."
+   ],
+   "speaker": "Marta",
+   "text": "Dejemos eso y centrémonos en cómo repartir el trabajo de la semana que viene.",
+   "expect": "CONFL.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t42",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [
+    "Luis: Hay que salir ya.",
+    "Pablo: Pues sin calidad no salgo."
+   ],
+   "speaker": "Irene",
+   "text": "¿Y si hacemos la versión básica en marzo y la completa en mayo? Así cabe vuestra urgencia y mi calidad.",
+   "expect": "CONFL.P5",
+   "kind": "true"
+  },
+  {
+   "id": "t43",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [
+    "Marta: Me ha dolido lo que has dicho antes."
+   ],
+   "speaker": "Luis",
+   "text": "Perdona, antes me pasé de tono; retiro lo que dije.",
+   "expect": "CONFL.P6",
+   "kind": "true"
+  },
+  {
+   "id": "t44",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [
+    "Luis: Podríamos probar con otro proveedor."
+   ],
+   "speaker": "Pablo",
+   "text": "Qué bien, Luis, otra brillante idea de las tuyas.",
+   "expect": "CONFL.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t45",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [
+    "Marta: Hemos votado y sale la opción B, no la tuya."
+   ],
+   "speaker": "Luis",
+   "text": "Pues si es así, haced lo que queráis; yo me callo y no digo más.",
+   "expect": "CONFL.N4",
+   "kind": "true"
+  },
+  {
+   "id": "t46",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Cuando enviaste el resumen con las tres decisiones, el cliente pudo responder el mismo día; eso ayudó mucho.",
+   "expect": "FEEDB.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t47",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "La presentación tiene demasiado texto; podrías dejar una idea por diapositiva y pasar el resto a notas.",
+   "expect": "FEEDB.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t48",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "¿Qué tal te pareció mi forma de explicar el plan? Dime qué mejorarías.",
+   "expect": "FEEDB.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t49",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [
+    "Sofía: No entiendo por qué hay que versionar los datos."
+   ],
+   "speaker": "Pablo",
+   "text": "Porque si un modelo falla, necesitamos reproducir exactamente con qué datos se entrenó.",
+   "expect": "FEEDB.P4",
+   "kind": "true"
+  },
+  {
+   "id": "t50",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [
+    "Irene: ¿Has visto el informe que te mandé?"
+   ],
+   "speaker": "Pablo",
+   "text": "Tu trabajo no está bien, la verdad.",
+   "expect": "FEEDB.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t51",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [
+    "Marta: En tu informe faltan las fuentes de los datos."
+   ],
+   "speaker": "Luis",
+   "text": "Eso que dices de mi informe no tiene sentido, ni lo voy a mirar.",
+   "expect": "FEEDB.N3",
+   "kind": "true"
+  },
+  {
+   "id": "t52",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "¿Cuál es el resultado que queremos tener hoy al acabar la reunión?",
+   "expect": "COORD.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t53",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [
+    "Irene: Puedo con el borrador."
+   ],
+   "speaker": "Marta",
+   "text": "Quedamos así: Irene prepara el borrador, Luis lo revisa, y lo entregamos el viernes.",
+   "expect": "COORD.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t54",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Luis: Yo contrataría a más gente de soporte."
+   ],
+   "speaker": "Irene",
+   "text": "Antes de decidir, ¿tenemos los datos de cuántas incidencias hubo el mes pasado?",
+   "expect": "SOLVE.P2",
+   "kind": "true"
+  },
+  {
+   "id": "t55",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Veo dos opciones: ampliar el equipo o reducir el alcance. ¿Hay alguna más?",
+   "expect": "SOLVE.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t56",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Irene: Los datos muestran que la opción A tiene el doble de fallos."
+   ],
+   "speaker": "Luis",
+   "text": "Eso da igual, seguimos con la A.",
+   "expect": "SOLVE.N3",
+   "kind": "true"
+  },
+  {
+   "id": "t57",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Os cuento cómo va lo que prometí: el módulo de pagos está al ochenta por ciento y acabo el martes.",
+   "expect": "INIT.P3",
+   "kind": "true"
+  },
+  {
+   "id": "t58",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [
+    "Marta: ¿Por qué no se hizo la copia de seguridad?"
+   ],
+   "speaker": "Pablo",
+   "text": "Eso no era cosa mía, yo no sé quién debía hacerlo.",
+   "expect": "INIT.N1",
+   "kind": "true"
+  },
+  {
+   "id": "t59",
+   "offered": [
+    "ADAPT",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Me equivoqué con la estimación: no son dos días, son cinco.",
+   "expect": "ADAPT.P1",
+   "kind": "true"
+  },
+  {
+   "id": "t60",
+   "offered": [
+    "FEEDB",
+    "ADAPT"
+   ],
+   "context": [
+    "Irene: En Madrid tenemos el triple de usuarios activos."
+   ],
+   "speaker": "Sofía",
+   "text": "Después de ver los datos de Irene cambio de opinión: es mejor lanzar primero en Madrid, porque allí hay más usuarios.",
+   "expect": "ADAPT.P2",
+   "kind": "true"
+  },
+  {
+   "id": "w01",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Pablo: Y eso es todo lo que hace el módulo."
+   ],
+   "speaker": "Irene",
+   "text": "Vale, gracias por la explicación.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.P5"
+  },
+  {
+   "id": "w02",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Luis: ¿Has terminado el informe?"
+   ],
+   "speaker": "Marta",
+   "text": "El informe tiene tres secciones y una portada.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.P2"
+  },
+  {
+   "id": "w03",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Sofía: Esos acrónimos no hay quien los entienda."
+   ],
+   "speaker": "Luis",
+   "text": "La jerga de este sector es muy complicada, a mí también me cuesta.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.N2"
+  },
+  {
+   "id": "w04",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Me corrijo: el cliente se llama Medina, no Molina.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.N3"
+  },
+  {
+   "id": "w05",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: ¿Dónde está el servidor?"
+   ],
+   "speaker": "Luis",
+   "text": "Sí, el servidor está en Frankfurt.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.N4"
+  },
+  {
+   "id": "w06",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Buenos días a todos, empezamos.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COMM.P1"
+  },
+  {
+   "id": "w07",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Luis: Y por eso lo moví al jueves."
+   ],
+   "speaker": "Irene",
+   "text": "Sí, sí, ya.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.P1"
+  },
+  {
+   "id": "w08",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Pablo me escribió ayer por la tarde, por cierto.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.P4"
+  },
+  {
+   "id": "w09",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Marta: Tendremos que mover la reunión, por cierto."
+   ],
+   "speaker": "Sofía",
+   "text": "Perdona, ¿cuándo dices que es la reunión?",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.N3"
+  },
+  {
+   "id": "w10",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Marta: El jueves tengo reunión con el cliente."
+   ],
+   "speaker": "Luis",
+   "text": "Pasamos a las pruebas de rendimiento, que es lo siguiente.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.P2"
+  },
+  {
+   "id": "w11",
+   "offered": [
+    "LISTEN",
+    "COMM"
+   ],
+   "context": [
+    "Luis: Aquí estoy con el equipo en el congreso."
+   ],
+   "speaker": "Irene",
+   "text": "Esa foto de Luis en el congreso es muy buena.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.P3"
+  },
+  {
+   "id": "w12",
+   "offered": [
+    "COMM",
+    "LISTEN"
+   ],
+   "context": [
+    "Irene: Yo propondría repartir las tareas por semanas."
+   ],
+   "speaker": "Marta",
+   "text": "Gracias, Irene, tu propuesta del reparto semanal me parece buena.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "LISTEN.N2"
+  },
+  {
+   "id": "w13",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Creo que deberíamos mejorar la documentación.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.P1"
+  },
+  {
+   "id": "w14",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Tenemos un objetivo de ventas para este trimestre.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.P2"
+  },
+  {
+   "id": "w15",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Marta: Voy a proponer el cambio de proveedor."
+   ],
+   "speaker": "Luis",
+   "text": "Habrá objeciones, supongo.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.P3"
+  },
+  {
+   "id": "w16",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [
+    "Irene: ¿Cuántos usuarios hay ahora?"
+   ],
+   "speaker": "Pablo",
+   "text": "El dato es que son doscientos usuarios.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.P1"
+  },
+  {
+   "id": "w17",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [
+    "Irene: ¿Desde cuándo estás aquí?"
+   ],
+   "speaker": "Pablo",
+   "text": "Llevo quince años en esta empresa y en mi primer año trabajé en Valencia.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.N2"
+  },
+  {
+   "id": "w18",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [
+    "Marta: Para el acta, ¿cuál es el plazo que habéis acordado?"
+   ],
+   "speaker": "Luis",
+   "text": "Lo dije antes y lo repito en el acta, para que conste: dos semanas.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INFLU.N1"
+  },
+  {
+   "id": "w19",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Voy a tomar un café, ¿alguien quiere algo?",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.P1"
+  },
+  {
+   "id": "w20",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "Hoy me toca a mí presentar el informe.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.P6"
+  },
+  {
+   "id": "w21",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "El equipo de ventas está en otra planta.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.P5"
+  },
+  {
+   "id": "w22",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Gracias por todo, a todos.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.P4"
+  },
+  {
+   "id": "w23",
+   "offered": [
+    "COLLAB",
+    "INIT"
+   ],
+   "context": [
+    "Irene: ¿Tienes la cifra de ventas de marzo?"
+   ],
+   "speaker": "Luis",
+   "text": "No tengo ese dato ahora mismo, te lo busco mañana.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.N1"
+  },
+  {
+   "id": "w24",
+   "offered": [
+    "INIT",
+    "COLLAB"
+   ],
+   "context": [
+    "Marta: Irene está con la migración de datos."
+   ],
+   "speaker": "Sofía",
+   "text": "Ese trabajo es complicado.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COLLAB.N2"
+  },
+  {
+   "id": "w25",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Marta, ¿puedes pasar la siguiente diapositiva?",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INCL.P1"
+  },
+  {
+   "id": "w26",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Somos cinco en la reunión de hoy.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INCL.P3"
+  },
+  {
+   "id": "w27",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [
+    "Marta: ¿De quién es esta propuesta?"
+   ],
+   "speaker": "Irene",
+   "text": "Esa propuesta es de Sofía, la hizo ayer por correo.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INCL.N4"
+  },
+  {
+   "id": "w28",
+   "offered": [
+    "COLLAB",
+    "INCL"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Hoy hemos empezado tarde por culpa del proyector.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INCL.P2"
+  },
+  {
+   "id": "w29",
+   "offered": [
+    "INCL",
+    "COLLAB"
+   ],
+   "context": [
+    "Luis: Ya me ha dado tiempo a prepararlo."
+   ],
+   "speaker": "Marta",
+   "text": "Luis, ¿puedes enseñarnos la pantalla?",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INCL.N2"
+  },
+  {
+   "id": "w30",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Hoy el calendario está muy apretado.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "CONFL.N3"
+  },
+  {
+   "id": "w31",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Votamos esta tarde por correo el color del logo.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "CONFL.P3"
+  },
+  {
+   "id": "w32",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Lo siento, llego tarde, había un atasco.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "CONFL.P6"
+  },
+  {
+   "id": "w33",
+   "offered": [
+    "CONFL",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "Mi hermano es muy sarcástico con estas cosas.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "CONFL.N1"
+  },
+  {
+   "id": "w34",
+   "offered": [
+    "INFLU",
+    "CONFL"
+   ],
+   "context": [
+    "Marta: ¿Quedamos a las ocho?"
+   ],
+   "speaker": "Sofía",
+   "text": "Por mí, cualquier hora.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "CONFL.P1"
+  },
+  {
+   "id": "w35",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [
+    "Luis: ¿Cuándo llegó el informe?"
+   ],
+   "speaker": "Marta",
+   "text": "El informe llegó el lunes a las nueve.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.N1"
+  },
+  {
+   "id": "w36",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [
+    "Irene: ¿Me pasas el informe cuando puedas?"
+   ],
+   "speaker": "Pablo",
+   "text": "Te mando el informe corregido mañana.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.P1"
+  },
+  {
+   "id": "w37",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "Me gustaría que me dijerais si os llega el correo.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.P3"
+  },
+  {
+   "id": "w38",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Os explico el calendario: primero diseño, luego pruebas.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.P4"
+  },
+  {
+   "id": "w39",
+   "offered": [
+    "FEEDB",
+    "COMM"
+   ],
+   "context": [
+    "Luis: Voy a tardar mucho con la tabla, hazla tú si quieres."
+   ],
+   "speaker": "Irene",
+   "text": "He hecho yo la tabla, que es más rápido.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.N2"
+  },
+  {
+   "id": "w40",
+   "offered": [
+    "COMM",
+    "FEEDB"
+   ],
+   "context": [
+    "Marta: Aquí tienes el enlace al documento."
+   ],
+   "speaker": "Sofía",
+   "text": "Gracias por mandarme el enlace.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "FEEDB.P6"
+  },
+  {
+   "id": "w41",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Hoy tenemos reunión de seguimiento.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COORD.P2"
+  },
+  {
+   "id": "w42",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "¿Alguien sabe dónde está la sala B?",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COORD.P5"
+  },
+  {
+   "id": "w43",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [
+    "Marta: Hay que cerrar el calendario hoy."
+   ],
+   "speaker": "Luis",
+   "text": "Mañana juega mi equipo, a ver si ganan.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COORD.N1"
+  },
+  {
+   "id": "w44",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "Ayer el ascensor se estropeó otra vez.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COORD.P6"
+  },
+  {
+   "id": "w45",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Cada uno tiene mucho que hacer esta semana.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "COORD.P3"
+  },
+  {
+   "id": "w46",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [],
+   "speaker": "Luis",
+   "text": "El sistema fue lanzado en 2019.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "SOLVE.P1"
+  },
+  {
+   "id": "w47",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Podemos comer en el restaurante de la esquina.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "SOLVE.P3"
+  },
+  {
+   "id": "w48",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "El criterio de la ISO viene en el anexo tres.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "SOLVE.P4"
+  },
+  {
+   "id": "w49",
+   "offered": [
+    "SOLVE",
+    "INFLU"
+   ],
+   "context": [
+    "Luis: ¿De dónde sale esa cifra?"
+   ],
+   "speaker": "Marta",
+   "text": "Lo he comprobado: la cifra sale de la hoja de ventas.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "SOLVE.N2"
+  },
+  {
+   "id": "w50",
+   "offered": [
+    "INFLU",
+    "SOLVE"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Hoy no tengo los números a mano.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "SOLVE.P2"
+  },
+  {
+   "id": "w51",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [
+    "Marta: ¿Alguien quiere ayudar con la feria?"
+   ],
+   "speaker": "Luis",
+   "text": "Yo me ofrezco.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INIT.P1"
+  },
+  {
+   "id": "w52",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "Hoy la mitad del equipo está de vacaciones.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INIT.P4"
+  },
+  {
+   "id": "w53",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Esperemos que no llueva en el evento.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INIT.N3"
+  },
+  {
+   "id": "w54",
+   "offered": [
+    "COORD",
+    "INIT"
+   ],
+   "context": [
+    "Marta: ¿Puedes comprometerte con el viernes?"
+   ],
+   "speaker": "Irene",
+   "text": "Te lo confirmo el jueves, que hoy no tengo el calendario.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INIT.N2"
+  },
+  {
+   "id": "w55",
+   "offered": [
+    "INIT",
+    "COORD"
+   ],
+   "context": [],
+   "speaker": "Marta",
+   "text": "Somos un equipo de siete personas.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "INIT.P6"
+  },
+  {
+   "id": "w56",
+   "offered": [
+    "FEEDB",
+    "ADAPT"
+   ],
+   "context": [],
+   "speaker": "Pablo",
+   "text": "No sé dónde he dejado las llaves.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "ADAPT.P1"
+  },
+  {
+   "id": "w57",
+   "offered": [
+    "ADAPT",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Irene",
+   "text": "Cambian la sala: ahora estamos en la B.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "ADAPT.P4"
+  },
+  {
+   "id": "w58",
+   "offered": [
+    "FEEDB",
+    "ADAPT"
+   ],
+   "context": [
+    "Irene: ¿Sigues con las dos semanas?"
+   ],
+   "speaker": "Luis",
+   "text": "Mantengo mi postura de antes: dos semanas, y mis datos de hoy lo confirman.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "ADAPT.N1"
+  },
+  {
+   "id": "w59",
+   "offered": [
+    "ADAPT",
+    "FEEDB"
+   ],
+   "context": [],
+   "speaker": "Sofía",
+   "text": "Me equivoqué de sala esta mañana.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "ADAPT.P3"
+  },
+  {
+   "id": "w60",
+   "offered": [
+    "FEEDB",
+    "ADAPT"
+   ],
+   "context": [
+    "Luis: ¿Cambiamos el plan?"
+   ],
+   "speaker": "Marta",
+   "text": "Seguimos con el mismo plan que ayer.",
+   "expect": null,
+   "kind": "wrong",
+   "resembles": "ADAPT.P2"
+  }
+ ]
+}
