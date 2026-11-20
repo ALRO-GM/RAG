@@ -234,6 +234,9 @@ async function withDom(fn) {
 test("the overview shows the header, one card and one detail per person, the caveats", async () => {
   await withDom(async () => {
     const { resultsPanel, resultsState } = await import("../../transcriber/adapters/inbound/web/js/views/analysis-results.js");
+    // Node 21+ has a global navigator ("en-US"): fix the language first.
+    const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
+    setLanguage("es");
     const panel = resultsPanel({ id: run.session_id, run, data });
     const nodes = panel.all();
     const cards = nodes.filter((n) => n.tagName === "ARTICLE");
@@ -241,7 +244,7 @@ test("the overview shows the header, one card and one detail per person, the cav
     const details = nodes.filter((n) => n.tagName === "DETAILS" && n.className.startsWith("person-detail"));
     assert.equal(details.length, 2);
     const text = panel.text();
-    // Without a browser the page is in Spanish: the caveats are all there.
+    // The caveats are all there.
     for (const key of ["res.draft_title", "res.draft_text", "res.fairness", "res.people_hint"]) assert.ok(text.includes(es[key]), key);
     // Every quote has a button that opens the transcript at its sentence.
     const transcript = nodes.find((n) => n.id === "an-transcript");
