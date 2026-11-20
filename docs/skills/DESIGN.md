@@ -318,6 +318,90 @@ a wiring test, not a usable assessor.
 Hosted judges (`claude_code`, `both`, `api`) must only be used with
 recordings whose participants consented to external processing.
 
+### 4.6 Judges on confirming indicators (#85)
+
+Reference: `examples/skills/judge_indicators/reference.json`, 120
+synthetic Spanish sentences written by the author with the intended
+verdict decided beforehand: 60 show one indicator of the Spanish core
+rubric (18 of them a negative one) and 60 only resemble one ("plausible
+but wrong": a promise with no date, a thanks that names nobody, an
+apology for being late). Each item offers two competencies (the right
+one and a neighbour) and is judged with the prompt of `skills tag
+--confirm` as it is, once with the indicators listed forwards and once
+reversed (competencies and indicators backwards). Code:
+`domain/skills/judge_reference.py` (scores), `application/skills/
+indicator_probe.py` (the questions), `experiments/skills/
+judge_indicators_eval.py` (run and combine); raw outcomes in
+`experiments/skills/results/judge_indicators_*.json`.
+
+Precision: confirmations that name the intended indicator over all
+confirmations. Recall: the same over the 60 items that show one.
+False confirmations: share of the 60 look-alikes that were confirmed.
+Flips: items whose answer changed with the order (a judge that reads
+content would give the same answer).
+
+| Judge (greedy, 240 calls) | Order | Precision | Recall | False confirmations | Negative indicators found | Flips |
+|---|---|---|---|---|---|---|
+| Qwen3-8B, 4 bit | forward | 0.437 | 0.633 | 0.500 | 0.500 | 59 of 120 (0.492) |
+| | reversed | 0.337 | 0.517 | 0.550 | 0.222 | |
+| Qwen3-4B, 4 bit | forward | 0.211 | 0.383 | 0.847 | 0.167 | 92 of 119 (0.773) |
+| | reversed | 0.226 | 0.433 | 0.917 | 0.500 | |
+
+On the same 30 items (the first 30 of the file, all showing an
+indicator, forward order), the intended indicator was named by 19 of 30
+for the 8B and 9 of 30 for the 4B. Agreement between the two local
+judges over the 239 answers readable in both: the same answer in 0.36,
+Cohen's kappa on confirmed/none 0.239. The 8B also confirms the wrong
+indicator on 19 (forward) and 28 (reversed) of the items that do show
+another one, and the first one listed is not what it favours (11-13 %
+of its confirmations): its error is content, not position, but half its
+answers still change with the order.
+
+**opencode is only partly measured.** The owner replaced the Claude
+Code judge in this measurement by opencode (#128), model
+`opencode/deepseek-v4.1-flash-free`. Its free tier stopped answering
+("Free usage limit reached", retry after about 18.7 h, for every free
+model) after 30 successful calls, which were the first 30 items of the
+forward order, all of them items that show an indicator. So there is no
+precision, no false-confirmation rate and no position figure for it;
+only: it named the intended indicator on 29 of 30 (recall 0.967; 8 of
+9 negative ones), against 19 and 9 for the local models on the same
+30. That says it can recognise indicators that are there; whether it
+rejects the ones that are not is **not measured**. Finish it with the
+same command once the quota is back; the 30 answers are stored in the
+result file and are reused (`--replay`). Also: the installed opencode is
+2.3.2, whose command line (no `--pure`, no `--dir`, other events) is not
+the one `adapters/outbound/opencode_judge.py` was written for, and with
+the adapter's private `HOME` the anonymous free limit applies at once;
+the experiment calls `opencode run --standalone` directly. The adapter
+needs its own ticket before `--judge opencode` is used with this
+version.
+
+Decisions:
+
+- **`skills tag --confirm` stays off by default.** With either local
+  judge, a confirmation is wrong more often than right (precision 0.44
+  for the 8B, 0.21 for the 4B) and one look-alike in two (8B) or six in
+  seven (4B) is confirmed. Tags are shown as candidates found by text,
+  as now; a confirmed tag from a local judge must not be read as
+  evidence.
+- **Call 2 (rating from confirmed tags) is not worth building yet.** It
+  would rate competencies from tags that are half wrong and that flip
+  with the listing order. It becomes worth it when a judge shows, on
+  this reference, precision of about 0.8 or more, a false-confirmation
+  rate of about 0.2 or less and few flips; the 0.8 and 0.2 are
+  thresholds chosen here, not measured ones. Candidate to test first:
+  opencode (or Claude Code once the weekly cap allows), which has the
+  recall but no measured precision.
+- Local policy unchanged (`local_preference` 8B then 4B): the 8B is the
+  better of the two on every figure above.
+
+Limits: one run per judge (greedy, so repeating gives the same
+answers); sentences and verdicts by one author, who also wrote the
+rubric, and 120 items give wide intervals (about plus or minus 0.09 on a
+rate near 0.5 over 120 items, 0.13 over 60); the look-alikes are the author's idea of what a judge
+would confuse, and some intended verdicts are arguable.
+
 ## 5. Architecture
 
 Same hexagon as the RAG; the analyzer reuses its ports and adapters and
