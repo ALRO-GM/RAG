@@ -42,6 +42,7 @@ from src.application.skills.session_analysis import (
 )
 from src.domain.errors import BusyError, LimitError, NotFoundError
 from src.domain.skills.analysis_run import StepRecord, new_run
+from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript_contract import is_session_id
 from src.domain.text_analysis import tokenize
@@ -317,10 +318,11 @@ class SlowLauncher(FakeLauncher):
     def start(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Wait, then start."""
         time.sleep(0.2)
-        super().start(session_id, restart, synthetic, steps)
+        super().start(session_id, restart, synthetic, steps, models)
 
 
 def at_once(
@@ -443,11 +445,12 @@ class PausedLauncher(FakeLauncher):
     def start(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
+        models: Optional[ClaudeModels] = None,
     ) -> None:
         """Say it entered, wait, then start."""
         self.entered.set()
         assert self.go.wait(5)
-        super().start(session_id, restart, synthetic, steps)
+        super().start(session_id, restart, synthetic, steps, models)
 
 
 def test_a_status_poll_during_a_restart_keeps_the_old_run_hidden(

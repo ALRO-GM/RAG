@@ -5,7 +5,9 @@ import http.server
 import json
 import threading
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import (
+    Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple,
+)
 
 import pytest
 from fastapi.testclient import TestClient
@@ -132,12 +134,14 @@ class FakeAnalysis:
         """Nothing asked yet."""
         self.calls: List[Tuple[Any, ...]] = []
         self.options: List[Tuple[List[str], Optional[str], bool]] = []
+        self.models: List[Dict[str, str]] = []
         self.running = False
 
     def start(
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (), job: Optional[str] = None,
         claude_synthesis: bool = False,
+        claude_models: Optional[Mapping[str, str]] = None,
     ) -> Dict[str, Any]:
         """Start, or refuse while running."""
         if self.running:
@@ -145,6 +149,7 @@ class FakeAnalysis:
         self.running = True
         self.calls.append(("start", session_id, restart, synthetic))
         self.options.append((list(steps), job, claude_synthesis))
+        self.models.append(dict(claude_models or {}))
         return {"session_id": session_id, "active": True}
 
     def status(self, session_id: str) -> Dict[str, Any]:
@@ -280,6 +285,7 @@ def test_cancel_is_forwarded_and_limits_say_why(
         session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (), job: Optional[str] = None,
         claude_synthesis: bool = False,
+        claude_models: Optional[Mapping[str, str]] = None,
     ) -> Any:
         """Refuse like the RAG at its limits."""
         raise LimitReachedError("limits")
@@ -314,3 +320,36 @@ def test_the_job_and_the_steps_are_checked_and_forwarded(
     }, headers=AUTH)
     assert started.status_code == 202
     assert fake.options == [(["synthesis"], "Coordinador", True)]
+
+
+def test_the_claude_models_are_checked_and_forwarded(
+    rag: Tuple[str, StandInRag], tmp_path: Path,
+) -> None:
+    """Chosen models reach the RAG; bad names and steps stop here."""
+    url, stand_in = rag
+    port = HttpSessionAnalysis(url, lambda: TOKEN)
+    port.start("s1", False, False, claude_models={"assessment": "haiku"})
+    assert json.loads(stand_in.requests[-1]["body"]) == {
+        "restart": False, "synthetic": False,
+        "claude_models": {"assessment": "haiku"},
+    }
+    port.start("s1", False, False)
+    assert "claude_models" not in json.loads(stand_in.requests[-1]["body"])
+    fake = FakeAnalysis()
+    access = SessionAnalysisAccess(fake)
+    for bad in ({"acts": "haiku"}, {"synthesis": "opus; id"},
+                {"synthesis": "-p"}, {"synthesis": "x" * 70}):
+        with pytest.raises(InvalidInputError):
+            access.start("s1", claude_models=bad)
+    access.start("s1", claude_models={"confirmation": " opus ",
+                                      "synthesis": ""})
+    assert fake.models[-1] == {"confirmation": "opus"}
+    api = client(tmp_path, fake)
+    fake.running = False
+    refused = api.post("/api/analysis/sessions/s1", json={
+        "claude_models": {"synthesis": "$(id)"}}, headers=AUTH)
+    assert refused.status_code == 400
+    started = api.post("/api/analysis/sessions/s1", json={
+        "claude_models": {"synthesis": "sonnet"}}, headers=AUTH)
+    assert started.status_code == 202
+    assert fake.models[-1] == {"synthesis": "sonnet"}

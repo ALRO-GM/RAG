@@ -323,6 +323,9 @@ class RagCLI:
         local_model: Optional[str] = None,
         api_model: Optional[str] = None,
         claude_model: Optional[str] = None,
+        claude_confirmation_model: Optional[str] = None,
+        claude_assessment_model: Optional[str] = None,
+        claude_synthesis_model: Optional[str] = None,
         opencode_model: Optional[str] = None,
         opencode_agent: Optional[str] = None,
         opencode_timeout: Optional[float] = None,
@@ -367,6 +370,12 @@ class RagCLI:
             local_model: Hugging Face model of the local judge.
             api_model: Model of the API judge.
             claude_model: Claude Code model (opus, sonnet, a full name).
+            claude_confirmation_model: Claude model of ``analyze``'s
+                confirmation step (haiku, sonnet, opus or a full id;
+                default: ``claude_model``). Measured trade-off in
+                docs/skills/MODEL_COMPARISON.md.
+            claude_assessment_model: The same for the assessment step.
+            claude_synthesis_model: The same for the synthesis step.
             opencode_model: Model of the opencode judge, e.g.
                 ``opencode/deepseek-v4.1-flash-free``; choose any id from
                 ``opencode models``.

@@ -90,6 +90,7 @@ from src.domain.skills.analysis_run import (
     steps_to_run,
 )
 from src.domain.skills.assessment import Observation, SessionAssessment
+from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.interaction import describe
 from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
@@ -420,9 +421,12 @@ class AnalysisRequests:
         synthetic: bool = False,
         steps: Optional[Sequence[str]] = None,
         job: Optional[JobSought] = None,
+        models: Optional[ClaudeModels] = None,
     ) -> Dict[str, Any]:
         """Start the analysis of ``session_id``; return its status.
 
+        ``models`` is the Claude model chosen per judged step (none:
+        the configured ones); it applies to this run only.
         ``steps`` runs only those steps again (e.g. ``synthesis`` after
         the job sought changed); ``job``, when given, replaces the job
         stored with the analysis before the run starts. It is written
@@ -445,7 +449,9 @@ class AnalysisRequests:
             )
         self.transcripts.get(session_id)
         with self._serial:
-            return self._start(session_id, restart, synthetic, chosen, job)
+            return self._start(
+                session_id, restart, synthetic, chosen, job, models
+            )
 
     def _start(
         self,
@@ -454,6 +460,7 @@ class AnalysisRequests:
         synthetic: bool,
         chosen: Optional[List[StepName]],
         job: Optional[JobSought],
+        models: Optional[ClaudeModels] = None,
     ) -> Dict[str, Any]:
         """Check, write the job and launch (one start at a time).
 
@@ -479,7 +486,10 @@ class AnalysisRequests:
         if restart:
             self.results.hide(session_id)
         try:
-            self.launcher.start(session_id, restart, synthetic, chosen or [])
+            self.launcher.start(
+                session_id, restart, synthetic, chosen or [],
+                models=models if models and models.chosen() else None,
+            )
         except Exception:
             self.results.show(session_id)
             if before is not None:

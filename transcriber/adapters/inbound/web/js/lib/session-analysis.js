@@ -302,14 +302,48 @@ export function asksForClaude(judge) {
  * the leave to use Claude when a job is given (even empty, to clear it);
  * the steps to run again when some are named.
  */
-export function startBody({ restart = false, synthetic = false, job = null, claudeSynthesis = false, steps = [] } = {}) {
+export function startBody({ restart = false, synthetic = false, job = null, claudeSynthesis = false, steps = [], claudeModels = {} } = {}) {
   const body = { restart, synthetic };
   if (steps.length) body.steps = [...steps];
+  const models = Object.fromEntries(Object.entries(claudeModels ?? {}).filter(([step, name]) => JUDGE_STEPS.includes(step) && name));
+  if (Object.keys(models).length) body.claude_models = models;
   if (typeof job === "string") {
     body.job = job.slice(0, MAX_JOB);
     body.claude_synthesis = Boolean(claudeSynthesis);
   }
   return body;
+}
+
+/** The steps that ask a judge, whose Claude model can be chosen. */
+export const JUDGE_STEPS = ["confirmation", "assessment", "synthesis"];
+
+/** The choices of the model selector: "" is the server's default, "custom" a full id typed in. */
+export const MODEL_CHOICES = ["", "haiku", "sonnet", "opus", "custom"];
+
+/** What a Claude model name may look like (the servers check it again). */
+export const CLAUDE_MODEL = /^(?:haiku|sonnet|opus|claude-[a-z0-9]+(?:[.-][a-z0-9]+)*)(?:\[1m\])?$/;
+
+/** Whether `name` is an acceptable Claude model name (alias or full id). */
+export function validModel(name) {
+  return typeof name === "string" && name.length <= 64 && CLAUDE_MODEL.test(name);
+}
+
+/**
+ * The models chosen per step from the selectors: `choices` maps a step to
+ * { choice, custom }. Returns the models to send and the steps whose typed
+ * id is not acceptable (nothing is sent while there are any).
+ */
+export function chosenModels(choices) {
+  const models = {};
+  const invalid = [];
+  for (const step of JUDGE_STEPS) {
+    const { choice = "", custom = "" } = choices?.[step] ?? {};
+    const name = choice === "custom" ? String(custom).trim() : choice;
+    if (!name) continue;
+    if (validModel(name)) models[step] = name;
+    else invalid.push(step);
+  }
+  return { models, invalid };
 }
 
 /** Whether "redo only the synthesis" makes sense: a finished run whose reports exist. */
