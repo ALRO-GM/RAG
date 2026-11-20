@@ -10,7 +10,7 @@ import { helpHref } from "../lib/help-analysis.js";
 import {
   COUNT_KEYS, MAX_JOB, OPEN_ISSUES, SOURCES, actRows, asksForClaude, byPerson, canRedoSynthesis, cellText,
   clock, doubtfulCount, eventRows, isActive, jobForm, orderedSteps, ratingRows, reasonText,
-  reportBlob, reportFileName, reviewRows, startMode, startRefusal, startingRun, stepStatus, stillStarting,
+  reportBlob, reportFileName, reviewRows, usageRows, startMode, startRefusal, startingRun, stepStatus, stillStarting,
   synthesisPeople, tagChip, tagged, transcriptLink, verdict, whyText,
 } from "../lib/session-analysis.js";
 import { publishWhenFree } from "../lib/names.js";
@@ -45,6 +45,7 @@ export async function analysisView(ctx, root, [rawId]) {
   const message = h("p", { role: "status", class: "hint" });
   const summary = h("p", { class: "meta" });
   const steps = h("ol", { class: "steps analysis-steps" });
+  const usageTotal = h("div", { class: "usage" });
   const issues = h("ul", {}, OPEN_ISSUES.map((key) => h("li", {}, t(`sa.issue_${key}`))));
 
   root.append(
@@ -60,7 +61,7 @@ export async function analysisView(ctx, root, [rawId]) {
       h("p", { class: "hint" }, t("sa.job_hint")),
       job, claudeLabel,
       h("div", { class: "stack" }, start, restart, redo, cancel), message),
-    summary, steps);
+    summary, usageTotal, steps);
 
   function say(text, error = false) {
     message.textContent = text;
@@ -82,6 +83,22 @@ export async function analysisView(ctx, root, [rawId]) {
     }
     summary.textContent = run ? t(`sa.run_${isActive(run) ? "running" : run.status}`) : t("sa.never");
     fill(steps, orderedSteps(run).map(stepItem));
+    fill(usageTotal, usageLines(run?.usage, "sa.usage_total"));
+  }
+
+  function usageLines(usage, titleKey) {
+    const rows = usageRows(usage);
+    if (!rows) return [];
+    const line = (u) => t("sa.usage_line", {
+      calls: u.calls, input: u.input_tokens, output: u.output_tokens,
+      write: u.cache_creation_input_tokens, read: u.cache_read_input_tokens,
+    });
+    return [
+      h("p", { class: "hint" }, h("strong", {}, t(titleKey)), " ", line(rows.total),
+        rows.total.cost_usd ? ` · ${t("sa.usage_cost", { usd: decimal(rows.total.cost_usd, 2) })}` : "",
+        ` · ${t("sa.usage_cache_hits", { hits: rows.cacheHits })}`),
+      ...rows.models.map((m) => h("p", { class: "hint" }, `${m.model}: ${line(m)}`)),
+    ];
   }
 
   function stepItem(step) {
@@ -99,6 +116,7 @@ export async function analysisView(ctx, root, [rawId]) {
         seconds ? h("span", { class: "hint" }, seconds) : null),
       who.length ? h("p", { class: "hint" }, who.join(" · ")) : null,
       counts ? h("p", { class: "hint" }, counts) : null,
+      ...usageLines(step.usage, "sa.usage_step"),
       step.fallback_reason ? h("p", { class: "notice" }, t("sa.fallback", { reason: step.fallback_reason })) : null,
       status === "unavailable" ? h("p", { class: "hint" }, t(`sa.unavailable_${step.name}`)) : null,
       status === "failed" ? h("p", { class: "error" }, t("sa.failed", { reason: step.error || "" })) : null,

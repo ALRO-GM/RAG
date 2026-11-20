@@ -22,6 +22,7 @@ from src.domain.errors import (
     QuotaExhaustedError,
     TransientModelError,
 )
+from src.domain.skills.usage import Usage
 
 DEFAULT_OPENCODE_MODEL = "opencode/deepseek-v4.1-flash-free"
 """Model used when ``--judge opencode`` names none."""
@@ -87,6 +88,7 @@ class OpencodeJudge:
         self._runner: Runner = runner or run_command
         self._environ = dict(environ if environ is not None else os.environ)
         self.executable = shutil.which(executable) or executable
+        self.last_usage: Optional[Usage] = None
 
     @property
     def model_name(self) -> str:
@@ -162,6 +164,7 @@ class OpencodeJudge:
 
     def _once(self, system: str, user: str) -> str:
         """Make one call with the question in a temporary file."""
+        self.last_usage = None
         with tempfile.TemporaryDirectory(prefix="judge-opencode-") as cwd:
             prompt_file = os.path.join(cwd, "prompt.txt")
             with open(prompt_file, "w", encoding="utf-8") as handle:
@@ -182,6 +185,7 @@ class OpencodeJudge:
     def parse(self, returncode: int, stdout: str, stderr: str) -> str:
         """Return the assistant's text from raw JSON events, or raise."""
         text, error = reply(stdout, stderr)
+        self.last_usage = usage_of(stdout)
         if error or returncode != 0:
             self._fail(error or short(stderr) or short(stdout), returncode)
         if not text:
@@ -198,6 +202,56 @@ class OpencodeJudge:
         if TRANSIENT_PATTERN.search(message) or returncode < 0:
             raise TransientModelError(f"opencode: {short(message)}")
         raise ModelError(f"opencode: {short(message)}")
+
+
+def usage_of(stdout: str) -> Optional[Usage]:
+    """Return the tokens of the assistant messages in the events.
+
+    Each ``message.updated`` event of an assistant message carries
+    ``info.tokens`` (``input``, ``output``, ``reasoning`` and
+    ``cache.read``/``cache.write``) and ``info.cost``; the last one per
+    message id wins. The title agent is ignored. ``None`` when no event
+    reports tokens.
+    """
+    seen: Dict[str, Dict[str, Any]] = {}
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        props = event.get("properties") if isinstance(event, dict) else None
+        info = props.get("info") if isinstance(props, dict) else None
+        if (
+            not isinstance(info, dict)
+            or event.get("type") != "message.updated"
+            or not isinstance(info.get("tokens"), dict)
+            or info.get("agent") == "title" or info.get("role") == "user"
+        ):
+            continue
+        seen[str(info.get("id"))] = info
+    if not seen:
+        return None
+    total = Usage(calls=1)
+    for info in seen.values():
+        tokens = info["tokens"]
+        cache = tokens.get("cache")
+        cache = cache if isinstance(cache, dict) else {}
+        cost = info.get("cost")
+        total = total.plus(Usage(
+            input_tokens=_count(tokens.get("input")),
+            output_tokens=(
+                _count(tokens.get("output")) + _count(tokens.get("reasoning"))
+            ),
+            cache_creation_input_tokens=_count(cache.get("write")),
+            cache_read_input_tokens=_count(cache.get("read")),
+            cost_usd=float(cost) if isinstance(cost, (int, float)) else 0.0,
+        ))
+    return total
+
+
+def _count(value: Any) -> int:
+    """Return ``value`` as a token count (0 when it is not a number)."""
+    return value if isinstance(value, int) and value > 0 else 0
 
 
 def _error_message(value: Any) -> str:

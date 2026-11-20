@@ -1,0 +1,108 @@
+{
+ "a": "opus",
+ "b": "haiku",
+ "acts": {
+  "agreement": 0.7857,
+  "accuracy_opus": 0.7643,
+  "accuracy_haiku": 0.7214
+ },
+ "indicators": {
+  "agreement": 0.7833,
+  "accuracy_opus": 0.9167,
+  "accuracy_haiku": 0.775
+ },
+ "session": {
+  "confirmation_agreement": 0.6765,
+  "confirmation_items": 102,
+  "rating_agreement": 0.5909,
+  "rating_items": 44,
+  "firm_within_one": 1.0,
+  "firm_items": 20
+ },
+ "usage": {
+  "opus": {
+   "indicators": {
+    "models": {
+     "claude-code:opus": {
+      "calls": 120,
+      "input_tokens": 240,
+      "output_tokens": 11249,
+      "cache_creation_input_tokens": 198642,
+      "cache_read_input_tokens": 0,
+      "cost_usd": 1.815076
+     }
+    },
+    "cache_hits": 0
+   }
+  },
+  "haiku": {
+   "indicators": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 120,
+      "input_tokens": 240,
+      "output_tokens": 12050,
+      "cache_creation_input_tokens": 201629,
+      "cache_read_input_tokens": 0,
+      "cost_usd": 0.046369
+     }
+    },
+    "cache_hits": 0
+   },
+   "acts": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 140,
+      "input_tokens": 280,
+      "output_tokens": 20314,
+      "cache_creation_input_tokens": 92383,
+      "cache_read_input_tokens": 87431,
+      "cost_usd": 0.029531
+     }
+    },
+    "cache_hits": 0
+   },
+   "session": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 150,
+      "input_tokens": 300,
+      "output_tokens": 88498,
+      "cache_creation_input_tokens": 287729,
+      "cache_read_input_tokens": 4585,
+      "cost_usd": 0.101873
+     }
+    },
+    "cache_hits": 0
+   }
+  }
+ },
+ "usage_total": {
+  "opus": {
+   "models": {
+    "claude-code:opus": {
+     "calls": 120,
+     "input_tokens": 240,
+     "output_tokens": 11249,
+     "cache_creation_input_tokens": 198642,
+     "cache_read_input_tokens": 0,
+     "cost_usd": 1.815076
+    }
+   },
+   "cache_hits": 0
+  },
+  "haiku": {
+   "models": {
+    "claude-code:haiku": {
+     "calls": 410,
+     "input_tokens": 820,
+     "output_tokens": 120862,
+     "cache_creation_input_tokens": 581741,
+     "cache_read_input_tokens": 92016,
+     "cost_usd": 0.177773
+    }
+   },
+   "cache_hits": 0
+  }
+ }
+}

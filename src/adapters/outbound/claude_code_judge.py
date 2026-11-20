@@ -45,6 +45,7 @@ from src.domain.errors import (
     QuotaExhaustedError,
     TransientModelError,
 )
+from src.domain.skills.usage import Usage
 
 DEFAULT_CLAUDE_MODEL = "opus"
 """Claude Code's alias of the best model the subscription offers."""
@@ -79,6 +80,33 @@ RESET_EPOCH = re.compile(r"\|(\d{9,11})\b")
 RESET_TEXT = re.compile(r"resets?\s+(?:at\s+)?([^.\n·]{1,60})", re.IGNORECASE)
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
+
+
+def _count(value: Any) -> int:
+    """Return ``value`` as a token count (0 when it is not a number)."""
+    return value if isinstance(value, int) and value > 0 else 0
+
+
+def usage_of(data: Mapping[str, Any]) -> Optional[Usage]:
+    """Return the tokens ``claude -p`` reported, or ``None`` if none.
+
+    Reads the ``usage`` object and ``total_cost_usd`` of the JSON
+    result; nothing else is asked of the model.
+    """
+    raw = data.get("usage")
+    if not isinstance(raw, dict):
+        return None
+    cost = data.get("total_cost_usd")
+    return Usage(
+        calls=1,
+        input_tokens=_count(raw.get("input_tokens")),
+        output_tokens=_count(raw.get("output_tokens")),
+        cache_creation_input_tokens=_count(
+            raw.get("cache_creation_input_tokens")
+        ),
+        cache_read_input_tokens=_count(raw.get("cache_read_input_tokens")),
+        cost_usd=float(cost) if isinstance(cost, (int, float)) else 0.0,
+    )
 
 
 def _kill_group(process: "subprocess.Popen[str]") -> None:
@@ -180,6 +208,7 @@ class ClaudeCodeJudge:
         self.effort = effort
         self._environ = os.environ if environ is None else environ
         self._runner = runner
+        self.last_usage: Optional[Usage] = None
 
     @property
     def model_name(self) -> str:
@@ -232,6 +261,7 @@ class ClaudeCodeJudge:
 
     def _once(self, system: str, user: str) -> str:
         """Make one call."""
+        self.last_usage = None
         with tempfile.TemporaryDirectory(prefix="judge-") as empty:
             try:
                 done = self._runner(
@@ -251,6 +281,8 @@ class ClaudeCodeJudge:
     def parse(self, returncode: int, stdout: str, stderr: str) -> str:
         """Return the model's text from ``claude -p`` output, or raise.
 
+        The tokens the output reports are kept in :attr:`last_usage`.
+
         Errors carry Claude Code's own error message at most, never the
         text of a reply.
         """
@@ -265,6 +297,7 @@ class ClaudeCodeJudge:
                 f"Claude Code gave no JSON result (exit {returncode})."
             )
         text = data.get("result")
+        self.last_usage = usage_of(data)
         status = data.get("api_error_status")
         if data.get("is_error"):
             message = str(text or stderr)

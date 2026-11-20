@@ -1,0 +1,63 @@
+{
+ "speakers": 4,
+ "turns": 111,
+ "words": 2027,
+ "participation_equality": 0.8636737378720604,
+ "dominant_speaker": "Lucía",
+ "dominant_share": 0.3019240256536754,
+ "has_timestamps": true,
+ "per_speaker": [
+  {
+   "speaker": "Lucía",
+   "turns": 34,
+   "words": 612,
+   "word_share": 0.3019240256536754,
+   "turn_share": 0.3063063063063063,
+   "mean_words_per_turn": 18.0,
+   "questions": 16,
+   "seconds": 215.48,
+   "overlapping_starts": 0,
+   "words_per_minute": 170.4,
+   "median_response_seconds": 0.4
+  },
+  {
+   "speaker": "Andrés",
+   "turns": 32,
+   "words": 477,
+   "word_share": 0.2353231376418352,
+   "turn_share": 0.2882882882882883,
+   "mean_words_per_turn": 14.90625,
+   "questions": 2,
+   "seconds": 156.44,
+   "overlapping_starts": 0,
+   "words_per_minute": 182.9,
+   "median_response_seconds": 0.5
+  },
+  {
+   "speaker": "Nerea",
+   "turns": 25,
+   "words": 571,
+   "word_share": 0.2816970892945239,
+   "turn_share": 0.22522522522522523,
+   "mean_words_per_turn": 22.84,
+   "questions": 6,
+   "seconds": 300.3,
+   "overlapping_starts": 2,
+   "words_per_minute": 114.1,
+   "median_response_seconds": 0.4
+  },
+  {
+   "speaker": "Joaquín",
+   "turns": 20,
+   "words": 367,
+   "word_share": 0.18105574740996547,
+   "turn_share": 0.18018018018018017,
+   "mean_words_per_turn": 18.35,
+   "questions": 2,
+   "seconds": 123.82,
+   "overlapping_starts": 0,
+   "words_per_minute": 177.8,
+   "median_response_seconds": 0.36
+  }
+ ]
+}

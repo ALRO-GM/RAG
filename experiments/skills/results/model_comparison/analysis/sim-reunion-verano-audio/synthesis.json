@@ -1,0 +1,1101 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "language": "es",
+ "synthetic": true,
+ "job": "Responsable de turno de obrador (panadería, puesto inventado para la demo).\nOrganiza al equipo de mañana (4 personas): reparte tareas y plazos, habla con proveedores y resuelve imprevistos de producción.\nImporta: coordinar, escuchar al equipo y cerrar acuerdos con fecha.",
+ "use_claude": false,
+ "judge": {
+  "mode": "claude_code",
+  "models": [
+   "claude-code:haiku"
+  ],
+  "fallback_reason": ""
+ },
+ "people": [
+  {
+   "participant": "Lucía",
+   "status": "done",
+   "reason": "",
+   "model": "claude-code:haiku",
+   "strengths": [
+    {
+     "text": "Lucía formula con claridad las propuestas y los pasos a seguir, y concreta quién hace qué y para cuándo, lo que deja los acuerdos fáciles de seguir.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q1",
+       "kind": "firm",
+       "text": "Entonces propongo que lo preguntes esta semana sin compromiso",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "turn": 48,
+       "start": 406.22,
+       "rating": 4
+      },
+      {
+       "id": "Q4",
+       "kind": "firm",
+       "text": "Repasemos quién hace qué y para cuándo",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "turn": 102,
+       "start": 804.2,
+       "rating": 4
+      },
+      {
+       "id": "Q3",
+       "kind": "firm",
+       "text": "lo pongo el primero en la próxima reunión",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "turn": 60,
+       "start": 475.42,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Escucha y reformula lo que dicen los demás antes de avanzar, y pide cifras concretas para comprobar lo que se ha entendido.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q7",
+       "kind": "firm",
+       "text": "a ver si lo he entendido",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P5",
+       "polarity": "positive",
+       "turn": 89,
+       "start": 719.66,
+       "rating": 4
+      },
+      {
+       "id": "Q8",
+       "kind": "firm",
+       "text": "Qué cifra usamos para decir que no llegamos",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P2",
+       "polarity": "positive",
+       "turn": 93,
+       "start": 755.5,
+       "rating": 4
+      },
+      {
+       "id": "Q5",
+       "kind": "firm",
+       "text": "Cuánto tiempo necesitarías para la prueba",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P2",
+       "polarity": "positive",
+       "turn": 37,
+       "start": 335.88,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Hace seguimiento de los acuerdos: recupera el punto que quedó pendiente y asigna responsables con plazo, lo que apoya la coordinación del trabajo.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q23",
+       "kind": "firm",
+       "text": "Te parece bien tenerlo para el jueves",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "turn": 50,
+       "start": 416.76,
+       "rating": 4
+      },
+      {
+       "id": "Q24",
+       "kind": "firm",
+       "text": "lo pongo el primero en la próxima reunión",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P2",
+       "polarity": "positive",
+       "turn": 60,
+       "start": 475.42,
+       "rating": 4
+      },
+      {
+       "id": "Q25",
+       "kind": "firm",
+       "text": "Volvamos a la producción",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P6",
+       "polarity": "positive",
+       "turn": 83,
+       "start": 679.08,
+       "rating": 4
+      },
+      {
+       "id": "Q26",
+       "kind": "firm",
+       "text": "Pues queda así",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P5",
+       "polarity": "positive",
+       "turn": 97,
+       "start": 771.34,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Cuando hay una propuesta sobre la mesa, la usa para cerrar decisiones con argumentos y condiciones medibles, como el umbral de retrasos para contratar.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q12",
+       "kind": "firm",
+       "text": "Si en una semana de julio hay más de dos retrasos de más de una hora, se contrata al segundo panadero",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "turn": 97,
+       "start": 771.34,
+       "rating": 3
+      },
+      {
+       "id": "Q10",
+       "kind": "firm",
+       "text": "Subir el precio el mismo verano en que quitamos productos puede sonar a que damos menos y cobramos más",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "turn": 64,
+       "start": 533.28,
+       "rating": 3
+      },
+      {
+       "id": "Q9",
+       "kind": "firm",
+       "text": "Tienes razón, lo pongo el primero en la próxima reunión",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P4",
+       "polarity": "positive",
+       "turn": 60,
+       "start": 475.42,
+       "rating": 3
+      }
+     ]
+    }
+   ],
+   "unobserved": [
+    "Feedback y desarrollo de otros"
+   ],
+   "fit": [],
+   "questions": [],
+   "confidence": "high",
+   "confidence_basis": {
+    "firm": 6,
+    "provisional": 4,
+    "firm_quotes": 24,
+    "quotes": 35,
+    "words": 612
+   },
+   "dropped": {},
+   "parse_error": false
+  },
+  {
+   "participant": "Andrés",
+   "status": "done",
+   "reason": "",
+   "model": "claude-code:haiku",
+   "strengths": [
+    {
+     "text": "Andrés expresa sus posturas con claridad y de forma concreta, por ejemplo al explicar que con un solo panadero el equipo va justo y que, si alguien enferma, se cae todo el obrador.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q3",
+       "kind": "firm",
+       "text": "Yo sigo pensando que con un solo panadero vamos justos",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "turn": 84,
+       "start": 683.28,
+       "rating": 4
+      },
+      {
+       "id": "Q16",
+       "kind": "firm",
+       "text": "Yo sigo pensando que con un solo panadero vamos justos. Si alguien se pone malo, se cae todo",
+       "competency_id": "CONFL",
+       "indicator_id": "CONFL.P1",
+       "polarity": "positive",
+       "turn": 84,
+       "start": 683.28,
+       "rating": 4
+      },
+      {
+       "id": "Q4",
+       "kind": "firm",
+       "text": "Si hay más de dos retrasos en una semana, no llegamos",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P4",
+       "polarity": "positive",
+       "turn": 94,
+       "start": 759.88,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Cierra acuerdos con condiciones y plazos verificables: propone contratar al segundo panadero en la primera semana de julio si no se llega, y pide que la próxima reunión sea a las 11, propuestas que llegan a decisión en la conversación.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q11",
+       "kind": "firm",
+       "text": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "turn": 92,
+       "start": 747.12,
+       "rating": 2
+      },
+      {
+       "id": "E23",
+       "kind": "event",
+       "text": "Andrés: Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.",
+       "competency_id": "",
+       "indicator_id": "decision",
+       "polarity": "",
+       "turn": 92,
+       "start": 750.28,
+       "rating": null
+      },
+      {
+       "id": "E24",
+       "kind": "event",
+       "text": "Andrés: Que la próxima vez la reunión sea a las 11.",
+       "competency_id": "",
+       "indicator_id": "decision",
+       "polarity": "",
+       "turn": 109,
+       "start": 853.74,
+       "rating": null
+      },
+      {
+       "id": "Q31",
+       "kind": "firm",
+       "text": "Que la próxima vez la reunión sea a las 11",
+       "competency_id": "ADAPT",
+       "indicator_id": "ADAPT.P5",
+       "polarity": "positive",
+       "turn": 109,
+       "start": 853.1,
+       "rating": 3
+      }
+     ]
+    },
+    {
+     "text": "Se compromete a acciones concretas con fecha, como llamar al taller al día siguiente o confirmar el jueves cuántas personas aceptarían entrar a las dos, lo que muestra iniciativa en el seguimiento.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q26",
+       "kind": "firm",
+       "text": "Mañana llamo al taller",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 80,
+       "start": 661.36,
+       "rating": 3
+      },
+      {
+       "id": "Q28",
+       "kind": "firm",
+       "text": "el jueves os digo cuántos del equipo aceptarían entrar a las dos",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 104,
+       "start": 821.66,
+       "rating": 3
+      },
+      {
+       "id": "E25",
+       "kind": "event",
+       "text": "Lucía: Mañana llamo al taller.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 79,
+       "start": 656.28,
+       "rating": null
+      }
+     ]
+    },
+    {
+     "text": "Aporta datos de producción para resolver el problema de fondo (la masa de las bases llega pasada y la falta de horas en agosto), en lugar de centrarse solo en el tráfico, según la observación de solución de problemas (estimación de nivel firme, pero con pocos ejemplos en esta conversación).",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q21",
+       "kind": "firm",
+       "text": "El problema no es el tráfico. El problema es que en agosto me quiero con dos panaderos menos",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P1",
+       "polarity": "positive",
+       "turn": 6,
+       "start": 66.7,
+       "rating": 4
+      },
+      {
+       "id": "Q22",
+       "kind": "firm",
+       "text": "Si faltan dos, son 80 horas menos con el doble de períodos",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "turn": 8,
+       "start": 81.5,
+       "rating": 4
+      },
+      {
+       "id": "Q25",
+       "kind": "firm",
+       "text": "la masa de las bases de pizza llega pasada",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P6",
+       "polarity": "positive",
+       "turn": 77,
+       "start": 635.92,
+       "rating": 4
+      }
+     ]
+    }
+   ],
+   "unobserved": [
+    "Feedback y desarrollo de otros"
+   ],
+   "fit": [
+    {
+     "text": "Para un puesto que exige coordinar y cerrar acuerdos con fecha, los compromisos concretos y la propuesta de criterios de decisión (umbral de retrasos, primera semana de julio) encajan con lo que se busca; conviene verificar si mantiene ese cierre cuando hay más interlocutores.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q4",
+       "kind": "firm",
+       "text": "Si hay más de dos retrasos en una semana, no llegamos",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P4",
+       "polarity": "positive",
+       "turn": 94,
+       "start": 759.88,
+       "rating": 4
+      },
+      {
+       "id": "Q11",
+       "kind": "firm",
+       "text": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "turn": 92,
+       "start": 747.12,
+       "rating": 2
+      },
+      {
+       "id": "E23",
+       "kind": "event",
+       "text": "Andrés: Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.",
+       "competency_id": "",
+       "indicator_id": "decision",
+       "polarity": "",
+       "turn": 92,
+       "start": 750.28,
+       "rating": null
+      },
+      {
+       "id": "E8",
+       "kind": "event",
+       "text": "Lucía: ¿Qué cifra usamos para decir que no llegamos?",
+       "competency_id": "",
+       "indicator_id": "question_answered",
+       "polarity": "",
+       "turn": 93,
+       "start": 756.7,
+       "rating": null
+      }
+     ]
+    },
+    {
+     "text": "La escucha activa aparece solo de forma provisional: su pregunta para consultar con el equipo sugiere voluntad de escuchar, pero la evidencia es escasa y debe contrastarse antes de dar peso a este rasgo en un puesto que lo prioriza.",
+     "basis": "provisional",
+     "cites": [
+      {
+       "id": "Q6",
+       "kind": "provisional",
+       "text": "Vale, lo pregunto",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P1",
+       "polarity": "positive",
+       "turn": 49,
+       "start": 413.28,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "La inclusión en la facilitación es una hipótesis a revisar: la respuesta que descarta una opinión del equipo comercial sugiere menos apertura a otras voces, aunque esto sea una observación puntual.",
+     "basis": "provisional",
+     "cites": [
+      {
+       "id": "Q13",
+       "kind": "provisional",
+       "text": "Eso es lo que dice siempre el departamento comercial.",
+       "competency_id": "INCL",
+       "indicator_id": "INCL.N4",
+       "polarity": "negative",
+       "turn": 24,
+       "start": 240.22,
+       "rating": 2
+      }
+     ]
+    },
+    {
+     "text": "La influencia con argumentos tiene nivel firme bajo: varias de sus posturas aparecen sin respaldo sólido, por lo que conviene explorar cómo sostiene sus propuestas cuando se le discuten.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q7",
+       "kind": "firm",
+       "text": "El problema no es el tráfico",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.N4",
+       "polarity": "negative",
+       "turn": 6,
+       "start": 66.7,
+       "rating": 2
+      },
+      {
+       "id": "Q10",
+       "kind": "firm",
+       "text": "si fallamos otra vez, da igual el precio",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P2",
+       "polarity": "positive",
+       "turn": 66,
+       "start": 565.06,
+       "rating": 2
+      },
+      {
+       "id": "E15",
+       "kind": "event",
+       "text": "Andrés: Una cosa cada vez.",
+       "competency_id": "",
+       "indicator_id": "proposal_ignored",
+       "polarity": "",
+       "turn": 71,
+       "start": 606.3,
+       "rating": null
+      }
+     ]
+    }
+   ],
+   "questions": [
+    "Cuando se le plantea una propuesta distinta, como la de cambiar el horario de entrada y salida con el calor de agosto, ¿cómo la evalúa antes de responder?",
+    "¿Qué hace para que las personas del equipo que no participan activamente den su opinión sobre cambios de turno?",
+    "Si el jueves algunas personas no aceptan entrar a las dos, ¿qué criterios usaría para reorganizar los turnos sin perder el plazo?",
+    "¿Cómo explicaría a un restaurante cliente un retraso en la entrega sin comprometer la relación?",
+    "Cuando una propuesta suya queda sin respuesta, como la del reparto de tareas, ¿qué haría para retomarla?"
+   ],
+   "confidence": "high",
+   "confidence_basis": {
+    "firm": 7,
+    "provisional": 3,
+    "firm_quotes": 28,
+    "quotes": 31,
+    "words": 477
+   },
+   "dropped": {},
+   "parse_error": false
+  },
+  {
+   "participant": "Nerea",
+   "status": "done",
+   "reason": "",
+   "model": "claude-code:haiku",
+   "strengths": [
+    {
+     "text": "Nerea hace propuestas concretas y con cifras que la conversación llega a cerrar: consiguió que se aceptara cerrar el pedido del domingo a mediodía y que se revisaran los restaurantes del catálogo antes del 20 de mayo. Esto sugiere iniciativa y capacidad para convertir ideas en acuerdos con fecha.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q2",
+       "kind": "firm",
+       "text": "Podríamos cerrar el pedido del domingo elnes, a mediodía",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "turn": 56,
+       "start": 442.28,
+       "rating": 3
+      },
+      {
+       "id": "E12",
+       "kind": "event",
+       "text": "Nerea: ¿Podríamos cerrar el pedido del domingo elnes, a mediodía.",
+       "competency_id": "",
+       "indicator_id": "proposal_accepted",
+       "polarity": "",
+       "turn": 56,
+       "start": 442.28,
+       "rating": null
+      },
+      {
+       "id": "E16",
+       "kind": "event",
+       "text": "Nerea: Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo.",
+       "competency_id": "",
+       "indicator_id": "proposal_accepted",
+       "polarity": "",
+       "turn": 90,
+       "start": 739.98,
+       "rating": null
+      },
+      {
+       "id": "Q31",
+       "kind": "firm",
+       "text": "La preparo hoy misma. La tienes antes de las 5",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 32,
+       "start": 291.8,
+       "rating": 4
+      },
+      {
+       "id": "E21",
+       "kind": "event",
+       "text": "Nerea: La preparo hoy misma.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 32,
+       "start": 291.8,
+       "rating": null
+      }
+     ]
+    },
+    {
+     "text": "Responde a los argumentos de otros con datos y ejemplos del año anterior, como la subida del cinco por ciento en enero sin pérdida de clientes, y ofrece alternativas cuando una propuesta no encaja, por ejemplo planteando dos escenarios. Esto apunta a un desacuerdo argumentado y a resolver problemas con opciones, aunque es una sola conversación.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q18",
+       "kind": "firm",
+       "text": "mira el dato el año pasado subimos un cinco por ciento en enero y no perdimos ni un cliente por eso",
+       "competency_id": "CONFL",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "turn": 63,
+       "start": 493.36,
+       "rating": 4
+      },
+      {
+       "id": "Q26",
+       "kind": "firm",
+       "text": "subimos un cinco por ciento en enero y no perdimos ni un cliente por eso",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P5",
+       "polarity": "positive",
+       "turn": 63,
+       "start": 493.36,
+       "rating": 4
+      },
+      {
+       "id": "Q28",
+       "kind": "firm",
+       "text": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "turn": 69,
+       "start": 587.76,
+       "rating": 4
+      },
+      {
+       "id": "E11",
+       "kind": "event",
+       "text": "Nerea: A lo mejor, alguno prefiere entrar antes y salir antes con el calor que hace en agosto.",
+       "competency_id": "",
+       "indicator_id": "proposal_rejected",
+       "polarity": "",
+       "turn": 46,
+       "start": 396.0,
+       "rating": null
+      }
+     ]
+    },
+    {
+     "text": "Hace seguimiento explícito del trabajo: anuncia qué preparará y para cuándo (la lista de 12 productos antes de las 5, el aviso a restaurantes, los dos escenarios del recargo el lunes), lo que aporta claridad sobre quién hace qué y cuándo. Estas medidas se basan en observaciones y aparecen como estimaciones de confianza baja o en hipótesis que conviene comprobar.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q24",
+       "kind": "firm",
+       "text": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "turn": 103,
+       "start": 809.06,
+       "rating": 3
+      },
+      {
+       "id": "Q33",
+       "kind": "firm",
+       "text": "El lunes os paso los dos esterarios del recargo de verano",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 106,
+       "start": 838.76,
+       "rating": 4
+      },
+      {
+       "id": "E24",
+       "kind": "event",
+       "text": "Nerea: Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día y antes del 20 de mayo de aviso a todos los restaurantes del catálogo de verano.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 103,
+       "start": 809.06,
+       "rating": null
+      },
+      {
+       "id": "E25",
+       "kind": "event",
+       "text": "Nerea: El lunes os paso los dos esterarios del recargo de verano.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 106,
+       "start": 838.76,
+       "rating": null
+      },
+      {
+       "id": "Q12",
+       "kind": "firm",
+       "text": "Así Andrés sabe con tiempo lo que tiene que hacer",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P5",
+       "polarity": "positive",
+       "turn": 56,
+       "start": 442.28,
+       "rating": 3
+      }
+     ]
+    }
+   ],
+   "unobserved": [
+    "Facilitación inclusiva"
+   ],
+   "fit": [
+    {
+     "text": "Para el puesto de responsable de turno, que requiere coordinar, repartir plazos y cerrar acuerdos con fecha, las dos fortalezas más visibles son la concreción de sus compromisos y su capacidad para proponer alternativas. Estas observaciones describen solo esta conversación y no predicen su desempeño en el puesto.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "E12",
+       "kind": "event",
+       "text": "Nerea: ¿Podríamos cerrar el pedido del domingo elnes, a mediodía.",
+       "competency_id": "",
+       "indicator_id": "proposal_accepted",
+       "polarity": "",
+       "turn": 56,
+       "start": 442.28,
+       "rating": null
+      },
+      {
+       "id": "E16",
+       "kind": "event",
+       "text": "Nerea: Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo.",
+       "competency_id": "",
+       "indicator_id": "proposal_accepted",
+       "polarity": "",
+       "turn": 90,
+       "start": 739.98,
+       "rating": null
+      },
+      {
+       "id": "Q24",
+       "kind": "firm",
+       "text": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día",
+       "competency_id": "COORD",
+       "indicator_id": "COORD.P3",
+       "polarity": "positive",
+       "turn": 103,
+       "start": 809.06,
+       "rating": 3
+      },
+      {
+       "id": "Q28",
+       "kind": "firm",
+       "text": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños",
+       "competency_id": "SOLVE",
+       "indicator_id": "SOLVE.P3",
+       "polarity": "positive",
+       "turn": 69,
+       "start": 587.76,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "La escucha activa y la colaboración son hipótesis con confianza baja: hay indicios de que retoma comentarios de otros, como al ofrecer los teléfonos de los encargados, pero las evidencias son escasas y no deben tomarse como nivel establecido. Conviene observarlas en una situación más amplia.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q14",
+       "kind": "provisional",
+       "text": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado",
+       "competency_id": "COLLAB",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "turn": 41,
+       "start": 363.32,
+       "rating": 4
+      },
+      {
+       "id": "Q5",
+       "kind": "firm",
+       "text": "Diode, entonces fueron retrasos de más de una hora",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P1",
+       "polarity": "positive",
+       "turn": 3,
+       "start": 30.42,
+       "rating": 3
+      }
+     ]
+    }
+   ],
+   "questions": [
+    "Cuando propusiste subir el precio a los restaurantes en verano, ¿qué respuesta esperabas del equipo y qué harías si no hubiera apoyo?",
+    "Preguntaste por el coste de la subida del cuatro por ciento y por los que irían antes de la posta: ¿qué información te faltaba para decidir en ese momento?",
+    "Te comprometiste a preparar la lista de 12 productos antes de las 5: ¿cómo haces el seguimiento de estos compromisos cuando hay varios a la vez?",
+    "Propusiste dos escenarios para el recargo de verano sin perder clientes o perdiendo a los tres más pequeños: ¿cómo decides qué riesgo asumir cuando el equipo no está de acuerdo?",
+    "Hablaste de contar a los clientes que el ajuste es para no fallar entregas: ¿cómo explicarías un cambio que afecta a alguien del equipo de mañana?"
+   ],
+   "confidence": "high",
+   "confidence_basis": {
+    "firm": 8,
+    "provisional": 2,
+    "firm_quotes": 32,
+    "quotes": 36,
+    "words": 571
+   },
+   "dropped": {
+    "no_citation": 1
+   },
+   "parse_error": false
+  },
+  {
+   "participant": "Joaquín",
+   "status": "done",
+   "reason": "",
+   "model": "claude-code:haiku",
+   "strengths": [
+    {
+     "text": "Joaquín comunica sus propuestas con concreción: plazos, cantidades y pasos verificables, como la prueba con el mensajero en las semanas segunda y tercera de junio o el resumen de retrasos cada lunes. Hay evidencia firme de claridad en la comunicación.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q4",
+       "kind": "firm",
+       "text": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P6",
+       "polarity": "positive",
+       "turn": 105,
+       "start": 827.34,
+       "rating": 4
+      },
+      {
+       "id": "Q3",
+       "kind": "firm",
+       "text": "Sí. Cada lunes os mando un resumen con los retrasos de la semana anterior",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "turn": 101,
+       "start": 799.38,
+       "rating": 4
+      },
+      {
+       "id": "Q1",
+       "kind": "firm",
+       "text": "Dos semanas de junio serían suficientes",
+       "competency_id": "COMM",
+       "indicator_id": "COMM.P1",
+       "polarity": "positive",
+       "turn": 38,
+       "start": 341.26,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Cierra compromisos con fecha y los asume de forma explícita: la cita en el taller, la prueba con el mensajero y el resumen semanal aparecen como acciones suyas, y el resumen de los lunes queda registrado como acción pendiente. Esto encaja con el énfasis del puesto en cerrar acuerdos con fecha.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "E19",
+       "kind": "event",
+       "text": "Joaquín: Y mañana pido cita en el taller para la furgoneta.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 107,
+       "start": 843.26,
+       "rating": null
+      },
+      {
+       "id": "E18",
+       "kind": "event",
+       "text": "Joaquín: Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 105,
+       "start": 827.34,
+       "rating": null
+      },
+      {
+       "id": "E16",
+       "kind": "event",
+       "text": "Joaquín: Cada lunes os mando un resumen con los retrasos de la semana anterior.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 101,
+       "start": 799.9,
+       "rating": null
+      },
+      {
+       "id": "Q24",
+       "kind": "firm",
+       "text": "Cada lunes os mando un resumen con los retrasos de la semana anterior",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 101,
+       "start": 799.38,
+       "rating": 4
+      },
+      {
+       "id": "Q26",
+       "kind": "firm",
+       "text": "Y mañana pido cita en el taller para la furgoneta",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 107,
+       "start": 843.26,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "Responde a las ideas de otros reconociéndolas y ajustando su propuesta: retoma lo dicho sobre cómo cargan los pedidos y valora el aporte de los demás antes de seguir. La escucha activa aparece con evidencia firme, aunque con un nivel medio.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q6",
+       "kind": "firm",
+       "text": "Eso pensé yo también. Por eso pregunté cómo cargan",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "turn": 36,
+       "start": 326.28,
+       "rating": 3
+      },
+      {
+       "id": "Q7",
+       "kind": "firm",
+       "text": "Eso ayudaría mucho, la verdad",
+       "competency_id": "LISTEN",
+       "indicator_id": "LISTEN.P4",
+       "polarity": "positive",
+       "turn": 57,
+       "start": 450.94,
+       "rating": 3
+      },
+      {
+       "id": "Q12",
+       "kind": "firm",
+       "text": "Por eso pregunté cómo cargan. Usan cajas cerradas y no apilan más de cuatro alturas",
+       "competency_id": "COLLAB",
+       "indicator_id": "COLLAB.P3",
+       "polarity": "positive",
+       "turn": 36,
+       "start": 326.28,
+       "rating": 3
+      }
+     ]
+    },
+    {
+     "text": "Aporta datos y razonamientos para sostener sus posturas, por ejemplo al citar las condiciones de carga del proveedor o el coste de una alternativa. La influencia por argumentos aparece con nivel firme 4 de 5, aunque la evidencia se limita a esta conversación.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "Q9",
+       "kind": "firm",
+       "text": "Usan cajas cerradas y no apilan más de cuatro alturas",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P3",
+       "polarity": "positive",
+       "turn": 36,
+       "start": 326.28,
+       "rating": 4
+      },
+      {
+       "id": "Q8",
+       "kind": "firm",
+       "text": "Una de ellas cubriría la costa por unos 300 euros a la semana",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "turn": 34,
+       "start": 310.52,
+       "rating": 4
+      },
+      {
+       "id": "Q10",
+       "kind": "firm",
+       "text": "El año pasado fueron el peor día",
+       "competency_id": "INFLU",
+       "indicator_id": "INFLU.P1",
+       "polarity": "positive",
+       "turn": 52,
+       "start": 425.26,
+       "rating": 4
+      }
+     ]
+    }
+   ],
+   "unobserved": [
+    "Facilitación inclusiva",
+    "Feedback y desarrollo de otros",
+    "Coordinación y seguimiento del trabajo"
+   ],
+   "fit": [
+    {
+     "text": "Su forma de cerrar acciones con fecha y dueño encaja con la parte del puesto que consiste en repartir tareas y plazos y en cerrar acuerdos. Sería útil comprobar si mantiene ese mismo seguimiento cuando hay varias tareas abiertas a la vez, algo que esta conversación no muestra.",
+     "basis": "firm",
+     "cites": [
+      {
+       "id": "E18",
+       "kind": "event",
+       "text": "Joaquín: Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 105,
+       "start": 827.34,
+       "rating": null
+      },
+      {
+       "id": "E19",
+       "kind": "event",
+       "text": "Joaquín: Y mañana pido cita en el taller para la furgoneta.",
+       "competency_id": "",
+       "indicator_id": "action_item",
+       "polarity": "",
+       "turn": 107,
+       "start": 843.26,
+       "rating": null
+      },
+      {
+       "id": "Q24",
+       "kind": "firm",
+       "text": "Cada lunes os mando un resumen con los retrasos de la semana anterior",
+       "competency_id": "INIT",
+       "indicator_id": "INIT.P1",
+       "polarity": "positive",
+       "turn": 101,
+       "start": 799.38,
+       "rating": 4
+      }
+     ]
+    },
+    {
+     "text": "El desacuerdo constructivo tiene solo una estimación provisional de confianza baja, así que debe tomarse como hipótesis a contrastar, no como un nivel establecido. Un ejemplo de desacuerdo resuelto en la conversación puede servir para comprobarlo.",
+     "basis": "provisional",
+     "cites": [
+      {
+       "id": "Q15",
+       "kind": "provisional",
+       "text": "Puedo pedir que nos hagan una prueba",
+       "competency_id": "CONFL",
+       "indicator_id": "CONFL.P3",
+       "polarity": "positive",
+       "turn": 36,
+       "start": 326.28,
+       "rating": 4
+      },
+      {
+       "id": "Q16",
+       "kind": "provisional",
+       "text": "En eso tienes razón, Andrés",
+       "competency_id": "CONFL",
+       "indicator_id": "CONFL.P2",
+       "polarity": "positive",
+       "turn": 67,
+       "start": 570.82,
+       "rating": 4
+      }
+     ]
+    }
+   ],
+   "questions": [
+    "Cuando una propuesta tuya no sale adelante, como la prueba de reparto, ¿qué haces después para retomarla o cerrarla con el equipo?",
+    "¿Cómo repartirías tareas y plazos entre las cuatro personas del turno de mañana si varias necesitan resolverse a la vez?",
+    "¿Qué haces para asegurarte de que quienes están más callados en una reunión también aporten su opinión antes de decidir?",
+    "En el punto del desacuerdo sobre la prueba del reparto, ¿qué criterio usarías para decidir si conviene probar antes de comprometerte?",
+    "¿Cómo seguirías el cumplimiento de los compromisos que adquieres, por ejemplo el resumen semanal de retrasos, cuando tengas otras prioridades del turno?"
+   ],
+   "confidence": "high",
+   "confidence_basis": {
+    "firm": 7,
+    "provisional": 1,
+    "firm_quotes": 27,
+    "quotes": 29,
+    "words": 367
+   },
+   "dropped": {
+    "no_citation": 2
+   },
+   "parse_error": false
+  }
+ ],
+ "open_issues": [
+  {
+   "id": "consent",
+   "text": "Consent, retention and who sees the results must be decided before analysing real people (#19)."
+  },
+  {
+   "id": "human_review",
+   "text": "The labels and levels are a model's draft: a trained person must review them before any use."
+  },
+  {
+   "id": "situations",
+   "text": "One conversation is one situation; a profile needs several situations per person (#84)."
+  }
+ ]
+}

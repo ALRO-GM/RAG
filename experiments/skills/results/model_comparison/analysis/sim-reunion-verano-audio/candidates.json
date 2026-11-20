@@ -1,0 +1,4334 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "catalogue": "core",
+ "catalogue_language": "es",
+ "sentences": [
+  {
+   "sentence": {
+    "id": "t0.s0",
+    "turn": 0,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Buenos días a todos.",
+    "start": 0.0,
+    "end": 2.0,
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t0.s1",
+    "turn": 0,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Gracias por venir tan temprano, sé que el obrador ya lleva un rato en marcha.",
+    "start": 2.0,
+    "end": 6.18,
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t0.s2",
+    "turn": 0,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "La idea es salir de aquí con una decisión sobre el verano, no con otra lista de problemas.",
+    "start": 6.34,
+    "end": 11.48,
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.N2",
+     "competency_id": "COORD",
+     "polarity": "negative",
+     "score": 1.3787,
+     "similarity": 0.3787
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t1.s0",
+    "turn": 1,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Buenos días.",
+    "start": 12.06,
+    "end": 13.16,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t1.s1",
+    "turn": 1,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Yo tengo que volver abajo a las diez y media, que hoy sale la masa madre nueva.",
+    "start": 13.16,
+    "end": 17.18,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P4",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.3169,
+     "similarity": 0.5729
+    },
+    {
+     "indicator_id": "LISTEN.P4",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.0214,
+     "similarity": 0.3314
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t2.s0",
+    "turn": 2,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Vale, lo tendremos en cuenta.",
+    "start": 17.76,
+    "end": 19.68,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t2.s1",
+    "turn": 2,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Os recuerdo el problema.",
+    "start": 19.68,
+    "end": 21.22,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.N1",
+     "competency_id": "SOLVE",
+     "polarity": "negative",
+     "score": 1.4465,
+     "similarity": 0.4465
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t2.s2",
+    "turn": 2,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "El verano pasado los pedidos de restaurantes casi se duplicaron en julio y en agosto y fallamos 11 entregas.",
+    "start": 21.22,
+    "end": 27.94,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t2.s3",
+    "turn": 2,
+    "index": 3,
+    "speaker": "Lucía",
+    "text": "Tres de esos clientes no han vuelto a pedirnos.",
+    "start": 27.94,
+    "end": 31.3,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P2",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 0.7918,
+     "similarity": 0.4135
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t3.s0",
+    "turn": 3,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "—Eren pide el río de a deidse jafre ove, er a la de ale, lo hago tren y se hier en el programa detenitado. —Diode, entonces fueron retrasos de más de una hora.",
+    "start": 30.42,
+    "end": 46.66,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P6",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 0.8557,
+     "similarity": 0.3612
+    },
+    {
+     "indicator_id": "LISTEN.N3",
+     "competency_id": "LISTEN",
+     "polarity": "negative",
+     "score": 0.8437,
+     "similarity": 0.3677
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t3.s1",
+    "turn": 3,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Y uno fue un período que directamente no salió.",
+    "start": 47.34,
+    "end": 51.2,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.N4",
+     "competency_id": "COMM",
+     "polarity": "negative",
+     "score": 1.3766,
+     "similarity": 0.3766
+    },
+    {
+     "indicator_id": "INCL.P1",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 0.893,
+     "similarity": 0.3188
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t4.s0",
+    "turn": 4,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Doce entonces.",
+    "start": 51.62,
+    "end": 52.78,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t4.s1",
+    "turn": 4,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Gracias, Nerea.",
+    "start": 52.96,
+    "end": 54.1,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t4.s2",
+    "turn": 4,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "¿Alguien quiere añadir algo al diagnóstico antes de pasar a las propuestas?",
+    "start": 54.26,
+    "end": 58.28,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INFLU.P1",
+     "competency_id": "INFLU",
+     "polarity": "positive",
+     "score": 1.1851,
+     "similarity": 0.3653
+    },
+    {
+     "indicator_id": "INCL.P3",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.1672,
+     "similarity": 0.3473
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t5.s0",
+    "turn": 5,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Yo sí.",
+    "start": 58.64,
+    "end": 59.28,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t5.s1",
+    "turn": 5,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Siete de esos retrasos fueron en la ruta de la costa.",
+    "start": 59.58,
+    "end": 62.48,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t5.s2",
+    "turn": 5,
+    "index": 2,
+    "speaker": "Joaquín",
+    "text": "Esa ruta en verano tiene un tráfico horrible a partir de las 9.",
+    "start": 62.58,
+    "end": 66.14,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t6.s0",
+    "turn": 6,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "El problema no es el tráfico.",
+    "start": 66.7,
+    "end": 68.42,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P1",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.304,
+     "similarity": 0.304
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t6.s1",
+    "turn": 6,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "El problema es que en agosto me quiero con dos panaderos menos y nadie quiere verlo.",
+    "start": 69.08,
+    "end": 72.96,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.N1",
+     "competency_id": "INIT",
+     "polarity": "negative",
+     "score": 1.0737,
+     "similarity": 0.3467
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t7.s0",
+    "turn": 7,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Lo vemos, Andrés.",
+    "start": 73.42,
+    "end": 74.9,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t7.s1",
+    "turn": 7,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Por eso estamos aquí.",
+    "start": 74.9,
+    "end": 76.36,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t7.s2",
+    "turn": 7,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "¿Cuántas horas de obrador te faltan más o menos en una semana normal de agosto?",
+    "start": 76.5,
+    "end": 80.96,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t8.s0",
+    "turn": 8,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Pues calcula.",
+    "start": 81.5,
+    "end": 82.74,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t8.s1",
+    "turn": 8,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Cada panadero hace unas 40 horas.",
+    "start": 82.74,
+    "end": 84.96,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t8.s2",
+    "turn": 8,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Si faltan dos, son 80 horas menos con el doble de períodos.",
+    "start": 85.6,
+    "end": 89.9,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t9.s0",
+    "turn": 9,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Que no, no.",
+    "start": 89.9,
+    "end": 90.56,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t9.s1",
+    "turn": 9,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Todo es el doble.",
+    "start": 90.56,
+    "end": 92.1,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t9.s2",
+    "turn": 9,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "Lo que se dispara son tres productos a chapata, el pan de centeno y las bases de pizza.",
+    "start": 92.1,
+    "end": 98.88,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t9.s3",
+    "turn": 9,
+    "index": 3,
+    "speaker": "Nerea",
+    "text": "El dalesto sube un poco, pero no tanto.",
+    "start": 98.88,
+    "end": 103.92,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t10.s0",
+    "turn": 10,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Ya, pero la chapata es justo la que más trabajo lleva.",
+    "start": 103.92,
+    "end": 107.12,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.N3",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 1.618,
+     "similarity": 0.618
+    },
+    {
+     "indicator_id": "FEEDB.P6",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.4658,
+     "similarity": 0.4658
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t11.s0",
+    "turn": 11,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Precisamente, por eso traigo una propuesta.",
+    "start": 108.08,
+    "end": 113.04,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INFLU.P1",
+     "competency_id": "INFLU",
+     "polarity": "positive",
+     "score": 1.6551,
+     "similarity": 0.6551
+    },
+    {
+     "indicator_id": "LISTEN.N2",
+     "competency_id": "LISTEN",
+     "polarity": "negative",
+     "score": 1.2451,
+     "similarity": 0.5355
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t11.s1",
+    "turn": 11,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Podríamos producir el catálogo de restaurantes en verano.",
+    "start": 113.6,
+    "end": 118.96,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t11.s2",
+    "turn": 11,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "Ahora mismo ofrecemos treinta y cuatro por doble doce.",
+    "start": 119.58,
+    "end": 128.4,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t11.s3",
+    "turn": 11,
+    "index": 3,
+    "speaker": "Nerea",
+    "text": "Si nos cerramos con los doce que más cenden cubrimos casi el noventa por ciento de lo que factoramos con ellos.",
+    "start": 129.16,
+    "end": 136.7,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t12.s0",
+    "turn": 12,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "¿Y quién le dice al restaurante de lale",
+    "start": 136.7,
+    "end": 141.9,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P6",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.2424,
+     "similarity": 0.3156
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t13.s0",
+    "turn": 13,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "perdón en agosto.",
+    "start": 153.84,
+    "end": 156.86,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t14.s0",
+    "turn": 14,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Me parece razonable como punto de partida.",
+    "start": 159.12,
+    "end": 161.84,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P2",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.3928,
+     "similarity": 0.5976
+    },
+    {
+     "indicator_id": "FEEDB.P1",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.0784,
+     "similarity": 0.3037
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t14.s1",
+    "turn": 14,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Nerea, tienes los números de esos 12 productos.",
+    "start": 161.84,
+    "end": 165.0,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t15.s0",
+    "turn": 15,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Sí, los he mandado esta mañana por correo.",
+    "start": 165.38,
+    "end": 170.44,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P4",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.4109,
+     "similarity": 0.4109
+    },
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.2171,
+     "similarity": 0.4466
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t15.s1",
+    "turn": 15,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Están ordenados por facturación y por horas de Una",
+    "start": 170.44,
+    "end": 176.26,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P2",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.2981,
+     "similarity": 0.3714
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t16.s0",
+    "turn": 16,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "pregunta.",
+    "start": 176.26,
+    "end": 177.08,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t16.s1",
+    "turn": 16,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Si quitamos productos, los pedidos llegan más pequeños o llegan igual pero con otras cosas",
+    "start": 177.08,
+    "end": 182.36,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P4",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 0.498,
+     "similarity": 0.498
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t17.s0",
+    "turn": 17,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "por lo que vimos en septiembre cuando faltó harina de centeno la mayoría cambió otro pan nuestro sólo dos restaurantes pedido menor lo de griego",
+    "start": 187.74,
+    "end": 202.16,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t18.s0",
+    "turn": 18,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "entonces para reparto no cambia mucho Las cajas van a pesar lo mismo.",
+    "start": 202.16,
+    "end": 207.3,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INFLU.N1",
+     "competency_id": "INFLU",
+     "polarity": "negative",
+     "score": 1.1504,
+     "similarity": 0.3305
+    },
+    {
+     "indicator_id": "INIT.N3",
+     "competency_id": "INIT",
+     "polarity": "negative",
+     "score": 1.0909,
+     "similarity": 0.3311
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t19.s0",
+    "turn": 19,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Bien, esa es la primera opción, reducir catálogo.",
+    "start": 207.68,
+    "end": 210.88,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P4",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.1815,
+     "similarity": 0.318
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t19.s1",
+    "turn": 19,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Qué otras opciones hay sobre la mesa?",
+    "start": 210.88,
+    "end": 213.16,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P5",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.5813,
+     "similarity": 0.5813
+    },
+    {
+     "indicator_id": "SOLVE.P3",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.4962,
+     "similarity": 0.4962
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t20.s0",
+    "turn": 20,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Contratad.",
+    "start": 213.66,
+    "end": 214.56,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t20.s1",
+    "turn": 20,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Dos panaderos de refuerzo desde el 15 de junio hasta el 15 de septiembre.",
+    "start": 214.56,
+    "end": 218.94,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t20.s2",
+    "turn": 20,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Es lo único que funciona de verdad.",
+    "start": 218.94,
+    "end": 221.0,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.P1",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.3282,
+     "similarity": 0.3282
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t21.s0",
+    "turn": 21,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "¿Has mirado cuánto cuesta?",
+    "start": 221.38,
+    "end": 223.1,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t22.s0",
+    "turn": 22,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Más o menos.",
+    "start": 223.6,
+    "end": 224.56,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t22.s1",
+    "turn": 22,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Con seguridad social, unos 9 .000 euros por persona a los tres meses.",
+    "start": 224.56,
+    "end": 229.28,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t23.s0",
+    "turn": 23,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "18 .000 euros, des casi todo el margen de los restaurantes en verano.",
+    "start": 229.68,
+    "end": 234.16,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t23.s1",
+    "turn": 23,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Un tratar, lados, no tiene sentido.",
+    "start": 234.6,
+    "end": 237.6,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "LISTEN.N4",
+     "competency_id": "LISTEN",
+     "polarity": "negative",
+     "score": 0.8298,
+     "similarity": 0.3247
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t23.s2",
+    "turn": 23,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "Económico, el thriller.",
+    "start": 237.6,
+    "end": 240.18,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t24.s0",
+    "turn": 24,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Eso es lo que dice siempre el departamento comercial.",
+    "start": 240.22,
+    "end": 243.08,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.N2",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.3554,
+     "similarity": 0.3554
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t24.s1",
+    "turn": 24,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Luego los que nos quedamos hasta las tantas somos nosotros.",
+    "start": 243.08,
+    "end": 246.12,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P5",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.436,
+     "similarity": 0.5825
+    },
+    {
+     "indicator_id": "INFLU.P2",
+     "competency_id": "INFLU",
+     "polarity": "positive",
+     "score": 1.2071,
+     "similarity": 0.3536
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t25.s0",
+    "turn": 25,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Andrés, entiendo que estás cansado.",
+    "start": 246.52,
+    "end": 248.72,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t25.s1",
+    "turn": 25,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "El año pasado fue muy duro, pero vamos a separar los números de cómo nos sentimos porque las dos cosas importan.",
+    "start": 248.72,
+    "end": 255.18,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P6",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.1443,
+     "similarity": 0.3283
+    },
+    {
+     "indicator_id": "ADAPT.P1",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.0813,
+     "similarity": 0.3943
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t26.s0",
+    "turn": 26,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Dale.",
+    "start": 255.7,
+    "end": 256.56,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t26.s1",
+    "turn": 26,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Perdona, Andrea.",
+    "start": 256.56,
+    "end": 257.9,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t26.s2",
+    "turn": 26,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "No iba por ti.",
+    "start": 257.9,
+    "end": 259.46,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t27.s0",
+    "turn": 27,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Yo tampoco Quiero que el obrasor Vuelva a vivir el agosto del año pasado.",
+    "start": 259.04,
+    "end": 270.86,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P1",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.0025,
+     "similarity": 0.3155
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t28.s0",
+    "turn": 28,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Y si fuera uno en vez de dos, uno contratado más el catálogo reducido.",
+    "start": 271.4,
+    "end": 275.68,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P4",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 0.4662,
+     "similarity": 0.4662
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t29.s0",
+    "turn": 29,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Con uno y doce productos podría salir.",
+    "start": 276.18,
+    "end": 278.36,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t29.s1",
+    "turn": 29,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Tendría que mirarlo con los turnos delante.",
+    "start": 278.84,
+    "end": 280.98,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.N4",
+     "competency_id": "FEEDB",
+     "polarity": "negative",
+     "score": 1.3605,
+     "similarity": 0.3605
+    },
+    {
+     "indicator_id": "INCL.N1",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.2544,
+     "similarity": 0.3626
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t30.s0",
+    "turn": 30,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "¿Qué necesitas para mirarlo?",
+    "start": 281.42,
+    "end": 283.26,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t31.s0",
+    "turn": 31,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "La lista de Nerea con las cantidades por día de la semana, no solo el total.",
+    "start": 283.26,
+    "end": 288.2,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t31.s1",
+    "turn": 31,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "El lunes y el viernes no tienen nada que ver.",
+    "start": 288.2,
+    "end": 291.48,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.23,
+     "similarity": 0.3032
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t32.s0",
+    "turn": 32,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "La preparo hoy misma.",
+    "start": 291.8,
+    "end": 296.96,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t32.s1",
+    "turn": 32,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "La tienes antes de las 5. perfecto",
+    "start": 298.38,
+    "end": 305.02,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.5436,
+     "similarity": 0.5436
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t33.s0",
+    "turn": 33,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "joaquín tú hablaste antes de la ruta de la costa.",
+    "start": 305.96,
+    "end": 308.96,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t33.s1",
+    "turn": 33,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Qué propones ahí?",
+    "start": 308.96,
+    "end": 310.2,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t34.s0",
+    "turn": 34,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "He estado preguntando a dos empresas de mensajería que hacen reparto refrigerado.",
+    "start": 310.52,
+    "end": 314.86,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t34.s1",
+    "turn": 34,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Una de ellas cubriría la costa por unos 300 euros a la semana.",
+    "start": 315.16,
+    "end": 319.1,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t35.s0",
+    "turn": 35,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Ya estamos.",
+    "start": 319.12,
+    "end": 320.18,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t35.s1",
+    "turn": 35,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Un mensajero no sabe tratar el pan.",
+    "start": 320.18,
+    "end": 322.72,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t35.s2",
+    "turn": 35,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Lo tiran en la furgoneta como si fueran paquetes.",
+    "start": 323.08,
+    "end": 325.72,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t36.s0",
+    "turn": 36,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Eso pensé yo también.",
+    "start": 326.28,
+    "end": 327.8,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P2",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.0941,
+     "similarity": 0.3078
+    },
+    {
+     "indicator_id": "INCL.P5",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.0162,
+     "similarity": 0.334
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t36.s1",
+    "turn": 36,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Por eso pregunté cómo cargan.",
+    "start": 327.8,
+    "end": 329.82,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "LISTEN.P5",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.3077,
+     "similarity": 0.3867
+    },
+    {
+     "indicator_id": "ADAPT.P3",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.2172,
+     "similarity": 0.3347
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t36.s2",
+    "turn": 36,
+    "index": 2,
+    "speaker": "Joaquín",
+    "text": "Usan cajas cerradas y no apilan más de cuatro alturas.",
+    "start": 329.82,
+    "end": 333.34,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t36.s3",
+    "turn": 36,
+    "index": 3,
+    "speaker": "Joaquín",
+    "text": "Puedo pedir que nos hagan una prueba.",
+    "start": 333.34,
+    "end": 335.46,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.N2",
+     "competency_id": "FEEDB",
+     "polarity": "negative",
+     "score": 1.2353,
+     "similarity": 0.329
+    },
+    {
+     "indicator_id": "CONFL.P3",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.1797,
+     "similarity": 0.5051
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t37.s0",
+    "turn": 37,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Me gusta la idea de probar antes de decidir.",
+    "start": 335.88,
+    "end": 338.34,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.P4",
+     "competency_id": "COLLAB",
+     "polarity": "positive",
+     "score": 1.3763,
+     "similarity": 0.3763
+    },
+    {
+     "indicator_id": "COMM.P1",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.2965,
+     "similarity": 0.4974
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t37.s1",
+    "turn": 37,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Cuánto tiempo necesitarías para la prueba?",
+    "start": 338.34,
+    "end": 340.84,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P4",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.2881,
+     "similarity": 0.3917
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t38.s0",
+    "turn": 38,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Dos semanas de junio serían suficientes.",
+    "start": 341.26,
+    "end": 343.92,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t38.s1",
+    "turn": 38,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Si lo hacemos la segunda y la tercera semana, tenemos datos antes de julio.",
+    "start": 343.92,
+    "end": 348.84,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P2",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.1719,
+     "similarity": 0.3974
+    },
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 0.9449,
+     "similarity": 0.4135
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t39.s0",
+    "turn": 39,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "¿Y los que irían antes de la posta?",
+    "start": 348.84,
+    "end": 350.86,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t39.s1",
+    "turn": 39,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "¿Serían que les hiciera otra repasación?",
+    "start": 350.86,
+    "end": 356.76,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t40.s0",
+    "turn": 40,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Sí, claro.",
+    "start": 356.76,
+    "end": 360.4,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t40.s1",
+    "turn": 40,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Yo les llamaría uno a uno antes de empezar.",
+    "start": 360.4,
+    "end": 362.76,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t41.s0",
+    "turn": 41,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Entonces te paso los teléfonos de los encargados, que algunos no son los mismos que el año pasado.",
+    "start": 363.32,
+    "end": 368.7,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.P3",
+     "competency_id": "COLLAB",
+     "polarity": "positive",
+     "score": 0.6267,
+     "similarity": 0.3047
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t42.s0",
+    "turn": 42,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Bien, llevamos tres opciones reducir catálogo, contratar refuerzo y externalizar la ruta de la costa.",
+    "start": 369.52,
+    "end": 375.84,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t42.s1",
+    "turn": 42,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Había una cuarta, la de adelantar el turno de noche, ¿verdad Andrés?",
+    "start": 376.04,
+    "end": 380.28,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.N1",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.1732,
+     "similarity": 0.3885
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t43.s0",
+    "turn": 43,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Sí, empezar a las dos en vez de a las cuatro.",
+    "start": 380.92,
+    "end": 383.16,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P5",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.1387,
+     "similarity": 0.3408
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t43.s1",
+    "turn": 43,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Pero ahí te digo ya que la gente no va a querer.",
+    "start": 383.16,
+    "end": 385.84,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.N4",
+     "competency_id": "CONFL",
+     "polarity": "negative",
+     "score": 1.4294,
+     "similarity": 0.4294
+    },
+    {
+     "indicator_id": "COMM.P3",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.0032,
+     "similarity": 0.3819
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t44.s0",
+    "turn": 44,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "¿Lo has hablado con ellos?",
+    "start": 386.24,
+    "end": 387.8,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P2",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.3734,
+     "similarity": 0.3734
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t45.s0",
+    "turn": 45,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "No formalmente, pero los conozco.",
+    "start": 388.34,
+    "end": 391.12,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t46.s0",
+    "turn": 46,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Yo no lo descartaría.",
+    "start": 391.68,
+    "end": 393.5,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t46.s1",
+    "turn": 46,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Sí, pregunta, heredador.",
+    "start": 393.5,
+    "end": 396.0,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t46.s2",
+    "turn": 46,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "A lo mejor, alguno prefiere entrar antes y salir antes con el calor que hace en agosto.",
+    "start": 396.0,
+    "end": 402.24,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t47.s0",
+    "turn": 47,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Puede ser.",
+    "start": 402.84,
+    "end": 403.9,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t47.s1",
+    "turn": 47,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Hay uno o dos que igual sí.",
+    "start": 403.9,
+    "end": 406.22,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.P2",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.3355,
+     "similarity": 0.41
+    },
+    {
+     "indicator_id": "CONFL.P5",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 0.4707,
+     "similarity": 0.4707
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t48.s0",
+    "turn": 48,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Entonces propongo que lo preguntes esta semana sin compromiso y que nos digas cuántos estarían dispuestos.",
+    "start": 406.22,
+    "end": 413.28,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.N2",
+     "competency_id": "INIT",
+     "polarity": "negative",
+     "score": 1.2583,
+     "similarity": 0.5635
+    },
+    {
+     "indicator_id": "ADAPT.P3",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 0.9295,
+     "similarity": 0.3613
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t49.s0",
+    "turn": 49,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Vale, lo pregunto.",
+    "start": 413.28,
+    "end": 415.06,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t49.s1",
+    "turn": 49,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Pero no prometo nada.",
+    "start": 415.06,
+    "end": 416.76,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.N1",
+     "competency_id": "INIT",
+     "polarity": "negative",
+     "score": 0.6284,
+     "similarity": 0.6284
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t50.s0",
+    "turn": 50,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "No te pido que prometas el resultado, solo que lo preguntes.",
+    "start": 416.76,
+    "end": 420.62,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P1",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.4025,
+     "similarity": 0.4025
+    },
+    {
+     "indicator_id": "LISTEN.P5",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.2994,
+     "similarity": 0.5041
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t50.s1",
+    "turn": 50,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Te parece bien tenerlo para el jueves.",
+    "start": 420.8,
+    "end": 423.22,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.3376,
+     "similarity": 0.5672
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t51.s0",
+    "turn": 51,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "El jueves, de acuerdo.",
+    "start": 423.22,
+    "end": 425.1,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P3",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.5667,
+     "similarity": 0.5667
+    },
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.4249,
+     "similarity": 0.5935
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t52.s0",
+    "turn": 52,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Una cosa que no hemos hablado.",
+    "start": 425.26,
+    "end": 426.88,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P1",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.6453,
+     "similarity": 0.6453
+    },
+    {
+     "indicator_id": "ADAPT.N3",
+     "competency_id": "ADAPT",
+     "polarity": "negative",
+     "score": 1.1637,
+     "similarity": 0.3102
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t52.s1",
+    "turn": 52,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "¿Qué hacemos con los pedidos del domingo?",
+    "start": 426.88,
+    "end": 429.1,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.2665,
+     "similarity": 0.5795
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t52.s2",
+    "turn": 52,
+    "index": 2,
+    "speaker": "Joaquín",
+    "text": "El año pasado fueron el peor día.",
+    "start": 429.26,
+    "end": 431.36,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t53.s0",
+    "turn": 53,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Es verdad.",
+    "start": 431.66,
+    "end": 432.5,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t53.s1",
+    "turn": 53,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Por qué fue el peor?",
+    "start": 432.5,
+    "end": 433.72,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t54.s0",
+    "turn": 54,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Porque el domingo solo hay un repartidor y los restaurantes piden más que ningún otro día.",
+    "start": 434.04,
+    "end": 439.32,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.N1",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 0.903,
+     "similarity": 0.3552
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t55.s0",
+    "turn": 55,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Y en el obrador el domingo somos tres.",
+    "start": 439.66,
+    "end": 441.74,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t56.s0",
+    "turn": 56,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "¿Podríamos cerrar el pedido del domingo elnes, a mediodía.",
+    "start": 442.28,
+    "end": 446.0,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INFLU.N3",
+     "competency_id": "INFLU",
+     "polarity": "negative",
+     "score": 1.4434,
+     "similarity": 0.4434
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t56.s1",
+    "turn": 56,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Así Andrés sabe con tiempo lo que tiene que hacer.",
+    "start": 447.5,
+    "end": 450.94,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.P4",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 0.9016,
+     "similarity": 0.312
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t57.s0",
+    "turn": 57,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Eso ayudaría mucho, la verdad.",
+    "start": 450.94,
+    "end": 453.34,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t57.s1",
+    "turn": 57,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Para reparto no cambia nada.",
+    "start": 453.78,
+    "end": 455.56,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.N3",
+     "competency_id": "INIT",
+     "polarity": "negative",
+     "score": 1.4394,
+     "similarity": 0.4394
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t57.s2",
+    "turn": 57,
+    "index": 2,
+    "speaker": "Joaquín",
+    "text": "Sigue habiendo una sola furgoneta.",
+    "start": 455.56,
+    "end": 457.54,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t58.s0",
+    "turn": 58,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Lo del domingo me parece importante, pero no quiero cerrarlo hoy a la ligera.",
+    "start": 457.92,
+    "end": 462.22,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t58.s1",
+    "turn": 58,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Lo dejamos apuntado y lo tratamos en la siguiente reunión.",
+    "start": 462.22,
+    "end": 465.62,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P2",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.6078,
+     "similarity": 0.6078
+    },
+    {
+     "indicator_id": "FEEDB.N4",
+     "competency_id": "FEEDB",
+     "polarity": "negative",
+     "score": 1.395,
+     "similarity": 0.4589
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t59.s0",
+    "turn": 59,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "De acuerdo, aunque no lo decimos mucho que los restaurantes hierran sus cartas de verano a final de mayo.",
+    "start": 466.04,
+    "end": 473.08,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t60.s0",
+    "turn": 60,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Tienes razón, lo pongo el primero en la próxima reunión.",
+    "start": 475.42,
+    "end": 479.1,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.2772,
+     "similarity": 0.5174
+    },
+    {
+     "indicator_id": "COORD.P4",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.2355,
+     "similarity": 0.5056
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t61.s0",
+    "turn": 61,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Antes de seguir, quiero poner otra idea encima de la mesa, aunque sé que no va a gustar.",
+    "start": 479.42,
+    "end": 484.82,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P1",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.3657,
+     "similarity": 0.7023
+    },
+    {
+     "indicator_id": "COLLAB.P4",
+     "competency_id": "COLLAB",
+     "polarity": "positive",
+     "score": 1.2888,
+     "similarity": 0.4588
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t61.s1",
+    "turn": 61,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Podríamos subir un poco el precio a los restaurantes en verano.",
+    "start": 484.82,
+    "end": 489.2,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t62.s0",
+    "turn": 62,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "¿Subir precios?",
+    "start": 489.34,
+    "end": 490.58,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t62.s1",
+    "turn": 62,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Sí ya se quejan de que somos caros.",
+    "start": 490.58,
+    "end": 492.96,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t63.s0",
+    "turn": 63,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "El queja no, eh.",
+    "start": 493.36,
+    "end": 494.84,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.N3",
+     "competency_id": "CONFL",
+     "polarity": "negative",
+     "score": 1.7157,
+     "similarity": 0.7157
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t63.s1",
+    "turn": 63,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Pero siguen pidiendo nada.",
+    "start": 494.84,
+    "end": 496.98,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t63.s2",
+    "turn": 63,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "De error. mira el dato el año pasado subimos un cinco por ciento en enero y no perdimos ni un cliente por eso.",
+    "start": 498.42,
+    "end": 510.5,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P1",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.3163,
+     "similarity": 0.3163
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t63.s3",
+    "turn": 63,
+    "index": 3,
+    "speaker": "Nerea",
+    "text": "Los que se fueron, se fueron por los detrás.",
+    "start": 510.5,
+    "end": 514.78,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t63.s4",
+    "turn": 63,
+    "index": 4,
+    "speaker": "Nerea",
+    "text": "¿Cuánto sería la subida? estaba pensando en un recarto de verano del cuatro por ciento sólo julio y agosto.",
+    "start": 514.78,
+    "end": 525.02,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t63.s5",
+    "turn": 63,
+    "index": 5,
+    "speaker": "Nerea",
+    "text": "Se le ha explicado.",
+    "start": 525.02,
+    "end": 526.44,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P5",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.7906,
+     "similarity": 0.7906
+    },
+    {
+     "indicator_id": "FEEDB.P4",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.5272,
+     "similarity": 0.5272
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t63.s6",
+    "turn": 63,
+    "index": 6,
+    "speaker": "Nerea",
+    "text": "Con eso, pasamos casi entero el refuerzo.",
+    "start": 526.66,
+    "end": 533.28,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t64.s0",
+    "turn": 64,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Me interesa, pero me preocupa el mensaje.",
+    "start": 533.28,
+    "end": 536.14,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.N1",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 1.1955,
+     "similarity": 0.5953
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t64.s1",
+    "turn": 64,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Subir el precio el mismo verano en que quitamos productos puede sonar a que damos menos y cobramos más.",
+    "start": 536.4,
+    "end": 541.68,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t65.s0",
+    "turn": 65,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Es un rodriguesco.",
+    "start": 542.16,
+    "end": 544.46,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t65.s1",
+    "turn": 65,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Es una sin...",
+    "start": 545.38,
+    "end": 547.2,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t65.s2",
+    "turn": 65,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "Por eso digo que abriña que explicarlo bien.",
+    "start": 549.16,
+    "end": 553.72,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.N2",
+     "competency_id": "COMM",
+     "polarity": "negative",
+     "score": 1.4971,
+     "similarity": 0.4971
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t65.s3",
+    "turn": 65,
+    "index": 3,
+    "speaker": "Nerea",
+    "text": "Si les contamos que es para no fallar entregas, la mayoría lo entiende.",
+    "start": 555.92,
+    "end": 560.16,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P5",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.2684,
+     "similarity": 0.524
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t66.s0",
+    "turn": 66,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Yo de precios no sé, la verdad.",
+    "start": 565.06,
+    "end": 567.1,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P1",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.1194,
+     "similarity": 0.543
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t66.s1",
+    "turn": 66,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Lo que sé es que si fallamos otra vez, da igual el precio.",
+    "start": 567.1,
+    "end": 570.24,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P6",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.2176,
+     "similarity": 0.4483
+    },
+    {
+     "indicator_id": "INCL.N3",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.0887,
+     "similarity": 0.3442
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t67.s0",
+    "turn": 67,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "En eso tienes razón, Andrés.",
+    "start": 570.82,
+    "end": 572.56,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t67.s1",
+    "turn": 67,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "A los clientes de la costa lo que les importa es que el pan llegue antes de que abra la cocina.",
+    "start": 572.76,
+    "end": 577.58,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t68.s0",
+    "turn": 68,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Os propongo una cosa.",
+    "start": 577.9,
+    "end": 579.3,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P1",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.614,
+     "similarity": 0.6139
+    },
+    {
+     "indicator_id": "COLLAB.N1",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 0.9784,
+     "similarity": 0.4679
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t68.s1",
+    "turn": 68,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Lo del recargo lo estudiamos con números antes de decidir.",
+    "start": 579.6,
+    "end": 582.62,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.N4",
+     "competency_id": "SOLVE",
+     "polarity": "negative",
+     "score": 1.3161,
+     "similarity": 0.4865
+    },
+    {
+     "indicator_id": "CONFL.P3",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.1801,
+     "similarity": 0.4622
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t68.s2",
+    "turn": 68,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "Nerea, ¿podrías calcular qué pasaría si perdiéramos dos o tres clientes por la subida.",
+    "start": 582.74,
+    "end": 587.76,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t69.s0",
+    "turn": 69,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Y puedo hacer dos escenarios sin perder a nadie y perdiendo a los tres clientes más pequeños.",
+    "start": 587.76,
+    "end": 593.72,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t69.s1",
+    "turn": 69,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Digo, el MOOC para el lunes.",
+    "start": 593.72,
+    "end": 598.38,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.6138,
+     "similarity": 0.687
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t70.s0",
+    "turn": 70,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Perfecto.",
+    "start": 598.38,
+    "end": 599.66,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t70.s1",
+    "turn": 70,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Entonces hoy no decidimos el precio, decidimos cómo producir y cómo repartir.",
+    "start": 599.66,
+    "end": 604.94,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.N4",
+     "competency_id": "SOLVE",
+     "polarity": "negative",
+     "score": 1.348,
+     "similarity": 0.348
+    },
+    {
+     "indicator_id": "CONFL.P3",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.1868,
+     "similarity": 0.3214
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t71.s0",
+    "turn": 71,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Mejor.",
+    "start": 605.34,
+    "end": 606.3,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t71.s1",
+    "turn": 71,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Una cosa cada vez.",
+    "start": 606.3,
+    "end": 607.9,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.N1",
+     "competency_id": "COORD",
+     "polarity": "negative",
+     "score": 1.3749,
+     "similarity": 0.3749
+    },
+    {
+     "indicator_id": "COLLAB.N1",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 0.8797,
+     "similarity": 0.3693
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t72.s0",
+    "turn": 72,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Otra cosa que me preocupa es la fulgoneta pequeña.",
+    "start": 608.5,
+    "end": 611.24,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COLLAB.N1",
+     "competency_id": "COLLAB",
+     "polarity": "negative",
+     "score": 1.4025,
+     "similarity": 0.4025
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t72.s1",
+    "turn": 72,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Tiene la revisión pendiente y el aire acondicionado del compartimento de carga no enfría bien.",
+    "start": 611.44,
+    "end": 616.8,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t73.s0",
+    "turn": 73,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "¿Desde cuándo pasa eso?",
+    "start": 617.06,
+    "end": 618.72,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t74.s0",
+    "turn": 74,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Desde finales del verano pasado.",
+    "start": 619.08,
+    "end": 620.94,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t74.s1",
+    "turn": 74,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Lo dice en septiembre, pero se quedó ahí.",
+    "start": 621.28,
+    "end": 623.5,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t75.s0",
+    "turn": 75,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Pues tienes razón en recordarlo y perdona que se quedara ahí.",
+    "start": 623.86,
+    "end": 627.44,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P6",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.2794,
+     "similarity": 0.5196
+    },
+    {
+     "indicator_id": "INFLU.P4",
+     "competency_id": "INFLU",
+     "polarity": "positive",
+     "score": 1.2035,
+     "similarity": 0.3836
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t75.s1",
+    "turn": 75,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Cuánto costaría adelarlo?",
+    "start": 627.44,
+    "end": 629.24,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t76.s0",
+    "turn": 76,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "El taller me dijo unos 600 euros más la revisión.",
+    "start": 629.24,
+    "end": 632.94,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t76.s1",
+    "turn": 76,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Si se hace en mayo, llegamos a junio sin problema.",
+    "start": 632.94,
+    "end": 635.92,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t77.s0",
+    "turn": 77,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Eso hay que hacerlo, sí o sí.",
+    "start": 635.92,
+    "end": 637.76,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t77.s1",
+    "turn": 77,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "En agosto, con la furgoneta caliente, la masa de las bases de pizza llega pasada.",
+    "start": 637.76,
+    "end": 642.34,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t78.s0",
+    "turn": 78,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Y tiene sentido hablar de mensajeros si nuestra propia furgoneta no está bien.",
+    "start": 642.34,
+    "end": 654.0,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P5",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.4013,
+     "similarity": 0.4013
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t79.s0",
+    "turn": 79,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Entonces lo damos por aprobado.",
+    "start": 654.0,
+    "end": 656.28,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P5",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.4553,
+     "similarity": 0.5386
+    },
+    {
+     "indicator_id": "INCL.N3",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.1033,
+     "similarity": 0.5233
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t79.s1",
+    "turn": 79,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Joaquín pide cita en el taller para mayo y me pasas el presupuesto por escrito.",
+    "start": 656.28,
+    "end": 661.36,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "LISTEN.N3",
+     "competency_id": "LISTEN",
+     "polarity": "negative",
+     "score": 1.0622,
+     "similarity": 0.3565
+    },
+    {
+     "indicator_id": "FEEDB.P3",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.0344,
+     "similarity": 0.3593
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t80.s0",
+    "turn": 80,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Hecho.",
+    "start": 661.36,
+    "end": 662.04,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t80.s1",
+    "turn": 80,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Mañana llamo al taller.",
+    "start": 662.04,
+    "end": 663.66,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t80.s2",
+    "turn": 80,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Y ya que estamos, las bandejas de enfriado del obrador también están muy viejas.",
+    "start": 663.66,
+    "end": 667.8,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t80.s3",
+    "turn": 80,
+    "index": 3,
+    "speaker": "Andrés",
+    "text": "Pero eso lo dejo para otro día, que veo que no acabamos.",
+    "start": 668.54,
+    "end": 671.62,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P1",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.3828,
+     "similarity": 0.3828
+    },
+    {
+     "indicator_id": "LISTEN.P2",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.3536,
+     "similarity": 0.3536
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t81.s0",
+    "turn": 81,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Apúntalo y lo vemos en la próxima.",
+    "start": 672.22,
+    "end": 674.44,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P5",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.0377,
+     "similarity": 0.487
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t81.s1",
+    "turn": 81,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "No quiero que se pierda como lo de la furgoneta.",
+    "start": 674.44,
+    "end": 677.18,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t82.s0",
+    "turn": 82,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Lo apunto.",
+    "start": 677.62,
+    "end": 678.68,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t83.s0",
+    "turn": 83,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Bien.",
+    "start": 679.08,
+    "end": 679.62,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t83.s1",
+    "turn": 83,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Volvamos a la producción, que es lo que más prisa corre.",
+    "start": 679.62,
+    "end": 682.9,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P6",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.5191,
+     "similarity": 0.5191
+    },
+    {
+     "indicator_id": "LISTEN.P4",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.234,
+     "similarity": 0.3086
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t84.s0",
+    "turn": 84,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Yo sigo pensando que con un solo panadero vamos justos.",
+    "start": 683.28,
+    "end": 686.06,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P5",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 0.8623,
+     "similarity": 0.3197
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t84.s1",
+    "turn": 84,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Si alguien se pone malo, se cae todo.",
+    "start": 686.66,
+    "end": 688.86,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.N3",
+     "competency_id": "COORD",
+     "polarity": "negative",
+     "score": 1.447,
+     "similarity": 0.5153
+    },
+    {
+     "indicator_id": "INCL.N1",
+     "competency_id": "INCL",
+     "polarity": "negative",
+     "score": 1.2757,
+     "similarity": 0.4376
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t85.s0",
+    "turn": 85,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Y si buscamos a alguien que pueda hacer media jornada en septiembre, también dirte así.",
+    "start": 689.42,
+    "end": 697.04,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.N3",
+     "competency_id": "COORD",
+     "polarity": "negative",
+     "score": 1.0861,
+     "similarity": 0.3541
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t85.s1",
+    "turn": 85,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "El refuerzo no es tan caro y tenemos margen.",
+    "start": 697.92,
+    "end": 702.18,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t85.s2",
+    "turn": 85,
+    "index": 2,
+    "speaker": "Nerea",
+    "text": "Si alguien se pone enfermo...",
+    "start": 703.3,
+    "end": 705.72,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.N3",
+     "competency_id": "COORD",
+     "polarity": "negative",
+     "score": 1.5222,
+     "similarity": 0.5222
+    },
+    {
+     "indicator_id": "CONFL.N1",
+     "competency_id": "CONFL",
+     "polarity": "negative",
+     "score": 1.3479,
+     "similarity": 0.3479
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t86.s0",
+    "turn": 86,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Eso tiene más sentido.",
+    "start": 706.68,
+    "end": 708.26,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "LISTEN.N4",
+     "competency_id": "LISTEN",
+     "polarity": "negative",
+     "score": 0.9364,
+     "similarity": 0.3446
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t86.s1",
+    "turn": 86,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Hay una chica que hizo prácticas con nosotros en primavera.",
+    "start": 708.8,
+    "end": 711.82,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t86.s2",
+    "turn": 86,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Trabajaba bien y me dijo que buscaba algo para el verano.",
+    "start": 712.28,
+    "end": 715.34,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t87.s0",
+    "turn": 87,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "¿Puedes hablar con ella?",
+    "start": 715.84,
+    "end": 717.18,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P2",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 1.2437,
+     "similarity": 0.3227
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t88.s0",
+    "turn": 88,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Sí, la llamo esta tarde.",
+    "start": 717.74,
+    "end": 719.22,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P2",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 0.8411,
+     "similarity": 0.3578
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t89.s0",
+    "turn": 89,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Muy bien, a ver si lo he entendido.",
+    "start": 719.66,
+    "end": 722.1,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "LISTEN.P6",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.6989,
+     "similarity": 0.6989
+    },
+    {
+     "indicator_id": "COMM.P5",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.6341,
+     "similarity": 0.7131
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t89.s1",
+    "turn": 89,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "La propuesta que se está formando es catálogo de 12 productos para restaurantes en julio y agosto, un panadero de refuerzo desde mediados de junio, la prueba del mensajero en la costa durante dos semanas de junio y preguntar por el turno de las dos.",
+    "start": 722.32,
+    "end": 735.68,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t89.s2",
+    "turn": 89,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "Es así.",
+    "start": 735.68,
+    "end": 736.7,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t90.s0",
+    "turn": 90,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Yo añadiría revisar a los restaurantes del catálogo de verano antes del 20 de mayo.",
+    "start": 739.98,
+    "end": 744.62,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t91.s0",
+    "turn": 91,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Por mi parte, de",
+    "start": 746.02,
+    "end": 747.12,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "CONFL.P2",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.4397,
+     "similarity": 0.4397
+    },
+    {
+     "indicator_id": "FEEDB.P3",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.4251,
+     "similarity": 0.4251
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t92.s0",
+    "turn": 92,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "acuerdo.",
+    "start": 747.12,
+    "end": 747.84,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t92.s1",
+    "turn": 92,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "De acuerdo, con una condición.",
+    "start": 748.24,
+    "end": 749.62,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.N3",
+     "competency_id": "ADAPT",
+     "polarity": "negative",
+     "score": 1.3234,
+     "similarity": 0.4024
+    },
+    {
+     "indicator_id": "CONFL.P2",
+     "competency_id": "CONFL",
+     "polarity": "positive",
+     "score": 1.317,
+     "similarity": 0.4514
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t92.s2",
+    "turn": 92,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "Si en la primera semana de julio vemos que no llegamos, contratamos al segundo sin volver a discutirlo.",
+    "start": 750.28,
+    "end": 755.1,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P6",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 1.208,
+     "similarity": 0.4624
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t93.s0",
+    "turn": 93,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Me parece justo.",
+    "start": 755.5,
+    "end": 756.7,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t93.s1",
+    "turn": 93,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Qué cifra usamos para decir que no llegamos?",
+    "start": 756.7,
+    "end": 759.38,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.N3",
+     "competency_id": "COMM",
+     "polarity": "negative",
+     "score": 1.3354,
+     "similarity": 0.4037
+    },
+    {
+     "indicator_id": "LISTEN.P2",
+     "competency_id": "LISTEN",
+     "polarity": "positive",
+     "score": 1.315,
+     "similarity": 0.4167
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t94.s0",
+    "turn": 94,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Si hay más de dos retrasos en una semana, no llegamos.",
+    "start": 759.88,
+    "end": 762.22,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.N3",
+     "competency_id": "COMM",
+     "polarity": "negative",
+     "score": 1.3079,
+     "similarity": 0.3079
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t95.s0",
+    "turn": 95,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "¿Dos retrasos de más de una hora?",
+    "start": 762.22,
+    "end": 764.0,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t95.s1",
+    "turn": 95,
+    "index": 1,
+    "speaker": "Nerea",
+    "text": "Para medir lo mismo que el año pasado.",
+    "start": 764.28,
+    "end": 766.6,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P1",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.2216,
+     "similarity": 0.3471
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t96.s0",
+    "turn": 96,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Vale, de más de una hora.",
+    "start": 769.44,
+    "end": 770.9,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t97.s0",
+    "turn": 97,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Pues queda así.",
+    "start": 771.34,
+    "end": 772.28,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t97.s1",
+    "turn": 97,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Si en una semana de julio hay más de dos retrasos de más de una hora, se contrata al segundo panadero.",
+    "start": 772.58,
+    "end": 778.2,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t97.s2",
+    "turn": 97,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "Nerea, lo apuntas en el acta.",
+    "start": 778.3,
+    "end": 782.02,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t98.s0",
+    "turn": 98,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "¿Y",
+    "start": 783.96,
+    "end": 786.96,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t99.s0",
+    "turn": 99,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "quién mira los retrasos cada semana?",
+    "start": 787.76,
+    "end": 789.84,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t99.s1",
+    "turn": 99,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Porque si no lo mira nadie, no nos enteraremos hasta septiembre.",
+    "start": 789.84,
+    "end": 793.58,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INCL.P1",
+     "competency_id": "INCL",
+     "polarity": "positive",
+     "score": 0.3703,
+     "similarity": 0.3703
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t100.s0",
+    "turn": 100,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Buena pregunta.",
+    "start": 793.96,
+    "end": 794.98,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t100.s1",
+    "turn": 100,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Puedes hacerlo tú, Joaquín.",
+    "start": 794.98,
+    "end": 796.66,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P6",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.169,
+     "similarity": 0.3155
+    },
+    {
+     "indicator_id": "COLLAB.P1",
+     "competency_id": "COLLAB",
+     "polarity": "positive",
+     "score": 1.1042,
+     "similarity": 0.4064
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t100.s2",
+    "turn": 100,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "Eres quien tiene los horarios de entrega.",
+    "start": 796.66,
+    "end": 799.02,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t101.s0",
+    "turn": 101,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Sí.",
+    "start": 799.38,
+    "end": 799.9,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t101.s1",
+    "turn": 101,
+    "index": 1,
+    "speaker": "Joaquín",
+    "text": "Cada lunes os mando un resumen con los retrasos de la semana anterior.",
+    "start": 799.9,
+    "end": 803.88,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.4819,
+     "similarity": 0.7221
+    },
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 1.1894,
+     "similarity": 0.5577
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t102.s0",
+    "turn": 102,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Gracias.",
+    "start": 804.2,
+    "end": 804.94,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t102.s1",
+    "turn": 102,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "Repasemos quién hace qué y para cuándo, que luego se nos olvida.",
+    "start": 804.94,
+    "end": 808.6,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "SOLVE.P5",
+     "competency_id": "SOLVE",
+     "polarity": "positive",
+     "score": 1.5081,
+     "similarity": 0.5261
+    },
+    {
+     "indicator_id": "FEEDB.N2",
+     "competency_id": "FEEDB",
+     "polarity": "negative",
+     "score": 1.4164,
+     "similarity": 0.4164
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t103.s0",
+    "turn": 103,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "Yo preparo hoy, antes de las 5, la lista de los 12 productos con cantidades por día y antes del 20 de mayo de aviso a todos los restaurantes del catálogo de verano.",
+    "start": 809.06,
+    "end": 820.28,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COORD.P4",
+     "competency_id": "COORD",
+     "polarity": "positive",
+     "score": 0.9711,
+     "similarity": 0.3529
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t104.s0",
+    "turn": 104,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Yo llamo esta tarde a la chica de prácticas y el jueves os digo cuántos del equipo aceptarían entrar a las dos.",
+    "start": 821.66,
+    "end": 826.7,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P6",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.3443,
+     "similarity": 0.5141
+    },
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 0.9608,
+     "similarity": 0.4515
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t105.s0",
+    "turn": 105,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Yo pido esta semana la prueba al mensajero para la segunda y la tercera semana de junio, llamo a los clientes de la costa antes de empezar y desde julio mando el resumen de retrasos cada lunes.",
+    "start": 827.34,
+    "end": 838.38,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "COMM.P6",
+     "competency_id": "COMM",
+     "polarity": "positive",
+     "score": 0.9667,
+     "similarity": 0.5863
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t106.s0",
+    "turn": 106,
+    "index": 0,
+    "speaker": "Nerea",
+    "text": "El lunes os paso los dos esterarios del recargo de verano.",
+    "start": 838.76,
+    "end": 842.7,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P1",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.3598,
+     "similarity": 0.5514
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t107.s0",
+    "turn": 107,
+    "index": 0,
+    "speaker": "Joaquín",
+    "text": "Y mañana pido cita en el taller para la furgoneta.",
+    "start": 843.26,
+    "end": 846.12,
+    "previous_speaker": "Nerea",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "INIT.P4",
+     "competency_id": "INIT",
+     "polarity": "positive",
+     "score": 1.1778,
+     "similarity": 0.3056
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t108.s0",
+    "turn": 108,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Y yo hablo con la gestoría para saber el coste real del contrato y lo comparto el viernes.",
+    "start": 846.5,
+    "end": 851.46,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t108.s1",
+    "turn": 108,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "¿Algo más?",
+    "start": 851.56,
+    "end": 852.48,
+    "previous_speaker": "Joaquín",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t109.s0",
+    "turn": 109,
+    "index": 0,
+    "speaker": "Andrés",
+    "text": "Sí.",
+    "start": 853.1,
+    "end": 853.74,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t109.s1",
+    "turn": 109,
+    "index": 1,
+    "speaker": "Andrés",
+    "text": "Que la próxima vez la reunión sea a las 11.",
+    "start": 853.74,
+    "end": 856.28,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P5",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.3618,
+     "similarity": 0.3618
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t109.s2",
+    "turn": 109,
+    "index": 2,
+    "speaker": "Andrés",
+    "text": "A estas horas el horno no espera.",
+    "start": 856.84,
+    "end": 858.9,
+    "previous_speaker": "Lucía",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t110.s0",
+    "turn": 110,
+    "index": 0,
+    "speaker": "Lucía",
+    "text": "Me parece justo.",
+    "start": 859.32,
+    "end": 860.52,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": []
+  },
+  {
+   "sentence": {
+    "id": "t110.s1",
+    "turn": 110,
+    "index": 1,
+    "speaker": "Lucía",
+    "text": "La próxima a las 11 y empezamos por los domingos.",
+    "start": 860.52,
+    "end": 864.34,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "ADAPT.P5",
+     "competency_id": "ADAPT",
+     "polarity": "positive",
+     "score": 1.1235,
+     "similarity": 0.3539
+    }
+   ]
+  },
+  {
+   "sentence": {
+    "id": "t110.s2",
+    "turn": 110,
+    "index": 2,
+    "speaker": "Lucía",
+    "text": "Gracias a todos, ha sido una buena reunión.",
+    "start": 864.34,
+    "end": 867.14,
+    "previous_speaker": "Andrés",
+    "speaker_identification": "threshold"
+   },
+   "tags": [
+    {
+     "indicator_id": "FEEDB.P6",
+     "competency_id": "FEEDB",
+     "polarity": "positive",
+     "score": 1.2161,
+     "similarity": 0.3775
+    }
+   ]
+  }
+ ]
+}

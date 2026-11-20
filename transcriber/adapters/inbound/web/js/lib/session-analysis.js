@@ -29,6 +29,33 @@ export const ACTS = [
 /** The things people must still do, by the RAG's ids. */
 export const OPEN_ISSUES = ["consent", "human_review", "situations"];
 
+const TOKEN_FIELDS = ["input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"];
+
+/**
+ * The tokens a step (or a whole run) used, as rows for the page: one per
+ * model plus the total, and the answers served from the cache. `null`
+ * when the record has no usage (an older run: unknown, not zero) or when
+ * it used nothing at all.
+ */
+export function usageRows(usage) {
+  if (!usage || typeof usage !== "object") return null;
+  const models = Object.entries(usage.models ?? {}).map(([model, u]) => ({ model, ...usageNumbers(u) }));
+  const cacheHits = Number(usage.cache_hits) || 0;
+  if (!models.length && !cacheHits) return null;
+  const total = models.reduce((sum, m) => {
+    for (const key of ["calls", ...TOKEN_FIELDS]) sum[key] += m[key];
+    sum.cost_usd += m.cost_usd;
+    return sum;
+  }, usageNumbers({}));
+  return { models, total, cacheHits };
+}
+
+function usageNumbers(u) {
+  const row = { calls: Number(u?.calls) || 0, cost_usd: Number(u?.cost_usd) || 0 };
+  for (const key of TOKEN_FIELDS) row[key] = Number(u?.[key]) || 0;
+  return row;
+}
+
 /** Whether the page should keep asking the RAG (the run is still going). */
 export function isActive(run) {
   return Boolean(run?.active) || run?.status === "running";

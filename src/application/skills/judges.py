@@ -44,6 +44,7 @@ from src.domain.skills.judging import (
     quota_status,
 )
 from src.domain.skills.rubric import RubricCatalogue
+from src.domain.skills.usage import Usage, UsageLedger
 
 
 class JudgeStatus(BaseModel):
@@ -176,6 +177,11 @@ class FallbackJudge:
         """Return the identifier of the judge answering now."""
         return self.active.model_name
 
+    @property
+    def last_usage(self) -> Optional[Usage]:
+        """Return the tokens of the last reply, if its judge reports them."""
+        return last_usage(self.active)
+
     def complete(self, system: str, user: str, max_tokens: int) -> str:
         """Answer with Claude, or with the local judge after a refusal."""
         if not self.fallback_reason:
@@ -197,6 +203,34 @@ class FallbackJudge:
         release(self.fallback)
 
 
+class CountingCache:
+    """A :class:`~src.application.ports.Cache` that counts its hits.
+
+    Every answer found in the wrapped cache is added to the ledger as
+    a cache hit (it costs no tokens); everything else passes through.
+    """
+
+    def __init__(self, cache: Cache, ledger: UsageLedger):
+        """Wrap ``cache``; count hits in ``ledger``."""
+        self.cache = cache
+        self.ledger = ledger
+
+    def get(self, key: str) -> Optional[str]:
+        """Return the value under ``key``, counting a hit."""
+        value = self.cache.get(key)
+        if value is not None:
+            self.ledger.hit()
+        return value
+
+    def set(self, key: str, value: str) -> None:
+        """Store ``value`` under ``key``."""
+        self.cache.set(key, value)
+
+    def clear(self) -> int:
+        """Delete every entry; return how many were removed."""
+        return self.cache.clear()
+
+
 class CallBudget:
     """A judge that refuses calls past ``limit`` in one analysis.
 
@@ -207,10 +241,18 @@ class CallBudget:
     reason and the run can be resumed with a higher limit.
     """
 
-    def __init__(self, judge: ChatModel, limit: int):
-        """Wrap ``judge``; allow ``limit`` calls."""
+    def __init__(
+        self, judge: ChatModel, limit: int,
+        ledger: Optional[UsageLedger] = None,
+    ):
+        """Wrap ``judge``; allow ``limit`` calls.
+
+        ``ledger``, when given, gets every call that reaches the model
+        with the tokens the judge reported for it.
+        """
         self.judge = judge
         self.limit = max(limit, 0)
+        self.ledger = ledger
         self._spent = [0]
 
     @property
@@ -225,7 +267,7 @@ class CallBudget:
         (Claude when the run's judge is the local model); its calls
         still count in the one limit of the analysis.
         """
-        other = CallBudget(judge, self.limit)
+        other = CallBudget(judge, self.limit, self.ledger)
         other._spent = self._spent
         return other
 
@@ -252,11 +294,20 @@ class CallBudget:
                 "reached; raise max_judge_calls to go on."
             )
         self._spent[0] += 1
-        return self.judge.complete(system, user, max_tokens)
+        reply = self.judge.complete(system, user, max_tokens)
+        if self.ledger is not None:
+            self.ledger.record(self.judge.model_name, last_usage(self.judge))
+        return reply
 
     def release(self) -> None:
         """Free the wrapped judge's memory, if it can."""
         release(self.judge)
+
+
+def last_usage(judge: Any) -> Optional[Usage]:
+    """Return the tokens of a judge's last reply (``None``: not reported)."""
+    usage = getattr(judge, "last_usage", None)
+    return usage if isinstance(usage, Usage) else None
 
 
 def release(judge: Any) -> None:

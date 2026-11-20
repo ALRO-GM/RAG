@@ -5,7 +5,7 @@ import {
   ACTS, COUNT_KEYS, OPEN_ISSUES, STATUSES, STEPS, actRows, byPerson, clock, doubtfulCount, eventRows,
   isActive, orderedSteps, ratingRows, reportBlob, reportFileName, startMode, stepStatus,
   STARTING_MS, startRefusal, startingRun, stillStarting, tagChip, tagged, verdict,
-  REASONS, SOURCES, WHY, cellOf, cellText, observed, reasonText, reviewRows, transcriptLink, whyText,
+  REASONS, SOURCES, WHY, cellOf, cellText, observed, reasonText, reviewRows, transcriptLink, usageRows, whyText,
 } from "../../transcriber/adapters/inbound/web/js/lib/session-analysis.js";
 import { translate } from "../../transcriber/adapters/inbound/web/js/lib/i18n.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -235,4 +235,28 @@ test("an observation links to its moment of the transcript", () => {
   assert.equal(transcriptLink("s 1", 20.9), "#/s/s%201/t/20");
   assert.equal(transcriptLink("s1", null), "#/s/s1");
   assert.equal(transcriptLink("s1", -1), "#/s/s1");
+});
+
+test("usageRows sums the models and reads an old run as unknown", () => {
+  assert.equal(usageRows(undefined), null);
+  assert.equal(usageRows({ models: {}, cache_hits: 0 }), null);
+  const rows = usageRows({
+    models: {
+      "claude-code:opus": { calls: 2, input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 100, cache_read_input_tokens: 7, cost_usd: 0.5 },
+      "claude-code:haiku": { calls: 1, input_tokens: 1, output_tokens: 2 },
+    },
+    cache_hits: 4,
+  });
+  assert.equal(rows.models.length, 2);
+  assert.deepEqual(
+    [rows.total.calls, rows.total.input_tokens, rows.total.output_tokens, rows.total.cache_creation_input_tokens, rows.total.cache_read_input_tokens, rows.total.cost_usd, rows.cacheHits],
+    [3, 11, 7, 100, 7, 0.5, 4],
+  );
+  assert.equal(usageRows({ models: {}, cache_hits: 3 }).cacheHits, 3);
+});
+
+test("the usage texts exist in both languages", () => {
+  for (const key of ["sa.usage_step", "sa.usage_total", "sa.usage_line", "sa.usage_cost", "sa.usage_cache_hits"]) {
+    assert.ok(es[key] && en[key], key);
+  }
 });

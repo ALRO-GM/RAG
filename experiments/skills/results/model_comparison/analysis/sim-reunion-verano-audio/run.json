@@ -1,0 +1,264 @@
+{
+ "session_id": "sim-reunion-verano-audio",
+ "status": "done",
+ "started_at": "2026-11-20T08:12:29.045269Z",
+ "finished_at": "2026-11-20T08:23:49.401161Z",
+ "synthetic": true,
+ "worker_pid": 155867,
+ "steps": [
+  {
+   "name": "sentences",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:29.047441Z",
+   "seconds": 0.003,
+   "model": "",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "sentences": 227,
+    "speakers": 4
+   },
+   "note": "",
+   "error": "",
+   "output": "sentences.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "interaction",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:29.053386Z",
+   "seconds": 0.002,
+   "model": "",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "speakers": 4,
+    "turns": 111,
+    "words": 2027
+   },
+   "note": "",
+   "error": "",
+   "output": "interaction.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "candidates",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:29.057677Z",
+   "seconds": 3.6,
+   "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "sentences": 227,
+    "with_candidates": 102,
+    "candidates": 150
+   },
+   "note": "",
+   "error": "",
+   "output": "candidates.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "acts",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:32.660142Z",
+   "seconds": 7.64,
+   "model": "encoder (xlmr-base-ami-mrda-es)",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "sentences": 227,
+    "doubtful": 47,
+    "by_encoder": 227
+   },
+   "note": "Doubtful margin 0.45.",
+   "error": "",
+   "output": "acts.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "events",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:40.305790Z",
+   "seconds": 0.009,
+   "model": "rules (CONVERSATION_EVENTS.md)",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "question_answered": 15,
+    "question_unanswered": 5,
+    "proposal_accepted": 8,
+    "proposal_rejected": 1,
+    "proposal_ignored": 11,
+    "decision": 8,
+    "action_item": 15,
+    "open_issue": 5
+   },
+   "note": "",
+   "error": "",
+   "output": "events.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "confirmation",
+   "status": "done",
+   "started_at": "2026-11-20T08:12:40.318123Z",
+   "seconds": 227.616,
+   "model": "claude-code:haiku",
+   "judge": "claude_code",
+   "fallback_reason": "",
+   "counts": {
+    "sent": 102,
+    "not_sent": 0,
+    "judge_calls": 102,
+    "confirmed": 49,
+    "rejected": 53,
+    "unparsed": 0
+   },
+   "note": "",
+   "error": "",
+   "output": "confirmation.json",
+   "usage": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 102,
+      "input_tokens": 204,
+      "output_tokens": 12093,
+      "cache_creation_input_tokens": 158873,
+      "cache_read_input_tokens": 0,
+      "cost_usd": 0.037844
+     }
+    },
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "assessment",
+   "status": "done",
+   "started_at": "2026-11-20T08:16:27.937476Z",
+   "seconds": 416.452,
+   "model": "claude-code:haiku",
+   "judge": "claude_code",
+   "fallback_reason": "",
+   "counts": {
+    "participants": 4,
+    "judgements": 44,
+    "rated": 28,
+    "provisional": 10,
+    "evidence": 125,
+    "observations": 20,
+    "judge_calls": 44
+   },
+   "note": "",
+   "error": "",
+   "output": "assessment.json",
+   "usage": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 44,
+      "input_tokens": 88,
+      "output_tokens": 72304,
+      "cache_creation_input_tokens": 111547,
+      "cache_read_input_tokens": 2848,
+      "cost_usd": 0.058499
+     }
+    },
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "reports",
+   "status": "done",
+   "started_at": "2026-11-20T08:23:24.392526Z",
+   "seconds": 0.018,
+   "model": "",
+   "judge": "",
+   "fallback_reason": "",
+   "counts": {
+    "reports": 4
+   },
+   "note": "",
+   "error": "",
+   "output": "summary.json",
+   "usage": {
+    "models": {},
+    "cache_hits": 0
+   }
+  },
+  {
+   "name": "synthesis",
+   "status": "done",
+   "started_at": "2026-11-20T08:23:24.413748Z",
+   "seconds": 24.984,
+   "model": "claude-code:haiku",
+   "judge": "claude_code",
+   "fallback_reason": "",
+   "counts": {
+    "people": 4,
+    "skipped": 0,
+    "points": 23,
+    "dropped": 3,
+    "judge_calls": 4
+   },
+   "note": "",
+   "error": "",
+   "output": "synthesis.json",
+   "usage": {
+    "models": {
+     "claude-code:haiku": {
+      "calls": 4,
+      "input_tokens": 8,
+      "output_tokens": 4101,
+      "cache_creation_input_tokens": 17309,
+      "cache_read_input_tokens": 1737,
+      "cost_usd": 0.00553
+     }
+    },
+    "cache_hits": 0
+   }
+  }
+ ],
+ "open_issues": [
+  {
+   "id": "consent",
+   "text": "Consent, retention and who sees the results must be decided before analysing real people (#19)."
+  },
+  {
+   "id": "human_review",
+   "text": "The labels and levels are a model's draft: a trained person must review them before any use."
+  },
+  {
+   "id": "situations",
+   "text": "One conversation is one situation; a profile needs several situations per person (#84)."
+  }
+ ],
+ "usage": {
+  "models": {
+   "claude-code:haiku": {
+    "calls": 410,
+    "input_tokens": 820,
+    "output_tokens": 120862,
+    "cache_creation_input_tokens": 581741,
+    "cache_read_input_tokens": 92016,
+    "cost_usd": 0.177773
+   }
+  },
+  "cache_hits": 0
+ }
+}
