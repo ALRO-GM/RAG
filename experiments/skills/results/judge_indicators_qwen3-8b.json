@@ -1,0 +1,1964 @@
+{
+ "judge": "Qwen/Qwen3-8B@4bit",
+ "complete": true,
+ "calls": 240,
+ "seconds": {
+  "forward": 140.0,
+  "reversed": 119.0
+ },
+ "forward": {
+  "items": 120,
+  "unparsed": 0,
+  "confirmed": 87,
+  "correct": 38,
+  "precision": 0.437,
+  "recall": 0.633,
+  "false_confirm_rate": 0.5,
+  "wrong_indicator_on_true": 19,
+  "negative_recall": 0.5,
+  "first_listed_rate": 0.115
+ },
+ "reversed": {
+  "items": 120,
+  "unparsed": 0,
+  "confirmed": 92,
+  "correct": 31,
+  "precision": 0.337,
+  "recall": 0.517,
+  "false_confirm_rate": 0.55,
+  "wrong_indicator_on_true": 28,
+  "negative_recall": 0.222,
+  "first_listed_rate": 0.13
+ },
+ "position": {
+  "compared": 120,
+  "flips": 59,
+  "flip_rate": 0.492
+ },
+ "outcomes": {
+  "forward": [
+   {
+    "item_id": "t01",
+    "order": "forward",
+    "named": "COMM.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t02",
+    "order": "forward",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t03",
+    "order": "forward",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t04",
+    "order": "forward",
+    "named": "COMM.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t05",
+    "order": "forward",
+    "named": "COMM.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t06",
+    "order": "forward",
+    "named": "LISTEN.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t07",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t08",
+    "order": "forward",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t09",
+    "order": "forward",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t10",
+    "order": "forward",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t11",
+    "order": "forward",
+    "named": "LISTEN.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t12",
+    "order": "forward",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t13",
+    "order": "forward",
+    "named": "LISTEN.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t14",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t15",
+    "order": "forward",
+    "named": "LISTEN.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t16",
+    "order": "forward",
+    "named": "SOLVE.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t17",
+    "order": "forward",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t18",
+    "order": "forward",
+    "named": "INFLU.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t19",
+    "order": "forward",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t20",
+    "order": "forward",
+    "named": "INFLU.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t21",
+    "order": "forward",
+    "named": "INFLU.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t22",
+    "order": "forward",
+    "named": "INFLU.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t23",
+    "order": "forward",
+    "named": "COLLAB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t24",
+    "order": "forward",
+    "named": "COLLAB.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t25",
+    "order": "forward",
+    "named": "INIT.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t26",
+    "order": "forward",
+    "named": "COLLAB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t27",
+    "order": "forward",
+    "named": "COLLAB.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t28",
+    "order": "forward",
+    "named": "COLLAB.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t29",
+    "order": "forward",
+    "named": "COLLAB.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t30",
+    "order": "forward",
+    "named": "INCL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t31",
+    "order": "forward",
+    "named": "INCL.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "t32",
+    "order": "forward",
+    "named": "INCL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t33",
+    "order": "forward",
+    "named": "INCL.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "t34",
+    "order": "forward",
+    "named": "COLLAB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t35",
+    "order": "forward",
+    "named": "INCL.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "t36",
+    "order": "forward",
+    "named": "INCL.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t37",
+    "order": "forward",
+    "named": "INCL.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "t38",
+    "order": "forward",
+    "named": "CONFL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t39",
+    "order": "forward",
+    "named": "CONFL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "t40",
+    "order": "forward",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t41",
+    "order": "forward",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "t42",
+    "order": "forward",
+    "named": "INFLU.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t43",
+    "order": "forward",
+    "named": "CONFL.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "t44",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t45",
+    "order": "forward",
+    "named": "CONFL.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "t46",
+    "order": "forward",
+    "named": "FEEDB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t47",
+    "order": "forward",
+    "named": "FEEDB.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "t48",
+    "order": "forward",
+    "named": "FEEDB.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t49",
+    "order": "forward",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "t50",
+    "order": "forward",
+    "named": "FEEDB.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t51",
+    "order": "forward",
+    "named": "FEEDB.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "t52",
+    "order": "forward",
+    "named": "COORD.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t53",
+    "order": "forward",
+    "named": "COORD.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "t54",
+    "order": "forward",
+    "named": "SOLVE.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t55",
+    "order": "forward",
+    "named": "SOLVE.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t56",
+    "order": "forward",
+    "named": "SOLVE.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t57",
+    "order": "forward",
+    "named": "INIT.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t58",
+    "order": "forward",
+    "named": "COORD.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "t59",
+    "order": "forward",
+    "named": "ADAPT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.P1"
+   },
+   {
+    "item_id": "t60",
+    "order": "forward",
+    "named": "ADAPT.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w01",
+    "order": "forward",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w02",
+    "order": "forward",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w03",
+    "order": "forward",
+    "named": "COMM.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w04",
+    "order": "forward",
+    "named": "LISTEN.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w05",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w06",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w07",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w08",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w09",
+    "order": "forward",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w10",
+    "order": "forward",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w11",
+    "order": "forward",
+    "named": "LISTEN.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "w12",
+    "order": "forward",
+    "named": "LISTEN.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w13",
+    "order": "forward",
+    "named": "SOLVE.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w14",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "w15",
+    "order": "forward",
+    "named": "SOLVE.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w16",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "w17",
+    "order": "forward",
+    "named": "INFLU.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w18",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "w19",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "w20",
+    "order": "forward",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w21",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "w22",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w23",
+    "order": "forward",
+    "named": "COLLAB.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "w24",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w25",
+    "order": "forward",
+    "named": "INCL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "w26",
+    "order": "forward",
+    "named": "COLLAB.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "w27",
+    "order": "forward",
+    "named": "INCL.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "w28",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "w29",
+    "order": "forward",
+    "named": "INCL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.P1"
+   },
+   {
+    "item_id": "w30",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w31",
+    "order": "forward",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "w32",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w33",
+    "order": "forward",
+    "named": "CONFL.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.P1"
+   },
+   {
+    "item_id": "w34",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w35",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w36",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w37",
+    "order": "forward",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w38",
+    "order": "forward",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w39",
+    "order": "forward",
+    "named": "FEEDB.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w40",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "w41",
+    "order": "forward",
+    "named": "COORD.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "w42",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w43",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "w44",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w45",
+    "order": "forward",
+    "named": "COORD.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "w46",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w47",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "w48",
+    "order": "forward",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w49",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "w50",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "w51",
+    "order": "forward",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w52",
+    "order": "forward",
+    "named": "COORD.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "w53",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w54",
+    "order": "forward",
+    "named": "COORD.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.P1"
+   },
+   {
+    "item_id": "w55",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "w56",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w57",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.P1"
+   },
+   {
+    "item_id": "w58",
+    "order": "forward",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   },
+   {
+    "item_id": "w59",
+    "order": "forward",
+    "named": "ADAPT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.P1"
+   },
+   {
+    "item_id": "w60",
+    "order": "forward",
+    "named": "ADAPT.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.P1"
+   }
+  ],
+  "reversed": [
+   {
+    "item_id": "t01",
+    "order": "reversed",
+    "named": "COMM.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t02",
+    "order": "reversed",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t03",
+    "order": "reversed",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t04",
+    "order": "reversed",
+    "named": "COMM.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t05",
+    "order": "reversed",
+    "named": "COMM.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t06",
+    "order": "reversed",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t07",
+    "order": "reversed",
+    "named": "COMM.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t08",
+    "order": "reversed",
+    "named": "LISTEN.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t09",
+    "order": "reversed",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t10",
+    "order": "reversed",
+    "named": "LISTEN.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t11",
+    "order": "reversed",
+    "named": "LISTEN.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t12",
+    "order": "reversed",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t13",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t14",
+    "order": "reversed",
+    "named": "LISTEN.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "t15",
+    "order": "reversed",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t16",
+    "order": "reversed",
+    "named": "SOLVE.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t17",
+    "order": "reversed",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "t18",
+    "order": "reversed",
+    "named": "INFLU.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t19",
+    "order": "reversed",
+    "named": "SOLVE.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "t20",
+    "order": "reversed",
+    "named": "INFLU.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t21",
+    "order": "reversed",
+    "named": "SOLVE.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "t22",
+    "order": "reversed",
+    "named": "INFLU.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t23",
+    "order": "reversed",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t24",
+    "order": "reversed",
+    "named": "COLLAB.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t25",
+    "order": "reversed",
+    "named": "INIT.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t26",
+    "order": "reversed",
+    "named": "COLLAB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t27",
+    "order": "reversed",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t28",
+    "order": "reversed",
+    "named": "COLLAB.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t29",
+    "order": "reversed",
+    "named": "INIT.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t30",
+    "order": "reversed",
+    "named": "INCL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "t31",
+    "order": "reversed",
+    "named": "INCL.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t32",
+    "order": "reversed",
+    "named": "INCL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "t33",
+    "order": "reversed",
+    "named": "COLLAB.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t34",
+    "order": "reversed",
+    "named": "INCL.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "t35",
+    "order": "reversed",
+    "named": "COLLAB.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t36",
+    "order": "reversed",
+    "named": "INCL.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "t37",
+    "order": "reversed",
+    "named": "INCL.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "t38",
+    "order": "reversed",
+    "named": "CONFL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "t39",
+    "order": "reversed",
+    "named": "CONFL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t40",
+    "order": "reversed",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "t41",
+    "order": "reversed",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t42",
+    "order": "reversed",
+    "named": "CONFL.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "t43",
+    "order": "reversed",
+    "named": "CONFL.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t44",
+    "order": "reversed",
+    "named": "CONFL.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "t45",
+    "order": "reversed",
+    "named": "CONFL.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t46",
+    "order": "reversed",
+    "named": "FEEDB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "t47",
+    "order": "reversed",
+    "named": "FEEDB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t48",
+    "order": "reversed",
+    "named": "FEEDB.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "t49",
+    "order": "reversed",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t50",
+    "order": "reversed",
+    "named": "FEEDB.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "t51",
+    "order": "reversed",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "t52",
+    "order": "reversed",
+    "named": "COORD.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "t53",
+    "order": "reversed",
+    "named": "COORD.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t54",
+    "order": "reversed",
+    "named": "SOLVE.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "t55",
+    "order": "reversed",
+    "named": "SOLVE.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "t56",
+    "order": "reversed",
+    "named": "SOLVE.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "t57",
+    "order": "reversed",
+    "named": "COORD.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "t58",
+    "order": "reversed",
+    "named": "INIT.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "t59",
+    "order": "reversed",
+    "named": "ADAPT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "t60",
+    "order": "reversed",
+    "named": "ADAPT.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.N4"
+   },
+   {
+    "item_id": "w01",
+    "order": "reversed",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w02",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w03",
+    "order": "reversed",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w04",
+    "order": "reversed",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w05",
+    "order": "reversed",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w06",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w07",
+    "order": "reversed",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w08",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w09",
+    "order": "reversed",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w10",
+    "order": "reversed",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w11",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w12",
+    "order": "reversed",
+    "named": "LISTEN.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.N4"
+   },
+   {
+    "item_id": "w13",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w14",
+    "order": "reversed",
+    "named": "SOLVE.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w15",
+    "order": "reversed",
+    "named": "INFLU.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w16",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w17",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w18",
+    "order": "reversed",
+    "named": "INFLU.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w19",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w20",
+    "order": "reversed",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w21",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w22",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w23",
+    "order": "reversed",
+    "named": "COLLAB.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w24",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w25",
+    "order": "reversed",
+    "named": "COLLAB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w26",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "w27",
+    "order": "reversed",
+    "named": "COLLAB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w28",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INCL.N4"
+   },
+   {
+    "item_id": "w29",
+    "order": "reversed",
+    "named": "COLLAB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.N4"
+   },
+   {
+    "item_id": "w30",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "w31",
+    "order": "reversed",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w32",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "w33",
+    "order": "reversed",
+    "named": "CONFL.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w34",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "CONFL.N4"
+   },
+   {
+    "item_id": "w35",
+    "order": "reversed",
+    "named": "COMM.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w36",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "w37",
+    "order": "reversed",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w38",
+    "order": "reversed",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "w39",
+    "order": "reversed",
+    "named": "FEEDB.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.N4"
+   },
+   {
+    "item_id": "w40",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "w41",
+    "order": "reversed",
+    "named": "COORD.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w42",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "w43",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w44",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "w45",
+    "order": "reversed",
+    "named": "COORD.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w46",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w47",
+    "order": "reversed",
+    "named": "SOLVE.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w48",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w49",
+    "order": "reversed",
+    "named": "SOLVE.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.N4"
+   },
+   {
+    "item_id": "w50",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.N4"
+   },
+   {
+    "item_id": "w51",
+    "order": "reversed",
+    "named": "INIT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "w52",
+    "order": "reversed",
+    "named": "COORD.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w53",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "w54",
+    "order": "reversed",
+    "named": "INIT.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.N4"
+   },
+   {
+    "item_id": "w55",
+    "order": "reversed",
+    "named": "COORD.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COORD.N4"
+   },
+   {
+    "item_id": "w56",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.N4"
+   },
+   {
+    "item_id": "w57",
+    "order": "reversed",
+    "named": null,
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "w58",
+    "order": "reversed",
+    "named": "ADAPT.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.N4"
+   },
+   {
+    "item_id": "w59",
+    "order": "reversed",
+    "named": "ADAPT.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "FEEDB.N4"
+   },
+   {
+    "item_id": "w60",
+    "order": "reversed",
+    "named": "ADAPT.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "ADAPT.N4"
+   }
+  ]
+ }
+}

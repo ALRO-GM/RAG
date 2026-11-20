@@ -1,0 +1,315 @@
+{
+ "judge": "opencode:opencode/deepseek-v4.1-flash-free",
+ "complete": false,
+ "calls": 30,
+ "seconds": {
+  "forward": 2.6,
+  "reversed": 0.0
+ },
+ "forward": {
+  "items": 30,
+  "unparsed": 0,
+  "confirmed": 30,
+  "correct": 29,
+  "precision": 0.967,
+  "recall": 0.967,
+  "false_confirm_rate": null,
+  "wrong_indicator_on_true": 1,
+  "negative_recall": 0.889,
+  "first_listed_rate": 0.067
+ },
+ "reversed": {
+  "items": 0,
+  "unparsed": 0,
+  "confirmed": 0,
+  "correct": 0,
+  "precision": null,
+  "recall": null,
+  "false_confirm_rate": null,
+  "wrong_indicator_on_true": 0,
+  "negative_recall": null,
+  "first_listed_rate": null
+ },
+ "position": {
+  "compared": 0,
+  "flips": 0,
+  "flip_rate": null
+ },
+ "outcomes": {
+  "forward": [
+   {
+    "item_id": "t01",
+    "order": "forward",
+    "named": "COMM.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t02",
+    "order": "forward",
+    "named": "COMM.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t03",
+    "order": "forward",
+    "named": "COMM.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t04",
+    "order": "forward",
+    "named": "COMM.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t05",
+    "order": "forward",
+    "named": "COMM.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t06",
+    "order": "forward",
+    "named": "COMM.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t07",
+    "order": "forward",
+    "named": "COMM.N4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t08",
+    "order": "forward",
+    "named": "LISTEN.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t09",
+    "order": "forward",
+    "named": "LISTEN.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t10",
+    "order": "forward",
+    "named": "LISTEN.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t11",
+    "order": "forward",
+    "named": "LISTEN.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t12",
+    "order": "forward",
+    "named": "LISTEN.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t13",
+    "order": "forward",
+    "named": "LISTEN.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t14",
+    "order": "forward",
+    "named": "LISTEN.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COMM.P1"
+   },
+   {
+    "item_id": "t15",
+    "order": "forward",
+    "named": "LISTEN.N3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "LISTEN.P1"
+   },
+   {
+    "item_id": "t16",
+    "order": "forward",
+    "named": "INFLU.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t17",
+    "order": "forward",
+    "named": "INFLU.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t18",
+    "order": "forward",
+    "named": "INFLU.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t19",
+    "order": "forward",
+    "named": "INFLU.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t20",
+    "order": "forward",
+    "named": "INFLU.P5",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t21",
+    "order": "forward",
+    "named": "INFLU.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INFLU.P1"
+   },
+   {
+    "item_id": "t22",
+    "order": "forward",
+    "named": "INFLU.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "SOLVE.P1"
+   },
+   {
+    "item_id": "t23",
+    "order": "forward",
+    "named": "COLLAB.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t24",
+    "order": "forward",
+    "named": "COLLAB.P2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t25",
+    "order": "forward",
+    "named": "COLLAB.P3",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t26",
+    "order": "forward",
+    "named": "COLLAB.P4",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t27",
+    "order": "forward",
+    "named": "COLLAB.P6",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t28",
+    "order": "forward",
+    "named": "COLLAB.N1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "INIT.P1"
+   },
+   {
+    "item_id": "t29",
+    "order": "forward",
+    "named": "COLLAB.N2",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   },
+   {
+    "item_id": "t30",
+    "order": "forward",
+    "named": "INCL.P1",
+    "parsed": true,
+    "outside": false,
+    "first_listed": "COLLAB.P1"
+   }
+  ],
+  "reversed": []
+ },
+ "replies": {
+  "317f2663d8362da6e92249329ab36e8182422d86": "{\"indicator\": \"COMM.P2\", \"reason\": \"Anuncia explícitamente las tres partes de su intervención antes de desarrollarlas.\"}",
+  "c5b8766debc514897ec0710c192d46835372fe3d": "{\"indicator\": \"COMM.P3\", \"reason\": \"Pablo explica el término rollback y lo ilustra con un ejemplo concreto cuando Irene muestra que no lo entiende.\"}",
+  "84b5bbb2ceb9bc1a239ad38afd18ce10a5b378ac": "{\"indicator\": \"COMM.P1\", \"reason\": \"Enuncia primero la idea principal (no llegan a la fecha) y después la apoya con dos razones concretas.\"}",
+  "40a7980fa511b7fb3088702c8a7fd532f7d51e01": "{\"indicator\": \"COMM.P4\", \"reason\": \"Sofía resume su postura en una frase concisa, tal como se lo han pedido.\"}",
+  "1937f0c50b64f89aaa66d613a7160043885a6088": "{\"indicator\": \"COMM.P6\", \"reason\": \"Confirma la petición oída ('Necesito los datos antes del jueves') y concreta qué hará y cuándo ('te los mando el miércoles por la mañana').\"}",
+  "03a1f4cce7d85ac8f6057f5d993e8996f31099ca": "{\"indicator\": \"COMM.N3\", \"reason\": \"Pablo se corrige y se contradice varias veces («no el informe sino lo otro», «no sé si era del informe o de la reunión») sin llegar a concretar qué pasó.\"}",
+  "d3e15069750a02ac07e8977af6d80a264d362437": "{\"indicator\": \"COMM.N4\", \"reason\": \"Luis no responde a la pregunta directa de Irene sobre el coste y desvía la atención a otra diapositiva.\"}",
+  "1ce580054e4f780fe8ad2e84d953663431790429": "{\"indicator\": \"LISTEN.P1\", \"reason\": \"Irene parafrasea lo que acaba de decir Pablo antes de dar su respuesta.\"}",
+  "8f74fc00152d8b403bc1377b7d264772af66c9d6": "{\"indicator\": \"LISTEN.P2\", \"reason\": \"Marta hace una pregunta de seguimiento sobre el día 20 que depende directamente de lo que acaba de decir Luis.\"}",
+  "7e2c141f825645bd2e125e341019b15c8d040577": "{\"indicator\": \"LISTEN.P3\", \"reason\": \"Sofía construye explícitamente sobre la idea de Irene, a la que nombra, para proponer reutilizar el diseño.\"}",
+  "30065e43d6c765e9815854728956bea5c612a690": "{\"indicator\": \"LISTEN.P4\", \"reason\": \"Marta recupera explícitamente algo que Pablo dijo antes para retomar esa idea.\"}",
+  "f1b11a47c68eb4f028e5d1b18760374779d0018e": "{\"indicator\": \"LISTEN.P5\", \"reason\": \"Pide aclarar qué significa \\\"cerrar la fase\\\" en lugar de dar por supuesto el criterio.\"}",
+  "7b140e46e3a18d016465a8ba4ac0ebd79bb66980": "{\"indicator\": \"LISTEN.N1\", \"reason\": \"Pablo responde con un tema sin relación (un partido) justo después de la petición directa de Irene.\"}",
+  "7491781157a2a2884fa76bf3d64b504a2adb7865": "{\"indicator\": \"LISTEN.N2\", \"reason\": \"Luis repite la propuesta de repartir las tareas por semanas que Sofía acababa de hacer, sin reconocer que ya la había planteado ella.\"}",
+  "9a04bd54bdfa938fa5168b83a1c098e31c377576": "{\"indicator\": \"INFLU.P2\", \"reason\": \"Vincula la propuesta con el objetivo de reducir costes un diez por ciento que el grupo ya había fijado.\"}",
+  "8d0fda0e9ae6c97299436163e780cdd13a443f20": "{\"indicator\": \"LISTEN.N3\", \"reason\": \"Luis pregunta cuándo es la reunión justo después de que Marta lo haya dicho.\"}",
+  "af12bf43e130c5fb76dd3357c41fd1f26e3298f0": "{\"indicator\": \"INFLU.P1\", \"reason\": \"Propone cambiar de proveedor y lo justifica con un dato concreto sobre los fallos de entrega.\"}",
+  "1a52e7d4bd8f493f4fe055ffd6c17184673196e9": "{\"indicator\": \"INFLU.P3\", \"reason\": \"Anticipa la objeción del coste y la responde con el ahorro en mantenimiento.\"}",
+  "63fabe2bc980c15ac1b8ebed4ab2f6745a36d36f": "{\"indicator\": \"INFLU.P4\", \"reason\": \"Reconoce el contraargumento sobre la demo y ajusta su propuesta de alcance a dos pantallas.\"}",
+  "43459ffc34de22a6dc64a96d40f7c5671287b781": "{\"indicator\": \"INFLU.P5\", \"reason\": \"Propone una prueba piloto que recoge el interés de Pablo y Sofía por conservar sus carteras.\"}",
+  "daee3c3207696ed16c3437bec3a06f866c3c3d6a": "{\"indicator\": \"INFLU.N1\", \"reason\": \"Pablo repite la misma exigencia de migrar sin añadir ninguna razón ni dato que la apoye.\"}",
+  "e270a49b90e9841b498cce0d2f982f42d3bc2367": "{\"indicator\": \"INFLU.N2\", \"reason\": \"Apela a su antigüedad y experiencia en lugar de dar razones ante la petición de explicación.\"}",
+  "499a008b187588c299b9343a132fd0b7f2002b1f": "{\"indicator\": \"COLLAB.P1\", \"reason\": \"Irene se ofrece a ayudar a Luis con las tablas del informe, tarea concreta que a él le cuesta.\"}",
+  "ddfea8fffe267edf00d3d8809ab07324a4481363": "{\"indicator\": \"COLLAB.P2\", \"reason\": \"Luis dice que se ha atascado y pide ayuda al grupo para la conexión a la base de datos.\"}",
+  "41b81890636c346a4f6603644d68bb88d5e1214c": "{\"indicator\": \"COLLAB.P3\", \"reason\": \"Sofía comparte sin que se lo pidan un cambio del cliente que afecta a las tareas de sus compañeros.\"}",
+  "2d8c811d8518c1d2250c908551d2b05ed6321d58": "{\"indicator\": \"COLLAB.P4\", \"reason\": \"Marta reconoce a Irene de forma concreta el valor de su idea para el trabajo del grupo.\"}",
+  "57f4712582d28c6d72a2ab7eb9e959d32db53243": "{\"indicator\": \"COLLAB.P6\", \"reason\": \"Pablo se ofrece a ordenar el archivo compartido, una tarea común que nadie quiere hacer.\"}",
+  "7bc0e4ca73f688bc29a59f6686705985b2770054": "{\"indicator\": \"COLLAB.N2\", \"reason\": \"Pablo resta mérito a la automatización de Irene diciendo que cualquiera lo habría hecho y que no era difícil.\"}",
+  "80a5b94fd3a2d1e436be8ec010c28d326ea71b75": "{\"indicator\": \"COLLAB.N1\", \"reason\": \"Luis esquiva la petición de información de Sofía y le dice que lo busque ella misma, sin dársela.\"}",
+  "02e5c71e4281c9c9c4fadb69b99138b3fb2afcb1": "{\"indicator\": \"INCL.P1\", \"reason\": \"Marta invita directamente a Sofía, que no había intervenido sobre el tema, a dar su opinión.\"}"
+ }
+}

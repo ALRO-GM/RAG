@@ -404,6 +404,18 @@ class TestDetectedOverlaps:
             (False, None),
         ]
 
+    def test_windows_can_be_left_out(self) -> None:
+        voices_only = utterance("ana", 3.0, 4.0, 0).model_copy(
+            update={"overlap": True, "overlap_source": "voices"})
+        heard = utterance("ana", 6.0, 8.0, 1).model_copy(
+            update={"overlap": False})
+        found = add_detected_overlaps(
+            [voices_only, heard], [(6.0, 7.0)], use_windows=False,
+        )
+        assert [(u.overlap, u.overlap_source) for u in found] == [
+            (False, None), (True, "detector"),
+        ]
+
     def test_overlapping_spans_are_not_counted_twice(self) -> None:
         [one] = add_detected_overlaps(
             [utterance("ana", 0.0, 2.0)], [(1.0, 1.3), (1.0, 1.3)],

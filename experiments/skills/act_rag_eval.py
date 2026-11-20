@@ -84,7 +84,15 @@ from src.domain.skills.act_retrieval import (
     corpus_chunks,
     dialogue_chunks,
 )
-from src.domain.skills.act_scoring import score
+from src.domain.skills.act_scoring import (
+    score,
+    sentence_log_loss,
+    top_k_accuracy,
+)
+from src.domain.skills.paired_comparison import (
+    mcnemar_exact,
+    paired_loss_gap,
+)
 from src.domain.skills.act_tagging import (
     Probabilities,
     Reference,
@@ -462,6 +470,61 @@ def run_judge(args: argparse.Namespace, setup: Setup, theory: List[CardChunk],
     print(f"Saved {path}: {len(verdicts)} verdicts, {calls} new calls")
 
 
+def doubtful_rows(setup: Setup, encoder: Sequence[Probabilities],
+                  margin: float) -> List[int]:
+    """Return the sentences whose encoder top label is "dudoso" (as above)."""
+    rows: List[int] = []
+    for fold in range(FOLDS):
+        train, test = setup.split(fold)
+        rates = reference_rates([setup.refs[n] for n in train])
+        for n in test:
+            top = top_category(encoder[n])
+            if encoder[n][top] < rates[top] + margin:
+                rows.append(n)
+    return sorted(rows)
+
+
+def paired_against(setup: Setup, rows: Sequence[int],
+                   candidate: Sequence[Probabilities],
+                   baseline: Sequence[Probabilities]) -> Dict[str, Any]:
+    """Compare two taggers on ``rows``: McNemar on top-1, bootstrap on NLL."""
+    def hits(preds: Sequence[Probabilities]) -> List[bool]:
+        return [top_k_accuracy([setup.refs[n]], [preds[n]], 1) == 1.0
+                for n in rows]
+
+    def losses(preds: Sequence[Probabilities]) -> List[float]:
+        return [sentence_log_loss(setup.refs[n], preds[n]) for n in rows]
+    test = mcnemar_exact(hits(candidate), hits(baseline))
+    gap, low, high = paired_loss_gap(losses(candidate), losses(baseline))
+    return {"sentences": len(rows), "only_candidate": test.only_candidate,
+            "only_baseline": test.only_baseline,
+            "mcnemar_p": round(test.p_value, 4),
+            "log_loss_gain": round(gap, 4),
+            "log_loss_gain_95": [round(low, 4), round(high, 4)]}
+
+
+def second_pass(setup: Setup, enc: Sequence[Probabilities],
+                judged: Sequence[Probabilities], margin: float
+                ) -> Dict[str, Any]:
+    """Score RG as a second pass over the encoder's "dudoso" sentences.
+
+    ``judged`` holds RG's held-out probabilities for every sentence; only
+    the doubtful ones would be sent to the judge, so ``calls`` is their
+    count. Both the replacing and the averaging variants are scored on all
+    sentences and paired against the encoder alone.
+    """
+    rows = doubtful_rows(setup, enc, margin)
+    everything = list(range(len(setup.refs)))
+    out: Dict[str, Any] = {"margin": margin, "calls": len(rows)}
+    for key, average in (("replace", False), ("average", True)):
+        preds, _ = doubtful_swap(setup, enc, judged, margin, average)
+        out[key] = {
+            **headline(compact(score(setup.refs, preds))),
+            "paired_all": paired_against(setup, everything, preds, enc),
+            "paired_doubtful": paired_against(setup, rows, preds, enc)}
+    return out
+
+
 def judge_scores(setup: Setup, verdicts: Dict[str, JudgeVerdict],
                  retrieval: Sequence[Probabilities]) -> Dict[str, Any]:
     """Score saved RG verdicts three ways, on the judged sentences."""
@@ -637,6 +700,12 @@ def main() -> None:  # noqa: C901 - one linear experiment
                                          [v[n] for n in rows]))),
                 **setup.answerer([v[n] for n in rows], rows)}
             for k, v in same.items()}
+        if (judge == "local" and "encoder-es" in predictions
+                and len(rows) == len(setup.refs)):
+            entry["second_pass"] = second_pass(
+                setup, predictions["encoder-es"], got["weights+R"][0], 0.45)
+            entry["rg_vs_encoder"] = paired_against(
+                setup, rows, got["weights+R"][0], predictions["encoder-es"])
         rg[judge] = entry
     results["rg"] = rg
     write_json(str(out / "scores.json"), results)

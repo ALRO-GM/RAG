@@ -781,3 +781,12 @@ PYTHONPATH=. python experiments/transcriber/pause_segments.py real \
     --sessions data/transcriber --work /tmp/tr19-real
 rm -r data/tr05   # the audio is not kept
 ```
+
+### Certainty flags on the lab-diarizer path (TR-19, #95)
+
+Re-checked against the AMI and CALLHOME references: the doubtful flag
+predicts a wrong attribution with precision 0.24 and recall 0.60 (base
+rate 15 %); the margins were left as they are because no grid point
+beats them outside the noise. The overlap flag now comes from the
+diarizer's overlaps alone when a lab diarizer is used. Figures and
+method: OVERLAP.md §10.

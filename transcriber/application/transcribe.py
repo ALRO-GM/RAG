@@ -565,6 +565,7 @@ class TranscribeSession:
             utterances = self._detected(
                 audio, utterances, report,
                 external.overlaps if external is not None else [],
+                external is None,
             )
         if languages:
             utterances = tag_languages(
@@ -861,11 +862,14 @@ class TranscribeSession:
     def _detected(
         self, audio: Audio, utterances: List[Utterance], report: Progress,
         heard: Sequence[Tuple[float, float]] = (),
+        use_windows: bool = True,
     ) -> List[Utterance]:
         """Flag the utterances heard with two voices at once.
 
         ``heard`` are the overlaps an external diarizer marked; the
-        overlap detector's, when one is configured, are added. A failure
+        overlap detector's, when one is configured, are added. With an
+        external diarizer ``use_windows`` is off: the voice windows'
+        own overlap flag is not added to theirs (TR-19). A failure
         of the detector (any ``Exception``) is logged and noted; the
         other flags stay and the job goes on.
         """
@@ -882,7 +886,8 @@ class TranscribeSession:
                 if not heard:
                     return utterances
         return add_detected_overlaps(
-            utterances, detected, self._parameters.overlap_seconds
+            utterances, detected, self._parameters.overlap_seconds,
+            use_windows,
         )
 
     def _embed(

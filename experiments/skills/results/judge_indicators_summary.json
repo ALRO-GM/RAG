@@ -1,0 +1,24 @@
+{
+ "judges": [
+  "opencode:opencode/deepseek-v4.1-flash-free",
+  "Qwen/Qwen3-4B@4bit",
+  "Qwen/Qwen3-8B@4bit"
+ ],
+ "agreement": {
+  "opencode:opencode/deepseek-v4.1-flash-free / Qwen/Qwen3-4B@4bit": {
+   "compared": 30,
+   "same_answer": 0.3,
+   "kappa": null
+  },
+  "opencode:opencode/deepseek-v4.1-flash-free / Qwen/Qwen3-8B@4bit": {
+   "compared": 30,
+   "same_answer": 0.633,
+   "kappa": null
+  },
+  "Qwen/Qwen3-4B@4bit / Qwen/Qwen3-8B@4bit": {
+   "compared": 239,
+   "same_answer": 0.36,
+   "kappa": 0.239
+  }
+ }
+}

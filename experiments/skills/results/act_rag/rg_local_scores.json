@@ -1,0 +1,274 @@
+{
+ "note": "RG with local Qwen3-8B (4-bit) on all 1,534 sentences, config cards+folds/e5-small/dense; second pass on dudoso (margin 0.45)",
+ "encoder_es_same": {
+  "sentences": 1534,
+  "top1": 0.7288,
+  "top3": 0.9394,
+  "macro_f1": 0.6885,
+  "log_loss": 0.8017,
+  "ece": 0.0202,
+  "f1": {
+   "pregunta": 0.9246,
+   "respuesta": 0.8976,
+   "informacion": 0.6802,
+   "opinion": 0.3425,
+   "propuesta": 0.7081,
+   "peticion": 0.6154,
+   "aceptacion": 0.6627,
+   "rechazo": 0.6132,
+   "compromiso": 0.7393,
+   "escucha": 0.6667,
+   "gestion": 0.5389,
+   "relacion": 0.8739,
+   "otro": 0.6875
+  },
+  "answerer_as_pregunta": 0,
+  "after_other_pregunta": 186
+ },
+ "models": [
+  "Qwen/Qwen3-8B@4bit"
+ ],
+ "sentences": 1534,
+ "unparsed": 11,
+ "mix_shares": [
+  0.6,
+  0.6,
+  0.5,
+  0.5,
+  0.6
+ ],
+ "calls": 1522,
+ "seconds": 3697.3,
+ "weights+R": {
+  "sentences": 1534,
+  "top1": 0.6975,
+  "top3": 0.869,
+  "macro_f1": 0.6562,
+  "log_loss": 1.1411,
+  "ece": 0.024,
+  "f1": {
+   "pregunta": 0.875,
+   "respuesta": 0.7653,
+   "informacion": 0.6427,
+   "opinion": 0.4252,
+   "propuesta": 0.5742,
+   "peticion": 0.5053,
+   "aceptacion": 0.764,
+   "rechazo": 0.5411,
+   "compromiso": 0.6829,
+   "escucha": 0.7333,
+   "gestion": 0.5,
+   "relacion": 0.8455,
+   "otro": 0.6765
+  },
+  "answerer_as_pregunta": 2,
+  "after_other_pregunta": 186
+ },
+ "outcome table": {
+  "sentences": 1534,
+  "top1": 0.6988,
+  "top3": 0.8168,
+  "macro_f1": 0.6592,
+  "log_loss": 1.2824,
+  "ece": 0.0274,
+  "f1": {
+   "pregunta": 0.8723,
+   "respuesta": 0.7621,
+   "informacion": 0.6486,
+   "opinion": 0.4252,
+   "propuesta": 0.5962,
+   "peticion": 0.5149,
+   "aceptacion": 0.7723,
+   "rechazo": 0.5366,
+   "compromiso": 0.6765,
+   "escucha": 0.72,
+   "gestion": 0.5467,
+   "relacion": 0.8421,
+   "otro": 0.6567
+  },
+  "answerer_as_pregunta": 2,
+  "after_other_pregunta": 186
+ },
+ "same_sentences": {
+  "R": {
+   "sentences": 1534,
+   "top1": 0.618,
+   "top3": 0.852,
+   "macro_f1": 0.5526,
+   "log_loss": 1.2712,
+   "ece": 0.0706,
+   "f1": {
+    "pregunta": 0.8756,
+    "respuesta": 0.7727,
+    "informacion": 0.5425,
+    "opinion": 0.25,
+    "propuesta": 0.3497,
+    "peticion": 0.3056,
+    "aceptacion": 0.5982,
+    "rechazo": 0.4945,
+    "compromiso": 0.599,
+    "escucha": 0.6897,
+    "gestion": 0.3312,
+    "relacion": 0.7983,
+    "otro": 0.5769
+   },
+   "answerer_as_pregunta": 1,
+   "after_other_pregunta": 186
+  },
+  "rules": {
+   "sentences": 1534,
+   "top1": 0.5189,
+   "top3": 0.734,
+   "macro_f1": 0.4481,
+   "log_loss": 1.5259,
+   "ece": 0.0275,
+   "f1": {
+    "pregunta": 0.8405,
+    "respuesta": 0.8182,
+    "informacion": 0.4236,
+    "opinion": 0.2677,
+    "propuesta": 0.3649,
+    "peticion": 0.4471,
+    "aceptacion": 0.2745,
+    "rechazo": 0.1239,
+    "compromiso": 0.0198,
+    "escucha": 0.5652,
+    "gestion": 0.1345,
+    "relacion": 0.758,
+    "otro": 0.7879
+   },
+   "answerer_as_pregunta": 0,
+   "after_other_pregunta": 186
+  },
+  "encoder-es": {
+   "sentences": 1534,
+   "top1": 0.7288,
+   "top3": 0.9394,
+   "macro_f1": 0.6885,
+   "log_loss": 0.8017,
+   "ece": 0.0202,
+   "f1": {
+    "pregunta": 0.9246,
+    "respuesta": 0.8976,
+    "informacion": 0.6802,
+    "opinion": 0.3425,
+    "propuesta": 0.7081,
+    "peticion": 0.6154,
+    "aceptacion": 0.6627,
+    "rechazo": 0.6132,
+    "compromiso": 0.7393,
+    "escucha": 0.6667,
+    "gestion": 0.5389,
+    "relacion": 0.8739,
+    "otro": 0.6875
+   },
+   "answerer_as_pregunta": 0,
+   "after_other_pregunta": 186
+  }
+ },
+ "second_pass": {
+  "margin": 0.45,
+  "calls": 302,
+  "replace": {
+   "sentences": 1534,
+   "top1": 0.7405,
+   "top3": 0.9153,
+   "macro_f1": 0.6949,
+   "log_loss": 0.9093,
+   "ece": 0.04,
+   "f1": {
+    "pregunta": 0.9154,
+    "respuesta": 0.875,
+    "informacion": 0.7139,
+    "opinion": 0.4122,
+    "propuesta": 0.6699,
+    "peticion": 0.5882,
+    "aceptacion": 0.7396,
+    "rechazo": 0.6,
+    "compromiso": 0.729,
+    "escucha": 0.7087,
+    "gestion": 0.5316,
+    "relacion": 0.8729,
+    "otro": 0.6769
+   },
+   "paired_all": {
+    "sentences": 1534,
+    "only_candidate": 66,
+    "only_baseline": 48,
+    "mcnemar_p": 0.1109,
+    "log_loss_gain": -0.1076,
+    "log_loss_gain_95": [
+     -0.151,
+     -0.0646
+    ]
+   },
+   "paired_doubtful": {
+    "sentences": 302,
+    "only_candidate": 66,
+    "only_baseline": 48,
+    "mcnemar_p": 0.1109,
+    "log_loss_gain": -0.5463,
+    "log_loss_gain_95": [
+     -0.7669,
+     -0.3416
+    ]
+   }
+  },
+  "average": {
+   "sentences": 1534,
+   "top1": 0.7471,
+   "top3": 0.942,
+   "macro_f1": 0.7026,
+   "log_loss": 0.7949,
+   "ece": 0.0223,
+   "f1": {
+    "pregunta": 0.9158,
+    "respuesta": 0.8841,
+    "informacion": 0.7195,
+    "opinion": 0.4091,
+    "propuesta": 0.6927,
+    "peticion": 0.5952,
+    "aceptacion": 0.7471,
+    "rechazo": 0.6103,
+    "compromiso": 0.729,
+    "escucha": 0.7115,
+    "gestion": 0.5443,
+    "relacion": 0.8766,
+    "otro": 0.6984
+   },
+   "paired_all": {
+    "sentences": 1534,
+    "only_candidate": 66,
+    "only_baseline": 38,
+    "mcnemar_p": 0.0078,
+    "log_loss_gain": 0.0069,
+    "log_loss_gain_95": [
+     -0.0059,
+     0.0207
+    ]
+   },
+   "paired_doubtful": {
+    "sentences": 302,
+    "only_candidate": 66,
+    "only_baseline": 38,
+    "mcnemar_p": 0.0078,
+    "log_loss_gain": 0.0348,
+    "log_loss_gain_95": [
+     -0.0324,
+     0.1052
+    ]
+   }
+  }
+ },
+ "rg_vs_encoder": {
+  "sentences": 1534,
+  "only_candidate": 149,
+  "only_baseline": 197,
+  "mcnemar_p": 0.0114,
+  "log_loss_gain": -0.3394,
+  "log_loss_gain_95": [
+   -0.407,
+   -0.2678
+  ]
+ }
+}
