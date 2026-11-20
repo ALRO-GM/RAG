@@ -572,6 +572,15 @@ of audio, DER 0.168, `service_diarizer.jsonl`); its time and memory
 are left out of the GPU figures. Time on the GPU: 31–57 s for a 5–10
 min call, 131–212 s for a 25–39 min meeting.
 
+**Flags with a lab diarizer (TR-19, #95).** With a lab diarizer the
+`overlap` flag comes only from the overlaps it (and the overlap
+detector, if configured) marked; the voice windows' own overlap flag is
+no longer added, because it was the weaker predictor
+(`add_detected_overlaps(use_windows=False)`). The built-in grouping
+keeps the windows' flag. The doubt margins did not change. Measurements:
+OVERLAP.md §10.
+
+
 ## 7. Listening to a sentence
 
 The transcript page lists the utterances (time, speaker, text). A

@@ -336,6 +336,11 @@ class TestTranscribeWithDiarizer:
         assert first.overlap is True
         assert first.overlap_source in ("detector", "both")
 
+    def test_windows_overlap_is_not_added_to_the_diarizers(self) -> None:
+        transcript = run(setup())
+        assert all(u.overlap_source != "voices"
+                   for u in transcript.utterances)
+
     def test_builtin_rule_does_not_call_the_diarizer(self) -> None:
         s = setup(rule=BUILTIN_RULE)
         transcript = run(s)
