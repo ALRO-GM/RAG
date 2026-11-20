@@ -97,6 +97,7 @@ from src.domain.skills.speech import Sentence, transcript_sentences
 from src.domain.skills.synthesis import JobSought, PersonSynthesis, skipped
 from src.domain.skills.transcript import Transcript
 from src.domain.skills.transcript_contract import is_session_id
+from src.domain.skills.usage import StepUsage, UsageLedger
 
 RUN_FILE = "run.json"
 """The run's record, next to the step outputs."""
@@ -136,6 +137,8 @@ class JudgeSetup:
     analysis (steps f, g and i share it). ``synthesis`` builds the
     writer of step i given the owner's leave to use Claude when the
     run's judge is the local model (``None``: step i is unavailable).
+    ``usage`` is the ledger the judges' tokens and cache hits go to;
+    each step records what it added.
     """
 
     mode: JudgeMode
@@ -144,6 +147,7 @@ class JudgeSetup:
     second: Optional[TagConfirmer] = None
     budget: Optional[CallBudget] = None
     synthesis: Optional[Callable[[bool], ProfileSynthesizer]] = None
+    usage: Optional[UsageLedger] = None
 
 
 def report_file(position: int) -> str:
@@ -773,6 +777,7 @@ class SessionAnalysis:
         """
         begin = time.perf_counter()
         before = self.device_notes()
+        used_before = self._usage()
         try:
             step: Callable[[str, _Context], StepRecord] = getattr(
                 self, f"_{name}"
@@ -783,7 +788,13 @@ class SessionAnalysis:
                 name=name, status="failed", error=short_reason(exc),
             )
         moved = new_notes(before, self.device_notes())
+        used = self._usage()
+        spent = (
+            used.minus(used_before) if used is not None
+            and used_before is not None else used
+        )
         return record.model_copy(update={
+            "usage": spent if used is not None else None,
             "started_at": started,
             "seconds": round(time.perf_counter() - begin, 3),
             "note": join_notes(record.note, *moved),
@@ -806,6 +817,16 @@ class SessionAnalysis:
         """Store a step's result; return its file name."""
         self.store.write(session_id, STEP_OUTPUTS[name], dumps(data))
         return STEP_OUTPUTS[name]
+
+    def _usage(self) -> Optional[StepUsage]:
+        """Return what the judges have used so far (``None``: not tracked).
+
+        Empty before the judges are built.
+        """
+        if self._judges is None:
+            return StepUsage()
+        ledger = self._judges.usage
+        return ledger.snapshot() if ledger is not None else None
 
     def _setup(self) -> JudgeSetup:
         """Return the judges, built once per analysis."""

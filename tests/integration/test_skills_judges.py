@@ -594,3 +594,32 @@ def test_judge_routes_need_the_token_and_change_the_choice(
     assert client.put(
         "/analysis/judge", json={"mode": "local"}, headers=auth
     ).status_code == 500
+
+
+def test_claude_code_reports_the_tokens_of_each_call() -> None:
+    usage = {
+        "input_tokens": 3, "output_tokens": 9,
+        "cache_creation_input_tokens": 1000, "cache_read_input_tokens": 50,
+    }
+    model = judge(FakeRunner(result(usage=usage, total_cost_usd=0.0123)))
+    assert model.last_usage is None
+    model.complete("S", "u", 10)
+    assert model.last_usage is not None
+    assert model.last_usage.input_tokens == 3
+    assert model.last_usage.output_tokens == 9
+    assert model.last_usage.cache_creation_input_tokens == 1000
+    assert model.last_usage.cache_read_input_tokens == 50
+    assert model.last_usage.cost_usd == 0.0123 and model.last_usage.calls == 1
+
+
+def test_claude_code_without_usage_or_after_a_failure_has_none() -> None:
+    model = judge(FakeRunner(result()))
+    model.complete("S", "u", 10)
+    assert model.last_usage is None
+    bad = judge(FakeRunner(result(usage={"input_tokens": "x"})))
+    bad.complete("S", "u", 10)
+    assert bad.last_usage is not None and bad.last_usage.input_tokens == 0
+    broken = judge(FakeRunner("not json", returncode=1), retries=0)
+    with pytest.raises(Exception):
+        broken.complete("S", "u", 10)
+    assert broken.last_usage is None

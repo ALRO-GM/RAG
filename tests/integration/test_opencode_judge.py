@@ -192,3 +192,36 @@ def test_empty_answer_times_out_and_missing_command_are_reported() -> None:
     )
     with pytest.raises(TransientModelError, match="did not answer"):
         judge(timeout, retries=0, timeout=1).complete("s", "u", 10)
+
+
+def test_opencode_reports_tokens_from_its_events() -> None:
+    lines = [
+        event("message.updated", info={
+            "id": "m0", "agent": "title", "tokens": {"input": 99}}),
+        event("message.updated", info={
+            "id": "m1", "role": "assistant", "agent": "ragjudge",
+            "cost": 0.25, "tokens": {
+                "input": 11, "output": 4, "reasoning": 2,
+                "cache": {"read": 30, "write": 8}}}),
+        event("message.part.updated", part={
+            "id": "p1", "type": "text", "text": "{}", "messageID": "m1"}),
+        "not json",
+    ]
+    judge = OpencodeJudge(runner=FakeRunner(stdout="\n".join(lines)),
+                          environ=ENVIRON)
+    judge.complete("S", "u", 10)
+    usage = judge.last_usage
+    assert usage is not None and usage.calls == 1
+    assert (usage.input_tokens, usage.output_tokens) == (11, 6)
+    assert (usage.cache_read_input_tokens,
+            usage.cache_creation_input_tokens) == (30, 8)
+    assert usage.cost_usd == 0.25
+
+
+def test_opencode_without_token_events_has_no_usage() -> None:
+    lines = [event("message.part.updated", part={
+        "id": "p1", "type": "text", "text": "{}", "messageID": "m1"})]
+    judge = OpencodeJudge(runner=FakeRunner(stdout="\n".join(lines)),
+                          environ=ENVIRON)
+    judge.complete("S", "u", 10)
+    assert judge.last_usage is None

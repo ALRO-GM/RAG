@@ -15,7 +15,9 @@ step that is not done. Plain data and rules: no I/O, no model.
 from datetime import datetime
 from typing import Dict, List, Literal, Optional, Tuple, get_args
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
+
+from src.domain.skills.usage import StepUsage, total_usage
 
 StepName = Literal[
     "sentences", "interaction", "candidates", "acts", "events",
@@ -84,6 +86,8 @@ class StepRecord(BaseModel):
     note: str = ""
     error: str = ""
     output: str = ""
+    usage: Optional[StepUsage] = None
+    """Tokens per model and cache hits; ``None``: not recorded (unknown)."""
 
 
 class OpenIssue(BaseModel):
@@ -104,6 +108,12 @@ class AnalysisRun(BaseModel):
     worker_pid: Optional[int] = None
     steps: List[StepRecord]
     open_issues: List[OpenIssue] = Field(default_factory=list)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def usage(self) -> Optional[StepUsage]:
+        """Return the usage of every step with one (``None``: unknown)."""
+        return total_usage([s.usage for s in self.steps])
 
     @model_validator(mode="after")
     def every_step(self) -> "AnalysisRun":

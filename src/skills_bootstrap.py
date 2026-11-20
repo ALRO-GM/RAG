@@ -62,6 +62,7 @@ from src.application.skills.act_tagger import (
 from src.application.skills.judges import (
     ActClassifier,
     CallBudget,
+    CountingCache,
     FallbackJudge,
     JudgeSelection,
 )
@@ -89,6 +90,7 @@ from src.bootstrap import resolve_runtime
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, short_reason
 from src.domain.experiments import params_id
+from src.domain.skills.usage import UsageLedger
 from src.domain.runtime import (
     HardwareProfile,
     ModelChoice,
@@ -384,7 +386,12 @@ class SkillsContainer:
                 Path(s.cache_dir).mkdir(parents=True, exist_ok=True)
             except OSError:
                 pass
-        return SqliteCache(s.cache_dir, s.use_cache)
+        return CountingCache(SqliteCache(s.cache_dir, s.use_cache), self.usage)
+
+    @cached_property
+    def usage(self) -> UsageLedger:
+        """Tokens, calls and cache hits of the judges in this process."""
+        return UsageLedger()
 
     @cached_property
     def assessment(self) -> AssessmentService:
@@ -439,13 +446,16 @@ class SkillsContainer:
     def judge_setup(self) -> JudgeSetup:
         """Return the judges of the analysis (built on first use)."""
         mode = self.judge_mode()
-        budget = CallBudget(self.judge, self.settings.max_judge_calls)
+        budget = CallBudget(
+            self.judge, self.settings.max_judge_calls, self.usage
+        )
         return JudgeSetup(
             mode=mode,
             first=TagConfirmer(budget, self.cache, self.progress),
             assessment=self.assessment_with(budget),
             second=self.second_confirmer if mode == "both" else None,
             budget=budget,
+            usage=self.usage,
             synthesis=lambda use_claude: ProfileSynthesizer(
                 self.synthesis_judge(budget, use_claude), self.cache
             ),
