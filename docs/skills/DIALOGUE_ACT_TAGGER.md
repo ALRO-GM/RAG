@@ -416,9 +416,7 @@ With 140 sentences the 95 % normal-approximation interval is about
 ±0.057 around 0.864 and ±0.072 around 0.743; no paired significance
 test was run.
 
-Not run: **RG with the local Qwen3-8B/4B on the 1,534 sentences**. The
-GPU had 6.2 of 8 GB taken by another project's worker throughout this
-work; the command is in §9.6.
+RG with the local judge on all 1,534 sentences is in §9.7.
 
 ### 9.5 Decision
 
@@ -458,7 +456,52 @@ HF_HUB_OFFLINE=1 CUDA_VISIBLE_DEVICES= PYTHONPATH=. python \
 # RG with Claude Code on #82's 140 sentences (resumes from the saved verdicts)
 ... act_rag_eval.py --configs cards+folds/e5-small/dense --run-judge claude_code \
     --ids experiments/skills/results/act_tagger/llm_claude_code.json
-# RG with the local judge on every sentence (not run: GPU busy)
+# RG with the local judge on every sentence (§9.7; resumable, ~1 h on the 3070 Ti)
 ... act_rag_eval.py --configs cards+folds/e5-small/dense --run-judge local \
     --local-model Qwen/Qwen3-8B
 ```
+
+### 9.7 RG with the local Qwen3-8B on all 1,534 sentences, and as a second pass (#100)
+
+Judge `Qwen/Qwen3-8B` 4-bit on the GPU (the 8B fitted; the 4B was not
+needed), config cards+folds / e5-small / dense, no Claude Code or other
+hosted call. 1,534 verdicts, 1,522 new calls in 3,697 s (2.4 s each; 12
+came from a 12-sentence trial), 11 unparsed (fall back to R). Figures
+in `experiments/skills/results/act_rag/rg_local_scores.json`.
+
+| Approach (1,534) | Top-1 | Top-3 | Macro-F1 | Log-loss | ECE |
+|---|---:|---:|---:|---:|---:|
+| encoder-es | 0.729 | 0.939 | 0.689 | 0.802 | 0.020 |
+| R | 0.618 | 0.852 | 0.553 | 1.271 | 0.071 |
+| RG local, weights + R (mix share 0.5-0.6) | 0.698 | 0.869 | 0.656 | 1.141 | 0.024 |
+| RG local, outcome table | 0.699 | 0.817 | 0.659 | 1.282 | 0.027 |
+| encoder-es, RG replaces "dudoso" | 0.741 | 0.915 | 0.695 | 0.909 | 0.040 |
+| **encoder-es, RG averaged in on "dudoso"** | **0.747** | 0.942 | 0.703 | **0.795** | 0.022 |
+
+The second pass sends only the 302 sentences "dudoso" at margin 0.45
+(302 judge calls instead of 1,534). Paired against encoder-es on the
+same sentences (exact McNemar on top-1; paired bootstrap, 2,000
+resamples, on the per-sentence log-loss):
+
+| Comparison | Only candidate right | Only encoder right | McNemar p | Log-loss gain [95 %] |
+|---|---:|---:|---:|---|
+| RG alone vs encoder-es (1,534) | 149 | 197 | 0.011 (encoder better) | -0.339 [-0.407, -0.268] |
+| replace vs encoder-es (302 doubtful) | 66 | 48 | 0.111 | -0.546 [-0.767, -0.342] |
+| average vs encoder-es (302 doubtful) | 66 | 38 | 0.008 | +0.035 [-0.032, +0.105] |
+
+Reading. The local 8B judge is worse than the encoder alone (0.698 vs
+0.729, unlike Claude Code's 0.864 on 140 sentences, §9.4: those figures
+are not comparable, different judge and sentences). As a second pass
+averaged into the encoder's "dudoso" labels it gains +0.018 top-1
+(McNemar p = 0.008) and 0.007 log-loss: formally over the +0.01 rule of
+§2 with a better log-loss, but the log-loss interval includes zero, the
+margin 0.45 was set on this same set and the 50/50 average is fixed,
+not fitted. Replacing is worse.
+
+**Decision: not wired into `skills acts`.** The measured configuration
+uses an index that includes the other folds' labelled sentences and
+fusion weights fitted per fold; `acts` has no equivalent production
+index or weights, so wiring would ship something other than what was
+measured. The gain is small for a judge call on 20 % of sentences and
+rests on the author's own set (§9.6). Re-open if a stronger local judge
+or the production index is measured.
