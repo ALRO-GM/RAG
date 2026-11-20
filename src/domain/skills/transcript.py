@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from pydantic import BaseModel, Field
 
 from src.domain.errors import CorruptedDataError, InvalidInputError
+from src.domain.languages import ANALYZERS
 from src.domain.skills.transcript_contract import (
     ContractTranscript,
     Identification,
@@ -289,7 +290,7 @@ def from_contract(contract: ContractTranscript) -> Transcript:
         )
     return Transcript(
         session_id=contract.session.id,
-        language=contract.session.language,
+        language=declared_language(contract.session.language),
         turns=turns,
         conversation_type=contract.session.type,
         conversation_goal=contract.session.goal,
@@ -392,3 +393,13 @@ def parse_transcript(session_id: str, text: str) -> Transcript:
             return parse_text(session_id, text)
         return parse_json(session_id, stripped)
     return parse_text(session_id, text)
+
+
+def declared_language(language: Optional[str]) -> Optional[str]:
+    """Return a supported language code, or None to detect it from text.
+
+    Recordings made with ``auto`` (or any language the analysis does not
+    support) carry no usable code; None makes the analysis detect it.
+    """
+    code = (language or "").strip().lower()[:2]
+    return code if code in ANALYZERS else None
