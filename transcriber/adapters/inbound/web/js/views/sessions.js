@@ -10,6 +10,7 @@ import { noticeSection } from "../consent.js";
 import { describeFields } from "../describe.js";
 import { describeLine } from "../lib/describe.js";
 import { judgeSection } from "../judge.js";
+import { emptyState, icon, pageHead } from "../ui.js";
 
 export async function sessionsView(ctx, root) {
   let sessions = (await ctx.api.listSessions()).sessions;
@@ -89,7 +90,7 @@ export async function sessionsView(ctx, root) {
     keepFocus(root, () => {
       list.replaceChildren(...(sessions.length
         ? sortSessions(sessions).map(describe)
-        : [h("li", { class: "hint" }, t("sessions.empty"))]));
+        : [emptyState({ tag: "li", iconName: "inbox", title: t("sessions.empty"), body: t("sessions.empty_body") })]));
     });
     if (unreadable) say(t("sessions.unreadable", { n: unreadable }));
   }
@@ -126,10 +127,10 @@ export async function sessionsView(ctx, root) {
   document.addEventListener("visibilitychange", visible);
 
   root.append(
-    h("h1", {}, t("sessions.title")),
-    h("div", { class: "row" },
-      h("a", { class: "button primary big", href: "#/record" }, t("sessions.new")),
-      h("a", { class: "button big", href: "#/enrol" }, t("sessions.enrol"))),
+    pageHead(t("sessions.title"), { actions: [
+      h("a", { class: "button", href: "#/enrol" }, icon("enrol"), t("sessions.enrol")),
+      h("a", { class: "button primary", href: "#/record" }, icon("record"), t("sessions.new")),
+    ] }),
     message, list, uploadForm(), judgeSection(ctx));
   render();
   schedule();

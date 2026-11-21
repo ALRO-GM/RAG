@@ -165,9 +165,10 @@ def test_every_link_is_https_to_doi_org_or_a_recorded_host() -> None:
         else:
             assert link == source["url"]
     for href in re.findall(r'href="([^"#][^"]*)"', HTML):
-        if href in ("style.css", "icon.svg", "research.html", "study.html",
-                    "index.html#/", "index.html#/record",
-                    "index.html#/enrol"):
+        # The pages' own files (the shell's links and icon sprite).
+        if href.split("#")[0] in ("style.css", "icon.svg", "icons.svg",
+                                  "research.html", "study.html",
+                                  "index.html"):
             continue
         parsed = urlparse(href)
         assert parsed.scheme == "https", href

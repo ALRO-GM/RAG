@@ -90,6 +90,7 @@ export function looksLikeText(text, classes) {
 const ALLOWED = new Map([
   ["js/views/record.js", ["Español", "English", "stack reauth"]],
   ["js/views/sessions.js", ["Español", "English"]],
+  ["js/shell.js", ["Español", "English", "Enter", "Escape"]],
   ["js/views/lab-progress.js", ["no speech in the audio"]],
 ]);
 

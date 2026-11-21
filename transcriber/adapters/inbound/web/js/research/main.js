@@ -11,6 +11,7 @@ import {
 } from "./charts.js";
 import { lang, translateStatic } from "../i18n.js";
 import { installLanguageSwitch } from "../lang-switch.js";
+import { installShell } from "../shell.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -358,4 +359,5 @@ function applyLanguage() {
 
 applyLanguage();
 installLanguageSwitch(document.querySelector(".top .lang"), applyLanguage);
+installShell({ onLanguage: applyLanguage });
 start();

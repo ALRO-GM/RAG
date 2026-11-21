@@ -51,7 +51,8 @@ export function percent(ratio, digits = 1) {
 
 /** Translate the static parts of a page marked with data-i18n (its <title> too). */
 export function translateStatic(root) {
-  for (const el of root.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
+  // A link with an icon keeps it: only its .label child takes the text.
+  for (const el of root.querySelectorAll("[data-i18n]")) (el.querySelector(":scope > .label") ?? el).textContent = t(el.dataset.i18n);
   for (const el of root.querySelectorAll("[data-i18n-label]")) el.setAttribute("aria-label", t(el.dataset.i18nLabel));
   document.documentElement.lang = lang;
 }

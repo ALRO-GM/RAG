@@ -6,27 +6,56 @@
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
   <title data-i18n="app.title">Transcriptor</title>
+  <script src="js/boot.js"></script>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <header class="top">
-    <nav data-i18n-label="nav.main" aria-label="Navegación principal">
-      <a href="#/" data-i18n="nav.sessions">Sesiones</a>
-      <a href="#/record" data-i18n="nav.record">Grabar</a>
-      <a href="#/enrol" data-i18n="nav.enrol">Registrar voz</a>
-      <a href="#/lab" data-i18n="nav.lab">Pruebas</a>
-      <a href="research.html" data-i18n="nav.research">Investigación</a>
-      <a href="study.html" data-i18n="nav.study">Estudio</a>
-    </nav>
-    <div class="lang" role="group" data-i18n-label="lang.switch" aria-label="Idioma">
-      <button type="button" data-lang="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
-      <span aria-hidden="true">|</span>
-      <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+  <a class="skip-link" href="#app" data-i18n="shell.skip">Saltar al contenido</a>
+  <div class="shell">
+    <header class="top sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-logo"/></svg></span><span class="label" data-i18n="app.title">Transcriptor</span></div>
+      <nav data-i18n-label="nav.main" aria-label="Navegación principal">
+      <p class="nav-group" data-i18n="nav.group_work">Conversaciones</p>
+      <a href="#/" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
+      <a href="#/record" data-i18n="nav.record"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-record"/></svg><span class="label">Grabar</span></a>
+      <a href="#/enrol" data-i18n="nav.enrol"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-enrol"/></svg><span class="label">Registrar voz</span></a>
+      <p class="nav-group" data-i18n="nav.group_company">Empresa</p>
+      <a href="#/knowledge" data-i18n="nav.knowledge"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-knowledge"/></svg><span class="label">Conocimiento</span></a>
+      <p class="nav-group" data-i18n="nav.group_lab">Laboratorio</p>
+      <a href="#/lab" data-i18n="nav.lab"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-lab"/></svg><span class="label">Pruebas</span></a>
+      <a href="research.html" data-i18n="nav.research"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-research"/></svg><span class="label">Investigación</span></a>
+      <a href="study.html" data-i18n="nav.study"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-study"/></svg><span class="label">Estudio</span></a>
+      </nav>
+      <div class="side-foot">
+        <div class="lang" role="group" data-i18n-label="lang.switch" aria-label="Idioma">
+          <button type="button" data-lang="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </header>
+    <div class="scrim" id="scrim"></div>
+    <div class="content">
+      <div class="topbar">
+        <button type="button" class="icon-button" id="nav-toggle" aria-controls="sidebar" aria-expanded="false" data-i18n-label="shell.menu" aria-label="Menú"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-panel"/></svg></button>
+        <nav class="crumbs-bar" data-i18n-label="shell.crumbs" aria-label="Estás en"><ol id="crumbs"></ol></nav>
+        <button type="button" class="search-button" id="palette-open" aria-haspopup="dialog"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-search"/></svg><span class="label" data-i18n="shell.search">Ir a…</span><kbd id="palette-key" aria-hidden="true">Ctrl K</kbd></button>
+        <button type="button" class="icon-button" id="theme-toggle" data-i18n-label="theme.toggle" aria-label="Tema"><svg class="icon theme-icon theme-system" aria-hidden="true" focusable="false"><use href="icons.svg#i-system"/></svg><svg class="icon theme-icon theme-light" aria-hidden="true" focusable="false"><use href="icons.svg#i-sun"/></svg><svg class="icon theme-icon theme-dark" aria-hidden="true" focusable="false"><use href="icons.svg#i-moon"/></svg></button>
+      </div>
+      <div class="page-skeleton" id="skeleton" hidden aria-hidden="true"><span class="skeleton title"></span><span class="skeleton line"></span><span class="skeleton box"></span><span class="skeleton box"></span></div>
+      <main id="app" tabindex="-1"></main>
     </div>
-  </header>
-  <main id="app" tabindex="-1"></main>
+  </div>
+  <nav class="bottom-nav" data-i18n-label="shell.quick" aria-label="Accesos rápidos">
+    <a href="#/" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
+    <a href="#/record" data-i18n="nav.record"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-record"/></svg><span class="label">Grabar</span></a>
+    <a href="#/knowledge" data-i18n="nav.knowledge"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-knowledge"/></svg><span class="label">Conocimiento</span></a>
+    <button type="button" id="nav-more" aria-controls="sidebar" data-i18n="shell.more"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-more"/></svg><span class="label">Más</span></button>
+  </nav>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+  <dialog class="palette" id="palette" aria-label="Ir a…"></dialog>
   <noscript><p class="notice">Esta página necesita JavaScript. / This page needs JavaScript.</p></noscript>
 </body>
 </html>

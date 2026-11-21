@@ -14,6 +14,9 @@ import { transcriptView } from "./views/transcript.js";
 import { labView } from "./views/lab.js";
 import { analysisView } from "./views/analysis.js";
 import { helpAnalysisView } from "./views/help-analysis.js";
+import { knowledgeView } from "./views/knowledge.js";
+import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
+import { crumbsFor } from "./lib/shell.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -68,6 +71,7 @@ const ROUTES = [
   [/^#\/s\/([^/]+)(?:\/t\/(\d{1,6}))?$/, transcriptView],
   [/^#\/analysis\/([^/]+)$/, analysisView],
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
+  [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],
 ];
 
@@ -112,14 +116,19 @@ async function route() {
   stopCurrent();
   const mine = ++token;
   app.replaceChildren();
+  setCrumbs(crumbsFor(location.hash, t));
+  markCurrent();
   if (!readCode()) return noCode();
   const { view, params } = resolve(location.hash);
+  showSkeleton();
   try {
     const done = await view(ctx, app, params);
     if (mine !== token) done?.();
     else cleanup = done ?? null;
   } catch (error) {
     if (mine === token) blocking(error, route);
+  } finally {
+    if (mine === token) hideSkeleton();
   }
 }
 
@@ -168,7 +177,9 @@ function blocking(error, retry) {
 setLeaveGuard(() => false);
 translateStatic(document);
 // A new language redraws the current view (the switch is off while recording).
-installLanguageSwitch(document.querySelector(".top .lang"), () => route());
+const languageSwitch = document.querySelector(".top .lang");
+installLanguageSwitch(languageSwitch, () => route());
+installShell({ onLanguage: () => route() });
 let lastHash = location.hash;
 let reverting = false;
 window.addEventListener("hashchange", () => {
