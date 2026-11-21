@@ -297,6 +297,8 @@ def test_mode_names_and_ticks_during_a_session() -> None:
     found = feed(live, "demo-2")
     kinds = [m["type"] for m in found]
     assert "mode" in kinds and kinds.count("rename") == 2
+    records = [m["record"] for m in found if m["type"] == "suggestion"]
+    assert records and {r["mode"] for r in records} == {"guiado"}
     handoff = live.get("demo-2")["handoff"]
     assert handoff["assist_mode"] == "guiado"
     assert handoff["names"] == {"c": "Carla"}

@@ -317,7 +317,7 @@ export async function liveView(ctx, root) {
       fill(checklist,
         h("h2", {}, pending.length ? t("live.mandatory_pending", { n: pending.length }) : t("live.mandatory_done")),
         h("ul", {}, items.map((item) => h("li", { class: `live-item is-${item.state}` },
-          h("span", { class: "live-item-mark", "aria-hidden": "true" }, item.state === "pending" ? "!" : "✓"),
+          h("span", { class: "live-item-mark", "aria-hidden": "true" }, item.state === "pending" ? "!" : ""),
           h("span", { class: "live-item-text" }, item.text),
           item.state === "said" ? h("span", { class: "meta" }, t("live.mandatory_said")) : null,
           item.state === "ticked" ? h("span", { class: "meta" }, t("live.mandatory_ticked")) : null,
@@ -417,7 +417,8 @@ export async function liveView(ctx, root) {
     function card(c, i, upset) {
       const ms = latency(c.record.stages);
       const kind = productKind(state.page?.product);
-      const guided = (state.page?.modes ?? []).length > 0 && (state.mode ?? MODES[0]) === "guiado";
+      // Each card keeps the mode its call was made in; older records have none.
+      const guided = (state.page?.modes ?? []).length > 0 && (c.record.mode ?? state.mode ?? MODES[0]) === "guiado";
       const worried = upset && c.record === upset.record;
       return h("article", { class: `card live-card${i === 0 ? " newest" : ""}${worried ? " discomfort" : ""}` },
         h("div", { class: "row wrap" },

@@ -53,6 +53,8 @@ class SuggestionRecord(BaseModel):
     backend: Optional[str] = None
     error: Optional[Dict[str, Any]] = None
     stages: Stages = Field(default_factory=Stages)
+    mode: Optional[str] = None
+    """Assistance mode the call was made in (LV-16), if any."""
 
 
 class TurnStages(BaseModel):

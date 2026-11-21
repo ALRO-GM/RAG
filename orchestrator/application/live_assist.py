@@ -187,6 +187,7 @@ class LiveAssist:
             self._close(record, stages, started, token, "cancelled")
             return
         request = self._request(event, firing, request_id, window, chunks)
+        record.mode = request["constraints"].get("mode")
         asked = self.clock.now()
         status: CallStatus = "error"
         try:
@@ -271,8 +272,9 @@ class LiveAssist:
         constraints: Dict[str, Any] = {"max_suggestions": cfg.max_suggestions}
         if cfg.deadline_ms:
             constraints["deadline_ms"] = cfg.deadline_ms
-        if self.mode:
-            constraints["mode"] = self.mode
+        if self.mode or (cfg.template or "").endswith("@2"):
+            # @2 templates always get their mode, so each record says it.
+            constraints["mode"] = self.mode or "pincelada"
         request: Document = {
             "schema": "reasoner.request.v1", "request_id": request_id,
             "role": cfg.role, "model": cfg.model,

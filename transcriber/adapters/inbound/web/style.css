@@ -1065,6 +1065,7 @@ details.tech, details.controls { margin: 1rem 0; }
 .live-item-mark { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 999px; background: var(--danger); color: var(--bg); font-size: var(--fs-sm); flex: none; }
 .live-item.is-said, .live-item.is-ticked { color: var(--ok); font-weight: 400; }
 .live-item.is-said .live-item-mark, .live-item.is-ticked .live-item-mark { background: var(--ok); }
+.live-item.is-said .live-item-mark::before, .live-item.is-ticked .live-item-mark::before { content: "\2713"; }
 .live-item-text { flex: 1 1 14rem; min-width: 0; }
 .live-item button { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
 .live-discomfort { border-width: 2px; font-size: var(--fs-lg); margin: 0; }
@@ -1077,13 +1078,14 @@ details.tech, details.controls { margin: 1rem 0; }
 .live-name-input { font-size: var(--fs-sm); padding: 2px var(--s-2); max-width: 14rem; min-height: 0; }
 .live-say { border-left: 6px solid var(--accent); background: var(--active); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
 .live-say-label { font-size: var(--fs-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-ink); }
-.live-say-text { margin: 0; font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); line-height: 1.35; font-weight: 600; color: var(--text); }
+.live-say-text { margin: 0; font-size: clamp(1.3rem, 1.05rem + 0.7vw, 1.65rem); line-height: 1.35; font-weight: 600; color: var(--text); }
 .live-older { border-top: 1px dashed var(--line); padding-top: var(--s-2); }
 .live-older > summary { cursor: pointer; color: var(--muted); font-size: var(--fs-sm); padding: var(--s-1) 0; }
 .live-older > .live-card { margin-top: var(--s-2); opacity: 0.85; }
 .live-summary { gap: var(--s-2); }
 .live-summary h2 { margin: 0; font-size: var(--fs-lg); }
 .live-summary ul, .live-pending-list { margin: var(--s-1) 0 0; padding-left: 1.2rem; }
+@media (max-width: 40rem) { .live-mandatory { max-height: 38vh; overflow-y: auto; } }
 @media (prefers-reduced-motion: reduce) { .live-mandatory.remind { animation: none; outline: 4px solid var(--danger); } }
 @media (min-width: 64rem) {
   .live-start { grid-template-columns: 1fr 1fr; }
