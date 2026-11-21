@@ -4,7 +4,8 @@ Stand-alone, run in the Piper virtual environment of
 ``experiments/skills/render_simulation.py`` (which it reuses for the
 voices and the wav writer)::
 
-    ~/.local/share/ragputin/tts-venv/bin/python experiments/live/render_calls.py \\
+    ~/.local/share/ragputin/tts-venv/bin/python \\
+        experiments/live/render_calls.py \\
         examples/platform/sim-soporte-lumbre.transcript.v1.json \\
         ~/.local/share/ragputin/voices OUT_DIR
 
@@ -19,12 +20,16 @@ import json
 import sys
 import wave
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills"))
 import render_simulation as sim  # noqa: E402
+
+Samples = npt.NDArray[np.float64]
+"""Audio samples, one column per channel."""
 
 CALL_VOICES = {
     "agente": ("es_ES-sharvard-medium", 1),
@@ -37,11 +42,11 @@ CALL_VOICES = {
 
 def render_channels(
     document: Dict[str, Any], voices: "sim.Voices",
-) -> "tuple[np.ndarray, List[Dict[str, Any]]]":
+) -> Tuple[Samples, List[Dict[str, Any]]]:
     """Return a (samples, channels) array and the reference."""
     order = [s["id"] for s in document["speakers"]]
     clock, previous = 0.5, None
-    placed: List[tuple[int, int, np.ndarray]] = []
+    placed: List[Tuple[int, int, Samples]] = []
     reference: List[Dict[str, Any]] = []
     for u in document["utterances"]:
         audio = voices.say(u["speaker"], u["text"])
@@ -50,7 +55,8 @@ def render_channels(
         else:
             start = clock + (0.25 if u["turn"] == previous else 0.45)
         end = start + audio.size / sim.RATE
-        placed.append((order.index(u["speaker"]), int(start * sim.RATE), audio))
+        placed.append(
+            (order.index(u["speaker"]), int(start * sim.RATE), audio))
         reference.append({
             "id": u["id"], "speaker": u["speaker"],
             "channel": order.index(u["speaker"]), "text": u["text"],
@@ -63,7 +69,7 @@ def render_channels(
     return total, reference
 
 
-def write(path: Path, audio: "np.ndarray") -> None:
+def write(path: Path, audio: Samples) -> None:
     """Write 16-bit 16 kHz PCM, one column per channel."""
     peak = float(np.max(np.abs(audio)))
     scaled = audio / peak * 0.9 if peak > 0.9 else audio
@@ -93,7 +99,8 @@ def main() -> None:
         "speakers": [s["id"] for s in document["speakers"]],
         "utterances": reference,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{name}: {audio.shape[0] / sim.RATE:.1f} s, {len(reference)} sentences")
+    print(f"{name}: {audio.shape[0] / sim.RATE:.1f} s,"
+          f" {len(reference)} sentences")
 
 
 if __name__ == "__main__":

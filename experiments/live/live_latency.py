@@ -180,7 +180,8 @@ def analyse(
             known = (row["knowledge_ms"] or 0) + (row["reasoner_ms"] or 0)
             row["other_ms"] = row["final_to_screen_ms"] - known
         rows.append(row)
-    ok = [r for r in rows if r["status"] == "ok" and "speech_to_screen_ms" in r]
+    ok = [r for r in rows
+          if r["status"] == "ok" and "speech_to_screen_ms" in r]
     return {
         "finals": len(finals), "matched_finals": len(matched),
         "calls": len([r for r in rows if r["status"] != "stale"]),

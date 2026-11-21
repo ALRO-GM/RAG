@@ -1,16 +1,18 @@
 """Time from creating a live session to its audio socket saying ``ready``.
 
 Creates a session on a running transcriber, opens the audio socket,
-waits for ``ready`` and then sends ``--seconds`` of the first audio of
-a wav in real time, right after ``ready`` as the live page does. Prints
-JSON: ``ready_s`` (create → ready), the warnings the session emitted
-and the state. With the code that held ``ready`` back until the model
-was loaded the warnings are empty; before, ``asr_behind`` showed up.
+waits for ``ready`` and then sends ``--seconds`` of the audio of a wav
+in real time, right after ``ready`` as the live page does. Prints JSON:
+``ready_s`` (create → ready), the warnings the session emitted and its
+state. The session's events and hand-off transcript stay in the
+transcriber's ``live/<id>/`` directory (LV-13 reads them). With the
+code that holds ``ready`` back until the model is loaded the warnings
+are empty; before, ``asr_behind`` showed up.
 
 Usage::
 
     python experiments/live/start_delay.py URL ACCESS_CODE_FILE WAV \\
-        [--seconds 8] [--id ID]
+        [--seconds 8] [--id ID] [--channels 1|2]
 """
 
 import argparse
@@ -28,7 +30,7 @@ CHUNK_S = 0.1
 
 
 async def run(url: str, code: str, wav: Path, seconds: float,
-              session: str) -> Dict[str, Any]:
+              session: str, channels: int = 1) -> Dict[str, Any]:
     """Return the measurements of one session start."""
     headers = {"X-Access-Code": code}
     with wave.open(str(wav), "rb") as handle:
@@ -39,7 +41,7 @@ async def run(url: str, code: str, wav: Path, seconds: float,
     started = time.monotonic()
     async with httpx.AsyncClient(headers=headers, timeout=60) as client:
         made = await client.post(f"{url}/api/live/sessions", json={
-            "session_id": session, "channels": 1, "language": "es",
+            "session_id": session, "channels": channels, "language": "es",
         })
         made.raise_for_status()
         created_s = time.monotonic() - started
@@ -80,10 +82,12 @@ def main() -> None:
     parser.add_argument("wav", type=Path)
     parser.add_argument("--seconds", type=float, default=8.0)
     parser.add_argument("--id", default=f"start-{int(time.time())}")
+    parser.add_argument("--channels", type=int, default=1)
     args = parser.parse_args()
     code = args.code_file.read_text(encoding="utf-8").strip()
     print(json.dumps(asyncio.run(
-        run(args.url, code, args.wav, args.seconds, args.id)), indent=1))
+        run(args.url, code, args.wav, args.seconds, args.id,
+            args.channels)), indent=1))
 
 
 if __name__ == "__main__":
