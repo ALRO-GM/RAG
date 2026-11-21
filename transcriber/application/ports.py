@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from transcriber.domain.gpu_lease import AckFile, LeaseFile
 from transcriber.domain.diarization import Diarization
+from transcriber.domain.live import Hypothesis
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -719,4 +720,34 @@ class Vad(Protocol):
 
     def reset(self) -> None:
         """Forget the stream (a new one starts)."""
+        ...
+
+
+class AsrStream(Protocol):
+    """The streaming recogniser: decodes the open segment again and again.
+
+    One warm model shared by the streams of a session. A partial decode
+    may skip word times; a final one returns them (LV-4).
+    """
+
+    def warm_up(self) -> None:
+        """Load the model and run it once, so the first segment is fast."""
+        ...
+
+    def decode(
+        self, samples: npt.NDArray[np.float32], final: bool
+    ) -> Hypothesis:
+        """Return what is said in ``samples`` (mono, 16 kHz)."""
+        ...
+
+
+class Timer(Protocol):
+    """Monotonic time and waiting, to pace a stream in real time."""
+
+    def monotonic(self) -> float:
+        """Return seconds from an arbitrary origin; never goes back."""
+        ...
+
+    def sleep(self, seconds: float) -> None:
+        """Wait ``seconds``."""
         ...

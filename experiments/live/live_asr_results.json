@@ -1,0 +1,35 @@
+{
+  "finals": 287,
+  "segments": 212,
+  "partials": 621,
+  "endpoint_ms": {
+    "n": 212,
+    "p50": 512.2,
+    "p90": 589.0,
+    "max": 1851.5
+  },
+  "asr_ms": {
+    "n": 212,
+    "p50": 156.5,
+    "p90": 206.4,
+    "max": 1755.7
+  },
+  "lag_ms": {
+    "n": 212,
+    "p50": 673.6,
+    "p90": 767.1,
+    "max": 3399.4
+  },
+  "partial_lag_ms": {
+    "n": 621,
+    "p50": 161.8,
+    "p90": 199.6,
+    "max": 1011.6
+  },
+  "live_tokens": 2157,
+  "wer_vs_batch": 0.1263,
+  "batch_tokens": 2027,
+  "wer_vs_script": 0.1227,
+  "batch_wer_vs_script": 0.0875,
+  "note": "sim-reunion-verano (sim96), 881.8 s mono Piper audio, live-file real time, large-v3-turbo int8 on CUDA (RTX 3070 Ti), hang 500 ms, partials every 800 ms, GPU lease held, 2026-11-21"
+}
