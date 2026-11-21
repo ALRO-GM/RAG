@@ -129,6 +129,40 @@ Cuándo cambiar el código:
   Todos los enlaces anteriores dejan de valer. Para ver el nuevo, mira
   la terminal.
 
+### Entrar con contraseña
+
+Además del enlace, la web se puede abrir sin él (`https://rag.peer4u.app`)
+y pide una **contraseña**. Con la contraseña correcta, la web recibe el
+mismo código de acceso que lleva el enlace, así que el resto (API,
+WebSockets, enlaces `#k=`) no cambia. «Cerrar sesión» (en la barra
+lateral) hace que el navegador olvide el código.
+
+- **Poner o cambiar la contraseña** (desde la carpeta del proyecto; la
+  contraseña se lee por la entrada estándar o se pide sin eco, nunca
+  como argumento, porque quedaría en el historial del shell):
+
+  ```bash
+  .venv/bin/python -m transcriber set-password
+  ```
+
+  Se guarda solo su hash con sal (scrypt) en
+  `data/transcriber/password.json` (modo 600). Se lee en cada intento,
+  así que cambiarla no exige reiniciar. No hay forma de leerla de
+  vuelta: si se olvida, se pone otra.
+- **Protección contra fuerza bruta** (una contraseña corta, como un PIN
+  de 4 cifras, es débil por sí sola): cada dirección puede fallar 5
+  veces en 15 minutos; luego queda bloqueada 60 s, y el doble en cada
+  bloqueo siguiente (máximo 1 h). Si entre todas las direcciones suman
+  30 fallos en una hora, **todos** los intentos se rechazan 15 minutos y
+  se anota en el registro. Mientras hay bloqueo ni siquiera se
+  comprueba la contraseña. Los errores son genéricos («Contraseña
+  incorrecta»), la comparación es de tiempo constante y el registro
+  anota intentos (dirección, ok/fallo), nunca la contraseña. La
+  dirección es la que escribe el servidor en `X-Client-IP`; nunca se lee
+  `X-Forwarded-For`.
+- Si crees que alguien la ha adivinado: pon otra con `set-password` y,
+  si el enlace también se filtró, arranca con `--new-code`.
+
 Una persona con un enlace que ya no vale ve «El enlace de acceso ya
 no vale». Si eso pasa **mientras graba**, la grabación no se para: el
 teléfono guarda el audio (dice cuántos segundos y MB tiene pendientes)
@@ -158,6 +192,7 @@ Todo está en `data/transcriber/` (git no lo sube):
 | `voiceprints/` | Una huella de voz por persona registrada, con su consentimiento. |
 | `published/` | Transcripciones entregadas con `publish`. |
 | `access_code` | El código guardado por `--keep-code`. |
+| `password.json` | El hash con sal de la contraseña de la web (`set-password`). |
 
 La ruta puede cambiarse con la variable `TRANSCRIBER_DATA_DIR`.
 

@@ -1,0 +1,29 @@
+{
+ "live_sentences": 34,
+ "batch_sentences": 35,
+ "live_tokens": 308,
+ "batch_tokens": 307,
+ "wer_live_vs_batch": 0.0847,
+ "max_seconds": null,
+ "script_tokens": 305,
+ "wer_live_vs_script": 0.1082,
+ "wer_batch_vs_script": 0.0951,
+ "speaker_live": {
+  "sentences": 34,
+  "mapping": {
+   "S1": "entrevistador",
+   "S2": "candidata"
+  },
+  "by_sentence": 1.0,
+  "by_words": 1.0
+ },
+ "speaker_batch": {
+  "sentences": 35,
+  "mapping": {
+   "S1": "entrevistador",
+   "S2": "candidata"
+  },
+  "by_sentence": 1.0,
+  "by_words": 1.0
+ }
+}

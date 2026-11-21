@@ -554,7 +554,7 @@ QUERIES = {
 }
 """Required query parameters, so that the request reaches the route."""
 
-OPEN_ROUTES = {("GET", "/api/health")}
+OPEN_ROUTES = {("GET", "/api/health"), ("POST", "/api/login")}
 
 
 def walk_routes(routes: Any) -> Iterator[Tuple[str, str]]:

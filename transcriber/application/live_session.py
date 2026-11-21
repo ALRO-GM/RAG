@@ -179,6 +179,7 @@ class LiveSession:
         self._done = threading.Event()
         self._behind = False
         self._source = False
+        self._ready = threading.Event()
 
     @property
     def id(self) -> str:
@@ -224,6 +225,19 @@ class LiveSession:
         if samples:
             self._audio.put((chunks, self._now()))
         return waiting
+
+    def wait_ready(self, timeout: Optional[float] = None) -> bool:
+        """Wait until the recogniser is loaded (or the session is over).
+
+        A socket tells its client to start sending only then, so audio
+        does not queue while the model loads. Returns whether it is.
+        """
+        return self._ready.wait(timeout)
+
+    def mark_ready(self) -> None:
+        """Say the recogniser is loaded and takes audio."""
+        self.state = LiveState.RUNNING
+        self._ready.set()
 
     def claim_source(self) -> bool:
         """Take the session's one audio source; False if taken or over."""
@@ -281,6 +295,7 @@ class LiveSession:
             self._stopping = True
             self._room.notify_all()
         self.hub.close()
+        self._ready.set()
         self._done.set()
 
     def info(self) -> Dict[str, Any]:
@@ -505,7 +520,7 @@ class LiveSessions:
                         why=degraded,
                     ),
                 ))
-            session.state = LiveState.RUNNING
+            session.mark_ready()
             while True:
                 arrival = session.next_audio()
                 if arrival is None:

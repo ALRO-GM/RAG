@@ -21,6 +21,16 @@ export const es = {
   "gate.title": "Falta el enlace de acceso",
   "gate.body": "Abre el enlace completo o escanea el código QR que aparece en el ordenador de la persona que organiza la reunión. Por seguridad, esta página no funciona sin él.",
 
+  "login.title": "Entrar",
+  "login.body": "Escribe la contraseña para abrir la aplicación.",
+  "login.password": "Contraseña",
+  "login.submit": "Entrar",
+  "login.wrong": "Contraseña incorrecta.",
+  "login.locked": "Demasiados intentos. Vuelve a probar en {time}.",
+  "login.unavailable": "No se puede llegar al ordenador. Inténtalo de nuevo en un momento.",
+  "login.logout": "Cerrar sesión",
+  "login.logout_busy": "Termina la grabación antes de cerrar la sesión.",
+
   "err.unavailable": "El ordenador no está disponible",
   "err.unavailable_body": "No se puede llegar al ordenador que transcribe. Puede estar apagado o sin conexión. Lo que ya está guardado no se pierde.",
   "err.checking": "Comprobando…",

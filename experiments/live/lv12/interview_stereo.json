@@ -1,0 +1,299 @@
+{
+ "finals": 34,
+ "matched_finals": 34,
+ "calls": 16,
+ "calls_by_status": {
+  "no_suggestion": 5,
+  "ok": 9,
+  "timeout": 2
+ },
+ "speech_end_to_final_ms": {
+  "n": 34,
+  "p50": 656,
+  "p90": 768,
+  "max": 803
+ },
+ "stages_ok_calls": {
+  "knowledge_ms": {
+   "n": 9,
+   "p50": 9,
+   "p90": 9,
+   "max": 10
+  },
+  "reasoner_ms": {
+   "n": 9,
+   "p50": 1262,
+   "p90": 1523,
+   "max": 1562
+  },
+  "other_ms": {
+   "n": 9,
+   "p50": 1,
+   "p90": 2,
+   "max": 2
+  },
+  "final_to_screen_ms": {
+   "n": 9,
+   "p50": 1273,
+   "p90": 1533,
+   "max": 1572
+  },
+  "speech_to_screen_ms": {
+   "n": 9,
+   "p50": 1509,
+   "p90": 1951,
+   "max": 2012
+  }
+ },
+ "rows": [
+  {
+   "call": 1,
+   "status": "timeout",
+   "trigger": "t1.s1",
+   "knowledge_ms": 14.4,
+   "reasoner_ms": 1840.3,
+   "total_ms": 1854.9,
+   "final_to_screen_ms": 1856.5903279959457,
+   "speech_to_screen_ms": 2384.9029629927827,
+   "speech_to_final_ms": 528.312634996837,
+   "other_ms": 1.890327995945654
+  },
+  {
+   "call": 2,
+   "status": "ok",
+   "trigger": "t3.s0",
+   "knowledge_ms": 8.2,
+   "reasoner_ms": 1323.7,
+   "total_ms": 1332.1,
+   "final_to_screen_ms": 1331.356834009057,
+   "speech_to_screen_ms": 2012.3622770042857,
+   "speech_to_final_ms": 681.0054429952288,
+   "other_ms": -0.5431659909431801
+  },
+  {
+   "call": 3,
+   "status": "ok",
+   "trigger": "t5.s0",
+   "knowledge_ms": 8.9,
+   "reasoner_ms": 1499.0,
+   "total_ms": 1508.2,
+   "final_to_screen_ms": 1507.9760360094951,
+   "speech_to_screen_ms": 1466.826445001061,
+   "speech_to_final_ms": -41.14959100843407,
+   "other_ms": 0.07603600949505562
+  },
+  {
+   "call": 4,
+   "status": "no_suggestion",
+   "trigger": "t7.s0",
+   "knowledge_ms": 14.7,
+   "reasoner_ms": 1131.4,
+   "total_ms": 1146.8,
+   "final_to_screen_ms": 1147.208889000467,
+   "speech_to_screen_ms": 1471.886990009807,
+   "speech_to_final_ms": 324.67810100934,
+   "other_ms": 1.1088890004668883
+  },
+  {
+   "call": 5,
+   "status": "no_suggestion",
+   "trigger": "t9.s1",
+   "knowledge_ms": 8.9,
+   "reasoner_ms": 1395.3,
+   "total_ms": 1404.4,
+   "final_to_screen_ms": 1405.735979002202,
+   "speech_to_screen_ms": 1956.8702899996424,
+   "speech_to_final_ms": 551.1343109974405,
+   "other_ms": 1.5359790022018842
+  },
+  {
+   "call": 6,
+   "status": "no_suggestion",
+   "trigger": "t11.s0",
+   "knowledge_ms": 8.6,
+   "reasoner_ms": 1461.4,
+   "total_ms": 1470.2,
+   "final_to_screen_ms": 1469.5464319956955,
+   "speech_to_screen_ms": 2119.6501749946037,
+   "speech_to_final_ms": 650.1037429989083,
+   "other_ms": -0.45356800430454314
+  },
+  {
+   "call": 7,
+   "status": "ok",
+   "trigger": "t13.s0",
+   "knowledge_ms": 8.8,
+   "reasoner_ms": 1058.5,
+   "total_ms": 1067.9,
+   "final_to_screen_ms": 1069.224299993948,
+   "speech_to_screen_ms": 1603.729602007661,
+   "speech_to_final_ms": 534.5053020137129,
+   "other_ms": 1.9242999939481251
+  },
+  {
+   "call": 8,
+   "status": "ok",
+   "trigger": "t15.s0",
+   "knowledge_ms": 9.3,
+   "reasoner_ms": 878.4,
+   "total_ms": 887.9,
+   "final_to_screen_ms": 887.3519510088954,
+   "speech_to_screen_ms": 1508.7875570025062,
+   "speech_to_final_ms": 621.4356059936108,
+   "other_ms": -0.3480489911045197
+  },
+  {
+   "call": 9,
+   "status": "ok",
+   "trigger": "t17.s0",
+   "knowledge_ms": 8.6,
+   "reasoner_ms": 1513.7,
+   "total_ms": 1523.0,
+   "final_to_screen_ms": 1523.1044469983317,
+   "speech_to_screen_ms": 1246.2311679992126,
+   "speech_to_final_ms": -276.87327899911907,
+   "other_ms": 0.8044469983317413
+  },
+  {
+   "call": 10,
+   "status": "timeout",
+   "trigger": "t19.s0",
+   "knowledge_ms": 9.6,
+   "reasoner_ms": 1804.4,
+   "total_ms": 1814.2,
+   "final_to_screen_ms": 1815.268948994344,
+   "speech_to_screen_ms": 2208.258903992828,
+   "speech_to_final_ms": 392.9899549984839,
+   "other_ms": 1.2689489943441004
+  },
+  {
+   "call": 11,
+   "status": "no_suggestion",
+   "trigger": "t21.s0",
+   "knowledge_ms": 9.1,
+   "reasoner_ms": 1536.3,
+   "total_ms": 1545.8,
+   "final_to_screen_ms": 1546.2679699994624,
+   "speech_to_screen_ms": 2271.3636980042793,
+   "speech_to_final_ms": 725.0957280048169,
+   "other_ms": 0.8679699994625025
+  },
+  {
+   "call": 12,
+   "status": "no_suggestion",
+   "trigger": "t23.s0",
+   "knowledge_ms": 10.1,
+   "reasoner_ms": 1401.2,
+   "total_ms": 1411.4,
+   "final_to_screen_ms": 1412.958859000355,
+   "speech_to_screen_ms": -2010.0318579934537,
+   "speech_to_final_ms": -3422.9907169938087,
+   "other_ms": 1.6588590003550507
+  },
+  {
+   "call": 13,
+   "status": "ok",
+   "trigger": "t23.s1",
+   "knowledge_ms": 9.2,
+   "reasoner_ms": 1134.0,
+   "total_ms": 1143.5,
+   "final_to_screen_ms": 1143.3511020004516,
+   "speech_to_screen_ms": 1617.5687080103671,
+   "speech_to_final_ms": 474.21760600991547,
+   "other_ms": 0.15110200045160127
+  },
+  {
+   "call": 14,
+   "status": "ok",
+   "trigger": "t25.s1",
+   "knowledge_ms": 9.4,
+   "reasoner_ms": 1561.8,
+   "total_ms": 1571.4,
+   "final_to_screen_ms": 1572.0620509964647,
+   "speech_to_screen_ms": -669.0579150017584,
+   "speech_to_final_ms": -2241.119965998223,
+   "other_ms": 0.8620509964646317
+  },
+  {
+   "call": 15,
+   "status": "ok",
+   "trigger": "t25.s2",
+   "knowledge_ms": 9.6,
+   "reasoner_ms": 1262.5,
+   "total_ms": 1272.3,
+   "final_to_screen_ms": 1273.4666210017167,
+   "speech_to_screen_ms": 1935.555921998457,
+   "speech_to_final_ms": 662.0893009967403,
+   "other_ms": 1.3666210017167941
+  },
+  {
+   "call": 16,
+   "status": "ok",
+   "trigger": "t27.s0",
+   "knowledge_ms": 9.2,
+   "reasoner_ms": 902.1,
+   "total_ms": 911.5,
+   "final_to_screen_ms": 912.8675039974041,
+   "speech_to_screen_ms": -1349.146409003879,
+   "speech_to_final_ms": -2262.013913001283,
+   "other_ms": 1.56750399740406
+  }
+ ],
+ "session": "lat-interview-stereo",
+ "product": "live_assist.interview",
+ "audio": "stereo",
+ "wav": "sim-entrevista-backend.stereo.wav",
+ "max_seconds": null,
+ "orchestrator_session": {
+  "id": "lat-interview-stereo",
+  "product": "live_assist.interview",
+  "mode": "live",
+  "audio": "stereo",
+  "transcript": null,
+  "state": "ended",
+  "error": null,
+  "events": 124,
+  "rejected_events": 0,
+  "calls": {
+   "timeout": 2,
+   "ok": 9,
+   "no_suggestion": 5
+  },
+  "skipped": {
+   "role": 15,
+   "min_words": 3
+  },
+  "messages": 143,
+  "page": {
+   "product": "live_assist.interview",
+   "language": "es",
+   "banner": "interview_ai_notice@1",
+   "signals": false,
+   "script_phases": [
+    "opening",
+    "experience",
+    "technical",
+    "behavioural",
+    "closing"
+   ],
+   "roles": {
+    "S1": "interviewer",
+    "S2": "candidate"
+   },
+   "suggest_about": [
+    "candidate"
+   ],
+   "channels": {
+    "0": {
+     "speaker": "S1",
+     "role": "interviewer"
+    },
+    "1": {
+     "speaker": "S2",
+     "role": "candidate"
+    }
+   }
+  }
+ },
+ "warnings": []
+}
