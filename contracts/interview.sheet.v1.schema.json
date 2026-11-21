@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "interview.sheet.v1",
+  "title": "Slot sheet of one AI interview (#208)",
+  "description": "The plan's slots after the interview: status (filled, partial, empty, skipped, unknown = \"no lo conoce\"), the candidate's answers with transcript utterance ids and quotes, a 0-100 score relative to what the offer requires with the scorer's confidence, the weighted suitability and other useful skills. A draft for the recruiter, never shown to the candidate. Producer: orchestrator (data/interview/results).",
+  "$defs": {
+    "Answer": {
+      "additionalProperties": false,
+      "description": "One candidate utterance that answers a slot.",
+      "properties": {
+        "utterance": {
+          "title": "Utterance",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 300,
+          "title": "Quote",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "utterance",
+        "quote",
+        "status"
+      ],
+      "title": "Answer",
+      "type": "object"
+    },
+    "OtherSkill": {
+      "additionalProperties": false,
+      "description": "A skill the candidate showed that the offer did not ask for.",
+      "properties": {
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "quote": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OtherSkill",
+      "type": "object"
+    },
+    "SheetSlot": {
+      "additionalProperties": false,
+      "description": "One slot of the sheet: its status, answers and score.\n\n``score`` (0–100) is the level shown **relative to what the offer\nasks** (100: meets the requirement for this job), ``above`` says the\nevidence goes beyond it, ``confidence`` (0–1) how sure the scorer\nis and ``scored_by`` which scorer gave it (``model`` or\n``status``, a coarse estimate from the slot's status). For the\nrecruiter only; never said to the candidate.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "minimo",
+            "deseable",
+            "opcional"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "weight": {
+          "default": 3,
+          "title": "Weight",
+          "type": "integer"
+        },
+        "competency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Competency"
+        },
+        "status": {
+          "default": "empty",
+          "enum": [
+            "filled",
+            "partial",
+            "empty",
+            "skipped",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "asked": {
+          "default": 0,
+          "title": "Asked",
+          "type": "integer"
+        },
+        "probes": {
+          "default": 0,
+          "title": "Probes",
+          "type": "integer"
+        },
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/Answer"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "above": {
+          "default": false,
+          "title": "Above",
+          "type": "boolean"
+        },
+        "notes": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Notes",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "scored_by": {
+          "anyOf": [
+            {
+              "enum": [
+                "model",
+                "status"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scored By"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "level"
+      ],
+      "title": "SheetSlot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "interview.sheet.v1",
+      "default": "interview.sheet.v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_revision": {
+      "default": 0,
+      "title": "Plan Revision",
+      "type": "integer"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "state": {
+      "default": "running",
+      "enum": [
+        "running",
+        "closed",
+        "stopped"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "closed_by": {
+      "anyOf": [
+        {
+          "enum": [
+            "covered",
+            "time",
+            "stopped"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Closed By"
+    },
+    "turns": {
+      "default": 0,
+      "title": "Turns",
+      "type": "integer"
+    },
+    "elapsed_s": {
+      "default": 0.0,
+      "title": "Elapsed S",
+      "type": "number"
+    },
+    "minutes": {
+      "default": 20,
+      "title": "Minutes",
+      "type": "integer"
+    },
+    "minimums_covered": {
+      "default": false,
+      "title": "Minimums Covered",
+      "type": "boolean"
+    },
+    "turns_to_minimums": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Turns To Minimums"
+    },
+    "slots": {
+      "items": {
+        "$ref": "#/$defs/SheetSlot"
+      },
+      "title": "Slots",
+      "type": "array"
+    },
+    "filler": {
+      "default": "heuristic",
+      "title": "Filler",
+      "type": "string"
+    },
+    "candidate": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate"
+    },
+    "suitability": {
+      "anyOf": [
+        {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suitability"
+    },
+    "summary": {
+      "default": "",
+      "maxLength": 1200,
+      "title": "Summary",
+      "type": "string"
+    },
+    "other_skills": {
+      "items": {
+        "$ref": "#/$defs/OtherSkill"
+      },
+      "title": "Other Skills",
+      "type": "array"
+    },
+    "scorer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scorer"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    }
+  },
+  "required": [
+    "session_id",
+    "plan_id",
+    "title"
+  ],
+  "type": "object"
+}

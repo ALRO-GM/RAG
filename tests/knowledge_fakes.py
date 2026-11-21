@@ -188,6 +188,14 @@ class InMemoryDocumentStore:
         """Return the indexed name of the text."""
         return f"extracted/{document_id}.md"
 
+    def read_text(self, domain_id: str, document_id: str) -> str:
+        """Return the text written for the document."""
+        path = self.text_path(domain_id, document_id)
+        text = self.indexes.files.get(domain_id, {}).get(path)
+        if text is None:
+            raise NotFoundError(f"No text for {document_id!r}.")
+        return text
+
     def write_text(self, domain_id: str, document_id: str, text: str) -> str:
         """Add the text to the domain's sources."""
         path = self.text_path(domain_id, document_id)

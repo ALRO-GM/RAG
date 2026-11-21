@@ -5,7 +5,7 @@
 
 /** Order of the groups on the page; a group the server adds later (the
  * voice bot's, for instance) is drawn after these with its own id. */
-export const GROUPS = ["transcription", "live", "analysis", "knowledge", "voicebot"];
+export const GROUPS = ["transcription", "live", "analysis", "knowledge", "voicebot", "interview"];
 
 /** The preset cards, in order; "custom" is any other combination. */
 export const PRESETS = ["quality", "balanced", "cost", "custom"];
@@ -24,6 +24,7 @@ export const COST = {
   "analysis.assessment_model": { haiku: "quota", sonnet: "quota", opus: "quota" },
   "analysis.synthesis_model": { haiku: "quota", sonnet: "quota", opus: "quota" },
   "knowledge.captions": { florence: "local", claude: "cloud" },
+  "interview.slot_filler": { haiku: "quota", heuristic: "local" },
 };
 
 /** Steps that change no cost: how long to wait, and what the live page shows. */

@@ -29,7 +29,7 @@ def replay(path: Path, out: Path, *extra: str) -> int:
 
 def test_check_config(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["check-config"]) == 0
-    assert capsys.readouterr().out.count("ok ") == 4
+    assert capsys.readouterr().out.count("ok ") == 5
 
 
 def test_check_config_reports_errors(

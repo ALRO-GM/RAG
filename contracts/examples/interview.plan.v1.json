@@ -1,0 +1,93 @@
+{
+  "schema": "interview.plan.v1",
+  "id": "plan-20261121-100000",
+  "revision": 0,
+  "title": "Dependiente/a de tienda de deportes",
+  "role_type": "otro",
+  "language": "es",
+  "summary": "Dependiente/a de tienda de deportes - Experiencia mínima de un año en atención al cliente en tienda - Disponibilidad para turnos rotativos incluidos sábados - Valorable conocimiento de material de run",
+  "minutes": 20,
+  "source": {
+    "kind": "text",
+    "domain": null,
+    "document": null,
+    "name": null,
+    "chars": 205
+  },
+  "planner": {
+    "template": "interview.planner@1",
+    "model": "fake",
+    "status": "ok",
+    "error": null,
+    "chunks": []
+  },
+  "created_at": "2026-11-21T10:00:00",
+  "updated_at": "2026-11-21T10:00:00",
+  "slots": [
+    {
+      "id": "s1",
+      "label": "Experiencia mínima de un año en atención al cliente en tienda",
+      "kind": "requirement",
+      "competency": null,
+      "level": "minimo",
+      "phase": "experience",
+      "questions": [
+        "Háblame de tu experiencia con esto: Experiencia mínima de un año en atención al cliente en tienda"
+      ],
+      "evidence": "Dónde, cuánto tiempo y qué hacía.",
+      "weight": 4
+    },
+    {
+      "id": "s2",
+      "label": "Disponibilidad para turnos rotativos incluidos sábados",
+      "kind": "requirement",
+      "competency": null,
+      "level": "minimo",
+      "phase": "experience",
+      "questions": [
+        "Háblame de tu experiencia con esto: Disponibilidad para turnos rotativos incluidos sábados"
+      ],
+      "evidence": "Dónde, cuánto tiempo y qué hacía.",
+      "weight": 4
+    },
+    {
+      "id": "s3",
+      "label": "Valorable conocimiento de material de running",
+      "kind": "requirement",
+      "competency": null,
+      "level": "deseable",
+      "phase": "experience",
+      "questions": [
+        "Háblame de tu experiencia con esto: Valorable conocimiento de material de running"
+      ],
+      "evidence": "Dónde, cuánto tiempo y qué hacía.",
+      "weight": 4
+    },
+    {
+      "id": "s4",
+      "label": "Comunicación clara",
+      "kind": "competency",
+      "competency": "COMM",
+      "level": "minimo",
+      "phase": "behavioural",
+      "questions": [
+        "Cuéntame una vez en la que tuviste que explicar algo difícil. ¿Qué hiciste tú?"
+      ],
+      "evidence": "Situación, acción propia y resultado.",
+      "weight": 3
+    },
+    {
+      "id": "s5",
+      "label": "Resolución de problemas",
+      "kind": "competency",
+      "competency": "SOLVE",
+      "level": "deseable",
+      "phase": "behavioural",
+      "questions": [
+        "Cuéntame un problema que resolviste en el trabajo. ¿Cómo acabó?"
+      ],
+      "evidence": "Problema, pasos y resultado.",
+      "weight": 2
+    }
+  ]
+}

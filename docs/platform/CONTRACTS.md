@@ -11,7 +11,7 @@ Readers are deployed before writers. Each schema goes in
 |---|---|---|---|
 | live.event.v1 | transcriber | orchestrator, live page | WebSocket `/api/live/{session}/events` (alias `/live/{session}/events`; JSON per message; `docs/live/LIVE_SESSION.md`) |
 | knowledge.query.v1 / knowledge.result.v1 | orchestrator, analyzer | RAG | `POST /knowledge/query` |
-| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason`; `POST /reason/stream` (NDJSON: `{"type": "text", "text"}` pieces of the model's raw output as it writes them, then `{"type": "response", "response"}` or `{"type": "error", "message"}`; the voice bot, VB-2) |
+| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason`; `POST /reason/stream` (NDJSON: `{"type": "text", "text"}` pieces of the model's raw output as it writes them, then `{"type": "response", "response"}` or `{"type": "error", "message"}`; the voice bot, VB-2); role `structured` with the response's optional `data` object, added compatibly for the AI interviewer's planner, slot filler and report, #208) |
 | tts.request.v1 | orchestrator | Piper adapter | in-process call or `POST /tts` (audio bytes back) |
 | gpu-lease.v1 | transcriber (live) | IMG worker, transcriber JobRunner | file `$XDG_RUNTIME_DIR/gpu-lease/lease.json` |
 | transcript.v1 (exists) | transcriber | RAG / analyzer | `POST /transcripts` |
@@ -225,7 +225,7 @@ tools keep working.
   "properties": {
     "schema": {"const": "reasoner.request.v1"},
     "request_id": {"type": "string", "minLength": 1, "maxLength": 64},
-    "role": {"enum": ["judge", "suggester", "conversational"]},
+    "role": {"enum": ["judge", "suggester", "conversational", "structured"]},
     "model": {"type": "string", "default": "haiku", "description": "alias: haiku|sonnet|opus|local:<id>"},
     "template": {"type": "string", "pattern": "^[a-z_.]+@[0-9]+$", "description": "prompt template id@version"},
     "language": {"type": ["string", "null"], "minLength": 2},
@@ -270,7 +270,7 @@ tools keep working.
   "properties": {
     "schema": {"const": "reasoner.response.v1"},
     "request_id": {"type": "string"},
-    "role": {"enum": ["judge", "suggester", "conversational"]},
+    "role": {"enum": ["judge", "suggester", "conversational", "structured"]},
     "status": {"enum": ["ok", "no_suggestion", "timeout", "cancelled", "quota", "auth", "error"]},
     "suggestions": {"type": "array", "items": {
       "type": "object", "additionalProperties": false, "required": ["kind", "text"],

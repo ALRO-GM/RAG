@@ -20,11 +20,7 @@
       "type": "string"
     },
     "role": {
-      "enum": [
-        "judge",
-        "suggester",
-        "conversational"
-      ]
+      "enum": ["judge", "suggester", "conversational", "structured"]
     },
     "status": {
       "enum": [
@@ -128,6 +124,13 @@
         "null"
       ],
       "description": "judge: the analyzer's existing JSON, unchanged"
+    },
+    "data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "structured: the one JSON object the template asks for (interview.planner@1: an interview plan draft; interview.slots@1: the slots an answer covers). Added compatibly (#208)."
     },
     "model": {
       "type": "string",

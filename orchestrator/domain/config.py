@@ -15,6 +15,7 @@ Role = Literal[
 ]
 PRODUCTS = (
     "post_call", "live_assist.interview", "live_assist.support", "voicebot",
+    "voicebot.interview",
 )
 """The products the platform defines."""
 
@@ -155,12 +156,47 @@ class Handoff(_Strict):
     run_post_call: bool = False
 
 
+class InterviewSection(_Strict):
+    """The AI interviewer of ``voicebot.interview`` (#208).
+
+    ``corpus`` is the interview-method domain the planner and the
+    interviewer read; ``filler`` the slot filler after each answer
+    (``haiku``: ``filler_template`` on the reasoner; ``heuristic``: no
+    model); ``max_probes`` the follow-ups per slot before the
+    clarification offer; ``minutes`` the default time budget of a new
+    plan; ``report`` whether the slots are scored by ``report_template``
+    when the interview ends (else a coarse estimate from each slot's
+    status); ``post_call`` whether the analysis starts by itself.
+    """
+
+    corpus: str = "interview.generic"
+    corpus_top_k: int = Field(default=6, ge=1, le=10)
+    planner_template: str = Field(
+        default="interview.planner@1", pattern=r"^[a-z_.]+@[0-9]+$"
+    )
+    filler_template: str = Field(
+        default="interview.slots@1", pattern=r"^[a-z_.]+@[0-9]+$"
+    )
+    report_template: str = Field(
+        default="interview.report@1", pattern=r"^[a-z_.]+@[0-9]+$"
+    )
+    filler: Literal["haiku", "heuristic"] = "haiku"
+    max_probes: int = Field(default=1, ge=0, le=3)
+    minutes: int = Field(default=20, ge=5, le=90)
+    report: bool = True
+    post_call: bool = False
+
+
+VOICEBOTS = ("voicebot", "voicebot.interview")
+"""The products that speak (``tts``)."""
+
+
 class ProductConfig(_Strict):
     """The composition of one product."""
 
     product: Literal[
         "post_call", "live_assist.interview", "live_assist.support",
-        "voicebot",
+        "voicebot", "voicebot.interview",
     ]
     version: int = Field(ge=1)
     language: str = Field(min_length=2)
@@ -176,6 +212,7 @@ class ProductConfig(_Strict):
     output: Optional[str] = None
     privacy: Privacy = Field(default_factory=Privacy)
     handoff: Handoff = Field(default_factory=Handoff)
+    interview: Optional[InterviewSection] = None
 
     @property
     def is_live(self) -> bool:
@@ -198,8 +235,14 @@ class ProductConfig(_Strict):
             raise ValueError("a live product keeps no audio by default")
         if self.reasoner is not None:
             self._check_reasoner(self.reasoner)
-        if self.tts is not None and self.product != "voicebot":
+        if self.tts is not None and self.product not in VOICEBOTS:
             raise ValueError("only the voicebot speaks")
+        if (self.interview is not None) != (
+            self.product == "voicebot.interview"
+        ):
+            raise ValueError(
+                "voicebot.interview, and only it, has an interview section"
+            )
         if self.source.kind == "pipewire" and not self.source.channels:
             raise ValueError("a pipewire source declares its channels")
         return self
@@ -210,6 +253,7 @@ class ProductConfig(_Strict):
             "live_assist.interview": "suggester",
             "live_assist.support": "suggester",
             "voicebot": "conversational",
+            "voicebot.interview": "conversational",
             "post_call": "judge",
         }[self.product]
         if self.is_live and reasoner.template is None:

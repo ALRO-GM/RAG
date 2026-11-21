@@ -1,0 +1,680 @@
+{
+ "plans": [
+  {
+   "schema": "interview.plan.v1",
+   "id": "plan-tienda",
+   "revision": 0,
+   "title": "Dependiente/a para tienda de deportes",
+   "role_type": "comercio",
+   "language": "es",
+   "summary": "Atención al cliente en sala, caja y TPV, reposición y orden de la tienda y recepción de mercancía. Jornada completa en Valencia con turnos rotativos de mañana y tarde, incluidos sábados.",
+   "minutes": 15,
+   "source": {
+    "kind": "text",
+    "domain": null,
+    "document": null,
+    "name": null,
+    "chars": 444
+   },
+   "planner": {
+    "template": "interview.planner@1",
+    "model": "claude-code:haiku",
+    "status": "ok",
+    "error": null,
+    "chunks": [
+     "i02",
+     "i03",
+     "i06",
+     "i10",
+     "i13",
+     "i15"
+    ]
+   },
+   "created_at": "2026-11-21T14:23:46.864789",
+   "updated_at": "2026-11-21T14:23:46.864789",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Experiencia en atención al cliente en comercio",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "experience",
+     "questions": [
+      "¿Cuánto tiempo has trabajado en atención al cliente en comercio y en qué tipo de tienda?",
+      "¿Qué tipo de clientes atendías habitualmente y cuántas personas solía atender en un turno?"
+     ],
+     "evidence": "Al menos un año de experiencia en atención al cliente en comercio, con detalle del tipo de tienda y del volumen de clientes.",
+     "weight": 5
+    },
+    {
+     "id": "s2",
+     "label": "Manejo de caja y TPV",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Qué sistemas de caja o TPV has utilizado y qué tareas hacías con ellos?",
+      "¿Cómo gestionabas los cierres de caja y las diferencias de dinero al final del turno?"
+     ],
+     "evidence": "Experiencia real con caja y TPV, incluyendo cobros, devoluciones y cierres, y forma de detectar errores.",
+     "weight": 5
+    },
+    {
+     "id": "s3",
+     "label": "Disponibilidad para turnos rotativos y sábados",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "experience",
+     "questions": [
+      "¿Qué disponibilidad tienes para turnos rotativos de mañana y tarde, incluidos los sábados?",
+      "¿Hay algún horario o día que te impida trabajar con regularidad?"
+     ],
+     "evidence": "Disponibilidad clara para turnos de mañana y tarde y para sábados, sin limitaciones relevantes.",
+     "weight": 4
+    },
+    {
+     "id": "s4",
+     "label": "Conocimiento de material de running y montaña",
+     "kind": "requirement",
+     "competency": null,
+     "level": "deseable",
+     "phase": "technical",
+     "questions": [
+      "¿Qué productos de running o montaña conoces y cómo los explicarías a alguien que empieza?",
+      "¿Cómo asesoras a un cliente que busca calzado o equipación para una actividad concreta?"
+     ],
+     "evidence": "Conocimiento básico de categorías, marcas o criterios de elección de material de running y montaña.",
+     "weight": 3
+    },
+    {
+     "id": "s5",
+     "label": "Inglés básico para atender turistas",
+     "kind": "requirement",
+     "competency": null,
+     "level": "deseable",
+     "phase": "technical",
+     "questions": [
+      "¿Cuál es tu nivel de inglés y en qué situaciones lo has usado de forma real?",
+      "¿Cómo te arreglarías para atender a un turista que solo habla inglés y quiere una talla concreta?"
+     ],
+     "evidence": "Inglés básico suficiente para atender preguntas sencillas sobre productos, tallas y pagos.",
+     "weight": 3
+    },
+    {
+     "id": "s6",
+     "label": "Reposición, orden y recepción de mercancía",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Qué tareas de reposición y orden de tienda has realizado y cómo organizabas el trabajo?",
+      "¿Cómo comprobabas que una entrega de mercancía estaba completa y en buen estado?"
+     ],
+     "evidence": "Experiencia en reposición, organización de producto y revisión de entregas, con método claro.",
+     "weight": 3
+    },
+    {
+     "id": "s7",
+     "label": "Atención al cliente en sala con iniciativa",
+     "kind": "competency",
+     "competency": "INIT",
+     "level": "minimo",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que tomar la iniciativa para resolver una situación con un cliente en la tienda.",
+      "Cuéntame una vez en la que detectaste un problema en la sala y lo solucionaste sin que te lo pidieran."
+     ],
+     "evidence": "Ejemplo STAR con situación concreta, acción propia tomada sin instrucción directa y resultado para el cliente o la tienda.",
+     "weight": 4
+    },
+    {
+     "id": "s8",
+     "label": "Comunicación clara con el cliente",
+     "kind": "competency",
+     "competency": "COMM",
+     "level": "minimo",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que explicar a un cliente algo complicado o con varias opciones.",
+      "Cuéntame una vez en la que un cliente no entendió tu respuesta y tuviste que aclararla."
+     ],
+     "evidence": "Ejemplo STAR que muestre explicaciones claras, comprobación de comprensión y ajuste del mensaje al cliente.",
+     "weight": 4
+    },
+    {
+     "id": "s9",
+     "label": "Coordinación del trabajo en equipo de tienda",
+     "kind": "competency",
+     "competency": "COORD",
+     "level": "opcional",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que organizar el trabajo con compañeros durante un turno con mucha carga.",
+      "Cuéntame una vez en la que hiciste seguimiento de tareas pendientes para que todo estuviera listo a tiempo."
+     ],
+     "evidence": "Ejemplo STAR con reparto de tareas, seguimiento y resultado en el equipo.",
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "schema": "interview.plan.v1",
+   "id": "plan-backend",
+   "revision": 0,
+   "title": "Desarrollador/a backend junior (Python)",
+   "role_type": "tecnico",
+   "language": "es",
+   "summary": "Desarrollo y mantenimiento de la API de pedidos de una tienda online, en equipo de 6 personas. Python con FastAPI, Django o Flask, PostgreSQL, git y tests. Trabajo híbrido, con formación y mentoría.",
+   "minutes": 20,
+   "source": {
+    "kind": "text",
+    "domain": null,
+    "document": null,
+    "name": null,
+    "chars": 397
+   },
+   "planner": {
+    "template": "interview.planner@1",
+    "model": "claude-code:haiku",
+    "status": "ok",
+    "error": null,
+    "chunks": [
+     "i11",
+     "i13",
+     "i15",
+     "i17",
+     "i23",
+     "i30"
+    ]
+   },
+   "created_at": "2026-11-21T14:23:54.683525",
+   "updated_at": "2026-11-21T14:23:54.683525",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Python y framework web",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Qué framework web de Python has usado (FastAPI, Django o Flask) y qué proyecto construiste con él?",
+      "¿Cómo estructurarías los endpoints de una API para que sea fácil de mantener?"
+     ],
+     "evidence": "Experiencia real con Python y al menos uno de los frameworks, con ejemplos concretos de código o proyectos propios o de trabajo.",
+     "weight": 5
+    },
+    {
+     "id": "s2",
+     "label": "SQL y PostgreSQL",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Cómo diseñarías las tablas para guardar pedidos y sus líneas de producto?",
+      "¿Qué haces para evitar consultas lentas en una base de datos con muchos registros?"
+     ],
+     "evidence": "Conocimiento de modelado relacional, consultas y criterios básicos de rendimiento en PostgreSQL.",
+     "weight": 4
+    },
+    {
+     "id": "s3",
+     "label": "Control de versiones con git",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Cómo gestionas las ramas y los cambios cuando trabajas en equipo con git?",
+      "¿Qué haces cuando un merge tiene conflictos?"
+     ],
+     "evidence": "Uso habitual de git con flujo de ramas, commits claros y resolución de conflictos.",
+     "weight": 3
+    },
+    {
+     "id": "s4",
+     "label": "Tests automáticos",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "technical",
+     "questions": [
+      "¿Qué tipo de tests escribes habitualmente y qué herramientas usas?",
+      "¿Cómo decides qué partes de un código deben tener tests?"
+     ],
+     "evidence": "Escribe tests unitarios o de integración y entiende su utilidad para evitar regresiones.",
+     "weight": 4
+    },
+    {
+     "id": "s5",
+     "label": "Disponibilidad y modalidad híbrida",
+     "kind": "requirement",
+     "competency": null,
+     "level": "minimo",
+     "phase": "behavioural",
+     "questions": [
+      "¿Qué disponibilidad tienes para trabajo híbrido y horario de incorporación?"
+     ],
+     "evidence": "Confirma que puede cumplir la modalidad híbrida y el calendario de incorporación.",
+     "weight": 3
+    },
+    {
+     "id": "s6",
+     "label": "Docker",
+     "kind": "requirement",
+     "competency": null,
+     "level": "deseable",
+     "phase": "technical",
+     "questions": [
+      "¿Has usado Docker para desarrollar o desplegar una aplicación? Cuéntame cómo."
+     ],
+     "evidence": "Conocimiento básico de contenedores para desarrollo o despliegue.",
+     "weight": 2
+    },
+    {
+     "id": "s7",
+     "label": "APIs REST en producción",
+     "kind": "requirement",
+     "competency": null,
+     "level": "deseable",
+     "phase": "technical",
+     "questions": [
+      "¿Has trabajado con una API REST que estuviera en producción? ¿Qué aprendiste de ello?"
+     ],
+     "evidence": "Experiencia con APIs reales, incluyendo versionado, errores o monitorización.",
+     "weight": 3
+    },
+    {
+     "id": "s8",
+     "label": "Colas de mensajes e inglés técnico",
+     "kind": "requirement",
+     "competency": null,
+     "level": "deseable",
+     "phase": "technical",
+     "questions": [
+      "¿Has usado alguna cola de mensajes? ¿Y cómo lees documentación técnica en inglés?"
+     ],
+     "evidence": "Conocimiento básico de colas y capacidad de leer documentación técnica en inglés.",
+     "weight": 2
+    },
+    {
+     "id": "s9",
+     "label": "Resolución de problemas técnicos en equipo",
+     "kind": "competency",
+     "competency": "SOLVE",
+     "level": "opcional",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que resolver un error difícil en un proyecto y lo hiciste con otras personas. ¿Qué papel tuviste?"
+     ],
+     "evidence": "Describe la situación, su parte concreta, cómo analizó el problema y cómo decidió con el equipo.",
+     "weight": 4
+    },
+    {
+     "id": "s10",
+     "label": "Coordinación del propio trabajo",
+     "kind": "competency",
+     "competency": "COORD",
+     "level": "opcional",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que coordinar tus tareas con otras personas para cumplir un plazo."
+     ],
+     "evidence": "Describe cómo organizó sus tareas, cómo hizo seguimiento y cómo comunicó avances.",
+     "weight": 3
+    },
+    {
+     "id": "s11",
+     "label": "Adaptabilidad y aprendizaje",
+     "kind": "competency",
+     "competency": "ADAPT",
+     "level": "opcional",
+     "phase": "behavioural",
+     "questions": [
+      "Cuéntame una vez en la que tuviste que aprender una tecnología nueva con poco tiempo. ¿Cómo lo hiciste?",
+      "¿Cómo te mantienes al día en desarrollo backend?"
+     ],
+     "evidence": "Muestra cómo busca información, practica y aplica lo aprendido de forma autónoma.",
+     "weight": 4
+    },
+    {
+     "id": "s12",
+     "label": "Comunicación de conceptos técnicos",
+     "kind": "competency",
+     "competency": "COMM",
+     "level": "opcional",
+     "phase": "behavioural",
+     "questions": [
+      "Explícame qué es una caché o una migración de base de datos como si hablaras con una persona de negocio."
+     ],
+     "evidence": "Explica con claridad, sin jerga innecesaria, y comprueba que el otro entiende.",
+     "weight": 3
+    }
+   ]
+  }
+ ],
+ "turns": [
+  {
+   "step": {
+    "title": "Dependiente/a para tienda de deportes",
+    "summary": "Atención al cliente en sala, caja y TPV, reposición y orden de la tienda y recepción de mercancía. Jornada completa en Valencia con turnos rotativos de mañana y tarde, incluidos sábados.",
+    "minutes": 15,
+    "minutes_left": 15.0,
+    "action": "open",
+    "slot": "s1",
+    "topic": "Experiencia en atención al cliente en comercio",
+    "questions": [
+     "¿Cuánto tiempo has trabajado en atención al cliente en comercio y en qué tipo de tienda?",
+     "¿Qué tipo de clientes atendías habitualmente y cuántas personas solía atender en un turno?"
+    ],
+    "evidence": "Al menos un año de experiencia en atención al cliente en comercio, con detalle del tipo de tienda y del volumen de clientes."
+   },
+   "text": "¡Hola! Soy un entrevistador de IA y te hablo en nombre del equipo de selección de la tienda. La entrevista durará unos 15 minutos. Para empezar, ¿cuánto tiempo has trabajado en atención al cliente en comercio y en qué tipo de tienda?"
+  },
+  {
+   "step": {
+    "title": "Dependiente/a para tienda de deportes",
+    "summary": "Atención al cliente en sala, caja y TPV, reposición y orden de la tienda y recepción de mercancía. Jornada completa en Valencia con turnos rotativos de mañana y tarde, incluidos sábados.",
+    "minutes": 15,
+    "minutes_left": 14.9,
+    "action": "ask",
+    "slot": "s2",
+    "topic": "Manejo de caja y TPV",
+    "questions": [
+     "¿Qué sistemas de caja o TPV has utilizado y qué tareas hacías con ellos?",
+     "¿Cómo gestionabas los cierres de caja y las diferencias de dinero al final del turno?"
+    ],
+    "evidence": "Experiencia real con caja y TPV, incluyendo cobros, devoluciones y cierres, y forma de detectar errores."
+   },
+   "text": "Gracias por la explicación. Con el TPV y los cierres, ¿qué sistema de caja usabas y cómo gestionabas las diferencias de dinero al final del turno?"
+  },
+  {
+   "step": {
+    "title": "Dependiente/a para tienda de deportes",
+    "summary": "Atención al cliente en sala, caja y TPV, reposición y orden de la tienda y recepción de mercancía. Jornada completa en Valencia con turnos rotativos de mañana y tarde, incluidos sábados.",
+    "minutes": 15,
+    "minutes_left": 14.8,
+    "action": "probe",
+    "slot": "s2",
+    "topic": "Manejo de caja y TPV",
+    "questions": [
+     "¿Qué sistemas de caja o TPV has utilizado y qué tareas hacías con ellos?",
+     "¿Cómo gestionabas los cierres de caja y las diferencias de dinero al final del turno?"
+    ],
+    "evidence": "Experiencia real con caja y TPV, incluyendo cobros, devoluciones y cierres, y forma de detectar errores.",
+    "missing": "un dato concreto: dónde, cuánto tiempo, qué hacía"
+   },
+   "text": "Gracias por tu disponibilidad. Volviendo a la caja: ¿cuánto tiempo hacías tú personalmente los cierres y qué hacías cuando había una diferencia de dinero?"
+  }
+ ],
+ "fills": [
+  {
+   "answer": "Estuve un año y medio en una tienda de deportes del centro, en sala y en caja; atendía a clientes, cobraba con TPV y hacía los cierres.",
+   "changed": {
+    "s1": [
+     "empty",
+     "filled"
+    ],
+    "s2": [
+     "empty",
+     "partial"
+    ]
+   }
+  },
+  {
+   "answer": "Pues sí, los sábados puedo, y turnos de mañana o de tarde también, me adapto sin problema.",
+   "changed": {
+    "s3": [
+     "empty",
+     "filled"
+    ]
+   }
+  }
+ ],
+ "sheet": {
+  "schema": "interview.sheet.v1",
+  "session_id": "smoke-tienda",
+  "plan_id": "plan-tienda",
+  "plan_revision": 0,
+  "title": "Dependiente/a para tienda de deportes",
+  "state": "stopped",
+  "closed_by": "stopped",
+  "turns": 3,
+  "elapsed_s": 23.5,
+  "minutes": 15,
+  "minimums_covered": false,
+  "turns_to_minimums": null,
+  "slots": [
+   {
+    "id": "s1",
+    "label": "Experiencia en atención al cliente en comercio",
+    "level": "minimo",
+    "weight": 5,
+    "competency": null,
+    "status": "filled",
+    "asked": 1,
+    "probes": 0,
+    "answers": [
+     {
+      "utterance": "t1.s0",
+      "quote": "Estuve un año y medio en una tienda de deportes del centro",
+      "status": "complete"
+     }
+    ],
+    "score": 80,
+    "above": false,
+    "notes": "Año y medio en una tienda de deportes del centro, en sala y caja. No detalla el volumen de clientes.",
+    "confidence": 0.7,
+    "scored_by": "model"
+   },
+   {
+    "id": "s2",
+    "label": "Manejo de caja y TPV",
+    "level": "minimo",
+    "weight": 5,
+    "competency": null,
+    "status": "partial",
+    "asked": 1,
+    "probes": 1,
+    "answers": [
+     {
+      "utterance": "t1.s0",
+      "quote": "cobraba con TPV y hacía los cierres",
+      "status": "partial"
+     }
+    ],
+    "score": 55,
+    "above": false,
+    "notes": "Cobra con TPV y ha hecho cierres. No menciona devoluciones ni cómo detecta errores.",
+    "confidence": 0.5,
+    "scored_by": "model"
+   },
+   {
+    "id": "s3",
+    "label": "Disponibilidad para turnos rotativos y sábados",
+    "level": "minimo",
+    "weight": 4,
+    "competency": null,
+    "status": "filled",
+    "asked": 0,
+    "probes": 0,
+    "answers": [
+     {
+      "utterance": "t1.s1",
+      "quote": "los sábados puedo, y turnos de mañana o de tarde también",
+      "status": "complete"
+     }
+    ],
+    "score": 90,
+    "above": false,
+    "notes": "Confirma disponibilidad para sábados y para turnos de mañana o de tarde, sin limitaciones citadas.",
+    "confidence": 0.8,
+    "scored_by": "model"
+   },
+   {
+    "id": "s4",
+    "label": "Conocimiento de material de running y montaña",
+    "level": "deseable",
+    "weight": 3,
+    "competency": null,
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay evidencia sobre material de running o montaña.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   },
+   {
+    "id": "s5",
+    "label": "Inglés básico para atender turistas",
+    "level": "deseable",
+    "weight": 3,
+    "competency": null,
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay evidencia de inglés.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   },
+   {
+    "id": "s6",
+    "label": "Reposición, orden y recepción de mercancía",
+    "level": "minimo",
+    "weight": 3,
+    "competency": null,
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay evidencia de reposición, orden ni recepción de mercancía.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   },
+   {
+    "id": "s7",
+    "label": "Atención al cliente en sala con iniciativa",
+    "level": "minimo",
+    "weight": 4,
+    "competency": "INIT",
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay ejemplo STAR de iniciativa propia.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   },
+   {
+    "id": "s8",
+    "label": "Comunicación clara con el cliente",
+    "level": "minimo",
+    "weight": 4,
+    "competency": "COMM",
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay ejemplo STAR de comunicación clara con el cliente.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   },
+   {
+    "id": "s9",
+    "label": "Coordinación del trabajo en equipo de tienda",
+    "level": "opcional",
+    "weight": 2,
+    "competency": "COORD",
+    "status": "empty",
+    "asked": 0,
+    "probes": 0,
+    "answers": [],
+    "score": 0,
+    "above": false,
+    "notes": "No hay ejemplo STAR de coordinación de equipo.",
+    "confidence": 0.1,
+    "scored_by": "model"
+   }
+  ],
+  "filler": "haiku",
+  "candidate": "Candidata sintética",
+  "suitability": 31.4,
+  "summary": "La persona candidata declara un año y medio de experiencia en atención al cliente en una tienda de deportes del centro, en sala y caja (s1 cubierto; volumen de clientes no detallado). Menciona cobros con TPV y cierres (s2 parcial; sin devoluciones ni detección de errores). Confirma disponibilidad para sábados y turnos de mañana o tarde (s3 cubierto). No aporta evidencia sobre material de running y montaña, inglés, reposición y recepción de mercancía, iniciativa, comunicación con ejemplos STAR ni coordinación de equipo; estas preguntas no se han respondido en la entrevista.",
+  "other_skills": [
+   {
+    "label": "Trabajo simultáneo en sala y caja",
+    "quote": "en sala y en caja; atendía a clientes, cobraba con TPV"
+   }
+  ],
+  "scorer": "haiku",
+  "finished_at": "2026-11-21T14:24:26.679588"
+ },
+ "calls": [
+  {
+   "template": "interview.planner@1",
+   "status": "ok",
+   "wall_ms": 7817,
+   "output_tokens": 1835
+  },
+  {
+   "template": "interview.planner@1",
+   "status": "ok",
+   "wall_ms": 8469,
+   "output_tokens": 2001
+  },
+  {
+   "template": "interviewer@1",
+   "status": "ok",
+   "wall_ms": 1844,
+   "output_tokens": 115
+  },
+  {
+   "template": "interview.slots@1",
+   "status": "ok",
+   "wall_ms": 4523,
+   "output_tokens": 728
+  },
+  {
+   "template": "interviewer@1",
+   "status": "ok",
+   "wall_ms": 2221,
+   "output_tokens": 74
+  },
+  {
+   "template": "interview.slots@1",
+   "status": "ok",
+   "wall_ms": 2869,
+   "output_tokens": 358
+  },
+  {
+   "template": "interviewer@1",
+   "status": "ok",
+   "wall_ms": 3484,
+   "output_tokens": 477
+  },
+  {
+   "template": "interview.report@1",
+   "status": "ok",
+   "wall_ms": 8583,
+   "output_tokens": 1942
+  }
+ ],
+ "haiku_calls": 8
+}

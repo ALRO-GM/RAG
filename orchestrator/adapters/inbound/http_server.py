@@ -7,8 +7,16 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``GET /transcripts``: recorded conversations a replay can use.
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
-  "session_id"?, "employee"?: {"id", "name"}}``: start a live session
-  on the transcriber.
+  "session_id"?, "employee"?: {"id", "name"}, "plan"?, "domain"?,
+  "candidate"?}``: start a live session on the transcriber (``plan``:
+  the interview plan of a ``voicebot.interview`` session; ``domain``:
+  the topic of a voice bot).
+- ``GET /interview/plans``, ``POST /interview/plans`` (``{"offer" |
+  "document": {"domain", "id"}, "title"?, "role_type"?, "minutes"?}``:
+  draft a plan with the planner), ``GET``/``PUT /interview/plans/{id}``
+  (the recruiter's edit, with the ``revision`` it was based on; 409 when
+  older) and ``GET /interview/plans/{id}/results`` (the candidates
+  interviewed from it, for the comparison view).
 - ``POST /sessions/{id}/replay`` ``{"product", "transcript",
   "speed"?, "employee"?}``: replay a transcript as a live session
   (``speed`` 1 is real time, ``null`` as fast as the services answer).
@@ -43,14 +51,17 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+from orchestrator.application.interview import PlanError
 from orchestrator.application.sessions import LiveSessions, SessionError
 
 STATUS = {
     "not_found": 404, "busy": 409, "wrong_state": 409,
     "invalid_request": 422, "transcriber": 502, "unavailable": 503,
-    "unauthorized": 401,
+    "unauthorized": 401, "conflict": 409, "offer": 502,
 }
 MAX_BODY = 16 * 1024
+MAX_PLAN_BODY = 96 * 1024
+"""Largest plan body (a job offer of 12 000 characters, JSON-escaped)."""
 
 
 def create_app(
@@ -80,6 +91,14 @@ def create_app(
             status_code=STATUS.get(exc.code, 400),
         )
 
+    @app.exception_handler(PlanError)
+    async def plan_error(request: Request, exc: PlanError) -> JSONResponse:
+        """Answer a refused plan request with its stable code."""
+        return JSONResponse(
+            {"code": exc.code, "message": str(exc)},
+            status_code=STATUS.get(exc.code, 400),
+        )
+
     @app.middleware("http")
     async def guard(request: Request, call_next: Any) -> Any:
         """Ask for the bearer token, and keep answers out of caches."""
@@ -95,9 +114,11 @@ def create_app(
         response.headers.setdefault("Cache-Control", "no-store")
         return response
 
-    async def body(request: Request) -> Dict[str, Any]:
+    async def body(
+        request: Request, limit: int = MAX_BODY
+    ) -> Dict[str, Any]:
         raw = await request.body()
-        if len(raw) > MAX_BODY:
+        if len(raw) > limit:
             raise SessionError("invalid_request", "body too large")
         try:
             data = json.loads(raw or b"{}")
@@ -141,7 +162,54 @@ def create_app(
             sessions.start_live, _text(data, "product"),
             _text(data, "audio"), data.get("session_id") or None,
             data.get("employee"),
+            _optional(data, "plan"), _optional(data, "domain"),
+            _optional(data, "candidate"),
         )
+
+    def planner() -> Any:
+        wiring = sessions.interview
+        if wiring is None:
+            raise SessionError("unavailable", "no interview plans here")
+        return wiring.planner
+
+    @app.get("/interview/plans")
+    async def list_plans() -> Dict[str, Any]:
+        """The interview plans."""
+        return {"plans": await run_in_threadpool(planner().list)}
+
+    @app.post("/interview/plans", status_code=201)
+    async def create_plan(request: Request) -> Dict[str, Any]:
+        """Draft a plan from a job offer (the planner model)."""
+        data = await body(request, MAX_PLAN_BODY)
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().create, data
+        )
+        return found
+
+    @app.get("/interview/plans/{plan_id}")
+    async def show_plan(plan_id: str) -> Dict[str, Any]:
+        """One plan."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().get, plan_id
+        )
+        return found
+
+    @app.put("/interview/plans/{plan_id}")
+    async def edit_plan(plan_id: str, request: Request) -> Dict[str, Any]:
+        """Save the recruiter's edit of a plan."""
+        data = await body(request, MAX_PLAN_BODY)
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().update, plan_id, data
+        )
+        return found
+
+    @app.get("/interview/plans/{plan_id}/results")
+    async def plan_results(plan_id: str) -> Dict[str, Any]:
+        """The candidates interviewed from a plan."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().results, plan_id
+        )
+        return found
 
     @app.post("/sessions/{session_id}/replay", status_code=201)
     async def replay(session_id: str, request: Request) -> Dict[str, Any]:
@@ -256,4 +324,14 @@ def _text(data: Dict[str, Any], key: str) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not value:
         raise SessionError("invalid_request", f"{key} is required")
+    return value
+
+
+def _optional(data: Dict[str, Any], key: str) -> Optional[str]:
+    """Return ``data[key]`` as a string, ``None`` when absent or empty."""
+    value = data.get(key)
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise SessionError("invalid_request", f"{key} must be a string")
     return value

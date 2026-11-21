@@ -40,7 +40,7 @@ from src.domain.reasoning.roles import (
     Status,
     Usage,
 )
-from src.domain.reasoning.templates import get_template
+from src.domain.reasoning.templates import get_template, template_role
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.usage import UsageLedger
 
@@ -186,12 +186,10 @@ class Reasoner:
         (the shipped ``live_assist`` products: Spanish, 3 suggestions).
         Returns whether the backend can be warmed (a cold or unknown
         backend is left alone). ``conversational`` templates (the voice
-        bot) are warmed the same way.
+        bot, the interviewer) and ``structured`` ones (the interview's
+        slot filler) are warmed the same way.
         """
-        role: Role = (
-            "conversational" if template_id.startswith("conversational.")
-            else "suggester"
-        )
+        role: Role = template_role(template_id)
         template = get_template(template_id, role)
         chat = self.live_models(model)
         warm = getattr(chat, "warm", None)
@@ -254,7 +252,9 @@ class Reasoner:
                     suggestions = suggestions[:limit]
                 response.suggestions = suggestions
                 response.reply = parsed.reply
-                if not suggestions and parsed.reply is None:
+                response.data = parsed.data
+                if (not suggestions and parsed.reply is None
+                        and parsed.data is None):
                     status = "no_suggestion"
         except QuotaExhaustedError as exc:
             status = "quota"

@@ -8,6 +8,12 @@
 // a headset, speaking over the bot stops its voice at once; without one,
 // the talk button does. The state lives in lib/voicebot.js; this module
 // draws it and plays the audio.
+//
+// Topics (#208): the page offers every product that speaks — the support
+// bot (whose knowledge domain can be changed) and the AI interviewer
+// (voicebot.interview), which first needs a job offer and a reviewed
+// interview plan (views/interview.js), then speaks first, shows the
+// recruiter a live coverage panel and, at the end, a visual report.
 
 import { h, fill } from "../dom.js";
 import { t } from "../i18n.js";
@@ -19,6 +25,8 @@ import {
   EnergyVad, MODES, SpeechQueue, VOICEBOT, VoiceBotState, base64ToBytes, turnLatency,
 } from "../lib/voicebot.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
+import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js";
+import { coveragePanel, planSetup, reportCard } from "./interview.js";
 
 const RETRY_MS = 2000;
 
@@ -36,9 +44,11 @@ function maybe(key, fallback, params) {
 export async function voicebotView(ctx, root) {
   root.classList.add("wide");
   let product = null;
+  let topics = [];
   try {
     const { products } = await ctx.api.liveProducts();
-    product = products.find((p) => p.product === VOICEBOT) ?? null;
+    topics = speakerProducts(products);
+    product = topics.find((p) => p.product === VOICEBOT) ?? topics[0] ?? null;
   } catch (error) {
     if (error?.kind === "unauthorized") throw error;
     product = null;
@@ -71,34 +81,66 @@ export async function voicebotView(ctx, root) {
 
   function showForm() {
     root.replaceChildren();
+    const topic = h("select", { id: "vb-topic" }, topics.map((p) => h("option", { value: p.product, selected: p.product === product.product },
+      maybe(`voicebot.topic.${p.product}`, p.product))));
+    const topicHint = h("p", { class: "hint" });
+    const domain = h("select", { id: "vb-domain" });
+    const domainBox = h("div", { class: "field" }, h("label", { for: "vb-domain" }, t("voicebot.domain")), domain);
+    const interviewBox = h("div", { class: "vb-interview" });
+    let domainsLoaded = false;
     const mode = h("select", { id: "vb-mode" }, MODES.map((m) => h("option", { value: m }, t(`voicebot.mode.${m}`))));
     const modeHint = h("p", { class: "hint" });
     const headset = h("input", { type: "checkbox", id: "vb-headset", checked: true });
     const start = h("button", { type: "button", class: "primary big", onClick: () => begin() }, icon("voicebot"), t("voicebot.start"));
     const formError = h("p", { class: "error", role: "alert", hidden: true });
-    const sync = () => { modeHint.textContent = t(`voicebot.mode_hint.${mode.value}`); };
+    const sync = () => {
+      modeHint.textContent = t(`voicebot.mode_hint.${mode.value}`);
+      product = topics.find((p) => p.product === topic.value) ?? product;
+      const interview = Boolean(product.interview);
+      topicHint.textContent = maybe(`voicebot.topic_hint.${product.product}`, "");
+      domainBox.hidden = interview || !product.domain;
+      start.hidden = interview;
+      interviewBox.hidden = !interview;
+      if (interview && !interviewBox.firstChild) {
+        interviewBox.append(planSetup(ctx, { onReady: (plan, candidate) => begin({ plan: plan.id, candidate: candidate || undefined }) }));
+      }
+      if (!interview && product.domain && !domainsLoaded) loadDomains();
+    };
+    async function loadDomains() {
+      domainsLoaded = true;
+      try {
+        const rows = await ctx.api.knowledgeDomains();
+        domain.replaceChildren(...rows.map((d) => h("option", { value: d.id, selected: d.id === product.domain }, `${d.title} (${d.id})`)));
+      } catch {
+        domain.replaceChildren(h("option", { value: product.domain }, product.domain));
+      }
+    }
     mode.addEventListener("change", sync);
+    topic.addEventListener("change", sync);
     if (!product.live) {
       start.disabled = true;
       formError.textContent = t("voicebot.no_mic");
       formError.hidden = false;
     }
 
-    async function begin() {
+    async function begin(extra = {}) {
       formError.hidden = true;
       start.disabled = true;
       start.textContent = t("voicebot.starting");
+      const body = { product: product.product, audio: "mic", session_id: newSessionId(product.interview ? "entrevista" : "voz"), ...extra };
+      if (!product.interview && domain.value && domain.value !== product.domain) body.domain = domain.value;
       // Created inside the click, so the browser lets it play the bot's voice.
       const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
       audioCtx = AudioContextClass ? new AudioContextClass() : null;
       audioCtx?.resume?.();
       try {
-        const session = await ctx.api.startLive({ product: VOICEBOT, audio: "mic", session_id: newSessionId("voz") });
-        showSession(session, { mode: mode.value, headset: headset.checked });
+        const session = await ctx.api.startLive(body);
+        showSession(session, { mode: mode.value, headset: headset.checked, interview: Boolean(product.interview) });
       } catch (error) {
         if (error?.kind === "unauthorized") return ctx.fail(error);
         formError.textContent = botError(error);
         formError.hidden = false;
+        if (product.interview) toast(botError(error), { error: true });
         start.disabled = false;
         start.replaceChildren(icon("voicebot"), t("voicebot.start"));
       }
@@ -109,25 +151,31 @@ export async function voicebotView(ctx, root) {
       pageHead(t("voicebot.title"), { lead: t("voicebot.lead") }),
       h("section", { class: "card vb-start" },
         h("p", { class: "notice info", role: "note" }, t("voicebot.notice")),
+        topics.length > 1 ? h("div", { class: "field" }, h("label", { for: "vb-topic" }, t("voicebot.topic")), topic) : null,
+        topicHint, domainBox,
         h("div", { class: "field" }, h("label", { for: "vb-mode" }, t("voicebot.mode")), mode), modeHint,
         h("label", { class: "check", for: "vb-headset" }, headset, " ", t("voicebot.headset")),
         h("p", { class: "hint" }, t("voicebot.headset_hint")),
         start),
-      formError);
+      formError, interviewBox);
     sync();
   }
 
   // ---- a running conversation ---------------------------------------------
 
-  function showSession(session, { mode, headset }) {
+  function showSession(session, { mode, headset, interview = false }) {
     root.replaceChildren();
     const state = new VoiceBotState();
     state.apply({ type: "session", session });
+    const ivState = interview ? new InterviewState() : null;
+    const coverage = h("div", { class: "iv-live" });
+    const report = h("div", { class: "iv-result" });
+    let stopping = false;
     running = true;
     let speaking = false;
     let pressed = false;
     let currentTurn = 0;
-    const queue = audioCtx ? new SpeechQueue(audioCtx, { onPlaying: (on) => { speaking = on; schedule(); } }) : null;
+    const queue = audioCtx ? new SpeechQueue(audioCtx, { onPlaying: (on) => { speaking = on; schedule(); if (!on) closeWhenDone(); } }) : null;
     const vad = new EnergyVad();
 
     const stop = h("button", { type: "button", class: "danger", onClick: () => end() }, icon("stop"), t("voicebot.stop"));
@@ -142,12 +190,14 @@ export async function voicebotView(ctx, root) {
       pageHead(t("voicebot.title"), { actions: [stop, again] }),
       h("p", { class: "notice info", role: "note" }, t("voicebot.notice")),
       status, alerts,
-      h("div", { class: "vb-layout" },
+      h("div", { class: interview ? "vb-layout iv-layout" : "vb-layout" },
         h("section", { class: "vb-pane" }, h("h2", {}, t("voicebot.conversation")), lines, latencyLine),
+        interview ? coverage : null,
         h("section", { class: "vb-control card" },
           talk,
           h("span", { class: "vb-meter", "aria-hidden": "true" }, meter),
-          h("p", { class: "hint" }, t(`voicebot.mode_hint.${mode}`)))));
+          h("p", { class: "hint" }, t(`voicebot.mode_hint.${mode}`)))),
+      report);
 
     let drawing = false;
     function schedule() {
@@ -184,7 +234,11 @@ export async function voicebotView(ctx, root) {
       },
       h("span", { class: "who" }, l.kind === "user" ? t("voicebot.you") : t("voicebot.bot"),
         l.state === "interrupted" ? h("span", { class: "tag warn" }, t("voicebot.interrupted")) : null),
-      h("span", { class: "text" }, l.text || (l.state === "thinking" ? t("voicebot.thinking") : "…")))) : h("li", { class: "hint" }, t("voicebot.waiting")));
+      h("span", { class: "text" }, l.text || (l.state === "thinking" ? t("voicebot.thinking") : "…")))) : h("li", { class: "hint" }, t(interview ? "voicebot.waiting_interview" : "voicebot.waiting")));
+      if (ivState) {
+        fill(coverage, coveragePanel(ivState));
+        if (ivState.result && !report.firstChild) fill(report, reportCard(ivState.result));
+      }
       if (atEnd) lines.scrollTop = lines.scrollHeight;
       const record = state.records.at(-1);
       const ms = turnLatency(record);
@@ -211,9 +265,22 @@ export async function voicebotView(ctx, root) {
       ctx.api.bargeIn(session.id).catch(() => {});
     }
 
+    function closeWhenDone() {
+      // The interviewer said goodbye: stop the session once its voice is out.
+      if (!ivState?.closed || speaking || stopping || state.state !== "running") return;
+      stopping = true;
+      setTimeout(() => {
+        // The goodbye may still be decoding: wait for it to play out.
+        if (speaking) stopping = false;
+        else if (state.state === "running") end();
+      }, 1500);
+    }
+
     function onMessage(message) {
       state.apply(message.data, message.id);
+      ivState?.apply(message.data);
       const item = message.data;
+      if (item.type === "interview" && item.state === "closed") closeWhenDone();
       if (item.type === "bot") currentTurn = Math.max(currentTurn, item.turn);
       if (item.type === "speech" && item.audio && queue) queue.enqueue(item.turn, base64ToBytes(item.audio));
       if (item.type === "interrupt") queue?.stop(item.turn);

@@ -37,6 +37,7 @@ python -m orchestrator serve [--host 127.0.0.1] [--port 8772] [--token-file F] \
 | `POST /sessions/{id}/stop` | | the session (live: also stops it on the transcriber) |
 | `GET /sessions`, `GET /sessions/{id}` | | state, counts of calls by status, skipped triggers, rejected events |
 | `POST /sessions/{id}/barge-in` | | voice bot only: the user spoke over the bot; `{"stopped": bool}` |
+| `GET/POST /interview/plans`, `GET/PUT /interview/plans/{id}`, `GET /interview/plans/{id}/results` | see `docs/live/VOICEBOT_INTERVIEWER.md` | the AI interviewer's plans and the candidates of a plan (#208) |
 | `GET /sessions/{id}/suggestions/stream` | `?after=n` or `Last-Event-ID` | Server-Sent Events (below) |
 
 Errors are `{"code", "message"}`: `not_found` 404, `busy`/`wrong_state` 409 (one session at a time), `invalid_request` 422, `transcriber` 502, `unavailable` 503 (no access code, so live sessions are off; replays still work).

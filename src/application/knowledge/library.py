@@ -11,7 +11,7 @@ the same way.
 
 import logging
 import threading
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 from src.application.knowledge.ports import (
     DocumentExtractor,
@@ -36,6 +36,7 @@ from src.domain.knowledge.documents import (
     sanitise_filename,
 )
 from src.domain.knowledge.domains import DomainManifest, DomainSummary
+from src.domain.knowledge.sources import split_front_matter
 
 LOG = logging.getLogger(__name__)
 
@@ -118,6 +119,25 @@ class KnowledgeLibrary:
         """Return a domain's uploaded documents, oldest first."""
         manifest = self.registry.manifest(domain_id)
         return self.store.list(manifest.id)
+
+    def text(
+        self, domain_id: str, doc_id: str
+    ) -> Tuple[KnowledgeDocument, str]:
+        """Return an indexed document and its extracted text (no front matter).
+
+        Raises ``NotFoundError`` for an unknown domain or document, and
+        ``BusyError`` while the document is not indexed yet.
+        """
+        manifest = self.registry.manifest(domain_id)
+        document = self.store.get(manifest.id, doc_id)
+        if document.status != "indexed":
+            raise BusyError(
+                f"El documento aún no está listo ({document.status}). / The "
+                f"document is not ready yet ({document.status})."
+            )
+        text = self.store.read_text(manifest.id, document.id)
+        start = split_front_matter(document.id, text).body_start
+        return document, text[start:].strip()
 
     def _check_metadata(
         self, manifest: DomainManifest, metadata: DocumentMetadata

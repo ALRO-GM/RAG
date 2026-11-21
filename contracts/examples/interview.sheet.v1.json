@@ -1,0 +1,120 @@
+{
+  "schema": "interview.sheet.v1",
+  "session_id": "voz-20261121-100500",
+  "plan_id": "plan-20261121-100000",
+  "plan_revision": 0,
+  "title": "Dependiente/a de tienda de deportes",
+  "state": "closed",
+  "closed_by": "covered",
+  "turns": 9,
+  "elapsed_s": 612.4,
+  "minutes": 20,
+  "minimums_covered": true,
+  "turns_to_minimums": 7,
+  "slots": [
+    {
+      "id": "s1",
+      "label": "Experiencia mínima de un año en atención al cliente en tienda",
+      "level": "minimo",
+      "weight": 4,
+      "competency": null,
+      "status": "filled",
+      "asked": 1,
+      "probes": 0,
+      "answers": [
+        {
+          "utterance": "t1.s0",
+          "quote": "Estuve dos años en una tienda de deportes atendiendo en sala y en caja",
+          "status": "complete"
+        }
+      ],
+      "score": 85,
+      "above": false,
+      "notes": "Dos años en tienda, cubre lo pedido.",
+      "confidence": 0.7,
+      "scored_by": "model"
+    },
+    {
+      "id": "s2",
+      "label": "Disponibilidad para turnos rotativos incluidos sábados",
+      "level": "minimo",
+      "weight": 4,
+      "competency": null,
+      "status": "partial",
+      "asked": 1,
+      "probes": 1,
+      "answers": [
+        {
+          "utterance": "t3.s0",
+          "quote": "Sí, más o menos puedo",
+          "status": "partial"
+        }
+      ],
+      "score": 40,
+      "above": false,
+      "notes": "",
+      "confidence": 0.4,
+      "scored_by": "model"
+    },
+    {
+      "id": "s3",
+      "label": "Valorable conocimiento de material de running",
+      "level": "deseable",
+      "weight": 4,
+      "competency": null,
+      "status": "unknown",
+      "asked": 1,
+      "probes": 0,
+      "answers": [],
+      "score": 0,
+      "above": false,
+      "notes": "",
+      "confidence": 0.8,
+      "scored_by": "model"
+    },
+    {
+      "id": "s4",
+      "label": "Comunicación clara",
+      "level": "minimo",
+      "weight": 3,
+      "competency": "COMM",
+      "status": "empty",
+      "asked": 0,
+      "probes": 0,
+      "answers": [],
+      "score": null,
+      "above": false,
+      "notes": "",
+      "confidence": null,
+      "scored_by": null
+    },
+    {
+      "id": "s5",
+      "label": "Resolución de problemas",
+      "level": "deseable",
+      "weight": 2,
+      "competency": "SOLVE",
+      "status": "empty",
+      "asked": 0,
+      "probes": 0,
+      "answers": [],
+      "score": null,
+      "above": false,
+      "notes": "",
+      "confidence": null,
+      "scored_by": null
+    }
+  ],
+  "filler": "haiku",
+  "candidate": null,
+  "suitability": 33.3,
+  "summary": "Borrador: experiencia en tienda acreditada; disponibilidad de sábados sin concretar.",
+  "other_skills": [
+    {
+      "label": "Gestión de inventario",
+      "quote": "también llevaba el recuento de stock"
+    }
+  ],
+  "scorer": "haiku",
+  "finished_at": "2026-11-21T10:00:00"
+}

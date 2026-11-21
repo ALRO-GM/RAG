@@ -19,7 +19,7 @@ suggester's choices do not apply to it. Plain data: no I/O.
 import re
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-from orchestrator.domain.config import ProductConfig
+from orchestrator.domain.config import VOICEBOTS, ProductConfig
 
 MODELS = ("haiku", "sonnet", "opus")
 MODES = ("pincelada", "guiado")
@@ -78,7 +78,7 @@ def apply_live_choices(
     """Return ``config`` with the saved live choices applied."""
     if not choices or config.reasoner is None:
         return config
-    if config.product == "voicebot":
+    if config.product in VOICEBOTS:
         return _voicebot(config, choices)
     reasoner: Dict[str, Any] = {}
     model = choices.get("live.suggester_model")
@@ -114,4 +114,35 @@ def _voicebot(
     voice = voice_choices(choices)
     if voice and config.tts is not None:
         update["tts"] = config.tts.model_copy(update=voice)
+    if config.interview is not None:
+        update.update(_interview(config, choices))
     return config.model_copy(update=update) if update else config
+
+
+PROBES = {"0": 0, "1": 1, "2": 2}
+MINUTES = {"15": 15, "20": 20, "30": 30, "45": 45}
+FILLERS = ("haiku", "heuristic")
+SWITCH = {"on": True, "off": False}
+
+
+def _interview(
+    config: ProductConfig, choices: Mapping[str, str]
+) -> Dict[str, Any]:
+    """Return the interviewer's own saved choices (#208), if any."""
+    assert config.interview is not None
+    section: Dict[str, Any] = {}
+    filler = choices.get("interview.slot_filler")
+    if filler in FILLERS:
+        section["filler"] = filler
+    probes = PROBES.get(choices.get("interview.max_probes", ""))
+    if probes is not None:
+        section["max_probes"] = probes
+    minutes = MINUTES.get(choices.get("interview.minutes", ""))
+    if minutes is not None:
+        section["minutes"] = minutes
+    post = SWITCH.get(choices.get("interview.post_call", ""))
+    if post is not None:
+        section["post_call"] = post
+    if not section:
+        return {}
+    return {"interview": config.interview.model_copy(update=section)}

@@ -71,7 +71,7 @@ test("the contract's example is a preset the page recognises", () => {
 
 test("steps are grouped in page order; an unknown group goes last", () => {
   const groups = stepsByGroup({ steps: [...catalogue.steps, { id: "voicebot.voice", group: "voicebot", options: ["a"] }, { id: "z.z", group: "zeta", options: ["a"] }] });
-  assert.deepEqual(groups.map((g) => g.group), ["transcription", "live", "analysis", "knowledge", "voicebot", "zeta"]);
+  assert.deepEqual(groups.map((g) => g.group), ["transcription", "live", "analysis", "knowledge", "voicebot", "interview", "zeta"]);
   assert.ok(GROUPS.includes("voicebot"), "the voice bot has a place waiting for it");
   assert.deepEqual(stepsByGroup(null), []);
 });

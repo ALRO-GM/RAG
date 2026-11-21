@@ -876,6 +876,18 @@ def mount_library(
                               metadata)
         return dict(document.model_dump(mode="json"))
 
+    @app.get("/knowledge/domains/{domain_id}/documents/{doc_id}/text",
+             dependencies=guard)
+    async def document_text(domain_id: str, doc_id: str) -> Dict[str, Any]:
+        """Return an indexed document's extracted text (front matter cut).
+
+        ``{"id", "name", "text", "chars"}``; ``409`` while it is not
+        indexed. The interview planner reads a job offer this way.
+        """
+        document, text = await call(library.text, domain_id, doc_id)
+        return {"id": document.id, "name": document.name, "text": text,
+                "chars": len(text)}
+
     @app.patch("/knowledge/domains/{domain_id}/documents/{doc_id}",
                dependencies=guard)
     async def relabel_document(
