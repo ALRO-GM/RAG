@@ -1,0 +1,178 @@
+{
+ "results/support.pool-unprimed.suggestions.jsonl": {
+  "calls": 13,
+  "status": {
+   "timeout": 12,
+   "ok": 1
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 19.0,
+    "p90": 24.2
+   },
+   "reasoner_ms": {
+    "p50": 1804.0,
+    "p90": 1820.8
+   },
+   "total_ms": {
+    "p50": 1827.1,
+    "p90": 1843.1
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 12.0,
+    "p90": 12.0
+   },
+   "reasoner_ms": {
+    "p50": 1331.4,
+    "p90": 1331.4
+   },
+   "total_ms": {
+    "p50": 1343.4,
+    "p90": 1343.4
+   }
+  }
+ },
+ "results/interview.pool-unprimed.suggestions.jsonl": {
+  "calls": 14,
+  "status": {
+   "timeout": 5,
+   "ok": 8,
+   "no_suggestion": 1
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 13.2,
+    "p90": 22.3
+   },
+   "reasoner_ms": {
+    "p50": 1285.4,
+    "p90": 1806.9
+   },
+   "total_ms": {
+    "p50": 1299.6,
+    "p90": 1825.6
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 13.1,
+    "p90": 23.2
+   },
+   "reasoner_ms": {
+    "p50": 1206.1,
+    "p90": 1385.9
+   },
+   "total_ms": {
+    "p50": 1218.2,
+    "p90": 1397.5
+   }
+  }
+ },
+ "results/support.fix.suggestions.jsonl": {
+  "calls": 13,
+  "status": {
+   "timeout": 12,
+   "ok": 1
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 20.9,
+    "p90": 25.5
+   },
+   "reasoner_ms": {
+    "p50": 1806.0,
+    "p90": 1823.6
+   },
+   "total_ms": {
+    "p50": 1829.3,
+    "p90": 1847.9
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 20.9,
+    "p90": 20.9
+   },
+   "reasoner_ms": {
+    "p50": 1768.9,
+    "p90": 1768.9
+   },
+   "total_ms": {
+    "p50": 1789.8,
+    "p90": 1789.8
+   }
+  }
+ },
+ "results/support.fix2.suggestions.jsonl": {
+  "calls": 13,
+  "status": {
+   "timeout": 11,
+   "ok": 2
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 20.1,
+    "p90": 24.6
+   },
+   "reasoner_ms": {
+    "p50": 1805.5,
+    "p90": 1820.2
+   },
+   "total_ms": {
+    "p50": 1825.5,
+    "p90": 1846.9
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 18.1,
+    "p90": 21.3
+   },
+   "reasoner_ms": {
+    "p50": 1429.0,
+    "p90": 1534.7
+   },
+   "total_ms": {
+    "p50": 1447.2,
+    "p90": 1556.0
+   }
+  }
+ },
+ "results/interview.fix.suggestions.jsonl": {
+  "calls": 14,
+  "status": {
+   "ok": 12,
+   "timeout": 2
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 15.2,
+    "p90": 23.1
+   },
+   "reasoner_ms": {
+    "p50": 1153.6,
+    "p90": 1822.0
+   },
+   "total_ms": {
+    "p50": 1170.5,
+    "p90": 1835.7
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 15.2,
+    "p90": 22.8
+   },
+   "reasoner_ms": {
+    "p50": 1105.3,
+    "p90": 1306.2
+   },
+   "total_ms": {
+    "p50": 1119.4,
+    "p90": 1320.2
+   }
+  }
+ }
+}

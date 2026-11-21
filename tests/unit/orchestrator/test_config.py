@@ -147,3 +147,19 @@ class TestFiles:
             load_transcript(bad)
         with pytest.raises(ConfigError):
             load_transcript(tmp_path / "missing.json")
+
+
+def test_shipped_products_reference_existing_domains() -> None:
+    """Every knowledge domain a shipped product names has a manifest."""
+    import yaml
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    missing = []
+    for path in sorted((root / "config" / "products").glob("*.yaml")):
+        knowledge = yaml.safe_load(path.read_text()).get("knowledge") or {}
+        for domain in knowledge.get("domains", []):
+            if not (root / "knowledge" / "domains" / domain
+                    / "manifest.yaml").is_file():
+                missing.append(f"{path.name}: {domain}")
+    assert not missing

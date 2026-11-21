@@ -5,7 +5,7 @@ source: {kind: pipewire, channels: {0: {speaker: S1, role: agent}, 1: {speaker: 
 vad: {model: silero-v5, hang_ms: 500}
 asr: {kind: stream, model: faster-whisper-large-v3-turbo-int8, partial_every_ms: 800}
 attribution: {kind: channels}
-knowledge: {domains: [support.general], top_k: 4}
+knowledge: {domains: [support.demo], top_k: 4}
 reasoner: {role: suggester, model: haiku, template: "suggester.support@1", deadline_ms: 1800, max_inflight: 1, expressed_signals: true}
 trigger: {on: final, speaker_roles: [customer], min_words: 4, debounce_ms: 300, cancel_stale: true}
 ui: {kind: live_page}

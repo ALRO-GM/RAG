@@ -5,7 +5,7 @@ source: {kind: ws, channels: {0: {speaker: S1, role: user}}}
 vad: {model: silero-v5, hang_ms: 400}
 asr: {kind: stream, model: faster-whisper-large-v3-turbo-int8, partial_every_ms: 800}
 attribution: {kind: single_speaker}
-knowledge: {domains: [support.general], top_k: 4}
+knowledge: {domains: [support.demo], top_k: 4}
 reasoner: {role: conversational, model: haiku, template: "conversational.voicebot@1", deadline_ms: 1800, max_inflight: 1}
 trigger: {on: turn_end, speaker_roles: [user], min_words: 2, debounce_ms: 0, cancel_stale: true}
 tts: {kind: piper, voice: es_ES}
