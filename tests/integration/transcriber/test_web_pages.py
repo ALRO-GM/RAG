@@ -339,11 +339,10 @@ def test_every_page_has_the_language_switch(page: str) -> None:
     """ES | EN buttons in the header; the header and title translatable."""
     header = Header()
     header.feed((WEB / page).read_text(encoding="utf-8"))
-    langs = [b.get("data-lang") for b in header.buttons]
-    assert langs == ["es", "en"]
+    switch = [b for b in header.buttons if b.get("id") != "logout"]
+    assert [b.get("data-lang") for b in switch] == ["es", "en"]
     assert all(b.get("type") == "button" for b in header.buttons)
-    assert all(b.get("aria-pressed") in ("true", "false")
-               for b in header.buttons)
+    assert all(b.get("aria-pressed") in ("true", "false") for b in switch)
     assert [g.get("data-i18n-label") for g in header.groups] == [
         "lang.switch"
     ]
