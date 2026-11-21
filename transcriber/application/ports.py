@@ -28,6 +28,7 @@ import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict, Field
 
+from transcriber.domain.gpu_lease import AckFile, LeaseFile
 from transcriber.domain.diarization import Diarization
 from transcriber.domain.models import (
     ConsentRecord,
@@ -487,6 +488,45 @@ class JobRunner(Protocol):
 
     def status(self, session_id: str) -> Optional[JobStatus]:
         """Return the status of the session's job, if one was submitted."""
+        ...
+
+
+class GpuLease(Protocol):
+    """The cooperative GPU lease (``gpu-lease.v1``, PL-12).
+
+    The live mode acquires it and keeps it alive; the other side (the
+    image worker, the transcriber's own batch jobs) reads it and stays
+    off the card while it is valid. A holder that dies stops renewing
+    it and it expires by itself.
+    """
+
+    def acquire(
+        self, need_mib: int, starts_at: Optional[datetime] = None
+    ) -> LeaseFile:
+        """Take the lease, renewing it every 5 s until :meth:`release`.
+
+        Raises :class:`StateError` if another process holds a valid one.
+        """
+        ...
+
+    def release(self) -> None:
+        """Stop renewing and delete this holder's lease file."""
+        ...
+
+    def current(self) -> Optional[LeaseFile]:
+        """Return the valid lease (not expired, holder alive), if any."""
+        ...
+
+    def ack(self) -> Optional[AckFile]:
+        """Return the other side's ack of the current lease, if any."""
+        ...
+
+    def freed(self) -> bool:
+        """Tell whether the other side acknowledged the current lease."""
+        ...
+
+    def clear(self) -> bool:
+        """Delete the lease whoever holds it (operator); tell if one was."""
         ...
 
 
