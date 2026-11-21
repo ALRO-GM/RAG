@@ -538,6 +538,15 @@ class Commands:
         lease = build_gpu_lease(self.environ)
         return GpuLeaseCommands(lease, self.output).run(args)
 
+    def live_file(self, args: argparse.Namespace) -> int:
+        """Run the live transcription over a WAV file (JSON lines)."""
+        from transcriber.adapters.inbound.live_cli import LiveFileCommand
+        from transcriber.bootstrap import build_live, read_live_audio
+
+        return LiveFileCommand(
+            build_live, read_live_audio, self.output
+        ).run(args)
+
     def lab(self, args: argparse.Namespace) -> int:
         """List the lab's models, run a suite, list or summarise runs."""
         from transcriber.adapters.inbound.lab_cli import LabCommands
@@ -682,9 +691,11 @@ def build_parser() -> argparse.ArgumentParser:
         add_gpu_lease_parser,
     )
     from transcriber.adapters.inbound.lab_cli import add_lab_parser
+    from transcriber.adapters.inbound.live_cli import add_live_parser
 
     add_gpu_lease_parser(commands, _json_flag)
     add_lab_parser(commands, _json_flag)
+    add_live_parser(commands)
     return parser
 
 
@@ -702,6 +713,7 @@ HANDLERS: Dict[str, Callable[[Commands, argparse.Namespace], int]] = {
     "enrolment-text": Commands.enrolment_text,
     "lab": Commands.lab,
     "gpu-lease": Commands.gpu_lease,
+    "live-file": Commands.live_file,
 }
 
 

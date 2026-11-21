@@ -24,7 +24,9 @@ import os
 from dataclasses import dataclass
 from typing import Callable, Dict, Mapping, Optional, Protocol, Tuple
 
-from transcriber.adapters.outbound.av_audio_decoder import AvAudioDecoder
+from transcriber.adapters.outbound.av_audio_decoder import (
+    AvAudioDecoder, read_channels,
+)
 from transcriber.adapters.outbound.chisel_tunnel import (
     ChiselTunnel,
     TunnelSetupError,
@@ -76,7 +78,9 @@ from transcriber.adapters.outbound.subprocess_lab_tool import (
     OsProcessTable,
     SubprocessLabTool,
 )
-from transcriber.adapters.outbound.system_clock import SystemClock
+from transcriber.adapters.outbound.system_clock import (
+    SystemClock, SystemTimer,
+)
 from transcriber.adapters.outbound.local_name_model import LocalNameModel
 from transcriber.adapters.outbound.fs_gpu_lease import (
     FileSystemGpuLease, lease_directory,
@@ -146,6 +150,9 @@ from transcriber.application.analysis import (
     SessionAnalysisAccess,
 )
 from transcriber.application.knowledge import KnowledgeAccess
+from transcriber.application.live import (
+    LiveOptions, LiveTranscription,
+)
 from transcriber.application.publish import PublishTranscript
 from transcriber.application.record import (
     AppendAudio,
@@ -490,6 +497,30 @@ def build_publisher(
 def build_gpu_lease(environ: Mapping[str, str]) -> GpuLease:
     """Return the file lease of the live mode (``gpu-lease.v1``)."""
     return FileSystemGpuLease(lease_directory(environ))
+
+
+read_live_audio = read_channels
+"""Reads a sound file for ``live-file`` (one stream per channel or one)."""
+
+
+def build_live(options: LiveOptions) -> LiveTranscription:
+    """Return the live transcription: Silero VAD, faster-whisper stream.
+
+    Both adapters load their model on first use (``live`` dependency
+    group); nothing here touches the GPU yet.
+    """
+    from transcriber.adapters.outbound.faster_whisper_stream import (
+        FasterWhisperStream,
+    )
+    from transcriber.adapters.outbound.silero_vad import SileroVad
+
+    asr = FasterWhisperStream(
+        model=options.model, device=options.device,
+        compute_type=options.compute_type, language=options.language,
+    )
+    return LiveTranscription(
+        SileroVad, asr, SystemClock(), SystemTimer(), options.settings
+    )
 
 
 def build_container(
