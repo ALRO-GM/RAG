@@ -13,7 +13,7 @@ Live tracking of the work. Each task says **what** is being done and
 
 | ID | Task | What will be done |
 |---|---|---|
-| VB-11 | A natural Spanish voice for the bot (#214) | Measured (`docs/live/NATURAL_TTS.md`): Qwen3-TTS 0.6B clone UTMOS 3.93, 188 ms first audio, 4.3 GB GPU; Pocket TTS `lola` 3.74 on the CPU, 81 ms, no GPU; Kokoro `ef_dora` 3.71, 46 ms; Ming-3.0-tts 3.42 (deleted); Piper davefx 2.67. Next: the owner listens to `experiments/live/tts_samples/`, then the winner becomes a TTS adapter behind the port, selectable in `voicebot.voice`. |
+| VB-11 | A natural Spanish voice for the bot (#214) | Study (`docs/live/NATURAL_TTS.md` §1–5); owner chose both: **Pocket TTS `lola`** (new default, CPU) and **Qwen3-TTS 0.6B** (`qwen3`, and cloning with `voicebot.clone_engine = qwen3`), streamed by warm workers in their own venvs, GPU only under the live lease, fallback Pocket CPU → Piper per sentence (§6). End of turn → first audio p50 1,653 ms (Pocket CPU), 1,620 (Pocket GPU), 1,740 (Qwen3), 8 turns each (§7). Not measured: Qwen3 cloning from an enrolled clip (speaker embedding only). |
 | T-17 | 42 login in the README | Replace `<login>` in the first line of `README.md` (mandatory format). Needs the author's login. |
 | T-36 | Skills: human reference data | Record or collect real sessions, train 3 annotators (`docs/skills/ANNOTATION_GUIDE.md`), reach the agreement thresholds, then tune and evaluate. Needs people; nothing in the analyzer is validated until this is done. |
 | T-37 | Skills: API judge live test | Run `skills --judge api assess` with Anthropic credentials and compare with the local judge on the reference data. Needs credentials and consent for external processing. |

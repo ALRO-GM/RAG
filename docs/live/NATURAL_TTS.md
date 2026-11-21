@@ -308,12 +308,45 @@ Check: `HF_HUB_OFFLINE=1 .venv/bin/python -m pytest -m slow
 tests/slow/test_natural_voice_worker.py` (Pocket on the CPU through the
 adapter).
 
+## 7. Measured end to end: end of the user's turn → first audio
+
+`experiments/voicebot/first_audio.py` (VB-5's script, now also keeping
+the sample rate of each turn's first audio and the feed's `voice`
+messages) against a spare orchestrator of this branch
+(`experiments/voicebot/natural_serve.py`: `serve` with the voice
+choices fixed for that process, the saved «Ajustes» untouched), the
+running transcriber (real ASR on the GPU, live session with its GPU
+lease) and the running RAG (warm Haiku pool). 8 synthetic turns per
+engine (the first 8 questions of VB-5), feed followed on the
+orchestrator (VB-5 followed it through the transcriber's proxy).
+Result `experiments/voicebot/natural_first_audio_results.json`, run
+2026-11-21; 24 real Haiku calls.
+
+| Engine (`voicebot.voice`, `pocket_device`) | Voice end → first audio p50 / p90 / max ms | Final → first audio p50 / p90 ms | Turn start → first sentence p50 ms | First audio of the TTS (`first_tts_ms`) p50 / p90 ms | Turns within 2.5 s |
+|---|---|---|---|---|---|
+| Pocket TTS `lola`, CPU (`pocket:lola`, `cpu`) | 1,653 / 1,873 / 1,915 | 952 / 1,280 | 856 | 102 / 118 | 8 of 8 |
+| Pocket TTS `lola`, GPU (`pocket:lola`, `cuda`) | 1,620 / 1,698 / 1,819 | 974 / 1,113 | 931 | 40 / 56 | 8 of 8 |
+| Qwen3-TTS 0.6B, GPU (`qwen3`) | 1,740 / 1,900 / 1,920 | 1,095 / 1,324 | 893 | 201 / 204 | 8 of 8 |
+| Baseline: Piper davefx, CPU (VB-5, 14 turns, through the proxy) | 1,584 / 1,731 / 1,850 | 915 / 1,134 | 831 | 93 / 155 | 14 of 14 |
+
+In every turn of the three runs the chosen engine spoke the first
+audio (24 kHz) and the feed reported no fallback. The time to the first
+audio is still mostly the recogniser's final (~0.6 s) and the reply's
+first sentence (~0.9 s); the natural voices add their first piece:
+~0.1 s for Pocket on the CPU, ~0.04 s on the GPU, ~0.2 s for Qwen3
+(per-sentence first audio inside the worker, measured in §3: 81, 18 and
+188 ms). Eight turns per engine, one session each: the differences
+between the three rows (≈ 0.1 s at p50) are within what the reply
+model's own variation moves (its first token p50 566–660 ms across the
+runs). The cloned `clone:<person>` with Qwen3 (speaker embedding only)
+and the sample button were not measured end to end.
+
 ## Limits
 
 - One reference voice for the cloners, one run per engine (15
   sentences), no listener yet: the naturalness numbers are a predictor.
-- First audio is measured inside the worker; the end-to-end first audio
-  of a voice-bot turn (recogniser, LLM, TTS) was not.
+- §3 measures first audio inside the worker; §7 the whole turn, on 8
+  synthetic turns per engine only.
 - Latency was measured with the GPU lease held (the IMG worker paused);
   with the recogniser busy at the same time, the GPU engines will be
   slower. Pocket on the CPU is unaffected by the GPU, but the CPU is
