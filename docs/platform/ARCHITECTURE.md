@@ -127,8 +127,10 @@ of silence on the latest partial. Quota or auth errors show a banner and
 stop suggesting. There is no silent fallback to the local model during
 live mode (it would compete for the GPU).
 P3 target: end of user turn → first audio ≤2.5 s. Reasoner output streams
-sentence by sentence into Piper (~150 ms per sentence on CPU, unmeasured).
-VAD on the mic interrupts playback (barge-in). Use a headset to avoid echo.
+sentence by sentence into Piper (first sentence p50 93 ms, p90 155 ms on the
+CPU). VAD on the mic interrupts playback (barge-in). Use a headset to avoid
+echo. Measured on 15 synthetic turns (VB-5, `docs/live/VOICEBOT.md`): end of
+the user's voice → first audio at the page p50 1584 ms, p90 1731 ms.
 
 ## 7. GPU priority: cooperative lease (`gpu-lease.v1`)
 

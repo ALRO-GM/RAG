@@ -105,3 +105,50 @@ default). Without a headset: untick it and use push-to-talk; pressing
 the button while the bot speaks is the barge-in. The browser's own echo
 cancellation (`echoCancellation: true`) is asked for on this page only
 (the live and record pages keep it off, as before).
+
+## Measured: end of the user's turn → first audio (VB-5, 2026-11-21)
+
+`experiments/voicebot/first_audio.py`, result
+`experiments/voicebot/first_audio_results.json`. 15 synthetic user turns
+(Spanish questions about `support.demo`, voice `es_ES-sharvard-medium`,
+not the bot's), streamed in real time into a `voicebot` session of a
+transcriber (real ASR on the GPU, live session with its GPU lease), an
+orchestrator (Piper `es_ES-davefx-medium` on the CPU) and a RAG
+(`POST /reason/stream`, warm Haiku pool of `conversational.voicebot@1`,
+knowledge on the CPU), all three from this branch on spare ports of the
+workstation. "Voice end" is when a microphone would have delivered the
+last voiced sample; it includes the VAD hang (400 ms). Browser decoding
+and the audio output's own buffer are not included.
+
+| Stage (14 answered turns) | p50 ms | p90 ms | max ms | Clock |
+|---|---|---|---|---|
+| **Voice end → first audio at the client** | 1584 | 1731 | 1850 | client (through the `/api/assist` proxy, as the page) |
+| Voice end → user's final at the client | 671 | 729 | 742 | client |
+| Final → first audio at the client | 915 | 1134 | 1259 | client |
+| Transcriber `event_lag_ms` (end of speech → final) | 642 | 745 | 772 | transcriber |
+| Knowledge query | 12 | 13 | 13 | orchestrator |
+| Turn start → first reply text | 612 | 817 | 921 | orchestrator |
+| Reasoner's own first token | 578 | 803 | 906 | RAG (warm process) |
+| Turn start → first sentence complete | 831 | 1050 | 1172 | orchestrator |
+| Piper, first sentence | 93 | 155 | 181 | orchestrator |
+| Turn start → first audio published | 912 | 1132 | 1258 | orchestrator |
+| Whole reply (reasoner) | 915 | 1190 | 1246 | orchestrator |
+| Bot audio per turn (length, not time) | 9108 | 12250 | 12852 | — |
+
+14 of 14 answered turns had their first audio within 2.5 s. Turns: {'ok': 14, 'timeout': 1}. The
+timed-out turn hit the reasoner's 1800 ms deadline
+(`voicebot.yaml`) before any sentence was complete; the bot then said
+its fallback phrase, first audio at 2459 ms. With two short sentences per
+reply, streaming saves little: the first sentence is complete at p50 831
+ms, the whole reply at 915 ms. 15 real Haiku calls in this run (one per
+turn). For all of VB-1…VB-5 about 24, an estimate from the runs (4
+warm-up pings of the spare RAG's two pools, 19 answered or timed-out
+turns, one replacement process after the time-out), within the cap of 40.
+
+Seen in the replies: when a chunk only partly covers the question the
+bot sometimes says so in the template's words ("ese dato no está en los
+fragmentos…"); `conversational.voicebot@1` is unchanged here, a spoken
+wording is a new template version (follow-up).
+
+Synthetic only: one rendered voice, clean audio, short questions, one
+session; no real speakers, no noise, no barge-in measured.
