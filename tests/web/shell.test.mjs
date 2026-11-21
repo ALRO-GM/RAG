@@ -40,6 +40,7 @@ test("breadcrumbs name the section, then the ids from the address; the last has 
   assert.deepEqual(crumbsFor("#/s/s%201", t), [{ label: "<nav.sessions>", href: "#/" }, { label: "s 1", href: null }]);
   assert.deepEqual(crumbsFor("#/analysis/abc", t).map((c) => c.href), ["#/", "#/s/abc", null]);
   assert.deepEqual(crumbsFor("#/knowledge", t), [{ label: "<nav.knowledge>", href: null }]);
+  assert.deepEqual(crumbsFor("#/voicebot", t), [{ label: "<nav.voicebot>", href: null }]);
   assert.deepEqual(crumbsFor("#/knowledge/hr", t), [{ label: "<nav.knowledge>", href: "#/knowledge" }, { label: "hr", href: null }]);
   const lab = crumbsFor("#/lab/sess/0123456789abcdef/review", t);
   assert.deepEqual(lab.map((c) => c.label), ["<nav.lab>", "sess", "01234567", "review"]);

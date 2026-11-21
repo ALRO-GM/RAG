@@ -11,7 +11,7 @@ Readers are deployed before writers. Each schema goes in
 |---|---|---|---|
 | live.event.v1 | transcriber | orchestrator, live page | WebSocket `/api/live/{session}/events` (alias `/live/{session}/events`; JSON per message; `docs/live/LIVE_SESSION.md`) |
 | knowledge.query.v1 / knowledge.result.v1 | orchestrator, analyzer | RAG | `POST /knowledge/query` |
-| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason` |
+| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason`; `POST /reason/stream` (NDJSON: `{"type": "text", "text"}` pieces of the model's raw output as it writes them, then `{"type": "response", "response"}` or `{"type": "error", "message"}`; the voice bot, VB-2) |
 | tts.request.v1 | orchestrator | Piper adapter | in-process call or `POST /tts` (audio bytes back) |
 | gpu-lease.v1 | transcriber (live) | IMG worker, transcriber JobRunner | file `$XDG_RUNTIME_DIR/gpu-lease/lease.json` |
 | transcript.v1 (exists) | transcriber | RAG / analyzer | `POST /transcripts` |
@@ -339,6 +339,17 @@ whatever `claude -p --model haiku` reports.)
 }
 ```
 Response: audio bytes, with headers `X-Request-Id` and `X-Synth-Ms`.
+
+Implemented in-process by the orchestrator's `TextToSpeech` port
+(`orchestrator/adapters/outbound/piper_tts.py`, VB-1): Piper runs as its
+own process from its own venv (GPL-3.0, never imported), one process per
+voice kept warm. With `stream: true` the text is cut into sentences and
+one audio chunk (`SpeechChunk`: `request_id`, `seq`, `text`, `audio`,
+`format`, `sample_rate`, `synth_ms`) is yielded per sentence as soon as
+it is synthesised; `sample_rate` is the voice's own (22050 Hz for the
+`medium` voices), whatever the request says. A later request whose
+`interrupt_id` names a running one stops it after its current sentence
+(barge-in). No HTTP `POST /tts` exists yet.
 
 ## 7. gpu-lease.v1 (file, not HTTP)
 

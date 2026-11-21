@@ -36,6 +36,7 @@ from src.domain.reasoning.roles import (
     Latency,
     ReasonRequest,
     ReasonResponse,
+    Role,
     Status,
     Usage,
 )
@@ -82,25 +83,28 @@ class MeteredModel:
     def complete(
         self, system: str, user: str, max_tokens: int,
         deadline_s: Optional[float] = None,
+        on_text: Optional[Callable[[str], None]] = None,
     ) -> str:
         """Ask the model and record the call in the ledger.
 
         With ``deadline_s`` a backend that can cancel
         (``complete_within``) gives up then; any other backend is let
-        finish and a late answer is dropped as a time-out.
+        finish and a late answer is dropped as a time-out. With
+        ``on_text`` a backend that streams (``complete_streaming``)
+        passes each text piece as it comes; any other backend passes
+        the whole reply once, at the end.
         """
         self.calls += 1
         started = time.perf_counter()
         try:
-            within = getattr(self.model, "complete_within", None)
-            if deadline_s is not None and callable(within):
-                return str(within(system, user, max_tokens, deadline_s))
-            text = self.model.complete(system, user, max_tokens)
-            if (deadline_s is not None
-                    and time.perf_counter() - started > deadline_s):
-                raise ModelTimeoutError(
-                    f"The answer took longer than {deadline_s:g} s."
-                )
+            streaming = getattr(self.model, "complete_streaming", None)
+            if on_text is not None and callable(streaming):
+                return str(streaming(system, user, max_tokens, deadline_s,
+                                     on_text))
+            text = self._complete(system, user, max_tokens, deadline_s,
+                                  started)
+            if on_text is not None:
+                on_text(text)
             return text
         finally:
             if self.ledger is not None:
@@ -108,6 +112,22 @@ class MeteredModel:
                     f"{self.model.model_name}#{self.role}",
                     last_usage(self.model),
                 )
+
+    def _complete(
+        self, system: str, user: str, max_tokens: int,
+        deadline_s: Optional[float], started: float,
+    ) -> str:
+        """Ask a backend that does not stream (see :meth:`complete`)."""
+        within = getattr(self.model, "complete_within", None)
+        if deadline_s is not None and callable(within):
+            return str(within(system, user, max_tokens, deadline_s))
+        text = self.model.complete(system, user, max_tokens)
+        if (deadline_s is not None
+                and time.perf_counter() - started > deadline_s):
+            raise ModelTimeoutError(
+                f"The answer took longer than {deadline_s:g} s."
+            )
+        return text
 
 
 class Reasoner:
@@ -165,15 +185,20 @@ class Reasoner:
         the arguments must match the requests the product will send
         (the shipped ``live_assist`` products: Spanish, 3 suggestions).
         Returns whether the backend can be warmed (a cold or unknown
-        backend is left alone).
+        backend is left alone). ``conversational`` templates (the voice
+        bot) are warmed the same way.
         """
-        template = get_template(template_id, "suggester")
+        role: Role = (
+            "conversational" if template_id.startswith("conversational.")
+            else "suggester"
+        )
+        template = get_template(template_id, role)
         chat = self.live_models(model)
         warm = getattr(chat, "warm", None)
         if not callable(warm):
             return False
         request = ReasonRequest(
-            request_id="warm-up", role="suggester", model=model,
+            request_id="warm-up", role=role, model=model,
             template=template_id, language=language,
             context=Context(window=[]),
             constraints=Constraints(max_suggestions=max_suggestions),
@@ -181,10 +206,17 @@ class Reasoner:
         warm(template.system(request), template.max_output_tokens)
         return True
 
-    def reason(self, request: ReasonRequest) -> ReasonResponse:
+    def reason(
+        self, request: ReasonRequest,
+        on_text: Optional[Callable[[str], None]] = None,
+    ) -> ReasonResponse:
         """Return the answer to ``request`` (never raises a model error).
 
-        An unknown template or a role that does not match it raises
+        ``on_text`` receives the model's raw output piece by piece while
+        it is written (the voice bot speaks the first sentence of a
+        conversational reply before the reply ends); a backend that
+        does not stream passes the whole output once. An unknown
+        template or a role that does not match it raises
         :class:`~src.domain.errors.InvalidInputError`: the caller's
         mistake, not the model's.
         """
@@ -213,7 +245,7 @@ class Reasoner:
                           template.max_output_tokens)
                 text = chat.complete(
                     template.system(request), template.user(request), cap,
-                    _deadline_s(request),
+                    _deadline_s(request), on_text,
                 )
                 parsed = template.parse(text, request)
                 limit = request.constraints.max_suggestions

@@ -9,7 +9,8 @@ to import the services' own code.
 from typing import Any, Callable, Dict, Iterator, List, Protocol
 
 from orchestrator.domain.events import LiveEvent, Transcript
-from orchestrator.domain.records import SuggestionRecord
+from orchestrator.domain.records import SuggestionRecord, TurnRecord
+from orchestrator.domain.speech import SpeechChunk
 
 Document = Dict[str, Any]
 """A contract document as plain JSON."""
@@ -54,6 +55,43 @@ class ReasonerPort(Protocol):
         ...
 
 
+class TextToSpeech(Protocol):
+    """Text to speech (Piper in a process of its own)."""
+
+    def synthesize(
+        self, request: Document, cancel: CancelToken
+    ) -> Iterator[SpeechChunk]:
+        """Speak a ``tts.request.v1``: one chunk per sentence, in order.
+
+        With ``stream`` true each sentence is yielded as soon as it is
+        synthesised; no more are made once ``cancel`` is set, or once a
+        later request names this one in its ``interrupt_id`` (barge-in).
+
+        Raises:
+            TtsUnavailable: The synthesiser could not be run.
+        """
+        ...
+
+
+class StreamingReasoner(Protocol):
+    """A reasoner that hands its output over while it is written."""
+
+    def reason_stream(
+        self, request: Document, cancel: CancelToken,
+        on_text: Callable[[str], None],
+    ) -> Document:
+        """Like :meth:`ReasonerPort.reason`, passing text pieces on.
+
+        ``on_text`` receives the model's raw output piece by piece;
+        the return value is the whole ``reasoner.response.v1``. Once
+        ``cancel`` is set no more pieces are passed.
+
+        Raises:
+            ReasonerUnavailable: The service could not be reached.
+        """
+        ...
+
+
 class Clock(Protocol):
     """Monotonic time and waiting (replaced by a fake in tests)."""
 
@@ -82,6 +120,26 @@ class SuggestionSink(Protocol):
     """Where the suggestion records go (a JSONL file, a UI)."""
 
     def write(self, record: SuggestionRecord) -> None:
+        """Store one record."""
+        ...
+
+
+class BotOutput(Protocol):
+    """Where the voice bot's messages go (the session's feed and log)."""
+
+    def publish(self, message: Document) -> None:
+        """Send one message to the page (speech, interrupt, turn state)."""
+        ...
+
+    def record(self, record: TurnRecord) -> None:
+        """Keep the record of a finished turn."""
+        ...
+
+
+class TurnSink(Protocol):
+    """Where the voice bot's turn records are logged (a JSONL file)."""
+
+    def write(self, record: TurnRecord) -> None:
         """Store one record."""
         ...
 
@@ -162,6 +220,10 @@ class KnowledgeUnavailable(Exception):
 
 class ReasonerUnavailable(Exception):
     """The reasoner service could not be reached."""
+
+
+class TtsUnavailable(Exception):
+    """The text-to-speech process could not speak."""
 
 
 class TranscriberUnavailable(Exception):

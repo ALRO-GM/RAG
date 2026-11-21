@@ -14,7 +14,9 @@ child process), ``DELETE …/run`` stops it, and the others serve its
 step records, step results and person reports. ``POST /knowledge/query``
 answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8);
 ``POST /reason`` answers a ``reasoner.request.v1`` with a
-``reasoner.response.v1`` (PL-16);
+``reasoner.response.v1`` (PL-16), and ``POST /reason/stream`` does the
+same as NDJSON lines: the model's text pieces as it writes them, then
+the response (VB-2, the voice bot speaks before the reply ends);
 ``/knowledge/domains`` lists, creates and deletes domains and uploads,
 relabels and deletes their documents (``docs/KNOWLEDGE.md``).
 These routes need a bearer token, compared in constant time; when no
@@ -22,15 +24,16 @@ token is configured they are not mounted at all, so they are never
 open.
 """
 
+import asyncio
 import hmac
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from starlette.datastructures import UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
@@ -60,6 +63,7 @@ from src.domain.knowledge.documents import DocumentMetadata
 from src.domain.knowledge.domains import DomainManifest
 from src.domain.models import MinimalAnswer, MinimalSource
 from src.domain.reasoning.roles import ReasonRequest
+from src.domain.reasoning.templates import get_template
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import MAX_JOB, JobSought
 
@@ -586,6 +590,68 @@ def mount_reason(
         except RagError as exc:
             raise http_error(exc)
         return JSONResponse(answer.to_contract())
+
+    @app.post("/reason/stream", dependencies=guard)
+    async def reason_stream(request: Request) -> StreamingResponse:
+        """Answer a ``reasoner.request.v1`` as NDJSON, piece by piece.
+
+        Lines: ``{"type": "text", "text": ...}`` for each piece of the
+        model's raw output as it is written, then ``{"type":
+        "response", "response": <reasoner.response.v1>}`` (or ``{"type":
+        "error", "message"}``). ``422`` before any line when the body
+        breaks the contract or names an unknown template.
+        """
+        body = await read_body(request, REASON_MAX_BYTES)
+        try:
+            asked = ReasonRequest.model_validate_json(body)
+            if asked.role != "judge":
+                get_template(asked.template, asked.role)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=short_reason(exc))
+        except InvalidInputError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        return StreamingResponse(
+            reason_lines(reasoner, asked),
+            media_type="application/x-ndjson",
+            headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"},
+        )
+
+
+async def reason_lines(
+    reasoner: Reasoner, asked: ReasonRequest
+) -> AsyncIterator[str]:
+    """Run ``asked`` on a thread and yield its NDJSON lines."""
+    loop = asyncio.get_running_loop()
+    pieces: "asyncio.Queue[str]" = asyncio.Queue()
+
+    def on_text(text: str) -> None:
+        loop.call_soon_threadsafe(pieces.put_nowait, text)
+
+    task = asyncio.ensure_future(
+        run_in_threadpool(reasoner.reason, asked, on_text)
+    )
+    while True:
+        getter = asyncio.ensure_future(pieces.get())
+        done, _ = await asyncio.wait(
+            {getter, task}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if getter not in done:
+            getter.cancel()
+            break
+        yield _line({"type": "text", "text": getter.result()})
+    while not pieces.empty():
+        yield _line({"type": "text", "text": pieces.get_nowait()})
+    try:
+        answer = task.result()
+    except RagError as exc:
+        yield _line({"type": "error", "message": str(exc)})
+        return
+    yield _line({"type": "response", "response": answer.to_contract()})
+
+
+def _line(item: Dict[str, Any]) -> str:
+    """One NDJSON line."""
+    return json.dumps(item, ensure_ascii=False) + "\n"
 
 
 def knowledge_error(exc: RagError) -> HTTPException:

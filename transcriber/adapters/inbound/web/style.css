@@ -1051,3 +1051,33 @@ details.tech, details.controls { margin: 1rem 0; }
   .live-start { grid-template-columns: 1fr 1fr; }
   .live-layout { grid-template-columns: 1fr 1fr; }
 }
+
+/* ---- voice bot (#/voicebot) ---- */
+.vb-start { display: flex; flex-direction: column; gap: var(--s-3); max-width: 40rem; }
+.vb-start button.big { align-self: flex-start; flex: none; }
+.vb-layout { display: grid; grid-template-columns: 1fr; gap: var(--s-4); align-items: start; }
+.vb-pane { min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.vb-pane h2 { font-size: var(--fs-lg); margin: 0; }
+.vb-lines { list-style: none; margin: 0; padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2); min-height: 16rem; max-height: 62vh; overflow-y: auto; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.vb-line { display: flex; flex-direction: column; gap: 2px; max-width: 85%; padding: var(--s-2) var(--s-3); border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); }
+.vb-line .who { display: flex; gap: var(--s-2); align-items: center; font-size: var(--fs-sm); font-weight: 650; color: var(--muted); }
+.vb-line.is-user { align-self: flex-end; background: var(--active); border-color: var(--accent-6); }
+.vb-line.is-bot { align-self: flex-start; }
+.vb-line.partial { border-style: dashed; color: var(--muted); font-style: italic; }
+.vb-line.state-thinking .text { color: var(--muted); font-style: italic; }
+.vb-line.state-interrupted .text { color: var(--muted); }
+.vb-control { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); text-align: center; }
+.vb-talk { width: 9.5rem; height: 9.5rem; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-2); font-weight: 600; border: 2px solid var(--accent); background: var(--surface); color: var(--accent-ink); touch-action: none; user-select: none; -webkit-user-select: none; }
+.vb-talk .icon { width: 2.2rem; height: 2.2rem; }
+.vb-talk .label { font-size: var(--fs-sm); padding: 0 var(--s-2); }
+.vb-talk.is-on { background: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 6px var(--active); }
+.vb-meter { display: block; width: 10rem; height: 6px; border-radius: 99px; background: var(--sunken); border: 1px solid var(--line); overflow: hidden; }
+.vb-meter-fill { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); transition: transform 80ms linear; }
+.vb-phase.is-speaking { background: var(--active); color: var(--accent-ink); }
+.vb-latency { margin: 0; }
+@media (min-width: 900px) {
+  .vb-layout { grid-template-columns: minmax(0, 1fr) 16rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vb-meter-fill { transition: none; }
+}

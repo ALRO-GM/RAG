@@ -56,6 +56,18 @@ class Feed:
             self._cond.notify_all()
             return self._first + len(self._items) - 1
 
+    def strip(self, numbers: List[int], key: str) -> None:
+        """Remove ``key`` from the kept messages numbered ``numbers``.
+
+        The voice bot drops a turn's audio once a newer turn starts, so
+        a long session does not keep its audio in memory.
+        """
+        with self._cond:
+            for number in numbers:
+                at = number - self._first
+                if 0 <= at < len(self._items):
+                    self._items[at].pop(key, None)
+
     def close(self) -> None:
         """Say no more messages will come; wake every reader."""
         with self._cond:

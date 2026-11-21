@@ -42,3 +42,4 @@ Stage 3: voice chatbot (headlines)
 - VB-2 Conversational template + sentence-chunked reasoner streaming. M
 - VB-3 Barge-in and echo handling. M
 - VB-4 Voicebot loop in orchestrator (config `voicebot.yaml`). S
+- VB-5 Experiment: end of user turn → first audio ≤2.5 s, p50/p90 per stage. M

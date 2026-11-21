@@ -46,6 +46,7 @@ export async function liveView(ctx, root) {
   let transcripts = [];
   try {
     [{ products }, { transcripts }] = await Promise.all([ctx.api.liveProducts(), ctx.api.liveTranscripts()]);
+    products = products.filter((p) => productKind(p.product)); // the voice bot has its own page
   } catch (error) {
     if (error?.kind === "unauthorized") throw error;
     root.append(pageHead(t("live.title"), { lead: t("live.lead") }),

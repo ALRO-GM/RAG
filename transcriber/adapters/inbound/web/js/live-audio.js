@@ -26,9 +26,14 @@ export class LiveAudio {
    *   code       the access code
    *   onLevel    microphone peak, 0..1
    *   onProblem  (kind) "socket" | "refused" | "ended" | "suspended"
+   *   echoCancellation  the browser's echo cancellation (voice bot only)
+   * `muted` (settable) sends silence instead of the microphone, so the
+   * transcriber still hears time pass and closes the sentence (push-to-talk).
    */
-  constructor({ id, code, onLevel = () => {}, onProblem = () => {} }) {
+  constructor({ id, code, onLevel = () => {}, onProblem = () => {}, echoCancellation = false }) {
     this.id = id;
+    this.echoCancellation = echoCancellation;
+    this.muted = false;
     this.code = code;
     this.onLevel = onLevel;
     this.onProblem = onProblem;
@@ -72,12 +77,13 @@ export class LiveAudio {
       onPcm: (bytes) => this._send(bytes),
       onLevel: this.onLevel,
       onProblem: (kind) => this.onProblem(kind),
+      echoCancellation: this.echoCancellation,
     });
     await this.capture.start();
   }
 
   _send(bytes) {
-    this.pending.push(bytes);
+    this.pending.push(this.muted ? new Uint8Array(bytes.length) : bytes);
     this.pendingBytes += bytes.length;
     if (this.pendingBytes < PIECE_BYTES) return;
     const piece = new Uint8Array(this.pendingBytes);

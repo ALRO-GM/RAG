@@ -264,6 +264,9 @@ export class Api {
 
   stopLive(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/stop`); }
 
+  /** The user spoke over the voice bot: stop its turn ({ stopped }). */
+  bargeIn(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/barge-in`); }
+
   liveSession(id) { return this.request("GET", `/assist/sessions/${encodeURIComponent(id)}`); }
 
   /**

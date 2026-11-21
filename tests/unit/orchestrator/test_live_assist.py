@@ -190,7 +190,7 @@ def test_a_live_product_is_required() -> None:
         assist(config=product("post_call"))
 
 
-def test_voicebot_turn_end_trigger() -> None:
+def test_voicebot_fires_on_user_finals() -> None:
     config = product("voicebot")
     t = transcript()
     roles = {"a": "bot", "c": "user"}
@@ -199,8 +199,9 @@ def test_voicebot_turn_end_trigger() -> None:
     for event in transcript_to_events(t, roles):
         a.on_event(event)
     records = a.sink.records  # type: ignore[attr-defined]
-    assert [r.trigger.utterance for r in records] == ["t2.s0", "t4.s0"]
+    assert [r.trigger.utterance for r in records] == ["t1.s0", "t4.s0"]
     assert records[0].trigger.text.startswith("Tengo un problema")
+    assert records[0].reply is not None
 
 
 def test_default_roles_by_order() -> None:

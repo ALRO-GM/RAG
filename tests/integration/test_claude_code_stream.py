@@ -439,3 +439,20 @@ def test_spare_that_does_not_start_is_dropped() -> None:
     other = backend(Spawns(stopped), pool_size=2)
     other.warm("s", 50)
     assert stopped.closed
+
+
+def test_streaming_passes_each_text_delta_on() -> None:
+    def piece(text: str) -> str:
+        return json.dumps({"type": "stream_event", "event": {
+            "type": "content_block_delta",
+            "delta": {"type": "text_delta", "text": text},
+        }})
+
+    model = backend(Spawns(ScriptedProcess([
+        [piece('{"text": "Ho'), "{}", piece('la."}'),
+         done('{"text": "Hola."}')],
+    ])))
+    pieces: List[str] = []
+    out = model.complete_streaming("s", "u", 50, None, pieces.append)
+    assert pieces == ['{"text": "Ho', 'la."}']
+    assert out == '{"text": "Hola."}'

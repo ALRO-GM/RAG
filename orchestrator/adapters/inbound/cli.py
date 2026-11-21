@@ -9,7 +9,12 @@ in-process reasoner over the real model lives outside this package
 
 ``serve`` runs the live page's API (:mod:`.http_server`) on a loopback
 address: live sessions through the transcriber, and replays of recorded
-transcripts for a demo without a microphone.
+transcripts for a demo without a microphone. With ``--tts piper`` (the
+default) it also serves the voice bot (``voicebot`` product): Piper
+runs from its own venv (``--piper-python``, voices in
+``--voices-dir``) and is warmed in the background at start; ``--tts
+fake`` answers with short tones, ``--tts none`` leaves the voice bot
+out.
 """
 
 import argparse
@@ -21,7 +26,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Optional, Sequence
 
-from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
+from orchestrator.adapters.outbound.fakes import (
+    FakeKnowledge,
+    FakeReasoner,
+    FakeTts,
+)
 from orchestrator.adapters.outbound.files import (
     ConfigError,
     check_dir,
@@ -30,7 +39,12 @@ from orchestrator.adapters.outbound.files import (
 )
 from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
-from orchestrator.adapters.outbound.jsonl_sink import JsonlSink
+from orchestrator.adapters.outbound.jsonl_sink import JsonlSink, JsonlTurns
+from orchestrator.adapters.outbound.piper_tts import (
+    DEFAULT_PYTHON,
+    DEFAULT_VOICES,
+    PiperTts,
+)
 from orchestrator.adapters.outbound.fs_transcripts import DirTranscripts
 from orchestrator.adapters.outbound.http_transcriber import (
     HttpTranscriber,
@@ -46,6 +60,9 @@ from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.ports import (
     KnowledgePort,
     ReasonerPort,
+    TextToSpeech,
+    TtsUnavailable,
+    TurnSink,
     SuggestionSink,
 )
 from orchestrator.application.sessions import LiveSessions
@@ -129,6 +146,11 @@ def add_serve_parser(
     serve.add_argument("--log-dir", type=Path,
                        default=ROOT / "data" / "live" / "serve")
     serve.add_argument("--fake-delay-ms", type=float, default=0.0)
+    serve.add_argument("--tts", default="piper",
+                       help="piper | fake | none (the voice bot's voice)")
+    serve.add_argument("--piper-python", type=Path, default=DEFAULT_PYTHON,
+                       help="python of Piper's own venv (GPL-3.0)")
+    serve.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES)
 
 
 def parse_speed(text: str) -> Optional[float]:
@@ -231,6 +253,35 @@ def load_products(directory: Path) -> Dict[str, ProductConfig]:
     return products
 
 
+def build_tts(
+    args: argparse.Namespace, products: Dict[str, ProductConfig]
+) -> Optional[TextToSpeech]:
+    """Return the voice bot's text to speech, warmed in the background."""
+    kind = getattr(args, "tts", "none")
+    if kind == "fake":
+        return FakeTts()
+    if kind == "none":
+        return None
+    if kind != "piper":
+        raise ValueError(f"unknown tts {kind!r}")
+    python = Path(args.piper_python).expanduser()
+    if not python.exists():
+        print(f"voice bot off: no Piper venv at {python}", file=sys.stderr)
+        return None
+    tts = PiperTts(python=python, voices_dir=args.voices_dir)
+    voices = {c.tts.voice for c in products.values() if c.tts is not None}
+
+    def warm() -> None:
+        for voice in sorted(voices):
+            try:
+                tts.warm(voice)
+            except TtsUnavailable as exc:
+                print(f"Piper warm-up failed: {exc}", file=sys.stderr)
+
+    ThreadRunner().start(warm)
+    return tts
+
+
 def build_sessions(args: argparse.Namespace) -> LiveSessions:
     """Wire the live sessions of ``serve`` from the arguments."""
     args.token = read_code(args.rag_token_file)
@@ -248,15 +299,19 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
             log_dir / f"{session_id}.{product}.suggestions.jsonl"
         )
 
+    def turns(session_id: str, product: str) -> TurnSink:
+        return JsonlTurns(log_dir / f"{session_id}.{product}.turns.jsonl")
+
     new_id: Callable[[], str] = lambda: datetime.now().strftime(
         "live-%Y%m%d-%H%M%S"
     )
+    products = load_products(args.config_dir)
     return LiveSessions(
-        load_products(args.config_dir), build_knowledge(args),
-        build_reasoner(args),
+        products, build_knowledge(args), build_reasoner(args),
         DirTranscripts(args.transcripts or list(TRANSCRIPT_DIRS)),
         SystemClock(), ThreadRunner(), ThreadExecutor, transcriber,
-        events, log, new_id,
+        events, log, new_id, tts=build_tts(args, products),
+        turn_log=turns,
     )
 
 

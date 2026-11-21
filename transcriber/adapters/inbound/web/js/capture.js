@@ -18,9 +18,12 @@ export class Capture {
    *   onPcm(bytes)      16 kHz mono 16-bit little-endian PCM, even length
    *   onLevel(peak)     0..1 per block
    *   onProblem(kind)   "ended" (microphone taken) | "suspended"
+   *   echoCancellation  ask the browser to cancel echo (the voice bot,
+   *                     whose voice plays while the microphone listens)
    */
-  constructor({ onPcm, onLevel = () => {}, onProblem = () => {} }) {
+  constructor({ onPcm, onLevel = () => {}, onProblem = () => {}, echoCancellation = false }) {
     this.onPcm = onPcm;
+    this.echoCancellation = echoCancellation;
     this.onLevel = onLevel;
     this.onProblem = onProblem;
     this.paused = false;
@@ -46,7 +49,7 @@ export class Capture {
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: false,
+          echoCancellation: this.echoCancellation,
           noiseSuppression: false,
           autoGainControl: false,
           channelCount: { ideal: 1 },
