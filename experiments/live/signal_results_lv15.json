@@ -1,0 +1,923 @@
+{
+ "haiku_calls_this_run": 60,
+ "snippets": 60,
+ "statuses": {
+  "no_suggestion": 12,
+  "ok": 48
+ },
+ "per_signal": {
+  "complaint": {
+   "shown": 10,
+   "correct": 7,
+   "gold": 8,
+   "precision": 0.7,
+   "recall": 0.875
+  },
+  "stated_frustration": {
+   "shown": 7,
+   "correct": 6,
+   "gold": 8,
+   "precision": 0.857,
+   "recall": 0.75
+  },
+  "urgency": {
+   "shown": 8,
+   "correct": 7,
+   "gold": 8,
+   "precision": 0.875,
+   "recall": 0.875
+  },
+  "churn_risk": {
+   "shown": 6,
+   "correct": 6,
+   "gold": 8,
+   "precision": 1.0,
+   "recall": 0.75
+  },
+  "confusion": {
+   "shown": 8,
+   "correct": 7,
+   "gold": 8,
+   "precision": 0.875,
+   "recall": 0.875
+  },
+  "satisfaction": {
+   "shown": 5,
+   "correct": 5,
+   "gold": 8,
+   "precision": 1.0,
+   "recall": 0.625
+  }
+ },
+ "confusion": {
+  "complaint": {
+   "complaint": 7,
+   "stated_frustration": 0,
+   "urgency": 0,
+   "churn_risk": 0,
+   "confusion": 0,
+   "satisfaction": 0,
+   "none": 1
+  },
+  "stated_frustration": {
+   "complaint": 3,
+   "stated_frustration": 6,
+   "urgency": 0,
+   "churn_risk": 0,
+   "confusion": 0,
+   "satisfaction": 0,
+   "none": 2
+  },
+  "urgency": {
+   "complaint": 0,
+   "stated_frustration": 0,
+   "urgency": 7,
+   "churn_risk": 0,
+   "confusion": 0,
+   "satisfaction": 0,
+   "none": 1
+  },
+  "churn_risk": {
+   "complaint": 0,
+   "stated_frustration": 1,
+   "urgency": 1,
+   "churn_risk": 6,
+   "confusion": 0,
+   "satisfaction": 0,
+   "none": 2
+  },
+  "confusion": {
+   "complaint": 0,
+   "stated_frustration": 0,
+   "urgency": 0,
+   "churn_risk": 0,
+   "confusion": 7,
+   "satisfaction": 0,
+   "none": 1
+  },
+  "satisfaction": {
+   "complaint": 0,
+   "stated_frustration": 0,
+   "urgency": 0,
+   "churn_risk": 0,
+   "confusion": 0,
+   "satisfaction": 5,
+   "none": 3
+  },
+  "none": {
+   "complaint": 0,
+   "stated_frustration": 0,
+   "urgency": 0,
+   "churn_risk": 0,
+   "confusion": 1,
+   "satisfaction": 0,
+   "none": 11
+  }
+ },
+ "none_clean": 11,
+ "none_total": 12,
+ "rows": [
+  {
+   "id": "c01",
+   "gold": "complaint",
+   "customer": "Me llegó la mesa con una pata rota y es la segunda vez que me pasa con ustedes.",
+   "elapsed_s": 1.06,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c02",
+   "gold": "complaint",
+   "customer": "Quiero poner una queja: el repartidor dejó el paquete en la calle y se mojó entero.",
+   "elapsed_s": 1.32,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c03",
+   "gold": "complaint",
+   "customer": "El sofá que recibí no tiene nada que ver con el de la foto de la web.",
+   "elapsed_s": 0.92,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c04",
+   "gold": "complaint",
+   "customer": "Me cobraron el envío dos veces en la tarjeta y nadie me ha devuelto el dinero.",
+   "elapsed_s": 2.17,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c05",
+   "gold": "complaint",
+   "customer": "La lámpara llegó sin las bombillas que venían anunciadas en el pedido.",
+   "elapsed_s": 1.73,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c06",
+   "gold": "complaint",
+   "customer": "Sobre el armario, que vino con un golpe enorme en la puerta y sin protección en la caja.",
+   "elapsed_s": 1.45,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "c07",
+   "gold": "complaint",
+   "customer": "Es el 4471, y le aviso de que el colchón huele fatal y no es lo que compré.",
+   "elapsed_s": 1.89,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "c08",
+   "gold": "complaint",
+   "customer": "Llevo media hora en el chat de su web y nadie me ha contestado, es un servicio pésimo.",
+   "elapsed_s": 2.61,
+   "status": "ok",
+   "shown": [
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "f01",
+   "gold": "stated_frustration",
+   "customer": "Estoy harto de repetir lo mismo cada vez que llamo, esto es muy frustrante.",
+   "elapsed_s": 1.75,
+   "status": "ok",
+   "shown": [
+    "stated_frustration"
+   ],
+   "raw_signals": [
+    [
+     "stated_frustration"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "gold": "stated_frustration",
+   "customer": "Estoy muy enfadado, me han pasado de un departamento a otro cuatro veces.",
+   "elapsed_s": 2.02,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "f03",
+   "gold": "stated_frustration",
+   "customer": "Otro formulario más, de verdad, ya no puedo con tanta burocracia, me estoy desesperando.",
+   "elapsed_s": 1.7,
+   "status": "ok",
+   "shown": [
+    "stated_frustration"
+   ],
+   "raw_signals": [
+    [
+     "stated_frustration"
+    ]
+   ]
+  },
+  {
+   "id": "f04",
+   "gold": "stated_frustration",
+   "customer": "Me siento ignorado, nadie me da una respuesta clara y ya me estoy cansando.",
+   "elapsed_s": 1.79,
+   "status": "ok",
+   "shown": [
+    "stated_frustration",
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "stated_frustration",
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "f05",
+   "gold": "stated_frustration",
+   "customer": "Es que estoy muy enfadada, llevo toda la mañana con este asunto y no avanzamos.",
+   "elapsed_s": 1.47,
+   "status": "ok",
+   "shown": [
+    "stated_frustration",
+    "complaint"
+   ],
+   "raw_signals": [
+    [
+     "stated_frustration",
+     "complaint"
+    ]
+   ]
+  },
+  {
+   "id": "f06",
+   "gold": "stated_frustration",
+   "customer": "Esto me parece una tomadura de pelo, estoy cada vez más irritado.",
+   "elapsed_s": 2.03,
+   "status": "ok",
+   "shown": [
+    "stated_frustration"
+   ],
+   "raw_signals": [
+    [
+     "stated_frustration"
+    ]
+   ]
+  },
+  {
+   "id": "f07",
+   "gold": "stated_frustration",
+   "customer": "Ya se los he dado tres veces, estoy harta, de verdad, me sacan de quicio.",
+   "elapsed_s": 2.29,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "f08",
+   "gold": "stated_frustration",
+   "customer": "Me tiene muy molesto que nadie cumpla lo que dice, estoy realmente disgustado.",
+   "elapsed_s": 2.33,
+   "status": "ok",
+   "shown": [
+    "complaint",
+    "stated_frustration"
+   ],
+   "raw_signals": [
+    [
+     "complaint",
+     "stated_frustration"
+    ]
+   ]
+  },
+  {
+   "id": "u01",
+   "gold": "urgency",
+   "customer": "La necesito para mañana por la mañana sin falta, es el cumpleaños de mi hija.",
+   "elapsed_s": 1.45,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u02",
+   "gold": "urgency",
+   "customer": "Es urgente, tengo invitados el viernes y necesito la mesa antes de ese día.",
+   "elapsed_s": 1.39,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u03",
+   "gold": "urgency",
+   "customer": "Necesito el dinero cuanto antes, tengo que pagar el alquiler esta misma semana.",
+   "elapsed_s": 1.21,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u04",
+   "gold": "urgency",
+   "customer": "No puedo esperar tanto, necesito que vengan hoy o mañana como mucho.",
+   "elapsed_s": 1.33,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u05",
+   "gold": "urgency",
+   "customer": "Tiene que ser hoy mismo, mañana me mudo y el sofá tiene que estar en la casa nueva.",
+   "elapsed_s": 1.99,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u06",
+   "gold": "urgency",
+   "customer": "Sí, la garantía me caduca pasado mañana, así que necesito que lo tramiten ya.",
+   "elapsed_s": 1.62,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "u07",
+   "gold": "urgency",
+   "customer": "Dos semanas es demasiado, lo necesito esta semana sin falta, por favor, es muy urgente.",
+   "elapsed_s": 1.31,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "u08",
+   "gold": "urgency",
+   "customer": "Por favor, hágalo ahora mismo, tengo que recibirlo antes de las cinco de la tarde.",
+   "elapsed_s": 1.51,
+   "status": "ok",
+   "shown": [
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "r01",
+   "gold": "churn_risk",
+   "customer": "Si esto no se arregla hoy voy a cancelar mi cuenta y comprar en otra tienda.",
+   "elapsed_s": 1.54,
+   "status": "ok",
+   "shown": [
+    "churn_risk",
+    "urgency"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk",
+     "urgency"
+    ]
+   ]
+  },
+  {
+   "id": "r02",
+   "gold": "churn_risk",
+   "customer": "Es la última vez que les compro nada, me doy de baja del club de clientes.",
+   "elapsed_s": 1.76,
+   "status": "ok",
+   "shown": [
+    "churn_risk"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk"
+    ]
+   ]
+  },
+  {
+   "id": "r03",
+   "gold": "churn_risk",
+   "customer": "Me estoy planteando seriamente irme a la competencia, allí no me tratan así.",
+   "elapsed_s": 1.16,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "r04",
+   "gold": "churn_risk",
+   "customer": "Si vuelve a llegar tarde, doy de baja la suscripción y no vuelvo a pedir con ustedes.",
+   "elapsed_s": 1.31,
+   "status": "ok",
+   "shown": [
+    "churn_risk"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk"
+    ]
+   ]
+  },
+  {
+   "id": "r05",
+   "gold": "churn_risk",
+   "customer": "Pues entonces cancelo todo y me llevo mis compras a otro sitio, así de claro.",
+   "elapsed_s": 1.5,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "r06",
+   "gold": "churn_risk",
+   "customer": "Más vale que lo resuelvan, porque si no cierro mi cuenta y se lo cuento a todo el mundo.",
+   "elapsed_s": 1.78,
+   "status": "ok",
+   "shown": [
+    "churn_risk"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk"
+    ]
+   ]
+  },
+  {
+   "id": "r07",
+   "gold": "churn_risk",
+   "customer": "No voy a seguir pagando por un servicio así, quiero darme de baja ya.",
+   "elapsed_s": 1.3,
+   "status": "ok",
+   "shown": [
+    "churn_risk"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk"
+    ]
+   ]
+  },
+  {
+   "id": "r08",
+   "gold": "churn_risk",
+   "customer": "Ya he mirado otras tiendas y creo que me cambio a otra, esto es lo último que aguanto.",
+   "elapsed_s": 1.86,
+   "status": "ok",
+   "shown": [
+    "churn_risk",
+    "stated_frustration"
+   ],
+   "raw_signals": [
+    [
+     "churn_risk",
+     "stated_frustration"
+    ]
+   ]
+  },
+  {
+   "id": "x01",
+   "gold": "confusion",
+   "customer": "No entiendo qué es el código de devolución ni dónde lo tengo que poner.",
+   "elapsed_s": 1.69,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x02",
+   "gold": "confusion",
+   "customer": "¿Qué significa parcial? No me ha quedado claro si me llega todo o solo una parte.",
+   "elapsed_s": 1.91,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x03",
+   "gold": "confusion",
+   "customer": "Perdone, me he perdido, ¿qué saldo? Yo pagué con tarjeta.",
+   "elapsed_s": 1.97,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x04",
+   "gold": "confusion",
+   "customer": "No sé cómo se entra en el portal, ¿me lo puede explicar paso a paso?",
+   "elapsed_s": 2.04,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x05",
+   "gold": "confusion",
+   "customer": "No sé si eso incluye mi caso, no me queda claro qué cubre y qué no.",
+   "elapsed_s": 1.34,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x06",
+   "gold": "confusion",
+   "customer": "¿Una factura rectificativa? No sé qué es eso, ¿es distinta de la que ya tengo?",
+   "elapsed_s": 1.4,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "x07",
+   "gold": "confusion",
+   "customer": "Me confundo con las opciones, ¿cuál es la dos, la de arriba o la de abajo?",
+   "elapsed_s": 1.74,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "x08",
+   "gold": "confusion",
+   "customer": "No lo entiendo, ¿eso quiere decir que ya lo han enviado o que todavía no?",
+   "elapsed_s": 2.78,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "s01",
+   "gold": "satisfaction",
+   "customer": "Muchísimas gracias, me habéis solucionado el problema, muy contento con la atención.",
+   "elapsed_s": 1.42,
+   "status": "ok",
+   "shown": [
+    "satisfaction"
+   ],
+   "raw_signals": [
+    [
+     "satisfaction"
+    ]
+   ]
+  },
+  {
+   "id": "s02",
+   "gold": "satisfaction",
+   "customer": "Perfecto, qué bien, la verdad es que estoy encantada con el servicio.",
+   "elapsed_s": 1.82,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "s03",
+   "gold": "satisfaction",
+   "customer": "Genial, la nueva funciona de maravilla, gracias por lo rápido que ha sido todo.",
+   "elapsed_s": 1.31,
+   "status": "ok",
+   "shown": [
+    "satisfaction"
+   ],
+   "raw_signals": [
+    [
+     "satisfaction"
+    ]
+   ]
+  },
+  {
+   "id": "s04",
+   "gold": "satisfaction",
+   "customer": "Qué amables, de verdad, muy agradecido, es la mejor atención que he tenido.",
+   "elapsed_s": 1.33,
+   "status": "ok",
+   "shown": [
+    "satisfaction"
+   ],
+   "raw_signals": [
+    [
+     "satisfaction"
+    ]
+   ]
+  },
+  {
+   "id": "s05",
+   "gold": "satisfaction",
+   "customer": "Fenomenal, me ha encantado lo fácil que ha sido, volveré a comprar seguro.",
+   "elapsed_s": 0.99,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "s06",
+   "gold": "satisfaction",
+   "customer": "Todo ha quedado perfecto, estoy muy satisfecho con el trabajo, gracias.",
+   "elapsed_s": 0.92,
+   "status": "ok",
+   "shown": [
+    "satisfaction"
+   ],
+   "raw_signals": [
+    [
+     "satisfaction"
+    ]
+   ]
+  },
+  {
+   "id": "s07",
+   "gold": "satisfaction",
+   "customer": "Muy bien, muchas gracias por su ayuda, ha sido usted muy atenta y rápida.",
+   "elapsed_s": 1.14,
+   "status": "ok",
+   "shown": [
+    "satisfaction"
+   ],
+   "raw_signals": [
+    [
+     "satisfaction"
+    ]
+   ]
+  },
+  {
+   "id": "s08",
+   "gold": "satisfaction",
+   "customer": "Estupendo, justo lo que necesitaba, estoy muy contenta con cómo lo han gestionado.",
+   "elapsed_s": 1.1,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "n01",
+   "gold": "none",
+   "customer": "Sí, es el 5532, lo hice el martes de la semana pasada.",
+   "elapsed_s": 0.83,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n02",
+   "gold": "none",
+   "customer": "Calle del Pino número doce, tercero B, en Valladolid.",
+   "elapsed_s": 0.98,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n03",
+   "gold": "none",
+   "customer": "Una lámpara de pie de color negro que compré hace tres días.",
+   "elapsed_s": 1.12,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n04",
+   "gold": "none",
+   "customer": "Por correo electrónico, a la misma dirección de siempre.",
+   "elapsed_s": 1.33,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n05",
+   "gold": "none",
+   "customer": "Sí, la abrí para montarla, pero la tengo con todos los embalajes.",
+   "elapsed_s": 0.96,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n06",
+   "gold": "none",
+   "customer": "A nombre de Carmen Ruiz, con el segundo apellido Soto.",
+   "elapsed_s": 0.83,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "n07",
+   "gold": "none",
+   "customer": "El jueves por la tarde, a partir de las cuatro, si puede ser.",
+   "elapsed_s": 0.93,
+   "status": "no_suggestion",
+   "shown": [],
+   "raw_signals": []
+  },
+  {
+   "id": "n08",
+   "gold": "none",
+   "customer": "Sí, los vi en la web, son treinta días desde la entrega, ¿verdad?",
+   "elapsed_s": 0.92,
+   "status": "ok",
+   "shown": [
+    "confusion"
+   ],
+   "raw_signals": [
+    [
+     "confusion"
+    ]
+   ]
+  },
+  {
+   "id": "n09",
+   "gold": "none",
+   "customer": "Lo tengo en el correo, ahora se lo reenvío al número que me diga.",
+   "elapsed_s": 1.05,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n10",
+   "gold": "none",
+   "customer": "No, está bien, simplemente me quedó grande para el salón.",
+   "elapsed_s": 0.99,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n11",
+   "gold": "none",
+   "customer": "Me gustaría ver qué otros modelos de lámpara tienen en stock.",
+   "elapsed_s": 1.05,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  },
+  {
+   "id": "n12",
+   "gold": "none",
+   "customer": "Con la de débito del banco, creo que acaba en cuatro cuatro uno nueve.",
+   "elapsed_s": 0.98,
+   "status": "ok",
+   "shown": [],
+   "raw_signals": [
+    []
+   ]
+  }
+ ]
+}

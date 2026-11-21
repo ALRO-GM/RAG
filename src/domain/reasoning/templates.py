@@ -227,6 +227,23 @@ def _interview_parse(reply: str, request: ReasonRequest) -> Parsed:
     return read_suggestions(reply, request, allow_signals=False)
 
 
+SIGNAL_DEFINITIONS = (
+    "Definitions, each with a customer line that shows it: complaint = "
+    "reports a concrete fault or a bad experience (\"The invoice has "
+    "the wrong amount\"); stated_frustration = the customer says in "
+    "words that they are annoyed, tired or fed up, whatever the topic "
+    "(\"I'm sick of explaining this again\"); urgency = needs it "
+    "solved by a time (\"I need it before 5 pm\"); churn_risk = says "
+    "they may cancel or leave (\"I'll switch provider\"); confusion = "
+    "does not understand a step, term or policy (\"What does pending "
+    "mean?\"); satisfaction = thanks or says it worked (\"Perfect, "
+    "thanks\"). A fault without annoyance words is only complaint; "
+    "annoyance words are stated_frustration even beside a fault."
+)
+"""Short definitions and one example per signal of ``suggester.support@1``
+(#196): without them the model never used ``stated_frustration``."""
+
+
 def _support_system(request: ReasonRequest) -> str:
     return (
         "You assist a customer-support agent during a live call. Suggest "
@@ -237,9 +254,9 @@ def _support_system(request: ReasonRequest) -> str:
         "CUSTOMER says in their words, never what they feel and never "
         "from the voice: signals from "
         f"{', '.join(SIGNALS)}, each backed by the customer's utterance "
-        "ids in about (at most two signals). Add no field beyond those "
-        "listed, and no rationale. "
-        + SHAPE % ', "signals": ["complaint"]'
+        "ids in about (at most two signals). " + SIGNAL_DEFINITIONS
+        + " Add no field beyond those listed, and no rationale. "
+        + SHAPE % ', "signals": ["urgency"]'
     )
 
 

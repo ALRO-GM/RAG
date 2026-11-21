@@ -23,6 +23,7 @@ columns; none shown counts in ``none``).
 import argparse
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -129,6 +130,7 @@ def main() -> None:
         row: Optional[Dict[str, Any]] = done.get(snippet["id"])
         if row is None:
             calls += 1
+            started = time.perf_counter()
             reply = httpx.post(
                 args.url + "/reason", json=build_request(snippet),
                 headers={"Authorization": f"Bearer {token}"}, timeout=30,
@@ -136,6 +138,7 @@ def main() -> None:
             row = {
                 "id": snippet["id"], "gold": snippet["label"],
                 "customer": snippet["customer"],
+                "elapsed_s": round(time.perf_counter() - started, 2),
                 "status": reply.get("status"), "shown": shown(reply, snippet),
                 "raw_signals": [s.get("signals")
                                 for s in reply.get("suggestions") or []],
