@@ -1,0 +1,8 @@
+id: support.demo
+title: Soporte de Lumbre Hogar (demo)
+language: es
+description: "Conocimiento de atención al cliente de una empresa ficticia: devoluciones, facturación, entregas, escalado y señales expresadas por el cliente (ARCHITECTURE §8.1)."
+vocabularies:
+  intent: [returns, billing, delivery, escalation, complaint, stated_frustration, urgency, churn_risk, confusion, satisfaction, general]
+  script_phase: [opening, diagnosis, resolution, closing]
+  tags: [politica, faq, script, signal]

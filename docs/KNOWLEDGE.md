@@ -75,7 +75,9 @@ MiniLM-L12-v2` at 128 tokens on the chunk body (no path), 1000-character
 chunks, accent folding for the lexical index (`migración` →
 `migracion`), BM25 constants and fusion of the 42 settings without its
 priors (routing, test files, file boost) and without the query cache.
-No domain has a labelled test set yet, so none of these was tuned.
+The two seed domains (`interview.generic`, `support.demo`) have 20
+labelled queries each (`experiments/platform/SEED_DOMAINS.md`); nothing
+was tuned on them.
 Latency: `experiments/knowledge/QUERY_LATENCY.md`.
 
 ## 4. HTTP API

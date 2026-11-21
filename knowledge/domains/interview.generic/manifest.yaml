@@ -1,0 +1,8 @@
+id: interview.generic
+title: Entrevista de trabajo genérica
+language: es
+description: "Guía sintética (ficticia) para entrevistas de selección: fases del guion, buenas repreguntas y qué no preguntar. Sin puntuación de personas candidatas."
+vocabularies:
+  intent: [open_conversation, explain_process, ask_experience, ask_technical, ask_behavioural, follow_up, clarify, legal_guard, candidate_question, close_process]
+  script_phase: [opening, experience, technical, behavioural, closing]
+  tags: [plantilla, logistica, tecnico, conducta, seguimiento, legal]
