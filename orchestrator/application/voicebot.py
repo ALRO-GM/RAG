@@ -15,7 +15,13 @@ the stream missed is spoken at the end.
 
 One turn is in flight at a time; a newer user final cancels it
 (``cancel_stale``) and the page is told to stop its playback
-(``{"type": "interrupt"}``). Each turn ends with a
+(``{"type": "interrupt"}``). Barge-in (VB-3,
+:mod:`~orchestrator.domain.bargein`): while the bot's audio is still
+playing, the page's voice detector (:meth:`VoiceBot.barge_in`, ``vad``)
+or a user partial or final of two words or more (``speech``) stops the
+turn and the playback; what is mostly the bot's own words coming back
+through the microphone is echo, and is neither a barge-in nor a turn.
+Each turn ends with a
 :class:`~orchestrator.domain.records.TurnRecord` with the latency of
 each stage. A quota or auth answer stops the session's turns, as in
 :class:`~orchestrator.application.live_assist.LiveAssist`. No audio is
@@ -40,6 +46,7 @@ from orchestrator.application.ports import (
     TextToSpeech,
     TtsUnavailable,
 )
+from orchestrator.domain.bargein import BargeInPolicy, Playback, is_echo
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.records import (
@@ -65,6 +72,11 @@ FALLBACK = {
     "en": "Sorry, I cannot answer right now. Could you say it again?",
 }
 """What the bot says when the reasoner gave nothing to say."""
+ECHO_WINDOW_S = 1.5
+"""Seconds after the playback's estimated end where echo is still
+possible (the transcriber's final comes after the hang)."""
+SAID_KEPT = 8
+"""The bot's last sentences compared against what the mic hears."""
 
 
 def _ms(seconds: float) -> float:
@@ -173,6 +185,11 @@ class _Turn:
         if stages.first_audio_ms is None:
             stages.first_audio_ms = self.elapsed()
             stages.first_tts_ms = chunk.synth_ms
+        bot = self.bot
+        with bot._lock:
+            bot.playback.add(self.record.turn, chunk.duration_ms,
+                             bot.clock.now())
+            bot._said.append(chunk.text)
         self.record.spoken.append(chunk.text)
         self.record.audio_ms = round(
             self.record.audio_ms + chunk.duration_ms, 1
@@ -218,6 +235,10 @@ class VoiceBot:
                 or config.tts is None):
             raise ValueError("VoiceBot needs the voicebot product config")
         self.config = config
+        self.user_roles = set(config.trigger.speaker_roles)
+        self.barge = BargeInPolicy(self.user_roles)
+        self.playback = Playback()
+        self._said: Deque[str] = deque(maxlen=SAID_KEPT)
         self.reasoner_config = config.reasoner
         self.knowledge = knowledge
         self.reasoner = reasoner
@@ -241,8 +262,22 @@ class VoiceBot:
     # ---- events ----------------------------------------------------------
 
     def on_event(self, event: LiveEvent) -> None:
-        """Handle one event: keep the window, maybe start a turn."""
+        """Handle one event: echo, barge-in, window, maybe a turn."""
         u = event.utterance
+        if u is not None and event.type in ("partial", "final"):
+            role = self.roles.get(u.speaker, "unknown")
+            now = self.clock.now()
+            with self._lock:
+                said = list(self._said)
+                speaking = self.playback.speaking(now)
+                echo_possible = self.playback.recent(now, ECHO_WINDOW_S)
+            if (role in self.user_roles and echo_possible
+                    and is_echo(u.text, said)):
+                if event.type == "final":
+                    self._skip("echo")
+                return
+            if self.barge.decide(event, role, speaking, said):
+                self.barge_in("speech")
         if event.type == "final" and u is not None:
             self._keep({"id": u.id, "speaker": u.speaker, "text": u.text,
                         "start": u.start, "end": u.end})
@@ -255,6 +290,28 @@ class VoiceBot:
     def finish(self) -> None:
         """Wait for the turn in flight, if any."""
         self.executor.wait_idle()
+
+    def barge_in(self, by: str = "vad") -> bool:
+        """The user spoke over the bot: stop the turn and the playback.
+
+        Returns whether there was anything to stop (a turn in flight or
+        audio still playing).
+        """
+        now = self.clock.now()
+        with self._lock:
+            turn = self._inflight
+            last = self._last_turn
+            playing = self.playback.speaking(now)
+            if turn is None and not playing:
+                return False
+            self.playback.stop()
+        if turn is not None:
+            self._interrupt(turn, by)
+        elif last is not None:
+            last.record.interrupted_by = by
+            self.output.publish({"type": "interrupt",
+                                 "turn": last.record.turn, "by": by})
+        return True
 
     # ---- internals -------------------------------------------------------
 
@@ -295,7 +352,7 @@ class VoiceBot:
             number = self.turns
             window = list(self._window)
             query = self._user_turn() or firing.text
-        if stale is not None:
+        if stale is not None and not stale.token.cancelled:
             self._interrupt(stale, "new_turn")
         previous = self._last_turn
         token = CancelToken()
