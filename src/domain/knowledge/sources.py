@@ -219,7 +219,9 @@ def chunk_jsonl(
     Each record is ``{"text": ..., "id"?, "title"?, "intent"?,
     "category"?, "script_phase"?, "tags"?}``. Its chunks point at the
     record's line (``first``/``last`` are the line's offsets) and the
-    record id becomes ``metadata.ref``. Blank lines are skipped.
+    record id (or its line number) becomes ``metadata.ref``; the
+    second and later pieces of a long record get ``<id>#2``, ``#3``…
+    Blank lines are skipped.
     """
     chunks: List[Chunk] = []
     offset = 0
@@ -247,11 +249,16 @@ def chunk_jsonl(
         base = read_metadata(record, manifest, where)
         base = base.model_copy(update={"ref": ref})
         end = start + len(line.rstrip("\r"))
-        for piece in chunk_text(path, body, max_size, target, base=base):
+        pieces = chunk_text(path, body, max_size, target, base=base)
+        for n, piece in enumerate(pieces, start=1):
+            metadata = piece.metadata
+            if n > 1:
+                metadata = metadata.model_copy(update={"ref": f"{ref}#{n}"})
             chunks.append(piece.model_copy(update={
                 "first_character_index": start,
                 "last_character_index": end,
                 "kind": "record",
+                "metadata": metadata,
             }))
     return chunks
 

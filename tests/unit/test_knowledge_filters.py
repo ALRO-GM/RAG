@@ -60,7 +60,7 @@ def test_chunk_json_without_metadata_loads() -> None:
 
 @pytest.mark.parametrize("filters, expected", [
     ({}, True),
-    ({"intent": [], "tags": [], "category": None}, True),
+    ({"intent": [], "tags": [], "category": []}, True),
     ({"intent": ["pricing"]}, True),
     ({"intent": ["refund"]}, False),
     ({"intent": ["refund", "pricing"]}, True),
@@ -94,10 +94,14 @@ def test_a_chunk_without_a_value_fails_a_filter_on_it() -> None:
     assert not KnowledgeFilters(tags=["x"]).is_empty()
 
 
-def test_filters_reject_unknown_keys() -> None:
-    """``additionalProperties: false`` as in the schema."""
+@pytest.mark.parametrize("filters", [
+    {"speaker": ["S1"]}, {"category": ["chisme"]}, {"intent": None},
+    {"tags": "faq"},
+])
+def test_filters_follow_the_schema(filters: Dict[str, Any]) -> None:
+    """Unknown keys, categories, nulls and non-lists are refused."""
     with pytest.raises(ValidationError):
-        KnowledgeFilters.model_validate({"speaker": ["S1"]})
+        KnowledgeFilters.model_validate(filters)
 
 
 def corpus() -> List[Chunk]:

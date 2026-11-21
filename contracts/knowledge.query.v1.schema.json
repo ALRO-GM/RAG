@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "knowledge.query.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "domain",
+    "text"
+  ],
+  "properties": {
+    "schema": {
+      "const": "knowledge.query.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "domain": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 2
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 5
+    },
+    "mode": {
+      "enum": [
+        "hybrid",
+        "lexical",
+        "semantic"
+      ],
+      "default": "hybrid"
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "pregunta",
+              "respuesta",
+              "informacion",
+              "opinion",
+              "propuesta",
+              "peticion",
+              "aceptacion",
+              "rechazo",
+              "compromiso",
+              "escucha",
+              "gestion",
+              "relacion",
+              "otro"
+            ]
+          }
+        },
+        "script_phase": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "deadline_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    }
+  }
+}

@@ -11,9 +11,11 @@ is available;
 the transcriber's web forwards them. ``/analysis/sessions/{id}`` starts
 the whole analysis of an ingested session (``skills analyze``, in a
 child process), ``DELETE …/run`` stops it, and the others serve its
-step records, step results and person reports. These routes need a
-bearer token, compared in constant time; when no token is configured
-they are not mounted at all, so they are never open.
+step records, step results and person reports. ``POST /knowledge/query``
+answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8).
+These routes need a bearer token, compared in constant time; when no
+token is configured they are not mounted at all, so they are never
+open.
 """
 
 import hmac
@@ -24,9 +26,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
+from src.application.knowledge.query import KnowledgeQueryService
 from src.application.search import SearchService
 from src.application.skills.judges import JudgeSelection
 from src.application.skills.session_analysis import AnalysisRequests
@@ -41,7 +44,9 @@ from src.domain.errors import (
     LimitError,
     NotFoundError,
     RagError,
+    short_reason,
 )
+from src.domain.knowledge.contract import KnowledgeQuery
 from src.domain.models import MinimalAnswer, MinimalSource
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import MAX_JOB, JobSought
@@ -50,6 +55,8 @@ TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
 """Largest ``transcript.v1`` body accepted (text only; hours of speech)."""
 TRANSCRIPT_NOT_FOUND = "transcript_not_found"
 """``code`` of ``DELETE /transcripts/{id}``'s ``404``: no copy to delete."""
+KNOWLEDGE_QUERY_MAX_BYTES = 64 * 1024
+"""Largest ``knowledge.query.v1`` body (text is at most 4000 characters)."""
 
 
 class SearchRequest(BaseModel):
@@ -133,6 +140,13 @@ def http_error(exc: RagError) -> HTTPException:
 
 
 @dataclass(frozen=True)
+class KnowledgeRoutes:
+    """What the knowledge routes need: the query use case."""
+
+    query: KnowledgeQueryService
+
+
+@dataclass(frozen=True)
 class TranscriptRoutes:
     """What the transcript routes need: the use cases and the token.
 
@@ -140,7 +154,8 @@ class TranscriptRoutes:
     leaves the routes unmounted. ``max_bytes`` bounds a request body.
     ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
     the ``/analysis/judge`` routes, ``analysis`` the
-    ``/analysis/sessions`` ones.
+    ``/analysis/sessions`` ones and ``knowledge`` the ``/knowledge``
+    ones.
     """
 
     ingest: IngestTranscript
@@ -150,6 +165,7 @@ class TranscriptRoutes:
     forget: Optional[ForgetIngestedTranscript] = None
     judge: Optional[JudgeSelection] = None
     analysis: Optional[AnalysisRequests] = None
+    knowledge: Optional[KnowledgeRoutes] = None
 
 
 def create_app(
@@ -281,6 +297,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         mount_judge(app, routes.judge, guard)
     if routes.analysis is not None:
         mount_analysis(app, routes.analysis, guard)
+    if routes.knowledge is not None:
+        mount_knowledge(app, routes.knowledge, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -470,3 +488,27 @@ def mount_analysis(
                 ),
             },
         )
+
+
+def mount_knowledge(
+    app: FastAPI, routes: KnowledgeRoutes, guard: List[Any]
+) -> None:
+    """Add the ``/knowledge`` routes behind ``guard``."""
+
+    @app.post("/knowledge/query", dependencies=guard)
+    async def knowledge_query(request: Request) -> JSONResponse:
+        """Answer a ``knowledge.query.v1`` with a ``knowledge.result.v1``.
+
+        ``422`` when the body breaks the contract, ``404`` for an
+        unknown domain or one without an index yet.
+        """
+        body = await read_body(request, KNOWLEDGE_QUERY_MAX_BYTES)
+        try:
+            query = KnowledgeQuery.model_validate_json(body)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=short_reason(exc))
+        try:
+            result = await run_in_threadpool(routes.query.run, query)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(result.model_dump(mode="json", by_alias=True))

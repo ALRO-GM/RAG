@@ -1,10 +1,11 @@
 """Metadata filters of ``knowledge.query.v1`` (CONTRACTS.md §2)."""
 
-from typing import List, Optional
+from typing import List
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.models import ChunkMetadata
+from src.domain.skills.dialogue_acts import CATEGORIES
 
 MAX_FILTER_VALUES = 64
 """Most values one filter may list."""
@@ -21,18 +22,27 @@ class KnowledgeFilters(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    intent: Optional[List[str]] = Field(
-        default=None, max_length=MAX_FILTER_VALUES
+    intent: List[str] = Field(
+        default_factory=list, max_length=MAX_FILTER_VALUES
     )
-    category: Optional[List[str]] = Field(
-        default=None, max_length=MAX_FILTER_VALUES
+    category: List[str] = Field(
+        default_factory=list, max_length=MAX_FILTER_VALUES
     )
-    script_phase: Optional[List[str]] = Field(
-        default=None, max_length=MAX_FILTER_VALUES
+    script_phase: List[str] = Field(
+        default_factory=list, max_length=MAX_FILTER_VALUES
     )
-    tags: Optional[List[str]] = Field(
-        default=None, max_length=MAX_FILTER_VALUES
+    tags: List[str] = Field(
+        default_factory=list, max_length=MAX_FILTER_VALUES
     )
+
+    @field_validator("category")
+    @classmethod
+    def _known_categories(cls, values: List[str]) -> List[str]:
+        """Refuse categories that are not dialogue-act categories."""
+        unknown = [v for v in values if v not in CATEGORIES]
+        if unknown:
+            raise ValueError(f"unknown category {unknown[0]!r}")
+        return values
 
     def is_empty(self) -> bool:
         """Tell whether no filter restricts anything."""

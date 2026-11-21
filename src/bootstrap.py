@@ -64,6 +64,7 @@ from src.application.datasets import DatasetService
 from src.application.experiments import ExperimentService
 from src.application.indexing import IndexingService
 from src.application.knowledge.ports import IndexState
+from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
 from src.application.ports import Analyzer, Cache, Embedder, Reranker
 from src.application.runtime_tuning import RuntimeTuner
@@ -403,6 +404,11 @@ class Container:
             self.knowledge_catalogue, self.knowledge_indexes,
             self.knowledge_settings.max_chunk_size,
         )
+
+    @cached_property
+    def knowledge_query(self) -> KnowledgeQueryService:
+        """Answer ``knowledge.query.v1`` (PL-8)."""
+        return KnowledgeQueryService(self.knowledge_registry)
 
 
 class KnowledgeIndexFactory:

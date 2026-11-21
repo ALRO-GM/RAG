@@ -789,7 +789,11 @@ class RagCLI:
 
         import uvicorn
 
-        from src.adapters.inbound.http_api import TranscriptRoutes, create_app
+        from src.adapters.inbound.http_api import (
+            KnowledgeRoutes,
+            TranscriptRoutes,
+            create_app,
+        )
         from src.application.skills.ingest import ForgetIngestedTranscript
         from src.adapters.outbound.token_file import read_token_file
 
@@ -834,6 +838,7 @@ class RagCLI:
             ),
             judge=skills.judge_selection,
             analysis=analysis,
+            knowledge=KnowledgeRoutes(app.knowledge_query),
         )
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)

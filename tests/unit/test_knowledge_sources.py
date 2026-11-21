@@ -173,7 +173,9 @@ def test_long_jsonl_records_are_split() -> None:
     line = '{"id": "long", "text": ' + f'{text!r}'.replace("'", '"') + "}"
     chunks = chunk_jsonl("kb.jsonl", line, FREE, 200)
     assert len(chunks) > 1
-    assert {c.metadata.ref for c in chunks} == {"long"}
+    refs = [c.metadata.ref for c in chunks]
+    assert refs[:2] == ["long", "long#2"]
+    assert len(set(refs)) == len(refs)
 
 
 @pytest.mark.parametrize("line, error", [
