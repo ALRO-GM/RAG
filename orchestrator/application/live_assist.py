@@ -10,7 +10,10 @@ answer is dropped, or the new trigger is skipped when ``cancel_stale``
 is off. A service failure becomes the record's status and never stops
 the conversation, except a quota or auth answer: then no further call
 is made in the session (skip reason ``halted``), as the design says
-(``ARCHITECTURE.md`` §6). Transcript text is never logged here.
+(``ARCHITECTURE.md`` §6). The suggestions are prepared by
+:func:`~orchestrator.domain.signals.present`: expressed customer
+signals are quoted and rank them in support, and are removed in every
+other product. Transcript text is never logged here.
 """
 
 import threading
@@ -36,6 +39,7 @@ from orchestrator.domain.records import (
     SuggestionRecord,
     TriggerInfo,
 )
+from orchestrator.domain.signals import present
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
 
 MAX_REQUEST_ID = 64
@@ -92,6 +96,7 @@ class LiveAssist:
         self._lock = threading.Lock()
         self._inflight: Optional[CancelToken] = None
         self._texts: Dict[str, Tuple[str, str]] = {}
+        self.signal_history: Dict[str, int] = {}
         self.halted: Optional[str] = None
 
     def on_event(self, event: LiveEvent) -> None:
@@ -185,7 +190,9 @@ class LiveAssist:
             record.error = {"kind": "transient", "message": str(exc)}
         else:
             status = response.get("status", "error")
-            record.suggestions = list(response.get("suggestions") or [])
+            record.suggestions = self._present(
+                list(response.get("suggestions") or [])
+            )
             record.reply = response.get("reply")
             record.model = response.get("model")
             record.backend = response.get("backend")
@@ -199,6 +206,16 @@ class LiveAssist:
             with self._lock:
                 self.halted = status
         self._close(record, stages, started, token, status)
+
+    def _present(
+        self, suggestions: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Quote and rank signals (support) or remove them (others)."""
+        with self._lock:
+            return present(
+                suggestions, self._texts, self.roles,
+                self.reasoner_config.expressed_signals, self.signal_history,
+            )
 
     def _retrieve(
         self,

@@ -176,10 +176,26 @@ def test_a_replay_feeds_events_suggestions_and_the_end() -> None:
     first = records[0]
     assert first["stages"]["total_ms"] is not None
     assert first["retrieved"][0]["id"] == "k1"
+    assert first["suggestions"][0]["expressed"] == [{
+        "signal": "complaint", "utterance": "t1.s0",
+        "quote": "Tengo un problema con mi factura de este mes."}]
     end = live.get("demo-1")
     assert end["state"] == "ended" and end["calls"] == {"ok": 2}
     assert end["events"] == len(events)
     assert live.list_sessions()[0]["id"] == "demo-1"
+
+
+def test_interview_sessions_never_carry_signals() -> None:
+    live = sessions(reasoner=SignalReasoner())
+    live.start_replay("int-1", "live_assist.interview", "t", None)
+    found = messages(live, "int-1")
+    assert found[0]["session"]["page"]["signals"] is False
+    records = [m["record"] for m in found if m["type"] == "suggestion"]
+    assert records
+    for record in records:
+        for item in record["suggestions"]:
+            assert "signals" not in item and "expressed" not in item
+            assert item["script_phase"] == "technical"
 
 
 def test_one_session_at_a_time_and_bad_requests() -> None:
@@ -242,6 +258,9 @@ def test_a_live_session_starts_on_the_transcriber_and_follows_it() -> None:
     assert found[1]["type"] == "transcriber"
     assert end["calls"] == {"ok": 2}
     assert end["skipped"] == {"role": 2, "min_words": 1}
+    records = [m["record"] for m in found if m["type"] == "suggestion"]
+    assert records[1]["suggestions"][0]["expressed"][0]["quote"] == (
+        "Me cobraron dos veces el mismo servicio ayer.")
 
 
 def test_live_failures_are_reported() -> None:
