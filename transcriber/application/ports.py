@@ -703,3 +703,20 @@ class GpuMemory(Protocol):
     def holders(self) -> str:
         """Return who holds the GPU memory now, for a message."""
         ...
+
+
+class Vad(Protocol):
+    """Voice activity of one live stream, frame by frame (LV-3).
+
+    Stateful: one instance per stream. Each frame holds
+    :data:`~transcriber.domain.live.FRAME_SAMPLES` mono samples at
+    16 kHz (32 ms); frames come in order.
+    """
+
+    def probability(self, frame: npt.NDArray[np.float32]) -> float:
+        """Return the probability (0-1) that ``frame`` holds speech."""
+        ...
+
+    def reset(self) -> None:
+        """Forget the stream (a new one starts)."""
+        ...
