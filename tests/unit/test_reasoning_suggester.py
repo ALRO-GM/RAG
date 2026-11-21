@@ -7,8 +7,9 @@ import pytest
 
 from src.application.reasoning import Reasoner
 from src.domain.errors import InvalidInputError
+from src.domain.reasoning.roles import SIGNALS
 from src.domain.reasoning.roles import ReasonRequest
-from src.domain.reasoning.templates import get_template
+from src.domain.reasoning.templates import SIGNAL_DEFINITIONS, get_template
 from tests.fakes import FakeChatModel
 
 WINDOW = [
@@ -187,3 +188,11 @@ def test_support_system_prompt_limits_signals_to_the_customers_words() -> None:
     system = get_template("suggester.support@1", "suggester").system(SUPPORT)
     assert "never from the voice" in system and "churn_risk" in system
     assert '"signals"' in system
+
+
+def test_support_prompt_defines_every_signal_and_splits_complaint() -> None:
+    """#196: each signal has a definition and an example line."""
+    system = get_template("suggester.support@1", "suggester").system(SUPPORT)
+    for signal in SIGNALS:
+        assert f"{signal} = " in system
+    assert SIGNAL_DEFINITIONS in system

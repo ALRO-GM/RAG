@@ -3,7 +3,7 @@
 Measured 2026-11-21 on the workstation (RTX 3070 Ti, shared with the running
 services; every live session held the GPU lease). All audio is synthetic
 (Piper), every number is one run: they say nothing about real calls.
-Raw results: `experiments/live/` (`lv12/`, `lv13/`, `signal_results.json`).
+Raw results: `experiments/live/` (`lv12/`, `lv13/`, `signal_results.json`, `signal_results_lv15.json`).
 Tickets: #173 (LV-12), #174 (LV-13), #183, and a fix found on the way.
 
 ## 0. Start delay and `asr_behind` at start
@@ -129,15 +129,53 @@ could be shown: recall is limited by the one-suggestion budget as much as by
 labelling. One false signal on a snippet with no signal (a question about the
 return window read as confusion, 1 of 12).
 
-The template was not changed: a fix (define each signal, and use a neutral
-example) needs a rerun of at least the frustration and complaint snippets
-(about 20 more calls) and the cap for this measure was 60. Left as a follow-up.
-Synthetic text written by the same author who wrote the template's labels:
-the real precision on real customers is unknown.
+### LV-15 (#196): definitions and one example per signal
+
+`suggester.support@1` now carries a short definition and one example customer
+line per signal (`SIGNAL_DEFINITIONS` in `src/domain/reasoning/templates.py`),
+says that a fault without annoyance words is only `complaint` and annoyance
+words are `stated_frustration`, and its JSON shape example is `urgency`
+instead of `complaint`. The cap stays 200 output tokens and the call keeps
+`--effort low`. The same 60 snippets were sent again (60 Haiku calls plus 10
+for a latency baseline plus 2 from an aborted first start: 72 of the 80
+allowed), through a RAG started from the branch on another port
+(`experiments/live/signal_results_lv15.json`).
+
+| Signal | precision before | precision after | recall before | recall after |
+|---|---|---|---|---|
+| complaint | 0.46 (6/13) | 0.70 (7/10) | 0.75 | 0.88 |
+| stated_frustration | none shown | 0.86 (6/7) | 0.00 | 0.75 |
+| urgency | 1.00 | 0.88 (7/8) | 1.00 | 0.88 |
+| churn_risk | 1.00 | 1.00 (6/6) | 0.50 | 0.75 |
+| confusion | 0.86 | 0.88 (7/8) | 0.75 | 0.88 |
+| satisfaction | 1.00 | 1.00 (5/5) | 0.88 | 0.62 |
+
+Answers: `ok` 48, `no_suggestion` 12 (before: 10), no timeout. Snippets with no
+signal that stayed clean: 11 of 12 (same one false `confusion` as before).
+Reading: the definitions make the model use `stated_frustration`
+(6 of 8 right, 3 still read as `complaint`); complaint precision goes from
+0.46 to 0.70. Costs: urgency lost one (7/8) and satisfaction recall fell to
+5/8 (3 snippets with no signal shown, as the one-suggestion budget allows
+`no_suggestion`); with 8 snippets per signal one snippet is 0.125, so these
+small moves are inside the noise and only the frustration/complaint change
+is large. One run, no repetition.
+
+Latency: over the 60 calls the end-to-end `/reason` time was median 1.41 s,
+mean 1.49 s, max 2.78 s (deadline 2.8 s). For the baseline the old template
+was run on the first 10 snippets only (median 1.04 s, mean 1.25 s, 1 of the
+10 timed out and 3 were `no_suggestion`); the same 10 with the new template:
+median 1.74 s, mean 1.69 s. So the longer prompt costs roughly +0.4 to +0.7
+s on that sample of 10, an unreliable estimate (n=10, different server
+processes: the baseline ran on the production RAG, the new one on a CPU-only
+copy started for the run). #183's own run did not record times.
+
+The template does not change the answer's size (cap and `--effort low` as
+before). Synthetic text by the author of the labels: the real precision on real
+customers is unknown.
 
 ## Cost and limits
 
-Haiku calls: 40 (LV-12) + 60 (#183) = 100, through the owner's subscription;
+Haiku calls: 40 (LV-12) + 60 (#183) + 72 (LV-15) = 172, through the owner's subscription;
 no paid API. Not done: LV-12 on a real microphone and a real network (the
 audio and SSE are on loopback), several repetitions, the mono diarization,
 and a CALLHOME truth text.
