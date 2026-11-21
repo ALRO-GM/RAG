@@ -6,8 +6,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  GROUPS, PRESETS, analysisPrefill, applyPreset, changedSteps, costOf, defaultChoices, keys, label, needsRestart,
-  presetOf, saveBody, stepsByGroup,
+  GROUPS, PRESETS, analysisPrefill, applyPreset, changedSteps, clampRange, costOf, defaultChoices, isRange, keys, label,
+  needsRestart, numberText, presetOf, rateOptions, saveBody, stepsByGroup, voiceOptions, voicebotChoices,
 } from "../../transcriber/adapters/inbound/web/js/lib/settings.js";
 import { crumbsFor } from "../../transcriber/adapters/inbound/web/js/lib/shell.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -17,7 +17,11 @@ import { translate } from "../../transcriber/adapters/inbound/web/js/lib/i18n.js
 const ROOT = new URL("../../", import.meta.url);
 const schema = JSON.parse(readFileSync(new URL("contracts/settings.v1.schema.json", ROOT), "utf8"));
 const example = JSON.parse(readFileSync(new URL("contracts/examples/settings.v1.json", ROOT), "utf8"));
-const STEPS = Object.entries(schema.properties.choices.properties).map(([id, s]) => ({ id, options: s.enum }));
+// A step's closed options: its enum, or the enum beside a pattern (a person
+// id, "clone:<id>"); a number step (a slider) has a pattern only.
+const optionsOf = (s) => s.enum ?? s.anyOf?.find((a) => a.enum)?.enum ?? null;
+const STEPS = Object.entries(schema.properties.choices.properties).map(([id, s]) => ({ id, options: optionsOf(s) ?? [], number: !optionsOf(s) }));
+const NUMBER_DEFAULTS = { "voicebot.length_scale": "1", "voicebot.noise_scale": "0.5", "voicebot.noise_w": "0.333", "voicebot.sentence_silence": "0" };
 
 const tEs = (key, params) => translate({ es, en }, "es", key, params);
 const tEn = (key, params) => translate({ es, en }, "en", key, params);
@@ -26,15 +30,17 @@ const tEn = (key, params) => translate({ es, en }, "en", key, params);
 const GROUP_OF = (id) => id.split(".")[0];
 const catalogue = {
   steps: STEPS.map((s) => ({
-    id: s.id, group: GROUP_OF(s.id), options: s.options, default: s.options[0],
+    id: s.id, group: GROUP_OF(s.id), options: s.number ? [NUMBER_DEFAULTS[s.id]] : s.options,
+    default: s.number ? NUMBER_DEFAULTS[s.id] : s.options[0],
     applies: s.id === "transcription.recogniser" ? "restart" : "next_job", consumer: "rag",
+    ...(s.number ? { range: { low: 0, high: 1.5, step: 0.05 } } : {}),
   })),
-  presets: {
-    quality: Object.fromEntries(STEPS.map((s) => [s.id, s.options[0]])),
-    balanced: { ...Object.fromEntries(STEPS.map((s) => [s.id, s.options[0]])), "analysis.confirmation_model": "haiku" },
-    cost: { ...Object.fromEntries(STEPS.map((s) => [s.id, s.options[0]])), "analysis.judge": "local" },
-  },
+  presets: {},
 };
+
+for (const name of ["quality", "balanced", "cost"]) catalogue.presets[name] = Object.fromEntries(catalogue.steps.map((s) => [s.id, s.default]));
+catalogue.presets.balanced["analysis.confirmation_model"] = "haiku";
+catalogue.presets.cost["analysis.judge"] = "local";
 
 test("every step and option of the contract has a label and a trade-off in both languages", () => {
   const missing = [];
@@ -42,6 +48,7 @@ test("every step and option of the contract has a label and a trade-off in both 
     for (const key of [keys.step(step.id), keys.group(GROUP_OF(step.id))]) {
       if (!es[key] || !en[key]) missing.push(key);
     }
+    if (step.number && (!es[`set.range.${step.id}`] || !en[`set.range.${step.id}`])) missing.push(`set.range.${step.id}`);
     for (const option of step.options) {
       for (const key of [keys.option(step.id, option), keys.fact(step.id, option)]) {
         if (!es[key] || !en[key]) missing.push(key);
@@ -113,6 +120,25 @@ test("the save body carries the draft and the revision read", () => {
   assert.equal(label(tEs, keys.step("live.asr"), "x"), "Reconocedor en directo");
 });
 
+test("the voice bot's numbers, people and sample choices", () => {
+  const speed = { id: "voicebot.length_scale", default: "1", range: { low: 0.7, high: 1.5, step: 0.05 } };
+  assert.equal(isRange(speed), true);
+  assert.equal(isRange({ id: "x", options: ["a"] }), false);
+  assert.equal(numberText("1.10"), "1.1");
+  assert.equal(numberText(0.33333), "0.333");
+  assert.equal(clampRange(speed, "2"), "1.5");
+  assert.equal(clampRange(speed, "0.2"), "0.7");
+  assert.equal(clampRange(speed, "abc"), "1");
+  const people = [{ id: "ana", voice_clone: true, words_per_second: 3.2 }, { id: "bea", voice_clone: false, words_per_second: null }];
+  const voice = { id: "voicebot.voice", options: ["davefx", "sharvard"] };
+  assert.deepEqual(voiceOptions(voice, people, "davefx"), ["davefx", "sharvard", "clone:ana"]);
+  assert.deepEqual(voiceOptions(voice, [], "clone:bea"), ["davefx", "sharvard", "clone:bea"], "a saved clone stays visible");
+  assert.deepEqual(rateOptions({ options: ["off"] }, people, "off"), ["off", "ana"]);
+  assert.deepEqual(rateOptions(undefined, [], "cid"), ["off", "cid"]);
+  assert.deepEqual(voicebotChoices({ "live.asr": "gpu", "voicebot.voice": "clone:ana" }), { "voicebot.voice": "clone:ana" });
+  assert.deepEqual(voicebotChoices(null), {});
+});
+
 test("the breadcrumbs of #/settings", () => {
   assert.deepEqual(crumbsFor("#/settings", tEs), [{ label: "Ajustes", href: null }]);
 });
@@ -182,7 +208,9 @@ test("the page draws the presets, every step with its trade-off, and saves the d
   }
   const radios = root.all().filter((n) => n.tagName === "INPUT" && n.attributes.type === "radio");
   const stepRadios = radios.filter((n) => n.attributes.name !== "set-preset");
-  assert.equal(stepRadios.length, STEPS.reduce((sum, s) => sum + s.options.length, 0), "one radio per option");
+  assert.equal(stepRadios.length, STEPS.reduce((sum, s) => sum + (s.number ? 0 : s.options.length), 0), "one radio per option");
+  const sliders = root.all().filter((n) => n.tagName === "INPUT" && n.attributes.type === "range");
+  assert.equal(sliders.length, STEPS.filter((s) => s.number).length, "one slider per number");
   const cost = radios.find((n) => n.attributes.name === "set-preset" && n.attributes.value === "cost");
   cost.fire("change");
   const save = root.all().find((n) => n.tagName === "BUTTON" && n.textContent === "Guardar");
@@ -191,6 +219,43 @@ test("the page draws the presets, every step with its trade-off, and saves the d
   assert.equal(sent.length, 1);
   assert.equal(sent[0].revision, 1);
   assert.equal(sent[0].choices["analysis.judge"], "local");
+});
+
+test("the voice bot shows sliders, clonable people and plays the draft", async () => {
+  installDom();
+  const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
+  setLanguage("es");
+  const { settingsView } = await import("../../transcriber/adapters/inbound/web/js/views/settings.js");
+  const saved = { revision: 1, stored: true, choices: defaultChoices(catalogue), catalogue };
+  const asked = [];
+  const played = [];
+  globalThis.URL.createObjectURL = () => "blob:x";
+  globalThis.URL.revokeObjectURL = () => {};
+  globalThis.Audio = class { constructor(src) { this.src = src; } play() { played.push(this.src); return Promise.resolve(); } };
+  const api = {
+    pipelineSettings: async () => saved,
+    speakers: async () => ({ speakers: [{ id: "ana", name: "Ana", voice_clone: true, words_per_second: 3.25 }, { id: "bea", name: "Bea", voice_clone: false }] }),
+    voiceSample: async (choices) => { asked.push(choices); return { blob: {}, clone: false, lengthScale: 1, note: "no consent to cloning" }; },
+  };
+  const root = new Node("main");
+  await settingsView({ api, fail: (e) => { throw e; } }, root);
+  const text = root.textContent;
+  for (const word of ["Voz clonada de Ana", "La de Ana", "3,25 palabras/s", "Velocidad", "Entonación", "Cadencia", "Pausa entre frases"]) {
+    assert.ok(text.includes(word), word);
+  }
+  assert.ok(!text.includes("Voz clonada de Bea"), "no consent, no clone option");
+  const clone = root.all().find((n) => n.tagName === "INPUT" && n.attributes.value === "clone:ana");
+  clone.fire("change");
+  const slider = root.all().find((n) => n.tagName === "INPUT" && n.attributes.id === "set-voicebot-length_scale");
+  slider.fire("change");
+  const button = root.all().find((n) => n.tagName === "BUTTON" && n.textContent.includes("Escuchar ejemplo"));
+  button.fire("click");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0]["voicebot.voice"], "clone:ana");
+  assert.ok(Object.keys(asked[0]).every((k) => k.startsWith("voicebot.")));
+  assert.deepEqual(played, ["blob:x"]);
+  assert.match(root.textContent, /Ha hablado Piper: no consent to cloning/);
 });
 
 test("without a RAG the page explains why", async () => {

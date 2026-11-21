@@ -30,12 +30,18 @@ class SessionList(NamedTuple):
 
 
 class EnrolledSpeaker(NamedTuple):
-    """An enrolled person as the pages show them (no vector)."""
+    """An enrolled person as the pages show them (no vector).
+
+    ``voice_clone`` says whether they agree to the voice bot cloning
+    their voice; ``words_per_second`` is their measured speaking rate.
+    """
 
     id: str
     name: Optional[str]
     model: str
     enrolled_at: str
+    voice_clone: bool = False
+    words_per_second: Optional[float] = None
 
 
 class ListSessions:
@@ -85,6 +91,8 @@ class ListSpeakers:
                 name=consent.name if consent is not None else None,
                 model=voiceprint.model,
                 enrolled_at=voiceprint.enrolled_at.isoformat(),
+                voice_clone=consent is not None and consent.voice_clone,
+                words_per_second=voiceprint.words_per_second,
             ))
         return speakers
 

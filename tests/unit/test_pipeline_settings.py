@@ -78,7 +78,8 @@ def service(
 def test_the_first_option_of_every_step_is_today_s_configuration() -> None:
     assert defaults() == PRESETS["quality"]
     assert preset_of({}) == "quality"
-    assert all(len(set(s.options)) == len(s.options) >= 2 for s in STEPS)
+    assert all(len(set(s.options)) == len(s.options) >= 2 for s in STEPS
+               if s.range is None and s.pattern is None)
     assert [s.id for s in STEPS if s.applies == "restart"] == [
         "transcription.recogniser"
     ]
@@ -109,6 +110,36 @@ def test_choices_outside_the_allow_lists_are_refused() -> None:
         SettingsDocument(choices={"live.asr": "tpu"})
     with pytest.raises(ValueError):
         SettingsDocument(preset="cheap")
+
+
+def test_voice_controls_accept_numbers_in_range_and_person_ids() -> None:
+    checked = check_choices({
+        "voicebot.length_scale": "1.10", "voicebot.noise_scale": "0",
+        "voicebot.noise_w": "0.333", "voicebot.sentence_silence": "0.25",
+        "voicebot.voice": "clone:alberto", "voicebot.match_rate": "ana-2",
+    })
+    assert checked == {
+        "voicebot.length_scale": "1.1", "voicebot.noise_scale": "0",
+        "voicebot.noise_w": "0.333", "voicebot.sentence_silence": "0.25",
+        "voicebot.voice": "clone:alberto", "voicebot.match_rate": "ana-2",
+    }
+    for step, bad in (("voicebot.length_scale", "0.5"),
+                      ("voicebot.length_scale", "1.6"),
+                      ("voicebot.noise_scale", "-0.1"),
+                      ("voicebot.noise_w", "0.1234"),
+                      ("voicebot.sentence_silence", "1e0"),
+                      ("voicebot.voice", "clone:../x"),
+                      ("voicebot.voice", "clone:"),
+                      ("voicebot.match_rate", "--x")):
+        with pytest.raises(InvalidInputError, match="Invalid option"):
+            check_choices({step: bad})
+    assert resolve({"voicebot.length_scale": "9"})[
+        "voicebot.length_scale"] == "1"
+    assert defaults()["voicebot.match_rate"] == "off"
+    steps = {s["id"]: s for s in catalogue()["steps"]}  # type: ignore
+    assert steps["voicebot.noise_w"]["range"] == {
+        "low": 0.0, "high": 1.0, "step": 0.05}
+    assert steps["voicebot.voice"]["free"] == "speaker"
 
 
 def test_a_reader_ignores_unknown_steps_and_options() -> None:

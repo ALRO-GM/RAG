@@ -1,9 +1,10 @@
 """Use case: the web's «Ajustes» page reads and saves the pipeline settings.
 
 The RAG keeps them (``settings.v1``); this use case checks the shape of
-what the page sends before it is forwarded (short string names only,
-nothing else), and gives the jobs of this service the saved choices
-when they start (:meth:`PipelineSettingsAccess.current`).
+what the page sends before it is forwarded (short string names, and
+numbers and person ids for the voice bot; nothing else), and gives the
+jobs of this service the saved choices when they start
+(:meth:`PipelineSettingsAccess.current`).
 """
 
 import re
@@ -16,7 +17,9 @@ from transcriber.domain.errors import (
 )
 
 NAME = re.compile(r"[a-z0-9_.-]{1,48}")
-"""What a step, an option or a preset name may look like."""
+"""What a step or a preset name may look like."""
+OPTION = re.compile(r"[A-Za-z0-9_.:-]{1,80}")
+"""What an option may look like (a name, a number, ``clone:<person>``)."""
 MAX_CHOICES = 64
 
 
@@ -42,7 +45,7 @@ def checked_body(body: Mapping[str, Any]) -> Dict[str, Any]:
             raise InvalidInputError("choices must be an object.")
         for step, option in choices.items():
             if not (isinstance(option, str) and NAME.fullmatch(step)
-                    and NAME.fullmatch(option)):
+                    and OPTION.fullmatch(option)):
                 raise InvalidInputError("Invalid setting name or option.")
         out["choices"] = dict(choices)
     revision = body.get("revision")

@@ -970,8 +970,12 @@ def create_app(
         consent: str = Query(default=""),
         format: str = Query(default=PCM_FORMAT, max_length=32),
         text_version: Optional[str] = Query(default=None, max_length=32),
+        clone_consent: str = Query(default="", max_length=8),
     ) -> Dict[str, Any]:
         """Enrol a voice from a sample read aloud; needs ``consent=true``.
+
+        ``clone_consent=true`` (a separate, revocable consent) also keeps
+        a clip of the reading so the voice bot can speak with this voice.
 
         Consent is checked before the body is read. The call waits for
         the models (it queues behind a running transcription); when
@@ -999,6 +1003,7 @@ def create_app(
                 c.enrol_speaker, speaker_id, name, language,
                 RecordedAudio(data, format), True,
                 c.enrolment_text.consent_version, text_version,
+                clone_consent == "true",
             )
         finally:
             enrolments -= 1
@@ -1006,7 +1011,14 @@ def create_app(
             "id": voiceprint.speaker_id,
             "model": voiceprint.model,
             "enrolled_at": voiceprint.enrolled_at.isoformat(),
+            "words_per_second": voiceprint.words_per_second,
         }
+
+    @api.delete("/speakers/{speaker_id}/voice-clone", status_code=204)
+    async def withdraw_voice_clone(speaker_id: str) -> Response:
+        """Withdraw the consent to cloning: the clip is deleted."""
+        await run_in_threadpool(c.withdraw_voice_clone, speaker_id)
+        return Response(status_code=204)
 
     @api.delete("/speakers/{speaker_id}", status_code=204)
     async def forget(speaker_id: str) -> Response:

@@ -46,6 +46,7 @@ from orchestrator.application.ports import (
     TextToSpeech,
     TtsUnavailable,
 )
+from orchestrator.application.voice import voice_request
 from orchestrator.domain.bargein import BargeInPolicy, Playback, is_echo
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import LiveEvent
@@ -58,7 +59,6 @@ from orchestrator.domain.speech import (
     ReplyText,
     SentenceChunker,
     SpeechChunk,
-    tts_request,
 )
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
 
@@ -158,8 +158,8 @@ class _Turn:
         request_id = f"{self.record.request_id}-s{seq}"[-MAX_REQUEST_ID:]
         tts = self.bot.config.tts
         assert tts is not None  # checked by VoiceBot
-        request = tts_request(
-            request_id, sentence, tts.voice, self.bot.config.language,
+        request = voice_request(
+            request_id, sentence, tts, self.bot.config.language,
             interrupt_id=self.interrupt_id if seq == 0 else None,
         )
         self.last_request = request_id

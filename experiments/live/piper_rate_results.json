@@ -1,0 +1,51 @@
+{
+  "length_scale": 1.0,
+  "sentences": [
+    "Hola, soy el asistente de voz de soporte y estoy aquí para ayudarte.",
+    "Para cambiar la contraseña entra en tu perfil y pulsa en seguridad.",
+    "El pedido sale del almacén en un plazo de dos días laborables.",
+    "Si la factura no aparece, revisa la carpeta de documentos del mes.",
+    "Puedo darte de alta en el servicio ahora mismo si me lo confirmas.",
+    "La garantía cubre cualquier defecto de fabricación durante dos años.",
+    "Te recomiendo reiniciar el router y esperar un par de minutos.",
+    "El horario de atención es de nueve de la mañana a seis de la tarde.",
+    "Ya he registrado tu incidencia y un técnico te llamará mañana.",
+    "¿Hay algo más en lo que pueda ayudarte antes de terminar?"
+  ],
+  "voices": {
+    "es_ES-davefx-medium": {
+      "words": 120,
+      "voiced_seconds": 29.522,
+      "words_per_second": 4.065,
+      "per_sentence": [
+        4.522,
+        3.68,
+        3.739,
+        3.745,
+        4.638,
+        3.174,
+        3.59,
+        5.335,
+        3.797,
+        4.899
+      ]
+    },
+    "es_ES-sharvard-medium": {
+      "words": 120,
+      "voiced_seconds": 36.019,
+      "words_per_second": 3.332,
+      "per_sentence": [
+        3.39,
+        3.125,
+        3.405,
+        2.927,
+        3.619,
+        2.466,
+        3.388,
+        4.145,
+        3.25,
+        3.897
+      ]
+    }
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "ticket": "#207",
+  "synthetic": true,
+  "sentences": [
+    "Claro, ahora mismo reviso el estado de tu pedido.",
+    "Tu factura de este mes ya está disponible en el área de cliente.",
+    "Para cambiar la contraseña, entra en ajustes y pulsa en seguridad.",
+    "Lo siento, ese dato no aparece en la documentación que tengo.",
+    "El técnico pasará mañana por la tarde, entre las cuatro y las seis.",
+    "Si el router sigue sin conexión, apágalo y vuelve a encenderlo.",
+    "Perfecto, he anotado tu teléfono para que te llamen esta semana.",
+    "La devolución tarda unos cinco días laborables en llegar a tu cuenta.",
+    "¿Quieres que te envíe el resumen por correo electrónico?",
+    "Gracias por tu paciencia, enseguida te paso con un compañero."
+  ],
+  "references": {
+    "sharvard": {
+      "piper_voice": "es_ES-sharvard-medium",
+      "enrolment_text": "es-1",
+      "seconds": 25.5
+    },
+    "mls9972": {
+      "piper_voice": "es_ES-mls_9972-low",
+      "enrolment_text": "es-1",
+      "seconds": 63.8
+    }
+  },
+  "similarity_model": "microsoft/wavlm-base-plus-sv",
+  "wer_model": "faster-whisper large-v3-turbo int8_float16, beam 5",
+  "baselines": {
+    "sharvard": {
+      "reference_halves_similarity": 0.9944,
+      "true_voice": {
+        "similarity_to_reference": 0.9736,
+        "similarity_to_reference_min": 0.9643,
+        "similarity_to_true_voice": 1.0,
+        "wer_mean": 0.0154,
+        "wer_pooled_sentences_with_errors": 1
+      },
+      "bot_voice_davefx": {
+        "similarity_to_reference": 0.8098,
+        "similarity_to_reference_min": 0.7674,
+        "similarity_to_true_voice": 0.8406,
+        "wer_mean": 0.0337,
+        "wer_pooled_sentences_with_errors": 3
+      }
+    },
+    "mls9972": {
+      "reference_halves_similarity": 0.9913,
+      "true_voice": {
+        "similarity_to_reference": 0.9632,
+        "similarity_to_reference_min": 0.9356,
+        "similarity_to_true_voice": 1.0,
+        "wer_mean": 0.0558,
+        "wer_pooled_sentences_with_errors": 3
+      },
+      "bot_voice_davefx": {
+        "similarity_to_reference": 0.3858,
+        "similarity_to_reference_min": 0.3624,
+        "similarity_to_true_voice": 0.4201,
+        "wer_mean": 0.0337,
+        "wer_pooled_sentences_with_errors": 3
+      }
+    }
+  },
+  "engines": {
+    "chatterbox@cuda": {
+      "cold_load_ms": 12675.6,
+      "sample_rate": 24000,
+      "gpu_peak_mib": 4336,
+      "references": {
+        "sharvard": {
+          "reference_prep_ms": 999.6,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 1836.8,
+            "p90": 2214.9,
+            "max": 2389.1
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.9725,
+          "similarity_to_reference_min": 0.9577,
+          "similarity_to_true_voice": 0.9657,
+          "wer_mean": 0.0432,
+          "wer_pooled_sentences_with_errors": 3
+        },
+        "mls9972": {
+          "reference_prep_ms": 1128.7,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 2149.9,
+            "p90": 2244.9,
+            "max": 2411.3
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.9482,
+          "similarity_to_reference_min": 0.9319,
+          "similarity_to_true_voice": 0.96,
+          "wer_mean": 0.0222,
+          "wer_pooled_sentences_with_errors": 2
+        }
+      },
+      "first_audio_ms_all": {
+        "n": 20,
+        "p50": 2029.0,
+        "p90": 2242.7,
+        "max": 2411.3
+      },
+      "audio_ms_per_sentence": {
+        "n": 20,
+        "p50": 4620.0,
+        "p90": 5244.0,
+        "max": 5520.0
+      }
+    },
+    "openvoice@cuda": {
+      "cold_load_ms": 4236.4,
+      "sample_rate": 22050,
+      "gpu_peak_mib": 782,
+      "references": {
+        "sharvard": {
+          "reference_prep_ms": 137.3,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 116.7,
+            "p90": 138.9,
+            "max": 203.1
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.8958,
+          "similarity_to_reference_min": 0.8668,
+          "similarity_to_true_voice": 0.9192,
+          "wer_mean": 0.0611,
+          "wer_pooled_sentences_with_errors": 4
+        },
+        "mls9972": {
+          "reference_prep_ms": 67.3,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 119.5,
+            "p90": 169.8,
+            "max": 173.8
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.9385,
+          "similarity_to_reference_min": 0.9285,
+          "similarity_to_true_voice": 0.9398,
+          "wer_mean": 0.0914,
+          "wer_pooled_sentences_with_errors": 4
+        }
+      },
+      "first_audio_ms_all": {
+        "n": 20,
+        "p50": 118.5,
+        "p90": 169.8,
+        "max": 203.1
+      },
+      "audio_ms_per_sentence": {
+        "n": 20,
+        "p50": 3448.2,
+        "p90": 3638.6,
+        "max": 3703.6
+      }
+    },
+    "openvoice@cpu": {
+      "cold_load_ms": 4376.0,
+      "sample_rate": 22050,
+      "gpu_peak_mib": 0,
+      "references": {
+        "sharvard": {
+          "reference_prep_ms": 936.9,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 1285.7,
+            "p90": 1439.0,
+            "max": 1488.0
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.8926,
+          "similarity_to_reference_min": 0.8619,
+          "similarity_to_true_voice": 0.9158,
+          "wer_mean": 0.061,
+          "wer_pooled_sentences_with_errors": 4
+        },
+        "mls9972": {
+          "reference_prep_ms": 961.8,
+          "first_audio_ms": {
+            "n": 10,
+            "p50": 1152.8,
+            "p90": 1399.1,
+            "max": 1534.8
+          },
+          "errors": 0,
+          "similarity_to_reference": 0.9382,
+          "similarity_to_reference_min": 0.9282,
+          "similarity_to_true_voice": 0.9395,
+          "wer_mean": 0.0328,
+          "wer_pooled_sentences_with_errors": 3
+        }
+      },
+      "first_audio_ms_all": {
+        "n": 20,
+        "p50": 1261.5,
+        "p90": 1439.0,
+        "max": 1534.8
+      },
+      "audio_ms_per_sentence": {
+        "n": 20,
+        "p50": 3459.8,
+        "p90": 3671.1,
+        "max": 3703.6
+      }
+    }
+  }
+}

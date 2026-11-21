@@ -217,9 +217,13 @@ class Speaker(BaseModel):
 class Voiceprint(BaseModel):
     """The enrolled voice of one person: one embedding and its consent.
 
-    Nothing else of the enrolment is kept: the sample audio is deleted.
-    ``model`` names the voice encoder that produced ``vector``; vectors
-    of different models are not comparable.
+    The sample audio is deleted, unless the person agreed to their
+    voice being cloned (``ConsentRecord.voice_clone``): then a reference
+    clip of it is kept beside the voiceprint until that consent is
+    withdrawn. ``model`` names the voice encoder that produced
+    ``vector``; vectors of different models are not comparable.
+    ``words_per_second`` is the speaking rate measured on the reading
+    (``None`` in voiceprints made before it was measured).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -229,6 +233,7 @@ class Voiceprint(BaseModel):
     vector: List[float] = Field(min_length=1)
     consent_version: str = Field(min_length=1)
     enrolled_at: AwareDatetime
+    words_per_second: Optional[float] = Field(default=None, gt=0, le=20)
 
 
 SessionType = Literal[
@@ -319,6 +324,10 @@ class ConsentRecord(BaseModel):
     ``consent_version`` is the version of the consent statement agreed
     to, ``text_version`` the version of the enrolment text read and
     ``given_at`` when. ``name`` is the display name the person gave.
+    ``voice_clone`` says whether they also agreed to the voice bot
+    speaking with their cloned voice (a separate, revocable consent;
+    ``docs/live/VOICE_CLONING.md``); ``voice_clone_withdrawn_at`` when
+    they withdrew it.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -328,6 +337,8 @@ class ConsentRecord(BaseModel):
     consent_version: str = Field(min_length=1)
     text_version: str = Field(min_length=1)
     given_at: AwareDatetime
+    voice_clone: bool = False
+    voice_clone_withdrawn_at: Optional[AwareDatetime] = None
 
 
 class Pipeline(BaseModel):
