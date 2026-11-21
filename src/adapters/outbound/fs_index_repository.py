@@ -82,7 +82,7 @@ class FileSystemIndexRepository:
             json.dump(vocabulary, handle)
         with open(directory / CHUNKS_FILE, "w", encoding="utf-8") as handle:
             for chunk in snapshot.chunks:
-                handle.write(chunk.model_dump_json() + "\n")
+                handle.write(chunk_line(chunk) + "\n")
         emb_path = directory / EMBEDDINGS_FILE
         if snapshot.embeddings is not None:
             np.save(emb_path, snapshot.embeddings)
@@ -102,6 +102,17 @@ class FileSystemIndexRepository:
         manifest = read_manifest(self.index_dir)
         return _load_cached(str(self.index_dir.resolve()),
                             manifest.fingerprint)
+
+
+def chunk_line(chunk: Chunk) -> str:
+    """Return the JSON line of ``chunk``; empty metadata is left out.
+
+    Indexes without metadata (the 42 corpus, the benchmarks) keep the
+    exact files they had before chunks could carry metadata.
+    """
+    if chunk.metadata.is_empty():
+        return chunk.model_dump_json(exclude={"metadata"})
+    return chunk.model_dump_json()
 
 
 def read_manifest(path: Path) -> IndexManifest:

@@ -1,9 +1,9 @@
 """Domain entities and the pydantic models exchanged between stages."""
 
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MinimalSource(BaseModel):
@@ -62,11 +62,38 @@ class StudentSearchResultsAndAnswer(BaseModel):
     k: int
 
 
+class ChunkMetadata(BaseModel):
+    """Optional labels of a chunk, used by knowledge-domain filters.
+
+    Every field is empty for the 42 corpus and the benchmarks; a
+    knowledge domain fills them from Markdown front matter, JSONL
+    records or the metadata of an uploaded document
+    (``docs/platform/CONTRACTS.md`` §2-3). ``title`` is the heading
+    path of the chunk or the document's title.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: Optional[str] = None
+    intent: Optional[str] = None
+    category: Optional[str] = None
+    script_phase: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+    def is_empty(self) -> bool:
+        """Tell whether no field is set."""
+        return not (
+            self.title or self.intent or self.category or self.script_phase
+            or self.tags
+        )
+
+
 class Chunk(BaseModel):
     """A contiguous slice of a corpus file, the unit of retrieval.
 
     ``first_character_index`` is inclusive and ``last_character_index``
-    exclusive, so ``text == file_text[first:last]``.
+    exclusive, so ``text == file_text[first:last]``. ``metadata`` is
+    empty unless the chunk comes from a knowledge domain.
     """
 
     file_path: str
@@ -75,6 +102,18 @@ class Chunk(BaseModel):
     kind: str
     context: str = ""
     text: str
+    metadata: ChunkMetadata = Field(default_factory=ChunkMetadata)
+
+    def __setstate__(self, state: Dict[Any, Any]) -> None:
+        """Unpickle, giving chunks pickled before ``metadata`` an empty one.
+
+        Incremental indexing keeps per-file records (with their chunks)
+        in a pickle; records written by older code stay reusable.
+        """
+        fields = state.get("__dict__")
+        if isinstance(fields, dict) and "metadata" not in fields:
+            fields["metadata"] = ChunkMetadata()
+        super().__setstate__(state)
 
     def to_source(self) -> MinimalSource:
         """Return the chunk location as a :class:`MinimalSource`."""

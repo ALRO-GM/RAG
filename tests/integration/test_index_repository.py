@@ -20,7 +20,7 @@ from src.adapters.outbound.fs_index_repository import (
 from src.application.indexing import INDEX_FORMAT_VERSION
 from src.application.ports import FileRecord, IndexSnapshot
 from src.domain.errors import CorruptedDataError, NotFoundError
-from src.domain.models import Chunk, IndexManifest
+from src.domain.models import Chunk, ChunkMetadata, IndexManifest
 from tests.fakes import FakeLexicalIndex
 
 PARAMS: Dict[str, object] = {"version": INDEX_FORMAT_VERSION, "x": 1}
@@ -204,3 +204,33 @@ def test_missing_artefact(
     (tmp_path / name).unlink()
     with pytest.raises(CorruptedDataError):
         repo.load()
+
+
+def test_chunks_without_metadata_keep_their_json_line(
+    tmp_path: Path, chunks: List[Chunk]
+) -> None:
+    """Indexes without metadata write exactly the lines they used to."""
+    repo = FileSystemIndexRepository(str(tmp_path / "idx"))
+    repo.save(snapshot(chunks, False, "nometa"), records(chunks), PARAMS)
+    lines = (tmp_path / "idx" / CHUNKS_FILE).read_text().splitlines()
+    assert all("metadata" not in json.loads(line) for line in lines)
+
+
+def test_chunk_metadata_round_trips(
+    tmp_path: Path, chunks: List[Chunk]
+) -> None:
+    """Labelled chunks load back with their metadata."""
+    labelled = [
+        c.model_copy(update={"metadata": ChunkMetadata(
+            title="T", intent="refund", tags=["faq"]
+        )}) if i == 0 else c
+        for i, c in enumerate(chunks)
+    ]
+    repo = FileSystemIndexRepository(str(tmp_path / "idx"))
+    repo.save(snapshot(labelled, False, "meta"), records(labelled), PARAMS)
+    loaded = repo.load()
+    assert loaded.chunks == labelled
+    assert loaded.chunks[0].metadata.tags == ["faq"]
+    assert loaded.chunks[1].metadata.is_empty()
+    saved = repo.load_records(PARAMS)
+    assert saved["a.py"].chunks[0].metadata.intent == "refund"
