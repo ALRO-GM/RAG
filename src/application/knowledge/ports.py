@@ -7,7 +7,7 @@ indexing and search services are built by the composition root
 """
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Protocol
+from typing import Callable, Dict, List, Optional, Protocol, Sequence
 
 from src.application.ports import IndexSnapshot
 from src.domain.knowledge.documents import KnowledgeDocument
@@ -161,6 +161,33 @@ class DocumentExtractor(Protocol):
 
     def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
         """Return the text of ``data`` (``InvalidInputError`` if none)."""
+        ...
+
+
+class GpuGate(Protocol):
+    """Tell whether a batch job may use the GPU right now.
+
+    The card belongs to the live mode while a session runs; ingestion
+    is a batch job that yields (``docs/KNOWLEDGE.md`` §6).
+    """
+
+    def free(self) -> bool:
+        """Return ``True`` when no live session holds the GPU."""
+        ...
+
+
+class PageLayoutReader(Protocol):
+    """Read pages of a PDF or image as Markdown, with OCR and tables."""
+
+    def read_pages(
+        self, data: bytes, kind: str, pages: Optional[Sequence[int]],
+        ocr: bool,
+    ) -> Dict[int, str]:
+        """Return the Markdown of each page (1-based) of ``data``.
+
+        ``pages`` limits a PDF to those pages (all when ``None``, as for
+        images); ``ocr`` turns text recognition on for bitmaps.
+        """
         ...
 
 

@@ -4,19 +4,32 @@ Pure-Python libraries with permissive licences: ``pypdf`` (BSD-3) for
 PDF, ``python-docx`` (MIT) for DOCX, ``odfpy`` (Apache-2.0) for ODT,
 ``openpyxl`` (MIT) for XLSX and the standard library for CSV, HTML,
 Markdown and text. Headings become Markdown headings (they become the
-chunks' titles), tables become Markdown tables. There is no OCR: a PDF
-without a text layer fails with a clear message.
+chunks' titles), tables become Markdown tables.
+
+With a :class:`~src.application.knowledge.ports.PageLayoutReader`
+(Docling, see :mod:`src.adapters.outbound.docling_pages`) PDF pages are
+read with layout and tables, pages without a text layer are OCR'd, and
+PNG/JPEG/TIFF/WebP images are accepted. Without one the PDF path is the
+plain text layer and a scanned PDF or an image fails with a clear
+message.
 """
 
 import csv
 import io
+import logging
 import re
 import zipfile
 from html.parser import HTMLParser
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
-from src.application.knowledge.ports import ExtractedDocument
+from src.application.knowledge.ports import (
+    ExtractedDocument,
+    PageLayoutReader,
+)
 from src.domain.errors import InvalidInputError, UnsupportedDocumentError
+from src.domain.knowledge.documents import IMAGE_TYPES
+
+LOG = logging.getLogger(__name__)
 
 MAX_TEXT = 20_000_000
 """Most characters of extracted text kept from one document."""
@@ -26,6 +39,14 @@ MAX_UNZIPPED = 300 * 1024 * 1024
 """Largest total uncompressed size of a DOCX/ODT/XLSX (zip bombs)."""
 MIN_PDF_TEXT = 20
 """Fewest non-blank characters for a PDF to count as having text."""
+MIN_PAGE_TEXT = 8
+"""Fewest non-blank characters for a page to count as having a text layer."""
+MAX_PIXELS = 100_000_000
+"""Most pixels in one uploaded image (decompression bombs)."""
+MAX_FRAMES = 500
+"""Most frames in one multi-page TIFF."""
+LAYOUT_BATCH_PAGES = 20
+"""Pages handed to the layout reader at a time (memory, progress)."""
 
 ZIP_MEMBERS = {
     "docx": "word/document.xml",
@@ -37,6 +58,13 @@ ODT_MIMETYPE = b"application/vnd.oasis.opendocument.text"
 NO_PDF_TEXT = (
     "El PDF no tiene texto extraíble (¿está escaneado?); no se hace OCR. "
     "/ The PDF has no extractable text (scanned?); OCR is not supported."
+)
+NO_OCR_IMAGE = (
+    "Las imágenes necesitan OCR y no está instalado (grupo ocr). / "
+    "Images need OCR, which is not installed (ocr group)."
+)
+NO_IMAGE_TEXT = (
+    "No se encontró texto en la imagen. / No text found in the image."
 )
 
 
@@ -100,8 +128,27 @@ def check_zip(data: bytes, kind: str) -> None:
         )
 
 
-def pdf_text(data: bytes) -> ExtractedDocument:
-    """Return the text layer of a PDF, one ``## p. N`` section a page."""
+def check_image(data: bytes, kind: str) -> None:
+    """Check that an image decodes its header and is not a pixel bomb."""
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        with Image.open(io.BytesIO(data)) as image:
+            width, height = image.size
+            frames = int(getattr(image, "n_frames", 1))
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError):
+        raise UnsupportedDocumentError(
+            f"El archivo no es una imagen {kind.upper()} válida. / The "
+            f"file is not a valid {kind.upper()} image."
+        )
+    if width * height > MAX_PIXELS or frames > MAX_FRAMES:
+        raise UnsupportedDocumentError(
+            "La imagen es demasiado grande. / The image is too large."
+        )
+
+
+def read_pdf_pages(data: bytes) -> List[str]:
+    """Return the text layer of each page of a PDF (``""`` when none)."""
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
 
@@ -112,18 +159,46 @@ def pdf_text(data: bytes) -> ExtractedDocument:
                 "El PDF está protegido con contraseña. / The PDF is "
                 "password-protected."
             )
-        pages = [page.extract_text() or "" for page in reader.pages]
+        return [page.extract_text() or "" for page in reader.pages]
     except (PdfReadError, ValueError, KeyError, TypeError) as exc:
         raise InvalidInputError(
             f"No se pudo leer el PDF / Cannot read the PDF ({exc})."
         )
+
+
+def page_sections(pages: Dict[int, str]) -> str:
+    """Join pages as ``## p. N`` sections; headings inside go one level down.
+
+    The page number lands in the heading path of every chunk of the
+    page (``p. 12 > Artículo 5``), which is how results cite it.
+    """
+    sections = []
+    for number in sorted(pages):
+        body = re.sub(r"(?m)^(#{1,5}) ", r"\1# ", pages[number].strip())
+        if body:
+            sections.append(f"## p. {number}\n\n{body}")
+    return "\n\n".join(sections)
+
+
+def pdf_text(data: bytes) -> ExtractedDocument:
+    """Return the text layer of a PDF, one ``## p. N`` section a page."""
+    pages = read_pdf_pages(data)
     if sum(len(p.strip()) for p in pages) < MIN_PDF_TEXT:
         raise InvalidInputError(NO_PDF_TEXT)
-    sections = [
-        f"## p. {n}\n\n{text.strip()}"
-        for n, text in enumerate(pages, start=1) if text.strip()
-    ]
-    return ExtractedDocument("\n\n".join(sections), len(pages))
+    return ExtractedDocument(
+        page_sections({n: t for n, t in enumerate(pages, 1)}), len(pages)
+    )
+
+
+def page_runs(numbers: Sequence[int], size: int) -> List[List[int]]:
+    """Split page numbers into runs of consecutive pages, ``size`` at most."""
+    runs: List[List[int]] = []
+    for number in numbers:
+        if runs and number == runs[-1][-1] + 1 and len(runs[-1]) < size:
+            runs[-1].append(number)
+        else:
+            runs.append([number])
+    return runs
 
 
 HEADING_STYLE = re.compile(r"^(heading|título|titulo|encabezado)\s*(\d)",
@@ -320,16 +395,40 @@ EXTRACTORS: Dict[str, Callable[[bytes], ExtractedDocument]] = {
 
 
 class DocumentExtractors:
-    """Extract text from every supported document type."""
+    """Extract text from every supported document type.
+
+    Args:
+        layout: Reads pages with layout, tables and OCR (Docling); without
+            it PDFs use their text layer and images are refused.
+        layout_text_pages: Also send pages that have a text layer to the
+            layout reader (tables, reading order); ``False`` keeps the
+            fast text layer for them and OCRs only the scanned pages.
+        batch_pages: Pages per call to the layout reader.
+    """
+
+    def __init__(
+        self,
+        layout: Optional[PageLayoutReader] = None,
+        layout_text_pages: bool = True,
+        batch_pages: int = LAYOUT_BATCH_PAGES,
+    ) -> None:
+        """Keep the layout reader and its settings."""
+        self.layout = layout
+        self.layout_text_pages = layout_text_pages
+        self.batch_pages = max(1, batch_pages)
 
     def verify(self, data: bytes, document_type: str) -> None:
-        """Check the container of a DOCX/ODT/XLSX before accepting it."""
+        """Check the container of a DOCX/ODT/XLSX or an image's header."""
         if document_type in ZIP_MEMBERS:
             check_zip(data, document_type)
+        elif document_type in IMAGE_TYPES:
+            if self.layout is None:
+                raise UnsupportedDocumentError(NO_OCR_IMAGE)
+            check_image(data, document_type)
 
     def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
         """Return the text of ``data``; ``InvalidInputError`` when none."""
-        extractor = EXTRACTORS.get(document_type)
+        extractor = self._extractor(document_type)
         if extractor is None:
             raise UnsupportedDocumentError(
                 f"Unsupported document type {document_type!r}."
@@ -354,3 +453,69 @@ class DocumentExtractors:
                 f"/ The document has more than {MAX_TEXT} characters."
             )
         return found
+
+    def _extractor(
+        self, document_type: str
+    ) -> Optional[Callable[[bytes], ExtractedDocument]]:
+        """Return the function reading ``document_type`` (``None``: none)."""
+        if self.layout is not None and document_type == "pdf":
+            return self._pdf_with_layout
+        if document_type in IMAGE_TYPES:
+            return lambda data: self._image(data, document_type)
+        return EXTRACTORS.get(document_type)
+
+    def _read(
+        self, data: bytes, kind: str, numbers: Optional[List[int]],
+        ocr: bool,
+    ) -> Dict[int, str]:
+        """Ask the layout reader for pages; a failure gives no pages."""
+        assert self.layout is not None
+        try:
+            return {
+                n: md for n, md in
+                self.layout.read_pages(data, kind, numbers, ocr).items()
+                if md.strip()
+            }
+        except InvalidInputError:
+            raise
+        except Exception as exc:  # the reader's library broke on this batch
+            LOG.warning("Layout reader failed on pages %s: %s: %s",
+                        numbers, type(exc).__name__, exc)
+            return {}
+
+    def _pdf_with_layout(self, data: bytes) -> ExtractedDocument:
+        """Read a PDF page by page: layout for text pages, OCR for scans.
+
+        A batch the reader fails on falls back to the text layer of its
+        pages (scanned pages of it stay empty).
+        """
+        texts = read_pdf_pages(data)
+        has_text = [len(t.strip()) >= MIN_PAGE_TEXT for t in texts]
+        found: Dict[int, str] = {}
+        plans = (
+            (False, [n for n, ok in enumerate(has_text, 1) if ok]),
+            (True, [n for n, ok in enumerate(has_text, 1) if not ok]),
+        )
+        for ocr, numbers in plans:
+            if not ocr and not self.layout_text_pages:
+                continue
+            for run in page_runs(numbers, self.batch_pages):
+                found.update(self._read(data, "pdf", run, ocr))
+        for number, text in enumerate(texts, 1):
+            if number not in found and text.strip():
+                found[number] = text
+        if not found:
+            raise InvalidInputError(
+                "No se encontró texto en el PDF, ni con OCR. / No text "
+                "found in the PDF, not even with OCR."
+            )
+        return ExtractedDocument(page_sections(found), len(texts))
+
+    def _image(self, data: bytes, kind: str) -> ExtractedDocument:
+        """OCR an image (every frame of a TIFF) as ``## p. N`` sections."""
+        if self.layout is None:
+            raise InvalidInputError(NO_OCR_IMAGE)
+        found = self._read(data, kind, None, True)
+        if not found:
+            raise InvalidInputError(NO_IMAGE_TEXT)
+        return ExtractedDocument(page_sections(found), max(found))

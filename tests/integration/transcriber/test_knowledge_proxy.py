@@ -20,7 +20,7 @@ from tests.integration.transcriber.test_analysis_judge import (
     TOKEN,
     StandInRag,
 )
-from tests.knowledge_samples import make_docx
+from tests.knowledge_samples import make_docx, make_image
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.outbound.http_knowledge import (
     HttpKnowledge,
@@ -287,6 +287,12 @@ def test_end_to_end_upload_through_the_transcriber(
         assert refused.status_code == 415
         assert refused.json()["code"] == "unsupported_media_type"
         assert "PDF" in refused.json()["message"]
+        image = web.post(
+            "/api/knowledge/domains/acme/documents", headers=AUTH,
+            files={"file": ("foto.png", make_image("png"))},
+        )
+        assert image.status_code == 415  # the RAG here has no OCR group
+        assert "OCR" in image.json()["message"]
     finally:
         server.should_exit = True
         thread.join(5)

@@ -12,8 +12,8 @@ import { Api, ApiFailure } from "../../transcriber/adapters/inbound/web/js/api.j
 
 // ---- pure helpers ----------------------------------------------------------
 
-test("the eight document formats are accepted, others and empty or huge files are not", () => {
-  for (const name of ["a.pdf", "b.DOCX", "c.odt", "d.txt", "e.md", "f.html", "g.csv", "h.xlsx"]) {
+test("the eight document formats and four image formats are accepted, others and empty or huge files are not", () => {
+  for (const name of ["a.pdf", "b.DOCX", "c.odt", "d.txt", "e.md", "f.html", "g.csv", "h.xlsx", "i.PNG", "j.jpg", "k.jpeg", "l.tif", "m.TIFF", "n.webp"]) {
     assert.equal(checkFile({ name, size: 10 }), null, name);
   }
   assert.equal(checkFile({ name: "x.exe", size: 10 }), "type");
@@ -21,7 +21,8 @@ test("the eight document formats are accepted, others and empty or huge files ar
   assert.equal(checkFile({ name: "a.pdf", size: 0 }), "empty");
   assert.equal(checkFile({ name: "a.pdf", size: 11 }, 10), "size");
   assert.equal(extensionOf("Informe.Final.PDF"), "pdf");
-  for (const ext of [".pdf", ".docx", ".odt", ".txt", ".md", ".html", ".csv", ".xlsx"]) assert.ok(ACCEPT.includes(ext), ext);
+  for (const ext of [".pdf", ".docx", ".odt", ".txt", ".md", ".html", ".csv", ".xlsx", ".png", ".jpg", ".tiff", ".webp"]) assert.ok(ACCEPT.includes(ext), ext);
+  for (const type of ["image/png", "image/jpeg", "image/tiff", "image/webp"]) assert.ok(ACCEPT.includes(type), type);
 });
 
 test("sizes read as people write them in each language", () => {

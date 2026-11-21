@@ -1136,7 +1136,7 @@ export const es = {
   "kn.upload_title": "Subir documentos",
   "kn.drop_title": "Arrastra aquí los documentos",
   "kn.drop_body": "o pulsa para elegirlos (puedes elegir varios a la vez)",
-  "kn.drop_formats": "PDF, DOCX, ODT, TXT, MD, HTML, CSV o XLSX",
+  "kn.drop_formats": "PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX o imágenes PNG, JPG, TIFF y WebP (se leen con OCR)",
   "kn.upload_metadata": "Metadatos para los próximos archivos (opcional)",
   "kn.upload_metadata_hint": "Se aplican a los archivos que subas a continuación; luego se pueden cambiar uno a uno.",
   "kn.meta.category": "Categoría",
@@ -1171,7 +1171,7 @@ export const es = {
   "kn.upload.uploading_named": "Subiendo {name}",
   "kn.upload.rejected": "No admitido",
   "kn.upload.failed": "Error al subir",
-  "kn.reject.type": "Ese tipo de archivo no se admite. Usa PDF, DOCX, ODT, TXT, MD, HTML, CSV o XLSX.",
+  "kn.reject.type": "Ese tipo de archivo no se admite. Usa PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX o imágenes PNG, JPG, TIFF y WebP (se leen con OCR).",
   "kn.reject.empty": "El archivo está vacío.",
   "kn.reject.size": "El archivo es demasiado grande (más de 100 MB).",
   "kn.dismiss": "Quitar",
@@ -1206,7 +1206,7 @@ export const es = {
   "kn.missing_body": "Este ordenador todavía no tiene instalada la gestión de documentos. Cuando se actualice, esta página funcionará sin hacer nada más.",
   "kn.no_domains": "Todavía no hay dominios de conocimiento",
   "kn.no_domains_body": "Un dominio agrupa los documentos de un tema (por ejemplo, «Atención al cliente» o «Entrevistas técnicas»). Crea el primero para empezar a subir documentos.",
-  "kn.err_format": "Ese tipo de archivo no se admite. Usa PDF, DOCX, ODT, TXT, MD, HTML, CSV o XLSX.",
+  "kn.err_format": "Ese tipo de archivo no se admite. Usa PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX o imágenes PNG, JPG, TIFF y WebP (se leen con OCR).",
   "kn.err_not_found": "Ya no existe. Puede que otra persona lo haya borrado.",
 
   // ---- live page (#/live) ----

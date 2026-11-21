@@ -1136,7 +1136,7 @@ export const en = {
   "kn.upload_title": "Upload documents",
   "kn.drop_title": "Drop documents here",
   "kn.drop_body": "or press to choose them (several at once is fine)",
-  "kn.drop_formats": "PDF, DOCX, ODT, TXT, MD, HTML, CSV or XLSX",
+  "kn.drop_formats": "PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX or PNG, JPG, TIFF and WebP images (read with OCR)",
   "kn.upload_metadata": "Metadata for the next files (optional)",
   "kn.upload_metadata_hint": "Applied to the files you upload next; each one can be changed later.",
   "kn.meta.category": "Category",
@@ -1171,7 +1171,7 @@ export const en = {
   "kn.upload.uploading_named": "Uploading {name}",
   "kn.upload.rejected": "Not accepted",
   "kn.upload.failed": "Upload failed",
-  "kn.reject.type": "That file type is not accepted. Use PDF, DOCX, ODT, TXT, MD, HTML, CSV or XLSX.",
+  "kn.reject.type": "That file type is not accepted. Use PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX or PNG, JPG, TIFF and WebP images (read with OCR).",
   "kn.reject.empty": "The file is empty.",
   "kn.reject.size": "The file is too large (over 100 MB).",
   "kn.dismiss": "Remove",
@@ -1206,7 +1206,7 @@ export const en = {
   "kn.missing_body": "This computer does not have document management installed yet. Once it is updated, this page will work with nothing else to do.",
   "kn.no_domains": "There are no knowledge domains yet",
   "kn.no_domains_body": "A domain groups the documents of one topic (for example \"Customer service\" or \"Technical interviews\"). Create the first one to start uploading documents.",
-  "kn.err_format": "That file type is not accepted. Use PDF, DOCX, ODT, TXT, MD, HTML, CSV or XLSX.",
+  "kn.err_format": "That file type is not accepted. Use PDF, DOCX, ODT, TXT, MD, HTML, CSV, XLSX or PNG, JPG, TIFF and WebP images (read with OCR).",
   "kn.err_not_found": "It no longer exists. Someone else may have deleted it.",
 
   // ---- live page (#/live) ----

@@ -125,7 +125,8 @@ the same status (`payload_too_large` 413, `unsupported_media_type`
 
 | Type | Extensions | Extraction | Licence |
 |---|---|---|---|
-| PDF | `.pdf` | `pypdf` text layer, one `## p. N` section per page; no text → `failed` "El PDF no tiene texto extraíble (¿está escaneado?); no se hace OCR. / … OCR is not supported." Password-protected → `failed` | BSD-3-Clause |
+| PDF | `.pdf` | with the `ocr` group (§6): Docling layout + tables + OCR; without it `pypdf` text layer. Either way one `## p. N` section per page; no text → `failed` "El PDF no tiene texto extraíble (¿está escaneado?); no se hace OCR. / … OCR is not supported." Password-protected → `failed` | BSD-3-Clause (pypdf), MIT (Docling) |
+| Image | `.png`, `.jpg`/`.jpeg`, `.tif`/`.tiff`, `.webp` | OCR (§6); without the `ocr` group a `415` "Las imágenes necesitan OCR…" | Pillow (HPND) |
 | Word | `.docx` | `python-docx` (needs `lxml`, BSD-3): heading styles → `#`, lists → `-`, tables → Markdown tables, in document order | MIT |
 | OpenDocument text | `.odt` | `odfpy` (needs `defusedxml`, PSF): outline levels → `#`, tables | Apache-2.0 |
 | Excel | `.xlsx` | `openpyxl` read-only (needs `et-xmlfile`, MIT): one `## sheet` section with a table each, at most 50 000 rows | MIT |
@@ -134,4 +135,67 @@ the same status (`payload_too_large` 413, `unsupported_media_type`
 | Markdown, text | `.md`, `.markdown`, `.txt` | as is | — |
 
 Multipart parsing uses `python-multipart` (Apache-2.0); manifests
-`PyYAML` (MIT). No OCR, no legacy Office formats, no PowerPoint.
+`PyYAML` (MIT). No legacy Office formats, no PowerPoint.
+
+## 6. OCR, layout and tables (KN-1, #191)
+
+Optional dependency group `ocr` (`pyproject.toml`): Docling (MIT) with
+RapidOCR (Apache-2.0, ONNX runtime). Without it the service runs as
+before (text-layer PDFs; images refused). Setting `KnowledgeSettings.ocr`
+(default `True`) turns it on when the group is installed.
+
+| Piece | What | Licence | Disk |
+|---|---|---|---|
+| `docling` 2.151.1 + `docling-ibm-models`, `docling-parse`… | PDF parsing, reading order | MIT | packages ≈ 0.6 GB in the shared venv |
+| `docling-project/docling-layout-heron` | layout model (text, headings, tables, pictures) | Apache-2.0 | 164 MB (HF cache) |
+| `docling-project/docling-models` (TableFormer) | table structure → Markdown | MIT | 342 MB (HF cache) |
+| RapidOCR 3.10 `latin` PP-OCR models | text recognition, Spanish accents and `ñ` | Apache-2.0 | 43 MB (in `site-packages`) |
+
+How a PDF is read (`DocumentExtractors`, `DoclingPages`):
+
+1. `pypdf` reads the text layer of every page (cheap) and finds the pages
+   with fewer than 8 non-blank characters: the **scanned** pages.
+2. Pages with text go to Docling without OCR (layout, reading order,
+   **tables as Markdown**; `layout_text_pages=False` keeps the fast
+   `pypdf` text instead and loses the tables). Scanned pages go to
+   Docling with OCR. Both in batches of 20 consecutive pages
+   (`layout_batch_pages`) so a 50 MB file never sits in the layout model at
+   once, and a batch Docling fails on falls back to the text layer of its
+   pages (the failure is logged).
+3. Every page is a `## p. N` section and the headings Docling found go one
+   level down (`### Artículo 5`), so **the page number is in the heading
+   path of every chunk**: `p. 12 > Artículo 5` is the chunk's `title`,
+   shown in results and matched by the lexical index. No new index field:
+   the 42 index and the domain indexes keep their format.
+
+Images (`png`, `jpg`, `tiff`, `webp`) are checked on upload (header must
+decode, at most 100 megapixels and 500 frames) and read with OCR; they
+become `## p. 1` (TIFF frames `## p. N`). A broken or empty image is
+`failed` with a reason.
+
+**GPU.** Ingestion is a batch job and yields to the live mode: before every
+batch `DoclingPages` asks `FileGpuGate`, which reads the transcriber's
+lease file (`$XDG_RUNTIME_DIR/gpu-lease/lease.json`, `gpu-lease.v1`:
+unexpired and its pid alive = held; no code is shared with the transcriber).
+Free and CUDA present → the models run on the GPU; held → CPU, and the
+GPU converter is dropped so its VRAM returns. Nothing ever signals or
+kills another process.
+
+Install on the workstation (never plain `uv sync`/`uv run`: they swap torch
+to the CPU build under the running services):
+
+```sh
+uv pip install --dry-run --python .venv/bin/python docling rapidocr   # torch must not change
+uv pip install --python .venv/bin/python docling rapidocr
+uv pip install --no-deps --python .venv/bin/python \
+    --index-url https://download.pytorch.org/whl/cu126 "torchvision==0.29.1+cu126"
+python -c "import torch;print(torch.__version__, torch.cuda.is_available())"   # 2.14.1+cu126 True
+```
+
+The dry run left `torch` alone but pulled `torchvision` from PyPI (0.29.2,
+built for another CUDA: `operator torchvision::nms does not exist`), hence
+the third command (torchvision for `cu126`, matching torch 2.14.1). Docling
+also needs `huggingface-hub < 2`: the venv went from 2.4.0 to 1.33.0, which
+`transformers` 5.20.2 (`>=1.31,<3`) accepts.
+
+Measurements: `experiments/knowledge/OCR.md`.

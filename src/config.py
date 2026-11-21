@@ -190,6 +190,12 @@ class KnowledgeSettings(BaseModel):
     path_weight: int = Field(default=1, ge=0)
     context_weight: int = Field(default=3, ge=0)
     max_upload_bytes: int = Field(default=200 * MiB, ge=1)
+    ocr: bool = True
+    """Read PDFs with layout and OCR, accept images (group ``ocr``)."""
+    layout_text_pages: bool = True
+    """Send pages with a text layer to the layout reader too (tables)."""
+    layout_batch_pages: int = Field(default=20, ge=1, le=200)
+    """Pages per call to the layout reader."""
 
 
 DEFAULT_SKILLS_EMBEDDING_MODEL = (

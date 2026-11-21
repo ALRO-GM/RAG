@@ -45,6 +45,16 @@ def make_pdf(pages: Sequence[str]) -> bytes:
     return out
 
 
+def make_image(kind: str = "png", size: int = 16) -> bytes:
+    """Return a tiny image of type ``kind`` (png, jpg, tiff or webp)."""
+    from PIL import Image
+
+    out = io.BytesIO()
+    format_name = {"jpg": "JPEG", "tiff": "TIFF"}.get(kind, kind.upper())
+    Image.new("RGB", (size, size), (255, 255, 255)).save(out, format_name)
+    return out.getvalue()
+
+
 def make_docx() -> bytes:
     """Return a DOCX with a title, headings, a list and a table."""
     import docx

@@ -20,6 +20,7 @@ dependencies = [
     "odfpy>=1.4.1",
     "openpyxl>=3.1.5",
     "python-multipart>=0.0.32",
+    "pillow>=10.0",
 ]
 
 [dependency-groups]
@@ -41,6 +42,16 @@ local-judge = [
     # `uv sync --group local-judge` on the workstation that runs it.
     "bitsandbytes>=0.45",
     "accelerate>=1.0",
+]
+ocr = [
+    # Layout, tables and OCR for uploaded PDFs and images, and image
+    # captions (docs/KNOWLEDGE.md §6-7). Not a default group: install on
+    # the workstation with
+    #   uv pip install --python .venv/bin/python docling rapidocr
+    # after a dry run (it must not touch torch; torchvision must be the
+    # build of torch's CUDA).
+    "docling>=2.151",
+    "rapidocr>=3.10",
 ]
 dev = [
     "flake8>=7.0",
@@ -117,7 +128,8 @@ markers = [
 [[tool.mypy.overrides]]
 module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile", "odf", "odf.*",
           "openpyxl", "openpyxl.*", "faster_whisper", "faster_whisper.*",
-          "onnxruntime", "onnxruntime.*"]
+          "onnxruntime", "onnxruntime.*", "docling", "docling.*",
+          "docling_core", "docling_core.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
