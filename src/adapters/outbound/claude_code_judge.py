@@ -46,10 +46,14 @@ from src.domain.errors import (
     QuotaExhaustedError,
     TransientModelError,
 )
+from src.domain.reasoning.roles import Latency
 from src.domain.skills.usage import Usage
 
 DEFAULT_CLAUDE_MODEL = "opus"
 """Claude Code's alias of the best model the subscription offers."""
+
+LIVE_CLAUDE_MODEL = "haiku"
+"""Claude Code's alias of the fast model the live reasoner uses."""
 
 KEPT_ENVIRONMENT = ("PATH", "HOME", "LANG", "LC_ALL")
 """The only environment variables handed to ``claude``."""
@@ -210,14 +214,22 @@ class ClaudeCodeJudge:
         self._environ = os.environ if environ is None else environ
         self._runner = runner
         self.last_usage: Optional[Usage] = None
+        self.last_latency: Optional[Latency] = None
 
     @property
     def model_name(self) -> str:
         """Return the identifier of the judge (``claude-code:<model>``)."""
         return f"claude-code:{self.model}"
 
-    def command(self, system: str) -> List[str]:
-        """Return the command line of one isolated call."""
+    def command(
+        self, system: str, output_format: str = "json",
+        extra: Sequence[str] = (),
+    ) -> List[str]:
+        """Return the command line of one isolated call.
+
+        ``output_format`` and ``extra`` let the warm backend reuse the
+        same isolation flags with ``stream-json``.
+        """
         command = [
             self.executable, "-p",
             "--safe-mode",
@@ -226,9 +238,10 @@ class ClaudeCodeJudge:
             "--tools", "",
             "--disable-slash-commands",
             "--no-session-persistence",
-            "--output-format", "json",
+            "--output-format", output_format,
             "--model", self.model,
             "--system-prompt", system,
+            *extra,
         ]
         if self.effort:
             command += ["--effort", self.effort]
@@ -263,6 +276,8 @@ class ClaudeCodeJudge:
     def _once(self, system: str, user: str) -> str:
         """Make one call."""
         self.last_usage = None
+        self.last_latency = None
+        started = time.perf_counter()
         with tempfile.TemporaryDirectory(prefix="judge-") as empty:
             try:
                 done = self._runner(
@@ -277,7 +292,32 @@ class ClaudeCodeJudge:
                 raise ModelTimeoutError(
                     f"Claude Code did not answer within {self.timeout:g} s."
                 )
-        return self.parse(done.returncode, done.stdout, done.stderr)
+        total_ms = (time.perf_counter() - started) * 1000.0
+        text = self.parse(done.returncode, done.stdout, done.stderr)
+        self.last_latency = self._latency(done.stdout, total_ms)
+        return text
+
+    @staticmethod
+    def _latency(stdout: str, total_ms: float) -> Latency:
+        """Return the latency of a one-shot call.
+
+        ``process_start_ms`` is the time outside the model's session
+        (starting and stopping ``claude``): the wall time minus the
+        ``duration_ms`` the result reports. A one-shot call does not
+        stream, so there is no first-token time.
+        """
+        try:
+            session = json.loads(stdout).get("duration_ms")
+        except (ValueError, AttributeError):
+            session = None
+        outside = (
+            max(total_ms - float(session), 0.0)
+            if isinstance(session, (int, float)) else 0.0
+        )
+        return Latency(
+            process_start_ms=round(outside, 1), first_token_ms=None,
+            total_ms=round(total_ms, 1),
+        )
 
     def parse(self, returncode: int, stdout: str, stderr: str) -> str:
         """Return the model's text from ``claude -p`` output, or raise.
