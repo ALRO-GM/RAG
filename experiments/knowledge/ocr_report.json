@@ -1,0 +1,36 @@
+{
+  "gpu_lease_free": false,
+  "text_pdf_pages": 120,
+  "runs": [
+    {
+      "device": "cpu",
+      "clean": {
+        "cer": 0.1163141993957704,
+        "wer": 0.12618296529968454,
+        "pages": 3,
+        "seconds": 6.85,
+        "table_cells_found": 1.0,
+        "pages_with_table": 3
+      },
+      "noisy": {
+        "cer": 0.0,
+        "wer": 0.0,
+        "pages": 3,
+        "seconds": 5.44,
+        "table_cells_found": 1.0,
+        "pages_with_table": 3
+      },
+      "scanned_pages_per_minute": 29.3,
+      "docling_text_pages": {
+        "pages": 120,
+        "seconds": 60.06,
+        "pages_per_minute": 119.9
+      },
+      "pypdf_text_layer": {
+        "pages": 120,
+        "seconds": 0.29,
+        "pages_per_minute": 24447.5
+      }
+    }
+  ]
+}
