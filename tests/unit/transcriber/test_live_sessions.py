@@ -499,3 +499,11 @@ def test_a_failing_recogniser_fails_the_session() -> None:
     assert harness.log.closed == ["x"]
     with pytest.raises(StateError):
         session.feed(b"\x00\x00")
+
+
+def test_a_session_is_ready_for_audio_once_the_recogniser_runs() -> None:
+    harness = Harness(LiveServiceSettings(idle_seconds=0.05), device="cpu")
+    session = harness.live.start(LiveSessionRequest(session_id="a"))
+    assert session.wait_ready(WAIT)
+    assert session.wait(WAIT)
+    assert session.wait_ready(0)  # an ended session never holds a socket
