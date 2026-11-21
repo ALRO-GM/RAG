@@ -118,7 +118,8 @@ def test_upload_index_relabel_and_delete(app: App) -> None:
     """The whole life of a document, from upload to deletion."""
     client, queue = app
     create(client)
-    response = upload(client, "../../Manual devoluciones.docx", make_docx(),
+    payload = make_docx()
+    response = upload(client, "../../Manual devoluciones.docx", payload,
                       {"intent": "refund", "tags": ["faq"]})
     assert response.status_code == 202, response.text
     document = response.json()
@@ -133,7 +134,7 @@ def test_upload_index_relabel_and_delete(app: App) -> None:
     [done] = documents(client)
     assert done["status"] == "indexed" and done["chunks"] > 0
     stored = Path(f"data/knowledge/acme/originals/{done['id']}.docx")
-    assert stored.read_bytes() == make_docx()
+    assert stored.read_bytes() == payload
     assert Path(f"data/knowledge/acme/extracted/{done['id']}.md").is_file()
     assert ask(client, "devolver treinta", intent=["refund"])
     assert ask(client, "devolver treinta", intent=["pricing"]) == []
