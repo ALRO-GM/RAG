@@ -5,6 +5,7 @@ corpus type) means changing a line here, not the use cases.
 """
 
 import shutil
+from datetime import datetime, timezone
 from functools import cached_property, partial
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -20,6 +21,8 @@ from src.adapters.outbound.cross_encoder_reranker import (
     CrossEncoderReranker,
 )
 from src.adapters.outbound.fs_corpus import FileSystemCorpus, MultiRootCorpus
+from src.adapters.outbound.document_extractors import DocumentExtractors
+from src.adapters.outbound.fs_document_store import FileSystemDocumentStore
 from src.adapters.outbound.fs_domain_catalogue import (
     FileSystemDomainCatalogue,
 )
@@ -49,6 +52,7 @@ from src.adapters.outbound.parallel_processor import (
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.subprocess_benchmark import SubprocessBenchmark
 from src.adapters.outbound.system_probe import SystemProbe
+from src.adapters.outbound.thread_job_queue import ThreadJobQueue
 from src.adapters.outbound.torch_runtime import (
     load_measured,
     precision_tag,
@@ -64,6 +68,7 @@ from src.application.datasets import DatasetService
 from src.application.experiments import ExperimentService
 from src.application.indexing import IndexingService
 from src.application.knowledge.ports import IndexState
+from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
 from src.application.ports import Analyzer, Cache, Embedder, Reranker
@@ -85,6 +90,11 @@ from src.domain.models import IndexReport, ScoredChunk
 from src.domain.priors import RouterModel
 from src.domain.runtime import HardwareProfile, RuntimePlan, plan_runtime
 from src.domain.text_analysis import tokenize
+
+
+def utc_now() -> str:
+    """Return the current UTC time as ISO 8601 text (seconds)."""
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def resolve_runtime(
@@ -375,14 +385,28 @@ class Container:
             JsonRouterRepository(self.settings.router_path),
         )
 
-    @cached_property
-    def knowledge_embedder(self) -> Embedder:
-        """Embedding model of the knowledge domains (loaded on first use)."""
+    def _knowledge_model(self) -> Embedder:
+        """Return a new (lazily loaded) knowledge embedding model."""
         k = self.knowledge_settings
         return SentenceTransformerEmbedder(
             k.embedding_model, max_seq_length=k.embedding_max_tokens,
             plan=self.runtime,
         )
+
+    @cached_property
+    def knowledge_embedder(self) -> Embedder:
+        """Embedding model of knowledge queries (loaded on first use)."""
+        return self._knowledge_model()
+
+    @cached_property
+    def knowledge_index_embedder(self) -> Embedder:
+        """A second copy for indexing, used by the background worker.
+
+        A tokenizer used by two threads at once can fail ("Already
+        borrowed"), and sharing one lock would make queries wait for a
+        whole document's embedding; two copies avoid both.
+        """
+        return self._knowledge_model()
 
     @cached_property
     def knowledge_catalogue(self) -> FileSystemDomainCatalogue:
@@ -394,7 +418,8 @@ class Container:
     def knowledge_indexes(self) -> "KnowledgeIndexFactory":
         """Per-domain indexing and search services."""
         return KnowledgeIndexFactory(
-            self.knowledge_settings, self.settings, self.knowledge_embedder
+            self.knowledge_settings, self.settings, self.knowledge_embedder,
+            self.knowledge_index_embedder,
         )
 
     @cached_property
@@ -403,6 +428,22 @@ class Container:
         return DomainIndexRegistry(
             self.knowledge_catalogue, self.knowledge_indexes,
             self.knowledge_settings.max_chunk_size,
+            extra_documents=lambda d: (
+                self.knowledge_library.pending_documents(d)
+            ),
+        )
+
+    @cached_property
+    def knowledge_library(self) -> KnowledgeLibrary:
+        """Domains and their uploaded documents (one background worker)."""
+        k = self.knowledge_settings
+        return KnowledgeLibrary(
+            self.knowledge_registry,
+            FileSystemDocumentStore(k.data_dir),
+            DocumentExtractors(),
+            ThreadJobQueue(),
+            k.max_upload_bytes,
+            utc_now,
         )
 
     @cached_property
@@ -426,11 +467,17 @@ class KnowledgeIndexFactory:
         settings: KnowledgeSettings,
         base: Settings,
         embedder: Embedder,
+        index_embedder: Optional[Embedder] = None,
     ) -> None:
-        """Keep the settings and the shared embedder."""
+        """Keep the settings and the embedders.
+
+        ``embedder`` encodes queries; ``index_embedder`` (default: the
+        same) encodes chunks. Both must be the same model.
+        """
         self.settings = settings
         self.base = base
         self.embedder = embedder
+        self.index_embedder = index_embedder or embedder
 
     def index_dir(self, domain_id: str) -> Path:
         """Return the folder of a domain's index."""
@@ -457,7 +504,7 @@ class KnowledgeIndexFactory:
             repository=FileSystemIndexRepository(
                 str(self.index_dir(manifest.id))
             ),
-            embedder=self.embedder,
+            embedder=self.index_embedder,
             embed_style=k.embed_style,
             extra_params={
                 "kind": "knowledge-domain",

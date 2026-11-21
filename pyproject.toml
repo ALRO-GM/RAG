@@ -15,6 +15,11 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "pyyaml>=6.0.3",
+    "pypdf>=7.1.1",
+    "python-docx>=1.2.0",
+    "odfpy>=1.4.1",
+    "openpyxl>=3.1.5",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
@@ -91,7 +96,8 @@ markers = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile"]
+module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile", "odf", "odf.*",
+          "openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]

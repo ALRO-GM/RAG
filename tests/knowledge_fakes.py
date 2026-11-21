@@ -2,11 +2,18 @@
 
 from typing import Callable, Dict, List, Optional
 
-from src.application.knowledge.ports import IndexState
+from src.application.knowledge.ports import ExtractedDocument, IndexState
 from src.application.ports import IndexSnapshot
-from src.domain.errors import BusyError, NotFoundError
+from src.domain.errors import (
+    BusyError,
+    InvalidInputError,
+    NotFoundError,
+    UnsupportedDocumentError,
+)
+from src.domain.knowledge.documents import KnowledgeDocument
 from src.domain.knowledge.domains import DomainManifest
 from src.domain.models import Chunk, IndexReport, ScoredChunk
+from tests.fakes import make_snapshot
 
 
 class InMemoryCatalogue:
@@ -53,8 +60,8 @@ class FakeSearcher:
 
     @property
     def snapshot(self) -> IndexSnapshot:
-        """Not needed by the use cases under test."""
-        raise NotImplementedError
+        """Return an in-memory snapshot of the chunks."""
+        return make_snapshot(self.chunks)
 
     def search_where(
         self, query: str, k: int, keep: Callable[[Chunk], bool]
@@ -140,3 +147,102 @@ class InMemoryIndexes:
     def drop(self, domain_id: str) -> None:
         """Forget the domain's index."""
         self.built.pop(domain_id, None)
+
+
+class InMemoryDocumentStore:
+    """Documents in dicts; extracted texts become the domain's files."""
+
+    def __init__(self, indexes: InMemoryIndexes) -> None:
+        """Write extracted texts into ``indexes.files``."""
+        self.indexes = indexes
+        self.records: Dict[str, Dict[str, KnowledgeDocument]] = {}
+        self.originals: Dict[tuple[str, str], bytes] = {}
+
+    def list(self, domain_id: str) -> List[KnowledgeDocument]:
+        """Return the documents, oldest first."""
+        found = self.records.get(domain_id, {}).values()
+        return sorted(found, key=lambda d: (d.uploaded_at, d.id))
+
+    def get(self, domain_id: str, document_id: str) -> KnowledgeDocument:
+        """Return one document."""
+        try:
+            return self.records[domain_id][document_id]
+        except KeyError:
+            raise NotFoundError(f"No document {document_id!r}.")
+
+    def save(self, domain_id: str, document: KnowledgeDocument) -> None:
+        """Store the record."""
+        self.records.setdefault(domain_id, {})[document.id] = document
+
+    def save_original(
+        self, domain_id: str, document: KnowledgeDocument, data: bytes
+    ) -> None:
+        """Keep the bytes."""
+        self.originals[(domain_id, document.id)] = data
+
+    def original(self, domain_id: str, document: KnowledgeDocument) -> bytes:
+        """Return the bytes."""
+        return self.originals[(domain_id, document.id)]
+
+    def text_path(self, domain_id: str, document_id: str) -> str:
+        """Return the indexed name of the text."""
+        return f"extracted/{document_id}.md"
+
+    def write_text(self, domain_id: str, document_id: str, text: str) -> str:
+        """Add the text to the domain's sources."""
+        path = self.text_path(domain_id, document_id)
+        self.indexes.files.setdefault(domain_id, {})[path] = text
+        return path
+
+    def remove_text(self, domain_id: str, document_id: str) -> None:
+        """Remove the text from the sources."""
+        self.indexes.files.get(domain_id, {}).pop(
+            self.text_path(domain_id, document_id), None
+        )
+
+    def delete(self, domain_id: str, document_id: str) -> None:
+        """Delete everything of a document."""
+        self.get(domain_id, document_id)
+        self.remove_text(domain_id, document_id)
+        self.originals.pop((domain_id, document_id), None)
+        del self.records[domain_id][document_id]
+
+
+class FakeExtractor:
+    """Decode the bytes as text; ``b"FAIL"`` fails, ``b"BAD"`` is refused."""
+
+    def __init__(self) -> None:
+        """Count the extractions."""
+        self.extracted = 0
+
+    def verify(self, data: bytes, document_type: str) -> None:
+        """Refuse ``b"BAD..."``."""
+        if data.startswith(b"BAD"):
+            raise UnsupportedDocumentError("not really a docx")
+
+    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
+        """Return the text, or fail on ``b"FAIL..."``."""
+        self.extracted += 1
+        if data.startswith(b"FAIL"):
+            raise InvalidInputError("no text in it")
+        return ExtractedDocument(data.decode("utf-8"), pages=1)
+
+
+class ManualQueue:
+    """Keep submitted jobs until :meth:`run_all`."""
+
+    def __init__(self) -> None:
+        """No jobs yet."""
+        self.jobs: List[Callable[[], None]] = []
+
+    def submit(self, job: Callable[[], None]) -> None:
+        """Keep ``job``."""
+        self.jobs.append(job)
+
+    def run_all(self) -> int:
+        """Run every pending job (and those they submit); count them."""
+        count = 0
+        while self.jobs:
+            self.jobs.pop(0)()
+            count += 1
+        return count

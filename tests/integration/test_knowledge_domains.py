@@ -167,6 +167,8 @@ def test_catalogue_refuses_bad_manifests(
     write(Path("knowledge/domains/broken/manifest.yaml"), text)
     with pytest.raises(CorruptedDataError, match=error):
         domains[0].catalogue.manifest("broken")
+    listed = [row.id for row in domains[0].summaries()]
+    assert listed == ["interview.backend", "support.acme"]
 
 
 class App:
@@ -265,3 +267,17 @@ def test_out_of_vocabulary_values_stop_indexing_with_file_line(
         registry.index("support.labelled")
     with pytest.raises(NotFoundError, match="no index"):
         registry.searcher("support.labelled")
+
+
+def test_container_wires_two_knowledge_embedders() -> None:
+    """Queries and the indexing worker never share a tokenizer."""
+    from src.bootstrap import Container
+
+    container = Container(Settings())
+    factory = container.knowledge_indexes
+    assert factory.embedder is container.knowledge_embedder
+    assert factory.index_embedder is container.knowledge_index_embedder
+    assert factory.embedder is not factory.index_embedder
+    assert factory.embedder.model_name == factory.index_embedder.model_name
+    assert container.knowledge_library.registry is \
+        container.knowledge_registry

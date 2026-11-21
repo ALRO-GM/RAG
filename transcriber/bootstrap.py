@@ -53,6 +53,7 @@ from transcriber.adapters.outbound.fs_voiceprint_repository import (
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
+from transcriber.adapters.outbound.http_knowledge import HttpKnowledge
 from transcriber.adapters.outbound.http_session_analysis import (
     HttpSessionAnalysis,
 )
@@ -144,6 +145,7 @@ from transcriber.application.analysis import (
     AnalysisJudgeSetting,
     SessionAnalysisAccess,
 )
+from transcriber.application.knowledge import KnowledgeAccess
 from transcriber.application.publish import PublishTranscript
 from transcriber.application.record import (
     AppendAudio,
@@ -263,6 +265,7 @@ class TranscriberContainer:
     diarizer: Optional[LabRunnerDiarizer] = None
     diarizer_rule: DiarizerRule = BUILTIN_RULE
     session_analysis: SessionAnalysisAccess = SessionAnalysisAccess(None)
+    knowledge: KnowledgeAccess = KnowledgeAccess(None)
     name_model: Optional[LocalNameModel] = None
 
     def release_models(self) -> None:
@@ -623,6 +626,10 @@ def build_container(
         diarizer_rule=rule,
         session_analysis=SessionAnalysisAccess(
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
+            if isinstance(publisher, HttpTranscriptPublisher) else None
+        ),
+        knowledge=KnowledgeAccess(
+            HttpKnowledge(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None
         ),
         name_model=name_model,

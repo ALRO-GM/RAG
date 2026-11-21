@@ -6,6 +6,7 @@ loaded search service per domain and mode, replaced when the index on
 disk changes, so several domains are searched side by side.
 """
 
+import logging
 import threading
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
@@ -15,7 +16,7 @@ from src.application.knowledge.ports import (
     DomainIndexes,
     DomainSearcher,
 )
-from src.domain.errors import InvalidInputError, NotFoundError
+from src.domain.errors import InvalidInputError, NotFoundError, RagError
 from src.domain.knowledge.domains import (
     DomainManifest,
     DomainSummary,
@@ -23,6 +24,8 @@ from src.domain.knowledge.domains import (
     index_version,
 )
 from src.domain.models import IndexReport
+
+LOG = logging.getLogger(__name__)
 
 SEARCH_MODES = {"hybrid": "hybrid", "lexical": "bm25", "semantic": "semantic"}
 """``knowledge.query.v1`` mode → retrieval mode of the search service."""
@@ -87,8 +90,19 @@ class DomainIndexRegistry:
         )
 
     def summaries(self) -> List[DomainSummary]:
-        """Return every domain's row, sorted by id."""
-        return [self.summary(d) for d in self.catalogue.ids()]
+        """Return every readable domain's row, sorted by id.
+
+        A domain whose manifest or index cannot be read is left out
+        (and logged) so that one broken folder does not hide the rest.
+        """
+        rows: List[DomainSummary] = []
+        for domain_id in self.catalogue.ids():
+            try:
+                rows.append(self.summary(domain_id))
+            except RagError as exc:
+                LOG.warning("Skipping knowledge domain %s: %s", domain_id,
+                            exc)
+        return rows
 
     def index(self, domain_id: str, force: bool = False) -> DomainIndexReport:
         """Build or update a domain's index; drop it when it has no source.

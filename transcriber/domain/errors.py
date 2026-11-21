@@ -66,6 +66,18 @@ class AnalysisUnavailableError(TranscriberError):
     """The RAG's analysis settings cannot be reached from here."""
 
 
+class TooLargeError(InvalidInputError):
+    """An upload is larger than the RAG accepts."""
+
+
+class UnsupportedMediaError(InvalidInputError):
+    """An uploaded file is not of a type the RAG can read."""
+
+
+class RagUnavailableError(TranscriberError):
+    """The RAG's knowledge routes cannot be reached or failed."""
+
+
 class LimitReachedError(TranscriberError):
     """A usage limit refuses the request now; it can be tried later."""
 

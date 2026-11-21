@@ -397,6 +397,31 @@ class AnalysisJudge(Protocol):
         ...
 
 
+class KnowledgePort(Protocol):
+    """The RAG's knowledge routes (``/knowledge/...``).
+
+    ``call`` sends one request below ``/knowledge/`` and returns the
+    RAG's JSON answer (``None`` for an empty one). The RAG's refusals
+    become domain errors carrying its message:
+    :class:`~transcriber.domain.errors.InvalidInputError` (400/422),
+    :class:`~transcriber.domain.errors.NotFoundError` (404),
+    :class:`~transcriber.domain.errors.StateError` (409),
+    :class:`~transcriber.domain.errors.TooLargeError` (413),
+    :class:`~transcriber.domain.errors.UnsupportedMediaError` (415) and
+    :class:`~transcriber.domain.errors.RagUnavailableError` otherwise.
+    """
+
+    def call(
+        self,
+        method: str,
+        path: str,
+        body: Optional[bytes] = None,
+        content_type: Optional[str] = None,
+    ) -> Any:
+        """Send ``method path`` with ``body``; return the JSON answer."""
+        ...
+
+
 class SessionAnalysisPort(Protocol):
     """The RAG's whole analysis of a published session (#88).
 

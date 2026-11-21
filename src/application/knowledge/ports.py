@@ -1,6 +1,7 @@
 """Ports of the knowledge-domain use cases.
 
-The file-system catalogue lives in ``src/adapters/outbound``; the per-domain
+The file-system catalogue and document store, the extractors and the
+background worker live in ``src/adapters/outbound``; the per-domain
 indexing and search services are built by the composition root
 (``src/bootstrap.py``). Unit tests use in-memory fakes.
 """
@@ -9,6 +10,7 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional, Protocol
 
 from src.application.ports import IndexSnapshot
+from src.domain.knowledge.documents import KnowledgeDocument
 from src.domain.knowledge.domains import DomainManifest
 from src.domain.models import Chunk, IndexReport, ScoredChunk
 
@@ -97,4 +99,74 @@ class DomainIndexes(Protocol):
 
     def drop(self, domain_id: str) -> None:
         """Delete a domain's index."""
+        ...
+
+
+class DocumentStore(Protocol):
+    """Uploaded documents of a domain: records, originals, text."""
+
+    def list(self, domain_id: str) -> List[KnowledgeDocument]:
+        """Return the domain's documents, oldest first."""
+        ...
+
+    def get(self, domain_id: str, document_id: str) -> KnowledgeDocument:
+        """Return one document (``NotFoundError`` if none)."""
+        ...
+
+    def save(self, domain_id: str, document: KnowledgeDocument) -> None:
+        """Create or replace a document's record."""
+        ...
+
+    def save_original(
+        self, domain_id: str, document: KnowledgeDocument, data: bytes
+    ) -> None:
+        """Keep the uploaded bytes of a document."""
+        ...
+
+    def original(self, domain_id: str, document: KnowledgeDocument) -> bytes:
+        """Return the uploaded bytes of a document."""
+        ...
+
+    def write_text(self, domain_id: str, document_id: str, text: str) -> str:
+        """Write the extracted text to index; return its path."""
+        ...
+
+    def text_path(self, domain_id: str, document_id: str) -> str:
+        """Return the path the document's extracted text is indexed as."""
+        ...
+
+    def remove_text(self, domain_id: str, document_id: str) -> None:
+        """Delete the extracted text (it leaves the index)."""
+        ...
+
+    def delete(self, domain_id: str, document_id: str) -> None:
+        """Delete a document: record, original and text."""
+        ...
+
+
+@dataclass(frozen=True)
+class ExtractedDocument:
+    """Text extracted from an uploaded file, as Markdown."""
+
+    text: str
+    pages: Optional[int] = None
+
+
+class DocumentExtractor(Protocol):
+    """Turn an uploaded file into Markdown text."""
+
+    def verify(self, data: bytes, document_type: str) -> None:
+        """Check the file's inside (``UnsupportedDocumentError``)."""
+        ...
+
+    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
+        """Return the text of ``data`` (``InvalidInputError`` if none)."""
+        ...
+
+
+class JobQueue(Protocol):
+    """Run jobs in the background, one at a time, in order."""
+
+    def submit(self, job: Callable[[], None]) -> None:
+        """Queue ``job``; return at once."""
         ...

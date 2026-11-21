@@ -838,8 +838,16 @@ class RagCLI:
             ),
             judge=skills.judge_selection,
             analysis=analysis,
-            knowledge=KnowledgeRoutes(app.knowledge_query),
+            knowledge=KnowledgeRoutes(
+                app.knowledge_query, app.knowledge_library
+            ),
         )
+        if token:
+            k = app.knowledge_settings
+            resumed = app.knowledge_library.recover()
+            print(f"Knowledge: /knowledge/* (domains in {k.domains_dir} "
+                  f"and {k.data_dir}; indexes in {k.index_dir}; "
+                  f"{resumed} upload(s) resumed)")
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)
 
