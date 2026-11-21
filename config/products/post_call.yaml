@@ -1,0 +1,12 @@
+product: post_call
+version: 1
+language: es
+source: {kind: upload}
+asr: {kind: batch, model: whisper-large-v3-turbo}
+attribution: {kind: diarizer}
+knowledge: {domains: [rubric.core], top_k: 4}
+reasoner: {role: judge, model: haiku}
+ui: {kind: hr_page}
+output: transcript.v1
+privacy: {store_audio: true}
+handoff: {transcript_v1: true, run_post_call: true}
