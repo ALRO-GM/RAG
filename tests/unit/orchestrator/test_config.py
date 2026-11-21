@@ -40,6 +40,12 @@ class TestShippedFiles:
         assert support.reasoner is not None
         assert support.reasoner.expressed_signals is True
 
+    def test_support_asks_one_suggestion_to_meet_the_deadline(self) -> None:
+        support = product("live_assist.support")
+        assert support.reasoner is not None
+        assert support.reasoner.max_suggestions == 1
+        assert support.reasoner.deadline_ms == 2800
+
     def test_live_products_store_no_audio(self) -> None:
         for name in PRODUCTS[1:]:
             assert product(name).privacy.store_audio is False
