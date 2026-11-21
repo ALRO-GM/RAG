@@ -52,6 +52,9 @@ class Utterance(_Strict):
     end: float = Field(ge=0)
     text: str
     revision: int = Field(ge=0)
+    confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    speaker_certainty: Optional[float] = Field(default=None, ge=-2, le=2)
+    speaker_provisional: Optional[bool] = None
     language: Optional[str] = None
 
 
@@ -62,6 +65,14 @@ class Timings(_Strict):
     asr_ms: Optional[float] = Field(default=None, ge=0)
     attribution_ms: Optional[float] = Field(default=None, ge=0)
     lag_ms: Optional[float] = Field(default=None, ge=0)
+
+
+class LiveWarning(_Strict):
+    """Something the live pipeline wants the person to know."""
+
+    code: Literal["gpu_degraded", "asr_behind", "source_lost", "quota",
+                  "other"]
+    message: str
 
 
 class LiveEvent(_Strict):
@@ -79,6 +90,7 @@ class LiveEvent(_Strict):
     speakers: Optional[List[Speaker]] = None
     utterance: Optional[Utterance] = None
     timings: Optional[Timings] = None
+    warning: Optional[LiveWarning] = None
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 

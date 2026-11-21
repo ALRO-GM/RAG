@@ -1,4 +1,4 @@
-"""Command line: ``python -m orchestrator check-config | replay``.
+"""Command line: ``python -m orchestrator check-config | replay | serve``.
 
 ``replay`` talks to knowledge and the reasoner through ports. Each is
 ``fake`` (in process, no service), ``http`` (the RAG service) or, for
@@ -6,14 +6,20 @@ the reasoner, ``module:factory`` naming a callable that returns a
 reasoner port. The orchestrator may not import ``src``, so an
 in-process reasoner over the real model lives outside this package
 (``experiments/live/orchestrator_reasoner.py``) and is named here.
+
+``serve`` runs the live page's API (:mod:`.http_server`) on a loopback
+address: live sessions through the transcriber, and replays of recorded
+transcripts for a demo without a microphone.
 """
 
 import argparse
 import importlib
+import ipaddress
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Sequence
+from typing import Callable, Dict, Optional, Sequence
 
 from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
 from orchestrator.adapters.outbound.files import (
@@ -25,22 +31,41 @@ from orchestrator.adapters.outbound.files import (
 from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
 from orchestrator.adapters.outbound.jsonl_sink import JsonlSink
+from orchestrator.adapters.outbound.fs_transcripts import DirTranscripts
+from orchestrator.adapters.outbound.http_transcriber import (
+    HttpTranscriber,
+    read_code,
+)
 from orchestrator.adapters.outbound.runtime import (
     InlineExecutor,
     SystemClock,
     ThreadExecutor,
+    ThreadRunner,
 )
 from orchestrator.application.live_assist import LiveAssist
-from orchestrator.application.ports import KnowledgePort, ReasonerPort
+from orchestrator.application.ports import (
+    KnowledgePort,
+    ReasonerPort,
+    SuggestionSink,
+)
+from orchestrator.application.sessions import LiveSessions
 from orchestrator.application.replay import (
     Replay,
     default_roles,
     transcript_to_events,
 )
 from orchestrator.application.summary import summarise
+from orchestrator.domain.config import ProductConfig
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONFIG_DIR = ROOT / "config" / "products"
+DEFAULT_PORT = 8772
+RAG_TOKEN_FILE = Path("~/.config/ragputin/rag-token").expanduser()
+"""The token ``make rag-token`` writes; the RAG wants it as bearer."""
+TRANSCRIBER_CODE_FILE = ROOT / "data" / "transcriber" / "access_code"
+"""Where ``transcriber serve --keep-code`` keeps its access code."""
+TRANSCRIPT_DIRS = (ROOT / "data" / "transcripts",
+                   ROOT / "examples" / "platform")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -73,7 +98,37 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--token", default=None)
     replay.add_argument("--fake-delay-ms", type=float, default=0.0,
                         help="latency of the fakes")
+    add_serve_parser(sub)
     return parser
+
+
+def add_serve_parser(
+    sub: "argparse._SubParsersAction[argparse.ArgumentParser]",
+) -> None:
+    """Add ``serve``: the live page's API."""
+    serve = sub.add_parser("serve", help="the live page's API (SSE)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=DEFAULT_PORT)
+    serve.add_argument("--token-file", type=Path, default=None,
+                       help="bearer token the callers must send")
+    serve.add_argument("--config-dir", type=Path,
+                       default=DEFAULT_CONFIG_DIR)
+    serve.add_argument("--knowledge", default="http", help="fake | http")
+    serve.add_argument("--knowledge-url", default="http://127.0.0.1:8000")
+    serve.add_argument("--reasoner", default="http",
+                       help="fake | http | module:factory")
+    serve.add_argument("--reasoner-url", default="http://127.0.0.1:8000")
+    serve.add_argument("--rag-token-file", type=Path,
+                       default=RAG_TOKEN_FILE)
+    serve.add_argument("--transcriber-url", default="http://127.0.0.1:8770")
+    serve.add_argument("--transcriber-code-file", type=Path,
+                       default=TRANSCRIBER_CODE_FILE)
+    serve.add_argument("--transcripts", type=Path, action="append",
+                       default=None,
+                       help="folder of *.transcript.v1.json (repeatable)")
+    serve.add_argument("--log-dir", type=Path,
+                       default=ROOT / "data" / "live" / "serve")
+    serve.add_argument("--fake-delay-ms", type=float, default=0.0)
 
 
 def parse_speed(text: str) -> Optional[float]:
@@ -157,6 +212,82 @@ def run_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def is_loopback(host: str) -> bool:
+    """Tell whether ``host`` is an address of this machine only."""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def load_products(directory: Path) -> Dict[str, ProductConfig]:
+    """Read every valid product of ``directory``."""
+    products: Dict[str, ProductConfig] = {}
+    for path in sorted(directory.glob("*.yaml")):
+        config = load_product(path)
+        products[config.product] = config
+    return products
+
+
+def build_sessions(args: argparse.Namespace) -> LiveSessions:
+    """Wire the live sessions of ``serve`` from the arguments."""
+    args.token = read_code(args.rag_token_file)
+    code = read_code(args.transcriber_code_file)
+    transcriber = events = None
+    if code:
+        from orchestrator.adapters.outbound.ws_events import WsEvents
+
+        transcriber = HttpTranscriber(args.transcriber_url, code)
+        events = WsEvents(args.transcriber_url, code)
+    log_dir: Path = args.log_dir
+
+    def log(session_id: str, product: str) -> SuggestionSink:
+        return JsonlSink(
+            log_dir / f"{session_id}.{product}.suggestions.jsonl"
+        )
+
+    new_id: Callable[[], str] = lambda: datetime.now().strftime(
+        "live-%Y%m%d-%H%M%S"
+    )
+    return LiveSessions(
+        load_products(args.config_dir), build_knowledge(args),
+        build_reasoner(args),
+        DirTranscripts(args.transcripts or list(TRANSCRIPT_DIRS)),
+        SystemClock(), ThreadRunner(), ThreadExecutor, transcriber,
+        events, log, new_id,
+    )
+
+
+def run_serve(args: argparse.Namespace) -> int:
+    """Run ``serve`` until interrupted."""
+    if not is_loopback(args.host):
+        raise ValueError(
+            f"serve listens on this machine only: use 127.0.0.1, "
+            f"not {args.host}"
+        )
+    token = None
+    if args.token_file is not None:
+        token = read_code(args.token_file)
+        if not token:
+            raise ValueError(f"no token in {args.token_file}")
+    sessions = build_sessions(args)
+    import uvicorn
+
+    from orchestrator.adapters.inbound.http_server import create_app
+
+    live = "on" if sessions.transcriber is not None else (
+        f"off (no access code in {args.transcriber_code_file})"
+    )
+    print(f"orchestrator on http://{args.host}:{args.port} "
+          f"(products: {', '.join(sorted(sessions.products))}; "
+          f"live: {live}; token: {'yes' if token else 'no'})", flush=True)
+    uvicorn.run(create_app(sessions, token), host=args.host,
+                port=args.port, log_level="warning")
+    return 0
+
+
 def run_check(args: argparse.Namespace) -> int:
     """Run ``check-config``; exit 1 when a file is invalid."""
     names, errors = check_dir(args.dir)
@@ -173,6 +304,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         if args.command == "check-config":
             return run_check(args)
+        if args.command == "serve":
+            return run_serve(args)
         return run_replay(args)
     except (ConfigError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

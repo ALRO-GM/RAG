@@ -187,20 +187,41 @@ def test_every_relative_import_exists() -> None:
     assert missing == []
 
 
+SOCKET_MODULE = "js/live-audio.js"
+"""The one module allowed a WebSocket: the live page's microphone goes
+to the transcriber's audio socket (``docs/live/LIVE_SESSION.md``)."""
+
+
 def test_javascript_stays_csp_friendly() -> None:
     found = []
     for path in web_files():
         if path.suffix != ".js":
             continue
+        name = path.relative_to(WEB).as_posix()
         for number, line in enumerate(
             path.read_text(encoding="utf-8").splitlines(), 1
         ):
             code = line.split("//")[0] if "//" in line and "://" not in line \
                 else line
+            if name == SOCKET_MODULE:
+                code = re.sub(r"\bnew WebSocket\(", "", code)
             for pattern, what in FORBIDDEN_JS:
                 if pattern.search(code):
                     found.append(f"{path.relative_to(WEB)}:{number}: {what}")
     assert found == []
+
+
+def test_only_the_live_microphone_opens_a_socket() -> None:
+    users = sorted(
+        path.relative_to(WEB).as_posix() for path in web_files()
+        if path.suffix == ".js"
+        and "WebSocket" in path.read_text(encoding="utf-8")
+    )
+    assert users == [SOCKET_MODULE]
+    text = (WEB / SOCKET_MODULE).read_text(encoding="utf-8")
+    # The code goes in the first message, never in the socket's address.
+    assert "access_code: this.code" in text
+    assert "/api/live/${encodeURIComponent(id)}/audio`;" in text
 
 
 def test_css_loads_nothing() -> None:

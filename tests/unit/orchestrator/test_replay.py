@@ -10,7 +10,12 @@ from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
 from orchestrator.adapters.outbound.jsonl_sink import MemorySink
 from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.live_assist import LiveAssist
-from orchestrator.application.replay import Replay, transcript_to_events
+from orchestrator.application.ports import CancelToken
+from orchestrator.application.replay import (
+    STOP_CHECK,
+    Replay,
+    transcript_to_events,
+)
 from orchestrator.application.summary import percentile, summarise
 from orchestrator.domain.events import Transcript
 from tests.unit.orchestrator.fixtures import REPO, product, transcript
@@ -105,7 +110,25 @@ def test_real_time_waits_for_each_event() -> None:
     clock = FakeClock()
     sent = make(1.0, clock).run(transcript_to_events(transcript(), ROLES))
     assert sum(clock.slept) == pytest.approx(sent[-1].stream_time)
-    assert clock.slept[0] == pytest.approx(2.0)
+    # The first final ends at 2.0 s, waited in steps that check the stop.
+    assert sum(clock.slept[:8]) == pytest.approx(2.0)
+    assert max(clock.slept) <= STOP_CHECK
+
+
+def test_a_stopped_replay_ends_early() -> None:
+    clock = FakeClock()
+    stop = CancelToken()
+    replay = make(1.0, clock)
+    replay.stop = stop
+
+    def stopping(seconds: float) -> None:
+        clock.t += seconds
+        if clock.t > 105.0:
+            stop.cancel()
+
+    clock.sleep = stopping  # type: ignore[method-assign]
+    sent = replay.run(transcript_to_events(transcript(), ROLES))
+    assert sent and sent[-1].stream_time < 6.0
 
 
 def test_speed_scales_the_waits() -> None:
@@ -129,9 +152,11 @@ def test_summary_counts_and_percentiles() -> None:
     clock = FakeClock()
     replay = make(None, clock)
     replay.run(transcript_to_events(transcript(), ROLES))
-    sink = replay.assist.sink
+    assist = replay.assist
+    assert isinstance(assist, LiveAssist)
+    sink = assist.sink
     assert isinstance(sink, MemorySink)
-    summary = summarise(sink.records, replay.assist.skips)
+    summary = summarise(sink.records, assist.skips)
     assert summary["calls"] == 2 and summary["by_status"] == {"ok": 2}
     assert set(summary["stages"]) == {
         "knowledge_ms", "reasoner_ms", "total_ms"}
