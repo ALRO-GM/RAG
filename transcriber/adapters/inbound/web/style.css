@@ -1047,6 +1047,44 @@ details.tech, details.controls { margin: 1rem 0; }
 .live-phase { padding: var(--s-1) var(--s-3); border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: var(--fs-sm); font-weight: 600; }
 .live-phase.is-covered { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
 .live-phase.is-current { background: var(--active); color: var(--accent-ink); border-color: var(--accent); }
+/* LV-16: view controls, mandatory items, discomfort, guided sentences, names */
+.live-controls { gap: var(--s-2) var(--s-4); align-items: center; padding: var(--s-2) var(--s-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.live-controls .check { min-height: 2.25rem; gap: var(--s-2); }
+.live-max { align-items: center; gap: var(--s-2); font-size: var(--fs-sm); }
+.live-max select { width: auto; min-width: 4rem; }
+.live-modes { display: flex; align-items: center; gap: var(--s-1); flex-wrap: wrap; }
+.live-modes .meta { margin-right: var(--s-1); }
+.live-mandatory { position: sticky; top: var(--s-2); z-index: 3; background: var(--danger-bg); color: var(--danger); border: 2px solid var(--danger); border-radius: var(--r-lg); padding: var(--s-2) var(--s-3); box-shadow: var(--shadow-md); }
+.live-mandatory h2 { font-size: var(--fs-md, 1rem); margin: 0 0 var(--s-1); color: var(--danger); }
+.live-mandatory ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-1); }
+.live-mandatory.is-done { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.live-mandatory.is-done h2 { color: var(--ok); }
+.live-mandatory.remind { animation: insist 0.5s ease-in-out 4; }
+@keyframes insist { 50% { transform: scale(1.015); box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 45%, transparent); } }
+.live-item { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); font-weight: 650; }
+.live-item-mark { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 999px; background: var(--danger); color: var(--bg); font-size: var(--fs-sm); flex: none; }
+.live-item.is-said, .live-item.is-ticked { color: var(--ok); font-weight: 400; }
+.live-item.is-said .live-item-mark, .live-item.is-ticked .live-item-mark { background: var(--ok); }
+.live-item-text { flex: 1 1 14rem; min-width: 0; }
+.live-item button { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+.live-discomfort { border-width: 2px; font-size: var(--fs-lg); margin: 0; }
+.live-line.discomfort { border-left: 5px solid var(--warn-text); background: var(--warn-bg); }
+.live-card.discomfort { border: 2px solid var(--warn-text); }
+.live-line.side-employee { border-left-color: var(--line-strong); }
+.live-who { all: unset; cursor: pointer; font-size: var(--fs-sm); font-weight: 650; color: var(--muted); display: inline-flex; align-items: center; gap: var(--s-1); border-radius: var(--r-sm, 4px); }
+.live-who:hover, .live-who:focus-visible { color: var(--accent-ink); text-decoration: underline; outline: 2px solid var(--accent); outline-offset: 2px; }
+.live-who .icon { width: 0.9em; height: 0.9em; }
+.live-name-input { font-size: var(--fs-sm); padding: 2px var(--s-2); max-width: 14rem; min-height: 0; }
+.live-say { border-left: 6px solid var(--accent); background: var(--active); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
+.live-say-label { font-size: var(--fs-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-ink); }
+.live-say-text { margin: 0; font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); line-height: 1.35; font-weight: 600; color: var(--text); }
+.live-older { border-top: 1px dashed var(--line); padding-top: var(--s-2); }
+.live-older > summary { cursor: pointer; color: var(--muted); font-size: var(--fs-sm); padding: var(--s-1) 0; }
+.live-older > .live-card { margin-top: var(--s-2); opacity: 0.85; }
+.live-summary { gap: var(--s-2); }
+.live-summary h2 { margin: 0; font-size: var(--fs-lg); }
+.live-summary ul, .live-pending-list { margin: var(--s-1) 0 0; padding-left: 1.2rem; }
+@media (prefers-reduced-motion: reduce) { .live-mandatory.remind { animation: none; outline: 4px solid var(--danger); } }
 @media (min-width: 64rem) {
   .live-start { grid-template-columns: 1fr 1fr; }
   .live-layout { grid-template-columns: 1fr 1fr; }

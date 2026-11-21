@@ -262,10 +262,10 @@ export class Api {
   /** Recorded conversations a demo replay can use: id, title, utterances, seconds. */
   liveTranscripts() { return this.request("GET", "/assist/transcripts"); }
 
-  /** Start a live session: { product, audio: "stereo" | "mic", session_id }. */
+  /** Start a live session: { product, audio: "stereo" | "mic", session_id, employee? }. */
   startLive(body) { return this.request("POST", "/assist/sessions", { json: body }); }
 
-  /** Replay a transcript as a live session: { product, transcript, speed }. */
+  /** Replay a transcript as a live session: { product, transcript, speed, employee? }. */
   startReplay(id, body) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/replay`, { json: body });
   }
@@ -276,6 +276,21 @@ export class Api {
   bargeIn(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/barge-in`); }
 
   liveSession(id) { return this.request("GET", `/assist/sessions/${encodeURIComponent(id)}`); }
+
+  /** Switch a session's assistance mode: "pincelada" | "guiado" (LV-16). */
+  liveMode(id, mode) {
+    return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mode`, { json: { mode } });
+  }
+
+  /** Name a speaker of a session (also in its transcript when live). */
+  renameLiveSpeaker(id, speaker, name) {
+    return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/speakers/${encodeURIComponent(speaker)}`, { json: { name } });
+  }
+
+  /** Tick a mandatory item by hand, after the person confirmed it was said. */
+  tickMandatory(id, item) {
+    return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mandatory/${encodeURIComponent(item)}`, { json: { confirm: true } });
+  }
 
   /**
    * Follow a session's Server-Sent Events from number `after`: `onItem`
