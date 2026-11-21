@@ -131,6 +131,16 @@ def test_command_is_isolated_streaming_and_capped() -> None:
     assert "u" not in command[command.index("--system-prompt") + 2:]
 
 
+def test_effort_is_passed_to_the_process_only_when_given() -> None:
+    spawns = Spawns(ScriptedProcess([[done()], [done()]]))
+    backend(spawns, effort="low").complete("sys", "u", 90)
+    command = spawns.started[0]["command"]
+    assert command[command.index("--effort") + 1] == "low"
+    plain = Spawns(ScriptedProcess([[done()]]))
+    backend(plain).complete("sys", "u", 90)
+    assert "--effort" not in plain.started[0]["command"]
+
+
 def test_latency_breakdown_and_usage_are_reported() -> None:
     ticks = iter([0.0, 0.01, 0.02, 0.03, 0.30, 0.31, 0.52])
     model = ClaudeCodeStream(

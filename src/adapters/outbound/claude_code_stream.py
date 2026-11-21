@@ -200,6 +200,8 @@ class ClaudeCodeStream:
         pool_size: Healthy processes to keep (1 = no spare).
         background: Runs a task off the request path (replaced in tests
             by a synchronous runner).
+        effort: Claude Code's ``--effort`` level of the processes, or
+            ``None`` for its default.
     """
 
     def __init__(
@@ -215,10 +217,12 @@ class ClaudeCodeStream:
         clock: Callable[[], float] = time.perf_counter,
         pool_size: int = 2,
         background: Callable[[Callable[[], None]], None] = _in_thread,
+        effort: Optional[str] = None,
     ):
         """Keep the options; processes start on the first call or warm."""
         self._judge = ClaudeCodeJudge(
             model=model, executable=executable, environ=environ,
+            effort=effort,
         )
         self.timeout = timeout
         self.thinking_allowance = max(thinking_allowance, 0)
