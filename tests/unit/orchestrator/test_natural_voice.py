@@ -534,7 +534,7 @@ def test_a_session_that_ends_while_a_model_loads_frees_it() -> None:
         original(v)
         spoken._closed = True
 
-    qwen3.warm = ends_meanwhile  # type: ignore[method-assign]
+    qwen3.warm = ends_meanwhile  # type: ignore[method-assign,assignment]
     spoken.warm()
     assert spoken.engines.released == ["qwen3-cuda"]  # type: ignore
     later, _, _ = voice([QWEN3], {"qwen3-cuda": Engine()}, Gate())
