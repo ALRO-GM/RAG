@@ -43,7 +43,9 @@ class StepSpec(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: str
-    group: Literal["transcription", "live", "analysis", "knowledge"]
+    group: Literal[
+        "transcription", "live", "analysis", "knowledge", "voicebot"
+    ]
     options: Tuple[str, ...]
     applies: Applies = "next_job"
     consumer: Consumer
@@ -94,6 +96,10 @@ STEPS: Tuple[StepSpec, ...] = (
              consumer="rag"),
     StepSpec(id="knowledge.captions", group="knowledge",
              options=("florence", "claude", "off"), consumer="rag"),
+    StepSpec(id="voicebot.reasoner_model", group="voicebot",
+             options=("haiku", "sonnet", "opus"), consumer="orchestrator"),
+    StepSpec(id="voicebot.voice", group="voicebot",
+             options=("davefx", "sharvard"), consumer="orchestrator"),
 )
 """Every configurable step, in the order the page shows them."""
 

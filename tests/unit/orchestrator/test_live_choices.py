@@ -117,3 +117,17 @@ def test_the_adapter_reads_only_saved_choices() -> None:
     assert [source.current() for _ in range(5)] == [None] * 5
     assert str(seen[0].url) == "http://rag/settings"
     assert seen[0].headers["Authorization"] == "Bearer tok"
+
+
+def test_the_voice_bot_takes_its_own_model_and_voice() -> None:
+    bot = product("voicebot")
+    chosen = apply_live_choices(bot, {
+        "voicebot.reasoner_model": "sonnet", "voicebot.voice": "sharvard",
+        "live.suggester_model": "opus", "live.deadline": "2800",
+    })
+    assert chosen.reasoner is not None and chosen.tts is not None
+    assert chosen.reasoner.model == "sonnet"
+    assert chosen.reasoner.deadline_ms == 1800, "the suggester's is not used"
+    assert chosen.tts.voice == "es_ES-sharvard-medium"
+    same = apply_live_choices(bot, {"voicebot.voice": "../../etc"})
+    assert same is bot

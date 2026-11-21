@@ -7,7 +7,9 @@ opus), ``live.deadline`` (``product`` keeps the file's, or a number of
 milliseconds) and ``live.diarization`` (``off`` hears a one-microphone
 session as a single person instead of telling the voices apart). Every
 value is matched against an allow-list; anything else keeps the
-product's value. Plain data: no I/O.
+product's value. The voice bot has its own two: ``voicebot.reasoner_model``
+and ``voicebot.voice`` (a Piper voice of :data:`VOICES`); the
+suggester's choices do not apply to it. Plain data: no I/O.
 """
 
 from typing import Any, Dict, Mapping, Optional
@@ -16,6 +18,10 @@ from orchestrator.domain.config import ProductConfig
 
 MODELS = ("haiku", "sonnet", "opus")
 DEADLINES = {"1800": 1800, "2800": 2800}
+VOICES = {
+    "davefx": "es_ES-davefx-medium", "sharvard": "es_ES-sharvard-medium",
+}
+"""Voice option → Piper voice (``--voices-dir``)."""
 
 
 def apply_live_choices(
@@ -24,6 +30,8 @@ def apply_live_choices(
     """Return ``config`` with the saved live choices applied."""
     if not choices or config.reasoner is None:
         return config
+    if config.product == "voicebot":
+        return _voicebot(config, choices)
     reasoner: Dict[str, Any] = {}
     model = choices.get("live.suggester_model")
     if model in MODELS:
@@ -39,4 +47,20 @@ def apply_live_choices(
         update["attribution"] = config.attribution.model_copy(
             update={"kind": "single_speaker"}
         )
+    return config.model_copy(update=update) if update else config
+
+
+def _voicebot(
+    config: ProductConfig, choices: Mapping[str, str]
+) -> ProductConfig:
+    """Return the voice bot with its own saved model and voice."""
+    update: Dict[str, Any] = {}
+    model = choices.get("voicebot.reasoner_model")
+    if model in MODELS and config.reasoner is not None:
+        update["reasoner"] = config.reasoner.model_copy(
+            update={"model": model}
+        )
+    voice = VOICES.get(choices.get("voicebot.voice", ""))
+    if voice is not None and config.tts is not None:
+        update["tts"] = config.tts.model_copy(update={"voice": voice})
     return config.model_copy(update=update) if update else config

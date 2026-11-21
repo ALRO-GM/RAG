@@ -19,6 +19,8 @@
     "analysis.local_judge": "qwen3-8b",
     "analysis.act_tagger": "encoder",
     "knowledge.ocr": "on",
-    "knowledge.captions": "florence"
+    "knowledge.captions": "florence",
+    "voicebot.reasoner_model": "haiku",
+    "voicebot.voice": "davefx"
   }
 }

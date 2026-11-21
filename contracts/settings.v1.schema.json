@@ -148,6 +148,19 @@
             "claude",
             "off"
           ]
+        },
+        "voicebot.reasoner_model": {
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ]
+        },
+        "voicebot.voice": {
+          "enum": [
+            "davefx",
+            "sharvard"
+          ]
         }
       }
     }

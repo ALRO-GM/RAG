@@ -97,14 +97,19 @@ What the presets do **not** change, and why:
 
 ## Voice bot
 
-The voice bot (branch `feat/voicebot`) was not merged when this page was
-built. Its group (`voicebot`) has a place in the page's order
-(`js/lib/settings.js`, `GROUPS`) and labels (`set.group.voicebot`): to
-add its reasoner model and TTS voice, add the steps to `STEPS` in
-`src/domain/pipeline_settings.py` with `group="voicebot"`, their enums
-to `contracts/settings.v1.schema.json`, the labels and measured
-trade-offs to `js/i18n/es.js` and `en.js`, and read them where the bot
-starts a call. Until then the page shows a note.
+Merged on main while this page was built (#203), so it has its own two
+steps, read by the orchestrator when a voice-bot session starts; the
+suggester's live choices do not apply to it.
+
+| Step | Options |
+|---|---|
+| Reply model (`voicebot.reasoner_model`) | Haiku (end of the user's sentence to first audio p50 1,584 ms, p90 1,731 ms; 14 of 15 turns answered, one hit the 1.8 s deadline; `docs/live/VOICEBOT.md`) · Sonnet, Opus (not measured in the bot) |
+| Voice (`voicebot.voice`) | Piper `es_ES-davefx-medium` (the measured one: first sentence 93 ms p50 on the CPU; warmed at start) · `es_ES-sharvard-medium` (not measured as the bot's voice; not warmed) |
+
+Voice options map to Piper voice names in
+`orchestrator/domain/live_choices.py` (`VOICES`); adding a voice means
+adding it there, to `STEPS` and to the contract. Every preset keeps
+Haiku and davefx: they are the only ones measured.
 
 ## Sources of the figures
 
@@ -114,4 +119,5 @@ starts a call. Until then the page shows a note.
 `docs/live/MONO_DIARIZATION.md`, `docs/live/LIVE_MEASURES.md`,
 `docs/transcriber/LAB.md` (§13.8), `docs/transcriber/ARCHITECTURE.md`,
 `docs/transcriber/NAMES.md`, `docs/KNOWLEDGE.md`,
-`experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`.
+`experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`,
+`docs/live/VOICEBOT.md`.
