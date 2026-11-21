@@ -210,3 +210,58 @@ def test_domain_cli_in_a_subprocess(tmp_path: Path) -> None:
     missing = run_cli(["domain", "index", "nope"], tmp_path)
     assert missing.returncode == 1
     assert "No knowledge domain 'nope'" in missing.stderr
+
+
+LABELLED = """id: support.labelled
+title: Labelled support
+vocabularies:
+  intent: [refund, pricing]
+  script_phase: [opening, closing]
+"""
+
+
+def test_front_matter_and_jsonl_are_indexed_with_metadata(
+    domains: Tuple[DomainIndexRegistry, KnowledgeIndexFactory]
+) -> None:
+    """Metadata from both formats reaches the index and the filters."""
+    registry, _ = domains
+    root = Path("knowledge/domains/support.labelled")
+    write(root / "manifest.yaml", LABELLED)
+    write(root / "refunds.md",
+          "---\nintent: refund\nscript_phase: closing\n---\n"
+          "# Devoluciones\n\nEl reembolso tarda 5 días.\n")
+    write(root / "faq.jsonl",
+          '{"id": "p1", "text": "El reembolso no aplica a ofertas.", '
+          '"intent": "pricing", "tags": ["oferta"]}\n')
+    done = registry.index("support.labelled")
+    assert done.report.files_total == 2
+    searcher, _ = registry.searcher("support.labelled")
+    every = searcher.search_where("reembolso", 5, lambda c: True)
+    assert {h.chunk.metadata.intent for h in every} == {"refund", "pricing"}
+    only = searcher.search_where(
+        "reembolso", 5, lambda c: c.metadata.intent == "pricing"
+    )
+    assert [h.chunk.metadata.ref for h in only] == ["p1"]
+    write(root / "refunds.md",
+          "---\nintent: refund\nscript_phase: opening\n---\n"
+          "# Devoluciones\n\nEl reembolso tarda 5 días.\n")
+    again = registry.index("support.labelled")
+    assert (again.report.files_reindexed, again.report.files_reused) == (1, 1)
+
+
+def test_out_of_vocabulary_values_stop_indexing_with_file_line(
+    domains: Tuple[DomainIndexRegistry, KnowledgeIndexFactory]
+) -> None:
+    """The index is not built and the error points at the value."""
+    registry, _ = domains
+    root = Path("knowledge/domains/support.labelled")
+    write(root / "manifest.yaml", LABELLED)
+    write(root / "bad.jsonl",
+          '{"text": "ok", "intent": "refund"}\n'
+          '{"text": "no", "intent": "shipping"}\n')
+    with pytest.raises(InvalidInputError,
+                       match=r"support.labelled/bad.jsonl:2: intent "
+                             r"'shipping'"):
+        registry.index("support.labelled")
+    with pytest.raises(NotFoundError, match="no index"):
+        registry.searcher("support.labelled")

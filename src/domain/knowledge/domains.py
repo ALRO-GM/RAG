@@ -9,11 +9,13 @@ declares the vocabularies the chunks' metadata may use
 
 import hashlib
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.errors import InvalidInputError
+from src.domain.models import ChunkMetadata
+from src.domain.skills.dialogue_acts import CATEGORIES
 
 DOMAIN_ID_PATTERN = r"[a-z0-9][a-z0-9._-]{0,63}"
 """Domain ids: the ``domain`` pattern of ``knowledge.query.v1``."""
@@ -87,3 +89,41 @@ def index_version(manifest: DomainManifest, fingerprint: str) -> str:
     """
     payload = manifest.model_dump_json() + "\n" + fingerprint
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def metadata_problems(
+    metadata: ChunkMetadata, manifest: DomainManifest
+) -> List[Tuple[str, str]]:
+    """Return ``(field, message)`` for each value the domain refuses.
+
+    ``category`` must be a dialogue-act category; ``intent``,
+    ``script_phase`` and ``tags`` must be in the manifest's vocabulary
+    when it declares one (an empty vocabulary accepts any value).
+    """
+    problems: List[Tuple[str, str]] = []
+    if metadata.category is not None and metadata.category not in CATEGORIES:
+        problems.append(("category", (
+            f"category {metadata.category!r} is not a dialogue-act "
+            f"category ({', '.join(CATEGORIES)})"
+        )))
+    vocabularies = manifest.vocabularies
+    for field, value, allowed in (
+        ("intent", metadata.intent, vocabularies.intent),
+        ("script_phase", metadata.script_phase, vocabularies.script_phase),
+    ):
+        if value is not None and allowed and value not in allowed:
+            problems.append((field, (
+                f"{field} {value!r} is not in the vocabulary of "
+                f"{manifest.id!r} ({', '.join(allowed)})"
+            )))
+    unknown = [
+        t for t in metadata.tags
+        if vocabularies.tags and t not in vocabularies.tags
+    ]
+    if unknown:
+        problems.append(("tags", (
+            f"tags {', '.join(map(repr, unknown))} are not in the "
+            f"vocabulary of {manifest.id!r} "
+            f"({', '.join(vocabularies.tags)})"
+        )))
+    return problems

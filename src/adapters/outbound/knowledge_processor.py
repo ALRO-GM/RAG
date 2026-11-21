@@ -10,7 +10,7 @@ from typing import Iterator, Optional, Sequence
 
 from src.adapters.outbound.parallel_processor import field_term_counts
 from src.domain.knowledge.domains import DomainManifest
-from src.domain.knowledge.sources import chunk_text, knowledge_terms
+from src.domain.knowledge.sources import chunk_source, knowledge_terms
 from src.domain.models import ProcessedDocument
 
 
@@ -42,7 +42,7 @@ class KnowledgeProcessor:
             with open(path, "rb") as handle:
                 raw = handle.read()
             text = raw.decode("utf-8", errors="replace")
-            chunks = chunk_text(path, text, max_size, target)
+            chunks = chunk_source(path, text, self.manifest, max_size, target)
             yield ProcessedDocument(
                 file_path=path,
                 sha256=hashlib.sha256(raw).hexdigest(),

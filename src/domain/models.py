@@ -69,12 +69,14 @@ class ChunkMetadata(BaseModel):
     knowledge domain fills them from Markdown front matter, JSONL
     records or the metadata of an uploaded document
     (``docs/platform/CONTRACTS.md`` §2-3). ``title`` is the heading
-    path of the chunk or the document's title.
+    path of the chunk or the document's title; ``ref`` the id of the
+    JSONL record the chunk comes from (it names the chunk in results).
     """
 
     model_config = ConfigDict(extra="forbid")
 
     title: Optional[str] = None
+    ref: Optional[str] = None
     intent: Optional[str] = None
     category: Optional[str] = None
     script_phase: Optional[str] = None
@@ -83,8 +85,8 @@ class ChunkMetadata(BaseModel):
     def is_empty(self) -> bool:
         """Tell whether no field is set."""
         return not (
-            self.title or self.intent or self.category or self.script_phase
-            or self.tags
+            self.title or self.ref or self.intent or self.category
+            or self.script_phase or self.tags
         )
 
 
