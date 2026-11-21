@@ -176,7 +176,7 @@ class Reasoner:
         ).confirm(tagged, rubric, language)
 
     def warm_up(
-        self, template_id: str = "suggester.support@1", model: str = "haiku",
+        self, template_id: str = "suggester.support@2", model: str = "haiku",
         language: str = "es", max_suggestions: int = 3,
     ) -> bool:
         """Start the warm backend for a live template, off the request path.

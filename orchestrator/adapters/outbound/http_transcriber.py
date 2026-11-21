@@ -77,3 +77,8 @@ class HttpTranscriber:
     def stop(self, session_id: str) -> None:
         """Stop a live session."""
         self._post(f"{self.base}/{session_id}/stop", None)
+
+    def rename(self, session_id: str, speaker: str, name: str) -> None:
+        """Name a speaker of a live session (for its hand-off)."""
+        self._post(f"{self.base}/{session_id}/speakers/{speaker}",
+                   {"name": name})

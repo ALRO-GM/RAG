@@ -158,3 +158,23 @@ def test_barge_in_is_forwarded() -> None:
                       headers={"X-Access-Code": "code"})
     assert answer.json() == {"stopped": True}
     assert seen == ["/sessions/vb-1/barge-in"]
+
+
+def test_the_lv16_session_routes_are_forwarded() -> None:
+    seen: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        return httpx.Response(200, json={"ok": True})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    auth = {"X-Access-Code": "code"}
+    for path in ("sessions/d1/mode", "sessions/d1/speakers/S2",
+                 "sessions/d1/mandatory/aviso-datos"):
+        answer = web.post(f"/api/assist/{path}", json={}, headers=auth)
+        assert answer.status_code == 200, path
+    assert seen == ["/sessions/d1/mode", "/sessions/d1/speakers/S2",
+                    "/sessions/d1/mandatory/aviso-datos"]
+    assert not ALLOWED.match("sessions/d1/mandatory/Bad_Item")
+    assert web.post("/api/assist/sessions/d1/speakers/.x", json={},
+                    headers=auth).status_code == 404

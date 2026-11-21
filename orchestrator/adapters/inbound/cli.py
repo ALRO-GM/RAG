@@ -40,7 +40,13 @@ from orchestrator.adapters.outbound.files import (
 from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
 from orchestrator.adapters.outbound.http_settings import HttpSettings
-from orchestrator.adapters.outbound.jsonl_sink import JsonlSink, JsonlTurns
+from orchestrator.adapters.outbound.http_mandatory import HttpMandatory
+from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
+from orchestrator.adapters.outbound.jsonl_sink import (
+    JsonHandoff,
+    JsonlSink,
+    JsonlTurns,
+)
 from orchestrator.adapters.outbound.piper_tts import (
     DEFAULT_PYTHON,
     DEFAULT_VOICES,
@@ -59,7 +65,9 @@ from orchestrator.adapters.outbound.runtime import (
 )
 from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.ports import (
+    HandoffSink,
     KnowledgePort,
+    MandatoryPort,
     ReasonerPort,
     TextToSpeech,
     TtsUnavailable,
@@ -303,6 +311,9 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
     def turns(session_id: str, product: str) -> TurnSink:
         return JsonlTurns(log_dir / f"{session_id}.{product}.turns.jsonl")
 
+    def handoff(session_id: str, product: str) -> HandoffSink:
+        return JsonHandoff(log_dir / f"{session_id}.{product}.handoff.json")
+
     new_id: Callable[[], str] = lambda: datetime.now().strftime(
         "live-%Y%m%d-%H%M%S"
     )
@@ -315,7 +326,15 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         turn_log=turns,
         settings=HttpSettings(args.knowledge_url, args.token)
         if args.knowledge == "http" else None,
+        mandatory=build_mandatory(args), handoff=handoff,
     )
+
+
+def build_mandatory(args: argparse.Namespace) -> MandatoryPort:
+    """The mandatory items: the RAG's, or the manifests' with ``fake``."""
+    if args.knowledge == "http":
+        return HttpMandatory(args.knowledge_url, args.token)
+    return FileMandatory(ROOT / "knowledge" / "domains")
 
 
 def run_serve(args: argparse.Namespace) -> int:

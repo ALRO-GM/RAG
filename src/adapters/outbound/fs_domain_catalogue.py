@@ -85,7 +85,8 @@ class FileSystemDomainCatalogue:
         tmp = folder / f".{MANIFEST}.tmp"
         tmp.write_text(
             yaml.safe_dump(
-                manifest.model_dump(mode="json"), allow_unicode=True,
+                manifest.model_dump(mode="json", exclude_none=True),
+                allow_unicode=True,
                 sort_keys=False,
             ),
             encoding="utf-8",

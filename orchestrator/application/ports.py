@@ -175,6 +175,14 @@ class LiveTranscriber(Protocol):
         """
         ...
 
+    def rename(self, session_id: str, speaker: str, name: str) -> None:
+        """Give a speaker of a live session a name (for its hand-off).
+
+        Raises:
+            TranscriberUnavailable: The transcriber could not be asked.
+        """
+        ...
+
 
 class EventSource(Protocol):
     """The ``live.event.v1`` stream of a running session."""
@@ -235,4 +243,38 @@ class SettingsSource(Protocol):
 
     def current(self) -> Optional[Dict[str, str]]:
         """Return the saved choices, or ``None`` (keep the product's)."""
+        ...
+
+
+class MandatoryUnavailable(Exception):
+    """The mandatory items could not be read or checked."""
+
+
+class MandatoryPort(Protocol):
+    """A knowledge domain's mandatory items (LV-16, served by the RAG)."""
+
+    def items(self, domain: str) -> Document:
+        """Return the domain's list: ``domain``, ``version``,
+        ``threshold``, ``remind_seconds`` and ``items`` (``id``,
+        ``text``, ``phase``, ``must_say``); no items when it has none.
+
+        Raises:
+            MandatoryUnavailable: The list could not be read.
+        """
+        ...
+
+    def check(self, domain: str, text: str) -> Document:
+        """Return ``items: [{"id", "score", "said"}]`` for one sentence.
+
+        Raises:
+            MandatoryUnavailable: The sentence could not be checked.
+        """
+        ...
+
+
+class HandoffSink(Protocol):
+    """Where a session's hand-off record goes when it ends (LV-16)."""
+
+    def write(self, record: Document) -> None:
+        """Keep the record: names, mode and the mandatory items."""
         ...

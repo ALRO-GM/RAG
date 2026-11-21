@@ -74,7 +74,7 @@ def test_a_replay_is_streamed_as_server_sent_events() -> None:
     assert [int(i["id"]) for i in items[:-1]] == list(
         range(1, len(messages) + 1))
     kinds = {m["type"] for m in messages}
-    assert kinds == {"session", "event", "suggestion", "status"}
+    assert kinds == {"session", "event", "suggestion", "handoff", "status"}
     record = next(m["record"] for m in messages if m["type"] == "suggestion")
     assert record["stages"]["knowledge_ms"] is not None
     resumed = sse(web.get("/sessions/demo/suggestions/stream",

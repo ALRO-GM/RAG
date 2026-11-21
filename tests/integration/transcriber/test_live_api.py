@@ -240,3 +240,42 @@ def test_a_socket_that_closes_lets_another_source_in(
     with client.websocket_connect("/api/live/c/audio") as ws:
         assert ws.receive_json()["type"] == "ready"
     client.post("/api/live/sessions/c/stop")
+
+
+def test_a_speaker_named_during_the_session_is_named_in_the_transcript(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    start(
+        client, session_id="named-1", channels=2,
+        product="live_assist.support",
+        speakers=[
+            {"channel": 0, "id": "S1", "role": "agent", "name": "Ana"},
+            {"channel": 1, "id": "S2", "role": "customer"},
+        ],
+        handoff={"transcript_v1": True},
+    )
+    named = client.post("/api/live/sessions/named-1/speakers/S2",
+                        json={"name": "  Carla  Ruiz "})
+    assert named.status_code == 200
+    assert named.json()["speakers"][1]["name"] == "Carla Ruiz"
+    for bad in ({"name": ""}, {"name": "x" * 81}, {}, [1]):
+        answer = client.post("/api/live/sessions/named-1/speakers/S2",
+                             json=bad)
+        assert answer.status_code in (400, 422), bad
+    assert client.post("/api/live/sessions/named-1/speakers/S2",
+                       content=b"{").status_code in (400, 422)
+    assert client.post("/api/live/sessions/named-1/speakers/..x",
+                       json={"name": "A"}).status_code in (400, 404, 422)
+    assert client.post("/api/live/sessions/zzz/speakers/S2",
+                       json={"name": "A"}).status_code == 404
+    send_audio(client, "named-1", speech(2), channels=2)
+    follow(client, "/api/live/named-1/events")
+    published = json.loads(
+        (container.settings.published() / "named-1.transcript.v1.json")
+        .read_text()
+    )
+    names = {s["id"]: s["name"] for s in published["speakers"]}
+    assert names == {"S1": "Ana", "S2": "Carla Ruiz"}
+    ended = client.post("/api/live/sessions/named-1/speakers/S2",
+                        json={"name": "Otra"})
+    assert ended.status_code == 409

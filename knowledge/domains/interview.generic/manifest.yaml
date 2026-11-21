@@ -6,3 +6,29 @@ vocabularies:
   intent: [open_conversation, explain_process, ask_experience, ask_technical, ask_behavioural, follow_up, clarify, legal_guard, candidate_question, close_process]
   script_phase: [opening, experience, technical, behavioural, closing]
   tags: [plantilla, logistica, tecnico, conducta, seguimiento, legal]
+# Things the interviewer must say in every interview (LV-16,
+# docs/live/MANDATORY_ITEMS.md). Synthetic wording, not legal advice.
+# Raise the version whenever an item or example changes.
+mandatory:
+  version: 1
+  threshold: 0.575
+  remind_seconds: 45
+  items:
+    - id: uso-datos
+      text: "Informar del uso de los datos de la candidatura y de cuánto tiempo se guardan"
+      phase: opening
+      must_say:
+        - "Le informo de que sus datos se usarán solo para este proceso de selección y se guardarán durante un tiempo limitado."
+        - "Los datos que nos dé se tratan únicamente para valorar su candidatura y puede pedir que los borremos."
+    - id: aviso-asistente
+      text: "Avisar de que un asistente transcribe la entrevista y no toma decisiones"
+      phase: opening
+      must_say:
+        - "Le aviso de que un asistente transcribe la entrevista para ayudarme con las notas; no toma ninguna decisión."
+        - "Esta entrevista se transcribe automáticamente para tomar notas, pero las decisiones las tomamos personas."
+    - id: siguientes-pasos
+      text: "Explicar los siguientes pasos del proceso y cuándo tendrá respuesta"
+      phase: closing
+      must_say:
+        - "Los siguientes pasos son una entrevista técnica y le daremos una respuesta en unas dos semanas."
+        - "Le contaré cómo sigue el proceso: le escribiremos con la decisión en un plazo aproximado de dos semanas."

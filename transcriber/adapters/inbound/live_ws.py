@@ -11,6 +11,9 @@ Routes (all need the access code, as the rest of the API):
     The known sessions, or one.
 ``POST /api/live/sessions/{id}/stop``
     Stop the session and wait for its end; answers the session.
+``POST /api/live/sessions/{id}/speakers/{speaker}``
+    ``{"name"}``: name a speaker of a running session; the hand-off's
+    ``transcript.v1`` lists the name (LV-16).
 ``WS /api/live/{id}/audio``
     The browser's microphone: binary messages of signed 16-bit
     little-endian PCM at 16 kHz, channels interleaved (at most one
@@ -30,6 +33,7 @@ state) or ``4429`` (too many wrong codes), after an ``{"type":
 import asyncio
 import json
 import logging
+import re
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
@@ -54,6 +58,7 @@ from transcriber.domain.live import SAMPLE_RATE
 from transcriber.domain.live_session import (
     MAX_MESSAGE_SECONDS,
     PCM_BYTES,
+    SPEAKER_ID_PATTERN,
     LiveSessionRequest,
 )
 
@@ -171,6 +176,23 @@ def add_live_routes(
         """Stop a live session and wait for its end."""
         session = await run_in_threadpool(live.stop, session_id)
         return JSONResponse(session_json(session))
+
+    @api.post("/live/sessions/{session_id}/speakers/{speaker}")
+    async def rename_live(
+        session_id: str, speaker: str, request: Request
+    ) -> Dict[str, Any]:
+        """Name a speaker of a running live session."""
+        try:
+            data = json.loads(await read_body(request, json_limit) or b"{}")
+        except ValueError as exc:
+            raise InvalidInputError("the body is not JSON") from exc
+        name = data.get("name") if isinstance(data, dict) else None
+        if not isinstance(name, str) or not re.fullmatch(
+            SPEAKER_ID_PATTERN, speaker
+        ):
+            raise InvalidInputError("a speaker id and a name are needed")
+        session = live.rename(session_id, speaker, name)
+        return session_json(session)
 
     @app.websocket("/api/live/{session_id}/audio")
     async def live_audio(socket: WebSocket, session_id: str) -> None:

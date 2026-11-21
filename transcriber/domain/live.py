@@ -23,7 +23,7 @@ times; the models are behind ports (:mod:`transcriber.application.ports`).
 
 import re
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
@@ -480,6 +480,31 @@ class LiveSpeaker:
     role: str = "unknown"
     name: Optional[str] = None
     enrolled: bool = False
+
+
+MAX_SPEAKER_NAME = 80
+"""Longest name a live speaker may be given (the contract's limit)."""
+
+
+def renamed(
+    speakers: Sequence[LiveSpeaker], speaker_id: str, name: str
+) -> List[LiveSpeaker]:
+    """Return ``speakers`` with ``speaker_id`` named ``name`` (LV-16).
+
+    An id not listed yet (an enrolled person named by a voiceprint, a
+    voice of a diarized session) is added with that name. ``ValueError``
+    for an empty or too long name.
+    """
+    clean = " ".join(str(name).split())
+    if not clean or len(clean) > MAX_SPEAKER_NAME:
+        raise ValueError(
+            f"a speaker name has 1 to {MAX_SPEAKER_NAME} characters"
+        )
+    out = [replace(s, name=clean) if s.id == speaker_id else s
+           for s in speakers]
+    if not any(s.id == speaker_id for s in speakers):
+        out.append(LiveSpeaker(id=speaker_id, name=clean))
+    return out
 
 
 def iso(at: datetime) -> str:

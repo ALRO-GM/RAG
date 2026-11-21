@@ -6,3 +6,37 @@ vocabularies:
   intent: [returns, billing, delivery, escalation, complaint, stated_frustration, urgency, churn_risk, confusion, satisfaction, general]
   script_phase: [opening, diagnosis, resolution, closing]
   tags: [politica, faq, script, signal]
+# Things the agent must say in every call (LV-16, docs/live/MANDATORY_ITEMS.md).
+# Synthetic wording for a fictitious company, not legal advice. Raise the
+# version whenever an item or example changes.
+mandatory:
+  version: 1
+  threshold: 0.575
+  remind_seconds: 45
+  items:
+    - id: aviso-datos
+      text: "Aviso legal de protección de datos: quién trata los datos, para qué y los derechos del cliente"
+      phase: opening
+      must_say:
+        - "Le informo de que sus datos personales serán tratados por Lumbre Hogar para gestionar su solicitud, conforme al Reglamento General de Protección de Datos."
+        - "Sus datos se tratan según la normativa de protección de datos y puede ejercer sus derechos de acceso, rectificación y supresión."
+        - "Antes de seguir le informo de que tratamos sus datos personales solo para gestionar esta llamada y su contrato."
+    - id: condiciones-contrato
+      text: "Condiciones del contrato: precio, duración y permanencia"
+      phase: resolution
+      must_say:
+        - "Le resumo las condiciones del contrato: el precio mensual, la duración y si tiene permanencia."
+        - "El contrato dura doce meses, el precio mensual incluye impuestos y no tiene permanencia."
+        - "Las condiciones son: cuota mensual fija, duración de un año y sin penalización por baja."
+    - id: desistimiento
+      text: "Derecho de desistimiento de 14 días por ser una contratación a distancia"
+      phase: closing
+      must_say:
+        - "Al contratar a distancia dispone de catorce días naturales para desistir sin dar ninguna explicación."
+        - "Le recuerdo que tiene un plazo de 14 días para desistir del contrato sin coste."
+    - id: aceptacion-expresa
+      text: "Pedir la aceptación expresa de las condiciones antes de cerrar la contratación"
+      phase: closing
+      must_say:
+        - "¿Acepta usted las condiciones que le acabo de leer para formalizar la contratación?"
+        - "Para formalizar el contrato necesito su aceptación expresa: ¿está de acuerdo con las condiciones?"

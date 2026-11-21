@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.errors import InvalidInputError
+from src.domain.knowledge.mandatory import MandatoryList
 from src.domain.models import ChunkMetadata
 from src.domain.skills.dialogue_acts import CATEGORIES
 
@@ -58,6 +59,7 @@ class DomainManifest(BaseModel):
     language: str = Field(default="es", min_length=2, max_length=16)
     description: str = Field(default="", max_length=4000)
     vocabularies: Vocabularies = Field(default_factory=Vocabularies)
+    mandatory: Optional[MandatoryList] = None
 
     @field_validator("id")
     @classmethod
@@ -85,9 +87,11 @@ def index_version(manifest: DomainManifest, fingerprint: str) -> str:
 
     It hashes the manifest and the index fingerprint (itself a hash of
     the indexing parameters and of every indexed file), so it changes
-    whenever the vocabularies or any indexed file change.
+    whenever the vocabularies or any indexed file change. The
+    mandatory items are not indexed, so they are left out of it.
     """
-    payload = manifest.model_dump_json() + "\n" + fingerprint
+    payload = manifest.model_dump_json(exclude={"mandatory"}) + "\n" \
+        + fingerprint
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 

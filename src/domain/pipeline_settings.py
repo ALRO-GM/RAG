@@ -14,7 +14,8 @@ The **first option of every step is the service's own configuration**
 settings file changes nothing. ``applies`` tells when a change takes
 effect: ``next_job`` (the next transcription, analysis, upload or live
 session reads it) or ``restart`` (the model is loaded when the service
-starts).
+starts). Steps whose ``consumer`` is ``web`` are read by the live page
+itself (what it shows), not by a service.
 
 The RAG owns the document (``data/settings.json``); the transcriber
 forwards the web's ``/api/settings`` to it and the orchestrator reads
@@ -31,7 +32,7 @@ from src.domain.errors import InvalidInputError
 SCHEMA = "settings.v1"
 
 Applies = Literal["next_job", "restart"]
-Consumer = Literal["transcriber", "rag", "orchestrator"]
+Consumer = Literal["transcriber", "rag", "orchestrator", "web"]
 PresetName = Literal["quality", "balanced", "cost"]
 PRESET_NAMES: Tuple[PresetName, ...] = ("quality", "balanced", "cost")
 CUSTOM = "custom"
@@ -79,6 +80,14 @@ STEPS: Tuple[StepSpec, ...] = (
              options=("low", "medium", "high"), consumer="rag"),
     StepSpec(id="live.deadline", group="live",
              options=("product", "1800", "2800"), consumer="orchestrator"),
+    StepSpec(id="live.assist_mode", group="live",
+             options=("pincelada", "guiado"), consumer="orchestrator"),
+    StepSpec(id="live.max_suggestions", group="live",
+             options=("3", "1", "2", "5"), consumer="web"),
+    StepSpec(id="live.show_employee", group="live", options=("on", "off"),
+             consumer="web"),
+    StepSpec(id="live.show_other", group="live", options=("on", "off"),
+             consumer="web"),
     StepSpec(id="analysis.judge", group="analysis",
              options=("claude_code", "local", "both", "opencode"),
              consumer="rag"),

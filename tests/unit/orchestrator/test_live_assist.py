@@ -97,7 +97,7 @@ def test_request_follows_the_contract() -> None:
     run(assist(reasoner=reasoner))
     request = reasoner.requests[0]
     assert request["schema"] == "reasoner.request.v1"
-    assert request["template"] == "suggester.support@1"
+    assert request["template"] == "suggester.support@2"
     assert request["context"]["focus"] == "t1.s0"
     assert request["context"]["speaker_roles"] == {"a": "agent",
                                                    "c": "customer"}

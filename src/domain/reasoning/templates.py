@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from src.domain.errors import InvalidInputError
 from src.domain.reasoning.roles import (
     MAX_SUGGESTION_CHARS,
+    AssistMode,
     SIGNALS,
     ReasonRequest,
     Reply,
@@ -274,9 +275,116 @@ SUGGESTER_SUPPORT_V1 = Template(
     max_output_tokens=SUPPORT_MAX_OUTPUT_TOKENS,
 )
 
+# ---- @2: two assistance modes (LV-16) ----------------------------------
+
+PINCELADA_WORDS = 8
+"""Most words of a ``pincelada`` hint; longer ones are cut here."""
+GUIDED_WORDS = 35
+"""Asked upper bound of a ``guiado`` sentence (the contract's 300
+characters still apply)."""
+MODES_MAX_OUTPUT_TOKENS = 240
+"""Cap of the ``@2`` templates: a ``guiado`` sentence is about 30
+words more than a ``pincelada`` hint, on top of ``support@1``'s 200."""
+
+MODE_RULES = (
+    "The request's Mode line says how to phrase each text. pincelada: a "
+    f"hint of at most {PINCELADA_WORDS} words saying where to steer "
+    "(a topic or a move, not a full sentence, e.g. \"Ofrecer cambio de "
+    "fecha de entrega\"). guiado: the exact sentence or question the "
+    "%s can read aloud word for word, polite, in the second person to "
+    f"the %s, under {GUIDED_WORDS} words."
+)
+
+
+def mode_of(request: ReasonRequest) -> AssistMode:
+    """Return the request's assistance mode (``pincelada`` by default)."""
+    return request.constraints.mode or "pincelada"
+
+
+def _modes_user(request: ReasonRequest) -> str:
+    """The ``@2`` user prompt: the ``@1`` one plus the mode and count.
+
+    Both live here, not in the system prompt, so switching the mode in
+    a session keeps the warm process (keyed by the system prompt).
+    """
+    mode = mode_of(request)
+    how = ("a hint of at most 8 words" if mode == "pincelada"
+           else "the exact sentence to say aloud")
+    return (
+        f"Mode: {mode} ({how}). At most {_how_many(request)} "
+        f"suggestion(s).\n" + _suggester_user(request)
+    )
+
+
+def _short(parsed: Parsed, request: ReasonRequest) -> Parsed:
+    """Cut ``pincelada`` texts to :data:`PINCELADA_WORDS` words."""
+    if mode_of(request) != "pincelada":
+        return parsed
+    cut = []
+    for suggestion in parsed.suggestions:
+        words = suggestion.text.split()
+        if len(words) > PINCELADA_WORDS:
+            text = " ".join(words[:PINCELADA_WORDS]).rstrip(",;:") + "…"
+            suggestion = suggestion.model_copy(update={"text": text})
+        cut.append(suggestion)
+    return Parsed(suggestions=tuple(cut), reply=parsed.reply)
+
+
+def _interview_modes_system(request: ReasonRequest) -> str:
+    return (
+        "You assist an interviewer during a live job interview. Suggest "
+        "what the interviewer could ask next (a follow-up on what the "
+        "candidate just said, or the next question of the script), in "
+        f"{language_name(request.language)}, grounded in the utterances "
+        "and knowledge chunks given. "
+        + MODE_RULES % ("interviewer", "candidate")
+        + " Never evaluate, rate, score, rank or label the candidate, "
+        "never describe their emotions, stress, confidence or "
+        "personality, and add no field beyond those listed. " + SHAPE % ""
+    )
+
+
+def _interview_modes_parse(reply: str, request: ReasonRequest) -> Parsed:
+    return _short(read_suggestions(reply, request, allow_signals=False),
+                  request)
+
+
+def _support_modes_system(request: ReasonRequest) -> str:
+    return (
+        "You assist a customer-support agent during a live call. Suggest "
+        "what the agent could say or ask next, in "
+        f"{language_name(request.language)}, grounded in the utterances "
+        "and knowledge chunks given; do not invent policies, prices or "
+        "deadlines. " + MODE_RULES % ("agent", "customer")
+        + " Also label what the CUSTOMER says in their words, never what "
+        "they feel and never from the voice: signals from "
+        f"{', '.join(SIGNALS)}, each backed by the customer's utterance "
+        "ids in about (at most two signals). " + SIGNAL_DEFINITIONS
+        + " Add no field beyond those listed, and no rationale. "
+        + SHAPE % ', "signals": ["urgency"]'
+    )
+
+
+def _support_modes_parse(reply: str, request: ReasonRequest) -> Parsed:
+    return _short(read_suggestions(reply, request, allow_signals=True),
+                  request)
+
+
+SUGGESTER_INTERVIEW_V2 = Template(
+    id="suggester.interview@2", role="suggester",
+    system=_interview_modes_system, user=_modes_user,
+    parse=_interview_modes_parse, max_output_tokens=MODES_MAX_OUTPUT_TOKENS,
+)
+SUGGESTER_SUPPORT_V2 = Template(
+    id="suggester.support@2", role="suggester",
+    system=_support_modes_system, user=_modes_user,
+    parse=_support_modes_parse, max_output_tokens=MODES_MAX_OUTPUT_TOKENS,
+)
+
 _REGISTRY: Dict[str, Template] = {
     t.id: t for t in (
         CONVERSATIONAL_V1, SUGGESTER_INTERVIEW_V1, SUGGESTER_SUPPORT_V1,
+        SUGGESTER_INTERVIEW_V2, SUGGESTER_SUPPORT_V2,
     )
 }
 

@@ -542,6 +542,7 @@ SAMPLES = {
     "utterance_id": "t0.s0", "speaker_id": "ana",
     "run_id": "0" * 32, "denoiser": "none", "step": "sentences",
     "position": "1", "domain_id": "acme", "doc_id": "doc-1",
+    "speaker": "S1", "item": "aviso-datos",
 }
 """A value for every path parameter the API has."""
 

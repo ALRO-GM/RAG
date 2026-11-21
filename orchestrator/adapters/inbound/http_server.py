@@ -7,11 +7,16 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``GET /transcripts``: recorded conversations a replay can use.
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
-  "session_id"?}``: start a live session on the transcriber.
+  "session_id"?, "employee"?: {"id", "name"}}``: start a live session
+  on the transcriber.
 - ``POST /sessions/{id}/replay`` ``{"product", "transcript",
-  "speed"?}``: replay a transcript as a live session (``speed`` 1 is
-  real time, ``null`` as fast as the services answer).
+  "speed"?, "employee"?}``: replay a transcript as a live session
+  (``speed`` 1 is real time, ``null`` as fast as the services answer).
 - ``POST /sessions/{id}/stop``.
+- ``POST /sessions/{id}/mode`` ``{"mode": "pincelada"|"guiado"}``,
+  ``POST /sessions/{id}/speakers/{speaker}`` ``{"name"}`` and
+  ``POST /sessions/{id}/mandatory/{item}`` ``{"confirm": true}``: switch
+  the assistance mode, name a speaker, tick a mandatory item (LV-16).
 - ``POST /sessions/{id}/barge-in``: the user spoke over the voice bot
   (the page's voice detector); ``{"stopped": bool}``.
 - ``GET /sessions/{id}/suggestions/stream``: Server-Sent Events, one
@@ -130,6 +135,7 @@ def create_app(
         return await run_in_threadpool(
             sessions.start_live, _text(data, "product"),
             _text(data, "audio"), data.get("session_id") or None,
+            data.get("employee"),
         )
 
     @app.post("/sessions/{session_id}/replay", status_code=201)
@@ -145,12 +151,37 @@ def create_app(
             sessions.start_replay, session_id, _text(data, "product"),
             _text(data, "transcript"),
             float(speed) if speed is not None else None,
+            data.get("employee"),
         )
 
     @app.post("/sessions/{session_id}/stop")
     async def stop(session_id: str) -> Dict[str, Any]:
         """Stop a session."""
         return await run_in_threadpool(sessions.stop, session_id)
+
+    @app.post("/sessions/{session_id}/mode")
+    async def mode(session_id: str, request: Request) -> Dict[str, Any]:
+        """Switch the assistance mode of a session."""
+        data = await body(request)
+        return sessions.set_mode(session_id, _text(data, "mode"))
+
+    @app.post("/sessions/{session_id}/speakers/{speaker}")
+    async def rename(
+        session_id: str, speaker: str, request: Request
+    ) -> Dict[str, Any]:
+        """Give a speaker of a session a name."""
+        data = await body(request)
+        return await run_in_threadpool(
+            sessions.rename, session_id, speaker, data.get("name")
+        )
+
+    @app.post("/sessions/{session_id}/mandatory/{item}")
+    async def tick(
+        session_id: str, item: str, request: Request
+    ) -> Dict[str, Any]:
+        """Tick a mandatory item by hand (``confirm`` must be true)."""
+        data = await body(request)
+        return sessions.tick(session_id, item, data.get("confirm") is True)
 
     @app.post("/sessions/{session_id}/barge-in")
     async def barge_in(session_id: str) -> Dict[str, Any]:

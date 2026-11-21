@@ -94,6 +94,32 @@
             "2800"
           ]
         },
+        "live.assist_mode": {
+          "enum": [
+            "pincelada",
+            "guiado"
+          ]
+        },
+        "live.max_suggestions": {
+          "enum": [
+            "3",
+            "1",
+            "2",
+            "5"
+          ]
+        },
+        "live.show_employee": {
+          "enum": [
+            "on",
+            "off"
+          ]
+        },
+        "live.show_other": {
+          "enum": [
+            "on",
+            "off"
+          ]
+        },
         "analysis.judge": {
           "enum": [
             "claude_code",

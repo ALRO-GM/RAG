@@ -4,8 +4,9 @@ The product file says which reasoner model, deadline and attribution a
 live session uses; the pipeline settings saved from the web may replace
 them when a session starts: ``live.suggester_model`` (haiku, sonnet,
 opus), ``live.deadline`` (``product`` keeps the file's, or a number of
-milliseconds) and ``live.diarization`` (``off`` hears a one-microphone
-session as a single person instead of telling the voices apart). Every
+milliseconds), ``live.diarization`` (``off`` hears a one-microphone
+session as a single person instead of telling the voices apart) and
+``live.assist_mode`` (``pincelada`` or ``guiado``, LV-16). Every
 value is matched against an allow-list; anything else keeps the
 product's value. The voice bot has its own two: ``voicebot.reasoner_model``
 and ``voicebot.voice`` (a Piper voice of :data:`VOICES`); the
@@ -17,6 +18,8 @@ from typing import Any, Dict, Mapping, Optional
 from orchestrator.domain.config import ProductConfig
 
 MODELS = ("haiku", "sonnet", "opus")
+MODES = ("pincelada", "guiado")
+"""Assistance modes of the ``@2`` suggester templates (LV-16)."""
 DEADLINES = {"1800": 1800, "2800": 2800}
 VOICES = {
     "davefx": "es_ES-davefx-medium", "sharvard": "es_ES-sharvard-medium",
@@ -39,6 +42,9 @@ def apply_live_choices(
     deadline = DEADLINES.get(choices.get("live.deadline", ""))
     if deadline is not None:
         reasoner["deadline_ms"] = deadline
+    mode = choices.get("live.assist_mode")
+    if mode in MODES:
+        reasoner["mode"] = mode
     update: Dict[str, Any] = {}
     if reasoner:
         update["reasoner"] = config.reasoner.model_copy(update=reasoner)

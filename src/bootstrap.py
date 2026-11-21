@@ -50,6 +50,7 @@ from src.adapters.outbound.json_router_repository import (
     JsonRouterRepository,
 )
 from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
+from src.adapters.outbound.serial_embedder import SerialEmbedder
 from src.adapters.outbound.minilm_embedder import (
     SentenceTransformerEmbedder,
 )
@@ -81,6 +82,7 @@ from src.application.knowledge.ports import (
     IndexState,
 )
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
 from src.application.ports import Analyzer, Cache, Embedder, Reranker
@@ -408,8 +410,12 @@ class Container:
 
     @cached_property
     def knowledge_embedder(self) -> Embedder:
-        """Embedding model of knowledge queries (loaded on first use)."""
-        return self._knowledge_model()
+        """Embedding model of knowledge queries (loaded on first use).
+
+        Shared by the queries and the mandatory-item checks, one call at
+        a time.
+        """
+        return SerialEmbedder(self._knowledge_model())
 
     @cached_property
     def knowledge_index_embedder(self) -> Embedder:
@@ -521,6 +527,13 @@ class Container:
     def knowledge_query(self) -> KnowledgeQueryService:
         """Answer ``knowledge.query.v1`` (PL-8)."""
         return KnowledgeQueryService(self.knowledge_registry)
+
+    @cached_property
+    def knowledge_mandatory(self) -> MandatoryItems:
+        """A domain's mandatory items and the check of a sentence (LV-16)."""
+        return MandatoryItems(
+            self.knowledge_registry.manifest, self.knowledge_embedder
+        )
 
 
 class KnowledgeIndexFactory:
