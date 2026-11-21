@@ -214,3 +214,31 @@ def _pyav_blocks(path: Path, kind: str, sample_rate: int) -> Iterator[bytes]:
         raise InvalidInputError(
             f"Cannot decode the {kind} recording: {exc}"
         ) from exc
+
+
+def read_channels(path: Path, split: bool) -> List[FloatArray]:
+    """Return a sound file's audio at 16 kHz: each channel, or their mean.
+
+    ``split`` keeps one or two channels apart (the live mode's stereo
+    case); otherwise the channels are averaged into one. Raises
+    :class:`InvalidInputError` for a file libsndfile cannot read or
+    more than two channels to split.
+    """
+    import soundfile
+
+    try:
+        data, rate = soundfile.read(str(path), dtype="float32",
+                                    always_2d=True)
+    except (RuntimeError, soundfile.LibsndfileError) as exc:
+        raise InvalidInputError(f"cannot read {path}: {exc}") from exc
+    if data.shape[1] > 2 and split:
+        raise InvalidInputError("only one or two channels can be split")
+    columns = (
+        [data[:, n] for n in range(data.shape[1])] if split
+        else [data.mean(axis=1)]
+    )
+    return [
+        resample(np.ascontiguousarray(c, dtype=np.float32), rate,
+                 DEFAULT_SAMPLE_RATE)
+        for c in columns
+    ]

@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from transcriber.domain.gpu_lease import AckFile, LeaseFile
 from transcriber.domain.diarization import Diarization
+from transcriber.domain.live import Hypothesis
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -702,4 +703,51 @@ class GpuMemory(Protocol):
 
     def holders(self) -> str:
         """Return who holds the GPU memory now, for a message."""
+        ...
+
+
+class Vad(Protocol):
+    """Voice activity of one live stream, frame by frame (LV-3).
+
+    Stateful: one instance per stream. Each frame holds
+    :data:`~transcriber.domain.live.FRAME_SAMPLES` mono samples at
+    16 kHz (32 ms); frames come in order.
+    """
+
+    def probability(self, frame: npt.NDArray[np.float32]) -> float:
+        """Return the probability (0-1) that ``frame`` holds speech."""
+        ...
+
+    def reset(self) -> None:
+        """Forget the stream (a new one starts)."""
+        ...
+
+
+class AsrStream(Protocol):
+    """The streaming recogniser: decodes the open segment again and again.
+
+    One warm model shared by the streams of a session. A partial decode
+    may skip word times; a final one returns them (LV-4).
+    """
+
+    def warm_up(self) -> None:
+        """Load the model and run it once, so the first segment is fast."""
+        ...
+
+    def decode(
+        self, samples: npt.NDArray[np.float32], final: bool
+    ) -> Hypothesis:
+        """Return what is said in ``samples`` (mono, 16 kHz)."""
+        ...
+
+
+class Timer(Protocol):
+    """Monotonic time and waiting, to pace a stream in real time."""
+
+    def monotonic(self) -> float:
+        """Return seconds from an arbitrary origin; never goes back."""
+        ...
+
+    def sleep(self, seconds: float) -> None:
+        """Wait ``seconds``."""
         ...
