@@ -1,6 +1,8 @@
 # Voice bot (P3: VB-1 … VB-5)
 
-Topics and the AI interviewer (VB-8, #208): `docs/live/VOICEBOT_INTERVIEWER.md`.
+Topics and the AI interviewer (VB-8, #208): `docs/live/VOICEBOT_INTERVIEWER.md`;
+the interviewer does not take each final as the end of the turn: its
+turn-taking (VB-10, #213) is in §5 there.
 
 Design: `docs/platform/ARCHITECTURE.md` §3 (P3), §6 (latency), §8
 (licences). Product config: `config/products/voicebot.yaml`. Piper's

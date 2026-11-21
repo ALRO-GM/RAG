@@ -40,7 +40,11 @@ from orchestrator.domain.interview import (
     fold,
 )
 
-Action = Literal["open", "ask", "probe", "clarify", "answer", "close"]
+Action = Literal[
+    "open", "ask", "probe", "clarify", "answer", "close", "reask", "hint",
+]
+"""What a turn does; ``reask`` and ``hint`` come from the turn-taking
+(#213), not from :meth:`Agenda.step`."""
 FillStatus = Literal["complete", "partial"]
 MAX_TURNS = 40
 """Turns after which the interview closes whatever is left."""

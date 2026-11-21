@@ -72,12 +72,15 @@ from orchestrator.domain.interview_transcript import (
     interview_transcript,
 )
 from orchestrator.domain.records import TurnRecord
+from orchestrator.domain.turn_taking import BotTurn
 
 OFFER_CHARS = 12000
 MIN_OFFER_CHARS = 40
 PLANNER_DEADLINE_MS = 120000
 REPORT_DEADLINE_MS = 90000
 FILLER_DEADLINE_MS = 6000
+ANSWER_SO_FAR = 400
+"""Characters of a stuck answer a hint is given (its end)."""
 
 
 class PlanError(Exception):
@@ -656,6 +659,11 @@ class InterviewDirector:
         """Whether the closing turn was decided (no more turns)."""
         return self.agenda.closed_by is not None
 
+    @property
+    def target(self) -> Optional[str]:
+        """The slot being asked, if any."""
+        return self.agenda.target
+
     # ---- the voice bot asks ------------------------------------------
 
     def heard(self, utterance: str, text: str, start: float,
@@ -670,9 +678,17 @@ class InterviewDirector:
                 self.said.append(item)
 
     def plan_turn(
-        self, answer: str, utterance: Optional[str], cancel: CancelToken
+        self, answer: str, utterance: Optional[str], cancel: CancelToken,
+        kind: BotTurn = "question",
     ) -> TurnPlan:
-        """Decide one turn: fill the slots with the answer, then step."""
+        """Decide one turn: fill the slots with the answer, then step.
+
+        A ``reask`` or ``hint`` turn (#213) does not move the agenda: it
+        words the slot being asked again, or a hint on how to go on
+        with ``answer`` (what the candidate said so far).
+        """
+        if kind != "question":
+            return self._aside(kind, answer)
         with self._lock:
             agenda = self.agenda
             if utterance is not None and answer.strip():
@@ -686,6 +702,15 @@ class InterviewDirector:
                 self.filler_ms.append(
                     round((self.clock.now() - asked) * 1000.0, 1)
                 )
+                if cancel.cancelled:
+                    # The candidate went on talking while the filler
+                    # ran (#213): the turn is dropped, the agenda waits
+                    # for the whole answer.
+                    step = Step("ask", None,
+                                minutes_left=agenda.minutes_left(
+                                    self.clock.now()))
+                    return TurnPlan(self._payload(step), answer[:1000],
+                                    step)
                 agenda.answer(utterance, answer, fills)
             step = agenda.step(self.clock.now())
             self.closing = step.action == "close"
@@ -740,6 +765,21 @@ class InterviewDirector:
         return result
 
     # ---- internals ---------------------------------------------------
+
+    def _aside(self, kind: BotTurn, answer: str) -> TurnPlan:
+        """A re-ask or a hint on the slot being asked (no agenda step)."""
+        with self._lock:
+            agenda = self.agenda
+            slot = agenda.slots.get(agenda.target) if agenda.target else None
+            step = Step("hint" if kind == "hint" else "reask", slot,
+                        minutes_left=agenda.minutes_left(self.clock.now()))
+            payload = self._payload(step)
+            if kind == "hint" and answer.strip():
+                payload["answer_so_far"] = answer.strip()[-ANSWER_SO_FAR:]
+            self._publish_coverage(step)
+        query = (f"{slot.label}. {slot.questions[0]}" if slot is not None
+                 else answer or self.plan.title)
+        return TurnPlan(payload, query[:1000], step)
 
     def _payload(self, step: Step) -> Document:
         """The interviewer template's payload for ``step``."""

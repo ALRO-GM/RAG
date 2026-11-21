@@ -22,7 +22,7 @@ import { setLeaveGuard } from "../device.js";
 import { LiveAudio } from "../live-audio.js";
 import { newSessionId } from "../lib/live.js";
 import {
-  EnergyVad, MODES, SpeechQueue, VOICEBOT, VoiceBotState, base64ToBytes, turnLatency,
+  EnergyVad, LISTENING_MS, MODES, SpeechQueue, VOICEBOT, VoiceBotState, base64ToBytes, playQuiet, turnLatency,
 } from "../lib/voicebot.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js";
@@ -175,6 +175,7 @@ export async function voicebotView(ctx, root) {
     let speaking = false;
     let pressed = false;
     let currentTurn = 0;
+    let listeningUntil = 0;
     const queue = audioCtx ? new SpeechQueue(audioCtx, { onPlaying: (on) => { speaking = on; schedule(); if (!on) closeWhenDone(); } }) : null;
     const vad = new EnergyVad();
 
@@ -222,7 +223,9 @@ export async function voicebotView(ctx, root) {
         h("span", { class: `badge is-${state.state === "running" ? "processing" : state.state === "failed" ? "failed" : "indexed"}` },
           maybe(`voicebot.state.${state.state}`, state.state)),
         h("span", { class: "tag accent" }, t(`voicebot.mode.${mode}`)),
-        state.state === "running" ? h("span", { class: `tag vb-phase is-${now}` }, t(now === "thinking" ? "voicebot.thinking" : `voicebot.${now}`)) : null);
+        state.state === "running" ? h("span", { class: `tag vb-phase is-${now}` }, t(now === "thinking" ? "voicebot.thinking" : `voicebot.${now}`)) : null,
+        state.state === "running" && performance.now() < listeningUntil
+          ? h("span", { class: "tag accent vb-backchannel", role: "status" }, t("voicebot.active_listening")) : null);
       const notes = [];
       if (state.halted) notes.push(h("p", { class: "notice error", role: "alert" }, t(`voicebot.halted.${state.halted}`)));
       if (state.state === "failed") notes.push(h("p", { class: "notice error", role: "alert" }, t("voicebot.failed", { error: state.error ?? "" })));
@@ -259,10 +262,19 @@ export async function voicebotView(ctx, root) {
       again.hidden = state.state === "running";
     }
 
-    function bargeIn() {
-      if (!speaking && phase() !== "thinking") return;
-      queue?.stop(currentTurn);
+    function bargeIn(always = false) {
+      // An interview also reports the candidate's voice when the bot is
+      // silent: it restarts the wait for the end of the answer (#213).
+      const busy = speaking || phase() === "thinking";
+      if (!busy && !always) return;
+      if (busy) queue?.stop(currentTurn);
       ctx.api.bargeIn(session.id).catch(() => {});
+    }
+
+    function backchannel(item) {
+      listeningUntil = performance.now() + LISTENING_MS;
+      if (item.audio && audioCtx && !speaking) playQuiet(audioCtx, base64ToBytes(item.audio), item.volume);
+      setTimeout(schedule, LISTENING_MS + 50);
     }
 
     function closeWhenDone() {
@@ -284,6 +296,7 @@ export async function voicebotView(ctx, root) {
       if (item.type === "bot") currentTurn = Math.max(currentTurn, item.turn);
       if (item.type === "speech" && item.audio && queue) queue.enqueue(item.turn, base64ToBytes(item.audio));
       if (item.type === "interrupt") queue?.stop(item.turn);
+      if (item.type === "backchannel") backchannel(item);
       schedule();
     }
 
@@ -291,7 +304,12 @@ export async function voicebotView(ctx, root) {
       meter.style.transform = `scaleX(${Math.min(1, level * 3).toFixed(3)})`;
       const listening = mode === "hands_free" || pressed;
       if (!listening) return;
-      if (vad.push(level, performance.now()) === "start" && headset && speaking) bargeIn();
+      if (vad.push(level, performance.now()) !== "start") return;
+      if (speaking) {
+        if (headset) bargeIn();
+      } else if (interview) {
+        bargeIn(true);
+      }
     }
 
     function press(on) {

@@ -34,6 +34,11 @@
     "interview.slot_filler": "haiku",
     "interview.max_probes": "1",
     "interview.minutes": "20",
-    "interview.post_call": "off"
+    "interview.post_call": "off",
+    "interview.turn_silence_s": "3.5",
+    "interview.think_s": "6",
+    "interview.max_wait_s": "10",
+    "interview.stuck_s": "7",
+    "interview.backchannel": "voice"
   }
 }

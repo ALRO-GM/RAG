@@ -356,6 +356,18 @@ def test_the_interviewer_words_one_step() -> None:
     assert "12.5 left" in user and cap == 160
 
 
+def test_the_interviewer_words_a_hint_with_the_answer_so_far() -> None:
+    model = FakeChatModel(['{"text": "¿Te referías a la caja?"}'])
+    reasoner(model).reason(request(
+        "conversational", template="interviewer@1", payload={
+            "title": "Cajero", "action": "hint", "topic": "Caja",
+            "answer_so_far": "Pues en mi último trabajo, eh"}))
+    system, user, _ = model.calls[0]
+    assert "reask:" in system and "hint:" in system
+    assert "ACTION: hint" in user
+    assert "Answer so far: Pues en mi último trabajo, eh" in user
+
+
 def test_the_interviewer_templates_warm_their_pools() -> None:
     warmed: List[Any] = []
 

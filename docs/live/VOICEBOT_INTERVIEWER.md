@@ -27,8 +27,9 @@ InterviewPlanner ── POST /knowledge/query (interview.generic, method corpus)
 interview.plan.v1 ── page: review (imprescindible, level, weight, questions…) ── PUT
    │
    ▼  POST /sessions {"product": "voicebot.interview", "plan", "candidate"}
-VoiceBot + InterviewDirector
-   each candidate final → slot filler (interview.slots@1 or rules)
+VoiceBot + InterviewDirector + TurnTaking (#213)
+   candidate finals add up; the answer ends after 3.5 s of silence (§5)
+   each answer → slot filler (interview.slots@1 or rules)
                         → Agenda: open | ask | probe | clarify | answer | close
                         → interviewer@1 words the step (warm Haiku, streamed, Piper)
                         → {"type": "coverage"} to the page
@@ -124,9 +125,10 @@ refused.
 voice bot's **turn director** (`VoiceBot(director=...)`): the bot asks
 it what each turn does and sends its `payload` to `interviewer@1`; the
 model only words the step. The bot **speaks first** (`VoiceBot.open`),
-and finals after the close are skipped (`skipped.closed`).
+and answers after the close are skipped (`skipped.closed`). When an
+answer ends is decided by the turn-taking of §5, not by each final.
 
-After each candidate final the **slot filler** says which slots the
+After each candidate answer the **slot filler** says which slots the
 answer covers (`complete` or `partial`, with a quote):
 
 - `haiku` (default): `interview.slots@1` on the reasoner (warm pool,
@@ -170,7 +172,72 @@ Each turn record has a new stage `director_ms` (the filler and the
 agenda) inside the turn's latency: with the Haiku filler the next
 question waits for that call.
 
-## 5. Result: sheet, report, comparison, analysis
+## 5. Turn-taking: waiting for the candidate (VB-10, #213)
+
+The owner's first test showed the interviewer cutting the candidate
+off: every transcriber final (VAD hang 700 ms) ended the turn. Now an
+interview session's `VoiceBot` has a **turn-taking policy**
+(`orchestrator/domain/turn_taking.py`, `TurnTaking`: pure, time passed
+in) and the session ticks it every 0.1 s (`LiveSessions(ticker=...)`,
+a thread beside the event stream). The support voice bot keeps
+answering each final.
+
+| Rule | Default («Ajustes») | What happens |
+|---|---|---|
+| Think time | `interview.think_s` 6 s (3–15) | After the bot finishes a question (estimated end of its audio) nothing happens for 6 s. |
+| End of the answer | `interview.turn_silence_s` 3.5 s (2–6) | The candidate's finals are **accumulated into one answer**; it ends only after 3.5 s of silence after the last speech. Any partial, final or voice activity restarts the wait. |
+| Unfinished answer | up to `interview.max_wait_s` 10 s (5–20) | If the answer *looks unfinished* when the silence is reached (`looks_unfinished`: last word a conjunction, connector, filler, article or preposition — «y», «pero», «porque», «o sea», «entonces», «eh», «de»… — or a trailing comma, colon, dash or ellipsis; no model call) the bot waits up to 10 s. |
+| No answer | `interview.max_wait_s` 10 s | 10 s of complete silence after a question (no voice, no noise): the bot **re-asks once** in other words (step `reask`). A second silence as long ends the turn with an empty answer, which the agenda treats as an answer that covers nothing (follow-up, then «matizar o pasar»). |
+| Stuck | `interview.stuck_s` 7 s (4–15) | Silent for 7 s after part of an unfinished answer: one brief **hint** on how to go on, tied to the slot, ending in a choice question («¿Te referías a …, o prefieres hablar de …?», step `hint`, with the answer so far). At most one per slot; the answer heard so far is kept. |
+| Never talk over | — | Speech of the candidate (a partial or final with words, or the page's voice detector) while a turn is being **prepared** drops it (`interrupted_by: "candidate"`, or `"vad"` from the page); a turn dropped while the slot filler runs does not move the agenda. Barge-in while the bot **speaks** works as before. A partial never drops the opening; if the page's detector stops it, the wait for an answer starts anyway. |
+| Active listening | `interview.backchannel` `voice` (`visual`, `off`) | At natural pauses of a long answer (pause ≥ 1.2 s, shorter than the end of the answer, ≥ 8 s after the previous one and after the answer started): «Ajá.», «Vale.», «Entiendo.», «Mm-hm.» in turn, synthesised once when the session starts and played by the page at gain 0.35, beside the bot's voice queue (never counted as the bot speaking), plus an «Escuchando…» tag for 2 s. `visual`: the tag only. |
+
+`reask` and `hint` are two new actions of `interviewer@1` (its system
+prompt says how to word them; the user prompt carries `Answer so far`);
+they do not count as agenda turns. The page now reports its voice
+detector's starts during an interview even while the bot is silent
+(`POST …/barge-in`, which also drops a turn being prepared), so a
+candidate who resumes after a pause restarts the wait at once rather
+than at their first partial. The 1.2 s pause, the 8 s gap and the gain
+are constants of the code, not settings.
+
+### Replay (simulation, not a recording)
+
+`experiments/voicebot/turn_taking_replay.py` (results in
+`turn_taking_replay_results.json`, 2026-11-21) feeds scripted answers
+to the real `VoiceBot` + `TurnTaking` on a simulated clock: 40 answers
+of 3–5 fragments, 125 pauses drawn from 2.02 to 4.96 s (34 over 4 s),
+the final 0.674 s after each fragment (the p50 of
+`docs/live/LIVE_ASR.md`), a partial every 0.8 s, the page's voice
+detector 0.2 s after speech starts (150 ms `startMs` plus 50 ms
+assumed), and the bot's first audio 0.912 s after it decides (the
+support bot's p50 in `docs/live/VOICEBOT.md`; the interviewer's slot
+filler adds an unmeasured call). A *premature decision* is a turn
+decided before the answer's last final; a *premature turn* is one that
+was not dropped and spoke.
+
+| Pauses come after | `turn_silence_s` | Voice detector | Premature decisions | Premature turns (answers cut) |
+|---|---|---|---|---|
+| an unfinished fragment («…y», «…porque», «…o sea,») | 3.5 | on | 0 | 0 |
+| an unfinished fragment | 3.5 | off | 0 | 0 |
+| a complete sentence | 3.5 | on | 35 | 3 (3 of 40) |
+| a complete sentence | 3.5 | off | 72 | 34 (25 of 40) |
+| a complete sentence | 5 | on | 0 | 0 |
+| a complete sentence | 5 | off | 11 | 0 |
+| a complete sentence | 6 | on or off | 0 | 0 |
+
+So, in this simulation: zero premature turns with pauses of 2–5 s
+whenever the long pauses come after an unfinished fragment, at the
+default 3.5 s. A pause of more than about 4 s after a **complete**
+sentence (3.5 s of silence plus the 0.674 s the final takes) is, by
+construction, the end of the answer at 3.5 s; the voice detector then
+drops most of those turns before they speak (32 of 35), and
+`interview.turn_silence_s` 5 removed them all here. Every answer ended
+3.5 s (5 s, 6 s) after its last final, as configured. Not measured
+with real speech: real pauses, ASR timings and the energy detector on
+a real microphone may differ.
+
+## 6. Result: sheet, report, comparison, analysis
 
 When the session ends the director:
 
@@ -211,7 +278,7 @@ Screenshots (fakes, no model): plan review, live coverage and report
 in the session's scratchpad (`interviewer/plan.png`, `coverage.png`,
 `report.png`), drawn by a harness page from a fake interview run.
 
-## 6. Settings («Ajustes», group «Entrevistador de IA»)
+## 7. Settings («Ajustes», group «Entrevistador de IA»)
 
 | Step | Options (first is the default) |
 |---|---|
@@ -219,11 +286,20 @@ in the session's scratchpad (`interviewer/plan.png`, `coverage.png`,
 | `interview.max_probes` | `1` · `0` · `2` |
 | `interview.minutes` (new plans) | `20` · `15` · `30` · `45` |
 | `interview.post_call` | `off` · `on` |
+| `interview.turn_silence_s` | `3.5` s, a slider from 2 to 6 |
+| `interview.think_s` | `6` s, 3 to 15 |
+| `interview.max_wait_s` | `10` s, 5 to 20 |
+| `interview.stuck_s` | `7` s, 4 to 15 |
+| `interview.backchannel` | `voice` · `visual` · `off` |
+
+The turn-taking values are the owner's (issue #213), not measured with
+real candidates; they are also fields of the product's `interview`
+section (`InterviewSection`), which the saved settings replace.
 
 `voicebot.reasoner_model` and `voicebot.voice` apply to the interviewer
 too. The time budget of each plan is edited in its review.
 
-## 7. What was run (no measurement)
+## 8. What was run (no measurement)
 
 The owner will test with two real interviews (shop assistant, backend
 developer), so no synthetic interview was measured: no turns-to-minimums,
@@ -246,7 +322,7 @@ It also gave 0 to the six slots that were never asked; that run led to
 the rule above (an unanswered slot stays unscored), applied after it
 (no new call): the suitability of that sheet goes from 31.4 to 41.4.
 
-## 8. How to run the test (owner)
+## 9. How to run the test (owner)
 
 1. Restart the services after merging (`ragputin-servicios restart`):
    the RAG gets the new templates and warms the `interviewer@1` and
@@ -267,7 +343,14 @@ the rule above (an unanswered slot stays unscored), applied after it
    after the second interview with the same plan. With
    `interview.post_call: on` the analysis starts by itself; otherwise
    start it from the session.
-7. What to note for the measurement: turns until every *imprescindible*
+7. Turn-taking (#213): pause for 2–5 s in the middle of an answer
+   (after «y…», «porque…», and after a full sentence), stay silent
+   after a question (re-ask after 10 s), stop in the middle and wait
+   (hint after 7 s), start talking while the bot is «Pensando…» (it
+   should stay silent). Watch the «Escuchando…» tag and listen for the
+   quiet «ajá» during long answers. If it still cuts in, raise
+   «Silencio que termina una respuesta» in «Ajustes».
+8. What to note for the measurement: turns until every *imprescindible*
    was settled (the report's facts line), the slots the filler got
    wrong (coverage panel vs what was said), and the latency line under
    the conversation (end of the answer → first voice).
@@ -277,15 +360,26 @@ interviewer; 1 with the `heuristic` filler) + 1 (report); for a
 20-minute interview of 12–16 answers that would be about 25–35 (an
 estimate from that count, not measured). `post_call: on` adds the analysis's calls.
 
-## 9. Limits
+## 10. Limits
 
 - Synthetic only: the planner, filler, agenda thresholds and the report
   prompt were tried on two invented offers and two answers.
 - The rules filler and the «no lo sé» / «pasamos» detection are Spanish
   word lists; English interviews are not handled yet.
 - Bot utterance times in the transcript come from the orchestrator's
-  clock (session start ≈ transcriber stream start); a turn cancelled by
-  a newer final has already advanced the agenda.
+  clock (session start ≈ transcriber stream start). A turn dropped
+  because the candidate went on talking does not move the agenda if
+  the drop comes while the slot filler runs; dropped after that (while
+  the interviewer's reply is being written), it already has, and its
+  Haiku calls are spent.
+- Turn-taking: the end of a pause is known only from the page's voice
+  detector or the next partial, and a pause of more than about 4 s
+  after a complete sentence ends the answer at the default 3.5 s (see
+  the replay in §5). «Unfinished» is a Spanish/English word list. The
+  end of the bot's audio is estimated from the chunks' durations. The
+  backchannel tokens are said by the bot's voice (Piper or the clone);
+  without a headset the microphone may hear them (one word, so never
+  taken as the bot's echo; at worst it restarts the wait).
 - One interview at a time (the voice bot's one live session).
 - Privacy: the sheet holds candidate quotes and scores
   (`data/interview/results/`); retention and who sees it are pending

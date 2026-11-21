@@ -131,6 +131,31 @@ export class SpeechQueue {
   }
 }
 
+/**
+ * Play the WAV bytes of a backchannel («ajá», «vale»…) once, quietly, beside
+ * the bot's own voice (#213): never queued as the bot speaking. Resolves to
+ * whether it was played.
+ */
+export async function playQuiet(ctx, bytes, volume = 0.35) {
+  try {
+    const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const buffer = await ctx.decodeAudioData(copy);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = Math.max(0, Math.min(1, Number(volume) || 0));
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(ctx.currentTime);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** How long the page shows «escuchando…» after a backchannel, in ms. */
+export const LISTENING_MS = 2000;
+
 /** The conversation of a voice-bot session, from the orchestrator's feed. */
 export class VoiceBotState {
   constructor() {
