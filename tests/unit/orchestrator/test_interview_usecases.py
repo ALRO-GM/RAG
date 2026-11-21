@@ -347,3 +347,38 @@ def test_finish_without_answers_and_with_a_failing_handoff() -> None:
     assert result is not None
     assert result["handoff"]["error"] == "HTTP 422: bad"
     assert loud.coverage()["slots"][0]["asked"] == 1
+
+
+def test_a_turn_dropped_during_the_filler_leaves_the_agenda_alone() -> None:
+    boss = director()
+    boss.plan_turn("", None, CancelToken())
+    token = CancelToken()
+
+    class Dropping(HeuristicFiller):
+        def fill(self, *args: Any) -> Any:
+            token.cancel()  # the candidate spoke while the filler ran
+            return super().fill(*args)
+
+    boss.filler = Dropping()
+    target, turns = boss.target, boss.agenda.turns
+    boss.plan_turn("Estuve dos años en caja en un supermercado del barrio",
+                   "u1", token)
+    assert (boss.target, boss.agenda.turns) == (target, turns)
+    assert boss.agenda.sheet_slots()[0].answers == []
+
+
+def test_reask_and_hint_turns_do_not_move_the_agenda() -> None:
+    boss = director()
+    boss.plan_turn("", None, CancelToken())
+    turns = boss.agenda.turns
+    again = boss.plan_turn("", None, CancelToken(), "reask")
+    assert again.payload["action"] == "reask"
+    assert again.payload["slot"] == "s1"
+    hint = boss.plan_turn("Pues en mi último trabajo, eh", None,
+                          CancelToken(), "hint")
+    assert hint.payload["action"] == "hint"
+    assert hint.payload["answer_so_far"] == "Pues en mi último trabajo, eh"
+    assert boss.agenda.turns == turns and boss.target == "s1"
+    out: Output = boss.output  # type: ignore[assignment]
+    assert [m["action"] for m in out.messages
+            if m["type"] == "coverage"][-2:] == ["reask", "hint"]

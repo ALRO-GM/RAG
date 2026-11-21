@@ -167,6 +167,12 @@ class InterviewSection(_Strict):
     plan; ``report`` whether the slots are scored by ``report_template``
     when the interview ends (else a coarse estimate from each slot's
     status); ``post_call`` whether the analysis starts by itself.
+    The turn-taking thresholds (VB-10, #213,
+    :mod:`~orchestrator.domain.turn_taking`) are seconds:
+    ``turn_silence_s`` ends an answer, ``think_s`` is kept after a
+    question, ``max_wait_s`` before re-asking or ending an unfinished
+    answer, ``stuck_s`` before a hint; ``backchannel`` is ``voice``,
+    ``visual`` or ``off``.
     """
 
     corpus: str = "interview.generic"
@@ -185,6 +191,11 @@ class InterviewSection(_Strict):
     minutes: int = Field(default=20, ge=5, le=90)
     report: bool = True
     post_call: bool = False
+    turn_silence_s: float = Field(default=3.5, ge=2.0, le=6.0)
+    think_s: float = Field(default=6.0, ge=3.0, le=15.0)
+    max_wait_s: float = Field(default=10.0, ge=5.0, le=20.0)
+    stuck_s: float = Field(default=7.0, ge=4.0, le=15.0)
+    backchannel: Literal["voice", "visual", "off"] = "voice"
 
 
 VOICEBOTS = ("voicebot", "voicebot.interview")

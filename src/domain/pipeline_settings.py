@@ -178,6 +178,19 @@ STEPS: Tuple[StepSpec, ...] = (
              options=("20", "15", "30", "45"), consumer="orchestrator"),
     StepSpec(id="interview.post_call", group="interview",
              options=("off", "on"), consumer="orchestrator"),
+    # Turn-taking of the interviewer (#213), seconds; the defaults are
+    # the owner's (issue #213), not measured.
+    StepSpec(id="interview.turn_silence_s", group="interview",
+             options=("3.5",), consumer="orchestrator",
+             range=(2.0, 6.0, 0.5)),
+    StepSpec(id="interview.think_s", group="interview", options=("6",),
+             consumer="orchestrator", range=(3.0, 15.0, 1.0)),
+    StepSpec(id="interview.max_wait_s", group="interview", options=("10",),
+             consumer="orchestrator", range=(5.0, 20.0, 1.0)),
+    StepSpec(id="interview.stuck_s", group="interview", options=("7",),
+             consumer="orchestrator", range=(4.0, 15.0, 1.0)),
+    StepSpec(id="interview.backchannel", group="interview",
+             options=("voice", "visual", "off"), consumer="orchestrator"),
 )
 """Every configurable step, in the order the page shows them."""
 

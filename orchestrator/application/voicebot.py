@@ -23,7 +23,22 @@ turn and the playback; what is mostly the bot's own words coming back
 through the microphone is echo, and is neither a barge-in nor a turn.
 Each turn ends with a
 :class:`~orchestrator.domain.records.TurnRecord` with the latency of
-each stage. A quota or auth answer stops the session's turns, as in
+each stage.
+
+An interview (VB-10, #213) is patient: with ``turn_taking`` the user's
+finals do not start turns. They are accumulated into one answer and
+:class:`~orchestrator.domain.turn_taking.TurnTaking` decides, at every
+:meth:`VoiceBot.tick` (the session calls it a few times a second),
+when the answer ended, when to re-ask a question nobody answered, when
+to give a stuck candidate a hint (the director words ``reask`` and
+``hint`` steps) and when to show or say a short backchannel
+(``{"type": "backchannel"}``, pre-synthesised once by
+:meth:`VoiceBot.warm_backchannels`, never counted as the bot speaking).
+Speech of the candidate while a turn is being prepared drops that turn
+(``interrupted_by: "candidate"``): the bot never talks over them. The
+support bot (no ``turn_taking``) keeps answering each final.
+
+A quota or auth answer stops the session's turns, as in
 :class:`~orchestrator.application.live_assist.LiveAssist`. No audio is
 kept; the text is never logged here.
 """
@@ -31,7 +46,9 @@ kept; the text is never logged here.
 import base64
 import threading
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional, Protocol
+from typing import (
+    Any, Deque, Dict, List, Literal, Optional, Protocol, Tuple,
+)
 
 from orchestrator.application.ports import (
     BotOutput,
@@ -61,6 +78,12 @@ from orchestrator.domain.speech import (
     SpeechChunk,
 )
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
+from orchestrator.domain.turn_taking import (
+    BACKCHANNELS,
+    BotTurn,
+    TurnConfig,
+    TurnTaking,
+)
 
 
 class Directed(Protocol):
@@ -92,15 +115,26 @@ class TurnDirector(Protocol):
         """Whether no more turns are wanted."""
         ...
 
+    @property
+    def target(self) -> Optional[str]:
+        """The slot being asked, if any (a hint is one per slot)."""
+        ...
+
     def heard(self, utterance: str, text: str, start: float,
               end: float) -> None:
         """Take one final of the user."""
         ...
 
     def plan_turn(
-        self, answer: str, utterance: Optional[str], cancel: CancelToken
+        self, answer: str, utterance: Optional[str], cancel: CancelToken,
+        kind: BotTurn = "question",
     ) -> Directed:
-        """Decide a turn (``utterance`` ``None``: the bot speaks first)."""
+        """Decide a turn (``utterance`` ``None``: no new answer).
+
+        ``kind`` is ``question`` (the next step of the interview),
+        ``reask`` (the question again, in other words) or ``hint`` (a
+        brief hint for a stuck ``answer``).
+        """
         ...
 
     def spoken(self, record: TurnRecord) -> None:
@@ -127,6 +161,15 @@ ECHO_WINDOW_S = 1.5
 possible (the transcriber's final comes after the hang)."""
 SAID_KEPT = 8
 """The bot's last sentences compared against what the mic hears."""
+BACKCHANNEL_VOLUME = 0.35
+"""Gain the page plays a backchannel with (the bot's voice is 1)."""
+TurnKind = Literal["open", "question", "reask", "hint"]
+
+
+def _bot_firing() -> Firing:
+    """The firing of a turn the bot starts on its own."""
+    return Firing(utterance_id="", speaker=BOT_SPEAKER, role="bot",
+                  text="", stream_time=0.0)
 
 
 def _ms(seconds: float) -> float:
@@ -145,9 +188,11 @@ class _Turn:
     def __init__(
         self, bot: "VoiceBot", record: TurnRecord, token: CancelToken,
         started: float, interrupt_id: Optional[str],
+        kind: TurnKind = "question",
     ):
         """Start before the first piece of the reply."""
         self.bot = bot
+        self.kind = kind
         self.record = record
         self.token = token
         self.started = started
@@ -268,6 +313,8 @@ class VoiceBot:
         executor: Runs a turn (inline or on a thread).
         roles: Speaker id → role (the user).
         director: Decides each turn (the AI interviewer), if any.
+        turn_taking: The interviewer's patience (#213); ``None``: each
+            user final starts a turn.
     """
 
     def __init__(
@@ -281,6 +328,7 @@ class VoiceBot:
         executor: Executor,
         roles: Dict[str, str],
         director: Optional[TurnDirector] = None,
+        turn_taking: Optional[TurnConfig] = None,
     ):
         """Wire the ports; no turn yet."""
         if (config.trigger is None or config.reasoner is None
@@ -311,6 +359,11 @@ class VoiceBot:
         self._inflight: Optional[_Turn] = None
         self._last_turn: Optional[_Turn] = None
         self.director = director
+        self.turn_taking = (TurnTaking(turn_taking)
+                            if turn_taking is not None else None)
+        self.session_id = ""
+        self._backchannels: List[Tuple[str, Optional[SpeechChunk]]] = []
+        self._backchannel_next = 0
 
     # ---- events ----------------------------------------------------------
 
@@ -331,12 +384,16 @@ class VoiceBot:
                 return
             if self.barge.decide(event, role, speaking, said):
                 self.barge_in("speech")
+            if self.turn_taking is not None and role in self.user_roles:
+                self._candidate(u.id, u.text, event.type == "final", now)
         if event.type == "final" and u is not None:
             self._keep({"id": u.id, "speaker": u.speaker, "text": u.text,
                         "start": u.start, "end": u.end})
             if (self.director is not None
                     and self.roles.get(u.speaker) in self.user_roles):
                 self.director.heard(u.id, u.text, u.start, u.end)
+        if self.turn_taking is not None:
+            return
         decision = self.policy.decide(event)
         if isinstance(decision, Skip):
             self._skip(decision.reason)
@@ -351,19 +408,20 @@ class VoiceBot:
 
     def open(self, session_id: str) -> None:
         """Start a turn without the user (the bot speaks first)."""
-        self._fire_turn(session_id, Firing(
-            utterance_id="", speaker=BOT_SPEAKER, role="bot", text="",
-            stream_time=0.0,
-        ), None, opening=True)
+        self.session_id = session_id
+        self._fire_turn(session_id, _bot_firing(), None, kind="open")
 
     def barge_in(self, by: str = "vad") -> bool:
         """The user spoke over the bot: stop the turn and the playback.
 
         Returns whether there was anything to stop (a turn in flight or
-        audio still playing).
+        audio still playing). With turn-taking, any voice activity also
+        restarts the wait for the end of the answer.
         """
         now = self.clock.now()
         with self._lock:
+            if self.turn_taking is not None:
+                self.turn_taking.activity(now)
             turn = self._inflight
             last = self._last_turn
             playing = self.playback.speaking(now)
@@ -377,6 +435,115 @@ class VoiceBot:
             self.output.publish({"type": "interrupt",
                                  "turn": last.record.turn, "by": by})
         return True
+
+    # ---- turn-taking (interviews, #213) ----------------------------------
+
+    def tick(self) -> None:
+        """Ask the turn-taking policy what to do now, and do it."""
+        policy = self.turn_taking
+        if policy is None:
+            return
+        now = self.clock.now()
+        with self._lock:
+            if self.halted is not None:
+                return
+            busy = (self._inflight is not None
+                    or self.playback.speaking(now))
+            slot = self.director.target if self.director else None
+            decision = policy.tick(now, busy, slot)
+            answer = policy.answer
+            utterance = policy.last_utterance or ""
+        if decision == "backchannel":
+            self._backchannel()
+        elif decision == "end_turn":
+            if self.director is not None and self.director.closed:
+                self._skip("closed")
+                return
+            self._fire_turn(self.session_id, Firing(
+                utterance_id=utterance, speaker=self._user_speaker(),
+                role=next(iter(sorted(self.user_roles)), "user"),
+                text=answer, stream_time=0.0,
+            ), None, query=answer)
+        elif decision in ("reask", "hint"):
+            if self.director is not None and self.director.closed:
+                self._skip("closed")
+                return
+            self._fire_turn(self.session_id, _bot_firing(), None,
+                            kind="hint" if decision == "hint" else "reask",
+                            query=answer)
+
+    def warm_backchannels(self) -> None:
+        """Synthesise the backchannel tokens once (``voice`` mode).
+
+        A token that cannot be synthesised is kept without audio (the
+        page then only shows it).
+        """
+        policy = self.turn_taking
+        if policy is None or policy.config.backchannel == "off":
+            return
+        tts = self.config.tts
+        assert tts is not None  # checked in __init__
+        tokens = BACKCHANNELS.get(self.config.language[:2],
+                                  BACKCHANNELS["es"])
+        kept: List[Tuple[str, Optional[SpeechChunk]]] = []
+        for i, token in enumerate(tokens):
+            chunk: Optional[SpeechChunk] = None
+            if policy.config.backchannel == "voice":
+                request = voice_request(
+                    f"{self.session_id}-bc{i}"[-MAX_REQUEST_ID:], token, tts,
+                    self.config.language,
+                )
+                try:
+                    chunk = next(iter(self.tts.synthesize(
+                        request, CancelToken())), None)
+                except TtsUnavailable:
+                    chunk = None
+            kept.append((token, chunk))
+        with self._lock:
+            self._backchannels = kept
+
+    def _candidate(self, utterance: str, text: str, final: bool,
+                   now: float) -> None:
+        """Take the candidate's words; drop a turn being prepared."""
+        assert self.turn_taking is not None
+        with self._lock:
+            speech = self.turn_taking.heard(now, utterance, text, final)
+            turn = self._inflight
+            preparing = (speech and turn is not None
+                         and turn.kind != "open"
+                         and not turn.token.cancelled
+                         and not self.playback.speaking(now))
+        if preparing and turn is not None:
+            self._interrupt(turn, "candidate")
+
+    def _backchannel(self) -> None:
+        """Show (and, in ``voice`` mode, play quietly) one backchannel."""
+        assert self.turn_taking is not None
+        mode = self.turn_taking.config.backchannel
+        with self._lock:
+            kept = list(self._backchannels)
+            index = self._backchannel_next
+            self._backchannel_next += 1
+        if not kept:
+            tokens = BACKCHANNELS.get(self.config.language[:2],
+                                      BACKCHANNELS["es"])
+            kept = [(t, None) for t in tokens]
+        token, chunk = kept[index % len(kept)]
+        message: Document = {"type": "backchannel", "mode": mode,
+                             "text": token, "audio": None}
+        if mode == "voice" and chunk is not None:
+            message.update({
+                "format": chunk.format, "sample_rate": chunk.sample_rate,
+                "duration_ms": chunk.duration_ms,
+                "volume": BACKCHANNEL_VOLUME,
+                "audio": base64.b64encode(chunk.audio).decode("ascii"),
+            })
+        self.output.publish(message)
+
+    def _user_speaker(self) -> str:
+        """The user's speaker id (the first with a user role)."""
+        return next((s for s, r in sorted(self.roles.items())
+                     if r in self.user_roles), "S1")
 
     # ---- internals -------------------------------------------------------
 
@@ -413,9 +580,15 @@ class VoiceBot:
 
     def _fire_turn(
         self, session_id: str, firing: Firing, lag: Optional[float],
-        opening: bool = False,
+        kind: TurnKind = "question", query: Optional[str] = None,
     ) -> None:
-        """Start a turn for ``firing`` (see :meth:`_fire`)."""
+        """Start a turn for ``firing`` (see :meth:`_fire`).
+
+        ``query`` is what the user said (default: their finals since the
+        bot last spoke); an ``open``, ``reask`` or ``hint`` turn has no
+        new answer.
+        """
+        opening = kind == "open"
         with self._lock:
             if self.halted is not None:
                 self.skips["halted"] = self.skips.get("halted", 0) + 1
@@ -427,7 +600,8 @@ class VoiceBot:
             self.turns += 1
             number = self.turns
             window = list(self._window)
-            query = "" if opening else (self._user_turn() or firing.text)
+            if query is None:
+                query = "" if opening else (self._user_turn() or firing.text)
         if stale is not None and not stale.token.cancelled:
             self._interrupt(stale, "new_turn")
         previous = self._last_turn
@@ -444,16 +618,17 @@ class VoiceBot:
         )
         record.stages.event_lag_ms = lag
         turn = _Turn(self, record, token, self.clock.now(),
-                     previous.last_request if previous else None)
+                     previous.last_request if previous else None, kind)
         with self._lock:
             self._inflight = turn
             self._last_turn = turn
         self.output.publish({"type": "bot", "turn": number,
                              "state": "thinking",
                              "utterance": firing.utterance_id})
-        utterance = None if opening else firing.utterance_id
+        utterance = (firing.utterance_id if kind == "question" else None)
+        said = query
         self.executor.submit(
-            lambda: self._run(turn, query, window, utterance)
+            lambda: self._run(turn, said, window, utterance)
         )
 
     def _interrupt(self, turn: _Turn, by: str) -> None:
@@ -475,7 +650,10 @@ class VoiceBot:
         payload: Optional[Document] = None
         if self.director is not None:
             asked = self.clock.now()
-            directed = self.director.plan_turn(query, utterance, turn.token)
+            directed = self.director.plan_turn(
+                query, utterance, turn.token,
+                "question" if turn.kind == "open" else turn.kind,
+            )
             record.stages.director_ms = _ms(self.clock.now() - asked)
             payload = directed.payload
             query = directed.query
@@ -591,6 +769,18 @@ class VoiceBot:
                     "id": f"b{record.turn}", "speaker": BOT_SPEAKER,
                     "text": " ".join(record.spoken),
                 })
+            policy = self.turn_taking
+            if policy is not None and (
+                record.spoken
+                or (turn.kind == "open" and policy.asked_at is None)
+            ):
+                # An opening dropped before it spoke still starts the
+                # wait, or nothing would ever be decided.
+                ended = max(self.clock.now(), self.playback.until)
+                policy.bot_spoke(ended, "question" if turn.kind == "open"
+                                 else turn.kind)
+            elif policy is not None:
+                policy.dropped()
         if self.director is not None and record.spoken:
             self.director.spoken(record)
         self.output.record(record)

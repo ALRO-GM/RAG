@@ -43,7 +43,9 @@ first, and its feed also carries ``{"type": "coverage"}`` after every
 turn, ``{"type": "interview"}`` (``closed``, ``reporting``) and, at the
 end, ``{"type": "interview_result"}`` (the scored slot sheet and the
 handoff). A plain ``voicebot`` session may name another knowledge
-domain (``domain``) as its topic.
+domain (``domain``) as its topic. An interview's bot waits for the
+candidate (#213): the session ticks its turn-taking (``ticker``) and
+the feed also carries ``{"type": "backchannel"}``.
 """
 
 import re
@@ -97,7 +99,7 @@ from orchestrator.application.voice import (
     speak_sample,
 )
 from orchestrator.application.voicebot import VoiceBot
-from orchestrator.domain.config import ProductConfig, Tts
+from orchestrator.domain.config import InterviewSection, ProductConfig, Tts
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.live_choices import (
     MODES,
@@ -107,6 +109,7 @@ from orchestrator.domain.live_choices import (
 from orchestrator.domain.mandatory import EMPLOYEE_ROLES
 from orchestrator.domain.voices import VoicePlan, VoiceProfile, plan_voice
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
+from orchestrator.domain.turn_taking import TurnConfig
 
 AUDIO_KINDS = ("stereo", "mic")
 """``stereo``: one channel per person (agent/interviewer on 0, the other
@@ -122,6 +125,8 @@ MAX_NAME = 60
 """Longest name a speaker can be given."""
 DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
 CANDIDATE_CHARS = 80
+TICK_S = 0.1
+"""Seconds between two turn-taking ticks of an interview (#213)."""
 
 
 class _Assistant(Protocol):
@@ -257,6 +262,7 @@ class _BotFeed:
         self.session = session
         self.log = log
         self._audio: Dict[int, List[int]] = {}
+        self._backchannel: Optional[int] = None
 
     def publish(self, message: Document) -> None:
         """Publish ``message``; drop older turns' audio from the feed."""
@@ -265,9 +271,14 @@ class _BotFeed:
             turn = int(message.get("turn", 0))
             for old in [t for t in self._audio if t < turn]:
                 feed.strip(self._audio.pop(old), "audio")
+        if (message.get("type") == "backchannel"
+                and self._backchannel is not None):
+            feed.strip([self._backchannel], "audio")
         number = feed.publish(message)
         if message.get("type") == "speech" and message.get("audio"):
             self._audio.setdefault(int(message["turn"]), []).append(number)
+        if message.get("type") == "backchannel" and message.get("audio"):
+            self._backchannel = number
 
     def record(self, record: TurnRecord) -> None:
         """Count, publish and log one turn's record."""
@@ -278,6 +289,15 @@ class _BotFeed:
         })
         if self.log is not None:
             self.log.write(record)
+
+
+def turn_config(section: InterviewSection) -> TurnConfig:
+    """The interviewer's turn-taking thresholds from its section."""
+    return TurnConfig(
+        turn_silence_s=section.turn_silence_s, think_s=section.think_s,
+        max_wait_s=section.max_wait_s, stuck_s=section.stuck_s,
+        backchannel=section.backchannel,
+    )
 
 
 def page_info(config: ProductConfig, roles: Mapping[str, str]) -> Document:
@@ -341,6 +361,11 @@ class LiveSessions:
             Piper says it.
         interview: Plans, sheets and handoff of the AI interviewer
             (``None``: no ``voicebot.interview``).
+        ticker: Runs the interviewer's turn-taking clock beside the
+            session (#213): :meth:`VoiceBot.tick` every ``tick_s``
+            seconds while the session runs (``None``: nobody ticks; the
+            tests tick by hand).
+        tick_s: Seconds between two ticks.
     """
 
     def __init__(
@@ -366,6 +391,8 @@ class LiveSessions:
         cloner: Optional[VoiceCloner] = None,
         clone_budget_ms: float = DEFAULT_BUDGET_MS,
         interview: Optional[InterviewWiring] = None,
+        ticker: Optional[Runner] = None,
+        tick_s: float = TICK_S,
     ):
         """Wire the ports; no session yet."""
         self.products = {
@@ -395,6 +422,8 @@ class LiveSessions:
         self.profiles = profiles
         self.cloner = cloner
         self.clone_budget_ms = clone_budget_ms
+        self.ticker = ticker
+        self.tick_s = tick_s
         self._sessions: Dict[str, _Session] = {}
         self._lock = threading.Lock()
 
@@ -558,6 +587,8 @@ class LiveSessions:
         source = self.events
         if isinstance(assist, VoiceBot) and assist.director is not None:
             assist.open(session_id)
+            if assist.turn_taking is not None:
+                self._listen(session, assist)
 
         def job() -> None:
             failed: Optional[str] = None
@@ -725,6 +756,21 @@ class LiveSessions:
             session.candidate, model,
         )
 
+    def _listen(self, session: _Session, bot: VoiceBot) -> None:
+        """Warm the backchannels and tick the turn-taking (#213)."""
+        self.runner.start(bot.warm_backchannels)
+        ticker = self.ticker
+        if ticker is None:
+            return
+
+        def loop() -> None:
+            while (session.state == "running"
+                   and not session.stop_token.cancelled):
+                self.clock.sleep(self.tick_s)
+                bot.tick()
+
+        ticker.start(loop)
+
     def _find(self, session_id: str) -> _Session:
         with self._lock:
             session = self._sessions.get(session_id)
@@ -781,10 +827,13 @@ class LiveSessions:
                 "length_scale": plan.length_scale, "reason": plan.reason,
             })
             output = _BotFeed(session, turns)
+            director = self._director(session, output)
+            section = product.interview
             bot = VoiceBot(
                 product, self.knowledge, self.reasoner, speaker,
                 output, self.clock, self.executor(), session.roles,
-                self._director(session, output),
+                director, turn_config(section)
+                if director is not None and section is not None else None,
             )
             session.assist = bot
             return bot

@@ -1114,6 +1114,9 @@ details.tech, details.controls { margin: 1rem 0; }
 .vb-meter { display: block; width: 10rem; height: 6px; border-radius: 99px; background: var(--sunken); border: 1px solid var(--line); overflow: hidden; }
 .vb-meter-fill { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); transition: transform 80ms linear; }
 .vb-phase.is-speaking { background: var(--active); color: var(--accent-ink); }
+.vb-backchannel { animation: vb-pulse 1s ease-in-out infinite alternate; }
+@keyframes vb-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vb-backchannel { animation: none; } }
 .vb-latency { margin: 0; }
 @media (min-width: 900px) {
   .vb-layout { grid-template-columns: minmax(0, 1fr) 16rem; }

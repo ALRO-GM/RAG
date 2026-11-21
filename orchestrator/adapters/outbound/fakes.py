@@ -336,6 +336,11 @@ def _interviewer_text(request: Document) -> str:
                 "o pasamos a la siguiente pregunta?")
     if action == "answer":
         return f"Eso te lo concretará el equipo. {question}"
+    if action == "reask":
+        return f"Sin prisa. Te lo pregunto de otra forma: {question}"
+    if action == "hint":
+        return ("Puedes contarlo con un ejemplo concreto. ¿Te referías a "
+                "tu último trabajo, o prefieres hablar de otro?")
     if action == "close":
         return ("Muchas gracias por tu tiempo. El equipo se pondrá en "
                 "contacto contigo con los siguientes pasos. Hasta pronto.")

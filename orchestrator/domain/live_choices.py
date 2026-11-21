@@ -13,7 +13,9 @@ product's value. The voice bot has its own: ``voicebot.reasoner_model``,
 Piper's controls (``voicebot.length_scale``, ``noise_scale``, ``noise_w``,
 ``sentence_silence``, numbers within :data:`PIPER_RANGES`) and
 ``voicebot.match_rate`` (a person whose pace sets the length scale); the
-suggester's choices do not apply to it. Plain data: no I/O.
+suggester's choices do not apply to it. The AI interviewer adds its
+``interview.*`` steps, among them its turn-taking seconds
+(:data:`TURN_RANGES`) and ``interview.backchannel``. Plain data: no I/O.
 """
 
 import re
@@ -123,6 +125,12 @@ PROBES = {"0": 0, "1": 1, "2": 2}
 MINUTES = {"15": 15, "20": 20, "30": 30, "45": 45}
 FILLERS = ("haiku", "heuristic")
 SWITCH = {"on": True, "off": False}
+BACKCHANNELS = ("voice", "visual", "off")
+TURN_RANGES: Dict[str, Tuple[float, float]] = {
+    "turn_silence_s": (2.0, 6.0), "think_s": (3.0, 15.0),
+    "max_wait_s": (5.0, 20.0), "stuck_s": (4.0, 15.0),
+}
+"""Interviewer turn-taking step → accepted seconds (#213)."""
 
 
 def _interview(
@@ -143,6 +151,13 @@ def _interview(
     post = SWITCH.get(choices.get("interview.post_call", ""))
     if post is not None:
         section["post_call"] = post
+    for name, (low, high) in TURN_RANGES.items():
+        value = _number(choices.get(f"interview.{name}"), low, high)
+        if value is not None:
+            section[name] = value
+    backchannel = choices.get("interview.backchannel")
+    if backchannel in BACKCHANNELS:
+        section["backchannel"] = backchannel
     if not section:
         return {}
     return {"interview": config.interview.model_copy(update=section)}

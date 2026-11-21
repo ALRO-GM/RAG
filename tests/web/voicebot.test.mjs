@@ -5,7 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  EnergyVad, MODES, SpeechQueue, VOICEBOT, VoiceBotState, base64ToBytes, turnLatency,
+  EnergyVad, LISTENING_MS, MODES, SpeechQueue, VOICEBOT, VoiceBotState, base64ToBytes, playQuiet, turnLatency,
 } from "../../transcriber/adapters/inbound/web/js/lib/voicebot.js";
 
 test("the voice detector starts after sustained level and ends after quiet", () => {
@@ -145,4 +145,23 @@ test("push-to-talk sends silence of the same length while the button is up", asy
   assert.equal(sent.length, 2);
   assert.ok(sent[0].every((b) => b === 0));
   assert.ok(sent[1].every((b) => b === 7));
+});
+
+test("a backchannel plays once, quietly, outside the bot's speech queue", async () => {
+  const ctx = fakeContext();
+  const gains = [];
+  ctx.createGain = () => {
+    const node = { gain: { value: 1 }, connect() {} };
+    gains.push(node);
+    return node;
+  };
+  assert.equal(await playQuiet(ctx, new Uint8Array(40), 0.35), true);
+  assert.equal(ctx.started.length, 1);
+  assert.equal(ctx.started[0].at, 10);
+  assert.equal(gains[0].gain.value, 0.35);
+  assert.equal(await playQuiet(ctx, new Uint8Array(40), 7), true);
+  assert.equal(gains[1].gain.value, 1);
+  ctx.decodeAudioData = async () => { throw new Error("bad"); };
+  assert.equal(await playQuiet(ctx, new Uint8Array(40)), false);
+  assert.ok(LISTENING_MS >= 1000);
 });

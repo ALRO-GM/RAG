@@ -48,6 +48,7 @@ it.
 | `knowledge.ocr`, `knowledge.captions` | RAG, at every upload | next upload |
 | `voicebot.*` | orchestrator, when a voice-bot session starts | next session |
 | `interview.slot_filler`, `interview.max_probes`, `interview.post_call` | orchestrator, when an interview session starts | next interview |
+| `interview.turn_silence_s`, `interview.think_s`, `interview.max_wait_s`, `interview.stuck_s`, `interview.backchannel` | orchestrator, when an interview session starts (the interviewer's turn-taking, #213) | next interview |
 | `interview.minutes` | orchestrator, when a plan is drafted | next plan |
 
 The «Análisis» start form keeps its per-run Claude model choice; it is
@@ -81,6 +82,11 @@ documents; almost all come from synthetic data and a single run.
 | Interviewer follow-ups per slot | 1 (the owner's rule) · 0 · 2 |
 | Interviewer default length | 20 · 15 · 30 · 45 minutes (each plan can change it) |
 | Analyse the interview at the end | off · on (the analysis's calls) |
+| Silence that ends an answer (`interview.turn_silence_s`) | 3.5 s, slider 2–6. An answer that looks unfinished («y…», «porque…», «eh…», a trailing comma) waits up to the longest wait instead. In a simulated replay (`docs/live/VOICEBOT_INTERVIEWER.md` §5) pauses of 2–5 s after unfinished fragments never ended an answer; pauses of over about 4 s after a complete sentence did at 3.5 s (3 turns spoken in 40 answers with the page's voice detector), none at 5 s. Not measured with real speech |
+| Time to think after a question (`interview.think_s`) | 6 s, slider 3–15; not measured |
+| Longest wait (`interview.max_wait_s`) | 10 s, slider 5–20: silence before re-asking a question once, and before ending an unfinished-looking answer; not measured |
+| Hint when stuck (`interview.stuck_s`) | 7 s, slider 4–15: one hint per slot after part of an unfinished answer; not measured |
+| Active listening (`interview.backchannel`) | voice (quiet «ajá», «vale», «entiendo», «mm-hm» at pauses ≥ 1.2 s, at most one every 8 s, plus «Escuchando…» on the page) · visual (the tag only) · off |
 | Figure captions | Florence-2 on this PC (5/5 texts read, English, 2/5 invent) · Claude Haiku (2.0–2.2 s per image, better; **the image leaves the PC**) · none |
 
 Encoder + RG (Claude reviewing the doubtful sentences, 0.864 top-1 on
@@ -140,4 +146,5 @@ and Piper's defaults: they are the only ones measured as the bot.
 `docs/transcriber/NAMES.md`, `docs/KNOWLEDGE.md`,
 `docs/live/ASSIST_MODES.md`,
 `experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`,
-`docs/live/VOICEBOT.md`, `docs/live/VOICE_CLONING.md`.
+`docs/live/VOICEBOT.md`, `docs/live/VOICE_CLONING.md`,
+`docs/live/VOICEBOT_INTERVIEWER.md`.

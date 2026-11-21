@@ -21,7 +21,7 @@ const example = JSON.parse(readFileSync(new URL("contracts/examples/settings.v1.
 // id, "clone:<id>"); a number step (a slider) has a pattern only.
 const optionsOf = (s) => s.enum ?? s.anyOf?.find((a) => a.enum)?.enum ?? null;
 const STEPS = Object.entries(schema.properties.choices.properties).map(([id, s]) => ({ id, options: optionsOf(s) ?? [], number: !optionsOf(s) }));
-const NUMBER_DEFAULTS = { "voicebot.length_scale": "1", "voicebot.noise_scale": "0.5", "voicebot.noise_w": "0.333", "voicebot.sentence_silence": "0" };
+const NUMBER_DEFAULTS = { "voicebot.length_scale": "1", "voicebot.noise_scale": "0.5", "voicebot.noise_w": "0.333", "voicebot.sentence_silence": "0", "interview.turn_silence_s": "3.5", "interview.think_s": "6", "interview.max_wait_s": "10", "interview.stuck_s": "7" };
 
 const tEs = (key, params) => translate({ es, en }, "es", key, params);
 const tEn = (key, params) => translate({ es, en }, "en", key, params);

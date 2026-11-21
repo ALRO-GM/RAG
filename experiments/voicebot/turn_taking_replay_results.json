@@ -1,0 +1,352 @@
+{
+  "runs": [
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 3.5,
+        "p50": 3.5,
+        "max": 3.5
+      },
+      "config": {
+        "turn_silence_s": 3.5,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 3.5,
+        "p50": 3.5,
+        "max": 3.5
+      },
+      "config": {
+        "turn_silence_s": 3.5,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 35,
+      "premature_turns": 3,
+      "answers_cut": 3,
+      "end_delay_s": {
+        "min": 3.5,
+        "p50": 3.5,
+        "max": 3.5
+      },
+      "config": {
+        "turn_silence_s": 3.5,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 72,
+      "premature_turns": 34,
+      "answers_cut": 25,
+      "end_delay_s": {
+        "min": 3.5,
+        "p50": 3.5,
+        "max": 3.5
+      },
+      "config": {
+        "turn_silence_s": 3.5,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 5.0,
+        "p50": 5.0,
+        "max": 5.0
+      },
+      "config": {
+        "turn_silence_s": 5.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 5.0,
+        "p50": 5.0,
+        "max": 5.0
+      },
+      "config": {
+        "turn_silence_s": 5.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 5.0,
+        "p50": 5.0,
+        "max": 5.0
+      },
+      "config": {
+        "turn_silence_s": 5.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 11,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 5.0,
+        "p50": 5.0,
+        "max": 5.0
+      },
+      "config": {
+        "turn_silence_s": 5.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 6.0,
+        "p50": 6.0,
+        "max": 6.0
+      },
+      "config": {
+        "turn_silence_s": 6.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "unfinished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 6.0,
+        "p50": 6.0,
+        "max": 6.0
+      },
+      "config": {
+        "turn_silence_s": 6.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 6.0,
+        "p50": 6.0,
+        "max": 6.0
+      },
+      "config": {
+        "turn_silence_s": 6.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": 0.2,
+      "prep_s": 0.912,
+      "seed": 213
+    },
+    {
+      "kind": "finished",
+      "answers": 40,
+      "pauses": 125,
+      "pause_s": [
+        2.02,
+        4.96
+      ],
+      "pauses_over_4s": 34,
+      "premature_decisions": 0,
+      "premature_turns": 0,
+      "answers_cut": 0,
+      "end_delay_s": {
+        "min": 6.0,
+        "p50": 6.0,
+        "max": 6.0
+      },
+      "config": {
+        "turn_silence_s": 6.0,
+        "think_s": 6.0,
+        "max_wait_s": 10.0,
+        "stuck_s": 7.0,
+        "backchannel": "voice"
+      },
+      "lag_s": 0.674,
+      "vad_delay_s": null,
+      "prep_s": 0.912,
+      "seed": 213
+    }
+  ]
+}

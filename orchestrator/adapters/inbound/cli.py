@@ -396,6 +396,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
         interview=build_interview(args, products, sessions_ref),
+        ticker=ThreadRunner(),
     )
     sessions_ref.append(sessions)
     return sessions
