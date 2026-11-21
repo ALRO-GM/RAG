@@ -45,6 +45,7 @@ it.
 | `live.suggester_effort` | RAG, at every `/reason` call (one warm process per model and effort) | next call |
 | `analysis.judge`, `analysis.*_model`, `analysis.local_judge`, `analysis.act_tagger` | RAG, when an analysis starts (passed to the `skills analyze` child as flags) | next analysis |
 | `knowledge.ocr`, `knowledge.captions` | RAG, at every upload | next upload |
+| `voicebot.*` | orchestrator, when a voice-bot session starts | next session |
 
 The «Análisis» start form keeps its per-run Claude model choice; it is
 now prefilled from the saved settings and still applies to that run
@@ -106,10 +107,18 @@ suggester's live choices do not apply to it.
 | Reply model (`voicebot.reasoner_model`) | Haiku (end of the user's sentence to first audio p50 1,584 ms, p90 1,731 ms; 14 of 15 turns answered, one hit the 1.8 s deadline; `docs/live/VOICEBOT.md`) · Sonnet, Opus (not measured in the bot) |
 | Voice (`voicebot.voice`) | Piper `es_ES-davefx-medium` (the measured one: first sentence 93 ms p50 on the CPU; warmed at start) · `es_ES-sharvard-medium` (not measured as the bot's voice; not warmed) |
 
+| Voice, cloned (`voicebot.voice = clone:<person>`) | OpenVoice v2 over Piper davefx: 118.5 ms per sentence p50 on the GPU, WavLM similarity 0.917 to the reference voice (davefx alone 0.598); only for people who agreed at enrolment; Piper if a sentence takes over 800 ms (`docs/live/VOICE_CLONING.md`) |
+| Speed, intonation, cadence, pause (`voicebot.length_scale`, `noise_scale`, `noise_w`, `sentence_silence`) | Piper's own controls, numbers within 0.7–1.5, 0–1, 0–1, 0–1 s; the defaults (1, 0.5, 0.333, 0) are the voices' own |
+| Match an operator's speed (`voicebot.match_rate`) | off · a person's measured rate at enrolment (words/s) sets the length scale: Piper davefx says 4.065 words/s at 1 |
+
 Voice options map to Piper voice names in
 `orchestrator/domain/live_choices.py` (`VOICES`); adding a voice means
-adding it there, to `STEPS` and to the contract. Every preset keeps
-Haiku and davefx: they are the only ones measured.
+adding it there, to `STEPS` and to the contract. Number steps carry a
+`range` (`StepSpec.range`) and person steps a `pattern`; the page draws
+a slider for the first and lists the enrolled people for the second.
+«Escuchar ejemplo» says a fixed sentence with the unsaved choices
+(`POST /api/assist/voicebot/sample`). Every preset keeps Haiku, davefx
+and Piper's defaults: they are the only ones measured as the bot.
 
 ## Sources of the figures
 
@@ -120,4 +129,4 @@ Haiku and davefx: they are the only ones measured.
 `docs/transcriber/LAB.md` (§13.8), `docs/transcriber/ARCHITECTURE.md`,
 `docs/transcriber/NAMES.md`, `docs/KNOWLEDGE.md`,
 `experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`,
-`docs/live/VOICEBOT.md`.
+`docs/live/VOICEBOT.md`, `docs/live/VOICE_CLONING.md`.

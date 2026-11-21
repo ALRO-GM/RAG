@@ -1,7 +1,9 @@
 # Voice bot (P3: VB-1 … VB-5)
 
 Design: `docs/platform/ARCHITECTURE.md` §3 (P3), §6 (latency), §8
-(licences). Product config: `config/products/voicebot.yaml`.
+(licences). Product config: `config/products/voicebot.yaml`. Piper's
+controls on «Ajustes», rate matching and the operator's cloned voice
+(VB-7): `docs/live/VOICE_CLONING.md`.
 
 ```
 browser mic ──WS──▶ transcriber (live session, 1 channel, VAD hang 400 ms)
