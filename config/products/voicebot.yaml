@@ -8,7 +8,7 @@ attribution: {kind: single_speaker}
 knowledge: {domains: [support.demo], top_k: 4}
 reasoner: {role: conversational, model: haiku, template: "conversational.voicebot@1", deadline_ms: 1800, max_inflight: 1}
 trigger: {on: final, speaker_roles: [user], min_words: 2, debounce_ms: 0, cancel_stale: true}
-tts: {kind: piper, voice: es_ES-davefx-medium}
+tts: {kind: piper, voice: es_ES-davefx-medium, engine: pocket, pocket_voice: lola}
 ui: {kind: speaker}
 privacy: {store_audio: false}
 handoff: {transcript_v1: false, run_post_call: false}

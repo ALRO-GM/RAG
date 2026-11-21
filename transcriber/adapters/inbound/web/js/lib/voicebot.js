@@ -202,7 +202,8 @@ export class VoiceBotState {
     } else if (type === "speech") {
       const item = this._item("bot", `b:${message.turn}`, { turn: message.turn });
       if (item.state !== "interrupted") item.state = "speaking";
-      item.text = item.text ? `${item.text} ${message.text}` : message.text;
+      // A streamed sentence's later pieces carry no text (#214).
+      if (message.text) item.text = item.text ? `${item.text} ${message.text}` : message.text;
     } else if (type === "interrupt") {
       this._item("bot", `b:${message.turn}`, { turn: message.turn, state: "interrupted", by: message.by });
     } else if (type === "turn") {

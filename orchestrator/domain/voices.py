@@ -15,10 +15,14 @@ Plain data and functions: no I/O (``docs/live/VOICE_CLONING.md``).
   it speaks with Piper (:func:`plan_voice`). There is no spoken notice
   when the bot speaks with a cloned voice (owner's decision, #207;
   tracked as a compliance item in #151).
+- **Natural voices** (#214, ``docs/live/NATURAL_TTS.md``): Pocket TTS
+  (a catalogue voice, CPU or GPU) and Qwen3-TTS (cloning a reference
+  voice, GPU) speak instead of Piper; :func:`voice_chain` lists who
+  tries each sentence, in order, before Piper says it.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Callable, Collection, List, Optional, Tuple
 
 PIPER_WORDS_PER_SECOND = {
     "es_ES-davefx-medium": 4.065, "es_ES-sharvard-medium": 3.332,
@@ -127,3 +131,82 @@ def plan_voice(
             length_scale = matched
     return VoicePlan(voice=voice, length_scale=length_scale, clone=clone,
                      reason="; ".join(reasons))
+
+
+POCKET_VOICES = ("lola",)
+"""Pocket TTS catalogue voices that speak Spanish (the ``spanish``
+model ships one; the others are English, Italian, German, Portuguese
+and French speakers)."""
+NEED_MIB = {"qwen3": 4400, "pocket": 800}
+"""GPU memory an engine needs on the GPU, MiB: the study's measured
+peaks (4,310 and 754 MiB, ``docs/live/NATURAL_TTS.md`` §3), rounded
+up."""
+ENGINE_NAMES = {"pocket": "Pocket TTS", "qwen3": "Qwen3-TTS"}
+
+
+@dataclass(frozen=True)
+class EngineVoice:
+    """One natural-voice engine and how it speaks.
+
+    ``voice`` is Pocket's catalogue voice; ``reference`` the clip Qwen3
+    clones and ``reference_text`` its transcript (empty: the speaker
+    embedding only, as for an enrolled person's clip).
+    """
+
+    engine: str
+    device: str
+    voice: str = ""
+    reference: Optional[str] = None
+    reference_text: str = ""
+
+    @property
+    def name(self) -> str:
+        """Short label: engine and device (``qwen3-cuda``, ``pocket-cpu``)."""
+        return f"{self.engine}-{self.device}"
+
+    @property
+    def need_mib(self) -> int:
+        """GPU memory it needs (0 on the CPU)."""
+        return NEED_MIB.get(self.engine, 0) if self.device == "cuda" else 0
+
+
+def voice_chain(
+    engine: str,
+    pocket_voice: str,
+    pocket_device: str,
+    clone: Optional[VoiceProfile],
+    installed: Collection[str],
+    reference: Optional[Tuple[str, str]],
+) -> Tuple[List[EngineVoice], str]:
+    """Return who tries each sentence before Piper, and what is missing.
+
+    ``engine`` is the session's choice (``piper``, ``pocket``,
+    ``qwen3``); ``clone`` a clonable profile cloned by Qwen3 (the
+    caller decides that consent and engine allow it); ``installed`` the
+    engines whose worker is installed; ``reference`` Qwen3's default
+    voice (clip, transcript). A GPU engine is followed by Pocket on the
+    CPU, which is followed by Piper (the caller's).
+    """
+    chain: List[EngineVoice] = []
+    missing: List[str] = []
+    voice = pocket_voice if pocket_voice in POCKET_VOICES else "lola"
+    if clone is not None or engine == "qwen3":
+        if "qwen3" not in installed:
+            missing.append("Qwen3-TTS not installed")
+        elif clone is not None and clone.reference:
+            chain.append(EngineVoice("qwen3", "cuda",
+                                     reference=clone.reference))
+        elif clone is None and reference is not None:
+            chain.append(EngineVoice("qwen3", "cuda", reference=reference[0],
+                                     reference_text=reference[1]))
+        else:
+            missing.append("no reference voice for Qwen3-TTS")
+    elif engine == "pocket" and pocket_device == "cuda":
+        if "pocket" in installed:
+            chain.append(EngineVoice("pocket", "cuda", voice=voice))
+    if engine != "piper" or clone is not None:
+        if "pocket" in installed:
+            chain.append(EngineVoice("pocket", "cpu", voice=voice))
+        elif engine == "pocket":
+            missing.append("Pocket TTS not installed")
+    return chain, "; ".join(missing)

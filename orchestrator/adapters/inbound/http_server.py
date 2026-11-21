@@ -31,7 +31,9 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   the voice bot's fixed sample sentence said with the choices being
   edited on «Ajustes» (unsaved), as ``audio/wav``; the headers
   ``X-Voice-Clone`` (``1`` when the cloned voice spoke),
-  ``X-Voice-Length-Scale`` and ``X-Voice-Note`` say what was used.
+  ``X-Voice-Length-Scale``, ``X-Voice-Engine`` (``piper``,
+  ``openvoice``, ``pocket-cpu``, ``pocket-cuda``, ``qwen3-cuda``: who
+  said the first sentence) and ``X-Voice-Note`` say what was used.
 - ``GET /sessions/{id}/suggestions/stream``: Server-Sent Events, one
   ``message`` per feed message (``id`` is its number; ``?after=n`` or
   the ``Last-Event-ID`` header resumes), a comment every
@@ -275,6 +277,7 @@ def create_app(
         wav, used = await run_in_threadpool(sessions.sample, choices)
         return Response(wav, media_type="audio/wav", headers={
             "X-Voice-Clone": "1" if used["clone"] else "0",
+            "X-Voice-Engine": str(used.get("engine") or "piper")[:32],
             "X-Voice-Length-Scale": f"{used['length_scale']:g}",
             "X-Voice-Note": str(used["reason"])[:200].encode(
                 "ascii", "replace").decode("ascii"),

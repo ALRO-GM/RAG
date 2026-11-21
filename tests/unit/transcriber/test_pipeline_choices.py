@@ -86,10 +86,16 @@ def test_the_body_is_checked_before_it_is_forwarded() -> None:
     assert checked_body({"choices": {"live.asr": "cpu"}, "revision": 2}) == {
         "choices": {"live.asr": "cpu"}, "revision": 2,
     }
+    voices = {"voicebot.voice": "pocket:lola",
+              "voicebot.clone_engine": "qwen3",
+              "voicebot.pocket_device": "cuda"}
+    assert checked_body({"choices": voices}) == {"choices": voices}
     for body in ({"preset": "Cost now"}, {"preset": 1}, {"x": 1},
                  {"choices": {"live.asr": "c p u"}},
                  {"choices": {"live asr": "cpu"}},
                  {"choices": {"live.asr": 1}}, {"choices": "x"},
+                 {"choices": {"voicebot.voice": "pocket:lola voz"}},
+                 {"choices": {"voicebot.voice": "pocket:../lola"}},
                  {"choices": {f"s{i}": "a" for i in range(65)}},
                  {"revision": -1}, {"revision": True}, {"revision": "1"}):
         with pytest.raises(InvalidInputError):

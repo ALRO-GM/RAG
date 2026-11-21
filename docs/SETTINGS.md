@@ -114,27 +114,33 @@ What the presets do **not** change, and why:
 
 ## Voice bot
 
-Merged on main while this page was built (#203), so it has its own two
+Merged on main while this page was built (#203), so it has its own
 steps, read by the orchestrator when a voice-bot session starts; the
 suggester's live choices do not apply to it.
 
 | Step | Options |
 |---|---|
 | Reply model (`voicebot.reasoner_model`) | Haiku (end of the user's sentence to first audio p50 1,584 ms, p90 1,731 ms; 14 of 15 turns answered, one hit the 1.8 s deadline; `docs/live/VOICEBOT.md`) · Sonnet, Opus (not measured in the bot) |
-| Voice (`voicebot.voice`) | Piper `es_ES-davefx-medium` (the measured one: first sentence 93 ms p50 on the CPU; warmed at start) · `es_ES-sharvard-medium` (not measured as the bot's voice; not warmed) |
-
-| Voice, cloned (`voicebot.voice = clone:<person>`) | OpenVoice v2 over Piper davefx: 118.5 ms per sentence p50 on the GPU, WavLM similarity 0.917 to the reference voice (davefx alone 0.598); only for people who agreed at enrolment; Piper if a sentence takes over 800 ms (`docs/live/VOICE_CLONING.md`) |
+| Voice (`voicebot.voice`) | **`pocket:lola`** (default): Kyutai Pocket TTS, Spanish voice `lola`, streamed; first audio 81 ms p50 on the CPU, UTMOS 3.74 against Piper's 2.67 (`docs/live/NATURAL_TTS.md`); warmed at start; Piper davefx when it is not installed · `qwen3`: Qwen3-TTS 0.6B on the GPU cloning a public CML-TTS voice (CC BY 4.0), first audio 188 ms p50, UTMOS 3.93, ~4.3 GB of GPU, only under the live session's GPU lease · Piper `es_ES-davefx-medium` (first sentence 93 ms p50 on the CPU; warmed at start) · `es_ES-sharvard-medium` (not measured as the bot's voice; not warmed) |
+| Voice, cloned (`voicebot.voice = clone:<person>`) | Only for people who agreed at enrolment; cloned by `voicebot.clone_engine`. A sentence whose first audio takes over 800 ms is said by the next voice (`docs/live/VOICE_CLONING.md`) |
+| Who clones (`voicebot.clone_engine`) | **`qwen3`** (default): Qwen3-TTS 0.6B on the GPU, WavLM similarity 0.963 to a human reference with its transcript (with an enrolled person's clip it clones from the speaker embedding only: not measured); falls back to Pocket TTS on the CPU, then Piper · `openvoice`: OpenVoice v2 over Piper davefx, 118.5 ms per sentence p50 on the GPU, similarity 0.917 (synthetic references), falls back to Piper |
+| Where Pocket TTS runs (`voicebot.pocket_device`) | **`cpu`** (default: no GPU memory, 81 ms first audio p50) · `cuda` (18 ms p50, 754 MiB of GPU; only under the live session's GPU lease, else the CPU) |
 | Speed, intonation, cadence, pause (`voicebot.length_scale`, `noise_scale`, `noise_w`, `sentence_silence`) | Piper's own controls, numbers within 0.7–1.5, 0–1, 0–1, 0–1 s; the defaults (1, 0.5, 0.333, 0) are the voices' own |
 | Match an operator's speed (`voicebot.match_rate`) | off · a person's measured rate at enrolment (words/s) sets the length scale: Piper davefx says 4.065 words/s at 1 |
 
 Voice options map to Piper voice names in
-`orchestrator/domain/live_choices.py` (`VOICES`); adding a voice means
-adding it there, to `STEPS` and to the contract. Number steps carry a
+`orchestrator/domain/live_choices.py` (`VOICES`) and to the natural
+voices (`NATURAL`); adding a voice means adding it there, to `STEPS`
+and to the contract. A natural voice that cannot speak a sentence
+(not installed, no GPU lease, short of GPU memory, failed, or over the
+800 ms first-audio budget) hands it to Pocket TTS on the CPU, then to
+Piper, and the session's feed says why (`docs/live/NATURAL_TTS.md` §6). Number steps carry a
 `range` (`StepSpec.range`) and person steps a `pattern`; the page draws
 a slider for the first and lists the enrolled people for the second.
 «Escuchar ejemplo» says a fixed sentence with the unsaved choices
-(`POST /api/assist/voicebot/sample`). Every preset keeps Haiku, davefx
-and Piper's defaults: they are the only ones measured as the bot.
+(`POST /api/assist/voicebot/sample`) and says which voice spoke. Every
+preset keeps Haiku, `pocket:lola`, `qwen3` cloning, Pocket on the CPU
+and Piper's defaults.
 
 ## Sources of the figures
 
@@ -147,4 +153,4 @@ and Piper's defaults: they are the only ones measured as the bot.
 `docs/live/ASSIST_MODES.md`,
 `experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`,
 `docs/live/VOICEBOT.md`, `docs/live/VOICE_CLONING.md`,
-`docs/live/VOICEBOT_INTERVIEWER.md`.
+`docs/live/VOICEBOT_INTERVIEWER.md`, `docs/live/NATURAL_TTS.md`.

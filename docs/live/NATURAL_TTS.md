@@ -1,12 +1,14 @@
-# A more natural Spanish voice for the voice bot (VB-11, #214): research and measurement
+# A more natural Spanish voice for the voice bot (VB-11, #214): research, measurement and integration
 
 The owner finds Piper `es_ES-davefx-medium` robotic: candidates would
 distance themselves from the bot. This page is the research and
 measurement part of #214: which open TTS speaks the most natural
 Spanish **on the workstation's RTX 3070 Ti (8 GB), beside the live
 recogniser (~2.5 GB)**, fast enough for the voice bot (first audio of a
-sentence < 500 ms, streaming preferred). Nothing is integrated yet: the
-owner listens to the samples first.
+sentence < 500 ms, streaming preferred). §1–5 are the study; the owner
+listened to the samples and chose **both** Pocket TTS (`lola`) and
+Qwen3-TTS 0.6B (cloning), now selectable on «Ajustes» (§6, measured
+end to end in §7).
 
 Script `experiments/live/natural_tts.py`, results
 `experiments/live/natural_tts_results.json`, listening samples
@@ -166,6 +168,145 @@ torchaudio 2.11.1, its C libraries moved aside) runs the orchestrator.
 | `pocket-venv` + Pocket TTS (no cloning) | 0.01 + 0.21 GB |
 | `score-venv` + UTMOS checkpoint | 0.4 GB |
 | Deleted: Ming (`ming-venv`, source, weights) | 2.9 GB freed |
+
+## 6. Integration: two natural voices behind the TTS port
+
+**Choices** (`settings.v1`, group *Bot de voz*; checked by the RAG's
+allow-list `src/domain/pipeline_settings.py`, the transcriber's shape
+check and `orchestrator/domain/live_choices.py`):
+
+| Step | Options (first = default) |
+|---|---|
+| `voicebot.voice` | `pocket:lola` · `qwen3` · `davefx` · `sharvard` · `clone:<person>` |
+| `voicebot.clone_engine` | `qwen3` · `openvoice` |
+| `voicebot.pocket_device` | `cpu` · `cuda` |
+
+- `pocket:lola`: Pocket TTS, Spanish model, catalogue voice `lola` (the
+  only Spanish one; the others are English, Italian, German, Portuguese
+  and French speakers). On the CPU by default: no GPU memory, so it can
+  never compete with the live recogniser or the image worker.
+- `qwen3`: Qwen3-TTS 0.6B Base on the GPU cloning the study's
+  reference, CML-TTS Spanish test row 217, speaker 6306 (**CC BY 4.0**,
+  LibriVox recording; kept with its attribution and transcript in
+  `~/.local/share/ragputin/natural-tts/voices/cml-tts-es-6306.{wav,txt}`),
+  in-context with that transcript, as measured.
+- `clone:<person>` with `voicebot.clone_engine = qwen3`: Qwen3-TTS clones
+  the person's enrolment clip. The clip has no transcript, so it clones
+  from the speaker embedding only (`xvec_only`); its likeness and
+  naturalness were **not measured** (the study measured the in-context
+  mode). The consent rules are unchanged (`docs/live/VOICE_CLONING.md`
+  §2: `voice_clone: true` **and** the clip, `plan_voice`). With
+  `openvoice`, or when Qwen3-TTS is not installed but OpenVoice is, the
+  #207 cloner speaks as before.
+
+**Default.** New installs and the product files
+(`config/products/voicebot*.yaml`: `engine: pocket, pocket_voice: lola`)
+speak with Pocket TTS on the CPU; where its venv is not installed the
+same choice falls back to Piper davefx and the session's feed says
+`Pocket TTS not installed`, so an install without the natural voices
+behaves as before. Choices saved earlier on «Ajustes» (e.g. `davefx`)
+keep winning.
+
+**How a sentence is spoken** (`orchestrator/application/natural_voice.py`,
+`NaturalVoice`). The voice is a chain: the chosen engine (Qwen3 or Pocket
+on the GPU), then Pocket on the CPU, then Piper davefx. For each
+sentence the first engine that can speak does:
+
+- a GPU engine is used only while the **live session's GPU lease**
+  (`gpu-lease.v1`) is held and, before it loads, `nvidia-smi` says the
+  memory it needs is free (4,400 MiB for Qwen3, 800 for Pocket: the
+  study's peaks rounded up). The voice bot's own live session takes
+  that lease (the image worker leaves the card), so nothing here takes
+  it during a session: the lease file has one holder and taking it
+  would push the transcriber to the CPU. When the lease goes, a loaded
+  GPU engine is stopped at once (its memory is free before the image
+  worker resumes 30 s later). No other process is signalled, ever;
+- its first audio must come within **800 ms** (`--natural-budget-ms`,
+  the clone's budget, `VOICE_CLONING.md` §4); otherwise that sentence
+  is cancelled on it and the next voice says it, and while it is still
+  busy (loading, or stopping) the next sentences skip it;
+- an engine that fails is not asked again in that session;
+- the sentence is **streamed**: the worker sends audio as the model
+  makes it (Pocket every 80 ms, Qwen3 every 4 codec steps = 333 ms);
+  the first piece goes to the page at once, the next ones are held
+  until they are as long as what was already sent (at most 1 s), so a
+  model faster than real time keeps ahead of playback and a sentence
+  takes a few messages (`AudioJoiner`). A piece later than 4 s ends
+  the sentence there;
+- the feed says who speaks: `{"type": "voice", "engine": "pocket-cpu" |
+  "pocket-cuda" | "qwen3-cuda" | "openvoice" | "piper", "clone",
+  "length_scale", "reason"}` at the start and again whenever the speaker
+  changes, with why the voices before it did not speak (`qwen3-cuda: no
+  live GPU lease`, `… missed the 800 ms budget`, `… failed (…)`).
+
+Pocket on the CPU is warmed when the orchestrator starts and shared by
+the sessions; a GPU engine is started for its session (warmed in the
+background once the lease and memory allow, waiting up to 30 s) and
+stopped when the session ends. Piper's controls (speed, intonation…)
+only reach Piper.
+
+**«Escuchar ejemplo»** says the fixed sentence with the voice being
+chosen; the header `X-Voice-Engine` (and the page) says which voice
+spoke and why not the chosen one. Outside a session nobody holds the
+lease, so for a GPU voice the sample **takes** it (holder
+`ragputin-voicebot`, renewed every 5 s, deleted right after), waits up
+to 20 s for the memory, loads the model (~4–5 s cold for Qwen3), speaks
+and stops it. A live session started during those seconds would find
+the lease taken and run its recogniser on the CPU.
+
+**Workers.** `lab/runners/natural_tts.py` runs in each engine's own
+venv (never imported by the services), keeps the model loaded and
+speaks a line protocol (JSON requests in; base64 PCM pieces, then a
+`done` line, out; `{"cancel": id}` stops a sentence). The orchestrator
+side is `orchestrator/adapters/outbound/subprocess_speech.py`
+(`WorkerSpeech`, `WorkerEngines`); the gate is
+`orchestrator/adapters/outbound/gpu_gate.py` (`LeaseGpuGate`). Flags of
+`python -m orchestrator serve`: `--natural-tts on|off`, `--natural-dir`
+(default `~/.local/share/ragputin/natural-tts`), `--natural-budget-ms`,
+`--gpu-lease-dir`. The services are not restarted by this change: it
+takes effect when the orchestrator (and the RAG, for the new settings)
+restart.
+
+### Install
+
+Everything lives in `~/.local/share/ragputin/natural-tts/` (moved there
+from the study's `tts-lab/`, which keeps symbolic links so
+`experiments/live/natural_tts.py` still runs):
+
+| Path | What | Disk |
+|---|---|---|
+| `pocket-venv/` | `pocket-tts` 4.0.1 (+ `einops`, `sentencepiece`) | 6.5 MB |
+| `qwen3-venv/` | `faster-qwen3-tts` 0.5.4, `qwen-tts-hf` 0.1.1.post1, Python-only `torchaudio` 2.11.1 (its C libraries in `disabled-torchaudio-libs/`), `librosa`, `numba`… | 212 MB |
+| `hf/` | Hugging Face cache (`HF_HOME`): `kyutai/pocket-tts-without-voice-cloning` (Spanish), `Qwen/Qwen3-TTS-12Hz-0.6B-Base` (and the study's Kokoro) | 2.9 GB |
+| `voices/cml-tts-es-6306.wav` + `.txt` | Qwen3's default reference voice, CC BY 4.0, attribution and transcript | 0.6 MB |
+
+Steps (the shared `.venv` is never changed; torch 2.14.1+cu126 is
+reused read-only):
+
+1. `uv venv --python 3.10 <dir>/pocket-venv` (and `qwen3-venv`), then
+   put a `zz_shared_torch.pth` in each venv's `site-packages` holding
+   the path of the shared `.venv`'s `site-packages`.
+2. `uv pip install --python <venv>/bin/python --no-deps <packages>`:
+   `pocket-tts einops sentencepiece` for Pocket; `faster-qwen3-tts
+   qwen-tts-hf torchaudio==2.11.1 librosa numba llvmlite soxr sox pooch
+   lazy_loader audioread decorator msgpack platformdirs` for Qwen3. Skip
+   anything the shared `.venv` has and every `nvidia-*`/`cuda-*` wheel;
+   move torchaudio's C extension libraries aside (Python-only).
+3. Qwen3 with transformers 5.20: `qwen_tts/_transformers_compat.py`
+   needs the default RoPE initialiser registered
+   (`ROPE_INIT_FUNCTIONS.setdefault("default", ...)`, the one-line patch
+   of the study, already in the venv).
+4. Weights: `HF_HOME=<dir>/hf` and load each model once (Pocket:
+   `TTSModel.load_model(language="spanish")`; Qwen3:
+   `FasterQwen3TTS.from_pretrained("Qwen/Qwen3-TTS-12Hz-0.6B-Base")`);
+   the services run the workers offline (`HF_HUB_OFFLINE=1`).
+5. Reference voice: `experiments/live/natural_tts.py --fetch-reference
+   <dir>/voices/cml-tts-es-6306.wav` (CML-TTS, CC BY 4.0) and its
+   attribution file.
+
+Check: `HF_HUB_OFFLINE=1 .venv/bin/python -m pytest -m slow
+tests/slow/test_natural_voice_worker.py` (Pocket on the CPU through the
+adapter).
 
 ## Limits
 

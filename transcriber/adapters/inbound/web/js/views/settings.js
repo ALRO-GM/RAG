@@ -61,13 +61,21 @@ export async function settingsView(ctx, root) {
       if (sampleUrl) URL.revokeObjectURL(sampleUrl);
       sampleUrl = URL.createObjectURL(sample.blob);
       await new Audio(sampleUrl).play();
-      fill(sampleStatus, sample.clone ? t("set.sample_clone") : sample.note ? t("set.sample_piper_because", { note: sample.note }) : t("set.sample_piper"));
+      fill(sampleStatus, sampleText(sample));
     } catch (error) {
       if (error?.kind === "unauthorized") return ctx.fail(error);
       fill(sampleStatus, `${t("set.sample_unavailable")} ${describeError(error)}`);
     } finally {
       button.disabled = false;
     }
+  }
+
+  function sampleText(sample) {
+    if (!sample.engine) {
+      return sample.clone ? t("set.sample_clone") : sample.note ? t("set.sample_piper_because", { note: sample.note }) : t("set.sample_piper");
+    }
+    const engine = label(t, `set.engine.${sample.engine}`, sample.engine);
+    return sample.note ? t("set.sample_engine_because", { engine, note: sample.note }) : t("set.sample_engine", { engine });
   }
 
   async function store() {

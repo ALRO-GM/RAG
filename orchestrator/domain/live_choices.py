@@ -9,8 +9,11 @@ session as a single person instead of telling the voices apart) and
 ``live.assist_mode`` (``pincelada`` or ``guiado``, LV-16). Every
 value is matched against an allow-list; anything else keeps the
 product's value. The voice bot has its own: ``voicebot.reasoner_model``,
-``voicebot.voice`` (a Piper voice of :data:`VOICES`, or ``clone:<person>``),
-Piper's controls (``voicebot.length_scale``, ``noise_scale``, ``noise_w``,
+``voicebot.voice`` (a Piper voice of :data:`VOICES`, a natural voice of
+:data:`NATURAL`, ``pocket:<voice>`` or ``qwen3``, or ``clone:<person>``),
+``voicebot.clone_engine`` (who clones: ``qwen3`` or ``openvoice``),
+``voicebot.pocket_device`` (``cpu`` or ``cuda``), Piper's controls
+(``voicebot.length_scale``, ``noise_scale``, ``noise_w``,
 ``sentence_silence``, numbers within :data:`PIPER_RANGES`) and
 ``voicebot.match_rate`` (a person whose pace sets the length scale); the
 suggester's choices do not apply to it. The AI interviewer adds its
@@ -31,6 +34,10 @@ VOICES = {
     "davefx": "es_ES-davefx-medium", "sharvard": "es_ES-sharvard-medium",
 }
 """Voice option → Piper voice (``--voices-dir``)."""
+NATURAL = {"pocket:lola": ("pocket", "lola"), "qwen3": ("qwen3", "")}
+"""Natural voice option → engine and Pocket voice (#214)."""
+CLONE_ENGINES = ("qwen3", "openvoice")
+POCKET_DEVICES = ("cpu", "cuda")
 CLONE = re.compile(r"clone:([A-Za-z0-9][A-Za-z0-9._-]{0,63})")
 PERSON = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 CLONE_BASE = "davefx"
@@ -61,9 +68,23 @@ def voice_choices(choices: Mapping[str, str]) -> Dict[str, Any]:
     clone = CLONE.fullmatch(option) if isinstance(option, str) else None
     if clone is not None:
         update["voice"] = VOICES[CLONE_BASE]
+        update["engine"] = "piper"
         update["clone_of"] = clone.group(1)
     elif option in VOICES:
         update["voice"] = VOICES[option]
+        update["engine"] = "piper"
+    elif option in NATURAL:
+        engine, pocket = NATURAL[option]
+        update["voice"] = VOICES[CLONE_BASE]
+        update["engine"] = engine
+        if pocket:
+            update["pocket_voice"] = pocket
+    cloner = choices.get("voicebot.clone_engine")
+    if cloner in CLONE_ENGINES:
+        update["clone_engine"] = cloner
+    device = choices.get("voicebot.pocket_device")
+    if device in POCKET_DEVICES:
+        update["pocket_device"] = device
     for name, (low, high) in PIPER_RANGES.items():
         value = _number(choices.get(f"voicebot.{name}"), low, high)
         if value is not None:

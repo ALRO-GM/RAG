@@ -7,13 +7,14 @@ to import the services' own code.
 """
 
 from typing import (
-    Any, Callable, Dict, Iterator, List, Optional, Protocol, Tuple,
+    AbstractSet, Any, Callable, Dict, Iterator, List, Optional, Protocol,
+    Tuple,
 )
 
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
-from orchestrator.domain.voices import VoiceProfile
+from orchestrator.domain.voices import EngineVoice, VoiceProfile
 
 Document = Dict[str, Any]
 """A contract document as plain JSON."""
@@ -309,4 +310,74 @@ class VoiceCloner(Protocol):
 
     def warm(self, reference: str, language: str) -> None:
         """Load the model and the reference voice, off the hot path."""
+        ...
+
+
+class SpeechStream(Protocol):
+    """A natural-voice engine that streams a sentence's audio (#214)."""
+
+    @property
+    def loaded(self) -> bool:
+        """Whether the model is loaded (on the GPU: memory is taken)."""
+        ...
+
+    def stream(
+        self, text: str, voice: EngineVoice, language: str,
+        cancel: CancelToken,
+    ) -> Iterator[Tuple[bytes, int]]:
+        """Yield PCM s16le pieces of one sentence and their rate.
+
+        Stops early once ``cancel`` is set.
+
+        Raises:
+            TtsUnavailable: The engine could not speak.
+        """
+        ...
+
+    def warm(self, voice: EngineVoice) -> None:
+        """Load the model (and the voice), off the hot path.
+
+        Raises:
+            TtsUnavailable: The engine could not be loaded.
+        """
+        ...
+
+
+class SpeechEngines(Protocol):
+    """Where the natural-voice engines come from."""
+
+    def installed(self) -> AbstractSet[str]:
+        """The engines whose worker is installed (``pocket``, ``qwen3``)."""
+        ...
+
+    def get(self, voice: EngineVoice) -> SpeechStream:
+        """Return the engine that speaks ``voice``.
+
+        An engine on the CPU is shared and stays loaded; one on the GPU
+        is the caller's until :meth:`release`.
+        """
+        ...
+
+    def release(self, engine: SpeechStream) -> None:
+        """Give an engine back (a GPU one is stopped: its memory freed)."""
+        ...
+
+
+class GpuGate(Protocol):
+    """May a natural voice use the GPU now? (``gpu-lease.v1``)"""
+
+    def check(self, need_mib: int) -> Optional[str]:
+        """Return why not (``None``: it may), ``need_mib`` free on it.
+
+        Never takes the lease: during a voice-bot session the live
+        session's lease is what keeps other GPU work off the card.
+        """
+        ...
+
+    def take(self, need_mib: int) -> Optional[str]:
+        """Hold the lease if nobody does (a sample); return why not."""
+        ...
+
+    def drop(self) -> None:
+        """Release the lease :meth:`take` wrote, if any."""
         ...

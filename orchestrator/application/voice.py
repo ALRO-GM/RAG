@@ -181,6 +181,32 @@ def voice_request(
     )
 
 
+def render_sample(
+    tts: Tts, length_scale: float, speaker: TextToSpeech, language: str,
+) -> bytes:
+    """Say :data:`SAMPLE_TEXT` with ``speaker``; return one WAV.
+
+    Pieces at another sample rate than the first (Piper among the
+    other voice's sentences) are left out: one WAV has one rate.
+
+    Raises:
+        TtsUnavailable: Nothing could be said.
+    """
+    used = tts.model_copy(update={"length_scale": length_scale})
+    request = voice_request("sample", SAMPLE_TEXT, used, language,
+                            audio_format="pcm_s16le")
+    pieces: List[bytes] = []
+    rate = 0
+    for chunk in speaker.synthesize(request, CancelToken()):
+        if rate and chunk.sample_rate != rate:
+            continue
+        rate = chunk.sample_rate
+        pieces.append(pcm_of(chunk))
+    if not pieces:
+        raise TtsUnavailable("nothing was said")
+    return wav_bytes(b"".join(pieces), rate)
+
+
 def speak_sample(
     tts: Tts,
     plan: VoicePlan,
@@ -188,10 +214,10 @@ def speak_sample(
     clone: Optional[Callable[[VoiceProfile], ClonedVoice]] = None,
     language: str = "es",
 ) -> Tuple[bytes, Document]:
-    """Render :data:`SAMPLE_TEXT` with ``tts`` and ``plan``; one WAV.
+    """Render :data:`SAMPLE_TEXT` with Piper or ``plan``'s clone; one WAV.
 
     Return the WAV and what was used (``voice``, ``length_scale``,
-    ``clone``, ``reason``).
+    ``clone``, ``reason``, ``engine``).
 
     Raises:
         TtsUnavailable: Nothing could be said.
@@ -201,26 +227,17 @@ def speak_sample(
     if plan.clone is not None and clone is not None:
         voice = clone(plan.clone)
         speaker = voice
-    used = tts.model_copy(update={"length_scale": plan.length_scale})
-    request = voice_request("sample", SAMPLE_TEXT, used, language,
-                            audio_format="pcm_s16le")
-    pieces: List[bytes] = []
-    rate = 0
     try:
-        for chunk in speaker.synthesize(request, CancelToken()):
-            if rate and chunk.sample_rate != rate:
-                continue  # Piper among cloned sentences: keep one rate
-            rate = chunk.sample_rate
-            pieces.append(pcm_of(chunk))
+        wav = render_sample(tts, plan.length_scale, speaker, language)
     finally:
         if voice is not None:
             voice.close()
-    if not pieces:
-        raise TtsUnavailable("nothing was said")
     reason = plan.reason
     if plan.clone is not None and clone is None:
         reason = "; ".join(r for r in (reason, "no cloner installed") if r)
-    return wav_bytes(b"".join(pieces), rate), {
+    cloned = voice is not None and voice.cloned > 0
+    return wav, {
         "voice": tts.voice, "length_scale": plan.length_scale,
-        "clone": voice is not None and voice.cloned > 0, "reason": reason,
+        "clone": cloned, "reason": reason,
+        "engine": "openvoice" if cloned else "piper",
     }

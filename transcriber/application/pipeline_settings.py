@@ -19,7 +19,8 @@ from transcriber.domain.errors import (
 NAME = re.compile(r"[a-z0-9_.-]{1,48}")
 """What a step or a preset name may look like."""
 OPTION = re.compile(r"[A-Za-z0-9_.:-]{1,80}")
-"""What an option may look like (a name, a number, ``clone:<person>``)."""
+"""What an option may look like (a name, a number, ``clone:<person>``,
+a natural voice such as ``pocket:lola``)."""
 MAX_CHOICES = 64
 
 

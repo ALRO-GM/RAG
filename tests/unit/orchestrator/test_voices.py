@@ -86,7 +86,7 @@ def test_saved_piper_controls_and_clone_reach_the_bot_s_tts() -> None:
     })
     assert bad == {}, "invalid values keep the product's"
     assert voice_choices({"voicebot.voice": "sharvard"}) == {
-        "voice": "es_ES-sharvard-medium"}
+        "voice": "es_ES-sharvard-medium", "engine": "piper"}
 
 
 def test_the_operator_rate_sets_the_length_scale_within_bounds() -> None:
@@ -175,7 +175,7 @@ def test_the_sample_says_the_fixed_sentence_with_the_draft() -> None:
     with wave.open(BytesIO(wav), "rb") as reader:
         assert reader.getframerate() == 16000 and reader.getnframes() > 0
     assert used == {"voice": DAVEFX, "length_scale": 1.3, "clone": False,
-                    "reason": ""}
+                    "reason": "", "engine": "piper"}
     assert piper.requests[0]["noise_w"] == 0.5
     assert piper.requests[0]["length_scale"] == 1.3
     cloner = FakeCloner()
@@ -217,20 +217,23 @@ class Settings:
 
 def test_a_session_speaks_with_the_clone_only_when_consented() -> None:
     events = [user_final("t0.s0", "¿Puedo devolver un producto?", 1)]
-    for found, cloner, cloned, reason in (
-        (AGREED, FakeCloner(), True, ""),
-        (REFUSED, FakeCloner(), False, "no consent to cloning"),
-        (AGREED, None, False, "no cloner installed"),
+    for found, cloner, engine, cloned, reason in (
+        (AGREED, FakeCloner(), "openvoice", True, ""),
+        (AGREED, FakeCloner(), "qwen3", True, "Qwen3-TTS not installed"),
+        (REFUSED, FakeCloner(), "openvoice", False, "no consent to cloning"),
+        (AGREED, None, "openvoice", False, "no cloner installed"),
     ):
         live = bot_sessions(events, tts=FakeTts())
         live.settings = Settings({"voicebot.voice":
-                                  f"clone:{found.speaker_id}"})
+                                  f"clone:{found.speaker_id}",
+                                  "voicebot.clone_engine": engine})
         live.profiles = type("P", (), {"get": staticmethod(
             profiles(found))})()
         live.cloner = cloner
         live.start_live("voicebot", "mic")
         voice = [m for m in messages(live, "vb-1") if m["type"] == "voice"]
         assert voice == [{"type": "voice", "clone": cloned,
+                          "engine": "openvoice" if cloned else "piper",
                           "length_scale": 1.0, "reason": reason}]
         if cloner is not None:
             assert bool(cloner.said) is cloned

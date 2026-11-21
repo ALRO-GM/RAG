@@ -151,9 +151,17 @@ STEPS: Tuple[StepSpec, ...] = (
              options=("florence", "claude", "off"), consumer="rag"),
     StepSpec(id="voicebot.reasoner_model", group="voicebot",
              options=("haiku", "sonnet", "opus"), consumer="orchestrator"),
+    # Natural voices (#214): Pocket TTS ``lola`` (the default; Piper
+    # davefx speaks when it is not installed), Qwen3-TTS cloning a
+    # public CML-TTS voice, the two Piper voices, or an enrolled
+    # person's own voice.
     StepSpec(id="voicebot.voice", group="voicebot",
-             options=("davefx", "sharvard"), consumer="orchestrator",
-             pattern=rf"clone:{SPEAKER_ID}"),
+             options=("pocket:lola", "qwen3", "davefx", "sharvard"),
+             consumer="orchestrator", pattern=rf"clone:{SPEAKER_ID}"),
+    StepSpec(id="voicebot.clone_engine", group="voicebot",
+             options=("qwen3", "openvoice"), consumer="orchestrator"),
+    StepSpec(id="voicebot.pocket_device", group="voicebot",
+             options=("cpu", "cuda"), consumer="orchestrator"),
     # Piper's own controls; the defaults are the voices' (davefx and
     # sharvard both say noise_scale 0.5, noise_w 0.333 in their
     # .onnx.json), so nothing saved changes nothing.

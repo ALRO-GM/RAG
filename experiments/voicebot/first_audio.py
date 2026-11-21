@@ -30,6 +30,9 @@ interrupted. Usage::
 ``--stream-url`` follows the feed somewhere else than the orchestrator
 (the transcriber's ``/api/assist`` proxy, as the page does). Real Haiku
 calls are the orchestrator's, one per answered turn (``turns_by_status``).
+Each row keeps the sample rate of the turn's first audio (22050: Piper,
+24000: a natural voice, #214) and the result the feed's ``voice``
+messages (who spoke, and why not the chosen voice).
 """
 
 import argparse
@@ -193,6 +196,7 @@ async def one_turn(
                     and "first_audio_ms" not in row:
                 row["first_audio_ms"] = (at - voice_end) * 1000.0
                 row["turn"] = item["turn"]
+                row["first_sample_rate"] = item.get("sample_rate")
             elif kind == "turn" and item["record"]["turn"] == row.get(
                     "turn"):
                 record = item["record"]
@@ -288,6 +292,8 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
         "stream_url": "proxy" if args.stream_url else "orchestrator",
         "orchestrator_session": {k: info.get(k) for k in (
             "state", "calls", "skipped", "events")},
+        "voice_messages": [m for _, m in follower.items
+                           if m.get("type") == "voice"],
         "rows": rows,
     }
 
