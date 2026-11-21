@@ -91,11 +91,29 @@ def test_max_suggestions_and_text_limits() -> None:
     assert "at most 1" in model.calls[0][0]
 
 
-def test_output_cap_never_above_120() -> None:
-    wide = request("suggester.support@1", {},
-                   constraints={"max_output_tokens": 900})
-    _, model = answer(wide, item())
-    assert model.calls[0][2] == 120
+def test_output_cap_never_above_the_templates() -> None:
+    for name, cap in (("suggester.support@1", 200),
+                      ("suggester.interview@1", 120)):
+        wide = request(name, {}, constraints={"max_output_tokens": 900})
+        _, model = answer(wide, item())
+        assert model.calls[0][2] == cap
+
+
+def test_support_prompt_asks_for_short_replies_without_rationale() -> None:
+    system = get_template("suggester.support@1", "suggester").system(SUPPORT)
+    assert "25 words" in system and "no rationale" in system
+
+
+def test_support_reply_with_signals_is_grounded_and_kept() -> None:
+    """The real Haiku reply shape that must come out as a suggestion."""
+    out, _ = answer(SUPPORT, item(
+        kind="question", signals=["stated_frustration", "complaint"],
+        about=["t1.s0"],
+    ))
+    assert out.status == "ok"
+    assert out.suggestions[0].signals == [
+        "stated_frustration", "complaint"
+    ]
 
 
 def test_interview_never_returns_signals_or_ratings_adversarial() -> None:

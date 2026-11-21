@@ -110,7 +110,7 @@ def test_one_process_serves_consecutive_calls() -> None:
 
 def test_command_is_isolated_streaming_and_capped() -> None:
     spawns = Spawns(ScriptedProcess([[done()]]))
-    backend(spawns).complete("sys prompt", "u", 90)
+    backend(spawns, thinking_allowance=0).complete("sys prompt", "u", 90)
     command = spawns.started[0]["command"]
     for flag in ("--safe-mode", "--strict-mcp-config",
                  "--disable-slash-commands", "--no-session-persistence",
@@ -256,7 +256,7 @@ def test_subprocess_transport_round_trip(tmp_path: Path) -> None:
     )
     program.chmod(program.stat().st_mode | stat.S_IEXEC)
     model = ClaudeCodeStream(
-        executable=str(program), timeout=10.0,
+        executable=str(program), timeout=10.0, thinking_allowance=0,
         environ={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path)},
     )
     try:
@@ -282,3 +282,33 @@ def test_output_cap_error_is_typed() -> None:
     model = backend(Spawns(ScriptedProcess([[bad]])))
     with pytest.raises(OutputTooLongError):
         model.complete("s", "u", 120)
+
+
+def test_process_cap_leaves_room_for_hidden_thinking() -> None:
+    spawns = Spawns(ScriptedProcess([[done()]]))
+    backend(spawns).complete("s", "u", 200)
+    env = spawns.started[0]["env"]
+    assert env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "500"
+
+
+def test_deadline_shortens_the_wait_and_kills_the_process() -> None:
+    seen: List[float] = []
+    stuck = ScriptedProcess([[]])
+    original = stuck.receive
+
+    def receive(timeout: float) -> Optional[str]:
+        seen.append(timeout)
+        return original(timeout)
+
+    stuck.receive = receive  # type: ignore[method-assign]
+    model = backend(Spawns(stuck), timeout=10.0)
+    with pytest.raises(ModelTimeoutError, match="0.05 s"):
+        model.complete_within("s", "u", 50, 0.05)
+    assert stuck.closed and seen[0] <= 0.05
+
+
+def test_deadline_cannot_extend_the_backend_timeout() -> None:
+    stuck = ScriptedProcess([[]])
+    model = backend(Spawns(stuck), timeout=1.0)
+    with pytest.raises(ModelTimeoutError, match="1 s"):
+        model.complete_within("s", "u", 50, 60.0)
