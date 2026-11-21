@@ -1,0 +1,28 @@
+{
+ "live_sentences": 13,
+ "batch_sentences": 12,
+ "live_tokens": 124,
+ "batch_tokens": 124,
+ "wer_live_vs_batch": 0.0323,
+ "max_seconds": 40.0,
+ "script_tokens": 126,
+ "wer_live_vs_script": 0.0714,
+ "wer_batch_vs_script": 0.0556,
+ "speaker_live": {
+  "sentences": 13,
+  "mapping": {
+   "S2": "cliente"
+  },
+  "by_sentence": 0.5385,
+  "by_words": 0.5403
+ },
+ "speaker_batch": {
+  "sentences": 12,
+  "mapping": {
+   "S1": "agente",
+   "S2": "cliente"
+  },
+  "by_sentence": 1.0,
+  "by_words": 1.0
+ }
+}
