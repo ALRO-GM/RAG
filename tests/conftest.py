@@ -1,7 +1,9 @@
 """Shared fixtures: sample documents, in-memory chunks and a tiny corpus."""
 
+import signal
 from pathlib import Path
-from typing import Dict, List
+from types import FrameType
+from typing import Dict, Iterator, List, Optional
 
 import pytest
 
@@ -37,3 +39,42 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     write_corpus(tmp_path)
     monkeypatch.chdir(tmp_path)
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def isolated_gpu_lease(
+    tmp_path_factory: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[None]:
+    """Point ``XDG_RUNTIME_DIR`` at an empty directory for every test.
+
+    The GPU lease lives in ``$XDG_RUNTIME_DIR/gpu-lease``: a test (or a
+    subprocess it starts, which inherits the environment) must never read
+    the live lease of a real session (#200). Tests that need a lease
+    still pass their own ``environ``.
+    """
+    runtime = tmp_path_factory.mktemp("xdg-runtime")
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    yield
+
+
+@pytest.fixture()
+def hard_deadline() -> Iterator[None]:
+    """Fail the test (instead of hanging the run) after 60 seconds.
+
+    Uses ``SIGALRM`` in the main thread; a no-op where it is missing.
+    """
+    if not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def expired(signum: int, frame: Optional[FrameType]) -> None:
+        raise TimeoutError("test exceeded its 60 s hard deadline")
+
+    previous = signal.signal(signal.SIGALRM, expired)
+    signal.alarm(60)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
