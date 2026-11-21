@@ -47,6 +47,12 @@ dev = [
     "jsonschema>=4.26.0",
     "types-jsonschema>=4.26.0.20261006",
 ]
+orchestrator = [
+    # The live orchestrator: no torch, no model (it calls the services).
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "types-pyyaml",
+]
 transcriber = [
     "av>=17.1.0",
     "segno>=1.6.6",
@@ -55,7 +61,7 @@ transcriber = [
 
 [tool.uv]
 package = false
-default-groups = ["dev", "cpu", "api", "bench", "transcriber"]
+default-groups = ["dev", "cpu", "api", "bench", "transcriber", "orchestrator"]
 conflicts = [[{ group = "cpu" }, { group = "cuda" }]]
 
 [tool.uv.sources]
@@ -93,7 +99,7 @@ module = ["fire", "fire.*", "pyarrow", "pyarrow.*", "soundfile"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["src", "transcriber"]
+source = ["src", "transcriber", "orchestrator"]
 branch = true
 # The CLI tests run `python -m src ...` in subprocesses: measure those too.
 patch = ["subprocess"]
