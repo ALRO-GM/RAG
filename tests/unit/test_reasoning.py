@@ -189,3 +189,10 @@ def test_judge_confirm_is_identical_to_the_existing_confirm_path() -> None:
     )
     assert [t.model_dump() for t in via] == [t.model_dump() for t in direct]
     assert ledger.snapshot().models["fake-judge#judge"].calls > 0
+
+
+def test_output_cap_overrun_is_invalid_output() -> None:
+    from src.domain.errors import OutputTooLongError
+    out = reasoner(Raising(OutputTooLongError("too long"))).reason(request())
+    assert out.status == "error"
+    assert out.error is not None and out.error.kind == "invalid_output"

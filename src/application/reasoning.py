@@ -25,6 +25,7 @@ from src.domain.errors import (
     ModelAuthError,
     ModelError,
     ModelTimeoutError,
+    OutputTooLongError,
     QuotaExhaustedError,
 )
 from src.domain.reasoning.roles import (
@@ -155,9 +156,9 @@ class Reasoner:
             if template is None:
                 response.verdict = self._judge(chat, request)
             else:
-                cap = request.constraints.max_output_tokens or (
-                    template.max_output_tokens
-                )
+                asked = request.constraints.max_output_tokens
+                cap = min(asked or template.max_output_tokens,
+                          template.max_output_tokens)
                 text = chat.complete(
                     template.system(request), template.user(request), cap
                 )
@@ -183,6 +184,9 @@ class Reasoner:
         except ModelTimeoutError as exc:
             status = "timeout"
             error = ErrorInfo(kind="timeout", message=str(exc))
+        except OutputTooLongError as exc:
+            status = "error"
+            error = ErrorInfo(kind="invalid_output", message=str(exc))
         except ModelError as exc:
             status = "error"
             error = ErrorInfo(kind="transient", message=str(exc))

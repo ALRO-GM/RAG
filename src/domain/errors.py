@@ -66,6 +66,10 @@ class TransientModelError(ModelError):
     """A hosted model failed in a way worth retrying (overload, 5xx)."""
 
 
+class OutputTooLongError(ModelError):
+    """A model's reply went past the output-token cap it was given."""
+
+
 class ModelTimeoutError(ModelError):
     """A model did not answer within the time it was given."""
 

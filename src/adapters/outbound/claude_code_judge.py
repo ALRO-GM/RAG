@@ -43,6 +43,7 @@ from src.domain.errors import (
     ModelAuthError,
     ModelError,
     ModelTimeoutError,
+    OutputTooLongError,
     QuotaExhaustedError,
     TransientModelError,
 )
@@ -81,6 +82,10 @@ AUTH_PATTERN = re.compile(
     r"oauth token (?:has )?expired|login (?:has )?expired",
     re.IGNORECASE,
 )
+OUTPUT_CAP_PATTERN = re.compile(
+    r"exceeded the \d+ output token maximum", re.IGNORECASE
+)
+"""Claude Code's error when ``CLAUDE_CODE_MAX_OUTPUT_TOKENS`` is hit."""
 RESET_EPOCH = re.compile(r"\|(\d{9,11})\b")
 RESET_TEXT = re.compile(r"resets?\s+(?:at\s+)?([^.\n·]{1,60})", re.IGNORECASE)
 
@@ -361,6 +366,10 @@ class ClaudeCodeJudge:
                 "Claude's usage limit is reached"
                 + (f" (resets {resets})" if resets else "") + ".",
                 resets, resets_at,
+            )
+        if OUTPUT_CAP_PATTERN.search(message):
+            raise OutputTooLongError(
+                "Claude's reply went past the output-token cap."
             )
         if status == 401 or AUTH_PATTERN.search(message):
             raise ModelAuthError(

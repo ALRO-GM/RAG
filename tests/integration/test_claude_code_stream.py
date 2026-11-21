@@ -270,3 +270,15 @@ def test_subprocess_transport_round_trip(tmp_path: Path) -> None:
 def test_missing_executable_is_a_model_error(tmp_path: Path) -> None:
     with pytest.raises(ModelError):
         SubprocessStream([str(tmp_path / "absent")], {})
+
+
+def test_output_cap_error_is_typed() -> None:
+    from src.domain.errors import OutputTooLongError
+    bad = json.dumps({"type": "result", "is_error": True, "result": (
+        "API Error: Claude's response exceeded the 120 output token "
+        "maximum. To configure this behavior, set the "
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS environment variable."
+    ), "api_error_status": None})
+    model = backend(Spawns(ScriptedProcess([[bad]])))
+    with pytest.raises(OutputTooLongError):
+        model.complete("s", "u", 120)
