@@ -17,7 +17,7 @@ DOMAIN_ID_PATTERN = r"[a-z0-9][a-z0-9._-]{0,63}"
 """Domain ids (the RAG's ``knowledge.query.v1`` pattern)."""
 DOCUMENT_ID_PATTERN = r"[a-z0-9][a-z0-9-]{0,79}"
 """Ids the RAG gives uploaded documents."""
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 """Largest file the RAG accepts (its ``max_upload_bytes``)."""
 UPLOAD_BODY_BYTES = MAX_UPLOAD_BYTES + 1024 * 1024
 """Largest upload request: the file plus the multipart envelope."""
