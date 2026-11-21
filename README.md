@@ -406,6 +406,11 @@ assessor.
 
 Project status, phases and degree of certainty (in Spanish): `docs/ESTADO.md`.
 
+Platform layer (live assist, voice bot): design `docs/platform/ARCHITECTURE.md`,
+contracts `docs/platform/CONTRACTS.md`, orchestrator `docs/platform/ORCHESTRATOR.md`,
+knowledge domains `docs/KNOWLEDGE.md`, first end-to-end measurement
+`experiments/platform/STAGE1_E2E.md`.
+
 ## Beyond the 42 corpus (GPU study)
 
 With the GPU, the retrieval was re-measured on nine datasets at once:

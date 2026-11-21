@@ -1,0 +1,108 @@
+{
+ "experiments/platform/results/support.run1.suggestions.jsonl": {
+  "calls": 13,
+  "status": {
+   "timeout": 10,
+   "ok": 3
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 22.4,
+    "p90": 54.5
+   },
+   "reasoner_ms": {
+    "p50": 1820.4,
+    "p90": 1826.1
+   },
+   "total_ms": {
+    "p50": 1842.9,
+    "p90": 1874.9
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 15.3,
+    "p90": 21.2
+   },
+   "reasoner_ms": {
+    "p50": 973.3,
+    "p90": 1342.4
+   },
+   "total_ms": {
+    "p50": 988.6,
+    "p90": 1363.7
+   }
+  }
+ },
+ "experiments/platform/results/support.suggestions.jsonl": {
+  "calls": 13,
+  "status": {
+   "timeout": 8,
+   "ok": 5
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 14.0,
+    "p90": 21.5
+   },
+   "reasoner_ms": {
+    "p50": 1820.7,
+    "p90": 1823.4
+   },
+   "total_ms": {
+    "p50": 1834.9,
+    "p90": 1844.5
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 12.7,
+    "p90": 22.3
+   },
+   "reasoner_ms": {
+    "p50": 1182.2,
+    "p90": 1566.8
+   },
+   "total_ms": {
+    "p50": 1193.7,
+    "p90": 1586.2
+   }
+  }
+ },
+ "experiments/platform/results/interview.suggestions.jsonl": {
+  "calls": 14,
+  "status": {
+   "timeout": 3,
+   "ok": 10,
+   "no_suggestion": 1
+  },
+  "all": {
+   "knowledge_ms": {
+    "p50": 17.0,
+    "p90": 26.0
+   },
+   "reasoner_ms": {
+    "p50": 1287.4,
+    "p90": 1837.8
+   },
+   "total_ms": {
+    "p50": 1308.1,
+    "p90": 1854.4
+   }
+  },
+  "ok_only": {
+   "knowledge_ms": {
+    "p50": 17.0,
+    "p90": 22.4
+   },
+   "reasoner_ms": {
+    "p50": 1205.4,
+    "p90": 1656.0
+   },
+   "total_ms": {
+    "p50": 1217.8,
+    "p90": 1678.3
+   }
+  }
+ }
+}
