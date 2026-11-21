@@ -39,7 +39,7 @@ from fastapi import FastAPI
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.inbound.join import LOCAL_HOST, join_link, qr_text
 from transcriber.application.ports import Tunnel
-from transcriber.bootstrap import TranscriberContainer
+from transcriber.bootstrap import TranscriberContainer, password_checker
 from transcriber.config import TranscriberSettings
 from transcriber.domain.models import SessionState
 
@@ -239,7 +239,10 @@ def serve(
         out.write(line + "\n")
         out.flush()
 
-    app = create_app(container, code)
+    app = create_app(
+        container, code,
+        check_password=password_checker(settings),
+    )
     server = uvicorn.Server(server_config(app, options.port))
     progress = ProgressLines(container, tunnel, write)
     stopping = threading.Event()

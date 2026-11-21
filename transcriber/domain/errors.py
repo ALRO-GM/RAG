@@ -121,3 +121,7 @@ class CorpusAccessError(TranscriberError):
     The message says what the owner has to do (accept the terms on the
     corpus's page and log in).
     """
+
+
+class PasswordError(TranscriberError):
+    """The password cannot be set or its stored hash cannot be used."""

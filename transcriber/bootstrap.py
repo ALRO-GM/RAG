@@ -33,6 +33,11 @@ from transcriber.adapters.outbound.chisel_tunnel import (
     check_client,
     http_probe,
 )
+from transcriber.adapters.outbound.fs_password import (
+    PasswordStore,
+    password_file,
+    set_password,
+)
 from transcriber.adapters.outbound.fs_access_code import (
     code_file,
     kept_access_code,
@@ -821,3 +826,17 @@ def access_code(
             path.unlink(missing_ok=True)
         return kept_access_code(path)
     return new_access_code()
+
+
+def password_checker(settings: TranscriberSettings) -> Callable[[str], bool]:
+    """Return the check of the login password kept in the data directory.
+
+    The password is set with ``transcriber set-password``; until then the
+    check refuses everything.
+    """
+    return PasswordStore(password_file(settings.data_dir)).verify
+
+
+def store_password(settings: TranscriberSettings, password: str) -> None:
+    """Keep the hash of ``password`` as the login password."""
+    set_password(password_file(settings.data_dir), password)

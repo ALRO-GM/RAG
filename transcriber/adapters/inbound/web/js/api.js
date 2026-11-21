@@ -84,6 +84,9 @@ export class Api {
 
   health() { return this.request("GET", "/health", { auth: false }); }
 
+  /** Trade the password for the access code ({ code }); no code needed. */
+  login(password) { return this.request("POST", "/login", { json: { password }, auth: false }); }
+
   /** Let <audio> play without headers: an HttpOnly cookie for the audio route. */
   audioCookie() { return this.request("POST", "/access/cookie"); }
 
