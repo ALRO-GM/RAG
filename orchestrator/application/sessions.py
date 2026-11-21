@@ -436,12 +436,19 @@ def live_speakers(config: ProductConfig, audio: str) -> List[Document]:
     ``stereo``: every channel of the product, as declared. ``mic``: one
     channel, heard as the first speaker whose role the product suggests
     about (the customer, the candidate), so a person talking at the
-    microphone drives the suggestions.
+    microphone drives the suggestions. ``mic`` with a product whose
+    attribution is ``sortformer_stream`` (LV-6): every declared speaker,
+    all on channel 0, in channel order; the transcriber tells the
+    voices of the mix apart and gives them these ids in the order they
+    are first heard.
     """
     channels = sorted(config.source.channels.items())
     if audio == "stereo":
         return [{"channel": c, "id": ch.speaker, "role": ch.role}
                 for c, ch in channels]
+    if diarized(config) and channels:
+        return [{"channel": 0, "id": ch.speaker, "role": ch.role}
+                for _, ch in channels]
     wanted = config.trigger.speaker_roles if config.trigger else []
     chosen = next((ch for _, ch in channels if ch.role in wanted),
                   channels[-1][1] if channels else None)
@@ -450,16 +457,28 @@ def live_speakers(config: ProductConfig, audio: str) -> List[Document]:
     return [{"channel": 0, "id": chosen.speaker, "role": chosen.role}]
 
 
+def diarized(config: ProductConfig) -> bool:
+    """Tell whether the product asks for mono diarization (LV-6)."""
+    return config.attribution.kind == "sortformer_stream"
+
+
 def transcriber_body(
     config: ProductConfig, session_id: str, speakers: List[Document]
 ) -> Document:
-    """The body of the transcriber's ``POST /api/live/sessions``."""
+    """The body of the transcriber's ``POST /api/live/sessions``.
+
+    Speakers all on channel 0 under a ``sortformer_stream`` product
+    make a diarized one-channel session.
+    """
+    channels = len({s["channel"] for s in speakers}) or 1
     body: Dict[str, Any] = {
-        "session_id": session_id, "channels": len(speakers),
+        "session_id": session_id, "channels": channels,
         "speakers": speakers, "product": config.product,
         "language": config.language,
         "handoff": config.handoff.model_dump(),
     }
+    if diarized(config) and channels == 1:
+        body["diarize"] = True
     if config.vad is not None:
         body["hang_ms"] = config.vad.hang_ms
     if config.asr.partial_every_ms:

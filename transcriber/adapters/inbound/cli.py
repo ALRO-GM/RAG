@@ -560,10 +560,11 @@ class Commands:
     def live_file(self, args: argparse.Namespace) -> int:
         """Run the live transcription over a WAV file (JSON lines)."""
         from transcriber.adapters.inbound.live_cli import LiveFileCommand
-        from transcriber.bootstrap import build_live, read_live_audio
+        from transcriber.bootstrap import live_file_builder, read_live_audio
 
         return LiveFileCommand(
-            build_live, read_live_audio, self.output
+            live_file_builder(self.settings, self.environ),
+            read_live_audio, self.output,
         ).run(args)
 
     def lab(self, args: argparse.Namespace) -> int:

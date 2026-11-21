@@ -26,6 +26,7 @@ from tests.unit.transcriber.live_fakes import (
     chunks_of,
     pcm,
 )
+from transcriber.adapters.outbound.fake_models import FakeStreamDiarizer
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.application.live import (
     LiveOptions,
@@ -33,6 +34,7 @@ from transcriber.application.live import (
     LiveTranscription,
     default_speakers,
 )
+from transcriber.application.live_diarization import MonoAttributor
 from transcriber.application.live_session import (
     EventHub,
     LivePorts,
@@ -47,6 +49,7 @@ from transcriber.domain.errors import (
     StateError,
 )
 from transcriber.domain.live import EndpointSettings, LiveSpeaker
+from transcriber.domain.live_diarization import MonoDiarizationSettings
 from transcriber.domain.live_session import (
     ChannelSpeaker,
     Handoff,
@@ -160,6 +163,7 @@ class Harness:
         analysis: Optional[RecordingAnalysis] = None,
         asr_cost: float = 0.0,
         gate: Optional[threading.Event] = None,
+        diarizer: Optional[FakeStreamDiarizer] = None,
     ) -> None:
         self.built: List[LiveOptions] = []
         self.timer = PollTimer()
@@ -177,9 +181,18 @@ class Harness:
                     return original(samples, final)
 
                 asr.decode = slow  # type: ignore[method-assign]
+
+            def attributor(given: Any) -> MonoAttributor:
+                assert diarizer is not None
+                return MonoAttributor(
+                    diarizer, RealTimer(), MonoDiarizationSettings(),
+                    None, given,
+                )
+
             return LiveTranscription(
                 LoudnessVad, asr, SystemClock(), RealTimer(),
                 options.settings,
+                attributor if diarizer is not None else None,
             )
 
         self.live = LiveSessions(
@@ -507,3 +520,90 @@ def test_a_session_is_ready_for_audio_once_the_recogniser_runs() -> None:
     assert session.wait_ready(WAIT)
     assert session.wait(WAIT)
     assert session.wait_ready(0)  # an ended session never holds a socket
+
+
+# ------------------------------------------------------------ mono (LV-6)
+
+def two_voices() -> bytes:
+    """A low voice, a pause, a high voice, a pause."""
+    rate = 16000
+    out = np.zeros(int(4.2 * rate), dtype=np.float32)
+    for start, end, hz in ((0.2, 1.4, 220.0), (2.2, 3.4, 880.0)):
+        a, b = int(start * rate), int(end * rate)
+        t = np.arange(b - a, dtype=np.float32) / rate
+        out[a:b] = 0.5 * np.sin(2 * np.pi * hz * t)
+    return pcm(out)
+
+
+def test_a_diarized_mono_session_names_each_voice() -> None:
+    lease = FakeLiveLease(ack=True)
+    diarizer = FakeStreamDiarizer(lag_frames=3)
+    publisher = RecordingPublisher()
+    harness = Harness(
+        device="cuda", lease=lease, memory=FakeFreeMemory([9000]),
+        diarizer=diarizer, publisher=publisher,
+    )
+    request = LiveSessionRequest(
+        session_id="mono", diarize=True,
+        speakers=[ChannelSpeaker(channel=0, id="agente", role="agent"),
+                  ChannelSpeaker(channel=0, id="cliente", role="customer")],
+        handoff=Handoff(transcript_v1=True),
+    )
+    events = run_session(harness, request, two_voices())
+    assert events[0]["source"]["kind"] == "mono_diarized"
+    assert lease.acquired == [2200 + 1500]
+    assert harness.built[0].diarize and harness.built[0].enrolled is None
+    finals = [e["utterance"] for e in events if e["type"] == "final"]
+    updates = [e["utterance"] for e in events
+               if e["type"] == "speaker_update"]
+    final_speakers = {u["id"]: u["speaker"] for u in finals}
+    final_speakers.update({u["id"]: u["speaker"] for u in updates})
+    assert sorted(final_speakers.values()) == ["agente", "cliente"]
+    info = harness.live.get("mono").info()
+    assert info["diarizer"] == "fake/stream-diarizer"
+    assert [s["role"] for s in info["speakers"][:2]] == ["agent", "customer"]
+    document = publisher.documents[0]
+    assert document["pipeline"]["diarizer"] == "fake/stream-diarizer"
+    assert sorted(s["id"] for s in document["speakers"]) == [
+        "agente", "cliente",
+    ]
+    assert diarizer.started == 1 and diarizer.closed >= 1
+
+
+def test_a_mono_session_without_a_diarizer_fails_cleanly() -> None:
+    harness = Harness(device="cpu")
+    session = harness.live.start(
+        LiveSessionRequest(session_id="nod", diarize=True)
+    )
+    assert session.wait(WAIT)
+    assert session.state == LiveState.FAILED
+    assert "diarizer" in (session.error or "")
+
+
+def test_diarize_requests_are_checked() -> None:
+    with pytest.raises(ValueError):
+        LiveSessionRequest(session_id="x", channels=2, diarize=True)
+    with pytest.raises(ValueError):
+        LiveSessionRequest(session_id="x", enrolled=["ana"])
+    with pytest.raises(ValueError):
+        LiveSessionRequest(
+            session_id="x", diarize=True,
+            speakers=[ChannelSpeaker(channel=1, id="a")],
+        )
+    with pytest.raises(ValueError):
+        LiveSessionRequest(
+            session_id="x", diarize=True,
+            speakers=[ChannelSpeaker(channel=0, id=f"p{n}")
+                      for n in range(5)],
+        )
+    with pytest.raises(ValueError):
+        LiveSessionRequest(
+            session_id="x", diarize=True,
+            speakers=[ChannelSpeaker(channel=0, id="a")] * 2,
+        )
+    ok = LiveSessionRequest(
+        session_id="x", diarize=True, enrolled=[],
+        speakers=[ChannelSpeaker(channel=0, id="a", role="agent")],
+    )
+    options = LiveSessions.options(ok, "cuda", "m", "int8")
+    assert options.diarize and options.enrolled == []

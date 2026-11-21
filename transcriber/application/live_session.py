@@ -42,6 +42,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from transcriber.application.live import (
     FloatArray,
+    LiveEngine,
     LiveOptions,
     LiveSettings,
     LiveTranscription,
@@ -167,6 +168,7 @@ class LiveSession:
         self.error: Optional[str] = None
         self.device: Optional[str] = None
         self.model: Optional[str] = None
+        self.diarizer: Optional[str] = None
         self.transcript: Optional[Dict[str, Any]] = None
         self.rejected = 0
         self._audio: "queue.Queue[Optional[Arrival]]" = queue.Queue()
@@ -313,6 +315,7 @@ class LiveSession:
             ],
             "product": self.request.product,
             "model": self.model,
+            "diarizer": self.diarizer,
             "events": len(events),
             "finals": sum(1 for e in events if e.get("type") == "final"),
             "rejected_events": self.rejected,
@@ -430,7 +433,8 @@ class LiveSessions:
         """Return the options of the recogniser for ``request``."""
         return LiveOptions(
             model=model, device=device, compute_type=compute_type,
-            language=request.language,
+            language=request.language, diarize=request.diarize,
+            enrolled=request.enrolled,
             settings=LiveSettings(
                 endpoint=EndpointSettings(hang_ms=request.hang_ms),
                 partial_every_ms=request.partial_every_ms,
@@ -459,6 +463,12 @@ class LiveSessions:
 
         return emit
 
+    def _need(self, session: LiveSession) -> int:
+        """Return the GPU memory ``session`` asks for (MiB)."""
+        return self._s.need_mib + (
+            self._s.diarize_need_mib if session.request.diarize else 0
+        )
+
     def _place(self, session: LiveSession) -> Tuple[str, Optional[str]]:
         """Take the GPU (lease, ack, memory) or choose the CPU.
 
@@ -467,7 +477,7 @@ class LiveSessions:
         if self._device != "cuda":
             return self._device, None
         lease, memory = self._p.lease, self._p.memory
-        need = self._s.need_mib
+        need = self._need(session)
         if lease is not None:
             try:
                 lease.acquire(need)
@@ -498,6 +508,7 @@ class LiveSessions:
         """Run ``session`` to its end (the worker thread)."""
         emit = self._emitter(session)
         state, error = LiveState.ENDED, None
+        engine: Optional[LiveEngine] = None
         try:
             device, degraded = self._place(session)
             if device == "cuda":
@@ -510,13 +521,18 @@ class LiveSessions:
             live = self._p.build(
                 self.options(session.request, device, model, compute)
             )
-            engine = live.engine(session.id, session.speakers, emit)
+            engine = live.engine(
+                session.id, session.speakers, emit,
+                diarize=session.request.diarize,
+            )
+            session.speakers = list(engine.speakers)
+            session.diarizer = engine.diarizer
             engine.start()
             if degraded is not None:
                 emit(engine.events.warning(
                     self._p.clock.now(), 0.0, "gpu_degraded",
                     DEGRADED_MESSAGE.format(
-                        need=self._s.need_mib, wait=self._s.ack_timeout,
+                        need=self._need(session), wait=self._s.ack_timeout,
                         why=degraded,
                     ),
                 ))
@@ -533,13 +549,15 @@ class LiveSessions:
                         "asr_behind", "The recogniser runs behind the audio.",
                     ))
             engine.finish()
-            self._hand_over(session, model, compute)
+            self._hand_over(session, model, compute, engine.diarizer)
         except (InvalidInputError, StateError) as exc:
             state, error = LiveState.FAILED, str(exc)
         except Exception as exc:  # the worker must always end the session
             LOG.exception("Live session %s failed", session.id)
             state, error = LiveState.FAILED, type(exc).__name__
         finally:
+            if engine is not None:
+                engine.abort()
             if self._p.lease is not None:
                 self._p.lease.release()
             if self._p.log is not None:
@@ -547,7 +565,8 @@ class LiveSessions:
         session.finished(state, error)
 
     def _hand_over(
-        self, session: LiveSession, model: str, compute: str
+        self, session: LiveSession, model: str, compute: str,
+        diarizer: Optional[str] = None,
     ) -> None:
         """Assemble the transcript; keep it, publish it, analyse it (LV-11).
 
@@ -562,7 +581,7 @@ class LiveSessions:
             Pipeline(
                 recogniser=f"faster-whisper {model} {compute}",
                 voice_model="none", transcriber=self._version,
-                diarizer="channels" if session.channels == 2 else None,
+                diarizer="channels" if session.channels == 2 else diarizer,
             ),
             language=session.request.language,
             started_at=_parse_time(started),

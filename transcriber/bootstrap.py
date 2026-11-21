@@ -22,7 +22,10 @@ import atexit
 import logging
 import os
 from dataclasses import dataclass
-from typing import Callable, Dict, Mapping, Optional, Protocol, Tuple
+from pathlib import Path
+from typing import (
+    Callable, Dict, Mapping, Optional, Protocol, Sequence, Tuple,
+)
 
 from transcriber.adapters.outbound.av_audio_decoder import (
     AvAudioDecoder, read_channels,
@@ -47,6 +50,7 @@ from transcriber.adapters.outbound.fake_models import (
     FakeAsrStream,
     FakeOverlapDetector,
     FakeSpeechRecogniser,
+    FakeStreamDiarizer,
     FakeVad,
     FakeVoiceEncoder,
 )
@@ -153,6 +157,7 @@ from transcriber.application.ports import (
     SessionLocks,
     SessionRepository,
     SpeechRecogniser,
+    StreamDiarizer,
     TranscriptPublisher,
     Tunnel,
     VoiceEncoder,
@@ -165,6 +170,9 @@ from transcriber.application.analysis import (
 from transcriber.application.knowledge import KnowledgeAccess
 from transcriber.application.live import (
     LiveOptions, LiveTranscription,
+)
+from transcriber.application.live_diarization import (
+    LiveNaming, MonoAttributor,
 )
 from transcriber.application.live_session import LivePorts, LiveSessions
 from transcriber.application.publish import PublishTranscript
@@ -198,6 +206,7 @@ from transcriber.config import REPOSITORY, TranscriberSettings
 from transcriber.domain.comparison import ComparisonParameters
 from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
 from transcriber.domain.lab import BUILTIN_DIARIZER
+from transcriber.domain.live import LiveSpeaker
 
 LOG = logging.getLogger(__name__)
 
@@ -519,11 +528,134 @@ read_live_audio = read_channels
 """Reads a sound file for ``live-file`` (one stream per channel or one)."""
 
 
-def build_live(options: LiveOptions) -> LiveTranscription:
+Attributor = Callable[[Sequence[LiveSpeaker]], MonoAttributor]
+"""Makes the speaker attribution of one mono diarized session."""
+
+SORTFORMER_FAMILY = "nemo"
+SORTFORMER_WORKER = "sortformer_stream.py"
+"""The lab environment and the script of the streaming diarizer."""
+
+
+def live_naming(
+    voiceprints: VoiceprintRepository, encoder: ReleasableEncoder,
+    enrolled: Optional[Sequence[str]],
+) -> Optional[LiveNaming]:
+    """Return what names a mono session's voices, if anyone is enrolled.
+
+    ``enrolled`` limits the candidates (``None``: every voiceprint of
+    the encoder's model).
+    """
+    prints = [
+        v for v in voiceprints.all()
+        if v.model == encoder.model_name
+        and (enrolled is None or v.speaker_id in enrolled)
+    ]
+    if not prints:
+        return None
+    names: Dict[str, str] = {}
+    for voice in prints:
+        consent = voiceprints.consent(voice.speaker_id)
+        if consent is not None and consent.name:
+            names[voice.speaker_id] = consent.name
+    return LiveNaming(encoder, prints, names, release=encoder.release)
+
+
+def live_attributor(
+    settings: TranscriberSettings,
+    environ: Mapping[str, str],
+    voiceprints: Optional[VoiceprintRepository],
+    options: LiveOptions,
+) -> Attributor:
+    """Return the maker of a session's speaker attribution (LV-6).
+
+    Real runtime: Sortformer v2 in the lab's ``nemo`` environment
+    (a worker process per session, on ``options.device``) and the
+    WavLM voice encoder of the enrolment, on the CPU, for naming. Fake
+    runtime: the pitch stand-ins.
+    """
+    def make(given: Sequence[LiveSpeaker]) -> MonoAttributor:
+        """Build the attribution of one session."""
+        diarizer: StreamDiarizer
+        encoder: ReleasableEncoder
+        if settings.runtime == "fake":
+            diarizer, encoder = FakeStreamDiarizer(), FakeVoiceEncoder()
+        else:
+            from transcriber.adapters.outbound.sortformer_stream_diarizer import (  # noqa: E501
+                SortformerStreamDiarizer, worker_command,
+            )
+
+            lab = settings.lab
+            command = worker_command(
+                Path(lab.envs_dir).expanduser() / SORTFORMER_FAMILY
+                / "bin" / "python",
+                Path(lab.runners_dir) / SORTFORMER_WORKER, options.device,
+            )
+            diarizer = SortformerStreamDiarizer(
+                command, environ,
+                log=settings.data_dir / "live" / "diarizer.log",
+            )
+            # On the CPU: on the GPU the encoder and torch's CUDA
+            # context cost about 1.3 GB more (measured, see
+            # docs/live/MONO_DIARIZATION.md); it runs in a thread.
+            encoder = WavLMVoiceEncoder(settings.voice_model, device="cpu")
+        naming = (
+            live_naming(voiceprints, encoder, options.enrolled)
+            if voiceprints is not None else None
+        )
+        return MonoAttributor(
+            diarizer, SystemTimer(), settings.live.diarization, naming,
+            given,
+        )
+
+    return make
+
+
+def live_builder(
+    settings: TranscriberSettings,
+    environ: Mapping[str, str],
+    voiceprints: Optional[VoiceprintRepository] = None,
+) -> Callable[[LiveOptions], LiveTranscription]:
+    """Return the builder of the live transcription for ``settings``.
+
+    Fake runtime: the loudness and pitch stand-ins. A transcription
+    built with ``diarize`` can tell the voices of a mono session apart
+    (:func:`live_attributor`).
+    """
+    def build(options: LiveOptions) -> LiveTranscription:
+        """Build the live transcription of one session."""
+        attributor = (
+            live_attributor(settings, environ, voiceprints, options)
+            if options.diarize else None
+        )
+        if settings.runtime == "fake":
+            return build_fake_live(options, attributor)
+        return build_live(options, attributor)
+
+    return build
+
+
+def live_file_builder(
+    settings: TranscriberSettings, environ: Mapping[str, str],
+) -> Callable[[LiveOptions], LiveTranscription]:
+    """Return the builder of ``live-file``: :func:`live_builder` with the
+    voiceprints of ``settings.data_dir`` (of the runtime's voice model).
+    """
+    model = (
+        FakeVoiceEncoder.model_name if settings.runtime == "fake"
+        else settings.voice_model
+    )
+    voiceprints = FileSystemVoiceprintRepository(settings.data_dir, model)
+    return live_builder(settings, environ, voiceprints)
+
+
+def build_live(
+    options: LiveOptions, attributor: Optional[Attributor] = None
+) -> LiveTranscription:
     """Return the live transcription: Silero VAD, faster-whisper stream.
 
     Both adapters load their model on first use (``live`` dependency
-    group); nothing here touches the GPU yet.
+    group); nothing here touches the GPU yet. ``attributor`` adds the
+    mono diarization.
     """
     from transcriber.adapters.outbound.faster_whisper_stream import (
         FasterWhisperStream,
@@ -535,7 +667,8 @@ def build_live(options: LiveOptions) -> LiveTranscription:
         compute_type=options.compute_type, language=options.language,
     )
     return LiveTranscription(
-        SileroVad, asr, SystemClock(), SystemTimer(), options.settings
+        SileroVad, asr, SystemClock(), SystemTimer(), options.settings,
+        attributor,
     )
 
 
@@ -543,11 +676,13 @@ CONTRACTS_DIR = REPOSITORY / "contracts"
 """The platform's contracts (``live.event.v1`` checks the live events)."""
 
 
-def build_fake_live(options: LiveOptions) -> LiveTranscription:
+def build_fake_live(
+    options: LiveOptions, attributor: Optional[Attributor] = None
+) -> LiveTranscription:
     """Return the live transcription over the fake VAD and recogniser."""
     return LiveTranscription(
         FakeVad, FakeAsrStream(options.language), SystemClock(),
-        SystemTimer(), options.settings,
+        SystemTimer(), options.settings, attributor,
     )
 
 
@@ -556,6 +691,7 @@ def build_live_sessions(
     environ: Mapping[str, str],
     publisher: TranscriptPublisher,
     analysis: Optional[SessionAnalysisPort],
+    voiceprints: Optional[VoiceprintRepository] = None,
 ) -> LiveSessions:
     """Return the live sessions of ``/api/live`` (LV-2 to LV-11).
 
@@ -570,7 +706,7 @@ def build_live_sessions(
         LOG.warning("Live events are not contract-checked: %s", why)
     fake = settings.runtime == "fake"
     ports = LivePorts(
-        build=build_fake_live if fake else build_live,
+        build=live_builder(settings, environ, voiceprints),
         clock=SystemClock(), timer=SystemTimer(),
         lease=None if fake else build_gpu_lease(environ),
         memory=None if fake else NvidiaSmiFreeMemory(),
@@ -726,6 +862,7 @@ def build_container(
             settings, environment, publisher,
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None,
+            voiceprints,
         ),
     )
 

@@ -28,11 +28,19 @@ UNDETERMINED = "und"
 """Language of a transcript whose language is not known (ISO 639-2)."""
 
 
+REVISING = ("final", "speaker_update")
+"""Events that carry a final sentence (a ``speaker_update`` revises one)."""
+
+
 def last_finals(events: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
-    """Return the last revision of each final sentence, in time order."""
+    """Return the last revision of each final sentence, in time order.
+
+    A ``speaker_update`` carries the whole sentence with its new
+    speaker and a higher revision, so it counts like a revised final.
+    """
     latest: Dict[str, Dict[str, Any]] = {}
     for event in events:
-        if event.get("type") != "final":
+        if event.get("type") not in REVISING:
             continue
         utterance = dict(event["utterance"])
         known = latest.get(utterance["id"])
@@ -83,7 +91,7 @@ def live_transcript(
     heard = {u.speaker for u in utterances}
     named = {s.id: s for s in speakers}
     listed = [
-        Speaker(id=s.id, name=s.name, enrolled=False)
+        Speaker(id=s.id, name=s.name, enrolled=s.enrolled)
         for s in speakers if s.id in heard
     ] + [
         Speaker(id=who, enrolled=False)

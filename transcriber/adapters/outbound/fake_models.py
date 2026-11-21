@@ -15,6 +15,10 @@ signal in a fixed, predictable way:
   holds two tones of clearly different pitch (two strong peaks).
 - :class:`FakeVad` and :class:`FakeAsrStream` stand in for the live
   mode's VAD and streaming recogniser, by loudness too.
+- :class:`FakeStreamDiarizer` stands in for the streaming diarizer of
+  mono live sessions: a loud 80 ms frame is the first speaker below
+  :data:`PITCH_SPLIT_HZ` and the second above it, ``lag_frames``
+  frames after the audio.
 """
 
 from typing import AbstractSet, List, Optional, Sequence, Tuple
@@ -228,3 +232,72 @@ class FakeAsrStream:
             text=text, words=words if final else [],
             language=self.language, confidence=0.9 if words else None,
         )
+
+
+PITCH_SPLIT_HZ = 300.0
+"""Pitch that separates the fake diarizer's two speakers."""
+
+FAKE_DIARIZER = "fake/stream-diarizer"
+
+
+class FakeStreamDiarizer:
+    """Streaming diarizer stand-in: speaker by pitch, frame by frame."""
+
+    model_name = FAKE_DIARIZER
+    frame_seconds = 0.08
+    slots = 4
+
+    def __init__(self, lag_frames: int = 0) -> None:
+        """Answer each frame ``lag_frames`` frames after its audio."""
+        self.lag_frames = lag_frames
+        self.started = 0
+        self.closed = 0
+        self._audio: FloatArray = np.zeros(0, dtype=np.float32)
+        self._rows: List[List[float]] = []
+        self._given = 0
+        self._ended = False
+
+    def start(self) -> None:
+        """Forget the stream."""
+        self.started += 1
+        self._audio = np.zeros(0, dtype=np.float32)
+        self._rows, self._given, self._ended = [], 0, False
+
+    def feed(self, samples: FloatArray) -> None:
+        """Add audio; compute the frames it completes."""
+        self._audio = np.concatenate([self._audio, samples])
+        self._compute()
+
+    def _compute(self) -> None:
+        """Turn every whole frame of audio into a row of probabilities."""
+        size = int(self.frame_seconds * SAMPLE_RATE)
+        while (len(self._rows) + 1) * size <= len(self._audio):
+            n = len(self._rows)
+            frame = self._audio[n * size:(n + 1) * size]
+            row = [0.0] * self.slots
+            if float(np.sqrt(np.mean(np.square(frame)))) > SPEECH_RMS:
+                power = np.abs(np.fft.rfft(frame))
+                pitch = float(np.fft.rfftfreq(size, 1 / SAMPLE_RATE)[
+                    int(np.argmax(power))
+                ])
+                row[0 if pitch < PITCH_SPLIT_HZ else 1] = 0.9
+            self._rows.append(row)
+
+    def frames(
+        self, until: float = 0.0, timeout: float = 0.0
+    ) -> Tuple[int, List[List[float]]]:
+        """Return the frames ready (all of them once the stream ended)."""
+        ready = len(self._rows) if self._ended else max(
+            len(self._rows) - self.lag_frames, 0
+        )
+        first = self._given
+        self._given = max(ready, first)
+        return first, self._rows[first:self._given]
+
+    def finish(self) -> None:
+        """Release the frames held back."""
+        self._ended = True
+
+    def close(self) -> None:
+        """Count the closes."""
+        self.closed += 1
