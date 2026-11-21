@@ -91,14 +91,14 @@ call). Remote use adds one more reverse port to the chisel tunnel later.
 |---|---|---|---|
 | ASR stream | faster-whisper-large-v3-turbo, int8 | 1362–1394 peak | LAB.md catalogue (R1) |
 | VAD | Silero v5 | 0 (CPU) | — |
-| Stream diarization (mono only) | sortformer-streaming-v2 | 1260–1454 peak | LAB.md catalogue |
-| Voiceprint naming (mono only) | wavlm-base-plus-sv | ~400 (estimate, unmeasured) | — |
+| Stream diarization (mono only) | sortformer-streaming-v2, low-latency setting, worker process | 1140 peak | `docs/live/MONO_DIARIZATION.md` (measured) |
+| Voiceprint naming (mono only) | wavlm-base-plus-sv | 0 (CPU, in a thread; on the GPU it measured +1348 with torch's context) | `docs/live/MONO_DIARIZATION.md` |
 | Knowledge query | MiniLM | 0 (CPU, ~10 ms per query) | — |
 | Reasoner | Claude Haiku via claude -p | 0 (remote) | — |
 | TTS | Piper | 0 (CPU) | — |
 | CUDA context, transcriber process | — | ~300–500 (estimate) | — |
 | **Live, stereo** | | **~2.2 GB** | |
-| **Live, mono** | | **~3.7 GB** | |
+| **Live, mono** | | **~2.5 GB** (1394 + 1140 measured) | |
 | Batch post-call (unchanged, sequential stages) | whisper turbo fp16; DiariZen 3742 peak | ≤ ~4 GB per stage | LAB.md |
 | IMG ComfyUI | — | up to the whole card (`--reserve-vram 0.6`) | IMG worker.py |
 
@@ -113,7 +113,7 @@ post-call jobs wait while a live lease is held: live > batch.
 |---|---|---|
 | Endpoint (VAD silence hang) | 500 | Silero, 32 ms frames; tune 300–700 |
 | Final ASR of the segment (≤15 s audio) | 350 | int8 turbo, beam 1, already warm; partials run during speech |
-| Attribution | 20 stereo / 150 mono | channel lookup; Sortformer chunk output (speaker may be revised later by `speaker_update`) |
+| Attribution | 20 stereo / 150 mono | channel lookup; Sortformer chunk output (speaker may be revised later by `speaker_update`); measured mono 151 ms p90 (`docs/live/MONO_DIARIZATION.md`) |
 | Event transport (WS loopback) | 10 | — |
 | Knowledge query | 50 | domain index in memory, filters by `script_phase` |
 | Reasoner (Haiku via claude -p) | 1800 | measured: stream-json persistent process first token median 0.49 s, done median 0.83 s, p90 1.03 s, max 1.41 s; cold one-shot json median 1.93 s, p90 5.56 s (`docs/live/HAIKU_LATENCY.md`, PR #136). Decision: the warm persistent `--input-format stream-json` process is required; cap output tokens (outliers of 384-797 tokens caused 4-6 s tails); restart or window the process as its context grows |

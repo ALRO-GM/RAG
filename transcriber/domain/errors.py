@@ -90,6 +90,10 @@ class ModelLoadError(TranscriberError):
     """A model cannot be loaded (not downloaded, or not that kind)."""
 
 
+class DiarizerError(TranscriberError):
+    """The streaming diarizer of a mono live session failed or is absent."""
+
+
 class GpuBusyError(TranscriberError):
     """The GPU stayed out of memory after the models were freed.
 

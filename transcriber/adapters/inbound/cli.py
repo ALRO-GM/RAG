@@ -560,10 +560,24 @@ class Commands:
     def live_file(self, args: argparse.Namespace) -> int:
         """Run the live transcription over a WAV file (JSON lines)."""
         from transcriber.adapters.inbound.live_cli import LiveFileCommand
-        from transcriber.bootstrap import build_live, read_live_audio
+        from transcriber.adapters.outbound.fs_voiceprint_repository import (
+            FileSystemVoiceprintRepository,
+        )
+        from transcriber.bootstrap import live_builder, read_live_audio
 
+        from transcriber.adapters.outbound.fake_models import (
+            FAKE_VOICE_MODEL,
+        )
+
+        settings = self.settings
+        voiceprints = FileSystemVoiceprintRepository(
+            settings.data_dir,
+            FAKE_VOICE_MODEL if settings.runtime == "fake"
+            else settings.voice_model,
+        )
         return LiveFileCommand(
-            build_live, read_live_audio, self.output
+            live_builder(settings, self.environ, voiceprints),
+            read_live_audio, self.output,
         ).run(args)
 
     def lab(self, args: argparse.Namespace) -> int:

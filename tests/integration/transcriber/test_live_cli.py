@@ -9,7 +9,7 @@ real ones.
 import io
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import jsonschema
 import numpy as np
@@ -27,18 +27,42 @@ from tests.unit.transcriber.live_fakes import (
 from transcriber.adapters.inbound import live_cli
 from transcriber.adapters.inbound.cli import main
 from transcriber.adapters.outbound.av_audio_decoder import read_channels
-from transcriber.application.live import LiveOptions, LiveTranscription
+from transcriber.adapters.outbound.fake_models import FakeStreamDiarizer
+from transcriber.adapters.outbound.system_clock import SystemTimer
+from transcriber.application.live import (
+    LiveOptions,
+    LiveSettings,
+    LiveTranscription,
+)
+from transcriber.application.live_diarization import MonoAttributor
+from transcriber.domain.live import LiveSpeaker
+from transcriber.domain.live_diarization import MonoDiarizationSettings
 
 built: List[LiveOptions] = []
 
 
-def fake_build(options: LiveOptions) -> LiveTranscription:
+def fake_build(
+    options: LiveOptions, attributor: Optional[Any] = None
+) -> LiveTranscription:
     built.append(options)
     timer = VirtualTimer()
     asr = ScriptedAsr(lambda seconds, final: "Hola a todos.", timer, 0.1)
     return LiveTranscription(
-        LoudnessVad, asr, TimerClock(timer), timer, options.settings
+        LoudnessVad, asr, TimerClock(timer), timer, options.settings,
+        attributor,
     )
+
+
+def fake_attributor(
+    settings: Any, environ: Any, voiceprints: Any, options: LiveOptions,
+) -> Callable[[Sequence[LiveSpeaker]], MonoAttributor]:
+    def make(given: Sequence[LiveSpeaker]) -> MonoAttributor:
+        return MonoAttributor(
+            FakeStreamDiarizer(), SystemTimer(), MonoDiarizationSettings(),
+            None, given,
+        )
+
+    return make
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +71,9 @@ def fakes(monkeypatch: pytest.MonkeyPatch) -> None:
 
     built.clear()
     monkeypatch.setattr(transcriber.bootstrap, "build_live", fake_build)
+    monkeypatch.setattr(
+        transcriber.bootstrap, "live_attributor", fake_attributor
+    )
 
 
 def cli(tmp_path: Path, *args: str) -> Tuple[int, str, str]:
@@ -134,3 +161,60 @@ def test_summary_lines_without_finals() -> None:
     from transcriber.application.live import LiveSummary
 
     assert live_cli.summary_lines(LiveSummary()) == ["0 finals, 0 partials"]
+
+
+def two_voices_wav(path: Path) -> Path:
+    rate = 16000
+    out = np.zeros(int(4.0 * rate), dtype=np.float32)
+    for start, end, hz in ((0.5, 1.5, 220.0), (2.3, 3.3, 880.0)):
+        a, b = int(start * rate), int(end * rate)
+        t = np.arange(b - a, dtype=np.float32) / rate
+        out[a:b] = 0.5 * np.sin(2 * np.pi * hz * t)
+    soundfile.write(str(path), out, rate)
+    return path
+
+
+def test_a_mono_mix_is_diarized(tmp_path: Path) -> None:
+    wav = two_voices_wav(tmp_path / "mix.wav")
+    code, stdout, stderr = cli(
+        tmp_path, "live-file", str(wav), "--fast", "--diarize",
+        "--enrolled", "ana, luis,",
+    )
+    assert code == 0, stderr
+    events = [json.loads(line) for line in stdout.splitlines()]
+    for event in events:
+        jsonschema.validate(event, LIVE_SCHEMA)
+    assert events[0]["source"]["kind"] == "mono_diarized"
+    finals = [e["utterance"] for e in events if e["type"] == "final"]
+    assert [u["speaker"] for u in finals] == ["S1", "S2"]
+    assert built[0].diarize and built[0].enrolled == ["ana", "luis"]
+    assert "attribution_ms: p50" in stderr
+
+
+@pytest.mark.parametrize("args", [
+    ["--diarize", "--channels"], ["--enrolled", "ana"],
+])
+def test_diarize_options_are_checked(
+    tmp_path: Path, args: List[str]
+) -> None:
+    wav = two_voices_wav(tmp_path / "mix.wav")
+    code, _, stderr = cli(tmp_path, "live-file", str(wav), *args)
+    assert code == 2 and "live-file" in stderr
+
+
+def test_the_fake_runtime_diarizes_by_pitch(tmp_path: Path) -> None:
+    from transcriber.bootstrap import live_builder
+    from transcriber.config import TranscriberSettings
+
+    settings = TranscriberSettings(runtime="fake", data_dir=tmp_path)
+    live = live_builder(settings, {})(LiveOptions(
+        device="cpu", diarize=True,
+        settings=LiveSettings(realtime=False),
+    ))
+    samples = soundfile.read(str(two_voices_wav(tmp_path / "m.wav")),
+                             dtype="float32")[0]
+    events: List[Dict[str, Any]] = []
+    summary = live.run("fake-mono", [samples], events.append, diarize=True)
+    finals = [e["utterance"] for e in events if e["type"] == "final"]
+    assert summary.finals == 2
+    assert [u["speaker"] for u in finals] == ["S1", "S2"]

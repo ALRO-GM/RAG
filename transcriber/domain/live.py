@@ -47,7 +47,7 @@ MAX_HANG_MS = 700
 """Range of the silence hang the latency budget allows (§6)."""
 
 SourceKind = Literal["stereo_channels", "mono_diarized", "single_speaker"]
-UtteranceEvent = Literal["partial", "final"]
+UtteranceEvent = Literal["partial", "final", "speaker_update"]
 WarningCode = Literal[
     "gpu_degraded", "asr_behind", "source_lost", "quota", "other"
 ]
@@ -290,13 +290,14 @@ class LiveUtterance(BaseModel):
     revision: int = Field(ge=0)
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
     language: Optional[str] = None
+    speaker_provisional: bool = False
 
     def to_contract(self) -> Dict[str, Any]:
         """Return the ``utterance`` object of a live event."""
         data = self.model_dump()
         data.update(
             start=round(self.start, 3), end=round(self.end, 3),
-            speaker_certainty=None, speaker_provisional=False,
+            speaker_certainty=None,
         )
         if self.confidence is not None:
             data["confidence"] = round(self.confidence, 4)
@@ -350,6 +351,11 @@ class SentenceAssembler:
     a speaker's next segment in the same turn continues its sentence
     numbering. A segment opens at its first partial (or its final, when
     it had none), so the ids of a partial and its final match.
+
+    ``key`` names the open segment when it is not the speaker: a mono
+    session's one stream has one segment open at a time whose speaker
+    is only known as it goes (the speaker given when the segment opens
+    decides the turn; later sentences keep the ids reserved).
     """
 
     def __init__(self) -> None:
@@ -360,9 +366,9 @@ class SentenceAssembler:
         self._open: Dict[str, _Segment] = {}
         self._revisions: Dict[str, int] = {}
 
-    def _segment(self, speaker: str) -> _Segment:
-        """Return ``speaker``'s open segment, opening one if needed."""
-        segment = self._open.get(speaker)
+    def _segment(self, key: str, speaker: str) -> _Segment:
+        """Return the open segment ``key``, opening one for ``speaker``."""
+        segment = self._open.get(key)
         if segment is not None:
             return segment
         if speaker != self._speaker:
@@ -370,7 +376,7 @@ class SentenceAssembler:
             self._speaker = speaker
             self._next_index = 0
         segment = _Segment(self._turn, self._next_index)
-        self._open[speaker] = segment
+        self._open[key] = segment
         return segment
 
     def _revision(self, ident: str) -> int:
@@ -404,33 +410,34 @@ class SentenceAssembler:
 
     def partial(
         self, speaker: str, channel: Optional[int], start: float,
-        end: float, hypothesis: Hypothesis,
+        end: float, hypothesis: Hypothesis, key: Optional[str] = None,
     ) -> List[LiveUtterance]:
         """Return the partial sentences that changed since the last call."""
         spans = sentence_spans(hypothesis.text, [], start, end)
         if not spans:
             return []
-        segment = self._segment(speaker)
+        segment = self._segment(key or speaker, speaker)
         return self._utterances(
             segment, speaker, channel, spans, hypothesis, only_changed=True
         )
 
     def final(
         self, speaker: str, channel: Optional[int], start: float,
-        end: float, hypothesis: Hypothesis,
+        end: float, hypothesis: Hypothesis, key: Optional[str] = None,
     ) -> List[LiveUtterance]:
         """Return the final sentences of the segment and close it."""
+        key = key or speaker
         spans = sentence_spans(hypothesis.text, hypothesis.words, start, end)
-        if not spans and speaker not in self._open:
+        if not spans and key not in self._open:
             return []
-        segment = self._segment(speaker)
+        segment = self._segment(key, speaker)
         # Ids already shown by a partial are never given to another
         # sentence, even when the final has fewer sentences.
         used = max(len(spans), len(segment.emitted))
         out = self._utterances(
             segment, speaker, channel, spans, hypothesis, only_changed=False
         )
-        del self._open[speaker]
+        del self._open[key]
         if segment.turn == self._turn:
             self._next_index = max(self._next_index, segment.base + used)
         return out
@@ -462,12 +469,17 @@ class Timings(BaseModel):
 
 @dataclass(frozen=True)
 class LiveSpeaker:
-    """A voice of the session: its id, channel and role."""
+    """A voice of the session: its id, channel and role.
+
+    ``enrolled`` marks an enrolled person (the id is theirs) whom the
+    voiceprints may recognise in a mono session.
+    """
 
     id: str
     channel: Optional[int] = None
     role: str = "unknown"
     name: Optional[str] = None
+    enrolled: bool = False
 
 
 def iso(at: datetime) -> str:
@@ -507,7 +519,7 @@ class LiveEventStream:
         }
         event["speakers"] = [
             {"id": s.id, "name": s.name, "channel": s.channel,
-             "enrolled": False, "role": s.role}
+             "enrolled": s.enrolled, "role": s.role}
             for s in speakers
         ]
         return event
@@ -516,7 +528,7 @@ class LiveEventStream:
         self, kind: UtteranceEvent, at: datetime, stream_time: float,
         utterance: LiveUtterance, timings: Timings,
     ) -> Dict[str, Any]:
-        """Return a ``partial`` or ``final`` event."""
+        """Return a ``partial``, ``final`` or ``speaker_update`` event."""
         event = self._event(kind, at, stream_time)
         event["utterance"] = utterance.to_contract()
         event["timings"] = timings.to_contract()

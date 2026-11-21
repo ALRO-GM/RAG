@@ -30,6 +30,10 @@ from transcriber.domain.live import (
     SAMPLE_RATE,
     LiveSpeaker,
 )
+from transcriber.domain.live_diarization import (
+    MAX_SLOTS,
+    MonoDiarizationSettings,
+)
 from transcriber.domain.models import SESSION_ID_PATTERN
 
 FloatArray = npt.NDArray[np.float32]
@@ -93,6 +97,13 @@ class LiveSessionRequest(BaseModel):
     end. ``language`` ``None`` lets the recogniser detect it.
     ``hang_ms`` and ``partial_every_ms`` tune the endpointing and the
     partials (§6).
+
+    ``diarize`` (one channel only, LV-6) tells the voices of the one
+    channel apart with the streaming diarizer: ``speakers`` (all on
+    channel 0, at most four) then give the ids and roles of the voices
+    in the order they are first heard, and ``enrolled`` lists the
+    enrolled people whose voiceprints may name them (``None``: every
+    enrolled person; empty: nobody).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -105,10 +116,31 @@ class LiveSessionRequest(BaseModel):
     language: Optional[str] = Field(default="es", min_length=2, max_length=8)
     hang_ms: int = Field(default=500, ge=MIN_HANG_MS, le=MAX_HANG_MS)
     partial_every_ms: int = Field(default=800, ge=100, le=5000)
+    diarize: bool = False
+    enrolled: Optional[List[str]] = Field(default=None, max_length=50)
 
     @model_validator(mode="after")
     def _every_channel_once(self) -> "LiveSessionRequest":
-        """Refuse speakers that do not cover each channel exactly once."""
+        """Refuse speakers that do not cover each channel exactly once.
+
+        A diarized session lists its voices on channel 0 instead.
+        """
+        if self.diarize and self.channels != 1:
+            raise ValueError("only a one-channel session is diarized")
+        if self.enrolled is not None and not self.diarize:
+            raise ValueError("enrolled is only used with diarize")
+        ids = [s.id for s in self.speakers]
+        if len(set(ids)) != len(ids):
+            raise ValueError("speaker ids must be unique")
+        if self.diarize:
+            if len(self.speakers) > MAX_SLOTS or any(
+                s.channel != 0 for s in self.speakers
+            ):
+                raise ValueError(
+                    f"a diarized session lists up to {MAX_SLOTS} speakers,"
+                    " all on channel 0"
+                )
+            return self
         if not self.speakers:
             return self
         channels = sorted(s.channel for s in self.speakers)
@@ -117,9 +149,6 @@ class LiveSessionRequest(BaseModel):
                 f"speakers must name channels 0-{self.channels - 1}"
                 " once each"
             )
-        ids = [s.id for s in self.speakers]
-        if len(set(ids)) != len(ids):
-            raise ValueError("speaker ids must be unique")
         return self
 
 
@@ -129,8 +158,14 @@ def channel_speakers(request: LiveSessionRequest) -> List[LiveSpeaker]:
     Stereo: channel ``n`` is ``speakers[n]``, and the events name the
     channel. One channel: a single speaker, no channel named (as
     ``live-file`` does). Without ``speakers``: ``S<n + 1>``, role
-    ``unknown``.
+    ``unknown``. Diarized: the speakers given, in order (the voices
+    heard first, second...), with no channel.
     """
+    if request.diarize:
+        return [
+            LiveSpeaker(id=s.id, role=s.role, name=s.name)
+            for s in request.speakers
+        ]
     stereo = request.channels == 2
     given = {s.channel: s for s in request.speakers}
     out: List[LiveSpeaker] = []
@@ -254,6 +289,9 @@ class LiveServiceSettings(BaseModel):
     ``kept_sessions`` ended ones stay readable. ``feed_timeout`` is how
     long a full queue may block a socket before the audio is refused;
     a session without audio for ``idle_seconds`` stops by itself.
+    A diarized mono session asks for ``diarize_need_mib`` more GPU
+    memory (Sortformer and the voice encoder) and names its voices
+    with ``diarization``.
     """
 
     model_config = ConfigDict(frozen=True, protected_namespaces=())
@@ -272,3 +310,5 @@ class LiveServiceSettings(BaseModel):
     kept_sessions: int = Field(default=8, ge=0)
     feed_timeout: float = Field(default=30.0, gt=0)
     idle_seconds: float = Field(default=120.0, gt=0)
+    diarize_need_mib: int = Field(default=1500, ge=0)
+    diarization: MonoDiarizationSettings = MonoDiarizationSettings()

@@ -741,6 +741,65 @@ class AsrStream(Protocol):
         ...
 
 
+class StreamDiarizer(Protocol):
+    """SpeakerAttribution (stream): who talks in each frame of a mono stream.
+
+    Fed the stream's audio as it arrives, it answers a little later
+    with the probability of each of up to :attr:`slots` speakers for
+    every :attr:`frame_seconds` frame (LV-6; ``sortformer_stream_
+    diarizer``). Slots are numbered in the order voices are first
+    heard. :meth:`feed` never blocks the caller for long.
+    """
+
+    @property
+    def model_name(self) -> str:
+        """Return the identifier of the diarization model."""
+        ...
+
+    @property
+    def frame_seconds(self) -> float:
+        """Return the length of one frame in seconds."""
+        ...
+
+    @property
+    def slots(self) -> int:
+        """Return how many speakers the model tells apart."""
+        ...
+
+    def start(self) -> None:
+        """Begin a new stream (loading the model if needed).
+
+        Raises :class:`~transcriber.domain.errors.DiarizerError` when
+        the diarizer cannot run.
+        """
+        ...
+
+    def feed(self, samples: npt.NDArray[np.float32]) -> None:
+        """Add the next audio of the stream (mono, 16 kHz)."""
+        ...
+
+    def frames(
+        self, until: float = 0.0, timeout: float = 0.0
+    ) -> Tuple[int, List[List[float]]]:
+        """Return the frames that arrived since the last call.
+
+        The result is the number of the first frame and one row of
+        probabilities per frame. Waits up to ``timeout`` seconds for
+        the frames to reach stream time ``until``. Raises
+        :class:`~transcriber.domain.errors.DiarizerError` once the
+        diarizer has failed.
+        """
+        ...
+
+    def finish(self) -> None:
+        """Say the stream ended: the rest of its frames are computed."""
+        ...
+
+    def close(self) -> None:
+        """Stop the diarizer and free what it holds."""
+        ...
+
+
 class Timer(Protocol):
     """Monotonic time and waiting, to pace a stream in real time."""
 

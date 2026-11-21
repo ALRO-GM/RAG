@@ -5,9 +5,12 @@ real time unless ``--fast``, and every ``live.event.v1`` event is
 written as one JSON line (to standard output or ``--out``). Without
 ``--channels`` the channels are averaged into one stream; with it each
 channel is its own stream and speaker (the stereo case: microphone on
-one channel, the call on the other). A summary of the finals' timings
-(p50 and p90 of ``endpoint_ms``, ``asr_ms``, ``lag_ms``) goes to the
-error stream.
+one channel, the call on the other); with ``--diarize`` the one stream
+is a mono mix whose voices the streaming diarizer tells apart (LV-6),
+named by the voiceprints of ``--enrolled`` people (default: everyone
+enrolled). A summary of the finals' timings (p50 and p90 of
+``endpoint_ms``, ``asr_ms``, ``lag_ms``, ``attribution_ms``) goes to
+the error stream.
 """
 
 import argparse
@@ -65,15 +68,23 @@ def add_live_parser(
                       help="where the recogniser runs (default: cuda)")
     live.add_argument("--compute-type", default="int8",
                       help="CTranslate2 compute type (default: int8)")
+    live.add_argument("--diarize", action="store_true",
+                      help="tell the voices of the mono mix apart")
+    live.add_argument("--enrolled",
+                      help="comma-separated enrolled ids who may speak"
+                      " (with --diarize; default: everyone enrolled)")
 
 
 def summary_lines(summary: LiveSummary) -> List[str]:
     """Return the run's counts and the p50/p90 of the finals' timings."""
     lines = [f"{summary.finals} finals, {summary.partials} partials"]
+    if summary.speaker_updates:
+        lines[0] += f", {summary.speaker_updates} speaker updates"
     series: Dict[str, List[float]] = {
         "endpoint_ms": summary.endpoint_ms,
         "asr_ms": summary.asr_ms,
         "lag_ms": summary.lag_ms,
+        "attribution_ms": summary.attribution_ms,
     }
     for name, values in series.items():
         p50, p90 = percentile(values, 0.5), percentile(values, 0.9)
@@ -99,7 +110,15 @@ class LiveFileCommand:
             raise UsageError(
                 f"--hang-ms must be {MIN_HANG_MS}-{MAX_HANG_MS}"
             )
+        if args.diarize and args.channels:
+            raise UsageError("--diarize needs one stream (no --channels)")
+        if args.enrolled is not None and not args.diarize:
+            raise UsageError("--enrolled is only used with --diarize")
         channels = self._read(args.wav, args.channels)
+        enrolled = None if args.enrolled is None else [
+            ident.strip() for ident in args.enrolled.split(",")
+            if ident.strip()
+        ]
         options = LiveOptions(
             model=args.model, device=args.device,
             compute_type=args.compute_type,
@@ -109,6 +128,7 @@ class LiveFileCommand:
                 partial_every_ms=args.partial_every_ms,
                 realtime=not args.fast,
             ),
+            diarize=args.diarize, enrolled=enrolled,
         )
         live = self._build(options)
         sink: Optional[IO[str]] = None
@@ -124,7 +144,9 @@ class LiveFileCommand:
                     sink.write(line + "\n")
                     sink.flush()
 
-            summary = live.run(args.session, channels, emit)
+            summary = live.run(
+                args.session, channels, emit, diarize=args.diarize
+            )
         finally:
             if sink is not None:
                 sink.close()

@@ -305,6 +305,25 @@ def test_speakers_for_each_audio_kind() -> None:
     body = transcriber_body(interview, "s", live_speakers(interview, "mic"))
     assert body["channels"] == 1 and body["partial_every_ms"] == 800
     assert body["product"] == "live_assist.interview"
+    assert "diarize" not in body
+
+
+def test_a_sortformer_product_asks_for_a_diarized_mic() -> None:
+    support = product()
+    mono = support.model_copy(update={
+        "attribution": support.attribution.model_copy(
+            update={"kind": "sortformer_stream"}
+        ),
+    })
+    speakers = live_speakers(mono, "mic")
+    assert speakers == [
+        {"channel": 0, "id": "S1", "role": "agent"},
+        {"channel": 0, "id": "S2", "role": "customer"},
+    ]
+    body = transcriber_body(mono, "s", speakers)
+    assert body["channels"] == 1 and body["diarize"] is True
+    stereo = transcriber_body(mono, "s", live_speakers(mono, "stereo"))
+    assert stereo["channels"] == 2 and "diarize" not in stereo
 
 
 def test_quota_stops_further_calls() -> None:

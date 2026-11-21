@@ -14,7 +14,7 @@ throttled like every other route.
 
 | Route | Body / messages | Answer |
 |---|---|---|
-| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms"}` | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
+| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms", "diarize"?, "enrolled"?}` | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
 | `GET /api/live/sessions`, `GET /api/live/sessions/{id}` | — | the sessions / one session, with `finals`, `rejected_events`, `transcript` (`utterances`, `published`, `analysis`, `error`) |
 | `POST /api/live/sessions/{id}/stop` | — | the session after its end |
 | `WS /api/live/{id}/audio` | once the recogniser is loaded (GPU placement and model warm-up: about 6 s, `experiments/live/start_delay.py`) the server sends `{"type": "ready", "channels", "sample_rate": 16000, "format": "pcm_s16le", "max_message_bytes"}`; client sends binary PCM s16le 16 kHz, channels interleaved, ≤1 s per message; text `{"type": "stop"}` ends the session (`{"type": "stopped"}` back) | one source per session at a time |
@@ -50,6 +50,14 @@ session), 4409 (wrong state: ended, or a second audio source) or 4429
   with no GPU reading, it releases the lease, runs faster-whisper
   `small` int8 on the CPU and emits a `warning` `gpu_degraded`. The
   lease is held until the session ends.
+- **Mono diarization (LV-6).** With `channels: 1` and `diarize: true`
+  the voices of the one channel are told apart by streaming Sortformer
+  v2 and named by the voiceprints of `enrolled` people (every enrolled
+  person when absent); `speakers` (all on channel 0, at most four) give
+  the ids and roles of the voices in the order they are first heard.
+  Source kind `mono_diarized`; finals may be `speaker_provisional` and
+  are revised by `speaker_update` events. The lease asks for
+  `need_mib` + `diarize_need_mib` (1500). See `MONO_DIARIZATION.md`.
 - **Hand-off (LV-11).** At the end the last revision of each final
   becomes a `transcript.v1` (empty sentences dropped, turns regrouped,
   ids renumbered without gaps, no roles or audio), kept as
@@ -58,5 +66,5 @@ session), 4409 (wrong state: ended, or a second audio source) or 4429
   RAG's post-call analysis is then started. Failures are recorded in
   the session's `transcript.error`, not raised.
 
-Not done here: mono diarization (LV-6), keeping the audio for a batch
+Not done here: keeping the audio for a batch
 re-run, the live page itself.
