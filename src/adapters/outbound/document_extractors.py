@@ -24,6 +24,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 from src.application.knowledge.ports import (
     ExtractedDocument,
+    ImageCaptioner,
+    PageContent,
     PageLayoutReader,
 )
 from src.domain.errors import InvalidInputError, UnsupportedDocumentError
@@ -45,6 +47,13 @@ MAX_PIXELS = 100_000_000
 """Most pixels in one uploaded image (decompression bombs)."""
 MAX_FRAMES = 500
 """Most frames in one multi-page TIFF."""
+MIN_LAYOUT_RATIO = 0.6
+"""Fewest characters, against the text layer, a layout page must keep.
+
+Below it the layout model lost text (seen on some generated PDFs), so the
+page's text layer is used instead."""
+MAX_FIGURES = 200
+"""Most figures captioned in one document (each costs seconds)."""
 LAYOUT_BATCH_PAGES = 20
 """Pages handed to the layout reader at a time (memory, progress)."""
 
@@ -166,6 +175,27 @@ def read_pdf_pages(data: bytes) -> List[str]:
         )
 
 
+def letters(text: str) -> int:
+    """Count the non-blank characters of ``text``."""
+    return len("".join(text.split()))
+
+
+def figure_notes(
+    captioner: ImageCaptioner, figures: Sequence[bytes]
+) -> str:
+    """Return the figures as Markdown quotes: caption and text in them."""
+    notes = []
+    for index, image in enumerate(figures, 1):
+        found = captioner.describe(image)
+        if not (found.caption or found.text):
+            continue
+        lines = [f"> **Figura {index}:** {found.caption}".rstrip()]
+        if found.text:
+            lines.append(f"> Texto en la figura: {found.text}")
+        notes.append("\n".join(lines))
+    return "\n\n".join(notes)
+
+
 def page_sections(pages: Dict[int, str]) -> str:
     """Join pages as ``## p. N`` sections; headings inside go one level down.
 
@@ -175,6 +205,7 @@ def page_sections(pages: Dict[int, str]) -> str:
     sections = []
     for number in sorted(pages):
         body = re.sub(r"(?m)^(#{1,5}) ", r"\1# ", pages[number].strip())
+        body = body.replace("<!-- image -->", "").strip()
         if body:
             sections.append(f"## p. {number}\n\n{body}")
     return "\n\n".join(sections)
@@ -404,6 +435,10 @@ class DocumentExtractors:
             layout reader (tables, reading order); ``False`` keeps the
             fast text layer for them and OCRs only the scanned pages.
         batch_pages: Pages per call to the layout reader.
+        captioner: Describes the figures of PDFs and the images uploaded
+            (a caption and their text become part of the page); a
+            captioner that fails is dropped for the rest of the document.
+        max_figures: Most figures captioned per document.
     """
 
     def __init__(
@@ -411,11 +446,15 @@ class DocumentExtractors:
         layout: Optional[PageLayoutReader] = None,
         layout_text_pages: bool = True,
         batch_pages: int = LAYOUT_BATCH_PAGES,
+        captioner: Optional[ImageCaptioner] = None,
+        max_figures: int = MAX_FIGURES,
     ) -> None:
         """Keep the layout reader and its settings."""
         self.layout = layout
         self.layout_text_pages = layout_text_pages
         self.batch_pages = max(1, batch_pages)
+        self.captioner = captioner
+        self.max_figures = max_figures
 
     def verify(self, data: bytes, document_type: str) -> None:
         """Check the container of a DOCX/ODT/XLSX or an image's header."""
@@ -467,21 +506,40 @@ class DocumentExtractors:
     def _read(
         self, data: bytes, kind: str, numbers: Optional[List[int]],
         ocr: bool,
-    ) -> Dict[int, str]:
+    ) -> Dict[int, PageContent]:
         """Ask the layout reader for pages; a failure gives no pages."""
         assert self.layout is not None
         try:
-            return {
-                n: md for n, md in
-                self.layout.read_pages(data, kind, numbers, ocr).items()
-                if md.strip()
-            }
+            got = self.layout.read_pages(
+                data, kind, numbers, ocr, self.captioner is not None
+            )
         except InvalidInputError:
             raise
         except Exception as exc:  # the reader's library broke on this batch
             LOG.warning("Layout reader failed on pages %s: %s: %s",
                         numbers, type(exc).__name__, exc)
             return {}
+        return {n: c for n, c in got.items()
+                if c.markdown.strip() or c.figures}
+
+    def _captions(self, content: PageContent, budget: List[int]) -> str:
+        """Return the page's figures as caption notes (``""`` if none).
+
+        ``budget`` holds the figures still allowed in the document; a
+        captioner error is logged once and ends captioning (the text of
+        the document is kept).
+        """
+        if self.captioner is None or not content.figures or budget[0] <= 0:
+            return ""
+        figures = content.figures[:budget[0]]
+        try:
+            notes = figure_notes(self.captioner, figures)
+        except Exception as exc:  # model missing, out of memory, no network
+            LOG.warning("Captioning stopped: %s: %s", type(exc).__name__, exc)
+            self.captioner, budget[0] = None, 0
+            return ""
+        budget[0] -= len(figures)
+        return notes
 
     def _pdf_with_layout(self, data: bytes) -> ExtractedDocument:
         """Read a PDF page by page: layout for text pages, OCR for scans.
@@ -491,31 +549,48 @@ class DocumentExtractors:
         """
         texts = read_pdf_pages(data)
         has_text = [len(t.strip()) >= MIN_PAGE_TEXT for t in texts]
-        found: Dict[int, str] = {}
+        found: Dict[int, PageContent] = {}
         plans = (
             (False, [n for n, ok in enumerate(has_text, 1) if ok]),
             (True, [n for n, ok in enumerate(has_text, 1) if not ok]),
         )
         for ocr, numbers in plans:
-            if not ocr and not self.layout_text_pages:
+            if not ocr and not self.layout_text_pages and \
+                    self.captioner is None:
                 continue
             for run in page_runs(numbers, self.batch_pages):
                 found.update(self._read(data, "pdf", run, ocr))
+        budget = [self.max_figures]
+        pages: Dict[int, str] = {}
         for number, text in enumerate(texts, 1):
-            if number not in found and text.strip():
-                found[number] = text
-        if not found:
+            content = found.get(number)
+            body = content.markdown if content is not None else ""
+            if has_text[number - 1] and (
+                not self.layout_text_pages
+                or letters(body) < MIN_LAYOUT_RATIO * letters(text)
+            ):
+                body = text  # the layout model dropped text: keep the layer
+            if content is not None:
+                body += "\n\n" + self._captions(content, budget)
+            pages[number] = body.strip()
+        if not any(pages.values()):
             raise InvalidInputError(
                 "No se encontró texto en el PDF, ni con OCR. / No text "
                 "found in the PDF, not even with OCR."
             )
-        return ExtractedDocument(page_sections(found), len(texts))
+        return ExtractedDocument(page_sections(pages), len(texts))
 
     def _image(self, data: bytes, kind: str) -> ExtractedDocument:
-        """OCR an image (every frame of a TIFF) as ``## p. N`` sections."""
+        """OCR an image (every frame of a TIFF) and caption the picture."""
         if self.layout is None:
             raise InvalidInputError(NO_OCR_IMAGE)
         found = self._read(data, kind, None, True)
-        if not found:
+        pages = {n: c.markdown for n, c in found.items()}
+        if self.captioner is not None:
+            note = self._captions(PageContent("", (data,)), [1])
+            if note:
+                first = min(pages) if pages else 1
+                pages[first] = (pages.get(first, "") + "\n\n" + note).strip()
+        if not any(t.strip() for t in pages.values()):
             raise InvalidInputError(NO_IMAGE_TEXT)
-        return ExtractedDocument(page_sections(found), max(found))
+        return ExtractedDocument(page_sections(pages), max(pages))

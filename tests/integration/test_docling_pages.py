@@ -2,14 +2,14 @@
 
 import sys
 import types
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
 
 from src.adapters.outbound import docling_pages
 from src.adapters.outbound.docling_pages import DoclingPages
 
-BUILT: List[Tuple[bool, str]] = []
+BUILT: List[Tuple[bool, bool, str]] = []
 CONVERTED: List[Any] = []
 
 
@@ -25,10 +25,31 @@ class Options:
         raise AttributeError(name)
 
 
+class FakePicture:
+    """A ``PictureItem`` whose image is ``size`` pixels (or missing)."""
+
+    def __init__(self, size: Optional[Tuple[int, int]]) -> None:
+        """Keep the size; ``None`` means no image."""
+        self.size = size
+
+    def get_image(self, document: Any) -> Any:
+        """Return a PIL image of the size, or ``None``."""
+        from PIL import Image
+
+        return None if self.size is None else Image.new("RGB", self.size)
+
+
 class FakeDocument:
-    """A converted document with three pages."""
+    """A converted document with three pages; page 2 has pictures."""
 
     pages = {1: None, 2: None, 3: None}
+
+    def iterate_items(self, page_no: int) -> List[Tuple[Any, int]]:
+        """Return page 2's pictures (a big one, an icon, a missing one)."""
+        if page_no != 2:
+            return [("paragraph", 0)]
+        return [(FakePicture((200, 100)), 0), (FakePicture((20, 20)), 0),
+                (FakePicture(None), 0), ("paragraph", 0)]
 
     def export_to_markdown(self, page_no: int) -> str:
         """Return a Markdown line naming the page."""
@@ -41,7 +62,8 @@ class FakeConverter:
     def __init__(self, format_options: Dict[str, Options]) -> None:
         """Remember the OCR flag and device of the PDF options."""
         pdf: Any = format_options["pdf"].pipeline_options
-        BUILT.append((pdf.do_ocr, pdf.accelerator_options.device))
+        BUILT.append((pdf.do_ocr, pdf.generate_picture_images,
+                      pdf.accelerator_options.device))
 
     def convert(self, stream: Any, **kwargs: Any) -> Any:
         """Record the call and return the fake document."""
@@ -80,6 +102,9 @@ def fake_docling(monkeypatch: pytest.MonkeyPatch) -> None:
     module("docling.datamodel.accelerator_options", AcceleratorOptions=Options)
     module("docling.datamodel.pipeline_options",
            PdfPipelineOptions=Options, RapidOcrOptions=Options)
+    module("docling_core")
+    module("docling_core.types")
+    module("docling_core.types.doc", PictureItem=FakePicture)
     module("docling.document_converter", DocumentConverter=FakeConverter,
            PdfFormatOption=lambda pipeline_options: Options(
                pipeline_options=pipeline_options),
@@ -92,7 +117,9 @@ def test_requested_pages_come_back_as_markdown() -> None:
     """A page range is converted once and only the wanted pages kept."""
     reader = DoclingPages()
     found = reader.read_pages(b"%PDF", "pdf", [2, 3], True)
-    assert found == {2: "text of page 2", 3: "text of page 3"}
+    assert {n: c.markdown for n, c in found.items()} == {
+        2: "text of page 2", 3: "text of page 3"}
+    assert all(c.figures == () for c in found.values())
     assert CONVERTED[0][0] == "document.pdf"
     assert CONVERTED[0][1] == {"page_range": (2, 3)}
 
@@ -110,7 +137,7 @@ def test_converters_are_built_once_per_mode() -> None:
     reader.read_pages(b"x", "pdf", [1], False)
     reader.read_pages(b"x", "pdf", [2], False)
     reader.read_pages(b"x", "pdf", [3], True)
-    assert BUILT == [(False, "cpu"), (True, "cpu")]
+    assert BUILT == [(False, False, "cpu"), (True, False, "cpu")]
 
 
 def test_gpu_only_while_the_gate_is_free() -> None:
@@ -122,7 +149,8 @@ def test_gpu_only_while_the_gate_is_free() -> None:
     reader.read_pages(b"x", "pdf", [2], False)
     gate.is_free = True
     reader.read_pages(b"x", "pdf", [3], False)
-    assert BUILT == [(False, "cuda"), (False, "cpu"), (False, "cuda")]
+    assert BUILT == [(False, False, "cuda"), (False, False, "cpu"),
+                     (False, False, "cuda")]
 
 
 def test_cpu_without_gate_or_cuda(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -143,3 +171,13 @@ def test_availability_checks(monkeypatch: pytest.MonkeyPatch) -> None:
     assert docling_pages.docling_available()
     monkeypatch.undo()
     assert isinstance(docling_pages.cuda_available(), bool)
+
+
+def test_figures_are_returned_as_png_without_the_tiny_ones() -> None:
+    """Asked for figures, a page gives its big pictures as PNG bytes."""
+    reader = DoclingPages()
+    found = reader.read_pages(b"%PDF", "pdf", [1, 2], False, figures=True)
+    assert found[1].figures == ()
+    [picture] = found[2].figures
+    assert picture.startswith(b"\x89PNG")
+    assert BUILT == [(False, True, "cpu")]

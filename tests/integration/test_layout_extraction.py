@@ -11,31 +11,60 @@ from src.adapters.outbound.document_extractors import (
     page_runs,
     page_sections,
 )
+from src.application.knowledge.ports import ImageDescription, PageContent
 from src.domain.errors import InvalidInputError, UnsupportedDocumentError
 from tests.knowledge_samples import make_image, make_pdf
 
 Call = Tuple[str, Optional[List[int]], bool]
 
 
+class FakeCaptioner:
+    """A captioner that answers from a list and records the images."""
+
+    def __init__(self, fail: bool = False) -> None:
+        """Raise on every call when ``fail``."""
+        self.fail = fail
+        self.images: List[bytes] = []
+
+    def describe(self, image: bytes) -> ImageDescription:
+        """Return a caption naming how many images were seen."""
+        if self.fail:
+            raise RuntimeError("no model")
+        self.images.append(image)
+        return ImageDescription(
+            f"figura {len(self.images)}", "texto" * (len(self.images) % 2)
+        )
+
+
 class FakeLayout:
     """A layout reader that answers from a table and records its calls."""
 
-    def __init__(self, pages: Dict[int, str], fail: bool = False) -> None:
+    def __init__(
+        self, pages: Dict[int, str], fail: bool = False,
+        figures: Optional[Dict[int, Tuple[bytes, ...]]] = None,
+    ) -> None:
         """Answer ``pages``; raise on every call when ``fail``."""
         self.pages = pages
         self.fail = fail
+        self.figures = figures or {}
         self.calls: List[Call] = []
+        self.asked_figures: List[bool] = []
 
     def read_pages(
         self, data: bytes, kind: str, pages: Optional[Sequence[int]],
-        ocr: bool,
-    ) -> Dict[int, str]:
+        ocr: bool, figures: bool = False,
+    ) -> Dict[int, PageContent]:
         """Record the call and return the requested pages."""
         self.calls.append((kind, None if pages is None else list(pages), ocr))
+        self.asked_figures.append(figures)
         if self.fail:
             raise RuntimeError("model crashed")
         wanted = pages if pages is not None else sorted(self.pages)
-        return {n: self.pages[n] for n in wanted if n in self.pages}
+        return {
+            n: PageContent(self.pages[n], self.figures.get(n, ())
+                           if figures else ())
+            for n in wanted if n in self.pages
+        }
 
 
 def test_scanned_pages_are_read_with_ocr_and_text_pages_without() -> None:
@@ -149,3 +178,76 @@ def test_broken_and_huge_images_are_refused(
     monkeypatch.setattr(document_extractors, "MAX_PIXELS", 10)
     with pytest.raises(UnsupportedDocumentError, match="demasiado grande"):
         extractor.verify(make_image(), "png")
+
+
+def test_figures_are_captioned_into_their_page() -> None:
+    """A figure's caption and text follow its page's Markdown."""
+    layout = FakeLayout({1: "Texto", 2: ""}, figures={
+        1: (b"a", b"b"), 2: (b"c",)})
+    captioner = FakeCaptioner()
+    found = DocumentExtractors(layout, captioner=captioner).extract(
+        make_pdf(["Has text", "Has text too"]), "pdf")
+    assert layout.asked_figures == [True]
+    assert captioner.images == [b"a", b"b", b"c"]
+    assert "## p. 1\n\nTexto\n\n> **Figura 1:** figura 1\n> Texto en la " \
+        "figura: texto\n\n> **Figura 2:** figura 2" in found.text
+    assert "## p. 2\n\nHas text too\n\n> **Figura 1:** figura 3" in found.text
+
+
+def test_figure_budget_and_failing_captioner() -> None:
+    """At most ``max_figures`` are captioned; a failure ends captioning."""
+    layout = FakeLayout({1: "x text one", 2: "y text two"}, figures={
+        1: (b"a", b"b"), 2: (b"c",)})
+    captioner = FakeCaptioner()
+    found = DocumentExtractors(
+        layout, captioner=captioner, max_figures=1
+    ).extract(make_pdf(["x text one", "y text two"]), "pdf")
+    assert captioner.images == [b"a"]
+    assert "figura 1" in found.text and "figura 2" not in found.text
+    broken = DocumentExtractors(layout, captioner=FakeCaptioner(fail=True))
+    found = broken.extract(make_pdf(["x text one", "y text two"]), "pdf")
+    assert found.text == "## p. 1\n\nx text one\n\n## p. 2\n\ny text two"
+    assert broken.captioner is None
+
+
+def test_a_captioned_pdf_keeps_fast_text_pages_for_the_text() -> None:
+    """With ``layout_text_pages=False`` the text layer stays the text."""
+    layout = FakeLayout({1: "Docling text"}, figures={1: (b"a",)})
+    found = DocumentExtractors(
+        layout, layout_text_pages=False, captioner=FakeCaptioner()
+    ).extract(make_pdf(["Layer text here"]), "pdf")
+    assert found.text.startswith("## p. 1\n\nLayer text here")
+    assert "figura 1" in found.text
+
+
+def test_an_image_gets_a_caption_and_its_text() -> None:
+    """The picture itself is captioned besides being OCR'd."""
+    captioner = FakeCaptioner()
+    data = make_image("png")
+    found = DocumentExtractors(
+        FakeLayout({1: "Texto OCR"}), captioner=captioner
+    ).extract(data, "png")
+    assert captioner.images == [data]
+    assert found.text == (
+        "## p. 1\n\nTexto OCR\n\n> **Figura 1:** figura 1\n> Texto en la "
+        "figura: texto"
+    )
+    only = DocumentExtractors(FakeLayout({}), captioner=FakeCaptioner())
+    assert "figura 1" in only.extract(data, "png").text
+
+
+def test_image_markers_from_the_reader_are_dropped() -> None:
+    """Docling's ``<!-- image -->`` placeholder never reaches the index."""
+    assert page_sections({1: "A\n\n<!-- image -->\n\nB"}) == \
+        "## p. 1\n\nA\n\n\n\nB"
+
+
+def test_text_dropped_by_the_layout_model_comes_back() -> None:
+    """A page whose layout Markdown keeps too little uses its text layer."""
+    layout = FakeLayout({1: "short", 2: ""})
+    found = DocumentExtractors(layout).extract(
+        make_pdf(["A long sentence on the first page", "Second page text"]),
+        "pdf",
+    )
+    assert "A long sentence on the first page" in found.text
+    assert "## p. 2\n\nSecond page text" in found.text

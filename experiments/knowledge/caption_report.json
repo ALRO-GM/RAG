@@ -1,0 +1,62 @@
+{
+  "gpu_lease_free": false,
+  "device": "cpu",
+  "florence_base": {
+    "bar_chart": {
+      "caption": "The image shows a blue bar chart depicting the number of victims in Brazil from 2021 to 2024. The chart is accompanied by text at the top and bottom of the image.",
+      "text": "Victimas por año 2021 2022 2023 2024",
+      "seconds": 3.71
+    },
+    "pie_chart": {
+      "caption": "The image shows a pie chart with different colors representing the percentage of people who have been diagnosed with cancer. The chart is divided into sections, each representing a different percentage, and the text accompanying it provides further information about the data.",
+      "text": "Coche Moto Bici",
+      "seconds": 3.79
+    },
+    "flow_diagram": {
+      "caption": "The image shows a block diagram with the words \"Denuncia\", \"Alegaciones\", and \"Resolución\" written in black against a white background.",
+      "text": "Denuncia Alegaciones Resolución",
+      "seconds": 3.7
+    },
+    "stop_sign": {
+      "caption": "The image shows a red stop sign with the word \"STOP\" written on it against a white background.",
+      "text": "STOP",
+      "seconds": 2.87
+    },
+    "table_image": {
+      "caption": "The image shows a table with a number of different types of cars, including turismo, camiones, autopista, carrera, and poblado. The table is labeled with the names of the cars and their corresponding numbers.",
+      "text": "Vía Turismos Camiones Autopista 120 90 Carretera 90 80 Poblado 50 50",
+      "seconds": 4.81
+    }
+  },
+  "claude_haiku": {
+    "bar_chart": {
+      "caption": "Gráfico de barras azules titulado \"Víctimas por año\" que muestra valores para los años 2021 a 2024, con el pico más alto en 2022 y el más bajo en 2023.",
+      "text": "Víctimas por año 2021 2022 2023 2024",
+      "seconds": 2.07
+    },
+    "pie_chart": {
+      "caption": "Gráfico circular (de tarta) con tres sectores de colores que representan los medios de transporte \"Coche\" (rojo, el mayor sector), \"Moto\" (verde) y \"Bici\" (amarillo), con una leyenda a la derecha.",
+      "text": "Coche Moto Bici",
+      "seconds": 2.23
+    },
+    "flow_diagram": {
+      "caption": "Diagrama de flujo de tres etapas conectadas por flechas que muestra el proceso de un procedimiento: denuncia, alegaciones y resolución.",
+      "text": "Denuncia → Alegaciones → Resolución",
+      "seconds": 2.0
+    },
+    "stop_sign": {
+      "caption": "Señal de tráfico roja con forma octogonal (de STOP), con la palabra \"STOP\" en letras blancas mayúsculas en el centro.",
+      "text": "STOP",
+      "seconds": 1.86
+    },
+    "table_image": {
+      "caption": "Tabla con tres columnas (Vía, Turismos, Camiones) que muestra cifras para tres tipos de vía: Autopista (120 turismos, 90 camiones), Carretera (90 y 80) y Poblado (50 y 50).",
+      "text": "Vía Turismos Camiones Autopista 120 90 Carretera 90 80 Poblado 50 50",
+      "seconds": 2.1
+    }
+  },
+  "pdf_with_two_figures": {
+    "seconds": 6.45,
+    "text": "## p. 1\n\nInforme de siniestralidad\nLa figura muestra las víctimas.\n\n\n> **Figura 1:** The image shows a blue bar chart depicting the number of people who have been diagnosed with cancer in the United States. The chart is accompanied by text that provides further information about the data.\n> Texto en la figura: 2021 2022 2023 2024\n\n## p. 2\n\nProcedimiento sancionador El esquema resume los pasos."
+  }
+}

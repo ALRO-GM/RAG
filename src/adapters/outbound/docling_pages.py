@@ -14,16 +14,19 @@ the CPU. The converter of the other device is dropped (its memory is
 returned) when the device changes.
 """
 
+import importlib
 import io
 import logging
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from src.application.knowledge.ports import GpuGate
+from src.application.knowledge.ports import GpuGate, PageContent
 
 LOG = logging.getLogger(__name__)
 
 OCR_LANGUAGES = ("latin",)
 """RapidOCR recognition model: Latin script (Spanish, Catalan, English...)."""
+MIN_FIGURE_SIDE = 48
+"""Pictures with a shorter side (pixels) are icons or rules, not figures."""
 
 
 def docling_available() -> bool:
@@ -64,7 +67,7 @@ class DoclingPages:
         self.gpu = gpu
         self.languages = list(languages)
         self.document_timeout = document_timeout
-        self._converters: Dict[Tuple[bool, str], Any] = {}
+        self._converters: Dict[Tuple[bool, bool, str], Any] = {}
         self.device = "cpu"
 
     def pick_device(self) -> str:
@@ -75,13 +78,17 @@ class DoclingPages:
 
     def read_pages(
         self, data: bytes, kind: str, pages: Optional[Sequence[int]],
-        ocr: bool,
-    ) -> Dict[int, str]:
-        """Return the Markdown of each requested page (1-based)."""
+        ocr: bool, figures: bool = False,
+    ) -> Dict[int, PageContent]:
+        """Return each requested page (1-based): Markdown, figures if asked.
+
+        Figures are the pictures Docling found, as PNG, without the tiny
+        ones (icons, rules).
+        """
         from docling.datamodel.base_models import DocumentStream
 
         device = self.pick_device()
-        converter = self._converter(ocr, device)
+        converter = self._converter(ocr, figures, device)
         name = "document." + ("pdf" if kind == "pdf" else kind)
         stream = DocumentStream(name=name, stream=io.BytesIO(data))
         if pages:
@@ -91,15 +98,33 @@ class DoclingPages:
         else:
             result = converter.convert(stream)
         wanted = set(pages) if pages else None
-        found: Dict[int, str] = {}
-        for number in sorted(result.document.pages):
+        found: Dict[int, PageContent] = {}
+        document = result.document
+        for number in sorted(document.pages):
             if wanted is None or number in wanted:
-                found[number] = result.document.export_to_markdown(
-                    page_no=number
+                found[number] = PageContent(
+                    document.export_to_markdown(page_no=number),
+                    tuple(self._figures(document, number)) if figures else (),
                 )
         return found
 
-    def _converter(self, ocr: bool, device: str) -> Any:
+    def _figures(self, document: Any, number: int) -> List[bytes]:
+        """Return the pictures of one page as PNG bytes, in reading order."""
+        doc_types = importlib.import_module("docling_core.types.doc")
+        picture_item: Any = getattr(doc_types, "PictureItem")
+        found: List[bytes] = []
+        for item, _ in document.iterate_items(page_no=number):
+            if not isinstance(item, picture_item):
+                continue
+            image = item.get_image(document)
+            if image is None or min(image.size) < MIN_FIGURE_SIDE:
+                continue
+            buffer = io.BytesIO()
+            image.convert("RGB").save(buffer, "PNG")
+            found.append(buffer.getvalue())
+        return found
+
+    def _converter(self, ocr: bool, figures: bool, device: str) -> Any:
         """Return the converter for ``ocr`` on ``device`` (built once)."""
         if device != self.device:
             LOG.info("Document layout moves from %s to %s",
@@ -112,12 +137,12 @@ class DoclingPages:
 
                 gc.collect()
                 torch.cuda.empty_cache()
-        key = (ocr, device)
+        key = (ocr, figures, device)
         if key not in self._converters:
-            self._converters[key] = self._build(ocr, device)
+            self._converters[key] = self._build(ocr, figures, device)
         return self._converters[key]
 
-    def _build(self, ocr: bool, device: str) -> Any:
+    def _build(self, ocr: bool, figures: bool, device: str) -> Any:
         """Build a Docling converter for PDF and images."""
         from docling.datamodel.accelerator_options import AcceleratorOptions
         from docling.datamodel.base_models import InputFormat
@@ -134,6 +159,7 @@ class DoclingPages:
         options = PdfPipelineOptions(
             do_ocr=ocr, do_table_structure=True,
             document_timeout=self.document_timeout,
+            generate_picture_images=figures,
         )
         options.ocr_options = RapidOcrOptions(lang=self.languages)
         options.accelerator_options = AcceleratorOptions(device=device)

@@ -58,3 +58,52 @@ about 5 minutes with tables, 2 seconds without; the default keeps tables.
   first try.
 - Not measured: GPU speed, real scans of real documents, handwriting,
   skewed 2-column layouts, languages other than Spanish.
+
+A caveat on the text PDF numbers above: the generated text PDFs use
+hand-written, non-embedded fonts and Docling dropped the text of some of their
+pages (a page of 50 characters came back with 12). Real papers do not:
+on the 26-page Dialnet paper of the owner's downloads folder the
+Markdown of pages 1-12 kept 100-108 % of the characters of the text
+layer on 11 pages and 86 % on one. That is why the extractor compares each
+layout page with its text layer and keeps the layer when the layout kept
+less than 60 % of it (`MIN_LAYOUT_RATIO`).
+
+# Image captions (KN-2, #192)
+
+`caption_bench.py`, raw numbers in `caption_report.json`. Five synthetic
+figures drawn with Pillow (bar chart, pie chart, flow diagram, stop sign,
+table picture), CPU only again (live lease held; `gpu_lease_free: false`).
+Florence-2-base (`florence-community/Florence-2-base`, MIT, 0.23 B
+parameters, 447 MiB on disk, run in fp32 on the CPU).
+
+| Figure | Florence `<DETAILED_CAPTION>` | text (`<OCR_WITH_REGION>`) | s |
+|---|---|---|---|
+| bar chart | "blue bar chart depicting the number of victims in **Brazil** from 2021 to 2024" | `Victimas por año 2021 2022 2023 2024` | 3.7 |
+| pie chart | "pie chart … people who have been diagnosed with **cancer**" | `Coche Moto Bici` | 3.8 |
+| flow diagram | "block diagram with the words Denuncia, Alegaciones and Resolución" | `Denuncia Alegaciones Resolución` | 3.7 |
+| stop sign | "red stop sign with the word STOP" | `STOP` | 2.9 |
+| table picture | "a table with … turismo, camiones, autopista…" | all 12 cells | 4.8 |
+
+- Text in the figure is read correctly in 5/5 (the accent of `Víctimas` is lost
+  in the first). Captions describe the kind and the look of the figure
+  and are in **English**; two of five invent a subject (Brazil, cancer).
+  They help find a figure by what it shows; they are not data. The other
+  tasks were worse: `<MORE_DETAILED_CAPTION>` hallucinated more and ran on
+  (a paragraph with invented "cancer in the United States"), `<OCR>` glued
+  the words of a chart (`Victimas por año2021202220232024`).
+- Time: 3-5 s per figure on the CPU (two generations of ≤160 tokens, beam 3).
+  A document with 200 figures (the cap) is 10-15 minutes of batch work.
+- Claude through `claude -p` (haiku, same isolated mode as the judge, image
+  as a base64 block in `stream-json` input): **works**, 2.0-2.2 s per
+  image, Spanish, and noticeably better ("Tabla con tres columnas (Vía,
+  Turismos, Camiones) … Autopista (120 turismos, 90 camiones)", pie chart
+  with the three vehicle labels and the legend, no invented subject). It
+  sends the image out of the machine, so it is opt-in
+  (`KnowledgeSettings.caption_backend = "claude"`), not the default.
+- End to end on a generated two-page PDF with two embedded figures
+  (6.5 s): the page's text and the first figure's caption and text came
+  out under `## p. 1`; **the second figure was not found** by Docling on this
+  synthetic file. One real-world sample of two; no real documents tried.
+- Not measured: Florence-2-large (1.55 GB; not downloaded), GPU speed,
+  photos, scanned figures inside scanned pages (those are read as page text,
+  not as figures).

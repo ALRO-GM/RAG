@@ -1,6 +1,7 @@
 # Knowledge domains and document upload
 
-Status: built (PL-5 to PL-8, #142–#145, plus document upload). Design:
+Status: built (PL-5 to PL-8, #142–#145, plus document upload; OCR and image
+captions KN-1/KN-2, #191 and #192, optional group `ocr`). Design:
 `docs/platform/ARCHITECTURE.md` (Knowledge) and `docs/platform/CONTRACTS.md`
 §2–3. The 42 corpus and the benchmarks are not affected: their chunks
 carry no metadata and their index files are byte-identical.
@@ -198,4 +199,36 @@ the third command (torchvision for `cu126`, matching torch 2.14.1). Docling
 also needs `huggingface-hub < 2`: the venv went from 2.4.0 to 1.33.0, which
 `transformers` 5.20.2 (`>=1.31,<3`) accepts.
 
-Measurements: `experiments/knowledge/OCR.md`.
+If Docling returns far less text than a page's own text layer (under 60 %),
+the layer is used for that page. Measurements: `experiments/knowledge/OCR.md`.
+
+## 7. Image captions (KN-2, #192)
+
+Figures and images get a caption and the text written in them, indexed as
+part of their page. Needs the `ocr` group (the layout reader finds the
+figures). `KnowledgeSettings.caption_backend`:
+
+| Backend | Where it runs | Licence / size | Notes |
+|---|---|---|---|
+| `florence` (default) | local; GPU while the lease is free, else CPU | Florence-2-base `florence-community/Florence-2-base`, MIT, 447 MiB on disk (`caption_model` can name `…-large`, MIT, 1.55 GB, not tried) | `<DETAILED_CAPTION>` + `<OCR_WITH_REGION>`; captions in **English** and sometimes invented; 3-5 s per figure on the CPU |
+| `claude` | `claude -p` in isolated mode (no tools, no settings, subscription, never the paid API) | — | tested: accepts a base64 image in `stream-json` input; Spanish, better, 2 s per image; **the image leaves the machine**, so it is opt-in |
+| `off` | — | — | text and tables only |
+
+In the extracted Markdown a figure is
+
+```markdown
+## p. 4
+
+…text of the page…
+
+> **Figura 1:** The image shows a red stop sign with the word "STOP"…
+> Texto en la figura: STOP
+```
+
+so a chunk's title carries the page (`p. 4`) and the quote is found by the
+words of the caption and of the text in the figure. An uploaded image is
+OCR'd by the layout reader *and* captioned as a whole (page 1). At most
+`max_figures` (200) are captioned per document; pictures under 48 px are
+ignored. If the captioner cannot run (model not downloaded, out of memory)
+it is switched off for that document, logged, and the text is indexed
+without captions. Measurements and the samples: `experiments/knowledge/OCR.md`.
