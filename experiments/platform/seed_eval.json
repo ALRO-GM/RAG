@@ -1,0 +1,89 @@
+{
+  "interview.generic": {
+    "chunks": 65,
+    "results": [
+      {
+        "condition": "no filter",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 0.85,
+        "hit": 0.95,
+        "not_fully_found": [
+          "q01",
+          "q04",
+          "q06",
+          "q07",
+          "q17"
+        ]
+      },
+      {
+        "condition": "script_phase",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 0.875,
+        "hit": 1.0,
+        "not_fully_found": [
+          "q01",
+          "q04",
+          "q06",
+          "q07",
+          "q17"
+        ]
+      },
+      {
+        "condition": "intent + script_phase",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 1.0,
+        "hit": 1.0,
+        "not_fully_found": []
+      }
+    ]
+  },
+  "support.demo": {
+    "chunks": 67,
+    "results": [
+      {
+        "condition": "no filter",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 0.725,
+        "hit": 0.85,
+        "not_fully_found": [
+          "q01",
+          "q03",
+          "q06",
+          "q10",
+          "q11",
+          "q12",
+          "q16",
+          "q17"
+        ]
+      },
+      {
+        "condition": "script_phase",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 0.8,
+        "hit": 0.85,
+        "not_fully_found": [
+          "q01",
+          "q06",
+          "q10",
+          "q11",
+          "q17"
+        ]
+      },
+      {
+        "condition": "intent + script_phase",
+        "queries": 20,
+        "top_k": 5,
+        "recall": 0.975,
+        "hit": 1.0,
+        "not_fully_found": [
+          "q01"
+        ]
+      }
+    ]
+  }
+}

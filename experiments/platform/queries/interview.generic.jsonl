@@ -1,0 +1,20 @@
+{"id": "q01", "text": "cómo empiezo la sesión para que la persona esté más tranquila", "relevant": ["i01", "i04"], "intent": ["open_conversation"], "script_phase": ["opening"]}
+{"id": "q02", "text": "qué hago si se corta la videollamada", "relevant": ["i05"], "intent": ["explain_process"], "script_phase": ["opening"]}
+{"id": "q03", "text": "puedo grabar la entrevista", "relevant": ["i06"], "intent": ["explain_process"], "script_phase": ["opening"]}
+{"id": "q04", "text": "cómo averiguo qué hizo la persona y no su equipo", "relevant": ["i11", "i44"], "intent": ["follow_up"], "script_phase": ["behavioural", "experience"]}
+{"id": "q05", "text": "qué pregunto si hay un periodo sin trabajar en el currículum", "relevant": ["i14"], "intent": ["clarify"], "script_phase": ["experience"]}
+{"id": "q06", "text": "la respuesta es vaga y quiero un ejemplo concreto", "relevant": ["i13", "i37"], "intent": ["follow_up"], "script_phase": ["behavioural", "experience"]}
+{"id": "q07", "text": "cómo plantear un problema técnico sin presionar", "relevant": ["i19", "i20"], "intent": ["ask_technical"], "script_phase": ["technical"]}
+{"id": "q08", "text": "qué hago cuando se atasca resolviendo el ejercicio", "relevant": ["i26"], "intent": ["follow_up"], "script_phase": ["technical"]}
+{"id": "q09", "text": "pregunta sobre cómo se actualiza en su campo", "relevant": ["i30"], "intent": ["ask_technical"], "script_phase": ["technical"]}
+{"id": "q10", "text": "cómo pedir una historia sobre un plazo muy ajustado", "relevant": ["i31"], "intent": ["ask_behavioural"], "script_phase": ["behavioural"]}
+{"id": "q11", "text": "preguntar por críticas recibidas de su jefe", "relevant": ["i34"], "intent": ["ask_behavioural"], "script_phase": ["behavioural"]}
+{"id": "q12", "text": "puedo preguntar si piensa tener hijos", "relevant": ["i46"], "intent": ["legal_guard"], "script_phase": ["experience"]}
+{"id": "q13", "text": "se puede preguntar la edad de la candidata", "relevant": ["i45"], "intent": ["legal_guard"], "script_phase": ["experience"]}
+{"id": "q14", "text": "qué hacer si menciona por su cuenta una enfermedad", "relevant": ["i52", "i47"], "intent": ["legal_guard"], "script_phase": ["behavioural", "technical"]}
+{"id": "q15", "text": "preguntas prohibidas sobre religión o política", "relevant": ["i48"], "intent": ["legal_guard"], "script_phase": ["behavioural"]}
+{"id": "q16", "text": "cuánto cobraba en su anterior empresa", "relevant": ["i50"], "intent": ["legal_guard"], "script_phase": ["experience"]}
+{"id": "q17", "text": "dejar tiempo para que la persona haga sus preguntas", "relevant": ["i55", "i56"], "intent": ["candidate_question"], "script_phase": ["closing"]}
+{"id": "q18", "text": "explicar qué pasa después de la entrevista y cuándo tendrá noticias", "relevant": ["i57"], "intent": ["explain_process"], "script_phase": ["closing"]}
+{"id": "q19", "text": "tiene derecho a que borremos sus datos", "relevant": ["i62"], "intent": ["explain_process"], "script_phase": ["closing"]}
+{"id": "q20", "text": "prueba práctica posterior a la entrevista y si se paga", "relevant": ["i61"], "intent": ["close_process"], "script_phase": ["closing"]}

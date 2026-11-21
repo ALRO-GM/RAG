@@ -1,0 +1,20 @@
+{"id": "q01", "text": "cuántos días tengo para devolver un pedido", "relevant": ["s01", "s02"], "intent": ["returns"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q02", "text": "qué productos no se pueden devolver", "relevant": ["s03"], "intent": ["returns"], "script_phase": ["resolution"]}
+{"id": "q03", "text": "cuándo me llega el dinero de la devolución", "relevant": ["s04", "s20"], "intent": ["billing", "returns"], "script_phase": ["resolution"]}
+{"id": "q04", "text": "el paquete llegó roto qué necesito enviar", "relevant": ["s06", "s05"], "intent": ["returns"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q05", "text": "quiero cambiar la talla de lo que compré", "relevant": ["s07"], "intent": ["returns"], "script_phase": ["resolution"]}
+{"id": "q06", "text": "pasó el plazo de devolución pero el artículo está nuevo", "relevant": ["s08"], "intent": ["returns"], "script_phase": ["resolution"]}
+{"id": "q07", "text": "necesito la factura con los datos de mi empresa", "relevant": ["s13", "s12"], "intent": ["billing"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q08", "text": "me han cobrado dos veces", "relevant": ["s14"], "intent": ["billing"], "script_phase": ["diagnosis"]}
+{"id": "q09", "text": "cómo doy de baja la suscripción mensual", "relevant": ["s17", "s18"], "intent": ["billing"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q10", "text": "puedo pagar a plazos", "relevant": ["s15"], "intent": ["billing"], "script_phase": ["resolution"]}
+{"id": "q11", "text": "el pedido tarda más de lo prometido", "relevant": ["s24", "s22"], "intent": ["delivery"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q12", "text": "figura entregado pero no lo he recibido", "relevant": ["s25", "s26"], "intent": ["delivery"], "script_phase": ["resolution"]}
+{"id": "q13", "text": "cambiar la dirección de envío después de comprar", "relevant": ["s27"], "intent": ["delivery"], "script_phase": ["resolution"]}
+{"id": "q14", "text": "cuándo debe intervenir un supervisor", "relevant": ["s32", "s36"], "intent": ["escalation"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q15", "text": "el cliente amenaza con reclamar en consumo", "relevant": ["s34"], "intent": ["escalation"], "script_phase": ["resolution"]}
+{"id": "q16", "text": "el cliente dice que es la tercera vez que llama", "relevant": ["s43", "s42"], "intent": ["complaint", "stated_frustration"], "script_phase": ["diagnosis"]}
+{"id": "q17", "text": "necesito el regalo para el sábado", "relevant": ["s47", "s48"], "intent": ["urgency"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q18", "text": "voy a darme de baja y comprar en otra tienda", "relevant": ["s51", "s54"], "intent": ["churn_risk"], "script_phase": ["diagnosis"]}
+{"id": "q19", "text": "no entiendo por qué me cobran ese importe", "relevant": ["s58", "s55"], "intent": ["confusion"], "script_phase": ["diagnosis", "resolution"]}
+{"id": "q20", "text": "el cliente agradece y dice que está muy contento", "relevant": ["s59", "s60"], "intent": ["satisfaction"], "script_phase": ["closing"]}
