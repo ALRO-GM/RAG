@@ -107,7 +107,7 @@ background worker extracts, chunks and embeds one document at a time;
 documents left `queued`/`processing` by a restart are queued again
 when the server starts.
 
-Upload checks, before anything is stored: at most 50 MiB
+Upload checks, before anything is stored: at most 200 MiB
 (`max_upload_bytes`, `413`); type decided by the first bytes and the
 extension (`415`: wrong signature, legacy `.doc`/`.xls`, unknown
 extension, a ZIP that is not the announced DOCX/ODT/XLSX or unpacks

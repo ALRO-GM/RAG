@@ -189,7 +189,7 @@ class KnowledgeSettings(BaseModel):
     max_chunk_size: int = Field(default=1000, ge=100, le=2000)
     path_weight: int = Field(default=1, ge=0)
     context_weight: int = Field(default=3, ge=0)
-    max_upload_bytes: int = Field(default=50 * MiB, ge=1)
+    max_upload_bytes: int = Field(default=200 * MiB, ge=1)
 
 
 DEFAULT_SKILLS_EMBEDDING_MODEL = (
