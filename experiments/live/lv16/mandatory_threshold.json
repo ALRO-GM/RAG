@@ -1,0 +1,605 @@
+{
+  "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "sentences": 43,
+  "positive_sentences": 20,
+  "labelled_item_score": {
+    "min": 0.5264,
+    "max": 0.9186
+  },
+  "other_item_score_max": 0.7304,
+  "table": [
+    {
+      "threshold": 0.4,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 6,
+      "recall": 1.0,
+      "precision": 0.769
+    },
+    {
+      "threshold": 0.425,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 5,
+      "recall": 1.0,
+      "precision": 0.8
+    },
+    {
+      "threshold": 0.45,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 3,
+      "recall": 1.0,
+      "precision": 0.87
+    },
+    {
+      "threshold": 0.475,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 3,
+      "recall": 1.0,
+      "precision": 0.87
+    },
+    {
+      "threshold": 0.5,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 3,
+      "recall": 1.0,
+      "precision": 0.87
+    },
+    {
+      "threshold": 0.525,
+      "hits": 20,
+      "misses": 0,
+      "false_hits": 2,
+      "recall": 1.0,
+      "precision": 0.909
+    },
+    {
+      "threshold": 0.55,
+      "hits": 19,
+      "misses": 1,
+      "false_hits": 2,
+      "recall": 0.95,
+      "precision": 0.905
+    },
+    {
+      "threshold": 0.575,
+      "hits": 19,
+      "misses": 1,
+      "false_hits": 1,
+      "recall": 0.95,
+      "precision": 0.95
+    },
+    {
+      "threshold": 0.6,
+      "hits": 17,
+      "misses": 3,
+      "false_hits": 1,
+      "recall": 0.85,
+      "precision": 0.944
+    },
+    {
+      "threshold": 0.625,
+      "hits": 16,
+      "misses": 4,
+      "false_hits": 1,
+      "recall": 0.8,
+      "precision": 0.941
+    },
+    {
+      "threshold": 0.65,
+      "hits": 15,
+      "misses": 5,
+      "false_hits": 1,
+      "recall": 0.75,
+      "precision": 0.938
+    },
+    {
+      "threshold": 0.675,
+      "hits": 14,
+      "misses": 6,
+      "false_hits": 1,
+      "recall": 0.7,
+      "precision": 0.933
+    },
+    {
+      "threshold": 0.7,
+      "hits": 12,
+      "misses": 8,
+      "false_hits": 1,
+      "recall": 0.6,
+      "precision": 0.923
+    },
+    {
+      "threshold": 0.725,
+      "hits": 9,
+      "misses": 11,
+      "false_hits": 1,
+      "recall": 0.45,
+      "precision": 0.9
+    },
+    {
+      "threshold": 0.75,
+      "hits": 7,
+      "misses": 13,
+      "false_hits": 0,
+      "recall": 0.35,
+      "precision": 1.0
+    },
+    {
+      "threshold": 0.775,
+      "hits": 4,
+      "misses": 16,
+      "false_hits": 0,
+      "recall": 0.2,
+      "precision": 1.0
+    },
+    {
+      "threshold": 0.8,
+      "hits": 3,
+      "misses": 17,
+      "false_hits": 0,
+      "recall": 0.15,
+      "precision": 1.0
+    }
+  ],
+  "rows": [
+    {
+      "domain": "support.demo",
+      "item": "aviso-datos",
+      "text": "Un momento antes de nada: Lumbre Hogar usará sus datos personales solo para tramitar su petición, y tiene derecho a acceder a ellos, corregirlos o borrarlos.",
+      "scores": {
+        "aviso-datos": 0.7882,
+        "condiciones-contrato": 0.2087,
+        "desistimiento": 0.2821,
+        "aceptacion-expresa": 0.2649
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "aviso-datos",
+      "text": "Le comento que el tratamiento de sus datos cumple el reglamento europeo de protección de datos.",
+      "scores": {
+        "aviso-datos": 0.7202,
+        "condiciones-contrato": 0.2437,
+        "desistimiento": 0.071,
+        "aceptacion-expresa": 0.3473
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "aviso-datos",
+      "text": "Sus datos los gestiona Lumbre Hogar únicamente para esta solicitud, conforme a la ley de protección de datos.",
+      "scores": {
+        "aviso-datos": 0.6888,
+        "condiciones-contrato": 0.2159,
+        "desistimiento": 0.142,
+        "aceptacion-expresa": 0.2497
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "condiciones-contrato",
+      "text": "Le detallo lo que firma: son cuarenta euros al mes, un año de contrato y sin permanencia.",
+      "scores": {
+        "aviso-datos": 0.3154,
+        "condiciones-contrato": 0.5976,
+        "desistimiento": 0.5057,
+        "aceptacion-expresa": 0.4474
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "condiciones-contrato",
+      "text": "La cuota es fija cada mes con impuestos incluidos, el contrato es anual y puede darse de baja sin penalización.",
+      "scores": {
+        "aviso-datos": 0.2585,
+        "condiciones-contrato": 0.707,
+        "desistimiento": 0.4608,
+        "aceptacion-expresa": 0.2966
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "condiciones-contrato",
+      "text": "Las condiciones del contrato son estas: precio mensual cerrado, duración de doce meses y ninguna permanencia.",
+      "scores": {
+        "aviso-datos": 0.2507,
+        "condiciones-contrato": 0.8179,
+        "desistimiento": 0.6591,
+        "aceptacion-expresa": 0.5261
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "desistimiento",
+      "text": "Como lo contrata por teléfono, tiene catorce días para echarse atrás sin explicar el motivo.",
+      "scores": {
+        "aviso-datos": 0.3714,
+        "condiciones-contrato": 0.337,
+        "desistimiento": 0.737,
+        "aceptacion-expresa": 0.1655
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "desistimiento",
+      "text": "Recuerde que durante dos semanas puede desistir de la contratación sin ningún coste.",
+      "scores": {
+        "aviso-datos": 0.2803,
+        "condiciones-contrato": 0.3928,
+        "desistimiento": 0.6419,
+        "aceptacion-expresa": 0.4169
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "desistimiento",
+      "text": "Dispone de un plazo de desistimiento de 14 días naturales desde hoy.",
+      "scores": {
+        "aviso-datos": 0.1119,
+        "condiciones-contrato": 0.4715,
+        "desistimiento": 0.7588,
+        "aceptacion-expresa": 0.1872
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "aceptacion-expresa",
+      "text": "Entonces, ¿me confirma que acepta estas condiciones para dar de alta el contrato?",
+      "scores": {
+        "aviso-datos": 0.5026,
+        "condiciones-contrato": 0.5988,
+        "desistimiento": 0.4233,
+        "aceptacion-expresa": 0.8552
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "aceptacion-expresa",
+      "text": "Necesito que me diga expresamente si está de acuerdo con las condiciones para cerrar la contratación.",
+      "scores": {
+        "aviso-datos": 0.4431,
+        "condiciones-contrato": 0.4463,
+        "desistimiento": 0.3806,
+        "aceptacion-expresa": 0.7702
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": "aceptacion-expresa",
+      "text": "¿Da usted su conformidad a lo que le he leído para formalizar el alta?",
+      "scores": {
+        "aviso-datos": 0.2634,
+        "condiciones-contrato": 0.1699,
+        "desistimiento": 0.0889,
+        "aceptacion-expresa": 0.5264
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Buenos días, le atiende Marta de Lumbre Hogar, ¿en qué puedo ayudarle?",
+      "scores": {
+        "aviso-datos": 0.2619,
+        "condiciones-contrato": 0.1415,
+        "desistimiento": 0.1067,
+        "aceptacion-expresa": 0.2152
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Me puede decir su número de pedido, por favor.",
+      "scores": {
+        "aviso-datos": 0.4085,
+        "condiciones-contrato": 0.3123,
+        "desistimiento": 0.227,
+        "aceptacion-expresa": 0.3093
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Veo que la factura de marzo tiene un importe distinto, lo reviso ahora mismo.",
+      "scores": {
+        "aviso-datos": 0.2133,
+        "condiciones-contrato": 0.2192,
+        "desistimiento": 0.1862,
+        "aceptacion-expresa": 0.2283
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Le cambio la fecha de entrega al jueves por la tarde.",
+      "scores": {
+        "aviso-datos": 0.2341,
+        "condiciones-contrato": 0.3662,
+        "desistimiento": 0.4487,
+        "aceptacion-expresa": 0.3117
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Si quiere puede devolver el producto en cualquier tienda en treinta días.",
+      "scores": {
+        "aviso-datos": 0.1087,
+        "condiciones-contrato": 0.2965,
+        "desistimiento": 0.3433,
+        "aceptacion-expresa": 0.1565
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Entiendo que está molesto, voy a escalar su caso a un responsable.",
+      "scores": {
+        "aviso-datos": 0.4439,
+        "condiciones-contrato": 0.1317,
+        "desistimiento": 0.2335,
+        "aceptacion-expresa": 0.3816
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "¿Me confirma su dirección de correo electrónico para enviarle el resguardo?",
+      "scores": {
+        "aviso-datos": 0.5176,
+        "condiciones-contrato": 0.2039,
+        "desistimiento": 0.1826,
+        "aceptacion-expresa": 0.3795
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "El técnico pasará mañana entre las nueve y las doce.",
+      "scores": {
+        "aviso-datos": 0.188,
+        "condiciones-contrato": 0.2287,
+        "desistimiento": 0.303,
+        "aceptacion-expresa": 0.2531
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Le he aplicado un descuento del diez por ciento en la próxima factura.",
+      "scores": {
+        "aviso-datos": 0.2537,
+        "condiciones-contrato": 0.3738,
+        "desistimiento": 0.3575,
+        "aceptacion-expresa": 0.2883
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "¿Le puedo ayudar en algo más?",
+      "scores": {
+        "aviso-datos": 0.1393,
+        "condiciones-contrato": 0.0065,
+        "desistimiento": 0.0356,
+        "aceptacion-expresa": 0.1976
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Para darle de baja necesito que me confirme el titular del contrato.",
+      "scores": {
+        "aviso-datos": 0.5715,
+        "condiciones-contrato": 0.6111,
+        "desistimiento": 0.5667,
+        "aceptacion-expresa": 0.7304
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "El precio de la tarifa nueva es más alto que el de la anterior.",
+      "scores": {
+        "aviso-datos": 0.0059,
+        "condiciones-contrato": 0.2362,
+        "desistimiento": 0.0399,
+        "aceptacion-expresa": 0.0306
+      }
+    },
+    {
+      "domain": "support.demo",
+      "item": null,
+      "text": "Gracias por su paciencia, que tenga un buen día.",
+      "scores": {
+        "aviso-datos": 0.2589,
+        "condiciones-contrato": 0.1937,
+        "desistimiento": 0.1971,
+        "aceptacion-expresa": 0.3085
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "uso-datos",
+      "text": "Antes de empezar: lo que nos cuente solo se usará para este proceso de selección y lo borraremos pasado un tiempo.",
+      "scores": {
+        "uso-datos": 0.6013,
+        "aviso-asistente": 0.4852,
+        "siguientes-pasos": 0.3516
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "uso-datos",
+      "text": "Sus datos sirven únicamente para valorar su candidatura, y puede pedirnos que los eliminemos.",
+      "scores": {
+        "uso-datos": 0.9186,
+        "aviso-asistente": 0.3635,
+        "siguientes-pasos": 0.1651
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "uso-datos",
+      "text": "Le comento que guardamos sus datos solo mientras dure la selección.",
+      "scores": {
+        "uso-datos": 0.6923,
+        "aviso-asistente": 0.4172,
+        "siguientes-pasos": 0.2108
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "aviso-asistente",
+      "text": "Para que lo sepa, una herramienta va transcribiendo la conversación para mis notas, pero no decide nada.",
+      "scores": {
+        "uso-datos": 0.3112,
+        "aviso-asistente": 0.5787,
+        "siguientes-pasos": 0.3207
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "aviso-asistente",
+      "text": "Tengo un asistente que transcribe lo que hablamos; las decisiones las toma el equipo, no la máquina.",
+      "scores": {
+        "uso-datos": 0.3374,
+        "aviso-asistente": 0.6519,
+        "siguientes-pasos": 0.4068
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "siguientes-pasos",
+      "text": "Lo siguiente será una prueba técnica y en unas dos semanas le diremos algo.",
+      "scores": {
+        "uso-datos": 0.3112,
+        "aviso-asistente": 0.3499,
+        "siguientes-pasos": 0.7658
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "siguientes-pasos",
+      "text": "Le escribiremos con la decisión en un plazo de quince días más o menos.",
+      "scores": {
+        "uso-datos": 0.2903,
+        "aviso-asistente": 0.3194,
+        "siguientes-pasos": 0.7184
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": "siguientes-pasos",
+      "text": "Después de hoy viene una entrevista con el equipo y tendrá respuesta en dos semanas.",
+      "scores": {
+        "uso-datos": 0.2111,
+        "aviso-asistente": 0.4498,
+        "siguientes-pasos": 0.7428
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "Cuénteme un poco sobre su último proyecto.",
+      "scores": {
+        "uso-datos": 0.2197,
+        "aviso-asistente": 0.1068,
+        "siguientes-pasos": 0.3653
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "¿Cómo gestionó el despliegue de ese servicio en producción?",
+      "scores": {
+        "uso-datos": 0.0711,
+        "aviso-asistente": 0.0939,
+        "siguientes-pasos": 0.2313
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "¿Qué le motivó a presentarse a esta oferta?",
+      "scores": {
+        "uso-datos": 0.2455,
+        "aviso-asistente": 0.2605,
+        "siguientes-pasos": 0.2281
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "Hábleme de una vez que tuvo un desacuerdo con un compañero.",
+      "scores": {
+        "uso-datos": 0.0923,
+        "aviso-asistente": 0.297,
+        "siguientes-pasos": 0.2542
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "¿Tiene alguna pregunta sobre el puesto?",
+      "scores": {
+        "uso-datos": 0.1295,
+        "aviso-asistente": 0.2897,
+        "siguientes-pasos": 0.2767
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "El equipo trabaja con Python y despliega en la nube.",
+      "scores": {
+        "uso-datos": 0.0952,
+        "aviso-asistente": 0.1438,
+        "siguientes-pasos": 0.1476
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "Gracias por venir, ha sido un placer hablar con usted.",
+      "scores": {
+        "uso-datos": 0.0409,
+        "aviso-asistente": 0.2017,
+        "siguientes-pasos": 0.3086
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "¿Qué base de datos usaron y por qué?",
+      "scores": {
+        "uso-datos": 0.2769,
+        "aviso-asistente": 0.1897,
+        "siguientes-pasos": 0.1503
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "Le voy a hacer unas preguntas sobre su experiencia técnica.",
+      "scores": {
+        "uso-datos": 0.2363,
+        "aviso-asistente": 0.2445,
+        "siguientes-pasos": 0.5597
+      }
+    },
+    {
+      "domain": "interview.generic",
+      "item": null,
+      "text": "¿Cuánto tiempo estuvo en su empresa anterior?",
+      "scores": {
+        "uso-datos": 0.1547,
+        "aviso-asistente": 0.0956,
+        "siguientes-pasos": 0.2767
+      }
+    }
+  ]
+}

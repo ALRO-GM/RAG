@@ -18,10 +18,12 @@ answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8);
 same as NDJSON lines: the model's text pieces as it writes them, then
 the response (VB-2, the voice bot speaks before the reply ends);
 ``/knowledge/domains`` lists, creates and deletes domains and uploads,
-relabels and deletes their documents (``docs/KNOWLEDGE.md``).
-These routes need a bearer token, compared in constant time; when no
-token is configured they are not mounted at all, so they are never
-open.
+relabels and deletes their documents (``docs/KNOWLEDGE.md``);
+``GET /knowledge/domains/{id}/mandatory`` gives a domain's mandatory
+script items and ``POST /knowledge/mandatory`` tells which of them an
+employee's sentence says (LV-16). These routes need a bearer token,
+compared in constant time; when no token is configured they are not
+mounted at all, so they are never open.
 """
 
 import asyncio
@@ -38,6 +40,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.pipeline_settings import PipelineSettings
 from src.application.reasoning import Reasoner
@@ -185,11 +188,13 @@ class KnowledgeRoutes:
     """What the knowledge routes need.
 
     ``query`` answers ``POST /knowledge/query``; ``library`` (optional)
-    adds the domain and document routes.
+    adds the domain and document routes; ``mandatory`` (optional) the
+    mandatory items of a domain and their check (LV-16).
     """
 
     query: KnowledgeQueryService
     library: Optional[KnowledgeLibrary] = None
+    mandatory: Optional[MandatoryItems] = None
 
 
 @dataclass(frozen=True)
@@ -607,8 +612,45 @@ def mount_knowledge(
             raise analysis_error(exc)
         return JSONResponse(result.model_dump(mode="json", by_alias=True))
 
+    if routes.mandatory is not None:
+        mount_mandatory(app, routes.mandatory, guard)
     if routes.library is not None:
         mount_library(app, routes.library, guard)
+
+
+def mount_mandatory(
+    app: FastAPI, mandatory: MandatoryItems, guard: List[Any]
+) -> None:
+    """Add a domain's mandatory items and their check behind ``guard``."""
+
+    @app.get("/knowledge/domains/{domain_id}/mandatory", dependencies=guard)
+    async def mandatory_items(domain_id: str) -> JSONResponse:
+        """The domain's versioned list (version 0, no items, if none)."""
+        try:
+            listed = await run_in_threadpool(mandatory.items, domain_id)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(dict(listed))
+
+    @app.post("/knowledge/mandatory", dependencies=guard)
+    async def mandatory_check(request: Request) -> JSONResponse:
+        """``{"domain", "text"}``: how close the text is to each item."""
+        body = await read_body(request, KNOWLEDGE_QUERY_MAX_BYTES)
+        try:
+            data = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="body is not JSON")
+        domain = data.get("domain") if isinstance(data, dict) else None
+        text = data.get("text") if isinstance(data, dict) else None
+        if not isinstance(domain, str) or not isinstance(text, str):
+            raise HTTPException(
+                status_code=422, detail="domain and text are required"
+            )
+        try:
+            found = await run_in_threadpool(mandatory.check, domain, text)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(dict(found))
 
 
 def mount_reason(

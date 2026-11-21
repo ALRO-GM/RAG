@@ -64,7 +64,7 @@ from transcriber.domain.errors import (
     StateError,
     TranscriberError,
 )
-from transcriber.domain.live import EndpointSettings, LiveSpeaker
+from transcriber.domain.live import EndpointSettings, LiveSpeaker, renamed
 from transcriber.domain.live_session import (
     AudioBacklog,
     LiveServiceSettings,
@@ -408,6 +408,21 @@ class LiveSessions:
             session = self._sessions.get(session_id)
         if session is None:
             raise NotFoundError(f"no live session {session_id}")
+        return session
+
+    def rename(self, session_id: str, speaker: str, name: str) -> LiveSession:
+        """Name a speaker of a running session (its hand-off uses it).
+
+        The page names the voices during the session (LV-16); the name
+        goes into the ``transcript.v1`` speakers at the end.
+        """
+        session = self.get(session_id)
+        if not session.active:
+            raise StateError(f"live session {session_id} has ended")
+        try:
+            session.speakers = renamed(session.speakers, speaker, name)
+        except ValueError as exc:
+            raise InvalidInputError(str(exc)) from exc
         return session
 
     def stop(self, session_id: str, timeout: float = 60.0) -> LiveSession:

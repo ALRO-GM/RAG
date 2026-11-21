@@ -26,11 +26,14 @@ export const COST = {
   "knowledge.captions": { florence: "local", claude: "cloud" },
 };
 
+/** Steps that change no cost: how long to wait, and what the live page shows. */
+export const NO_COST = ["live.deadline", "live.assist_mode", "live.max_suggestions", "live.show_employee", "live.show_other"];
+
 /** The cost chip of `option` of `step`: local unless said otherwise. */
 export function costOf(step, option) {
   const listed = COST[step];
   if (listed) return listed[option] ?? null;
-  return step === "live.deadline" ? null : "local";
+  return NO_COST.includes(step) ? null : "local";
 }
 
 /** The steps of `catalogue` grouped: [{ group, steps }] in page order. */

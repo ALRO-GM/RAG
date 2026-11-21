@@ -175,6 +175,13 @@
         },
         "stream": {
           "type": "boolean"
+        },
+        "mode": {
+          "enum": [
+            "pincelada",
+            "guiado"
+          ],
+          "description": "how a @2 suggester template phrases its help: pincelada (a hint of at most 8 words) or guiado (the exact sentence to say); other templates ignore it"
         }
       }
     }

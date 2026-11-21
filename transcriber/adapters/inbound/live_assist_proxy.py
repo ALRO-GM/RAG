@@ -9,12 +9,13 @@ dependency), and the orchestrator's bearer token is added on the way
 
 Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
-``barge-in`` (the voice bot), ``suggestions/stream`` and
-``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»), and session
-ids are checked; the stream is passed through as it comes (Server-Sent
-Events, with the voice bot's audio inside). It is an inbound adapter that
-talks HTTP itself on purpose: it adds no behaviour to the transcriber,
-so there is no use case to put behind it.
+``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
+``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
+``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»), and
+session, speaker and item ids are checked; the stream is passed through
+as it comes (Server-Sent Events, with the voice bot's audio inside). It
+is an inbound adapter that talks HTTP itself on purpose: it adds no
+behaviour to the transcriber, so there is no use case to put behind it.
 
 ``TRANSCRIBER_ORCHESTRATOR_URL`` changes the address (default
 ``http://127.0.0.1:8772``).
@@ -34,7 +35,8 @@ URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
     rf"^(?:products|transcripts|sessions|sessions/{_ID}|voicebot/sample"
-    rf"|sessions/{_ID}/(?:replay|stop|barge-in|suggestions/stream))$"
+    rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
+    rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}}))$"
 )
 MAX_BODY = 16 * 1024
 TIMEOUT = 45.0
@@ -121,6 +123,27 @@ def add_live_assist_proxy(
     async def assist_barge_in(session_id: str, request: Request) -> Response:
         """The user spoke over the voice bot."""
         return await forward(f"sessions/{session_id}/barge-in", request)
+
+    @api.post("/assist/sessions/{session_id}/mode")
+    async def assist_mode(session_id: str, request: Request) -> Response:
+        """Switch the assistance mode."""
+        return await forward(f"sessions/{session_id}/mode", request)
+
+    @api.post("/assist/sessions/{session_id}/speakers/{speaker}")
+    async def assist_rename(
+        session_id: str, speaker: str, request: Request
+    ) -> Response:
+        """Name a speaker of the session."""
+        return await forward(f"sessions/{session_id}/speakers/{speaker}",
+                             request)
+
+    @api.post("/assist/sessions/{session_id}/mandatory/{item}")
+    async def assist_tick(
+        session_id: str, item: str, request: Request
+    ) -> Response:
+        """Tick a mandatory item by hand (after confirming)."""
+        return await forward(f"sessions/{session_id}/mandatory/{item}",
+                             request)
 
     @api.post("/assist/voicebot/sample")
     async def assist_sample(request: Request) -> Response:

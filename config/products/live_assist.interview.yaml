@@ -6,7 +6,7 @@ vad: {model: silero-v5, hang_ms: 500}
 asr: {kind: stream, model: faster-whisper-large-v3-turbo-int8, partial_every_ms: 800}
 attribution: {kind: channels}
 knowledge: {domains: [interview.generic], top_k: 4, filters_from: [script_phase]}
-reasoner: {role: suggester, model: haiku, template: "suggester.interview@1", deadline_ms: 1800, max_inflight: 1}
+reasoner: {role: suggester, model: haiku, template: "suggester.interview@2", deadline_ms: 1800, max_inflight: 1}
 trigger: {on: final, speaker_roles: [candidate], min_words: 4, debounce_ms: 300, cancel_stale: true}
 ui: {kind: live_page, script_phases: [opening, experience, technical, behavioural, closing]}
 privacy: {store_audio: false, store_text_days: 30, banner: "interview_ai_notice@1"}

@@ -32,6 +32,12 @@ SIGNALS: Tuple[Signal, ...] = (
 
 Backend = Literal["claude-code", "anthropic-api", "local", "opencode"]
 
+AssistMode = Literal["pincelada", "guiado"]
+ASSIST_MODES: Tuple[AssistMode, ...] = ("pincelada", "guiado")
+"""How a ``@2`` suggester phrases its help: ``pincelada`` a hint of a
+few words saying where to steer, ``guiado`` the exact sentence or
+question to say (``docs/live/ASSIST_MODES.md``)."""
+
 MAX_SUGGESTION_CHARS = 300
 """Longest suggestion text or rationale (the contract's limit)."""
 
@@ -86,6 +92,7 @@ class Constraints(_Strict):
     max_suggestions: Optional[int] = Field(default=None, ge=0, le=5)
     deadline_ms: Optional[int] = Field(default=None, ge=1)
     stream: Optional[bool] = None
+    mode: Optional[AssistMode] = None
 
 
 class ReasonRequest(_Strict):

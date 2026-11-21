@@ -13,7 +13,9 @@ is made in the session (skip reason ``halted``), as the design says
 (``ARCHITECTURE.md`` §6). The suggestions are prepared by
 :func:`~orchestrator.domain.signals.present`: expressed customer
 signals are quoted and rank them in support, and are removed in every
-other product. Transcript text is never logged here.
+other product. The assistance mode (``pincelada`` or ``guiado``, LV-16)
+goes in the request's constraints and can change between two calls.
+Transcript text is never logged here.
 """
 
 import threading
@@ -98,6 +100,9 @@ class LiveAssist:
         self._texts: Dict[str, Tuple[str, str]] = {}
         self.signal_history: Dict[str, int] = {}
         self.halted: Optional[str] = None
+        self.mode: Optional[str] = config.reasoner.mode
+        """Assistance mode sent to the ``@2`` templates; the page may
+        switch it during the session (the next call uses it)."""
 
     def on_event(self, event: LiveEvent) -> None:
         """Handle one event: keep the window, maybe start a call."""
@@ -182,6 +187,7 @@ class LiveAssist:
             self._close(record, stages, started, token, "cancelled")
             return
         request = self._request(event, firing, request_id, window, chunks)
+        record.mode = request["constraints"].get("mode")
         asked = self.clock.now()
         status: CallStatus = "error"
         try:
@@ -266,6 +272,9 @@ class LiveAssist:
         constraints: Dict[str, Any] = {"max_suggestions": cfg.max_suggestions}
         if cfg.deadline_ms:
             constraints["deadline_ms"] = cfg.deadline_ms
+        if self.mode or (cfg.template or "").endswith("@2"):
+            # @2 templates always get their mode, so each record says it.
+            constraints["mode"] = self.mode or "pincelada"
         request: Document = {
             "schema": "reasoner.request.v1", "request_id": request_id,
             "role": cfg.role, "model": cfg.model,

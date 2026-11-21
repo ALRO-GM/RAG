@@ -1,8 +1,8 @@
-"""Suggestion sink: one JSON line per reasoner call."""
+"""Suggestion sink: one JSON line per reasoner call; hand-off records."""
 
 import json
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 
@@ -61,3 +61,36 @@ class JsonlTurns:
                           ensure_ascii=False)
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
+
+
+class JsonHandoff:
+    """Write a session's hand-off record as one JSON file (LV-16).
+
+    Args:
+        path: The file to write when the session ends; its folder is
+            created then.
+    """
+
+    def __init__(self, path: Path):
+        """Keep the path; nothing is written yet."""
+        self.path = path
+
+    def write(self, record: Dict[str, Any]) -> None:
+        """Write ``record`` (names, mode, mandatory items)."""
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(
+            json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+
+class MemoryHandoff:
+    """Keep the hand-off records in a list (tests)."""
+
+    def __init__(self) -> None:
+        """Start empty."""
+        self.records: List[Dict[str, Any]] = []
+
+    def write(self, record: Dict[str, Any]) -> None:
+        """Keep ``record``."""
+        self.records.append(record)

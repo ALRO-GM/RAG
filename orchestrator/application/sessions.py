@@ -25,6 +25,17 @@ feed carries ``{"type": "bot"}`` (a turn started), ``{"type":
 record and latency), and :meth:`LiveSessions.barge_in` stops it. The
 audio of a turn is dropped from the feed once a newer turn starts, so
 the feed does not keep a session's audio.
+
+LV-16 adds, for live-page sessions: the **employee** chosen at the
+start (an enrolled person: in stereo they name the employee's channel,
+on one microphone their voiceprint marks their voice among the others,
+which are the other party); **names** given to speakers during the
+session (``{"type": "rename"}``, sent to the transcriber for the
+``transcript.v1`` hand-off); the **assistance mode** switched live
+(``{"type": "mode"}``); the **mandatory items** of the product's
+domain (``{"type": "mandatory"}``, :mod:`.mandatory`); and a
+**hand-off record** written at the end (``{"type": "handoff"}``: names,
+mode, what was said, ticked and left unsaid).
 """
 
 import re
@@ -36,14 +47,17 @@ from typing import (
 
 from orchestrator.application.feed import Feed
 from orchestrator.application.live_assist import LiveAssist
+from orchestrator.application.mandatory import MandatoryTracker, TickRefused
 from orchestrator.application.ports import (
     CancelToken,
     Clock,
     Document,
     EventSource,
     Executor,
+    HandoffSink,
     KnowledgePort,
     LiveTranscriber,
+    MandatoryPort,
     ReasonerPort,
     Runner,
     SettingsSource,
@@ -69,7 +83,12 @@ from orchestrator.application.voice import (
 from orchestrator.application.voicebot import VoiceBot
 from orchestrator.domain.config import ProductConfig, Tts
 from orchestrator.domain.events import LiveEvent
-from orchestrator.domain.live_choices import apply_live_choices, voice_choices
+from orchestrator.domain.live_choices import (
+    MODES,
+    apply_live_choices,
+    voice_choices,
+)
+from orchestrator.domain.mandatory import EMPLOYEE_ROLES
 from orchestrator.domain.voices import VoicePlan, VoiceProfile, plan_voice
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 
@@ -81,6 +100,10 @@ MIN_SPEED, MAX_SPEED = 0.25, 20.0
 UI_KINDS = ("live_page", "speaker")
 """The products served here: the live page's and the voice bot's."""
 SESSION_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$"
+PERSON_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+"""An enrolled person's id or a speaker id (the contracts' pattern)."""
+MAX_NAME = 60
+"""Longest name a speaker can be given."""
 
 
 class _Assistant(Protocol):
@@ -125,10 +148,23 @@ class _Session:
     assist: Optional[_Assistant] = None
     sinks: List[SuggestionSink] = field(default_factory=list)
     by_status: Dict[str, int] = field(default_factory=dict)
+    employee: Optional[Dict[str, str]] = None
+    names: Dict[str, str] = field(default_factory=dict)
+    renames: List[Document] = field(default_factory=list)
+    tracker: Optional[MandatoryTracker] = None
+    handoff: Optional[Document] = None
+
+    @property
+    def assist_mode(self) -> Optional[str]:
+        """The assistance mode of a live-assist session."""
+        if isinstance(self.assist, LiveAssist):
+            return self.assist.mode or MODES[0]
+        return None
 
     def view(self) -> Document:
         """Return the session as JSON."""
         assist = self.assist
+        tracker = self.tracker
         return {
             "id": self.id, "product": self.product.product,
             "mode": self.mode, "audio": self.audio,
@@ -140,11 +176,16 @@ class _Session:
             "messages": self.feed.last, "page": page_info(
                 self.product, self.roles
             ),
+            "employee": self.employee, "names": dict(self.names),
+            "assist_mode": self.assist_mode,
+            "mandatory": tracker.view() if tracker and tracker.active
+            else None,
+            "handoff": self.handoff,
         }
 
 
 class _Handler:
-    """Sends a session's events to the feed and to the use case."""
+    """Sends a session's events to the feed and to the use cases."""
 
     def __init__(self, session: _Session, assist: _Assistant):
         """Keep the session."""
@@ -152,16 +193,20 @@ class _Handler:
         self.assist = assist
 
     def on_event(self, event: LiveEvent) -> None:
-        """Show the event, then let the use case decide on it."""
+        """Show the event, then let the use cases decide on it."""
         self.session.events += 1
         self.session.feed.publish(
             {"type": "event", "event": event.to_contract()}
         )
         self.assist.on_event(event)
+        if self.session.tracker is not None:
+            self.session.tracker.on_event(event)
 
     def finish(self) -> None:
-        """Wait for the call in flight."""
+        """Wait for the call and the checks in flight."""
         self.assist.finish()
+        if self.session.tracker is not None:
+            self.session.tracker.finish()
 
 
 class _FeedSink:
@@ -218,8 +263,12 @@ def page_info(config: ProductConfig, roles: Mapping[str, str]) -> Document:
     """What the live page needs to know about a product."""
     reasoner = config.reasoner
     trigger = config.trigger
+    modes = bool(reasoner and reasoner.template
+                 and reasoner.template.startswith("suggester.")
+                 and reasoner.template.endswith("@2"))
     return {
         "product": config.product, "language": config.language,
+        "modes": list(MODES) if modes else [],
         "kind": config.ui.kind if config.ui else None,
         "banner": config.privacy.banner,
         "signals": bool(reasoner and reasoner.expressed_signals),
@@ -255,8 +304,12 @@ class LiveSessions:
         new_id: Makes an id for a live session started without one.
         keep: Ended sessions kept.
         settings: The pipeline settings saved on «Ajustes», read when a
-            session starts (reasoner model, deadline, mono diarization;
-            ``None``: the products as written).
+            session starts (reasoner model, deadline, mono diarization,
+            assistance mode; ``None``: the products as written).
+        mandatory: The mandatory items of the knowledge domains
+            (``None``: no checklist).
+        handoff: Makes the hand-off sink of a session (``session id``,
+            ``product``), or ``None`` for no record.
         profiles: The enrolled people's voice profiles (rate matching
             and cloning; ``None``: neither).
         cloner: The voice-cloning model (``None``: Piper only).
@@ -281,6 +334,8 @@ class LiveSessions:
         tts: Optional[TextToSpeech] = None,
         turn_log: Optional[Callable[[str, str], TurnSink]] = None,
         settings: Optional[SettingsSource] = None,
+        mandatory: Optional[MandatoryPort] = None,
+        handoff: Optional[Callable[[str, str], HandoffSink]] = None,
         profiles: Optional[VoiceProfiles] = None,
         cloner: Optional[VoiceCloner] = None,
         clone_budget_ms: float = DEFAULT_BUDGET_MS,
@@ -306,6 +361,8 @@ class LiveSessions:
         self.new_id = new_id
         self.keep = keep
         self.settings = settings
+        self.mandatory = mandatory
+        self.handoff_sink = handoff
         self.profiles = profiles
         self.cloner = cloner
         self.clone_budget_ms = clone_budget_ms
@@ -347,10 +404,16 @@ class LiveSessions:
         product: str,
         transcript_id: str,
         speed: Optional[float] = 1.0,
+        employee: Optional[Mapping[str, Any]] = None,
     ) -> Document:
-        """Replay a recorded conversation as if it were live."""
+        """Replay a recorded conversation as if it were live.
+
+        ``employee`` (``{"id", "name"}``) names the transcript's speaker
+        with the employee's role.
+        """
         config = self._product(product)
         _check_id(session_id)
+        person = check_employee(employee)
         if speed is not None and not MIN_SPEED <= speed <= MAX_SPEED:
             raise SessionError(
                 "invalid_request",
@@ -363,7 +426,14 @@ class LiveSessions:
                 "not_found", f"no transcript {transcript_id!r}"
             ) from exc
         roles = default_roles(config, transcript)
-        session = self._open(session_id, config, "replay", roles)
+        names: Dict[str, str] = {}
+        speaker = next((s for s, r in roles.items() if r in EMPLOYEE_ROLES),
+                       None)
+        if person is not None and speaker is not None:
+            person = {**person, "role": roles[speaker], "speaker": speaker}
+            names[speaker] = person["name"]
+        session = self._open(session_id, config, "replay", roles,
+                             person if speaker else None, names)
         session.transcript = transcript_id
         assist = self._assist(session, {
             "type": transcript.session.type, "goal": transcript.session.goal,
@@ -386,10 +456,18 @@ class LiveSessions:
         return session.view()
 
     def start_live(
-        self, product: str, audio: str, session_id: Optional[str] = None
+        self, product: str, audio: str, session_id: Optional[str] = None,
+        employee: Optional[Mapping[str, Any]] = None,
     ) -> Document:
-        """Start a live session on the transcriber and follow it."""
-        config = self._product(product)
+        """Start a live session on the transcriber and follow it.
+
+        ``employee`` (``{"id", "name"}``, an enrolled person) names the
+        employee's channel in stereo; on one microphone their voiceprint
+        marks their voice (unless «Ajustes» turned the diarization off).
+        """
+        choices = self.settings.current() if self.settings else None
+        config = self._product(product, choices)
+        person = check_employee(employee)
         if self.transcriber is None or self.events is None:
             raise SessionError(
                 "unavailable", "no transcriber is linked for live sessions"
@@ -400,14 +478,31 @@ class LiveSessions:
             )
         session_id = session_id or self.new_id()
         _check_id(session_id)
-        speakers = live_speakers(config, audio)
+        voiceprint = (person is not None and audio == "mic"
+                      and (choices or {}).get("live.diarization") != "off")
+        speakers = live_speakers(config, audio, person, voiceprint)
         roles = {s["id"]: s["role"] for s in speakers}
-        session = self._open(session_id, config, "live", roles)
+        names = {s["id"]: s["name"] for s in speakers if s.get("name")}
+        if person is not None:
+            role = employee_role(config)
+            if voiceprint:
+                roles[person["id"]] = role
+                names[person["id"]] = person["name"]
+                person = {**person, "role": role, "speaker": person["id"]}
+            else:
+                speaker = next((s["id"] for s in speakers
+                                if s["role"] == role), None)
+                person = ({**person, "role": role, "speaker": speaker}
+                          if speaker else None)
+        session = self._open(session_id, config, "live", roles, person,
+                             names)
         session.audio = audio
         try:
-            started = self.transcriber.start(
-                transcriber_body(config, session_id, speakers)
-            )
+            started = self.transcriber.start(transcriber_body(
+                config, session_id, speakers,
+                diarize=True if voiceprint else None,
+                enrolled=[person["id"]] if voiceprint and person else None,
+            ))
         except TranscriberUnavailable as exc:
             session.error = str(exc)
             self._end(session, "failed")
@@ -464,13 +559,15 @@ class LiveSessions:
 
     # ---- internals -----------------------------------------------------
 
-    def _product(self, name: str) -> ProductConfig:
+    def _product(
+        self, name: str, choices: Optional[Mapping[str, str]] = None
+    ) -> ProductConfig:
         config = self.products.get(name)
         if config is None:
             raise SessionError("not_found", f"no live product {name!r}")
-        if self.settings is None:
-            return config
-        return apply_live_choices(config, self.settings.current())
+        if choices is None and self.settings is not None:
+            choices = self.settings.current()
+        return apply_live_choices(config, choices)
 
     def _plan(self, tts: Tts) -> VoicePlan:
         """Decide the voice of ``tts`` from the people's profiles."""
@@ -547,6 +644,8 @@ class LiveSessions:
         config: ProductConfig,
         mode: str,
         roles: Dict[str, str],
+        employee: Optional[Dict[str, str]] = None,
+        names: Optional[Dict[str, str]] = None,
     ) -> _Session:
         """Register a new running session (one at a time)."""
         with self._lock:
@@ -558,7 +657,8 @@ class LiveSessions:
                 raise SessionError("busy", "a session is already running")
             session = _Session(
                 id=session_id, product=config, mode=mode, roles=roles,
-                feed=Feed(), stop_token=CancelToken(),
+                feed=Feed(), stop_token=CancelToken(), employee=employee,
+                names=dict(names or {}),
             )
             self._sessions[session_id] = session
             ended = [k for k, s in self._sessions.items()
@@ -597,10 +697,20 @@ class LiveSessions:
             session.roles, about,
         )
         session.assist = assist
+        knowledge = session.product.knowledge
+        if self.mandatory is not None and knowledge is not None:
+            tracker = MandatoryTracker(
+                self.mandatory, knowledge.domains[0], session.roles,
+                session.feed.publish, self.executor(),
+            )
+            session.tracker = tracker
+            tracker.start()
         return assist
 
     def _end(self, session: _Session, state: str = "ended") -> None:
-        """Mark the session ended and close its feed."""
+        """Mark the session ended, hand it off and close its feed."""
+        if isinstance(session.assist, LiveAssist):
+            self._hand_off(session)
         with self._lock:
             session.state = state
         if isinstance(session.assist, VoiceBot) and isinstance(
@@ -610,6 +720,83 @@ class LiveSessions:
         session.feed.publish({"type": "status", "session": session.view()})
         session.feed.close()
 
+    def _hand_off(self, session: _Session) -> None:
+        """Publish and keep the session's hand-off record (LV-16)."""
+        tracker = session.tracker
+        record: Document = {
+            "session_id": session.id, "product": session.product.product,
+            "assist_mode": session.assist_mode,
+            "employee": session.employee,
+            "names": dict(session.names), "renames": list(session.renames),
+            "mandatory": tracker.summary() if tracker else None,
+        }
+        session.handoff = record
+        session.feed.publish({"type": "handoff", "handoff": record})
+        if self.handoff_sink is not None:
+            try:
+                self.handoff_sink(session.id, session.product.product
+                                  ).write(record)
+            except OSError:
+                session.feed.publish({
+                    "type": "notice", "code": "handoff_not_kept",
+                    "message": "the hand-off record was not written",
+                })
+
+    # ---- during a session (LV-16) ------------------------------------
+
+    def set_mode(self, session_id: str, mode: str) -> Document:
+        """Switch the assistance mode; the next call uses it."""
+        session = self._running(session_id)
+        if mode not in MODES:
+            raise SessionError("invalid_request",
+                               f"mode must be one of {MODES}")
+        if not isinstance(session.assist, LiveAssist) \
+                or not page_info(session.product, {})["modes"]:
+            raise SessionError("wrong_state",
+                               "this session has no assistance modes")
+        session.assist.mode = mode
+        session.feed.publish({"type": "mode", "mode": mode})
+        return {"mode": mode}
+
+    def rename(self, session_id: str, speaker: str, name: object) -> Document:
+        """Give a speaker a name (live: also for the transcript)."""
+        session = self._running(session_id)
+        if not isinstance(speaker, str) or not re.fullmatch(
+            PERSON_ID, speaker
+        ):
+            raise SessionError("invalid_request", "invalid speaker id")
+        clean = check_name(name)
+        session.names[speaker] = clean
+        change: Document = {"speaker": speaker, "name": clean,
+                            "at": round(self.clock.now(), 3)}
+        session.renames.append(change)
+        session.feed.publish({"type": "rename", **change})
+        kept = None
+        if session.mode == "live" and self.transcriber is not None:
+            try:
+                self.transcriber.rename(session_id, speaker, clean)
+                kept = True
+            except TranscriberUnavailable:
+                kept = False
+        return {"speaker": speaker, "name": clean, "transcript": kept}
+
+    def tick(self, session_id: str, item: str, confirm: bool) -> Document:
+        """Tick a mandatory item by hand (needs ``confirm``; logged)."""
+        session = self._running(session_id)
+        if session.tracker is None or not session.tracker.active:
+            raise SessionError("not_found", "no mandatory items")
+        try:
+            return session.tracker.tick(item, confirm,
+                                        round(self.clock.now(), 3))
+        except TickRefused as exc:
+            raise SessionError("invalid_request", str(exc)) from exc
+
+    def _running(self, session_id: str) -> _Session:
+        session = self._find(session_id)
+        if session.state != "running":
+            raise SessionError("wrong_state", "the session has ended")
+        return session
+
 
 def _check_id(session_id: str) -> None:
     """Refuse an id the contract's ``session_id`` would not take."""
@@ -617,8 +804,20 @@ def _check_id(session_id: str) -> None:
         raise SessionError("invalid_request", "invalid session id")
 
 
-def live_speakers(config: ProductConfig, audio: str) -> List[Document]:
+def live_speakers(
+    config: ProductConfig,
+    audio: str,
+    employee: Optional[Mapping[str, str]] = None,
+    voiceprint: bool = False,
+) -> List[Document]:
     """The transcriber's speakers for ``audio``.
+
+    With an ``employee`` (LV-16): in ``stereo`` the channel of the
+    employee's role takes their name; with ``voiceprint`` (``mic``)
+    every declared speaker goes on channel 0 with the other party's
+    role, and the employee's voiceprint names their voice (the
+    transcriber's ``enrolled``), so whoever else talks is the other
+    party.
 
     ``stereo``: every channel of the product, as declared. ``mic``: one
     channel, heard as the first speaker whose role the product suggests
@@ -631,8 +830,17 @@ def live_speakers(config: ProductConfig, audio: str) -> List[Document]:
     """
     channels = sorted(config.source.channels.items())
     if audio == "stereo":
-        return [{"channel": c, "id": ch.speaker, "role": ch.role}
-                for c, ch in channels]
+        role = employee_role(config)
+        return [
+            {"channel": c, "id": ch.speaker, "role": ch.role,
+             **({"name": employee["name"]}
+                if employee and ch.role == role else {})}
+            for c, ch in channels
+        ]
+    if voiceprint and channels:
+        other = other_role(config)
+        return [{"channel": 0, "id": ch.speaker, "role": other}
+                for _, ch in channels]
     if diarized(config) and channels:
         return [{"channel": 0, "id": ch.speaker, "role": ch.role}
                 for _, ch in channels]
@@ -650,12 +858,15 @@ def diarized(config: ProductConfig) -> bool:
 
 
 def transcriber_body(
-    config: ProductConfig, session_id: str, speakers: List[Document]
+    config: ProductConfig, session_id: str, speakers: List[Document],
+    diarize: Optional[bool] = None,
+    enrolled: Optional[List[str]] = None,
 ) -> Document:
     """The body of the transcriber's ``POST /api/live/sessions``.
 
     Speakers all on channel 0 under a ``sortformer_stream`` product
-    make a diarized one-channel session.
+    (or with ``diarize``) make a diarized one-channel session;
+    ``enrolled`` limits the voiceprints that may name a voice.
     """
     channels = len({s["channel"] for s in speakers}) or 1
     body: Dict[str, Any] = {
@@ -664,10 +875,58 @@ def transcriber_body(
         "language": config.language,
         "handoff": config.handoff.model_dump(),
     }
-    if diarized(config) and channels == 1:
+    if (diarized(config) if diarize is None else diarize) \
+            and channels == 1:
         body["diarize"] = True
+        if enrolled is not None:
+            body["enrolled"] = list(enrolled)
     if config.vad is not None:
         body["hang_ms"] = config.vad.hang_ms
     if config.asr.partial_every_ms:
         body["partial_every_ms"] = config.asr.partial_every_ms
     return body
+
+
+def employee_role(config: ProductConfig) -> str:
+    """The employee's role in a product (agent, interviewer)."""
+    roles = [ch.role for _, ch in sorted(config.source.channels.items())]
+    return next((r for r in roles if r in EMPLOYEE_ROLES),
+                EMPLOYEE_ROLES[0])
+
+
+def other_role(config: ProductConfig) -> str:
+    """The other party's role (customer, candidate)."""
+    wanted = config.trigger.speaker_roles if config.trigger else []
+    roles = [ch.role for _, ch in sorted(config.source.channels.items())]
+    return next((r for r in roles if r in wanted),
+                next((r for r in roles if r not in EMPLOYEE_ROLES),
+                     "unknown"))
+
+
+def check_name(name: object) -> str:
+    """Return a speaker name trimmed to one line, or refuse it."""
+    if not isinstance(name, str):
+        raise SessionError("invalid_request", "name must be text")
+    clean = " ".join(name.split())
+    if not clean or len(clean) > MAX_NAME or any(
+        ord(c) < 32 for c in clean
+    ):
+        raise SessionError(
+            "invalid_request", f"a name has 1 to {MAX_NAME} characters"
+        )
+    return clean
+
+
+def check_employee(
+    employee: Optional[Mapping[str, Any]]
+) -> Optional[Dict[str, str]]:
+    """Return ``{"id", "name"}`` of the chosen employee, or refuse it."""
+    if employee is None:
+        return None
+    if not isinstance(employee, Mapping):
+        raise SessionError("invalid_request", "employee must be an object")
+    person = employee.get("id")
+    if not isinstance(person, str) or not re.fullmatch(PERSON_ID, person):
+        raise SessionError("invalid_request", "invalid employee id")
+    name = employee.get("name") or person
+    return {"id": person, "name": check_name(name)}

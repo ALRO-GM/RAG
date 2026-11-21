@@ -851,7 +851,8 @@ class RagCLI:
             judge=skills.judge_selection,
             analysis=analysis,
             knowledge=KnowledgeRoutes(
-                app.knowledge_query, app.knowledge_library
+                app.knowledge_query, app.knowledge_library,
+                app.knowledge_mandatory,
             ),
             reasoner=skills.reasoner,
             settings=skills.pipeline_settings,

@@ -80,7 +80,9 @@ def test_reasoner_warms_the_template_key() -> None:
     reasoner = Reasoner(lambda alias: model)
     assert reasoner.warm_up() is True
     system, cap = model.warmed[0]
-    assert "customer-support agent" in system and "at most 3" in system
+    # suggester.support@2: the count and the mode are in the user prompt,
+    # so one warm process serves every mode and count.
+    assert "customer-support agent" in system and "Mode line" in system
     assert cap > 0
 
 

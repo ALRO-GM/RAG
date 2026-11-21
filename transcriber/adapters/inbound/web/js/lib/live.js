@@ -6,11 +6,85 @@
 // Rule (docs/platform/ARCHITECTURE.md §8): signals are shown only in the
 // support product, as what the customer *says* with the quoted sentence;
 // an interview never shows signals, ratings or labels about the candidate.
+//
+// LV-16 (#206): the employee and the other party, names given during the
+// session, which side's lines are shown, how many suggestions stay open,
+// the assistance mode and the mandatory items (docs/live/EMPLOYEE_UX.md).
 
 export const SUPPORT = "live_assist.support";
 export const INTERVIEW = "live_assist.interview";
 export const AUDIO = ["stereo", "mic"];
 export const SPEEDS = [1, 2, 4];
+export const MODES = ["pincelada", "guiado"];
+export const MAX_SUGGESTIONS = [1, 2, 3, 5];
+/** Roles of the person the page helps (the rest is the other party). */
+export const EMPLOYEE_ROLES = ["agent", "interviewer"];
+/** Customer signals that mean the customer is not comfortable. */
+export const DISCOMFORT = ["complaint", "stated_frustration", "churn_risk", "urgency"];
+/** Where the page remembers this browser's view choices. */
+export const PREFS_KEY = "ragputin.live.view";
+
+/**
+ * The view's choices: { showEmployee, showOther, max, mode }. The saved
+ * settings («Ajustes», settings.v1 choices) give the defaults; what this
+ * browser chose last (`stored`, JSON) wins. Anything unreadable is ignored.
+ */
+export function viewPrefs(choices = {}, stored = null) {
+  const out = {
+    showEmployee: choices?.["live.show_employee"] !== "off",
+    showOther: choices?.["live.show_other"] !== "off",
+    max: MAX_SUGGESTIONS.includes(Number(choices?.["live.max_suggestions"])) ? Number(choices["live.max_suggestions"]) : 3,
+    mode: MODES.includes(choices?.["live.assist_mode"]) ? choices["live.assist_mode"] : MODES[0],
+  };
+  let kept = null;
+  try {
+    kept = stored ? JSON.parse(stored) : null;
+  } catch {
+    kept = null;
+  }
+  if (kept && typeof kept === "object") {
+    if (typeof kept.showEmployee === "boolean") out.showEmployee = kept.showEmployee;
+    if (typeof kept.showOther === "boolean") out.showOther = kept.showOther;
+    if (MAX_SUGGESTIONS.includes(kept.max)) out.max = kept.max;
+  }
+  return out;
+}
+
+/** Read this browser's stored view choices (null when storage is unavailable). */
+export function readPrefs(storage = globalThis.localStorage) {
+  try {
+    return storage?.getItem(PREFS_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keep the view choices in this browser; false when storage refuses. */
+export function writePrefs(prefs, storage = globalThis.localStorage) {
+  try {
+    storage.setItem(PREFS_KEY, JSON.stringify({ showEmployee: prefs.showEmployee, showOther: prefs.showOther, max: prefs.max }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The suggestion cards split into those shown open and the older, collapsed ones. */
+export function splitCards(cards, max = 3) {
+  const open = Math.max(1, Number(max) || 3);
+  return { shown: cards.slice(0, open), older: cards.slice(open) };
+}
+
+/** Whether pending mandatory items are due a reminder: every `seconds` since `last`. */
+export function reminderDue(pending, seconds, last, now) {
+  if (!pending || !seconds) return false;
+  return now - last >= seconds * 1000;
+}
+
+/** Words of a hint, to tell a pincelada (≤ 8) from a guided sentence. */
+export function wordCount(text) {
+  return String(text ?? "").split(/\s+/).filter(Boolean).length;
+}
 
 /** "support" or "interview" from a product name; null for others. */
 export function productKind(product) {
@@ -135,6 +209,12 @@ export class LiveState {
     this.state = "starting"; // starting | running | ended | failed
     this.error = null;
     this.lastId = 0;
+    this.employee = null; // { id, name, role, speaker } chosen at the start
+    this.names = new Map(); // speaker -> name given (start or rename)
+    this.mode = null; // assistance mode: pincelada | guiado
+    this.checklist = null; // mandatory items: { items: [{ id, text, state }], remind_seconds }
+    this.handoff = null; // the end-of-session record
+    this.notices = []; // { code, message } from the orchestrator
   }
 
   /** Apply one feed message ({ type, ... }); `id` is its SSE number. */
@@ -157,6 +237,21 @@ export class LiveState {
       case "suggestion":
         this._record(message.record);
         break;
+      case "mandatory":
+        if (message.checklist) this.checklist = message.checklist;
+        break;
+      case "rename":
+        if (message.speaker && message.name) this.names.set(message.speaker, message.name);
+        break;
+      case "mode":
+        if (MODES.includes(message.mode)) this.mode = message.mode;
+        break;
+      case "handoff":
+        this.handoff = message.handoff ?? null;
+        break;
+      case "notice":
+        this.notices.push({ code: message.code, message: message.message });
+        break;
       default:
         break;
     }
@@ -165,6 +260,11 @@ export class LiveState {
   _session(view) {
     if (!view) return;
     this.session = view;
+    if (view.employee) this.employee = view.employee;
+    for (const [speaker, name] of Object.entries(view.names ?? {})) this.names.set(speaker, name);
+    if (MODES.includes(view.assist_mode) && !this.mode) this.mode = view.assist_mode;
+    if (view.mandatory) this.checklist = view.mandatory;
+    if (view.handoff) this.handoff = view.handoff;
     if (view.page) {
       this.page = view.page;
       for (const [speaker, role] of Object.entries(view.page.roles ?? {})) {
@@ -209,9 +309,46 @@ export class LiveState {
     if (HALTING.has(record.status)) this.halted = record.status;
   }
 
-  /** The role of a speaker ("unknown" when not known). */
+  /** The role of a speaker ("unknown" when not known); the employee's id is theirs. */
   roleOf(speaker) {
-    return this.speakers.get(speaker)?.role ?? this.page?.roles?.[speaker] ?? "unknown";
+    if (this.employee && speaker === this.employee.speaker) return this.employee.role;
+    const known = this.speakers.get(speaker)?.role;
+    if (known && known !== "unknown") return known;
+    return this.page?.roles?.[speaker] ?? known ?? "unknown";
+  }
+
+  /** "employee" for the person the page helps, "other" for everyone else. */
+  sideOf(speaker) {
+    return EMPLOYEE_ROLES.includes(this.roleOf(speaker)) ? "employee" : "other";
+  }
+
+  /** The name of a speaker: given during the session, else known, else null. */
+  nameOf(speaker) {
+    return this.names.get(speaker) ?? this.speakers.get(speaker)?.name ?? null;
+  }
+
+  /** The lines to draw with the view's side choices (partials included). */
+  visibleLines({ showEmployee = true, showOther = true } = {}) {
+    return this.lines().filter((u) => (this.sideOf(u.speaker) === "employee" ? showEmployee : showOther));
+  }
+
+  /**
+   * The customer's discomfort to highlight (support only): the newest
+   * answered call whose suggestion quotes a complaint, frustration, churn
+   * or urgency signal. { signals, utterance, quote, record } or null.
+   */
+  discomfort() {
+    if (!showsSignals(this.page)) return null;
+    const newest = [...this.records].reverse().find((r) => r.status === "ok" && (r.suggestions ?? []).length);
+    if (!newest) return null;
+    const found = (newest.suggestions ?? []).flatMap((s) => signalLines(s, this.page)).filter((e) => DISCOMFORT.includes(e.signal));
+    if (!found.length) return null;
+    return { signals: [...new Set(found.map((e) => e.signal))], utterance: found[0].utterance ?? null, quote: found[0].quote, record: newest };
+  }
+
+  /** The mandatory items not said nor ticked yet. */
+  pendingItems() {
+    return (this.checklist?.items ?? []).filter((i) => i.state === "pending");
   }
 
   /** Finals in time order, then the partials still open. */

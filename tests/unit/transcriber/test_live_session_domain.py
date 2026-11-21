@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from tests.unit.transcriber.live_fakes import LIVE_SCHEMA, pcm
 from transcriber.domain.errors import InvalidInputError
-from transcriber.domain.live import LiveEventStream, LiveSpeaker
+from transcriber.domain.live import LiveEventStream, LiveSpeaker, renamed
 from transcriber.domain.live_session import (
     AudioBacklog,
     ChannelSpeaker,
@@ -187,3 +187,17 @@ def test_unknown_speakers_and_languages_are_still_a_transcript() -> None:
     assert transcript.session.language == "und"
     empty = live_transcript("a", [], [], PIPELINE, "es")
     assert empty.utterances == [] and empty.session.duration == 0.0
+
+
+def test_a_speaker_is_renamed_or_added_with_its_name() -> None:
+    given = [LiveSpeaker(id="S1", channel=0, role="agent"),
+             LiveSpeaker(id="S2", channel=1, role="customer")]
+    out = renamed(given, "S2", "  Carla \n Ruiz ")
+    assert out[1] == LiveSpeaker(id="S2", channel=1, role="customer",
+                                 name="Carla Ruiz")
+    assert given[1].name is None
+    added = renamed(given, "ana", "Ana")
+    assert added[-1] == LiveSpeaker(id="ana", name="Ana")
+    for bad in ("", "  ", "x" * 81):
+        with pytest.raises(ValueError):
+            renamed(given, "S1", bad)

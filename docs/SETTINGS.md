@@ -41,7 +41,8 @@ it.
 | `transcription.diarizer` | transcriber, when a job reaches the diarizer | next transcription |
 | `transcription.names` | transcriber, when the name search starts | next search |
 | `live.asr` | transcriber, when a live session starts | next session |
-| `live.diarization`, `live.suggester_model`, `live.deadline` | orchestrator, when a session starts | next session |
+| `live.diarization`, `live.suggester_model`, `live.deadline`, `live.assist_mode` | orchestrator, when a session starts | next session (the mode can also be switched on the page) |
+| `live.max_suggestions`, `live.show_employee`, `live.show_other` | the live page, when it opens (what this browser chose last wins) | next time the page opens |
 | `live.suggester_effort` | RAG, at every `/reason` call (one warm process per model and effort) | next call |
 | `analysis.judge`, `analysis.*_model`, `analysis.local_judge`, `analysis.act_tagger` | RAG, when an analysis starts (passed to the `skills analyze` child as flags) | next analysis |
 | `knowledge.ocr`, `knowledge.captions` | RAG, at every upload | next upload |
@@ -66,6 +67,9 @@ documents; almost all come from synthetic data and a single run.
 | Suggestion model | Haiku (first token 688 ms, answer 1,063 ms p50 at low effort) · Sonnet, Opus (not measured live) |
 | Suggestion effort | low (11 of 11 within 2.8 s) · medium, high (not measured) |
 | Suggestion deadline | the product's (1,800 ms interview, 2,800 ms support) · 1.8 s · 2.8 s |
+| Kind of live help (`live.assist_mode`) | pincelada: a hint of ≤ 8 words (support, 6 synthetic calls: answer p50 1,319 ms, max 1,710 ms; 2 of 5 cut to 8 words) · guiado: the exact sentence to say (p50 985 ms, max 1,730 ms; 9–21 words); `docs/live/ASSIST_MODES.md` |
+| Suggestions in view (`live.max_suggestions`) | 3 · 1 · 2 · 5 (older ones fold) |
+| Employee's lines / other party's lines (`live.show_employee`, `live.show_other`) | on · off (both off: suggestions only); `docs/live/EMPLOYEE_UX.md` |
 | Analysis judge | Claude by subscription (local after the quota) · local model · both, compared · opencode |
 | Claude per judged step | Opus (91.7 % of indicators) · Sonnet (not measured) · Haiku (77.5 %; agrees with Opus on 67.6 % of confirmations and 59.1 % of ratings; the synthesis alone not measured) |
 | Local judge | Qwen3-8B, 4B if it does not fit (34 % useful quotes, 6.31 GB) · Qwen3-4B (23 %, 2.87 GB) |
@@ -128,5 +132,6 @@ and Piper's defaults: they are the only ones measured as the bot.
 `docs/live/MONO_DIARIZATION.md`, `docs/live/LIVE_MEASURES.md`,
 `docs/transcriber/LAB.md` (§13.8), `docs/transcriber/ARCHITECTURE.md`,
 `docs/transcriber/NAMES.md`, `docs/KNOWLEDGE.md`,
+`docs/live/ASSIST_MODES.md`,
 `experiments/knowledge/OCR.md`, `experiments/platform/STAGE1_E2E.md`,
 `docs/live/VOICEBOT.md`, `docs/live/VOICE_CLONING.md`.

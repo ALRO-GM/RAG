@@ -83,6 +83,9 @@ class Reasoner(_Strict):
     max_suggestions: int = Field(default=3, ge=0, le=5)
     window: int = Field(default=12, ge=1, le=40)
     expressed_signals: bool = False
+    mode: Optional[Literal["pincelada", "guiado"]] = None
+    """Assistance mode of the ``@2`` suggester templates (``None``: the
+    template's default, ``pincelada``); the session may switch it."""
 
     @model_validator(mode="after")
     def _one_in_flight(self) -> "Reasoner":

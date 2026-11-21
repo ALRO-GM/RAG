@@ -88,6 +88,7 @@ class FakeTranscriber:
         self.fail = fail
         self.bodies: List[Document] = []
         self.stopped: List[str] = []
+        self.renamed: List[Tuple[str, str, str]] = []
 
     def start(self, body: Document) -> Document:
         if self.fail:
@@ -99,6 +100,11 @@ class FakeTranscriber:
         self.stopped.append(session_id)
         if self.fail:
             raise TranscriberUnavailable("down")
+
+    def rename(self, session_id: str, speaker: str, name: str) -> None:
+        if self.fail:
+            raise TranscriberUnavailable("down")
+        self.renamed.append((session_id, speaker, name))
 
 
 class FakeEvents:
