@@ -4,6 +4,7 @@
 
 import { classifyFailure } from "./lib/net.js";
 import { startBody } from "./lib/session-analysis.js";
+import { parseSse } from "./lib/live.js";
 
 export class ApiFailure extends Error {
   constructor({ status, kind, code = null, message = "", waitSeconds = 0, reason = null }) {
@@ -241,6 +242,77 @@ export class Api {
 
   /** Search a domain: a knowledge.query.v1 body, a knowledge.result.v1 answer. */
   knowledgeQuery(body) { return this.request("POST", "/knowledge/query", { json: body }); }
+
+  // ---- live assist (the orchestrator's routes, proxied under /api/assist) ----
+
+  /** Live products: product, banner, signals, script_phases, roles, live (a transcriber is linked). */
+  liveProducts() { return this.request("GET", "/assist/products"); }
+
+  /** Recorded conversations a demo replay can use: id, title, utterances, seconds. */
+  liveTranscripts() { return this.request("GET", "/assist/transcripts"); }
+
+  /** Start a live session: { product, audio: "stereo" | "mic", session_id }. */
+  startLive(body) { return this.request("POST", "/assist/sessions", { json: body }); }
+
+  /** Replay a transcript as a live session: { product, transcript, speed }. */
+  startReplay(id, body) {
+    return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/replay`, { json: body });
+  }
+
+  stopLive(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/stop`); }
+
+  liveSession(id) { return this.request("GET", `/assist/sessions/${encodeURIComponent(id)}`); }
+
+  /**
+   * Follow a session's Server-Sent Events from number `after`: `onItem`
+   * gets each { id, event, data }. Resolves "end" when the session is
+   * over, "closed" when the connection ended first (call again with the
+   * last id to resume). A fetch stream is used so the access code
+   * travels in the header, as on every other call.
+   */
+  async followLive(id, { after = 0, signal, onItem }) {
+    const code = this.getCode();
+    if (!code) throw new ApiFailure({ status: 401, kind: "unauthorized", code: "unauthorized" });
+    const url = `/api/assist/sessions/${encodeURIComponent(id)}/suggestions/stream?after=${Number(after) || 0}`;
+    let response;
+    try {
+      response = await this.fetchFn(url, {
+        method: "GET", headers: { "X-Access-Code": code, accept: "text/event-stream" },
+        cache: "no-store", credentials: "same-origin", signal,
+      });
+    } catch {
+      throw new ApiFailure({ status: null, kind: "unavailable", code: "network" });
+    }
+    if (!response.ok || !response.body) {
+      let info = {};
+      try {
+        info = await response.json();
+      } catch {
+        info = {};
+      }
+      const { kind, waitSeconds } = classifyFailure(response.status, response.headers.get("Retry-After"));
+      throw new ApiFailure({ status: response.status, kind, waitSeconds, code: typeof info.code === "string" ? info.code : null });
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return "closed";
+        buffer += decoder.decode(value, { stream: true });
+        const { items, rest } = parseSse(buffer);
+        buffer = rest;
+        for (const item of items) {
+          if (item.event === "end") return "end";
+          onItem(item);
+        }
+      }
+    } catch (error) {
+      if (signal?.aborted) return "closed";
+      throw new ApiFailure({ status: null, kind: "unavailable", code: "network", message: String(error?.message ?? "") });
+    }
+  }
 
   // ---- model lab (docs/transcriber/LAB.md §7) ----
 

@@ -1,0 +1,145 @@
+"""``/api/assist/...``: the orchestrator's live-page API, forwarded."""
+
+from pathlib import Path
+from typing import List
+
+import httpx
+import pytest
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi.testclient import TestClient
+
+from tests.integration.transcriber.test_analysis_judge import CODE
+from transcriber.adapters.inbound.http_api import create_app
+from transcriber.adapters.inbound.live_assist_proxy import (
+    ALLOWED,
+    URL_VARIABLE,
+    add_live_assist_proxy,
+    read_token,
+)
+from transcriber.bootstrap import build_container
+from transcriber.config import TranscriberSettings
+
+SSE = b"id: 1\nevent: message\ndata: {\"type\": \"session\"}\n\n"
+
+
+def guarded(request: Request) -> None:
+    """Stand-in for the access-code dependency of the real router."""
+    if request.headers.get("X-Access-Code") != "code":
+        raise HTTPException(401)
+
+
+def app_with(
+    handler: "httpx.MockTransport", token_file: "Path | None"
+) -> TestClient:
+    api = APIRouter(prefix="/api", dependencies=[Depends(guarded)])
+    add_live_assist_proxy(api, token_file, "http://orch:8772/",
+                          transport=handler)
+    app = FastAPI()
+    app.include_router(api)
+    return TestClient(app)
+
+
+def test_calls_are_forwarded_with_the_bearer_token(tmp_path: Path) -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(201, json={"id": "d1", "state": "running"})
+
+    token = tmp_path / "token"
+    token.write_text("secret\n", encoding="utf-8")
+    web = app_with(httpx.MockTransport(handler), token)
+    answer = web.post(
+        "/api/assist/sessions/d1/replay",
+        json={"product": "live_assist.support", "transcript": "x"},
+        headers={"X-Access-Code": "code"},
+    )
+    assert answer.status_code == 201
+    assert answer.json() == {"id": "d1", "state": "running"}
+    request = seen[0]
+    assert str(request.url) == "http://orch:8772/sessions/d1/replay"
+    assert request.headers["authorization"] == "Bearer secret"
+    assert b"live_assist.support" in request.content
+
+
+def test_the_code_is_needed_and_only_known_routes_pass() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("must not be reached")
+
+    web = app_with(httpx.MockTransport(handler), None)
+    assert web.get("/api/assist/products").status_code == 401
+    auth = {"X-Access-Code": "code"}
+    for path in ("health", "sessions/a/b", "../x", "sessions/../../etc",
+                 "products/x"):
+        assert web.get(f"/api/assist/{path}",
+                       headers=auth).status_code == 404, path
+    assert web.post("/api/assist/sessions/.x/stop",
+                    headers=auth).status_code == 404
+    assert web.post("/api/assist/sessions", content=b"x" * 20000,
+                    headers=auth).status_code == 413
+
+
+def test_the_stream_is_passed_through_with_resume() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(
+            200, content=SSE, headers={"content-type": "text/event-stream"}
+        )
+
+    web = app_with(httpx.MockTransport(handler), None)
+    answer = web.get(
+        "/api/assist/sessions/d1/suggestions/stream?after=3&x=1",
+        headers={"X-Access-Code": "code", "Last-Event-ID": "3"},
+    )
+    assert answer.status_code == 200
+    assert answer.headers["content-type"].startswith("text/event-stream")
+    assert answer.content == SSE
+    assert seen[0].url.params.get("after") == "3"
+    assert "x" not in seen[0].url.params
+    assert seen[0].headers["last-event-id"] == "3"
+    assert "authorization" not in seen[0].headers
+
+
+def test_refusals_and_a_missing_orchestrator() -> None:
+    def refuse(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"code": "not_found"})
+
+    web = app_with(httpx.MockTransport(refuse), None)
+    auth = {"X-Access-Code": "code"}
+    stream = web.get("/api/assist/sessions/x/suggestions/stream",
+                     headers=auth)
+    assert stream.status_code == 404
+    assert stream.json() == {"code": "not_found"}
+
+    def down(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("refused", request=request)
+
+    web = app_with(httpx.MockTransport(down), None)
+    for path in ("products", "sessions/x/suggestions/stream"):
+        answer = web.get(f"/api/assist/{path}", headers=auth)
+        assert answer.status_code == 502
+        assert answer.json()["code"] == "orchestrator_unavailable"
+
+
+def test_tokens_and_routes() -> None:
+    assert read_token(None) is None
+    assert read_token(Path("/nonexistent/token")) is None
+    assert ALLOWED.match("sessions/live-20261121-1010/suggestions/stream")
+    assert not ALLOWED.match("sessions/a/suggestions")
+
+
+def test_the_transcriber_mounts_the_route_behind_its_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(URL_VARIABLE, "http://127.0.0.1:9")
+    container = build_container(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+        rag_token_file=tmp_path / "none",
+    ))
+    web = TestClient(create_app(container, CODE))
+    assert web.get("/api/assist/products").status_code == 401
+    answer = web.get("/api/assist/products",
+                     headers={"X-Access-Code": CODE})
+    assert answer.status_code == 502

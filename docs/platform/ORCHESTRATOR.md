@@ -47,7 +47,7 @@ The stream (`application/feed.py`, `application/sessions.py`) sends one `message
 
 Every record is also written to `--log-dir/<session>.<product>.suggestions.jsonl`. A quota or auth answer stops the session's calls (skip reason `halted`) and the page shows a banner. Mic sessions are one channel heard as the person the product suggests about (customer, candidate); stereo sessions use the product's two channels. The transcriber side (start, stop, the events socket, the audio socket) is `docs/live/LIVE_SESSION.md`.
 
-The web page reaches `serve` through the transcriber: `/api/live/assist/<route>` (`transcriber/adapters/inbound/live_assist_proxy.py`) forwards the routes above (fixed list) behind the access code and adds the bearer token read from the RAG token file (`~/.config/ragputin/rag-token`); `TRANSCRIBER_ORCHESTRATOR_URL` changes the address.
+The web page reaches `serve` through the transcriber: `/api/assist/<route>` (`transcriber/adapters/inbound/live_assist_proxy.py`) forwards the routes above (fixed list) behind the access code and adds the bearer token read from the RAG token file (`~/.config/ragputin/rag-token`); `TRANSCRIBER_ORCHESTRATOR_URL` changes the address.
 
 ### Running it as a service
 

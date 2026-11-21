@@ -76,6 +76,6 @@ system → light → dark and remembers the choice in `localStorage`
 ## Pages
 
 Every page uses the shell: Sesiones, Grabar, Registrar voz, Conocimiento
-(new: `#/knowledge`), Pruebas, the session and analysis pages, the help
+(new: `#/knowledge`), En directo (`#/live`: live assist with suggestion cards, sources, script phases and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the session and analysis pages, the help
 page, and the static `research.html` and `study.html`. ES/EN is unchanged
 (`js/i18n/es.js`, `en.js`).

@@ -15,6 +15,7 @@ import { labView } from "./views/lab.js";
 import { analysisView } from "./views/analysis.js";
 import { helpAnalysisView } from "./views/help-analysis.js";
 import { knowledgeView } from "./views/knowledge.js";
+import { liveView } from "./views/live.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor } from "./lib/shell.js";
 
@@ -72,6 +73,7 @@ const ROUTES = [
   [/^#\/analysis\/([^/]+)$/, analysisView],
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
   [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
+  [/^#\/live$/, liveView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],
 ];
 

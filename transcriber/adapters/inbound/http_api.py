@@ -60,6 +60,9 @@ from transcriber.adapters.inbound.playback import (
     parse_range,
 )
 from transcriber.application.analysis import MAX_JOB
+from transcriber.adapters.inbound.live_assist_proxy import (
+    add_live_assist_proxy,
+)
 from transcriber.application.knowledge import (
     JSON_BODY_BYTES,
     UPLOAD_BODY_BYTES,
@@ -848,6 +851,8 @@ def create_app(
         )
 
     mount_knowledge(api, c)
+    # The live page reaches the orchestrator through here (a thin proxy).
+    add_live_assist_proxy(api, c.settings.rag_token_file)
 
     @api.get("/speakers")
     async def speakers() -> Dict[str, Any]:
