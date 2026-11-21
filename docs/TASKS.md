@@ -13,6 +13,7 @@ Live tracking of the work. Each task says **what** is being done and
 
 | ID | Task | What will be done |
 |---|---|---|
+| VB-11 | A natural Spanish voice for the bot (#214) | Measured (`docs/live/NATURAL_TTS.md`): Qwen3-TTS 0.6B clone UTMOS 3.93, 188 ms first audio, 4.3 GB GPU; Pocket TTS `lola` 3.74 on the CPU, 81 ms, no GPU; Kokoro `ef_dora` 3.71, 46 ms; Ming-3.0-tts 3.42 (deleted); Piper davefx 2.67. Next: the owner listens to `experiments/live/tts_samples/`, then the winner becomes a TTS adapter behind the port, selectable in `voicebot.voice`. |
 | T-17 | 42 login in the README | Replace `<login>` in the first line of `README.md` (mandatory format). Needs the author's login. |
 | T-36 | Skills: human reference data | Record or collect real sessions, train 3 annotators (`docs/skills/ANNOTATION_GUIDE.md`), reach the agreement thresholds, then tune and evaluate. Needs people; nothing in the analyzer is validated until this is done. |
 | T-37 | Skills: API judge live test | Run `skills --judge api assess` with Anthropic credentials and compare with the local judge on the reference data. Needs credentials and consent for external processing. |
