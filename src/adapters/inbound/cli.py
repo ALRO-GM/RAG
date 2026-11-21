@@ -15,6 +15,7 @@ from typing import (
     Any, Callable, Dict, List, Mapping, Optional, Set, TypeVar, cast,
 )
 
+from src.adapters.inbound.domain_cli import DomainCLI
 from src.adapters.inbound.lab_cli import LabCLI, load_suite
 from src.adapters.inbound.skills_cli import SkillsCLI
 from src.adapters.outbound.torch_runtime import (
@@ -306,6 +307,10 @@ class RagCLI:
                 f"Profile {path}: unknown setting(s) {', '.join(unknown)}."
             )
         return data
+
+    def domain(self) -> DomainCLI:
+        """Knowledge domains: list, index <id> [--force]."""
+        return DomainCLI(self._app, safe_command)
 
     def lab(self) -> LabCLI:
         """Experiment lab: experiment, tune, analyze, train_router."""

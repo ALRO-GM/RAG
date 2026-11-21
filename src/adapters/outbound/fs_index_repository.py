@@ -15,7 +15,8 @@ import pickle
 import zipfile
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Mapping
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 from pydantic import ValidationError
@@ -102,6 +103,41 @@ class FileSystemIndexRepository:
         manifest = read_manifest(self.index_dir)
         return _load_cached(str(self.index_dir.resolve()),
                             manifest.fingerprint)
+
+
+class InMemoryIndexCopyRepository(FileSystemIndexRepository):
+    """A :class:`FileSystemIndexRepository` whose loads hold their data.
+
+    The embeddings are copied out of the memory-mapped file, so the
+    index can be rewritten on disk (a knowledge domain re-indexed while
+    the server answers queries) without touching a loaded snapshot.
+    """
+
+    def load(self) -> IndexSnapshot:
+        """Return the persisted index with its embeddings in memory."""
+        loaded = super().load()
+        embeddings = None
+        if loaded.embeddings is not None:
+            embeddings = np.array(loaded.embeddings, dtype=np.float32)
+        return IndexSnapshot(
+            loaded.manifest, list(loaded.chunks), loaded.lexical, embeddings
+        )
+
+
+def index_state(path: Path) -> Optional[Tuple[IndexManifest, str]]:
+    """Return the manifest of the index at ``path`` and when it was built.
+
+    ``None`` when there is no index there. The time is the manifest's
+    modification time (written last), in UTC ISO 8601.
+    """
+    manifest_path = path / MANIFEST_FILE
+    if not manifest_path.is_file():
+        return None
+    manifest = read_manifest(path)
+    built = datetime.fromtimestamp(
+        manifest_path.stat().st_mtime, tz=timezone.utc
+    )
+    return manifest, built.isoformat(timespec="seconds")
 
 
 def chunk_line(chunk: Chunk) -> str:
