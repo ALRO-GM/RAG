@@ -3872,7 +3872,7 @@ wheels = [
 name = "rag-against-the-machine"
 version = "1.0.0"
 source = { virtual = "." }
-default-groups = ["api", "bench", "cpu", "dev", "transcriber"]
+default-groups = ["api", "bench", "cpu", "dev", "orchestrator", "transcriber"]
 dependencies = [
     { name = "fastapi" },
     { name = "fire" },
@@ -3933,6 +3933,11 @@ local-judge = [
     { name = "accelerate" },
     { name = "bitsandbytes" },
 ]
+orchestrator = [
+    { name = "httpx" },
+    { name = "pyyaml" },
+    { name = "types-pyyaml" },
+]
 transcriber = [
     { name = "av", version = "17.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'group-23-rag-against-the-machine-cpu' and extra == 'group-23-rag-against-the-machine-cuda')" },
     { name = "av", version = "18.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*' or (extra == 'group-23-rag-against-the-machine-cpu' and extra == 'group-23-rag-against-the-machine-cuda')" },
@@ -3980,6 +3985,11 @@ dev = [
 local-judge = [
     { name = "accelerate", specifier = ">=1.0" },
     { name = "bitsandbytes", specifier = ">=0.45" },
+]
+orchestrator = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "types-pyyaml" },
 ]
 transcriber = [
     { name = "av", specifier = ">=17.1.0" },
