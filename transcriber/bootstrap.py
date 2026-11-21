@@ -39,9 +39,16 @@ from transcriber.adapters.outbound.fs_access_code import (
     new_access_code,
 )
 from transcriber.adapters.outbound.fake_models import (
+    FakeAsrStream,
     FakeOverlapDetector,
     FakeSpeechRecogniser,
+    FakeVad,
     FakeVoiceEncoder,
+)
+from transcriber.adapters.outbound.gpu_free_memory import NvidiaSmiFreeMemory
+from transcriber.adapters.outbound.jsonl_live_log import JsonlLiveLog
+from transcriber.adapters.outbound.jsonschema_event_check import (
+    build_event_check,
 )
 from transcriber.adapters.outbound.fs_session_repository import (
     FileSystemSessionRepository,
@@ -137,6 +144,7 @@ from transcriber.application.ports import (
     GpuLease,
     Diarizer,
     OverlapDetector,
+    SessionAnalysisPort,
     SessionLocks,
     SessionRepository,
     SpeechRecogniser,
@@ -153,6 +161,7 @@ from transcriber.application.knowledge import KnowledgeAccess
 from transcriber.application.live import (
     LiveOptions, LiveTranscription,
 )
+from transcriber.application.live_session import LivePorts, LiveSessions
 from transcriber.application.publish import PublishTranscript
 from transcriber.application.record import (
     AppendAudio,
@@ -179,7 +188,8 @@ from transcriber.application.transcribe import (
     TranscribeSession,
     TranscriptionStatus,
 )
-from transcriber.config import TranscriberSettings
+from transcriber import __version__
+from transcriber.config import REPOSITORY, TranscriberSettings
 from transcriber.domain.comparison import ComparisonParameters
 from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
 from transcriber.domain.lab import BUILTIN_DIARIZER
@@ -274,6 +284,7 @@ class TranscriberContainer:
     session_analysis: SessionAnalysisAccess = SessionAnalysisAccess(None)
     knowledge: KnowledgeAccess = KnowledgeAccess(None)
     name_model: Optional[LocalNameModel] = None
+    live: Optional[LiveSessions] = None
 
     def release_models(self) -> None:
         """Unload the speech, voice, overlap and name models (after a
@@ -523,6 +534,48 @@ def build_live(options: LiveOptions) -> LiveTranscription:
     )
 
 
+CONTRACTS_DIR = REPOSITORY / "contracts"
+"""The platform's contracts (``live.event.v1`` checks the live events)."""
+
+
+def build_fake_live(options: LiveOptions) -> LiveTranscription:
+    """Return the live transcription over the fake VAD and recogniser."""
+    return LiveTranscription(
+        FakeVad, FakeAsrStream(options.language), SystemClock(),
+        SystemTimer(), options.settings,
+    )
+
+
+def build_live_sessions(
+    settings: TranscriberSettings,
+    environ: Mapping[str, str],
+    publisher: TranscriptPublisher,
+    analysis: Optional[SessionAnalysisPort],
+) -> LiveSessions:
+    """Return the live sessions of ``/api/live`` (LV-2 to LV-11).
+
+    Real runtime: Silero VAD and faster-whisper (``live`` dependency
+    group, loaded when a session starts), the GPU lease of
+    ``gpu-lease.v1`` and the free memory from ``nvidia-smi``; on a
+    machine whose ``device`` is ``cpu`` the CPU model runs and no lease
+    is taken. Fake runtime: the loudness stand-ins, on the "CPU".
+    """
+    check, why = build_event_check(CONTRACTS_DIR)
+    if check is None:
+        LOG.warning("Live events are not contract-checked: %s", why)
+    fake = settings.runtime == "fake"
+    ports = LivePorts(
+        build=build_fake_live if fake else build_live,
+        clock=SystemClock(), timer=SystemTimer(),
+        lease=None if fake else build_gpu_lease(environ),
+        memory=None if fake else NvidiaSmiFreeMemory(),
+        log=JsonlLiveLog(settings.data_dir),
+        check=check, publisher=publisher, analysis=analysis,
+    )
+    device = "cpu" if fake or settings.device == "cpu" else "cuda"
+    return LiveSessions(ports, settings.live, device, __version__)
+
+
 def build_container(
     settings: Optional[TranscriberSettings] = None,
     environ: Optional[Mapping[str, str]] = None,
@@ -664,6 +717,11 @@ def build_container(
             if isinstance(publisher, HttpTranscriptPublisher) else None
         ),
         name_model=name_model,
+        live=build_live_sessions(
+            settings, environment, publisher,
+            HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
+            if isinstance(publisher, HttpTranscriptPublisher) else None,
+        ),
     )
 
 

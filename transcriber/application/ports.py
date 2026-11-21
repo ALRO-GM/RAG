@@ -751,3 +751,40 @@ class Timer(Protocol):
     def sleep(self, seconds: float) -> None:
         """Wait ``seconds``."""
         ...
+
+
+class FreeGpuMemory(Protocol):
+    """How much memory the GPU has free now (LV-8)."""
+
+    def free_mib(self) -> Optional[int]:
+        """Return the free memory in MiB; ``None`` without a GPU."""
+        ...
+
+
+class LiveLog(Protocol):
+    """Where a live session's events are kept (``jsonl_live_log``).
+
+    Text only: no audio is ever written (§8, minimisation).
+    """
+
+    def append(self, session_id: str, event: Mapping[str, Any]) -> None:
+        """Add one ``live.event.v1`` event to the session's log."""
+        ...
+
+    def save_transcript(
+        self, session_id: str, document: Mapping[str, Any]
+    ) -> None:
+        """Keep the session's ``transcript.v1`` next to its log."""
+        ...
+
+    def close(self, session_id: str) -> None:
+        """Close the session's log (no more events)."""
+        ...
+
+
+class EventCheck(Protocol):
+    """Checks an event against its contract (``contracts/``)."""
+
+    def problem(self, event: Mapping[str, Any]) -> Optional[str]:
+        """Return why ``event`` breaks the contract, or ``None``."""
+        ...

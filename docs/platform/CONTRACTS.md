@@ -9,7 +9,7 @@ Readers are deployed before writers. Each schema goes in
 
 | Contract | Producer | Consumers | Transport |
 |---|---|---|---|
-| live.event.v1 | transcriber | orchestrator, live page | WebSocket `/live/{session}/events` (JSON per message) |
+| live.event.v1 | transcriber | orchestrator, live page | WebSocket `/api/live/{session}/events` (alias `/live/{session}/events`; JSON per message; `docs/live/LIVE_SESSION.md`) |
 | knowledge.query.v1 / knowledge.result.v1 | orchestrator, analyzer | RAG | `POST /knowledge/query` |
 | reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason` |
 | tts.request.v1 | orchestrator | Piper adapter | in-process call or `POST /tts` (audio bytes back) |

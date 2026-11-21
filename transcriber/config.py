@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from transcriber.domain.diarization import DiarizerRule
 from transcriber.domain.enrolment import SampleRules
+from transcriber.domain.live_session import LiveServiceSettings
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.speaker_names import NAME_MODELS, NameSearchParameters
 
@@ -355,7 +356,8 @@ class TranscriberSettings(BaseModel):
     ``runtime: "fake"`` the built-in grouping is always used.
 
     ``names`` configures the search for the speakers' names from what
-    they say (:class:`SpeakerNameSettings`).
+    they say (:class:`SpeakerNameSettings`); ``live`` the live sessions
+    of ``/api/live`` (:class:`LiveServiceSettings`).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -378,6 +380,7 @@ class TranscriberSettings(BaseModel):
     lab: LabSettings = LabSettings()
     diarizer: DiarizerRule = DiarizerRule()
     names: SpeakerNameSettings = SpeakerNameSettings()
+    live: LiveServiceSettings = LiveServiceSettings()
 
     @model_validator(mode="after")
     def _absolute_rag_token_file(self) -> "TranscriberSettings":

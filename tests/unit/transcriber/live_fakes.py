@@ -9,7 +9,7 @@ the audio's length gives, and spends ``cost`` seconds of the
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
@@ -117,3 +117,133 @@ def bursts(
         t = np.arange(b - a, dtype=np.float32) / SAMPLE_RATE
         out[a:b] = level * np.sin(2 * np.pi * 220 * t)
     return out
+
+
+def pcm(*channels: FloatArray) -> bytes:
+    """Interleave ``channels`` as 16-bit little-endian PCM bytes."""
+    stacked = np.stack(channels, axis=1).reshape(-1)
+    return (np.clip(stacked, -1, 1) * 32767).astype("<i2").tobytes()
+
+
+def chunks_of(data: bytes, size: int) -> List[bytes]:
+    """Cut ``data`` into messages of ``size`` bytes (the last shorter)."""
+    return [data[n:n + size] for n in range(0, len(data), size)]
+
+
+class FakeLiveLease:
+    """The GPU lease: acquired or refused; the ack comes when told."""
+
+    def __init__(self, held_by_other: bool = False, ack: bool = True) -> None:
+        self.held_by_other = held_by_other
+        self.ack_given = ack
+        self.acquired: List[int] = []
+        self.released = 0
+
+    def acquire(self, need_mib: int, starts_at: object = None) -> Any:
+        from transcriber.domain.errors import StateError
+
+        if self.held_by_other:
+            raise StateError("The GPU lease is held by someone else.")
+        self.acquired.append(need_mib)
+
+    def release(self) -> None:
+        self.released += 1
+
+    def current(self) -> None:
+        return None
+
+    def ack(self) -> None:
+        return None
+
+    def freed(self) -> bool:
+        return self.ack_given and bool(self.acquired)
+
+    def clear(self) -> bool:
+        return False
+
+
+class FakeFreeMemory:
+    """Free GPU memory that follows a list of readings (last one stays)."""
+
+    def __init__(self, readings: List[Optional[int]]) -> None:
+        self.readings = list(readings)
+        self.asked = 0
+
+    def free_mib(self) -> Optional[int]:
+        self.asked += 1
+        if len(self.readings) > 1:
+            return self.readings.pop(0)
+        return self.readings[0]
+
+
+class MemoryLiveLog:
+    """A live log in memory."""
+
+    def __init__(self, fail: bool = False) -> None:
+        self.events: Dict[str, List[Dict[str, Any]]] = {}
+        self.transcripts: Dict[str, Dict[str, Any]] = {}
+        self.closed: List[str] = []
+        self.fail = fail
+
+    def append(self, session_id: str, event: Mapping[str, Any]) -> None:
+        if self.fail:
+            raise OSError("disk full")
+        self.events.setdefault(session_id, []).append(dict(event))
+
+    def save_transcript(self, session_id: str, document: Any) -> None:
+        if self.fail:
+            raise OSError("disk full")
+        self.transcripts[session_id] = dict(document)
+
+    def close(self, session_id: str) -> None:
+        self.closed.append(session_id)
+
+
+class SchemaCheck:
+    """The contract check, with jsonschema (as the real adapter)."""
+
+    def problem(self, event: Mapping[str, Any]) -> Optional[str]:
+        import jsonschema
+
+        try:
+            jsonschema.validate(event, LIVE_SCHEMA)
+        except jsonschema.ValidationError as exc:
+            return exc.message
+        return None
+
+
+class RecordingPublisher:
+    """Keeps what is published; may refuse."""
+
+    def __init__(self, error: Optional[Exception] = None) -> None:
+        self.documents: List[Dict[str, Any]] = []
+        self.error = error
+
+    def publish(self, document: Any) -> None:
+        if self.error is not None:
+            raise self.error
+        self.documents.append(dict(document))
+
+
+class RecordingAnalysis:
+    """Keeps the analyses started."""
+
+    def __init__(self) -> None:
+        self.started: List[str] = []
+
+    def start(self, session_id: str, restart: bool, synthetic: bool,
+              *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        self.started.append(session_id)
+        return {}
+
+    def status(self, session_id: str) -> Dict[str, Any]:
+        return {}
+
+    def result(self, session_id: str, step: str) -> Any:
+        return None
+
+    def cancel(self, session_id: str) -> None:
+        pass
+
+    def report(self, session_id: str, position: int) -> str:
+        return ""
