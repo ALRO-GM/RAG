@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reasoner.response.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "role",
+    "status",
+    "model",
+    "backend",
+    "latency"
+  ],
+  "properties": {
+    "schema": {
+      "const": "reasoner.response.v1"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "judge",
+        "suggester",
+        "conversational"
+      ]
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "no_suggestion",
+        "timeout",
+        "cancelled",
+        "quota",
+        "auth",
+        "error"
+      ]
+    },
+    "suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "question",
+              "follow_up",
+              "answer",
+              "reminder",
+              "caution"
+            ]
+          },
+          "signals": {
+            "type": "array",
+            "description": "support only: expressed customer signals from text, each backed by about[]",
+            "items": {
+              "enum": [
+                "complaint",
+                "stated_frustration",
+                "urgency",
+                "churn_risk",
+                "confusion",
+                "satisfaction"
+              ]
+            }
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "rationale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          },
+          "cites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "chunk ids from retrieved"
+          },
+          "about": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "utterance ids"
+          },
+          "script_phase": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "reply": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "cites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "verdict": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "judge: the analyzer's existing JSON, unchanged"
+    },
+    "model": {
+      "type": "string",
+      "description": "resolved model id"
+    },
+    "backend": {
+      "enum": [
+        "claude-code",
+        "anthropic-api",
+        "local",
+        "opencode"
+      ]
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_creation_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read_input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_usd_equivalent": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "latency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_ms"
+      ],
+      "properties": {
+        "queued_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "process_start_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "first_token_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "total_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "quota",
+            "auth",
+            "transient",
+            "timeout",
+            "invalid_output"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "resets_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gpu-lease.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "holder",
+    "priority",
+    "pid",
+    "acquired_at",
+    "expires_at",
+    "need_mib"
+  ],
+  "properties": {
+    "schema": {
+      "const": "gpu-lease.v1"
+    },
+    "holder": {
+      "type": "string"
+    },
+    "priority": {
+      "enum": [
+        "live",
+        "batch"
+      ]
+    },
+    "pid": {
+      "type": "integer"
+    },
+    "acquired_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "starts_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "need_mib": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

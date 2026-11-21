@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reasoner.request.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "role",
+    "template",
+    "context"
+  ],
+  "properties": {
+    "schema": {
+      "const": "reasoner.request.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "role": {
+      "enum": [
+        "judge",
+        "suggester",
+        "conversational"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "default": "haiku",
+      "description": "alias: haiku|sonnet|opus|local:<id>"
+    },
+    "template": {
+      "type": "string",
+      "pattern": "^[a-z_.]+@[0-9]+$",
+      "description": "prompt template id@version"
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 2
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window"
+      ],
+      "properties": {
+        "session": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "goal": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "speaker_roles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "window": {
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "speaker",
+              "text"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "speaker": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "start": {
+                "type": "number"
+              },
+              "end": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "focus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "utterance id that triggered the call"
+        },
+        "script_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "covered_phases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "retrieved": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "role-specific; judge: the analyzer's existing candidate JSON"
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000
+        },
+        "max_suggestions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stream": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

@@ -6,6 +6,11 @@ the only thing two services share: neither imports the other's code.
 | File | Producer | Consumers |
 |---|---|---|
 | `transcript.v1.schema.json` | `transcriber/` | `src/` (analyzer, RAG) |
+| `live.event.v1`, `gpu-lease.v1` | `transcriber/` (live) | orchestrator, GPU workers |
+| `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
+| `tts.request.v1` | orchestrator | Piper adapter |
+
+The platform contracts are specified in `docs/platform/CONTRACTS.md`.
 
 Rules: fields are only added inside a version, and only as optional
 fields (a document without them stays valid; the speaker-certainty

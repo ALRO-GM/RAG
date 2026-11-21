@@ -1,0 +1,3 @@
+{"schema": "gpu-lease.v1", "holder": "transcriber-live", "priority": "live", "pid": 4242,
+ "acquired_at": "2026-11-21T10:00:00Z", "expires_at": "2026-11-21T10:05:00Z",
+ "starts_at": null, "need_mib": 4096}

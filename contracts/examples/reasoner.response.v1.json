@@ -1,0 +1,5 @@
+{"schema": "reasoner.response.v1", "request_id": "r-91", "role": "suggester", "status": "ok",
+ "suggestions": [{"kind": "follow_up", "text": "¿Cómo gestionasteis las transacciones entre servicios?", "cites": ["interview.backend:q-arch-07"], "about": ["t7.s1"], "script_phase": "technical"}],
+ "model": "claude-haiku-4-5", "backend": "claude-code",
+ "usage": {"input_tokens": 1450, "output_tokens": 62, "cache_read_input_tokens": 1100},
+ "latency": {"queued_ms": 0, "process_start_ms": 700, "first_token_ms": null, "total_ms": 1650}}
