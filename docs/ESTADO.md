@@ -1,6 +1,6 @@
 # Estado de la plataforma
 
-Fecha: 2026-11-15. Rama `main` en `65ea93b`. Este documento resume cómo
+Fecha: 2026-11-21 (filas 12-14 añadidas; el resto, 2026-11-15). Rama `main` en `65ea93b`. Este documento resume cómo
 se está construyendo la plataforma, qué hay hecho, cuánto falta y **cuánta
 confianza hay en que cada parte funcione**. Cada porcentaje y cada grado
 de certeza apunta a su evidencia; donde no hay medida, lo dice.
@@ -119,6 +119,9 @@ corpus públicos; sólo sintética; sin medir.
 | 9 | Evidencia por persona y perfil | parcial | ~20 | muy baja | `docs/skills/DESIGN.md` §1, §2, §9; `src/application/skills/assessment.py` | Ningún instrumento validado puntúa a una persona con una sola reunión; hacen falta unas 4 situaciones por persona para fiabilidad .70 | Perfil entre sesiones (T-39) cuando haya datos |
 | 10 | Validación con evaluadores humanos | parcial | ~30 | sin medir | `docs/skills/ANNOTATION_GUIDE.md`; TASKS T-34, T-36 | Herramientas hechas, datos reales ninguno | T-36: grabar, formar 3 anotadores, medir acuerdo |
 | 11 | Privacidad, consentimiento, AI Act | parcial | ~20 | sin medir | `docs/skills/AUDIO.md` §5; `RESEARCH.md` §7; `docs/transcriber/ARCHITECTURE.md` §8 | Decisión legal del dueño pendiente; uso con empleados = alto riesgo (Anexo III) | Decidir antes de grabar a nadie (T-48) |
+| 12 | Capa de plataforma (contratos, dominios de conocimiento, `POST /knowledge/query`, `POST /reason`, orquestador con reproducción) | parcial | ~45 | media-baja: sintética; la etapa 1 funciona de punta a punta, pero con el plazo de 1,8 s se agotó el tiempo en 62-77 % de las llamadas de soporte y 21 % de las de entrevista (#175, #176) | `docs/platform/ARCHITECTURE.md`; `docs/platform/CONTRACTS.md`; `docs/KNOWLEDGE.md`; `experiments/platform/STAGE1_E2E.md` (40 llamadas reales a Haiku, guiones sintéticos) | El Haiku «caliente» muere al agotar el plazo y las llamadas siguientes arrancan en frío; la primera consulta de conocimiento tarda 2 s | Arreglar #175 y #176; micrófono y ASR en vivo (etapa 2) |
+| 13 | P2 Asistente en vivo (soporte y entrevistas) | parcial | ~15 | sin medir (con personas); sintética en el replay: 13-14 sugerencias por guion, sin juicio humano | `docs/platform/ORCHESTRATOR.md`; `experiments/platform/STAGE1_E2E.md` | Sólo existe el replay de transcripciones; no hay audio en vivo, VAD, ASR en streaming ni página en vivo; las señales del cliente no están validadas | Etapa 2: fuente de audio y ASR en streaming; evaluar con llamadas reales |
+| 14 | P3 Bot de voz | no empezado | ~0 | sin medir | `docs/platform/ARCHITECTURE.md` (diseño) | Sólo hay diseño y la configuración `config/products/voicebot.yaml`; sin TTS ni bucle de conversación | Tras P2 |
 
 Fuentes de cada porcentaje, fase por fase, en la sección 4.
 
