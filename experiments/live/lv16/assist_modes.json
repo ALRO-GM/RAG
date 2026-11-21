@@ -1,0 +1,599 @@
+{
+  "model": "haiku",
+  "effort": "low",
+  "calls": 24,
+  "priming_calls": 2,
+  "real_calls_total": 26,
+  "summary": {
+    "support/pincelada": {
+      "calls": 6,
+      "status": {
+        "no_suggestion": 1,
+        "ok": 5
+      },
+      "within_deadline": 6,
+      "deadline_ms": 2800,
+      "total_ms_p50": 1319.4,
+      "total_ms_max": 1709.7,
+      "first_token_ms_p50": 1048.1,
+      "words_median": 8,
+      "words_max": 8,
+      "cut_to_8_words": 2,
+      "suggestions": 5,
+      "judging_words": 0
+    },
+    "support/guiado": {
+      "calls": 6,
+      "status": {
+        "no_suggestion": 1,
+        "ok": 5
+      },
+      "within_deadline": 6,
+      "deadline_ms": 2800,
+      "total_ms_p50": 984.8,
+      "total_ms_max": 1730.0,
+      "first_token_ms_p50": 663.5,
+      "words_median": 14,
+      "words_max": 21,
+      "cut_to_8_words": 0,
+      "suggestions": 5,
+      "judging_words": 0
+    },
+    "interview/pincelada": {
+      "calls": 6,
+      "status": {
+        "no_suggestion": 3,
+        "ok": 3
+      },
+      "within_deadline": 6,
+      "deadline_ms": 1800,
+      "total_ms_p50": 1002.9,
+      "total_ms_max": 1113.4,
+      "first_token_ms_p50": 720.9,
+      "words_median": 8,
+      "words_max": 8,
+      "cut_to_8_words": 1,
+      "suggestions": 3,
+      "judging_words": 0
+    },
+    "interview/guiado": {
+      "calls": 6,
+      "status": {
+        "no_suggestion": 3,
+        "ok": 3
+      },
+      "within_deadline": 6,
+      "deadline_ms": 1800,
+      "total_ms_p50": 985.8,
+      "total_ms_max": 1330.4,
+      "first_token_ms_p50": 715.8,
+      "words_median": 11,
+      "words_max": 13,
+      "cut_to_8_words": 0,
+      "suggestions": 3,
+      "judging_words": 0
+    }
+  },
+  "rows": [
+    {
+      "case": "support",
+      "trigger": "t3.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 878.1,
+      "first_token_ms": 574.9,
+      "total_ms": 878.0209539982025,
+      "output_tokens": 97,
+      "texts": [
+        "Entiendo que es la segunda vez; vamos a…"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        true
+      ],
+      "signals": [
+        [
+          "stated_frustration"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t3.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 935.8,
+      "first_token_ms": 521.1,
+      "total_ms": 935.7210430025589,
+      "output_tokens": 125,
+      "texts": [
+        "Entiendo que es la segunda vez que llama; le ayudo a devolverla ahora. ¿Me confirma el correo con el que compró?"
+      ],
+      "words": [
+        21
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "stated_frustration"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t5.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 797.4,
+      "first_token_ms": 504.8,
+      "total_ms": 797.3971669853199,
+      "output_tokens": 98,
+      "texts": [
+        "Resumir en tres puntos: qué pasó, qué haremos…"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        true
+      ],
+      "signals": [
+        [
+          "stated_frustration"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t5.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 1230.1,
+      "first_token_ms": 758.4,
+      "total_ms": 1230.0546119804494,
+      "output_tokens": 111,
+      "texts": [
+        "Tiene razón en estar harto; le explico qué ha pasado, qué haremos y cuándo."
+      ],
+      "words": [
+        14
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "stated_frustration"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t7.s0",
+      "mode": "pincelada",
+      "status": "no_suggestion",
+      "wall_ms": 1561.5,
+      "first_token_ms": 1306.9,
+      "total_ms": 1561.4430640125647,
+      "output_tokens": 243,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t7.s0",
+      "mode": "guiado",
+      "status": "no_suggestion",
+      "wall_ms": 1730.1,
+      "first_token_ms": 1411.2,
+      "total_ms": 1730.031934013823,
+      "output_tokens": 285,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t17.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1180.9,
+      "first_token_ms": 884.5,
+      "total_ms": 1180.8536530006677,
+      "output_tokens": 199,
+      "texts": [
+        "Preguntar si el cargo sigue tras cinco días"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "complaint"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t17.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 965.5,
+      "first_token_ms": 571.8,
+      "total_ms": 965.4247520084027,
+      "output_tokens": 95,
+      "texts": [
+        "¿Me puede decir si el segundo cargo aparece pendiente o ya cobrado?"
+      ],
+      "words": [
+        12
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "complaint"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t19.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1709.7,
+      "first_token_ms": 1484.0,
+      "total_ms": 1709.6840230224188,
+      "output_tokens": 226,
+      "texts": [
+        "Preguntar la fecha límite exacta del cargo"
+      ],
+      "words": [
+        7
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "urgency"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t19.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 1004.2,
+      "first_token_ms": 727.0,
+      "total_ms": 1004.161529999692,
+      "output_tokens": 91,
+      "texts": [
+        "¿Hasta qué fecha exacta necesita que se lo devolvamos?"
+      ],
+      "words": [
+        9
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "urgency"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t21.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1458.1,
+      "first_token_ms": 1211.7,
+      "total_ms": 1458.0056660051923,
+      "output_tokens": 270,
+      "texts": [
+        "Preguntar el motivo y avisar a retención"
+      ],
+      "words": [
+        7
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "churn_risk"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "support",
+      "trigger": "t21.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 954.7,
+      "first_token_ms": 599.9,
+      "total_ms": 954.6801779943053,
+      "output_tokens": 103,
+      "texts": [
+        "Entiendo que quiera darse de baja; ¿me cuenta qué es lo que más le ha molestado?"
+      ],
+      "words": [
+        16
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        [
+          "churn_risk"
+        ]
+      ],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t1.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1049.7,
+      "first_token_ms": 723.5,
+      "total_ms": 1049.7106249968056,
+      "output_tokens": 75,
+      "texts": [
+        "Pedir un caso concreto de logística backend reciente"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t1.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 1330.4,
+      "first_token_ms": 1059.3,
+      "total_ms": 1330.4249559878372,
+      "output_tokens": 85,
+      "texts": [
+        "¿Puedes explicarme qué es una caché como si hablaras con alguien de negocio?"
+      ],
+      "words": [
+        13
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t3.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1113.4,
+      "first_token_ms": 817.5,
+      "total_ms": 1113.356372981798,
+      "output_tokens": 79,
+      "texts": [
+        "Pedir números: volumen de pedidos y mejora obtenida"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t3.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 950.1,
+      "first_token_ms": 651.8,
+      "total_ms": 950.1089580007829,
+      "output_tokens": 86,
+      "texts": [
+        "¿Cuántos pedidos procesaba el servicio por lote y qué mejora notaste?"
+      ],
+      "words": [
+        11
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t5.s0",
+      "mode": "pincelada",
+      "status": "ok",
+      "wall_ms": 1000.6,
+      "first_token_ms": 790.9,
+      "total_ms": 1000.5939030088484,
+      "output_tokens": 82,
+      "texts": [
+        "Preguntar cómo acabó el proyecto y cómo se…"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        true
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t5.s0",
+      "mode": "guiado",
+      "status": "ok",
+      "wall_ms": 1021.4,
+      "first_token_ms": 779.7,
+      "total_ms": 1021.3982400018722,
+      "output_tokens": 78,
+      "texts": [
+        "¿Cómo acabó el proyecto y cómo lo supiste?"
+      ],
+      "words": [
+        8
+      ],
+      "cut": [
+        false
+      ],
+      "signals": [
+        []
+      ],
+      "judging_words": [
+        false
+      ]
+    },
+    {
+      "case": "interview",
+      "trigger": "t9.s0",
+      "mode": "pincelada",
+      "status": "no_suggestion",
+      "wall_ms": 978.2,
+      "first_token_ms": 718.2,
+      "total_ms": 978.132068994455,
+      "output_tokens": 79,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t9.s0",
+      "mode": "guiado",
+      "status": "no_suggestion",
+      "wall_ms": 842.2,
+      "first_token_ms": 567.9,
+      "total_ms": 842.1885750140063,
+      "output_tokens": 75,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t15.s0",
+      "mode": "pincelada",
+      "status": "no_suggestion",
+      "wall_ms": 1005.3,
+      "first_token_ms": 689.4,
+      "total_ms": 1005.2952539990656,
+      "output_tokens": 78,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t15.s0",
+      "mode": "guiado",
+      "status": "no_suggestion",
+      "wall_ms": 817.5,
+      "first_token_ms": 563.6,
+      "total_ms": 817.5068169948645,
+      "output_tokens": 84,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t21.s0",
+      "mode": "pincelada",
+      "status": "no_suggestion",
+      "wall_ms": 809.3,
+      "first_token_ms": 544.7,
+      "total_ms": 809.2900920019019,
+      "output_tokens": 79,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    },
+    {
+      "case": "interview",
+      "trigger": "t21.s0",
+      "mode": "guiado",
+      "status": "no_suggestion",
+      "wall_ms": 1111.0,
+      "first_token_ms": 831.6,
+      "total_ms": 1110.9467349888291,
+      "output_tokens": 80,
+      "texts": [],
+      "words": [],
+      "cut": [],
+      "signals": [],
+      "judging_words": []
+    }
+  ]
+}

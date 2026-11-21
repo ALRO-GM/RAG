@@ -57,7 +57,7 @@ def main() -> None:
         if domain == "note":
             continue
         for line in lines:
-            found = checker.check(domain, line["text"])
+            found: Any = checker.check(domain, line["text"])
             scores = {i["id"]: i["score"] for i in found["items"]}
             rows.append({"domain": domain, "item": line["item"],
                          "text": line["text"], "scores": scores})
