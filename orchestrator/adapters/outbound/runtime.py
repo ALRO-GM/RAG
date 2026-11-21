@@ -46,3 +46,11 @@ class ThreadExecutor:
         """Join every thread started so far."""
         for thread in list(self._threads):
             thread.join()
+
+
+class ThreadRunner:
+    """Run each session on its own daemon thread."""
+
+    def start(self, job: Callable[[], None]) -> None:
+        """Start ``job`` on a new thread."""
+        threading.Thread(target=job, daemon=True).start()

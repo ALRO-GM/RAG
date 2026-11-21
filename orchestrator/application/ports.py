@@ -6,8 +6,9 @@ contracts (``knowledge.query.v1`` / ``knowledge.result.v1``,
 to import the services' own code.
 """
 
-from typing import Any, Callable, Dict, Protocol
+from typing import Any, Callable, Dict, Iterator, List, Protocol
 
+from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord
 
 Document = Dict[str, Any]
@@ -85,9 +86,83 @@ class SuggestionSink(Protocol):
         ...
 
 
+class EventHandler(Protocol):
+    """What receives a conversation's events one by one."""
+
+    def on_event(self, event: LiveEvent) -> None:
+        """Handle one ``live.event.v1``."""
+        ...
+
+    def finish(self) -> None:
+        """Called once after the last event."""
+        ...
+
+
+class LiveTranscriber(Protocol):
+    """The transcriber's live sessions (``/api/live/sessions``)."""
+
+    def start(self, body: Document) -> Document:
+        """Start a live session; return the transcriber's session.
+
+        Raises:
+            TranscriberUnavailable: The transcriber did not start it.
+        """
+        ...
+
+    def stop(self, session_id: str) -> None:
+        """Stop a live session (nothing if it already ended).
+
+        Raises:
+            TranscriberUnavailable: The transcriber could not be asked.
+        """
+        ...
+
+
+class EventSource(Protocol):
+    """The ``live.event.v1`` stream of a running session."""
+
+    def follow(
+        self, session_id: str, stop: CancelToken
+    ) -> Iterator[Document]:
+        """Yield the session's events until it ends or ``stop`` is set.
+
+        Raises:
+            TranscriberUnavailable: The stream could not be opened.
+        """
+        ...
+
+
+class TranscriptStore(Protocol):
+    """Recorded conversations a replay can use."""
+
+    def list(self) -> List[Document]:
+        """Return ``[{"id", "title", "utterances", "speakers"}]``."""
+        ...
+
+    def load(self, transcript_id: str) -> Transcript:
+        """Return one ``transcript.v1``.
+
+        Raises:
+            KeyError: There is no transcript with that id.
+        """
+        ...
+
+
+class Runner(Protocol):
+    """Runs a long job (a session) apart from the caller."""
+
+    def start(self, job: Callable[[], None]) -> None:
+        """Run ``job`` in the background."""
+        ...
+
+
 class KnowledgeUnavailable(Exception):
     """The knowledge service did not answer."""
 
 
 class ReasonerUnavailable(Exception):
     """The reasoner service could not be reached."""
+
+
+class TranscriberUnavailable(Exception):
+    """The transcriber refused or could not be reached."""

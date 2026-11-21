@@ -8,12 +8,14 @@ of each stage. At most one call is in flight: when a newer trigger
 arrives, the call in flight is cancelled (``cancel_stale``) and its
 answer is dropped, or the new trigger is skipped when ``cancel_stale``
 is off. A service failure becomes the record's status and never stops
-the conversation. Transcript text is never logged here.
+the conversation, except a quota or auth answer: then no further call
+is made in the session (skip reason ``halted``), as the design says
+(``ARCHITECTURE.md`` §6). Transcript text is never logged here.
 """
 
 import threading
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from orchestrator.application.ports import (
     CancelToken,
@@ -37,6 +39,10 @@ from orchestrator.domain.records import (
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
 
 MAX_REQUEST_ID = 64
+CHUNK_TEXT = 600
+"""Characters of a retrieved chunk kept in the record (for citations)."""
+HALTING = ("quota", "auth")
+"""Statuses after which the session stops asking the reasoner."""
 
 
 class LiveAssist:
@@ -85,15 +91,24 @@ class LiveAssist:
         )
         self._lock = threading.Lock()
         self._inflight: Optional[CancelToken] = None
+        self._texts: Dict[str, Tuple[str, str]] = {}
+        self.halted: Optional[str] = None
 
     def on_event(self, event: LiveEvent) -> None:
         """Handle one event: keep the window, maybe start a call."""
-        if event.type == "final" and event.utterance is not None:
-            u = event.utterance
-            self._window.append({
-                "id": u.id, "speaker": u.speaker, "text": u.text,
-                "start": u.start, "end": u.end,
-            })
+        u = event.utterance
+        if event.type == "final" and u is not None:
+            item = {"id": u.id, "speaker": u.speaker, "text": u.text,
+                    "start": u.start, "end": u.end}
+            if u.id in self._texts:
+                self._replace(item)
+            else:
+                self._window.append(item)
+            self._texts[u.id] = (u.speaker, u.text)
+        elif event.type == "speaker_update" and u is not None:
+            if u.id in self._texts:
+                self._texts[u.id] = (u.speaker, self._texts[u.id][1])
+                self._replace({"id": u.id, "speaker": u.speaker})
         decision = self.policy.decide(event)
         if isinstance(decision, Skip):
             self.skips[decision.reason] = (
@@ -102,6 +117,12 @@ class LiveAssist:
         elif isinstance(decision, Firing):
             self._fire(event, decision)
 
+    def _replace(self, item: Dict[str, Any]) -> None:
+        """Update the fields of an utterance already in the window."""
+        for kept in self._window:
+            if kept["id"] == item["id"]:
+                kept.update(item)
+
     def finish(self) -> None:
         """Wait for the call in flight, if any."""
         self.executor.wait_idle()
@@ -109,6 +130,9 @@ class LiveAssist:
     def _fire(self, event: LiveEvent, firing: Firing) -> None:
         """Start a call for ``firing``, cancelling or skipping a stale one."""
         with self._lock:
+            if self.halted is not None:
+                self.skips["halted"] = self.skips.get("halted", 0) + 1
+                return
             if self._inflight is not None:
                 if not self.trigger.cancel_stale:
                     self.skips["in_flight"] = (
@@ -171,6 +195,9 @@ class LiveAssist:
         if token.cancelled:
             record.suggestions, record.reply = [], None
             status = "cancelled"
+        elif status in HALTING:
+            with self._lock:
+                self.halted = status
         self._close(record, stages, started, token, status)
 
     def _retrieve(
@@ -200,6 +227,11 @@ class LiveAssist:
             chunks = list(result.get("chunks") or [])
         stages.knowledge_ms = _ms(self.clock.now() - asked)
         record.chunks = len(chunks)
+        record.retrieved = [
+            {"id": c.get("id"), "text": str(c.get("text", ""))[:CHUNK_TEXT],
+             "score": c.get("score"), "metadata": c.get("metadata") or {}}
+            for c in chunks[:10]
+        ]
         return chunks
 
     def _request(

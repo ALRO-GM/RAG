@@ -109,9 +109,15 @@ class Tts(_Strict):
 
 
 class Ui(_Strict):
-    """Where the result is shown."""
+    """Where the result is shown.
+
+    ``script_phases`` are the phases of the conversation's script, in
+    order, whose coverage the live page shows (interviews); they are
+    values of the knowledge domain's ``script_phase`` vocabulary.
+    """
 
     kind: Literal["live_page", "speaker", "hr_page"]
+    script_phases: List[str] = Field(default_factory=list)
 
 
 class Privacy(_Strict):

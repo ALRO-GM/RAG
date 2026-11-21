@@ -13,8 +13,7 @@ the last one).
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterator, List, Optional
 
-from orchestrator.application.live_assist import LiveAssist
-from orchestrator.application.ports import Clock
+from orchestrator.application.ports import CancelToken, Clock, EventHandler
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import (
     LiveEvent,
@@ -26,6 +25,8 @@ from orchestrator.domain.events import (
 )
 
 SAMPLE_RATE = 16000
+STOP_CHECK = 0.25
+"""Longest wait (seconds) before a replay looks at its stop flag again."""
 
 
 def default_roles(
@@ -127,16 +128,23 @@ def _start(started_at: Optional[str]) -> datetime:
 
 
 class Replay:
-    """Feed a conversation to a :class:`LiveAssist` at a chosen speed.
+    """Feed a conversation to a handler at a chosen speed.
 
     Args:
-        assist: The live-assist use case that receives the events.
+        assist: What receives the events (the live-assist use case, or
+            a session that also shows them).
         clock: Monotonic time and waiting.
         speed: Stream seconds per wall second; ``None`` for no waiting.
+        stop: Set to end the replay early (checked between events and
+            while waiting).
     """
 
     def __init__(
-        self, assist: LiveAssist, clock: Clock, speed: Optional[float]
+        self,
+        assist: EventHandler,
+        clock: Clock,
+        speed: Optional[float],
+        stop: Optional[CancelToken] = None,
     ):
         """Keep the collaborators."""
         if speed is not None and speed <= 0:
@@ -144,6 +152,7 @@ class Replay:
         self.assist = assist
         self.clock = clock
         self.speed = speed
+        self.stop = stop or CancelToken()
 
     def run(self, events: Iterator[LiveEvent]) -> List[LiveEvent]:
         """Deliver ``events`` on time; return them (for an events file)."""
@@ -151,11 +160,14 @@ class Replay:
         origin = self.clock.now()
         for event in events:
             if self.speed is not None:
-                wait = event.stream_time / self.speed - (
-                    self.clock.now() - origin
-                )
-                if wait > 0:
-                    self.clock.sleep(wait)
+                due = event.stream_time / self.speed
+                while not self.stop.cancelled:
+                    wait = due - (self.clock.now() - origin)
+                    if wait <= 0:
+                        break
+                    self.clock.sleep(min(wait, STOP_CHECK))
+            if self.stop.cancelled:
+                break
             sent.append(event)
             self.assist.on_event(event)
         self.assist.finish()
