@@ -48,6 +48,9 @@ MAX_HANG_MS = 700
 
 SourceKind = Literal["stereo_channels", "mono_diarized", "single_speaker"]
 UtteranceEvent = Literal["partial", "final"]
+WarningCode = Literal[
+    "gpu_degraded", "asr_behind", "source_lost", "quota", "other"
+]
 
 
 class EndpointSettings(BaseModel):
@@ -524,6 +527,15 @@ class LiveEventStream:
     ) -> Dict[str, Any]:
         """Return the ``session_ended`` event."""
         return self._event("session_ended", at, stream_time)
+
+    def warning(
+        self, at: datetime, stream_time: float, code: WarningCode,
+        message: str,
+    ) -> Dict[str, Any]:
+        """Return a ``warning`` event (shown to the user as a banner)."""
+        event = self._event("warning", at, stream_time)
+        event["warning"] = {"code": code, "message": message}
+        return event
 
 
 def percentile(values: Sequence[float], share: float) -> Optional[float]:

@@ -1,0 +1,75 @@
+"""Live log adapter: one JSON line per ``live.event.v1`` event (LV-7).
+
+Implements :class:`~transcriber.application.ports.LiveLog` under
+``<data_dir>/live/<session>/``: ``events.jsonl`` gets every event as it
+is emitted (flushed at once, so a crash keeps what was said until
+then) and ``transcript.json`` the session's ``transcript.v1`` at the
+end. No audio is ever written here: live mode keeps text only
+(``docs/platform/ARCHITECTURE.md`` §8). Files are private to the user
+(mode 600 in a 700 directory).
+"""
+
+import json
+import os
+import threading
+from pathlib import Path
+from typing import IO, Any, Dict, Mapping
+
+LIVE_DIR = "live"
+EVENTS_FILE = "events.jsonl"
+TRANSCRIPT_FILE = "transcript.json"
+
+
+class JsonlLiveLog:
+    """The live logs of a data directory."""
+
+    def __init__(self, data_dir: Path) -> None:
+        """Keep the root; nothing is created until the first event."""
+        self.root = data_dir / LIVE_DIR
+        self._open: Dict[str, IO[str]] = {}
+        self._lock = threading.Lock()
+
+    def directory(self, session_id: str) -> Path:
+        """Return the directory of ``session_id``'s log."""
+        return self.root / session_id
+
+    def _folder(self, session_id: str) -> Path:
+        """Create the session's directory (private) and return it."""
+        folder = self.directory(session_id)
+        folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return folder
+
+    def append(self, session_id: str, event: Mapping[str, Any]) -> None:
+        """Write ``event`` as one line and flush it."""
+        line = json.dumps(event, ensure_ascii=False)
+        with self._lock:
+            handle = self._open.get(session_id)
+            if handle is None:
+                path = self._folder(session_id) / EVENTS_FILE
+                descriptor = os.open(
+                    path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+                )
+                handle = os.fdopen(descriptor, "a", encoding="utf-8")
+                self._open[session_id] = handle
+            handle.write(line + "\n")
+            handle.flush()
+
+    def save_transcript(
+        self, session_id: str, document: Mapping[str, Any]
+    ) -> None:
+        """Write the transcript atomically (temporary file, rename)."""
+        folder = self._folder(session_id)
+        temporary = folder / f".{TRANSCRIPT_FILE}.tmp"
+        descriptor = os.open(
+            temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(document, stream, ensure_ascii=False, indent=1)
+        os.replace(temporary, folder / TRANSCRIPT_FILE)
+
+    def close(self, session_id: str) -> None:
+        """Close the session's events file, if open."""
+        with self._lock:
+            handle = self._open.pop(session_id, None)
+        if handle is not None:
+            handle.close()

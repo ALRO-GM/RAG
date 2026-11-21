@@ -13,6 +13,8 @@ signal in a fixed, predictable way:
   different people and the same tone like the same person.
 - :class:`FakeOverlapDetector` hears two people at once where a slot
   holds two tones of clearly different pitch (two strong peaks).
+- :class:`FakeVad` and :class:`FakeAsrStream` stand in for the live
+  mode's VAD and streaming recogniser, by loudness too.
 """
 
 from typing import AbstractSet, List, Optional, Sequence, Tuple
@@ -23,6 +25,7 @@ from transcriber.adapters.outbound.whisper_languages import (
     WHISPER_LANGUAGES,
 )
 from transcriber.application.ports import Audio, RecognisedSpeech, WordScores
+from transcriber.domain.live import SAMPLE_RATE, Hypothesis
 from transcriber.domain.models import Word
 from transcriber.domain.voices import FloatArray
 
@@ -171,3 +174,57 @@ class FakeVoiceEncoder:
 
     def release(self) -> None:
         """Nothing to unload."""
+
+
+class FakeVad:
+    """Live stand-in for the VAD: a frame is speech when it is loud.
+
+    The probability is 0.9 above :data:`SPEECH_RMS` and 0.05 below.
+    """
+
+    def probability(self, frame: FloatArray) -> float:
+        """Return 0.9 for a loud frame, 0.05 for a quiet one."""
+        rms = float(np.sqrt(np.mean(np.square(frame)))) if len(frame) else 0
+        return 0.9 if rms > SPEECH_RMS else 0.05
+
+    def reset(self) -> None:
+        """Nothing to forget."""
+
+
+class FakeAsrStream:
+    """Live stand-in for the streaming recogniser.
+
+    Hears one word (``palabra<n>``) per 0.4-second slot loud enough to
+    be speech; a final ends with a period and carries word times.
+    """
+
+    def __init__(self, language: Optional[str] = "es") -> None:
+        """Keep the language reported."""
+        self.language = language or "es"
+        self.warmed = 0
+
+    def warm_up(self) -> None:
+        """Count the warm-ups."""
+        self.warmed += 1
+
+    def decode(self, samples: FloatArray, final: bool) -> Hypothesis:
+        """Return one word per loud slot of ``samples``."""
+        slot = int(WORD_SECONDS * SAMPLE_RATE)
+        words: List[Word] = []
+        for n in range(len(samples) // slot):
+            piece = samples[n * slot:(n + 1) * slot]
+            if float(np.sqrt(np.mean(np.square(piece)))) > SPEECH_RMS:
+                words.append(Word(
+                    text=f"palabra{len(words)}",
+                    start=n * WORD_SECONDS, end=(n + 1) * WORD_SECONDS,
+                    probability=0.9,
+                ))
+        text = " ".join(w.text for w in words)
+        if final and text:
+            text += "."
+            last = words[-1]
+            words[-1] = last.model_copy(update={"text": last.text + "."})
+        return Hypothesis(
+            text=text, words=words if final else [],
+            language=self.language, confidence=0.9 if words else None,
+        )

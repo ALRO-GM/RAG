@@ -531,7 +531,24 @@ def create_app(
         if allowed:
             return
         peer = request.client.host if request.client is not None else None
-        key = client_key(peer, request.headers, limits.client_ip_header)
+        refuse(peer, request.headers)
+
+    def admit_code(
+        given: Optional[str], peer: Optional[str], headers: Mapping[str, str]
+    ) -> None:
+        """Let a socket in with the access code ``given``, as :func:`admit`.
+
+        A WebSocket from a browser cannot send the header, so the live
+        routes read the code from the first message too; the same
+        throttling of wrong codes applies.
+        """
+        if check_code(access_code, given):
+            return
+        refuse(peer, headers)
+
+    def refuse(peer: Optional[str], headers: Mapping[str, str]) -> None:
+        """Count a failure of the client (or say it is blocked); raise."""
+        key = client_key(peer, headers, limits.client_ip_header)
         wait = limiter.retry_after(key)
         if wait > 0:
             raise ApiError(
@@ -924,6 +941,10 @@ def create_app(
         from transcriber.adapters.inbound.lab_api import add_lab_routes
 
         add_lab_routes(api, playback, c.lab, c.settings)
+    if c.live is not None:
+        from transcriber.adapters.inbound.live_ws import add_live_routes
+
+        add_live_routes(app, api, c.live, admit_code, limits.json_max_bytes)
     app.include_router(api)
     app.include_router(playback)
     if limits.static_dir is not None:
