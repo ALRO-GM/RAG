@@ -77,11 +77,29 @@ class MeteredModel:
         """Return the wrapped model's identifier."""
         return self.model.model_name
 
-    def complete(self, system: str, user: str, max_tokens: int) -> str:
-        """Ask the model and record the call in the ledger."""
+    def complete(
+        self, system: str, user: str, max_tokens: int,
+        deadline_s: Optional[float] = None,
+    ) -> str:
+        """Ask the model and record the call in the ledger.
+
+        With ``deadline_s`` a backend that can cancel
+        (``complete_within``) gives up then; any other backend is let
+        finish and a late answer is dropped as a time-out.
+        """
         self.calls += 1
+        started = time.perf_counter()
         try:
-            return self.model.complete(system, user, max_tokens)
+            within = getattr(self.model, "complete_within", None)
+            if deadline_s is not None and callable(within):
+                return str(within(system, user, max_tokens, deadline_s))
+            text = self.model.complete(system, user, max_tokens)
+            if (deadline_s is not None
+                    and time.perf_counter() - started > deadline_s):
+                raise ModelTimeoutError(
+                    f"The answer took longer than {deadline_s:g} s."
+                )
+            return text
         finally:
             if self.ledger is not None:
                 self.ledger.record(
@@ -97,6 +115,9 @@ class Reasoner:
         models: Builds the chat model of an alias (cached by the caller).
         ledger: Where tokens are counted per role, if anywhere.
         clock: Monotonic seconds (replaced in tests).
+        live_models: Builds the (warm) model of the live roles
+            (``suggester`` and ``conversational``); ``models`` serves
+            them too when it is not given, and always the judge.
     """
 
     def __init__(
@@ -104,9 +125,11 @@ class Reasoner:
         models: ModelFactory,
         ledger: Optional[UsageLedger] = None,
         clock: Callable[[], float] = time.perf_counter,
+        live_models: Optional[ModelFactory] = None,
     ):
-        """Wire the model factory and the ledger."""
+        """Wire the model factories and the ledger."""
         self.models = models
+        self.live_models = live_models or models
         self.ledger = ledger
         self.clock = clock
 
@@ -142,7 +165,8 @@ class Reasoner:
         else:
             template = get_template(request.template, request.role)
         started = self.clock()
-        chat = MeteredModel(self.models(request.model), request.role,
+        factory = self.models if template is None else self.live_models
+        chat = MeteredModel(factory(request.model), request.role,
                             self.ledger)
         usage = Usage()
         error: Optional[ErrorInfo] = None
@@ -160,7 +184,8 @@ class Reasoner:
                 cap = min(asked or template.max_output_tokens,
                           template.max_output_tokens)
                 text = chat.complete(
-                    template.system(request), template.user(request), cap
+                    template.system(request), template.user(request), cap,
+                    _deadline_s(request),
                 )
                 parsed = template.parse(text, request)
                 limit = request.constraints.max_suggestions
@@ -209,7 +234,7 @@ class Reasoner:
         return response
 
     def _judge(
-        self, chat: ChatModel, request: ReasonRequest
+        self, chat: MeteredModel, request: ReasonRequest
     ) -> Dict[str, str]:
         """Run a raw judge call (``payload``: ``system`` and ``user``)."""
         system = request.payload.get("system")
@@ -220,7 +245,14 @@ class Reasoner:
                 "(or use Reasoner.confirm)."
             )
         cap = request.constraints.max_output_tokens or 120
-        return {"reply": chat.complete(system, user, cap)}
+        return {"reply": chat.complete(system, user, cap,
+                                       _deadline_s(request))}
+
+
+def _deadline_s(request: ReasonRequest) -> Optional[float]:
+    """Return the request's ``deadline_ms`` in seconds, if it has one."""
+    ms = request.constraints.deadline_ms
+    return None if ms is None else ms / 1000.0
 
 
 def _latency(model: object, total_ms: float) -> Latency:

@@ -45,6 +45,12 @@ class Template:
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS
 
 
+SUPPORT_MAX_OUTPUT_TOKENS = 200
+"""Cap of ``suggester.support@1``: its JSON (suggestion, ids and signals)
+needs about 105 tokens and a longer Spanish sentence reached the 120 of
+the interview template, which cut the reply (``OutputTooLongError``)."""
+
+
 def language_name(language: Optional[str]) -> str:
     """Return the language the reply is asked in (Spanish by default)."""
     return {"en": "English", "es": "Spanish"}.get(
@@ -226,13 +232,13 @@ def _support_system(request: ReasonRequest) -> str:
         "You assist a customer-support agent during a live call. Suggest "
         f"at most {_how_many(request)} short things for the agent to say "
         f"or ask next, in {language_name(request.language)}, each under "
-        "30 words, grounded in the utterances and knowledge chunks given; "
+        "25 words, grounded in the utterances and knowledge chunks given; "
         "do not invent policies, prices or deadlines. Also label what the "
         "CUSTOMER says in their words, never what they feel and never "
         "from the voice: signals from "
         f"{', '.join(SIGNALS)}, each backed by the customer's utterance "
         "ids in about (at most two signals). Add no field beyond those "
-        "listed. "
+        "listed, and no rationale. "
         + SHAPE % ', "signals": ["complaint"]'
     )
 
@@ -248,6 +254,7 @@ SUGGESTER_INTERVIEW_V1 = Template(
 SUGGESTER_SUPPORT_V1 = Template(
     id="suggester.support@1", role="suggester",
     system=_support_system, user=_suggester_user, parse=_support_parse,
+    max_output_tokens=SUPPORT_MAX_OUTPUT_TOKENS,
 )
 
 _REGISTRY: Dict[str, Template] = {

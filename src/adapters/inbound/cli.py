@@ -841,6 +841,7 @@ class RagCLI:
             knowledge=KnowledgeRoutes(
                 app.knowledge_query, app.knowledge_library
             ),
+            reasoner=skills.reasoner,
         )
         if token:
             k = app.knowledge_settings

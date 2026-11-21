@@ -1,5 +1,6 @@
 """Reasoner use case: roles, status mapping, usage per role, judge parity."""
 
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -196,3 +197,53 @@ def test_output_cap_overrun_is_invalid_output() -> None:
     out = reasoner(Raising(OutputTooLongError("too long"))).reason(request())
     assert out.status == "error"
     assert out.error is not None and out.error.kind == "invalid_output"
+
+
+class Cancellable(FakeChatModel):
+    """A fake backend that can give up after a deadline."""
+
+    def __init__(self) -> None:
+        """Record the deadlines it was given."""
+        super().__init__()
+        self.deadlines: List[float] = []
+
+    def complete_within(self, system: str, user: str, max_tokens: int,
+                        deadline_s: float) -> str:
+        """Give up: the deadline is too short for it."""
+        self.deadlines.append(deadline_s)
+        raise ModelTimeoutError("cancelled")
+
+
+class Slow(FakeChatModel):
+    """A backend that cannot cancel and answers after the deadline."""
+
+    def complete(self, system: str, user: str, max_tokens: int) -> str:
+        """Answer after 20 ms."""
+        time.sleep(0.02)
+        return super().complete(system, user, max_tokens)
+
+
+def test_deadline_goes_to_a_cancellable_backend_as_timeout() -> None:
+    model = Cancellable()
+    out = reasoner(model).reason(request(
+        constraints={"deadline_ms": 1800}
+    ))
+    assert model.deadlines == [1.8]
+    assert out.status == "timeout" and out.error is not None
+    assert out.error.kind == "timeout" and not model.calls
+
+
+def test_late_answer_of_a_backend_that_cannot_cancel_is_a_timeout() -> None:
+    out = Reasoner(lambda alias: Slow(['{"text": "ok"}'])).reason(
+        request(constraints={"deadline_ms": 1})
+    )
+    assert out.status == "timeout" and out.reply is None
+
+
+def test_live_roles_use_the_live_factory_and_the_judge_the_other() -> None:
+    live, cold = FakeChatModel(['{"text": "hola"}']), FakeChatModel(["x"])
+    r = Reasoner(lambda alias: cold, live_models=lambda alias: live)
+    assert r.reason(request()).reply is not None
+    assert live.calls and not cold.calls
+    r.reason(request(role="judge", payload={"system": "s", "user": "u"}))
+    assert cold.calls

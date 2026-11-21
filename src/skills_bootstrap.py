@@ -5,6 +5,7 @@ cache, experiment lab) behind the same ports, and adds the adapters
 that are specific to transcripts and rubrics.
 """
 
+import atexit
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
@@ -13,6 +14,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from src.adapters.outbound.anthropic_chat_model import AnthropicChatModel
 from src.adapters.outbound.bm25_index import BM25Builder
 from src.adapters.outbound.claude_code_judge import ClaudeCodeJudge
+from src.adapters.outbound.claude_code_stream import ClaudeCodeStream
 from src.adapters.outbound.fs_analysis_store import (
     FileAnalysisLock,
     FileSystemAnalysisStore,
@@ -90,6 +92,8 @@ from src.bootstrap import resolve_runtime
 from src.config import SkillsSettings
 from src.domain.errors import InvalidInputError, short_reason
 from src.domain.experiments import params_id
+from src.application.reasoning import Reasoner
+from src.domain.skills.claude_models import check_claude_model
 from src.domain.skills.usage import UsageLedger
 from src.domain.runtime import (
     HardwareProfile,
@@ -332,6 +336,39 @@ class SkillsContainer:
     def _claude_fallbacks(self) -> Dict[str, FallbackJudge]:
         """Claude (by model) with the local judge behind it, built so far."""
         return {}
+
+    @cached_property
+    def _warm_models(self) -> Dict[str, ClaudeCodeStream]:
+        """The warm Claude processes of the live roles, by model."""
+        return {}
+
+    def warm_model(self, alias: str) -> ClaudeCodeStream:
+        """Return the warm Claude Code backend of ``alias`` (reused).
+
+        An alias that is not an acceptable Claude model is a caller's
+        mistake (``InvalidInputError``), never passed to the command.
+        """
+        name = check_claude_model(alias or "haiku")
+        warm = self._warm_models
+        if name not in warm:
+            warm[name] = ClaudeCodeStream(
+                name, self.settings.claude_executable
+            )
+            atexit.register(warm[name].close)
+        return warm[name]
+
+    @cached_property
+    def reasoner(self) -> Reasoner:
+        """The reasoner of ``POST /reason``: warm Claude for the live
+        roles, the cold judge (as the analysis uses it) for ``judge``."""
+        return Reasoner(
+            lambda alias: self.claude_judge_for(
+                check_claude_model(alias, empty_ok=True)
+                or self.settings.claude_model
+            ),
+            self.usage,
+            live_models=self.warm_model,
+        )
 
     def claude_with_fallback(self, model: str) -> FallbackJudge:
         """Return Claude Code with ``model``, the local judge behind it.

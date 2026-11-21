@@ -13,6 +13,8 @@ the whole analysis of an ingested session (``skills analyze``, in a
 child process), ``DELETE …/run`` stops it, and the others serve its
 step records, step results and person reports. ``POST /knowledge/query``
 answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8);
+``POST /reason`` answers a ``reasoner.request.v1`` with a
+``reasoner.response.v1`` (PL-16);
 ``/knowledge/domains`` lists, creates and deletes domains and uploads,
 relabels and deletes their documents (``docs/KNOWLEDGE.md``).
 These routes need a bearer token, compared in constant time; when no
@@ -34,6 +36,7 @@ from pydantic import BaseModel, Field, ValidationError
 from src.application.answering import AnswerService
 from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.query import KnowledgeQueryService
+from src.application.reasoning import Reasoner
 from src.application.search import SearchService
 from src.application.skills.judges import JudgeSelection
 from src.application.skills.session_analysis import AnalysisRequests
@@ -56,6 +59,7 @@ from src.domain.knowledge.contract import KnowledgeQuery
 from src.domain.knowledge.documents import DocumentMetadata
 from src.domain.knowledge.domains import DomainManifest
 from src.domain.models import MinimalAnswer, MinimalSource
+from src.domain.reasoning.roles import ReasonRequest
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import MAX_JOB, JobSought
 
@@ -67,6 +71,8 @@ KNOWLEDGE_QUERY_MAX_BYTES = 64 * 1024
 """Largest ``knowledge.query.v1`` body (text is at most 4000 characters)."""
 KNOWLEDGE_JSON_MAX_BYTES = 64 * 1024
 """Largest JSON body of the domain and document routes."""
+REASON_MAX_BYTES = 256 * 1024
+"""Largest ``reasoner.request.v1`` body (a window of 40 utterances)."""
 MULTIPART_OVERHEAD = 1024 * 1024
 """Room for the multipart envelope and the metadata field of an upload."""
 
@@ -190,7 +196,7 @@ class TranscriptRoutes:
     ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
     the ``/analysis/judge`` routes, ``analysis`` the
     ``/analysis/sessions`` ones and ``knowledge`` the ``/knowledge``
-    ones.
+    ones, ``reasoner`` ``POST /reason``.
     """
 
     ingest: IngestTranscript
@@ -201,6 +207,7 @@ class TranscriptRoutes:
     judge: Optional[JudgeSelection] = None
     analysis: Optional[AnalysisRequests] = None
     knowledge: Optional[KnowledgeRoutes] = None
+    reasoner: Optional[Reasoner] = None
 
 
 def create_app(
@@ -334,6 +341,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         mount_analysis(app, routes.analysis, guard)
     if routes.knowledge is not None:
         mount_knowledge(app, routes.knowledge, guard)
+    if routes.reasoner is not None:
+        mount_reason(app, routes.reasoner, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -550,6 +559,33 @@ def mount_knowledge(
 
     if routes.library is not None:
         mount_library(app, routes.library, guard)
+
+
+def mount_reason(
+    app: FastAPI, reasoner: Reasoner, guard: List[Any]
+) -> None:
+    """Add ``POST /reason`` behind ``guard``."""
+
+    @app.post("/reason", dependencies=guard)
+    async def reason(request: Request) -> JSONResponse:
+        """Answer a ``reasoner.request.v1`` with a ``reasoner.response.v1``.
+
+        ``422`` when the body breaks the contract or names an unknown
+        template; a model failure is not an HTTP error: it comes back
+        as the response's ``status`` (``timeout``, ``quota``, ...).
+        """
+        body = await read_body(request, REASON_MAX_BYTES)
+        try:
+            asked = ReasonRequest.model_validate_json(body)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=short_reason(exc))
+        try:
+            answer = await run_in_threadpool(reasoner.reason, asked)
+        except InvalidInputError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        except RagError as exc:
+            raise http_error(exc)
+        return JSONResponse(answer.to_contract())
 
 
 def knowledge_error(exc: RagError) -> HTTPException:

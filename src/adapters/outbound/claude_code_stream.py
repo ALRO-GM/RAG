@@ -15,8 +15,11 @@ reasoner's 1.8 s budget needs. This adapter keeps that process:
   ``max_turns`` calls or when a reply reports more than
   ``max_context_tokens`` of input, and whenever the system prompt or
   the output cap changes (both are fixed at process start);
-- the output cap is ``CLAUDE_CODE_MAX_OUTPUT_TOKENS`` of the process
-  (outliers of 384-797 tokens caused the 4-6 s tails);
+- the output cap is ``CLAUDE_CODE_MAX_OUTPUT_TOKENS`` of the process,
+  plus ``thinking_allowance``: Haiku's hidden thinking counts against
+  that cap (183 of 286 output tokens in one measured call) and cut the
+  replies of ``suggester.support@1`` while the visible JSON was ~100
+  tokens (outliers of 384-797 tokens caused the 4-6 s tails);
 - one call at a time (a lock); a time-out kills the process;
 - errors are the cold judge's (quota, sign-in, transient), read from
   the same ``result`` object. Transcript text is never logged.
@@ -154,6 +157,8 @@ class ClaudeCodeStream:
         max_turns: Restart the process after this many calls.
         max_context_tokens: Restart when a reply reports more input
             tokens than this (input plus both caches).
+        thinking_allowance: Output tokens added to the process cap for
+            the model's hidden thinking, which the cap also counts.
         environ: Where ``PATH``, ``HOME`` and the locale are read from.
         spawner: Starts the process (replaced in tests).
         clock: Monotonic seconds (replaced in tests).
@@ -166,6 +171,7 @@ class ClaudeCodeStream:
         timeout: float = 10.0,
         max_turns: int = 20,
         max_context_tokens: int = 12000,
+        thinking_allowance: int = 300,
         environ: Optional[Mapping[str, str]] = None,
         spawner: Spawner = _spawn,
         clock: Callable[[], float] = time.perf_counter,
@@ -175,6 +181,7 @@ class ClaudeCodeStream:
             model=model, executable=executable, environ=environ,
         )
         self.timeout = timeout
+        self.thinking_allowance = max(thinking_allowance, 0)
         self.max_turns = max(max_turns, 1)
         self.max_context_tokens = max_context_tokens
         self._spawner = spawner
@@ -199,11 +206,24 @@ class ClaudeCodeStream:
         ``max_tokens`` caps the output of the process (fixed when it
         starts, so a different cap restarts it).
         """
+        return self.complete_within(system, user, max_tokens, None)
+
+    def complete_within(
+        self, system: str, user: str, max_tokens: int,
+        deadline_s: Optional[float],
+    ) -> str:
+        """Like :meth:`complete`, giving up after ``deadline_s`` seconds.
+
+        The caller's deadline (``constraints.deadline_ms``) can only
+        shorten the backend's own time-out. When it passes, the
+        process is killed (the call is cancelled) and
+        :class:`~src.domain.errors.ModelTimeoutError` is raised.
+        """
         with self._lock:
             self.last_usage = None
             self.last_latency = None
             try:
-                return self._call(system, user, max_tokens)
+                return self._call(system, user, max_tokens, deadline_s)
             except Exception:
                 self.close()
                 raise
@@ -229,13 +249,18 @@ class ClaudeCodeStream:
             system, output_format="stream-json", extra=STREAM_FLAGS
         )
         env = dict(self._judge.environment())
-        env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(max(cap, 1))
+        env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(
+            max(cap, 1) + self.thinking_allowance
+        )
         self._process = self._spawner(command, env)
         self._key = (system, cap)
         self._turns = 0
         self._context = 0
 
-    def _call(self, system: str, user: str, cap: int) -> str:
+    def _call(
+        self, system: str, user: str, cap: int,
+        deadline_s: Optional[float] = None,
+    ) -> str:
         """Send one message and read events until its ``result``."""
         began = self._clock()
         spawned = 0.0
@@ -251,13 +276,16 @@ class ClaudeCodeStream:
             "type": "user",
             "message": {"role": "user", "content": user},
         }))
-        deadline = sent + self.timeout
+        allowed = self.timeout if deadline_s is None else min(
+            self.timeout, deadline_s
+        )
+        deadline = sent + allowed
         first_ms: Optional[float] = None
         while True:
             line = process.receive(deadline - self._clock())
             if line is None:
                 raise ModelTimeoutError(
-                    f"Claude Code did not answer within {self.timeout:g} s."
+                    f"Claude Code did not answer within {allowed:g} s."
                 )
             if line == "":
                 raise ModelError("Claude Code stopped without an answer.")
