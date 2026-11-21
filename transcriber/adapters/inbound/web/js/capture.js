@@ -1,6 +1,7 @@
 // Microphone capture: getUserMedia -> AudioWorklet -> 16 kHz mono PCM16.
 
 import { Resampler, TARGET_RATE, floatToPcm16, pcm16ToBytes, peak } from "./lib/audio.js";
+import { WakeLock } from "./lib/wake-lock.js";
 
 export class CaptureError extends Error {
   /** reason: unsupported | noworklet | denied | none | failed */
@@ -33,6 +34,8 @@ export class Capture {
     this.stream = null;
     this.node = null;
     this.resampler = null;
+    // The phone must not sleep while the microphone is on (session cut).
+    this.wakeLock = new WakeLock();
   }
 
   get seconds() {
@@ -81,6 +84,7 @@ export class Capture {
     for (const track of this.stream.getAudioTracks()) {
       track.addEventListener("ended", () => !this.stopped && this.onProblem("ended"));
     }
+    this.wakeLock.acquire();
     this.ctx.addEventListener("statechange", () => {
       if (this.stopped || this.ctx.state === "running") return;
       this.onProblem("suspended");
@@ -113,6 +117,7 @@ export class Capture {
   }
 
   async _close() {
+    this.wakeLock.release();
     for (const track of this.stream?.getTracks() ?? []) track.stop();
     try {
       this.node?.disconnect();
