@@ -5,6 +5,7 @@
 
 import { translateStatic } from "./i18n.js";
 import { installLanguageSwitch } from "./lang-switch.js";
+import { installShell } from "./shell.js";
 import { isStudyData } from "./lib/study.js";
 import { renderMessage, renderStudy } from "./views/study.js";
 
@@ -44,4 +45,5 @@ async function start() {
 
 translateStatic(document);
 installLanguageSwitch(document.querySelector(".top .lang"), draw);
+installShell({ onLanguage: draw });
 start();

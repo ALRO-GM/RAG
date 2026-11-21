@@ -204,6 +204,44 @@ export class Api {
   /** Hand the transcript over to the RAG (needed before an analysis). */
   publish(id) { return this.request("POST", `/sessions/${encodeURIComponent(id)}/publish`); }
 
+  // ---- knowledge domains (the RAG's /knowledge/..., proxied under /api/knowledge) ----
+
+  /** The knowledge domains (id, title, language, documents, chunks, index_version, updated_at). */
+  knowledgeDomains() { return this.request("GET", "/knowledge/domains"); }
+
+  /** Create a domain: { id, title, language }. */
+  createKnowledgeDomain(domain) { return this.request("POST", "/knowledge/domains", { json: domain }); }
+
+  /** Delete a domain with its documents and index. */
+  deleteKnowledgeDomain(id) { return this.request("DELETE", `/knowledge/domains/${encodeURIComponent(id)}`); }
+
+  /** A domain's documents (name, type, size, pages, chunks, status, error, metadata, uploaded_at). */
+  knowledgeDocuments(id) { return this.request("GET", `/knowledge/domains/${encodeURIComponent(id)}/documents`); }
+
+  /**
+   * Upload one document as multipart/form-data: `file` and, when given,
+   * `metadata` as JSON. The browser writes the multipart boundary itself.
+   */
+  uploadKnowledgeDocument(id, file, metadata = null) {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    if (metadata) form.append("metadata", JSON.stringify(metadata));
+    return this.request("POST", `/knowledge/domains/${encodeURIComponent(id)}/documents`, { body: form });
+  }
+
+  /** Change a document's metadata { category, intent, script_phase, tags }. */
+  updateKnowledgeDocument(id, doc, metadata) {
+    return this.request("PATCH", `/knowledge/domains/${encodeURIComponent(id)}/documents/${encodeURIComponent(doc)}`, { json: { metadata } });
+  }
+
+  /** Delete one document (its chunks leave the index). */
+  deleteKnowledgeDocument(id, doc) {
+    return this.request("DELETE", `/knowledge/domains/${encodeURIComponent(id)}/documents/${encodeURIComponent(doc)}`);
+  }
+
+  /** Search a domain: a knowledge.query.v1 body, a knowledge.result.v1 answer. */
+  knowledgeQuery(body) { return this.request("POST", "/knowledge/query", { json: body }); }
+
   // ---- model lab (docs/transcriber/LAB.md §7) ----
 
   labCatalogue() { return this.request("GET", "/lab/catalogue"); }
