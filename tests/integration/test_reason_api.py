@@ -113,3 +113,73 @@ def test_oversized_body_is_413(tmp_path: Path) -> None:
     huge: List[str] = ["x" * 1000] * 300
     assert app.post("/reason", json={**EXAMPLE, "payload": {"a": huge}},
                     headers=AUTH).status_code == 413
+
+
+def stream_lines(response: Any) -> List[Dict[str, Any]]:
+    """Return the NDJSON lines of a streamed answer."""
+    return [json.loads(line) for line in response.text.splitlines() if line]
+
+
+class Pieces(FakeChatModel):
+    """A live backend that streams its reply in pieces."""
+
+    def complete_streaming(self, system: str, user: str, max_tokens: int,
+                           deadline_s: Any, on_text: Any) -> str:
+        """Answer in four-character pieces."""
+        text = self.complete(system, user, max_tokens)
+        for at in range(0, len(text), 4):
+            on_text(text[at:at + 4])
+        return text
+
+
+def bot_request() -> Dict[str, Any]:
+    """A conversational request."""
+    return {
+        "schema": "reasoner.request.v1", "request_id": "b1",
+        "role": "conversational", "template": "conversational.voicebot@1",
+        "context": {"window": [{"id": "u1", "speaker": "S1",
+                                "text": "¿Cuándo abrís?"}]},
+        "retrieved": [{"id": "kb:1", "text": "Abrimos de 9 a 18."}],
+    }
+
+
+def test_stream_sends_text_pieces_then_the_response(tmp_path: Path) -> None:
+    reply = '{"text": "Abrimos de 9 a 18. Te espero.", "cites": ["kb:1"]}'
+    live, cold = Pieces([reply]), FakeChatModel(["x"])
+    response = client(tmp_path, live, cold).post(
+        "/reason/stream", json=bot_request(), headers=AUTH
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/x-ndjson")
+    lines = stream_lines(response)
+    texts = [x["text"] for x in lines if x["type"] == "text"]
+    assert len(texts) > 3 and "".join(texts) == reply
+    last = lines[-1]
+    assert last["type"] == "response"
+    assert list(RESPONSE.iter_errors(last["response"])) == []
+    assert last["response"]["reply"]["cites"] == ["kb:1"]
+
+
+def test_stream_refuses_bad_requests_before_any_line(tmp_path: Path) -> None:
+    api = client(tmp_path, FakeChatModel(["x"]), FakeChatModel(["x"]))
+    bad = bot_request()
+    bad["template"] = "conversational.nope@1"
+    assert api.post("/reason/stream", json=bad,
+                    headers=AUTH).status_code == 422
+    assert api.post("/reason/stream", json={"x": 1},
+                    headers=AUTH).status_code == 422
+    assert api.post("/reason/stream", json=bot_request()).status_code == 401
+
+
+def test_stream_reports_an_error_line(tmp_path: Path) -> None:
+    from src.domain.errors import RagError
+
+    class Broken(FakeChatModel):
+        def complete(self, system: str, user: str, max_tokens: int) -> str:
+            raise RagError("boom")
+
+    lines = stream_lines(client(tmp_path, Broken(), FakeChatModel(["x"]))
+                         .post("/reason/stream", json=bot_request(),
+                               headers=AUTH))
+    assert lines == [{"type": "error", "message": "boom"}]

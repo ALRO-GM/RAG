@@ -9,7 +9,7 @@ to import the services' own code.
 from typing import Any, Callable, Dict, Iterator, List, Protocol
 
 from orchestrator.domain.events import LiveEvent, Transcript
-from orchestrator.domain.records import SuggestionRecord
+from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
 
 Document = Dict[str, Any]
@@ -73,6 +73,25 @@ class TextToSpeech(Protocol):
         ...
 
 
+class StreamingReasoner(Protocol):
+    """A reasoner that hands its output over while it is written."""
+
+    def reason_stream(
+        self, request: Document, cancel: CancelToken,
+        on_text: Callable[[str], None],
+    ) -> Document:
+        """Like :meth:`ReasonerPort.reason`, passing text pieces on.
+
+        ``on_text`` receives the model's raw output piece by piece;
+        the return value is the whole ``reasoner.response.v1``. Once
+        ``cancel`` is set no more pieces are passed.
+
+        Raises:
+            ReasonerUnavailable: The service could not be reached.
+        """
+        ...
+
+
 class Clock(Protocol):
     """Monotonic time and waiting (replaced by a fake in tests)."""
 
@@ -102,6 +121,18 @@ class SuggestionSink(Protocol):
 
     def write(self, record: SuggestionRecord) -> None:
         """Store one record."""
+        ...
+
+
+class BotOutput(Protocol):
+    """Where the voice bot's messages go (the session's feed and log)."""
+
+    def publish(self, message: Document) -> None:
+        """Send one message to the page (speech, interrupt, turn state)."""
+        ...
+
+    def record(self, record: TurnRecord) -> None:
+        """Keep the record of a finished turn."""
         ...
 
 

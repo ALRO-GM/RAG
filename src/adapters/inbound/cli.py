@@ -874,7 +874,9 @@ class RagCLI:
                 )
                 print(f"Warm-up: knowledge domains {warmed}")
                 skills.reasoner.warm_up()
-                print("Warm-up: live reasoner pool started")
+                skills.reasoner.warm_up("conversational.voicebot@1")
+                print("Warm-up: live reasoner pools started "
+                      "(suggester, conversational)")
             except Exception as exc:  # warm-up is best effort
                 print(f"Warm-up skipped: {type(exc).__name__}")
 

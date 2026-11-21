@@ -93,3 +93,85 @@ def test_reasoner_failures(response: httpx.Response) -> None:
     http = HttpReasoner("http://x", client=client(lambda r: response))
     with pytest.raises(ReasonerUnavailable):
         http.reason(REQUEST, CancelToken())
+
+
+def ndjson(*items: Dict[str, Any]) -> bytes:
+    return "".join(json.dumps(i) + "\n" for i in items).encode()
+
+
+def test_reason_stream_passes_pieces_then_returns_the_response() -> None:
+    seen: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        return httpx.Response(200, content=ndjson(
+            {"type": "text", "text": '{"text": "Ho'}, {},
+            {"type": "text", "text": 'la."}'},
+            {"type": "response", "response": RESPONSE},
+        ) + b"\n")
+
+    pieces: List[str] = []
+    out = HttpReasoner("http://rag", client=client(handler)).reason_stream(
+        REQUEST, CancelToken(), pieces.append)
+    assert seen == ["/reason/stream"]
+    assert pieces == ['{"text": "Ho', 'la."}'] and out == RESPONSE
+
+
+def test_reason_stream_falls_back_to_reason_on_an_old_service() -> None:
+    seen: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path.endswith("/stream"):
+            return httpx.Response(404, json={"detail": "Not Found"})
+        return httpx.Response(200, json=RESPONSE)
+
+    pieces: List[str] = []
+    out = HttpReasoner("http://rag", client=client(handler)).reason_stream(
+        REQUEST, CancelToken(), pieces.append)
+    assert seen == ["/reason/stream", "/reason"]
+    assert out == RESPONSE and pieces == []
+
+
+def test_reason_stream_cancel_stops_reading() -> None:
+    cancel = CancelToken()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=ndjson(
+            {"type": "text", "text": "a"}, {"type": "text", "text": "b"},
+            {"type": "response", "response": RESPONSE}))
+
+    def piece(text: str) -> None:
+        cancel.cancel()
+
+    out = HttpReasoner("http://rag", client=client(handler)).reason_stream(
+        REQUEST, cancel, piece)
+    assert out["status"] == "cancelled"
+    already = CancelToken()
+    already.cancel()
+    out = HttpReasoner("http://rag", client=client(handler)).reason_stream(
+        REQUEST, already, piece)
+    assert out["status"] == "cancelled"
+
+
+@pytest.mark.parametrize("body", [
+    ndjson({"type": "error", "message": "boom"}),
+    ndjson({"type": "text", "text": "a"}),
+    b"not json\n",
+])
+def test_reason_stream_broken_streams_are_unavailable(body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body)
+
+    with pytest.raises(ReasonerUnavailable):
+        HttpReasoner("http://rag", client=client(handler)).reason_stream(
+            REQUEST, CancelToken(), lambda text: None)
+
+
+def test_reason_stream_http_errors_are_unavailable() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    with pytest.raises(ReasonerUnavailable):
+        HttpReasoner("http://rag", client=client(handler)).reason_stream(
+            REQUEST, CancelToken(), lambda text: None)

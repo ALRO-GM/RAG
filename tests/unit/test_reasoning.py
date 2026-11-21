@@ -247,3 +247,45 @@ def test_live_roles_use_the_live_factory_and_the_judge_the_other() -> None:
     assert live.calls and not cold.calls
     r.reason(request(role="judge", payload={"system": "s", "user": "u"}))
     assert cold.calls
+
+
+class Streaming(FakeChatModel):
+    """A backend that writes its reply in pieces."""
+
+    def complete_streaming(self, system: str, user: str, max_tokens: int,
+                           deadline_s: Optional[float],
+                           on_text: Any) -> str:
+        """Pass the reply on in three-character pieces."""
+        text = self.complete(system, user, max_tokens)
+        for at in range(0, len(text), 3):
+            on_text(text[at:at + 3])
+        return text
+
+
+def test_a_streaming_backend_passes_each_piece_on() -> None:
+    reply = '{"text": "Abrimos de 9 a 18.", "cites": ["kb:1"]}'
+    pieces: List[str] = []
+    out = reasoner(Streaming([reply])).reason(request(), pieces.append)
+    assert len(pieces) > 5 and "".join(pieces) == reply
+    assert out.reply is not None and out.reply.text == "Abrimos de 9 a 18."
+
+
+def test_a_backend_that_does_not_stream_passes_the_whole_reply() -> None:
+    pieces: List[str] = []
+    out = reasoner(FakeChatModel(['{"text": "Hola."}'])).reason(
+        request(), pieces.append)
+    assert pieces == ['{"text": "Hola."}'] and out.status == "ok"
+
+
+def test_conversational_templates_warm_their_own_pool() -> None:
+    warmed: List[Any] = []
+
+    class Warm(FakeChatModel):
+        def warm(self, system: str, max_tokens: int) -> None:
+            warmed.append((system, max_tokens))
+
+    r = Reasoner(lambda alias: Warm())
+    assert r.warm_up("conversational.voicebot@1")
+    assert r.warm_up()
+    assert "voice assistant" in warmed[0][0]
+    assert "voice assistant" not in warmed[1][0]

@@ -255,9 +255,24 @@ class ClaudeCodeStream:
         """
         return self.complete_within(system, user, max_tokens, None)
 
+    def complete_streaming(
+        self, system: str, user: str, max_tokens: int,
+        deadline_s: Optional[float], on_text: Callable[[str], None],
+    ) -> str:
+        """Like :meth:`complete_within`, passing each text piece on.
+
+        ``on_text`` receives the reply's text deltas as the process
+        writes them (``--include-partial-messages``), so a voice bot
+        can speak its first sentence before the reply ends; the return
+        value is the whole reply, as for :meth:`complete_within`.
+        """
+        return self.complete_within(system, user, max_tokens, deadline_s,
+                                    on_text)
+
     def complete_within(
         self, system: str, user: str, max_tokens: int,
         deadline_s: Optional[float],
+        on_text: Optional[Callable[[str], None]] = None,
     ) -> str:
         """Like :meth:`complete`, giving up after ``deadline_s`` seconds.
 
@@ -273,7 +288,8 @@ class ClaudeCodeStream:
             self._closed = False
             worker, spawned = self._acquire(key)
             try:
-                return self._turn(worker, user, deadline_s, spawned)
+                return self._turn(worker, user, deadline_s, spawned,
+                                  on_text)
             except ModelTimeoutError:
                 worker.abandoned = True
                 self._cap_abandoned()
@@ -438,7 +454,7 @@ class ClaudeCodeStream:
 
     def _turn(
         self, worker: _Worker, user: str, deadline_s: Optional[float],
-        spawned: float,
+        spawned: float, on_text: Optional[Callable[[str], None]] = None,
     ) -> str:
         """Send one message and read events until its ``result``."""
         process = worker.process
@@ -466,8 +482,11 @@ class ClaudeCodeStream:
                 continue
             if not isinstance(event, dict):
                 continue
-            if first_ms is None and _is_text_delta(event):
-                first_ms = (self._clock() - sent) * 1000.0
+            if _is_text_delta(event):
+                if first_ms is None:
+                    first_ms = (self._clock() - sent) * 1000.0
+                if on_text is not None:
+                    on_text(str(event["event"]["delta"].get("text", "")))
             if event.get("type") == "result":
                 break
         total = (self._clock() - sent) * 1000.0

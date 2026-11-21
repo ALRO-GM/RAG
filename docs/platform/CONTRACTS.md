@@ -11,7 +11,7 @@ Readers are deployed before writers. Each schema goes in
 |---|---|---|---|
 | live.event.v1 | transcriber | orchestrator, live page | WebSocket `/api/live/{session}/events` (alias `/live/{session}/events`; JSON per message; `docs/live/LIVE_SESSION.md`) |
 | knowledge.query.v1 / knowledge.result.v1 | orchestrator, analyzer | RAG | `POST /knowledge/query` |
-| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason` |
+| reasoner.request.v1 / reasoner.response.v1 | orchestrator | RAG | `POST /reason`; `POST /reason/stream` (NDJSON: `{"type": "text", "text"}` pieces of the model's raw output as it writes them, then `{"type": "response", "response"}` or `{"type": "error", "message"}`; the voice bot, VB-2) |
 | tts.request.v1 | orchestrator | Piper adapter | in-process call or `POST /tts` (audio bytes back) |
 | gpu-lease.v1 | transcriber (live) | IMG worker, transcriber JobRunner | file `$XDG_RUNTIME_DIR/gpu-lease/lease.json` |
 | transcript.v1 (exists) | transcriber | RAG / analyzer | `POST /transcripts` |
