@@ -47,6 +47,33 @@
       "maximum": 2.0,
       "default": 1.0
     },
+    "noise_scale": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1.5,
+      "description": "Piper generator noise (intonation); null or absent: the voice's own"
+    },
+    "noise_w": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1.5,
+      "description": "Piper phoneme width noise (cadence); null or absent: the voice's own"
+    },
+    "sentence_silence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 2.0,
+      "description": "seconds of silence after each sentence; null or absent: none"
+    },
     "format": {
       "enum": [
         "pcm_s16le",

@@ -8,8 +8,9 @@ That command keeps the voice loaded and reads one line of text per
 utterance from its standard input; for each line it writes a WAV file
 to ``<dir>`` and logs ``Wrote <path>`` on its standard error, which is
 what tells this adapter that the sentence is ready. One process is
-kept per voice (and length scale), started on first use and restarted
-if it dies; one sentence at a time goes through it.
+kept per voice and controls (length scale, noise scale, noise_w,
+sentence silence, speaker), started on first use and restarted if it
+dies; one sentence at a time goes through it.
 
 Sentence streaming: the request's text is cut into sentences
 (:func:`~orchestrator.domain.speech.split_sentences`) and each one is
@@ -29,7 +30,7 @@ import time
 import wave
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, IO, Iterator, List, Optional, Tuple
+from typing import Any, Dict, IO, Iterator, List, NamedTuple, Optional, Tuple
 
 from orchestrator.application.ports import (
     CancelToken,
@@ -47,6 +48,33 @@ DEFAULT_PYTHON = Path("~/.local/share/ragputin/tts-venv/bin/python")
 DEFAULT_VOICES = Path("~/.local/share/ragputin/voices")
 WROTE = re.compile(r"Wrote (.+\.wav)\s*$")
 """Piper's log line once a sentence's WAV file is written."""
+
+
+class _Key(NamedTuple):
+    """What one Piper process is started with (internal)."""
+
+    voice: str
+    length_scale: float = 1.0
+    speaker: Optional[int] = None
+    noise_scale: Optional[float] = None
+    noise_w: Optional[float] = None
+    sentence_silence: Optional[float] = None
+
+    @classmethod
+    def of(cls, request: Dict[str, Any]) -> "_Key":
+        """Return the key of a ``tts.request.v1``."""
+        def number(name: str) -> Optional[float]:
+            value = request.get(name)
+            return float(value) if value is not None else None
+
+        speaker = request.get("speaker")
+        return cls(
+            voice=str(request.get("voice") or ""),
+            length_scale=float(request.get("length_scale") or 1.0),
+            speaker=int(speaker) if speaker is not None else None,
+            noise_scale=number("noise_scale"), noise_w=number("noise_w"),
+            sentence_silence=number("sentence_silence"),
+        )
 
 
 class _Piper:
@@ -152,14 +180,14 @@ class PiperTts:
             self._tmp = tempfile.TemporaryDirectory(prefix="piper-")
             workdir = Path(self._tmp.name)
         self.workdir = workdir
-        self._processes: Dict[Tuple[str, float, Optional[int]], _Piper] = {}
+        self._processes: Dict[_Key, _Piper] = {}
         self._lock = threading.Lock()
         self._active: Dict[str, CancelToken] = {}
         self._active_lock = threading.Lock()
 
     def warm(self, voice: str, length_scale: float = 1.0) -> None:
         """Start the voice's process and speak one word, off the hot path."""
-        self._say((voice, length_scale, None), "Hola.")
+        self._say(_Key(voice, length_scale), "Hola.")
 
     def synthesize(
         self, request: Document, cancel: CancelToken
@@ -167,13 +195,10 @@ class PiperTts:
         """Speak ``request`` sentence by sentence (see the module)."""
         if request.get("schema") != TTS_SCHEMA:
             raise ValueError("not a tts.request.v1")
-        voice = str(request.get("voice") or "")
-        if not VOICE_ID.match(voice):
-            raise ValueError(f"invalid voice id {voice!r}")
+        key = _Key.of(request)
+        if not VOICE_ID.match(key.voice):
+            raise ValueError(f"invalid voice id {key.voice!r}")
         audio_format = request.get("format") or "pcm_s16le"
-        speaker = request.get("speaker")
-        key = (voice, float(request.get("length_scale") or 1.0),
-               int(speaker) if speaker is not None else None)
         request_id = str(request["request_id"])
         text = str(request.get("text") or "")
         sentences = (split_sentences(text) if request.get("stream", True)
@@ -220,7 +245,7 @@ class PiperTts:
                     replaced.cancel()
             self._active[request_id] = cancel
 
-    def _say(self, key: Tuple[str, float, Optional[int]], text: str) -> bytes:
+    def _say(self, key: _Key, text: str) -> bytes:
         """Synthesise one sentence with the process of ``key``."""
         with self._lock:
             process = self._processes.get(key)
@@ -234,18 +259,22 @@ class PiperTts:
                 self._processes.pop(key, None)
                 raise
 
-    def _start(self, key: Tuple[str, float, Optional[int]]) -> _Piper:
+    def _start(self, key: _Key) -> _Piper:
         """Start Piper for one voice."""
-        voice, length_scale, speaker = key
-        model = self.voices_dir / f"{voice}.onnx"
+        model = self.voices_dir / f"{key.voice}.onnx"
         if not model.is_file():
-            raise TtsUnavailable(f"no Piper voice {voice!r}")
+            raise TtsUnavailable(f"no Piper voice {key.voice!r}")
         command = self.command + [
             "-m", str(model), "-d", str(self.workdir),
-            "--length-scale", f"{length_scale:g}",
+            "--length-scale", f"{key.length_scale:g}",
         ]
-        if speaker is not None:
-            command += ["-s", str(speaker)]
+        if key.speaker is not None:
+            command += ["-s", str(key.speaker)]
+        for flag, value in (("--noise-scale", key.noise_scale),
+                            ("--noise-w-scale", key.noise_w),
+                            ("--sentence-silence", key.sentence_silence)):
+            if value is not None:
+                command += [flag, f"{value:g}"]
         try:
             return _Piper(command, self.workdir)
         except OSError as exc:

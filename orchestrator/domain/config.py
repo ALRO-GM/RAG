@@ -105,10 +105,27 @@ class Trigger(_Strict):
 
 
 class Tts(_Strict):
-    """Text to speech."""
+    """Text to speech.
+
+    ``voice`` is a Piper voice; ``length_scale``, ``noise_scale``,
+    ``noise_w`` and ``sentence_silence`` are Piper's controls (``None``:
+    the voice's own). ``clone_of`` names an enrolled person whose voice
+    is wanted instead, ``match_rate_of`` one whose speaking rate sets
+    the length scale (``orchestrator.domain.voices``).
+    """
 
     kind: Literal["piper"]
     voice: str
+    length_scale: float = Field(default=1.0, ge=0.5, le=2.0)
+    noise_scale: Optional[float] = Field(default=None, ge=0.0, le=1.5)
+    noise_w: Optional[float] = Field(default=None, ge=0.0, le=1.5)
+    sentence_silence: Optional[float] = Field(default=None, ge=0.0, le=2.0)
+    clone_of: Optional[str] = Field(
+        default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    )
+    match_rate_of: Optional[str] = Field(
+        default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    )
 
 
 class Ui(_Strict):

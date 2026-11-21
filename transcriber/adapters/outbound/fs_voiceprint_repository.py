@@ -1,8 +1,11 @@
 """Voiceprint repository: one JSON file per enrolled person.
 
 ``<root>/voiceprints/<speaker id>.json`` holds the voiceprint (vector,
-voice model, consent version, date) and the consent record, written
-atomically. Nothing of the enrolment sample is stored.
+voice model, consent version, date, speaking rate) and the consent
+record, written atomically. Nothing of the enrolment sample is stored,
+except ``<speaker id>.clone.wav`` (16-bit mono) while the person agrees
+to their voice being cloned for the voice bot; the orchestrator reads
+both files (``docs/live/VOICE_CLONING.md``).
 
 Vectors of different voice models cannot be compared, so the
 repository is bound to the voice model in use: it refuses to store a
@@ -21,12 +24,18 @@ be read, never a raw :class:`OSError`.
 import logging
 import re
 import threading
+import wave
+from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
+
+import numpy as np
+import numpy.typing as npt
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from transcriber.adapters.outbound.fs_storage import (
+    atomic_write,
     child_path,
     read_json,
     write_json,
@@ -43,6 +52,7 @@ from transcriber.domain.models import (
 )
 
 SUFFIX = ".json"
+CLIP_SUFFIX = ".clone.wav"
 
 LOG = logging.getLogger(__name__)
 
@@ -178,8 +188,42 @@ class FileSystemVoiceprintRepository:
         return None
 
     def delete(self, speaker_id: str) -> bool:
-        """Remove voiceprint and consent; tell whether they existed."""
+        """Remove voiceprint, consent and clip; tell whether they existed."""
         path = self._path(speaker_id)
+        self.delete_clone_reference(speaker_id)
+        with self._lock:
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                return False
+        return True
+
+    def _clip(self, speaker_id: str) -> Path:
+        """Return the reference clip's file after checking the id."""
+        return child_path(
+            self.root, speaker_id, SPEAKER_ID_PATTERN, "speaker",
+            CLIP_SUFFIX,
+        )
+
+    def save_clone_reference(
+        self, speaker_id: str, samples: npt.NDArray[np.float32],
+        sample_rate: int,
+    ) -> None:
+        """Write the reference clip as a 16-bit mono WAV, atomically."""
+        pcm = (np.clip(samples, -1.0, 1.0) * 32767).astype("<i2")
+        buffer = BytesIO()
+        with wave.open(buffer, "wb") as writer:
+            writer.setnchannels(1)
+            writer.setsampwidth(2)
+            writer.setframerate(sample_rate)
+            writer.writeframes(pcm.tobytes())
+        path = self._clip(speaker_id)
+        with self._lock:
+            atomic_write(path, buffer.getvalue())
+
+    def delete_clone_reference(self, speaker_id: str) -> bool:
+        """Remove the reference clip; tell whether there was one."""
+        path = self._clip(speaker_id)
         with self._lock:
             try:
                 path.unlink()

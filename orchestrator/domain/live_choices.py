@@ -8,12 +8,16 @@ milliseconds), ``live.diarization`` (``off`` hears a one-microphone
 session as a single person instead of telling the voices apart) and
 ``live.assist_mode`` (``pincelada`` or ``guiado``, LV-16). Every
 value is matched against an allow-list; anything else keeps the
-product's value. The voice bot has its own two: ``voicebot.reasoner_model``
-and ``voicebot.voice`` (a Piper voice of :data:`VOICES`); the
+product's value. The voice bot has its own: ``voicebot.reasoner_model``,
+``voicebot.voice`` (a Piper voice of :data:`VOICES`, or ``clone:<person>``),
+Piper's controls (``voicebot.length_scale``, ``noise_scale``, ``noise_w``,
+``sentence_silence``, numbers within :data:`PIPER_RANGES`) and
+``voicebot.match_rate`` (a person whose pace sets the length scale); the
 suggester's choices do not apply to it. Plain data: no I/O.
 """
 
-from typing import Any, Dict, Mapping, Optional
+import re
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 from orchestrator.domain.config import ProductConfig
 
@@ -25,6 +29,47 @@ VOICES = {
     "davefx": "es_ES-davefx-medium", "sharvard": "es_ES-sharvard-medium",
 }
 """Voice option → Piper voice (``--voices-dir``)."""
+CLONE = re.compile(r"clone:([A-Za-z0-9][A-Za-z0-9._-]{0,63})")
+PERSON = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+CLONE_BASE = "davefx"
+"""The Piper voice of a clone (its fallback, and the measured one)."""
+PIPER_RANGES: Dict[str, Tuple[float, float]] = {
+    "length_scale": (0.7, 1.5), "noise_scale": (0.0, 1.0),
+    "noise_w": (0.0, 1.0), "sentence_silence": (0.0, 1.0),
+}
+"""Piper control → accepted range (``settings.v1``)."""
+NUMBER = re.compile(r"[0-9]{1,2}(?:\.[0-9]{1,3})?")
+
+
+def _number(text: Optional[str], low: float, high: float) -> Optional[float]:
+    """Return ``text`` as a number within ``[low, high]``, else None."""
+    if not isinstance(text, str) or not NUMBER.fullmatch(text):
+        return None
+    value = float(text)
+    return value if low <= value <= high else None
+
+
+def voice_choices(choices: Mapping[str, str]) -> Dict[str, Any]:
+    """Return the ``Tts`` fields the voice bot's choices ask for.
+
+    Only valid values are returned; anything else keeps the product's.
+    """
+    update: Dict[str, Any] = {}
+    option = choices.get("voicebot.voice", "")
+    clone = CLONE.fullmatch(option) if isinstance(option, str) else None
+    if clone is not None:
+        update["voice"] = VOICES[CLONE_BASE]
+        update["clone_of"] = clone.group(1)
+    elif option in VOICES:
+        update["voice"] = VOICES[option]
+    for name, (low, high) in PIPER_RANGES.items():
+        value = _number(choices.get(f"voicebot.{name}"), low, high)
+        if value is not None:
+            update[name] = value
+    rate = choices.get("voicebot.match_rate", "")
+    if isinstance(rate, str) and rate != "off" and PERSON.fullmatch(rate):
+        update["match_rate_of"] = rate
+    return update
 
 
 def apply_live_choices(
@@ -66,7 +111,7 @@ def _voicebot(
         update["reasoner"] = config.reasoner.model_copy(
             update={"model": model}
         )
-    voice = VOICES.get(choices.get("voicebot.voice", ""))
-    if voice is not None and config.tts is not None:
-        update["tts"] = config.tts.model_copy(update={"voice": voice})
+    voice = voice_choices(choices)
+    if voice and config.tts is not None:
+        update["tts"] = config.tts.model_copy(update=voice)
     return config.model_copy(update=update) if update else config

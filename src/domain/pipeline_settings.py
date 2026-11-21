@@ -22,6 +22,8 @@ forwards the web's ``/api/settings`` to it and the orchestrator reads
 it over HTTP. Plain data and validation: no I/O.
 """
 
+import math
+import re
 from datetime import datetime
 from typing import Dict, List, Literal, Mapping, Optional, Tuple
 
@@ -38,8 +40,18 @@ PRESET_NAMES: Tuple[PresetName, ...] = ("quality", "balanced", "cost")
 CUSTOM = "custom"
 
 
+SPEAKER_ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+"""An enrolled person's id (the transcriber's speaker id pattern)."""
+
+
 class StepSpec(BaseModel):
-    """One configurable step: its options, default and who reads it."""
+    """One configurable step: its options, default and who reads it.
+
+    Besides its closed ``options``, a step may accept a number within
+    ``range`` (``low``, ``high``, the page's slider ``step``), kept as
+    its shortest decimal text with at most three decimals (``"1.1"``),
+    or a value matching ``pattern`` (a person's id, for instance).
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -50,11 +62,42 @@ class StepSpec(BaseModel):
     options: Tuple[str, ...]
     applies: Applies = "next_job"
     consumer: Consumer
+    range: Optional[Tuple[float, float, float]] = None
+    pattern: Optional[str] = None
 
     @property
     def default(self) -> str:
         """Return the first option: the service's own configuration."""
         return self.options[0]
+
+    def accept(self, option: object) -> Optional[str]:
+        """Return ``option`` as stored, or ``None`` if it is not allowed."""
+        if not isinstance(option, str):
+            return None
+        if option in self.options:
+            return option
+        if self.pattern is not None and re.fullmatch(self.pattern, option):
+            return option
+        if self.range is not None:
+            return number_text(option, self.range[0], self.range[1])
+        return None
+
+
+NUMBER = re.compile(r"[0-9]{1,2}(?:\.[0-9]{1,3})?")
+
+
+def number_text(text: str, low: float, high: float) -> Optional[str]:
+    """Return ``text`` as a canonical number in ``[low, high]``, or None.
+
+    At most three decimals; ``"1.10"`` becomes ``"1.1"``, ``"1.0"``
+    becomes ``"1"``.
+    """
+    if not NUMBER.fullmatch(text):
+        return None
+    value = float(text)
+    if not math.isfinite(value) or not low <= value <= high:
+        return None
+    return f"{round(value, 3):g}"
 
 
 CLAUDE_ALIASES: Tuple[str, ...] = ("opus", "sonnet", "haiku")
@@ -108,7 +151,24 @@ STEPS: Tuple[StepSpec, ...] = (
     StepSpec(id="voicebot.reasoner_model", group="voicebot",
              options=("haiku", "sonnet", "opus"), consumer="orchestrator"),
     StepSpec(id="voicebot.voice", group="voicebot",
-             options=("davefx", "sharvard"), consumer="orchestrator"),
+             options=("davefx", "sharvard"), consumer="orchestrator",
+             pattern=rf"clone:{SPEAKER_ID}"),
+    # Piper's own controls; the defaults are the voices' (davefx and
+    # sharvard both say noise_scale 0.5, noise_w 0.333 in their
+    # .onnx.json), so nothing saved changes nothing.
+    StepSpec(id="voicebot.length_scale", group="voicebot", options=("1",),
+             consumer="orchestrator", range=(0.7, 1.5, 0.05)),
+    StepSpec(id="voicebot.noise_scale", group="voicebot", options=("0.5",),
+             consumer="orchestrator", range=(0.0, 1.0, 0.05)),
+    StepSpec(id="voicebot.noise_w", group="voicebot", options=("0.333",),
+             consumer="orchestrator", range=(0.0, 1.0, 0.05)),
+    StepSpec(id="voicebot.sentence_silence", group="voicebot",
+             options=("0",), consumer="orchestrator",
+             range=(0.0, 1.0, 0.05)),
+    # "off", or the id of an enrolled person whose measured speaking
+    # rate sets the length scale (it then wins over the one above).
+    StepSpec(id="voicebot.match_rate", group="voicebot", options=("off",),
+             consumer="orchestrator", pattern=SPEAKER_ID),
 )
 """Every configurable step, in the order the page shows them."""
 
@@ -155,16 +215,26 @@ def check_choices(given: Mapping[str, str], partial: bool = True) -> Choices:
         spec = STEP_BY_ID.get(step) if isinstance(step, str) else None
         if spec is None:
             raise InvalidInputError(f"Unknown setting {str(step)[:40]!r}.")
-        if not isinstance(option, str) or option not in spec.options:
+        accepted = spec.accept(option)
+        if accepted is None:
             raise InvalidInputError(
                 f"Invalid option {str(option)[:20]!r} for {step}; choose "
-                f"one of {', '.join(spec.options)}."
+                f"one of {', '.join(spec.options)}{_also(spec)}."
             )
-        checked[step] = option
+        checked[step] = accepted
     if not partial and set(checked) != set(STEP_BY_ID):
         missing = sorted(set(STEP_BY_ID) - set(checked))
         raise InvalidInputError(f"Missing settings: {', '.join(missing)}.")
     return checked
+
+
+def _also(spec: StepSpec) -> str:
+    """Say what else a step accepts, for an error message."""
+    if spec.range is not None:
+        return f", or a number from {spec.range[0]:g} to {spec.range[1]:g}"
+    if spec.pattern is not None:
+        return ", or an enrolled person's id"
+    return ""
 
 
 def resolve(stored: Mapping[str, str]) -> Choices:
@@ -176,8 +246,9 @@ def resolve(stored: Mapping[str, str]) -> Choices:
     chosen = defaults()
     for step, option in stored.items():
         spec = STEP_BY_ID.get(step)
-        if spec is not None and option in spec.options:
-            chosen[step] = option
+        accepted = spec.accept(option) if spec is not None else None
+        if accepted is not None:
+            chosen[step] = accepted
     return chosen
 
 
@@ -231,12 +302,19 @@ class SettingsDocument(BaseModel):
 
 def catalogue() -> Dict[str, object]:
     """Return the steps and presets, for the page to draw."""
-    steps: List[Dict[str, object]] = [
-        {"id": s.id, "group": s.group, "options": list(s.options),
-         "default": s.default, "applies": s.applies,
-         "consumer": s.consumer}
-        for s in STEPS
-    ]
+    steps: List[Dict[str, object]] = []
+    for s in STEPS:
+        step: Dict[str, object] = {
+            "id": s.id, "group": s.group, "options": list(s.options),
+            "default": s.default, "applies": s.applies,
+            "consumer": s.consumer,
+        }
+        if s.range is not None:
+            step["range"] = {"low": s.range[0], "high": s.range[1],
+                             "step": s.range[2]}
+        if s.pattern is not None:
+            step["free"] = "speaker"
+        steps.append(step)
     return {"steps": steps,
             "presets": {n: dict(PRESETS[n]) for n in PRESET_NAMES}}
 

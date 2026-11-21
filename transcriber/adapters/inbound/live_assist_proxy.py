@@ -10,11 +10,12 @@ dependency), and the orchestrator's bearer token is added on the way
 Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
 ``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
-``mandatory/{item}`` (LV-16) and ``suggestions/stream``), and session,
-speaker and item ids are checked; the stream is passed through as it
-comes (Server-Sent Events, with the voice bot's audio inside). It is an
-inbound adapter that talks HTTP itself on purpose: it adds no behaviour
-to the transcriber, so there is no use case to put behind it.
+``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
+``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»), and
+session, speaker and item ids are checked; the stream is passed through
+as it comes (Server-Sent Events, with the voice bot's audio inside). It
+is an inbound adapter that talks HTTP itself on purpose: it adds no
+behaviour to the transcriber, so there is no use case to put behind it.
 
 ``TRANSCRIBER_ORCHESTRATOR_URL`` changes the address (default
 ``http://127.0.0.1:8772``).
@@ -33,7 +34,7 @@ DEFAULT_URL = "http://127.0.0.1:8772"
 URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
-    rf"^(?:products|transcripts|sessions|sessions/{_ID}"
+    rf"^(?:products|transcripts|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}}))$"
 )
@@ -144,6 +145,11 @@ def add_live_assist_proxy(
         return await forward(f"sessions/{session_id}/mandatory/{item}",
                              request)
 
+    @api.post("/assist/voicebot/sample")
+    async def assist_sample(request: Request) -> Response:
+        """The voice bot's sample sentence with the voice being chosen."""
+        return await forward("voicebot/sample", request)
+
     @api.get("/assist/sessions/{session_id}/suggestions/stream")
     async def assist_stream(session_id: str, request: Request) -> Response:
         """The session's Server-Sent Events."""
@@ -187,6 +193,8 @@ def add_live_assist_proxy(
             answer.content, status_code=answer.status_code,
             media_type=answer.headers.get("content-type",
                                           "application/json"),
+            headers={k: v for k, v in answer.headers.items()
+                     if k.lower().startswith("x-voice-")},
         )
 
 

@@ -127,6 +127,7 @@ from transcriber.application.enrol import (
     EnrolSpeaker,
     ForgetSpeaker,
     ShowEnrolmentText,
+    WithdrawVoiceClone,
 )
 from transcriber.application.lab import (
     CancelLabRun,
@@ -282,6 +283,7 @@ class TranscriberContainer:
     delete_session: DeleteSession
     enrol_speaker: EnrolSpeaker
     forget_speaker: ForgetSpeaker
+    withdraw_voice_clone: WithdrawVoiceClone
     enrolment_text: ShowEnrolmentText
     consent_notice: ShowConsentNotice
     transcribe: TranscribeSession
@@ -837,6 +839,7 @@ def build_container(
             parameters, settings.enrolment,
         ),
         forget_speaker=ForgetSpeaker(voiceprints),
+        withdraw_voice_clone=WithdrawVoiceClone(voiceprints, clock),
         enrolment_text=ShowEnrolmentText(settings.api.consent_version),
         consent_notice=ShowConsentNotice(settings.api.consent_version),
         transcribe=transcribe,

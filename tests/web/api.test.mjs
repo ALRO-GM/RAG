@@ -103,3 +103,31 @@ test("a wrong password is unauthorized and a lock is a rate failure with the wai
   const locked = recorder(() => json(429, { code: "too_many_attempts", message: "x" }, { "Retry-After": "60" }));
   await assert.rejects(locked.api.login("x"), (e) => e.kind === "rate" && e.waitSeconds === 60);
 });
+
+test("cloning consent is sent only when ticked, and can be withdrawn", async () => {
+  const { api, calls } = recorder(() => json(201, {}));
+  await api.enrol("ana", { name: "Ana", language: "es", pcm: new Uint8Array(2) });
+  assert.ok(!calls[0].url.includes("clone_consent"));
+  await api.enrol("ana", { name: "Ana", language: "es", pcm: new Uint8Array(2), cloneConsent: "yes" });
+  assert.ok(!calls[1].url.includes("clone_consent"), "only true counts");
+  await api.enrol("ana", { name: "Ana", language: "es", pcm: new Uint8Array(2), cloneConsent: true });
+  assert.match(calls[2].url, /clone_consent=true/);
+  await api.withdrawVoiceClone("ana");
+  assert.equal(calls[3].url, "/api/speakers/ana/voice-clone");
+  assert.equal(calls[3].init.method, "DELETE");
+});
+
+test("the voice sample comes back as audio with what was used", async () => {
+  const { api, calls } = recorder(() => new Response(new Uint8Array([82, 73, 70, 70]), {
+    status: 200, headers: { "Content-Type": "audio/wav", "X-Voice-Clone": "1", "X-Voice-Length-Scale": "1.2", "X-Voice-Note": "" },
+  }));
+  const sample = await api.voiceSample({ "voicebot.voice": "clone:ana" });
+  assert.equal(calls[0].url, "/api/assist/voicebot/sample");
+  assert.deepEqual(JSON.parse(calls[0].init.body), { choices: { "voicebot.voice": "clone:ana" } });
+  assert.equal(sample.clone, true);
+  assert.equal(sample.lengthScale, 1.2);
+  assert.equal(sample.note, "");
+  assert.equal(sample.blob.size, 4);
+  const failing = recorder(() => json(503, { code: "unavailable", message: "no voice bot here" })).api;
+  await assert.rejects(failing.voiceSample({}), (error) => error.status === 503);
+});

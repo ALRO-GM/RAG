@@ -6,11 +6,14 @@ contracts (``knowledge.query.v1`` / ``knowledge.result.v1``,
 to import the services' own code.
 """
 
-from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol
+from typing import (
+    Any, Callable, Dict, Iterator, List, Optional, Protocol, Tuple,
+)
 
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
+from orchestrator.domain.voices import VoiceProfile
 
 Document = Dict[str, Any]
 """A contract document as plain JSON."""
@@ -272,9 +275,38 @@ class MandatoryPort(Protocol):
         ...
 
 
+class VoiceProfiles(Protocol):
+    """The enrolled people's voice profiles (kept by the transcriber)."""
+
+    def get(self, speaker_id: str) -> Optional[VoiceProfile]:
+        """Return the profile of ``speaker_id``, or ``None``.
+
+        Never raises: an unreadable profile reads as no profile.
+        """
+        ...
+
+
 class HandoffSink(Protocol):
     """Where a session's hand-off record goes when it ends (LV-16)."""
 
     def write(self, record: Document) -> None:
         """Keep the record: names, mode and the mandatory items."""
+        ...
+
+
+class VoiceCloner(Protocol):
+    """Speech in an enrolled person's own voice (a cloning model)."""
+
+    def speak(
+        self, text: str, reference: str, language: str, cancel: CancelToken
+    ) -> Tuple[bytes, int]:
+        """Say one sentence like ``reference``; return PCM s16le and rate.
+
+        Raises:
+            TtsUnavailable: The cloner could not speak.
+        """
+        ...
+
+    def warm(self, reference: str, language: str) -> None:
+        """Load the model and the reference voice, off the hot path."""
         ...

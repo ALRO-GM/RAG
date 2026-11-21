@@ -19,6 +19,11 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   the assistance mode, name a speaker, tick a mandatory item (LV-16).
 - ``POST /sessions/{id}/barge-in``: the user spoke over the voice bot
   (the page's voice detector); ``{"stopped": bool}``.
+- ``POST /voicebot/sample`` ``{"choices": {"voicebot.voice": ...}}``:
+  the voice bot's fixed sample sentence said with the choices being
+  edited on «Ajustes» (unsaved), as ``audio/wav``; the headers
+  ``X-Voice-Clone`` (``1`` when the cloned voice spoke),
+  ``X-Voice-Length-Scale`` and ``X-Voice-Note`` say what was used.
 - ``GET /sessions/{id}/suggestions/stream``: Server-Sent Events, one
   ``message`` per feed message (``id`` is its number; ``?after=n`` or
   the ``Last-Event-ID`` header resumes), a comment every
@@ -35,7 +40,7 @@ import secrets
 from typing import Any, AsyncIterator, Dict, Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from orchestrator.application.sessions import LiveSessions, SessionError
@@ -187,6 +192,25 @@ def create_app(
     async def barge_in(session_id: str) -> Dict[str, Any]:
         """Stop the voice bot's turn and playback."""
         return await run_in_threadpool(sessions.barge_in, session_id)
+
+    @app.post("/voicebot/sample")
+    async def sample(request: Request) -> Response:
+        """Say the sample sentence with the voice being chosen."""
+        data = await body(request)
+        choices = data.get("choices") or {}
+        if not isinstance(choices, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) and len(v) <= 80
+            and k.startswith("voicebot.") for k, v in choices.items()
+        ):
+            raise SessionError("invalid_request",
+                               "choices must be voicebot.* names")
+        wav, used = await run_in_threadpool(sessions.sample, choices)
+        return Response(wav, media_type="audio/wav", headers={
+            "X-Voice-Clone": "1" if used["clone"] else "0",
+            "X-Voice-Length-Scale": f"{used['length_scale']:g}",
+            "X-Voice-Note": str(used["reason"])[:200].encode(
+                "ascii", "replace").decode("ascii"),
+        })
 
     @app.get("/sessions/{session_id}/suggestions/stream")
     async def stream(

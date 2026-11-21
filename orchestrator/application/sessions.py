@@ -42,7 +42,7 @@ import re
 import threading
 from dataclasses import dataclass, field
 from typing import (
-    Any, Callable, Dict, List, Mapping, Optional, Protocol, Union,
+    Any, Callable, Dict, List, Mapping, Optional, Protocol, Tuple, Union,
 )
 
 from orchestrator.application.feed import Feed
@@ -65,18 +65,31 @@ from orchestrator.application.ports import (
     TextToSpeech,
     TranscriberUnavailable,
     TranscriptStore,
+    TtsUnavailable,
     TurnSink,
+    VoiceCloner,
+    VoiceProfiles,
 )
 from orchestrator.application.replay import (
     Replay,
     default_roles,
     transcript_to_events,
 )
+from orchestrator.application.voice import (
+    DEFAULT_BUDGET_MS,
+    ClonedVoice,
+    speak_sample,
+)
 from orchestrator.application.voicebot import VoiceBot
-from orchestrator.domain.config import ProductConfig
+from orchestrator.domain.config import ProductConfig, Tts
 from orchestrator.domain.events import LiveEvent
-from orchestrator.domain.live_choices import MODES, apply_live_choices
+from orchestrator.domain.live_choices import (
+    MODES,
+    apply_live_choices,
+    voice_choices,
+)
 from orchestrator.domain.mandatory import EMPLOYEE_ROLES
+from orchestrator.domain.voices import VoicePlan, VoiceProfile, plan_voice
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 
 AUDIO_KINDS = ("stereo", "mic")
@@ -297,6 +310,11 @@ class LiveSessions:
             (``None``: no checklist).
         handoff: Makes the hand-off sink of a session (``session id``,
             ``product``), or ``None`` for no record.
+        profiles: The enrolled people's voice profiles (rate matching
+            and cloning; ``None``: neither).
+        cloner: The voice-cloning model (``None``: Piper only).
+        clone_budget_ms: Longest wait for one cloned sentence before
+            Piper says it.
     """
 
     def __init__(
@@ -318,6 +336,9 @@ class LiveSessions:
         settings: Optional[SettingsSource] = None,
         mandatory: Optional[MandatoryPort] = None,
         handoff: Optional[Callable[[str, str], HandoffSink]] = None,
+        profiles: Optional[VoiceProfiles] = None,
+        cloner: Optional[VoiceCloner] = None,
+        clone_budget_ms: float = DEFAULT_BUDGET_MS,
     ):
         """Wire the ports; no session yet."""
         self.products = {
@@ -342,6 +363,9 @@ class LiveSessions:
         self.settings = settings
         self.mandatory = mandatory
         self.handoff_sink = handoff
+        self.profiles = profiles
+        self.cloner = cloner
+        self.clone_budget_ms = clone_budget_ms
         self._sessions: Dict[str, _Session] = {}
         self._lock = threading.Lock()
 
@@ -545,6 +569,64 @@ class LiveSessions:
             choices = self.settings.current()
         return apply_live_choices(config, choices)
 
+    def _plan(self, tts: Tts) -> VoicePlan:
+        """Decide the voice of ``tts`` from the people's profiles."""
+        profiles = self.profiles
+        return plan_voice(
+            tts.voice, tts.length_scale,
+            tts.clone_of if profiles is not None else None,
+            tts.match_rate_of if profiles is not None else None,
+            profiles.get if profiles is not None else (lambda _: None),
+        )
+
+    def _cloned(self, profile: VoiceProfile) -> ClonedVoice:
+        """Return the cloned voice of ``profile`` (Piper behind it)."""
+        assert self.cloner is not None and self.tts is not None
+        return ClonedVoice(self.cloner, self.tts, profile,
+                           self.clone_budget_ms)
+
+    def _voice(self, config: ProductConfig) -> Tuple[
+        ProductConfig, TextToSpeech, VoicePlan
+    ]:
+        """Return the voice bot's config, its voice and the plan."""
+        assert config.tts is not None and self.tts is not None
+        plan = self._plan(config.tts)
+        product = config.model_copy(update={"tts": config.tts.model_copy(
+            update={"length_scale": plan.length_scale}
+        )})
+        if plan.clone is None:
+            return product, self.tts, plan
+        if self.cloner is None:
+            return product, self.tts, VoicePlan(
+                plan.voice, plan.length_scale, None,
+                "; ".join(r for r in (plan.reason, "no cloner installed")
+                          if r),
+            )
+        voice = self._cloned(plan.clone)
+        self.runner.start(voice.warm)
+        return product, voice, plan
+
+    def sample(self, choices: Mapping[str, str]) -> Tuple[bytes, Document]:
+        """Say the «Escuchar ejemplo» sentence with ``choices``; one WAV.
+
+        ``choices`` are the voice bot's steps being edited (unsaved);
+        anything not valid keeps the product's.
+        """
+        config = next((c for c in self.products.values()
+                       if c.tts is not None), None)
+        if config is None or config.tts is None or self.tts is None:
+            raise SessionError("unavailable", "no voice bot here")
+        tts = config.tts.model_copy(update=voice_choices(choices))
+        plan = self._plan(tts)
+        try:
+            return speak_sample(
+                tts, plan, self.tts,
+                self._cloned if self.cloner is not None else None,
+                config.language,
+            )
+        except TtsUnavailable as exc:
+            raise SessionError("unavailable", str(exc)) from exc
+
     def _find(self, session_id: str) -> _Session:
         with self._lock:
             session = self._sessions.get(session_id)
@@ -593,8 +675,15 @@ class LiveSessions:
         if session.product.tts is not None and self.tts is not None:
             turns = (self.turn_log(session.id, session.product.product)
                      if self.turn_log is not None else None)
+            product, speaker, plan = self._voice(session.product)
+            session.product = product
+            session.feed.publish({
+                "type": "voice", "clone": plan.clone is not None
+                and speaker is not self.tts,
+                "length_scale": plan.length_scale, "reason": plan.reason,
+            })
             bot = VoiceBot(
-                session.product, self.knowledge, self.reasoner, self.tts,
+                product, self.knowledge, self.reasoner, speaker,
                 _BotFeed(session, turns), self.clock, self.executor(),
                 session.roles,
             )
@@ -624,6 +713,10 @@ class LiveSessions:
             self._hand_off(session)
         with self._lock:
             session.state = state
+        if isinstance(session.assist, VoiceBot) and isinstance(
+            session.assist.tts, ClonedVoice
+        ):
+            session.assist.tts.close()
         session.feed.publish({"type": "status", "session": session.view()})
         session.feed.close()
 

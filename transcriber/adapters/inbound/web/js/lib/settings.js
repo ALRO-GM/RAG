@@ -116,3 +116,48 @@ export function analysisPrefill(settings) {
 export function saveBody(draft, revision) {
   return { choices: { ...draft }, revision: Number.isInteger(revision) ? revision : 0 };
 }
+
+// ---- the voice bot's voice (#207) ---------------------------------------
+
+/** Whether `step` takes a number within its `range` (a slider). */
+export function isRange(step) {
+  return Boolean(step?.range && Number.isFinite(step.range.low) && Number.isFinite(step.range.high));
+}
+
+/** `value` as the server keeps it: at most three decimals, no trailing zeros ("1.10" -> "1.1"). */
+export function numberText(value) {
+  const n = Math.round(Number(value) * 1000) / 1000;
+  return Number.isFinite(n) ? String(n) : "";
+}
+
+/** `value` within the step's range, as text, or the step's default. */
+export function clampRange(step, value) {
+  const n = Number(value);
+  if (!isRange(step) || !Number.isFinite(n)) return step?.default ?? "";
+  return numberText(Math.min(step.range.high, Math.max(step.range.low, n)));
+}
+
+/** The options of the voice step: Piper's, then "clone:<id>" of each person who agreed to cloning (and the saved one). */
+export function voiceOptions(step, speakers, current) {
+  const options = [...(step?.options ?? [])];
+  for (const person of speakers ?? []) {
+    if (person?.voice_clone) options.push(`clone:${person.id}`);
+  }
+  if (typeof current === "string" && current.startsWith("clone:") && !options.includes(current)) options.push(current);
+  return options;
+}
+
+/** The options of the rate-matching step: "off", then each person whose speaking rate was measured (and the saved one). */
+export function rateOptions(step, speakers, current) {
+  const options = [...(step?.options ?? ["off"])];
+  for (const person of speakers ?? []) {
+    if (Number(person?.words_per_second) > 0) options.push(person.id);
+  }
+  if (typeof current === "string" && current && !options.includes(current)) options.push(current);
+  return options;
+}
+
+/** Only the voice bot's choices of `draft` (what the sample button sends). */
+export function voicebotChoices(draft) {
+  return Object.fromEntries(Object.entries(draft ?? {}).filter(([step]) => step.startsWith("voicebot.")));
+}

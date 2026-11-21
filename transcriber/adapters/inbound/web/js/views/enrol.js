@@ -28,6 +28,9 @@ export async function enrolView(ctx, root) {
   const id = h("input", { id: "en-id", type: "text", maxLength: 64, autocapitalize: "none", spellcheck: false, autocomplete: "off" });
   const idHint = h("p", { class: "hint", role: "status" }, t("enrol.id_hint"));
   const consent = h("input", { id: "en-consent", type: "checkbox" });
+  // A separate, optional and revocable consent: the voice bot may speak
+  // with this voice (a clip of the reading is kept for it).
+  const cloneConsent = h("input", { id: "en-clone", type: "checkbox" });
   const next = h("button", { class: "primary big", type: "button", disabled: true, onClick: () => toReading() }, t("enrol.continue"));
   const formError = h("p", { class: "error", role: "alert", hidden: true });
 
@@ -52,6 +55,9 @@ export async function enrolView(ctx, root) {
     h("div", { class: "field" }, h("label", { for: "en-name" }, t("enrol.name")), name),
     h("div", { class: "field" }, h("label", { for: "en-id" }, t("enrol.id")), id, idHint),
     noticeSection(guide.consent, consent, "en"),
+    h("div", { class: "field" },
+      h("label", { for: "en-clone", class: "row tight" }, cloneConsent, h("span", {}, t("enrol.clone_accept"))),
+      h("p", { class: "hint" }, t("enrol.clone_hint"))),
     formError, next);
 
   // ---- reading and recording ---------------------------------------
@@ -75,10 +81,22 @@ export async function enrolView(ctx, root) {
     const fill = (people) => {
       list.replaceChildren(...people.map((p) => h("li", { class: "line" },
         h("span", {}, `${p.name || p.id}`),
+        p.voice_clone ? h("span", { class: "tag" }, t("enrol.clone_tag")) : null,
+        p.voice_clone ? h("button", { type: "button", onClick: () => withdraw(p) }, t("enrol.clone_withdraw")) : null,
         h("button", { type: "button", onClick: () => forget(p) }, t("enrol.forget")))));
       if (!people.length) list.append(h("li", { class: "hint" }, t("enrol.none")));
     };
     fill(known.speakers);
+    async function withdraw(p) {
+      if (!confirm(t("enrol.clone_withdraw_confirm", { name: p.name || p.id }))) return;
+      try {
+        await ctx.api.withdrawVoiceClone(p.id);
+        p.voice_clone = false;
+        fill(known.speakers);
+      } catch (error) {
+        alert(describeError(error));
+      }
+    }
     async function forget(p) {
       if (!confirm(t("enrol.forget_confirm", { name: p.name || p.id }))) return;
       try {
@@ -159,7 +177,7 @@ export async function enrolView(ctx, root) {
   async function upload(pcm) {
     result.replaceChildren(h("p", {}, t("enrol.sending")), h("p", { class: "hint" }, t("enrol.wait_note")));
     try {
-      await ctx.api.enrol(id.value, { name: name.value.trim(), language: lang, textVersion, pcm });
+      await ctx.api.enrol(id.value, { name: name.value.trim(), language: lang, textVersion, pcm, cloneConsent: cloneConsent.checked });
     } catch (error) {
       if (error.code === "busy") {
         // Other enrolments are waiting for the computer: try again by itself.
