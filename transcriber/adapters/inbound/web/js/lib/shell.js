@@ -59,6 +59,7 @@ export function crumbsFor(hash, t) {
     case "enrol": return [here(t("nav.enrol"))];
     case "live": return [here(t("nav.live"))];
     case "voicebot": return [here(t("nav.voicebot"))];
+    case "settings": return [here(t("nav.settings"))];
     case "s": return [sessions, here(a ?? "")];
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];
     case "help": return [sessions, here(t("help.title"))];

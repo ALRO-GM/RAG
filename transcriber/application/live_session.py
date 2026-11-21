@@ -333,7 +333,9 @@ class LivePorts:
     ``memory`` the GPU is taken as it is; without ``log`` nothing is
     kept; without ``check`` events are not checked; without
     ``publisher`` no transcript is handed over and without ``analysis``
-    no post-call analysis is started.
+    no post-call analysis is started. ``cpu_only``, read when a session
+    starts, keeps it on the CPU model without asking for the GPU (the
+    «Ajustes» page's ``live.asr: cpu``).
     """
 
     build: Builder
@@ -345,6 +347,7 @@ class LivePorts:
     check: Optional[EventCheck] = None
     publisher: Optional[TranscriptPublisher] = None
     analysis: Optional[SessionAnalysisPort] = None
+    cpu_only: Optional[Callable[[], bool]] = None
 
 
 class LiveSessions:
@@ -476,6 +479,8 @@ class LiveSessions:
         """
         if self._device != "cuda":
             return self._device, None
+        if self._p.cpu_only is not None and self._p.cpu_only():
+            return "cpu", None
         lease, memory = self._p.lease, self._p.memory
         need = self._need(session)
         if lease is not None:

@@ -39,6 +39,7 @@ from pydantic import BaseModel, Field, ValidationError
 from src.application.answering import AnswerService
 from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.query import KnowledgeQueryService
+from src.application.pipeline_settings import PipelineSettings
 from src.application.reasoning import Reasoner
 from src.application.search import SearchService
 from src.application.skills.judges import JudgeSelection
@@ -200,7 +201,8 @@ class TranscriptRoutes:
     ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
     the ``/analysis/judge`` routes, ``analysis`` the
     ``/analysis/sessions`` ones and ``knowledge`` the ``/knowledge``
-    ones, ``reasoner`` ``POST /reason``.
+    ones, ``reasoner`` ``POST /reason`` and ``settings`` ``GET/PUT
+    /settings`` (the pipeline settings, ``settings.v1``).
     """
 
     ingest: IngestTranscript
@@ -212,6 +214,7 @@ class TranscriptRoutes:
     analysis: Optional[AnalysisRequests] = None
     knowledge: Optional[KnowledgeRoutes] = None
     reasoner: Optional[Reasoner] = None
+    settings: Optional[PipelineSettings] = None
 
 
 def create_app(
@@ -347,6 +350,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         mount_knowledge(app, routes.knowledge, guard)
     if routes.reasoner is not None:
         mount_reason(app, routes.reasoner, guard)
+    if routes.settings is not None:
+        mount_settings(app, routes.settings, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -436,6 +441,47 @@ def mount_judge(
         except RagError as exc:
             raise http_error(exc)
         return status.model_dump(mode="json")
+
+
+SETTINGS_MAX_BYTES = 8 * 1024
+"""Largest body of ``PUT /settings`` (a few dozen short choices)."""
+
+
+def mount_settings(
+    app: FastAPI, settings: PipelineSettings, guard: List[Any]
+) -> None:
+    """Add ``GET`` and ``PUT /settings`` (``settings.v1``) behind ``guard``.
+
+    ``PUT`` answers 422 for an unknown step or option and 409 when the
+    ``revision`` sent is not the stored one.
+    """
+
+    @app.get("/settings", dependencies=guard)
+    async def show_settings() -> Dict[str, Any]:
+        """Return the pipeline settings and the catalogue of options."""
+        try:
+            return await run_in_threadpool(settings.show)
+        except RagError as exc:
+            raise http_error(exc)
+
+    @app.put("/settings", dependencies=guard)
+    async def change_settings(request: Request) -> Dict[str, Any]:
+        """Store new choices (a preset and/or steps) for the next jobs."""
+        body = await read_body(request, SETTINGS_MAX_BYTES)
+        try:
+            parsed = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid JSON.")
+        if not isinstance(parsed, dict):
+            raise HTTPException(status_code=422, detail="Expected an object.")
+        try:
+            return await run_in_threadpool(settings.change, parsed)
+        except InvalidInputError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        except BusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        except RagError as exc:
+            raise http_error(exc)
 
 
 def analysis_error(exc: RagError) -> HTTPException:

@@ -9,7 +9,9 @@ import shutil
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple,
+)
 
 from src.adapters.outbound.beir_repository import BeirRepository
 from src.adapters.outbound.bm25_index import BM25Builder
@@ -72,7 +74,12 @@ from src.application.benchmarking import BenchmarkService
 from src.application.datasets import DatasetService
 from src.application.experiments import ExperimentService
 from src.application.indexing import IndexingService
-from src.application.knowledge.ports import ImageCaptioner, IndexState
+from src.application.knowledge.chosen_extractor import ChosenExtractor
+from src.application.knowledge.ports import (
+    DocumentExtractor,
+    ImageCaptioner,
+    IndexState,
+)
 from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
@@ -92,6 +99,7 @@ from src.domain.experiments import params_id
 from src.domain.knowledge.domains import DomainManifest, check_domain_id
 from src.domain.knowledge.sources import SOURCE_EXTENSIONS, knowledge_terms
 from src.domain.models import IndexReport, ScoredChunk
+from src.domain.pipeline_settings import Choices
 from src.domain.priors import RouterModel
 from src.domain.runtime import HardwareProfile, RuntimePlan, plan_runtime
 from src.domain.text_analysis import tokenize
@@ -439,24 +447,61 @@ class Container:
         )
 
     @cached_property
-    def document_extractors(self) -> DocumentExtractors:
-        """Upload readers; with layout and OCR when group ``ocr`` is there."""
+    def _layout(self) -> Optional[DoclingPages]:
+        """The layout and OCR reader, when group ``ocr`` is installed."""
+        if not docling_available():
+            return None
+        return DoclingPages(FileGpuGate(lease_directory(os.environ)))
+
+    @cached_property
+    def _captioners(self) -> Dict[str, Optional[ImageCaptioner]]:
+        """The figure captioners built so far, by backend."""
+        return {}
+
+    def _captioner(self, backend: str) -> Optional[ImageCaptioner]:
+        """Return the captioner of ``backend`` (built once; off: none)."""
+        if backend not in self._captioners:
+            captioner: Optional[ImageCaptioner] = None
+            if backend == "florence":
+                captioner = FlorenceCaptioner(
+                    FileGpuGate(lease_directory(os.environ)),
+                    self.knowledge_settings.caption_model,
+                )
+            elif backend == "claude":
+                captioner = ClaudeCodeCaptioner()
+            self._captioners[backend] = captioner
+        return self._captioners[backend]
+
+    def extractors_for(self, ocr: bool, captions: str) -> DocumentExtractors:
+        """Return the upload readers with or without OCR and captions."""
         k = self.knowledge_settings
-        layout = None
-        if k.ocr and docling_available():
-            layout = DoclingPages(
-                FileGpuGate(lease_directory(os.environ))
-            )
-        captioner: Optional[ImageCaptioner] = None
-        if layout is not None and k.caption_backend == "florence":
-            captioner = FlorenceCaptioner(
-                FileGpuGate(lease_directory(os.environ)), k.caption_model
-            )
-        elif layout is not None and k.caption_backend == "claude":
-            captioner = ClaudeCodeCaptioner()
+        layout = self._layout if ocr else None
+        captioner = self._captioner(captions) if layout is not None else None
         return DocumentExtractors(
             layout, k.layout_text_pages, k.layout_batch_pages, captioner,
             k.max_figures,
+        )
+
+    pipeline_choices: Optional[Callable[[], Optional[Choices]]] = None
+    """The pipeline settings saved on «Ajustes» (set by ``serve``)."""
+
+    @cached_property
+    def document_extractors(self) -> DocumentExtractors:
+        """Upload readers; with layout and OCR when group ``ocr`` is there."""
+        k = self.knowledge_settings
+        return self.extractors_for(k.ocr, k.caption_backend)
+
+    @cached_property
+    def upload_reader(self) -> DocumentExtractor:
+        """The reader of uploads: :attr:`document_extractors`, or, with
+        :attr:`pipeline_choices` set, the OCR and captions saved from the
+        web, read at every upload."""
+        choices = self.pipeline_choices
+        if choices is None:
+            return self.document_extractors
+        k = self.knowledge_settings
+        return ChosenExtractor(
+            choices, self.extractors_for, (k.ocr, k.caption_backend)
         )
 
     @cached_property
@@ -466,7 +511,7 @@ class Container:
         return KnowledgeLibrary(
             self.knowledge_registry,
             FileSystemDocumentStore(k.data_dir),
-            self.document_extractors,
+            self.upload_reader,
             ThreadJobQueue(),
             k.max_upload_bytes,
             utc_now,

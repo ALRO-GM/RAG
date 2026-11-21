@@ -7,6 +7,7 @@
 // reports are downloaded as files: they are pages of their own, never
 // shown inside this one.
 
+import { analysisPrefill } from "../lib/settings.js";
 import { h, fill } from "../dom.js";
 import { t, decimal, percent } from "../i18n.js";
 import { describeError } from "../errors.js";
@@ -71,9 +72,20 @@ export async function analysisView(ctx, root, [rawId]) {
     }, MODEL_CHOICES.map((choice) => h("option", { value: choice }, t(`sa.model_${choice || "default"}`))));
     return [step, { select, custom }];
   }));
+  const prefilled = h("p", { class: "hint" }, t("set.prefilled"));
+  prefilled.hidden = true;
+  // Prefilled from «Ajustes» (#/settings); a choice here applies to this run only.
+  ctx.api.pipelineSettings?.().then((saved) => {
+    const chosen = analysisPrefill(saved);
+    for (const [step, model] of Object.entries(chosen)) {
+      if (modelInputs[step] && modelInputs[step].select.value === "") modelInputs[step].select.value = model;
+    }
+    prefilled.hidden = !Object.keys(chosen).length;
+  }).catch(() => {});
   const models = h("fieldset", { class: "models" },
     h("legend", {}, t("sa.models_title")),
     h("p", { class: "hint" }, t("sa.models_hint")),
+    prefilled,
     JUDGE_STEPS.map((step) => h("div", { class: "field" },
       h("label", { for: `an-model-${step}` }, t(`sa.model_step_${step}`)),
       h("div", { class: "row wrap" }, modelInputs[step].select, modelInputs[step].custom))),

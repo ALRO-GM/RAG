@@ -11,6 +11,7 @@ the only thing two services share: neither imports the other's code.
 | `live.event.v1`, `gpu-lease.v1` | `transcriber/` (live) | orchestrator, GPU workers |
 | `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
 | `tts.request.v1` | orchestrator | Piper adapter |
+| `settings.v1` | `src/` (`GET/PUT /settings`, `data/settings.json`; the web saves it through the transcriber) | `transcriber/`, orchestrator, `src/` analysis and knowledge (read at job/session start) |
 
 The platform contracts are specified in `docs/platform/CONTRACTS.md`.
 

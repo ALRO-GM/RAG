@@ -62,7 +62,7 @@ system → light → dark and remembers the choice in `localStorage`
 
 - **Shell** (`js/shell.js`, pure parts in `js/lib/shell.js`): sidebar
   (`<header class="top sidebar">`, grouped: Conversaciones, Empresa,
-  Laboratorio), top bar with menu button, breadcrumbs (from the route),
+  Laboratorio, Sistema), top bar with menu button, breadcrumbs (from the route),
   "Ir a…" button and theme button; a bottom tab bar on phones
   (Sesiones, Grabar, Conocimiento, Más). A loading skeleton shows if a page
   takes more than 180 ms.
@@ -76,6 +76,8 @@ system → light → dark and remembers the choice in `localStorage`
 ## Pages
 
 Every page uses the shell: Sesiones, Grabar, Registrar voz, Conocimiento
-(new: `#/knowledge`), En directo (`#/live`: live assist with suggestion cards, sources, script phases and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the session and analysis pages, the help
+(new: `#/knowledge`), Ajustes (`#/settings`: the quality/cost mode and
+the model of every step, each option with its measured trade-off;
+`docs/SETTINGS.md`), En directo (`#/live`: live assist with suggestion cards, sources, script phases and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the session and analysis pages, the help
 page, and the static `research.html` and `study.html`. ES/EN is unchanged
 (`js/i18n/es.js`, `en.js`).

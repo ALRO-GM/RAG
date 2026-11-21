@@ -6,7 +6,7 @@ contracts (``knowledge.query.v1`` / ``knowledge.result.v1``,
 to import the services' own code.
 """
 
-from typing import Any, Callable, Dict, Iterator, List, Protocol
+from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol
 
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
@@ -228,3 +228,11 @@ class TtsUnavailable(Exception):
 
 class TranscriberUnavailable(Exception):
     """The transcriber refused or could not be reached."""
+
+
+class SettingsSource(Protocol):
+    """The pipeline settings saved on the web's «Ajustes» (``settings.v1``)."""
+
+    def current(self) -> Optional[Dict[str, str]]:
+        """Return the saved choices, or ``None`` (keep the product's)."""
+        ...

@@ -42,6 +42,7 @@ from src.application.skills.session_analysis import (
 )
 from src.domain.errors import BusyError, LimitError, NotFoundError
 from src.domain.skills.analysis_run import StepRecord, new_run
+from src.domain.pipeline_settings import RunChoices
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript_contract import is_session_id
@@ -319,6 +320,7 @@ class SlowLauncher(FakeLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Wait, then start."""
         time.sleep(0.2)
@@ -446,6 +448,7 @@ class PausedLauncher(FakeLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Say it entered, wait, then start."""
         self.entered.set()

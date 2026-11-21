@@ -44,6 +44,7 @@ from src.application.skills.session_analysis import (
 )
 from src.domain.errors import BusyError, LimitError, NotFoundError
 from src.domain.skills.analysis_run import StepRecord, new_run
+from src.domain.pipeline_settings import RunChoices
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.text_analysis import tokenize
 from tests.fakes import FakeEmbedder, FakeGenerator, InMemoryAnalysisLock
@@ -224,6 +225,7 @@ class Sleeper(SubprocessAnalysisLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> List[str]:
         """Print the variables seen, then sleep."""
         return [sys.executable, "-c",
@@ -306,6 +308,7 @@ class Spawner(SubprocessAnalysisLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> List[str]:
         """Start a sleeping grandchild in a new session, then sleep."""
         target = self.analysis_dir / "helper.pid"

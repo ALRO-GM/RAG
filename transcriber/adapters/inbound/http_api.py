@@ -25,6 +25,7 @@ so waiting requests never fill the thread pool the other routes use.
 Every other route returns without waiting for a job.
 """
 
+import json
 import logging
 import math
 import time
@@ -853,6 +854,22 @@ def create_app(
         """Set the judge of the RAG's next analyses (forwarded on loopback)."""
         body = parse_json(JudgeRequest, await read_body(request, 1024))
         return await run_in_threadpool(c.analysis_judge.choose, body.mode)
+
+    @api.get("/settings")
+    async def pipeline_settings() -> Dict[str, Any]:
+        """Return the pipeline settings (``settings.v1``) and options."""
+        return await run_in_threadpool(c.pipeline_settings.show)
+
+    @api.put("/settings")
+    async def change_pipeline_settings(request: Request) -> Dict[str, Any]:
+        """Save a preset and/or per-step choices (forwarded to the RAG)."""
+        try:
+            body = json.loads(await read_body(request, 8 * 1024) or b"{}")
+        except ValueError:
+            raise InvalidInputError("The body is not JSON.") from None
+        if not isinstance(body, dict):
+            raise InvalidInputError("The body must be a JSON object.")
+        return await run_in_threadpool(c.pipeline_settings.change, body)
 
     @api.post("/analysis/sessions/{session_id}", status_code=202)
     async def start_analysis(

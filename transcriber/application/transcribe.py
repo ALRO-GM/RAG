@@ -80,6 +80,7 @@ from transcriber.domain.certainty import (
     assess_utterances,
     keep_sentences_whole,
 )
+from transcriber.domain.pipeline_choices import Choices, diarizer_rule
 from transcriber.domain.diarization import (
     BUILTIN_RULE,
     Diarization,
@@ -313,6 +314,7 @@ class TranscribeSession:
         diarizer: Optional[Diarizer] = None,
         diarizer_rule: DiarizerRule = BUILTIN_RULE,
         gpu: Optional[GpuMemory] = None,
+        choices: Optional[Callable[[], Optional[Choices]]] = None,
     ) -> None:
         """Wire the ports and take the thresholds from the settings.
 
@@ -324,7 +326,11 @@ class TranscribeSession:
         that ran out of GPU memory free the models and run once more
         (:func:`~transcriber.application.gpu.retry_on_gpu_memory`), and
         the GPU memory is logged at debug level at each stage.
+        ``choices`` returns the pipeline settings saved on «Ajustes»,
+        read when a job reaches its diarizer: their
+        ``transcription.diarizer`` replaces ``diarizer_rule``.
         """
+        self._choices = choices
         self._sessions = sessions
         self._voiceprints = voiceprints
         self._decoder = decoder
@@ -751,7 +757,10 @@ class TranscribeSession:
         """
         if self._diarizer is None:
             return None
-        model = self._rule.model_for(options.num_speakers)
+        rule = self._rule
+        if self._choices is not None:
+            rule = diarizer_rule(self._choices(), self._rule)
+        model = rule.model_for(options.num_speakers)
         if model == BUILTIN_DIARIZER:
             return None
         problem = self._diarizer.problem(model)

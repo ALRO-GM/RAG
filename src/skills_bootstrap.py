@@ -35,6 +35,7 @@ from src.adapters.outbound.json_dataset_repository import (
     read_model,
 )
 from src.adapters.outbound.json_judge_state import JsonJudgeStateStore
+from src.adapters.outbound.json_settings_store import JsonSettingsStore
 from src.adapters.outbound.jsonl_trial_store import JsonlTrialStore
 from src.adapters.outbound.local_judge import LocalJudge
 from src.adapters.outbound.opencode_judge import OpencodeJudge
@@ -61,6 +62,7 @@ from src.application.skills.act_tagger import (
     RuleTagger,
     TaggerCard,
 )
+from src.application.pipeline_settings import PipelineSettings
 from src.application.skills.judges import (
     ActClassifier,
     CallBudget,
@@ -299,6 +301,28 @@ class SkillsContainer:
             lambda: datetime.now(timezone.utc),
         )
 
+    @cached_property
+    def pipeline_settings(self) -> PipelineSettings:
+        """The settings of the web's «Ajustes» page (``settings.v1``).
+
+        Kept in ``settings_path``; their ``analysis.judge`` is the
+        judge record of :attr:`judge_selection`.
+        """
+        return PipelineSettings(
+            JsonSettingsStore(str(judge_state_file(
+                self.settings.settings_path
+            ))),
+            lambda: datetime.now(timezone.utc),
+            judge=self.judge_selection,
+        )
+
+    def live_effort(self) -> Optional[str]:
+        """Return the live reasoner's effort: saved from the web, or set."""
+        chosen = self.pipeline_settings.current()
+        if chosen:
+            return chosen["live.suggester_effort"]
+        return self.settings.claude_live_effort
+
     def judge_mode(self) -> JudgeMode:
         """Return the judge of this job: the setting, or the web's choice.
 
@@ -345,18 +369,22 @@ class SkillsContainer:
     def warm_model(self, alias: str) -> ClaudeCodeStream:
         """Return the warm Claude Code backend of ``alias`` (reused).
 
+        One per model and effort: the effort saved from the web
+        (``live.suggester_effort``) applies to the next call.
+
         An alias that is not an acceptable Claude model is a caller's
         mistake (``InvalidInputError``), never passed to the command.
         """
         name = check_claude_model(alias or "haiku")
+        effort = self.live_effort()
+        key = f"{name}|{effort or ''}"
         warm = self._warm_models
-        if name not in warm:
-            warm[name] = ClaudeCodeStream(
-                name, self.settings.claude_executable,
-                effort=self.settings.claude_live_effort,
+        if key not in warm:
+            warm[key] = ClaudeCodeStream(
+                name, self.settings.claude_executable, effort=effort,
             )
-            atexit.register(warm[name].close)
-        return warm[name]
+            atexit.register(warm[key].close)
+        return warm[key]
 
     @cached_property
     def reasoner(self) -> Reasoner:
@@ -523,7 +551,9 @@ class SkillsContainer:
         """
         if not Path(self.settings.act_card).is_file():
             return None
-        return TaggerActStep(lambda: self.act_tagger("default"), self.act_card)
+        return TaggerActStep(
+            lambda: self.act_tagger(self.settings.act_tagger), self.act_card
+        )
 
     @property
     def event_extractor(self) -> EventExtractor:
@@ -596,6 +626,7 @@ class SkillsContainer:
             FileAnalysisLock(s.analysis_dir),
             StartLimits(s.analysis_min_interval, s.analysis_daily_starts),
             starts=JsonStartLog(s.analysis_dir),
+            settings=self.pipeline_settings.current,
         )
 
     def session_outputs(self, transcripts_dir: str) -> SessionEraser:

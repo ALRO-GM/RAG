@@ -15,6 +15,7 @@ import { labView } from "./views/lab.js";
 import { analysisView } from "./views/analysis.js";
 import { helpAnalysisView } from "./views/help-analysis.js";
 import { knowledgeView } from "./views/knowledge.js";
+import { settingsView } from "./views/settings.js";
 import { loginView } from "./views/login.js";
 import { liveView } from "./views/live.js";
 import { voicebotView } from "./views/voicebot.js";
@@ -77,6 +78,7 @@ const ROUTES = [
   [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
   [/^#\/live$/, liveView],
   [/^#\/voicebot$/, voicebotView],
+  [/^#\/settings$/, settingsView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],
 ];
 

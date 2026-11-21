@@ -46,6 +46,7 @@ from orchestrator.application.ports import (
     LiveTranscriber,
     ReasonerPort,
     Runner,
+    SettingsSource,
     SuggestionSink,
     TextToSpeech,
     TranscriberUnavailable,
@@ -60,6 +61,7 @@ from orchestrator.application.replay import (
 from orchestrator.application.voicebot import VoiceBot
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import LiveEvent
+from orchestrator.domain.live_choices import apply_live_choices
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 
 AUDIO_KINDS = ("stereo", "mic")
@@ -243,6 +245,9 @@ class LiveSessions:
             id``, ``product``), or ``None`` for no log.
         new_id: Makes an id for a live session started without one.
         keep: Ended sessions kept.
+        settings: The pipeline settings saved on «Ajustes», read when a
+            session starts (reasoner model, deadline, mono diarization;
+            ``None``: the products as written).
     """
 
     def __init__(
@@ -261,6 +266,7 @@ class LiveSessions:
         keep: int = 20,
         tts: Optional[TextToSpeech] = None,
         turn_log: Optional[Callable[[str, str], TurnSink]] = None,
+        settings: Optional[SettingsSource] = None,
     ):
         """Wire the ports; no session yet."""
         self.products = {
@@ -282,6 +288,7 @@ class LiveSessions:
         self.log = log
         self.new_id = new_id
         self.keep = keep
+        self.settings = settings
         self._sessions: Dict[str, _Session] = {}
         self._lock = threading.Lock()
 
@@ -441,7 +448,9 @@ class LiveSessions:
         config = self.products.get(name)
         if config is None:
             raise SessionError("not_found", f"no live product {name!r}")
-        return config
+        if self.settings is None:
+            return config
+        return apply_live_choices(config, self.settings.current())
 
     def _find(self, session_id: str) -> _Session:
         with self._lock:
