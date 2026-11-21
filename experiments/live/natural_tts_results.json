@@ -1,0 +1,1556 @@
+{
+  "ticket": "#214",
+  "date": "2026-11-21",
+  "gpu": "RTX 3070 Ti 8 GB (shared with the running services)",
+  "sentences": {
+    "interview": [
+      "Cuéntame un poco sobre tu experiencia con bases de datos.",
+      "Vale, entiendo. ¿Y cómo resolviste ese problema?",
+      "Tómate tu tiempo, no hay prisa.",
+      "Interesante. ¿Podrías darme un ejemplo concreto?",
+      "Perfecto, pasamos al siguiente tema."
+    ],
+    "bot_replies": [
+      "Claro, ahora mismo reviso el estado de tu pedido.",
+      "Tu factura de este mes ya está disponible en el área de cliente.",
+      "Para cambiar la contraseña, entra en ajustes y pulsa en seguridad.",
+      "Lo siento, ese dato no aparece en la documentación que tengo.",
+      "El técnico pasará mañana por la tarde, entre las cuatro y las seis.",
+      "Si el router sigue sin conexión, apágalo y vuelve a encenderlo.",
+      "Perfecto, he anotado tu teléfono para que te llamen esta semana.",
+      "La devolución tarda unos cinco días laborables en llegar a tu cuenta.",
+      "¿Quieres que te envíe el resumen por correo electrónico?",
+      "Gracias por tu paciencia, enseguida te paso con un compañero."
+    ]
+  },
+  "reference": {
+    "source": "CML-TTS es test row 217, speaker 6306, CC BY 4.0",
+    "text": "Los niños, vestidos de blanco y rosa, saltaban y corrían tras sus juguetes, o formaban alegres corros girando como ruedas de colores",
+    "utmos": 2.649
+  },
+  "wer_model": "faster-whisper large-v3-turbo int8_float16, beam 5",
+  "naturalness_model": "UTMOS22 strong (SpeechMOS v1.2.0)",
+  "similarity_model": "microsoft/wavlm-base-plus-sv",
+  "runs": {
+    "piper@cpu": {
+      "engine": "piper",
+      "device": "cpu",
+      "voice": null,
+      "sample_rate": 22050,
+      "cold_load_ms": 349.2,
+      "warmup_first_ms": [
+        31.2,
+        38.9
+      ],
+      "gpu_peak_mib": 0,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 62.0,
+        "p90": 70.6,
+        "max": 73.3
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 62.2,
+        "p90": 70.6,
+        "max": 73.3
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.019,
+        "p90": 0.02,
+        "max": 0.02
+      },
+      "rtf_mean": 0.019,
+      "errors": 0,
+      "wer_mean": 0.0158,
+      "sentences_with_word_errors": 2,
+      "utmos_mean": 2.6735,
+      "utmos_interview_mean": 2.8592,
+      "similarity_to_reference": null,
+      "audio_s_mean": 3.1603,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 63.0,
+          "total_ms": 63.1,
+          "chunks": 1,
+          "audio_s": 3.216,
+          "wer": 0.0,
+          "utmos": 2.872,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 25.7,
+          "total_ms": 61.9,
+          "chunks": 2,
+          "audio_s": 3.158,
+          "wer": 0.0,
+          "utmos": 2.788,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 37.9,
+          "total_ms": 37.9,
+          "chunks": 1,
+          "audio_s": 1.974,
+          "wer": 0.0,
+          "utmos": 3.321,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 25.1,
+          "total_ms": 62.2,
+          "chunks": 2,
+          "audio_s": 3.193,
+          "wer": 0.0,
+          "utmos": 2.483,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 40.5,
+          "total_ms": 40.6,
+          "chunks": 1,
+          "audio_s": 2.136,
+          "wer": 0.0,
+          "utmos": 2.832,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 58.1,
+          "total_ms": 58.1,
+          "chunks": 1,
+          "audio_s": 3.111,
+          "wer": 0.0,
+          "utmos": 2.89,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 67.6,
+          "total_ms": 67.6,
+          "chunks": 1,
+          "audio_s": 3.495,
+          "wer": 0.0,
+          "utmos": 2.594,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 69.9,
+          "total_ms": 69.9,
+          "chunks": 1,
+          "audio_s": 3.669,
+          "wer": 0.0,
+          "utmos": 2.684,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 62.0,
+          "total_ms": 62.0,
+          "chunks": 1,
+          "audio_s": 3.251,
+          "wer": 0.0,
+          "utmos": 2.507,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 73.3,
+          "total_ms": 73.3,
+          "chunks": 1,
+          "audio_s": 3.738,
+          "wer": 0.15384615384615385,
+          "utmos": 2.543,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 67.4,
+          "total_ms": 67.4,
+          "chunks": 1,
+          "audio_s": 3.495,
+          "wer": 0.0,
+          "utmos": 2.544,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 60.8,
+          "total_ms": 60.8,
+          "chunks": 1,
+          "audio_s": 3.193,
+          "wer": 0.0,
+          "utmos": 2.352,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 71.0,
+          "total_ms": 71.1,
+          "chunks": 1,
+          "audio_s": 3.669,
+          "wer": 0.08333333333333333,
+          "utmos": 2.233,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 52.2,
+          "total_ms": 52.2,
+          "chunks": 1,
+          "audio_s": 2.682,
+          "wer": 0.0,
+          "utmos": 2.518,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 65.4,
+          "total_ms": 65.4,
+          "chunks": 1,
+          "audio_s": 3.425,
+          "wer": 0.0,
+          "utmos": 2.941,
+          "error": null
+        }
+      ]
+    },
+    "openvoice@cuda": {
+      "engine": "openvoice",
+      "device": "cuda",
+      "voice": null,
+      "sample_rate": 22050,
+      "cold_load_ms": 4578.5,
+      "warmup_first_ms": [
+        312.9,
+        97.2
+      ],
+      "gpu_peak_mib": 622,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 100.0,
+        "p90": 113.5,
+        "max": 223.9
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 100.0,
+        "p90": 113.5,
+        "max": 223.9
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.031,
+        "p90": 0.04,
+        "max": 0.071
+      },
+      "rtf_mean": 0.035,
+      "errors": 0,
+      "wer_mean": 0.0251,
+      "sentences_with_word_errors": 3,
+      "utmos_mean": 2.8856,
+      "utmos_interview_mean": 3.1066,
+      "similarity_to_reference": 0.9386,
+      "audio_s_mean": 3.1316,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 223.9,
+          "total_ms": 223.9,
+          "chunks": 1,
+          "audio_s": 3.135,
+          "wer": 0.0,
+          "utmos": 2.923,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 99.4,
+          "total_ms": 99.4,
+          "chunks": 1,
+          "audio_s": 3.158,
+          "wer": 0.0,
+          "utmos": 3.479,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 77.6,
+          "total_ms": 77.6,
+          "chunks": 1,
+          "audio_s": 1.916,
+          "wer": 0.0,
+          "utmos": 3.44,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 100.0,
+          "total_ms": 100.0,
+          "chunks": 1,
+          "audio_s": 3.262,
+          "wer": 0.0,
+          "utmos": 2.666,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 78.5,
+          "total_ms": 78.5,
+          "chunks": 1,
+          "audio_s": 1.997,
+          "wer": 0.0,
+          "utmos": 3.025,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 97.7,
+          "total_ms": 97.7,
+          "chunks": 1,
+          "audio_s": 3.077,
+          "wer": 0.1111111111111111,
+          "utmos": 2.841,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 105.8,
+          "total_ms": 105.8,
+          "chunks": 1,
+          "audio_s": 3.483,
+          "wer": 0.0,
+          "utmos": 2.93,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 114.2,
+          "total_ms": 114.2,
+          "chunks": 1,
+          "audio_s": 3.587,
+          "wer": 0.0,
+          "utmos": 3.165,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 100.0,
+          "total_ms": 100.0,
+          "chunks": 1,
+          "audio_s": 3.239,
+          "wer": 0.0,
+          "utmos": 2.827,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 112.1,
+          "total_ms": 112.1,
+          "chunks": 1,
+          "audio_s": 3.669,
+          "wer": 0.0,
+          "utmos": 2.805,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 109.4,
+          "total_ms": 109.4,
+          "chunks": 1,
+          "audio_s": 3.541,
+          "wer": 0.18181818181818182,
+          "utmos": 2.8,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 96.6,
+          "total_ms": 96.6,
+          "chunks": 1,
+          "audio_s": 3.065,
+          "wer": 0.0,
+          "utmos": 2.62,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 112.4,
+          "total_ms": 112.4,
+          "chunks": 1,
+          "audio_s": 3.646,
+          "wer": 0.08333333333333333,
+          "utmos": 2.475,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 90.0,
+          "total_ms": 90.0,
+          "chunks": 1,
+          "audio_s": 2.786,
+          "wer": 0.0,
+          "utmos": 2.351,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 105.9,
+          "total_ms": 105.9,
+          "chunks": 1,
+          "audio_s": 3.413,
+          "wer": 0.0,
+          "utmos": 2.937,
+          "error": null
+        }
+      ]
+    },
+    "kokoro@cuda:ef_dora": {
+      "engine": "kokoro",
+      "device": "cuda",
+      "voice": "ef_dora",
+      "sample_rate": 24000,
+      "cold_load_ms": 3718.8,
+      "warmup_first_ms": [
+        610.5,
+        39.4
+      ],
+      "gpu_peak_mib": 962,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 46.1,
+        "p90": 51.3,
+        "max": 53.0
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 46.1,
+        "p90": 51.3,
+        "max": 53.0
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.013,
+        "p90": 0.015,
+        "max": 0.016
+      },
+      "rtf_mean": 0.013,
+      "errors": 0,
+      "wer_mean": 0.0103,
+      "sentences_with_word_errors": 1,
+      "utmos_mean": 3.7123,
+      "utmos_interview_mean": 3.834,
+      "similarity_to_reference": null,
+      "audio_s_mean": 3.5067,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 46.5,
+          "total_ms": 46.5,
+          "chunks": 1,
+          "audio_s": 3.55,
+          "wer": 0.0,
+          "utmos": 3.979,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 46.1,
+          "total_ms": 46.1,
+          "chunks": 1,
+          "audio_s": 3.075,
+          "wer": 0.0,
+          "utmos": 3.58,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 35.1,
+          "total_ms": 35.1,
+          "chunks": 1,
+          "audio_s": 2.225,
+          "wer": 0.0,
+          "utmos": 3.912,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 39.5,
+          "total_ms": 39.5,
+          "chunks": 1,
+          "audio_s": 3.075,
+          "wer": 0.0,
+          "utmos": 3.692,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 37.3,
+          "total_ms": 37.4,
+          "chunks": 1,
+          "audio_s": 2.45,
+          "wer": 0.0,
+          "utmos": 4.007,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 42.6,
+          "total_ms": 42.6,
+          "chunks": 1,
+          "audio_s": 3.15,
+          "wer": 0.0,
+          "utmos": 3.505,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 51.7,
+          "total_ms": 51.7,
+          "chunks": 1,
+          "audio_s": 3.925,
+          "wer": 0.0,
+          "utmos": 3.757,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 50.6,
+          "total_ms": 50.6,
+          "chunks": 1,
+          "audio_s": 4.075,
+          "wer": 0.0,
+          "utmos": 3.355,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 46.1,
+          "total_ms": 46.1,
+          "chunks": 1,
+          "audio_s": 3.775,
+          "wer": 0.0,
+          "utmos": 3.963,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 50.5,
+          "total_ms": 50.5,
+          "chunks": 1,
+          "audio_s": 4.1,
+          "wer": 0.15384615384615385,
+          "utmos": 3.854,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 47.0,
+          "total_ms": 47.0,
+          "chunks": 1,
+          "audio_s": 3.8,
+          "wer": 0.0,
+          "utmos": 3.124,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 44.8,
+          "total_ms": 44.8,
+          "chunks": 1,
+          "audio_s": 3.8,
+          "wer": 0.0,
+          "utmos": 3.83,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 53.0,
+          "total_ms": 53.0,
+          "chunks": 1,
+          "audio_s": 4.3,
+          "wer": 0.0,
+          "utmos": 3.643,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 43.6,
+          "total_ms": 43.6,
+          "chunks": 1,
+          "audio_s": 3.4,
+          "wer": 0.0,
+          "utmos": 3.431,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 50.1,
+          "total_ms": 50.1,
+          "chunks": 1,
+          "audio_s": 3.9,
+          "wer": 0.0,
+          "utmos": 4.052,
+          "error": null
+        }
+      ]
+    },
+    "kokoro@cuda:em_alex": {
+      "engine": "kokoro",
+      "device": "cuda",
+      "voice": "em_alex",
+      "sample_rate": 24000,
+      "cold_load_ms": 3736.3,
+      "warmup_first_ms": [
+        309.1,
+        38.9
+      ],
+      "gpu_peak_mib": 934,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 47.7,
+        "p90": 52.0,
+        "max": 52.6
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 47.7,
+        "p90": 52.0,
+        "max": 52.6
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.013,
+        "p90": 0.015,
+        "max": 0.016
+      },
+      "rtf_mean": 0.013,
+      "errors": 0,
+      "wer_mean": 0.0103,
+      "sentences_with_word_errors": 1,
+      "utmos_mean": 3.4715,
+      "utmos_interview_mean": 3.5784,
+      "similarity_to_reference": null,
+      "audio_s_mean": 3.5767,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 45.7,
+          "total_ms": 45.8,
+          "chunks": 1,
+          "audio_s": 3.7,
+          "wer": 0.0,
+          "utmos": 3.498,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 47.7,
+          "total_ms": 47.7,
+          "chunks": 1,
+          "audio_s": 3.2,
+          "wer": 0.0,
+          "utmos": 3.65,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 36.0,
+          "total_ms": 36.0,
+          "chunks": 1,
+          "audio_s": 2.25,
+          "wer": 0.0,
+          "utmos": 3.738,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 41.4,
+          "total_ms": 41.4,
+          "chunks": 1,
+          "audio_s": 3.175,
+          "wer": 0.0,
+          "utmos": 3.545,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 38.0,
+          "total_ms": 38.0,
+          "chunks": 1,
+          "audio_s": 2.6,
+          "wer": 0.0,
+          "utmos": 3.461,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 40.0,
+          "total_ms": 40.0,
+          "chunks": 1,
+          "audio_s": 3.2,
+          "wer": 0.0,
+          "utmos": 3.347,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 50.6,
+          "total_ms": 50.6,
+          "chunks": 1,
+          "audio_s": 3.975,
+          "wer": 0.0,
+          "utmos": 3.565,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 52.6,
+          "total_ms": 52.6,
+          "chunks": 1,
+          "audio_s": 4.225,
+          "wer": 0.0,
+          "utmos": 3.308,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 46.3,
+          "total_ms": 46.3,
+          "chunks": 1,
+          "audio_s": 3.775,
+          "wer": 0.0,
+          "utmos": 3.397,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 51.5,
+          "total_ms": 51.5,
+          "chunks": 1,
+          "audio_s": 4.05,
+          "wer": 0.15384615384615385,
+          "utmos": 3.285,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 50.2,
+          "total_ms": 50.2,
+          "chunks": 1,
+          "audio_s": 3.85,
+          "wer": 0.0,
+          "utmos": 3.442,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 48.6,
+          "total_ms": 48.7,
+          "chunks": 1,
+          "audio_s": 3.85,
+          "wer": 0.0,
+          "utmos": 3.34,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 52.4,
+          "total_ms": 52.4,
+          "chunks": 1,
+          "audio_s": 4.375,
+          "wer": 0.0,
+          "utmos": 3.373,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 43.7,
+          "total_ms": 43.7,
+          "chunks": 1,
+          "audio_s": 3.425,
+          "wer": 0.0,
+          "utmos": 3.455,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 50.0,
+          "total_ms": 50.0,
+          "chunks": 1,
+          "audio_s": 4.0,
+          "wer": 0.0,
+          "utmos": 3.668,
+          "error": null
+        }
+      ]
+    },
+    "pocket@cpu:lola": {
+      "engine": "pocket",
+      "device": "cpu",
+      "voice": "lola",
+      "sample_rate": 24000,
+      "cold_load_ms": 2148.3,
+      "warmup_first_ms": [
+        72.6,
+        75.6
+      ],
+      "gpu_peak_mib": 0,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 81.0,
+        "p90": 86.1,
+        "max": 91.0
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 898.0,
+        "p90": 977.4,
+        "max": 1050.2
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.23,
+        "p90": 0.232,
+        "max": 0.233
+      },
+      "rtf_mean": 0.229,
+      "errors": 0,
+      "wer_mean": 0.0103,
+      "sentences_with_word_errors": 1,
+      "utmos_mean": 3.7388,
+      "utmos_interview_mean": 3.8392,
+      "similarity_to_reference": null,
+      "audio_s_mean": 3.7547,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 84.2,
+          "total_ms": 833.4,
+          "chunks": 45,
+          "audio_s": 3.6,
+          "wer": 0.0,
+          "utmos": 4.128,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 77.0,
+          "total_ms": 826.2,
+          "chunks": 45,
+          "audio_s": 3.6,
+          "wer": 0.0,
+          "utmos": 3.504,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 72.9,
+          "total_ms": 632.9,
+          "chunks": 34,
+          "audio_s": 2.72,
+          "wer": 0.0,
+          "utmos": 3.832,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 74.9,
+          "total_ms": 819.8,
+          "chunks": 45,
+          "audio_s": 3.6,
+          "wer": 0.0,
+          "utmos": 3.733,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 69.9,
+          "total_ms": 610.8,
+          "chunks": 33,
+          "audio_s": 2.64,
+          "wer": 0.0,
+          "utmos": 3.999,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 81.4,
+          "total_ms": 758.1,
+          "chunks": 41,
+          "audio_s": 3.28,
+          "wer": 0.0,
+          "utmos": 3.537,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 80.8,
+          "total_ms": 898.0,
+          "chunks": 49,
+          "audio_s": 3.92,
+          "wer": 0.0,
+          "utmos": 4.185,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 81.6,
+          "total_ms": 941.0,
+          "chunks": 52,
+          "audio_s": 4.16,
+          "wer": 0.0,
+          "utmos": 3.466,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 85.2,
+          "total_ms": 1050.2,
+          "chunks": 58,
+          "audio_s": 4.64,
+          "wer": 0.0,
+          "utmos": 4.214,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 82.7,
+          "total_ms": 978.8,
+          "chunks": 53,
+          "audio_s": 4.24,
+          "wer": 0.15384615384615385,
+          "utmos": 3.753,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 91.0,
+          "total_ms": 975.3,
+          "chunks": 53,
+          "audio_s": 4.24,
+          "wer": 0.0,
+          "utmos": 3.514,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 86.7,
+          "total_ms": 916.5,
+          "chunks": 50,
+          "audio_s": 4.0,
+          "wer": 0.0,
+          "utmos": 3.541,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 79.3,
+          "total_ms": 961.3,
+          "chunks": 53,
+          "audio_s": 4.24,
+          "wer": 0.0,
+          "utmos": 3.953,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 81.0,
+          "total_ms": 796.7,
+          "chunks": 43,
+          "audio_s": 3.44,
+          "wer": 0.0,
+          "utmos": 3.167,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 77.2,
+          "total_ms": 914.3,
+          "chunks": 50,
+          "audio_s": 4.0,
+          "wer": 0.0,
+          "utmos": 3.556,
+          "error": null
+        }
+      ]
+    },
+    "pocket@cuda:lola": {
+      "engine": "pocket",
+      "device": "cuda",
+      "voice": "lola",
+      "sample_rate": 24000,
+      "cold_load_ms": 2491.9,
+      "warmup_first_ms": [
+        285.7,
+        15.8
+      ],
+      "gpu_peak_mib": 754,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 17.8,
+        "p90": 25.2,
+        "max": 25.6
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 258.6,
+        "p90": 286.7,
+        "max": 298.5
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.067,
+        "p90": 0.072,
+        "max": 0.073
+      },
+      "rtf_mean": 0.068,
+      "errors": 0,
+      "wer_mean": 0.0232,
+      "sentences_with_word_errors": 3,
+      "utmos_mean": 3.8492,
+      "utmos_interview_mean": 3.9106,
+      "similarity_to_reference": null,
+      "audio_s_mean": 3.7227,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 19.6,
+          "total_ms": 240.7,
+          "chunks": 45,
+          "audio_s": 3.6,
+          "wer": 0.0,
+          "utmos": 4.109,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 17.8,
+          "total_ms": 236.9,
+          "chunks": 44,
+          "audio_s": 3.52,
+          "wer": 0.0,
+          "utmos": 3.551,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 25.6,
+          "total_ms": 187.8,
+          "chunks": 32,
+          "audio_s": 2.56,
+          "wer": 0.0,
+          "utmos": 4.205,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 25.6,
+          "total_ms": 258.6,
+          "chunks": 46,
+          "audio_s": 3.68,
+          "wer": 0.0,
+          "utmos": 3.619,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 23.4,
+          "total_ms": 197.1,
+          "chunks": 34,
+          "audio_s": 2.72,
+          "wer": 0.0,
+          "utmos": 4.069,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 18.2,
+          "total_ms": 226.4,
+          "chunks": 42,
+          "audio_s": 3.36,
+          "wer": 0.1111111111111111,
+          "utmos": 3.843,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 16.0,
+          "total_ms": 253.1,
+          "chunks": 47,
+          "audio_s": 3.76,
+          "wer": 0.0,
+          "utmos": 3.942,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 14.8,
+          "total_ms": 298.5,
+          "chunks": 57,
+          "audio_s": 4.56,
+          "wer": 0.0,
+          "utmos": 4.07,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 19.5,
+          "total_ms": 290.9,
+          "chunks": 54,
+          "audio_s": 4.32,
+          "wer": 0.0,
+          "utmos": 4.099,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 24.6,
+          "total_ms": 280.4,
+          "chunks": 51,
+          "audio_s": 4.08,
+          "wer": 0.15384615384615385,
+          "utmos": 3.862,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 16.3,
+          "total_ms": 280.2,
+          "chunks": 53,
+          "audio_s": 4.24,
+          "wer": 0.0,
+          "utmos": 3.706,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 16.7,
+          "total_ms": 261.9,
+          "chunks": 48,
+          "audio_s": 3.84,
+          "wer": 0.0,
+          "utmos": 4.009,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 16.2,
+          "total_ms": 276.5,
+          "chunks": 51,
+          "audio_s": 4.08,
+          "wer": 0.08333333333333333,
+          "utmos": 3.91,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 16.6,
+          "total_ms": 234.8,
+          "chunks": 44,
+          "audio_s": 3.52,
+          "wer": 0.0,
+          "utmos": 3.263,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 17.6,
+          "total_ms": 269.9,
+          "chunks": 50,
+          "audio_s": 4.0,
+          "wer": 0.0,
+          "utmos": 3.481,
+          "error": null
+        }
+      ]
+    },
+    "qwen3@cuda": {
+      "engine": "qwen3",
+      "device": "cuda",
+      "voice": null,
+      "sample_rate": 24000,
+      "cold_load_ms": 4068.6,
+      "warmup_first_ms": [
+        1282.8,
+        187.5
+      ],
+      "gpu_peak_mib": 4310,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 187.5,
+        "p90": 187.9,
+        "max": 188.4
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 1918.5,
+        "p90": 2191.2,
+        "max": 2257.8
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.45,
+        "p90": 0.499,
+        "max": 0.512
+      },
+      "rtf_mean": 0.458,
+      "errors": 0,
+      "wer_mean": 0.0158,
+      "sentences_with_word_errors": 2,
+      "utmos_mean": 3.9343,
+      "utmos_interview_mean": 4.0002,
+      "similarity_to_reference": 0.9633,
+      "audio_s_mean": 4.0907,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 186.6,
+          "total_ms": 1646.3,
+          "chunks": 11,
+          "audio_s": 3.52,
+          "wer": 0.0,
+          "utmos": 4.099,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 187.5,
+          "total_ms": 2249.5,
+          "chunks": 17,
+          "audio_s": 5.2,
+          "wer": 0.0,
+          "utmos": 3.827,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 188.0,
+          "total_ms": 1311.6,
+          "chunks": 8,
+          "audio_s": 2.56,
+          "wer": 0.0,
+          "utmos": 3.89,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 187.7,
+          "total_ms": 1711.6,
+          "chunks": 12,
+          "audio_s": 3.68,
+          "wer": 0.0,
+          "utmos": 4.087,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 187.7,
+          "total_ms": 1375.1,
+          "chunks": 9,
+          "audio_s": 2.72,
+          "wer": 0.0,
+          "utmos": 4.098,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 186.7,
+          "total_ms": 1796.7,
+          "chunks": 13,
+          "audio_s": 3.92,
+          "wer": 0.0,
+          "utmos": 3.975,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 187.2,
+          "total_ms": 1870.1,
+          "chunks": 13,
+          "audio_s": 4.16,
+          "wer": 0.0,
+          "utmos": 4.105,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 186.5,
+          "total_ms": 2098.0,
+          "chunks": 15,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 3.746,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 187.7,
+          "total_ms": 1940.6,
+          "chunks": 14,
+          "audio_s": 4.32,
+          "wer": 0.0,
+          "utmos": 4.074,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 188.4,
+          "total_ms": 2080.3,
+          "chunks": 15,
+          "audio_s": 4.72,
+          "wer": 0.15384615384615385,
+          "utmos": 4.136,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 187.4,
+          "total_ms": 2257.8,
+          "chunks": 17,
+          "audio_s": 5.2,
+          "wer": 0.0,
+          "utmos": 3.856,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 187.8,
+          "total_ms": 1918.5,
+          "chunks": 14,
+          "audio_s": 4.24,
+          "wer": 0.0,
+          "utmos": 3.971,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 187.0,
+          "total_ms": 1989.3,
+          "chunks": 14,
+          "audio_s": 4.48,
+          "wer": 0.08333333333333333,
+          "utmos": 3.465,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 187.1,
+          "total_ms": 1489.6,
+          "chunks": 10,
+          "audio_s": 3.04,
+          "wer": 0.0,
+          "utmos": 3.491,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 187.7,
+          "total_ms": 2103.8,
+          "chunks": 15,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 4.195,
+          "error": null
+        }
+      ]
+    },
+    "ming@cuda": {
+      "engine": "ming",
+      "device": "cuda",
+      "voice": null,
+      "sample_rate": 44100,
+      "cold_load_ms": 5150.7,
+      "warmup_first_ms": [
+        212.5,
+        104.2
+      ],
+      "gpu_peak_mib": 3410,
+      "first_audio_ms": {
+        "n": 15,
+        "p50": 103.7,
+        "p90": 104.9,
+        "max": 105.2
+      },
+      "sentence_ms": {
+        "n": 15,
+        "p50": 2940.6,
+        "p90": 3161.4,
+        "max": 3582.6
+      },
+      "rtf": {
+        "n": 15,
+        "p50": 0.658,
+        "p90": 0.66,
+        "max": 0.66
+      },
+      "rtf_mean": 0.658,
+      "errors": 0,
+      "wer_mean": 0.0103,
+      "sentences_with_word_errors": 1,
+      "utmos_mean": 3.4242,
+      "utmos_interview_mean": 3.2276,
+      "similarity_to_reference": 0.9607,
+      "audio_s_mean": 4.2773,
+      "per_sentence": [
+        {
+          "n": 0,
+          "first_ms": 103.7,
+          "total_ms": 2526.0,
+          "chunks": 47,
+          "audio_s": 3.84,
+          "wer": 0.0,
+          "utmos": 3.245,
+          "error": null
+        },
+        {
+          "n": 1,
+          "first_ms": 101.4,
+          "total_ms": 2640.0,
+          "chunks": 49,
+          "audio_s": 4.0,
+          "wer": 0.0,
+          "utmos": 3.457,
+          "error": null
+        },
+        {
+          "n": 2,
+          "first_ms": 103.2,
+          "total_ms": 1899.3,
+          "chunks": 35,
+          "audio_s": 2.88,
+          "wer": 0.0,
+          "utmos": 2.888,
+          "error": null
+        },
+        {
+          "n": 3,
+          "first_ms": 103.4,
+          "total_ms": 2747.3,
+          "chunks": 51,
+          "audio_s": 4.16,
+          "wer": 0.0,
+          "utmos": 3.236,
+          "error": null
+        },
+        {
+          "n": 4,
+          "first_ms": 102.7,
+          "total_ms": 1984.0,
+          "chunks": 37,
+          "audio_s": 3.04,
+          "wer": 0.0,
+          "utmos": 3.312,
+          "error": null
+        },
+        {
+          "n": 5,
+          "first_ms": 103.9,
+          "total_ms": 2734.1,
+          "chunks": 51,
+          "audio_s": 4.16,
+          "wer": 0.0,
+          "utmos": 3.305,
+          "error": null
+        },
+        {
+          "n": 6,
+          "first_ms": 102.2,
+          "total_ms": 3141.1,
+          "chunks": 59,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 3.348,
+          "error": null
+        },
+        {
+          "n": 7,
+          "first_ms": 104.8,
+          "total_ms": 3164.9,
+          "chunks": 59,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 3.639,
+          "error": null
+        },
+        {
+          "n": 8,
+          "first_ms": 103.8,
+          "total_ms": 3156.1,
+          "chunks": 59,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 4.021,
+          "error": null
+        },
+        {
+          "n": 9,
+          "first_ms": 105.0,
+          "total_ms": 3112.0,
+          "chunks": 58,
+          "audio_s": 4.72,
+          "wer": 0.15384615384615385,
+          "utmos": 3.497,
+          "error": null
+        },
+        {
+          "n": 10,
+          "first_ms": 104.3,
+          "total_ms": 3582.6,
+          "chunks": 67,
+          "audio_s": 5.44,
+          "wer": 0.0,
+          "utmos": 3.414,
+          "error": null
+        },
+        {
+          "n": 11,
+          "first_ms": 104.1,
+          "total_ms": 3155.3,
+          "chunks": 59,
+          "audio_s": 4.8,
+          "wer": 0.0,
+          "utmos": 3.871,
+          "error": null
+        },
+        {
+          "n": 12,
+          "first_ms": 102.2,
+          "total_ms": 2940.6,
+          "chunks": 55,
+          "audio_s": 4.48,
+          "wer": 0.0,
+          "utmos": 3.481,
+          "error": null
+        },
+        {
+          "n": 13,
+          "first_ms": 102.5,
+          "total_ms": 2317.1,
+          "chunks": 43,
+          "audio_s": 3.52,
+          "wer": 0.0,
+          "utmos": 2.786,
+          "error": null
+        },
+        {
+          "n": 14,
+          "first_ms": 105.2,
+          "total_ms": 3111.3,
+          "chunks": 58,
+          "audio_s": 4.72,
+          "wer": 0.0,
+          "utmos": 3.863,
+          "error": null
+        }
+      ]
+    }
+  }
+}
