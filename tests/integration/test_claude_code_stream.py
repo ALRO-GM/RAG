@@ -356,6 +356,7 @@ def test_cold_judge_reports_latency_and_timeout_type() -> None:
         ClaudeCodeJudge(runner=slow).complete("s", "u", 10)
 
 
+@pytest.mark.usefixtures("hard_deadline")
 def test_subprocess_transport_round_trip(tmp_path: Path) -> None:
     """The real transport against a stand-in that echoes a result."""
     program = tmp_path / "fake-claude"
@@ -380,6 +381,7 @@ def test_subprocess_transport_round_trip(tmp_path: Path) -> None:
         model.close()
 
 
+@pytest.mark.usefixtures("hard_deadline")
 def test_missing_executable_is_a_model_error(tmp_path: Path) -> None:
     with pytest.raises(ModelError):
         SubprocessStream([str(tmp_path / "absent")], {})

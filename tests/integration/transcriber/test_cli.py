@@ -29,7 +29,8 @@ from tests.integration.transcriber.fake_chisel import (
 )
 
 ROOT = Path(__file__).resolve().parents[3]
-WAIT = 60.0
+WAIT = float(os.environ.get("TRANSCRIBER_TEST_WAIT", "240"))
+"""Seconds a command may take: generous, a loaded GPU box is slow (#197)."""
 
 
 def environment(data: Path, **extra: str) -> Dict[str, str]:
