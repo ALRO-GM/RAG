@@ -42,6 +42,7 @@ from typing import Any, Callable, List, Mapping, Optional, Sequence
 from src.domain.errors import (
     ModelAuthError,
     ModelError,
+    ModelTimeoutError,
     QuotaExhaustedError,
     TransientModelError,
 )
@@ -273,7 +274,7 @@ class ClaudeCodeJudge:
                     f"Claude Code ({self.executable}) is not installed."
                 )
             except subprocess.TimeoutExpired:
-                raise ModelError(
+                raise ModelTimeoutError(
                     f"Claude Code did not answer within {self.timeout:g} s."
                 )
         return self.parse(done.returncode, done.stdout, done.stderr)

@@ -66,6 +66,10 @@ class TransientModelError(ModelError):
     """A hosted model failed in a way worth retrying (overload, 5xx)."""
 
 
+class ModelTimeoutError(ModelError):
+    """A model did not answer within the time it was given."""
+
+
 def short_reason(exc: Exception) -> str:
     """Return a one-line reason for a (pydantic) validation error."""
     errors = getattr(exc, "errors", None)

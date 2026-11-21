@@ -49,14 +49,13 @@ CASES: Dict[str, Callable[[Dict[str, Any]], None]] = {
 
 
 def _load(name: str) -> Tuple[Draft202012Validator, Dict[str, Any]]:
-    schema = json.loads(
-        (ROOT / "contracts" / f"{name}.schema.json").read_text("utf-8")
-    )
+    path = ROOT / "contracts" / f"{name}.schema.json"
+    schema = json.loads(path.read_text("utf-8"))
     Draft202012Validator.check_schema(schema)
-    example = json.loads(
-        (ROOT / "contracts" / "examples" / f"{name}.json").read_text("utf-8")
-    )
-    return Draft202012Validator(schema, format_checker=FormatChecker()), example
+    sample = ROOT / "contracts" / "examples" / f"{name}.json"
+    example = json.loads(sample.read_text("utf-8"))
+    checker = FormatChecker()
+    return Draft202012Validator(schema, format_checker=checker), example
 
 
 @pytest.mark.parametrize("name", sorted(CASES))
