@@ -19,13 +19,20 @@ voice (``voicebot.voice = clone:<person>`` on «Ajustes»): the cloning
 model runs in its own venv (``--clone-python``, ``--clone-engine``;
 off when that venv is missing or with ``--clone-engine none``), and
 the people's profiles are read from the transcriber's
-``--voiceprints-dir`` (``docs/live/VOICE_CLONING.md``).
+``--voiceprints-dir`` (``docs/live/VOICE_CLONING.md``). The natural
+voices (#214: Pocket TTS, Qwen3-TTS; ``voicebot.voice = pocket:lola`` or
+``qwen3``, and ``voicebot.clone_engine = qwen3``) run from their own
+venvs under ``--natural-dir`` (off with ``--natural-tts off`` or when
+none is installed; ``docs/live/NATURAL_TTS.md`` §6); Pocket TTS on the
+CPU is warmed at start, a GPU engine only under the live session's GPU
+lease (``--gpu-lease-dir``).
 """
 
 import argparse
 import importlib
 import ipaddress
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -69,6 +76,14 @@ from orchestrator.adapters.outbound.fs_voice_profiles import (
 from orchestrator.adapters.outbound.subprocess_cloner import (
     SubprocessCloner,
 )
+from orchestrator.adapters.outbound.gpu_gate import (
+    LeaseGpuGate,
+    lease_directory,
+)
+from orchestrator.adapters.outbound.subprocess_speech import (
+    DEFAULT_DIR as NATURAL_DIR,
+    WorkerEngines,
+)
 from orchestrator.adapters.outbound.http_transcriber import (
     HttpTranscriber,
     read_code,
@@ -96,6 +111,8 @@ from orchestrator.application.ports import (
 )
 from orchestrator.application.sessions import LiveSessions
 from orchestrator.application.voice import DEFAULT_BUDGET_MS
+from orchestrator.application.natural_voice import NaturalWiring
+from orchestrator.domain.voices import EngineVoice
 from orchestrator.application.replay import (
     Replay,
     default_roles,
@@ -201,6 +218,17 @@ def add_serve_parser(
                        default=DEFAULT_BUDGET_MS,
                        help="longest wait for a cloned sentence (Piper "
                             "says it after that)")
+    serve.add_argument("--natural-tts", default="on", choices=("on", "off"),
+                       help="the natural voices (Pocket TTS, Qwen3-TTS)")
+    serve.add_argument("--natural-dir", type=Path, default=NATURAL_DIR,
+                       help="their venvs, weights and reference voice")
+    serve.add_argument("--natural-budget-ms", type=float,
+                       default=DEFAULT_BUDGET_MS,
+                       help="longest wait for a sentence's first audio "
+                            "before the next voice says it")
+    serve.add_argument("--gpu-lease-dir", type=Path, default=None,
+                       help="folder of the GPU lease (default "
+                            "$XDG_RUNTIME_DIR/gpu-lease)")
     serve.add_argument("--voiceprints-dir", type=Path,
                        default=ROOT / "data" / "transcriber" / "voiceprints",
                        help="the transcriber's voiceprints (profiles)")
@@ -356,6 +384,35 @@ def build_cloner(args: argparse.Namespace) -> Optional[SubprocessCloner]:
                             extra=extra)
 
 
+def build_natural(args: argparse.Namespace) -> Optional[NaturalWiring]:
+    """Return the natural voices, or ``None`` when off or not installed.
+
+    Pocket TTS on the CPU (the shared one) is warmed in the background.
+    """
+    if (getattr(args, "natural_tts", "off") != "on"
+            or getattr(args, "tts", "none") != "piper"):
+        return None
+    engines = WorkerEngines(Path(args.natural_dir))
+    installed = engines.installed()
+    if not installed:
+        print(f"natural voices off: nothing installed in {args.natural_dir}",
+              file=sys.stderr)
+        return None
+    if "pocket" in installed:
+        pocket = engines.get(EngineVoice("pocket", "cpu", voice="lola"))
+
+        def warm() -> None:
+            try:
+                pocket.warm(EngineVoice("pocket", "cpu", voice="lola"))
+            except TtsUnavailable as exc:
+                print(f"Pocket TTS warm-up failed: {exc}", file=sys.stderr)
+
+        ThreadRunner().start(warm)
+    directory = args.gpu_lease_dir or lease_directory(os.environ)
+    return NaturalWiring(engines, LeaseGpuGate(Path(directory)),
+                         engines.reference(), args.natural_budget_ms)
+
+
 def build_sessions(args: argparse.Namespace) -> LiveSessions:
     """Wire the live sessions of ``serve`` from the arguments."""
     args.token = read_code(args.rag_token_file)
@@ -395,6 +452,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         mandatory=build_mandatory(args), handoff=handoff,
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
+        natural=build_natural(args),
         interview=build_interview(args, products, sessions_ref),
         ticker=ThreadRunner(),
     )

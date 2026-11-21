@@ -93,9 +93,16 @@ from orchestrator.application.replay import (
     default_roles,
     transcript_to_events,
 )
+from orchestrator.application.natural_voice import (
+    SAMPLE_BUDGET_MS,
+    NaturalVoice,
+    NaturalWiring,
+    gpu_need,
+)
 from orchestrator.application.voice import (
     DEFAULT_BUDGET_MS,
     ClonedVoice,
+    render_sample,
     speak_sample,
 )
 from orchestrator.application.voicebot import VoiceBot
@@ -107,7 +114,12 @@ from orchestrator.domain.live_choices import (
     voice_choices,
 )
 from orchestrator.domain.mandatory import EMPLOYEE_ROLES
-from orchestrator.domain.voices import VoicePlan, VoiceProfile, plan_voice
+from orchestrator.domain.voices import (
+    VoicePlan,
+    VoiceProfile,
+    plan_voice,
+    voice_chain,
+)
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.turn_taking import TurnConfig
 
@@ -359,6 +371,8 @@ class LiveSessions:
         cloner: The voice-cloning model (``None``: Piper only).
         clone_budget_ms: Longest wait for one cloned sentence before
             Piper says it.
+        natural: The natural voices, Pocket TTS and Qwen3-TTS (#214;
+            ``None``: Piper and the cloner only).
         interview: Plans, sheets and handoff of the AI interviewer
             (``None``: no ``voicebot.interview``).
         ticker: Runs the interviewer's turn-taking clock beside the
@@ -390,6 +404,7 @@ class LiveSessions:
         profiles: Optional[VoiceProfiles] = None,
         cloner: Optional[VoiceCloner] = None,
         clone_budget_ms: float = DEFAULT_BUDGET_MS,
+        natural: Optional[NaturalWiring] = None,
         interview: Optional[InterviewWiring] = None,
         ticker: Optional[Runner] = None,
         tick_s: float = TICK_S,
@@ -422,6 +437,7 @@ class LiveSessions:
         self.profiles = profiles
         self.cloner = cloner
         self.clone_budget_ms = clone_budget_ms
+        self.natural = natural
         self.ticker = ticker
         self.tick_s = tick_s
         self._sessions: Dict[str, _Session] = {}
@@ -667,47 +683,111 @@ class LiveSessions:
         return ClonedVoice(self.cloner, self.tts, profile,
                            self.clone_budget_ms)
 
-    def _voice(self, config: ProductConfig) -> Tuple[
-        ProductConfig, TextToSpeech, VoicePlan
-    ]:
-        """Return the voice bot's config, its voice and the plan."""
+    def _voice(
+        self, config: ProductConfig,
+        report: Optional[Callable[[str, str], None]] = None,
+        sample: bool = False,
+    ) -> Tuple[ProductConfig, TextToSpeech, VoicePlan, str]:
+        """Return the voice bot's config, its voice, the plan and engine.
+
+        The engine is the first that will try to speak (``piper``,
+        ``openvoice`` or a natural voice's name); ``report`` is told
+        when a natural voice's speaker changes. A sample waits for a
+        GPU model to load instead of the session's budget.
+        """
         assert config.tts is not None and self.tts is not None
-        plan = self._plan(config.tts)
-        product = config.model_copy(update={"tts": config.tts.model_copy(
+        tts = config.tts
+        plan = self._plan(tts)
+        product = config.model_copy(update={"tts": tts.model_copy(
             update={"length_scale": plan.length_scale}
         )})
-        if plan.clone is None:
-            return product, self.tts, plan
-        if self.cloner is None:
-            return product, self.tts, VoicePlan(
-                plan.voice, plan.length_scale, None,
-                "; ".join(r for r in (plan.reason, "no cloner installed")
-                          if r),
-            )
-        voice = self._cloned(plan.clone)
-        self.runner.start(voice.warm)
-        return product, voice, plan
+        natural = self.natural
+        installed = (natural.engines.installed() if natural is not None
+                     else frozenset())
+        qwen3_clone = (plan.clone is not None and tts.clone_engine == "qwen3"
+                       and "qwen3" in installed)
+        if plan.clone is not None and not qwen3_clone:
+            why = ("Qwen3-TTS not installed"
+                   if tts.clone_engine == "qwen3" else "")
+            if self.cloner is None:
+                return product, self.tts, _with_reason(
+                    plan, why, "no cloner installed", clone=False), "piper"
+            voice = self._cloned(plan.clone)
+            if not sample:
+                self.runner.start(voice.warm)
+            return product, voice, _with_reason(plan, why), "openvoice"
+        if natural is None:
+            why = "natural voices off" if tts.engine != "piper" else ""
+            return product, self.tts, _with_reason(plan, why), "piper"
+        chain, missing = voice_chain(
+            tts.engine, tts.pocket_voice, tts.pocket_device,
+            plan.clone if qwen3_clone else None, installed,
+            natural.reference,
+        )
+        plan = _with_reason(plan, missing, clone=bool(chain) and qwen3_clone)
+        if not chain:
+            return product, self.tts, plan, "piper"
+        speaker = NaturalVoice(
+            chain, natural.engines, self.tts, natural.gate,
+            SAMPLE_BUDGET_MS if sample else natural.budget_ms,
+            language=config.language, report=report,
+            sleep=self.clock.sleep,
+        )
+        if not sample:
+            self.runner.start(speaker.warm)
+        return product, speaker, plan, chain[0].name
 
     def sample(self, choices: Mapping[str, str]) -> Tuple[bytes, Document]:
         """Say the «Escuchar ejemplo» sentence with ``choices``; one WAV.
 
         ``choices`` are the voice bot's steps being edited (unsaved);
-        anything not valid keeps the product's.
+        anything not valid keeps the product's. A natural voice on the
+        GPU takes the lease for the sample when nobody holds it.
         """
         config = next((c for c in self.products.values()
                        if c.tts is not None), None)
         if config is None or config.tts is None or self.tts is None:
             raise SessionError("unavailable", "no voice bot here")
         tts = config.tts.model_copy(update=voice_choices(choices))
-        plan = self._plan(tts)
+        product = config.model_copy(update={"tts": tts})
+        heard: List[str] = []
+        _, speaker, plan, engine = self._voice(
+            product, lambda _, why: heard.append(why), sample=True)
         try:
-            return speak_sample(
-                tts, plan, self.tts,
-                self._cloned if self.cloner is not None else None,
-                config.language,
-            )
+            if not isinstance(speaker, NaturalVoice):
+                return speak_sample(
+                    tts, plan, self.tts,
+                    self._cloned if isinstance(speaker, ClonedVoice)
+                    else None, config.language,
+                )
+            return self._natural_sample(tts, plan, speaker, heard,
+                                        config.language)
         except TtsUnavailable as exc:
             raise SessionError("unavailable", str(exc)) from exc
+        finally:
+            if isinstance(speaker, (NaturalVoice, ClonedVoice)):
+                speaker.close()
+
+    def _natural_sample(
+        self, tts: Tts, plan: VoicePlan, speaker: NaturalVoice,
+        heard: List[str], language: str,
+    ) -> Tuple[bytes, Document]:
+        """Render the sample with a natural voice (lease taken if needed)."""
+        gate = self.natural.gate if self.natural is not None else None
+        need = gpu_need(speaker)
+        refused = gate.take(need) if gate is not None and need else None
+        try:
+            wav = render_sample(tts, plan.length_scale, speaker, language)
+        finally:
+            if gate is not None and need:
+                gate.drop()
+        engine = speaker.first_speaker or "piper"
+        reason = "; ".join(r for r in (plan.reason, refused, *heard) if r)
+        return wav, {
+            "voice": tts.voice, "length_scale": plan.length_scale,
+            "clone": plan.clone is not None and engine.startswith("qwen3"),
+            "reason": reason, "engine": engine,
+        }
 
     def _topic(
         self, config: ProductConfig, domain: Optional[str]
@@ -819,11 +899,24 @@ class LiveSessions:
         if session.product.tts is not None and self.tts is not None:
             turns = (self.turn_log(session.id, session.product.product)
                      if self.turn_log is not None else None)
-            product, speaker, plan = self._voice(session.product)
+            plan_clone = False
+
+            def report(engine: str, why: str) -> None:
+                session.feed.publish({
+                    "type": "voice", "engine": engine,
+                    "clone": plan_clone and engine.startswith("qwen3"),
+                    "length_scale": product.tts.length_scale
+                    if product.tts is not None else 1.0,
+                    "reason": why,
+                })
+
+            product, speaker, plan, engine = self._voice(session.product,
+                                                         report)
+            plan_clone = plan.clone is not None
+            clone = plan_clone and speaker is not self.tts
             session.product = product
             session.feed.publish({
-                "type": "voice", "clone": plan.clone is not None
-                and speaker is not self.tts,
+                "type": "voice", "engine": engine, "clone": clone,
                 "length_scale": plan.length_scale, "reason": plan.reason,
             })
             output = _BotFeed(session, turns)
@@ -862,7 +955,7 @@ class LiveSessions:
         with self._lock:
             session.state = state
         if isinstance(session.assist, VoiceBot) and isinstance(
-            session.assist.tts, ClonedVoice
+            session.assist.tts, (ClonedVoice, NaturalVoice)
         ):
             session.assist.tts.close()
         session.feed.publish({"type": "status", "session": session.view()})
@@ -944,6 +1037,15 @@ class LiveSessions:
         if session.state != "running":
             raise SessionError("wrong_state", "the session has ended")
         return session
+
+
+def _with_reason(
+    plan: VoicePlan, *more: str, clone: Optional[bool] = None
+) -> VoicePlan:
+    """Return ``plan`` with more reasons (and without its clone if not)."""
+    reason = "; ".join(r for r in (plan.reason, *more) if r)
+    return VoicePlan(plan.voice, plan.length_scale,
+                     plan.clone if clone is not False else None, reason)
 
 
 def _check_id(session_id: str) -> None:

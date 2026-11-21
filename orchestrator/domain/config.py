@@ -110,13 +110,22 @@ class Tts(_Strict):
 
     ``voice`` is a Piper voice; ``length_scale``, ``noise_scale``,
     ``noise_w`` and ``sentence_silence`` are Piper's controls (``None``:
-    the voice's own). ``clone_of`` names an enrolled person whose voice
-    is wanted instead, ``match_rate_of`` one whose speaking rate sets
+    the voice's own). ``engine`` says who speaks: ``piper`` (``voice``),
+    ``pocket`` (Kyutai Pocket TTS, catalogue voice ``pocket_voice`` on
+    ``pocket_device``) or ``qwen3`` (Qwen3-TTS cloning the default
+    reference voice); Piper's ``voice`` is the last fallback of the
+    others (#214, ``docs/live/NATURAL_TTS.md``). ``clone_of`` names an
+    enrolled person whose voice is wanted instead, cloned by
+    ``clone_engine``; ``match_rate_of`` one whose speaking rate sets
     the length scale (``orchestrator.domain.voices``).
     """
 
     kind: Literal["piper"]
     voice: str
+    engine: Literal["piper", "pocket", "qwen3"] = "piper"
+    pocket_voice: str = Field(default="lola", pattern=r"^[a-z_]{1,32}$")
+    pocket_device: Literal["cpu", "cuda"] = "cpu"
+    clone_engine: Literal["qwen3", "openvoice"] = "qwen3"
     length_scale: float = Field(default=1.0, ge=0.5, le=2.0)
     noise_scale: Optional[float] = Field(default=None, ge=0.0, le=1.5)
     noise_w: Optional[float] = Field(default=None, ge=0.0, le=1.5)

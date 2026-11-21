@@ -277,3 +277,68 @@ def pcm_of(chunk: SpeechChunk) -> bytes:
         return chunk.audio
     with wave.open(BytesIO(chunk.audio), "rb") as reader:
         return reader.readframes(reader.getnframes())
+
+
+class AudioJoiner:
+    """Group a streamed sentence's small PCM pieces into growing ones.
+
+    A streaming engine yields audio every 80-333 ms; the page decodes
+    each message as one WAV. The first piece goes out at once (first
+    audio as early as possible); after it, pieces are held until they
+    are as long as everything already sent (at most ``max_ms``), so
+    while the page plays what it has, an engine faster than real time
+    has the next piece ready (no gap) and a sentence takes few
+    messages. 16-bit mono PCM.
+    """
+
+    def __init__(self, sample_rate: int, max_ms: float = 1000.0):
+        """Start with nothing sent."""
+        self.sample_rate = max(1, sample_rate)
+        self.max_ms = max_ms
+        self.sent_ms = 0.0
+        self._held: List[bytes] = []
+
+    def _ms(self, size: int) -> float:
+        """Milliseconds of ``size`` bytes."""
+        return size / 2 * 1000.0 / self.sample_rate
+
+    def add(self, pcm: bytes) -> Optional[bytes]:
+        """Take one piece; return what should be sent now, if anything."""
+        self._held.append(pcm)
+        held = sum(len(p) for p in self._held)
+        if self.sent_ms > 0 and self._ms(held) < min(self.sent_ms,
+                                                     self.max_ms):
+            return None
+        return self.flush()
+
+    def flush(self) -> Optional[bytes]:
+        """Return everything held (the sentence ended), or ``None``."""
+        if not self._held:
+            return None
+        out = b"".join(self._held)
+        self._held = []
+        self.sent_ms += self._ms(len(out))
+        return out or None
+
+
+def whole_chunk(chunks: List[SpeechChunk]) -> Optional[SpeechChunk]:
+    """Join a short text's chunks into one (a streamed sentence).
+
+    Chunks at another sample rate than the first are left out; ``None``
+    when there is no audio.
+    """
+    if not chunks:
+        return None
+    first = chunks[0]
+    if len(chunks) == 1:
+        return first
+    pcm = b"".join(pcm_of(c) for c in chunks
+                   if c.sample_rate == first.sample_rate)
+    audio = wav_bytes(pcm, first.sample_rate) if first.format == "wav" \
+        else pcm
+    return SpeechChunk(
+        request_id=first.request_id, seq=first.seq,
+        text=" ".join(c.text for c in chunks if c.text), audio=audio,
+        format=first.format, sample_rate=first.sample_rate,
+        synth_ms=chunks[-1].synth_ms,
+    )

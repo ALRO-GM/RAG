@@ -7,7 +7,9 @@ turn-taking (VB-10, #213) is in §5 there.
 Design: `docs/platform/ARCHITECTURE.md` §3 (P3), §6 (latency), §8
 (licences). Product config: `config/products/voicebot.yaml`. Piper's
 controls on «Ajustes», rate matching and the operator's cloned voice
-(VB-7): `docs/live/VOICE_CLONING.md`.
+(VB-7): `docs/live/VOICE_CLONING.md`. The natural voices (VB-11, #214:
+Pocket TTS `lola`, the default, and Qwen3-TTS) and their end-to-end
+first audio: `docs/live/NATURAL_TTS.md` §6–7.
 
 ```
 browser mic ──WS──▶ transcriber (live session, 1 channel, VAD hang 400 ms)

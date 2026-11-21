@@ -127,7 +127,14 @@ test("the voice sample comes back as audio with what was used", async () => {
   assert.equal(sample.clone, true);
   assert.equal(sample.lengthScale, 1.2);
   assert.equal(sample.note, "");
+  assert.equal(sample.engine, "");
   assert.equal(sample.blob.size, 4);
+  const natural = recorder(() => new Response(new Uint8Array([82]), {
+    status: 200, headers: { "Content-Type": "audio/wav", "X-Voice-Engine": "pocket-cpu", "X-Voice-Note": "qwen3-cuda: no live GPU lease" },
+  })).api;
+  const spoke = await natural.voiceSample({ "voicebot.voice": "qwen3" });
+  assert.equal(spoke.engine, "pocket-cpu");
+  assert.equal(spoke.note, "qwen3-cuda: no live GPU lease");
   const failing = recorder(() => json(503, { code: "unavailable", message: "no voice bot here" })).api;
   await assert.rejects(failing.voiceSample({}), (error) => error.status === 503);
 });

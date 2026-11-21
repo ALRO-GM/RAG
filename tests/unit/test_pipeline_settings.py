@@ -136,6 +136,20 @@ def test_voice_controls_accept_numbers_in_range_and_person_ids() -> None:
     assert resolve({"voicebot.length_scale": "9"})[
         "voicebot.length_scale"] == "1"
     assert defaults()["voicebot.match_rate"] == "off"
+    assert defaults()["voicebot.voice"] == "pocket:lola"
+    assert defaults()["voicebot.clone_engine"] == "qwen3"
+    assert defaults()["voicebot.pocket_device"] == "cpu"
+    assert check_choices({"voicebot.voice": "qwen3",
+                          "voicebot.clone_engine": "openvoice",
+                          "voicebot.pocket_device": "cuda"}) == {
+        "voicebot.voice": "qwen3", "voicebot.clone_engine": "openvoice",
+        "voicebot.pocket_device": "cuda"}
+    for step, bad in (("voicebot.voice", "pocket:vera"),
+                      ("voicebot.voice", "qwen3:x"),
+                      ("voicebot.clone_engine", "chatterbox"),
+                      ("voicebot.pocket_device", "tpu")):
+        with pytest.raises(InvalidInputError, match="Invalid option"):
+            check_choices({step: bad})
     steps = {s["id"]: s for s in catalogue()["steps"]}  # type: ignore
     assert steps["voicebot.noise_w"]["range"] == {
         "low": 0.0, "high": 1.0, "step": 0.05}

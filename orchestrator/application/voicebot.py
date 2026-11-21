@@ -76,6 +76,7 @@ from orchestrator.domain.speech import (
     ReplyText,
     SentenceChunker,
     SpeechChunk,
+    whole_chunk,
 )
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
 from orchestrator.domain.turn_taking import (
@@ -275,7 +276,11 @@ class _Turn:
             self.record.spoken.append(sentence)
 
     def _publish(self, chunk: SpeechChunk) -> None:
-        """Send one chunk of audio to the page."""
+        """Send one chunk of audio to the page.
+
+        A streamed sentence comes in several chunks; only the first
+        carries its text (the later ones continue it, text empty).
+        """
         stages = self.record.stages
         if stages.first_audio_ms is None:
             stages.first_audio_ms = self.elapsed()
@@ -284,8 +289,10 @@ class _Turn:
         with bot._lock:
             bot.playback.add(self.record.turn, chunk.duration_ms,
                              bot.clock.now())
-            bot._said.append(chunk.text)
-        self.record.spoken.append(chunk.text)
+            if chunk.text:
+                bot._said.append(chunk.text)
+        if chunk.text or not self.record.spoken:
+            self.record.spoken.append(chunk.text)
         self.record.audio_ms = round(
             self.record.audio_ms + chunk.duration_ms, 1
         )
@@ -494,8 +501,8 @@ class VoiceBot:
                     self.config.language,
                 )
                 try:
-                    chunk = next(iter(self.tts.synthesize(
-                        request, CancelToken())), None)
+                    chunk = whole_chunk(list(self.tts.synthesize(
+                        request, CancelToken())))
                 except TtsUnavailable:
                     chunk = None
             kept.append((token, chunk))

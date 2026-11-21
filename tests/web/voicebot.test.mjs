@@ -95,6 +95,7 @@ test("the conversation follows the feed: user, thinking, speech, interrupt, reco
   state.apply({ type: "bot", turn: 1, state: "thinking", utterance: "t0.s0" }, 4);
   assert.equal(state.lines()[1].state, "thinking");
   state.apply(speech(1, "Sí."), 5);
+  state.apply(speech(1, ""), 5); // a streamed sentence's later piece (#214)
   state.apply(speech(1, "Tienes 30 días."), 6);
   const record = { turn: 1, status: "ok", stages: { event_lag_ms: 600, first_audio_ms: 900.4, knowledge_ms: 12 } };
   state.apply({ type: "turn", record }, 7);

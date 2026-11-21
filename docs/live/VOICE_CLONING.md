@@ -20,7 +20,7 @@ orchestrator when a voice-bot session starts; `docs/SETTINGS.md`):
 | `voicebot.noise_scale` (intonation) | `--noise-scale` | 0 to 1 | 0.5 |
 | `voicebot.noise_w` (cadence) | `--noise-w-scale` | 0 to 1 | 0.333 |
 | `voicebot.sentence_silence` (pause) | `--sentence-silence` | 0 to 1 s | 0 |
-| `voicebot.voice` | voice model | `davefx`, `sharvard`, `clone:<person>` | `davefx` |
+| `voicebot.voice` | voice model | `pocket:lola`, `qwen3`, `davefx`, `sharvard`, `clone:<person>` | `pocket:lola` (#214) |
 | `voicebot.match_rate` | sets the length scale | `off` or a person's id | `off` |
 
 The defaults are the voices' own (`es_ES-davefx-medium.onnx.json` and
@@ -130,6 +130,11 @@ protocol in its docstring). OpenVoice's own watermark is off (it needs
 the `wavmark` package, not installed).
 
 ## 4. How the bot uses it
+
+Since #214 the cloner is chosen with `voicebot.clone_engine`: `qwen3`
+(the default: Qwen3-TTS 0.6B, streamed, with Pocket TTS and Piper
+behind it; `docs/live/NATURAL_TTS.md` §6) or `openvoice` (what follows).
+The consent rules below are the same for both.
 
 `voicebot.voice = clone:<person>` → at session start the orchestrator
 looks the person up (`DirVoiceProfiles`, `--voiceprints-dir`, default

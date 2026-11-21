@@ -196,6 +196,7 @@ export class Api {
       clone: headers.get("X-Voice-Clone") === "1",
       lengthScale: Number(headers.get("X-Voice-Length-Scale")) || null,
       note: headers.get("X-Voice-Note") || "",
+      engine: headers.get("X-Voice-Engine") || "",
     };
   }
 

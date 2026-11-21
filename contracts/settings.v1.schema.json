@@ -186,6 +186,8 @@
           "anyOf": [
             {
               "enum": [
+                "pocket:lola",
+                "qwen3",
                 "davefx",
                 "sharvard"
               ]
@@ -193,9 +195,23 @@
             {
               "type": "string",
               "pattern": "^clone:[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
-              "description": "The enrolled person's own voice (cloned; needs their consent to cloning, else Piper davefx)."
+              "description": "The enrolled person's own voice (cloned by voicebot.clone_engine; needs their consent to cloning, else Piper davefx)."
             }
           ]
+        },
+        "voicebot.clone_engine": {
+          "enum": [
+            "qwen3",
+            "openvoice"
+          ],
+          "description": "Who clones an enrolled person's voice: Qwen3-TTS 0.6B on the GPU (default) or OpenVoice v2 over Piper."
+        },
+        "voicebot.pocket_device": {
+          "enum": [
+            "cpu",
+            "cuda"
+          ],
+          "description": "Where Pocket TTS runs: the CPU (default, no GPU memory) or the GPU (under the live session's GPU lease)."
         },
         "voicebot.length_scale": {
           "type": "string",
