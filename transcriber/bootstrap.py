@@ -634,6 +634,20 @@ def live_builder(
     return build
 
 
+def live_file_builder(
+    settings: TranscriberSettings, environ: Mapping[str, str],
+) -> Callable[[LiveOptions], LiveTranscription]:
+    """Return the builder of ``live-file``: :func:`live_builder` with the
+    voiceprints of ``settings.data_dir`` (of the runtime's voice model).
+    """
+    model = (
+        FakeVoiceEncoder.model_name if settings.runtime == "fake"
+        else settings.voice_model
+    )
+    voiceprints = FileSystemVoiceprintRepository(settings.data_dir, model)
+    return live_builder(settings, environ, voiceprints)
+
+
 def build_live(
     options: LiveOptions, attributor: Optional[Attributor] = None
 ) -> LiveTranscription:
