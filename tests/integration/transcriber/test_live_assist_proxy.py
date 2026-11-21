@@ -127,6 +127,7 @@ def test_tokens_and_routes() -> None:
     assert read_token(None) is None
     assert read_token(Path("/nonexistent/token")) is None
     assert ALLOWED.match("sessions/live-20261121-1010/suggestions/stream")
+    assert ALLOWED.match("sessions/vb-1/barge-in")
     assert not ALLOWED.match("sessions/a/suggestions")
 
 
@@ -143,3 +144,17 @@ def test_the_transcriber_mounts_the_route_behind_its_code(
     answer = web.get("/api/assist/products",
                      headers={"X-Access-Code": CODE})
     assert answer.status_code == 502
+
+
+def test_barge_in_is_forwarded() -> None:
+    seen: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        return httpx.Response(200, json={"stopped": True})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    answer = web.post("/api/assist/sessions/vb-1/barge-in",
+                      headers={"X-Access-Code": "code"})
+    assert answer.json() == {"stopped": True}
+    assert seen == ["/sessions/vb-1/barge-in"]

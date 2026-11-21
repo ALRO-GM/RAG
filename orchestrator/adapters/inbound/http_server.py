@@ -12,6 +12,8 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   "speed"?}``: replay a transcript as a live session (``speed`` 1 is
   real time, ``null`` as fast as the services answer).
 - ``POST /sessions/{id}/stop``.
+- ``POST /sessions/{id}/barge-in``: the user spoke over the voice bot
+  (the page's voice detector); ``{"stopped": bool}``.
 - ``GET /sessions/{id}/suggestions/stream``: Server-Sent Events, one
   ``message`` per feed message (``id`` is its number; ``?after=n`` or
   the ``Last-Event-ID`` header resumes), a comment every
@@ -149,6 +151,11 @@ def create_app(
     async def stop(session_id: str) -> Dict[str, Any]:
         """Stop a session."""
         return await run_in_threadpool(sessions.stop, session_id)
+
+    @app.post("/sessions/{session_id}/barge-in")
+    async def barge_in(session_id: str) -> Dict[str, Any]:
+        """Stop the voice bot's turn and playback."""
+        return await run_in_threadpool(sessions.barge_in, session_id)
 
     @app.get("/sessions/{session_id}/suggestions/stream")
     async def stream(

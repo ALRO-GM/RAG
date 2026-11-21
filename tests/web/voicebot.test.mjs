@@ -130,3 +130,19 @@ test("turn latency adds the transcriber's lag to the orchestrator's first audio"
   assert.equal(turnLatency({ stages: { first_audio_ms: 10 } }).total, null);
   assert.equal(turnLatency(null).first, null);
 });
+
+test("push-to-talk sends silence of the same length while the button is up", async () => {
+  const sent = [];
+  globalThis.location = { protocol: "http:", host: "x" };
+  const { LiveAudio } = await import("../../transcriber/adapters/inbound/web/js/live-audio.js");
+  const audio = new LiveAudio({ id: "voz-1", code: "c", echoCancellation: true });
+  assert.equal(audio.echoCancellation, true);
+  audio.socket = { readyState: 1, bufferedAmount: 0, send: (piece) => sent.push(piece) };
+  audio.muted = true;
+  audio._send(new Uint8Array(3200).fill(7));
+  audio.muted = false;
+  audio._send(new Uint8Array(3200).fill(7));
+  assert.equal(sent.length, 2);
+  assert.ok(sent[0].every((b) => b === 0));
+  assert.ok(sent[1].every((b) => b === 7));
+});

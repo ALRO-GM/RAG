@@ -110,3 +110,19 @@ def test_refusals_carry_stable_codes() -> None:
     web.post("/sessions/b/replay", json={
         "product": "live_assist.support", "transcript": "t"})
     assert web.post("/sessions/b/stop").json()["state"] == "ended"
+
+
+def test_barge_in_route() -> None:
+    from orchestrator.adapters.outbound.fakes import FakeReasoner, FakeTts
+
+    sessions = LiveSessions(
+        {"voicebot": product("voicebot")}, FakeKnowledge(), FakeReasoner(),
+        Transcripts({"t": transcript()}), Clock(), InlineRunner(hold=True),
+        InlineExecutor, tts=FakeTts(),
+    )
+    web = TestClient(create_app(sessions, "tok", keepalive=0.01))
+    assert web.post("/sessions/x/barge-in", headers=AUTH).status_code == 404
+    web.post("/sessions/vb/replay", headers=AUTH,
+             json={"product": "voicebot", "transcript": "t"})
+    answer = web.post("/sessions/vb/barge-in", headers=AUTH)
+    assert answer.status_code == 200 and answer.json() == {"stopped": False}

@@ -8,9 +8,10 @@ dependency), and the orchestrator's bearer token is added on the way
 (the RAG token file, shared by the services of the workstation).
 
 Only the orchestrator's own routes exist here (``products``,
-``transcripts``, ``sessions``, one session, its ``replay``, ``stop``
-and ``suggestions/stream``), and session ids are checked; the stream is passed
-through as it comes (Server-Sent Events). It is an inbound adapter that
+``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
+``barge-in`` (the voice bot) and ``suggestions/stream``), and session
+ids are checked; the stream is passed through as it comes (Server-Sent
+Events, with the voice bot's audio inside). It is an inbound adapter that
 talks HTTP itself on purpose: it adds no behaviour to the transcriber,
 so there is no use case to put behind it.
 
@@ -32,7 +33,7 @@ URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
     rf"^(?:products|transcripts|sessions|sessions/{_ID}"
-    rf"|sessions/{_ID}/(?:replay|stop|suggestions/stream))$"
+    rf"|sessions/{_ID}/(?:replay|stop|barge-in|suggestions/stream))$"
 )
 MAX_BODY = 16 * 1024
 TIMEOUT = 45.0
@@ -114,6 +115,11 @@ def add_live_assist_proxy(
     async def assist_stop(session_id: str, request: Request) -> Response:
         """Stop a session."""
         return await forward(f"sessions/{session_id}/stop", request)
+
+    @api.post("/assist/sessions/{session_id}/barge-in")
+    async def assist_barge_in(session_id: str, request: Request) -> Response:
+        """The user spoke over the voice bot."""
+        return await forward(f"sessions/{session_id}/barge-in", request)
 
     @api.get("/assist/sessions/{session_id}/suggestions/stream")
     async def assist_stream(session_id: str, request: Request) -> Response:

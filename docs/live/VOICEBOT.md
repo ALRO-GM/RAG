@@ -17,6 +17,60 @@ browser mic ──WS──▶ transcriber (live session, 1 channel, VAD hang 400
 browser ◀──SSE── orchestrator feed (/api/assist/sessions/{id}/suggestions/stream)
 ```
 
+## Using it (VB-4)
+
+1. The three services run as usual (`ragputin-servicios`): the RAG
+   (knowledge `support.demo`, `POST /reason/stream`, the warm Haiku pool
+   of `conversational.voicebot@1` started with the service), the
+   orchestrator (`python -m orchestrator serve`, Piper on by default:
+   `--tts piper`, `--piper-python ~/.local/share/ragputin/tts-venv/bin/python`,
+   `--voices-dir ~/.local/share/ragputin/voices`; it warms the voice at
+   start) and the transcriber (live sessions, GPU lease).
+2. Open the transcriber's web, «Asistente de voz» (`#/voicebot`), choose
+   *Mantener pulsado para hablar* (push-to-talk: hold the button or the
+   space bar) or *Manos libres*, tick «Llevo auriculares» when wearing
+   one, and press «Empezar a hablar».
+3. The conversation shows what you said (partials dashed), the bot's
+   sentences as they are spoken (marked «interrumpido» when cut), and
+   under it the last turn's latency: end of your sentence → first voice.
+
+Piper must be installed in its own venv (GPL-3.0, never imported; see
+`experiments/skills/render_simulation.py` for the two commands). Without
+it the orchestrator prints `voice bot off` and the page says the
+assistant is not available; `--tts fake` answers with short tones (for
+trying the page without Piper), `--tts none` turns it off.
+
+### Transport
+
+The bot's audio goes to the browser over the session's existing
+Server-Sent Events stream (`/api/assist/sessions/{id}/suggestions/stream`,
+through the transcriber's proxy): one message per sentence,
+`{"type": "speech", "turn", "seq", "text", "format": "wav",
+"sample_rate": 22050, "duration_ms", "audio": <base64 WAV>}`. It is the
+simplest choice: no new socket, no new proxy route, the page already
+follows that stream, and the browser decodes a WAV with
+`decodeAudioData` and plays the sentences back to back (`SpeechQueue`).
+Base64 adds a third to the size: a second of speech is 44 KB of WAV
+(22 050 Hz, 16 bit) and about 59 KB in the stream; the time it adds is
+inside the end-to-end measure of VB-5 below.
+Other messages: `{"type": "bot", "turn", "state": "thinking"}` when a
+turn starts, `{"type": "interrupt", "turn", "by": "new_turn" | "vad" |
+"speech"}` and `{"type": "turn", "record": <TurnRecord>}` with the
+per-stage latency (`event_lag_ms`, `knowledge_ms`, `first_text_ms`,
+`first_sentence_ms`, `first_tts_ms`, `first_audio_ms`, `reasoner_ms`,
+`total_ms`). A turn's audio is removed from the feed when the next turn
+starts, so the session does not keep audio; the turn log
+(`<log-dir>/<session>.voicebot.turns.jsonl`) has text and latency only.
+
+The microphone path is the live page's (`WS /api/live/{id}/audio`,
+16 kHz PCM). Push-to-talk keeps the socket sending *silence* while the
+button is up, so the transcriber's endpointing (VAD hang 400 ms) still
+closes the sentence when the button is released. The trigger is the
+user's `final` (`config/products/voicebot.yaml`, `trigger.on: final`):
+the live transcriber emits no `turn_end`, and in a one-person session a
+final after the hang is the end of the user's turn. A newer final while
+a turn is still being prepared replaces it.
+
 ## Barge-in and echo (VB-3)
 
 The bot is *speaking* while its audio is still playing in the page. The

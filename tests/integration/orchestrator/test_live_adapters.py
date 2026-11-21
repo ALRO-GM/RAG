@@ -190,7 +190,7 @@ def test_serve_listens_on_loopback_only_and_wires_the_ports(
         "serve", "--port", "18999", "--token-file", str(token),
         "--transcriber-code-file", str(code), "--knowledge", "fake",
         "--reasoner", "fake", "--log-dir", str(tmp_path / "log"),
-        "--transcripts", str(REPO / "examples/platform"),
+        "--transcripts", str(REPO / "examples/platform"), "--tts", "none",
     ])
     assert status == 0
     assert ran == [{"host": "127.0.0.1", "port": 18999,
@@ -198,9 +198,10 @@ def test_serve_listens_on_loopback_only_and_wires_the_ports(
     args = cli.build_parser().parse_args([
         "serve", "--transcriber-code-file", str(code), "--knowledge", "fake",
         "--reasoner", "fake", "--log-dir", str(tmp_path / "log"),
-        "--transcripts", str(REPO / "examples/platform"),
+        "--transcripts", str(REPO / "examples/platform"), "--tts", "fake",
     ])
     sessions = cli.build_sessions(args)
+    assert "voicebot" in sessions.products
     assert sessions.transcriber is not None
     sessions.start_replay("d", "live_assist.support",
                           "sim-soporte-lumbre", 1.0)
@@ -230,3 +231,40 @@ def test_the_start_body_is_what_the_transcriber_accepts(
     request = LiveSessionRequest.model_validate(body)
     assert request.channels == (2 if audio == "stereo" else 1)
     assert request.product == name
+
+
+def test_the_voicebot_start_body_is_what_the_transcriber_accepts() -> None:
+    from orchestrator.application.sessions import (
+        live_speakers,
+        transcriber_body,
+    )
+    from tests.unit.orchestrator.fixtures import product
+    from transcriber.domain.live_session import LiveSessionRequest
+
+    config = product("voicebot")
+    body = transcriber_body(config, "vb-1", live_speakers(config, "mic"))
+    request = LiveSessionRequest.model_validate(body)
+    assert request.channels == 1 and request.hang_ms == 400
+
+
+def test_tts_choices(tmp_path: Path, capsys: pytest.CaptureFixture[str]
+                     ) -> None:
+    from orchestrator.adapters.inbound import cli
+    from orchestrator.adapters.outbound.piper_tts import PiperTts
+    from tests.unit.orchestrator.fixtures import product
+
+    products = {"voicebot": product("voicebot")}
+    parse = cli.build_parser().parse_args
+    args = parse(["serve", "--tts", "piper", "--piper-python",
+                  str(tmp_path / "none")])
+    assert cli.build_tts(args, products) is None
+    assert "voice bot off" in capsys.readouterr().err
+    with pytest.raises(ValueError):
+        cli.build_tts(parse(["serve", "--tts", "espeak"]), products)
+    fake_python = tmp_path / "python"
+    fake_python.write_text("", encoding="utf-8")
+    args = parse(["serve", "--piper-python", str(fake_python),
+                  "--voices-dir", str(tmp_path)])
+    tts = cli.build_tts(args, products)
+    assert isinstance(tts, PiperTts)
+    tts.close()

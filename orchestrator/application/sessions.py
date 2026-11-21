@@ -16,12 +16,23 @@ its per-stage latency) and ``{"type": "status"}`` when the session
 ends or fails. One session runs at a time (the transcriber runs one
 live session at a time as well); ended ones are kept, newest first, up
 to ``keep``.
+
+A session of the ``voicebot`` product (``ui.kind: speaker``) is fed to
+a :class:`~orchestrator.application.voicebot.VoiceBot` instead: its
+feed carries ``{"type": "bot"}`` (a turn started), ``{"type":
+"speech"}`` (one sentence: text and base64 WAV), ``{"type":
+"interrupt"}`` and ``{"type": "turn", "record": ...}`` (the turn's
+record and latency), and :meth:`LiveSessions.barge_in` stops it. The
+audio of a turn is dropped from the feed once a newer turn starts, so
+the feed does not keep a session's audio.
 """
 
 import re
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import (
+    Any, Callable, Dict, List, Mapping, Optional, Protocol, Union,
+)
 
 from orchestrator.application.feed import Feed
 from orchestrator.application.live_assist import LiveAssist
@@ -36,24 +47,43 @@ from orchestrator.application.ports import (
     ReasonerPort,
     Runner,
     SuggestionSink,
+    TextToSpeech,
     TranscriberUnavailable,
     TranscriptStore,
+    TurnSink,
 )
 from orchestrator.application.replay import (
     Replay,
     default_roles,
     transcript_to_events,
 )
+from orchestrator.application.voicebot import VoiceBot
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import LiveEvent
-from orchestrator.domain.records import SuggestionRecord
+from orchestrator.domain.records import SuggestionRecord, TurnRecord
 
 AUDIO_KINDS = ("stereo", "mic")
 """``stereo``: one channel per person (agent/interviewer on 0, the other
 on 1, as the product says); ``mic``: the browser's microphone, one
 channel heard as the person the product suggests about."""
 MIN_SPEED, MAX_SPEED = 0.25, 20.0
+UI_KINDS = ("live_page", "speaker")
+"""The products served here: the live page's and the voice bot's."""
 SESSION_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$"
+
+
+class _Assistant(Protocol):
+    """What follows a session's events (live assist or the voice bot)."""
+
+    skips: Dict[str, int]
+
+    def on_event(self, event: LiveEvent) -> None:
+        """Handle one event."""
+        ...
+
+    def finish(self) -> None:
+        """Wait for the call in flight."""
+        ...
 
 
 class SessionError(Exception):
@@ -81,7 +111,7 @@ class _Session:
     error: Optional[str] = None
     events: int = 0
     rejected: int = 0
-    assist: Optional[LiveAssist] = None
+    assist: Optional[_Assistant] = None
     sinks: List[SuggestionSink] = field(default_factory=list)
     by_status: Dict[str, int] = field(default_factory=dict)
 
@@ -105,7 +135,7 @@ class _Session:
 class _Handler:
     """Sends a session's events to the feed and to the use case."""
 
-    def __init__(self, session: _Session, assist: LiveAssist):
+    def __init__(self, session: _Session, assist: _Assistant):
         """Keep the session."""
         self.session = session
         self.assist = assist
@@ -142,12 +172,44 @@ class _FeedSink:
             self.log.write(record)
 
 
+class _BotFeed:
+    """The voice bot's output: the feed, the counts and the turn log."""
+
+    def __init__(self, session: _Session, log: Optional[TurnSink]):
+        """Keep where the messages go."""
+        self.session = session
+        self.log = log
+        self._audio: Dict[int, List[int]] = {}
+
+    def publish(self, message: Document) -> None:
+        """Publish ``message``; drop older turns' audio from the feed."""
+        feed = self.session.feed
+        if message.get("type") == "bot":
+            turn = int(message.get("turn", 0))
+            for old in [t for t in self._audio if t < turn]:
+                feed.strip(self._audio.pop(old), "audio")
+        number = feed.publish(message)
+        if message.get("type") == "speech" and message.get("audio"):
+            self._audio.setdefault(int(message["turn"]), []).append(number)
+
+    def record(self, record: TurnRecord) -> None:
+        """Count, publish and log one turn's record."""
+        counts = self.session.by_status
+        counts[record.status] = counts.get(record.status, 0) + 1
+        self.session.feed.publish({
+            "type": "turn", "record": record.model_dump(mode="json"),
+        })
+        if self.log is not None:
+            self.log.write(record)
+
+
 def page_info(config: ProductConfig, roles: Mapping[str, str]) -> Document:
     """What the live page needs to know about a product."""
     reasoner = config.reasoner
     trigger = config.trigger
     return {
         "product": config.product, "language": config.language,
+        "kind": config.ui.kind if config.ui else None,
         "banner": config.privacy.banner,
         "signals": bool(reasoner and reasoner.expressed_signals),
         "script_phases": list(config.ui.script_phases) if config.ui else [],
@@ -176,6 +238,9 @@ class LiveSessions:
         events: The transcriber's event stream (``None``: replay only).
         log: Makes the log sink of a session (``session id``,
             ``product``), or ``None`` for no log.
+        tts: Text to speech of the voice bot (``None``: no voice bot).
+        turn_log: Makes the turn log of a voice-bot session (``session
+            id``, ``product``), or ``None`` for no log.
         new_id: Makes an id for a live session started without one.
         keep: Ended sessions kept.
     """
@@ -194,13 +259,18 @@ class LiveSessions:
         log: Optional[Callable[[str, str], SuggestionSink]] = None,
         new_id: Callable[[], str] = lambda: "live",
         keep: int = 20,
+        tts: Optional[TextToSpeech] = None,
+        turn_log: Optional[Callable[[str, str], TurnSink]] = None,
     ):
         """Wire the ports; no session yet."""
         self.products = {
             name: config for name, config in products.items()
             if config.is_live and config.ui is not None
-            and config.ui.kind == "live_page"
+            and config.ui.kind in UI_KINDS
+            and (config.tts is None or tts is not None)
         }
+        self.tts = tts
+        self.turn_log = turn_log
         self.knowledge = knowledge
         self.reasoner = reasoner
         self.transcripts = transcripts
@@ -343,6 +413,15 @@ class LiveSessions:
         self.runner.start(job)
         return session.view()
 
+    def barge_in(self, session_id: str, by: str = "vad") -> Document:
+        """The user spoke over the voice bot: stop its turn and playback."""
+        session = self._find(session_id)
+        bot = session.assist
+        if not isinstance(bot, VoiceBot):
+            raise SessionError("wrong_state", "not a voice-bot session")
+        stopped = session.state == "running" and bot.barge_in(by)
+        return {"stopped": stopped}
+
     def stop(self, session_id: str) -> Document:
         """Stop a session (a live one on the transcriber too)."""
         session = self._find(session_id)
@@ -404,8 +483,18 @@ class LiveSessions:
 
     def _assist(
         self, session: _Session, about: Dict[str, Optional[str]]
-    ) -> LiveAssist:
+    ) -> Union[LiveAssist, VoiceBot]:
         """Build the use case of one session."""
+        if session.product.tts is not None and self.tts is not None:
+            turns = (self.turn_log(session.id, session.product.product)
+                     if self.turn_log is not None else None)
+            bot = VoiceBot(
+                session.product, self.knowledge, self.reasoner, self.tts,
+                _BotFeed(session, turns), self.clock, self.executor(),
+                session.roles,
+            )
+            session.assist = bot
+            return bot
         log = (self.log(session.id, session.product.product)
                if self.log is not None else None)
         assist = LiveAssist(

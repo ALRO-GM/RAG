@@ -136,6 +136,14 @@ class BotOutput(Protocol):
         ...
 
 
+class TurnSink(Protocol):
+    """Where the voice bot's turn records are logged (a JSONL file)."""
+
+    def write(self, record: TurnRecord) -> None:
+        """Store one record."""
+        ...
+
+
 class EventHandler(Protocol):
     """What receives a conversation's events one by one."""
 

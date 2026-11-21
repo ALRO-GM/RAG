@@ -33,6 +33,7 @@ python -m orchestrator serve [--host 127.0.0.1] [--port 8772] [--token-file F] \
 | `POST /sessions/{id}/replay` | `{"product", "transcript", "speed"?}` | 201 session; replays a transcript (speed 1 real time, `null` as fast as the services answer) |
 | `POST /sessions/{id}/stop` | | the session (live: also stops it on the transcriber) |
 | `GET /sessions`, `GET /sessions/{id}` | | state, counts of calls by status, skipped triggers, rejected events |
+| `POST /sessions/{id}/barge-in` | | voice bot only: the user spoke over the bot; `{"stopped": bool}` |
 | `GET /sessions/{id}/suggestions/stream` | `?after=n` or `Last-Event-ID` | Server-Sent Events (below) |
 
 Errors are `{"code", "message"}`: `not_found` 404, `busy`/`wrong_state` 409 (one session at a time), `invalid_request` 422, `transcriber` 502, `unavailable` 503 (no access code, so live sessions are off; replays still work).
@@ -46,6 +47,8 @@ The stream (`application/feed.py`, `application/sessions.py`) sends one `message
 - `{"type": "status", "session": {...}}` at the end (`ended` or `failed`).
 
 Expressed customer signals (LV-14, `domain/signals.py`, `ARCHITECTURE.md` §8.1): in `live_assist.support` each suggestion's `signals` are kept only when one of its `about` utterances is a customer sentence; they become `expressed: [{signal, utterance, quote}]`, shown on the page as "El cliente dice: «…»". Suggestions are ranked by signal weight (churn_risk 5, complaint 4, stated_frustration 3, urgency 3, confusion 2, satisfaction 0; ×1.5 for each earlier time the same signal was expressed in the session, so a repeated complaint pushes escalation up). In every other product `signals` and `expressed` are removed before the record is shown or logged, and the page also refuses to draw them outside support. Text only: no voice or emotion model. Measured on 60 synthetic snippets: `docs/live/LIVE_MEASURES.md` §3 (`stated_frustration` is never produced, the others are precise when shown).
+
+The `voicebot` product (`ui.kind: speaker`) is served too when a voice is configured (`--tts piper|fake`); its sessions feed a `VoiceBot` (`application/voicebot.py`) and the stream carries `bot`, `speech` (base64 WAV per sentence), `interrupt` and `turn` messages instead of suggestions: `docs/live/VOICEBOT.md`.
 
 Every record is also written to `--log-dir/<session>.<product>.suggestions.jsonl`. A quota or auth answer stops the session's calls (skip reason `halted`) and the page shows a banner. Mic sessions are one channel heard as the person the product suggests about (customer, candidate); stereo sessions use the product's two channels. The transcriber side (start, stop, the events socket, the audio socket) is `docs/live/LIVE_SESSION.md`.
 
