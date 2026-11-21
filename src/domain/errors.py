@@ -17,6 +17,14 @@ class InvalidInputError(RagError):
     """A user-supplied value is invalid (empty query, k <= 0, ...)."""
 
 
+class UnsupportedDocumentError(InvalidInputError):
+    """An uploaded file is not of a supported type (by its content)."""
+
+
+class TooLargeError(InvalidInputError):
+    """An upload is larger than allowed."""
+
+
 class NotFoundError(RagError):
     """A required file, directory or index does not exist."""
 

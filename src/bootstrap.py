@@ -4,7 +4,10 @@ Swapping an implementation (another LLM, another vector store, another
 corpus type) means changing a line here, not the use cases.
 """
 
+import shutil
+from datetime import datetime, timezone
 from functools import cached_property, partial
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from src.adapters.outbound.beir_repository import BeirRepository
@@ -17,9 +20,16 @@ from src.adapters.outbound.coir_repository import (
 from src.adapters.outbound.cross_encoder_reranker import (
     CrossEncoderReranker,
 )
-from src.adapters.outbound.fs_corpus import FileSystemCorpus
+from src.adapters.outbound.fs_corpus import FileSystemCorpus, MultiRootCorpus
+from src.adapters.outbound.document_extractors import DocumentExtractors
+from src.adapters.outbound.fs_document_store import FileSystemDocumentStore
+from src.adapters.outbound.fs_domain_catalogue import (
+    FileSystemDomainCatalogue,
+)
 from src.adapters.outbound.fs_index_repository import (
     FileSystemIndexRepository,
+    InMemoryIndexCopyRepository,
+    index_state,
 )
 from src.adapters.outbound.fs_source_reader import FileSystemSourceReader
 from src.adapters.outbound.fs_transcript_store import (
@@ -28,6 +38,7 @@ from src.adapters.outbound.fs_transcript_store import (
 from src.adapters.outbound.json_dataset_repository import (
     JsonDatasetRepository,
 )
+from src.adapters.outbound.knowledge_processor import KnowledgeProcessor
 from src.adapters.outbound.json_router_repository import (
     JsonRouterRepository,
 )
@@ -41,6 +52,7 @@ from src.adapters.outbound.parallel_processor import (
 from src.adapters.outbound.sqlite_cache import SqliteCache
 from src.adapters.outbound.subprocess_benchmark import SubprocessBenchmark
 from src.adapters.outbound.system_probe import SystemProbe
+from src.adapters.outbound.thread_job_queue import ThreadJobQueue
 from src.adapters.outbound.torch_runtime import (
     load_measured,
     precision_tag,
@@ -55,6 +67,10 @@ from src.application.benchmarking import BenchmarkService
 from src.application.datasets import DatasetService
 from src.application.experiments import ExperimentService
 from src.application.indexing import IndexingService
+from src.application.knowledge.ports import IndexState
+from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.query import KnowledgeQueryService
+from src.application.knowledge.registry import DomainIndexRegistry
 from src.application.ports import Analyzer, Cache, Embedder, Reranker
 from src.application.runtime_tuning import RuntimeTuner
 from src.application.search import SearchService
@@ -64,14 +80,21 @@ from src.application.skills.ingest import (
     ShowIngestedTranscript,
 )
 from src.application.tuning import RouterTrainer, Tuner
-from src.config import INDEX_FIELDS, Settings
+from src.config import INDEX_FIELDS, KnowledgeSettings, Settings
 from src.domain.chunking import default_registry
 from src.domain.errors import InvalidInputError, short_reason
 from src.domain.experiments import params_id
+from src.domain.knowledge.domains import DomainManifest, check_domain_id
+from src.domain.knowledge.sources import SOURCE_EXTENSIONS, knowledge_terms
 from src.domain.models import IndexReport, ScoredChunk
 from src.domain.priors import RouterModel
 from src.domain.runtime import HardwareProfile, RuntimePlan, plan_runtime
 from src.domain.text_analysis import tokenize
+
+
+def utc_now() -> str:
+    """Return the current UTC time as ISO 8601 text (seconds)."""
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def resolve_runtime(
@@ -106,13 +129,16 @@ class Container:
         settings: Settings,
         embedder: Optional[Embedder] = None,
         reranker: Optional[Reranker] = None,
+        knowledge: Optional[KnowledgeSettings] = None,
     ):
         """Wire services according to ``settings``.
 
         ``embedder`` and ``reranker`` let a caller share already loaded
         models between containers (the experiment lab does).
+        ``knowledge`` configures the knowledge domains.
         """
         self.settings = settings
+        self.knowledge_settings = knowledge or KnowledgeSettings()
         self._shared_embedder = embedder
         self._shared_reranker = reranker
 
@@ -358,6 +384,173 @@ class Container:
             JsonDatasetRepository(),
             JsonRouterRepository(self.settings.router_path),
         )
+
+    def _knowledge_model(self) -> Embedder:
+        """Return a new (lazily loaded) knowledge embedding model."""
+        k = self.knowledge_settings
+        return SentenceTransformerEmbedder(
+            k.embedding_model, max_seq_length=k.embedding_max_tokens,
+            plan=self.runtime,
+        )
+
+    @cached_property
+    def knowledge_embedder(self) -> Embedder:
+        """Embedding model of knowledge queries (loaded on first use)."""
+        return self._knowledge_model()
+
+    @cached_property
+    def knowledge_index_embedder(self) -> Embedder:
+        """A second copy for indexing, used by the background worker.
+
+        A tokenizer used by two threads at once can fail ("Already
+        borrowed"), and sharing one lock would make queries wait for a
+        whole document's embedding; two copies avoid both.
+        """
+        return self._knowledge_model()
+
+    @cached_property
+    def knowledge_catalogue(self) -> FileSystemDomainCatalogue:
+        """The domains' manifests."""
+        k = self.knowledge_settings
+        return FileSystemDomainCatalogue(k.domains_dir, k.data_dir)
+
+    @cached_property
+    def knowledge_indexes(self) -> "KnowledgeIndexFactory":
+        """Per-domain indexing and search services."""
+        return KnowledgeIndexFactory(
+            self.knowledge_settings, self.settings, self.knowledge_embedder,
+            self.knowledge_index_embedder,
+        )
+
+    @cached_property
+    def knowledge_registry(self) -> DomainIndexRegistry:
+        """Registry of the knowledge-domain indexes (PL-6)."""
+        return DomainIndexRegistry(
+            self.knowledge_catalogue, self.knowledge_indexes,
+            self.knowledge_settings.max_chunk_size,
+            extra_documents=lambda d: (
+                self.knowledge_library.pending_documents(d)
+            ),
+        )
+
+    @cached_property
+    def knowledge_library(self) -> KnowledgeLibrary:
+        """Domains and their uploaded documents (one background worker)."""
+        k = self.knowledge_settings
+        return KnowledgeLibrary(
+            self.knowledge_registry,
+            FileSystemDocumentStore(k.data_dir),
+            DocumentExtractors(),
+            ThreadJobQueue(),
+            k.max_upload_bytes,
+            utc_now,
+        )
+
+    @cached_property
+    def knowledge_query(self) -> KnowledgeQueryService:
+        """Answer ``knowledge.query.v1`` (PL-8)."""
+        return KnowledgeQueryService(self.knowledge_registry)
+
+
+class KnowledgeIndexFactory:
+    """Build each knowledge domain's indexing and search services.
+
+    A domain ``d`` reads ``<domains_dir>/d`` (authored files) and
+    ``<data_dir>/d/extracted`` (text of its uploads) and keeps its index
+    in ``<index_dir>/d``. Retrieval uses the fusion settings of
+    ``base`` without the 42-specific priors (routing, test files, file
+    boost) and without the query cache.
+    """
+
+    def __init__(
+        self,
+        settings: KnowledgeSettings,
+        base: Settings,
+        embedder: Embedder,
+        index_embedder: Optional[Embedder] = None,
+    ) -> None:
+        """Keep the settings and the embedders.
+
+        ``embedder`` encodes queries; ``index_embedder`` (default: the
+        same) encodes chunks. Both must be the same model.
+        """
+        self.settings = settings
+        self.base = base
+        self.embedder = embedder
+        self.index_embedder = index_embedder or embedder
+
+    def index_dir(self, domain_id: str) -> Path:
+        """Return the folder of a domain's index."""
+        return Path(self.settings.index_dir) / check_domain_id(domain_id)
+
+    def roots(self, domain_id: str) -> List[str]:
+        """Return the folders holding a domain's sources."""
+        k = self.settings
+        check_domain_id(domain_id)
+        return [
+            f"{k.domains_dir}/{domain_id}",
+            f"{k.data_dir}/{domain_id}/extracted",
+        ]
+
+    def indexer(self, manifest: DomainManifest) -> IndexingService:
+        """Return the indexing service of a domain."""
+        k, b = self.settings, self.base
+        return IndexingService(
+            corpus=MultiRootCorpus(self.roots(manifest.id), SOURCE_EXTENSIONS),
+            processor=KnowledgeProcessor(
+                manifest, k.path_weight, k.context_weight
+            ),
+            lexical_builder=BM25Builder(b.bm25_k1, b.bm25_b),
+            repository=FileSystemIndexRepository(
+                str(self.index_dir(manifest.id))
+            ),
+            embedder=self.index_embedder,
+            embed_style=k.embed_style,
+            extra_params={
+                "kind": "knowledge-domain",
+                "bm25_k1": b.bm25_k1, "bm25_b": b.bm25_b,
+                "path_weight": k.path_weight,
+                "context_weight": k.context_weight,
+                "embedding_max_tokens": k.embedding_max_tokens,
+            },
+        )
+
+    def searcher(self, manifest: DomainManifest, mode: str) -> SearchService:
+        """Return a search service of a domain in ``mode``."""
+        b = self.base
+        return SearchService(
+            repository=InMemoryIndexCopyRepository(
+                str(self.index_dir(manifest.id))
+            ),
+            analyzer=knowledge_terms,
+            embedder=self.embedder,
+            mode=mode,
+            semantic_weight=b.semantic_weight,
+            fusion=b.fusion,
+            identifier_weight=b.identifier_weight,
+            identifier_saturation=b.identifier_saturation,
+        )
+
+    def state(self, domain_id: str) -> Optional[IndexState]:
+        """Return the state of a domain's index, if built."""
+        found = index_state(self.index_dir(domain_id))
+        if found is None:
+            return None
+        manifest, built_at = found
+        return IndexState(
+            manifest.fingerprint, manifest.n_chunks, manifest.n_files,
+            built_at,
+        )
+
+    def sources(self, domain_id: str) -> List[str]:
+        """Return a domain's indexable files."""
+        return MultiRootCorpus(
+            self.roots(domain_id), SOURCE_EXTENSIONS
+        ).list_files()
+
+    def drop(self, domain_id: str) -> None:
+        """Delete a domain's index folder."""
+        shutil.rmtree(self.index_dir(domain_id), ignore_errors=True)
 
 
 class LabPipeline:

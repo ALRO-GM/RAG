@@ -164,6 +164,34 @@ INDEX_FIELDS = (
 """Settings that change the index; the others only change the search."""
 
 
+DEFAULT_KNOWLEDGE_EMBEDDING_MODEL = (
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+MiB = 1024 * 1024
+
+
+class KnowledgeSettings(BaseModel):
+    """Configuration of the knowledge domains (``docs/KNOWLEDGE.md``).
+
+    Domains are company documents, often in Spanish, so they use the
+    multilingual MiniLM the soft-skills analysis already uses, a
+    longer embedding window and smaller chunks than the 42 corpus
+    (choices, not tuned: no domain has a labelled test set yet). The
+    42 corpus settings (:class:`Settings`) are not affected.
+    """
+
+    domains_dir: str = "knowledge/domains"
+    data_dir: str = "data/knowledge"
+    index_dir: str = "data/processed/domains"
+    embedding_model: str = DEFAULT_KNOWLEDGE_EMBEDDING_MODEL
+    embedding_max_tokens: int = Field(default=128, ge=8)
+    embed_style: Literal["full", "body"] = "body"
+    max_chunk_size: int = Field(default=1000, ge=100, le=2000)
+    path_weight: int = Field(default=1, ge=0)
+    context_weight: int = Field(default=3, ge=0)
+    max_upload_bytes: int = Field(default=50 * MiB, ge=1)
+
+
 DEFAULT_SKILLS_EMBEDDING_MODEL = (
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )

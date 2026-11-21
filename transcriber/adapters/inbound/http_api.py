@@ -60,6 +60,10 @@ from transcriber.adapters.inbound.playback import (
     parse_range,
 )
 from transcriber.application.analysis import MAX_JOB
+from transcriber.application.knowledge import (
+    JSON_BODY_BYTES,
+    UPLOAD_BODY_BYTES,
+)
 from transcriber.application.ports import (
     PCM_FORMAT,
     JobStatus,
@@ -78,10 +82,13 @@ from transcriber.domain.errors import (
     LimitReachedError,
     ModelLoadError,
     NotFoundError,
+    RagUnavailableError,
     SampleRejectedError,
     StateError,
     StorageError,
+    TooLargeError,
     TranscriberError,
+    UnsupportedMediaError,
     VoiceModelMismatchError,
 )
 from transcriber.domain.models import Session, Transcript
@@ -93,12 +100,15 @@ ERROR_CODES: Tuple[Tuple[Type[TranscriberError], int, str], ...] = (
     (ConsentRequiredError, 400, "consent_required"),
     (SampleRejectedError, 422, "sample_rejected"),
     (VoiceModelMismatchError, 409, "voice_model_mismatch"),
+    (TooLargeError, 413, "payload_too_large"),
+    (UnsupportedMediaError, 415, "unsupported_media_type"),
     (InvalidInputError, 400, "invalid_input"),
     (NotFoundError, 404, "not_found"),
     (BusyError, 409, "busy"),
     (StateError, 409, "wrong_state"),
     (ModelLoadError, 503, "model_unavailable"),
     (AnalysisUnavailableError, 503, "analysis_unavailable"),
+    (RagUnavailableError, 503, "rag_unavailable"),
     (LimitReachedError, 429, "limit_reached"),
     (StorageError, 500, "storage_error"),
     (ContractError, 500, "contract_error"),
@@ -820,6 +830,8 @@ def create_app(
             },
         )
 
+    mount_knowledge(api, c)
+
     @api.get("/speakers")
     async def speakers() -> Dict[str, Any]:
         """List the people enrolled with the voice model in use."""
@@ -920,3 +932,70 @@ def create_app(
             name="pages",
         )
     return app
+
+
+def mount_knowledge(api: APIRouter, c: TranscriberContainer) -> None:
+    """Add ``/api/knowledge/...``: the RAG's knowledge routes, forwarded.
+
+    Same paths, bodies and statuses as the RAG's ``/knowledge/...``
+    (``docs/KNOWLEDGE.md``); the access code guards them here and the
+    RAG's bearer token is added on the way.
+    """
+    k = c.knowledge
+
+    @api.get("/knowledge/domains")
+    async def knowledge_domains() -> Any:
+        """List the knowledge domains."""
+        return await run_in_threadpool(k.domains)
+
+    @api.post("/knowledge/domains", status_code=201)
+    async def create_knowledge_domain(request: Request) -> Any:
+        """Create a domain (``{"id", "title", "language"}``)."""
+        body = await read_body(request, JSON_BODY_BYTES)
+        return await run_in_threadpool(k.create_domain, body)
+
+    @api.delete("/knowledge/domains/{domain_id}", status_code=204)
+    async def delete_knowledge_domain(domain_id: str) -> Response:
+        """Delete a domain with its documents and index."""
+        await run_in_threadpool(k.delete_domain, domain_id)
+        return Response(status_code=204)
+
+    @api.get("/knowledge/domains/{domain_id}/documents")
+    async def knowledge_documents(domain_id: str) -> Any:
+        """List a domain's documents and their status."""
+        return await run_in_threadpool(k.documents, domain_id)
+
+    @api.post("/knowledge/domains/{domain_id}/documents", status_code=202)
+    async def upload_knowledge_document(
+        domain_id: str, request: Request
+    ) -> Any:
+        """Upload a file (multipart ``file`` + optional ``metadata``)."""
+        body = await read_body(request, UPLOAD_BODY_BYTES)
+        return await run_in_threadpool(
+            k.upload, domain_id, body,
+            request.headers.get("content-type", ""),
+        )
+
+    @api.patch("/knowledge/domains/{domain_id}/documents/{doc_id}")
+    async def relabel_knowledge_document(
+        domain_id: str, doc_id: str, request: Request
+    ) -> Any:
+        """Replace a document's metadata (``{"metadata": {...}}``)."""
+        body = await read_body(request, JSON_BODY_BYTES)
+        return await run_in_threadpool(k.relabel, domain_id, doc_id, body)
+
+    @api.delete(
+        "/knowledge/domains/{domain_id}/documents/{doc_id}", status_code=204
+    )
+    async def delete_knowledge_document(
+        domain_id: str, doc_id: str
+    ) -> Response:
+        """Delete a document."""
+        await run_in_threadpool(k.delete_document, domain_id, doc_id)
+        return Response(status_code=204)
+
+    @api.post("/knowledge/query")
+    async def knowledge_query(request: Request) -> Any:
+        """Answer a ``knowledge.query.v1`` (forwarded)."""
+        body = await read_body(request, JSON_BODY_BYTES)
+        return await run_in_threadpool(k.query, body)

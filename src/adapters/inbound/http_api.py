@@ -11,9 +11,13 @@ is available;
 the transcriber's web forwards them. ``/analysis/sessions/{id}`` starts
 the whole analysis of an ingested session (``skills analyze``, in a
 child process), ``DELETE …/run`` stops it, and the others serve its
-step records, step results and person reports. These routes need a
-bearer token, compared in constant time; when no token is configured
-they are not mounted at all, so they are never open.
+step records, step results and person reports. ``POST /knowledge/query``
+answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8);
+``/knowledge/domains`` lists, creates and deletes domains and uploads,
+relabels and deletes their documents (``docs/KNOWLEDGE.md``).
+These routes need a bearer token, compared in constant time; when no
+token is configured they are not mounted at all, so they are never
+open.
 """
 
 import hmac
@@ -22,11 +26,14 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from starlette.datastructures import UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
+from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.query import KnowledgeQueryService
 from src.application.search import SearchService
 from src.application.skills.judges import JudgeSelection
 from src.application.skills.session_analysis import AnalysisRequests
@@ -41,7 +48,13 @@ from src.domain.errors import (
     LimitError,
     NotFoundError,
     RagError,
+    TooLargeError,
+    UnsupportedDocumentError,
+    short_reason,
 )
+from src.domain.knowledge.contract import KnowledgeQuery
+from src.domain.knowledge.documents import DocumentMetadata
+from src.domain.knowledge.domains import DomainManifest
 from src.domain.models import MinimalAnswer, MinimalSource
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.skills.synthesis import MAX_JOB, JobSought
@@ -50,6 +63,12 @@ TRANSCRIPT_MAX_BYTES = 8 * 1024 * 1024
 """Largest ``transcript.v1`` body accepted (text only; hours of speech)."""
 TRANSCRIPT_NOT_FOUND = "transcript_not_found"
 """``code`` of ``DELETE /transcripts/{id}``'s ``404``: no copy to delete."""
+KNOWLEDGE_QUERY_MAX_BYTES = 64 * 1024
+"""Largest ``knowledge.query.v1`` body (text is at most 4000 characters)."""
+KNOWLEDGE_JSON_MAX_BYTES = 64 * 1024
+"""Largest JSON body of the domain and document routes."""
+MULTIPART_OVERHEAD = 1024 * 1024
+"""Room for the multipart envelope and the metadata field of an upload."""
 
 
 class SearchRequest(BaseModel):
@@ -132,6 +151,36 @@ def http_error(exc: RagError) -> HTTPException:
     return HTTPException(status_code=500, detail=str(exc))
 
 
+class NewDomain(BaseModel):
+    """Body of ``POST /knowledge/domains``."""
+
+    model_config = {"extra": "forbid"}
+
+    id: str
+    title: str = Field(min_length=1, max_length=200)
+    language: str = Field(default="es", min_length=2, max_length=16)
+
+
+class DocumentChange(BaseModel):
+    """Body of ``PATCH …/documents/{doc}``: the new metadata (replaces)."""
+
+    model_config = {"extra": "forbid"}
+
+    metadata: DocumentMetadata
+
+
+@dataclass(frozen=True)
+class KnowledgeRoutes:
+    """What the knowledge routes need.
+
+    ``query`` answers ``POST /knowledge/query``; ``library`` (optional)
+    adds the domain and document routes.
+    """
+
+    query: KnowledgeQueryService
+    library: Optional[KnowledgeLibrary] = None
+
+
 @dataclass(frozen=True)
 class TranscriptRoutes:
     """What the transcript routes need: the use cases and the token.
@@ -140,7 +189,8 @@ class TranscriptRoutes:
     leaves the routes unmounted. ``max_bytes`` bounds a request body.
     ``forget`` adds ``DELETE /transcripts/{id}`` when given, ``judge``
     the ``/analysis/judge`` routes, ``analysis`` the
-    ``/analysis/sessions`` ones.
+    ``/analysis/sessions`` ones and ``knowledge`` the ``/knowledge``
+    ones.
     """
 
     ingest: IngestTranscript
@@ -150,6 +200,7 @@ class TranscriptRoutes:
     forget: Optional[ForgetIngestedTranscript] = None
     judge: Optional[JudgeSelection] = None
     analysis: Optional[AnalysisRequests] = None
+    knowledge: Optional[KnowledgeRoutes] = None
 
 
 def create_app(
@@ -281,6 +332,8 @@ def mount_transcripts(app: FastAPI, routes: TranscriptRoutes) -> None:
         mount_judge(app, routes.judge, guard)
     if routes.analysis is not None:
         mount_analysis(app, routes.analysis, guard)
+    if routes.knowledge is not None:
+        mount_knowledge(app, routes.knowledge, guard)
 
     @app.post("/transcripts", dependencies=guard)
     async def put_transcript(request: Request) -> JSONResponse:
@@ -470,3 +523,183 @@ def mount_analysis(
                 ),
             },
         )
+
+
+def mount_knowledge(
+    app: FastAPI, routes: KnowledgeRoutes, guard: List[Any]
+) -> None:
+    """Add the ``/knowledge`` routes behind ``guard``."""
+
+    @app.post("/knowledge/query", dependencies=guard)
+    async def knowledge_query(request: Request) -> JSONResponse:
+        """Answer a ``knowledge.query.v1`` with a ``knowledge.result.v1``.
+
+        ``422`` when the body breaks the contract, ``404`` for an
+        unknown domain or one without an index yet.
+        """
+        body = await read_body(request, KNOWLEDGE_QUERY_MAX_BYTES)
+        try:
+            query = KnowledgeQuery.model_validate_json(body)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=short_reason(exc))
+        try:
+            result = await run_in_threadpool(routes.query.run, query)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(result.model_dump(mode="json", by_alias=True))
+
+    if routes.library is not None:
+        mount_library(app, routes.library, guard)
+
+
+def knowledge_error(exc: RagError) -> HTTPException:
+    """Map a knowledge error: 404, 409, 413, 415, 422 or 500."""
+    for kind, status in (
+        (UnsupportedDocumentError, 415), (TooLargeError, 413),
+        (InvalidInputError, 422), (NotFoundError, 404), (BusyError, 409),
+    ):
+        if isinstance(exc, kind):
+            return HTTPException(status_code=status, detail=str(exc))
+    return HTTPException(status_code=500, detail=str(exc))
+
+
+async def read_model(request: Request, model: Any) -> Any:
+    """Read a small JSON body as ``model`` (422 when it does not fit)."""
+    body = await read_body(request, KNOWLEDGE_JSON_MAX_BYTES)
+    try:
+        return model.model_validate_json(body or b"{}")
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=short_reason(exc))
+
+
+async def read_upload(
+    request: Request, limit: int
+) -> tuple[str, bytes, DocumentMetadata]:
+    """Read ``file`` and the optional ``metadata`` (JSON) of a multipart.
+
+    ``413`` beyond ``limit`` bytes of file, ``422`` without a file or
+    with metadata that is not valid.
+    """
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > limit + MULTIPART_OVERHEAD:
+        raise HTTPException(status_code=413, detail=(
+            f"El archivo supera {limit} bytes. / The file is larger than "
+            f"{limit} bytes."
+        ))
+    if not request.headers.get("content-type", "").startswith(
+        "multipart/form-data"
+    ):
+        raise HTTPException(status_code=422,
+                            detail="Send multipart/form-data.")
+    try:
+        form = await request.form(
+            max_files=1, max_fields=4, max_part_size=KNOWLEDGE_JSON_MAX_BYTES
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # malformed multipart
+        raise HTTPException(status_code=422,
+                            detail=f"Invalid multipart body ({exc}).")
+    try:
+        upload = form.get("file")
+        if not isinstance(upload, UploadFile):
+            raise HTTPException(status_code=422,
+                                detail="The field 'file' is missing.")
+        data = await upload.read(limit + 1)
+        if len(data) > limit:
+            raise HTTPException(status_code=413, detail=(
+                f"El archivo supera {limit} bytes. / The file is larger "
+                f"than {limit} bytes."
+            ))
+        raw = form.get("metadata")
+        if raw is not None and not isinstance(raw, str):
+            raise HTTPException(status_code=422,
+                                detail="'metadata' must be JSON text.")
+        try:
+            metadata = DocumentMetadata.model_validate_json(raw or "{}")
+        except ValidationError as exc:
+            raise HTTPException(status_code=422,
+                                detail=f"metadata: {short_reason(exc)}")
+        return upload.filename or "", data, metadata
+    finally:
+        await form.close()
+
+
+def mount_library(
+    app: FastAPI, library: KnowledgeLibrary, guard: List[Any]
+) -> None:
+    """Add the ``/knowledge/domains`` routes behind ``guard``."""
+
+    async def call(func: Any, *args: Any) -> Any:
+        """Run a use case in the thread pool, mapping its errors."""
+        try:
+            return await run_in_threadpool(func, *args)
+        except RagError as exc:
+            raise knowledge_error(exc)
+
+    @app.get("/knowledge/domains", dependencies=guard)
+    async def list_domains() -> List[Dict[str, Any]]:
+        """Return every domain: documents, chunks, index version."""
+        rows = await call(library.domains)
+        return [r.model_dump(mode="json") for r in rows]
+
+    @app.post("/knowledge/domains", dependencies=guard, status_code=201)
+    async def create_domain(request: Request) -> Dict[str, Any]:
+        """Create an empty domain (409 if the id is taken)."""
+        body = await read_model(request, NewDomain)
+        try:
+            manifest = DomainManifest(
+                id=body.id, title=body.title, language=body.language
+            )
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=short_reason(exc))
+        row = await call(library.create_domain, manifest)
+        return dict(row.model_dump(mode="json"))
+
+    @app.delete("/knowledge/domains/{domain_id}", dependencies=guard,
+                status_code=204)
+    async def delete_domain(domain_id: str) -> Response:
+        """Delete a created domain with its uploads and index."""
+        await call(library.delete_domain, domain_id)
+        return Response(status_code=204)
+
+    @app.get("/knowledge/domains/{domain_id}/documents", dependencies=guard)
+    async def list_documents(domain_id: str) -> List[Dict[str, Any]]:
+        """Return the domain's documents and their status."""
+        documents = await call(library.documents, domain_id)
+        return [d.model_dump(mode="json") for d in documents]
+
+    @app.post("/knowledge/domains/{domain_id}/documents",
+              dependencies=guard, status_code=202)
+    async def upload_document(
+        domain_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Accept a file (multipart ``file`` + optional ``metadata``).
+
+        ``202`` with the document, status ``queued``: extraction,
+        chunking and embedding run in the background.
+        """
+        name, data, metadata = await read_upload(
+            request, library.max_upload_bytes
+        )
+        document = await call(library.upload, domain_id, name, data,
+                              metadata)
+        return dict(document.model_dump(mode="json"))
+
+    @app.patch("/knowledge/domains/{domain_id}/documents/{doc_id}",
+               dependencies=guard)
+    async def relabel_document(
+        domain_id: str, doc_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Replace a document's metadata; it is re-indexed with it."""
+        body = await read_model(request, DocumentChange)
+        document = await call(library.update, domain_id, doc_id,
+                              body.metadata)
+        return dict(document.model_dump(mode="json"))
+
+    @app.delete("/knowledge/domains/{domain_id}/documents/{doc_id}",
+                dependencies=guard, status_code=204)
+    async def delete_document(domain_id: str, doc_id: str) -> Response:
+        """Delete a document; its chunks leave the index in background."""
+        await call(library.delete, domain_id, doc_id)
+        return Response(status_code=204)

@@ -49,3 +49,28 @@ class FileSystemCorpus:
             for block in iter(lambda: handle.read(1 << 20), b""):
                 digest.update(block)
         return digest.hexdigest()
+
+
+class MultiRootCorpus:
+    """Indexable files under several directories; missing ones are empty.
+
+    A knowledge domain reads its authored folder and the text extracted
+    from its uploads.
+    """
+
+    def __init__(
+        self, roots: Sequence[str], extensions: Sequence[str]
+    ) -> None:
+        """Index files under each of ``roots`` ending with ``extensions``."""
+        self.corpora = [FileSystemCorpus(r, extensions) for r in roots]
+
+    def list_files(self) -> List[str]:
+        """Return the files of every existing root, root by root."""
+        return [
+            path for corpus in self.corpora if corpus.root.is_dir()
+            for path in corpus.list_files()
+        ]
+
+    def file_hash(self, path: str) -> str:
+        """Return the SHA-256 digest of the file's bytes."""
+        return self.corpora[0].file_hash(path) if self.corpora else ""

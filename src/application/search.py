@@ -2,7 +2,7 @@
 
 import json
 import threading
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from src.application.caching import cache_key
 from src.application.ports import (
@@ -26,11 +26,13 @@ from src.application.retrieval import (
     validate_rerank,
 )
 from src.domain.errors import InvalidInputError
-from src.domain.models import ScoredChunk
+from src.domain.models import Chunk, ScoredChunk
 from src.domain.priors import RouterModel
 from src.domain.validation import validate_k
 
 AUTO = "auto"
+FILTER_FETCH = 50
+"""Fewest candidates ranked before a filter is applied."""
 
 
 class SearchService:
@@ -173,6 +175,29 @@ class SearchService:
     def search(self, query: str, k: int) -> List[ScoredChunk]:
         """Return the top-``k`` chunks for one query."""
         return self.search_many([query], k)[0]
+
+    def search_where(
+        self, query: str, k: int, keep: Callable[[Chunk], bool]
+    ) -> List[ScoredChunk]:
+        """Return the top-``k`` chunks of one query that ``keep`` accepts.
+
+        The ranking is the unfiltered one: the best ``max(4k, 50)``
+        candidates are filtered first and, when fewer than ``k`` pass,
+        the whole index is ranked and filtered. Filtered searches are
+        not cached (a domain index is small and the filters vary).
+        """
+        validate_k(k)
+        if not query.strip():
+            return []
+        with self._lock:
+            total = len(self.snapshot.chunks)
+            fetch = min(total, max(4 * k, FILTER_FETCH))
+            while True:
+                hits = self.retriever.search_batch([query], fetch)[0]
+                kept = [h for h in hits if keep(h.chunk)]
+                if len(kept) >= k or fetch >= total or len(hits) < fetch:
+                    return kept[:k]
+                fetch = total
 
     def search_many(
         self, queries: Sequence[str], k: int

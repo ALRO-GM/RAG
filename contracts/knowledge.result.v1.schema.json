@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "knowledge.result.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "domain",
+    "index_version",
+    "chunks"
+  ],
+  "properties": {
+    "schema": {
+      "const": "knowledge.result.v1"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "index_version": {
+      "type": "string",
+      "description": "hash of the manifest + files indexed"
+    },
+    "chunks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text",
+          "score",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file_path",
+              "first_character_index",
+              "last_character_index"
+            ],
+            "properties": {
+              "file_path": {
+                "type": "string"
+              },
+              "first_character_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "last_character_index": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "intent": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "category": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "script_phase": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "timings": {
+      "type": "object",
+      "properties": {
+        "total_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

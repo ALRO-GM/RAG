@@ -6,6 +6,8 @@ the only thing two services share: neither imports the other's code.
 | File | Producer | Consumers |
 |---|---|---|
 | `transcript.v1.schema.json` | `transcriber/` | `src/` (analyzer, RAG) |
+| `knowledge.query.v1.schema.json` | orchestrator, analyzer, web (via the transcriber) | `src/` (`POST /knowledge/query`) |
+| `knowledge.result.v1.schema.json` | `src/` | orchestrator, analyzer, web |
 | `live.event.v1`, `gpu-lease.v1` | `transcriber/` (live) | orchestrator, GPU workers |
 | `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
 | `tts.request.v1` | orchestrator | Piper adapter |

@@ -1,0 +1,1 @@
+{"schema": "knowledge.query.v1", "request_id": "r-91", "domain": "interview.backend", "text": "migración de monolito a microservicios", "language": "es", "top_k": 4, "filters": {"script_phase": ["technical"]}}
