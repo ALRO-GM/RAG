@@ -354,6 +354,8 @@ class RagCLI:
         act_card: Optional[str] = None,
         analysis_dir: Optional[str] = None,
         max_confirmations: Optional[int] = None,
+        act_tagger: Optional[str] = None,
+        local_preference: Optional[str] = None,
     ) -> SkillsCLI:
         """Soft-skills analyzer: assess, evidence, agreement, evaluate, lab.
 
@@ -427,10 +429,19 @@ class RagCLI:
                 ``analyze`` (best candidates first; 0: all; default
                 150, which keeps a 4-person session under about 200
                 calls).
+            act_tagger: Dialogue-act tagger of ``analyze``: default
+                (the act card's choice), encoder, combined or rules.
+            local_preference: Local judges in order of preference,
+                comma-separated (default Qwen/Qwen3-8B,Qwen/Qwen3-4B).
         """
         options = dict(locals())
         options.pop("self")
         options["llm"] = options.pop("local_model")
+        if local_preference is not None:
+            options["local_preference"] = tuple(
+                p.strip() for p in str(local_preference).split(",")
+                if p.strip()
+            )
         options["semantic_weight"] = options.pop("dense_weight")
         for shared in ("no_cache", "device", "torch_threads", "cpu_cores"):
             options[shared] = self._options[shared]
@@ -825,6 +836,7 @@ class RagCLI:
             print(f"Transcripts: routes off (set ${variable} or "
                   "--token_file to receive them)")
         skills = SkillsContainer(SkillsSettings())
+        app.pipeline_choices = skills.pipeline_settings.current
         analysis = skills.analysis_requests(
             app.transcript_store, app.settings.transcripts_dir
         )
@@ -842,6 +854,7 @@ class RagCLI:
                 app.knowledge_query, app.knowledge_library
             ),
             reasoner=skills.reasoner,
+            settings=skills.pipeline_settings,
         )
         if token:
             k = app.knowledge_settings

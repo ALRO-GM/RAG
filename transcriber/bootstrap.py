@@ -68,6 +68,9 @@ from transcriber.adapters.outbound.fs_transcript_publisher import (
 from transcriber.adapters.outbound.fs_voiceprint_repository import (
     FileSystemVoiceprintRepository,
 )
+from transcriber.adapters.outbound.http_pipeline_settings import (
+    HttpPipelineSettings,
+)
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
@@ -190,6 +193,7 @@ from transcriber.application.review import (
     RenameSpeaker,
     UnnameSpeaker,
 )
+from transcriber.application.pipeline_settings import PipelineSettingsAccess
 from transcriber.application.speaker_names import (
     FindSpeakerNames,
     QueueNameSearch,
@@ -207,6 +211,13 @@ from transcriber.domain.comparison import ComparisonParameters
 from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
 from transcriber.domain.lab import BUILTIN_DIARIZER
 from transcriber.domain.live import LiveSpeaker
+from transcriber.domain.pipeline_choices import (
+    live_cpu_only,
+    name_models,
+)
+from transcriber.domain.pipeline_choices import (
+    recogniser as recogniser_choice,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -295,6 +306,7 @@ class TranscriberContainer:
     analysis_judge: AnalysisJudgeSetting = AnalysisJudgeSetting(None)
     diarizer: Optional[LabRunnerDiarizer] = None
     diarizer_rule: DiarizerRule = BUILTIN_RULE
+    pipeline_settings: PipelineSettingsAccess = PipelineSettingsAccess(None)
     session_analysis: SessionAnalysisAccess = SessionAnalysisAccess(None)
     knowledge: KnowledgeAccess = KnowledgeAccess(None)
     name_model: Optional[LocalNameModel] = None
@@ -692,6 +704,7 @@ def build_live_sessions(
     publisher: TranscriptPublisher,
     analysis: Optional[SessionAnalysisPort],
     voiceprints: Optional[VoiceprintRepository] = None,
+    cpu_only: Optional[Callable[[], bool]] = None,
 ) -> LiveSessions:
     """Return the live sessions of ``/api/live`` (LV-2 to LV-11).
 
@@ -712,6 +725,7 @@ def build_live_sessions(
         memory=None if fake else NvidiaSmiFreeMemory(),
         log=JsonlLiveLog(settings.data_dir),
         check=check, publisher=publisher, analysis=analysis,
+        cpu_only=cpu_only,
     )
     device = "cpu" if fake or settings.device == "cpu" else "cuda"
     return LiveSessions(ports, settings.live, device, __version__)
@@ -727,14 +741,21 @@ def build_container(
     environment if omitted).
     """
     settings = settings or TranscriberSettings()
+    environment = os.environ if environ is None else environ
+    publisher = build_publisher(settings, environ)
+    pipeline = PipelineSettingsAccess(
+        HttpPipelineSettings(publisher.base_url, publisher.bearer_token)
+        if isinstance(publisher, HttpTranscriptPublisher) else None
+    )
+    settings = with_recogniser(settings, pipeline)
     recogniser, encoder = build_models(settings)
     overlaps = build_overlap_detector(settings)
-    environment = os.environ if environ is None else environ
     diarizer, rule = build_diarizer(
         settings, environment, recogniser.release
     )
 
-    name_model = build_name_model(settings)
+    names = NameModelChoice(settings, pipeline.current)
+    name_model = names.configured
 
     def release_speech_models() -> None:
         """Unload the speech, voice and overlap models."""
@@ -746,8 +767,7 @@ def build_container(
     def release_models() -> None:
         """Unload the speech, voice, overlap and name models."""
         release_speech_models()
-        if name_model is not None:
-            name_model.release()
+        names.release()
 
     # The runner frees the GPU after every job: the models are unloaded,
     # collected and PyTorch's cache is given back (#117).
@@ -765,7 +785,6 @@ def build_container(
             priority="batch",
         ),
     )
-    publisher = build_publisher(settings, environ)
     clock = SystemClock()
     locks = ThreadSessionLocks()
     parameters = settings.transcription
@@ -773,6 +792,7 @@ def build_container(
         sessions, voiceprints, decoder, recogniser, encoder, locks,
         parameters, overlaps, diarizer, rule,
         gpu if settings.runtime != "fake" else None,
+        choices=pipeline.current,
     )
     status = TranscriptionStatus(sessions, runner)
     rename = RenameSpeaker(sessions, voiceprints, locks)
@@ -781,6 +801,7 @@ def build_container(
         sessions, sessions, locks, rename, unname, clock, name_model,
         settings.names.search, free_models=release_speech_models,
         gpu=gpu if settings.runtime != "fake" else None,
+        choose_model=names.chosen if name_model is not None else None,
     )
     lab = build_lab(
         settings, sessions, voiceprints, decoder, recogniser, encoder,
@@ -849,6 +870,7 @@ def build_container(
         ),
         diarizer=diarizer,
         diarizer_rule=rule,
+        pipeline_settings=pipeline,
         session_analysis=SessionAnalysisAccess(
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None
@@ -862,13 +884,70 @@ def build_container(
             settings, environment, publisher,
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None,
-            voiceprints,
+            voiceprints, cpu_only=lambda: live_cpu_only(pipeline.current()),
         ),
     )
 
 
+def with_recogniser(
+    settings: TranscriberSettings, pipeline: PipelineSettingsAccess
+) -> TranscriberSettings:
+    """Return ``settings`` with the recogniser chosen on «Ajustes».
+
+    Read once, when the service starts (the model stays loaded);
+    without saved settings or an answer the configured one stays.
+    """
+    if settings.runtime == "fake":
+        return settings
+    chosen = recogniser_choice(pipeline.current(), settings.recogniser)
+    if chosen == settings.recogniser:
+        return settings
+    LOG.info("Recogniser chosen on «Ajustes»: %s", chosen)
+    return settings.model_copy(update={"recogniser": chosen})
+
+
+class NameModelChoice:
+    """The name finder's local model, as chosen when a search starts.
+
+    One :class:`LocalNameModel` per list of models, built on first use;
+    ``configured`` is the one of the service's settings.
+    """
+
+    def __init__(
+        self,
+        settings: TranscriberSettings,
+        choices: Callable[[], Optional[Mapping[str, str]]],
+    ) -> None:
+        """Build the configured model (nothing is loaded)."""
+        self._settings = settings
+        self._choices = choices
+        self.configured = build_name_model(settings)
+        self._models: Dict[Tuple[str, ...], LocalNameModel] = {}
+        if self.configured is not None:
+            self._models[settings.names.models] = self.configured
+
+    def chosen(self) -> Optional[LocalNameModel]:
+        """Return the model of the saved choice (``None``: rules only)."""
+        if self.configured is None:
+            return None
+        models = name_models(self._choices(), self._settings.names.models)
+        if not models:
+            return None
+        if models not in self._models:
+            self._models[models] = build_name_model(
+                self._settings, models
+            ) or self.configured
+        return self._models[models]
+
+    def release(self) -> None:
+        """Free every name model built so far."""
+        for model in self._models.values():
+            model.release()
+
+
 def build_name_model(
     settings: TranscriberSettings,
+    models: Optional[Tuple[str, ...]] = None,
 ) -> Optional[LocalNameModel]:
     """Return the local model for names (``None`` with fake models).
 
@@ -879,7 +958,7 @@ def build_name_model(
         return None
     names = settings.names
     return LocalNameModel(
-        names.models, device=settings.device,
+        models or names.models, device=settings.device,
         wait_seconds=names.wait_seconds, poll_seconds=names.poll_seconds,
     )
 

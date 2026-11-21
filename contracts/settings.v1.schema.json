@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "settings.v1",
+  "title": "Pipeline settings saved from the web's «Ajustes» page",
+  "description": "One choice per pipeline step with measured alternatives; the first option of every step is the service's own configuration. Owned by the RAG (data/settings.json, GET/PUT /settings); read by the transcriber and the orchestrator when a job or session starts. See docs/SETTINGS.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "revision",
+    "preset",
+    "choices"
+  ],
+  "properties": {
+    "schema": {
+      "const": "settings.v1"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Grows by one at every save; a writer sending an older one is refused (409)."
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "preset": {
+      "enum": [
+        "quality",
+        "balanced",
+        "cost",
+        "custom"
+      ]
+    },
+    "choices": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transcription.recogniser": {
+          "enum": [
+            "whisper-large-v3-turbo",
+            "whisper-large-v3"
+          ]
+        },
+        "transcription.diarizer": {
+          "enum": [
+            "auto",
+            "diarizen",
+            "nemotron",
+            "pyannote",
+            "builtin"
+          ]
+        },
+        "transcription.names": {
+          "enum": [
+            "qwen3-8b",
+            "qwen3-4b",
+            "rules"
+          ]
+        },
+        "live.asr": {
+          "enum": [
+            "gpu",
+            "cpu"
+          ]
+        },
+        "live.diarization": {
+          "enum": [
+            "on",
+            "off"
+          ]
+        },
+        "live.suggester_model": {
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ]
+        },
+        "live.suggester_effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "live.deadline": {
+          "enum": [
+            "product",
+            "1800",
+            "2800"
+          ]
+        },
+        "analysis.judge": {
+          "enum": [
+            "claude_code",
+            "local",
+            "both",
+            "opencode"
+          ]
+        },
+        "analysis.confirmation_model": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "analysis.assessment_model": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "analysis.synthesis_model": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "analysis.local_judge": {
+          "enum": [
+            "qwen3-8b",
+            "qwen3-4b"
+          ]
+        },
+        "analysis.act_tagger": {
+          "enum": [
+            "encoder",
+            "combined",
+            "rules"
+          ]
+        },
+        "knowledge.ocr": {
+          "enum": [
+            "on",
+            "off"
+          ]
+        },
+        "knowledge.captions": {
+          "enum": [
+            "florence",
+            "claude",
+            "off"
+          ]
+        },
+        "voicebot.reasoner_model": {
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ]
+        },
+        "voicebot.voice": {
+          "enum": [
+            "davefx",
+            "sharvard"
+          ]
+        }
+      }
+    }
+  }
+}

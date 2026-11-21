@@ -39,6 +39,7 @@ from orchestrator.adapters.outbound.files import (
 )
 from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
+from orchestrator.adapters.outbound.http_settings import HttpSettings
 from orchestrator.adapters.outbound.jsonl_sink import JsonlSink, JsonlTurns
 from orchestrator.adapters.outbound.piper_tts import (
     DEFAULT_PYTHON,
@@ -312,6 +313,8 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         SystemClock(), ThreadRunner(), ThreadExecutor, transcriber,
         events, log, new_id, tts=build_tts(args, products),
         turn_log=turns,
+        settings=HttpSettings(args.knowledge_url, args.token)
+        if args.knowledge == "http" else None,
     )
 
 

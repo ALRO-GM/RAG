@@ -37,6 +37,11 @@ from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from src.adapters.outbound.fs_analysis_store import FileAnalysisLock
 from src.domain.errors import BusyError, LimitError, RagError
+from src.domain.pipeline_settings import (
+    ACT_TAGGERS,
+    LOCAL_JUDGES,
+    RunChoices,
+)
 from src.domain.skills.claude_models import ClaudeModels, check_claude_model
 from src.domain.skills.transcript_contract import is_session_id
 
@@ -105,6 +110,28 @@ def kill_groups(
             pass
 
 
+def option_flags(options: Optional[RunChoices]) -> List[str]:
+    """Return the ``skills`` flags of ``options`` (allow-listed values).
+
+    Raises :class:`~src.domain.errors.RagError` for a value that is not
+    one of the pipeline settings' own (never passed to the command).
+    """
+    if options is None:
+        return []
+    flags: List[str] = []
+    if options.act_tagger:
+        if options.act_tagger not in ACT_TAGGERS.values():
+            raise RagError("Invalid act tagger.")
+        flags.append(f'--act_tagger="{options.act_tagger}"')
+    if options.local_preference:
+        if options.local_preference not in LOCAL_JUDGES.values():
+            raise RagError("Invalid local judge.")
+        flags.append(
+            f'--local_preference="{",".join(options.local_preference)}"'
+        )
+    return flags
+
+
 def child_environment(environ: Mapping[str, str]) -> Dict[str, str]:
     """Return ``environ`` without the variables that may hold secrets."""
     return {k: v for k, v in environ.items() if not SECRET.search(k)}
@@ -155,13 +182,15 @@ class SubprocessAnalysisLauncher:
         synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> List[str]:
         """Return the child's argument list.
 
         ``models``: the Claude model chosen per judged step, passed as
         ``--claude_<step>_model`` (each checked again against the
         allow-list pattern, and quoted so the command line reads it as
-        text).
+        text). ``options``: ``--act_tagger`` and ``--local_preference``
+        from the pipeline settings, each checked against its allow-list.
         """
         args = [
             self.python, "-m", "src", "skills",
@@ -171,6 +200,7 @@ class SubprocessAnalysisLauncher:
         for step, model in (models.chosen() if models else {}).items():
             name = check_claude_model(model)
             args.append(f'--claude_{step}_model="{name}"')
+        args += option_flags(options)
         args += ["analyze", f'--session="{session_id}"']
         if restart:
             args.append("--restart")
@@ -189,11 +219,13 @@ class SubprocessAnalysisLauncher:
         synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Start the analysis of ``session_id`` unless it is running.
 
         ``steps``, when not empty, are the only steps run again;
-        ``models`` the Claude model chosen per judged step.
+        ``models`` the Claude model chosen per judged step; ``options``
+        the act tagger and local judge of the pipeline settings.
 
         Raises :class:`~src.domain.errors.BusyError` when this session is
         running and :class:`~src.domain.errors.LimitError` when
@@ -219,7 +251,8 @@ class SubprocessAnalysisLauncher:
                 with open(folder / "analyze.log", "ab") as log:
                     child = subprocess.Popen(
                         self.command(
-                            session_id, restart, synthetic, steps, models
+                            session_id, restart, synthetic, steps, models,
+                            **({"options": options} if options else {}),
                         ),
                         cwd=self.root, stdin=subprocess.DEVNULL,
                         stdout=log, stderr=subprocess.STDOUT,

@@ -164,6 +164,7 @@ class Harness:
         asr_cost: float = 0.0,
         gate: Optional[threading.Event] = None,
         diarizer: Optional[FakeStreamDiarizer] = None,
+        cpu_only: Optional[Any] = None,
     ) -> None:
         self.built: List[LiveOptions] = []
         self.timer = PollTimer()
@@ -200,6 +201,7 @@ class Harness:
                 build=build, clock=SystemClock(), timer=self.timer,
                 lease=lease, memory=memory, log=self.log,
                 check=SchemaCheck(), publisher=publisher, analysis=analysis,
+                cpu_only=cpu_only,
             ),
             settings, device, "9.9",
         )
@@ -377,6 +379,26 @@ def test_the_gpu_is_taken_with_the_ack_and_enough_memory() -> None:
     assert harness.built[0].model == "large-v3-turbo"
     assert harness.timer.slept == pytest.approx(1.0)
     assert not [e for e in events if e["type"] == "warning"]
+
+
+def test_the_cpu_chosen_on_ajustes_skips_the_gpu_quietly() -> None:
+    lease = FakeLiveLease(ack=True)
+    chosen = {"cpu": True}
+    harness = Harness(
+        device="cuda", lease=lease, memory=FakeFreeMemory([9000]),
+        cpu_only=lambda: chosen["cpu"],
+    )
+    events = run_session(
+        harness, LiveSessionRequest(session_id="c"), speech()
+    )
+    assert (harness.built[0].device, harness.built[0].model) == (
+        "cpu", "small"
+    )
+    assert lease.acquired == [], "no lease is asked for"
+    assert not [e for e in events if e["type"] == "warning"]
+    chosen["cpu"] = False
+    run_session(harness, LiveSessionRequest(session_id="c2"), speech())
+    assert harness.built[1].device == "cuda", "read at every start"
 
 
 def test_too_little_memory_degrades_to_the_cpu_with_a_warning() -> None:

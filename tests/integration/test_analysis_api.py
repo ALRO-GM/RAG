@@ -42,6 +42,7 @@ from src.domain.errors import (
     RagError,
 )
 from src.domain.skills.analysis_run import StepRecord, new_run
+from src.domain.pipeline_settings import RunChoices
 from src.domain.skills.claude_models import ClaudeModels
 from src.domain.text_analysis import tokenize
 from src.skills_bootstrap import SkillsContainer
@@ -65,6 +66,7 @@ class FakeLauncher:
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Remember the start and mark the session running."""
         self.started.append((session_id, restart, synthetic))
@@ -203,6 +205,7 @@ def test_a_launcher_failure_is_a_server_error(tmp_path: Path) -> None:
         session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Fail to start."""
         raise RagError("no python")
@@ -220,6 +223,7 @@ class SleepingLauncher(SubprocessAnalysisLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> List[str]:
         """Sleep a moment and say which session it was."""
         return [sys.executable, "-c",
@@ -376,6 +380,7 @@ class RefusingLauncher(FakeLauncher):
         self, session_id: str, restart: bool, synthetic: bool,
         steps: Sequence[str] = (),
         models: Optional[ClaudeModels] = None,
+        options: Optional[RunChoices] = None,
     ) -> None:
         """Refuse the start."""
         raise LimitError("1 analysis already running.")

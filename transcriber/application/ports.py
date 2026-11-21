@@ -380,6 +380,27 @@ class PublishedTranscripts(Protocol):
         ...
 
 
+class PipelineSettingsPort(Protocol):
+    """The pipeline settings (``settings.v1``) the RAG keeps.
+
+    :meth:`show` and :meth:`change` answer the RAG's JSON objects and
+    raise :class:`~transcriber.domain.errors.AnalysisUnavailableError`
+    when it cannot be reached; :meth:`current` never raises.
+    """
+
+    def show(self) -> Dict[str, Any]:
+        """Return the settings, whether saved, and the options."""
+        ...
+
+    def change(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Save a preset and/or choices; return the new settings."""
+        ...
+
+    def current(self) -> Optional[Dict[str, str]]:
+        """Return the saved choices for a job starting now, or ``None``."""
+        ...
+
+
 class AnalysisJudge(Protocol):
     """The judge setting of the RAG's soft-skills analysis.
 

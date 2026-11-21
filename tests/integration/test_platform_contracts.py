@@ -39,12 +39,17 @@ def _bad_priority(doc: Dict[str, Any]) -> None:
     doc["priority"] = "urgent"
 
 
+def _free_text_option(doc: Dict[str, Any]) -> None:
+    doc["choices"]["analysis.judge"] = "claude --dangerously-skip"
+
+
 CASES: Dict[str, Callable[[Dict[str, Any]], None]] = {
     "live.event.v1": _drop_utterance,
     "reasoner.request.v1": _bad_role,
     "reasoner.response.v1": _bad_status,
     "tts.request.v1": _long_text,
     "gpu-lease.v1": _bad_priority,
+    "settings.v1": _free_text_option,
 }
 
 

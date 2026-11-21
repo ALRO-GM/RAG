@@ -172,6 +172,14 @@ export class Api {
     return this.request("GET", "/enrolment/text", { query: { language, name } });
   }
 
+  // ---- pipeline settings («Ajustes», docs/SETTINGS.md) ----
+
+  /** The saved settings (settings.v1), whether saved, and the catalogue of options. */
+  pipelineSettings() { return this.request("GET", "/settings"); }
+
+  /** Save `body` ({ preset?, choices?, revision? }); resolves to the saved settings. */
+  savePipelineSettings(body) { return this.request("PUT", "/settings", { json: body }); }
+
   // ---- analysis (docs/skills/DESIGN.md §4) ----
 
   /** The RAG's analysis judge and whether Claude's quota is available. */

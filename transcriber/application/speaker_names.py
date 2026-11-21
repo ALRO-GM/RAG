@@ -127,8 +127,14 @@ class FindSpeakerNames:
         free_models: Callable[[], None] = lambda: None,
         timer: Callable[[], float] = time.monotonic,
         gpu: Optional[GpuMemory] = None,
+        choose_model: Optional[Callable[[], Optional[ChatModel]]] = None,
     ) -> None:
-        """Wire the ports; nothing is loaded yet."""
+        """Wire the ports; nothing is loaded yet.
+
+        ``choose_model``, when given, replaces ``model`` and is asked at
+        every search (the model chosen on «Ajustes»; ``None``: rules).
+        """
+        self._choose_model = choose_model
         self._sessions = sessions
         self._store = store
         self._locks = locks
@@ -264,11 +270,14 @@ class FindSpeakerNames:
             e for e in (rule_evidence(transcript, c) for c in candidates)
             if e is not None
         ]
-        if self._model is None:
+        model = (
+            self._choose_model() if self._choose_model is not None
+            else self._model
+        )
+        if model is None:
             return rules, None, NO_MODEL_NOTE if candidates else None
         if not candidates:
             return [], None, None
-        model = self._model
         notes: List[str] = []
         try:
             self._free_models()

@@ -79,6 +79,12 @@ from src.domain.errors import (
     NotFoundError,
     short_reason,
 )
+from src.domain.pipeline_settings import (
+    Choices,
+    RunChoices,
+    run_choices,
+    step_models,
+)
 from src.domain.skills.analysis_run import (
     STEP_OUTPUTS,
     STEPS,
@@ -372,8 +378,15 @@ class AnalysisRequests:
         limits: StartLimits = StartLimits(),
         clock: Callable[[], float] = time.time,
         starts: Optional[StartLog] = None,
+        settings: Optional[Callable[[], Optional[Choices]]] = None,
     ):
-        """Wire the stored results, the transcripts, launcher and lock."""
+        """Wire the stored results, the transcripts, launcher and lock.
+
+        ``settings`` returns the pipeline settings saved from the web
+        (``None``: none saved), read at every start: their Claude model
+        per step (under the start's own choice), act tagger and local
+        judge.
+        """
         self.results = results
         self.transcripts = transcripts
         self.launcher = launcher
@@ -384,6 +397,21 @@ class AnalysisRequests:
             MemoryStartLog()
         )
         self._serial = threading.Lock()
+        self.settings = settings
+
+    def _run_choices(
+        self, models: Optional[ClaudeModels]
+    ) -> Tuple[Optional[ClaudeModels], RunChoices]:
+        """Return the run's Claude models and options from the settings.
+
+        The start's own model choices win over the saved ones.
+        """
+        chosen = self.settings() if self.settings is not None else None
+        if not chosen:
+            return models, RunChoices()
+        own = models.chosen() if models is not None else {}
+        merged = ClaudeModels(**{**step_models(chosen), **own})
+        return merged, run_choices(chosen)
 
     def _active(self, session_id: str) -> bool:
         """Tell whether any process (API child or CLI) analyses it now."""
@@ -485,10 +513,13 @@ class AnalysisRequests:
             store.write(session_id, JOB_FILE, job.cleaned().model_dump_json())
         if restart:
             self.results.hide(session_id)
+        models, options = self._run_choices(models)
+        extra = {} if options == RunChoices() else {"options": options}
         try:
             self.launcher.start(
                 session_id, restart, synthetic, chosen or [],
                 models=models if models and models.chosen() else None,
+                **extra,
             )
         except Exception:
             self.results.show(session_id)

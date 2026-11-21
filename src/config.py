@@ -324,7 +324,13 @@ class SkillsSettings(BaseModel):
     ``act_card`` is the dialogue-act tagger's settings (#82), written by
     ``experiments/skills/act_tagger_eval.py``: its outcome table, the
     fine-tuned encoder's directory and temperature, the routes of the
-    combination and the "dudoso" thresholds.
+    combination and the "dudoso" thresholds. ``act_tagger`` is the
+    tagger step d of ``analyze`` uses (``default``: the card's).
+
+    ``settings_path`` is the pipeline settings saved from the web's
+    «Ajustes» page (``settings.v1``, ``docs/SETTINGS.md``), relative to
+    the repository root unless absolute; analyses started through the
+    API read it at every start.
     """
 
     rubric_dir: str = "knowledge/rubrics"
@@ -353,6 +359,8 @@ class SkillsSettings(BaseModel):
     ] = "selected"
     judge_state_path: str = "data/skills/judge.json"
     act_card: str = "knowledge/dialogue_acts/act_tagger.json"
+    act_tagger: Literal["default", "encoder", "combined", "rules"] = "default"
+    settings_path: str = "data/settings.json"
     claude_model: str = DEFAULT_CLAUDE_CODE_MODEL
     claude_confirmation_model: str = ""
     claude_assessment_model: str = ""
