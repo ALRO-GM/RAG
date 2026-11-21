@@ -9,6 +9,7 @@ import json
 import logging
 import stat
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -83,6 +84,8 @@ class Spawns:
         self, command: List[str], env: Mapping[str, str]
     ) -> ScriptedProcess:
         """Record the start and return the next process."""
+        if not self.processes:
+            raise ModelError("no more scripted processes")
         process = self.processes.pop(0)
         self.started.append({"command": command, "env": dict(env)})
         return process
@@ -92,7 +95,9 @@ def backend(spawns: Spawns, **options: Any) -> ClaudeCodeStream:
     """Return a stream backend over ``spawns`` with a fixed environment."""
     return ClaudeCodeStream(
         environ={"PATH": "/bin", "HOME": "/h", "SECRET": "no"},
-        spawner=spawns, **options,
+        spawner=spawns, **{
+            "pool_size": 1, "background": lambda task: task(), **options,
+        },
     )
 
 
@@ -166,7 +171,7 @@ def test_process_is_windowed_by_turns() -> None:
 
 def test_process_is_windowed_by_context_size() -> None:
     one = ScriptedProcess([[done(tokens=5000)]])
-    two = ScriptedProcess([[done()]])
+    two = ScriptedProcess([[done()], [done()]])
     spawns = Spawns(one, two)
     model = backend(spawns, max_context_tokens=1000)
     model.complete("s", "u", 50)
@@ -174,14 +179,112 @@ def test_process_is_windowed_by_context_size() -> None:
     assert len(spawns.started) == 2
 
 
-def test_timeout_kills_the_process_and_next_call_restarts() -> None:
+def test_timeout_keeps_the_process_and_next_call_uses_the_spare() -> None:
     stuck = ScriptedProcess([[delta()]])
-    fresh = ScriptedProcess([[done("ok")]])
-    model = backend(Spawns(stuck, fresh), timeout=1.0)
+    spare = ScriptedProcess([[done("prime")], [done("ok")]])
+    spawns = Spawns(stuck, spare)
+    model = backend(spawns, timeout=1.0, pool_size=2)
     with pytest.raises(ModelTimeoutError):
         model.complete("s", "u", 50)
-    assert stuck.closed
+    assert not stuck.closed and len(spawns.started) == 2
     assert model.complete("s", "u", 50) == "ok"
+    assert model.last_latency is not None
+    assert model.last_latency.process_start_ms == 0.0
+    assert len(spare.sent) == 2 and not spare.closed
+
+
+def test_late_answer_is_drained_and_dropped() -> None:
+    late = ScriptedProcess([[delta()], [done("segunda")]])
+    spare = ScriptedProcess([[done("prime")], [done("otra")]])
+    model = backend(Spawns(late, spare), pool_size=2)
+    with pytest.raises(ModelTimeoutError):
+        model.complete("s", "u", 50)
+    late.pending = [delta(), done("tarde")]  # the abandoned turn ends
+    assert model.complete("s", "u", 50) == "segunda"  # late one dropped
+    assert len(late.sent) == 2 and len(spare.sent) == 1
+
+
+def test_without_a_spare_a_timeout_still_does_not_kill() -> None:
+    stuck = ScriptedProcess([[]])
+    fresh = ScriptedProcess([[done()], [done("ok")]])
+    model = backend(Spawns(stuck, fresh), pool_size=1)
+    with pytest.raises(ModelTimeoutError):
+        model.complete("s", "u", 50)
+    assert model.complete("s", "u", 50) == "ok"
+    assert not stuck.closed
+
+
+def test_abandoned_processes_are_capped() -> None:
+    procs = [ScriptedProcess([[]])] + [
+        ScriptedProcess([[done()], []]) for _ in range(3)
+    ]
+    model = backend(Spawns(*procs), pool_size=1)
+    for _ in range(3):
+        with pytest.raises(ModelTimeoutError):
+            model.complete("s", "u", 50)
+    assert procs[0].closed and not procs[2].closed
+
+
+def test_replacement_starts_before_the_worn_process_stops() -> None:
+    events: List[str] = []
+    one = ScriptedProcess([[done()], [done()]])
+    two = ScriptedProcess([[done()], [done()]])
+    one.close = lambda: events.append(  # type: ignore[method-assign]
+        "close-one"
+    )
+    spawns = Spawns(one, two)
+
+    def spawner(command: List[str], env: Mapping[str, str]) -> Any:
+        events.append(f"start-{len(spawns.started) + 1}")
+        return spawns(command, env)
+
+    model = ClaudeCodeStream(
+        environ={}, spawner=spawner, max_turns=2, pool_size=1,
+        background=lambda task: task(),
+    )
+    model.complete("s", "u", 50)
+    model.complete("s", "u", 50)
+    assert events == ["start-1", "start-2", "close-one"]
+    assert model.complete("s", "u", 50) == "respuesta"
+    assert two.sent
+
+
+def test_warm_starts_the_pool_before_any_call() -> None:
+    one = ScriptedProcess([[done()], [done()]])
+    two = ScriptedProcess([[done()], [done()]])
+    spawns = Spawns(one, two)
+    model = backend(spawns, pool_size=2)
+    model.warm("s", 50)
+    assert len(spawns.started) == 2
+    model.complete("s", "u", 50)
+    assert model.last_latency is not None
+    assert model.last_latency.process_start_ms == 0.0
+    model.close()
+    assert one.closed and two.closed
+
+
+def test_failed_spare_start_is_not_an_error() -> None:
+    def failing(command: List[str], env: Mapping[str, str]) -> Any:
+        raise ModelError("not installed")
+
+    model = ClaudeCodeStream(
+        environ={}, spawner=failing, background=lambda task: task(),
+    )
+    model.warm("s", 50)
+    with pytest.raises(ModelError):
+        model.complete("s", "u", 50)
+
+
+def test_default_background_runs_on_a_thread() -> None:
+    one, two = ScriptedProcess([[done()]]), ScriptedProcess([[done()]])
+    spawns = Spawns(one, two)
+    model = ClaudeCodeStream(environ={}, spawner=spawns)
+    model.warm("s", 50)
+    for _ in range(100):
+        if len(spawns.started) == 2:
+            break
+        time.sleep(0.02)
+    assert len(spawns.started) == 2
 
 
 def test_exit_without_result_is_an_error() -> None:
@@ -291,7 +394,7 @@ def test_process_cap_leaves_room_for_hidden_thinking() -> None:
     assert env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "500"
 
 
-def test_deadline_shortens_the_wait_and_kills_the_process() -> None:
+def test_deadline_shortens_the_wait_and_leaves_the_process() -> None:
     seen: List[float] = []
     stuck = ScriptedProcess([[]])
     original = stuck.receive
@@ -304,7 +407,7 @@ def test_deadline_shortens_the_wait_and_kills_the_process() -> None:
     model = backend(Spawns(stuck), timeout=10.0)
     with pytest.raises(ModelTimeoutError, match="0.05 s"):
         model.complete_within("s", "u", 50, 0.05)
-    assert stuck.closed and seen[0] <= 0.05
+    assert not stuck.closed and seen[0] <= 0.05
 
 
 def test_deadline_cannot_extend_the_backend_timeout() -> None:
@@ -312,3 +415,15 @@ def test_deadline_cannot_extend_the_backend_timeout() -> None:
     model = backend(Spawns(stuck), timeout=1.0)
     with pytest.raises(ModelTimeoutError, match="1 s"):
         model.complete_within("s", "u", 50, 60.0)
+
+
+def test_spare_that_does_not_start_is_dropped() -> None:
+    mute = ScriptedProcess([[]])
+    spawns = Spawns(mute)
+    model = backend(spawns, pool_size=2, timeout=0.01)
+    model.warm("s", 50)
+    assert mute.closed
+    stopped = ScriptedProcess([[""]])
+    other = backend(Spawns(stopped), pool_size=2)
+    other.warm("s", 50)
+    assert stopped.closed

@@ -849,8 +849,36 @@ class RagCLI:
             print(f"Knowledge: /knowledge/* (domains in {k.domains_dir} "
                   f"and {k.data_dir}; indexes in {k.index_dir}; "
                   f"{resumed} upload(s) resumed)")
+        if token:
+            self._start_warm_up(app, skills)
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)
+
+    @staticmethod
+    def _start_warm_up(app: Any, skills: Any) -> None:
+        """Warm the knowledge indexes and the live reasoner in the background.
+
+        The first knowledge query would otherwise take ~2 s (index and
+        embedder load) and the first reasoner call would start Claude
+        inside its own deadline (issues #176, #175).
+        """
+        import threading
+
+        from src.application.knowledge.warmup import warm_domains
+
+        def run() -> None:
+            """Warm both; a failure only means a cold first call."""
+            try:
+                warmed = warm_domains(
+                    app.knowledge_registry, app.knowledge_query
+                )
+                print(f"Warm-up: knowledge domains {warmed}")
+                skills.reasoner.warm_up()
+                print("Warm-up: live reasoner pool started")
+            except Exception as exc:  # warm-up is best effort
+                print(f"Warm-up skipped: {type(exc).__name__}")
+
+        threading.Thread(target=run, daemon=True).start()
 
     @safe_command
     def clear_cache(self) -> None:

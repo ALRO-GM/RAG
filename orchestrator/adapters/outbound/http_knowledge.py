@@ -21,7 +21,7 @@ class HttpKnowledge:
         self,
         base_url: str,
         token: Optional[str] = None,
-        timeout: float = 2.0,
+        timeout: float = 5.0,
         client: Optional[httpx.Client] = None,
     ):
         """Keep the address and the client."""

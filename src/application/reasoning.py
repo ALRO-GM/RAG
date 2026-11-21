@@ -30,6 +30,8 @@ from src.domain.errors import (
 )
 from src.domain.reasoning.roles import (
     Backend,
+    Constraints,
+    Context,
     ErrorInfo,
     Latency,
     ReasonRequest,
@@ -152,6 +154,32 @@ class Reasoner:
         return TagConfirmer(
             judge, cache=cache, progress=progress, context=context
         ).confirm(tagged, rubric, language)
+
+    def warm_up(
+        self, template_id: str = "suggester.support@1", model: str = "haiku",
+        language: str = "es", max_suggestions: int = 3,
+    ) -> bool:
+        """Start the warm backend for a live template, off the request path.
+
+        The process is keyed by the system prompt and the output cap, so
+        the arguments must match the requests the product will send
+        (the shipped ``live_assist`` products: Spanish, 3 suggestions).
+        Returns whether the backend can be warmed (a cold or unknown
+        backend is left alone).
+        """
+        template = get_template(template_id, "suggester")
+        chat = self.live_models(model)
+        warm = getattr(chat, "warm", None)
+        if not callable(warm):
+            return False
+        request = ReasonRequest(
+            request_id="warm-up", role="suggester", model=model,
+            template=template_id, language=language,
+            context=Context(window=[]),
+            constraints=Constraints(max_suggestions=max_suggestions),
+        )
+        warm(template.system(request), template.max_output_tokens)
+        return True
 
     def reason(self, request: ReasonRequest) -> ReasonResponse:
         """Return the answer to ``request`` (never raises a model error).

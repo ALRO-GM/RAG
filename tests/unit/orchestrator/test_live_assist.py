@@ -116,7 +116,7 @@ def test_chunks_reach_the_reasoner() -> None:
     )
     reasoner = FakeReasoner()
     sink = run(assist(knowledge=knowledge, reasoner=reasoner))
-    assert knowledge.queries[0]["domain"] == "support.general"
+    assert knowledge.queries[0]["domain"] == "support.demo"
     assert reasoner.requests[0]["retrieved"][0]["id"] == "k1"
     assert sink.records[0].chunks == 1
     assert sink.records[0].suggestions[0]["cites"] == ["k1"]
