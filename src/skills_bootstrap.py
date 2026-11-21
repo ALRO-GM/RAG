@@ -352,7 +352,8 @@ class SkillsContainer:
         warm = self._warm_models
         if name not in warm:
             warm[name] = ClaudeCodeStream(
-                name, self.settings.claude_executable
+                name, self.settings.claude_executable,
+                effort=self.settings.claude_live_effort,
             )
             atexit.register(warm[name].close)
         return warm[name]

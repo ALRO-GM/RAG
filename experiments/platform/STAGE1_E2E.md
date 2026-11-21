@@ -157,3 +157,52 @@ What the numbers say, and what they do not:
 
 Limits: one run per scenario except support; 13-14 calls each; synthetic
 transcripts; the machine and the API were in whatever state they were in.
+
+
+## Run 3: support latency variants (#180)
+
+25 real `claude` messages (budget 25; each process's priming turn counts),
+all through the warm backend (`ClaudeCodeStream`, one primed process per
+variant, no deadline kill) with `experiments/platform/support_latency.py`.
+Same 12-utterance windows of the support transcript, trigger = a customer
+utterance. Retrieval is approximated by word overlap with the support.demo
+chunks (the latency depends on prompt size, not on which chunks). Raw rows:
+`results/support_latency.jsonl`. Only 3 calls per variant (11 for the
+chosen one): these are small samples, one machine, one afternoon.
+
+| Variant | calls | first token p50 | total p50 | max total | <= 1.8 s | <= 2.8 s | output tokens |
+|---|---|---|---|---|---|---|---|
+| support@1 as shipped (3 suggestions + signals) | 3 | 2010 | 2623 | 4353 | 0 | 2 | 351-720 |
+| interview@1 prompt (3 suggestions, no signals) | 3 | 1939 | 2500 | 3935 | 0 | 2 | 409-701 |
+| 1 suggestion, same template | 3 | 729 | 1088 | 2799 | 2 | 3 | 107-500 |
+| 1 suggestion + `--effort low` (chosen) | 11 | 688 | 1063 | 2568 | 9 | 11 | 96-410 |
+
+What it says:
+
+1. `--effort low` is accepted by the CLI with Haiku. Interview and support
+   differ here only in output: both asked for 3 suggestions took 2.5-2.6 s
+   p50 today (the 1.2 s interview of Run 2 is not reproduced by this
+   harness; interview's prompt asks for no signals but the same number
+   of suggestions). The cost is output length: 350-720 output tokens
+   (hidden thinking included) for 3 suggestions against ~110-130 for 1.
+2. One suggestion removes most of the latency (p50 2.6 s to ~1.1 s);
+   `--effort low` removes the remaining thinking outliers in 8 of 11 calls
+   but not all: calls with 260-410 output tokens (thinking) still took
+   1.7-2.6 s. A shorter template and compact output (variants c, d) were
+   not run: the budget went to the two measured levers, so they remain
+   untested.
+3. Of the 11 calls with the chosen variant, 9 answered within 1.8 s
+   (82 %, below the 85 % target), all 11 within 2.6 s; one of them
+   returned no grounded suggestion (`no_suggestion`, valid). Hence the
+   support deadline is raised to 2.8 s (total <= 3 s with knowledge
+   ~20 ms), where 10 of 11 calls gave a suggestion (91 %).
+4. Signals: with one suggestion they come with it; the same doubtful
+   labels as before appeared (e.g. `satisfaction` for a follow-up). Their
+   accuracy was not measured.
+
+Shipped: `config/products/live_assist.support.yaml` with
+`max_suggestions: 1` and `deadline_ms: 2800`, and `claude_live_effort`
+(default `low`) for every warm live process, including interview, whose
+effect on interview quality was not measured. The end-to-end replay was
+not rerun (no budget left): the 91 % is the harness figure above, to be
+confirmed by the next full replay.

@@ -347,6 +347,11 @@ class SkillsSettings(BaseModel):
     claude_effort: Optional[
         Literal["low", "medium", "high", "xhigh", "max"]
     ] = None
+    claude_live_effort: Optional[
+        Literal["low", "medium", "high", "xhigh", "max"]
+    ] = "low"
+    """``--effort`` of the warm live reasoner: ``low`` removes Haiku's
+    hidden thinking before the first token (support: ~1 s, was 2-4 s)."""
     claude_timeout: float = Field(default=180.0, gt=0)
     claude_executable: str = "claude"
     opencode_model: str = DEFAULT_OPENCODE_MODEL

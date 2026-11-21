@@ -105,8 +105,8 @@ def test_request_follows_the_contract() -> None:
                                              "type": "soporte"}
     assert [w["id"] for w in request["context"]["window"]] == [
         "t0.s0", "t1.s0"]
-    assert request["constraints"] == {"max_suggestions": 3,
-                                      "deadline_ms": 1800}
+    assert request["constraints"] == {"max_suggestions": 1,
+                                      "deadline_ms": 2800}
     assert len(request["request_id"]) <= 64
 
 
