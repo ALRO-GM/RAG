@@ -1080,6 +1080,8 @@ details.tech, details.controls { margin: 1rem 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vb-meter-fill { transition: none; }
+}
+
 /* ---- «Ajustes» (#/settings) ------------------------------------------- */
 .settings .presets { border: 0; padding: 0; margin: 0; min-width: 0; }
 .settings .presets legend { font-weight: 600; margin-bottom: var(--s-2); }
