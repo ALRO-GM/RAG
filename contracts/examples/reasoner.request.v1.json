@@ -1,0 +1,8 @@
+{"schema": "reasoner.request.v1", "request_id": "r-91", "role": "suggester", "model": "haiku",
+ "template": "suggester.interview@1", "language": "es",
+ "context": {"session": {"id": "int-2026-11-21-a", "type": "entrevista", "goal": "Backend"},
+   "speaker_roles": {"S1": "interviewer", "S2": "candidate"},
+   "window": [{"id": "t7.s1", "speaker": "S2", "text": "En mi último proyecto migramos el monolito a servicios.", "start": 247.2, "end": 251.4}],
+   "focus": "t7.s1", "script_phase": "technical", "covered_phases": ["intro"]},
+ "retrieved": [{"id": "interview.backend:q-arch-07", "text": "¿Cómo gestionas las transacciones entre servicios?"}],
+ "constraints": {"max_output_tokens": 120, "max_suggestions": 2, "deadline_ms": 1800}}

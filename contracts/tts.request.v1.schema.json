@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tts.request.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "text",
+    "voice"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tts.request.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 2
+    },
+    "voice": {
+      "type": "string",
+      "description": "Piper voice id, e.g. es_ES-davefx-medium"
+    },
+    "speaker": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "length_scale": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2.0,
+      "default": 1.0
+    },
+    "format": {
+      "enum": [
+        "pcm_s16le",
+        "wav"
+      ],
+      "default": "pcm_s16le"
+    },
+    "sample_rate": {
+      "type": "integer",
+      "default": 22050
+    },
+    "stream": {
+      "type": "boolean",
+      "default": true
+    },
+    "interrupt_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "request this one replaces (barge-in)"
+    }
+  }
+}

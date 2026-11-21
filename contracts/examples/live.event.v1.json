@@ -1,0 +1,6 @@
+{"schema": "live.event.v1", "session_id": "int-2026-11-21-a", "seq": 42, "type": "final",
+ "at": "2026-11-21T10:04:12.310Z", "stream_time": 251.9,
+ "utterance": {"id": "t7.s1", "turn": 7, "index": 1, "speaker": "S2", "channel": 1,
+   "start": 247.2, "end": 251.4, "text": "En mi último proyecto migramos el monolito a servicios.",
+   "revision": 3, "confidence": 0.91, "speaker_certainty": null, "speaker_provisional": false, "language": "es"},
+ "timings": {"endpoint_ms": 480, "asr_ms": 310, "attribution_ms": 1, "lag_ms": 510}}

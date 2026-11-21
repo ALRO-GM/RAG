@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "live.event.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "session_id",
+    "seq",
+    "type",
+    "at",
+    "stream_time"
+  ],
+  "properties": {
+    "schema": {
+      "const": "live.event.v1"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "type": {
+      "enum": [
+        "session_started",
+        "partial",
+        "final",
+        "speaker_update",
+        "turn_end",
+        "session_ended",
+        "warning"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stream_time": {
+      "type": "number",
+      "minimum": 0
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sample_rate",
+        "channels"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "stereo_channels",
+            "mono_diarized",
+            "single_speaker"
+          ]
+        },
+        "sample_rate": {
+          "type": "integer"
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        }
+      }
+    },
+    "speakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "channel": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "enrolled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "role": {
+            "enum": [
+              "interviewer",
+              "candidate",
+              "agent",
+              "customer",
+              "user",
+              "bot",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "utterance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "turn",
+        "index",
+        "speaker",
+        "start",
+        "end",
+        "text",
+        "revision"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^t[0-9]+\\.s[0-9]+$"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "speaker": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "start": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end": {
+          "type": "number",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "speaker_certainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -2,
+          "maximum": 2
+        },
+        "speaker_provisional": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "language": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 2
+        }
+      }
+    },
+    "timings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "asr_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "attribution_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lag_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "speech end to emission"
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "gpu_degraded",
+            "asr_behind",
+            "source_lost",
+            "quota",
+            "other"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "partial",
+              "final",
+              "speaker_update"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "utterance"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "session_started"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "source",
+          "speakers"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "warning"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "warning"
+        ]
+      }
+    }
+  ]
+}
