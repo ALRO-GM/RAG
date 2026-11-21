@@ -2,13 +2,17 @@
 // or custom) and the model of every pipeline step that has measured
 // alternatives, each option with what was measured with it. The RAG keeps
 // the settings (settings.v1, GET/PUT /api/settings through this service);
-// every job reads them when it starts. Pure helpers in lib/settings.js.
+// every job reads them when it starts. The voice bot's voice has sliders
+// (Piper's controls), the people who agreed to their voice being cloned,
+// rate matching and an «Escuchar ejemplo» button that plays the draft.
+// Pure helpers in lib/settings.js.
 
 import { h, fill } from "../dom.js";
 import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  PRESETS, applyPreset, changedSteps, costOf, keys, label, needsRestart, presetOf, saveBody, stepsByGroup,
+  PRESETS, applyPreset, changedSteps, clampRange, costOf, isRange, keys, label, needsRestart, presetOf, rateOptions, saveBody,
+  stepsByGroup, voiceOptions, voicebotChoices,
 } from "../lib/settings.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 
@@ -28,6 +32,9 @@ export async function settingsView(ctx, root) {
 
   let settings = null;
   let draft = {};
+  let speakers = [];
+  const sampleStatus = h("p", { class: "hint", role: "status" });
+  let sampleUrl = null;
 
   async function load() {
     try {
@@ -37,8 +44,30 @@ export async function settingsView(ctx, root) {
       fill(body, emptyState({ iconName: "settings", title: t("set.unavailable_title"), body: `${t("set.unavailable_body")} ${describeError(error)}` }));
       return;
     }
+    try {
+      speakers = (await ctx.api.speakers?.())?.speakers ?? [];
+    } catch {
+      speakers = [];
+    }
     draft = { ...settings.choices };
     render();
+  }
+
+  async function playSample(button) {
+    button.disabled = true;
+    fill(sampleStatus, t("set.sample_wait"));
+    try {
+      const sample = await ctx.api.voiceSample(voicebotChoices(draft));
+      if (sampleUrl) URL.revokeObjectURL(sampleUrl);
+      sampleUrl = URL.createObjectURL(sample.blob);
+      await new Audio(sampleUrl).play();
+      fill(sampleStatus, sample.clone ? t("set.sample_clone") : sample.note ? t("set.sample_piper_because", { note: sample.note }) : t("set.sample_piper"));
+    } catch (error) {
+      if (error?.kind === "unauthorized") return ctx.fail(error);
+      fill(sampleStatus, `${t("set.sample_unavailable")} ${describeError(error)}`);
+    } finally {
+      button.disabled = false;
+    }
   }
 
   async function store() {
@@ -85,6 +114,50 @@ export async function settingsView(ctx, root) {
       })));
   }
 
+  function personName(id) {
+    const person = speakers.find((p) => p.id === id);
+    return person?.name || id;
+  }
+
+  function optionText(step, option) {
+    if (step.id === "voicebot.voice" && option.startsWith("clone:")) {
+      return [t("set.clone_option", { name: personName(option.slice(6)) }), t("set.fact.voicebot.voice.clone")];
+    }
+    if (step.id === "voicebot.match_rate" && option !== "off") {
+      const person = speakers.find((p) => p.id === option);
+      const rate = Number(person?.words_per_second);
+      return [t("set.rate_option", { name: personName(option) }),
+        rate > 0 ? t("set.rate_fact", { rate: rate.toLocaleString(lang, { maximumFractionDigits: 2 }) }) : t("set.rate_missing")];
+    }
+    return [label(t, keys.option(step.id, option), option), label(t, keys.fact(step.id, option), "")];
+  }
+
+  function optionsOf(step) {
+    if (step.id === "voicebot.voice") return voiceOptions(step, speakers, draft[step.id]);
+    if (step.id === "voicebot.match_rate") return rateOptions(step, speakers, draft[step.id]);
+    return step.options;
+  }
+
+  function rangeBlock(step) {
+    const changed = settings.choices[step.id] !== draft[step.id];
+    const value = draft[step.id] ?? step.default;
+    const shown = h("output", { for: `set-${step.id}`.replace(/[^\w-]/g, "-") }, value);
+    const slider = h("input", {
+      type: "range", id: `set-${step.id}`.replace(/[^\w-]/g, "-"), min: step.range.low, max: step.range.high,
+      step: step.range.step, value,
+      onInput: (event) => { shown.textContent = clampRange(step, event.target.value); },
+      onChange: (event) => { draft = { ...draft, [step.id]: clampRange(step, event.target.value) }; render(); },
+    });
+    const reset = h("button", { type: "button", class: "ghost", disabled: value === step.default,
+      onClick: () => { draft = { ...draft, [step.id]: step.default }; render(); } }, t("set.reset"));
+    return h("fieldset", { class: changed ? "field step is-changed" : "field step" },
+      h("legend", {}, label(t, keys.step(step.id), step.id), " ",
+        h("span", { class: "badge muted" }, t(`set.applies.${step.applies}`))),
+      h("div", { class: "row wrap tight" }, slider, shown, reset),
+      h("p", { class: "hint" }, label(t, `set.range.${step.id}`, ""), " ",
+        t("set.range_default", { value: step.default })));
+  }
+
   function optionRow(step, option) {
     const id = `set-${step.id}-${option}`.replace(/[^\w-]/g, "-");
     const input = h("input", {
@@ -92,23 +165,31 @@ export async function settingsView(ctx, root) {
       onChange: () => { draft = { ...draft, [step.id]: option }; render(); },
     });
     const cost = costOf(step.id, option);
+    const [name, fact] = optionText(step, option);
     return h("label", { class: draft[step.id] === option ? "option is-chosen" : "option", for: id },
       input,
       h("span", { class: "stack tight" },
         h("span", { class: "row wrap tight" },
-          h("strong", {}, label(t, keys.option(step.id, option), option)),
+          h("strong", {}, name),
           option === step.default ? h("span", { class: "tag" }, t("set.default_tag")) : null,
           cost ? h("span", { class: cost === "local" ? "tag" : "tag accent" }, t(`set.cost.${cost}`)) : null),
-        h("span", { class: "hint" }, label(t, keys.fact(step.id, option), ""))));
+        h("span", { class: "hint" }, fact)));
   }
 
   function stepBlock(step) {
+    if (isRange(step)) return rangeBlock(step);
     const changed = settings.choices[step.id] !== draft[step.id];
     return h("fieldset", { class: changed ? "field step is-changed" : "field step" },
       h("legend", {}, label(t, keys.step(step.id), step.id), " ",
         h("span", { class: step.applies === "restart" ? "badge warn" : "badge muted" }, t(`set.applies.${step.applies}`))),
-      h("div", { class: "options" }, step.options.map((option) => optionRow(step, option))),
-      step.id === "analysis.act_tagger" ? h("p", { class: "hint" }, t("set.rg_note")) : null);
+      h("div", { class: "options" }, optionsOf(step).map((option) => optionRow(step, option))),
+      step.id === "analysis.act_tagger" ? h("p", { class: "hint" }, t("set.rg_note")) : null,
+      step.id === "voicebot.voice" ? h("p", { class: "hint" }, t("set.clone_note")) : null);
+  }
+
+  function sampleBar() {
+    const button = h("button", { type: "button", onClick: () => playSample(button) }, icon("play"), " ", t("set.sample"));
+    return h("div", { class: "row wrap tight" }, button, sampleStatus);
   }
 
   function render() {
@@ -125,7 +206,8 @@ export async function settingsView(ctx, root) {
       h("div", { class: "row wrap save-bar" }, save, discard, status),
       h("div", { id: "set-groups", class: "stack" }, groups.map(({ group, steps }) => h("section", { class: "card" },
         h("h2", {}, label(t, keys.group(group), group)),
-        steps.map(stepBlock)))),
+        steps.map(stepBlock),
+        group === "voicebot" ? sampleBar() : null))),
       hasVoicebot ? null : h("p", { class: "hint" }, icon("info"), " ", t("set.voicebot_note")),
       h("p", { class: "hint" }, t("set.source")));
   }

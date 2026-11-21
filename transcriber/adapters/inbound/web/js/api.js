@@ -28,7 +28,7 @@ export class Api {
     this.fetchFn = fetchFn;
   }
 
-  async request(method, path, { query, json, body, contentType, auth = true, text = false } = {}) {
+  async request(method, path, { query, json, body, contentType, auth = true, text = false, raw = false } = {}) {
     const headers = {};
     if (auth) {
       const code = this.getCode();
@@ -60,6 +60,7 @@ export class Api {
       throw new ApiFailure({ status: null, kind: "unavailable", code: "network" });
     }
     if (response.ok) {
+      if (raw) return response;
       if (response.status === 204) return null;
       try {
         return text ? await response.text() : await response.json();
@@ -163,6 +164,9 @@ export class Api {
 
   deleteSpeaker(id) { return this.request("DELETE", `/speakers/${encodeURIComponent(id)}`); }
 
+  /** Withdraw the person's consent to the voice bot cloning their voice (the clip is deleted). */
+  withdrawVoiceClone(id) { return this.request("DELETE", `/speakers/${encodeURIComponent(id)}/voice-clone`); }
+
   /** The consent notice in force: kind "recording" or "enrolment". */
   consent(kind, language) {
     return this.request("GET", "/consent", { query: { kind, language } });
@@ -179,6 +183,21 @@ export class Api {
 
   /** Save `body` ({ preset?, choices?, revision? }); resolves to the saved settings. */
   savePipelineSettings(body) { return this.request("PUT", "/settings", { json: body }); }
+
+  /**
+   * The voice bot's sample sentence said with the voice bot's `choices`
+   * being edited (unsaved): { blob (audio/wav), clone, lengthScale, note }.
+   */
+  async voiceSample(choices) {
+    const response = await this.request("POST", "/assist/voicebot/sample", { json: { choices }, raw: true });
+    const headers = response.headers;
+    return {
+      blob: await response.blob(),
+      clone: headers.get("X-Voice-Clone") === "1",
+      lengthScale: Number(headers.get("X-Voice-Length-Scale")) || null,
+      note: headers.get("X-Voice-Note") || "",
+    };
+  }
 
   // ---- analysis (docs/skills/DESIGN.md §4) ----
 
@@ -381,9 +400,10 @@ export class Api {
   }
 
   /** `pcm` is 16 kHz mono 16-bit little-endian PCM (the API's default format). */
-  enrol(id, { name, language, textVersion, pcm }) {
+  /** `cloneConsent` (true only) is the separate consent to the voice bot cloning this voice. */
+  enrol(id, { name, language, textVersion, pcm, cloneConsent = false }) {
     return this.request("POST", `/speakers/${encodeURIComponent(id)}/enrolment`, {
-      query: { name, language, consent: "true", text_version: textVersion },
+      query: { name, language, consent: "true", text_version: textVersion, clone_consent: cloneConsent === true ? "true" : undefined },
       body: pcm, contentType: "application/octet-stream",
     });
   }

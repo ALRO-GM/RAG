@@ -2,8 +2,12 @@
 
 A person reads the enrolment text (``docs/transcriber/ARCHITECTURE.md``
 §6); the sample is decoded, checked by the domain rules and reduced to
-one voiceprint. Only the voiceprint and the consent record are stored:
-the sample audio is never handed to a repository.
+one voiceprint, with the speaking rate measured on the reading. Only
+the voiceprint and the consent record are stored; the sample audio is
+never handed to a repository, except a reference clip of it when the
+person also agreed to their voice being cloned for the voice bot (a
+separate, revocable consent: :class:`WithdrawVoiceClone` deletes the
+clip; ``docs/live/VOICE_CLONING.md``).
 
 The models run as a job of the :class:`~transcriber.application.ports.
 JobRunner`, like a transcription: never beside another job on the one
@@ -33,7 +37,9 @@ from transcriber.domain.enrolment import (
     EnrolmentText,
     SampleRules,
     build_voiceprint,
+    clone_span,
     enrolment_text,
+    speaking_rate,
 )
 from transcriber.domain.errors import (
     ConsentRequiredError,
@@ -134,6 +140,7 @@ class EnrolSpeaker:
         consent: bool,
         consent_version: str,
         text_version: Optional[str] = None,
+        clone_consent: bool = False,
     ) -> Voiceprint:
         """Enrol ``speaker_id`` from ``recording``; return the voiceprint.
 
@@ -146,6 +153,9 @@ class EnrolSpeaker:
         anonymous labels (``S1``, ``S2``...) are reserved and refused.
         Raises :class:`~transcriber.domain.errors.SampleRejectedError`
         when the sample is unfit. Waits for the jobs queued before it.
+        ``clone_consent`` (only ``True`` counts) also keeps a reference
+        clip of the reading for the voice bot's cloned voice; without
+        it any clip kept from an earlier enrolment is deleted.
         """
         if consent is not True:
             raise ConsentRequiredError(
@@ -166,32 +176,44 @@ class EnrolSpeaker:
         if now.tzinfo is None or now.utcoffset() is None:
             raise InvalidInputError("The clock must give an aware time.")
         audio = self._decoder.decode(recording)
-        vectors, windows, regions = self._runner.run(
+        vectors, windows, regions, words = self._runner.run(
             lambda: self._embed(audio, language)
         )
         voiceprint = build_voiceprint(
             speaker_id, self._encoder.model_name, consent_version, now,
             vectors, windows, regions, audio.duration, self._rules,
+            speaking_rate(words, regions),
         )
+        clone = clone_consent is True
+        span = clone_span(regions, audio.duration) if clone else None
         self._voiceprints.save(voiceprint, ConsentRecord(
             speaker_id=speaker_id, name=" ".join(name.split()),
             consent_version=consent_version, text_version=text.version,
-            given_at=now,
+            given_at=now, voice_clone=span is not None,
         ))
+        if span is not None:
+            self._voiceprints.save_clone_reference(
+                speaker_id, audio.cut(*span), audio.sample_rate
+            )
+        else:
+            self._voiceprints.delete_clone_reference(speaker_id)
         return voiceprint
 
     def _embed(self, audio: Audio, language: str) -> Tuple[
-        FloatArray, List[Tuple[float, float]], List[Tuple[float, float]]
+        FloatArray, List[Tuple[float, float]], List[Tuple[float, float]],
+        int,
     ]:
         """Find the speech and embed it (the job that uses the models).
 
-        Return the vectors, their windows and the speech regions.
+        Return the vectors, their windows, the speech regions and the
+        number of words recognised.
         """
         speech = self._recogniser.recognise(audio, language)
         p = self._parameters
         regions = speech_regions(speech.words, p.region_gap)
         windows = analysis_windows(regions, *p.coarse())
-        return self._encoder.embed(audio, windows), windows, regions
+        words = sum(1 for w in speech.words if w.text.strip())
+        return self._encoder.embed(audio, windows), windows, regions, words
 
 
 class ForgetSpeaker:
@@ -212,3 +234,35 @@ class ForgetSpeaker:
         """
         if not self._voiceprints.delete(check_speaker_id(speaker_id)):
             raise NotFoundError(f"No enrolled speaker {speaker_id}.")
+
+
+class WithdrawVoiceClone:
+    """Withdraw a person's consent to their voice being cloned.
+
+    The reference clip is deleted and the consent record says so (with
+    the time); the voiceprint stays (identification is a separate
+    consent). From then on the voice bot cannot clone the voice: it has
+    neither the consent nor the clip. Agreeing again means enrolling
+    again with the box ticked.
+    """
+
+    def __init__(
+        self, voiceprints: VoiceprintRepository, clock: Clock
+    ) -> None:
+        """Wire the ports."""
+        self._voiceprints = voiceprints
+        self._clock = clock
+
+    def __call__(self, speaker_id: str) -> None:
+        """Withdraw it; :class:`NotFoundError` if not enrolled."""
+        check_speaker_id(speaker_id)
+        voiceprint = self._voiceprints.get(speaker_id)
+        consent = self._voiceprints.consent(speaker_id)
+        if voiceprint is None or consent is None:
+            raise NotFoundError(f"No enrolled speaker {speaker_id}.")
+        self._voiceprints.delete_clone_reference(speaker_id)
+        if consent.voice_clone:
+            self._voiceprints.save(voiceprint, consent.model_copy(update={
+                "voice_clone": False,
+                "voice_clone_withdrawn_at": self._clock.now(),
+            }))

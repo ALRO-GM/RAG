@@ -261,6 +261,42 @@ def enrolment_vector(
     return [float(x) for x in mean / norm]
 
 
+CLONE_CLIP_SECONDS = 30.0
+"""Longest reference clip kept for voice cloning (the whole reading)."""
+
+
+def speaking_rate(
+    words: int, regions: Sequence[Tuple[float, float]]
+) -> Optional[float]:
+    """Return ``words`` per second of speech in ``regions``, or None.
+
+    ``regions`` are the stretches of speech (seconds), as the
+    recogniser's word times give them; ``None`` without words or speech.
+    """
+    seconds = speech_seconds(list(regions))
+    if words <= 0 or seconds <= 0:
+        return None
+    return round(words / seconds, 3)
+
+
+def clone_span(
+    regions: Sequence[Tuple[float, float]], duration: float,
+    longest: float = CLONE_CLIP_SECONDS,
+) -> Optional[Tuple[float, float]]:
+    """Return the stretch of the sample kept as a cloning reference.
+
+    From the start of the first speech region to the end of the last
+    one, at most ``longest`` seconds; ``None`` without speech.
+    """
+    spoken = [s for s in clip_spans(regions, duration, "speech region")
+              if s[1] > s[0]]
+    if not spoken:
+        return None
+    start = min(s[0] for s in spoken)
+    end = min(max(s[1] for s in spoken), start + longest)
+    return (start, end)
+
+
 def build_voiceprint(
     speaker_id: str,
     model: str,
@@ -271,6 +307,7 @@ def build_voiceprint(
     regions: Sequence[Tuple[float, float]],
     duration: float,
     rules: SampleRules = SampleRules(),
+    words_per_second: Optional[float] = None,
 ) -> Voiceprint:
     """Check an enrolment sample and return the person's voiceprint.
 
@@ -283,4 +320,5 @@ def build_voiceprint(
         vector=enrolment_vector(vectors, windows, regions, duration, rules),
         consent_version=consent_version,
         enrolled_at=enrolled_at,
+        words_per_second=words_per_second,
     )

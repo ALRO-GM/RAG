@@ -157,9 +157,52 @@
           ]
         },
         "voicebot.voice": {
-          "enum": [
-            "davefx",
-            "sharvard"
+          "anyOf": [
+            {
+              "enum": [
+                "davefx",
+                "sharvard"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^clone:[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+              "description": "The enrolled person's own voice (cloned; needs their consent to cloning, else Piper davefx)."
+            }
+          ]
+        },
+        "voicebot.length_scale": {
+          "type": "string",
+          "pattern": "^[0-9]{1,2}(\\.[0-9]{1,3})?$",
+          "description": "Piper length scale (larger is slower); default 1. A number from 0.7 to 1.5 as text, at most three decimals."
+        },
+        "voicebot.noise_scale": {
+          "type": "string",
+          "pattern": "^[0-9]{1,2}(\\.[0-9]{1,3})?$",
+          "description": "Piper noise scale (intonation variation); default 0.5, the voices' own. A number from 0 to 1 as text, at most three decimals."
+        },
+        "voicebot.noise_w": {
+          "type": "string",
+          "pattern": "^[0-9]{1,2}(\\.[0-9]{1,3})?$",
+          "description": "Piper noise_w (cadence, phoneme length variation); default 0.333, the voices' own. A number from 0 to 1 as text, at most three decimals."
+        },
+        "voicebot.sentence_silence": {
+          "type": "string",
+          "pattern": "^[0-9]{1,2}(\\.[0-9]{1,3})?$",
+          "description": "Seconds of silence after each sentence; default 0. A number from 0 to 1 as text, at most three decimals."
+        },
+        "voicebot.match_rate": {
+          "anyOf": [
+            {
+              "enum": [
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+              "description": "An enrolled person whose measured speaking rate (words/s) sets the length scale."
+            }
           ]
         }
       }

@@ -356,7 +356,18 @@ class VoiceprintRepository(Protocol):
         ...
 
     def delete(self, speaker_id: str) -> bool:
-        """Remove voiceprint and consent; tell whether they existed."""
+        """Remove voiceprint, consent and clip; tell whether they existed."""
+        ...
+
+    def save_clone_reference(
+        self, speaker_id: str, samples: npt.NDArray[np.float32],
+        sample_rate: int,
+    ) -> None:
+        """Keep the reference clip of a voice its owner agreed to clone."""
+        ...
+
+    def delete_clone_reference(self, speaker_id: str) -> bool:
+        """Remove the reference clip; tell whether there was one."""
         ...
 
 

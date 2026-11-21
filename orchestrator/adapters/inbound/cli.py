@@ -14,7 +14,12 @@ default) it also serves the voice bot (``voicebot`` product): Piper
 runs from its own venv (``--piper-python``, voices in
 ``--voices-dir``) and is warmed in the background at start; ``--tts
 fake`` answers with short tones, ``--tts none`` leaves the voice bot
-out.
+out. The voice bot can also speak with an enrolled person's cloned
+voice (``voicebot.voice = clone:<person>`` on «Ajustes»): the cloning
+model runs in its own venv (``--clone-python``, ``--clone-engine``;
+off when that venv is missing or with ``--clone-engine none``), and
+the people's profiles are read from the transcriber's
+``--voiceprints-dir`` (``docs/live/VOICE_CLONING.md``).
 """
 
 import argparse
@@ -47,6 +52,12 @@ from orchestrator.adapters.outbound.piper_tts import (
     PiperTts,
 )
 from orchestrator.adapters.outbound.fs_transcripts import DirTranscripts
+from orchestrator.adapters.outbound.fs_voice_profiles import (
+    DirVoiceProfiles,
+)
+from orchestrator.adapters.outbound.subprocess_cloner import (
+    SubprocessCloner,
+)
 from orchestrator.adapters.outbound.http_transcriber import (
     HttpTranscriber,
     read_code,
@@ -67,6 +78,7 @@ from orchestrator.application.ports import (
     SuggestionSink,
 )
 from orchestrator.application.sessions import LiveSessions
+from orchestrator.application.voice import DEFAULT_BUDGET_MS
 from orchestrator.application.replay import (
     Replay,
     default_roles,
@@ -82,6 +94,15 @@ RAG_TOKEN_FILE = Path("~/.config/ragputin/rag-token").expanduser()
 """The token ``make rag-token`` writes; the RAG wants it as bearer."""
 TRANSCRIBER_CODE_FILE = ROOT / "data" / "transcriber" / "access_code"
 """Where ``transcriber serve --keep-code`` keeps its access code."""
+CLONE_ENGINES = ("chatterbox", "openvoice")
+CLONE_ENGINE = "openvoice"
+"""The cloning model used by default (#207: the only one measured
+within the latency budget; ``docs/live/VOICE_CLONING.md``)."""
+CLONE_PYTHON = Path(
+    "~/.local/share/ragputin/clone-openvoice-venv/bin/python"
+)
+CLONE_BASE_VOICE = "es_ES-davefx-medium"
+"""The Piper voice OpenVoice converts (the one it was measured with)."""
 TRANSCRIPT_DIRS = (ROOT / "data" / "transcripts",
                    ROOT / "examples" / "platform")
 
@@ -152,6 +173,20 @@ def add_serve_parser(
     serve.add_argument("--piper-python", type=Path, default=DEFAULT_PYTHON,
                        help="python of Piper's own venv (GPL-3.0)")
     serve.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES)
+    serve.add_argument("--clone-engine", default=CLONE_ENGINE,
+                       choices=("none",) + CLONE_ENGINES,
+                       help="voice-cloning model (its own venv)")
+    serve.add_argument("--clone-python", type=Path, default=CLONE_PYTHON,
+                       help="python of the cloning model's own venv")
+    serve.add_argument("--clone-device", default="cuda",
+                       choices=("cuda", "cpu"))
+    serve.add_argument("--clone-budget-ms", type=float,
+                       default=DEFAULT_BUDGET_MS,
+                       help="longest wait for a cloned sentence (Piper "
+                            "says it after that)")
+    serve.add_argument("--voiceprints-dir", type=Path,
+                       default=ROOT / "data" / "transcriber" / "voiceprints",
+                       help="the transcriber's voiceprints (profiles)")
 
 
 def parse_speed(text: str) -> Optional[float]:
@@ -283,6 +318,24 @@ def build_tts(
     return tts
 
 
+def build_cloner(args: argparse.Namespace) -> Optional[SubprocessCloner]:
+    """Return the voice cloner, or ``None`` when it is off or missing."""
+    engine = getattr(args, "clone_engine", "none")
+    if engine == "none" or getattr(args, "tts", "none") != "piper":
+        return None
+    python = Path(args.clone_python).expanduser()
+    if not python.exists():
+        print(f"voice cloning off: no venv at {python}", file=sys.stderr)
+        return None
+    extra = [
+        "--piper-python", str(Path(args.piper_python).expanduser()),
+        "--piper-model",
+        str(Path(args.voices_dir).expanduser() / f"{CLONE_BASE_VOICE}.onnx"),
+    ] if engine == "openvoice" else []
+    return SubprocessCloner(python, engine, device=args.clone_device,
+                            extra=extra)
+
+
 def build_sessions(args: argparse.Namespace) -> LiveSessions:
     """Wire the live sessions of ``serve`` from the arguments."""
     args.token = read_code(args.rag_token_file)
@@ -315,6 +368,8 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         turn_log=turns,
         settings=HttpSettings(args.knowledge_url, args.token)
         if args.knowledge == "http" else None,
+        profiles=DirVoiceProfiles(args.voiceprints_dir),
+        cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
     )
 
 

@@ -9,7 +9,8 @@ dependency), and the orchestrator's bearer token is added on the way
 
 Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
-``barge-in`` (the voice bot) and ``suggestions/stream``), and session
+``barge-in`` (the voice bot), ``suggestions/stream`` and
+``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»), and session
 ids are checked; the stream is passed through as it comes (Server-Sent
 Events, with the voice bot's audio inside). It is an inbound adapter that
 talks HTTP itself on purpose: it adds no behaviour to the transcriber,
@@ -32,7 +33,7 @@ DEFAULT_URL = "http://127.0.0.1:8772"
 URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
-    rf"^(?:products|transcripts|sessions|sessions/{_ID}"
+    rf"^(?:products|transcripts|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|suggestions/stream))$"
 )
 MAX_BODY = 16 * 1024
@@ -121,6 +122,11 @@ def add_live_assist_proxy(
         """The user spoke over the voice bot."""
         return await forward(f"sessions/{session_id}/barge-in", request)
 
+    @api.post("/assist/voicebot/sample")
+    async def assist_sample(request: Request) -> Response:
+        """The voice bot's sample sentence with the voice being chosen."""
+        return await forward("voicebot/sample", request)
+
     @api.get("/assist/sessions/{session_id}/suggestions/stream")
     async def assist_stream(session_id: str, request: Request) -> Response:
         """The session's Server-Sent Events."""
@@ -164,6 +170,8 @@ def add_live_assist_proxy(
             answer.content, status_code=answer.status_code,
             media_type=answer.headers.get("content-type",
                                           "application/json"),
+            headers={k: v for k, v in answer.headers.items()
+                     if k.lower().startswith("x-voice-")},
         )
 
 

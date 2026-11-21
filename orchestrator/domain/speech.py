@@ -10,7 +10,9 @@ one ``tts.request.v1`` (:func:`tts_request`) and one
 """
 
 import re
+import wave
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 TTS_SCHEMA = "tts.request.v1"
@@ -216,12 +218,18 @@ def tts_request(
     audio_format: str = "wav",
     length_scale: float = 1.0,
     stream: bool = True,
+    noise_scale: Optional[float] = None,
+    noise_w: Optional[float] = None,
+    sentence_silence: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Build a ``tts.request.v1`` document.
 
+    ``noise_scale``, ``noise_w`` and ``sentence_silence`` are left out
+    when ``None`` (the voice's own).
+
     Raises:
-        ValueError: The text is empty, or an id or the voice breaks the
-            contract.
+        ValueError: The text is empty, or an id, the voice or a control
+            breaks the contract.
     """
     text = _clean(text)
     if not text:
@@ -234,10 +242,38 @@ def tts_request(
         raise ValueError(f"unknown audio format {audio_format!r}")
     if not 0.5 <= length_scale <= 2.0:
         raise ValueError("length_scale must be between 0.5 and 2.0")
-    return {
+    document: Dict[str, Any] = {
         "schema": TTS_SCHEMA, "request_id": request_id,
         "text": text[:MAX_TTS_TEXT], "language": language, "voice": voice,
         "speaker": None, "length_scale": length_scale,
         "format": audio_format, "stream": stream,
         "interrupt_id": interrupt_id,
     }
+    for name, value, high in (("noise_scale", noise_scale, 1.5),
+                              ("noise_w", noise_w, 1.5),
+                              ("sentence_silence", sentence_silence, 2.0)):
+        if value is None:
+            continue
+        if not 0.0 <= value <= high:
+            raise ValueError(f"{name} must be between 0 and {high:g}")
+        document[name] = value
+    return document
+
+
+def wav_bytes(pcm: bytes, sample_rate: int) -> bytes:
+    """Return 16-bit mono PCM as a WAV file's bytes (in memory)."""
+    buffer = BytesIO()
+    with wave.open(buffer, "wb") as writer:
+        writer.setnchannels(1)
+        writer.setsampwidth(2)
+        writer.setframerate(sample_rate)
+        writer.writeframes(pcm)
+    return buffer.getvalue()
+
+
+def pcm_of(chunk: SpeechChunk) -> bytes:
+    """Return the PCM frames of a chunk (its WAV header dropped)."""
+    if chunk.format != "wav":
+        return chunk.audio
+    with wave.open(BytesIO(chunk.audio), "rb") as reader:
+        return reader.readframes(reader.getnframes())

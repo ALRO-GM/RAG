@@ -73,7 +73,7 @@ from transcriber.domain.models import (
 )
 from transcriber.domain.parameters import TranscriptionParameters
 from transcriber.domain.speakers import analysis_windows, turns_from_words
-from transcriber.domain.voices import match_voices, unit_rows
+from transcriber.domain.voices import FloatArray, match_voices, unit_rows
 
 SCRATCH_ID = "lab-scratch"
 MAX_MAPPING_WINDOWS = MAX_LABEL_WINDOWS
@@ -176,6 +176,15 @@ class _NoVoiceprints:
         return []
 
     def delete(self, speaker_id: str) -> bool:
+        """Nothing to delete."""
+        return False
+
+    def save_clone_reference(
+        self, speaker_id: str, samples: FloatArray, sample_rate: int
+    ) -> None:
+        """Keep nothing."""
+
+    def delete_clone_reference(self, speaker_id: str) -> bool:
         """Nothing to delete."""
         return False
 

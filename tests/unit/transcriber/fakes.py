@@ -444,6 +444,7 @@ class FakeVoiceprintRepository:
 
     voiceprints: Dict[str, Voiceprint] = field(default_factory=dict)
     consents: Dict[str, ConsentRecord] = field(default_factory=dict)
+    clips: Dict[str, Any] = field(default_factory=dict)
 
     def save(self, voiceprint: Voiceprint, consent: ConsentRecord) -> None:
         """Store (or replace) both."""
@@ -463,9 +464,20 @@ class FakeVoiceprintRepository:
         return list(self.voiceprints.values())
 
     def delete(self, speaker_id: str) -> bool:
-        """Remove both; tell whether they existed."""
+        """Remove all three; tell whether they existed."""
         self.consents.pop(speaker_id, None)
+        self.clips.pop(speaker_id, None)
         return self.voiceprints.pop(speaker_id, None) is not None
+
+    def save_clone_reference(
+        self, speaker_id: str, samples: Any, sample_rate: int
+    ) -> None:
+        """Keep the clip and its rate."""
+        self.clips[speaker_id] = (samples, sample_rate)
+
+    def delete_clone_reference(self, speaker_id: str) -> bool:
+        """Drop the clip; tell whether there was one."""
+        return self.clips.pop(speaker_id, None) is not None
 
     def enrol(
         self, speaker_id: str, vector: FloatArray, name: Optional[str] = None,
