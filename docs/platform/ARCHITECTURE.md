@@ -152,13 +152,25 @@ repository.
 | Topic | Design rule |
 |---|---|
 | AI Act, recruitment = high-risk (Annex III 4(a)) | The suggester helps the interviewer: next question from the script, uncovered phases, facts from the domain knowledge. It never scores, ranks or labels the candidate live. Post-call assessment of candidates (P1) stays an aid for a trained human (ESTADO §1) and is high-risk: it needs the owner's decision (T-48) before any real use. Check the current application dates: the Digital Omnibus proposal would delay Annex III obligations |
-| Emotion recognition in the workplace is prohibited (Art. 5(1)(f)) | No prosody, emotion or stress inference from voice. Text only |
+| Emotion recognition in the workplace is prohibited (Art. 5(1)(f)); covers candidates and the agents themselves | No prosody, emotion or stress inference from voice for anyone. Interviews: no emotion or state signals about the candidate at all. Support: only *expressed customer signals* from text (§8.1) |
 | Transparency | Notice to the candidate or customer before the call (versioned like the existing consent notice); banner on the live page |
 | Biometrics (GDPR Art. 9) | Stereo mode needs no voiceprint of the other party. Mono mode uses voiceprints only of enrolled, consenting people |
 | Minimisation | Live mode keeps no audio by default; text kept N days (config); deleting a session deletes the live log and the RAG copy |
 | Third-party processor | `claude -p` sends transcript text to Anthropic under the owner's consumer subscription. Fine for the owner's own prototyping. Using it for other people's calls or in a product probably needs Commercial/API terms and a DPA: **owner decision** (PL-14). The reasoner port makes it a config switch (`anthropic-api`, `local`) |
 | Licences | DiariZen CC BY-NC: excluded from P2/P3 commercial configs. Piper (piper1-gpl) GPL-3.0: separate process only. Voices have their own licences. Sortformer CC BY 4.0, faster-whisper MIT, Silero MIT |
 | Employment context | Consent of candidates or employees is rarely "freely given": the legal basis must be decided by the owner/legal, not assumed |
+
+### 8.1 Expressed customer signals (support only)
+
+Owner decision 2026-11-21. In `live_assist.support` the suggester also labels
+what the **customer says** in the text, never what they feel inside and never
+from the voice: `complaint`, `stated_frustration`, `urgency`, `churn_risk`,
+`confusion`, `satisfaction`. Each signal must cite the utterance ids it comes
+from (`about`), is shown as "el cliente dice…" with the quote, and drives the
+suggestion (e.g. third call → offer escalation). The support knowledge domain
+gets an `intent`/`tags` vocabulary for these signals so retrieval can filter
+by them. Disabled by config in every interview product (test). Voice-based
+emotion models are out of scope.
 
 ## 9. Open-source stack
 

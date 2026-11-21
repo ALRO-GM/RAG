@@ -276,6 +276,7 @@ tools keep working.
       "type": "object", "additionalProperties": false, "required": ["kind", "text"],
       "properties": {
         "kind": {"enum": ["question", "follow_up", "answer", "reminder", "caution"]},
+          "signals": {"type": "array", "description": "support only: expressed customer signals from text, each backed by about[]", "items": {"enum": ["complaint", "stated_frustration", "urgency", "churn_risk", "confusion", "satisfaction"]}},
         "text": {"type": "string", "maxLength": 300},
         "rationale": {"type": ["string", "null"], "maxLength": 300},
         "cites": {"type": "array", "items": {"type": "string"}, "description": "chunk ids from retrieved"},
