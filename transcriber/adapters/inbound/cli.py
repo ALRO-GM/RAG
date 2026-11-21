@@ -14,6 +14,7 @@ not be used while ``serve`` is working on a job (one GPU).
 """
 
 import argparse
+import getpass
 import json
 import os
 import re
@@ -32,6 +33,7 @@ from transcriber import __version__
 from transcriber.application.ports import RecordedAudio
 from transcriber.application.transcribe import TranscriptionOptions
 from transcriber.bootstrap import (
+    store_password,
     TranscriberContainer,
     access_code,
     build_container,
@@ -511,6 +513,23 @@ class Commands:
             )
         return 0
 
+    def set_password(self, args: argparse.Namespace) -> int:
+        """Set the login password of the pages, kept only as a salted hash.
+
+        Read from standard input when it is piped (one line), otherwise
+        asked twice without echo; never taken from the arguments, which
+        end up in the shell history and the process list.
+        """
+        if sys.stdin.isatty():
+            password = getpass.getpass("New password: ")
+            if getpass.getpass("Repeat it: ") != password:
+                raise UsageError("The two passwords differ; nothing changed.")
+        else:
+            password = sys.stdin.readline().rstrip("\r\n")
+        store_password(self.settings, password)
+        self.output.line("Password set (only its salted hash is kept).")
+        return 0
+
     def enrolment_text(self, args: argparse.Namespace) -> int:
         """Print the text a person reads aloud to enrol."""
         guide = self.container.enrolment_text(
@@ -575,6 +594,14 @@ def build_parser() -> argparse.ArgumentParser:
     commands.required = True
 
     commands.add_parser("version", help="print the version")
+    commands.add_parser(
+        "set-password", help="set the password of the web login",
+        description=(
+            "Set (or replace) the password the pages ask for. It is read"
+            " from standard input (piped) or asked without echo, and kept"
+            " only as a salted hash in <data_dir>/password.json."
+        ),
+    )
     settings = commands.add_parser("settings", help="print the settings")
     _json_flag(settings)
 
@@ -711,6 +738,7 @@ HANDLERS: Dict[str, Callable[[Commands, argparse.Namespace], int]] = {
     "publish": Commands.publish,
     "speakers": Commands.speakers,
     "enrolment-text": Commands.enrolment_text,
+    "set-password": Commands.set_password,
     "lab": Commands.lab,
     "gpu-lease": Commands.gpu_lease,
     "live-file": Commands.live_file,

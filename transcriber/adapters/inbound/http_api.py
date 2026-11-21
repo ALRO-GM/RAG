@@ -53,6 +53,7 @@ from transcriber.adapters.inbound.access import (
     client_key,
     new_playback_token,
 )
+from transcriber.adapters.inbound.login_throttle import LoginThrottle
 from transcriber.adapters.inbound.playback import (
     WAV_TYPE,
     Unsatisfiable,
@@ -150,6 +151,14 @@ class ApiError(Exception):
         self.code = code
         self.message = message
         self.headers = headers
+
+
+class LoginBody(BaseModel):
+    """Body of ``POST /api/login``: the password (never logged)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    password: str = Field(max_length=1024)
 
 
 class NewSession(BaseModel):
@@ -455,8 +464,15 @@ def create_app(
     container: TranscriberContainer,
     access_code: str,
     now: Callable[[], float] = time.monotonic,
+    check_password: Optional[Callable[[str], bool]] = None,
+    login_throttle: Optional[LoginThrottle] = None,
 ) -> FastAPI:
     """Build the API over ``container``, guarded by ``access_code``.
+
+    With ``check_password``, ``POST /api/login`` trades the password for
+    the access code, throttled by ``login_throttle`` (made over ``now``
+    with the default limits when not given). Without it the route
+    always answers 401.
 
     The code must be at least :data:`MIN_CODE_LENGTH` characters.
     ``now`` is the clock of the failed-code throttling (tests move it).
@@ -471,6 +487,7 @@ def create_app(
         limits.failed_code_limit, limits.failed_code_window,
         limits.failed_code_cooldown, now,
     )
+    throttle = login_throttle or LoginThrottle(now=now)
     enrolments = 0  # in progress or waiting; only touched on the event loop
     playback_token = new_playback_token()
     app = FastAPI(
@@ -574,6 +591,44 @@ def create_app(
     async def health() -> Dict[str, str]:
         """Tell that the API is up; needs no code, reveals nothing."""
         return {"status": "ok"}
+
+    @app.post("/api/login")
+    async def login(request: Request) -> Dict[str, str]:
+        """Trade the password for the access code (the pages' login).
+
+        Throttled per client and globally (see
+        :mod:`~transcriber.adapters.inbound.login_throttle`); the
+        password is compared in constant time against its salted hash
+        and is never logged. Every refusal but a lock is the same 401.
+        """
+        body = parse_json(
+            LoginBody, await read_body(request, limits.json_max_bytes)
+        )
+        peer = request.client.host if request.client is not None else None
+        key = client_key(peer, request.headers, limits.client_ip_header)
+        wait, everyone = throttle.retry_after(key)
+        if wait > 0:
+            LOG.warning(
+                "login refused (%s lock) for %s", "global" if everyone
+                else "client", key,
+            )
+            raise ApiError(
+                429, "too_many_attempts",
+                "Too many attempts; try again later.",
+                {"Retry-After": str(math.ceil(wait))},
+            )
+        right = check_password is not None and await run_in_threadpool(
+            check_password, body.password
+        )
+        if right:
+            throttle.succeeded(key)
+            LOG.info("login ok for %s", key)
+            return {"code": access_code}
+        started = throttle.failed(key)
+        LOG.warning("login failed for %s", key)
+        if started:
+            LOG.error("too many wrong passwords: logins locked globally")
+        raise ApiError(401, "unauthorized", "Wrong password.")
 
     api = APIRouter(prefix="/api", dependencies=[Depends(authorise)])
     playback = APIRouter(

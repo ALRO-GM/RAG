@@ -15,6 +15,7 @@ import { labView } from "./views/lab.js";
 import { analysisView } from "./views/analysis.js";
 import { helpAnalysisView } from "./views/help-analysis.js";
 import { knowledgeView } from "./views/knowledge.js";
+import { loginView } from "./views/login.js";
 import { liveView } from "./views/live.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor } from "./lib/shell.js";
@@ -120,6 +121,7 @@ async function route() {
   app.replaceChildren();
   setCrumbs(crumbsFor(location.hash, t));
   markCurrent();
+  syncLogout();
   if (!readCode()) return noCode();
   const { view, params } = resolve(location.hash);
   showSkeleton();
@@ -134,10 +136,31 @@ async function route() {
   }
 }
 
+/** No code in this browser: ask for the password (the #k link still works). */
 function noCode() {
-  app.replaceChildren(h("section", { class: "stack gate" },
-    h("h1", {}, t("gate.title")), h("p", {}, t("gate.body"))));
+  syncLogout();
+  cleanup = loginView(api, app, (code) => {
+    keepCode(code);
+    route();
+  });
 }
+
+const logoutButton = document.getElementById("logout");
+
+/** Show "Cerrar sesión" only while this browser holds a code. */
+function syncLogout() {
+  if (logoutButton) logoutButton.hidden = !readCode();
+}
+
+logoutButton?.addEventListener("click", () => {
+  if (isBusy()) {
+    alert(t("login.logout_busy"));
+    return;
+  }
+  forgetCode();
+  location.hash = "#/";
+  route();
+});
 
 /** A call that the page cannot go on without failed: say why, offer to retry. */
 function blocking(error, retry) {

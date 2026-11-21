@@ -86,3 +86,20 @@ test("409 busy and 400 unsupported_format come back with their codes", async () 
     return true;
   });
 });
+
+test("login sends the password without a code and returns the code", async () => {
+  const { api, calls } = recorder(() => json(200, { code: "the-access-code" }));
+  assert.deepEqual(await api.login("pw-1234"), { code: "the-access-code" });
+  assert.equal(calls[0].url, "/api/login");
+  assert.equal(calls[0].init.method, "POST");
+  assert.equal(calls[0].init.headers["X-Access-Code"], undefined);
+  assert.deepEqual(JSON.parse(calls[0].init.body), { password: "pw-1234" });
+  assert.ok(!calls[0].url.includes("pw-1234"));
+});
+
+test("a wrong password is unauthorized and a lock is a rate failure with the wait", async () => {
+  const wrong = recorder(() => json(401, { code: "unauthorized", message: "Wrong password." }));
+  await assert.rejects(wrong.api.login("x"), (e) => e instanceof ApiFailure && e.kind === "unauthorized");
+  const locked = recorder(() => json(429, { code: "too_many_attempts", message: "x" }, { "Retry-After": "60" }));
+  await assert.rejects(locked.api.login("x"), (e) => e.kind === "rate" && e.waitSeconds === 60);
+});

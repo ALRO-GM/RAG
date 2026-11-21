@@ -105,6 +105,7 @@ transcriber/
   adapters/
     inbound/         http_api.py (FastAPI, all routes under /api),
                      access.py (access code, throttling of failed codes),
+                     login_throttle.py (password login, `POST /api/login`),
                      playback.py (byte ranges of the player's WAV, streamed),
                      cli.py (Fire), web/ (static pages)
     outbound/        av_audio_decoder.py, whisper_recogniser.py,

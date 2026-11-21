@@ -21,6 +21,16 @@ export const en = {
   "gate.title": "The access link is missing",
   "gate.body": "Open the full link or scan the QR code shown on the workstation of the person organising the meeting. For safety, this page does nothing without it.",
 
+  "login.title": "Sign in",
+  "login.body": "Enter the password to open the app.",
+  "login.password": "Password",
+  "login.submit": "Sign in",
+  "login.wrong": "Wrong password.",
+  "login.locked": "Too many attempts. Try again in {time}.",
+  "login.unavailable": "The computer cannot be reached. Try again in a moment.",
+  "login.logout": "Sign out",
+  "login.logout_busy": "Finish the recording before signing out.",
+
   "err.unavailable": "The computer is not available",
   "err.unavailable_body": "The computer that transcribes cannot be reached. It may be off or offline. What is already saved is not lost.",
   "err.checking": "Checking…",
