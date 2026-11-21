@@ -29,7 +29,8 @@ from tests.fakes import FakeEmbedder
 from tests.integration.test_knowledge_api import knowledge_client
 from tests.integration.test_knowledge_domains import write
 from tests.integration.test_transcript_ingest import AUTH
-from tests.knowledge_samples import make_docx, make_pdf
+from tests.integration.test_layout_extraction import FakeLayout
+from tests.knowledge_samples import make_docx, make_image, make_pdf
 
 App = Tuple[TestClient, ThreadJobQueue]
 
@@ -37,6 +38,14 @@ App = Tuple[TestClient, ThreadJobQueue]
 @pytest.fixture()
 def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> App:
     """Return a client with the document routes and its worker."""
+    return make_app(tmp_path, monkeypatch, DocumentExtractors())
+
+
+def make_app(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    extractor: DocumentExtractors,
+) -> App:
+    """Build the routes over ``extractor`` in a temporary directory."""
     monkeypatch.chdir(tmp_path)
     k = KnowledgeSettings(max_upload_bytes=200_000)
     library: KnowledgeLibrary
@@ -48,8 +57,8 @@ def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> App:
     )
     queue = ThreadJobQueue()
     library = KnowledgeLibrary(
-        registry, FileSystemDocumentStore(k.data_dir), DocumentExtractors(),
-        queue, k.max_upload_bytes, utc_now,
+        registry, FileSystemDocumentStore(k.data_dir), extractor, queue,
+        k.max_upload_bytes, utc_now,
     )
     routes = KnowledgeRoutes(KnowledgeQueryService(registry), library)
     return knowledge_client(tmp_path, registry, routes), queue
@@ -179,6 +188,33 @@ def test_scanned_pdf_fails_with_a_message(app: App) -> None:
     assert statuses == {"scan.pdf": "failed", "ok.pdf": "indexed"}
     pages = {d["name"]: d["pages"] for d in documents(client)}
     assert pages == {"scan.pdf": None, "ok.pdf": 1}
+
+
+def test_images_and_scans_are_read_with_ocr(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With a layout reader a scanned PDF and a PNG are indexed with pages."""
+    pages = {1: "Cinturón de seguridad obligatorio", 2: "| Vía | Límite |"}
+    client, queue = make_app(
+        tmp_path, monkeypatch, DocumentExtractors(FakeLayout(pages)))
+    create(client)
+    assert upload(client, "scan.pdf", make_pdf(["", ""])).status_code == 202
+    assert upload(client, "foto.png", make_image("png")).status_code == 202
+    queue.join()
+    rows = {d["name"]: d for d in documents(client)}
+    assert rows["scan.pdf"]["status"] == "indexed"
+    assert rows["scan.pdf"]["pages"] == 2
+    assert rows["foto.png"]["status"] == "indexed"
+    assert ask(client, "cinturón seguridad")
+
+
+def test_images_are_refused_without_ocr(app: App) -> None:
+    """Without the ``ocr`` group an image upload is a 415 saying why."""
+    client, _ = app
+    create(client)
+    response = upload(client, "foto.png", make_image("png"))
+    assert response.status_code == 415
+    assert "OCR" in response.json()["detail"]
 
 
 @pytest.mark.parametrize("name, data, metadata, status", [

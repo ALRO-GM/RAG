@@ -11,7 +11,7 @@
 //   POST /knowledge/query (knowledge.query.v1 -> knowledge.result.v1).
 
 /** File extensions a company document may have. */
-export const EXTENSIONS = ["pdf", "docx", "odt", "txt", "md", "markdown", "html", "htm", "csv", "xlsx"];
+export const EXTENSIONS = ["pdf", "docx", "odt", "txt", "md", "markdown", "html", "htm", "csv", "xlsx", "png", "jpg", "jpeg", "tif", "tiff", "webp"];
 
 /** The file picker's accept attribute (extensions and their media types). */
 export const ACCEPT = [
@@ -20,6 +20,7 @@ export const ACCEPT = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.oasis.opendocument.text",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/png", "image/jpeg", "image/tiff", "image/webp",
 ].join(",");
 
 /** Largest file sent (the server keeps its own, possibly smaller, limit). */

@@ -4,6 +4,7 @@ Swapping an implementation (another LLM, another vector store, another
 corpus type) means changing a line here, not the use cases.
 """
 
+import os
 import shutil
 from datetime import datetime, timezone
 from functools import cached_property, partial
@@ -21,7 +22,11 @@ from src.adapters.outbound.cross_encoder_reranker import (
     CrossEncoderReranker,
 )
 from src.adapters.outbound.fs_corpus import FileSystemCorpus, MultiRootCorpus
+from src.adapters.outbound.claude_captioner import ClaudeCodeCaptioner
+from src.adapters.outbound.docling_pages import DoclingPages, docling_available
 from src.adapters.outbound.document_extractors import DocumentExtractors
+from src.adapters.outbound.florence_captioner import FlorenceCaptioner
+from src.adapters.outbound.gpu_lease_file import FileGpuGate, lease_directory
 from src.adapters.outbound.fs_document_store import FileSystemDocumentStore
 from src.adapters.outbound.fs_domain_catalogue import (
     FileSystemDomainCatalogue,
@@ -67,7 +72,7 @@ from src.application.benchmarking import BenchmarkService
 from src.application.datasets import DatasetService
 from src.application.experiments import ExperimentService
 from src.application.indexing import IndexingService
-from src.application.knowledge.ports import IndexState
+from src.application.knowledge.ports import ImageCaptioner, IndexState
 from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
@@ -434,13 +439,34 @@ class Container:
         )
 
     @cached_property
+    def document_extractors(self) -> DocumentExtractors:
+        """Upload readers; with layout and OCR when group ``ocr`` is there."""
+        k = self.knowledge_settings
+        layout = None
+        if k.ocr and docling_available():
+            layout = DoclingPages(
+                FileGpuGate(lease_directory(os.environ))
+            )
+        captioner: Optional[ImageCaptioner] = None
+        if layout is not None and k.caption_backend == "florence":
+            captioner = FlorenceCaptioner(
+                FileGpuGate(lease_directory(os.environ)), k.caption_model
+            )
+        elif layout is not None and k.caption_backend == "claude":
+            captioner = ClaudeCodeCaptioner()
+        return DocumentExtractors(
+            layout, k.layout_text_pages, k.layout_batch_pages, captioner,
+            k.max_figures,
+        )
+
+    @cached_property
     def knowledge_library(self) -> KnowledgeLibrary:
         """Domains and their uploaded documents (one background worker)."""
         k = self.knowledge_settings
         return KnowledgeLibrary(
             self.knowledge_registry,
             FileSystemDocumentStore(k.data_dir),
-            DocumentExtractors(),
+            self.document_extractors,
             ThreadJobQueue(),
             k.max_upload_bytes,
             utc_now,

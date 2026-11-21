@@ -48,6 +48,12 @@ def test_sanitise_filename(name: str, expected: str) -> None:
     ("a.htm", b"<html><p>x</p>", "html"),
     ("a.markdown", "# Título\n".encode(), "md"),
     ("a.txt", b"\xef\xbb\xbfplain", "txt"),
+    ("scan.PNG", b"\x89PNG\r\n\x1a\n....", "png"),
+    ("foto.jpeg", b"\xff\xd8\xff\xe0", "jpg"),
+    ("foto.jpg", b"\xff\xd8\xff\xdb", "jpg"),
+    ("scan.tif", b"II*\x00....", "tiff"),
+    ("scan.tiff", b"MM\x00*....", "tiff"),
+    ("a.webp", b"RIFF\x10\x00\x00\x00WEBPVP8 ", "webp"),
 ])
 def test_detect_type(name: str, head: bytes, kind: str) -> None:
     """The extension chooses among types whose signature matches."""
@@ -62,6 +68,9 @@ def test_detect_type(name: str, head: bytes, kind: str) -> None:
     ("a.md", b"%PDF-1.4", "not a valid MD"),
     ("a.doc", b"\xd0\xcf\x11\xe0\xa1\xb1", "Legacy Office"),
     ("a.xls", b"\xd0\xcf\x11\xe0\xa1\xb1", "Legacy Office"),
+    ("a.png", b"%PDF-1.7", "not a valid PNG image"),
+    ("a.jpg", b"\x89PNG\r\n\x1a\n", "not a valid JPG image"),
+    ("a.webp", b"RIFF\x10\x00\x00\x00WAVEfmt ", "not a valid WEBP image"),
     ("a.exe", b"MZ", "Unsupported file type"),
     ("noextension", b"hello", "Unsupported file type"),
 ])

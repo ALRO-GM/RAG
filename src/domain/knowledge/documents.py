@@ -33,8 +33,21 @@ EXTENSIONS: Dict[str, Tuple[str, ...]] = {
     "html": (".html", ".htm"),
     "md": (".md", ".markdown"),
     "txt": (".txt",),
+    "png": (".png",),
+    "jpg": (".jpg", ".jpeg"),
+    "tiff": (".tif", ".tiff"),
+    "webp": (".webp",),
 }
 """Supported types and the file extensions that announce them."""
+
+IMAGE_SIGNATURES: Dict[str, Tuple[bytes, ...]] = {
+    "png": (b"\x89PNG\r\n\x1a\n",),
+    "jpg": (b"\xff\xd8\xff",),
+    "tiff": (b"II*\x00", b"MM\x00*"),
+    "webp": (b"RIFF",),
+}
+"""First bytes of each image type (WebP also has ``WEBP`` at byte 8)."""
+IMAGE_TYPES = tuple(IMAGE_SIGNATURES)
 
 ZIP_TYPES = ("docx", "odt", "xlsx")
 TEXT_TYPES = ("csv", "html", "md", "txt")
@@ -149,6 +162,17 @@ def detect_type(name: str, head: bytes) -> str:
         )
     is_pdf = b"%PDF-" in head[:1024]
     is_zip = head.startswith(b"PK\x03\x04")
+    if kind in IMAGE_TYPES:
+        starts = head.startswith(IMAGE_SIGNATURES[kind])
+        if kind == "webp":
+            starts = starts and head[8:12] == b"WEBP"
+        if not starts:
+            raise UnsupportedDocumentError(
+                f"El contenido de {name!r} no es una imagen "
+                f"{kind.upper()} válida. / The content of {name!r} is not "
+                f"a valid {kind.upper()} image."
+            )
+        return kind
     ok = {
         "pdf": is_pdf,
         "docx": is_zip, "odt": is_zip, "xlsx": is_zip,
