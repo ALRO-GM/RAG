@@ -340,6 +340,17 @@ whatever `claude -p --model haiku` reports.)
 ```
 Response: audio bytes, with headers `X-Request-Id` and `X-Synth-Ms`.
 
+Implemented in-process by the orchestrator's `TextToSpeech` port
+(`orchestrator/adapters/outbound/piper_tts.py`, VB-1): Piper runs as its
+own process from its own venv (GPL-3.0, never imported), one process per
+voice kept warm. With `stream: true` the text is cut into sentences and
+one audio chunk (`SpeechChunk`: `request_id`, `seq`, `text`, `audio`,
+`format`, `sample_rate`, `synth_ms`) is yielded per sentence as soon as
+it is synthesised; `sample_rate` is the voice's own (22050 Hz for the
+`medium` voices), whatever the request says. A later request whose
+`interrupt_id` names a running one stops it after its current sentence
+(barge-in). No HTTP `POST /tts` exists yet.
+
 ## 7. gpu-lease.v1 (file, not HTTP)
 
 ```json

@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Iterator, List, Protocol
 
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord
+from orchestrator.domain.speech import SpeechChunk
 
 Document = Dict[str, Any]
 """A contract document as plain JSON."""
@@ -50,6 +51,24 @@ class ReasonerPort(Protocol):
 
         Raises:
             ReasonerUnavailable: The service could not be reached.
+        """
+        ...
+
+
+class TextToSpeech(Protocol):
+    """Text to speech (Piper in a process of its own)."""
+
+    def synthesize(
+        self, request: Document, cancel: CancelToken
+    ) -> Iterator[SpeechChunk]:
+        """Speak a ``tts.request.v1``: one chunk per sentence, in order.
+
+        With ``stream`` true each sentence is yielded as soon as it is
+        synthesised; no more are made once ``cancel`` is set, or once a
+        later request names this one in its ``interrupt_id`` (barge-in).
+
+        Raises:
+            TtsUnavailable: The synthesiser could not be run.
         """
         ...
 
@@ -162,6 +181,10 @@ class KnowledgeUnavailable(Exception):
 
 class ReasonerUnavailable(Exception):
     """The reasoner service could not be reached."""
+
+
+class TtsUnavailable(Exception):
+    """The text-to-speech process could not speak."""
 
 
 class TranscriberUnavailable(Exception):

@@ -7,13 +7,18 @@ retrieved chunk in ``cites``), and can sleep to imitate a service's
 latency.
 """
 
+import math
 import time
-from typing import Any, Callable, Dict, List, Optional
+import wave
+from array import array
+from io import BytesIO
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from orchestrator.application.ports import (
     CancelToken,
     Document,
 )
+from orchestrator.domain.speech import SpeechChunk, split_sentences
 
 
 class FakeKnowledge:
@@ -115,3 +120,63 @@ class FakeReasoner:
             "model": "fake", "backend": "local",
             "latency": {"total_ms": self.delay * 1000.0},
         }
+
+
+def tone_wav(seconds: float, rate: int = 16000, pitch: float = 220.0) -> bytes:
+    """Return a quiet tone as a 16-bit mono WAV file (tiny test audio)."""
+    count = max(1, int(seconds * rate))
+    samples = array("h", (
+        int(3000 * math.sin(2 * math.pi * pitch * i / rate))
+        for i in range(count)
+    ))
+    buffer = BytesIO()
+    with wave.open(buffer, "wb") as writer:
+        writer.setnchannels(1)
+        writer.setsampwidth(2)
+        writer.setframerate(rate)
+        writer.writeframes(samples.tobytes())
+    return buffer.getvalue()
+
+
+class FakeTts:
+    """A synthesiser that answers each sentence with a short tone.
+
+    Args:
+        seconds_per_word: Length of the tone per word of the sentence.
+        delay: Seconds to wait per sentence (imitates Piper's time).
+        rate: Sample rate of the tones.
+        sleep: Waits (replaced in tests).
+    """
+
+    def __init__(
+        self,
+        seconds_per_word: float = 0.05,
+        delay: float = 0.0,
+        rate: int = 16000,
+        sleep: Callable[[float], None] = time.sleep,
+    ):
+        """Keep the options."""
+        self.seconds_per_word = seconds_per_word
+        self.delay = delay
+        self.rate = rate
+        self._sleep = sleep
+        self.requests: List[Document] = []
+
+    def synthesize(
+        self, request: Document, cancel: CancelToken
+    ) -> Iterator[SpeechChunk]:
+        """Yield one tone per sentence until ``cancel`` is set."""
+        self.requests.append(request)
+        for seq, sentence in enumerate(split_sentences(request["text"])):
+            if cancel.cancelled:
+                return
+            if self.delay:
+                self._sleep(self.delay)
+            wav = tone_wav(self.seconds_per_word * len(sentence.split()),
+                           self.rate)
+            audio = wav if request.get("format") == "wav" else wav[44:]
+            yield SpeechChunk(
+                request_id=request["request_id"], seq=seq, text=sentence,
+                audio=audio, format=request.get("format") or "pcm_s16le",
+                sample_rate=self.rate, synth_ms=self.delay * 1000.0,
+            )
