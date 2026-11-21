@@ -19,6 +19,12 @@ The worker thread outlives any job: whatever a job raises, even
 :class:`SystemExit` or :class:`KeyboardInterrupt`, is recorded as its
 failure and the next job runs. A :class:`Progress` used after its job
 ended changes nothing.
+
+With a :class:`~transcriber.application.ports.GpuLease` the runner is
+a batch client of the GPU: while a live lease (``gpu-lease.v1``) is
+valid no job starts, it stays queued and is polled every few seconds
+(live > batch). A job already running is not interrupted. Closing the
+runner stops the waiting, so the queued jobs then drain.
 """
 
 import logging
@@ -30,7 +36,7 @@ from typing import (
 )
 
 from transcriber.application.gpu import drop_frames
-from transcriber.application.ports import Job, JobStatus
+from transcriber.application.ports import GpuLease, Job, JobStatus
 from transcriber.application.transcribe import DONE_STAGE
 from transcriber.domain.errors import StateError
 from transcriber.domain.models import SessionState
@@ -44,6 +50,9 @@ class _Token:
 
 _Item = Tuple[str, _Token, Job]
 T = TypeVar("T")
+
+LEASE_POLL_SECONDS = 5.0
+LEASE_NOTE = "Waiting: a live session holds the GPU."
 
 
 class _Call(Generic[T]):
@@ -108,10 +117,16 @@ class ThreadJobRunner:
     """Run submitted jobs one at a time on a background thread."""
 
     def __init__(
-        self, after_job: Optional[Callable[[], None]] = None
+        self,
+        after_job: Optional[Callable[[], None]] = None,
+        lease: Optional[GpuLease] = None,
+        lease_poll: float = LEASE_POLL_SECONDS,
     ) -> None:
         """Prepare the queue; the thread starts with the first job."""
         self._after_job = after_job
+        self._lease = lease
+        self._lease_poll = lease_poll
+        self._wake = threading.Event()
         self._queue: "queue.Queue[Union[_Item, _Call[Any], None]]" = (
             queue.Queue()
         )
@@ -200,6 +215,7 @@ class ThreadJobRunner:
         with self._lock:
             self._closed = True
             thread = self._thread
+        self._wake.set()
         if thread is not None:
             self._queue.put(None)
             thread.join(timeout)
@@ -254,6 +270,7 @@ class ThreadJobRunner:
                 self._queue.task_done()
                 return
             try:
+                self._defer_while_leased(item)
                 if isinstance(item, _Call):
                     item()
                 else:
@@ -266,6 +283,23 @@ class ThreadJobRunner:
                 item = None
                 self._clean_up()
                 self._queue.task_done()
+
+    def _defer_while_leased(self, item: Union[_Item, "_Call[Any]"]) -> None:
+        """Wait while a valid live lease is held (until closed).
+
+        A queued job gets a note saying why it waits.
+        """
+        if self._lease is None:
+            return
+        noted = False
+        while not self._closed:
+            lease = self._lease.current()
+            if lease is None or lease.priority != "live":
+                return
+            if not noted and not isinstance(item, _Call):
+                self._note(item[0], item[1], LEASE_NOTE)
+                noted = True
+            self._wake.wait(self._lease_poll)
 
     def _run(self, session_id: str, token: _Token, job: Job) -> None:
         """Run one job and record how it ended; never raise."""

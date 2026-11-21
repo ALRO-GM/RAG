@@ -35,6 +35,7 @@ from transcriber.bootstrap import (
     TranscriberContainer,
     access_code,
     build_container,
+    build_gpu_lease,
     build_tunnel,
     start_container,
     tunnel_problem,
@@ -190,8 +191,10 @@ class Commands:
         build: Callable[[TranscriberSettings], TranscriberContainer] = (
             build_container
         ),
+        environ: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Keep the settings; nothing is built yet."""
+        self.environ = os.environ if environ is None else environ
         self.settings = settings
         self.output = output
         self._build = build
@@ -526,6 +529,15 @@ class Commands:
             self.output.line(guide.reading or chosen.template)
         return 0
 
+    def gpu_lease(self, args: argparse.Namespace) -> int:
+        """Show, hold or delete the cooperative GPU lease."""
+        from transcriber.adapters.inbound.gpu_lease_cli import (
+            GpuLeaseCommands,
+        )
+
+        lease = build_gpu_lease(self.environ)
+        return GpuLeaseCommands(lease, self.output).run(args)
+
     def lab(self, args: argparse.Namespace) -> int:
         """List the lab's models, run a suite, list or summarise runs."""
         from transcriber.adapters.inbound.lab_cli import LabCommands
@@ -666,8 +678,12 @@ def build_parser() -> argparse.ArgumentParser:
     text.add_argument("--name", help="fill the text with this name")
     _json_flag(text)
 
+    from transcriber.adapters.inbound.gpu_lease_cli import (
+        add_gpu_lease_parser,
+    )
     from transcriber.adapters.inbound.lab_cli import add_lab_parser
 
+    add_gpu_lease_parser(commands, _json_flag)
     add_lab_parser(commands, _json_flag)
     return parser
 
@@ -685,6 +701,7 @@ HANDLERS: Dict[str, Callable[[Commands, argparse.Namespace], int]] = {
     "speakers": Commands.speakers,
     "enrolment-text": Commands.enrolment_text,
     "lab": Commands.lab,
+    "gpu-lease": Commands.gpu_lease,
 }
 
 
@@ -706,7 +723,7 @@ def main(
     except (OSError, ValueError, ValidationError) as exc:
         output.note(f"transcriber: invalid settings: {exc}")
         return 2
-    commands = Commands(settings, output)
+    commands = Commands(settings, output, environ=environ)
     try:
         return HANDLERS[args.command](commands, args)
     except UsageError as exc:

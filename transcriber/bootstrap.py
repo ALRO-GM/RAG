@@ -77,6 +77,9 @@ from transcriber.adapters.outbound.subprocess_lab_tool import (
 )
 from transcriber.adapters.outbound.system_clock import SystemClock
 from transcriber.adapters.outbound.local_name_model import LocalNameModel
+from transcriber.adapters.outbound.fs_gpu_lease import (
+    FileSystemGpuLease, lease_directory,
+)
 from transcriber.adapters.outbound.thread_job_runner import ThreadJobRunner
 from transcriber.adapters.outbound.torch_gpu_memory import TorchGpuMemory
 from transcriber.adapters.outbound.thread_session_locks import (
@@ -126,6 +129,7 @@ from transcriber.application.lab_reference import (
 from transcriber.application.ports import (
     AudioDecoder,
     Clock,
+    GpuLease,
     Diarizer,
     OverlapDetector,
     SessionLocks,
@@ -480,6 +484,11 @@ def build_publisher(
     return DirectoryTranscriptPublisher(settings.published())
 
 
+def build_gpu_lease(environ: Mapping[str, str]) -> GpuLease:
+    """Return the file lease of the live mode (``gpu-lease.v1``)."""
+    return FileSystemGpuLease(lease_directory(environ))
+
+
 def build_container(
     settings: Optional[TranscriberSettings] = None,
     environ: Optional[Mapping[str, str]] = None,
@@ -521,7 +530,13 @@ def build_container(
         settings.data_dir, encoder.model_name
     )
     decoder = AvAudioDecoder()
-    runner = ThreadJobRunner(after_job=gpu.free)
+    runner = ThreadJobRunner(
+        after_job=gpu.free,
+        lease=FileSystemGpuLease(
+            lease_directory(environment), holder="transcriber-batch",
+            priority="batch",
+        ),
+    )
     publisher = build_publisher(settings, environ)
     clock = SystemClock()
     locks = ThreadSessionLocks()
