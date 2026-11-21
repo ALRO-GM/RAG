@@ -63,12 +63,15 @@ class TurnStages(BaseModel):
     Every value counts from the moment the turn started (the user's
     final reached the orchestrator), except ``event_lag_ms``, the
     transcriber's own end of speech → final (``timings.lag_ms``), and
-    ``first_tts_ms``, the synthesis time of the first sentence. The end
+    ``first_tts_ms``, the synthesis time of the first sentence.
+    ``director_ms`` is the time a turn director took to decide the turn
+    (the AI interviewer's slot filler, #208). The end
     of the user's turn to the first audio is ``event_lag_ms +
     first_audio_ms`` plus the transport to the browser.
     """
 
     event_lag_ms: Optional[float] = None
+    director_ms: Optional[float] = None
     knowledge_ms: Optional[float] = None
     first_text_ms: Optional[float] = None
     first_sentence_ms: Optional[float] = None

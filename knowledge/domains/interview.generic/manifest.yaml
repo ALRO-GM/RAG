@@ -1,11 +1,14 @@
 id: interview.generic
 title: Entrevista de trabajo genérica
 language: es
-description: "Guía sintética (ficticia) para entrevistas de selección: fases del guion, buenas repreguntas y qué no preguntar. Sin puntuación de personas candidatas."
+description: "Guía sintética (ficticia) para entrevistas de selección: fases del guion, buenas repreguntas y qué no preguntar. Incluye un corpus de método (metodo-entrevista.jsonl) para un entrevistador de voz con IA: estructura, requisitos por tipo de puesto, preguntas STAR y repreguntas por competencia de la rúbrica core, cierre y preguntas prohibidas. Las etiquetas puesto_* y comp_* indican el tipo de puesto y la competencia. Sin puntuación de personas candidatas."
 vocabularies:
-  intent: [open_conversation, explain_process, ask_experience, ask_technical, ask_behavioural, follow_up, clarify, legal_guard, candidate_question, close_process]
+  intent: [open_conversation, explain_process, ask_experience, ask_technical, ask_behavioural, follow_up, clarify, legal_guard, candidate_question, close_process, structure, ask_requirement, evidence_guide]
   script_phase: [opening, experience, technical, behavioural, closing]
-  tags: [plantilla, logistica, tecnico, conducta, seguimiento, legal]
+  tags: [plantilla, logistica, tecnico, conducta, seguimiento, legal,
+         estructura, exploracion, requisito, ejemplo_respuesta, evidencia, star, repregunta, cierre,
+         puesto_todos, puesto_tecnico, puesto_comercio, puesto_atencion_cliente, puesto_hosteleria, puesto_almacen, puesto_oficina,
+         comp_comm, comp_listen, comp_influ, comp_collab, comp_incl, comp_confl, comp_feedb, comp_coord, comp_solve, comp_init, comp_adapt]
 # Things the interviewer must say in every interview (LV-16,
 # docs/live/MANDATORY_ITEMS.md). Synthetic wording, not legal advice.
 # Raise the version whenever an item or example changes.

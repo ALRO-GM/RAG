@@ -31,7 +31,7 @@ kept; the text is never logged here.
 import base64
 import threading
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, Protocol
 
 from orchestrator.application.ports import (
     BotOutput,
@@ -61,6 +61,56 @@ from orchestrator.domain.speech import (
     SpeechChunk,
 )
 from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
+
+
+class Directed(Protocol):
+    """What a directed turn must do (see :class:`TurnDirector`)."""
+
+    @property
+    def payload(self) -> Document:
+        """The reasoner request's ``payload``."""
+        ...
+
+    @property
+    def query(self) -> str:
+        """The knowledge query."""
+        ...
+
+
+class TurnDirector(Protocol):
+    """Decides what each turn does (the AI interviewer, #208).
+
+    Without one the bot answers the user from the knowledge domain;
+    with one, every turn asks the director first: its ``payload`` goes
+    to the reasoner's request and its ``query`` to the knowledge
+    domain. The director also hears the user's finals, is told what
+    the bot spoke and is finished when the session ends.
+    """
+
+    @property
+    def closed(self) -> bool:
+        """Whether no more turns are wanted."""
+        ...
+
+    def heard(self, utterance: str, text: str, start: float,
+              end: float) -> None:
+        """Take one final of the user."""
+        ...
+
+    def plan_turn(
+        self, answer: str, utterance: Optional[str], cancel: CancelToken
+    ) -> Directed:
+        """Decide a turn (``utterance`` ``None``: the bot speaks first)."""
+        ...
+
+    def spoken(self, record: TurnRecord) -> None:
+        """Take the record of a turn that spoke."""
+        ...
+
+    def finish(self) -> Optional[Document]:
+        """The session ended."""
+        ...
+
 
 MAX_REQUEST_ID = 64
 CHUNK_TEXT = 600
@@ -217,6 +267,7 @@ class VoiceBot:
         clock: Monotonic time.
         executor: Runs a turn (inline or on a thread).
         roles: Speaker id → role (the user).
+        director: Decides each turn (the AI interviewer), if any.
     """
 
     def __init__(
@@ -229,6 +280,7 @@ class VoiceBot:
         clock: Clock,
         executor: Executor,
         roles: Dict[str, str],
+        director: Optional[TurnDirector] = None,
     ):
         """Wire the ports; no turn yet."""
         if (config.trigger is None or config.reasoner is None
@@ -258,6 +310,7 @@ class VoiceBot:
         self._lock = threading.Lock()
         self._inflight: Optional[_Turn] = None
         self._last_turn: Optional[_Turn] = None
+        self.director = director
 
     # ---- events ----------------------------------------------------------
 
@@ -281,6 +334,9 @@ class VoiceBot:
         if event.type == "final" and u is not None:
             self._keep({"id": u.id, "speaker": u.speaker, "text": u.text,
                         "start": u.start, "end": u.end})
+            if (self.director is not None
+                    and self.roles.get(u.speaker) in self.user_roles):
+                self.director.heard(u.id, u.text, u.start, u.end)
         decision = self.policy.decide(event)
         if isinstance(decision, Skip):
             self._skip(decision.reason)
@@ -288,8 +344,17 @@ class VoiceBot:
             self._fire(event, decision)
 
     def finish(self) -> None:
-        """Wait for the turn in flight, if any."""
+        """Wait for the turn in flight, if any; finish the director."""
         self.executor.wait_idle()
+        if self.director is not None:
+            self.director.finish()
+
+    def open(self, session_id: str) -> None:
+        """Start a turn without the user (the bot speaks first)."""
+        self._fire_turn(session_id, Firing(
+            utterance_id="", speaker=BOT_SPEAKER, role="bot", text="",
+            stream_time=0.0,
+        ), None, opening=True)
 
     def barge_in(self, by: str = "vad") -> bool:
         """The user spoke over the bot: stop the turn and the playback.
@@ -340,6 +405,17 @@ class VoiceBot:
 
     def _fire(self, event: LiveEvent, firing: Firing) -> None:
         """Start a turn, cancelling (or keeping) the one in flight."""
+        if self.director is not None and self.director.closed:
+            self._skip("closed")
+            return
+        lag = event.timings.lag_ms if event.timings is not None else None
+        self._fire_turn(event.session_id, firing, lag)
+
+    def _fire_turn(
+        self, session_id: str, firing: Firing, lag: Optional[float],
+        opening: bool = False,
+    ) -> None:
+        """Start a turn for ``firing`` (see :meth:`_fire`)."""
         with self._lock:
             if self.halted is not None:
                 self.skips["halted"] = self.skips.get("halted", 0) + 1
@@ -351,14 +427,14 @@ class VoiceBot:
             self.turns += 1
             number = self.turns
             window = list(self._window)
-            query = self._user_turn() or firing.text
+            query = "" if opening else (self._user_turn() or firing.text)
         if stale is not None and not stale.token.cancelled:
             self._interrupt(stale, "new_turn")
         previous = self._last_turn
         token = CancelToken()
         record = TurnRecord(
-            session_id=event.session_id, turn=number,
-            request_id=f"{event.session_id}-b{number}"[-MAX_REQUEST_ID:],
+            session_id=session_id, turn=number,
+            request_id=f"{session_id}-b{number}"[-MAX_REQUEST_ID:],
             trigger=TriggerInfo(
                 utterance=firing.utterance_id, speaker=firing.speaker,
                 role=firing.role, stream_time=firing.stream_time,
@@ -366,8 +442,7 @@ class VoiceBot:
             ),
             status="error",
         )
-        if event.timings is not None:
-            record.stages.event_lag_ms = event.timings.lag_ms
+        record.stages.event_lag_ms = lag
         turn = _Turn(self, record, token, self.clock.now(),
                      previous.last_request if previous else None)
         with self._lock:
@@ -376,7 +451,10 @@ class VoiceBot:
         self.output.publish({"type": "bot", "turn": number,
                              "state": "thinking",
                              "utterance": firing.utterance_id})
-        self.executor.submit(lambda: self._run(turn, query, window))
+        utterance = None if opening else firing.utterance_id
+        self.executor.submit(
+            lambda: self._run(turn, query, window, utterance)
+        )
 
     def _interrupt(self, turn: _Turn, by: str) -> None:
         """Stop a turn and tell the page to stop its playback."""
@@ -386,18 +464,28 @@ class VoiceBot:
                              "turn": turn.record.turn, "by": by})
 
     def _run(
-        self, turn: _Turn, query: str, window: List[Dict[str, Any]]
+        self, turn: _Turn, query: str, window: List[Dict[str, Any]],
+        utterance: Optional[str] = None,
     ) -> None:
-        """Run one turn: knowledge, reasoner, speech."""
+        """Run one turn: (director,) knowledge, reasoner, speech."""
         record = turn.record
         if turn.token.cancelled:
             self._close(turn, "cancelled")
             return
+        payload: Optional[Document] = None
+        if self.director is not None:
+            asked = self.clock.now()
+            directed = self.director.plan_turn(query, utterance, turn.token)
+            record.stages.director_ms = _ms(self.clock.now() - asked)
+            payload = directed.payload
+            query = directed.query
         chunks = self._retrieve(query, record)
         if turn.token.cancelled:
             self._close(turn, "cancelled")
             return
         request = self._request(record, window, chunks)
+        if payload is not None:
+            request["payload"] = payload
         asked = self.clock.now()
         status: CallStatus = "error"
         final: Optional[str] = None
@@ -503,4 +591,6 @@ class VoiceBot:
                     "id": f"b{record.turn}", "speaker": BOT_SPEAKER,
                     "text": " ".join(record.spoken),
                 })
+        if self.director is not None and record.spoken:
+            self.director.spoken(record)
         self.output.record(record)

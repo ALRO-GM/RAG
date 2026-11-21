@@ -32,6 +32,7 @@ class Parsed:
 
     suggestions: Tuple[Suggestion, ...] = ()
     reply: Optional[Reply] = None
+    data: Optional[Dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -381,12 +382,273 @@ SUGGESTER_SUPPORT_V2 = Template(
     parse=_support_modes_parse, max_output_tokens=MODES_MAX_OUTPUT_TOKENS,
 )
 
+# ---- the AI interviewer (#208) ------------------------------------------
+
+INTERVIEWER_MAX_OUTPUT_TOKENS = 160
+"""Cap of ``interviewer@1``: one JSON reply of at most 45 spoken words."""
+PLANNER_MAX_OUTPUT_TOKENS = 2400
+"""Cap of ``interview.planner@1``: up to 10 slots with their questions."""
+SLOTS_MAX_OUTPUT_TOKENS = 160
+"""Cap of ``interview.slots@1``: at most three slots with short quotes."""
+OFFER_CHARS = 12000
+"""Longest job offer the planner reads (the rest is cut)."""
+ROLE_TYPES = (
+    "tecnico", "comercio", "atencion_cliente", "hosteleria", "almacen",
+    "oficina", "otro",
+)
+"""Kinds of job of an interview plan (tags ``puesto_*`` of the corpus)."""
+
+
+def _payload_text(request: ReasonRequest, key: str, limit: int) -> str:
+    """Return ``payload[key]`` as text cut to ``limit`` characters."""
+    value = request.payload.get(key)
+    return str(value)[:limit] if isinstance(value, (str, int, float)) else ""
+
+
+def _payload_list(request: ReasonRequest, key: str) -> List[Any]:
+    """Return ``payload[key]`` when it is a list (else empty)."""
+    value = request.payload.get(key)
+    return value if isinstance(value, list) else []
+
+
+def _interviewer_system(request: ReasonRequest) -> str:
+    return (
+        "You are an AI interviewer holding a job interview by voice, in "
+        f"{language_name(request.language)}. Each turn gives you the step "
+        "the interview plan decided: ACTION (open, ask, probe, clarify, "
+        "answer or close), the topic, question ideas and the evidence "
+        "wanted. Say it in one or two short spoken sentences, at most 45 "
+        "words, natural and polite. open: greet, say you are an AI "
+        "interviewer, how many minutes it takes, and ask the first "
+        "question. ask: a brief neutral acknowledgement, then one "
+        "question on the topic. "
+        "probe: ask for the concrete part that is missing (what they did "
+        "themselves, a real example, the result), without repeating the "
+        "whole question. answer: answer the candidate's question briefly "
+        "from the job summary or the chunks (or say the team will answer "
+        "it later), then ask the step's question. clarify: say "
+        "the answer on this topic was not fully clear and ask whether "
+        "they want to add something or go on to the next question "
+        "(\"No me ha quedado del todo claro esto; ¿quieres matizarlo o "
+        "pasamos a la siguiente pregunta?\"). close: thank them, say "
+        "the team will contact them about next steps and say goodbye, "
+        "with no question. Ask exactly one question per turn. Never give "
+        "a score, a rating, feedback on how well they answered or whether "
+        "they will pass; never praise or criticise an answer. Never ask "
+        "about age, family, pregnancy, health, religion, politics, union "
+        "membership, sexual orientation, origin or other protected "
+        "topics; if the candidate brings one up, say it is not needed and "
+        "go on. Reply with one JSON object: "
+        '{"text": "...", "cites": ["chunk id", ...]}.'
+    )
+
+
+def _interviewer_user(request: ReasonRequest) -> str:
+    ideas = [str(q)[:200] for q in _payload_list(request, "questions")[:3]]
+    lines = [
+        f"Job: {_payload_text(request, 'title', 120) or '?'}",
+        f"Job summary: {_payload_text(request, 'summary', 400) or '?'}",
+        f"Minutes: {_payload_text(request, 'minutes', 8) or '?'} in total, "
+        f"{_payload_text(request, 'minutes_left', 8) or '?'} left",
+        f"ACTION: {_payload_text(request, 'action', 12) or 'ask'}",
+        f"Topic: {_payload_text(request, 'topic', 120) or '-'}",
+        "Question ideas: " + (" | ".join(ideas) or "-"),
+        f"Evidence wanted: {_payload_text(request, 'evidence', 240) or '-'}",
+    ]
+    missing = _payload_text(request, "missing", 240)
+    if missing:
+        lines.append(f"Missing: {missing}")
+    return (
+        "\n".join(lines)
+        + f"\n\nKnowledge:\n{chunks_text(request) or '(none)'}\n\n"
+        f"Conversation:\n{window_text(request) or '(none yet)'}\n\nJSON:"
+    )
+
+
+INTERVIEWER_V1 = Template(
+    id="interviewer@1", role="conversational",
+    system=_interviewer_system, user=_interviewer_user,
+    parse=_conversational_parse,
+    max_output_tokens=INTERVIEWER_MAX_OUTPUT_TOKENS,
+)
+
+
+def _planner_system(request: ReasonRequest) -> str:
+    return (
+        "You prepare a structured job interview from a job offer. Write "
+        f"in {language_name(request.language)}. Read the offer and the "
+        "interview-method chunks and return one JSON object and nothing "
+        'else: {"title": "job title", "role_type": "'
+        + "|".join(ROLE_TYPES) + '", "summary": "what the job is, '
+        'at most 300 characters", "slots": [{"label": "short topic", '
+        '"kind": "requirement|competency", "competency": "competency id '
+        'or null", "level": "minimo|deseable|opcional", "phase": '
+        '"experience|technical|behavioural", "questions": ["one to three '
+        'interview questions"], "evidence": "what a complete answer '
+        'shows", "weight": 3}]}. weight is how much the slot matters for '
+        "this job, from 1 (minor) to 5 (decisive). Make 6 to 10 slots: "
+        "the offer's required "
+        "experience, knowledge, certificates and conditions (shifts, "
+        "availability) as requirement slots with level minimo; its "
+        "nice-to-have items as deseable; the two to four competencies "
+        "of the list this job needs most as competency slots with "
+        "behavioural STAR questions (\"Cuéntame una vez en la que...\") "
+        "and the competency id; anything else useful as opcional. "
+        "Questions are open, one idea each, under 160 characters. Never "
+        "make a slot or a question about age, sex, family, pregnancy, "
+        "health or disability, religion, politics, union membership, "
+        "sexual orientation, nationality or origin, even if the offer "
+        "mentions them. No other field, no explanation."
+    )
+
+
+def _planner_user(request: ReasonRequest) -> str:
+    competencies = "\n".join(
+        f"- {c.get('id')}: {c.get('name')}"
+        for c in _payload_list(request, "competencies")
+        if isinstance(c, dict)
+    )
+    hint = _payload_text(request, "role_type", 20)
+    offer = _payload_text(request, "offer", OFFER_CHARS)
+    return (
+        f"Competencies (id: name):\n{competencies or '(none)'}\n\n"
+        f"Interview-method chunks:\n{chunks_text(request) or '(none)'}"
+        f"\n\nTime budget: {_payload_text(request, 'minutes', 8) or '?'}"
+        " minutes"
+        + (f"\nKind of job (given): {hint}" if hint else "")
+        + f"\n\nJob offer:\n<<<\n{offer}\n>>>\n\nJSON:"
+    )
+
+
+def _structured_parse(reply: str, request: ReasonRequest) -> Parsed:
+    return Parsed(data=json_object(reply))
+
+
+INTERVIEW_PLANNER_V1 = Template(
+    id="interview.planner@1", role="structured",
+    system=_planner_system, user=_planner_user, parse=_structured_parse,
+    max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS,
+)
+
+
+def _slots_system(request: ReasonRequest) -> str:
+    return (
+        "You track the coverage of a job interview. Given the plan's "
+        "slots (id, topic, evidence wanted), the interviewer's last "
+        "question and the candidate's answer, say which slots the "
+        "answer gives evidence for: complete when it gives a concrete "
+        "fact or a real first-person example with what they did (and the "
+        "result, for a competency), partial when it is on topic but "
+        "vague, generic, hypothetical or misses that. Do not judge how "
+        "good the answer is. Reply with one JSON object only: "
+        '{"slots": [{"id": "slot id", "status": "complete|partial", '
+        '"quote": "the candidate\'s own words, at most 20"}]} with at '
+        'most three slots, or {"slots": []} when it covers none.'
+    )
+
+
+def _slots_user(request: ReasonRequest) -> str:
+    rows = []
+    for slot in _payload_list(request, "slots")[:16]:
+        if isinstance(slot, dict):
+            rows.append(
+                f"[{str(slot.get('id'))[:12]}] {str(slot.get('label'))[:120]}"
+                f" — evidence: {str(slot.get('evidence') or '-')[:200]}"
+            )
+    return (
+        "Slots:\n" + ("\n".join(rows) or "(none)")
+        + f"\nAsked about: {_payload_text(request, 'target', 12) or '-'}"
+        + f"\n\nInterviewer: {_payload_text(request, 'question', 600)}"
+        + f"\nCandidate: {_payload_text(request, 'answer', 2000)}"
+        + "\n\nJSON:"
+    )
+
+
+INTERVIEW_SLOTS_V1 = Template(
+    id="interview.slots@1", role="structured",
+    system=_slots_system, user=_slots_user, parse=_structured_parse,
+    max_output_tokens=SLOTS_MAX_OUTPUT_TOKENS,
+)
+
+REPORT_MAX_OUTPUT_TOKENS = 2400
+"""Cap of ``interview.report@1``: a score and a note per slot, a summary."""
+
+
+def _report_system(request: ReasonRequest) -> str:
+    return (
+        "You help a recruiter read a job interview held by an AI "
+        "interviewer. For each slot of the plan, rate the candidate's "
+        "evidence from 0 to 100 RELATIVE TO WHAT THIS OFFER REQUIRES: 100 "
+        "means the answers show the level the job asks for (a junior "
+        "job asks for junior level, not an expert), 50 partly, 0 no "
+        "evidence or they said they do not know it. Base it only on the "
+        "candidate's quotes; set above to true when the evidence clearly "
+        "exceeds what the offer requires; confidence, from 0 to 1, says "
+        "how much evidence there is. Also list skills the candidate "
+        "showed that the offer does not ask for but are useful for this "
+        "job, each with a short quote, and write a neutral summary for "
+        "the recruiter (at most 600 characters) in "
+        f"{language_name(request.language)}. Describe evidence, never "
+        "personality, emotions, health or protected characteristics. "
+        'Reply with one JSON object only: {"slots": [{"id": "slot id", '
+        '"score": 0, "above": false, "confidence": 0.5, "notes": "at '
+        'most 200 characters"}], "other_skills": [{"label": "...", '
+        '"quote": "..."}], "summary": "..."}.'
+    )
+
+
+def _report_user(request: ReasonRequest) -> str:
+    rows = []
+    for slot in _payload_list(request, "slots")[:16]:
+        if not isinstance(slot, dict):
+            continue
+        said = slot.get("quotes")
+        quotes = " | ".join(
+            str(q)[:300] for q in (said if isinstance(said, list) else [])[:4]
+        )
+        rows.append(
+            f"[{str(slot.get('id'))[:12]}] {str(slot.get('label'))[:120]}"
+            f" (level {str(slot.get('level'))[:10]}, status "
+            f"{str(slot.get('status'))[:10]}) - evidence wanted: "
+            f"{str(slot.get('evidence') or '-')[:200]}\n  quotes: "
+            f"{quotes or '(none)'}"
+        )
+    return (
+        f"Job: {_payload_text(request, 'title', 120) or '?'}\n"
+        f"Job summary: {_payload_text(request, 'summary', 400) or '?'}\n\n"
+        "Slots:\n" + ("\n".join(rows) or "(none)")
+        + "\n\nCandidate's other words:\n"
+        + (_payload_text(request, 'other', 3000) or '(none)')
+        + "\n\nJSON:"
+    )
+
+
+INTERVIEW_REPORT_V1 = Template(
+    id="interview.report@1", role="structured",
+    system=_report_system, user=_report_user, parse=_structured_parse,
+    max_output_tokens=REPORT_MAX_OUTPUT_TOKENS,
+)
+
+
 _REGISTRY: Dict[str, Template] = {
     t.id: t for t in (
         CONVERSATIONAL_V1, SUGGESTER_INTERVIEW_V1, SUGGESTER_SUPPORT_V1,
-        SUGGESTER_INTERVIEW_V2, SUGGESTER_SUPPORT_V2,
+        SUGGESTER_INTERVIEW_V2, SUGGESTER_SUPPORT_V2, INTERVIEWER_V1,
+        INTERVIEW_PLANNER_V1, INTERVIEW_SLOTS_V1, INTERVIEW_REPORT_V1,
     )
 }
+
+
+def template_role(template_id: str) -> Role:
+    """Return the role of the template ``template_id``.
+
+    Raises :class:`~src.domain.errors.InvalidInputError` when it does
+    not exist.
+    """
+    template = _REGISTRY.get(template_id)
+    if template is None:
+        raise InvalidInputError(f"Unknown template {template_id!r}.")
+    return template.role
 
 
 def get_template(template_id: str, role: Role) -> Template:

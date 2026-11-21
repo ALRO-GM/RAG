@@ -4,7 +4,11 @@ They let a replay run end to end with no service: deterministic, no
 network, no model. The fake reasoner answers with a follow-up question
 about the focus utterance, citing it in ``about`` (and the first
 retrieved chunk in ``cites``), and can sleep to imitate a service's
-latency.
+latency. It also plays the AI interviewer's templates (#208): the
+planner drafts a plan from the offer's bullet lines, the slot filler
+fills the slot asked when the answer has twelve words or more, the
+report scores the slots by status, and ``interviewer@1`` words each
+step with fixed phrases.
 """
 
 import json
@@ -109,7 +113,11 @@ class FakeReasoner:
         self.requests.append(request)
         if self.delay:
             self._sleep(self.delay)
+        if request["role"] == "structured":
+            return self._structured(request)
         if request["role"] == "conversational":
+            if request.get("template") == "interviewer@1":
+                return self._answer(request, _interviewer_text(request))
             return self._reply(request)
         window = request["context"]["window"]
         focus = request["context"].get("focus")
@@ -146,6 +154,55 @@ class FakeReasoner:
                     break
                 on_text(raw[at:at + self.piece])
         return response
+
+    def _answer(
+        self, request: Document, text: Optional[str],
+        data: Optional[Document] = None,
+    ) -> Document:
+        """A response with ``text`` as the reply, or ``data``."""
+        ok = self.status == "ok"
+        return {
+            "schema": "reasoner.response.v1",
+            "request_id": request["request_id"], "role": request["role"],
+            "status": self.status,
+            "reply": {"text": text, "cites": []} if ok and text else None,
+            "data": data if ok else None,
+            "model": "fake", "backend": "local",
+            "latency": {"total_ms": self.delay * 1000.0},
+        }
+
+    def _structured(self, request: Document) -> Document:
+        """The interview's planner, slot filler and report, without AI."""
+        payload = request.get("payload") or {}
+        template = request.get("template")
+        if template == "interview.planner@1":
+            data = _fake_plan(str(payload.get("offer") or ""))
+        elif template == "interview.slots@1":
+            answer = str(payload.get("answer") or "")
+            target = str(payload.get("target") or "")
+            words = len(answer.split())
+            slots = [] if not target or words < 4 else [{
+                "id": target,
+                "status": "complete" if words >= 12 else "partial",
+                "quote": " ".join(answer.split()[:20]),
+            }]
+            data = {"slots": slots}
+        else:
+            score = {"filled": 80, "partial": 45, "unknown": 0,
+                     "skipped": 10}
+            data = {
+                "slots": [
+                    {"id": s.get("id"), "score": score.get(
+                        str(s.get("status")), 0),
+                     "above": False, "confidence": 0.5,
+                     "notes": "Puntuación de prueba (sin modelo)."}
+                    for s in payload.get("slots") or []
+                    if isinstance(s, dict) and s.get("status") != "empty"
+                ],
+                "other_skills": [],
+                "summary": "Resumen de prueba generado sin modelo.",
+            }
+        return self._answer(request, None, data)
 
     def _reply(self, request: Document) -> Document:
         """A voice bot's reply: the first retrieved chunk, read aloud."""
@@ -226,3 +283,60 @@ class FakeTts:
                 audio=audio, format=request.get("format") or "pcm_s16le",
                 sample_rate=self.rate, synth_ms=self.delay * 1000.0,
             )
+
+
+def _fake_plan(offer: str) -> Document:
+    """A plan draft from the offer's bullet lines (fake planner)."""
+    bullets = [
+        line.strip(" -*•\t") for line in offer.splitlines()
+        if line.strip().startswith(("-", "*", "•"))
+        and len(line.split()) >= 3
+    ][:4]
+    slots: List[Document] = [
+        {"label": text[:80], "kind": "requirement",
+         "level": "minimo" if i < 2 else "deseable", "phase": "experience",
+         "questions": [f"Háblame de tu experiencia con esto: {text[:80]}"],
+         "evidence": "Dónde, cuánto tiempo y qué hacía.", "weight": 4}
+        for i, text in enumerate(bullets)
+    ]
+    slots += [
+        {"label": "Comunicación clara", "kind": "competency",
+         "competency": "COMM", "level": "minimo", "phase": "behavioural",
+         "questions": ["Cuéntame una vez en la que tuviste que explicar "
+                       "algo difícil. ¿Qué hiciste tú?"],
+         "evidence": "Situación, acción propia y resultado.", "weight": 3},
+        {"label": "Resolución de problemas", "kind": "competency",
+         "competency": "SOLVE", "level": "deseable",
+         "phase": "behavioural",
+         "questions": ["Cuéntame un problema que resolviste en el "
+                       "trabajo. ¿Cómo acabó?"],
+         "evidence": "Problema, pasos y resultado.", "weight": 2},
+    ]
+    first = next((line.strip() for line in offer.splitlines()
+                  if line.strip()), "Puesto")
+    return {"title": first[:80], "role_type": "otro",
+            "summary": " ".join(offer.split())[:200], "slots": slots}
+
+
+def _interviewer_text(request: Document) -> str:
+    """The interviewer's fixed phrase for a step (fake interviewer)."""
+    payload = request.get("payload") or {}
+    action = str(payload.get("action") or "ask")
+    questions = payload.get("questions") or []
+    question = str(questions[0]) if questions else "¿Algo más?"
+    if action == "open":
+        return (f"Hola, soy el entrevistador de inteligencia artificial. "
+                f"La entrevista dura unos {payload.get('minutes', 20)} "
+                f"minutos. {question}")
+    if action == "probe":
+        missing = payload.get("missing", "un ejemplo")
+        return f"¿Me puedes concretar un poco más? Me falta {missing}."
+    if action == "clarify":
+        return ("No me ha quedado del todo claro esto; ¿quieres matizarlo "
+                "o pasamos a la siguiente pregunta?")
+    if action == "answer":
+        return f"Eso te lo concretará el equipo. {question}"
+    if action == "close":
+        return ("Muchas gracias por tu tiempo. El equipo se pondrá en "
+                "contacto contigo con los siguientes pasos. Hasta pronto.")
+    return f"Gracias. {question}"

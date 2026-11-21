@@ -30,6 +30,10 @@
     "voicebot.noise_scale": "0.5",
     "voicebot.noise_w": "0.333",
     "voicebot.sentence_silence": "0",
-    "voicebot.match_rate": "off"
+    "voicebot.match_rate": "off",
+    "interview.slot_filler": "haiku",
+    "interview.max_probes": "1",
+    "interview.minutes": "20",
+    "interview.post_call": "off"
   }
 }

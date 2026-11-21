@@ -1122,6 +1122,77 @@ details.tech, details.controls { margin: 1rem 0; }
   .vb-meter-fill { transition: none; }
 }
 
+/* ---- AI interviewer on the voice-bot page (#208) ----------------------- */
+.vb-interview { display: flex; flex-direction: column; gap: var(--s-4); }
+.iv-setup { gap: var(--s-4); }
+.iv-offer textarea, .iv-slot textarea { width: 100%; }
+.grow { flex: 1 1 14rem; min-width: 0; }
+.iv-plan-head, .iv-slot-meta, .iv-saved, .iv-actions { gap: var(--s-3); align-items: flex-end; }
+.iv-saved { align-items: center; }
+.iv-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.iv-slot { border: 1px solid var(--line); border-left: 4px solid var(--line-strong); border-radius: var(--r-md); padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2); background: var(--surface); }
+.iv-slot.is-minimo { border-left-color: var(--accent); }
+.iv-slot.is-opcional { border-left-style: dashed; }
+.iv-slot-head { gap: var(--s-2); align-items: center; }
+.iv-slot :is(select, textarea, input) { font-weight: 400; }
+.iv-slot-head input[type="text"] { flex: 1 1 14rem; min-width: 0; }
+.iv-slot-meta .field { flex: 0 1 auto; }
+.iv-review .big { align-self: flex-start; }
+.iv-layout { grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  .vb-layout.iv-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 13rem; }
+}
+.iv-coverage { gap: var(--s-2); }
+.iv-cover-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); max-height: 62vh; overflow-y: auto; }
+.iv-cover { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s-2) var(--s-3); background: var(--surface); display: flex; flex-direction: column; gap: 2px; }
+.iv-cover .row { gap: var(--s-2); align-items: center; }
+.iv-cover.is-current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--active); }
+.iv-cover-label { font-weight: 600; }
+.iv-quotes { margin: 0; padding-left: var(--s-4); font-size: var(--fs-sm); color: var(--muted); }
+.iv-quotes q { font-style: italic; }
+.iv-status.is-filled { border-color: color-mix(in srgb, var(--ok) 40%, transparent); background: var(--ok-bg); color: var(--ok); }
+.iv-status.is-partial { border-color: var(--warn-text); background: var(--warn-bg); color: var(--warn-text); }
+.iv-status.is-empty { color: var(--muted); }
+.iv-status.is-skipped, .iv-status.is-unknown { border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: var(--danger-bg); color: var(--danger); }
+.iv-level.is-minimo { background: var(--active); color: var(--accent-ink); }
+.iv-bar { display: inline-block; flex: 1 1 8rem; min-width: 6rem; height: 0.75rem; border-radius: 99px; background: var(--sunken); border: 1px solid var(--line); overflow: hidden; vertical-align: middle; }
+.iv-bar.small { min-width: 3.5rem; height: 0.5rem; }
+.iv-bar-fill { display: block; height: 100%; border-radius: 99px; }
+.iv-bar-fill.is-good { background: var(--green-9); }
+.iv-bar-fill.is-mid { background: var(--amber-9); }
+.iv-bar-fill.is-low { background: var(--red-9); }
+.iv-bar-fill.is-none { background: transparent; }
+.iv-report { gap: var(--s-3); }
+.iv-report h3 { font-size: var(--fs-md, 1rem); margin: var(--s-2) 0 0; }
+.iv-headline { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: center; }
+.iv-suit { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 8rem; height: 8rem; border-radius: 50%; border: 6px solid var(--line); background: var(--surface); }
+.iv-suit.is-good { border-color: var(--green-9); }
+.iv-suit.is-mid { border-color: var(--amber-9); }
+.iv-suit.is-low { border-color: var(--red-9); }
+.iv-suit-value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.iv-suit-label { font-size: var(--fs-xs); color: var(--muted); text-align: center; padding: 0 var(--s-2); }
+.iv-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: var(--s-2); flex: 1 1 20rem; }
+.iv-tile { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; background: var(--surface); }
+.iv-tile-value { font-size: 1.6rem; font-weight: 700; }
+.iv-tile-label { font-size: var(--fs-sm); color: var(--muted); }
+.iv-tile.is-good .iv-tile-value { color: var(--ok); }
+.iv-tile.is-low .iv-tile-value { color: var(--danger); }
+.iv-tile.is-mid .iv-tile-value { color: var(--warn-text); }
+.iv-tile.is-accent .iv-tile-value { color: var(--accent-ink); }
+.iv-summary { margin: 0; }
+.iv-skills { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.iv-skill { display: flex; flex-direction: column; gap: 4px; }
+.iv-skill-head { gap: var(--s-2); align-items: center; }
+.iv-skill-label { font-weight: 600; }
+.iv-skill-bar { gap: var(--s-2); align-items: center; }
+.iv-score { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 2rem; text-align: right; }
+.iv-gaps { margin: 0; padding-left: var(--s-4); }
+.iv-compare-wrap { overflow-x: auto; }
+.iv-compare { border-collapse: collapse; font-size: var(--fs-sm); min-width: 100%; }
+.iv-compare th, .iv-compare td { border-bottom: 1px solid var(--line); padding: var(--s-2); text-align: left; white-space: nowrap; vertical-align: middle; }
+.iv-th { display: inline-block; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.iv-comparison:empty, .iv-result:empty { display: none; }
+
 /* ---- «Ajustes» (#/settings) ------------------------------------------- */
 .settings .presets { border: 0; padding: 0; margin: 0; min-width: 0; }
 .settings .presets legend { font-weight: 600; margin-bottom: var(--s-2); }

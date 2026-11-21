@@ -20,11 +20,7 @@
       "maxLength": 64
     },
     "role": {
-      "enum": [
-        "judge",
-        "suggester",
-        "conversational"
-      ]
+      "enum": ["judge", "suggester", "conversational", "structured"]
     },
     "model": {
       "type": "string",

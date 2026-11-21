@@ -289,3 +289,82 @@ def test_conversational_templates_warm_their_own_pool() -> None:
     assert r.warm_up()
     assert "voice assistant" in warmed[0][0]
     assert "voice assistant" not in warmed[1][0]
+
+
+def interview_request(template: str, role: str = "structured",
+                      **payload: Any) -> ReasonRequest:
+    """Return a request of the AI interviewer's templates (#208)."""
+    return request(role, template=template, payload=payload)
+
+
+def test_the_planner_returns_its_json_as_data() -> None:
+    model = FakeChatModel(['Aquí va: {"title": "Mozo", "slots": []} fin'])
+    out = reasoner(model).reason(interview_request(
+        "interview.planner@1", offer="Oferta de mozo de almacén",
+        minutes=20, competencies=[{"id": "COMM", "name": "Comunicación"}],
+        role_type="almacen"))
+    assert out.status == "ok" and out.data == {"title": "Mozo", "slots": []}
+    assert out.reply is None and out.suggestions == []
+    system, user, cap = model.calls[0]
+    assert "weight" in system and "Never make a slot" in system
+    assert "- COMM: Comunicación" in user and "almacen" in user
+    assert "Oferta de mozo" in user and cap == 2400
+    assert out.to_contract()["data"] == {"title": "Mozo", "slots": []}
+
+
+def test_structured_output_that_is_not_json_is_no_suggestion() -> None:
+    out = reasoner(FakeChatModel(["no sé"])).reason(interview_request(
+        "interview.slots@1", slots=[{"id": "s1", "label": "Caja"}],
+        target="s1", question="¿Dónde?", answer="En un súper"))
+    assert out.status == "no_suggestion" and out.data is None
+
+
+def test_the_slot_filler_and_report_prompts() -> None:
+    model = FakeChatModel(['{"slots": []}', '{"slots": [], "summary": ""}'])
+    r = reasoner(model)
+    r.reason(interview_request(
+        "interview.slots@1", slots=[{"id": "s1", "label": "Caja",
+                                     "evidence": "años"}, "junk"],
+        target="s1", question="¿Dónde?", answer="En un súper"))
+    r.reason(interview_request(
+        "interview.report@1", title="Cajero", summary="Súper",
+        slots=[{"id": "s1", "label": "Caja", "level": "minimo",
+                "status": "filled", "quotes": ["dos años", 3]}, 7],
+        other="También sé inventario"))
+    slots_user = model.calls[0][1]
+    assert "[s1] Caja — evidence: años" in slots_user
+    assert "Candidate: En un súper" in slots_user
+    report_system, report_user, cap = model.calls[1]
+    assert "RELATIVE TO WHAT THIS OFFER REQUIRES" in report_system
+    assert "quotes: dos años" in report_user and cap == 2400
+    assert "También sé inventario" in report_user
+
+
+def test_the_interviewer_words_one_step() -> None:
+    model = FakeChatModel(['{"text": "Gracias. ¿Dónde trabajaste?"}'])
+    out = reasoner(model).reason(request(
+        "conversational", template="interviewer@1", payload={
+            "title": "Cajero", "summary": "Súper", "minutes": 20,
+            "minutes_left": 12.5, "action": "probe", "topic": "Caja",
+            "questions": ["¿Dónde?", 3], "evidence": "años",
+            "missing": "un dato concreto"}))
+    assert out.reply is not None
+    assert out.reply.text == "Gracias. ¿Dónde trabajaste?"
+    system, user, cap = model.calls[0]
+    assert "Never give a score" in system and "clarify" in system
+    assert "ACTION: probe" in user and "Missing: un dato concreto" in user
+    assert "12.5 left" in user and cap == 160
+
+
+def test_the_interviewer_templates_warm_their_pools() -> None:
+    warmed: List[Any] = []
+
+    class Warm(FakeChatModel):
+        def warm(self, system: str, max_tokens: int) -> None:
+            warmed.append((system, max_tokens))
+
+    r = Reasoner(lambda alias: Warm())
+    assert r.warm_up("interviewer@1") and r.warm_up("interview.slots@1")
+    assert warmed[0][1] == 160 and warmed[1][1] == 160
+    with pytest.raises(InvalidInputError):
+        r.warm_up("nope@1")

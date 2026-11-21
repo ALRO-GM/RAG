@@ -178,3 +178,34 @@ def test_the_lv16_session_routes_are_forwarded() -> None:
     assert not ALLOWED.match("sessions/d1/mandatory/Bad_Item")
     assert web.post("/api/assist/sessions/d1/speakers/.x", json={},
                     headers=auth).status_code == 404
+
+
+def test_interview_plan_routes_are_forwarded() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"id": "plan-1"})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    head = {"X-Access-Code": "code"}
+    offer = {"offer": "ñ" * 20000}
+    assert web.post("/api/assist/interview/plans", json=offer,
+                    headers=head).status_code == 200
+    assert web.get("/api/assist/interview/plans", headers=head).json() == {
+        "id": "plan-1"}
+    assert web.put("/api/assist/interview/plans/plan-1",
+                   json={"revision": 0}, headers=head).status_code == 200
+    web.get("/api/assist/interview/plans/plan-1", headers=head)
+    web.get("/api/assist/interview/plans/plan-1/results", headers=head)
+    assert [(r.method, r.url.path) for r in seen] == [
+        ("POST", "/interview/plans"), ("GET", "/interview/plans"),
+        ("PUT", "/interview/plans/plan-1"),
+        ("GET", "/interview/plans/plan-1"),
+        ("GET", "/interview/plans/plan-1/results"),
+    ]
+    assert len(seen[0].content) > 40000
+    assert seen[2].content == b'{"revision":0}'
+    assert ALLOWED.match("interview/plans/plan-1/results")
+    assert not ALLOWED.match("interview/plans/../x")
+    assert web.get("/api/assist/interview/plans/plan-1").status_code == 401

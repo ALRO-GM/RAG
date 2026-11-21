@@ -11,7 +11,8 @@ Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
 ``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
 ``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
-``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»), and
+``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; the AI
+interviewer's ``interview/plans``, one plan and its ``results``), and
 session, speaker and item ids are checked; the stream is passed through
 as it comes (Server-Sent Events, with the voice bot's audio inside). It
 is an inbound adapter that talks HTTP itself on purpose: it adds no
@@ -36,11 +37,17 @@ _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
     rf"^(?:products|transcripts|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
-    rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}}))$"
+    rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
+    rf"|interview/plans|interview/plans/{_ID}"
+    rf"|interview/plans/{_ID}/results)$"
 )
 MAX_BODY = 16 * 1024
+PLAN_BODY = 96 * 1024
+"""Largest plan body (a job offer of 12 000 characters, JSON-escaped)."""
 TIMEOUT = 45.0
 """Seconds for a plain call (starting a live session waits for the GPU)."""
+PLAN_TIMEOUT = 180.0
+"""Seconds for drafting an interview plan (the planner model writes it)."""
 
 
 def read_token(path: Optional[Path]) -> Optional[str]:
@@ -81,8 +88,8 @@ def add_live_assist_proxy(
     base = (base_url or os.environ.get(URL_VARIABLE) or DEFAULT_URL)
     base = base.rstrip("/")
 
-    def client() -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=transport, timeout=TIMEOUT)
+    def client(timeout: float = TIMEOUT) -> httpx.AsyncClient:
+        return httpx.AsyncClient(transport=transport, timeout=timeout)
 
     @api.get("/assist/products")
     async def assist_products(request: Request) -> Response:
@@ -156,6 +163,33 @@ def add_live_assist_proxy(
         return await forward(f"sessions/{session_id}/suggestions/stream",
                              request)
 
+    @api.get("/assist/interview/plans")
+    async def assist_plans(request: Request) -> Response:
+        """The interview plans."""
+        return await forward("interview/plans", request)
+
+    @api.post("/assist/interview/plans")
+    async def assist_new_plan(request: Request) -> Response:
+        """Draft an interview plan from a job offer."""
+        return await forward("interview/plans", request)
+
+    @api.get("/assist/interview/plans/{plan_id}")
+    async def assist_plan(plan_id: str, request: Request) -> Response:
+        """One interview plan."""
+        return await forward(f"interview/plans/{plan_id}", request)
+
+    @api.put("/assist/interview/plans/{plan_id}")
+    async def assist_edit_plan(plan_id: str, request: Request) -> Response:
+        """Save the recruiter's edit of a plan."""
+        return await forward(f"interview/plans/{plan_id}", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/results")
+    async def assist_plan_results(
+        plan_id: str, request: Request
+    ) -> Response:
+        """The candidates interviewed from a plan."""
+        return await forward(f"interview/plans/{plan_id}/results", request)
+
     async def forward(path: str, request: Request) -> Response:
         """Forward one call of the live page to the orchestrator."""
         if not ALLOWED.match(path):
@@ -172,8 +206,10 @@ def add_live_assist_proxy(
             headers["Last-Event-ID"] = last
         after = request.query_params.get("after")
         params = {"after": after} if after and after.isdigit() else None
-        body = await request.body() if request.method == "POST" else b""
-        if len(body) > MAX_BODY:
+        body = (await request.body()
+                if request.method in ("POST", "PUT") else b"")
+        limit = PLAN_BODY if path.startswith("interview/") else MAX_BODY
+        if len(body) > limit:
             return JSONResponse(
                 {"code": "too_large", "message": "body too large"},
                 status_code=413,
@@ -181,8 +217,9 @@ def add_live_assist_proxy(
         url = f"{base}/{path}"
         if path.endswith("/suggestions/stream"):
             return await _stream(client(), url, headers, params)
+        wait = PLAN_TIMEOUT if path == "interview/plans" else TIMEOUT
         try:
-            async with client() as http:
+            async with client(wait) as http:
                 answer = await http.request(
                     request.method, url, content=body or None,
                     headers=headers, params=params,

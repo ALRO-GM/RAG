@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "interview.plan.v1",
+  "title": "Interview plan of an AI interview (#208)",
+  "description": "What an AI job interview has to cover: slots made from a job offer (requirements and rubric competencies) with question ideas, the evidence wanted, a level (minimo/deseable/opcional) and an importance weight 1-5. Drafted by interview.planner@1, edited by the recruiter (revision grows by one per save). Producer: orchestrator (data/interview/plans). See docs/live/VOICEBOT_INTERVIEWER.md.",
+  "$defs": {
+    "PlanSource": {
+      "additionalProperties": false,
+      "description": "Where the job offer came from (its text is not kept here).",
+      "properties": {
+        "kind": {
+          "default": "text",
+          "enum": [
+            "text",
+            "document",
+            "none"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Document"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "chars": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Chars",
+          "type": "integer"
+        }
+      },
+      "title": "PlanSource",
+      "type": "object"
+    },
+    "PlannerInfo": {
+      "additionalProperties": false,
+      "description": "How the plan was drafted.",
+      "properties": {
+        "template": {
+          "default": "interview.planner@1",
+          "title": "Template",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "fallback",
+            "manual"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "chunks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Chunks",
+          "type": "array"
+        }
+      },
+      "title": "PlannerInfo",
+      "type": "object"
+    },
+    "Slot": {
+      "additionalProperties": false,
+      "description": "One thing the interview must, should or may find out.",
+      "properties": {
+        "id": {
+          "pattern": "^s[0-9]{1,3}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "kind": {
+          "default": "requirement",
+          "enum": [
+            "requirement",
+            "competency"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "competency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Competency"
+        },
+        "level": {
+          "default": "deseable",
+          "enum": [
+            "minimo",
+            "deseable",
+            "opcional"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "phase": {
+          "default": "experience",
+          "enum": [
+            "experience",
+            "technical",
+            "behavioural"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "questions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Questions",
+          "type": "array"
+        },
+        "evidence": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "weight": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Weight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "questions"
+      ],
+      "title": "Slot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "interview.plan.v1",
+      "default": "interview.plan.v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "revision": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "title": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "role_type": {
+      "default": "otro",
+      "enum": [
+        "tecnico",
+        "comercio",
+        "atencion_cliente",
+        "hosteleria",
+        "almacen",
+        "oficina",
+        "otro"
+      ],
+      "title": "Role Type",
+      "type": "string"
+    },
+    "language": {
+      "default": "es",
+      "maxLength": 8,
+      "minLength": 2,
+      "title": "Language",
+      "type": "string"
+    },
+    "summary": {
+      "default": "",
+      "maxLength": 400,
+      "title": "Summary",
+      "type": "string"
+    },
+    "minutes": {
+      "default": 20,
+      "maximum": 90,
+      "minimum": 5,
+      "title": "Minutes",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/PlanSource"
+    },
+    "planner": {
+      "$ref": "#/$defs/PlannerInfo"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Updated At"
+    },
+    "slots": {
+      "items": {
+        "$ref": "#/$defs/Slot"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Slots",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "slots"
+  ],
+  "type": "object"
+}

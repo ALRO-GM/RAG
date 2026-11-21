@@ -135,6 +135,10 @@ class DocumentStore(Protocol):
         """Return the path the document's extracted text is indexed as."""
         ...
 
+    def read_text(self, domain_id: str, document_id: str) -> str:
+        """Return the extracted text (``NotFoundError`` when there is none)."""
+        ...
+
     def remove_text(self, domain_id: str, document_id: str) -> None:
         """Delete the extracted text (it leaves the index)."""
         ...

@@ -122,6 +122,17 @@ class FileSystemDocumentStore:
             f"{check_document_id(document_id)}.md"
         return path.as_posix()
 
+    def read_text(self, domain_id: str, document_id: str) -> str:
+        """Return the extracted text (``NotFoundError`` when missing)."""
+        path = Path(self.text_path(domain_id, document_id))
+        try:
+            return path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise NotFoundError(
+                f"No hay texto extraído de {document_id!r}. / No extracted "
+                f"text for {document_id!r}."
+            ) from exc
+
     def write_text(self, domain_id: str, document_id: str, text: str) -> str:
         """Write the extracted text; return its indexed path."""
         path = self.text_path(domain_id, document_id)

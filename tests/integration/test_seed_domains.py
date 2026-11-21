@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 import pytest
 
 from src.adapters.outbound.fs_domain_catalogue import FileSystemDomainCatalogue
+from src.config import KnowledgeSettings
 from src.domain.knowledge.contract import (
     KnowledgeQuery,
     KnowledgeResult,
@@ -20,7 +21,9 @@ from src.domain.knowledge.contract import (
     ResultMetadata,
     ResultTimings,
 )
+from src.domain.knowledge.sources import SOURCE_EXTENSIONS, chunk_source
 from src.domain.models import MinimalSource
+from src.domain.skills.dialogue_acts import CATEGORIES
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "experiments" / "platform" / "seed_eval.py"
@@ -59,6 +62,71 @@ def test_domain_is_valid_and_large_enough(domain: str) -> None:
         assert row["intent"] in voc.intent
         assert row["script_phase"] in voc.script_phase
         assert set(row["tags"]) <= set(voc.tags)
+
+
+def method_records() -> List[Dict[str, Any]]:
+    """Return the records of the interview-method corpus (#208)."""
+    path = (ROOT / "knowledge" / "domains" / "interview.generic"
+            / "metodo-entrevista.jsonl")
+    return [json.loads(x) for x in path.read_text("utf-8").splitlines()]
+
+
+def test_interview_method_corpus_covers_roles_and_competencies() -> None:
+    """Valid records; every rubric competency, role, legal and closing."""
+    manifest = FileSystemDomainCatalogue(
+        str(ROOT / "knowledge" / "domains"), "no-data").manifest(
+            "interview.generic")
+    rows = method_records()
+    ids = [r["id"] for r in rows]
+    assert len(set(ids)) == len(ids)
+    assert not set(ids) & {r["id"] for r in records("interview.generic")}
+    voc = manifest.vocabularies
+    allowed = {"id", "text", "intent", "category", "script_phase", "tags",
+               "title"}
+    for row in rows:
+        assert set(row) <= allowed
+        assert row["category"] in CATEGORIES
+        assert row["intent"] in voc.intent
+        assert row["script_phase"] in voc.script_phase
+        assert set(row["tags"]) <= set(voc.tags)
+        assert len([t for t in row["tags"] if t.startswith("puesto_")]) == 1
+
+    def count(*tags: str) -> int:
+        """Return how many records carry every one of ``tags``."""
+        return sum(set(tags) <= set(r["tags"]) for r in rows)
+
+    rubric = json.loads(
+        (ROOT / "knowledge" / "rubrics" / "core.es.json").read_text("utf-8"))
+    for competency in rubric["competencies"]:
+        tag = "comp_" + competency["id"].lower()
+        assert count(tag, "star") >= 3, tag
+        assert count(tag, "repregunta") >= 2, tag
+    for role in ("tecnico", "comercio", "atencion_cliente", "hosteleria",
+                 "almacen", "oficina"):
+        assert count("puesto_" + role) >= 5, role
+    assert count("legal") >= 12
+    assert sum(r["intent"] == "legal_guard" for r in rows) >= 12
+    assert count("cierre") >= 6
+    assert sum(r["script_phase"] == "closing" for r in rows) >= 6
+
+
+def test_interview_sources_chunk_with_the_indexer_reader() -> None:
+    """Every source file of the domain chunks; one chunk per method record."""
+    folder = ROOT / "knowledge" / "domains" / "interview.generic"
+    manifest = FileSystemDomainCatalogue(
+        str(ROOT / "knowledge" / "domains"), "no-data").manifest(
+            "interview.generic")
+    size = KnowledgeSettings().max_chunk_size
+    refs: List[str] = []
+    for path in sorted(folder.iterdir()):
+        if path.suffix not in SOURCE_EXTENSIONS:
+            continue
+        chunks = chunk_source(str(path), path.read_text("utf-8"), manifest,
+                              size)
+        assert chunks, path.name
+        if path.name == "metodo-entrevista.jsonl":
+            refs = [str(c.metadata.ref) for c in chunks]
+    assert refs == [r["id"] for r in method_records()]
 
 
 @pytest.mark.parametrize("domain", DOMAINS)

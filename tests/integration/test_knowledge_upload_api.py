@@ -329,3 +329,24 @@ def test_job_queue_survives_failures() -> None:
     assert done.wait(5)
     queue.join()
     assert ran == ["next"]
+
+
+def test_document_text_route(app: App) -> None:
+    """An indexed document's text is served without its front matter."""
+    client, queue = app
+    create(client)
+    response = upload(client, "oferta.docx", make_docx(), {"tags": ["faq"]})
+    doc = response.json()["id"]
+    url = f"/knowledge/domains/acme/documents/{doc}/text"
+    early = client.get(url, headers=AUTH)
+    assert early.status_code in (200, 409)
+    queue.join()
+    answer = client.get(url, headers=AUTH)
+    assert answer.status_code == 200
+    body = answer.json()
+    assert body["id"] == doc and body["name"] == "oferta.docx"
+    assert body["chars"] == len(body["text"]) > 0
+    assert not body["text"].startswith("---")
+    assert client.get("/knowledge/domains/acme/documents/nope/text",
+                      headers=AUTH).status_code in (404, 422)
+    assert client.get(url).status_code == 401

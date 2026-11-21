@@ -1,9 +1,11 @@
 """Requests and responses of the reasoner (``reasoner.*.v1``).
 
-The reasoner answers in one of three roles: ``judge`` (the analyzer's
+The reasoner answers in one of four roles: ``judge`` (the analyzer's
 existing confirmation, unchanged), ``suggester`` (what to ask or say
-next in a live conversation) and ``conversational`` (a reply for a
-voice bot). The models mirror ``contracts/reasoner.request.v1`` and
+next in a live conversation), ``conversational`` (a reply for a
+voice bot) and ``structured`` (one JSON object a template asks for: the
+interview planner, slot filler and report, ``data``). The models
+mirror ``contracts/reasoner.request.v1`` and
 ``contracts/reasoner.response.v1`` field by field. Plain data: no I/O.
 """
 
@@ -11,8 +13,10 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Role = Literal["judge", "suggester", "conversational"]
-ROLES: Tuple[Role, ...] = ("judge", "suggester", "conversational")
+Role = Literal["judge", "suggester", "conversational", "structured"]
+ROLES: Tuple[Role, ...] = (
+    "judge", "suggester", "conversational", "structured",
+)
 
 Status = Literal[
     "ok", "no_suggestion", "timeout", "cancelled", "quota", "auth", "error"
@@ -177,6 +181,7 @@ class ReasonResponse(_Strict):
     suggestions: List[Suggestion] = Field(default_factory=list)
     reply: Optional[Reply] = None
     verdict: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None
     model: str
     backend: Backend
     usage: Usage = Field(default_factory=Usage)

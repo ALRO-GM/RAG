@@ -29,7 +29,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
 
 from orchestrator.adapters.outbound.fakes import (
     FakeKnowledge,
@@ -41,6 +41,11 @@ from orchestrator.adapters.outbound.files import (
     check_dir,
     load_product,
     load_transcript,
+)
+from orchestrator.adapters.outbound.fs_interview_plans import JsonPlanStore
+from orchestrator.adapters.outbound.http_interview import (
+    HttpHandoff,
+    HttpOffers,
 )
 from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
@@ -74,6 +79,10 @@ from orchestrator.adapters.outbound.runtime import (
     ThreadExecutor,
     ThreadRunner,
 )
+from orchestrator.application.interview import (
+    InterviewPlanner,
+    InterviewWiring,
+)
 from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.ports import (
     HandoffSink,
@@ -93,7 +102,7 @@ from orchestrator.application.replay import (
     transcript_to_events,
 )
 from orchestrator.application.summary import summarise
-from orchestrator.domain.config import ProductConfig
+from orchestrator.domain.config import InterviewSection, ProductConfig
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONFIG_DIR = ROOT / "config" / "products"
@@ -195,6 +204,9 @@ def add_serve_parser(
     serve.add_argument("--voiceprints-dir", type=Path,
                        default=ROOT / "data" / "transcriber" / "voiceprints",
                        help="the transcriber's voiceprints (profiles)")
+    serve.add_argument("--interview-dir", type=Path,
+                       default=ROOT / "data" / "interview",
+                       help="interview plans and sheets (#208)")
 
 
 def parse_speed(text: str) -> Optional[float]:
@@ -367,11 +379,12 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
     def handoff(session_id: str, product: str) -> HandoffSink:
         return JsonHandoff(log_dir / f"{session_id}.{product}.handoff.json")
 
+    sessions_ref: List[LiveSessions] = []
     new_id: Callable[[], str] = lambda: datetime.now().strftime(
         "live-%Y%m%d-%H%M%S"
     )
     products = load_products(args.config_dir)
-    return LiveSessions(
+    sessions = LiveSessions(
         products, build_knowledge(args), build_reasoner(args),
         DirTranscripts(args.transcripts or list(TRANSCRIPT_DIRS)),
         SystemClock(), ThreadRunner(), ThreadExecutor, transcriber,
@@ -382,6 +395,45 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         mandatory=build_mandatory(args), handoff=handoff,
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
+        interview=build_interview(args, products, sessions_ref),
+    )
+    sessions_ref.append(sessions)
+    return sessions
+
+
+def build_interview(
+    args: argparse.Namespace, products: Dict[str, ProductConfig],
+    sessions_ref: "list[LiveSessions]",
+) -> Optional[InterviewWiring]:
+    """Wire the AI interviewer (plans, handoff), if a product has one."""
+    product = products.get("voicebot.interview")
+    if product is None or product.interview is None:
+        return None
+    store = JsonPlanStore(args.interview_dir)
+    http = args.knowledge == "http"
+    reasoner = build_reasoner(args)
+    planner_reasoner = (
+        HttpReasoner(args.reasoner_url, args.token, timeout=150.0)
+        if args.reasoner == "http" else reasoner
+    )
+    fixed = product.interview
+
+    def section() -> InterviewSection:
+        if not sessions_ref:
+            return fixed
+        return sessions_ref[0].product(product.product).interview or fixed
+
+    planner = InterviewPlanner(
+        store, build_knowledge(args), planner_reasoner,
+        HttpOffers(args.knowledge_url, args.token) if http else None,
+        section, product.language,
+        model=product.reasoner.model if product.reasoner else "haiku",
+    )
+    report = (HttpReasoner(args.reasoner_url, args.token, timeout=100.0)
+              if args.reasoner == "http" else reasoner)
+    return InterviewWiring(
+        planner, store, report,
+        HttpHandoff(args.knowledge_url, args.token) if http else None,
     )
 
 

@@ -36,6 +36,14 @@ session (``{"type": "rename"}``, sent to the transcriber for the
 domain (``{"type": "mandatory"}``, :mod:`.mandatory`); and a
 **hand-off record** written at the end (``{"type": "handoff"}``: names,
 mode, what was said, ticked and left unsaid).
+A session of ``voicebot.interview`` (#208) starts from an interview
+plan (``plan``): its voice bot is directed by an
+:class:`~orchestrator.application.interview.InterviewDirector`, speaks
+first, and its feed also carries ``{"type": "coverage"}`` after every
+turn, ``{"type": "interview"}`` (``closed``, ``reporting``) and, at the
+end, ``{"type": "interview_result"}`` (the scored slot sheet and the
+handoff). A plain ``voicebot`` session may name another knowledge
+domain (``domain``) as its topic.
 """
 
 import re
@@ -46,6 +54,14 @@ from typing import (
 )
 
 from orchestrator.application.feed import Feed
+from orchestrator.application.interview import (
+    HeuristicFiller,
+    InterviewDirector,
+    InterviewWiring,
+    PlanError,
+    ReasonerFiller,
+    SlotFiller,
+)
 from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.mandatory import MandatoryTracker, TickRefused
 from orchestrator.application.ports import (
@@ -104,6 +120,8 @@ PERSON_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
 """An enrolled person's id or a speaker id (the contracts' pattern)."""
 MAX_NAME = 60
 """Longest name a speaker can be given."""
+DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
+CANDIDATE_CHARS = 80
 
 
 class _Assistant(Protocol):
@@ -160,6 +178,8 @@ class _Session:
         if isinstance(self.assist, LiveAssist):
             return self.assist.mode or MODES[0]
         return None
+    plan: Optional[str] = None
+    candidate: Optional[str] = None
 
     def view(self) -> Document:
         """Return the session as JSON."""
@@ -181,6 +201,7 @@ class _Session:
             "mandatory": tracker.view() if tracker and tracker.active
             else None,
             "handoff": self.handoff,
+            "plan": self.plan, "candidate": self.candidate,
         }
 
 
@@ -266,7 +287,10 @@ def page_info(config: ProductConfig, roles: Mapping[str, str]) -> Document:
     modes = bool(reasoner and reasoner.template
                  and reasoner.template.startswith("suggester.")
                  and reasoner.template.endswith("@2"))
+    knowledge = config.knowledge
     return {
+        "domain": knowledge.domains[0] if knowledge else None,
+        "interview": config.interview is not None,
         "product": config.product, "language": config.language,
         "modes": list(MODES) if modes else [],
         "kind": config.ui.kind if config.ui else None,
@@ -315,6 +339,8 @@ class LiveSessions:
         cloner: The voice-cloning model (``None``: Piper only).
         clone_budget_ms: Longest wait for one cloned sentence before
             Piper says it.
+        interview: Plans, sheets and handoff of the AI interviewer
+            (``None``: no ``voicebot.interview``).
     """
 
     def __init__(
@@ -339,6 +365,7 @@ class LiveSessions:
         profiles: Optional[VoiceProfiles] = None,
         cloner: Optional[VoiceCloner] = None,
         clone_budget_ms: float = DEFAULT_BUDGET_MS,
+        interview: Optional[InterviewWiring] = None,
     ):
         """Wire the ports; no session yet."""
         self.products = {
@@ -346,7 +373,9 @@ class LiveSessions:
             if config.is_live and config.ui is not None
             and config.ui.kind in UI_KINDS
             and (config.tts is None or tts is not None)
+            and (config.interview is None or interview is not None)
         }
+        self.interview = interview
         self.tts = tts
         self.turn_log = turn_log
         self.knowledge = knowledge
@@ -458,15 +487,26 @@ class LiveSessions:
     def start_live(
         self, product: str, audio: str, session_id: Optional[str] = None,
         employee: Optional[Mapping[str, Any]] = None,
+        plan: Optional[str] = None, domain: Optional[str] = None,
+        candidate: Optional[str] = None,
     ) -> Document:
         """Start a live session on the transcriber and follow it.
 
         ``employee`` (``{"id", "name"}``, an enrolled person) names the
         employee's channel in stereo; on one microphone their voiceprint
         marks their voice (unless «Ajustes» turned the diarization off).
+        ``plan`` is the interview plan of a ``voicebot.interview``
+        session (required there); ``domain`` replaces the knowledge
+        domain of a plain voice bot (its topic); ``candidate`` names
+        the candidate on the interview's sheet.
         """
         choices = self.settings.current() if self.settings else None
-        config = self._product(product, choices)
+        config = self._topic(self._product(product, choices), domain)
+        if (plan is None) != (config.interview is None):
+            raise SessionError(
+                "invalid_request",
+                "an interview session needs a plan, and only it",
+            )
         person = check_employee(employee)
         if self.transcriber is None or self.events is None:
             raise SessionError(
@@ -494,9 +534,14 @@ class LiveSessions:
                                 if s["role"] == role), None)
                 person = ({**person, "role": role, "speaker": speaker}
                           if speaker else None)
+        if plan is not None:
+            self._check_plan(plan)
         session = self._open(session_id, config, "live", roles, person,
                              names)
         session.audio = audio
+        session.plan = plan
+        if candidate:
+            session.candidate = " ".join(candidate.split())[:CANDIDATE_CHARS]
         try:
             started = self.transcriber.start(transcriber_body(
                 config, session_id, speakers,
@@ -511,6 +556,8 @@ class LiveSessions:
         session.feed.publish({"type": "transcriber", "session": started})
         handler = _Handler(session, assist)
         source = self.events
+        if isinstance(assist, VoiceBot) and assist.director is not None:
+            assist.open(session_id)
 
         def job() -> None:
             failed: Optional[str] = None
@@ -558,6 +605,10 @@ class LiveSessions:
         return session.view()
 
     # ---- internals -----------------------------------------------------
+
+    def product(self, name: str) -> ProductConfig:
+        """A live product as the saved settings leave it now."""
+        return self._product(name)
 
     def _product(
         self, name: str, choices: Optional[Mapping[str, str]] = None
@@ -627,6 +678,53 @@ class LiveSessions:
         except TtsUnavailable as exc:
             raise SessionError("unavailable", str(exc)) from exc
 
+    def _topic(
+        self, config: ProductConfig, domain: Optional[str]
+    ) -> ProductConfig:
+        """Return ``config`` with ``domain`` as its knowledge domain."""
+        if not domain:
+            return config
+        if (config.ui is None or config.ui.kind != "speaker"
+                or config.interview is not None
+                or config.knowledge is None):
+            raise SessionError("invalid_request",
+                               "only a voice bot takes a topic domain")
+        if not re.fullmatch(DOMAIN_ID, domain):
+            raise SessionError("invalid_request", "invalid domain id")
+        knowledge = config.knowledge.model_copy(update={"domains": [domain]})
+        return config.model_copy(update={"knowledge": knowledge})
+
+    def _check_plan(self, plan_id: str) -> Document:
+        """Check the interview plan exists."""
+        if self.interview is None:
+            raise SessionError("unavailable", "no interview plans here")
+        try:
+            return self.interview.planner.get(plan_id)
+        except PlanError as exc:
+            raise SessionError("not_found", str(exc)) from exc
+
+    def _director(
+        self, session: _Session, output: "_BotFeed"
+    ) -> Optional[InterviewDirector]:
+        """The interview director of a ``voicebot.interview`` session."""
+        section = session.product.interview
+        wiring = self.interview
+        if section is None or wiring is None or session.plan is None:
+            return None
+        plan = wiring.store.load(session.plan)
+        reasoner = session.product.reasoner
+        model = reasoner.model if reasoner else "haiku"
+        filler: SlotFiller = (
+            ReasonerFiller(wiring.reasoner, section.filler_template, model,
+                           session.product.language)
+            if section.filler == "haiku" else HeuristicFiller()
+        )
+        return InterviewDirector(
+            plan, session.id, section, filler, wiring.reasoner, output,
+            self.clock, wiring.store, wiring.handoff, section.post_call,
+            session.candidate, model,
+        )
+
     def _find(self, session_id: str) -> _Session:
         with self._lock:
             session = self._sessions.get(session_id)
@@ -682,10 +780,11 @@ class LiveSessions:
                 and speaker is not self.tts,
                 "length_scale": plan.length_scale, "reason": plan.reason,
             })
+            output = _BotFeed(session, turns)
             bot = VoiceBot(
                 product, self.knowledge, self.reasoner, speaker,
-                _BotFeed(session, turns), self.clock, self.executor(),
-                session.roles,
+                output, self.clock, self.executor(), session.roles,
+                self._director(session, output),
             )
             session.assist = bot
             return bot
@@ -869,11 +968,14 @@ def transcriber_body(
     ``enrolled`` limits the voiceprints that may name a voice.
     """
     channels = len({s["channel"] for s in speakers}) or 1
+    # The interviewer hands over its own transcript (both voices); the
+    # transcriber hears only the candidate.
+    handoff = (config.handoff.model_dump() if config.interview is None
+               else {"transcript_v1": False, "run_post_call": False})
     body: Dict[str, Any] = {
         "session_id": session_id, "channels": channels,
         "speakers": speakers, "product": config.product,
-        "language": config.language,
-        "handoff": config.handoff.model_dump(),
+        "language": config.language, "handoff": handoff,
     }
     if (diarized(config) if diarize is None else diarize) \
             and channels == 1:

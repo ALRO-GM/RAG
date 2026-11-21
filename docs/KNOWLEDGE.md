@@ -98,6 +98,7 @@ those.
 | `POST /knowledge/domains/{id}/documents` | multipart: `file`, optional `metadata` (JSON text `{"category","intent","script_phase","tags"}`) | `202` document with `status: "queued"` |
 | `PATCH /knowledge/domains/{id}/documents/{doc}` | `{"metadata": {...}}` (replaces all four keys) | `200` document, `status: "queued"` |
 | `DELETE /knowledge/domains/{id}/documents/{doc}` | — | `204` (chunks leave the index in the background) |
+| `GET /knowledge/domains/{id}/documents/{doc}/text` | — | `200` `{"id","name","text","chars"}` (extracted text, front matter cut; the interview planner reads job offers this way, #208); `409` not indexed yet; `404` |
 | `POST /knowledge/query` | `knowledge.query.v1` | `200` `knowledge.result.v1`; `404` unknown domain or no index yet |
 
 Document: `{"id","name","type","size","pages","chunks","status","error",

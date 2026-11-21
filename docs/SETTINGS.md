@@ -47,6 +47,8 @@ it.
 | `analysis.judge`, `analysis.*_model`, `analysis.local_judge`, `analysis.act_tagger` | RAG, when an analysis starts (passed to the `skills analyze` child as flags) | next analysis |
 | `knowledge.ocr`, `knowledge.captions` | RAG, at every upload | next upload |
 | `voicebot.*` | orchestrator, when a voice-bot session starts | next session |
+| `interview.slot_filler`, `interview.max_probes`, `interview.post_call` | orchestrator, when an interview session starts | next interview |
+| `interview.minutes` | orchestrator, when a plan is drafted | next plan |
 
 The «Análisis» start form keeps its per-run Claude model choice; it is
 now prefilled from the saved settings and still applies to that run
@@ -75,6 +77,10 @@ documents; almost all come from synthetic data and a single run.
 | Local judge | Qwen3-8B, 4B if it does not fit (34 % useful quotes, 6.31 GB) · Qwen3-4B (23 %, 2.87 GB) |
 | Dialogue-act tagger | fine-tuned encoder (top-1 0.731, macro F1 0.693) · rules + encoder (0.732 / 0.699) · rules (0.519 / 0.449) |
 | OCR | on (29.3 scanned pages/min on the CPU, up to 4.4 GB) · off (text layer only, images refused) |
+| Interviewer slot filler | Haiku (one call per answer, before the next question) · rules (no model); neither measured on real interviews (`docs/live/VOICEBOT_INTERVIEWER.md`) |
+| Interviewer follow-ups per slot | 1 (the owner's rule) · 0 · 2 |
+| Interviewer default length | 20 · 15 · 30 · 45 minutes (each plan can change it) |
+| Analyse the interview at the end | off · on (the analysis's calls) |
 | Figure captions | Florence-2 on this PC (5/5 texts read, English, 2/5 invent) · Claude Haiku (2.0–2.2 s per image, better; **the image leaves the PC**) · none |
 
 Encoder + RG (Claude reviewing the doubtful sentences, 0.864 top-1 on

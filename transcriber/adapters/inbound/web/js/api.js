@@ -311,6 +311,22 @@ export class Api {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mandatory/${encodeURIComponent(item)}`, { json: { confirm: true } });
   }
 
+  // ---- the AI interviewer's plans (#208) ----
+
+  /** The interview plans: id, title, role_type, minutes, slots, minimums, interviews. */
+  interviewPlans() { return this.request("GET", "/assist/interview/plans"); }
+
+  /** Draft a plan from a job offer: { offer | document: { domain, id }, title?, role_type?, minutes? }. */
+  createPlan(body) { return this.request("POST", "/assist/interview/plans", { json: body }); }
+
+  interviewPlan(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}`); }
+
+  /** Save the recruiter's edit (with the revision it was based on; 409 when older). */
+  savePlan(id, plan) { return this.request("PUT", `/assist/interview/plans/${encodeURIComponent(id)}`, { json: plan }); }
+
+  /** The candidates interviewed from a plan, for the comparison. */
+  planResults(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}/results`); }
+
   /**
    * Follow a session's Server-Sent Events from number `after`: `onItem`
    * gets each { id, event, data }. Resolves "end" when the session is

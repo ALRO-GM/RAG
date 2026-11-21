@@ -230,6 +230,33 @@
               "description": "An enrolled person whose measured speaking rate (words/s) sets the length scale."
             }
           ]
+        },
+        "interview.slot_filler": {
+          "enum": [
+            "haiku",
+            "heuristic"
+          ]
+        },
+        "interview.max_probes": {
+          "enum": [
+            "1",
+            "0",
+            "2"
+          ]
+        },
+        "interview.minutes": {
+          "enum": [
+            "20",
+            "15",
+            "30",
+            "45"
+          ]
+        },
+        "interview.post_call": {
+          "enum": [
+            "off",
+            "on"
+          ]
         }
       }
     }

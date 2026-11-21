@@ -57,7 +57,8 @@ class StepSpec(BaseModel):
 
     id: str
     group: Literal[
-        "transcription", "live", "analysis", "knowledge", "voicebot"
+        "transcription", "live", "analysis", "knowledge", "voicebot",
+        "interview",
     ]
     options: Tuple[str, ...]
     applies: Applies = "next_job"
@@ -169,6 +170,14 @@ STEPS: Tuple[StepSpec, ...] = (
     # rate sets the length scale (it then wins over the one above).
     StepSpec(id="voicebot.match_rate", group="voicebot", options=("off",),
              consumer="orchestrator", pattern=SPEAKER_ID),
+    StepSpec(id="interview.slot_filler", group="interview",
+             options=("haiku", "heuristic"), consumer="orchestrator"),
+    StepSpec(id="interview.max_probes", group="interview",
+             options=("1", "0", "2"), consumer="orchestrator"),
+    StepSpec(id="interview.minutes", group="interview",
+             options=("20", "15", "30", "45"), consumer="orchestrator"),
+    StepSpec(id="interview.post_call", group="interview",
+             options=("off", "on"), consumer="orchestrator"),
 )
 """Every configurable step, in the order the page shows them."""
 
