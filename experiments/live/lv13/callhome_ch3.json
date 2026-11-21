@@ -1,0 +1,8 @@
+{
+ "live_sentences": 44,
+ "batch_sentences": 53,
+ "live_tokens": 331,
+ "batch_tokens": 356,
+ "wer_live_vs_batch": 0.2163,
+ "max_seconds": null
+}

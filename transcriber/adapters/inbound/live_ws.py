@@ -75,6 +75,10 @@ CLOSE_CODES = {
 }
 
 
+READY_TIMEOUT = 120.0
+"""Seconds a socket waits for the recogniser before it says ready."""
+
+
 def session_json(session: LiveSession) -> Dict[str, Any]:
     """Return a session as the API shows it, with its socket paths."""
     data = session.info()
@@ -184,6 +188,9 @@ def add_live_routes(
             await refuse(socket, error_code(exc), str(exc))
             return
         try:
+            # The client starts sending on "ready": hold it back until
+            # the recogniser is loaded, so no audio queues meanwhile.
+            await run_in_threadpool(session.wait_ready, READY_TIMEOUT)
             await socket.send_json({
                 "type": "ready", "session_id": session_id,
                 "channels": session.channels, "sample_rate": SAMPLE_RATE,
