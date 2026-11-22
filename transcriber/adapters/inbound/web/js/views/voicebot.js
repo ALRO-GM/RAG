@@ -210,10 +210,15 @@ export async function voicebotView(ctx, root) {
       });
     }
 
+    function thinking() {
+      return state.lines().filter((l) => l.kind === "bot").at(-1)?.state === "thinking";
+    }
+
     function phase() {
-      const last = state.lines().filter((l) => l.kind === "bot").at(-1);
       if (speaking) return "speaking";
-      if (last?.state === "thinking") return "thinking";
+      // The bot's voice is still loading: its first line waits for it.
+      if (state.preparing) return "preparing";
+      if (thinking()) return "thinking";
       return "listening";
     }
 
@@ -265,7 +270,7 @@ export async function voicebotView(ctx, root) {
     function bargeIn(always = false) {
       // An interview also reports the candidate's voice when the bot is
       // silent: it restarts the wait for the end of the answer (#213).
-      const busy = speaking || phase() === "thinking";
+      const busy = speaking || thinking();
       if (!busy && !always) return;
       if (busy) queue?.stop(currentTurn);
       ctx.api.bargeIn(session.id).catch(() => {});

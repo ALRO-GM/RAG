@@ -125,6 +125,20 @@ test("the conversation follows the feed: user, thinking, speech, interrupt, reco
   assert.deepEqual(MODES, ["push", "hands_free"]);
 });
 
+test("the page knows while the bot's voice is loading", () => {
+  const state = new VoiceBotState();
+  assert.equal(state.preparing, false);
+  state.apply({ type: "voice_state", state: "warming" });
+  assert.equal(state.preparing, true);
+  state.apply({ type: "voice_state", state: "ready" });
+  assert.equal(state.preparing, false);
+  state.apply({ type: "voice_state", state: "warming" });
+  state.apply({ type: "status", session: { state: "ended" } });
+  assert.equal(state.preparing, false, "an ended session prepares nothing");
+  state.apply({ type: "voice_state", state: "fallback" });
+  assert.equal(state.voice, "fallback");
+});
+
 test("turn latency adds the transcriber's lag to the orchestrator's first audio", () => {
   assert.deepEqual(turnLatency({ stages: { event_lag_ms: 650, first_audio_ms: 1210.6, knowledge_ms: 15, first_text_ms: 900, first_tts_ms: 40 } }),
     { lag: 650, knowledge: 15, text: 900, tts: 40, first: 1210.6, total: 1861 });

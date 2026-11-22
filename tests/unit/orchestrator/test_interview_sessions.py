@@ -267,3 +267,24 @@ def test_the_turn_taking_thresholds_come_from_the_settings() -> None:
         same = apply_live_choices(product("voicebot.interview"),
                                   {step: bad})
         assert same.interview == product("voicebot.interview").interview
+
+
+def test_the_backchannels_are_synthesised_after_the_opening() -> None:
+    sessions = live([])
+    plan = sessions.interview.planner.create(  # type: ignore[union-attr]
+        {"offer": OFFER})
+    sessions.runner = InlineRunner(hold=True)
+    sessions.start_live("voicebot.interview", "mic", plan=plan["id"])
+    bot = cast(VoiceBot, sessions._find("vb-1").assist)
+    order: List[str] = []
+
+    class Executor:
+        def wait_idle(self) -> None:
+            order.append("opening over")
+
+    bot.executor = Executor()  # type: ignore[assignment]
+    bot.warm_backchannels = (  # type: ignore[method-assign]
+        lambda: order.append("backchannels"))
+    backchannels = sessions.runner.jobs[0]
+    backchannels()
+    assert order == ["opening over", "backchannels"]

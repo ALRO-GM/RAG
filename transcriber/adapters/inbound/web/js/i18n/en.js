@@ -1368,6 +1368,7 @@ export const en = {
   "voicebot.listening": "Listening",
   "voicebot.active_listening": "Listening…",
   "voicebot.thinking": "Thinking…",
+  "voicebot.preparing": "Preparing the voice…",
   "voicebot.speaking": "Speaking",
   "voicebot.interrupt": "Interrupt",
   "voicebot.you": "You",

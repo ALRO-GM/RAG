@@ -1,0 +1,255 @@
+{
+  "what": "Which engine said the interviewer's opening line; saved «Ajustes» choices voicebot.voice=clone:<owner>, clone_engine=qwen3, pocket_device=cpu; spare orchestrator on :8792 against the running transcriber and RAG (experiments/voicebot/opening_voice.py)",
+  "before": {
+    "code": "main 9995595",
+    "label": "before",
+    "date": "2026-11-22 12:42",
+    "runs": [
+      {
+        "session": "opening-124159-0",
+        "voices": [
+          {
+            "_ms": 11,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          },
+          {
+            "_ms": 75,
+            "engine": "pocket-cpu",
+            "clone": false,
+            "reason": "qwen3-cuda: no live GPU lease"
+          }
+        ],
+        "voice_states": [],
+        "sentences": [
+          {
+            "ms": 2078,
+            "seq": 0,
+            "sample_rate": 24000,
+            "chars": 74,
+            "engine": "pocket-cpu"
+          },
+          {
+            "ms": 3401,
+            "seq": 1,
+            "sample_rate": 24000,
+            "chars": 120,
+            "engine": "pocket-cpu"
+          }
+        ],
+        "first_engine": "pocket-cpu"
+      },
+      {
+        "session": "opening-124211-1",
+        "voices": [
+          {
+            "_ms": 28,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          },
+          {
+            "_ms": 93,
+            "engine": "pocket-cpu",
+            "clone": false,
+            "reason": "qwen3-cuda: no live GPU lease"
+          },
+          {
+            "_ms": 1746,
+            "engine": "piper",
+            "clone": false,
+            "reason": "qwen3-cuda busy; pocket-cpu busy"
+          },
+          {
+            "_ms": 2381,
+            "engine": "pocket-cpu",
+            "clone": false,
+            "reason": "qwen3-cuda busy"
+          }
+        ],
+        "voice_states": [],
+        "sentences": [
+          {
+            "ms": 2260,
+            "seq": 0,
+            "sample_rate": 22050,
+            "chars": 74,
+            "engine": "piper"
+          },
+          {
+            "ms": 2382,
+            "seq": 1,
+            "sample_rate": 24000,
+            "chars": 120,
+            "engine": "pocket-cpu"
+          }
+        ],
+        "first_engine": "piper"
+      },
+      {
+        "session": "opening-124222-2",
+        "voices": [
+          {
+            "_ms": 37,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          },
+          {
+            "_ms": 914,
+            "engine": "pocket-cpu",
+            "clone": false,
+            "reason": "qwen3-cuda missed the 800 ms budget"
+          },
+          {
+            "_ms": 1701,
+            "engine": "piper",
+            "clone": false,
+            "reason": "qwen3-cuda busy; pocket-cpu busy"
+          }
+        ],
+        "voice_states": [],
+        "sentences": [
+          {
+            "ms": 1827,
+            "seq": 0,
+            "sample_rate": 22050,
+            "chars": 74,
+            "engine": "piper"
+          },
+          {
+            "ms": 2076,
+            "seq": 1,
+            "sample_rate": 22050,
+            "chars": 120,
+            "engine": "piper"
+          }
+        ],
+        "first_engine": "piper"
+      }
+    ]
+  },
+  "after": {
+    "code": "fix/voicebot-cold-first-sentence",
+    "note": "full pytest --cov run in the background on the same CPU during these sessions",
+    "label": "after",
+    "date": "2026-11-22 12:54",
+    "runs": [
+      {
+        "session": "opening-125326-0",
+        "voices": [
+          {
+            "_ms": 13,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          }
+        ],
+        "voice_states": [
+          {
+            "_ms": 13,
+            "state": "warming"
+          },
+          {
+            "_ms": 7414,
+            "state": "ready"
+          }
+        ],
+        "sentences": [
+          {
+            "ms": 7543,
+            "seq": 0,
+            "sample_rate": 24000,
+            "chars": 74,
+            "engine": "qwen3-cuda"
+          },
+          {
+            "ms": 9806,
+            "seq": 1,
+            "sample_rate": 24000,
+            "chars": 120,
+            "engine": "qwen3-cuda"
+          }
+        ],
+        "first_engine": "qwen3-cuda"
+      },
+      {
+        "session": "opening-125346-1",
+        "voices": [
+          {
+            "_ms": 10,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          }
+        ],
+        "voice_states": [
+          {
+            "_ms": 10,
+            "state": "warming"
+          },
+          {
+            "_ms": 7122,
+            "state": "ready"
+          }
+        ],
+        "sentences": [
+          {
+            "ms": 7256,
+            "seq": 0,
+            "sample_rate": 24000,
+            "chars": 74,
+            "engine": "qwen3-cuda"
+          },
+          {
+            "ms": 9362,
+            "seq": 1,
+            "sample_rate": 24000,
+            "chars": 120,
+            "engine": "qwen3-cuda"
+          }
+        ],
+        "first_engine": "qwen3-cuda"
+      },
+      {
+        "session": "opening-125405-2",
+        "voices": [
+          {
+            "_ms": 31,
+            "engine": "qwen3-cuda",
+            "clone": true,
+            "reason": ""
+          }
+        ],
+        "voice_states": [
+          {
+            "_ms": 31,
+            "state": "warming"
+          },
+          {
+            "_ms": 7110,
+            "state": "ready"
+          }
+        ],
+        "sentences": [
+          {
+            "ms": 7239,
+            "seq": 0,
+            "sample_rate": 24000,
+            "chars": 74,
+            "engine": "qwen3-cuda"
+          },
+          {
+            "ms": 9250,
+            "seq": 1,
+            "sample_rate": 24000,
+            "chars": 120,
+            "engine": "qwen3-cuda"
+          }
+        ],
+        "first_engine": "qwen3-cuda"
+      }
+    ]
+  }
+}

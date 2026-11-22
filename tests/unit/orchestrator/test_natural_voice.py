@@ -3,6 +3,7 @@ Pocket on the CPU and Piper, the GPU gate, streaming in growing pieces,
 the settings that choose them and the sample."""
 
 import threading
+import time
 import wave
 from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
@@ -33,7 +34,7 @@ from orchestrator.domain.voices import (
     VoiceProfile,
     voice_chain,
 )
-from tests.unit.orchestrator.test_sessions import messages
+from tests.unit.orchestrator.test_sessions import InlineRunner, messages
 from tests.unit.orchestrator.test_voicebot_sessions import (
     bot_sessions,
     user_final,
@@ -541,3 +542,234 @@ def test_a_session_that_ends_while_a_model_loads_frees_it() -> None:
     later.close()
     later.warm()
     assert later.tiers[0].engine is None, "closed: nothing is loaded"
+
+
+# ------------------------------------------- cold first sentence (opening)
+
+
+class Loading(Engine):
+    """An engine whose model loads until ``loaded_now`` is set.
+
+    As the real worker, a sentence asked for while it loads waits for
+    the load (one process, one lock).
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.loaded_now = threading.Event()
+
+    def warm(self, voice: EngineVoice) -> None:
+        self.warmed += 1
+        self.loaded_now.wait(5)
+        self.is_loaded = True
+
+    def stream(self, text: str, voice: EngineVoice, language: str,
+               cancel: CancelToken) -> Iterator[Tuple[bytes, int]]:
+        while not self.loaded_now.wait(0.01):
+            if cancel.cancelled:
+                self.cancelled += 1
+                return
+        yield from super().stream(text, voice, language, cancel)
+
+
+def speak_while_warming(spoken: NaturalVoice, text: str,
+                        load_after: float, engine: Loading) -> List[Any]:
+    """Start the warm-up, say ``text``, let the model load meanwhile."""
+    spoken.warming()
+    warm = threading.Thread(target=spoken.warm)
+    warm.start()
+    timer = threading.Timer(load_after, engine.loaded_now.set)
+    timer.start()
+    try:
+        return list(spoken.synthesize(request(text), CancelToken()))
+    finally:
+        engine.loaded_now.set()
+        timer.cancel()
+        warm.join(5)
+
+
+def test_the_opening_line_waits_for_the_chosen_voice_to_load() -> None:
+    qwen3, pocket = Loading(), Engine()
+    spoken, reports, piper = voice([QWEN3, POCKET_CPU],
+                                   {"qwen3-cuda": qwen3,
+                                    "pocket-cpu": pocket},
+                                   Gate(), budget_ms=100.0,
+                                   ready_wait_s=5.0)
+    assert not spoken.ready
+    chunks = speak_while_warming(
+        spoken, "Hola, soy el entrevistador. Empezamos ya.", 0.3, qwen3)
+    assert spoken.ready and spoken.wait_ready()
+    assert [text for text, _ in qwen3.said] == [
+        "Hola, soy el entrevistador.", "Empezamos ya."]
+    assert not pocket.said and not piper.requests and reports == []
+    assert spoken.first_speaker == "qwen3-cuda"
+    assert {c.sample_rate for c in chunks} == {RATE}
+
+
+def test_the_wait_for_the_voice_is_bounded_then_the_fallback_speaks() -> None:
+    qwen3, pocket = Loading(), Engine()
+    spoken, reports, _ = voice([QWEN3, POCKET_CPU],
+                               {"qwen3-cuda": qwen3, "pocket-cpu": pocket},
+                               Gate(), budget_ms=50.0, ready_wait_s=0.2)
+    started = time.monotonic()
+    chunks = speak_while_warming(spoken, "Hola, empezamos ya.", 3.0, qwen3)
+    took = time.monotonic() - started
+    assert chunks and pocket.said and not qwen3.said
+    assert reports == [("pocket-cpu", "qwen3-cuda missed the 50 ms budget")]
+    assert 0.2 <= took < 2.5, "waited the bound, not the model"
+
+
+def test_without_a_warm_up_nothing_waits() -> None:
+    pocket = Loading()
+    spoken, _, piper = voice([POCKET_CPU], {"pocket-cpu": pocket},
+                             budget_ms=50.0, ready_wait_s=5.0)
+    started = time.monotonic()
+    assert spoken.wait_ready() is False
+    list(spoken.synthesize(request("Hola, ¿qué tal estás?"), CancelToken()))
+    assert time.monotonic() - started < 1.0
+    assert piper.requests, "nobody loaded: Piper said it at once"
+    pocket.loaded_now.set()
+
+
+def test_a_cancelled_or_closed_voice_stops_waiting() -> None:
+    qwen3 = Loading()
+    spoken, _, piper = voice([QWEN3], {"qwen3-cuda": qwen3}, Gate(),
+                             ready_wait_s=5.0)
+    spoken.warming()
+    cancel = CancelToken()
+    threading.Timer(0.1, cancel.cancel).start()
+    started = time.monotonic()
+    assert list(spoken.synthesize(request("Hola, ¿qué tal?"), cancel)) == []
+    threading.Timer(0.1, spoken.close).start()
+    assert spoken.wait_ready() is False
+    assert time.monotonic() - started < 2.0
+    assert not piper.requests
+    qwen3.loaded_now.set()
+
+
+def test_after_close_nothing_more_is_said_quietly() -> None:
+    pocket = Engine()
+    spoken, _, piper = voice([POCKET_CPU], {"pocket-cpu": pocket})
+    words = spoken.synthesize(
+        request("Esta es la primera frase. Y esta, la segunda frase."),
+        CancelToken())
+    first = next(words)
+    assert first.text == "Esta es la primera frase."
+    spoken.close()  # the session ended while the reply was streaming
+    assert list(words) == []
+    assert list(spoken.synthesize(request("Hola, ¿sigues ahí?"),
+                                  CancelToken())) == []
+    assert len(pocket.said) == 1 and not piper.requests
+
+
+def test_a_pool_shut_down_under_a_sentence_is_not_a_crash() -> None:
+    pocket = Engine()
+    spoken, _, piper = voice([POCKET_CPU], {"pocket-cpu": pocket})
+    spoken.tiers[0].pool.shutdown(wait=False)  # the close's race
+    chunks = list(spoken.synthesize(request("Hola, ¿qué tal?"),
+                                    CancelToken()))
+    assert chunks and piper.requests and not pocket.said
+
+
+def test_a_loaded_shared_engine_is_not_warmed_again() -> None:
+    qwen3, pocket = Engine(), Engine()
+    pocket.is_loaded = True  # the orchestrator keeps Pocket loaded
+    spoken, _, _ = voice([QWEN3, POCKET_CPU],
+                         {"qwen3-cuda": qwen3, "pocket-cpu": pocket}, Gate())
+    spoken.warm()
+    assert (qwen3.warmed, pocket.warmed) == (1, 0) and spoken.ready
+
+
+def test_pocket_on_the_cpu_does_not_wait_for_the_gpu_lease() -> None:
+    qwen3, pocket = Engine(), Engine()
+    gate = Gate(why="no live GPU lease")
+    spoken, _, _ = voice([QWEN3, POCKET_CPU],
+                         {"qwen3-cuda": qwen3, "pocket-cpu": pocket}, gate,
+                         warm_wait_s=0.5)
+    loaded: List[bool] = []
+
+    def sleep(_: float) -> None:
+        loaded.append(pocket.is_loaded)
+        time.sleep(0.05)
+
+    spoken.sleep = sleep
+    spoken.warm()
+    assert loaded and loaded[-1], "Pocket loaded while Qwen3 waited"
+    assert qwen3.warmed == 0 and pocket.warmed == 1
+
+
+def test_only_the_text_reaches_a_natural_voice_piper_keeps_its_controls(
+) -> None:
+    tuned = tts_request("r1", "Hola, ¿qué tal estás?", DAVEFX, "es",
+                        audio_format="pcm_s16le", length_scale=0.9,
+                        noise_scale=0.35, noise_w=0.2,
+                        sentence_silence=0.45)
+    heard: List[Tuple[str, str]] = []
+
+    class Strict(Engine):
+        def stream(self, text: str, voice: EngineVoice, language: str,
+                   cancel: CancelToken) -> Iterator[Tuple[bytes, int]]:
+            heard.append((text, language))
+            yield from super().stream(text, voice, language, cancel)
+
+    spoken, _, piper = voice([POCKET_CPU], {"pocket-cpu": Strict()})
+    list(spoken.synthesize(tuned, CancelToken()))
+    assert heard == [("Hola, ¿qué tal estás?", "es")] and not piper.requests
+    failing, _, piper = voice([POCKET_CPU],
+                              {"pocket-cpu": Engine(fail=True)})
+    list(failing.synthesize(tuned, CancelToken()))
+    said = piper.requests[0]
+    assert (said["length_scale"], said["noise_scale"], said["noise_w"],
+            said["sentence_silence"]) == (0.9, 0.35, 0.2, 0.45)
+
+
+def test_the_page_is_told_while_the_voice_gets_ready() -> None:
+    live = natural_sessions({"voicebot.voice": "qwen3"},
+                            {"qwen3-cuda": Engine(), "pocket-cpu": Engine()},
+                            Gate())
+    live.runner = InlineRunner(hold=True)
+    live.start_live("voicebot", "mic")
+    warm, wait, follow = live.runner.jobs
+    warm()
+    wait()
+    follow()
+    feed = messages(live, "vb-1")
+    assert [m["state"] for m in feed if m["type"] == "voice_state"] == [
+        "warming", "ready"]
+    kinds = [m["type"] for m in feed]
+    assert kinds.index("voice") < kinds.index("transcriber"), (
+        "the voice starts loading before the transcriber is asked")
+
+    slow = natural_sessions({"voicebot.voice": "qwen3"},
+                            {"qwen3-cuda": Engine(),
+                             "pocket-cpu": Engine()}, Gate())
+    slow.natural.ready_wait_s = 0.0
+    slow.runner = InlineRunner(hold=True)
+    slow.start_live("voicebot", "mic")
+    _, wait, follow = slow.runner.jobs
+    wait()  # the model never loaded within the bound
+    follow()
+    states = [m["state"] for m in messages(slow, "vb-1")
+              if m["type"] == "voice_state"]
+    assert states == ["warming", "fallback"]
+
+
+def test_a_ready_voice_says_nothing_about_getting_ready() -> None:
+    live = natural_sessions({}, {"pocket-cpu": Engine()})
+    live.start_live("voicebot", "mic")  # warmed inline
+    assert [m for m in messages(live, "vb-1")
+            if m["type"] == "voice_state"] == []
+
+
+def test_a_transcriber_that_fails_gives_the_early_voice_back() -> None:
+    from orchestrator.application.sessions import SessionError
+    from tests.unit.orchestrator.test_sessions import FakeTranscriber
+
+    live = natural_sessions({"voicebot.voice": "qwen3"},
+                            {"qwen3-cuda": Engine(), "pocket-cpu": Engine()},
+                            Gate())
+    live.transcriber = FakeTranscriber(fail=True)
+    with pytest.raises(SessionError):
+        live.start_live("voicebot", "mic")
+    assert live.natural.engines.released == ["qwen3-cuda", "pocket-cpu"]
+    assert live.get("vb-1")["state"] == "failed"
