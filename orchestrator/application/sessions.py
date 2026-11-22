@@ -587,6 +587,11 @@ class LiveSessions:
         session.plan = plan
         if candidate:
             session.candidate = " ".join(candidate.split())[:CANDIDATE_CHARS]
+        # A voice bot's voice starts loading now, while the transcriber
+        # starts its session (its GPU lease is what a GPU voice waits for).
+        early = (self._assist(session, {})
+                 if config.tts is not None and self.tts is not None
+                 else None)
         try:
             started = self.transcriber.start(transcriber_body(
                 config, session_id, speakers,
@@ -597,7 +602,7 @@ class LiveSessions:
             session.error = str(exc)
             self._end(session, "failed")
             raise SessionError("transcriber", str(exc)) from exc
-        assist = self._assist(session, {})
+        assist = early if early is not None else self._assist(session, {})
         session.feed.publish({"type": "transcriber", "session": started})
         handler = _Handler(session, assist)
         source = self.events
@@ -731,9 +736,10 @@ class LiveSessions:
             chain, natural.engines, self.tts, natural.gate,
             SAMPLE_BUDGET_MS if sample else natural.budget_ms,
             language=config.language, report=report,
-            sleep=self.clock.sleep,
+            sleep=self.clock.sleep, ready_wait_s=natural.ready_wait_s,
         )
         if not sample:
+            speaker.warming()
             self.runner.start(speaker.warm)
         return product, speaker, plan, chain[0].name
 
@@ -837,8 +843,16 @@ class LiveSessions:
         )
 
     def _listen(self, session: _Session, bot: VoiceBot) -> None:
-        """Warm the backchannels and tick the turn-taking (#213)."""
-        self.runner.start(bot.warm_backchannels)
+        """Warm the backchannels and tick the turn-taking (#213).
+
+        The backchannels are synthesised once the opening turn is over,
+        so they never take the voice from the opening line.
+        """
+        def backchannels() -> None:
+            bot.executor.wait_idle()
+            bot.warm_backchannels()
+
+        self.runner.start(backchannels)
         ticker = self.ticker
         if ticker is None:
             return
@@ -919,6 +933,8 @@ class LiveSessions:
                 "type": "voice", "engine": engine, "clone": clone,
                 "length_scale": plan.length_scale, "reason": plan.reason,
             })
+            if isinstance(speaker, NaturalVoice) and not speaker.ready:
+                self._preparing(session, speaker)
             output = _BotFeed(session, turns)
             director = self._director(session, output)
             section = product.interview
@@ -947,6 +963,25 @@ class LiveSessions:
             session.tracker = tracker
             tracker.start()
         return assist
+
+    def _preparing(self, session: _Session, speaker: NaturalVoice) -> None:
+        """Tell the page the voice is loading, then when it is ready.
+
+        ``voice_state`` is ``warming`` now, then ``ready`` (every engine
+        tried) or ``fallback`` (the bound passed: the fallbacks speak
+        until it loads).
+        """
+        session.feed.publish({"type": "voice_state", "state": "warming"})
+
+        def wait() -> None:
+            ready = speaker.wait_ready()
+            if session.state == "running":
+                session.feed.publish({
+                    "type": "voice_state",
+                    "state": "ready" if ready else "fallback",
+                })
+
+        self.runner.start(wait)
 
     def _end(self, session: _Session, state: str = "ended") -> None:
         """Mark the session ended, hand it off and close its feed."""

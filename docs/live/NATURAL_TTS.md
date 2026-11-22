@@ -240,10 +240,14 @@ sentence the first engine that can speak does:
   live GPU lease`, `… missed the 800 ms budget`, `… failed (…)`).
 
 Pocket on the CPU is warmed when the orchestrator starts and shared by
-the sessions; a GPU engine is started for its session (warmed in the
-background once the lease and memory allow, waiting up to 30 s) and
-stopped when the session ends. Piper's controls (speed, intonation…)
-only reach Piper.
+the sessions (one process, kept loaded for the orchestrator's life; a
+session warms it again only if it is not loaded); a GPU engine is
+started for its session (warmed in the background once the lease and
+memory allow, waiting up to 30 s) and stopped when the session ends.
+The engines of a chain load side by side, from the moment the session
+is created (before the transcriber is asked to start), and a session's
+first sentences wait for them (§8). Piper's controls (speed,
+intonation…) only reach Piper (§8).
 
 **«Escuchar ejemplo»** says the fixed sentence with the voice being
 chosen; the header `X-Voice-Engine` (and the page) says which voice
@@ -340,6 +344,82 @@ between the three rows (≈ 0.1 s at p50) are within what the reply
 model's own variation moves (its first token p50 566–660 ms across the
 runs). The cloned `clone:<person>` with Qwen3 (speaker embedding only)
 and the sample button were not measured end to end.
+
+## 8. The first sentence of a session (cold voice)
+
+**The report.** With `voicebot.voice = clone:<person>`,
+`voicebot.clone_engine = qwen3` and `pocket_device = cpu`, the
+interviewer's opening line sounded bad and the later sentences fine.
+
+**Cause, reproduced.** `experiments/voicebot/opening_voice.py` starts
+`voicebot.interview` sessions on a spare orchestrator
+(`natural_serve.py` on port 8792, the saved «Ajustes» choices: the
+clone with Qwen3, Pocket on the CPU, the Piper controls tuned) against
+the running transcriber (live session and its GPU lease) and RAG, and
+reads the feed's `voice` messages until the opening turn has spoken.
+Result `experiments/voicebot/opening_voice_results.json`, 3 sessions
+before and 3 after, 2026-11-22, one Haiku call each:
+
+| | Opening line, 1st sentence | 2nd sentence | 1st audio after the session started |
+|---|---|---|---|
+| Before (main `9995595`) | Pocket `lola` once, **Piper** twice | Pocket, Pocket, Piper | 2,078 / 2,260 / 1,827 ms |
+| After (this branch) | **Qwen3 clone** 3 of 3 | Qwen3 clone 3 of 3 | 7,543 / 7,256 / 7,239 ms |
+
+Before, the feed said why: the Qwen3 model was still loading when the
+opening was ready (`qwen3-cuda missed the 800 ms budget`, then
+`qwen3-cuda busy`), so the next voice said it, and the backchannels
+(«ajá», «vale»…, `interview.backchannel = voice`) were being
+synthesised at the same moment, also by Pocket (in 2 of the 3
+sessions `pocket-cpu` spoke 75 and 93 ms after the start, before any
+reply existed, because `qwen3-cuda: no live GPU lease` yet), so Pocket
+was `busy` too and **Piper** said
+the opening, with its own (tuned) controls. So the first sentence was
+either another voice (Pocket's `lola`, not the clone) or Piper. Pocket
+was not cold: its worker is one process kept loaded by the orchestrator
+since it started (the running one had been up 17 h, across the owner's
+sessions).
+
+**Fix.**
+
+1. A session's first sentences wait for its voice: `NaturalVoice`
+   counts a bound of `READY_WAIT_S` = 12 s from the start of the
+   warm-up; `synthesize` waits until every engine of the chain has
+   been tried (loaded or failed) or the bound passes, then applies
+   the 800 ms budget as before (after 12 s the fallbacks speak as
+   before). The opening's reply is written meanwhile, so the wait
+   only adds what the model still needs. The feed says
+   `{"type": "voice_state", "state": "warming"}` and then `ready` (or
+   `fallback`); the page shows «Preparando la voz…» / "Preparing the
+   voice…" meanwhile.
+2. The warm-up starts as early as possible: the voice is built (and
+   starts loading) when the session is created, before the transcriber
+   is asked to start; the engines of the chain load side by side, so
+   Pocket on the CPU never waits for the GPU lease; the gate is asked
+   every 0.25 s instead of every 1 s while it refuses.
+3. Pocket on the CPU stays resident: it already was (one shared worker
+   per voice, never stopped by a session); a session now skips warming
+   an engine that is already loaded, and warms Pocket again only if
+   its worker is not running.
+4. The backchannels are synthesised after the opening turn is over, so
+   they never take a voice from the opening line.
+5. A session that ends while a reply is still streaming no longer
+   crashes the bot's thread (`RuntimeError: cannot schedule new
+   futures after shutdown` in `orchestrator.log`): after `close()`,
+   `synthesize` stops quietly (no Piper either).
+
+The price is the wait: the opening's first audio came 7.2–7.5 s after
+the session started instead of 1.8–2.3 s (Qwen3 loading, with the
+lease and the memory check); the page says the voice is being prepared.
+
+**Piper's controls and the natural voices.** `length_scale` (and the
+speed `match_rate` sets from a person's rate), `noise_scale`,
+`noise_w` and `sentence_silence` are not applied to Pocket or Qwen3:
+`NaturalVoice` passes only the sentence and the language to their
+workers (the worker protocol has no such fields), and the controls
+reach Piper alone when it says a sentence (a unit test checks both).
+They did not make the opening worse by themselves; they only shaped
+the Piper fallback that said it. The `length_scale` of the feed's
+`voice` message is the plan's, used only by Piper.
 
 ## Limits
 

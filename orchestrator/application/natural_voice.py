@@ -22,6 +22,19 @@ sentence the first engine that can speak it does:
 Whenever the engine that speaks changes (from the first of the chain,
 at the start), ``report`` is told which one and why the ones before it
 did not (the session's feed says so).
+
+A session's first sentences wait for the voice to get ready: once
+:meth:`NaturalVoice.warming` (or :meth:`NaturalVoice.warm`) has started
+the warm-up, :meth:`NaturalVoice.synthesize` waits until every engine
+of the chain has loaded, at most ``ready_wait_s`` from that start, and
+only then applies the budget (the opening line of an interview used to
+be said while Qwen3-TTS was still loading, so Pocket or Piper said it;
+``docs/live/NATURAL_TTS.md`` §8). After :meth:`NaturalVoice.close`
+nothing more is said, quietly.
+
+Only the text reaches the natural engines: Piper's controls (speed,
+``noise_scale``, ``noise_w``, ``sentence_silence``, and the speed that
+``match_rate`` sets) reach Piper alone, when it says a sentence.
 """
 
 import queue
@@ -56,6 +69,11 @@ CHUNK_TIMEOUT_MS = 4000.0
 WARM_WAIT_S = 30.0
 """How long the warm-up waits for the GPU (the live session takes the
 lease and waits up to 20 s for the image worker to free the card)."""
+READY_WAIT_S = 12.0
+"""How long a session's first sentences wait for the voice to load
+(from the start of the warm-up); after that, the fallbacks speak."""
+GATE_POLL_S = 0.25
+"""How often the warm-up asks the GPU gate again while it refuses."""
 PIPER = "piper"
 
 _Item = Union[Tuple[bytes, int], BaseException, None]
@@ -104,6 +122,7 @@ class NaturalVoice:
         report: Told ``(engine, reason)`` when the speaker changes.
         warm_wait_s: How long :meth:`warm` waits for the GPU.
         sleep: Waits (tests replace it).
+        ready_wait_s: How long the first sentences wait for the warm-up.
     """
 
     def __init__(
@@ -118,6 +137,7 @@ class NaturalVoice:
         report: Optional[Callable[[str, str], None]] = None,
         warm_wait_s: float = WARM_WAIT_S,
         sleep: Callable[[float], None] = time.sleep,
+        ready_wait_s: float = READY_WAIT_S,
     ):
         """Keep the chain; nothing is loaded until :meth:`warm` or use."""
         self.tiers = [_Tier(voice) for voice in chain]
@@ -133,33 +153,99 @@ class NaturalVoice:
         self.spoken: Dict[str, int] = {}
         self.first_speaker = ""
         self._speaker = self.tiers[0].name if self.tiers else PIPER
+        self.ready_wait_s = ready_wait_s
         self._lock = threading.Lock()
         self._closed = False
+        self._ready = threading.Event()
+        self._ready_by: Optional[float] = None
+
+    @property
+    def ready(self) -> bool:
+        """Whether the warm-up has finished (every engine tried)."""
+        return self._ready.is_set()
+
+    def warming(self) -> None:
+        """Say a warm-up starts now: the first sentences will wait for it.
+
+        Called just before :meth:`warm` is run in the background, so a
+        sentence asked for before that thread runs waits too.
+        """
+        if self._ready_by is None:
+            self._ready_by = time.monotonic() + self.ready_wait_s
+
+    def wait_ready(self) -> bool:
+        """Wait for the warm-up (at most until its bound); whether it ended.
+
+        Returns at once when no warm-up was started or the voice was
+        closed.
+        """
+        while not self._ready.is_set() and not self._closed:
+            left = self._left()
+            if left <= 0:
+                break
+            self._ready.wait(min(left, 0.05))
+        return self._ready.is_set()
 
     def warm(self) -> None:
         """Load every engine of the chain (in the background).
 
-        A GPU engine waits up to ``warm_wait_s`` for the gate; one that
-        cannot load is marked failed for this session.
+        The engines load side by side (Pocket on the CPU never waits for
+        a GPU model or its lease). A GPU engine waits up to
+        ``warm_wait_s`` for the gate; one that cannot load is marked
+        failed for this session. An engine that is already loaded
+        (Pocket on the CPU, kept by the orchestrator for every session)
+        is not asked again. :attr:`ready` once every engine was tried.
         """
-        for tier in self.tiers:
-            need = tier.voice.need_mib
-            waited = 0.0
-            while need and self._gpu_refusal(tier) is not None:
-                if waited >= self.warm_wait_s or self._closed:
-                    break
-                self.sleep(1.0)
-                waited += 1.0
-            if need and self._gpu_refusal(tier) is not None:
-                continue
-            if self._closed:
-                return
+        self.warming()
+        try:
+            threads = [threading.Thread(target=self._warm, args=(tier,),
+                                        daemon=True)
+                       for tier in self.tiers[1:]]
+            for thread in threads:
+                thread.start()
+            if self.tiers:
+                self._warm(self.tiers[0])
+            for thread in threads:
+                thread.join()
+        finally:
+            self._ready.set()
+
+    def _warm(self, tier: _Tier) -> None:
+        """Load one tier's engine (see :meth:`warm`)."""
+        need = tier.voice.need_mib
+        waited = 0.0
+        while need and self._gpu_refusal(tier) is not None:
+            if waited >= self.warm_wait_s or self._closed:
+                break
+            self.sleep(GATE_POLL_S)
+            waited += GATE_POLL_S
+        if need and self._gpu_refusal(tier) is not None:
+            return
+        if self._closed:
+            return
+        engine = self._engine(tier)
+        if not engine.loaded:
             try:
-                self._engine(tier).warm(tier.voice)
+                engine.warm(tier.voice)
             except TtsUnavailable as exc:
                 tier.failed = str(exc)[:120] or "could not load"
-            if self._closed:  # the session ended while it loaded
-                self._unload(tier)
+        if self._closed:  # the session ended while it loaded
+            self._unload(tier)
+
+    def _left(self) -> float:
+        """Seconds the first sentences may still wait for the warm-up."""
+        if self._ready_by is None:
+            return 0.0
+        return self._ready_by - time.monotonic()
+
+    def _await_ready(self, cancel: CancelToken) -> None:
+        """Wait for the warm-up, unless cancelled, closed or past bound."""
+        while (not self._ready.is_set() and not cancel.cancelled
+               and not self._closed):
+            left = self._left()
+            if left <= 0:
+                return
+            self._ready.wait(min(left, 0.05))
 
     def synthesize(
         self, request: Document, cancel: CancelToken
@@ -170,8 +256,9 @@ class NaturalVoice:
                      else [" ".join(text.split())])
         audio_format = str(request.get("format") or "pcm_s16le")
         request_id = str(request["request_id"])
+        self._await_ready(cancel)
         for seq, sentence in enumerate(s for s in sentences if s):
-            if cancel.cancelled:
+            if cancel.cancelled or self._closed:
                 return
             started = time.perf_counter()
             reasons: List[str] = []
@@ -193,7 +280,7 @@ class NaturalVoice:
                     text = ""
                 break
             else:
-                if cancel.cancelled:
+                if cancel.cancelled or self._closed:
                     return
                 self._spoke(PIPER, reasons)
                 yield from self._piper(request, sentence, seq, cancel)
@@ -246,7 +333,12 @@ class NaturalVoice:
         self, tier: _Tier, sentence: str, cancel: CancelToken,
         reasons: List[str],
     ) -> Optional[Iterator[Tuple[bytes, int]]]:
-        """Start ``sentence`` on ``tier``; its pieces, or ``None``."""
+        """Start ``sentence`` on ``tier``; its pieces, or ``None``.
+
+        ``None`` too once the voice is closed (nothing more is said).
+        """
+        if self._closed:
+            return None
         if tier.failed:
             reasons.append(f"{tier.name} failed ({tier.failed})")
             return None
@@ -261,8 +353,11 @@ class NaturalVoice:
             return None
         job = _Job()
         engine = self._engine(tier)
-        tier.busy = tier.pool.submit(self._run, engine, tier.voice,
-                                     sentence, job)
+        try:
+            tier.busy = tier.pool.submit(self._run, engine, tier.voice,
+                                         sentence, job)
+        except RuntimeError:  # closed meanwhile: the pool is shut down
+            return None
         first = self._next(job, self.budget_ms, cancel)
         if first is None:
             job.cancel.cancel()
@@ -290,9 +385,9 @@ class NaturalVoice:
     def _next(
         self, job: _Job, timeout_ms: float, cancel: CancelToken
     ) -> Optional[_Item]:
-        """The job's next item; ``None`` on timeout, cancel or its end."""
+        """The job's next item; ``None`` on timeout, cancel, close or end."""
         deadline = time.monotonic() + timeout_ms / 1000.0
-        while not cancel.cancelled:
+        while not cancel.cancelled and not self._closed:
             left = deadline - time.monotonic()
             if left <= 0:
                 return None
@@ -315,11 +410,11 @@ class NaturalVoice:
             ready = joiner.add(item[0])
             if ready is not None:
                 yield ready, rate
-            if cancel.cancelled:
+            if cancel.cancelled or self._closed:
                 job.cancel.cancel()
                 return
             item = self._next(job, self.chunk_timeout_ms, cancel)
-        if cancel.cancelled:
+        if cancel.cancelled or self._closed:
             job.cancel.cancel()
             return
         if item is None or isinstance(item, BaseException):
@@ -360,13 +455,15 @@ class NaturalWiring:
 
     ``reference`` is Qwen3's default voice (clip, transcript; ``None``:
     the ``qwen3`` option falls back); ``budget_ms`` the longest wait
-    for a sentence's first audio in a session.
+    for a sentence's first audio in a session; ``ready_wait_s`` how
+    long a session's first sentences wait for its voice to load.
     """
 
     engines: SpeechEngines
     gate: Optional[GpuGate] = None
     reference: Optional[Tuple[str, str]] = None
     budget_ms: float = DEFAULT_BUDGET_MS
+    ready_wait_s: float = READY_WAIT_S
 
 
 SAMPLE_BUDGET_MS = 120000.0

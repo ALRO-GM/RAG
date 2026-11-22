@@ -167,6 +167,9 @@ export class VoiceBotState {
     this.records = [];
     this.halted = null;
     this.lastId = 0;
+    // "warming" while the bot's voice loads (the page says «Preparando la
+    // voz…»), then "ready" or "fallback"; null when nobody said.
+    this.voice = null;
   }
 
   _item(kind, key, fields) {
@@ -197,6 +200,8 @@ export class VoiceBotState {
       } else if (event.type === "session_ended") {
         this.state = "ended";
       }
+    } else if (type === "voice_state") {
+      this.voice = message.state ?? null;
     } else if (type === "bot") {
       this._item("bot", `b:${message.turn}`, { turn: message.turn, state: "thinking" });
     } else if (type === "speech") {
@@ -213,6 +218,11 @@ export class VoiceBotState {
       if (item.state !== "interrupted") item.state = record.status === "ok" ? "done" : record.status;
       if (record.status === "quota" || record.status === "auth") this.halted = record.status;
     }
+  }
+
+  /** Whether the bot's voice is still loading. */
+  get preparing() {
+    return this.state === "running" && this.voice === "warming";
   }
 
   /** The conversation, oldest first; empty partials are left out. */

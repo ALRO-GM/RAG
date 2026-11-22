@@ -66,7 +66,10 @@ turn starts, `{"type": "interrupt", "turn", "by": "new_turn" | "vad" |
 "speech"}` and `{"type": "turn", "record": <TurnRecord>}` with the
 per-stage latency (`event_lag_ms`, `knowledge_ms`, `first_text_ms`,
 `first_sentence_ms`, `first_tts_ms`, `first_audio_ms`, `reasoner_ms`,
-`total_ms`). A turn's audio is removed from the feed when the next turn
+`total_ms`). With a natural voice that is still loading,
+`{"type": "voice_state", "state": "warming"}` comes first (the page
+says «Preparando la voz…») and then `"ready"`, or `"fallback"` if it
+did not load within 12 s (`NATURAL_TTS.md` §8). A turn's audio is removed from the feed when the next turn
 starts, so the session does not keep audio; the turn log
 (`<log-dir>/<session>.voicebot.turns.jsonl`) has text and latency only.
 
