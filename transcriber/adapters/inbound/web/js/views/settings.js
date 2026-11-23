@@ -167,7 +167,8 @@ export async function settingsView(ctx, root) {
       h("p", { class: "hint" }, label(t, `set.range.${step.id}`, ""), " ",
         t("set.range_default", { value: step.default })),
       reach === "none" ? h("p", { class: "hint" }, t("set.controls_none")) : null,
-      reach === "openvoice" ? h("p", { class: "hint" }, t("set.controls_openvoice")) : null);
+      reach === "openvoice" ? h("p", { class: "hint" }, t("set.controls_openvoice")) : null,
+      reach === "maybe" ? h("p", { class: "hint" }, t("set.controls_maybe")) : null);
   }
 
   function optionRow(step, option) {

@@ -332,7 +332,13 @@ class VoiceCloner(Protocol):
         ...
 
     def unload(self) -> None:
-        """Stop the model: its (GPU) memory is free when this returns."""
+        """Stop the model now, whoever holds it (a load in progress is
+        killed): its (GPU) memory is free when this returns."""
+        ...
+
+    def release(self) -> None:
+        """This holder is done with the model: a GPU one is stopped once
+        no holder remains."""
         ...
 
 

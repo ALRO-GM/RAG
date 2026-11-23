@@ -293,7 +293,7 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
         "orchestrator_session": {k: info.get(k) for k in (
             "state", "calls", "skipped", "events")},
         "voice_messages": [m for _, m in follower.items
-                           if m.get("type") == "voice"],
+                           if m.get("type") in ("voice", "voice_summary")],
         "rows": rows,
     }
 

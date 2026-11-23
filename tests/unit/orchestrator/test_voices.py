@@ -2,6 +2,7 @@
 cloning only with consent, the fallback to Piper and the sample (#207)."""
 
 import threading
+import time
 import wave
 from io import BytesIO
 from typing import Any, Dict, List, Mapping, Optional, Tuple
@@ -13,6 +14,7 @@ from orchestrator.application.ports import CancelToken, TtsUnavailable
 from orchestrator.application.voice import (
     CLONE_NEED_MIB,
     ClonedVoice,
+    SharedCloner,
     request_controls,
     speak_sample,
     tts_controls,
@@ -78,6 +80,10 @@ class FakeCloner:
     def unload(self) -> None:
         self.loaded = False
         self.unloaded.set()
+
+    def release(self) -> None:
+        if self.gpu:
+            self.unload()
 
 
 def profiles(*found: VoiceProfile) -> Any:
@@ -357,8 +363,9 @@ def test_the_pipers_controls_reach_the_cloner() -> None:
     assert cloner.controls[0] == controls
     assert cloner.controls[1] == {"length_scale": 1.0, "noise_scale": 0.4,
                                   "noise_w": 0.6, "sentence_silence": 0.2}
-    assert request_controls({"length_scale": True, "noise_w": "x"}) == {
-        "length_scale": 1.0}, "numbers only"
+    assert request_controls({"length_scale": True, "noise_w": "x",
+                             "noise_scale": 0.3}) == {
+        "noise_scale": 0.3}, "numbers only, a boolean is not one"
     voice.close()
 
 
@@ -396,3 +403,156 @@ def test_a_session_gives_the_cloner_its_gate_and_controls() -> None:
     first = cloner.controls[0]
     assert cloner.said and first is not None
     assert first["length_scale"] == 1.3
+
+
+def settle(check: Any, seconds: float = 2.0) -> bool:
+    """Wait until ``check()`` is true (threads of the voices)."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        if check():
+            return True
+        time.sleep(0.01)
+    return bool(check())
+
+
+def test_a_shared_cloner_is_stopped_only_by_its_last_holder() -> None:
+    cloner = FakeCloner(gpu=True)
+    shared = SharedCloner(cloner)
+    first = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=FakeGate())
+    second = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=FakeGate())
+    first.warm()
+    assert cloner.loaded and shared.holders == 2
+    first.close()
+    assert settle(lambda: shared.holders == 1)
+    assert not cloner.unloaded.wait(0.2), "a session still holds it"
+    assert cloner.loaded
+    second.close()
+    assert cloner.unloaded.wait(2) and shared.holders == 0
+    # a holder is given back once, however many times it closes
+    first.close()
+    assert shared.holders == 0
+
+
+def test_a_stop_scheduled_by_one_session_spares_the_next_ones_worker(
+) -> None:
+    cloner = FakeCloner(gpu=True)
+    shared = SharedCloner(cloner)
+    first = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=FakeGate())
+    first.warm()
+    first.cloner.release()  # the last holder goes: a stop is scheduled...
+    assert settle(lambda: cloner.unloaded.is_set())
+    cloner.unloaded.clear()
+    second = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=FakeGate())
+    second.warm()  # ...the next session warms its worker...
+    shared._stop_if_idle()  # ...and the late stop runs: it re-checks
+    assert shared.holders == 1 and cloner.loaded
+    assert not cloner.unloaded.is_set(), "the new session's worker lives"
+    second.close()
+    assert cloner.unloaded.wait(2)
+
+
+def test_a_sample_during_a_session_does_not_stop_its_worker() -> None:
+    gate = FakeGate()
+    cloner = FakeCloner(gpu=True)
+    live = bot_sessions([], tts=FakeTts())
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = cloner
+    live.clone_gate = gate
+    pick = {"voicebot.voice": "clone:ana",
+            "voicebot.clone_engine": "openvoice"}
+    session_voice = live._cloned(AGREED)
+    session_voice.warm()
+    assert cloner.loaded
+    gate.taken.clear()
+    _, used = live.sample(pick)
+    assert used["clone"] is True
+    assert gate.taken == [0], "loaded already: no 800 MiB to wait for"
+    assert not cloner.unloaded.wait(0.3) and cloner.loaded
+    session_voice.close()
+    assert cloner.unloaded.wait(2)
+
+
+def test_the_lease_lost_while_the_bot_is_silent_frees_the_card() -> None:
+    cloner = FakeCloner(gpu=True)
+    gate = FakeGate()
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate, watch_s=0.01)
+    voice.warm()
+    assert cloner.loaded and not cloner.unloaded.is_set()
+    gate.refusal = "no live GPU lease"
+    assert cloner.unloaded.wait(2), "unloaded with nobody speaking"
+    voice.close()
+
+
+def test_a_load_in_progress_is_stopped_when_the_lease_goes() -> None:
+    class Loading(FakeCloner):
+        def warm(self, reference: str, language: str,
+                 controls: Optional[Mapping[str, float]] = None) -> None:
+            self.loaded = True  # the process exists, the model loads
+            self.unloaded.wait(5)
+            raise TtsUnavailable("the cloner stopped")
+
+    cloner = Loading(gpu=True)
+    gate = FakeGate()
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate, watch_s=0.01)
+    worker = threading.Thread(target=voice.warm)
+    worker.start()
+    assert settle(lambda: cloner.loaded)
+    gate.refusal = "no live GPU lease"
+    worker.join(3)
+    assert not worker.is_alive() and cloner.unloaded.is_set()
+    assert voice.failed is False, "the lease going is not a failure"
+    voice.close()
+
+
+def test_a_refused_warm_up_keeps_the_clone_out_of_the_session() -> None:
+    cloner = FakeCloner(gpu=True)
+    gate = FakeGate("no live GPU lease")
+    heard: List[Tuple[str, str]] = []
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate,
+                        sleep=lambda _: None,
+                        report=lambda e, w: heard.append((e, w)))
+    voice.warm()
+    assert voice.failed and cloner.warmed == 0
+    gate.refusal = None  # the lease turns up mid-session: still no load
+    out = list(voice.synthesize(request("Una frase bastante larga."),
+                                CancelToken()))
+    assert [c.sample_rate for c in out] == [16000]
+    assert cloner.warmed == 0 and not cloner.said, "no cold load mid-talk"
+    assert heard == [("piper", "openvoice: no live GPU lease")]
+    voice.close()
+
+
+def test_the_feed_hears_when_the_clone_gives_way_to_piper() -> None:
+    cloner = FakeCloner(gpu=True)
+    gate = FakeGate()
+    heard: List[Tuple[str, str]] = []
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate,
+                        report=lambda e, w: heard.append((e, w)))
+    voice.warm()
+    list(voice.synthesize(request("Una frase bastante larga."),
+                          CancelToken()))
+    assert heard == [], "the first message already said openvoice"
+    gate.refusal = "the GPU lease is held by ragputin-img"
+    list(voice.synthesize(request("Otra frase bastante larga."),
+                          CancelToken()))
+    gate.refusal = None
+    list(voice.synthesize(request("Y otra frase bastante larga."),
+                          CancelToken()))
+    assert heard == [
+        ("piper", "openvoice: the GPU lease is held by ragputin-img"),
+        ("openvoice", "")]
+    voice.close()
+
+
+def test_a_session_ends_with_the_clone_counts_in_its_feed() -> None:
+    events = [user_final("t0.s0", "¿Puedo devolver un producto?", 1)]
+    live = bot_sessions(events, tts=FakeTts())
+    live.settings = Settings({"voicebot.voice": "clone:ana",
+                              "voicebot.clone_engine": "openvoice"})
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = FakeCloner()
+    live.start_live("voicebot", "mic")
+    summary = [m for m in messages(live, "vb-1")
+               if m["type"] == "voice_summary"]
+    assert len(summary) == 1 and summary[0]["engine"] == "openvoice"
+    assert summary[0]["cloned"] >= 1 and summary[0]["fell_back"] == 0

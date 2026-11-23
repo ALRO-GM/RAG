@@ -146,8 +146,8 @@ test("which voices the Piper controls reach", () => {
   assert.equal(controlsReach({}), "none", "the default voice is Pocket TTS");
   assert.equal(controlsReach({ "voicebot.voice": "qwen3" }), "none");
   assert.equal(controlsReach({ "voicebot.voice": "clone:ana", "voicebot.clone_engine": "openvoice" }), "openvoice");
-  assert.equal(controlsReach({ "voicebot.voice": "clone:ana", "voicebot.clone_engine": "qwen3" }), "none");
-  assert.equal(controlsReach({ "voicebot.voice": "clone:ana" }), "none", "the default cloner is Qwen3-TTS");
+  assert.equal(controlsReach({ "voicebot.voice": "clone:ana", "voicebot.clone_engine": "qwen3" }), "maybe", "OpenVoice speaks when Qwen3-TTS is missing");
+  assert.equal(controlsReach({ "voicebot.voice": "clone:ana" }), "maybe", "the default cloner is Qwen3-TTS");
   assert.equal(PIPER_CONTROLS.length, 4);
 });
 
@@ -259,8 +259,8 @@ test("the voice bot shows sliders, clonable people and plays the draft", async (
   const clone = root.all().find((n) => n.tagName === "INPUT" && n.attributes.value === "clone:ana");
   clone.fire("change");
   const slider = root.all().find((n) => n.tagName === "INPUT" && n.attributes.id === "set-voicebot-length_scale");
-  assert.equal(slider.disabled, true, "Qwen3-TTS (the default cloner) has no speed control");
-  assert.ok(root.textContent.includes("Esta voz no tiene este control"));
+  assert.notEqual(slider.disabled, true, "a Qwen3 clone may fall back to OpenVoice: editable");
+  assert.ok(root.textContent.includes("Qwen3-TTS no admite este control"));
   slider.fire("change");
   const button = root.all().find((n) => n.tagName === "BUTTON" && n.textContent.includes("Escuchar ejemplo"));
   button.fire("click");
@@ -279,4 +279,18 @@ test("without a RAG the page explains why", async () => {
   const failure = Object.assign(new Error("x"), { kind: "unavailable", status: 503, code: "analysis_unavailable" });
   await settingsView({ api: { pipelineSettings: async () => { throw failure; } }, fail: () => {} }, root);
   assert.match(root.textContent, /no están disponibles/);
+});
+
+test("the sliders are disabled for a voice without the controls", async () => {
+  installDom();
+  const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
+  setLanguage("es");
+  const { settingsView } = await import("../../transcriber/adapters/inbound/web/js/views/settings.js");
+  const saved = { revision: 1, stored: true, choices: { ...defaultChoices(catalogue), "voicebot.voice": "pocket:lola" }, catalogue };
+  const api = { pipelineSettings: async () => saved, speakers: async () => ({ speakers: [] }), voiceSample: async () => ({}) };
+  const root = new Node("main");
+  await settingsView({ api, fail: (e) => { throw e; } }, root);
+  const slider = root.all().find((n) => n.tagName === "INPUT" && n.attributes.id === "set-voicebot-length_scale");
+  assert.equal(slider.disabled, true);
+  assert.ok(root.textContent.includes("Esta voz no tiene este control"));
 });

@@ -89,9 +89,28 @@ class SubprocessCloner:
         self.speak("Hola.", reference, language, CancelToken(), controls)
 
     def unload(self) -> None:
-        """Stop the worker: the GPU memory it held is free afterwards."""
-        with self._lock:
-            self._stop()
+        """Kill the worker now, even while it loads or speaks.
+
+        It does not wait for the lock a sentence or the loading holds:
+        the process is killed and the thread waiting on it fails at
+        once (``TtsUnavailable``). The GPU memory is free afterwards.
+        """
+        process = self._process
+        if process is None:
+            return
+        try:
+            process.kill()
+        except OSError:  # pragma: no cover - already gone
+            pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:  # pragma: no cover
+            pass
+
+    def release(self) -> None:
+        """The only holder is done: a GPU worker is stopped."""
+        if self.gpu:
+            self.unload()
 
     def speak(
         self, text: str, reference: str, language: str, cancel: CancelToken,

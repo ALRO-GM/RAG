@@ -98,6 +98,7 @@ class LeaseGpuGate:
         self.sleep = sleep
         self.wait_seconds = wait_seconds
         self._mine: Optional[Dict[str, Any]] = None
+        self._users = 0
         self._stop = threading.Event()
         self._lock = threading.Lock()
 
@@ -111,8 +112,14 @@ class LeaseGpuGate:
         return self._memory(need_mib)
 
     def take(self, need_mib: int) -> Optional[str]:
-        """Hold the lease if nobody does, wait for the memory; why not."""
+        """Hold the lease if nobody does, wait for the memory; why not.
+
+        Every call is paired with one :meth:`drop`: the lease this gate
+        wrote is deleted by the last one, so two samples at once (a
+        natural voice and a clone) never delete each other's lease.
+        """
         with self._lock:
+            self._users += 1
             lease = self._valid()
             if lease is None:
                 self._acquire(need_mib)
@@ -128,8 +135,15 @@ class LeaseGpuGate:
             waited += 0.5
 
     def drop(self) -> None:
-        """Delete the lease :meth:`take` wrote (if it is still ours)."""
+        """Give back one :meth:`take`; the last one deletes the lease.
+
+        Only a lease this gate wrote (and that is still ours by pid) is
+        deleted; the live session's is never touched.
+        """
         with self._lock:
+            self._users = max(0, self._users - 1)
+            if self._users > 0:
+                return
             self._stop.set()
             mine, self._mine = self._mine, None
             if mine is None:

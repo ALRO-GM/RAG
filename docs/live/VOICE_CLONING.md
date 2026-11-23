@@ -155,30 +155,53 @@ looks the person up (`DirVoiceProfiles`, `--voiceprints-dir`, default
 
 **The GPU lease (#211).** The cloner no longer runs on the GPU on its
 own: like the natural voices (`NATURAL_TTS.md` §6) a cloner on the GPU
-runs **under the live session's lease** (`gpu-lease.v1`, the same
-`LeaseGpuGate` as `NaturalVoice`, `--gpu-lease-dir`):
+runs **under the live session's lease** (`gpu-lease.v1`). The
+orchestrator builds one `LeaseGpuGate` (`--gpu-lease-dir`) and gives
+that same instance to the natural voices and to the cloner; its
+`take`/`drop` are counted, so two samples at once never delete each
+other's lease and only the last `drop` removes a lease this process
+wrote (the live session's is never touched).
 
-- the worker (782 MiB measured, 800 MiB asked: `CLONE_NEED_MIB`) is
+- The worker (782 MiB measured, 800 MiB asked: `CLONE_NEED_MIB`) is
   started only while a valid `live` lease is held and `nvidia-smi`
-  says the memory is free; the warm-up waits up to 30 s for the lease
-  (the live session takes it and the image worker leaves the card),
-  and if it never comes Piper speaks the whole session, with the
-  reason in the feed's `voice` message;
-- when the lease goes during a session the worker is stopped at once
-  (its memory is free before the image worker resumes), and Piper
-  speaks; when the session ends the worker is stopped too (before, it
-  stayed on the GPU for the life of the orchestrator, lease or not);
-- no gate wired, no GPU cloner: it is never used without the lease;
-  `--clone-device cpu` needs no lease and stays loaded;
+  says the memory is free. The session's warm-up waits up to 30 s for
+  the lease (the live session takes it and the image worker leaves the
+  card). If it never comes, the clone is **out for the whole session**
+  and Piper speaks: the bot never cold-loads a model in the middle of a
+  conversation. The reason reaches the feed (below).
+- The lease is watched (every 1 s) while the worker is loaded or
+  loading. If it goes, the worker is **killed at once, even if the bot
+  is silent** (`SubprocessCloner.unload` kills the process without
+  waiting for the sentence or the load that holds its lock), so its
+  memory is free before the image worker resumes (30 s). A sentence
+  that finds the lease gone also says Piper. If the lease comes back
+  mid-session the next sentence may load the worker again, inside the
+  800 ms budget and the memory check (Piper speaks meanwhile).
+- The one worker is **shared** by sessions and samples through
+  `SharedCloner`: each `ClonedVoice` holds it and gives it back when
+  it closes, and the worker is stopped only when the last holder is
+  gone. A sample during a live session, or one session ending, never
+  stops the worker another session uses; a stop scheduled by the last
+  holder re-checks the holders when it runs. (Before, the worker also
+  stayed on the GPU for the life of the orchestrator.)
+- No gate wired, no GPU cloner: it is never used without the lease;
+  `--clone-device cpu` needs no lease and stays loaded.
 - «Escuchar ejemplo» outside a session **takes** the lease when nobody
-  holds it (holder `ragputin-voicebot`, as for the natural voices),
-  waits for the memory, loads the worker, speaks and stops it; if
-  somebody else holds the lease (the image worker) the sample is Piper
-  and says so in `X-Voice-Note`. The orchestrator never signals another
-  process and never takes the lease during a session (the transcriber's
-  live session is the holder).
+  holds it (holder `ragputin-voicebot`), waits for the memory, loads
+  the worker, speaks and gives it back; with the worker already loaded
+  by a session it asks for no memory (it does not wait 20 s for the
+  800 MiB it already holds). If somebody else holds the lease (the
+  image worker) the sample is Piper and says so in `X-Voice-Note`. The
+  orchestrator never signals another process and never takes the lease
+  during a session (the transcriber is the holder).
 - The Qwen3-TTS clone goes through `NaturalVoice` and was already under
   the lease (NATURAL_TTS.md §6): both cloner paths are now covered.
+- **Feed.** The session's first `voice` message says `openvoice`; from
+  then on a `voice` message is published whenever the speaker changes
+  between the clone and Piper, with the reason (`openvoice: no live GPU
+  lease`, `openvoice busy`, `openvoice missed the 800 ms budget`,
+  `openvoice failed (...)`), and at the end a `voice_summary` message
+  `{"engine": "openvoice", "cloned": n, "fell_back": m}`.
 
 **Speed and the controls.** `voicebot.length_scale` (and the speed
 `match_rate` sets), `noise_scale`, `noise_w` and `sentence_silence`
@@ -187,21 +210,25 @@ with them (one Piper process per distinct set of flags, at most two
 kept; `length_scale` 1 is Piper's default and uses the one started at
 load) and the converter recolours that audio, so pace, intonation and
 pauses are Piper's and the timbre is the person's. The session warms
-the worker with its own controls. Checked with «Escuchar ejemplo» on
-the spare orchestrator (synthetic enrolled voice, §6): the same
-sample sentence lasted 6.12 s at speed 0.8, 7.04 s at 1 and 9.23 s at
-1.4 (and 6.98 s at 1 again), all spoken by the clone (`X-Voice-Engine:
-openvoice`).
+the worker with its own controls. Checked with «Escuchar ejemplo» on a
+spare orchestrator (`experiments/voicebot/clone_checks.py speed`,
+`clone_speed_openvoice.json`; synthetic enrolled voice, §6): the same
+sample sentence lasted 6.21 s at speed 0.8, 6.99 s at 1, 9.07 s at 1.4
+and 7.04 s at 1 again, every time spoken by the clone
+(`X-Voice-Engine: openvoice`).
 
 They do **not** reach **Qwen3-TTS** (the default `clone_engine`) or
 Pocket TTS: neither has a speed or intonation parameter in the
 installed `faster-qwen3-tts` 0.5.4 / `pocket-tts` 4.0.1 (nothing in
 their generate calls) and the worker protocol carries none. The
-«Ajustes» page disables the four sliders and says so when the chosen
-voice is Pocket, Qwen3 or a Qwen3 clone (`controlsReach`,
-`lib/settings.js`); with OpenVoice or a Piper voice they are live. A
-time-stretch of Qwen3's audio was not tried. The values stay saved and
-still shape Piper when it says a sentence as the fallback.
+«Ajustes» page (`controlsReach`, `lib/settings.js`) disables the four
+sliders and says so for Pocket and Qwen3 voices; they are live for
+Piper voices and the OpenVoice clone. For a **Qwen3 clone** they stay
+editable with a note: the page cannot know whether Qwen3-TTS is
+installed, and when it is not the orchestrator speaks the clone with
+OpenVoice, which applies them. A time-stretch of Qwen3's audio was not
+tried. The values stay saved and still shape Piper when it says a
+sentence as the fallback.
 
 On the CPU OpenVoice would miss the budget (p50 1.26 s) and Piper would
 speak.
@@ -226,36 +253,48 @@ live session holding the lease) and the running RAG (Haiku via
 Rows are the answered turns only (`ok`); the `timeout` turns are
 Haiku not answering within the product deadline, and their first audio
 came at 2.51-2.58 s. Results:
-`experiments/voicebot/clone_first_audio_openvoice_run{1,2}.json` and
-`clone_first_audio_qwen3.json`. 24 real Haiku calls. The feed said
-`engine: openvoice` / `qwen3-cuda`, `clone: true`, no fallback reason,
-once per session. Qwen3 audio is 24 kHz; OpenVoice's 22,050 Hz is also
-Piper's, so the rate alone does not tell them apart: the proof that
-the clone spoke is the worker process on the GPU during the session
-(OpenVoice 642-724 MiB, Qwen3 2.8-2.96 GB).
+`experiments/voicebot/clone_first_audio_openvoice_run{1,2,3}.json` and
+`clone_first_audio_qwen3.json`. Runs 1, 2 and the Qwen3 one used
+the code of the first commit; **run 3** (code with the lease watcher,
+shared worker and feed reports of this review) is the one that proves
+the clone spoke: its feed ends with `voice_summary` `cloned: 14,
+fell_back: 0` and has no `voice` message after the first (a fallback
+would publish one). Runs 1 and 2 could not say it (that code reported
+no fallbacks), and the Qwen3 run only has the first `voice` message
+(`qwen3-cuda`, `clone: true`; `NaturalVoice` does publish its
+fallbacks, so none happened); it was not re-run after the review
+(unchanged code path). Qwen3 audio is 24 kHz; OpenVoice's 22,050 Hz is
+also Piper's, so the sample rate alone does not tell them apart. 32
+real Haiku calls.
+
+Run 3 alone: voice end → first audio p50 / p90 / max 1,963 / 2,171 /
+2,211 ms, final → first audio 1,293 / 1,496 ms, TTS first audio
+129 / 183 ms, 7 answered of 8 (1 `timeout`), all 7 within 2.5 s.
 
 Compared with the earlier rows (`NATURAL_TTS.md` §7: Pocket 1,653,
 Qwen3 non-clone 1,740, Piper 1,584 ms p50) these runs are not
 better or worse by the clone: the reply model's first token p50 was
-980-1,018 ms here against 566-660 ms then, which alone explains the
-~0.3-0.4 s. The clone's own part is the TTS first audio (138-214 ms
+about 1 s here against 566-660 ms then, which largely explains the
+~0.3-0.4 s. The clone's own part is the TTS first audio (129-214 ms
 p50), inside the 800 ms budget with room. Few turns, one session per
 run: read it as "the clone fits the 2.5 s target", not as a ranking.
 
-**Lease, observed** (nvidia-smi compute apps and `lease.json` every
-2 s during the sessions): the transcriber's `ragputin-live` lease was
-held the whole time; the clone worker's process appeared after the
-session started and was gone from the GPU within seconds of the session
-ending (OpenVoice and Qwen3 both); no lease file was left. For the
-sample button the lease holder was `ragputin-voicebot` while it spoke
-and the file was deleted afterwards. The IMG worker was not running
-during the measurements, so its pausing was not exercised end to end
-here; the lease protocol is the same as the natural voices' (unit-tested
-with a fake gate).
+**Lease, observed** with `clone_checks.py watch` (lease holder and
+GPU processes every 2 s; `clone_lease_watch_openvoice.json` during
+run 3, `clone_lease_watch_after_session.json` after it): the
+transcriber's `ragputin-live` lease was held while the session ran,
+the clone worker's process appeared under it (464-674 MiB) and, after
+the session, the lease file and the worker were gone. The sample
+button's own lease (`ragputin-voicebot`, written and deleted) is
+covered by the unit and integration tests, not by this log. The IMG
+worker was not running during the measurements, so its pausing was not
+exercised end to end; the lease protocol is the natural voices' and is
+tested with a fake gate and a real lease file.
 
 **Pending (owner):** real enrolled voices, a listener judging likeness
 and naturalness, and the cloned voice's behaviour with an IMG job
 actually queued.
+
 ## Limits
 
 - Synthetic voices only: no enrolled human voice, no noise, no

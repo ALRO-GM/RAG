@@ -148,6 +148,41 @@ def test_controls_reach_the_worker_and_unload_frees_it(
     cpu.close()
 
 
+def test_unload_kills_a_load_in_progress_without_waiting_for_it(
+    tmp_path: Path,
+) -> None:
+    import threading
+    import time
+
+    reference = tmp_path / "ref.wav"
+    reference.write_bytes(b"RIFF")
+    slow = SubprocessCloner(
+        Path("unused"), "fake", load_timeout=30.0,
+        command=[sys.executable, "-c", "import time; time.sleep(60)"])
+    outcome: List[str] = []
+
+    def load() -> None:
+        try:
+            slow.warm(str(reference), "es")
+        except TtsUnavailable as exc:
+            outcome.append(str(exc))
+
+    thread = threading.Thread(target=load)
+    thread.start()
+    end = time.monotonic() + 5
+    while not slow.loaded and time.monotonic() < end:
+        time.sleep(0.01)
+    assert slow.loaded, "the process is up while the model would load"
+    started = time.monotonic()
+    slow.unload()
+    thread.join(5)
+    assert not thread.is_alive() and "stopped" in outcome[0]
+    assert time.monotonic() - started < 3, "killed, not waited for"
+    assert slow.loaded is False
+    slow.release()  # a GPU worker with no holder: nothing left to stop
+    slow.close()
+
+
 def test_a_worker_that_cannot_start_or_load_is_unavailable(
     tmp_path: Path,
 ) -> None:

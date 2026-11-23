@@ -174,6 +174,6 @@ export const PIPER_CONTROLS = ["voicebot.length_scale", "voicebot.noise_scale", 
  */
 export function controlsReach(draft) {
   const voice = draft?.["voicebot.voice"] ?? "pocket:lola";
-  if (voice.startsWith("clone:")) return (draft?.["voicebot.clone_engine"] ?? "qwen3") === "openvoice" ? "openvoice" : "none";
+  if (voice.startsWith("clone:")) return (draft?.["voicebot.clone_engine"] ?? "qwen3") === "openvoice" ? "openvoice" : "maybe";
   return voice === "davefx" || voice === "sharvard" ? "piper" : "none";
 }
