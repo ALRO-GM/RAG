@@ -41,6 +41,7 @@ import argparse
 import json
 import queue
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -222,6 +223,13 @@ class OpenVoice:
         source.unlink()
         self._targets: Dict[str, Any] = {}
 
+    def close(self) -> None:
+        """Stop the Pipers and remove the temporary directory."""
+        for piper in self.pipers.values():
+            piper.close()
+        self.pipers.clear()
+        self._tmp.cleanup()
+
     def piper_for(self, controls: Dict[str, Any]) -> "_Piper":
         """Return the Piper that speaks with ``controls`` (started once).
 
@@ -287,6 +295,18 @@ def main() -> int:
     log(f"{args.engine} loaded in {time.perf_counter() - started:.1f} s")
     emit({"ready": True, "engine": args.engine,
           "sample_rate": engine.sample_rate})
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    try:
+        serve(engine)
+    finally:  # input ended or SIGTERM: leave nothing in /tmp
+        close = getattr(engine, "close", None)
+        if close is not None:
+            close()
+    return 0
+
+
+def serve(engine: Any) -> None:
+    """Answer the requests on the standard input until it ends."""
     for line in sys.stdin:
         if not line.strip():
             continue
@@ -308,7 +328,6 @@ def main() -> int:
             log(f"request failed: {type(exc).__name__}")
             emit({"id": request_id,
                   "error": f"{type(exc).__name__}: {str(exc)[:120]}"})
-    return 0
 
 
 if __name__ == "__main__":
