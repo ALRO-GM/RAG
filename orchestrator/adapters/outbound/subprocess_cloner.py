@@ -17,7 +17,9 @@ if it dies; one sentence at a time goes through it.
 """
 
 import json
+import os
 import queue
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -28,6 +30,8 @@ from typing import IO, Any, Dict, List, Mapping, Optional, Tuple
 
 from orchestrator.application.ports import CancelToken, TtsUnavailable
 
+GRACE_S = 2.0
+"""Seconds a ready worker gets to exit on its own after its input closes."""
 ROOT = Path(__file__).resolve().parents[3]
 WORKER = ROOT / "lab" / "runners" / "voice_clone.py"
 
@@ -65,7 +69,13 @@ class SubprocessCloner:
         self.timeout = timeout
         self._tmp = tempfile.TemporaryDirectory(prefix="clone-")
         self.workdir = Path(self._tmp.name)
+        self.worker_tmp = self.workdir / "worker-tmp"
+        """The worker's ``TMPDIR``: what it leaves is removed here."""
         self._process: Optional[subprocess.Popen[str]] = None
+        self._ready = False
+        self._swap = threading.Lock()
+        """Guards ``_process`` and ``_aborts`` (held only for a swap)."""
+        self._aborts = 0
         self._lines: "queue.Queue[str]" = queue.Queue()
         self._lock = threading.Lock()
         self._count = 0
@@ -78,7 +88,8 @@ class SubprocessCloner:
     @property
     def loaded(self) -> bool:
         """Whether the worker process is running (its memory is taken)."""
-        process = self._process
+        with self._swap:
+            process = self._process
         return process is not None and process.poll() is None
 
     def warm(
@@ -89,23 +100,48 @@ class SubprocessCloner:
         self.speak("Hola.", reference, language, CancelToken(), controls)
 
     def unload(self) -> None:
-        """Kill the worker now, even while it loads or speaks.
+        """Stop the worker now, even while it loads or speaks.
 
-        It does not wait for the lock a sentence or the loading holds:
-        the process is killed and the thread waiting on it fails at
-        once (``TtsUnavailable``). The GPU memory is free afterwards.
+        It does not wait for the lock a sentence or the loading holds
+        (only for the tiny swap lock). A worker that is ready gets its
+        input closed and up to :data:`GRACE_S` seconds to exit and clean
+        up its temporary directory; one that is still loading is killed
+        at once, and its directory is removed from here. A load that has
+        not started its process yet is aborted when it does. The thread
+        waiting on the process fails at once (``TtsUnavailable``).
         """
-        process = self._process
+        with self._swap:
+            self._aborts += 1
+            process = self._process
+            graceful = self._ready
         if process is None:
             return
-        try:
-            process.kill()
-        except OSError:  # pragma: no cover - already gone
-            pass
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:  # pragma: no cover
-            pass
+        self._terminate(process, graceful)
+
+    def _terminate(
+        self, process: "subprocess.Popen[str]", graceful: bool
+    ) -> None:
+        """Stop ``process`` (EOF first when ``graceful``), clean its tmp."""
+        if graceful:
+            try:
+                if process.stdin is not None:
+                    process.stdin.close()
+            except (OSError, ValueError):
+                pass
+            try:
+                process.wait(timeout=GRACE_S)
+            except subprocess.TimeoutExpired:
+                pass
+        if process.poll() is None:
+            try:
+                process.kill()
+            except OSError:  # pragma: no cover - already gone
+                pass
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:  # pragma: no cover
+                pass
+        shutil.rmtree(self.worker_tmp, ignore_errors=True)
 
     def release(self) -> None:
         """The only holder is done: a GPU worker is stopped."""
@@ -147,22 +183,36 @@ class SubprocessCloner:
 
     def _ensure(self) -> None:
         """Start the worker if it is not running, and wait until ready."""
-        if self._process is not None and self._process.poll() is None:
+        with self._swap:
+            process = self._process
+            aborts = self._aborts
+        if process is not None and process.poll() is None:
             return
         self._stop()
         self._lines = queue.Queue()
+        self.worker_tmp.mkdir(exist_ok=True)
+        env = {**os.environ, "TMPDIR": str(self.worker_tmp)}
         try:
-            self._process = subprocess.Popen(
+            started = subprocess.Popen(
                 self.command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                bufsize=1,
+                bufsize=1, env=env,
             )
         except OSError as exc:
             raise TtsUnavailable(f"cannot run the cloner: {exc}") from exc
-        stream = self._process.stdout
-        threading.Thread(target=self._pump, args=(stream, self._lines),
+        with self._swap:
+            self._process = started
+            self._ready = False
+            cancelled = self._aborts != aborts
+        if cancelled:  # unload() came while the process was being started
+            self._terminate(started, False)
+        threading.Thread(target=self._pump, args=(started.stdout,
+                                                  self._lines),
                          daemon=True).start()
         self._read(None, self.load_timeout)
+        with self._swap:
+            if self._process is started:
+                self._ready = True
 
     @staticmethod
     def _pump(stream: Optional[IO[str]], lines: "queue.Queue[str]") -> None:
@@ -175,14 +225,15 @@ class SubprocessCloner:
 
     def _send(self, message: Dict[str, Any]) -> None:
         """Write one request line."""
-        process = self._process
+        with self._swap:
+            process = self._process
         if process is None or process.stdin is None:
             raise TtsUnavailable("the cloner is not running")
         try:
             process.stdin.write(json.dumps(message, ensure_ascii=False)
                                 + "\n")
             process.stdin.flush()
-        except OSError as exc:
+        except (OSError, ValueError) as exc:  # ValueError: input closed
             self._stop()
             raise TtsUnavailable("the cloner stopped") from exc
 
@@ -214,7 +265,9 @@ class SubprocessCloner:
 
     def _stop(self) -> None:
         """Stop the worker, if any."""
-        process, self._process = self._process, None
+        with self._swap:
+            process, self._process = self._process, None
+            self._ready = False
         if process is None:
             return
         try:
@@ -227,3 +280,4 @@ class SubprocessCloner:
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
+        shutil.rmtree(self.worker_tmp, ignore_errors=True)

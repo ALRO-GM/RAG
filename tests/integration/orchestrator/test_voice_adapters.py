@@ -8,7 +8,7 @@ import textwrap
 import wave
 from io import BytesIO
 from pathlib import Path
-from typing import Iterator, List
+from typing import Any, Iterator, List
 
 import httpx
 import pytest
@@ -113,7 +113,7 @@ def test_the_worker_speaks_one_sentence_per_line(
     pcm, rate = cloner.speak("Hola a todos.", str(reference), "es",
                              CancelToken())
     assert rate == 24000 and len(pcm) == 2 * 50 * len("Hola a todos.")
-    assert not any(cloner.workdir.iterdir()), "the WAV is deleted"
+    assert not list(cloner.workdir.glob("*.wav")), "the WAV is deleted"
     with pytest.raises(TtsUnavailable, match="boom"):
         cloner.speak("FAIL.", str(reference), "es", CancelToken())
     with pytest.raises(TtsUnavailable, match="missing"):
@@ -181,6 +181,89 @@ def test_unload_kills_a_load_in_progress_without_waiting_for_it(
     assert slow.loaded is False
     slow.release()  # a GPU worker with no holder: nothing left to stop
     slow.close()
+
+
+TMP_WORKER = textwrap.dedent('''
+    import json, sys, tempfile
+    d = tempfile.TemporaryDirectory(prefix="voice-clone-")
+    print(json.dumps({"ready": True, "sample_rate": 24000}), flush=True)
+    for line in sys.stdin:
+        pass
+    d.cleanup()
+''')
+
+
+def test_a_ready_worker_exits_on_eof_and_leaves_no_temp_dir(
+    tmp_path: Path,
+) -> None:
+    script = tmp_path / "worker.py"
+    script.write_text(TMP_WORKER, encoding="utf-8")
+    reference = tmp_path / "ref.wav"
+    reference.write_bytes(b"RIFF")
+    worker = SubprocessCloner(Path("unused"), "fake", load_timeout=5.0,
+                              command=[sys.executable, str(script)])
+    worker._ensure()
+    assert any(worker.worker_tmp.glob("voice-clone-*")), "dir exists"
+    process = worker._process
+    assert process is not None
+    worker.unload()
+    assert process.returncode == 0, "it left by itself, not killed"
+    assert not worker.worker_tmp.exists() or not any(
+        worker.worker_tmp.iterdir())
+    worker.close()
+
+
+def test_a_loading_worker_is_killed_but_its_temp_dir_is_cleaned(
+    tmp_path: Path,
+) -> None:
+    import threading
+    import time
+
+    script = tmp_path / "loader.py"
+    script.write_text(
+        "import tempfile, time\n"
+        "d = tempfile.TemporaryDirectory(prefix='voice-clone-')\n"
+        "time.sleep(60)\n", encoding="utf-8")
+    worker = SubprocessCloner(Path("unused"), "fake", load_timeout=30.0,
+                              command=[sys.executable, str(script)])
+    thread = threading.Thread(
+        target=lambda: pytest.raises(TtsUnavailable, worker._ensure))
+    thread.start()
+    end = time.monotonic() + 5
+    while (not any(worker.worker_tmp.glob("voice-clone-*"))
+           and time.monotonic() < end):
+        time.sleep(0.01)
+    started = time.monotonic()
+    worker.unload()
+    thread.join(5)
+    assert time.monotonic() - started < 1.5, "no grace while loading"
+    assert not thread.is_alive()
+    assert not worker.worker_tmp.exists()
+    worker.close()
+
+
+def test_an_unload_during_the_start_aborts_that_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Deterministic race: unload() lands while Popen is in flight."""
+    import subprocess
+
+    worker = SubprocessCloner(
+        Path("unused"), "fake", load_timeout=30.0,
+        command=[sys.executable, "-c", "import time; time.sleep(60)"])
+    real = subprocess.Popen
+
+    def popen(*args: Any, **kwargs: Any) -> Any:
+        process = real(*args, **kwargs)
+        worker.unload()  # the watcher's unload sees no process yet
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    with pytest.raises(TtsUnavailable, match="stopped"):
+        worker._ensure()
+    assert worker.loaded is False
+    monkeypatch.setattr(subprocess, "Popen", real)
+    worker.close()
 
 
 def test_a_worker_that_cannot_start_or_load_is_unavailable(
