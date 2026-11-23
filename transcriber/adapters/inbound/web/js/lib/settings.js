@@ -162,3 +162,18 @@ export function rateOptions(step, speakers, current) {
 export function voicebotChoices(draft) {
   return Object.fromEntries(Object.entries(draft ?? {}).filter(([step]) => step.startsWith("voicebot.")));
 }
+
+/** The voice bot's Piper controls (speed, intonation, cadence, pause). */
+export const PIPER_CONTROLS = ["voicebot.length_scale", "voicebot.noise_scale", "voicebot.noise_w", "voicebot.sentence_silence"];
+
+/**
+ * Whether the voice bot's Piper controls reach the voice `draft` picks:
+ * Piper's own voices, and a cloned voice made by OpenVoice (it speaks over
+ * Piper and recolours it) yes; Pocket TTS, Qwen3-TTS and a Qwen3-TTS clone
+ * have no such controls. Returns "piper", "openvoice" or "none".
+ */
+export function controlsReach(draft) {
+  const voice = draft?.["voicebot.voice"] ?? "pocket:lola";
+  if (voice.startsWith("clone:")) return (draft?.["voicebot.clone_engine"] ?? "qwen3") === "openvoice" ? "openvoice" : "maybe";
+  return voice === "davefx" || voice === "sharvard" ? "piper" : "none";
+}

@@ -1,0 +1,44 @@
+{
+ "choices": {
+  "voicebot.voice": "clone:synth",
+  "voicebot.clone_engine": "openvoice"
+ },
+ "rows": [
+  {
+   "length_scale": "1",
+   "audio_s": 6.99,
+   "sample_rate": 22050,
+   "wall_s": 4.52,
+   "engine": "openvoice",
+   "clone": "1",
+   "note": ""
+  },
+  {
+   "length_scale": "1.4",
+   "audio_s": 9.07,
+   "sample_rate": 22050,
+   "wall_s": 5.03,
+   "engine": "openvoice",
+   "clone": "1",
+   "note": ""
+  },
+  {
+   "length_scale": "0.8",
+   "audio_s": 6.21,
+   "sample_rate": 22050,
+   "wall_s": 4.93,
+   "engine": "openvoice",
+   "clone": "1",
+   "note": ""
+  },
+  {
+   "length_scale": "1",
+   "audio_s": 7.04,
+   "sample_rate": 22050,
+   "wall_s": 4.6,
+   "engine": "openvoice",
+   "clone": "1",
+   "note": ""
+  }
+ ]
+}

@@ -7,8 +7,8 @@ to import the services' own code.
 """
 
 from typing import (
-    AbstractSet, Any, Callable, Dict, Iterator, List, Optional, Protocol,
-    Tuple,
+    AbstractSet, Any, Callable, Dict, Iterator, List, Mapping, Optional,
+    Protocol, Tuple,
 )
 
 from orchestrator.domain.events import LiveEvent, Transcript
@@ -298,18 +298,47 @@ class HandoffSink(Protocol):
 class VoiceCloner(Protocol):
     """Speech in an enrolled person's own voice (a cloning model)."""
 
+    @property
+    def gpu(self) -> bool:
+        """Whether the model runs on the GPU (it then needs the lease)."""
+        ...
+
+    @property
+    def loaded(self) -> bool:
+        """Whether the model is loaded (on the GPU: memory is taken)."""
+        ...
+
     def speak(
-        self, text: str, reference: str, language: str, cancel: CancelToken
+        self, text: str, reference: str, language: str, cancel: CancelToken,
+        controls: Optional[Mapping[str, float]] = None,
     ) -> Tuple[bytes, int]:
         """Say one sentence like ``reference``; return PCM s16le and rate.
+
+        ``controls`` are the voice's Piper controls (``length_scale``,
+        ``noise_scale``, ``noise_w``, ``sentence_silence``); a cloner
+        that speaks over Piper applies them, one that does not ignores
+        them.
 
         Raises:
             TtsUnavailable: The cloner could not speak.
         """
         ...
 
-    def warm(self, reference: str, language: str) -> None:
+    def warm(
+        self, reference: str, language: str,
+        controls: Optional[Mapping[str, float]] = None,
+    ) -> None:
         """Load the model and the reference voice, off the hot path."""
+        ...
+
+    def unload(self) -> None:
+        """Stop the model now, whoever holds it (a load in progress is
+        killed): its (GPU) memory is free when this returns."""
+        ...
+
+    def release(self) -> None:
+        """This holder is done with the model: a GPU one is stopped once
+        no holder remains."""
         ...
 
 

@@ -343,3 +343,56 @@ def test_serve_wires_the_natural_voices_when_installed(
     assert cli.build_natural(args) is None
     parsed = cli.build_parser().parse_args(["serve"])
     assert parsed.natural_tts == "on" and parsed.natural_budget_ms == 800.0
+
+
+def test_two_samples_at_once_share_one_lease_and_the_last_drop_deletes(
+    tmp_path: Path,
+) -> None:
+    gate = LeaseGpuGate(tmp_path / "gpu-lease", free_mib=lambda: 6000,
+                        sleep=lambda _: None)
+    path = tmp_path / "gpu-lease" / "lease.json"
+    assert gate.take(4400) is None and path.exists()
+    assert gate.take(800) is None, "a second sample: the lease is ours"
+    gate.drop()
+    assert path.exists(), "the other sample is still speaking"
+    gate.drop()
+    assert not path.exists()
+    # a take over the live session's lease is balanced by its drop too
+    lease(tmp_path / "gpu-lease", pid=os.getppid())
+    assert gate.take(100) is None
+    assert gate.take(100) is None
+    gate.drop()
+    gate.drop()
+    assert path.exists(), "the live session's lease is never removed"
+
+
+def test_serve_gives_the_voices_and_the_cloner_one_gate(
+    tmp_path: Path,
+) -> None:
+    args = argparse.Namespace(gpu_lease_dir=tmp_path / "lease")
+    gate = cli.build_gate(args)
+    assert gate.path == tmp_path / "lease" / "lease.json"
+    install(tmp_path / "n", ["qwen3"])
+    args.natural_tts, args.tts = "on", "piper"
+    args.natural_dir, args.natural_budget_ms = tmp_path / "n", 800.0
+    wiring = cli.build_natural(args, gate)
+    assert wiring is not None and wiring.gate is gate
+
+
+def test_a_take_that_fails_to_write_leaves_no_count_behind(
+    tmp_path: Path,
+) -> None:
+    gate = LeaseGpuGate(tmp_path / "gpu-lease", free_mib=lambda: 8000,
+                        sleep=lambda _: None)
+    real = gate._write
+
+    def full(lease: dict) -> None:  # type: ignore[type-arg]
+        raise OSError("disk full")
+
+    gate._write = full  # type: ignore[method-assign]
+    with pytest.raises(OSError):
+        gate.take(800)
+    gate._write = real  # type: ignore[method-assign]
+    assert gate.take(800) is None
+    gate.drop()
+    assert not (tmp_path / "gpu-lease" / "lease.json").exists()

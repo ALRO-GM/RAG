@@ -12,7 +12,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   PRESETS, applyPreset, changedSteps, clampRange, costOf, isRange, keys, label, needsRestart, presetOf, rateOptions, saveBody,
-  stepsByGroup, voiceOptions, voicebotChoices,
+  stepsByGroup, voiceOptions, voicebotChoices, controlsReach, PIPER_CONTROLS,
 } from "../lib/settings.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 
@@ -156,14 +156,19 @@ export async function settingsView(ctx, root) {
       onInput: (event) => { shown.textContent = clampRange(step, event.target.value); },
       onChange: (event) => { draft = { ...draft, [step.id]: clampRange(step, event.target.value) }; render(); },
     });
-    const reset = h("button", { type: "button", class: "ghost", disabled: value === step.default,
+    const reach = PIPER_CONTROLS.includes(step.id) ? controlsReach(draft) : "piper";
+    if (reach === "none") slider.disabled = true;
+    const reset = h("button", { type: "button", class: "ghost", disabled: value === step.default || reach === "none",
       onClick: () => { draft = { ...draft, [step.id]: step.default }; render(); } }, t("set.reset"));
     return h("fieldset", { class: changed ? "field step is-changed" : "field step" },
       h("legend", {}, label(t, keys.step(step.id), step.id), " ",
         h("span", { class: "badge muted" }, t(`set.applies.${step.applies}`))),
       h("div", { class: "row wrap tight" }, slider, shown, reset),
       h("p", { class: "hint" }, label(t, `set.range.${step.id}`, ""), " ",
-        t("set.range_default", { value: step.default })));
+        t("set.range_default", { value: step.default })),
+      reach === "none" ? h("p", { class: "hint" }, t("set.controls_none")) : null,
+      reach === "openvoice" ? h("p", { class: "hint" }, t("set.controls_openvoice")) : null,
+      reach === "maybe" ? h("p", { class: "hint" }, t("set.controls_maybe")) : null);
   }
 
   function optionRow(step, option) {

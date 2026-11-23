@@ -98,6 +98,7 @@ class LeaseGpuGate:
         self.sleep = sleep
         self.wait_seconds = wait_seconds
         self._mine: Optional[Dict[str, Any]] = None
+        self._users = 0
         self._stop = threading.Event()
         self._lock = threading.Lock()
 
@@ -111,14 +112,27 @@ class LeaseGpuGate:
         return self._memory(need_mib)
 
     def take(self, need_mib: int) -> Optional[str]:
-        """Hold the lease if nobody does, wait for the memory; why not."""
+        """Hold the lease if nobody does, wait for the memory; why not.
+
+        Every call that returns is paired with one :meth:`drop` (one
+        that raises counts for nothing): the lease this gate
+        wrote is deleted by the last one, so two samples at once (a
+        natural voice and a clone) never delete each other's lease.
+        """
         with self._lock:
-            lease = self._valid()
-            if lease is None:
-                self._acquire(need_mib)
-            elif lease.get("priority") != "live":
-                return (f"the GPU lease is held by "
-                        f"{str(lease.get('holder'))[:40]}")
+            self._users += 1
+            try:
+                lease = self._valid()
+                if lease is None:
+                    self._acquire(need_mib)
+                elif lease.get("priority") != "live":
+                    return (f"the GPU lease is held by "
+                            f"{str(lease.get('holder'))[:40]}")
+            except BaseException:
+                # A take that raised (the lease file could not be
+                # written) is not paired with a drop: undo its count.
+                self._users -= 1
+                raise
         waited = 0.0
         while True:
             short = self._memory(need_mib)
@@ -128,8 +142,15 @@ class LeaseGpuGate:
             waited += 0.5
 
     def drop(self) -> None:
-        """Delete the lease :meth:`take` wrote (if it is still ours)."""
+        """Give back one :meth:`take`; the last one deletes the lease.
+
+        Only a lease this gate wrote (and that is still ours by pid) is
+        deleted; the live session's is never touched.
+        """
         with self._lock:
+            self._users = max(0, self._users - 1)
+            if self._users > 0:
+                return
             self._stop.set()
             mine, self._mine = self._mine, None
             if mine is None:

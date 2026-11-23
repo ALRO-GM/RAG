@@ -47,7 +47,10 @@ FAKE_WORKER = textwrap.dedent('''
         if req["text"] != "NOWAV.":
             with wave.open(req["out"], "wb") as w:
                 w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000)
-                w.writeframes(b"\\x03\\x00" * 50 * len(req["text"]))
+                w.writeframes(b"\\x03\\x00" * 50 * len(req["text"])
+                              + (b"\\x09\\x00"
+                                 if req.get("length_scale") == 1.4
+                                 else b""))
         print(json.dumps({"id": req["id"], "path": req["out"],
                           "sample_rate": 24000, "synth_ms": 1.0}),
               flush=True)
@@ -122,6 +125,62 @@ def test_the_worker_speaks_one_sentence_per_line(
     with pytest.raises(TtsUnavailable, match="reference"):
         cloner.speak("Hola.", str(tmp_path / "none.wav"), "es",
                      CancelToken())
+
+
+def test_controls_reach_the_worker_and_unload_frees_it(
+    cloner: SubprocessCloner, tmp_path: Path
+) -> None:
+    reference = tmp_path / "ref.wav"
+    reference.write_bytes(b"RIFF")
+    assert cloner.gpu is True and cloner.loaded is False
+    cloner.warm(str(reference), "es", {"length_scale": 1.4})
+    assert cloner.loaded is True
+    plain, _ = cloner.speak("Hola.", str(reference), "es", CancelToken())
+    slow, _ = cloner.speak("Hola.", str(reference), "es", CancelToken(),
+                           {"length_scale": 1.4, "noise_w": 0.5})
+    assert len(slow) == len(plain) + 2, "the control was in the request"
+    cloner.unload()
+    assert cloner.loaded is False, "the worker is stopped: memory free"
+    cloner.unload()
+    cpu = SubprocessCloner(Path("unused"), "fake", device="cpu",
+                           command=[sys.executable, "-c", "pass"])
+    assert cpu.gpu is False
+    cpu.close()
+
+
+def test_unload_kills_a_load_in_progress_without_waiting_for_it(
+    tmp_path: Path,
+) -> None:
+    import threading
+    import time
+
+    reference = tmp_path / "ref.wav"
+    reference.write_bytes(b"RIFF")
+    slow = SubprocessCloner(
+        Path("unused"), "fake", load_timeout=30.0,
+        command=[sys.executable, "-c", "import time; time.sleep(60)"])
+    outcome: List[str] = []
+
+    def load() -> None:
+        try:
+            slow.warm(str(reference), "es")
+        except TtsUnavailable as exc:
+            outcome.append(str(exc))
+
+    thread = threading.Thread(target=load)
+    thread.start()
+    end = time.monotonic() + 5
+    while not slow.loaded and time.monotonic() < end:
+        time.sleep(0.01)
+    assert slow.loaded, "the process is up while the model would load"
+    started = time.monotonic()
+    slow.unload()
+    thread.join(5)
+    assert not thread.is_alive() and "stopped" in outcome[0]
+    assert time.monotonic() - started < 3, "killed, not waited for"
+    assert slow.loaded is False
+    slow.release()  # a GPU worker with no holder: nothing left to stop
+    slow.close()
 
 
 def test_a_worker_that_cannot_start_or_load_is_unavailable(

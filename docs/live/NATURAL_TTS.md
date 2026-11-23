@@ -247,7 +247,8 @@ memory allow, waiting up to 30 s) and stopped when the session ends.
 The engines of a chain load side by side, from the moment the session
 is created (before the transcriber is asked to start), and a session's
 first sentences wait for them (§8). Piper's controls (speed,
-intonation…) only reach Piper (§8).
+intonation…) only reach Piper (§8) and the OpenVoice clone
+(`VOICE_CLONING.md` §4); the OpenVoice cloner is under the same lease.
 
 **«Escuchar ejemplo»** says the fixed sentence with the voice being
 chosen; the header `X-Voice-Engine` (and the page) says which voice

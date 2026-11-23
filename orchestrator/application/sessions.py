@@ -80,6 +80,7 @@ from orchestrator.application.ports import (
     Runner,
     SettingsSource,
     SuggestionSink,
+    GpuGate,
     TextToSpeech,
     TranscriberUnavailable,
     TranscriptStore,
@@ -102,8 +103,10 @@ from orchestrator.application.natural_voice import (
 from orchestrator.application.voice import (
     DEFAULT_BUDGET_MS,
     ClonedVoice,
+    SharedCloner,
     render_sample,
     speak_sample,
+    tts_controls,
 )
 from orchestrator.application.voicebot import VoiceBot
 from orchestrator.domain.config import InterviewSection, ProductConfig, Tts
@@ -405,6 +408,7 @@ class LiveSessions:
         cloner: Optional[VoiceCloner] = None,
         clone_budget_ms: float = DEFAULT_BUDGET_MS,
         natural: Optional[NaturalWiring] = None,
+        clone_gate: Optional[GpuGate] = None,
         interview: Optional[InterviewWiring] = None,
         ticker: Optional[Runner] = None,
         tick_s: float = TICK_S,
@@ -438,6 +442,8 @@ class LiveSessions:
         self.cloner = cloner
         self.clone_budget_ms = clone_budget_ms
         self.natural = natural
+        self.clone_gate = clone_gate
+        self._shared: Dict[int, SharedCloner] = {}
         self.ticker = ticker
         self.tick_s = tick_s
         self._sessions: Dict[str, _Session] = {}
@@ -682,11 +688,29 @@ class LiveSessions:
             profiles.get if profiles is not None else (lambda _: None),
         )
 
-    def _cloned(self, profile: VoiceProfile) -> ClonedVoice:
-        """Return the cloned voice of ``profile`` (Piper behind it)."""
+    def _cloned(
+        self, profile: VoiceProfile,
+        controls: Optional[Dict[str, float]] = None,
+        sample: bool = False,
+        report: Optional[Callable[[str, str], None]] = None,
+    ) -> ClonedVoice:
+        """Return the cloned voice of ``profile`` (Piper behind it).
+
+        A cloner on the GPU runs under the live GPU lease
+        (``clone_gate``) and speaks with the session's Piper
+        ``controls``.
+        """
         assert self.cloner is not None and self.tts is not None
-        return ClonedVoice(self.cloner, self.tts, profile,
-                           self.clone_budget_ms)
+        with self._lock:
+            shared = self._shared.get(id(self.cloner))
+            if shared is None or shared.inner is not self.cloner:
+                shared = self._shared[id(self.cloner)] = SharedCloner(
+                    self.cloner)
+        return ClonedVoice(shared.lend(), self.tts, profile,
+                           SAMPLE_BUDGET_MS if sample else
+                           self.clone_budget_ms, gate=self.clone_gate,
+                           controls=controls, sleep=self.clock.sleep,
+                           report=report)
 
     def _voice(
         self, config: ProductConfig,
@@ -717,7 +741,9 @@ class LiveSessions:
             if self.cloner is None:
                 return product, self.tts, _with_reason(
                     plan, why, "no cloner installed", clone=False), "piper"
-            voice = self._cloned(plan.clone)
+            voice = self._cloned(plan.clone,
+                                 tts_controls(tts, plan.length_scale),
+                                 sample, report)
             if not sample:
                 self.runner.start(voice.warm)
             return product, voice, _with_reason(plan, why), "openvoice"
@@ -760,12 +786,11 @@ class LiveSessions:
         _, speaker, plan, engine = self._voice(
             product, lambda _, why: heard.append(why), sample=True)
         try:
+            if isinstance(speaker, ClonedVoice):
+                return self._cloned_sample(tts, plan, speaker, config.language)
             if not isinstance(speaker, NaturalVoice):
-                return speak_sample(
-                    tts, plan, self.tts,
-                    self._cloned if isinstance(speaker, ClonedVoice)
-                    else None, config.language,
-                )
+                return speak_sample(tts, plan, self.tts, None,
+                                    config.language)
             return self._natural_sample(tts, plan, speaker, heard,
                                         config.language)
         except TtsUnavailable as exc:
@@ -774,6 +799,33 @@ class LiveSessions:
             if isinstance(speaker, (NaturalVoice, ClonedVoice)):
                 speaker.close()
 
+    def _cloned_sample(
+        self, tts: Tts, plan: VoicePlan, speaker: ClonedVoice, language: str,
+    ) -> Tuple[bytes, Document]:
+        """Render the sample with the cloner (the lease taken if it needs
+        the GPU and nobody holds it, like a natural voice's)."""
+        assert self.tts is not None
+        gate = self.clone_gate
+        need = speaker.need_mib if gate is not None else 0
+        # A model already loaded (a session holds it) needs no memory.
+        ask = 0 if speaker.cloner.loaded else need
+        refused: Optional[str] = None
+        taken = False
+        try:
+            if gate is not None and need:
+                refused = gate.take(ask)
+                taken = True
+            wav, used = speak_sample(
+                tts, plan, self.tts,
+                lambda profile: speaker, language)
+        finally:
+            if gate is not None and taken:
+                gate.drop()
+        if refused or speaker.refusal:
+            used["reason"] = "; ".join(
+                r for r in (used["reason"], refused, speaker.refusal) if r)
+        return wav, used
+
     def _natural_sample(
         self, tts: Tts, plan: VoicePlan, speaker: NaturalVoice,
         heard: List[str], language: str,
@@ -781,11 +833,15 @@ class LiveSessions:
         """Render the sample with a natural voice (lease taken if needed)."""
         gate = self.natural.gate if self.natural is not None else None
         need = gpu_need(speaker)
-        refused = gate.take(need) if gate is not None and need else None
+        refused: Optional[str] = None
+        taken = False
         try:
+            if gate is not None and need:
+                refused = gate.take(need)
+                taken = True
             wav = render_sample(tts, plan.length_scale, speaker, language)
         finally:
-            if gate is not None and need:
+            if gate is not None and taken:
                 gate.drop()
         engine = speaker.first_speaker or "piper"
         reason = "; ".join(r for r in (plan.reason, refused, *heard) if r)
@@ -918,7 +974,8 @@ class LiveSessions:
             def report(engine: str, why: str) -> None:
                 session.feed.publish({
                     "type": "voice", "engine": engine,
-                    "clone": plan_clone and engine.startswith("qwen3"),
+                    "clone": plan_clone and (engine.startswith("qwen3")
+                                             or engine == "openvoice"),
                     "length_scale": product.tts.length_scale
                     if product.tts is not None else 1.0,
                     "reason": why,
@@ -992,7 +1049,13 @@ class LiveSessions:
         if isinstance(session.assist, VoiceBot) and isinstance(
             session.assist.tts, (ClonedVoice, NaturalVoice)
         ):
-            session.assist.tts.close()
+            voice = session.assist.tts
+            if isinstance(voice, ClonedVoice):
+                session.feed.publish({
+                    "type": "voice_summary", "engine": "openvoice",
+                    "cloned": voice.cloned, "fell_back": voice.fell_back,
+                })
+            voice.close()
         session.feed.publish({"type": "status", "session": session.view()})
         session.feed.close()
 

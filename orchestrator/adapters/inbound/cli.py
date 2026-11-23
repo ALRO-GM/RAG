@@ -384,7 +384,20 @@ def build_cloner(args: argparse.Namespace) -> Optional[SubprocessCloner]:
                             extra=extra)
 
 
-def build_natural(args: argparse.Namespace) -> Optional[NaturalWiring]:
+def build_gate(args: argparse.Namespace) -> LeaseGpuGate:
+    """Return the one GPU gate of this orchestrator.
+
+    The natural voices and the cloner share it: its ``take``/``drop``
+    are counted, so two samples at once never delete each other's lease
+    (``docs/live/VOICE_CLONING.md`` §4).
+    """
+    directory = args.gpu_lease_dir or lease_directory(os.environ)
+    return LeaseGpuGate(Path(directory))
+
+
+def build_natural(
+    args: argparse.Namespace, gate: Optional[LeaseGpuGate] = None,
+) -> Optional[NaturalWiring]:
     """Return the natural voices, or ``None`` when off or not installed.
 
     Pocket TTS on the CPU (the shared one) is warmed in the background.
@@ -408,8 +421,7 @@ def build_natural(args: argparse.Namespace) -> Optional[NaturalWiring]:
                 print(f"Pocket TTS warm-up failed: {exc}", file=sys.stderr)
 
         ThreadRunner().start(warm)
-    directory = args.gpu_lease_dir or lease_directory(os.environ)
-    return NaturalWiring(engines, LeaseGpuGate(Path(directory)),
+    return NaturalWiring(engines, gate or build_gate(args),
                          engines.reference(), args.natural_budget_ms)
 
 
@@ -441,6 +453,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         "live-%Y%m%d-%H%M%S"
     )
     products = load_products(args.config_dir)
+    gate = build_gate(args)
     sessions = LiveSessions(
         products, build_knowledge(args), build_reasoner(args),
         DirTranscripts(args.transcripts or list(TRANSCRIPT_DIRS)),
@@ -452,7 +465,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         mandatory=build_mandatory(args), handoff=handoff,
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
-        natural=build_natural(args),
+        natural=build_natural(args, gate), clone_gate=gate,
         interview=build_interview(args, products, sessions_ref),
         ticker=ThreadRunner(),
     )

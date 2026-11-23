@@ -24,7 +24,11 @@ Engines:
 
 Protocol: one JSON object per line on the standard input, ``{"id",
 "text", "reference": "/abs/ref.wav", "out": "/abs/out.wav",
-"language": "es"}``; one JSON object per line on the standard output:
+"language": "es"}`` and optionally the Piper controls ``length_scale``,
+``noise_scale``, ``noise_w``, ``sentence_silence`` (OpenVoice's Piper
+base speaks with them, so speed, intonation, cadence and pause reach
+the cloned voice; Chatterbox has no such controls and ignores them);
+one JSON object per line on the standard output:
 first ``{"ready": true, "engine", "sample_rate"}`` once the models are
 loaded, then for each request ``{"id", "path", "sample_rate",
 "synth_ms"}`` (the 16-bit mono WAV is written at ``out``) or ``{"id",
@@ -44,7 +48,7 @@ import threading
 import time
 import wave
 from pathlib import Path
-from typing import Any, Dict, IO, Optional
+from typing import Any, Dict, IO, Optional, Tuple
 
 import numpy as np
 
@@ -62,6 +66,33 @@ SOURCE_TEXT = (
 )
 """What Piper reads once so OpenVoice knows the source voice."""
 WROTE = re.compile(r"Wrote (.+\.wav)\s*$")
+
+
+CONTROL_FLAGS = (("length_scale", "--length-scale"),
+                 ("noise_scale", "--noise-scale"),
+                 ("noise_w", "--noise-w-scale"),
+                 ("sentence_silence", "--sentence-silence"))
+"""Request field and the Piper flag it sets."""
+MAX_PIPERS = 2
+"""Piper processes kept per worker (one per distinct set of controls)."""
+
+
+def piper_flags(controls: Dict[str, Any]) -> Tuple[str, ...]:
+    """Return the Piper flags of a request's controls, as a hashable key.
+
+    Only the four known controls count, only numbers, in a fixed order
+    so equal settings share one Piper; a ``length_scale`` of 1 is
+    Piper's own default and adds no flag, so the Piper started at load
+    serves the default settings.
+    """
+    flags = []
+    for name, flag in CONTROL_FLAGS:
+        value = controls.get(name)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if name == "length_scale" and float(value) == 1.0:
+                continue
+            flags.extend((flag, f"{float(value):g}"))
+    return tuple(flags)
 
 
 def log(message: str) -> None:
@@ -93,8 +124,12 @@ class Chatterbox:
         self._conds: Dict[str, Any] = {}
         self.model.generate("Hola, ¿qué tal?", language_id="es")
 
-    def speak(self, text: str, reference: str, language: str) -> Any:
-        """Return the float audio of ``text`` in the reference's voice."""
+    def speak(self, text: str, reference: str, language: str,
+              controls: Optional[Dict[str, Any]] = None) -> Any:
+        """Return the float audio of ``text`` in the reference's voice.
+
+        ``controls`` are Piper's; Chatterbox has none and ignores them.
+        """
         conds = self._conds.get(reference)
         if conds is None:
             self.model.prepare_conditionals(reference)
@@ -107,10 +142,12 @@ class Chatterbox:
 class _Piper:
     """A running ``python -m piper`` reading one line per utterance."""
 
-    def __init__(self, python: str, model: str, outdir: Path) -> None:
+    def __init__(self, python: str, model: str, outdir: Path,
+                 flags: Tuple[str, ...] = ()) -> None:
         """Start Piper writing WAV files to ``outdir``."""
         self.process = subprocess.Popen(
-            [python, "-m", "piper", "-m", model, "-d", str(outdir)],
+            [python, "-m", "piper", "-m", model, "-d", str(outdir),
+             *flags],
             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE, text=True, encoding="utf-8", bufsize=1,
         )
@@ -124,6 +161,15 @@ class _Piper:
         for line in stream:
             self.lines.put(line)
         self.lines.put("")
+
+    def close(self) -> None:
+        """Stop Piper."""
+        try:
+            if self.process.stdin is not None:
+                self.process.stdin.close()
+            self.process.wait(timeout=2)
+        except (OSError, subprocess.TimeoutExpired):
+            self.process.kill()
 
     def say(self, text: str, timeout: float = 30.0) -> Path:
         """Synthesise one line; return the WAV file Piper wrote."""
@@ -166,20 +212,39 @@ class OpenVoice:
         self.converter.load_ckpt(str(converter / "checkpoint.pth"))
         self.sample_rate = int(self.converter.hps.data.sampling_rate)
         self._tmp = tempfile.TemporaryDirectory(prefix="voice-clone-")
-        self.piper = _Piper(piper_python, piper_model, Path(self._tmp.name))
+        self.piper_python = piper_python
+        self.piper_model = piper_model
+        self.outdir = Path(self._tmp.name)
+        self.pipers: Dict[Tuple[str, ...], _Piper] = {}
+        self.piper = self.piper_for({})
         source = self.piper.say(SOURCE_TEXT)
         self.source_se = self.converter.extract_se([str(source)])
         source.unlink()
         self._targets: Dict[str, Any] = {}
 
-    def speak(self, text: str, reference: str, language: str) -> Any:
+    def piper_for(self, controls: Dict[str, Any]) -> "_Piper":
+        """Return the Piper that speaks with ``controls`` (started once).
+
+        At most :data:`MAX_PIPERS` are kept; the oldest is stopped.
+        """
+        key = piper_flags(controls)
+        piper = self.pipers.get(key)
+        if piper is None:
+            while len(self.pipers) >= MAX_PIPERS:
+                self.pipers.pop(next(iter(self.pipers))).close()
+            piper = self.pipers[key] = _Piper(
+                self.piper_python, self.piper_model, self.outdir, key)
+        return piper
+
+    def speak(self, text: str, reference: str, language: str,
+              controls: Optional[Dict[str, Any]] = None) -> Any:
         """Return the float audio of ``text`` in the reference's voice."""
         target = self._targets.get(reference)
         if target is None:
             target = self._targets[reference] = self.converter.extract_se(
                 [reference]
             )
-        base = self.piper.say(text)
+        base = self.piper_for(controls or {}).say(text)
         try:
             return self.converter.convert(
                 str(base), self.source_se, target, output_path=None,
@@ -232,7 +297,8 @@ def main() -> int:
             begin = time.perf_counter()
             audio = engine.speak(str(request["text"]),
                                  str(request["reference"]),
-                                 str(request.get("language") or "es"))
+                                 str(request.get("language") or "es"),
+                                 request)
             out = Path(request["out"])
             write_wav(out, audio, engine.sample_rate)
             emit({"id": request_id, "path": str(out),
