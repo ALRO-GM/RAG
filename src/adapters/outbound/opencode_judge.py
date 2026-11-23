@@ -1,9 +1,11 @@
 """Judge through the opencode command line (any of its models).
 
-A throw-away inline agent carries the assessment prompt and denies every
-tool; the transcript is attached as a file in an empty directory, so it
-never appears in the process arguments. The prompt is read from
-``opencode run --format json``'s raw events, not from the terminal.
+Written for opencode 2.x (``run --standalone``): the assessment prompt and
+the transcript are attached as one file in an empty directory, so they
+never appear in the process arguments, every tool is denied inside a
+throw-away HOME/database, and the reply is read from
+``opencode run --format json``'s raw events (``text``, ``step_finish``,
+``error``), not from the terminal.
 """
 
 import json
@@ -28,7 +30,7 @@ DEFAULT_OPENCODE_MODEL = "opencode/deepseek-v4.1-flash-free"
 """Model used when ``--judge opencode`` names none."""
 
 DEFAULT_OPENCODE_AGENT = "ragjudge"
-"""Inline agent that carries the assessment prompt."""
+"""Kept for configuration compatibility; opencode 2.x has no inline agent."""
 
 DEFAULT_OPENCODE_TIMEOUT = 180
 
@@ -71,7 +73,8 @@ class OpencodeJudge:
 
         Args:
             model: Any ``provider/model`` of ``opencode models``.
-            agent: Name of the throw-away inline agent.
+            agent: Unused (opencode 2.x has no inline agents); kept so
+                existing settings still load.
             timeout: Seconds allowed for one reply.
             executable: Name or path of the opencode command.
             retries: Extra tries after a transient failure.
@@ -95,53 +98,74 @@ class OpencodeJudge:
         """Return the model that answered, including its provider."""
         return f"opencode:{self.model}"
 
-    def settings(self, system: str) -> Dict[str, Any]:
-        """Return the inline V1 config: one agent, no tools, no sharing.
+    def message(self, system: str, user: str) -> str:
+        """Return the attached file's text: the task, then the transcript.
 
-        opencode 1.x reads V1 keys (``agent``, ``permission``); the V2
-        ``agents``/``permissions`` spelling is rejected by this version.
-        The caller's system prompt becomes the agent's prompt.
+        opencode 2.x has no inline agent, so the caller's system prompt
+        travels in the same file as the question, never in the process
+        arguments.
         """
-        return {
-            "agent": {
-                self.agent: {
-                    "description": "Soft-skills judge",
-                    "mode": "primary",
-                    "prompt": (
-                        f"{system}\nAnswer only with the JSON object asked "
-                        "for. Never use tools."
-                    ),
-                    "permission": {"*": "deny"},
-                    "steps": 1,
-                },
-            },
-            "share": "disabled",
-        }
+        return (
+            f"{system}\n\nAnswer only with the JSON object asked for. "
+            f"Never use tools.\n\n{user}"
+        )
 
-    def command(self, cwd: str, prompt_file: str) -> List[str]:
-        """Return the command for one question."""
+    def command(self, prompt_file: str) -> List[str]:
+        """Return the command for one question (opencode 2.x)."""
         return [
-            self.executable, "run", "--pure", "--format", "json",
-            "--agent", self.agent, "--model", self.model,
-            "--title", "judge", "--print-logs", "--log-level", "ERROR",
-            "--dir", cwd, "--file", prompt_file,
+            self.executable, "run", "--standalone", "--archived",
+            "--format", "json", "--model", self.model,
+            "--title", "judge", "--file", prompt_file,
             "Answer using the attached file",
         ]
 
-    def environment(self, cwd: str, system: str) -> Dict[str, str]:
-        """Return the isolated environment of the judge process."""
+    def settings(self) -> Dict[str, Any]:
+        """Return the inline opencode 2.x config: deny every tool.
+
+        2.x spells permissions as a list of ``{action, resource,
+        effect}``; the last matching rule wins and this document comes
+        after the built-in agents' rules (checked with
+        ``opencode debug agents``). Plugins, MCP servers, instructions
+        and sharing are switched off as well.
+        """
+        return {
+            "permissions": [
+                {"action": "*", "resource": "*", "effect": "deny"},
+            ],
+            "plugins": [],
+            "mcp": {},
+            "instructions": [],
+            "share": "disabled",
+        }
+
+    def environment(self, cwd: str) -> Dict[str, str]:
+        """Return the sandboxed environment of the judge process.
+
+        ``HOME`` and every XDG directory point into the throw-away
+        ``cwd``, so the owner's opencode config (permissions, plugins,
+        MCP servers, global instructions), memory and session database
+        are never read or written; the conversation lives in a private
+        database that is deleted with the directory. The price is that
+        the owner's credentials are not seen either: only the anonymous
+        free tier is available.
+        """
         env = {
             name: self._environ[name]
             for name in KEPT_ENVIRONMENT if name in self._environ
         }
         env.update({
-            "HOME": cwd,
             "PATH": self._environ.get("PATH", "/usr/bin:/bin"),
+            "HOME": cwd,
             "TMPDIR": cwd,
-            "OPENCODE_CONFIG_CONTENT": json.dumps(self.settings(system)),
+            "XDG_CONFIG_HOME": os.path.join(cwd, "config"),
+            "XDG_DATA_HOME": os.path.join(cwd, "data"),
+            "XDG_STATE_HOME": os.path.join(cwd, "state"),
+            "XDG_CACHE_HOME": os.path.join(cwd, "cache"),
             "OPENCODE_DB": os.path.join(cwd, "judge.db"),
-            "OPENCODE_DISABLE_EXTERNAL_SKILLS": "1",
-            "OPENCODE_DISABLE_CLAUDE_CODE_SKILLS": "1",
+            "OPENCODE_CONFIG_CONTENT": json.dumps(self.settings()),
+            "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+            "OPENCODE_DISABLE_CLAUDE_CODE": "1",
+            "OPENCODE_DISABLE_AUTOUPDATE": "1",
         })
         return env
 
@@ -168,11 +192,11 @@ class OpencodeJudge:
         with tempfile.TemporaryDirectory(prefix="judge-opencode-") as cwd:
             prompt_file = os.path.join(cwd, "prompt.txt")
             with open(prompt_file, "w", encoding="utf-8") as handle:
-                handle.write(user)
+                handle.write(self.message(system, user))
             try:
                 done = self._runner(
-                    self.command(cwd, prompt_file), "", cwd,
-                    self.environment(cwd, system), self.timeout,
+                    self.command(prompt_file), "", cwd,
+                    self.environment(cwd), self.timeout,
                 )
             except FileNotFoundError:
                 raise ModelError("opencode is not installed.")
@@ -204,39 +228,40 @@ class OpencodeJudge:
         raise ModelError(f"opencode: {short(message)}")
 
 
-def usage_of(stdout: str) -> Optional[Usage]:
-    """Return the tokens of the assistant messages in the events.
-
-    Each ``message.updated`` event of an assistant message carries
-    ``info.tokens`` (``input``, ``output``, ``reasoning`` and
-    ``cache.read``/``cache.write``) and ``info.cost``; the last one per
-    message id wins. The title agent is ignored. ``None`` when no event
-    reports tokens.
-    """
-    seen: Dict[str, Dict[str, Any]] = {}
+def _events(stdout: str) -> List[Dict[str, Any]]:
+    """Return the JSON object lines of ``--format json`` output."""
+    found: List[Dict[str, Any]] = []
     for line in stdout.splitlines():
         try:
-            event = json.loads(line)
+            item = json.loads(line)
         except ValueError:
             continue
-        props = event.get("properties") if isinstance(event, dict) else None
-        info = props.get("info") if isinstance(props, dict) else None
+        if isinstance(item, dict):
+            found.append(item)
+    return found
+
+
+def usage_of(stdout: str) -> Optional[Usage]:
+    """Return the tokens of the ``step_finish`` events.
+
+    Each ``step_finish`` part carries ``tokens`` (``input``, ``output``,
+    ``reasoning`` and ``cache.read``/``cache.write``) and ``cost``; the
+    steps are summed. ``None`` when no event reports tokens.
+    """
+    total = Usage(calls=1)
+    found = False
+    for item in _events(stdout):
+        part = item.get("part")
         if (
-            not isinstance(info, dict)
-            or event.get("type") != "message.updated"
-            or not isinstance(info.get("tokens"), dict)
-            or info.get("agent") == "title" or info.get("role") == "user"
+            item.get("type") != "step_finish" or not isinstance(part, dict)
+            or not isinstance(part.get("tokens"), dict)
         ):
             continue
-        seen[str(info.get("id"))] = info
-    if not seen:
-        return None
-    total = Usage(calls=1)
-    for info in seen.values():
-        tokens = info["tokens"]
+        found = True
+        tokens = part["tokens"]
         cache = tokens.get("cache")
         cache = cache if isinstance(cache, dict) else {}
-        cost = info.get("cost")
+        cost = part.get("cost")
         total = total.plus(Usage(
             input_tokens=_count(tokens.get("input")),
             output_tokens=(
@@ -246,7 +271,7 @@ def usage_of(stdout: str) -> Optional[Usage]:
             cache_read_input_tokens=_count(cache.get("read")),
             cost_usd=float(cost) if isinstance(cost, (int, float)) else 0.0,
         ))
-    return total
+    return total if found else None
 
 
 def _count(value: Any) -> int:
@@ -274,71 +299,21 @@ def _error_message(value: Any) -> str:
 def reply(stdout: str, stderr: str) -> Tuple[str, str]:
     """Return ``(text, error)`` from ``opencode run --format json``.
 
-    Text parts are keyed by part id: opencode resends each part with its
-    full text as it streams, so appending every update would repeat it.
-    The session's title agent is ignored; only assistant messages count.
+    Every ``text`` event carries one finished text part; they are joined
+    in order. An ``error`` event gives the error message.
     """
-    parts: Dict[str, str] = {}
-    order: List[str] = []
-    agents: Dict[str, str] = {}
+    texts: List[str] = []
     error = ""
-    for line in stdout.splitlines():
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(event, dict):
-            continue
-        kind = event.get("type")
-        props = event.get("properties") or {}
-        if not isinstance(props, dict):
-            continue
-        if kind == "session.error" and not error:
-            error = _error_message(props.get("error"))
-        if kind == "message.updated":
-            info = props.get("info") or {}
-            if isinstance(info, dict):
-                message_id = info.get("id")
-                if isinstance(message_id, str):
-                    agents[message_id] = str(info.get("agent") or "")
-                if info.get("error"):
-                    error = error or _error_message(info["error"])
-        if kind == "message.part.delta":
-            part_id = props.get("partID")
-            if props.get("field") == "text" and isinstance(part_id, str):
-                delta = props.get("delta")
-                if isinstance(delta, str):
-                    accumulated = parts.get(part_id, "") + delta
-                    _remember(parts, order, part_id, accumulated)
-        if kind != "message.part.updated":
-            continue
-        part = props.get("part") or {}
-        if not isinstance(part, dict) or part.get("type") != "text":
-            continue
-        part_id = part.get("id")
-        text = part.get("text")
-        if not isinstance(part_id, str) or not isinstance(text, str):
-            continue
-        message_id = part.get("messageID")
-        if agents.get(str(message_id)) == "title":
-            continue
-        _remember(parts, order, part_id, text)
+    for item in _events(stdout):
+        if item.get("type") == "error" and not error:
+            error = _error_message(item.get("error"))
+        part = item.get("part")
+        if item.get("type") == "text" and isinstance(part, dict):
+            text = part.get("text")
+            if isinstance(text, str):
+                texts.append(text)
     if not error:
         log = short(stderr)
         if log and "stream error" in log.lower():
             error = log
-    return "".join(parts[key] for key in order), error
-
-
-def _remember(parts: Dict[str, str], order: List[str], key: str,
-              text: str) -> None:
-    """Keep the longest text seen for one part, in first-seen order."""
-    if key not in parts:
-        order.append(key)
-    if len(text) >= len(parts.get(key, "")):
-        parts[key] = text
-
-
-def event(event_type: str, **properties: Any) -> str:
-    """Return one raw JSON event line (used by tests)."""
-    return json.dumps({"type": event_type, "properties": properties})
+    return "".join(texts), error

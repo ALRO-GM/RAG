@@ -386,7 +386,8 @@ class RagCLI:
             opencode_model: Model of the opencode judge, e.g.
                 ``opencode/deepseek-v4.1-flash-free``; choose any id from
                 ``opencode models``.
-            opencode_agent: Name of the inline opencode judge agent.
+            opencode_agent: Unused (opencode 2.x has no inline agent); kept so
+                existing settings still load.
             opencode_timeout: Seconds allowed for each opencode reply.
             local_bits: Weight precision of the local judge on a GPU
                 (4, 8 or 16; 4 and 8 need ``uv sync --group

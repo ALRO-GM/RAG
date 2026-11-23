@@ -55,12 +55,12 @@ ORDERS: Tuple[Order, ...] = ("forward", "reversed")
 class OpencodeRun:
     """A free opencode model through ``opencode run --standalone``.
 
-    The installed opencode 2.x CLI differs from the one
-    ``adapters/outbound/opencode_judge.py`` was written for (no
-    ``--pure``/``--dir``, other event shapes) and, run with a private
-    HOME, hits the anonymous free-usage limit; so this experiment calls
-    it directly with the system and user text as one message. Only the
-    synthetic reference is ever sent.
+    The adapter ``adapters/outbound/opencode_judge.py`` follows the same
+    2.x command line since #132 but runs in a sandboxed HOME (anonymous
+    free tier only, every tool denied). This experiment predates it and
+    calls opencode directly with the owner's own login (and so the
+    owner's config) and the system and user text as one message. Only
+    the synthetic reference is ever sent.
     """
 
     def __init__(self, model: str, retries: int = 3, timeout: int = 150,
