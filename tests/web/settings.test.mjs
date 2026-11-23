@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   GROUPS, PRESETS, analysisPrefill, applyPreset, changedSteps, clampRange, costOf, defaultChoices, isRange, keys, label,
-  needsRestart, numberText, presetOf, rateOptions, saveBody, stepsByGroup, voiceOptions, voicebotChoices,
+  controlsReach, PIPER_CONTROLS, needsRestart, numberText, presetOf, rateOptions, saveBody, stepsByGroup, voiceOptions, voicebotChoices,
 } from "../../transcriber/adapters/inbound/web/js/lib/settings.js";
 import { crumbsFor } from "../../transcriber/adapters/inbound/web/js/lib/shell.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -139,6 +139,18 @@ test("the voice bot's numbers, people and sample choices", () => {
   assert.deepEqual(voicebotChoices(null), {});
 });
 
+test("which voices the Piper controls reach", () => {
+  assert.equal(controlsReach({ "voicebot.voice": "davefx" }), "piper");
+  assert.equal(controlsReach({ "voicebot.voice": "sharvard" }), "piper");
+  assert.equal(controlsReach({ "voicebot.voice": "pocket:lola" }), "none");
+  assert.equal(controlsReach({}), "none", "the default voice is Pocket TTS");
+  assert.equal(controlsReach({ "voicebot.voice": "qwen3" }), "none");
+  assert.equal(controlsReach({ "voicebot.voice": "clone:ana", "voicebot.clone_engine": "openvoice" }), "openvoice");
+  assert.equal(controlsReach({ "voicebot.voice": "clone:ana", "voicebot.clone_engine": "qwen3" }), "none");
+  assert.equal(controlsReach({ "voicebot.voice": "clone:ana" }), "none", "the default cloner is Qwen3-TTS");
+  assert.equal(PIPER_CONTROLS.length, 4);
+});
+
 test("the breadcrumbs of #/settings", () => {
   assert.deepEqual(crumbsFor("#/settings", tEs), [{ label: "Ajustes", href: null }]);
 });
@@ -247,6 +259,8 @@ test("the voice bot shows sliders, clonable people and plays the draft", async (
   const clone = root.all().find((n) => n.tagName === "INPUT" && n.attributes.value === "clone:ana");
   clone.fire("change");
   const slider = root.all().find((n) => n.tagName === "INPUT" && n.attributes.id === "set-voicebot-length_scale");
+  assert.equal(slider.disabled, true, "Qwen3-TTS (the default cloner) has no speed control");
+  assert.ok(root.textContent.includes("Esta voz no tiene este control"));
   slider.fire("change");
   const button = root.all().find((n) => n.tagName === "BUTTON" && n.textContent.includes("Escuchar ejemplo"));
   button.fire("click");

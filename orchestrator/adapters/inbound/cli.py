@@ -384,6 +384,18 @@ def build_cloner(args: argparse.Namespace) -> Optional[SubprocessCloner]:
                             extra=extra)
 
 
+def build_clone_gate(args: argparse.Namespace) -> Optional[LeaseGpuGate]:
+    """Return the GPU gate of a cloner that runs on the GPU, else ``None``.
+
+    A cloner on the GPU only runs under the live session's lease, like
+    the natural voices (``docs/live/VOICE_CLONING.md`` §4).
+    """
+    if getattr(args, "clone_engine", "none") == "none":
+        return None
+    directory = args.gpu_lease_dir or lease_directory(os.environ)
+    return LeaseGpuGate(Path(directory))
+
+
 def build_natural(args: argparse.Namespace) -> Optional[NaturalWiring]:
     """Return the natural voices, or ``None`` when off or not installed.
 
@@ -453,6 +465,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
         natural=build_natural(args),
+        clone_gate=build_clone_gate(args),
         interview=build_interview(args, products, sessions_ref),
         ticker=ThreadRunner(),
     )

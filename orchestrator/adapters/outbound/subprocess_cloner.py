@@ -6,8 +6,10 @@ import, so it runs in its own virtual environment under
 lab/runners/voice_clone.py --engine <engine> --device cuda``. The
 process keeps the model loaded and speaks a line protocol: one JSON
 request per line on its standard input (``id``, ``text``,
-``reference``, ``out``, ``language``), one JSON answer per line on its
-standard output (first ``{"ready": true, ...}`` once loaded, then
+``reference``, ``out``, ``language`` and, when set, the Piper controls
+``length_scale``, ``noise_scale``, ``noise_w``, ``sentence_silence``
+that the engine's Piper base voice speaks with), one JSON answer per
+line on its standard output (first ``{"ready": true, ...}`` once loaded, then
 ``{"id", "path", "sample_rate", "synth_ms"}`` or ``{"id", "error"}``).
 The WAV it writes is read, its file deleted, and its frames returned.
 The text is never logged. One process, started on first use and again
@@ -22,7 +24,7 @@ import threading
 import time
 import wave
 from pathlib import Path
-from typing import IO, Any, Dict, List, Optional, Tuple
+from typing import IO, Any, Dict, List, Mapping, Optional, Tuple
 
 from orchestrator.application.ports import CancelToken, TtsUnavailable
 
@@ -54,6 +56,7 @@ class SubprocessCloner:
         command: Optional[List[str]] = None,
     ):
         """Keep the settings; no process is started yet."""
+        self.device = device
         self.command = command or [
             str(python.expanduser()), str(WORKER), "--engine", engine,
             "--device", device, *(extra or []),
@@ -67,12 +70,32 @@ class SubprocessCloner:
         self._lock = threading.Lock()
         self._count = 0
 
-    def warm(self, reference: str, language: str) -> None:
+    @property
+    def gpu(self) -> bool:
+        """Whether the worker runs on the GPU (it then needs the lease)."""
+        return self.device != "cpu"
+
+    @property
+    def loaded(self) -> bool:
+        """Whether the worker process is running (its memory is taken)."""
+        process = self._process
+        return process is not None and process.poll() is None
+
+    def warm(
+        self, reference: str, language: str,
+        controls: Optional[Mapping[str, float]] = None,
+    ) -> None:
         """Start the worker and speak one word with ``reference``."""
-        self.speak("Hola.", reference, language, CancelToken())
+        self.speak("Hola.", reference, language, CancelToken(), controls)
+
+    def unload(self) -> None:
+        """Stop the worker: the GPU memory it held is free afterwards."""
+        with self._lock:
+            self._stop()
 
     def speak(
-        self, text: str, reference: str, language: str, cancel: CancelToken
+        self, text: str, reference: str, language: str, cancel: CancelToken,
+        controls: Optional[Mapping[str, float]] = None,
     ) -> Tuple[bytes, int]:
         """Say one sentence like ``reference``; return PCM and its rate."""
         if not Path(reference).is_file():
@@ -84,7 +107,7 @@ class SubprocessCloner:
             out = self.workdir / f"{ident}.wav"
             self._send({"id": ident, "text": " ".join(text.split()),
                         "reference": reference, "out": str(out),
-                        "language": language})
+                        "language": language, **(controls or {})})
             answer = self._read(ident, self.timeout)
         if "error" in answer:
             raise TtsUnavailable(f"cloner: {str(answer['error'])[:120]}")
@@ -184,3 +207,4 @@ class SubprocessCloner:
             process.wait(timeout=2)
         except subprocess.TimeoutExpired:
             process.kill()
+            process.wait()

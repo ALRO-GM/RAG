@@ -4,15 +4,18 @@ cloning only with consent, the fallback to Piper and the sample (#207)."""
 import threading
 import wave
 from io import BytesIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import pytest
 
 from orchestrator.adapters.outbound.fakes import FakeTts
 from orchestrator.application.ports import CancelToken, TtsUnavailable
 from orchestrator.application.voice import (
+    CLONE_NEED_MIB,
     ClonedVoice,
+    request_controls,
     speak_sample,
+    tts_controls,
     voice_request,
 )
 from orchestrator.domain.config import Tts
@@ -41,25 +44,40 @@ class FakeCloner:
     """A cloner that answers a 24 kHz tone, or waits, or fails."""
 
     def __init__(self, wait: Optional[threading.Event] = None,
-                 fail: bool = False) -> None:
+                 fail: bool = False, gpu: bool = False) -> None:
         self.wait = wait
         self.fail = fail
+        self.gpu = gpu
+        self.loaded = False
         self.said: List[Tuple[str, str]] = []
+        self.controls: List[Optional[Mapping[str, float]]] = []
         self.warmed = 0
+        self.unloaded = threading.Event()
 
     def speak(self, text: str, reference: str, language: str,
-              cancel: CancelToken) -> Tuple[bytes, int]:
+              cancel: CancelToken,
+              controls: Optional[Mapping[str, float]] = None,
+              ) -> Tuple[bytes, int]:
         if self.fail:
             raise TtsUnavailable("cloner crashed")
         if self.wait is not None:
             self.wait.wait(5)
+        self.loaded = True
         self.said.append((text, reference))
+        self.controls.append(controls)
         return b"\x02\x00" * 240, 24000
 
-    def warm(self, reference: str, language: str) -> None:
+    def warm(self, reference: str, language: str,
+             controls: Optional[Mapping[str, float]] = None) -> None:
         self.warmed += 1
+        self.controls.append(controls)
         if self.fail:
             raise TtsUnavailable("no model")
+        self.loaded = True
+
+    def unload(self) -> None:
+        self.loaded = False
+        self.unloaded.set()
 
 
 def profiles(*found: VoiceProfile) -> Any:
@@ -247,3 +265,134 @@ def test_the_sessions_sample_uses_the_unsaved_choices() -> None:
 
     with pytest.raises(SessionError):
         bot_sessions([]).sample({})
+
+
+class FakeGate:
+    """A GPU gate that allows or refuses, and counts the leases taken."""
+
+    def __init__(self, refusal: Optional[str] = None) -> None:
+        self.refusal = refusal
+        self.checked: List[int] = []
+        self.taken: List[int] = []
+        self.dropped = 0
+
+    def check(self, need_mib: int) -> Optional[str]:
+        self.checked.append(need_mib)
+        return self.refusal
+
+    def take(self, need_mib: int) -> Optional[str]:
+        self.taken.append(need_mib)
+        return self.refusal
+
+    def drop(self) -> None:
+        self.dropped += 1
+
+
+def test_a_gpu_cloner_only_runs_under_the_live_lease() -> None:
+    cloner = FakeCloner(gpu=True)
+    gate = FakeGate()
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate)
+    voice.warm()
+    assert cloner.warmed == 1 and gate.checked == [CLONE_NEED_MIB]
+    out = list(voice.synthesize(request("Una frase bastante larga."),
+                                CancelToken()))
+    assert voice.cloned == 1 and out[0].sample_rate == 24000
+    assert gate.checked[-1] == 0, "loaded: the memory is already ours"
+    gate.refusal = "no live GPU lease"
+    out = list(voice.synthesize(request("Otra frase bastante larga."),
+                                CancelToken()))
+    assert [c.sample_rate for c in out] == [16000], "Piper speaks"
+    assert cloner.unloaded.wait(2), "the lease went: the card is freed"
+    assert voice.refusal == "no live GPU lease"
+    voice.close()
+
+
+def test_a_gpu_cloner_without_a_gate_or_lease_is_never_loaded() -> None:
+    sleeps: List[float] = []
+    for gate in (None, FakeGate("no live GPU lease")):
+        cloner = FakeCloner(gpu=True)
+        voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=gate,
+                            sleep=sleeps.append)
+        voice.warm()
+        out = list(voice.synthesize(request("Una frase bastante larga."),
+                                    CancelToken()))
+        assert cloner.warmed == 0 and not cloner.said
+        assert [c.sample_rate for c in out] == [16000]
+        voice.close()
+    assert sleeps, "the warm-up waited for the lease before giving up"
+    assert sum(sleeps) >= 30.0 - 0.3
+
+
+def test_a_cpu_cloner_needs_no_lease_and_close_frees_a_gpu_one() -> None:
+    cpu = FakeCloner(gpu=False)
+    gate = FakeGate("held")
+    voice = ClonedVoice(cpu, FakeTts(), AGREED, gate=gate)
+    voice.warm()
+    assert cpu.warmed == 1 and gate.checked == []
+    voice.close()
+    assert not cpu.unloaded.wait(0.1), "a CPU model stays loaded"
+    gpu = FakeCloner(gpu=True)
+    voice = ClonedVoice(gpu, FakeTts(), AGREED, gate=FakeGate())
+    voice.warm()
+    voice.close()
+    assert gpu.unloaded.wait(2), "the session ended: memory freed"
+    assert list(voice.synthesize(request("Nada que decir aquí."),
+                                 CancelToken())) == []
+
+
+def test_the_pipers_controls_reach_the_cloner() -> None:
+    cloner = FakeCloner()
+    tts = Tts(kind="piper", voice=DAVEFX, noise_scale=0.4, noise_w=0.6,
+              sentence_silence=0.2)
+    controls = tts_controls(tts, 1.25)
+    assert controls == {"length_scale": 1.25, "noise_scale": 0.4,
+                        "noise_w": 0.6, "sentence_silence": 0.2}
+    assert tts_controls(Tts(kind="piper", voice=DAVEFX), 1.0) == {
+        "length_scale": 1.0}
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, controls=controls)
+    voice.warm()
+    list(voice.synthesize(
+        voice_request("r1", "Una frase bastante larga.", tts, "es"),
+        CancelToken()))
+    assert cloner.controls[0] == controls
+    assert cloner.controls[1] == {"length_scale": 1.0, "noise_scale": 0.4,
+                                  "noise_w": 0.6, "sentence_silence": 0.2}
+    assert request_controls({"length_scale": True, "noise_w": "x"}) == {
+        "length_scale": 1.0}, "numbers only"
+    voice.close()
+
+
+def test_the_sample_takes_the_lease_for_a_gpu_cloner() -> None:
+    gate = FakeGate()
+    cloner = FakeCloner(gpu=True)
+    live = bot_sessions([], tts=FakeTts())
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = cloner
+    live.clone_gate = gate
+    pick = {"voicebot.voice": "clone:ana",
+            "voicebot.clone_engine": "openvoice"}
+    wav, used = live.sample({**pick, "voicebot.length_scale": "1.2"})
+    assert used["clone"] is True and used["engine"] == "openvoice"
+    assert gate.taken == [CLONE_NEED_MIB] and gate.dropped == 1
+    assert cloner.controls[0] == {"length_scale": 1.2}
+    assert cloner.unloaded.wait(2)
+    gate.refusal = "the GPU lease is held by ragputin-img"
+    _, used = live.sample(pick)
+    assert used["clone"] is False and used["engine"] == "piper"
+    assert "ragputin-img" in used["reason"] and gate.dropped == 2
+
+
+def test_a_session_gives_the_cloner_its_gate_and_controls() -> None:
+    events = [user_final("t0.s0", "¿Puedo devolver un producto?", 1)]
+    cloner = FakeCloner(gpu=True)
+    live = bot_sessions(events, tts=FakeTts())
+    live.settings = Settings({"voicebot.voice": "clone:ana",
+                              "voicebot.clone_engine": "openvoice",
+                              "voicebot.length_scale": "1.3"})
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = cloner
+    live.clone_gate = FakeGate()
+    live.start_live("voicebot", "mic")
+    first = cloner.controls[0]
+    assert cloner.said and first is not None
+    assert first["length_scale"] == 1.3

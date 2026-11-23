@@ -1,0 +1,288 @@
+{
+ "session": "vb5-1795425431",
+ "turns": 8,
+ "turns_by_status": {
+  "ok": 7,
+  "timeout": 1
+ },
+ "ok_turns": {
+  "first_audio_ms": {
+   "n": 7,
+   "p50": 1981,
+   "p90": 2086,
+   "max": 2116
+  },
+  "final_ms": {
+   "n": 7,
+   "p50": 665,
+   "p90": 680,
+   "max": 695
+  },
+  "final_to_first_audio_ms": {
+   "n": 7,
+   "p50": 1350,
+   "p90": 1419,
+   "max": 1447
+  },
+  "event_lag_ms": {
+   "n": 7,
+   "p50": 647,
+   "p90": 682,
+   "max": 698
+  },
+  "knowledge_ms": {
+   "n": 7,
+   "p50": 13,
+   "p90": 15,
+   "max": 18
+  },
+  "first_text_ms": {
+   "n": 7,
+   "p50": 1014,
+   "p90": 1023,
+   "max": 1028
+  },
+  "first_sentence_ms": {
+   "n": 7,
+   "p50": 1208,
+   "p90": 1282,
+   "max": 1309
+  },
+  "first_tts_ms": {
+   "n": 7,
+   "p50": 138,
+   "p90": 140,
+   "max": 142
+  },
+  "orchestrator_first_audio_ms": {
+   "n": 7,
+   "p50": 1350,
+   "p90": 1420,
+   "max": 1447
+  },
+  "reasoner_first_token_ms": {
+   "n": 7,
+   "p50": 998,
+   "p90": 1005,
+   "max": 1006
+  },
+  "reasoner_ms": {
+   "n": 7,
+   "p50": 2994,
+   "p90": 4004,
+   "max": 4357
+  },
+  "audio_ms": {
+   "n": 7,
+   "p50": 12080,
+   "p90": 13184,
+   "max": 14000
+  }
+ },
+ "within_2500_ms": 7,
+ "stream_url": "orchestrator",
+ "orchestrator_session": {
+  "state": "ended",
+  "calls": {
+   "timeout": 1,
+   "ok": 7
+  },
+  "skipped": {},
+  "events": 24
+ },
+ "voice_messages": [
+  {
+   "type": "voice",
+   "engine": "qwen3-cuda",
+   "clone": true,
+   "length_scale": 1.0,
+   "reason": ""
+  }
+ ],
+ "rows": [
+  {
+   "final_ms": 577.2384600004443,
+   "first_audio_ms": 2540.4742420005277,
+   "turn": 1,
+   "first_sample_rate": 24000,
+   "status": "timeout",
+   "spoken": 2,
+   "audio_ms": 5280.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 582.7,
+   "knowledge_ms": 12.9,
+   "first_text_ms": null,
+   "first_sentence_ms": 1818.0,
+   "first_tts_ms": 145.5,
+   "reasoner_ms": 1804.7,
+   "total_ms": 3718.2,
+   "orchestrator_first_audio_ms": 1963.7,
+   "reasoner_first_token_ms": null,
+   "reply_chars": 0,
+   "final_to_first_audio_ms": 1963.2357820000834,
+   "question": "¿Cuántos días tengo para devolver un producto?",
+   "voice_ms": 2401
+  },
+  {
+   "final_ms": 669.5672070004548,
+   "first_audio_ms": 2116.132509000181,
+   "turn": 2,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 2,
+   "audio_ms": 14000.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 647.4,
+   "knowledge_ms": 10.1,
+   "first_text_ms": 1015.7,
+   "first_sentence_ms": 1308.7,
+   "first_tts_ms": 138.3,
+   "reasoner_ms": 4357.2,
+   "total_ms": 6211.2,
+   "orchestrator_first_audio_ms": 1447.1,
+   "reasoner_first_token_ms": 1002.6,
+   "reply_chars": 202,
+   "final_to_first_audio_ms": 1446.5653019997262,
+   "question": "¿Cuánto tarda en llegar el reembolso?",
+   "voice_ms": 2146
+  },
+  {
+   "final_ms": 569.7493630000281,
+   "first_audio_ms": 1919.8655680002048,
+   "turn": 3,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 2,
+   "audio_ms": 12640.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 588.9,
+   "knowledge_ms": 18.3,
+   "first_text_ms": 1027.6,
+   "first_sentence_ms": 1208.3,
+   "first_tts_ms": 141.8,
+   "reasoner_ms": 2994.2,
+   "total_ms": 5657.2,
+   "orchestrator_first_audio_ms": 1350.3,
+   "reasoner_first_token_ms": 1006.5,
+   "reply_chars": 180,
+   "final_to_first_audio_ms": 1350.1162050001767,
+   "question": "Me ha llegado una lámpara rota, ¿qué hago?",
+   "voice_ms": 2332
+  },
+  {
+   "final_ms": 670.4822169999716,
+   "first_audio_ms": 1981.341238999903,
+   "turn": 4,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 1,
+   "audio_ms": 3600.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 671.8,
+   "knowledge_ms": 13.2,
+   "first_text_ms": 965.8,
+   "first_sentence_ms": 1176.8,
+   "first_tts_ms": 134.5,
+   "reasoner_ms": 1163.4,
+   "total_ms": 2453.7,
+   "orchestrator_first_audio_ms": 1311.3,
+   "reasoner_first_token_ms": 949.7,
+   "reply_chars": 53,
+   "final_to_first_audio_ms": 1310.8590219999314,
+   "question": "¿Puedo devolver un colchón que ya he abierto?",
+   "voice_ms": 2217
+  },
+  {
+   "final_ms": 582.4305650003225,
+   "first_audio_ms": 1878.7416830000438,
+   "turn": 5,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 1,
+   "audio_ms": 9200.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 622.9,
+   "knowledge_ms": 10.4,
+   "first_text_ms": 918.4,
+   "first_sentence_ms": 1165.1,
+   "first_tts_ms": 131.5,
+   "reasoner_ms": 1154.4,
+   "total_ms": 4399.0,
+   "orchestrator_first_audio_ms": 1296.6,
+   "reasoner_first_token_ms": 905.1,
+   "reply_chars": 109,
+   "final_to_first_audio_ms": 1296.3111179997213,
+   "question": "¿Cuánto cuesta devolver algo si he cambiado de opinión?",
+   "voice_ms": 2670
+  },
+  {
+   "final_ms": 695.0074690003021,
+   "first_audio_ms": 2047.7292290006517,
+   "turn": 6,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 2,
+   "audio_ms": 12080.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 698.1,
+   "knowledge_ms": 13.0,
+   "first_text_ms": 966.8,
+   "first_sentence_ms": 1213.4,
+   "first_tts_ms": 139.3,
+   "reasoner_ms": 3541.0,
+   "total_ms": 5456.7,
+   "orchestrator_first_audio_ms": 1352.9,
+   "reasoner_first_token_ms": 950.8,
+   "reply_chars": 182,
+   "final_to_first_audio_ms": 1352.7217600003496,
+   "question": "¿Puedo recoger el pedido en una tienda?",
+   "voice_ms": 1999
+  },
+  {
+   "final_ms": 664.814127000227,
+   "first_audio_ms": 2066.1837490001744,
+   "turn": 7,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 2,
+   "audio_ms": 12160.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 657.2,
+   "knowledge_ms": 12.8,
+   "first_text_ms": 1014.2,
+   "first_sentence_ms": 1265.0,
+   "first_tts_ms": 136.7,
+   "reasoner_ms": 3769.3,
+   "total_ms": 5553.6,
+   "orchestrator_first_audio_ms": 1401.8,
+   "reasoner_first_token_ms": 998.2,
+   "reply_chars": 169,
+   "final_to_first_audio_ms": 1401.3696219999474,
+   "question": "Quiero cambiar una alfombra por otra de otro color.",
+   "voice_ms": 2694
+  },
+  {
+   "final_ms": 575.2650690001246,
+   "first_audio_ms": 1774.019083999974,
+   "turn": 8,
+   "first_sample_rate": 24000,
+   "status": "ok",
+   "spoken": 2,
+   "audio_ms": 8480.0,
+   "knowledge_status": "ok",
+   "event_lag_ms": 610.0,
+   "knowledge_ms": 13.4,
+   "first_text_ms": 1020.6,
+   "first_sentence_ms": 1060.6,
+   "first_tts_ms": 138.3,
+   "reasoner_ms": 2580.3,
+   "total_ms": 4047.9,
+   "orchestrator_first_audio_ms": 1199.1,
+   "reasoner_first_token_ms": 1003.8,
+   "reply_chars": 119,
+   "final_to_first_audio_ms": 1198.7540149998495,
+   "question": "¿Qué necesito para empezar una devolución?",
+   "voice_ms": 2182
+  }
+ ]
+}
