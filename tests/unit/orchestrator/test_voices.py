@@ -556,3 +556,57 @@ def test_a_session_ends_with_the_clone_counts_in_its_feed() -> None:
                if m["type"] == "voice_summary"]
     assert len(summary) == 1 and summary[0]["engine"] == "openvoice"
     assert summary[0]["cloned"] >= 1 and summary[0]["fell_back"] == 0
+
+
+def test_a_warm_up_that_ends_after_close_spares_another_holders_model(
+) -> None:
+    class SlowWarm(FakeCloner):
+        def __init__(self) -> None:
+            super().__init__(gpu=True)
+            self.go = threading.Event()
+            self.first = True
+
+        def warm(self, reference: str, language: str,
+                 controls: Optional[Mapping[str, float]] = None) -> None:
+            if self.first:
+                self.first = False
+                self.go.wait(5)
+            super().warm(reference, language, controls)
+
+    inner = SlowWarm()
+    shared = SharedCloner(inner)
+    gate = FakeGate()
+    a = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=gate, watch_s=60)
+    loading = threading.Thread(target=a.warm)
+    loading.start()
+    time.sleep(0.1)
+    a.close()  # session A ends while its worker loads
+    b = ClonedVoice(shared.lend(), FakeTts(), AGREED, gate=gate, watch_s=60)
+    assert settle(lambda: shared.holders == 1)
+    b.warm()
+    assert inner.loaded
+    inner.unloaded.clear()
+    inner.go.set()
+    loading.join(3)  # A's warm returns and sees it was closed
+    time.sleep(0.2)
+    assert inner.loaded and not inner.unloaded.is_set(), "B's model lives"
+    b.close()
+    assert inner.unloaded.wait(2)
+
+
+def test_a_sample_whose_lease_cannot_be_taken_leaves_nothing_taken() -> None:
+    class Failing(FakeGate):
+        def take(self, need_mib: int) -> Optional[str]:
+            raise OSError("disk full")
+
+    gate = Failing()
+    live = bot_sessions([], tts=FakeTts())
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = FakeCloner(gpu=True)
+    live.clone_gate = gate
+    from orchestrator.application.sessions import SessionError
+
+    with pytest.raises((OSError, SessionError)):
+        live.sample({"voicebot.voice": "clone:ana",
+                     "voicebot.clone_engine": "openvoice"})
+    assert gate.dropped == 0, "no drop for a take that never happened"

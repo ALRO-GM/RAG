@@ -167,16 +167,17 @@ wrote (the live session's is never touched).
   says the memory is free. The session's warm-up waits up to 30 s for
   the lease (the live session takes it and the image worker leaves the
   card). If it never comes, the clone is **out for the whole session**
-  and Piper speaks: the bot never cold-loads a model in the middle of a
-  conversation. The reason reaches the feed (below).
+  and Piper speaks: a session whose warm-up was refused never starts the
+  worker later. The reason reaches the feed (below).
 - The lease is watched (every 1 s) while the worker is loaded or
   loading. If it goes, the worker is **killed at once, even if the bot
   is silent** (`SubprocessCloner.unload` kills the process without
   waiting for the sentence or the load that holds its lock), so its
   memory is free before the image worker resumes (30 s). A sentence
-  that finds the lease gone also says Piper. If the lease comes back
-  mid-session the next sentence may load the worker again, inside the
-  800 ms budget and the memory check (Piper speaks meanwhile).
+  that finds the lease gone also says Piper. For a session whose warm-up
+  succeeded, if the lease is lost and comes back mid-session the next
+  sentence may load the worker again (under the lease and the memory
+  check; Piper speaks while it loads).
 - The one worker is **shared** by sessions and samples through
   `SharedCloner`: each `ClonedVoice` holds it and gives it back when
   it closes, and the worker is stopped only when the last holder is

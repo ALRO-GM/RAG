@@ -177,10 +177,18 @@ class _Holder:
         self.shared.inner.unload()
 
     def release(self) -> None:
-        """Give the model back (once)."""
+        """Give the model back; stop it if no holder remains.
+
+        A second call (a load that ended after the voice closed) gives
+        nothing back again: it only re-checks, so a model another
+        session holds now is left alone.
+        """
         if not self._released:
             self._released = True
             self.shared._release()
+        elif self.shared.inner.gpu:
+            threading.Thread(target=self.shared._stop_if_idle,
+                             daemon=True).start()
 
 
 class ClonedVoice:
@@ -277,7 +285,7 @@ class ClonedVoice:
                 self.failed = True
                 self.failure = f"openvoice failed ({str(exc)[:80]})"
         if self._closed:  # the session ended while it loaded
-            self._unload()
+            self.cloner.release()  # stops it only if nobody else holds it
 
     def synthesize(
         self, request: Document, cancel: CancelToken

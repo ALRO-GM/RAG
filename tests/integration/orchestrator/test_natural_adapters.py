@@ -377,3 +377,22 @@ def test_serve_gives_the_voices_and_the_cloner_one_gate(
     args.natural_dir, args.natural_budget_ms = tmp_path / "n", 800.0
     wiring = cli.build_natural(args, gate)
     assert wiring is not None and wiring.gate is gate
+
+
+def test_a_take_that_fails_to_write_leaves_no_count_behind(
+    tmp_path: Path,
+) -> None:
+    gate = LeaseGpuGate(tmp_path / "gpu-lease", free_mib=lambda: 8000,
+                        sleep=lambda _: None)
+    real = gate._write
+
+    def full(lease: dict) -> None:  # type: ignore[type-arg]
+        raise OSError("disk full")
+
+    gate._write = full  # type: ignore[method-assign]
+    with pytest.raises(OSError):
+        gate.take(800)
+    gate._write = real  # type: ignore[method-assign]
+    assert gate.take(800) is None
+    gate.drop()
+    assert not (tmp_path / "gpu-lease" / "lease.json").exists()

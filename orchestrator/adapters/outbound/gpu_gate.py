@@ -114,18 +114,25 @@ class LeaseGpuGate:
     def take(self, need_mib: int) -> Optional[str]:
         """Hold the lease if nobody does, wait for the memory; why not.
 
-        Every call is paired with one :meth:`drop`: the lease this gate
+        Every call that returns is paired with one :meth:`drop` (one
+        that raises counts for nothing): the lease this gate
         wrote is deleted by the last one, so two samples at once (a
         natural voice and a clone) never delete each other's lease.
         """
         with self._lock:
             self._users += 1
-            lease = self._valid()
-            if lease is None:
-                self._acquire(need_mib)
-            elif lease.get("priority") != "live":
-                return (f"the GPU lease is held by "
-                        f"{str(lease.get('holder'))[:40]}")
+            try:
+                lease = self._valid()
+                if lease is None:
+                    self._acquire(need_mib)
+                elif lease.get("priority") != "live":
+                    return (f"the GPU lease is held by "
+                            f"{str(lease.get('holder'))[:40]}")
+            except BaseException:
+                # A take that raised (the lease file could not be
+                # written) is not paired with a drop: undo its count.
+                self._users -= 1
+                raise
         waited = 0.0
         while True:
             short = self._memory(need_mib)

@@ -809,13 +809,17 @@ class LiveSessions:
         need = speaker.need_mib if gate is not None else 0
         # A model already loaded (a session holds it) needs no memory.
         ask = 0 if speaker.cloner.loaded else need
-        refused = gate.take(ask) if gate is not None and need else None
+        refused: Optional[str] = None
+        taken = False
         try:
+            if gate is not None and need:
+                refused = gate.take(ask)
+                taken = True
             wav, used = speak_sample(
                 tts, plan, self.tts,
                 lambda profile: speaker, language)
         finally:
-            if gate is not None and need:
+            if gate is not None and taken:
                 gate.drop()
         if refused or speaker.refusal:
             used["reason"] = "; ".join(
@@ -829,11 +833,15 @@ class LiveSessions:
         """Render the sample with a natural voice (lease taken if needed)."""
         gate = self.natural.gate if self.natural is not None else None
         need = gpu_need(speaker)
-        refused = gate.take(need) if gate is not None and need else None
+        refused: Optional[str] = None
+        taken = False
         try:
+            if gate is not None and need:
+                refused = gate.take(need)
+                taken = True
             wav = render_sample(tts, plan.length_scale, speaker, language)
         finally:
-            if gate is not None and need:
+            if gate is not None and taken:
                 gate.drop()
         engine = speaker.first_speaker or "piper"
         reason = "; ".join(r for r in (plan.reason, refused, *heard) if r)
