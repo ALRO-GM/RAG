@@ -2,7 +2,8 @@
 
 Written for opencode 2.x (``run --standalone``): the assessment prompt and
 the transcript are attached as one file in an empty directory, so they
-never appear in the process arguments, and the reply is read from
+never appear in the process arguments, every tool is denied inside a
+throw-away HOME/database, and the reply is read from
 ``opencode run --format json``'s raw events (``text``, ``step_finish``,
 ``error``), not from the terminal.
 """
@@ -118,20 +119,54 @@ class OpencodeJudge:
             "Answer using the attached file",
         ]
 
-    def environment(self, cwd: str) -> Dict[str, str]:
-        """Return the environment of the judge process.
+    def settings(self) -> Dict[str, Any]:
+        """Return the inline opencode 2.x config: deny every tool.
 
-        ``HOME`` is kept: with a private one opencode loses its
-        credentials and the anonymous free-usage limit applies at once.
+        2.x spells permissions as a list of ``{action, resource,
+        effect}``; the last matching rule wins and this document comes
+        after the built-in agents' rules (checked with
+        ``opencode debug agents``). Plugins, MCP servers, instructions
+        and sharing are switched off as well.
+        """
+        return {
+            "permissions": [
+                {"action": "*", "resource": "*", "effect": "deny"},
+            ],
+            "plugins": [],
+            "mcp": {},
+            "instructions": [],
+            "share": "disabled",
+        }
+
+    def environment(self, cwd: str) -> Dict[str, str]:
+        """Return the sandboxed environment of the judge process.
+
+        ``HOME`` and every XDG directory point into the throw-away
+        ``cwd``, so the owner's opencode config (permissions, plugins,
+        MCP servers, global instructions), memory and session database
+        are never read or written; the conversation lives in a private
+        database that is deleted with the directory. The price is that
+        the owner's credentials are not seen either: only the anonymous
+        free tier is available.
         """
         env = {
             name: self._environ[name]
             for name in KEPT_ENVIRONMENT if name in self._environ
         }
-        env["PATH"] = self._environ.get("PATH", "/usr/bin:/bin")
-        env["TMPDIR"] = cwd
-        if "HOME" in self._environ:
-            env["HOME"] = self._environ["HOME"]
+        env.update({
+            "PATH": self._environ.get("PATH", "/usr/bin:/bin"),
+            "HOME": cwd,
+            "TMPDIR": cwd,
+            "XDG_CONFIG_HOME": os.path.join(cwd, "config"),
+            "XDG_DATA_HOME": os.path.join(cwd, "data"),
+            "XDG_STATE_HOME": os.path.join(cwd, "state"),
+            "XDG_CACHE_HOME": os.path.join(cwd, "cache"),
+            "OPENCODE_DB": os.path.join(cwd, "judge.db"),
+            "OPENCODE_CONFIG_CONTENT": json.dumps(self.settings()),
+            "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+            "OPENCODE_DISABLE_CLAUDE_CODE": "1",
+            "OPENCODE_DISABLE_AUTOUPDATE": "1",
+        })
         return env
 
     def complete(self, system: str, user: str, max_tokens: int) -> str:

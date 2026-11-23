@@ -118,11 +118,33 @@ def test_command_uses_the_current_cli_and_selected_model() -> None:
     assert call["listing"] == ["prompt.txt"]
     assert call["stdin"] == ""
     assert call["timeout"] == 45
-    assert call["env"]["HOME"] == "/home/x"
-    assert call["env"]["TMPDIR"] == call["cwd"]
     assert "ANTHROPIC_API_KEY" not in call["env"]
     assert "OPENCODE_API_KEY" not in call["env"]
     assert model.model_name == "opencode:opencode/beam-free"
+
+
+def test_environment_is_sandboxed_and_denies_every_tool() -> None:
+    """Private HOME/XDG/DB, deny-all permissions, no plugins."""
+    runner = FakeRunner(answer())
+    judge(runner).complete("S", "u", 10)
+    call = runner.calls[0]
+    env, cwd = call["env"], call["cwd"]
+    assert "/home/x" not in env.values()
+    for name in ("HOME", "TMPDIR"):
+        assert env[name] == cwd
+    for name in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME",
+                 "XDG_CACHE_HOME", "OPENCODE_DB"):
+        assert env[name].startswith(cwd + os.sep)
+    config = json.loads(env["OPENCODE_CONFIG_CONTENT"])
+    assert config["permissions"] == [
+        {"action": "*", "resource": "*", "effect": "deny"}
+    ]
+    assert config["plugins"] == [] and config["mcp"] == {}
+    assert config["instructions"] == [] and config["share"] == "disabled"
+    assert env["OPENCODE_DISABLE_PROJECT_CONFIG"] == "1"
+    assert env["OPENCODE_DISABLE_CLAUDE_CODE"] == "1"
+    assert env["LANG"] == "es_ES.UTF-8"
+    assert env["PATH"] == "/usr/bin"
 
 
 def test_default_model_is_configurable() -> None:
@@ -196,6 +218,14 @@ def test_recorded_answer_stream_is_parsed() -> None:
     assert (usage.input_tokens, usage.output_tokens) == (11803, 98)
     assert usage.cache_read_input_tokens == 1152
     assert usage.cache_creation_input_tokens == 0
+
+
+def test_recorded_quota_stream_is_quota_exhausted() -> None:
+    """Contract: a real free-limit stream (exit 1) is a quota error."""
+    model = judge(FakeRunner(recorded("quota.2.3.2.jsonl"), returncode=1),
+                  retries=2)
+    with pytest.raises(QuotaExhaustedError, match="Free usage limit"):
+        model.complete("S", "u", 10)
 
 
 def test_recorded_error_stream_is_an_error_not_an_answer() -> None:

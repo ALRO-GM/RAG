@@ -372,8 +372,24 @@ same command once the quota is back; the 30 answers are stored in the
 result file and are reused (`--replay`). The adapter
 `adapters/outbound/opencode_judge.py` was brought up to the installed
 opencode 2.3.2 in #132 (`run --standalone --archived --format json`,
-the real `HOME` kept, `text`/`step_finish`/`error` events, contract
-tests on recorded streams in `tests/fixtures/opencode/`).
+`text`/`step_finish`/`error` events, contract tests on recorded streams
+in `tests/fixtures/opencode/`). Isolation model: the call runs with
+`HOME` and every `XDG_*` directory inside a throw-away directory, a
+private `OPENCODE_DB`, an inline config that denies every permission
+(the 2.x `permissions` list, last rule wins) and turns plugins, MCP,
+instructions and sharing off, plus `OPENCODE_DISABLE_PROJECT_CONFIG`.
+The owner's `~/.config/opencode` (which allows bash, edits and web
+access, and loads plugins) is therefore never read, and the transcript
+never reaches the owner's session database or agent memory. Checked
+with `opencode debug config` and `opencode debug agents` under that
+environment (only the inline document is a config source; the agents'
+last `*` rule is deny), **not** with a live model: the free quota was
+exhausted that day, so "the model cannot run a tool" and "an answer
+comes back from the sandboxed HOME" are unverified. The sandbox also
+hides the owner's credentials, so only the anonymous free tier is
+available. The quota-exhausted stream in the fixtures is real (exit
+code 1, `provider.free-limit`); the error stream for a missing model
+is real too.
 
 Decisions:
 
