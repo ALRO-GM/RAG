@@ -20,6 +20,7 @@ import json
 import os
 import queue
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -76,6 +77,7 @@ class SubprocessCloner:
         self._swap = threading.Lock()
         """Guards ``_process`` and ``_aborts`` (held only for a swap)."""
         self._aborts = 0
+        self._generation = 0
         self._lines: "queue.Queue[str]" = queue.Queue()
         self._lock = threading.Lock()
         self._count = 0
@@ -92,6 +94,12 @@ class SubprocessCloner:
             process = self._process
         return process is not None and process.poll() is None
 
+    @property
+    def generation(self) -> int:
+        """The current start: it grows each time a worker is started."""
+        with self._swap:
+            return self._generation
+
     def warm(
         self, reference: str, language: str,
         controls: Optional[Mapping[str, float]] = None,
@@ -99,8 +107,12 @@ class SubprocessCloner:
         """Start the worker and speak one word with ``reference``."""
         self.speak("Hola.", reference, language, CancelToken(), controls)
 
-    def unload(self) -> None:
+    def unload(self, generation: Optional[int] = None) -> None:
         """Stop the worker now, even while it loads or speaks.
+
+        With ``generation`` only that start is stopped: when a newer
+        worker has begun to start since the decision was taken, nothing
+        happens (the check and the abort share one lock hold).
 
         It does not wait for the lock a sentence or the loading holds
         (only for the tiny swap lock). A worker that is ready gets its
@@ -111,6 +123,8 @@ class SubprocessCloner:
         waiting on the process fails at once (``TtsUnavailable``).
         """
         with self._swap:
+            if generation is not None and generation != self._generation:
+                return
             self._aborts += 1
             process = self._process
             graceful = self._ready
@@ -133,15 +147,29 @@ class SubprocessCloner:
             except subprocess.TimeoutExpired:
                 pass
         if process.poll() is None:
-            try:
-                process.kill()
-            except OSError:  # pragma: no cover - already gone
-                pass
+            self._kill_group(process)
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:  # pragma: no cover
                 pass
+        else:  # exited: whatever it started (Piper) goes with it
+            self._kill_group(process)
         shutil.rmtree(self.worker_tmp, ignore_errors=True)
+
+    @staticmethod
+    def _kill_group(process: "subprocess.Popen[str]") -> None:
+        """Kill the worker's whole process group (Piper children too).
+
+        The worker is started in a session of its own, so its pid is its
+        group id and nothing outside the worker is hit.
+        """
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            try:
+                process.kill()
+            except OSError:  # pragma: no cover - already gone
+                pass
 
     def release(self) -> None:
         """The only holder is done: a GPU worker is stopped."""
@@ -185,18 +213,20 @@ class SubprocessCloner:
         """Start the worker if it is not running, and wait until ready."""
         with self._swap:
             process = self._process
-            aborts = self._aborts
         if process is not None and process.poll() is None:
             return
         self._stop()
         self._lines = queue.Queue()
         self.worker_tmp.mkdir(exist_ok=True)
+        with self._swap:
+            self._generation += 1  # a stale unload(old) is now a no-op
+            aborts = self._aborts
         env = {**os.environ, "TMPDIR": str(self.worker_tmp)}
         try:
             started = subprocess.Popen(
                 self.command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                bufsize=1, env=env,
+                bufsize=1, env=env, start_new_session=True,
             )
         except OSError as exc:
             raise TtsUnavailable(f"cannot run the cloner: {exc}") from exc
@@ -278,6 +308,7 @@ class SubprocessCloner:
         try:
             process.wait(timeout=2)
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
+            pass
+        self._kill_group(process)  # also Piper children left behind
+        process.wait()
         shutil.rmtree(self.worker_tmp, ignore_errors=True)

@@ -172,9 +172,14 @@ class _Holder:
         """Load the model."""
         self.shared.inner.warm(reference, language, controls)
 
-    def unload(self) -> None:
+    @property
+    def generation(self) -> int:
+        """Which model start is current."""
+        return self.shared.inner.generation
+
+    def unload(self, generation: Optional[int] = None) -> None:
         """Stop the model for everybody (the lease is gone)."""
-        self.shared.inner.unload()
+        self.shared.inner.unload(generation)
 
     def release(self) -> None:
         """Give the model back; stop it if no holder remains.
@@ -337,18 +342,23 @@ class ClonedVoice:
             if self.report is not None:
                 self.report(name, why)
 
-    def _unload(self) -> None:
-        """Stop the cloner's model (its GPU memory is freed)."""
+    def _unload(self, generation: Optional[int] = None) -> None:
+        """Stop the cloner's model (its GPU memory is freed).
+
+        ``generation`` is the start the decision was taken about: a
+        newer start is left alone.
+        """
         try:
-            self.cloner.unload()
+            self.cloner.unload(generation)
         except TtsUnavailable:  # pragma: no cover - best effort
             pass
 
     def _watch(self) -> None:
         """Stop a loaded (or loading) model as soon as the lease goes."""
         while not self._stop.wait(self.watch_s):
+            generation = self.cloner.generation  # before looking why
             if self.cloner.loaded and self._gpu_refusal() is not None:
-                self._unload()
+                self._unload(generation)
 
     def _gpu_refusal(self) -> Optional[str]:
         """Why a GPU cloner may not run now (``None``: it may)."""
@@ -375,10 +385,12 @@ class ClonedVoice:
         if self.failed:
             self._why = self.failure
             return None
+        generation = self.cloner.generation  # before looking why
         if self._gpu_refusal() is not None:
             self._why = f"openvoice: {self.refusal}"
             if self.cloner.loaded:  # the lease is gone: free the card
-                threading.Thread(target=self._unload, daemon=True).start()
+                threading.Thread(target=self._unload, args=(generation,),
+                                 daemon=True).start()
             return None
         with self._lock:
             if self._busy is not None and not self._busy.done():

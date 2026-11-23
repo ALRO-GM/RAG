@@ -376,3 +376,85 @@ def test_the_cloner_is_on_only_with_its_venv(
     assert cloner.command[-1] == str(tmp_path / "es_ES-davefx-medium.onnx")
     assert args.clone_budget_ms == 800.0
     cloner.close()
+
+
+def test_a_stale_unload_cannot_kill_a_newer_worker(
+    cloner: SubprocessCloner,
+) -> None:
+    """Deterministic: the decision is taken about start 1, start 2 runs."""
+    cloner._ensure()
+    stale = cloner.generation
+    cloner.unload(stale)  # the decided stop of the old worker
+    assert not cloner.loaded
+    cloner._ensure()  # another session starts a new worker
+    assert cloner.generation == stale + 1 and cloner.loaded
+    cloner.unload(stale)  # the late, stale decision arrives
+    assert cloner.loaded, "a stale unload must not kill the new worker"
+    cloner.unload(cloner.generation)
+    assert not cloner.loaded
+    cloner.unload()  # no generation: unconditional, as before
+
+
+def test_a_stale_unload_during_a_start_does_not_abort_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stale unload lands while Popen is in flight: ignored."""
+    import subprocess
+
+    script = tmp_path / "worker.py"
+    script.write_text(FAKE_WORKER, encoding="utf-8")
+    worker = SubprocessCloner(Path("unused"), "fake", load_timeout=5.0,
+                              command=[sys.executable, str(script)])
+    stale = worker.generation
+    real = subprocess.Popen
+
+    def popen(*args: Any, **kwargs: Any) -> Any:
+        process = real(*args, **kwargs)
+        worker.unload(stale)
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    worker._ensure()
+    assert worker.loaded
+    monkeypatch.setattr(subprocess, "Popen", real)
+    worker.close()
+
+
+def test_piper_children_die_with_the_worker(tmp_path: Path) -> None:
+    """Unload and stop kill the worker's whole process group."""
+    import time
+
+    pidfile = tmp_path / "child.pid"
+    script = tmp_path / "parent.py"
+    script.write_text(
+        "import json, subprocess, sys\n"
+        "c = subprocess.Popen([sys.executable, '-c',"
+        " 'import time; time.sleep(60)'])\n"
+        f"open({str(pidfile)!r}, 'w').write(str(c.pid))\n"
+        "print(json.dumps({'ready': True}), flush=True)\n"
+        "sys.stdin.read()\n"
+        "import time; time.sleep(60)\n", encoding="utf-8")
+
+    def alive(pid: int) -> bool:
+        try:
+            state = Path(f"/proc/{pid}/stat").read_text().split()[2]
+        except OSError:
+            return False
+        return state != "Z"
+
+    for graceful in (True, False):
+        pidfile.unlink(missing_ok=True)
+        worker = SubprocessCloner(Path("unused"), "fake", load_timeout=5.0,
+                                  command=[sys.executable, str(script)])
+        worker._ensure()
+        child = int(pidfile.read_text())
+        assert alive(child)
+        if graceful:
+            worker.unload()  # EOF, grace, then the group is killed
+        else:
+            worker._stop()
+        end = time.monotonic() + 5
+        while alive(child) and time.monotonic() < end:
+            time.sleep(0.01)
+        assert not alive(child), "Piper outlived the worker"
+        worker.close()
