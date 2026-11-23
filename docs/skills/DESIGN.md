@@ -369,13 +369,11 @@ only: it named the intended indicator on 29 of 30 (recall 0.967; 8 of
 30. That says it can recognise indicators that are there; whether it
 rejects the ones that are not is **not measured**. Finish it with the
 same command once the quota is back; the 30 answers are stored in the
-result file and are reused (`--replay`). Also: the installed opencode is
-2.3.2, whose command line (no `--pure`, no `--dir`, other events) is not
-the one `adapters/outbound/opencode_judge.py` was written for, and with
-the adapter's private `HOME` the anonymous free limit applies at once;
-the experiment calls `opencode run --standalone` directly. The adapter
-needs its own ticket before `--judge opencode` is used with this
-version.
+result file and are reused (`--replay`). The adapter
+`adapters/outbound/opencode_judge.py` was brought up to the installed
+opencode 2.3.2 in #132 (`run --standalone --archived --format json`,
+the real `HOME` kept, `text`/`step_finish`/`error` events, contract
+tests on recorded streams in `tests/fixtures/opencode/`).
 
 Decisions:
 

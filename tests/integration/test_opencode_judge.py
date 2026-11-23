@@ -1,4 +1,4 @@
-"""Opencode judge: inline agent, model choice and raw event parsing."""
+"""Opencode judge: command line, environment and recorded event streams."""
 
 import json
 import os
@@ -10,7 +10,6 @@ import pytest
 from src.adapters.outbound.opencode_judge import (
     DEFAULT_OPENCODE_MODEL,
     OpencodeJudge,
-    event,
 )
 from src.domain.errors import (
     ModelAuthError,
@@ -18,6 +17,22 @@ from src.domain.errors import (
     QuotaExhaustedError,
     TransientModelError,
 )
+
+FIXTURES = os.path.join(
+    os.path.dirname(__file__), "..", "fixtures", "opencode"
+)
+
+
+def recorded(name: str) -> str:
+    """Return a real ``opencode 2.3.2 run --format json`` stream."""
+    with open(os.path.join(FIXTURES, name), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def line(kind: str, **fields: Any) -> str:
+    """Return one raw event line of the 2.x stream."""
+    return json.dumps({"type": kind, **fields})
+
 
 ENVIRON = {
     "PATH": "/usr/bin", "HOME": "/home/x", "LANG": "es_ES.UTF-8",
@@ -66,29 +81,12 @@ class FakeRunner:
         )
 
 
-def answer(text: str = '{"rating": 4}', message: str = "m1") -> str:
-    """Return the raw events of one streamed assistant answer."""
-    part = {
-        "id": "p1", "sessionID": "s1", "messageID": message,
-        "type": "text", "text": text, "time": {"start": 1, "end": 2},
-    }
+def answer(text: str = '{"rating": 4}') -> str:
+    """Return the events of one answer in the opencode 2.x shape."""
     return "\n".join([
-        event("message.updated", sessionID="s1", info={
-            "id": "title_msg", "role": "assistant", "agent": "title",
-        }),
-        event("message.part.updated", sessionID="s1", part={
-            "id": "pt", "sessionID": "s1", "messageID": "title_msg",
-            "type": "text", "text": "New session - private words",
-        }),
-        event("message.updated", sessionID="s1", info={
-            "id": message, "role": "assistant", "agent": "ragjudge",
-        }),
-        event("message.part.updated", sessionID="s1", part={
-            **part, "text": text[:5], "time": {"start": 1},
-        }),
-        event("message.part.delta", sessionID="s1", messageID=message,
-              partID="p1", field="text", delta=text[5:]),
-        event("message.part.updated", sessionID="s1", part=part),
+        line("step_start", part={"type": "step-start"}),
+        line("text", part={"type": "text", "text": text}),
+        line("step_finish", part={"type": "step-finish", "cost": 0}),
     ])
 
 
@@ -97,48 +95,43 @@ def judge(runner: FakeRunner, **kwargs: Any) -> OpencodeJudge:
     return OpencodeJudge(environ=ENVIRON, runner=runner, **kwargs)
 
 
-def test_isolated_agent_uses_the_system_prompt_and_selected_model() -> None:
-    """Tools are denied, the rubric is the agent prompt and text is parsed."""
+def test_command_uses_the_current_cli_and_selected_model() -> None:
+    """The prompt travels in a file; only flags opencode 2.x has are used."""
     runner = FakeRunner(answer())
     model = judge(runner, model="opencode/beam-free", timeout=45)
     assert model.complete("RUBRIC", "Frase privada", 50) == '{"rating": 4}'
     call = runner.calls[0]
     command = call["command"]
-    for flag in ("--pure", "--print-logs", "--format", "--agent", "--model",
-                 "--title", "--dir", "--file"):
+    for flag in ("--standalone", "--archived", "--format", "--model",
+                 "--title", "--file"):
         assert flag in command
+    for gone in ("--pure", "--dir", "--agent", "--print-logs"):
+        assert gone not in command
     assert command[command.index("--format") + 1] == "json"
-    assert command[command.index("--agent") + 1] == "ragjudge"
     assert command[command.index("--model") + 1] == "opencode/beam-free"
-    assert command[command.index("--log-level") + 1] == "ERROR"
     assert command[-1] == "Answer using the attached file"
     assert "Frase privada" not in " ".join(command)
     assert "RUBRIC" not in " ".join(command)
-    assert call["prompt"] == "Frase privada"
+    assert call["prompt"].startswith("RUBRIC\n")
+    assert call["prompt"].endswith("Frase privada")
     assert call["prompt_file"] is True
     assert call["listing"] == ["prompt.txt"]
     assert call["stdin"] == ""
     assert call["timeout"] == 45
-    config = json.loads(call["env"]["OPENCODE_CONFIG_CONTENT"])
-    agent = config["agent"]["ragjudge"]
-    assert agent["prompt"].startswith("RUBRIC\n")
-    assert agent["permission"] == {"*": "deny"}
-    assert agent["steps"] == 1
-    assert call["env"]["HOME"] == call["cwd"]
-    assert call["env"]["OPENCODE_DB"] == os.path.join(call["cwd"], "judge.db")
+    assert call["env"]["HOME"] == "/home/x"
+    assert call["env"]["TMPDIR"] == call["cwd"]
     assert "ANTHROPIC_API_KEY" not in call["env"]
     assert "OPENCODE_API_KEY" not in call["env"]
     assert model.model_name == "opencode:opencode/beam-free"
 
 
-def test_default_model_and_custom_agent_are_configurable() -> None:
+def test_default_model_is_configurable() -> None:
     """``--opencode_model`` is the only setting needed to pick a model."""
     runner = FakeRunner(answer())
-    model = judge(runner, agent="custom")
+    model = judge(runner)
     assert model.complete("s", "u", 10) == '{"rating": 4}'
     command = runner.calls[0]["command"]
     assert command[command.index("--model") + 1] == DEFAULT_OPENCODE_MODEL
-    assert command[command.index("--agent") + 1] == "custom"
     assert model.model_name == f"opencode:{DEFAULT_OPENCODE_MODEL}"
 
 
@@ -166,9 +159,9 @@ def test_transient_error_is_retried_but_quota_is_not() -> None:
         model.complete("s", "u", 10)
     assert len(runner.calls) == 3
 
-    quota = FakeRunner(event("session.error", sessionID="s1", error={
-        "name": "UnknownError",
-        "data": {"message": "Free usage limit reached"},
+    quota = FakeRunner(line("error", error={
+        "type": "provider.usage-limit",
+        "message": "Free usage limit reached",
     }))
     model = judge(quota, retries=2)
     model._sleep = lambda _: None
@@ -194,34 +187,58 @@ def test_empty_answer_times_out_and_missing_command_are_reported() -> None:
         judge(timeout, retries=0, timeout=1).complete("s", "u", 10)
 
 
-def test_opencode_reports_tokens_from_its_events() -> None:
+def test_recorded_answer_stream_is_parsed() -> None:
+    """Contract: a real opencode 2.3.2 stream gives text and tokens."""
+    model = judge(FakeRunner(recorded("answer.2.3.2.jsonl")))
+    assert model.complete("S", "u", 10) == '{"ok": true}'
+    usage = model.last_usage
+    assert usage is not None and usage.calls == 1
+    assert (usage.input_tokens, usage.output_tokens) == (11803, 98)
+    assert usage.cache_read_input_tokens == 1152
+    assert usage.cache_creation_input_tokens == 0
+
+
+def test_recorded_error_stream_is_an_error_not_an_answer() -> None:
+    """Contract: a real ``error`` event is raised with its message."""
+    model = judge(FakeRunner(recorded("error.2.3.2.jsonl"), returncode=1),
+                  retries=0)
+    with pytest.raises(ModelError, match="Model unavailable"):
+        model.complete("S", "u", 10)
+
+
+def test_usage_sums_steps_and_skips_noise() -> None:
+    """Several steps add up; non-JSON and untokened events are ignored."""
     lines = [
-        event("message.updated", info={
-            "id": "m0", "agent": "title", "tokens": {"input": 99}}),
-        event("message.updated", info={
-            "id": "m1", "role": "assistant", "agent": "ragjudge",
-            "cost": 0.25, "tokens": {
-                "input": 11, "output": 4, "reasoning": 2,
-                "cache": {"read": 30, "write": 8}}}),
-        event("message.part.updated", part={
-            "id": "p1", "type": "text", "text": "{}", "messageID": "m1"}),
+        line("step_finish", part={"cost": 0.25, "tokens": {
+            "input": 11, "output": 4, "reasoning": 2,
+            "cache": {"read": 30, "write": 8}}}),
+        line("step_finish", part={"cost": 0, "tokens": {"input": 1}}),
+        line("step_finish", part={"reason": "stop"}),
+        line("text", part={"type": "text", "text": "{}"}),
         "not json",
     ]
-    judge = OpencodeJudge(runner=FakeRunner(stdout="\n".join(lines)),
-                          environ=ENVIRON)
-    judge.complete("S", "u", 10)
-    usage = judge.last_usage
+    model = judge(FakeRunner(stdout="\n".join(lines)))
+    model.complete("S", "u", 10)
+    usage = model.last_usage
     assert usage is not None and usage.calls == 1
-    assert (usage.input_tokens, usage.output_tokens) == (11, 6)
+    assert (usage.input_tokens, usage.output_tokens) == (12, 6)
     assert (usage.cache_read_input_tokens,
             usage.cache_creation_input_tokens) == (30, 8)
     assert usage.cost_usd == 0.25
 
 
-def test_opencode_without_token_events_has_no_usage() -> None:
-    lines = [event("message.part.updated", part={
-        "id": "p1", "type": "text", "text": "{}", "messageID": "m1"})]
-    judge = OpencodeJudge(runner=FakeRunner(stdout="\n".join(lines)),
-                          environ=ENVIRON)
-    judge.complete("S", "u", 10)
-    assert judge.last_usage is None
+def test_without_token_events_there_is_no_usage() -> None:
+    """An answer without ``step_finish`` reports no usage."""
+    model = judge(FakeRunner(stdout=line(
+        "text", part={"type": "text", "text": "{}"})))
+    model.complete("S", "u", 10)
+    assert model.last_usage is None
+
+
+def test_error_message_shapes() -> None:
+    """Error objects of other shapes still give a readable message."""
+    for payload in ("plain", {"name": "Boom"}, {"data": {"message": "deep"}},
+                    {"x": 1}):
+        model = judge(FakeRunner(line("error", error=payload)), retries=0)
+        with pytest.raises(ModelError):
+            model.complete("S", "u", 10)
