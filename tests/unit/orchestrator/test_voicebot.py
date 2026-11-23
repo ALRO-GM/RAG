@@ -180,7 +180,7 @@ def test_the_bots_words_join_the_window_of_the_next_turn() -> None:
     assert [w["speaker"] for w in window] == ["S1", BOT_SPEAKER, "S1"]
     assert reasoner.requests[1]["context"]["speaker_roles"][BOT_SPEAKER] == \
         "bot"
-    assert reasoner.requests[1]["template"] == "conversational.voicebot@1"
+    assert reasoner.requests[1]["template"] == "conversational.voicebot@2"
     assert reasoner.requests[1]["constraints"]["deadline_ms"] == 1800
 
 
