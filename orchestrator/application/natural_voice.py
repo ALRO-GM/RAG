@@ -123,6 +123,7 @@ class NaturalVoice:
         warm_wait_s: How long :meth:`warm` waits for the GPU.
         sleep: Waits (tests replace it).
         ready_wait_s: How long the first sentences wait for the warm-up.
+        clock: Reads the time of the warm-up bound (tests replace it).
     """
 
     def __init__(
@@ -138,6 +139,7 @@ class NaturalVoice:
         warm_wait_s: float = WARM_WAIT_S,
         sleep: Callable[[float], None] = time.sleep,
         ready_wait_s: float = READY_WAIT_S,
+        clock: Callable[[], float] = time.monotonic,
     ):
         """Keep the chain; nothing is loaded until :meth:`warm` or use."""
         self.tiers = [_Tier(voice) for voice in chain]
@@ -150,6 +152,7 @@ class NaturalVoice:
         self.report = report
         self.warm_wait_s = warm_wait_s
         self.sleep = sleep
+        self.clock = clock
         self.spoken: Dict[str, int] = {}
         self.first_speaker = ""
         self._speaker = self.tiers[0].name if self.tiers else PIPER
@@ -171,7 +174,7 @@ class NaturalVoice:
         sentence asked for before that thread runs waits too.
         """
         if self._ready_by is None:
-            self._ready_by = time.monotonic() + self.ready_wait_s
+            self._ready_by = self.clock() + self.ready_wait_s
 
     def wait_ready(self) -> bool:
         """Wait for the warm-up (at most until its bound); whether it ended.
@@ -236,7 +239,7 @@ class NaturalVoice:
         """Seconds the first sentences may still wait for the warm-up."""
         if self._ready_by is None:
             return 0.0
-        return self._ready_by - time.monotonic()
+        return self._ready_by - self.clock()
 
     def _await_ready(self, cancel: CancelToken) -> None:
         """Wait for the warm-up, unless cancelled, closed or past bound."""

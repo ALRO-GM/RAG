@@ -3,7 +3,6 @@ Pocket on the CPU and Piper, the GPU gate, streaming in growing pieces,
 the settings that choose them and the sample."""
 
 import threading
-import time
 import wave
 from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
@@ -606,43 +605,67 @@ def test_the_opening_line_waits_for_the_chosen_voice_to_load() -> None:
     assert {c.sample_rate for c in chunks} == {RATE}
 
 
+class TickClock:
+    """A clock that moves ``step`` seconds on every reading."""
+
+    def __init__(self, step: float = 0.0) -> None:
+        self.now = 0.0
+        self.step = step
+        self.reads = 0
+
+    def __call__(self) -> float:
+        self.reads += 1
+        self.now += self.step
+        return self.now
+
+
 def test_the_wait_for_the_voice_is_bounded_then_the_fallback_speaks() -> None:
     qwen3, pocket = Loading(), Engine()
+    clock = TickClock(step=0.05)
     spoken, reports, _ = voice([QWEN3, POCKET_CPU],
                                {"qwen3-cuda": qwen3, "pocket-cpu": pocket},
-                               Gate(), budget_ms=50.0, ready_wait_s=0.2)
-    started = time.monotonic()
-    chunks = speak_while_warming(spoken, "Hola, empezamos ya.", 3.0, qwen3)
-    took = time.monotonic() - started
-    assert chunks and pocket.said and not qwen3.said
-    assert reports == [("pocket-cpu", "qwen3-cuda missed the 50 ms budget")]
-    assert 0.2 <= took < 2.5, "waited the bound, not the model"
+                               Gate(), budget_ms=250.0, ready_wait_s=0.2,
+                               clock=clock)
+    spoken.warming()
+    warm = threading.Thread(target=spoken.warm)
+    warm.start()
+    try:
+        chunks = list(spoken.synthesize(request("Hola, empezamos ya."),
+                                        CancelToken()))
+        # The model never loaded: only the (fake) clock ended the wait.
+        assert not qwen3.loaded_now.is_set() and not qwen3.said
+    finally:
+        qwen3.loaded_now.set()
+        warm.join(5)
+    assert chunks and pocket.said
+    assert reports == [("pocket-cpu", "qwen3-cuda missed the 250 ms budget")]
+    assert clock.now >= 0.2, "waited the bound, not the model"
 
 
 def test_without_a_warm_up_nothing_waits() -> None:
     pocket = Loading()
+    clock = TickClock()
     spoken, _, piper = voice([POCKET_CPU], {"pocket-cpu": pocket},
-                             budget_ms=50.0, ready_wait_s=5.0)
-    started = time.monotonic()
+                             budget_ms=50.0, ready_wait_s=5.0, clock=clock)
     assert spoken.wait_ready() is False
     list(spoken.synthesize(request("Hola, ¿qué tal estás?"), CancelToken()))
-    assert time.monotonic() - started < 1.0
+    assert clock.reads == 0, "no warm-up: the bound was never even read"
     assert piper.requests, "nobody loaded: Piper said it at once"
     pocket.loaded_now.set()
 
 
 def test_a_cancelled_or_closed_voice_stops_waiting() -> None:
     qwen3 = Loading()
+    # A stopped clock: the bound never expires, so only the cancel and
+    # the close can end the waits.
     spoken, _, piper = voice([QWEN3], {"qwen3-cuda": qwen3}, Gate(),
-                             ready_wait_s=5.0)
+                             ready_wait_s=5.0, clock=TickClock())
     spoken.warming()
     cancel = CancelToken()
     threading.Timer(0.1, cancel.cancel).start()
-    started = time.monotonic()
     assert list(spoken.synthesize(request("Hola, ¿qué tal?"), cancel)) == []
     threading.Timer(0.1, spoken.close).start()
     assert spoken.wait_ready() is False
-    assert time.monotonic() - started < 2.0
     assert not piper.requests
     qwen3.loaded_now.set()
 
@@ -687,10 +710,18 @@ def test_pocket_on_the_cpu_does_not_wait_for_the_gpu_lease() -> None:
                          {"qwen3-cuda": qwen3, "pocket-cpu": pocket}, gate,
                          warm_wait_s=0.5)
     loaded: List[bool] = []
+    pocket_loaded = threading.Event()
+    pocket_warm = pocket.warm
+
+    def warm_and_tell(voice: EngineVoice) -> None:
+        pocket_warm(voice)
+        pocket_loaded.set()
+
+    pocket.warm = warm_and_tell  # type: ignore[method-assign]
 
     def sleep(_: float) -> None:
-        loaded.append(pocket.is_loaded)
-        time.sleep(0.05)
+        # Qwen3 polls the gate; Pocket must load meanwhile (event, not time).
+        loaded.append(pocket_loaded.wait(5))
 
     spoken.sleep = sleep
     spoken.warm()
