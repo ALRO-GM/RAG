@@ -888,7 +888,7 @@ class RagCLI:
                 )
                 print(f"Warm-up: knowledge domains {warmed}")
                 skills.reasoner.warm_up()
-                skills.reasoner.warm_up("conversational.voicebot@1")
+                skills.reasoner.warm_up("conversational.voicebot@2")
                 skills.reasoner.warm_up("interviewer@1")
                 skills.reasoner.warm_up("interview.slots@1")
                 print("Warm-up: live reasoner pools started "

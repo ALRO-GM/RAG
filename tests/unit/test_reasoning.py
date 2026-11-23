@@ -380,3 +380,17 @@ def test_the_interviewer_templates_warm_their_pools() -> None:
     assert warmed[0][1] == 160 and warmed[1][1] == 160
     with pytest.raises(InvalidInputError):
         r.warm_up("nope@1")
+
+
+def test_spoken_template_v2_keeps_v1_and_never_mentions_fragments() -> None:
+    from src.domain.reasoning.templates import get_template
+    v1 = get_template("conversational.voicebot@1", "conversational")
+    v2 = get_template("conversational.voicebot@2", "conversational")
+    req = request(template="conversational.voicebot@2")
+    system = v2.system(req)
+    assert v1.system(req) != system and v2.user(req) == v1.user(req)
+    assert "never mention" in system and "te paso con" in system
+    assert "no está en los fragmentos" not in system
+    reply = '{"text": "Abrimos a las nueve.", "cites": ["kb:1"]}'
+    parsed = v2.parse(reply, req)
+    assert parsed.reply is not None and parsed.reply.cites == ["kb:1"]

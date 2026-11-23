@@ -16,7 +16,7 @@ browser mic ──WS──▶ transcriber (live session, 1 channel, VAD hang 400
                           │ live.event.v1 (partials, finals)
                           ▼
                     orchestrator VoiceBot ──▶ POST /knowledge/query (support.demo)
-                          │               ──▶ POST /reason/stream (conversational.voicebot@1, warm Haiku)
+                          │               ──▶ POST /reason/stream (conversational.voicebot@2, warm Haiku)
                           │ each finished sentence
                           ▼
                     Piper (own venv, own process) ── WAV per sentence
@@ -29,7 +29,7 @@ browser ◀──SSE── orchestrator feed (/api/assist/sessions/{id}/suggesti
 
 1. The three services run as usual (`ragputin-servicios`): the RAG
    (knowledge `support.demo`, `POST /reason/stream`, the warm Haiku pool
-   of `conversational.voicebot@1` started with the service), the
+   of `conversational.voicebot@2` started with the service), the
    orchestrator (`python -m orchestrator serve`, Piper on by default:
    `--tts piper`, `--piper-python ~/.local/share/ragputin/tts-venv/bin/python`,
    `--voices-dir ~/.local/share/ragputin/voices`; it warms the voice at
@@ -156,10 +156,27 @@ turn). For all of VB-1…VB-5 about 24, an estimate from the runs (4
 warm-up pings of the spare RAG's two pools, 19 answered or timed-out
 turns, one replacement process after the time-out), within the cap of 40.
 
-Seen in the replies: when a chunk only partly covers the question the
-bot sometimes says so in the template's words ("ese dato no está en los
-fragmentos…"); `conversational.voicebot@1` is unchanged here, a spoken
-wording is a new template version (follow-up).
+Seen in the replies: when a chunk only partly covered the question the
+bot sometimes said so in the template's words ("ese dato no está en los
+fragmentos…"). `conversational.voicebot@1` stays registered unchanged;
+VB-6 (#204) adds `conversational.voicebot@2` (spoken Spanish, never
+mentions fragments or sources, says once "eso no lo sé, te paso con
+alguien que te lo confirme", gives the known part first when coverage is
+partial) and `config/products/voicebot.yaml` now selects it. Rollback:
+set `template: "conversational.voicebot@1"` there.
+
+Check of @2 (6 real Haiku calls through `claude -p`, 3 synthetic
+questions, 2 prompt wordings; cold CLI processes, so their 2.0 to 5.6 s
+are NOT the warm-pool latency above): answers with cover were natural
+("tarda entre cinco y siete días laborables"); the out-of-knowledge
+question got "no lo sé, te paso con alguien que te lo confirme" and none
+of the 6 replies mentioned fragments. The first wording repeated the
+"no lo sé" phrase once, hence the "say once / never repeat" rule; a
+partial answer can still run to three sentences. Tiny sample, not a
+statistic.
+
+Not measured (needs the owner): real voices, ambient noise and barge-in
+latency on a real call. No synthetic substitute was recorded for them.
 
 Synthetic only: one rendered voice, clean audio, short questions, one
 session; no real speakers, no noise, no barge-in measured.

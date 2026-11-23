@@ -126,6 +126,34 @@ CONVERSATIONAL_V1 = Template(
     parse=_conversational_parse,
 )
 
+
+def _spoken_system(request: ReasonRequest) -> str:
+    return (
+        "You are a voice assistant on a phone call; your words are read "
+        "aloud. Answer the last thing the user said in "
+        f"{language_name(request.language)}, in one or two short, natural "
+        "spoken sentences, the way a friendly person would talk: no lists, "
+        "no markdown, no symbols, no ids, numbers and times as words "
+        "people say. Use only the knowledge given, but never mention "
+        "that knowledge: do not say fragments, chunks, sources, documents, "
+        "context or database. If it does not cover what they asked, do "
+        "not describe what you lack; say once, simply, that you do not know "
+        "and offer to pass them to a person (in Spanish: «eso no lo sé, "
+        "te paso con alguien que te lo confirme»). If it covers it only "
+        "partly, give the part you know first, then say once that for the "
+        "rest you will pass them to a person. Never repeat yourself. "
+        "Reply with one JSON object: "
+        '{"text": "...", "cites": ["chunk id", ...]}.'
+    )
+
+
+CONVERSATIONAL_V2 = Template(
+    id="conversational.voicebot@2", role="conversational",
+    system=_spoken_system, user=_conversational_user,
+    parse=_conversational_parse,
+)
+"""Spoken wording (VB-6): ``@1`` verbatim except the system prompt."""
+
 DEFAULT_MAX_SUGGESTIONS = 1
 
 KINDS = ("question", "follow_up", "answer", "reminder", "caution")
@@ -643,7 +671,8 @@ INTERVIEW_REPORT_V1 = Template(
 
 _REGISTRY: Dict[str, Template] = {
     t.id: t for t in (
-        CONVERSATIONAL_V1, SUGGESTER_INTERVIEW_V1, SUGGESTER_SUPPORT_V1,
+        CONVERSATIONAL_V1, CONVERSATIONAL_V2, SUGGESTER_INTERVIEW_V1,
+        SUGGESTER_SUPPORT_V1,
         SUGGESTER_INTERVIEW_V2, SUGGESTER_SUPPORT_V2, INTERVIEWER_V1,
         INTERVIEW_PLANNER_V1, INTERVIEW_SLOTS_V1, INTERVIEW_REPORT_V1,
     )
