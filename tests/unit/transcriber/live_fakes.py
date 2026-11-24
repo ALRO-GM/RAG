@@ -9,7 +9,9 @@ the audio's length gives, and spends ``cost`` seconds of the
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import (
+    Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple,
+)
 
 import numpy as np
 
@@ -182,6 +184,7 @@ class MemoryLiveLog:
     def __init__(self, fail: bool = False) -> None:
         self.events: Dict[str, List[Dict[str, Any]]] = {}
         self.transcripts: Dict[str, Dict[str, Any]] = {}
+        self.attribution: Dict[str, List[Dict[str, Any]]] = {}
         self.closed: List[str] = []
         self.fail = fail
 
@@ -194,6 +197,13 @@ class MemoryLiveLog:
         if self.fail:
             raise OSError("disk full")
         self.transcripts[session_id] = dict(document)
+
+    def save_attribution(
+        self, session_id: str, records: Sequence[Mapping[str, Any]]
+    ) -> None:
+        if self.fail:
+            raise OSError("disk full")
+        self.attribution[session_id] = [dict(r) for r in records]
 
     def close(self, session_id: str) -> None:
         self.closed.append(session_id)

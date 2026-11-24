@@ -63,6 +63,18 @@ def test_the_live_log_keeps_events_and_transcript_privately(
     ]
 
 
+def test_the_attribution_numbers_are_kept_privately(tmp_path: Path) -> None:
+    log = JsonlLiveLog(tmp_path)
+    log.save_attribution("s-2", [{"event": "check", "heard": 5.1},
+                                 {"event": "slots", "slots": []}])
+    path = log.directory("s-2") / "attribution.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    assert [r["event"] for r in rows] == ["check", "slots"]
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert sorted(p.name for p in log.directory("s-2").iterdir()) == [
+        "attribution.jsonl"]
+
+
 def test_free_memory_is_read_from_nvidia_smi_or_torch() -> None:
     assert parse_free("header\n 7012 \n100\n") == 7012
     assert parse_free("") is None

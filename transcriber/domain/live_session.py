@@ -35,6 +35,7 @@ from transcriber.domain.live_diarization import (
     MonoDiarizationSettings,
 )
 from transcriber.domain.models import SESSION_ID_PATTERN
+from transcriber.domain.voice_check import VoiceCheckSettings
 
 FloatArray = npt.NDArray[np.float32]
 
@@ -85,6 +86,23 @@ class Handoff(BaseModel):
     run_post_call: bool = False
 
 
+class Parties(BaseModel):
+    """The two people of a one-microphone session (#249).
+
+    Every sentence is ``employee``'s or ``other``'s (ids of
+    ``speakers``): the diarizer's extra voices never become a third
+    person. With ``voice_check`` the session first listens to the
+    employee for a few seconds (the session's own voice reference,
+    kept in memory only), then tells each sentence's side by its voice.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    employee: str = Field(pattern=SPEAKER_ID_PATTERN)
+    other: str = Field(pattern=SPEAKER_ID_PATTERN)
+    voice_check: bool = True
+
+
 class LiveSessionRequest(BaseModel):
     """What a client asks for when it starts a live session.
 
@@ -103,7 +121,8 @@ class LiveSessionRequest(BaseModel):
     channel 0, at most four) then give the ids and roles of the voices
     in the order they are first heard, and ``enrolled`` lists the
     enrolled people whose voiceprints may name them (``None``: every
-    enrolled person; empty: nobody).
+    enrolled person; empty: nobody). ``parties`` (diarized only) makes
+    it a two-person session (:class:`Parties`).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -118,6 +137,7 @@ class LiveSessionRequest(BaseModel):
     partial_every_ms: int = Field(default=800, ge=100, le=5000)
     diarize: bool = False
     enrolled: Optional[List[str]] = Field(default=None, max_length=50)
+    parties: Optional[Parties] = None
 
     @model_validator(mode="after")
     def _every_channel_once(self) -> "LiveSessionRequest":
@@ -132,6 +152,14 @@ class LiveSessionRequest(BaseModel):
         ids = [s.id for s in self.speakers]
         if len(set(ids)) != len(ids):
             raise ValueError("speaker ids must be unique")
+        if self.parties is not None:
+            if not self.diarize:
+                raise ValueError("parties are only used with diarize")
+            pair = {self.parties.employee, self.parties.other}
+            if len(pair) != 2 or not pair <= set(ids):
+                raise ValueError(
+                    "parties name two different speakers of the session"
+                )
         if self.diarize:
             if len(self.speakers) > MAX_SLOTS or any(
                 s.channel != 0 for s in self.speakers
@@ -291,7 +319,8 @@ class LiveServiceSettings(BaseModel):
     a session without audio for ``idle_seconds`` stops by itself.
     A diarized mono session asks for ``diarize_need_mib`` more GPU
     memory (Sortformer and the voice encoder) and names its voices
-    with ``diarization``.
+    with ``diarization``; a two-party one checks the employee's voice
+    with ``voice_check`` (#249).
     """
 
     model_config = ConfigDict(frozen=True, protected_namespaces=())
@@ -312,3 +341,4 @@ class LiveServiceSettings(BaseModel):
     idle_seconds: float = Field(default=120.0, gt=0)
     diarize_need_mib: int = Field(default=1500, ge=0)
     diarization: MonoDiarizationSettings = MonoDiarizationSettings()
+    voice_check: VoiceCheckSettings = VoiceCheckSettings()

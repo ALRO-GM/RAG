@@ -291,10 +291,17 @@ class LiveUtterance(BaseModel):
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
     language: Optional[str] = None
     speaker_provisional: bool = False
+    speaker_unsure: bool = False
 
     def to_contract(self) -> Dict[str, Any]:
-        """Return the ``utterance`` object of a live event."""
+        """Return the ``utterance`` object of a live event.
+
+        ``speaker_unsure`` (#249) is written only when set, so the
+        events of every other session stay as they were.
+        """
         data = self.model_dump()
+        if not self.speaker_unsure:
+            del data["speaker_unsure"]
         data.update(
             start=round(self.start, 3), end=round(self.end, 3),
             speaker_certainty=None,
@@ -564,6 +571,19 @@ class LiveEventStream:
     ) -> Dict[str, Any]:
         """Return the ``session_ended`` event."""
         return self._event("session_ended", at, stream_time)
+
+    def voice_check(
+        self, at: datetime, stream_time: float, state: str, speaker: str,
+        seconds: float, needed: float,
+    ) -> Dict[str, Any]:
+        """Return a ``voice_check`` event (#249): the employee's check."""
+        event = self._event("voice_check", at, stream_time)
+        event["voice_check"] = {
+            "state": state, "speaker": speaker,
+            "seconds": round(max(seconds, 0.0), 2),
+            "needed": round(max(needed, 0.0), 2),
+        }
+        return event
 
     def warning(
         self, at: datetime, stream_time: float, code: WarningCode,

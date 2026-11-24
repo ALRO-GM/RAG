@@ -307,6 +307,15 @@ export class Api {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/speakers/${encodeURIComponent(speaker)}`, { json: { name } });
   }
 
+  /**
+   * The employee's voice check of a one-microphone session (#249):
+   * { action: "skip" }, or { action: "mine" | "not_mine", utterance } to say a
+   * line's voice is (not) theirs. Straight to the transcriber's live session.
+   */
+  liveVoice(id, body) {
+    return this.request("POST", `/live/sessions/${encodeURIComponent(id)}/voice`, { json: body });
+  }
+
   /** Tick a mandatory item by hand, after the person confirmed it was said. */
   tickMandatory(id, item) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mandatory/${encodeURIComponent(item)}`, { json: { confirm: true } });

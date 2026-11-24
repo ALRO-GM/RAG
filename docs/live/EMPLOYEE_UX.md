@@ -12,14 +12,31 @@ Haiku) and `MANDATORY_ITEMS.md` (the similarity threshold).
   name}` with the session (`POST /sessions`, `POST /sessions/{id}/replay`).
   - Stereo: the channel of the employee's role (agent, interviewer)
     takes their name.
-  - One microphone: the session is diarized (streaming Sortformer, see
-    `MONO_DIARIZATION.md`) with `enrolled: [employee]`, so only their
-    voiceprint can name a voice; every voice starts as the other party
-    (customer, candidate) and the voice the voiceprint names becomes the
-    employee (role agent or interviewer). Until it is named (about 4 s
-    of their clean speech), the employee's first sentences count as the
-    other party's. With «Voces de un solo micrófono» off in «Ajustes» the
-    microphone stays one person, as before.
+  - One microphone (#249): two people, the employee and the other
+    party, never a third. The session starts with a **voice check**: the
+    «Ahora» card says «Preséntate para que reconozca tu voz» («Di una o
+    dos frases antes de empezar…», a progress bar, «Saltar», «Solo se
+    usa en esta sesión: no se guarda»). The first sentences heard are
+    the employee's; once about 5 s of them are in, the card says
+    «Reconociendo tu voz…» and the header shows a quiet «Voz
+    reconocida». From then on each sentence's diarizer voice (slot) is
+    the employee's when it is the one nearest to the check, else the
+    other person's (`MONO_DIARIZATION.md` §"Voice check": the rule and
+    its measurement). No enrolment is needed to start; when the chosen
+    employee has one (`enrolled: [employee]`), it still names their
+    voice as before. «Saltar» keeps the old way (Sortformer slots, the
+    enrolment if any, everyone else the other party); a check too short
+    (under 3 s of speech within 20 s) says so under the header.
+  - **Corrections.** On every line of a running two-party session a
+    small «Esta soy yo» (on the other party's lines) or «Esta no soy yo»
+    (on the employee's) corrects that voice from then on and its earlier
+    lines, and keeps that line on the chosen side (`POST
+    /api/live/sessions/{id}/voice`, straight to the transcriber). A line
+    whose voice has not been compared with the check yet says «no estoy
+    seguro de quién habla» next to the name, with the correction always
+    visible.
+  - With «Voces de un solo micrófono» off in «Ajustes» the microphone
+    stays one person, as before.
   - Replays: the transcript's speaker with the employee's role takes the
     name.
 - **Names.** Every name on the page can be clicked and typed over during
@@ -89,8 +106,8 @@ so they stay in this record.
 
 ## Not done
 
-- No measurement of the voiceprint marking on real calls (only the
-  synthetic one of `MONO_DIARIZATION.md`).
+- The voice check is measured on public recordings (CALLHOME, AMI), not
+  on the owner's microphone or a real interview (`MONO_DIARIZATION.md`).
 - The page does not check that a renamed speaker exists in the session.
 
 ## The calm page (LV-17, #232)

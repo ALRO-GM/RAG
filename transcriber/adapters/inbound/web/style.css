@@ -1570,3 +1570,16 @@ details.tech, details.controls { margin: 1rem 0; }
 .page-head + .conn-card { max-width: 40rem; margin-bottom: var(--s-4); }
 .lv-conn-note:not(:empty) { margin: calc(-1 * var(--s-3)) 0 var(--s-5); }
 .lv-conn-note .notice { margin: 0; }
+
+/* The employee's voice check of a one-microphone session (#249): calm, one card, a quiet chip. */
+.lv-voice { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); }
+.lv-voice.is-done { color: var(--done); }
+.lv-voice .icon { width: 0.95em; height: 0.95em; }
+.lv-voice-card { gap: var(--s-3); }
+.lv-voice-track { display: block; height: 6px; border-radius: var(--r-full); background: var(--sunken); overflow: hidden; }
+.lv-voice-bar { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--suggest); transition: width var(--normal) var(--ease); }
+.lv-unsure { font-size: var(--fs-xs); color: var(--muted); font-style: italic; }
+.lv-line.is-unsure .lv-text { border-left: 2px dotted var(--line-strong); padding-left: var(--s-2); }
+.lv-fix { min-height: 1.75rem; padding: 0 var(--s-2); border: 0; background: none; box-shadow: none; color: var(--muted); font-size: var(--fs-xs); font-weight: 500; text-decoration: underline dotted; cursor: pointer; opacity: 0.55; transition: opacity var(--fast) var(--ease); }
+.lv-line:hover .lv-fix, .lv-fix:focus-visible, .lv-line.is-unsure .lv-fix { opacity: 1; }
+@media (hover: none) { .lv-fix { opacity: 1; } }

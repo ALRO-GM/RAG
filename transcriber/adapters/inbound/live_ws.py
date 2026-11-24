@@ -14,6 +14,12 @@ Routes (all need the access code, as the rest of the API):
 ``POST /api/live/sessions/{id}/speakers/{speaker}``
     ``{"name"}``: name a speaker of a running session; the hand-off's
     ``transcript.v1`` lists the name (LV-16).
+``POST /api/live/sessions/{id}/voice``
+    ``{"action": "skip"}`` skips the employee's voice check of a
+    two-party session; ``{"action": "mine" | "not_mine", "utterance":
+    "t3.s0"}`` says that a sentence's voice is (not) the employee's,
+    which corrects that voice from then on and its earlier sentences
+    (#249). Answers the session.
 ``WS /api/live/{id}/audio``
     The browser's microphone: binary messages of signed 16-bit
     little-endian PCM at 16 kHz, channels interleaved (at most one
@@ -192,6 +198,23 @@ def add_live_routes(
         ):
             raise InvalidInputError("a speaker id and a name are needed")
         session = live.rename(session_id, speaker, name)
+        return session_json(session)
+
+    @api.post("/live/sessions/{session_id}/voice")
+    async def voice_live(session_id: str, request: Request) -> Dict[str, Any]:
+        """Skip the voice check or correct a sentence's side (#249)."""
+        try:
+            data = json.loads(await read_body(request, json_limit) or b"{}")
+        except ValueError as exc:
+            raise InvalidInputError("the body is not JSON") from exc
+        if not isinstance(data, dict):
+            raise InvalidInputError("the body is a JSON object")
+        action, utterance = data.get("action"), data.get("utterance")
+        if not isinstance(action, str) or (
+            utterance is not None and not isinstance(utterance, str)
+        ):
+            raise InvalidInputError("an action (and an utterance id)")
+        session = live.voice(session_id, action, utterance)
         return session_json(session)
 
     @app.websocket("/api/live/{session_id}/audio")

@@ -16,6 +16,7 @@ from orchestrator.application.sessions import (
     check_employee,
     check_name,
     live_speakers,
+    two_parties,
     other_role,
     transcriber_body,
 )
@@ -342,7 +343,9 @@ def test_a_stereo_employee_names_their_channel() -> None:
     assert view["employee"]["speaker"] == "S1"
 
 
-def test_a_mic_employee_is_found_by_their_voiceprint() -> None:
+def test_a_mic_employee_starts_with_a_voice_check() -> None:
+    # #249: one microphone, two people: the employee (their enrolment
+    # still helps) and the other party; nobody else.
     transcriber = FakeTranscriber()
     runner = InlineRunner(hold=True)
     live = sessions(transcriber=transcriber, runner=runner)
@@ -350,13 +353,41 @@ def test_a_mic_employee_is_found_by_their_voiceprint() -> None:
                            {"id": "ana", "name": "Ana"})
     body = transcriber.bodies[0]
     assert body["diarize"] is True and body["enrolled"] == ["ana"]
-    assert {s["role"] for s in body["speakers"]} == {"customer"}
+    assert body["speakers"] == [
+        {"channel": 0, "id": "ana", "role": "agent", "name": "Ana"},
+        {"channel": 0, "id": "S2", "role": "customer"},
+    ]
+    assert body["parties"] == {"employee": "ana", "other": "S2",
+                               "voice_check": True}
     assert view["page"]["roles"]["ana"] == "agent"
     assert view["names"] == {"ana": "Ana"}
+    assert view["employee"]["speaker"] == "ana"
     assert live.rename("l-2", "S2", "Carlos")["transcript"] is True
     assert transcriber.renamed == [("l-2", "S2", "Carlos")]
     transcriber.fail = True
     assert live.rename("l-2", "S2", "Carlos")["transcript"] is False
+
+
+def test_a_mic_session_without_an_enrolment_checks_the_voice_too() -> None:
+    transcriber = FakeTranscriber()
+    live = sessions(transcriber=transcriber, runner=InlineRunner(hold=True))
+    view = live.start_live("live_assist.interview", "mic", "l-4")
+    body = transcriber.bodies[0]
+    assert body["enrolled"] == []  # no enrolled voice may name anyone
+    assert body["parties"] == {"employee": "S1", "other": "S2",
+                               "voice_check": True}
+    assert [s["role"] for s in body["speakers"]] == ["interviewer",
+                                                     "candidate"]
+    assert view["page"]["roles"] == {"S1": "interviewer", "S2": "candidate"}
+
+
+def test_two_parties_need_both_sides() -> None:
+    support = product()
+    assert two_parties(support) == {"employee": "S1", "other": "S2",
+                                    "voice_check": True}
+    assert two_parties(support, {"id": "S2", "name": "x"}) is None
+    bot = product("voicebot")
+    assert two_parties(bot) is None
 
 
 def test_diarization_off_keeps_a_mic_employee_as_one_voice() -> None:
@@ -405,3 +436,28 @@ def test_an_ended_session_refuses_live_controls() -> None:
     assert ticked.value.code == "wrong_state"
     with pytest.raises(SessionError):
         live.set_mode("nope", "guiado")
+
+
+def test_voice_check_events_and_unsure_lines_are_read() -> None:
+    # #249: live.event.v1 gained the voice_check event and speaker_unsure.
+    check = LiveEvent.model_validate({
+        "schema": "live.event.v1", "session_id": "s", "seq": 1,
+        "type": "voice_check", "at": "2026-11-24T10:00:00Z",
+        "stream_time": 3.2,
+        "voice_check": {"state": "recognised", "speaker": "ana",
+                        "seconds": 5.4, "needed": 5.0},
+    })
+    assert check.voice_check is not None
+    assert check.to_contract()["voice_check"]["state"] == "recognised"
+    line = LiveEvent.model_validate({
+        "schema": "live.event.v1", "session_id": "s", "seq": 2,
+        "type": "final", "at": "2026-11-24T10:00:01Z", "stream_time": 4.0,
+        "utterance": {"id": "t1.s0", "turn": 1, "index": 0, "speaker": "S2",
+                      "start": 3.0, "end": 4.0, "text": "hola",
+                      "revision": 0, "speaker_unsure": True},
+    })
+    assert line.utterance is not None and line.utterance.speaker_unsure
+    with pytest.raises(ValueError):
+        LiveEvent.model_validate({**check.to_contract(),
+                                  "voice_check": {"state": "maybe",
+                                                  "speaker": "ana"}})

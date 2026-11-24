@@ -31,7 +31,8 @@
         "speaker_update",
         "turn_end",
         "session_ended",
-        "warning"
+        "warning",
+        "voice_check"
       ]
     },
     "at": {
@@ -189,6 +190,13 @@
             "null"
           ]
         },
+        "speaker_unsure": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "two-party mono session (#249): the attribution is not sure whose sentence this is"
+        },
         "language": {
           "type": [
             "string",
@@ -242,6 +250,38 @@
           "type": "string"
         }
       }
+    },
+    "voice_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "speaker"
+      ],
+      "description": "#249: the employee's voice check of a two-party mono session",
+      "properties": {
+        "state": {
+          "enum": [
+            "listening",
+            "recognised",
+            "short",
+            "skipped",
+            "failed"
+          ]
+        },
+        "speaker": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "needed": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     }
   },
   "allOf": [
@@ -289,6 +329,20 @@
       "then": {
         "required": [
           "warning"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "voice_check"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "voice_check"
         ]
       }
     }

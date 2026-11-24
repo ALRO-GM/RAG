@@ -719,12 +719,22 @@ class LiveSessions:
             )
         session_id = session_id or self.new_id()
         _check_id(session_id)
-        voiceprint = (person is not None and audio == "mic"
-                      and (choices or {}).get("live.diarization") != "off")
-        speakers = live_speakers(config, audio, person, voiceprint)
+        diarizing = (audio == "mic"
+                     and (choices or {}).get("live.diarization") != "off")
+        # Two people on one microphone (#249): a voice check, then every
+        # sentence is the employee's or the other person's.
+        parties = (two_parties(config, person)
+                   if diarizing and config.tts is None else None)
+        voiceprint = person is not None and diarizing and parties is None
+        speakers = (party_speakers(config, parties, person)
+                    if parties is not None
+                    else live_speakers(config, audio, person, voiceprint))
         roles = {s["id"]: s["role"] for s in speakers}
         names = {s["id"]: s["name"] for s in speakers if s.get("name")}
-        if person is not None:
+        if parties is not None and person is not None:
+            person = {**person, "role": employee_role(config),
+                      "speaker": parties["employee"]}
+        elif person is not None:
             role = employee_role(config)
             if voiceprint:
                 roles[person["id"]] = role
@@ -769,8 +779,10 @@ class LiveSessions:
         try:
             started = self.transcriber.start(transcriber_body(
                 config, session_id, speakers,
-                diarize=True if voiceprint else None,
-                enrolled=[person["id"]] if voiceprint and person else None,
+                diarize=True if voiceprint or parties else None,
+                enrolled=([person["id"]] if person else [])
+                if voiceprint or parties else None,
+                parties=parties,
             ))
         except TranscriberUnavailable as exc:
             session.error = str(exc)
@@ -1445,6 +1457,44 @@ def live_speakers(
     return [{"channel": 0, "id": chosen.speaker, "role": chosen.role}]
 
 
+def two_parties(
+    config: ProductConfig, employee: Optional[Mapping[str, str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """The two parties of a one-microphone session (#249), if the product
+    has them.
+
+    A product with an employee's channel (agent, interviewer) and the
+    other party's (customer, candidate) is two people: the employee's
+    id is the chosen person's (their voiceprint, when enrolled, still
+    helps) or that channel's speaker, the other party's is their
+    channel's speaker. ``voice_check``: the session starts by
+    listening to the employee. ``None`` for any other product.
+    """
+    channels = [ch for _, ch in sorted(config.source.channels.items())]
+    mine = next((ch for ch in channels if ch.role in EMPLOYEE_ROLES), None)
+    other = next((ch for ch in channels if ch.role == other_role(config)
+                  and ch.role not in EMPLOYEE_ROLES), None)
+    if mine is None or other is None:
+        return None
+    ident = employee["id"] if employee else mine.speaker
+    if ident == other.speaker:
+        return None
+    return {"employee": ident, "other": other.speaker, "voice_check": True}
+
+
+def party_speakers(
+    config: ProductConfig, parties: Mapping[str, Any],
+    employee: Optional[Mapping[str, str]] = None,
+) -> List[Document]:
+    """The transcriber's speakers of a two-party mono session (#249)."""
+    mine: Document = {"channel": 0, "id": parties["employee"],
+                      "role": employee_role(config)}
+    if employee:
+        mine["name"] = employee["name"]
+    return [mine, {"channel": 0, "id": parties["other"],
+                   "role": other_role(config)}]
+
+
 def diarized(config: ProductConfig) -> bool:
     """Tell whether the product asks for mono diarization (LV-6)."""
     return config.attribution.kind == "sortformer_stream"
@@ -1454,12 +1504,14 @@ def transcriber_body(
     config: ProductConfig, session_id: str, speakers: List[Document],
     diarize: Optional[bool] = None,
     enrolled: Optional[List[str]] = None,
+    parties: Optional[Mapping[str, Any]] = None,
 ) -> Document:
     """The body of the transcriber's ``POST /api/live/sessions``.
 
     Speakers all on channel 0 under a ``sortformer_stream`` product
     (or with ``diarize``) make a diarized one-channel session;
-    ``enrolled`` limits the voiceprints that may name a voice.
+    ``enrolled`` limits the voiceprints that may name a voice;
+    ``parties`` makes it a two-party session with a voice check (#249).
     """
     channels = len({s["channel"] for s in speakers}) or 1
     # The interviewer hands over its own transcript (both voices); the
@@ -1476,6 +1528,8 @@ def transcriber_body(
         body["diarize"] = True
         if enrolled is not None:
             body["enrolled"] = list(enrolled)
+        if parties is not None:
+            body["parties"] = dict(parties)
     if config.vad is not None:
         body["hang_ms"] = config.vad.hang_ms
     if config.asr.partial_every_ms:
