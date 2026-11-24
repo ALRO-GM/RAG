@@ -5,7 +5,7 @@
 // after a timeout. Only our own origin is asked. The figures and the
 // verdict are worked out in lib/connection.js.
 
-import { CHECK } from "./lib/connection.js";
+import { CHECK, WATCH } from "./lib/connection.js";
 
 /**
  * One timed request: { ok, ms, status } (status null when it failed or
@@ -45,6 +45,9 @@ async function pings(fetchFn, now, url, count, accept) {
   return samples;
 }
 
+/** Statuses of an upload that was not measured rather than failed. */
+const NOT_MEASURED = new Set([401, 403, 404, 405]);
+
 const anyAnswer = (status) => status !== null && status > 0;
 /** The processing server answers 200; 502-504 come from the public server when the link is down. */
 const linkAnswer = (status) => status === 200;
@@ -82,6 +85,9 @@ export async function runCheck({
       init: { method: "POST", headers: { ...headers, "Content-Type": "application/octet-stream" }, body: new Uint8Array(CHECK.uploadBytes) },
     });
     if (sent.ok) result.upload = { bytes: CHECK.uploadBytes, ms: sent.ms };
+    // No route (an older server) or no code: not measured. Anything else
+    // (a time-out, a network error, a refusal on the way) did not get through.
+    else if (!NOT_MEASURED.has(sent.status)) result.upload = { failed: true, ms: sent.ms };
   }
   return result;
 }
@@ -98,4 +104,30 @@ export async function servicesOnce({ getCode, fetchFn = (...args) => globalThis.
   if (!code) return null;
   const answer = await timed(fetchFn, now, "/api/connection", { init: { headers: { "X-Access-Code": code } } });
   return answer.ok && answer.body && typeof answer.body.services === "object" ? answer.body.services : null;
+}
+
+/**
+ * The in-session watch's loop: one ping, then the services every
+ * `timing.servicesEvery` pings, then a pause (shorter after a failure),
+ * for as long as `alive()` says the session is on this page and running.
+ * Everything is injected: `ping()` and `services()` give what pingOnce and
+ * servicesOnce give, `wait(ms)` pauses, `onChange(seen)` gets what the
+ * watch said after each ping. Returns the number of pings made.
+ */
+export async function watchLoop({ watch, alive, ping, services, wait, onChange, timing = WATCH }) {
+  let count = 0;
+  while (alive()) {
+    const sample = await ping();
+    if (!alive()) return count;
+    const seen = watch.ping(sample);
+    count += 1;
+    if (sample.ok && count % timing.servicesEvery === 0) {
+      const map = await services();
+      if (!alive()) return count;
+      watch.services(map);
+    }
+    onChange(seen);
+    await wait(sample.ok ? timing.everyMs : timing.retryMs);
+  }
+  return count;
 }

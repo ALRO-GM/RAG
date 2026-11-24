@@ -1567,3 +1567,6 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-conn[data-state="fair"] .icon { color: var(--amber-9); }
 .lv-conn[data-state="poor"] .icon, .lv-conn[data-state="lost"] .icon { color: var(--avoid-dot); }
 .lv-conn[data-state="poor"], .lv-conn[data-state="lost"] { color: var(--text); font-weight: 600; }
+.page-head + .conn-card { max-width: 40rem; margin-bottom: var(--s-4); }
+.lv-conn-note:not(:empty) { margin: calc(-1 * var(--s-3)) 0 var(--s-5); }
+.lv-conn-note .notice { margin: 0; }

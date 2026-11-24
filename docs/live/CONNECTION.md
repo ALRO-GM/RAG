@@ -78,6 +78,20 @@ assistant, a recorded replay the assistant and the knowledge search.
 Services that could not be asked (an older transcriber without the
 route) count as neither and read «Sin comprobar».
 
+The «Transcripción» row and the start form share one source of truth:
+when the chosen product says live audio cannot start (the
+orchestrator's `live`, false when it has no link to the transcriber),
+the row reads «No disponible», the verdict is poor and the advice says
+live audio is not available now and the demo can be watched. The
+transcriber's own word (`/api/connection`) is still asked; either one
+being off makes the row unavailable.
+
+The upload is «not measured» when the route is missing or refused for
+the code (401, 403, 404, 405: an older server) and then has no effect;
+when it times out, fails on the network or is refused on the way (5xx,
+413) it is «failed»: a poor upload with its advice, shown as «No llegó
+a tiempo» among the figures.
+
 ## 3. What the page says
 
 Summary first (`docs/web/DESIGN_SYSTEM.md`): the verdict with its icon
@@ -105,8 +119,11 @@ en directo (sugerencias)», «Búsqueda en el conocimiento»: «Disponible»,
 always «servidor de procesamiento» / «processing server».
 
 On `#/live` the card sits on the right of «Nueva sesión en directo» on
-wide screens and above it on a phone; on `#/voicebot` under the start
-card.
+wide screens and above it on a phone; on `#/voicebot` above the start
+card. If «Empezar en directo» is pressed while a check is running, the
+button reads «Comprobando la conexión…» and waits for it for at most
+5 s (`CHECK.settleMs`), then asks only if the result is poor; a check
+that fails or takes longer never stops the start.
 
 ## 4. During a session
 
@@ -121,13 +138,18 @@ longer sentence as the title): «Conexión buena», «Conexión justa»,
   better after 2 in a row are better; one slow or lost ping changes
   nothing. More than one lost ping in the last 8 (two minutes) caps it
   at «justa». A service counts as down after two checks in a row.
-- Two failed pings in a row (5 to 20 s) are a lost connection: the line
-  under the header says «Se ha perdido la conexión con el servidor de
+- Two failed pings in a row are a lost connection: up to about 28 s
+  after the link drops (a 15 s pause, a 4 s time-out, the 5 s retry and
+  another 4 s time-out); about 5 s when the requests fail at once. The line under the header
+  (one persistent live region, `role="status"`, whose text changes only
+  when the state changes, so a screen reader hears it once) says «Se ha perdido la conexión con el servidor de
   procesamiento. Reintentando…» (it replaces the stream's own
   «reconectando»), and at the first answer «La conexión ha vuelto a las
   HH:MM.» for 30 s.
-- It starts from the start screen's verdict when that check is younger
-  than 60 s, else it says «Comprobando conexión» until the first ping.
+- It starts from the link part of the start screen's check (round trip,
+  variation, losses: what it can keep measuring itself, not the upload
+  or the services) when that check is younger than 60 s, else it says
+  «Comprobando conexión» until the first ping.
 - The chip is hidden once the session ends; the watch stops with it.
 
 The scripted demo (`#/live/demo`) shows «Conexión buena» on a healthy
@@ -142,5 +164,8 @@ stack; the demo recorder's stand-in RAG answers `GET /health` for this.
 - The voice assistant's conversation page has no chip (only its start
   screen has the card), and it does not ask before starting with a poor
   result.
-- Other pages still say «ordenador» for the processing server; only the
-  live start screen's notice was changed here.
+- Wording: every page's dictionary now says «servidor de procesamiento»
+  / «processing server» where it meant the machine that does the work
+  (tested over all of `es.js` and `en.js`). The consent notice the
+  transcriber serves (`transcriber/domain/consent.py` texts, versioned)
+  was not changed here.

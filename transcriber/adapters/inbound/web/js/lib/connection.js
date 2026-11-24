@@ -40,6 +40,7 @@ export const CHECK = {
   timeoutMs: 2000,
   uploadBytes: 64 * 1024, // two seconds of the microphone's audio
   maxAgeMs: 60000, // a check younger than this is shown again, not repeated
+  settleMs: 5000, // «Empezar en directo» waits this long at most for a running check
 };
 
 /** The in-session watch: one ping every everyMs (retryMs after a failure). */
@@ -141,20 +142,26 @@ function quality(stats) {
 /**
  * The verdict of a check.
  * `result`: { web: {reachable, samples}, link: {reachable, samples},
- *             upload: {bytes, ms} | null, services: {name: word} | null }
- * `options`: { needs: service names, upload: whether the browser sends audio }
+ *             upload: {bytes, ms} | {failed: true} | null, services: {name: word} | null }
+ *   upload null means not measured (an older server without the route);
+ *   {failed} means the 64 KiB did not get through in time: a poor upload.
+ * `options`: { needs: service names, upload: whether the browser sends audio,
+ *   liveAudio: false when the live assistant says live audio cannot start
+ *   (the orchestrator's product `live`, the start form's own source) }
  * Returns { level, advice, figures, rows }: advice is the key of the one
  * thing to do (null when all is well); rows the state of every service row
  * ("available" | "unavailable" | "not_set_up" | "unknown").
  */
-export function assess(result, { needs = needsOf("live"), upload = false } = {}) {
+export function assess(result, { needs = needsOf("live"), upload = false, liveAudio = true } = {}) {
   const web = result?.web ?? { reachable: false, samples: [] };
   const link = result?.link ?? { reachable: false, samples: [] };
   const services = result?.services ?? null;
   const linkStats = summarise(link.samples ?? []);
   const webStats = summarise(web.samples ?? []);
-  const kbps = result?.upload ? uploadKbps(result.upload.bytes, result.upload.ms, linkStats.rttMs) : null;
-  const figures = { ...linkStats, webRttMs: webStats.rttMs, upKbps: kbps };
+  const sent = result?.upload ?? null;
+  const upFailed = Boolean(sent?.failed);
+  const kbps = sent && !upFailed ? uploadKbps(sent.bytes, sent.ms, linkStats.rttMs) : null;
+  const figures = { ...linkStats, webRttMs: webStats.rttMs, upKbps: kbps, upFailed };
   const rows = {
     web: web.reachable ? "available" : "unavailable",
     link: link.reachable ? "available" : "unavailable",
@@ -162,16 +169,19 @@ export function assess(result, { needs = needsOf("live"), upload = false } = {})
   for (const name of ["transcription", "assistant", "knowledge"]) {
     rows[name] = !link.reachable ? "unavailable" : services?.[name] ?? "unknown";
   }
+  // The start form and this card agree: no live audio, no transcription.
+  const liveOff = liveAudio === false && needs.includes("transcription");
+  if (liveOff) rows.transcription = "unavailable";
   if (!web.reachable && !link.reachable) return { level: "poor", advice: "offline", figures, rows };
   if (!link.reachable) return { level: "poor", advice: "server", figures, rows };
 
   const down = needs.filter((n) => rows[n] === "unavailable");
   const essential = down.find((n) => ESSENTIAL.has(n));
-  if (essential) return { level: "poor", advice: `service_${essential}`, figures, rows };
+  if (essential) return { level: "poor", advice: essential === "transcription" && liveOff ? "live_off" : `service_${essential}`, figures, rows };
 
   const q = quality(linkStats);
   const network = worst(q.rtt, q.jitter, q.loss);
-  const up = upload ? grade(kbps, THRESHOLDS.upKbps, true) : "good";
+  const up = !upload ? "good" : upFailed ? "poor" : grade(kbps, THRESHOLDS.upKbps, true);
   const knowledge = down.length ? "fair" : "good";
   const level = worst(network, up, knowledge);
   let advice = null;
@@ -185,6 +195,17 @@ export function assess(result, { needs = needsOf("live"), upload = false } = {})
     advice = `service_${down[0]}`;
   }
   return { level, advice, figures, rows };
+}
+
+/**
+ * The level of what the in-session watch keeps measuring itself: the
+ * link's round trip, variation and losses (no upload, no services), so
+ * the chip does not start from a reason it cannot re-measure.
+ */
+export function linkLevel(result) {
+  if (!result?.link?.reachable) return "poor";
+  const q = quality(summarise(result.link.samples ?? []));
+  return worst(q.rtt, q.jitter, q.loss);
 }
 
 /** Round a figure for the page: whole numbers, null as null. */

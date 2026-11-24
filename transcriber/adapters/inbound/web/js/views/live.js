@@ -29,9 +29,9 @@ import {
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
-import { pingOnce, servicesOnce } from "../connection.js";
+import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
 import { confirmStep } from "./candidate.js";
-import { connectionCard, connectionChip, connectionClock, lastLevel } from "./connection.js";
+import { confirmStart, connectionCard, connectionChip, connectionNote, lastLinkLevel } from "./connection.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -162,7 +162,7 @@ export async function liveView(ctx, root, [sub] = []) {
     // result asks before a live session starts, it never blocks it.
     const connection = connectionCard({
       getCode: () => ctx.api.getCode?.() ?? null,
-      options: () => ({ needs: needsOf("live"), upload: audioSelect.value === "mic" }),
+      options: () => ({ needs: needsOf("live"), upload: audioSelect.value === "mic", liveAudio: Boolean(chosen()?.live) }),
     });
     // An interview may name the role (an interview plan) and the candidate
     // (#235): their answers to the core questions are kept across rounds.
@@ -243,13 +243,24 @@ export async function liveView(ctx, root, [sub] = []) {
     }
 
     async function begin(mode) {
-      if (mode === "live" && connection.verdict()?.level === "poor") {
-        const go = await openDialog({
-          title: t("conn.start_anyway_title"),
-          content: [h("p", {}, t("conn.start_anyway_body")), h("p", { class: "hint" }, t(`conn.advice.${connection.verdict().advice}`))],
-          confirm: t("conn.start_anyway"),
+      if (mode === "live") {
+        const go = await confirmStart({
+          card: connection,
+          onWait: (on) => {
+            start.disabled = on;
+            if (on) start.replaceChildren(icon("live"), t("conn.checking"));
+            else start.replaceChildren(icon("live"), t("live.start"));
+          },
+          ask: (verdict) => openDialog({
+            title: t("conn.start_anyway_title"),
+            content: [h("p", {}, t("conn.start_anyway_body")), h("p", { class: "hint" }, t(`conn.advice.${verdict.advice}`))],
+            confirm: t("conn.start_anyway"),
+          }),
         });
-        if (!go || closed) return null;
+        if (!go || closed) {
+          start.disabled = !chosen()?.live;
+          return null;
+        }
       }
       formError.hidden = true;
       start.disabled = true;
@@ -278,7 +289,7 @@ export async function liveView(ctx, root, [sub] = []) {
 
     productSelect.addEventListener("change", sync);
     audioSelect.addEventListener("change", sync);
-    audioSelect.addEventListener("change", () => connection.redraw());
+    for (const select of [productSelect, audioSelect]) select.addEventListener("change", () => connection.redraw());
     employeeSelect.addEventListener("change", sync);
     planSelect.addEventListener("change", loadCandidates);
     candidateSelect.addEventListener("change", syncRole);
@@ -408,14 +419,14 @@ export async function liveView(ctx, root, [sub] = []) {
       h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, checklist, history, options, summary);
 
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
-    root.append(header, alerts, h("div", { class: "lv-body" }, talk, side));
+    // Lost / back (#247): one persistent live region, changed only when that state changes.
+    const note = connectionNote();
+    root.append(header, note.node, alerts, h("div", { class: "lv-body" }, talk, side));
 
     let drawing = false;
     let reconnecting = false;
     const kind = session.mode === "demo" ? "demo" : session.mode === "live" ? "live" : "replay";
-    const watch = new ConnectionWatch({ initial: lastLevel({ needs: needsOf(kind), upload: audioKind === "mic" }), needs: needsOf(kind) });
-    let connLost = false;
-    let connBackAt = null; // wall clock of the last return, for «La conexión ha vuelto…»
+    const watch = new ConnectionWatch({ initial: lastLinkLevel(), needs: needsOf(kind) });
     let lastReminder = Date.now();
     let remind = false;
     let editing = null; // the speaker whose name is being typed
@@ -479,11 +490,9 @@ export async function liveView(ctx, root, [sub] = []) {
       const notes = [];
       if (state.halted) notes.push(h("p", { class: "notice error", role: "alert" }, t(`live.halted.${state.halted}`)));
       if (state.state === "failed") notes.push(h("p", { class: "notice error", role: "alert" }, t("live.failed", { error: state.error ?? "" })));
-      if (connLost && live) notes.push(h("p", { class: "notice", role: "alert" }, t("conn.lost")));
-      else if (reconnecting && live) notes.push(h("p", { class: "notice" }, t("live.reconnecting")));
-      if (!connLost && connBackAt && Date.now() - connBackAt < BACK_SHOWN_MS && live) {
-        notes.push(h("p", { class: "notice info", role: "status" }, t("conn.back", { time: connectionClock(connBackAt) })));
-      }
+      if (!live) note.set(null);
+      // The persistent «connection lost» line says it already; no second one.
+      if (reconnecting && live && note.kind !== "lost") notes.push(h("p", { class: "notice" }, t("live.reconnecting")));
       for (const w of state.warnings.slice(-3)) notes.push(h("p", { class: "notice" }, maybe(`live.warning.${w.code}`, w.message)));
       for (const n of state.notices.slice(-2)) notes.push(h("p", { class: "notice" }, maybe(`live.notice.${n.code}`, n.message)));
       fill(alerts, notes);
@@ -900,24 +909,22 @@ export async function liveView(ctx, root, [sub] = []) {
 
     // One small ping every WATCH.everyMs (sooner after a failure), the
     // services every WATCH.servicesEvery pings; stops with the session.
-    async function watchConnection() {
-      let count = 0;
-      while (!closed && controller === mine && state.state === "running") {
-        const sample = await pingOnce({ timeoutMs: WATCH.timeoutMs });
-        if (closed || controller !== mine) return;
-        const seen = watch.ping(sample);
-        if (seen.lost) connLost = true;
-        if (seen.back) {
-          connLost = false;
-          connBackAt = Date.now();
-        }
-        count += 1;
-        if (sample.ok && count % WATCH.servicesEvery === 0) {
-          watch.services(await servicesOnce({ getCode: () => ctx.api.getCode?.() ?? null }));
-        }
-        schedule();
-        await wait(sample.ok ? WATCH.everyMs : WATCH.retryMs);
-      }
+    function watchConnection() {
+      const alive = () => !closed && controller === mine && state.state === "running";
+      return watchLoop({
+        watch, alive, wait,
+        ping: () => pingOnce({ timeoutMs: WATCH.timeoutMs }),
+        services: () => servicesOnce({ getCode: () => ctx.api.getCode?.() ?? null }),
+        onChange: (seen) => {
+          if (seen.lost) note.set("lost");
+          if (seen.back) {
+            const at = Date.now();
+            note.set("back", at);
+            setTimeout(() => { if (note.key === `back:${at}`) note.set(null); }, BACK_SHOWN_MS);
+          }
+          schedule();
+        },
+      });
     }
 
     async function end() {

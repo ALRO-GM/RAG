@@ -98,11 +98,12 @@ export async function voicebotView(ctx, root) {
     // «Calidad de la conexión» (#247): the bot hears this browser's microphone.
     const connection = connectionCard({
       getCode: () => ctx.api.getCode?.() ?? null,
-      options: () => ({ needs: needsOf("live"), upload: true }),
+      options: () => ({ needs: needsOf("live"), upload: true, liveAudio: Boolean(product.live) }),
     });
     const sync = () => {
       modeHint.textContent = t(`voicebot.mode_hint.${mode.value}`);
       product = topics.find((p) => p.product === topic.value) ?? product;
+      connection.redraw();
       const interview = Boolean(product.interview);
       topicHint.textContent = maybe(`voicebot.topic_hint.${product.product}`, "");
       domainBox.hidden = interview || !product.domain;
@@ -156,6 +157,7 @@ export async function voicebotView(ctx, root) {
 
     root.append(
       pageHead(t("voicebot.title"), { lead: t("voicebot.lead") }),
+      connection.node,
       h("section", { class: "card vb-start" },
         h("p", { class: "notice info", role: "note" }, t("voicebot.notice")),
         topics.length > 1 ? h("div", { class: "field" }, h("label", { for: "vb-topic" }, t("voicebot.topic")), topic) : null,
@@ -164,7 +166,7 @@ export async function voicebotView(ctx, root) {
         h("label", { class: "check", for: "vb-headset" }, headset, " ", t("voicebot.headset")),
         h("p", { class: "hint" }, t("voicebot.headset_hint")),
         start),
-      formError, connection.node, interviewBox);
+      formError, interviewBox);
     sync();
     connection.check();
   }

@@ -8,7 +8,7 @@
 import { h, fill } from "../dom.js";
 import { t, lang } from "../i18n.js";
 import { formatDecimal } from "../lib/i18n.js";
-import { CHECK, SERVICE_ROWS, assess, rounded } from "../lib/connection.js";
+import { CHECK, SERVICE_ROWS, assess, linkLevel, rounded } from "../lib/connection.js";
 import { runCheck } from "../connection.js";
 import { icon } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
@@ -19,10 +19,14 @@ const ROW_DOT = { available: "done", unavailable: "avoid", not_set_up: "", unkno
 /** The last check of this page load, shown again while it is young. */
 let last = null; // { result, at }
 
-/** The level of the last check still young enough to show (null otherwise). */
-export function lastLevel(options = {}) {
+/**
+ * The link's level in the last check still young enough (null otherwise):
+ * only what the in-session watch keeps measuring, so its chip never starts
+ * from an upload or service reason it cannot re-measure.
+ */
+export function lastLinkLevel() {
   if (!last || Date.now() - last.at > CHECK.maxAgeMs) return null;
-  return assess(last.result, options).level;
+  return linkLevel(last.result);
 }
 
 function clock(at) {
@@ -58,6 +62,7 @@ export function connectionCard({ getCode, options = () => ({}), run = runCheck }
     h("div", { class: "section-head" }, h("h2", { id: "conn-title" }, t("conn.title")), again),
     verdict, advice, rows, more);
   let busy = false;
+  let running = null; // the check in progress
   let current = null; // the assessment shown
 
   function row(name, state) {
@@ -93,7 +98,8 @@ export function connectionCard({ getCode, options = () => ({}), run = runCheck }
       pair("conn.fig.jitter", f.rttMs === null ? t("conn.fig.none") : ms(f.jitterMs)),
       pair("conn.fig.loss", f.count ? t("conn.fig.loss_value", { lost: f.lost, count: f.count }) : t("conn.fig.none")),
       pair("conn.fig.web_rtt", ms(f.webRttMs)),
-      options().upload ? pair("conn.fig.up", f.upKbps === null ? t("conn.fig.none") : t("conn.fig.up_need", { rate: rateText(f.upKbps) })) : null);
+      options().upload ? pair("conn.fig.up", f.upFailed ? t("conn.fig.up_failed")
+        : f.upKbps === null ? t("conn.fig.none") : t("conn.fig.up_need", { rate: rateText(f.upKbps) })) : null);
     at.textContent = t("conn.fig.at", { time: clock(last.at) });
   }
 
@@ -106,20 +112,34 @@ export function connectionCard({ getCode, options = () => ({}), run = runCheck }
     busy = true;
     again.disabled = true;
     draw();
-    try {
-      const result = await run({ getCode, upload: true });
-      last = { result, at: Date.now() };
-    } finally {
-      busy = false;
-      again.disabled = false;
-      draw();
-    }
+    running = (async () => {
+      try {
+        const result = await run({ getCode, upload: true });
+        last = { result, at: Date.now() };
+      } catch {
+        // A check that cannot run shows the last one (or «Comprobando…»); it never blocks.
+      } finally {
+        busy = false;
+        running = null;
+        again.disabled = false;
+        draw();
+      }
+    })();
+    await running;
+  }
+
+  /** Wait for the check in progress, at most `ms`; resolves at once when none runs. */
+  function settled(ms) {
+    if (!running) return Promise.resolve();
+    return Promise.race([running, new Promise((resolve) => setTimeout(resolve, ms))]);
   }
 
   return {
     node,
     check,
-    verdict: () => (busy || !last ? null : (current ?? assess(last.result, options()))),
+    verdict: () => (busy || !last ? null : assess(last.result, options())),
+    busy: () => busy,
+    settled,
     redraw: draw,
   };
 }
@@ -143,6 +163,52 @@ export function connectionChip() {
   }
   set("checking");
   return { node, set };
+}
+
+/**
+ * Before a live session starts (#247): wait briefly for a check still
+ * running (`onWait(true|false)` around it, for a visible «Comprobando…»),
+ * then, only when the verdict is poor, `ask(verdict)` whether to start
+ * anyway. Returns whether to start; a check that failed or is too slow
+ * never blocks.
+ */
+export async function confirmStart({ card, ask, onWait = () => {}, waitMs = CHECK.settleMs }) {
+  if (card.busy()) {
+    onWait(true);
+    try {
+      await card.settled(waitMs);
+    } finally {
+      onWait(false);
+    }
+  }
+  const verdict = card.verdict();
+  if (verdict?.level !== "poor") return true;
+  return Boolean(await ask(verdict));
+}
+
+/**
+ * The line under the live header that says the connection to the
+ * processing server was lost, then that it is back: one persistent live
+ * region whose text changes only when that state changes, so a screen
+ * reader hears each change once. `set(null | "lost" | "back", at)`.
+ */
+export function connectionNote() {
+  const node = h("div", { class: "lv-conn-note", role: "status", "aria-live": "polite" });
+  let shown = null;
+  function set(kind, at = null) {
+    const key = kind ? `${kind}:${at ?? ""}` : null;
+    if (key === shown) return false;
+    shown = key;
+    if (!kind) fill(node);
+    else if (kind === "lost") fill(node, h("p", { class: "notice" }, t("conn.lost")));
+    else fill(node, h("p", { class: "notice info" }, t("conn.back", { time: clock(at) })));
+    return true;
+  }
+  return {
+    node, set,
+    get kind() { return shown ? shown.split(":")[0] : null; },
+    get key() { return shown; },
+  };
 }
 
 export { clock as connectionClock };

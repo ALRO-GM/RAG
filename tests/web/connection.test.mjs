@@ -5,11 +5,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  CHECK, ConnectionWatch, THRESHOLDS, WATCH, assess, best, grade, jitter, median, needsOf, summarise, uploadKbps, worst,
+  CHECK, ConnectionWatch, THRESHOLDS, WATCH, assess, best, grade, jitter, linkLevel, median, needsOf, summarise, uploadKbps, worst,
 } from "../../transcriber/adapters/inbound/web/js/lib/connection.js";
-import { pingOnce, runCheck, servicesOnce, timed } from "../../transcriber/adapters/inbound/web/js/connection.js";
+import { pingOnce, runCheck, servicesOnce, timed, watchLoop } from "../../transcriber/adapters/inbound/web/js/connection.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
+import { readFileSync } from "node:fs";
 
 const ALL_UP = { transcription: "available", assistant: "available", knowledge: "available" };
 
@@ -92,8 +93,28 @@ test("the upload counts only when this browser sends the audio", () => {
   const slowUp = result({ upload: { bytes: 65536, ms: 1800 } }); // about 297 kbit/s
   assert.deepEqual([assess(slowUp, { upload: true }).level, assess(slowUp, { upload: true }).advice], ["poor", "upload"]);
   assert.equal(assess(slowUp, { upload: false }).level, "good");
+  // Not measured (an older server without the route): no effect.
   const notMeasured = assess(result(), { upload: true });
   assert.equal(notMeasured.level, "good");
+  // Measured and failed (time-out, network error): poor, with the upload advice.
+  const failed = assess(result({ upload: { failed: true, ms: 4000 } }), { upload: true });
+  assert.deepEqual([failed.level, failed.advice, failed.figures.upFailed, failed.figures.upKbps], ["poor", "upload", true, null]);
+  assert.equal(assess(result({ upload: { failed: true, ms: 4000 } }), { upload: false }).level, "good");
+});
+
+test("no live audio on the start form: the transcription row and the verdict agree with it", () => {
+  const off = assess(result(), { liveAudio: false });
+  assert.deepEqual([off.level, off.advice, off.rows.transcription], ["poor", "live_off", "unavailable"]);
+  assert.equal(assess(result(), { liveAudio: true }).level, "good");
+  // A demo does not need live audio.
+  assert.equal(assess(result(), { liveAudio: false, needs: needsOf("demo") }).level, "good");
+});
+
+test("the link level is what the session watch can measure itself", () => {
+  assert.equal(linkLevel(result({ upload: { failed: true }, services: { ...ALL_UP, knowledge: "unavailable" } })), "good");
+  assert.equal(linkLevel(result({ link: samples(250, 260, 255, 240, 250) })), "fair");
+  assert.equal(linkLevel(result({ reachable: false })), "poor");
+  assert.equal(linkLevel(null), "poor");
 });
 
 test("services: transcription or assistant down is poor, knowledge down is fair, unknown is neutral", () => {
@@ -112,7 +133,7 @@ test("services: transcription or assistant down is poor, knowledge down is fair,
 });
 
 test("every advice and verdict has its words in both languages, with the professional term", () => {
-  const keys = ["offline", "server", "local", "link", "upload", "service_transcription", "service_assistant", "service_knowledge"]
+  const keys = ["offline", "server", "local", "link", "upload", "live_off", "service_transcription", "service_assistant", "service_knowledge"]
     .map((a) => `conn.advice.${a}`)
     .concat(["good", "fair", "poor"].map((l) => `conn.verdict.${l}`))
     .concat(["checking", "good", "fair", "poor", "lost"].flatMap((s) => [`conn.chip.${s}`, `conn.chip_title.${s}`]))
@@ -121,10 +142,13 @@ test("every advice and verdict has its words in both languages, with the profess
     assert.ok(es[key], key);
     assert.ok(en[key], key);
   }
-  const esTexts = Object.entries(es).filter(([k]) => k.startsWith("conn.")).map(([, v]) => v).join(" ");
-  const enTexts = Object.entries(en).filter(([k]) => k.startsWith("conn.")).map(([, v]) => v).join(" ");
-  assert.doesNotMatch(esTexts, /\bPC\b|ordenador|de casa/i);
-  assert.doesNotMatch(enTexts, /\bPC\b|home computer|workstation/i);
+  // Every page: the machine that does the work is «servidor de procesamiento».
+  const esTexts = Object.values(es).join(" ");
+  const enTexts = Object.values(en).join(" ");
+  assert.doesNotMatch(esTexts, /\bPC\b|ordenador|este equipo|del equipo\)/i);
+  assert.doesNotMatch(enTexts, /\bPC\b|computer|workstation|this machine/i);
+  const research = readFileSync(new URL("../../transcriber/adapters/inbound/web/research.html", import.meta.url), "utf8");
+  assert.doesNotMatch(research, /ordenador|\bPC\b/);
   assert.match(es["conn.advice.server"], /servidor de procesamiento/);
   assert.match(en["conn.advice.server"], /processing server/);
   assert.equal(es["conn.verdict.good"], "Conexión adecuada para la entrevista");
@@ -221,6 +245,7 @@ test("a check: pings, the services behind the code and one upload, all on our or
   assert.deepEqual(out.upload, { bytes: CHECK.uploadBytes, ms: 250 });
   assert.ok(net.calls.length <= CHECK.webPings + CHECK.linkPings + 2);
   assert.ok(net.calls.every((c) => c.url.startsWith("/")));
+  assert.ok(net.calls.every((c) => !/^\/\//.test(c.url)));
   const health = net.calls.filter((c) => c.url === "/api/health");
   assert.ok(health.every((c) => !c.init.headers)); // the open route: no code sent
   const upload = net.calls.find((c) => c.url === "/api/connection/upload");
@@ -288,4 +313,191 @@ test("the pages that draw the check load (no browser needed to parse them)", asy
     const loaded = await import(`../../transcriber/adapters/inbound/web/js/views/${name}.js`);
     assert.ok(Object.keys(loaded).length, name);
   }
+});
+
+test("an upload that times out or fails is recorded as failed; a missing route as not measured", async () => {
+  for (const [step, expected] of [
+    [{ fail: true, ms: 4000 }, "failed"],
+    [{ status: 502, ms: 30 }, "failed"],
+    [{ status: 413, ms: 30 }, "failed"],
+    [{ status: 404, ms: 5 }, "none"],
+    [{ status: 401, ms: 5 }, "none"],
+  ]) {
+    const net = scripted({
+      "/healthz": { status: 200, ms: 20 },
+      "/api/health": { status: 200, ms: 40 },
+      "/api/connection": { status: 200, ms: 30, body: { services: ALL_UP } },
+      "/api/connection/upload": step,
+    });
+    const out = await runCheck({ getCode: () => "code", fetchFn: net.fetchFn, now: net.now });
+    if (expected === "failed") {
+      assert.equal(out.upload.failed, true, JSON.stringify(step));
+      assert.equal(assess(out, { upload: true }).level, "poor");
+    } else {
+      assert.equal(out.upload, null, JSON.stringify(step));
+      assert.equal(assess(out, { upload: true }).level, "good");
+    }
+  }
+});
+
+// ---- the live page's wiring ---------------------------------------------
+
+test("the watch loop stops when the session ends or the page moves on, and reports lost and back", async () => {
+  const pings = [{ ok: true, ms: 40 }, { ok: false, ms: 4000 }, { ok: false, ms: 4000 }, { ok: true, ms: 40 }, { ok: true, ms: 40 }];
+  const seen = [];
+  const waits = [];
+  let alive = true;
+  let servicesAsked = 0;
+  const count = await watchLoop({
+    watch: new ConnectionWatch({ initial: "good" }),
+    alive: () => alive,
+    ping: async () => pings.shift() ?? { ok: true, ms: 40 },
+    services: async () => { servicesAsked += 1; return ALL_UP; },
+    wait: async (ms) => { waits.push(ms); if (!pings.length) alive = false; },
+    onChange: (s) => seen.push(s),
+  });
+  assert.equal(count, 5);
+  assert.deepEqual(seen.map((s) => s.state), ["good", "good", "lost", "good", "good"]);
+  assert.deepEqual(seen.map((s) => [s.lost, s.back]).filter(([l, b]) => l || b), [[true, false], [false, true]]);
+  assert.deepEqual(waits, [WATCH.everyMs, WATCH.retryMs, WATCH.retryMs, WATCH.everyMs, WATCH.everyMs]);
+  assert.equal(servicesAsked, 1); // the fourth ping (WATCH.servicesEvery)
+});
+
+test("the watch loop does nothing more once the page leaves during a ping", async () => {
+  let alive = true;
+  const seen = [];
+  const count = await watchLoop({
+    watch: new ConnectionWatch(),
+    alive: () => alive,
+    ping: async () => { alive = false; return { ok: true, ms: 40 }; }, // left (navigation, demo restart) meanwhile
+    services: async () => ALL_UP,
+    wait: async () => {},
+    onChange: (s) => seen.push(s),
+  });
+  assert.equal(count, 0);
+  assert.deepEqual(seen, []);
+  assert.equal(await watchLoop({ watch: new ConnectionWatch(), alive: () => false, ping: null, services: null, wait: null, onChange: null }), 0);
+});
+
+// A minimal stand-in DOM for the view parts (as tests/web/analysis-view.test.mjs).
+class FakeNode {}
+class FakeText extends FakeNode {
+  constructor(text) { super(); this.textContent = text; }
+}
+class FakeElement extends FakeNode {
+  constructor(tag) {
+    super();
+    this.tagName = tag.toUpperCase();
+    this.children = [];
+    this.attributes = {};
+    this.dataset = {};
+    this.listeners = {};
+    this.className = "";
+    this.hidden = false;
+    this.disabled = false;
+    this.title = "";
+  }
+  setAttribute(k, v) { this.attributes[k] = v; }
+  addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
+  append(...nodes) { this.children.push(...nodes); }
+  replaceChildren(...nodes) { this.children = nodes; }
+  get text() { return this.children.map((c) => (c instanceof FakeElement ? c.text : c.textContent)).join(""); }
+}
+
+async function withDom(run) {
+  const saved = { document: globalThis.document, Node: globalThis.Node };
+  globalThis.document = {
+    createElement: (tag) => new FakeElement(tag),
+    createElementNS: (_ns, tag) => new FakeElement(tag),
+    createTextNode: (text) => new FakeText(text),
+  };
+  globalThis.Node = FakeNode;
+  try {
+    return await run(await import("../../transcriber/adapters/inbound/web/js/views/connection.js"));
+  } finally {
+    Object.assign(globalThis, saved);
+  }
+}
+
+test("the lost/back line is one persistent live region whose text changes only on a change", async () => {
+  await withDom(({ connectionNote }) => {
+    const note = connectionNote();
+    assert.equal(note.node.attributes.role, "status");
+    assert.equal(note.node.attributes["aria-live"], "polite");
+    assert.equal(note.set("lost"), true);
+    const first = note.node.children[0];
+    assert.equal(first.text, es["conn.lost"]);
+    // Redrawn every second: the same paragraph stays, nothing is re-announced.
+    for (let i = 0; i < 5; i += 1) assert.equal(note.set("lost"), false);
+    assert.equal(note.node.children[0], first);
+    assert.equal(note.set("back", Date.UTC(2026, 10, 24, 11, 43)), true);
+    assert.match(note.node.children[0].text, /^La conexión ha vuelto a las \d\d:\d\d\.$/);
+    assert.equal(note.kind, "back");
+    assert.equal(note.set(null), true);
+    assert.deepEqual(note.node.children, []);
+    assert.equal(note.kind, null);
+  });
+});
+
+function fakeCard({ busy = false, verdict = null, settle = Promise.resolve() } = {}) {
+  const card = { isBusy: busy, current: verdict, waited: [] };
+  card.busy = () => card.isBusy;
+  card.verdict = () => card.current;
+  card.settled = async (ms) => { card.waited.push(ms); await settle; card.isBusy = false; };
+  return card;
+}
+
+test("«Empezar en directo»: a good or failed check starts; a poor one asks, and cancel does not start", async () => {
+  await withDom(async ({ confirmStart }) => {
+    const asked = [];
+    const ask = async (v) => { asked.push(v.level); return false; };
+    assert.equal(await confirmStart({ card: fakeCard({ verdict: { level: "good" } }), ask }), true);
+    assert.equal(await confirmStart({ card: fakeCard({ verdict: null }), ask }), true); // the check failed
+    assert.equal(await confirmStart({ card: fakeCard({ verdict: { level: "fair" } }), ask }), true);
+    assert.deepEqual(asked, []);
+    assert.equal(await confirmStart({ card: fakeCard({ verdict: { level: "poor", advice: "server" } }), ask }), false);
+    assert.deepEqual(asked, ["poor"]);
+    const yes = await confirmStart({ card: fakeCard({ verdict: { level: "poor" } }), ask: async () => true });
+    assert.equal(yes, true);
+  });
+});
+
+test("«Empezar en directo» during a check waits for it, visibly and briefly, then decides", async () => {
+  await withDom(async ({ confirmStart }) => {
+    let finish;
+    const card = fakeCard({ busy: true, settle: new Promise((r) => { finish = r; }) });
+    const waiting = [];
+    const asked = [];
+    const decided = confirmStart({
+      card, onWait: (on) => waiting.push(on), waitMs: 1234,
+      ask: async (v) => { asked.push(v.level); return false; },
+    });
+    assert.deepEqual(waiting, [true]);
+    card.current = { level: "poor", advice: "server" }; // the check ends poor
+    finish();
+    assert.equal(await decided, false);
+    assert.deepEqual(waiting, [true, false]);
+    assert.deepEqual(card.waited, [1234]);
+    assert.deepEqual(asked, ["poor"]);
+  });
+});
+
+test("the card: a failed check never blocks, and the upload failure is shown in words", async () => {
+  await withDom(async ({ connectionCard }) => {
+    const broken = connectionCard({ getCode: () => "c", run: async () => { throw new Error("boom"); } });
+    await broken.check(true);
+    assert.equal(broken.busy(), false);
+    const card = connectionCard({
+      getCode: () => "c",
+      options: () => ({ upload: true }),
+      run: async () => result({ upload: { failed: true, ms: 4000 } }),
+    });
+    await card.check(true);
+    assert.equal(card.verdict().level, "poor");
+    assert.equal(card.node.dataset.level, "poor");
+    const flat = JSON.stringify(card.node, (k, v) => (k === "listeners" ? undefined : v));
+    assert.ok(flat.includes(es["conn.fig.up_failed"]));
+    assert.ok(flat.includes(es["conn.advice.upload"]));
+    await card.settled(10);
+  });
 });
