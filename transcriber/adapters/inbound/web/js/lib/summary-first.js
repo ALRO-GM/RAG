@@ -5,7 +5,7 @@
 // keep the rest (confidence, caveats, quotes) for «Más información».
 // Nothing here ranks people: they stay in the order they first spoke.
 
-import { firstSentence, oneLine } from "./home.js";
+import { clauseCut, firstSentence } from "./home.js";
 
 /** At most this many strengths and improvements on the summary. */
 export const MAX_STRENGTHS = 3;
@@ -91,16 +91,19 @@ export function sentencesOf(text) {
 /**
  * A short summary from several texts: the first sentence of each, in
  * order, without repeating one already said (nor `skip`), at most `max`.
+ * Whole sentences only: a sentence over SENTENCE_MAX is cut at a clause
+ * boundary (clauseCut) or left out; the full texts stay under «Más
+ * información».
  */
 export function shortSummary(texts, { max = SUMMARY_SENTENCES, skip = [] } = {}) {
   const seen = new Set(skip.map((s) => normalise(s)).filter(Boolean));
   const picked = [];
   for (const text of texts) {
-    const sentence = sentencesOf(text)[0];
+    const sentence = clauseCut(text, SENTENCE_MAX);
     const key = normalise(sentence);
     if (!sentence || seen.has(key) || [...seen].some((s) => s.includes(key) || key.includes(s))) continue;
     seen.add(key);
-    picked.push(oneLine(sentence, SENTENCE_MAX));
+    picked.push(sentence);
     if (picked.length >= max) break;
   }
   return picked.join(" ");
@@ -149,9 +152,31 @@ export function barsOf(person) {
   }));
 }
 
-/** Strengths or improvements as `{ name, text }`: the competency and its first sentence. */
+/**
+ * Strengths or improvements as `{ name, text }`: the competency and the
+ * first sentence of its conclusion when it fits (or a whole clause of it);
+ * otherwise the name alone. The whole conclusion is in «Más información».
+ */
 function picked(list, names) {
-  return list.map((o) => ({ id: o.id, name: names.get(o.id) ?? (o.name || o.id), text: oneLine(o.conclusion, POINT_MAX) }));
+  return list.map((o) => ({ id: o.id, name: names.get(o.id) ?? (o.name || o.id), text: clauseCut(o.conclusion, POINT_MAX) }));
+}
+
+/** At most this many bars before «Ver las N competencias». */
+export const MAX_BARS = 5;
+
+/**
+ * The bars shown up front and the full list: those of the strengths and
+ * improvements named on the summary, in that order (matched by id, or by
+ * name for older results), at most MAX_BARS. `all` keeps every bar.
+ */
+export function splitBars(bars, points) {
+  const shown = [];
+  for (const point of points) {
+    const bar = bars.find((b) => (point.id && b.id === point.id) || (!point.id && b.name === point.name));
+    if (bar && !shown.includes(bar)) shown.push(bar);
+    if (shown.length >= MAX_BARS) break;
+  }
+  return { shown, all: bars };
 }
 
 /** The caveats of a person's opinion: the overall ones, then each skill's, once each. */
@@ -181,6 +206,7 @@ export function personSummary(person) {
     : (person?.toDevelop ?? []).slice(0, MAX_IMPROVEMENTS).map((name) => ({ id: "", name, text: "" }));
   const quotes = (person?.quotes ?? 0) + (person?.skills ?? []).reduce((n, s) => n + (s.observations?.length ?? 0), 0);
   const caveats = caveatsOf(opinion);
+  const bars = barsOf(person);
   return {
     name: person?.name ?? "",
     colour: person?.colour ?? 0,
@@ -194,7 +220,8 @@ export function personSummary(person) {
     summary,
     strengths,
     improvements,
-    bars: barsOf(person),
+    bars,
+    shownBars: splitBars(bars, [...strengths, ...improvements]).shown,
     more: {
       quotes,
       caveats,

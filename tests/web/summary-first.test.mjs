@@ -5,11 +5,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAX_IMPROVEMENTS, MAX_STRENGTHS, RING_LENGTH, anyLegacy, barsOf, caveatKey, caveatsOf, clampPercent, isLegacy,
+  MAX_BARS, MAX_IMPROVEMENTS, MAX_STRENGTHS, RING_LENGTH, splitBars, anyLegacy, barsOf, caveatKey, caveatsOf, clampPercent, isLegacy,
   personSummary, ringDash, scalePercent, sentencesOf, shortSummary, verdictFamily, verdictKey,
 } from "../../transcriber/adapters/inbound/web/js/lib/summary-first.js";
 import { peopleOf } from "../../transcriber/adapters/inbound/web/js/lib/analysis-results.js";
-import { analysisFacts, conclusionOf } from "../../transcriber/adapters/inbound/web/js/lib/home.js";
+import { analysisFacts, clauseCut, conclusionOf } from "../../transcriber/adapters/inbound/web/js/lib/home.js";
 import { splitActions } from "../../transcriber/adapters/inbound/web/js/lib/sessions.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -117,8 +117,10 @@ test("sentences: an abbreviation does not end one; a short summary skips repeats
   assert.equal(shortSummary(["A uno. B.", "C dos. D.", "E tres."]), "A uno. C dos.");
   assert.equal(shortSummary(["Igual.", "igual", "Otra."], { max: 3 }), "Igual. Otra.");
   assert.equal(shortSummary(["Ya dicho. X.", "Nuevo."], { skip: ["Ya dicho."] }), "Nuevo.");
-  const long = shortSummary([`${"palabra ".repeat(40)}fin.`]);
-  assert.ok(long.length <= 180 && long.endsWith("…"));
+  // Whole sentences only: a long one is cut at a clause, or left out; never «…».
+  const clause = shortSummary([`${"uno ".repeat(20)}, ${"dos ".repeat(15)}; ${"tres ".repeat(30)}fin.`]);
+  assert.ok(clause.length <= 180 && clause.endsWith(".") && !clause.includes("…"), clause);
+  assert.equal(shortSummary([`${"palabra ".repeat(40)}fin.`, "Corta."]), "Corta.");
 });
 
 test("a v2 person: overall, a two-sentence summary, at most 3 strengths and 2 improvements, a bar per skill", () => {
@@ -157,6 +159,29 @@ test("a v1 person: no overall, legacy, the reports' names and the stored levels"
   // No synthesis at all, or a skipped one: nothing to redo from here.
   assert.equal(isLegacy(peopleOf({ assessment, reports })[0]), false);
   assert.equal(isLegacy(peopleOf({ assessment, reports, synthesis: { people: [{ participant: "Lucía", status: "skipped" }] } })[0]), false);
+});
+
+test("a cut keeps whole clauses, closed with a full stop, never «…»; nothing when there is no clause to keep", () => {
+  assert.equal(clauseCut("Corta. Otra.", 50), "Corta.");
+  assert.equal(clauseCut("Primera parte larga, segunda parte que no cabe en el límite.", 30), "Primera parte larga.");
+  assert.equal(clauseCut("Sin comas ni pausas en toda esta frase tan larga.", 20), "");
+  assert.equal(clauseCut("A, b c d e f g h i j k l m n o p.", 20), "", "a boundary too early is no clause");
+  assert.equal(clauseCut("", 20), "");
+  assert.equal(clauseCut("Propone los pasos siguientes, cuando hay dudas (preguntar hoy, asignar el resto) y sigue luego.", 70),
+    "Propone los pasos siguientes.",
+    "never inside an open bracket");
+});
+
+test("up front only the bars of the strengths and improvements named, in that order, at most five", () => {
+  const bars = ["A", "B", "C", "D", "E", "F", "G"].map((id) => ({ id, name: `n${id}` }));
+  const { shown, all } = splitBars(bars, [{ id: "C" }, { id: "A" }, { id: "Z" }, { id: "B" }, { id: "D" }, { id: "E" }, { id: "F" }]);
+  assert.deepEqual(shown.map((b) => b.id), ["C", "A", "B", "D", "E"]);
+  assert.equal(shown.length, MAX_BARS);
+  assert.equal(all.length, 7);
+  assert.deepEqual(splitBars(bars, [{ id: "", name: "nG" }]).shown.map((b) => b.id), ["G"], "older results match by name");
+  const s = personSummary(v2Person());
+  assert.deepEqual(s.shownBars.map((b) => b.id), ["COMM", "SOLVE", "COORD", "INIT", "COLLAB"]);
+  assert.equal(s.bars.length, 7);
 });
 
 test("caveats: overall then each skill's, once; known codes have words in both languages", () => {
@@ -205,8 +230,12 @@ class FakeElement extends FakeNode {
     for (const key of ["id", "type", "value", "className", "textContent", "href", "htmlFor", "title"]) this[key] = "";
     this.open = false;
     this.hidden = false;
+    this.style = {};
   }
   setAttribute(key, value) { this.attributes[key] = value; if (key === "class") this.className = value; }
+  querySelector(selector) { return this.all().find((n) => n !== this && n.tagName === selector.toUpperCase()) ?? null; }
+  focus() { globalThis.focused = this; }
+  scrollIntoView() {}
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
@@ -243,11 +272,11 @@ const RUN = {
 };
 const SENTENCES = { conversation_type: "entrevista", sentences: [{ id: "s0", speaker: "Lucía", text: "Lo medimos.", start: 12, end: 14 }] };
 
-async function panelFor(synthesis, onRedo = null) {
+async function panelFor(synthesis, onRedo = null, extra = {}) {
   const { resultsPanel } = await import("../../transcriber/adapters/inbound/web/js/views/analysis-results.js");
   const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
   setLanguage("es");
-  return resultsPanel({ id: RUN.session_id, run: RUN, data: { sentences: SENTENCES, assessment, reports, synthesis }, onRedo });
+  return resultsPanel({ id: RUN.session_id, run: RUN, data: { sentences: SENTENCES, assessment, reports, synthesis, ...extra }, onRedo });
 }
 
 test("v2 overview: ring, descriptive verdict, line and lists first; confidence and caveats only in «Más información»", async () => {
@@ -264,7 +293,7 @@ test("v2 overview: ring, descriptive verdict, line and lists first; confidence a
     const ring = nodes.find((n) => n.tagName === "SVG" && n.attributes.role === "img" && /87,5/.test(n.attributes["aria-label"] ?? ""));
     assert.ok(ring, "the ring names its value");
     const minimum = nodes.filter((n) => n.attributes.class === "sf-bar-min");
-    assert.equal(minimum.length, 1);
+    assert.ok(minimum.length >= 1);
     // Nothing tentative before «Más información»; all of it inside.
     for (const key of ["sf.caveat.provisional", "sf.caveat.no_quotes", "sf.reliability_note", "res.draft_text", "res.fairness"]) {
       assert.ok(!shown.includes(es[key]), `${key} hidden`);
@@ -290,5 +319,89 @@ test("v1 overview: no ring, the earlier version said once, the synthesis can be 
     // Without the action (a run in progress), the sentence stays, the button does not.
     const quiet = await panelFor(V1, null);
     assert.ok(!quiet.all().some((n) => n.tagName === "BUTTON" && n.text() === es["sa.redo_synthesis"]));
+  });
+});
+
+test("v2 «Más información» keeps everything: the question, the whole line, every skill's full conclusion and basis", async () => {
+  await withDom(async () => {
+    const panel = await panelFor(V2);
+    const more = panel.all().find((n) => n.tagName === "DETAILS" && n.className === "sf-more");
+    const inside = more.text();
+    assert.ok(inside.includes("Muestra con ejemplos propios lo que pide el puesto en APIs y datos. Las pruebas, menos."));
+    assert.ok(inside.includes(es["sf.frame"]) && inside.includes("q"));
+    for (const k of V2.people[0].skills) assert.ok(inside.includes(k.conclusion), k.competency_id);
+    assert.ok(inside.includes(es["sf.basis.firm"]) && inside.includes(es["sf.source.judge"]));
+    // The bars of all seven competencies sit behind «Ver las 7 competencias».
+    const all = panel.all().find((n) => n.tagName === "DETAILS" && n.className === "sf-all-bars");
+    assert.ok(all.text().includes(es["sf.all_bars"].replace("{count}", "7")));
+    assert.equal(all.all().filter((n) => n.tagName === "LI").length, 7);
+  });
+});
+
+test("only the first person's card is open; a row of the overview opens another and moves the focus to it", async () => {
+  await withDom(async () => {
+    const two = { ...V2, people: [V2.people[0], { ...V2.people[0], participant: "Pablo" }] };
+    const people = { people: [...reports.people, { position: 2, name: "Pablo", strengths: [], to_improve: [], why: [] }] };
+    const panel = await panelFor(two, null, { reports: people });
+    const cards = panel.all().filter((n) => n.tagName === "DETAILS" && n.className.startsWith("sf-person"));
+    assert.deepEqual(cards.map((c) => c.open), [true, false]);
+    // A closed card still shows its name, percentage, verdict words and line.
+    const head = cards[1].children[0];
+    assert.equal(head.tagName, "SUMMARY");
+    for (const bit of ["Pablo", "87,5", es["sf.verdict.job.strong"], "Muestra con ejemplos propios"]) assert.ok(head.text().includes(bit), bit);
+    const row = panel.all().filter((n) => n.className === "sf-glance-row")[1];
+    row.listeners.click[0]();
+    assert.equal(cards[1].open, true);
+    assert.equal(globalThis.focused, head);
+  });
+});
+
+test("the home reads its percentage out with words, not only a tooltip", async () => {
+  await withDom(async () => {
+    const { homeView } = await import("../../transcriber/adapters/inbound/web/js/views/home.js");
+    const root = new FakeElement("main");
+    root.classList = { add() {}, remove() {} };
+    const api = {
+      listSessions: async () => ({ sessions: [{ id: "x", state: "done", title: "T", started_at: "2026-11-24T10:00:00Z" }] }),
+      analysisStatus: async () => ({ steps: [{ name: "assessment", status: "done" }, { name: "synthesis", status: "done" }] }),
+      analysisStep: async () => V2,
+    };
+    await homeView({ api }, root);
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    const score = root.all().find((n) => n.className === "recent-score");
+    assert.ok(score, "the row has a score");
+    const hidden = score.children.find((c) => c.className === "sr-only");
+    assert.equal(hidden.text(), es["sf.home_score"].replace("{value}", "87,5 %"));
+    assert.equal(score.children[0].attributes["aria-hidden"], "true");
+  });
+});
+
+test("the interviewer's report: suitability, summary and bars first; tiles, notes, quotes and gaps behind «Más información»", async () => {
+  await withDom(async () => {
+    const { reportCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const result = {
+      sheet: {
+        title: "Backend", session_id: "iv-1", suitability: 72.4, summary: "Cubre lo pedido en APIs.",
+        turns: 18, elapsed_s: 900, turns_to_minimums: 9, filler: 2, scorer: "judge",
+        slots: [
+          { label: "APIs", level: "minimo", weight: 5, score: 85, status: "filled", notes: "Nota APIs", confidence: 0.8, scored_by: "judge",
+            answers: [{ quote: "Diseñé la API", utterance: "u3" }] },
+          { label: "Tests", level: "minimo", weight: 4, score: 30, status: "partial", notes: "Nota tests", confidence: 0.5, answers: [] },
+        ],
+        other_skills: [{ label: "Inglés", quote: "Hablo inglés" }],
+      },
+      handoff: { transcript: true, analysis: true },
+    };
+    const card = reportCard(result);
+    const more = card.all().find((n) => n.tagName === "DETAILS" && n.className === "sf-more");
+    assert.equal(more.open, false);
+    const shown = card.shown();
+    for (const bit of ["72", "Cubre lo pedido en APIs.", "APIs", "Tests", es["sf.iv_draft_short"]]) assert.ok(shown.includes(bit), bit);
+    for (const bit of ["Nota APIs", "Diseñé la API", "Hablo inglés", es["iv.draft"], es["iv.tile.gaps"]]) {
+      assert.ok(!shown.includes(bit), `${bit} hidden`);
+      assert.ok(more.text().includes(bit), `${bit} kept`);
+    }
+    assert.ok(card.all().some((n) => n.tagName === "A" && n.href === "#/analysis/iv-1"));
   });
 });

@@ -22,6 +22,14 @@ function serviceCard(service) {
       t("home.try"), icon("arrow")));
 }
 
+// The overall percentage: seen as «67,5 %», read out as «Valoración general 67,5 %».
+function scoreTag(value) {
+  const shown = t("sf.percent", { value: decimal(value, 1) });
+  return h("span", { class: "recent-score" },
+    h("span", { "aria-hidden": "true" }, shown),
+    h("span", { class: "sr-only" }, t("sf.home_score", { value: shown })));
+}
+
 function sessionRow(session, found) {
   const kind = typeLabel(t, session.type);
   const when = session.started_at ? new Date(session.started_at).toLocaleDateString(lang, { day: "numeric", month: "short" }) : "";
@@ -36,10 +44,7 @@ function sessionRow(session, found) {
           h("span", { class: "recent-title" }, session.title || session.id),
           kind ? h("span", { class: "type-chip" }, kind) : null),
         h("span", { class: "recent-line" }, line)),
-      typeof found?.conclusion?.percent === "number"
-        ? h("span", { class: "recent-score", title: t("sf.home_score", { value: t("sf.percent", { value: decimal(found.conclusion.percent, 1) }) }) },
-          t("sf.percent", { value: decimal(found.conclusion.percent, 1) }))
-        : null,
+      typeof found?.conclusion?.percent === "number" ? scoreTag(found.conclusion.percent) : null,
       found?.analysed ? h("span", { class: "recent-tag" }, h("span", { class: "state-dot done", "aria-hidden": "true" }), t("home.analysed")) : null));
 }
 

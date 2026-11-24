@@ -137,21 +137,29 @@ there. Pure parts in `js/lib/summary-first.js`, drawing in
 - **Análisis** (`#/analysis/<id>`, after `docs/web/mockups/Perfil.dc.html`
   in the calm palette): first the session in one paragraph (who, how
   long, decisions, tasks, open questions), the job, and one row per
-  person in speaking order (percentage and verdict words), with a
-  one-line draft note. Then one card per person: score ring (SVG, the
-  arc's `stroke-dasharray` from `ringDash`), the verdict as descriptive
-  words chosen by conversation type from `overall.verdict`
-  (`sf.verdict.<job|coaching|sale|general>.<strong|adequate|weak>`,
+  person in speaking order (percentage and verdict words; a click or
+  Enter opens that person's card and moves the focus to it), with a
+  one-line draft note. Then one card per person as a disclosure; only
+  the first starts open (the data has no speaker roles, so the candidate
+  of an interview cannot be picked, nor the interviewer left without a
+  fit reading). A card's header is always visible: name, percentage,
+  the verdict as descriptive words chosen by conversation type from
+  `overall.verdict` (`sf.verdict.<job|coaching|sale|general>.<strong|adequate|weak>`,
   e.g. «Encaje alto con lo que pide el puesto»; never a decision such as
-  «pasa a la siguiente fase»), `overall.line`, a summary of at most two
-  sentences (first sentences of the fit and strength points, 180
-  characters each), at most 3 strengths and 2 improvements
-  (`top_strengths` / `top_improvements`, competency plus the first
-  sentence of its conclusion, 120 characters), and one bar per
-  competency (SVG rects; the minimum-required mark only when a skill
-  carries a `required` level, which the analysis does not write yet).
-  Each card's «Más información» holds how reliable it is (confidence,
-  caveats in words), the reports' lists, the explained profile, every
+  «pasa a la siguiente fase») and the first sentence of `overall.line`.
+  Open, it shows the score ring (SVG, the arc's `stroke-dasharray` from
+  `ringDash`), a summary of at most two sentences, at most 3 strengths
+  and 2 improvements (`top_strengths` / `top_improvements`), the bars of
+  those (at most 5, in that order) and «Ver las N competencias» with
+  every bar; the minimum-required mark only when a skill carries a
+  `required` level, which the analysis does not write yet. Text is never
+  cut inside a clause nor ended with «…»: a sentence too long for its
+  place is cut at its last clause boundary (`clauseCut`), or left out
+  (the competency name alone for a point). Each card's «Más
+  información» holds how reliable it is (confidence, caveats in words),
+  the whole reading (`overall.frame`, the full `overall.line`, every
+  competency's verdict, score, full conclusion, basis, author and cited
+  sentences), the reports' lists, the explained profile, every
   competency with its quotes and the participation figures; the
   session's «Más información» holds the facts, the draft and AI-Act
   notices, the share of words, the events and the transcript. The known

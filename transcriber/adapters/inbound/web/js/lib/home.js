@@ -89,7 +89,29 @@ export function oneLine(text, max = CONCLUSION_MAX) {
 }
 
 /**
- * The one-line conclusion of a synthesis result for the first person
+ * The first sentence of `text`, whole when it fits in `max` characters;
+ * else cut at its last clause boundary (, ; : —) within `max` and closed
+ * with a full stop, never in the middle of a clause (nor inside an open
+ * bracket or quote) and with no ellipsis; "" when no boundary falls in the second two thirds (#230).
+ */
+export function clauseCut(text, max = CONCLUSION_MAX) {
+  const flat = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!flat) return "";
+  const sentence = firstSentence(flat);
+  if (sentence.length <= max) return sentence;
+  const head = sentence.slice(0, max);
+  const marks = [...head.matchAll(/\s?[,;:\u2014\u2013](?=\s)/g)];
+  // A clause that leaves a bracket or a quote open is not whole.
+  const closed = (text) => [["(", ")"], ["«", "»"], ["“", "”"], ["[", "]"]]
+    .every(([a, b]) => text.split(a).length === text.split(b).length) && (text.split('"').length - 1) % 2 === 0;
+  const last = marks.filter((m) => m.index >= max / 3 && closed(head.slice(0, m.index))).pop();
+  if (!last) return "";
+  return `${head.slice(0, last.index).replace(/[\s,;:.]+$/, "")}.`;
+}
+
+/**
+ * The one-line conclusion (whole sentence or clause, never cut mid-clause)
+ * of a synthesis result for the first person
  * profiled: their overall line (synthesis v2) with its percentage, one
  * decimal (`percent`, only when stored), else the first point on the job
  * fit, else their first strength; null when there is none.
@@ -100,7 +122,9 @@ export function conclusionOf(synthesis) {
     if (person?.status === "skipped") continue;
     const overall = opinionOf(person).overall;
     const point = [...(person?.fit ?? []), ...(person?.strengths ?? [])].find((p) => String(p?.text ?? "").trim());
-    const text = oneLine(overall?.line) || (point ? oneLine(point.text) : "");
+    // Whole sentences only: a clause when the sentence is too long, else the sentence.
+    const short = (value) => clauseCut(value) || firstSentence(String(value).replace(/\s+/g, " ").trim());
+    const text = (overall?.line ? short(overall.line) : "") || (point ? short(point.text) : "");
     if (!text && !overall) continue;
     const found = { person: String(person.participant ?? ""), text };
     if (overall && Number.isFinite(overall.percent)) found.percent = Math.round(overall.percent * 10) / 10;

@@ -15,7 +15,9 @@ import {
 } from "../lib/analysis-results.js";
 import { oneLine } from "../lib/home.js";
 import { anyLegacy, personSummary, verdictKey } from "../lib/summary-first.js";
-import { legacyNote, moreHint, moreInfo, percentText, personSummaryCard, reliabilityBlock } from "./summary-first.js";
+import {
+  legacyNote, moreHint, moreInfo, opinionBlock, percentText, personSummaryCard, reliabilityBlock,
+} from "./summary-first.js";
 
 /** A technical word with its plain explanation on hover or keyboard focus. */
 export function term(text, key) {
@@ -86,11 +88,22 @@ export function resultsPanel({ id, run, data, onRedo = null }) {
     }, `▶ ${label}`);
   };
 
+  // Only the first card starts open (the session's roles are not in the
+  // data, so the candidate of an interview cannot be told apart).
   const cards = people.map((p, i) => personSummaryCard(summaries[i], {
-    conversationType: kind, withJob, id: `person-${p.position}`,
-    more: moreInfo(moreHint(summaries[i].more), () => [reliabilityBlock(summaries[i]), personDetailBody(p, moment, withJob)]),
+    conversationType: kind, withJob, id: `person-${p.position}`, open: i === 0,
+    more: moreInfo(moreHint(summaries[i].more), () => [
+      reliabilityBlock(summaries[i]), opinionBlock(p, moment), personDetailBody(p, moment, withJob),
+    ]),
   }));
-  const openPerson = (index) => cards[index]?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+  // A row of the overview opens that person's card and moves the focus to it.
+  const openPerson = (index) => {
+    const card = cards[index];
+    if (!card) return;
+    card.open = true;
+    card.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    card.querySelector?.("summary")?.focus?.({ preventScroll: true });
+  };
   sessionMore = moreInfo(t("sf.session_more_hint"), () => [
     sessionDetails(facts),
     people.length ? participation(people) : null,

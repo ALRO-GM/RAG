@@ -239,8 +239,9 @@ test("the overview shows the summary, one card with its «Más información» pe
     setLanguage("es");
     const panel = resultsPanel({ id: run.session_id, run, data });
     const nodes = panel.all();
-    const cards = nodes.filter((n) => n.tagName === "ARTICLE");
+    const cards = nodes.filter((n) => n.tagName === "DETAILS" && n.className.startsWith("sf-person"));
     assert.equal(cards.length, 2);
+    assert.deepEqual(cards.map((c) => c.open), [true, false]);
     const more = nodes.filter((n) => n.tagName === "DETAILS" && n.className === "sf-more");
     assert.equal(more.length, 2);
     assert.ok(more.every((d) => d.open === false));

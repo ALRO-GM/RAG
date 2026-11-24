@@ -111,20 +111,27 @@ export function reliabilityBlock(summary) {
 }
 
 /**
- * The summary of one person: ring and verdict when the analysis has an
- * opinion, the short summary, strengths, improvements and bars (results
- * that predate the opinion say so once, in the overview). `more`
- * is the «Más información» element appended at the end of the card.
+ * The summary of one person, as a disclosure (#230): its header — name,
+ * percentage, verdict words and the overall line — is always visible;
+ * opening it shows the ring with the short summary, the strengths and
+ * improvements, the bars of those (the full list behind «Ver las N
+ * competencias») and the «Más información» element `more`. Only the
+ * card given `open` starts open. Results that predate the opinion say so
+ * once, in the overview.
  */
-export function personSummaryCard(summary, { conversationType = "", withJob = false, more = null, id = null } = {}) {
+export function personSummaryCard(summary, { conversationType = "", withJob = false, more = null, id = null, open = false } = {}) {
   const o = summary.overall;
-  const head = h("div", { class: "sf-hero" },
-    o && o.percent !== null ? scoreRing(o.percent, { label: t(withJob ? "sf.ring_job" : "sf.ring_general") }) : null,
-    h("div", { class: "sf-hero-text" },
-      o ? verdictPill(o.verdict, conversationType) : null,
-      h("h3", { class: "sf-name" }, h("span", { class: `dot who-${summary.colour}`, "aria-hidden": "true" }), summary.name),
-      o?.line ? h("p", { class: "sf-line" }, o.line) : null,
-      summary.summary ? h("p", { class: "sf-summary" }, summary.summary) : null));
+  const head = h("summary", { class: "sf-person-head" },
+    h("span", { class: "sf-head-row" },
+      h("span", { class: "sf-name" }, h("span", { class: `dot who-${summary.colour}`, "aria-hidden": "true" }), summary.name),
+      o && o.percent !== null ? h("span", { class: "sf-head-score" }, percentText(o.percent)) : null,
+      o ? verdictPill(o.verdict, conversationType) : null),
+    o?.line ? h("span", { class: "sf-line" }, o.line) : null);
+  const hero = (o && o.percent !== null) || summary.summary
+    ? h("div", { class: "sf-hero" },
+      o && o.percent !== null ? scoreRing(o.percent, { label: t(withJob ? "sf.ring_job" : "sf.ring_general") }) : null,
+      summary.summary ? h("p", { class: "sf-summary" }, summary.summary) : null)
+    : null;
   const columns = [];
   if (summary.strengths.length) {
     columns.push(h("section", { class: "sf-col" }, h("h4", {}, t("sf.strengths")), pointList(summary.strengths, "strength")));
@@ -133,15 +140,55 @@ export function personSummaryCard(summary, { conversationType = "", withJob = fa
     columns.push(h("section", { class: "sf-col" }, h("h4", {}, t("sf.improvements")), pointList(summary.improvements, "improve")));
   }
   const hasMin = summary.bars.some((b) => b.required !== null && b.required !== undefined);
-  return h("article", { class: `sf-person who-${summary.colour}`, id },
+  const allBars = summary.bars.length
+    ? h("details", { class: "sf-all-bars" },
+      h("summary", {}, t("sf.all_bars", { count: summary.bars.length })),
+      h("ul", { class: "sf-bar-list" }, summary.bars.map(competencyBar)))
+    : null;
+  return h("details", { class: `sf-person who-${summary.colour}`, id, open },
     head,
-    columns.length ? h("div", { class: "sf-columns" }, columns) : null,
-    summary.bars.length
-      ? h("section", { class: "sf-bars" },
-        h("div", { class: "sf-bars-head" },
-          h("h4", {}, t(withJob ? "sf.bars_job" : "sf.bars_general")),
-          hasMin ? h("span", { class: "sf-min-key" }, h("span", { class: "sf-min-mark", "aria-hidden": "true" }), t("sf.min_key")) : null),
-        h("ul", { class: "sf-bar-list" }, summary.bars.map(competencyBar)))
-      : null,
-    more);
+    h("div", { class: "sf-person-body" },
+      hero,
+      columns.length ? h("div", { class: "sf-columns" }, columns) : null,
+      summary.bars.length
+        ? h("section", { class: "sf-bars" },
+          h("div", { class: "sf-bars-head" },
+            h("h4", {}, t(withJob ? "sf.bars_job" : "sf.bars_general")),
+            hasMin ? h("span", { class: "sf-min-key" }, h("span", { class: "sf-min-mark", "aria-hidden": "true" }), t("sf.min_key")) : null),
+          summary.shownBars.length ? h("ul", { class: "sf-bar-list" }, summary.shownBars.map(competencyBar)) : null,
+          allBars)
+        : null,
+      more));
+}
+
+/**
+ * The whole opinion, for «Más información»: the question it answers
+ * (`frame`), the full overall line, and every competency's verdict,
+ * score, full conclusion, what it rests on, who wrote it and the
+ * sentences it cites (`moment` draws a quote's minute).
+ */
+export function opinionBlock(person, moment) {
+  const opinion = person?.opinion;
+  if (!opinion?.overall && !(opinion?.skills ?? []).length) return null;
+  const o = opinion.overall;
+  const names = new Map((person.skills ?? []).map((k) => [k.id, k.name]));
+  return h("div", { class: "sf-opinion stack tight" },
+    h("h4", {}, t("sf.opinion_title")),
+    o?.frame ? h("p", {}, h("strong", {}, t("sf.frame")), " ", o.frame) : null,
+    o?.line ? h("p", {}, h("strong", {}, t("sf.full_line")), " ", o.line) : null,
+    o ? h("p", { class: "hint" }, t(`sf.source.${o.source === "judge" ? "judge" : "rules"}`)) : null,
+    (opinion.skills ?? []).length
+      ? h("ul", { class: "sf-opinion-skills" }, opinion.skills.map((k) => h("li", { class: "stack tight" },
+        h("p", {}, h("strong", {}, names.get(k.id) ?? (k.name || k.id)), " · ",
+          t(`sf.skill_verdict.${k.verdict}`), " · ",
+          t("sf.skill_score", { score: decimal(k.score, 1) })),
+        k.conclusion ? h("p", {}, k.conclusion) : null,
+        h("p", { class: "hint" }, [
+          t(`sf.basis.${["firm", "provisional", "observation", "participation"].includes(k.basis) ? k.basis : "participation"}`),
+          t(`sf.source.${k.source === "judge" ? "judge" : "rules"}`),
+        ].join(" · ")),
+        k.cites.length
+          ? h("ul", { class: "quotes" }, k.cites.map((c) => h("li", { class: "quote" }, moment(c.start), " ", h("q", {}, c.text))))
+          : null)))
+      : null);
 }
