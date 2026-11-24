@@ -14,10 +14,11 @@ throttled like every other route.
 
 | Route | Body / messages | Answer |
 |---|---|---|
-| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms", "diarize"?, "enrolled"?}` | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
+| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms", "diarize"?, "enrolled"?, "parties"?}` | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
 | `GET /api/live/sessions`, `GET /api/live/sessions/{id}` | — | the sessions / one session, with `finals`, `rejected_events`, `transcript` (`utterances`, `published`, `analysis`, `error`) |
 | `POST /api/live/sessions/{id}/stop` | — | the session after its end |
 | `POST /api/live/sessions/{id}/speakers/{speaker}` | `{"name"}` (1–80 characters) | the session; the hand-off's `transcript.v1` lists the name (LV-16); 409 once the session ended |
+| `POST /api/live/sessions/{id}/voice` | `{"action": "skip"}` or `{"action": "mine" \| "not_mine", "utterance": "t3.s0"}` (#249) | the session; 409 once ended or for a session without `parties`; 400/422 for an unknown action or a missing utterance |
 | `WS /api/live/{id}/audio` | once the recogniser is loaded (GPU placement and model warm-up: about 6 s, `experiments/live/start_delay.py`) the server sends `{"type": "ready", "channels", "sample_rate": 16000, "format": "pcm_s16le", "max_message_bytes"}`; client sends binary PCM s16le 16 kHz, channels interleaved, ≤1 s per message; text `{"type": "stop"}` ends the session (`{"type": "stopped"}` back) | one source per session at a time |
 | `WS /api/live/{id}/events` (alias `/live/{id}/events`), `?from_seq=n` | server sends every `live.event.v1` event from `seq` n as one JSON text message, the past ones first; closes with 1000 after the last | — |
 
@@ -59,6 +60,17 @@ session), 4409 (wrong state: ended, or a second audio source) or 4429
   Source kind `mono_diarized`; finals may be `speaker_provisional` and
   are revised by `speaker_update` events. The lease asks for
   `need_mib` + `diarize_need_mib` (1500). See `MONO_DIARIZATION.md`.
+- **Two parties (#249).** `parties: {"employee", "other", "voice_check"}`
+  (diarized only; both ids among `speakers`) makes every sentence one of
+  the two: the roster lists only them, the first sentences are the
+  employee's voice check (`voice_check` events: `listening` with the
+  seconds heard, then `recognised`, `short`, `skipped` or `failed`),
+  sentences whose side is not known from their voice yet carry
+  `speaker_unsure: true`, and `POST .../voice` skips the check or
+  corrects a voice. The check's audio and its reference stay in memory
+  only. The attribution's numbers (ids, times, slots, cosines,
+  decisions; no text) are written to `<data_dir>/live/<id>/attribution.jsonl`
+  (mode 600) at the end. See `MONO_DIARIZATION.md` §"Voice check".
 - **Hand-off (LV-11).** At the end the last revision of each final
   becomes a `transcript.v1` (empty sentences dropped, turns regrouped,
   ids renumbered without gaps, no audio; each speaker keeps its role

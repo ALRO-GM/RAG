@@ -82,6 +82,7 @@ def test_a_mic_session_is_answered_out_loud() -> None:
     assert view["page"]["kind"] == "speaker"
     body = live.transcriber.bodies[0]  # type: ignore[union-attr]
     assert body["speakers"] == [{"channel": 0, "id": "S1", "role": "user"}]
+    assert "parties" not in body and "diarize" not in body  # #249
     assert body["hang_ms"] == 400
     found = messages(live, "vb-1")
     kinds = [m["type"] for m in found]

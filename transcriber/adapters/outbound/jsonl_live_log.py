@@ -4,7 +4,9 @@ Implements :class:`~transcriber.application.ports.LiveLog` under
 ``<data_dir>/live/<session>/``: ``events.jsonl`` gets every event as it
 is emitted (flushed at once, so a crash keeps what was said until
 then) and ``transcript.json`` the session's ``transcript.v1`` at the
-end. No audio is ever written here: live mode keeps text only
+end; ``attribution.jsonl`` the speaker attribution's numbers of a
+two-party session (#249: ids, times, slots, cosines, decisions; no
+text). No audio is ever written here: live mode keeps text only
 (``docs/platform/ARCHITECTURE.md`` §8). Files are private to the user
 (mode 600 in a 700 directory).
 """
@@ -13,11 +15,12 @@ import json
 import os
 import threading
 from pathlib import Path
-from typing import IO, Any, Dict, Mapping
+from typing import IO, Any, Dict, Mapping, Sequence
 
 LIVE_DIR = "live"
 EVENTS_FILE = "events.jsonl"
 TRANSCRIPT_FILE = "transcript.json"
+ATTRIBUTION_FILE = "attribution.jsonl"
 
 
 class JsonlLiveLog:
@@ -66,6 +69,20 @@ class JsonlLiveLog:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             json.dump(document, stream, ensure_ascii=False, indent=1)
         os.replace(temporary, folder / TRANSCRIPT_FILE)
+
+    def save_attribution(
+        self, session_id: str, records: Sequence[Mapping[str, Any]]
+    ) -> None:
+        """Write the attribution's records, one per line, atomically."""
+        folder = self._folder(session_id)
+        temporary = folder / f".{ATTRIBUTION_FILE}.tmp"
+        descriptor = os.open(
+            temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            for record in records:
+                stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+        os.replace(temporary, folder / ATTRIBUTION_FILE)
 
     def close(self, session_id: str) -> None:
         """Close the session's events file, if open."""

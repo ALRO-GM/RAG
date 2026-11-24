@@ -213,18 +213,26 @@ def slot_labels(
 
 @dataclass
 class _Sent:
-    """A final already sent: the utterance, its slot and if complete."""
+    """A final already sent: the utterance, its slot and if complete.
+
+    ``pinned`` is a speaker the sentence keeps whatever its slot says
+    (the employee's voice check, or a correction by hand, #249).
+    """
 
     utterance: LiveUtterance
     slot: Optional[int]
     complete: bool
+    pinned: Optional[str] = None
 
 
 class MonoSpeakers:
     """Slot labels and the finals sent, with the revisions they need.
 
     ``labels`` are the anonymous ids of the slots, in slot order
-    (:func:`slot_labels`).
+    (:func:`slot_labels`). A two-party session (#249) gives every slot
+    a name (the employee's or the other person's id), so no anonymous
+    label is ever shown, and marks the slots whose voice has not been
+    compared with the employee's voice check yet (``speaker_unsure``).
     """
 
     def __init__(
@@ -245,6 +253,7 @@ class MonoSpeakers:
         self._anonymous = list(labels)
         self._sent: Dict[str, _Sent] = {}
         self._pending: List[str] = []
+        self._unsure: AbstractSet[int] = frozenset()
         self.last: Optional[str] = None
 
     def anonymous(self) -> List[str]:
@@ -271,13 +280,64 @@ class MonoSpeakers:
         speaker = fallback if pick.slot is None else self.label(pick.slot)
         return speaker, not pick.complete
 
-    def sent(self, utterance: LiveUtterance, pick: SlotPick) -> None:
-        """Remember a final as sent with ``pick``'s speaker."""
+    def unsure(self, slot: Optional[int]) -> bool:
+        """Tell whether ``slot``'s voice has not been compared with the
+        employee's voice check yet (two-party, ``speaker_unsure``)."""
+        return slot is not None and slot in self._unsure
+
+    def sent(
+        self, utterance: LiveUtterance, pick: SlotPick,
+        pinned: Optional[str] = None,
+    ) -> None:
+        """Remember a final as sent with ``pick``'s speaker.
+
+        A ``pinned`` final keeps that speaker through every revision.
+        """
         known = utterance.id in self._sent
-        self._sent[utterance.id] = _Sent(utterance, pick.slot, pick.complete)
+        self._sent[utterance.id] = _Sent(
+            utterance, pick.slot, pick.complete, pinned
+        )
         if not pick.complete and not known:
             self._pending.append(utterance.id)
         self.last = utterance.speaker
+
+    def slot_of(self, ident: str) -> Optional[int]:
+        """Return the slot of the final ``ident`` (``None``: unknown)."""
+        sent = self._sent.get(ident)
+        return sent.slot if sent is not None else None
+
+    def settled_slot(self, ident: str) -> Optional[int]:
+        """Return the slot of final ``ident`` once its frames are complete."""
+        sent = self._sent.get(ident)
+        if sent is None or not sent.complete:
+            return None
+        return sent.slot
+
+    def pinned(self) -> Dict[str, str]:
+        """Return the speaker of every pinned final."""
+        return {
+            ident: sent.pinned for ident, sent in self._sent.items()
+            if sent.pinned is not None
+        }
+
+    def pin(self, ident: str, speaker: str) -> List[LiveUtterance]:
+        """Give the final ``ident`` the speaker ``speaker`` for good.
+
+        Returns it when that changes what was sent (empty otherwise,
+        and for an unknown id).
+        """
+        sent = self._sent.get(ident)
+        if sent is None:
+            return []
+        sent.pinned = speaker
+        old = sent.utterance
+        if (old.speaker, old.speaker_unsure) == (speaker, False):
+            return []
+        sent.utterance = old.model_copy(update={
+            "speaker": speaker, "speaker_unsure": False,
+            "revision": old.revision + 1,
+        })
+        return [sent.utterance]
 
     def sent_utterances(self) -> List[LiveUtterance]:
         """Return the latest version of every final sent."""
@@ -302,13 +362,17 @@ class MonoSpeakers:
             old = sent.utterance
             pick = pick_slot(frames, old.start, old.end, self._s.threshold)
             speaker, provisional = self.speaker(pick, old.speaker)
+            unsure = self.unsure(pick.slot)
+            if sent.pinned is not None:
+                speaker, unsure = sent.pinned, False
             if provisional:
                 still.append(ident)
-            if (speaker, provisional) != (
-                old.speaker, old.speaker_provisional
+            if (speaker, provisional, unsure) != (
+                old.speaker, old.speaker_provisional, old.speaker_unsure
             ):
                 new = old.model_copy(update={
                     "speaker": speaker, "speaker_provisional": provisional,
+                    "speaker_unsure": unsure,
                     "revision": old.revision + 1,
                 })
                 out.append(new)
@@ -318,23 +382,33 @@ class MonoSpeakers:
         self._pending = still
         return out
 
-    def rename(self, names: Mapping[int, str]) -> List[LiveUtterance]:
+    def rename(
+        self, names: Mapping[int, str],
+        unsure: AbstractSet[int] = frozenset(),
+    ) -> List[LiveUtterance]:
         """Give slots the enrolled ids ``names``; return the finals changed.
 
         Slots missing from ``names`` go back to their anonymous label.
+        ``unsure`` marks the slots whose voice has not been compared with
+        the voice check yet (``speaker_unsure``). A
+        pinned final keeps its speaker.
         """
         self._names = {
             slot: ident for slot, ident in names.items()
             if 0 <= slot < self.slots
         }
+        self._unsure = frozenset(unsure)
         out: List[LiveUtterance] = []
         for sent in self._sent.values():
-            if sent.slot is None:
+            if sent.slot is None or sent.pinned is not None:
                 continue
             speaker = self.label(sent.slot)
-            if speaker != sent.utterance.speaker:
+            doubt = self.unsure(sent.slot)
+            if (speaker, doubt) != (
+                sent.utterance.speaker, sent.utterance.speaker_unsure
+            ):
                 sent.utterance = sent.utterance.model_copy(update={
-                    "speaker": speaker,
+                    "speaker": speaker, "speaker_unsure": doubt,
                     "revision": sent.utterance.revision + 1,
                 })
                 out.append(sent.utterance)

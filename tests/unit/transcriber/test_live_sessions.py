@@ -26,15 +26,22 @@ from tests.unit.transcriber.live_fakes import (
     chunks_of,
     pcm,
 )
-from transcriber.adapters.outbound.fake_models import FakeStreamDiarizer
+from transcriber.adapters.outbound.fake_models import (
+    FakeStreamDiarizer,
+    FakeVoiceEncoder,
+)
 from transcriber.adapters.outbound.system_clock import SystemClock
+from transcriber.bootstrap import party_plan
 from transcriber.application.live import (
     LiveOptions,
     LiveSettings,
     LiveTranscription,
     default_speakers,
 )
-from transcriber.application.live_diarization import MonoAttributor
+from transcriber.application.live_diarization import (
+    LiveNaming,
+    MonoAttributor,
+)
 from transcriber.application.live_session import (
     EventHub,
     LivePorts,
@@ -50,11 +57,13 @@ from transcriber.domain.errors import (
 )
 from transcriber.domain.live import EndpointSettings, LiveSpeaker
 from transcriber.domain.live_diarization import MonoDiarizationSettings
+from transcriber.domain.voice_check import VoiceCheckSettings
 from transcriber.domain.live_session import (
     ChannelSpeaker,
     Handoff,
     LiveServiceSettings,
     LiveSessionRequest,
+    Parties,
 )
 
 ENDPOINT = EndpointSettings(hang_ms=500, min_speech_ms=0, pre_roll_ms=0)
@@ -185,9 +194,12 @@ class Harness:
 
             def attributor(given: Any) -> MonoAttributor:
                 assert diarizer is not None
+                parties = party_plan(options, given, VoiceCheckSettings())
                 return MonoAttributor(
                     diarizer, RealTimer(), MonoDiarizationSettings(),
-                    None, given,
+                    LiveNaming(FakeVoiceEncoder(), [])
+                    if parties is not None else None,
+                    given, parties=parties,
                 )
 
             return LiveTranscription(
@@ -629,3 +641,67 @@ def test_diarize_requests_are_checked() -> None:
     )
     options = LiveSessions.options(ok, "cuda", "m", "int8")
     assert options.diarize and options.enrolled == []
+
+
+def test_a_two_party_session_takes_voice_requests_and_keeps_numbers() -> None:
+    # #249: the voice check's events, the page's requests, and the
+    # attribution's numbers kept next to the events (no text).
+    diarizer = FakeStreamDiarizer(lag_frames=3)
+    harness = Harness(device="cpu", diarizer=diarizer)
+    request = LiveSessionRequest(
+        session_id="two", diarize=True, enrolled=[],
+        speakers=[ChannelSpeaker(channel=0, id="ana", role="agent"),
+                  ChannelSpeaker(channel=0, id="S2", role="customer")],
+        parties=Parties(employee="ana", other="S2"),
+    )
+    session = harness.live.start(request)
+    assert session.wait_ready(WAIT)
+    assert harness.live.voice("two", "skip") is session
+    with pytest.raises(InvalidInputError):
+        harness.live.voice("two", "dance")
+    with pytest.raises(InvalidInputError):
+        harness.live.voice("two", "mine", "not-an-id")
+    harness.live.voice("two", "mine", "t0.s0")
+    for message in chunks_of(two_voices(), 3200):
+        session.feed(message)
+    harness.live.stop("two", WAIT)
+    assert session.state == LiveState.ENDED, session.error
+    events = session.hub.history()
+    for event in events:
+        jsonschema.validate(event, LIVE_SCHEMA)
+    assert [s["id"] for s in events[0]["speakers"]] == ["ana", "S2"]
+    states = [e["voice_check"]["state"] for e in events
+              if e["type"] == "voice_check"]
+    assert states[0] == "listening" and "skipped" in states
+    records = harness.log.attribution["two"]
+    assert {r["event"] for r in records} >= {"final", "check", "sentence"}
+    assert not any("text" in r for r in records)
+    with pytest.raises(StateError):
+        harness.live.voice("two", "skip")
+
+
+def test_voice_requests_need_a_two_party_session() -> None:
+    harness = Harness(device="cpu")
+    session = harness.live.start(LiveSessionRequest(session_id="solo"))
+    assert session.wait_ready(WAIT)
+    with pytest.raises(StateError):
+        harness.live.voice("solo", "skip")
+    harness.live.stop("solo", WAIT)
+
+
+def test_parties_are_checked() -> None:
+    speakers = [ChannelSpeaker(channel=0, id="a"),
+                ChannelSpeaker(channel=0, id="b")]
+    with pytest.raises(ValueError):
+        LiveSessionRequest(session_id="x", speakers=speakers,
+                           parties=Parties(employee="a", other="b"))
+    with pytest.raises(ValueError):
+        LiveSessionRequest(session_id="x", diarize=True, speakers=speakers,
+                           parties=Parties(employee="a", other="c"))
+    with pytest.raises(ValueError):
+        LiveSessionRequest(session_id="x", diarize=True, speakers=speakers,
+                           parties=Parties(employee="a", other="a"))
+    ok = LiveSessionRequest(session_id="x", diarize=True, speakers=speakers,
+                            parties=Parties(employee="a", other="b"))
+    options = LiveSessions.options(ok, "cuda", "m", "int8")
+    assert options.parties is not None and options.parties.voice_check

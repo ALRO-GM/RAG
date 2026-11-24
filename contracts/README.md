@@ -8,7 +8,7 @@ the only thing two services share: neither imports the other's code.
 | `transcript.v1.schema.json` | `transcriber/` | `src/` (analyzer, RAG) |
 | `knowledge.query.v1.schema.json` | orchestrator, analyzer, web (via the transcriber) | `src/` (`POST /knowledge/query`) |
 | `knowledge.result.v1.schema.json` | `src/` | orchestrator, analyzer, web |
-| `live.event.v1`, `gpu-lease.v1` | `transcriber/` (live) | orchestrator, GPU workers |
+| `live.event.v1`, `gpu-lease.v1` | `transcriber/` (live) | orchestrator, live page, GPU workers |
 | `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
 | `tts.request.v1` | orchestrator | Piper adapter |
 | `interview.plan.v1`, `interview.sheet.v1` | orchestrator (`data/interview/`, AI interviewer #208) | web (via the transcriber), orchestrator |
@@ -60,6 +60,27 @@ keeps it (`sentences` step, `speakers[].role`) and reads only the
 candidate against the job. **Deploy order:** the RAG's `ContractSpeaker`
 forbids fields it does not know, so restart the RAG (reader) before the
 transcriber and the orchestrator (writers).
+
+## `live.event.v1`: the employee's voice check
+
+Added compatibly on 2026-11-24 (#249) for two-party one-microphone
+sessions, optional and written only there: the event type
+`voice_check` with its object `voice_check` (`state`: `listening`,
+`recognised`, `short`, `skipped`, `failed`; `speaker`, the employee's
+id; `seconds` heard and `needed`), and the utterance's
+`speaker_unsure` (written only when true). Every other session's
+events are unchanged. Readers: the orchestrator's `LiveEvent` forbids
+unknown fields and types, the live page reads them as plain objects.
+Both appear only in a session started with the transcriber's new
+`parties` field (`docs/live/LIVE_SESSION.md`), which only the new
+orchestrator sends, and the old transcriber refuses it (422: its
+request model forbids unknown fields). **Deploy order:** the
+transcriber first, then the orchestrator. A new transcriber with the old
+orchestrator works as before (no `parties`, so none of the new events);
+the old transcriber with the new orchestrator would refuse every
+one-microphone live session. With `ragputin-servicios restart` both
+restart together, which is fine as long as no live session runs across
+it.
 
 ## `knowledge.result.v1`: the times of a recording's chunk
 

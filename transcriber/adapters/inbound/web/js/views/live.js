@@ -24,7 +24,7 @@ import { setLeaveGuard } from "../device.js";
 import { LiveAudio } from "../live-audio.js";
 import {
   AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, followsNewest, holdLines, latency, localized, newSessionId, productKind,
-  readPrefs, reminderDue, splitCards, viewPrefs, writePrefs,
+  readPrefs, reminderDue, splitCards, viewPrefs, voiceProgress, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
@@ -61,6 +61,9 @@ function roleText(role) {
 function defaultTranscript(transcripts, kind) {
   return (transcripts.find((x) => x.type === TYPE_OF[kind]) ?? transcripts[0])?.id ?? "";
 }
+
+/** How long the voice chip says a correction was taken. */
+const CORRECTED_MS = 4000;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -232,9 +235,10 @@ export async function liveView(ctx, root, [sub] = []) {
       banner.textContent = maybe(`live.banner.${product?.banner}`, t("live.banner.default"));
       start.disabled = !product?.live;
       audioSelect.disabled = !product?.live;
-      const micEmployee = audioSelect.value === "mic" && employeeSelect.value;
+      // One microphone, two people (#249): the session starts with a voice check.
+      const micCheck = audioSelect.value === "mic" && product?.two_party === true && saved?.choices?.["live.diarization"] !== "off";
       liveHint.textContent = !product?.live ? t("live.live_off")
-        : micEmployee ? t("live.audio_hint.mic_employee")
+        : micCheck ? t("live.audio_hint.mic_check")
           : t(`live.audio_hint.${audioSelect.value}`, { who: roleText(product.suggest_about?.[0] ?? "unknown") });
       transcriptSelect.value = defaultTranscript(transcripts, kind);
       replay.disabled = !transcripts.length;
@@ -355,13 +359,16 @@ export async function liveView(ctx, root, [sub] = []) {
     const balance = h("span", { class: "lv-balance", hidden: true });
     // The connection (#247): a quiet chip that changes only after a sustained problem.
     const connChip = connectionChip();
+    // The employee's voice check (#249): «Reconociendo tu voz…» → «Voz reconocida», quietly.
+    const voiceChip = h("span", { class: "lv-voice", hidden: true, role: "status" });
+    let corrected = null; // { fix, until }: the last correction, said once in the chip
     const header = h("header", { class: "lv-head" },
       h("div", { class: "lv-meta" },
         h("span", { class: "lv-live" }, liveDot, clock),
         h("strong", { class: "lv-title" }, demo ? localized(demo, "title", lang) : t(`live.product.${productKind(state.page?.product)}`)),
         otherName,
         demo ? h("span", { class: "type-chip" }, t("live.scripted.badge")) : null,
-        balance, connChip.node),
+        balance, voiceChip, connChip.node),
       h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
 
     // ---- the conversation
@@ -495,7 +502,10 @@ export async function liveView(ctx, root, [sub] = []) {
       if (reconnecting && live && note.kind !== "lost") notes.push(h("p", { class: "notice" }, t("live.reconnecting")));
       for (const w of state.warnings.slice(-3)) notes.push(h("p", { class: "notice" }, maybe(`live.warning.${w.code}`, w.message)));
       for (const n of state.notices.slice(-2)) notes.push(h("p", { class: "notice" }, maybe(`live.notice.${n.code}`, n.message)));
+      const voice = state.voiceStatus();
+      if (["short", "failed"].includes(voice) && live) notes.push(h("p", { class: "notice" }, t(`live.voice.${voice}`)));
       fill(alerts, notes);
+      drawVoice(voice, live);
       drawDiscomfort();
       drawLines();
       drawNow();
@@ -553,11 +563,33 @@ export async function liveView(ctx, root, [sub] = []) {
       }, label);
     }
 
+    // «Esta soy yo» / «Esta no soy yo» (#249): corrects that voice from now on and its earlier lines.
+    // Named with its line (aria-describedby: the line's text); after a
+    // correction the header's quiet voice chip (role status) says so once.
+    function correctButton(u, fix) {
+      const button = h("button", {
+        type: "button", class: "lv-fix", "data-fix": fix, "aria-describedby": `lv-text-${u.id}`,
+        onClick: async () => {
+          button.disabled = true;
+          try {
+            await ctx.api.liveVoice(session.id, { action: fix, utterance: u.id });
+            corrected = { fix, until: Date.now() + CORRECTED_MS };
+            schedule();
+            setTimeout(schedule, CORRECTED_MS + 50);
+          } catch (error) {
+            toast(liveError(error), { error: true });
+          }
+          button.disabled = false;
+        },
+      }, t(`live.voice.${fix}`));
+      return button;
+    }
+
     function lineNode(u) {
       let node = lineNodes.get(u.id);
       if (!node) {
         const label = h("span", { class: "lv-line-head" });
-        const text = h("span", { class: "lv-text" });
+        const text = h("span", { class: "lv-text", id: `lv-text-${u.id}` });
         const li = h("li", { class: "lv-line lv-rise", id: `u-${u.id}` }, label, text);
         node = { li, label, labelKey: null, text, flags: "" };
         lineNodes.set(u.id, node);
@@ -568,15 +600,19 @@ export async function liveView(ctx, root, [sub] = []) {
       node.li.classList.toggle("partial", Boolean(u.partial));
       node.li.classList.toggle("discomfort", u.id === state.discomfort()?.utterance);
       if (node.text.textContent !== u.text) node.text.textContent = u.text;
+      node.li.classList.toggle("is-unsure", Boolean(u.unsure) && !u.partial);
       const flags = state.flagsOf(u.id);
-      const key = `${u.speaker}|${state.nameOf(u.speaker)}|${editing === u.speaker}|${state.state}|${flags.map((f) => f.category).join(",")}`;
+      const fix = demo ? null : state.correctionFor(u);
+      const key = `${u.speaker}|${state.nameOf(u.speaker)}|${editing === u.speaker}|${state.state}|${flags.map((f) => f.category).join(",")}|${fix}|${Boolean(u.unsure)}`;
       if (key !== node.labelKey) {
         node.labelKey = key;
         const isNew = flags.length && !node.flags;
         node.flags = flags.map((f) => f.category).join(",");
         fill(node.label, nameTag(u.speaker),
+          u.unsure && !u.partial ? h("span", { class: "lv-unsure" }, t("live.voice.unsure")) : null,
           flags.length ? h("span", { class: `lv-flag${isNew ? " lv-rise" : ""}`, title: flags.map((f) => localized(f, "title", lang)).join(" · ") },
-            dot("avoid"), t("live.avoid")) : null);
+            dot("avoid"), t("live.avoid")) : null,
+          fix ? correctButton(u, fix) : null);
       }
       return node.li;
     }
@@ -609,8 +645,64 @@ export async function liveView(ctx, root, [sub] = []) {
 
     // ---- the «Ahora» card: one thing at a time
 
+    function drawVoice(voice, live) {
+      const fixed = live && corrected && Date.now() < corrected.until ? corrected.fix : null;
+      const shown = live && (fixed || ["recognising", "recognised", "skipped"].includes(voice));
+      voiceChip.hidden = !shown;
+      if (!shown) return;
+      const text = fixed ? t(`live.voice.done_${fixed}`) : t(`live.voice.chip_${voice}`);
+      if (voiceChip.textContent === text) return;
+      fill(voiceChip, fixed || voice === "recognised" ? icon("check") : voice === "recognising" ? dot("suggest", "lv-pulse") : null, text);
+      voiceChip.classList.toggle("is-done", Boolean(fixed) || voice === "recognised");
+    }
+
+    // While the voice check listens, it is the one thing «Ahora» shows.
+    // Built once per state; the progress moves in place, so a screen reader
+    // does not read the card again and «Saltar» keeps its focus.
+    let voiceBar = null;
+    function voiceCard(voice) {
+      const bar = h("span", { class: "lv-voice-bar" });
+      const skip = h("button", {
+        type: "button", class: "small",
+        onClick: async () => {
+          skip.disabled = true;
+          try {
+            await ctx.api.liveVoice(session.id, { action: "skip" });
+          } catch (error) {
+            skip.disabled = false;
+            toast(liveError(error), { error: true });
+          }
+        },
+      }, t("live.voice.skip"));
+      return h("div", { class: "lv-card lv-rise lv-voice-card" },
+        h("div", { class: "lv-card-head is-suggest" }, dot("suggest", "lv-pulse"),
+          voice === "recognising" ? t("live.voice.recognising") : t("live.voice.listening_head")),
+        h("p", { class: "lv-big" }, t("live.voice.listening")),
+        h("p", { class: "lv-example" }, t("live.voice.listening_hint")),
+        (voiceBar = { bar, track: h("span", { class: "lv-voice-track", role: "progressbar", "aria-label": t("live.voice.progress"),
+          "aria-valuemin": "0", "aria-valuemax": "100" }, bar) }).track,
+        h("div", { class: "row wrap" }, voice === "listening" ? skip : null,
+          h("span", { class: "hint" }, t("live.voice.private"))));
+    }
+
     function drawNow() {
       const ended = state.state !== "running" && demo;
+      const voice = state.state === "running" ? state.voiceStatus() : null;
+      if (voice === "listening" || voice === "recognising") {
+        const key = `voice|${voice}`;
+        if (key !== nowKey) {
+          nowKey = key;
+          fill(nowCard, voiceCard(voice));
+          nowCard.className = "lv-now";
+        }
+        const done = String(Math.round(voiceProgress(state.voice) * 100));
+        if (voiceBar && voiceBar.track.getAttribute("aria-valuenow") !== done) {
+          voiceBar.track.setAttribute("aria-valuenow", done);
+          voiceBar.bar.style.width = `${done}%`;
+        }
+        return;
+      }
+      voiceBar = null;
       const shown = state.now();
       const key = ended ? "ended"
         : shown.kind === "avoid" ? `avoid|${shown.flag.utterance}|${shown.flag.category}`

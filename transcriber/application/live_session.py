@@ -34,6 +34,7 @@ which the RAG's post-call analysis may be started.
 
 import logging
 import queue
+import re
 import threading
 from dataclasses import dataclass
 from datetime import datetime
@@ -46,6 +47,7 @@ from transcriber.application.live import (
     LiveOptions,
     LiveSettings,
     LiveTranscription,
+    VoiceControl,
 )
 from transcriber.application.ports import (
     Clock,
@@ -77,6 +79,9 @@ from transcriber.domain.live_transcript import live_transcript
 from transcriber.domain.models import Pipeline
 
 LOG = logging.getLogger(__name__)
+
+UTTERANCE_ID = r"^t[0-9]+\.s[0-9]+$"
+"""The pattern of a live utterance id (``live.event.v1``)."""
 
 Event = Dict[str, Any]
 Builder = Callable[[LiveOptions], LiveTranscription]
@@ -170,6 +175,7 @@ class LiveSession:
         self.model: Optional[str] = None
         self.diarizer: Optional[str] = None
         self.transcript: Optional[Dict[str, Any]] = None
+        self.voice: Optional[VoiceControl] = None
         self.rejected = 0
         self._audio: "queue.Queue[Optional[Arrival]]" = queue.Queue()
         self._now = now
@@ -425,6 +431,35 @@ class LiveSessions:
             raise InvalidInputError(str(exc)) from exc
         return session
 
+    def voice(
+        self, session_id: str, action: str, utterance: Optional[str] = None,
+    ) -> LiveSession:
+        """Skip the voice check or correct a sentence's voice (#249).
+
+        ``action`` is ``skip``, or ``mine`` / ``not_mine`` with the id
+        of a final ``utterance``. Applied by the session's worker with
+        its next audio. Raises :class:`StateError` when the session has
+        ended or is not a two-party one, :class:`InvalidInputError` for
+        an unknown action or a missing utterance.
+        """
+        session = self.get(session_id)
+        if not session.active:
+            raise StateError(f"live session {session_id} has ended")
+        control = session.voice
+        if control is None:
+            raise StateError(
+                f"live session {session_id} has no voice check"
+            )
+        if action == "skip":
+            control.skip()
+        elif action in ("mine", "not_mine"):
+            if not utterance or not re.fullmatch(UTTERANCE_ID, utterance):
+                raise InvalidInputError("a correction names an utterance")
+            control.correct(utterance, action == "mine")
+        else:
+            raise InvalidInputError(f"unknown voice action {action!r}")
+        return session
+
     def stop(self, session_id: str, timeout: float = 60.0) -> LiveSession:
         """Stop the session and wait (up to ``timeout``) for its end."""
         session = self.get(session_id)
@@ -452,7 +487,7 @@ class LiveSessions:
         return LiveOptions(
             model=model, device=device, compute_type=compute_type,
             language=request.language, diarize=request.diarize,
-            enrolled=request.enrolled,
+            enrolled=request.enrolled, parties=request.parties,
             settings=LiveSettings(
                 endpoint=EndpointSettings(hang_ms=request.hang_ms),
                 partial_every_ms=request.partial_every_ms,
@@ -547,6 +582,7 @@ class LiveSessions:
             )
             session.speakers = list(engine.speakers)
             session.diarizer = engine.diarizer
+            session.voice = engine.voice
             engine.start()
             if degraded is not None:
                 emit(engine.events.warning(
@@ -578,11 +614,37 @@ class LiveSessions:
         finally:
             if engine is not None:
                 engine.abort()
+                self._keep_diagnosis(session, engine)
             if self._p.lease is not None:
                 self._p.lease.release()
             if self._p.log is not None:
                 self._p.log.close(session.id)
         session.finished(state, error)
+
+    def _keep_diagnosis(
+        self, session: LiveSession, engine: LiveEngine
+    ) -> None:
+        """Keep the attribution's numbers of a two-party session (#249).
+
+        Ids, times, slots, cosines and decisions only: no text, no
+        audio. Written next to the events, so a bad session can be
+        explained afterwards.
+        """
+        records = engine.diagnosis()
+        if not records:
+            return
+        checks = [r for r in records if r.get("event") == "check"]
+        LOG.info(
+            "Live session %s attribution: %d records, check %s",
+            session.id, len(records),
+            checks[-1].get("state") if checks else "none",
+        )
+        if self._p.log is None:
+            return
+        try:
+            self._p.log.save_attribution(session.id, records)
+        except OSError:
+            LOG.exception("The attribution of %s was not kept", session.id)
 
     def _hand_over(
         self, session: LiveSession, model: str, compute: str,

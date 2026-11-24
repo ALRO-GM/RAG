@@ -127,6 +127,24 @@ export function holdLines(focused) {
   return Boolean(focused?.classList?.contains?.("live-name-input"));
 }
 
+/**
+ * The page's reading of a `voice_check` event's object (#249): its state,
+ * except "recognising" while the check heard enough and the voice is being
+ * computed. null without a check.
+ */
+export function voiceStatus(voice) {
+  if (!voice?.state) return null;
+  if (voice.state === "listening" && Number(voice.seconds) >= Number(voice.needed) && Number(voice.needed) > 0) return "recognising";
+  return voice.state;
+}
+
+/** The share (0–1) of the voice check heard so far. */
+export function voiceProgress(voice) {
+  const needed = Number(voice?.needed);
+  if (!(needed > 0)) return 0;
+  return Math.max(0, Math.min(1, Number(voice?.seconds) / needed || 0));
+}
+
 /** Pixels from the bottom within which the conversation still counts as "at the newest line". */
 export const FOLLOW_SLACK_PX = 48;
 
@@ -275,6 +293,7 @@ export class LiveState {
     this.error = null;
     this.lastId = 0;
     this.employee = null; // { id, name, role, speaker } chosen at the start
+    this.voice = null; // the employee's voice check (#249): { state, speaker, seconds, needed }
     this.names = new Map(); // speaker -> name given (start or rename)
     this.mode = null; // assistance mode: pincelada | guiado
     this.checklist = null; // mandatory items: { items: [{ id, text, state }], remind_seconds }
@@ -384,13 +403,20 @@ export class LiveState {
         if (u) {
           const kept = this.utterances.get(u.id);
           if (!kept || (u.revision ?? 0) >= (kept.revision ?? 0)) {
-            this.utterances.set(u.id, { id: u.id, speaker: u.speaker, text: u.text, start: u.start, end: u.end, revision: u.revision ?? 0 });
+            this.utterances.set(u.id, { id: u.id, speaker: u.speaker, text: u.text, start: u.start, end: u.end, revision: u.revision ?? 0, unsure: Boolean(u.speaker_unsure) });
           }
           this.partials.delete(u.id);
         }
         break;
       case "speaker_update":
-        if (u && this.utterances.has(u.id)) this.utterances.get(u.id).speaker = u.speaker;
+        if (u && this.utterances.has(u.id)) {
+          const kept = this.utterances.get(u.id);
+          kept.speaker = u.speaker;
+          kept.unsure = Boolean(u.speaker_unsure);
+        }
+        break;
+      case "voice_check":
+        if (event.voice_check?.state) this.voice = { ...event.voice_check };
         break;
       case "warning":
         if (event.warning) this.warnings.push({ code: event.warning.code, message: event.warning.message });
@@ -418,6 +444,27 @@ export class LiveState {
   /** "employee" for the person the page helps, "other" for everyone else. */
   sideOf(speaker) {
     return EMPLOYEE_ROLES.includes(this.roleOf(speaker)) ? "employee" : "other";
+  }
+
+  /**
+   * What the page says about the employee's voice check (#249):
+   * "listening" (say a sentence or two), "recognising" (enough heard, the
+   * voice is being computed), "recognised", "short", "skipped", "failed",
+   * or null when the session has no voice check.
+   */
+  voiceStatus() {
+    return voiceStatus(this.voice);
+  }
+
+  /**
+   * The correction a line offers (#249): "mine" («Esta soy yo») on the other
+   * person's lines, "not_mine" («Esta no soy yo») on the employee's, or null
+   * when the session cannot be corrected (no voice check, not running,
+   * a partial line).
+   */
+  correctionFor(u) {
+    if (!this.voice || this.state !== "running" || !u || u.partial) return null;
+    return this.sideOf(u.speaker) === "employee" ? "not_mine" : "mine";
   }
 
   /** The name of a speaker: given during the session, else known, else null. */

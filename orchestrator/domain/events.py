@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 EventType = Literal[
     "session_started", "partial", "final", "speaker_update", "turn_end",
-    "session_ended", "warning",
+    "session_ended", "warning", "voice_check",
 ]
 
 
@@ -55,6 +55,7 @@ class Utterance(_Strict):
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
     speaker_certainty: Optional[float] = Field(default=None, ge=-2, le=2)
     speaker_provisional: Optional[bool] = None
+    speaker_unsure: Optional[bool] = None
     language: Optional[str] = None
 
 
@@ -75,6 +76,21 @@ class LiveWarning(_Strict):
     message: str
 
 
+class VoiceCheck(_Strict):
+    """The employee's voice check of a two-party mono session (#249).
+
+    ``listening`` until enough of the employee's speech was heard
+    (``seconds`` of ``needed``), then ``recognised``; ``short`` when it
+    was too short to use, ``skipped`` when the employee skipped it,
+    ``failed`` when it could not be used.
+    """
+
+    state: Literal["listening", "recognised", "short", "skipped", "failed"]
+    speaker: str = Field(min_length=1)
+    seconds: Optional[float] = Field(default=None, ge=0)
+    needed: Optional[float] = Field(default=None, ge=0)
+
+
 class LiveEvent(_Strict):
     """``live.event.v1``."""
 
@@ -91,6 +107,7 @@ class LiveEvent(_Strict):
     utterance: Optional[Utterance] = None
     timings: Optional[Timings] = None
     warning: Optional[LiveWarning] = None
+    voice_check: Optional[VoiceCheck] = None
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 

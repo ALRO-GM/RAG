@@ -29,7 +29,7 @@ revision.
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -38,6 +38,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from transcriber.application.live_diarization import MonoAttributor
 from transcriber.application.ports import AsrStream, Clock, Timer, Vad
 from transcriber.domain.errors import InvalidInputError
+from transcriber.domain.live_session import Parties
 from transcriber.domain.live import (
     FRAME_SAMPLES,
     SAMPLE_RATE,
@@ -58,6 +59,23 @@ from transcriber.domain.live import (
 
 FloatArray = npt.NDArray[np.float32]
 Emit = Callable[[Dict[str, object]], None]
+
+
+class VoiceControl(Protocol):
+    """What the page may ask of a two-party session's voices (#249).
+
+    Thread-safe: the requests come from the API while the session's
+    worker reads the audio; they take effect with its next frame.
+    """
+
+    def skip(self) -> None:
+        """Skip the employee's voice check."""
+        ...
+
+    def correct(self, utterance: str, mine: bool) -> None:
+        """Say the voice of final ``utterance`` is (not) the employee's."""
+        ...
+
 
 MIN_PARTIAL_SECONDS = 0.5
 """A segment is not decoded for a partial before it holds this much."""
@@ -81,7 +99,8 @@ class LiveOptions(BaseModel):
     detect the language of each segment. ``diarize`` adds the
     streaming diarizer of mono sessions (on ``device`` too) and
     ``enrolled`` limits the voiceprints that may name its voices
-    (``None``: every enrolled person).
+    (``None``: every enrolled person). ``parties`` makes the diarized
+    session a two-party one with the employee's voice check (#249).
     """
 
     model_config = ConfigDict(frozen=True, protected_namespaces=())
@@ -93,6 +112,7 @@ class LiveOptions(BaseModel):
     settings: LiveSettings = LiveSettings()
     diarize: bool = False
     enrolled: Optional[List[str]] = None
+    parties: Optional[Parties] = None
 
 
 KEEP_IDLE_SECONDS = 1.0
@@ -320,6 +340,16 @@ class LiveEngine:
         return self._mono.model_name if self._mono is not None else None
 
     @property
+    def voice(self) -> Optional[VoiceControl]:
+        """Return the voice requests of a two-party session (#249)."""
+        mono = self._mono
+        return mono if mono is not None and mono.voice_check else None
+
+    def diagnosis(self) -> List[Dict[str, Any]]:
+        """Return the attribution's records (two-party sessions, #249)."""
+        return self._mono.diagnosis() if self._mono is not None else []
+
+    @property
     def stream_time(self) -> float:
         """Return the stream time of the frames read so far."""
         return self._frames * FRAME_SAMPLES / SAMPLE_RATE
@@ -350,6 +380,7 @@ class LiveEngine:
             self._emit, len(self.streams) == 2, self._paced, self._mono,
         )
         self._run.check_attribution()
+        self._run.voice_news(0.0)
 
     def _started(self) -> "_Run":
         """Return the run, or refuse audio before :meth:`start`."""
@@ -464,6 +495,18 @@ class _Run:
             return
         self._updates(self._mono.finish(), stream_time)
         self.check_attribution(stream_time)
+        self.voice_news(stream_time)
+
+    def voice_news(self, stream_time: float) -> None:
+        """Emit the voice check's news as ``voice_check`` events (#249)."""
+        mono = self._mono
+        if mono is None or mono.employee_id is None:
+            return
+        for state, seconds, needed in mono.notices():
+            self._emit(self._events.voice_check(
+                self._clock.now(), stream_time, state, mono.employee_id,
+                seconds, needed,
+            ))
 
     def anchor(self, seconds: float, at: Optional[float] = None) -> None:
         """Set the origin so that stream time ``seconds`` is ``at``.
@@ -507,6 +550,7 @@ class _Run:
             now = stream.endpointer.time
             self._updates(self._mono.poll(), now)
             self.check_attribution(now)
+            self.voice_news(now)
 
     def _audio(self, stream: _Stream, start: float, end: float) -> FloatArray:
         """Return ``stream``'s samples between two stream times."""
@@ -589,6 +633,8 @@ class _Run:
             self.summary.lag_ms.append(lag_ms)
             self.summary.attribution_ms.append((attributed - picked) * 1000)
         self._send("final", utterances, ended.endpoint_at, timings)
+        if self._mono is not None:
+            self.voice_news(ended.endpoint_at)
 
     def _send(
         self, kind: UtteranceEvent, utterances: List[LiveUtterance],

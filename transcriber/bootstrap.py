@@ -186,7 +186,7 @@ from transcriber.application.live import (
     LiveOptions, LiveTranscription,
 )
 from transcriber.application.live_diarization import (
-    LiveNaming, MonoAttributor,
+    LiveNaming, MonoAttributor, PartyPlan,
 )
 from transcriber.application.live_session import LivePorts, LiveSessions
 from transcriber.application.publish import PublishTranscript
@@ -222,6 +222,7 @@ from transcriber.domain.comparison import ComparisonParameters
 from transcriber.domain.diarization import BUILTIN_RULE, DiarizerRule
 from transcriber.domain.lab import BUILTIN_DIARIZER
 from transcriber.domain.live import LiveSpeaker
+from transcriber.domain.voice_check import VoiceCheckSettings
 from transcriber.domain.pipeline_choices import (
     live_cpu_only,
     name_models,
@@ -634,12 +635,32 @@ def live_attributor(
             live_naming(voiceprints, encoder, options.enrolled)
             if voiceprints is not None else None
         )
+        parties = party_plan(options, given, settings.live.voice_check)
+        if parties is not None and naming is None:
+            # The voice check needs the encoder even with nobody enrolled.
+            naming = LiveNaming(encoder, [], {}, release=encoder.release)
         return MonoAttributor(
             diarizer, SystemTimer(), settings.live.diarization, naming,
-            given,
+            given, parties=parties,
         )
 
     return make
+
+
+def party_plan(
+    options: LiveOptions, given: Sequence[LiveSpeaker],
+    settings: VoiceCheckSettings,
+) -> Optional[PartyPlan]:
+    """Return the two parties of a session that asks for them (#249)."""
+    parties = options.parties
+    if parties is None:
+        return None
+    known = {s.id: s for s in given}
+    return PartyPlan(
+        employee=known.get(parties.employee, LiveSpeaker(parties.employee)),
+        other=known.get(parties.other, LiveSpeaker(parties.other)),
+        voice_check=parties.voice_check, settings=settings,
+    )
 
 
 def live_builder(

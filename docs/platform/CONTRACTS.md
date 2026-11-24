@@ -29,7 +29,7 @@ Readers are deployed before writers. Each schema goes in
     "schema": {"const": "live.event.v1"},
     "session_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
     "seq": {"type": "integer", "minimum": 0},
-    "type": {"enum": ["session_started", "partial", "final", "speaker_update", "turn_end", "session_ended", "warning"]},
+    "type": {"enum": ["session_started", "partial", "final", "speaker_update", "turn_end", "session_ended", "warning", "voice_check"]},
     "at": {"type": "string", "format": "date-time"},
     "stream_time": {"type": "number", "minimum": 0},
     "source": {
@@ -71,6 +71,7 @@ Readers are deployed before writers. Each schema goes in
         "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
         "speaker_certainty": {"type": ["number", "null"], "minimum": -2, "maximum": 2},
         "speaker_provisional": {"type": ["boolean", "null"]},
+        "speaker_unsure": {"type": ["boolean", "null"]},
         "language": {"type": ["string", "null"], "minLength": 2}
       }
     },
@@ -90,15 +91,35 @@ Readers are deployed before writers. Each schema goes in
         "code": {"enum": ["gpu_degraded", "asr_behind", "source_lost", "quota", "other"]},
         "message": {"type": "string"}
       }
+    },
+    "voice_check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "speaker"],
+      "properties": {
+        "state": {"enum": ["listening", "recognised", "short", "skipped", "failed"]},
+        "speaker": {"type": "string", "minLength": 1},
+        "seconds": {"type": "number", "minimum": 0},
+        "needed": {"type": "number", "minimum": 0}
+      }
     }
   },
   "allOf": [
     {"if": {"properties": {"type": {"enum": ["partial", "final", "speaker_update"]}}}, "then": {"required": ["utterance"]}},
     {"if": {"properties": {"type": {"const": "session_started"}}}, "then": {"required": ["source", "speakers"]}},
-    {"if": {"properties": {"type": {"const": "warning"}}}, "then": {"required": ["warning"]}}
+    {"if": {"properties": {"type": {"const": "warning"}}}, "then": {"required": ["warning"]}},
+    {"if": {"properties": {"type": {"const": "voice_check"}}}, "then": {"required": ["voice_check"]}}
   ]
 }
 ```
+Two-party mono sessions (#249, added compatibly inside v1): a
+`voice_check` event says where the employee's voice check is
+(`listening`, with `seconds` heard of `needed`, repeated as it hears
+more; then `recognised`, `short`, `skipped` or `failed`), and an
+utterance whose speaker is not known from its voice yet has
+`speaker_unsure: true` (written only when true). Both come only with
+the start request's `parties`; deploy the transcriber before the
+orchestrator (see `contracts/README.md`).
+
 Semantics: a partial and the final it becomes share the same `id`, and
 `revision` increases with each update. A final is never retracted, only
 revised by `speaker_update`. `turn` increases when the speaker changes,

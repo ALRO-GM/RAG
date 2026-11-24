@@ -279,3 +279,43 @@ def test_a_speaker_named_during_the_session_is_named_in_the_transcript(
     ended = client.post("/api/live/sessions/named-1/speakers/S2",
                         json={"name": "Otra"})
     assert ended.status_code == 409
+
+
+def test_a_two_party_session_checks_the_voice_and_takes_corrections(
+    client: TestClient, container: TranscriberContainer
+) -> None:
+    # #249 over HTTP: the voice check's events, a skip and a correction
+    # through POST /api/live/sessions/{id}/voice, the numbers kept.
+    start(
+        client, session_id="two-1", channels=1, diarize=True, enrolled=[],
+        speakers=[{"channel": 0, "id": "S1", "role": "interviewer"},
+                  {"channel": 0, "id": "S2", "role": "candidate"}],
+        parties={"employee": "S1", "other": "S2"},
+    )
+    path = "/api/live/sessions/two-1/voice"
+    with client.websocket_connect("/api/live/two-1/audio") as ws:
+        assert ws.receive_json()["type"] == "ready"
+        assert client.post(path, json={"action": "skip"}).status_code == 200
+        assert client.post(path, json={"action": "mine",
+                                       "utterance": "t0.s0"}
+                           ).status_code == 200
+        for bad in ({"action": "dance"}, {"action": "mine"}, [1],
+                    {"action": 3}, {"action": "mine", "utterance": 5}):
+            assert client.post(path, json=bad).status_code in (400, 422)
+        assert client.post(path, content=b"{").status_code in (400, 422)
+        for message in chunks_of(speech(), 3200):
+            ws.send_bytes(message)
+        ws.send_text(json.dumps({"type": "stop"}))
+        assert ws.receive_json() == {"type": "stopped"}
+    events = follow(client, "/api/live/two-1/events")
+    for event in events:
+        jsonschema.validate(event, LIVE_SCHEMA)
+    states = [e["voice_check"]["state"] for e in events
+              if e["type"] == "voice_check"]
+    assert states[0] == "listening" and "skipped" in states
+    kept = container.settings.data_dir / "live" / "two-1" / "attribution.jsonl"
+    records = [json.loads(line) for line in kept.read_text().splitlines()]
+    assert any(r["event"] == "check" for r in records)
+    assert client.post(path, json={"action": "skip"}).status_code == 409
+    assert client.post("/api/live/sessions/zzz/voice",
+                       json={"action": "skip"}).status_code == 404

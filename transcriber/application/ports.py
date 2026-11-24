@@ -868,6 +868,15 @@ class LiveLog(Protocol):
         """Keep the session's ``transcript.v1`` next to its log."""
         ...
 
+    def save_attribution(
+        self, session_id: str, records: Sequence[Mapping[str, Any]]
+    ) -> None:
+        """Keep the attribution's records of a session (#249).
+
+        Numbers and ids only (no text, no audio), one record per line.
+        """
+        ...
+
     def close(self, session_id: str) -> None:
         """Close the session's log (no more events)."""
         ...
