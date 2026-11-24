@@ -5,7 +5,8 @@ voice model, consent version, date, speaking rate) and the consent
 record, written atomically. Nothing of the enrolment sample is stored,
 except ``<speaker id>.clone.wav`` (16-bit mono) while the person agrees
 to their voice being cloned for the voice bot; the orchestrator reads
-both files (``docs/live/VOICE_CLONING.md``).
+both files (``docs/live/VOICE_CLONING.md``). Deleting that clip also
+deletes the scripted examples' clips cloned from the voice (#254).
 
 Vectors of different voice models cannot be compared, so the
 repository is bound to the voice model in use: it refuses to store a
@@ -34,6 +35,10 @@ import numpy.typing as npt
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from transcriber.adapters.outbound.fs_demo_voices import (
+    DIRECTORY as DEMO_VOICES,
+    forget_cloned_demo_clips,
+)
 from transcriber.adapters.outbound.fs_storage import (
     atomic_write,
     child_path,
@@ -222,9 +227,16 @@ class FileSystemVoiceprintRepository:
             atomic_write(path, buffer.getvalue())
 
     def delete_clone_reference(self, speaker_id: str) -> bool:
-        """Remove the reference clip; tell whether there was one."""
+        """Remove the reference clip; tell whether there was one.
+
+        The scripted examples' clips cloned from this voice (#254,
+        ``<data>/demo-voices``) are deleted with it, every time: the
+        consent they were made under has ended.
+        """
         path = self._clip(speaker_id)
         with self._lock:
+            forget_cloned_demo_clips(self.root.parent / DEMO_VOICES,
+                                     speaker_id)
             try:
                 path.unlink()
             except FileNotFoundError:

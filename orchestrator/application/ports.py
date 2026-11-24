@@ -13,6 +13,7 @@ from typing import (
 
 from orchestrator.domain.candidate import CandidateProfile, CoreQuestion
 from orchestrator.domain.demo import DemoScript
+from orchestrator.domain.demo_voices import DemoVoice, DemoVoiceManifest
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
@@ -499,4 +500,70 @@ class CoreQuestionSource(Protocol):
 
     def questions(self) -> List[CoreQuestion]:
         """Return them in order (empty when the file cannot be read)."""
+        ...
+
+
+class DemoVoiceStore(Protocol):
+    """Where the scripted examples' clips are kept (#254).
+
+    Outside the repository, files only the owner may read. A file name
+    is a clip's, never a path: the store checks it.
+    """
+
+    def manifest(self, demo_id: str) -> Optional[DemoVoiceManifest]:
+        """The demo's manifest; ``None`` when there is none (or unreadable)."""
+        ...
+
+    def save_manifest(self, manifest: DemoVoiceManifest) -> None:
+        """Write the manifest (atomically)."""
+        ...
+
+    def write_clip(self, demo_id: str, name: str, wav: bytes) -> None:
+        """Write one clip (atomically)."""
+        ...
+
+    def read_clip(self, demo_id: str, name: str) -> bytes:
+        """Return one clip; ``KeyError`` when there is none."""
+        ...
+
+    def has_clip(self, demo_id: str, name: str) -> bool:
+        """Whether the clip's file is there."""
+        ...
+
+    def delete_clip(self, demo_id: str, name: str) -> None:
+        """Delete one clip (nothing when it is gone already)."""
+        ...
+
+    def clear(self, demo_id: str) -> int:
+        """Delete every clip and the manifest of a demo; how many clips."""
+        ...
+
+
+class DemoSpeaker(Protocol):
+    """Says a demo line with a chosen voice, ahead of time (#254)."""
+
+    def engine(self, voice: DemoVoice) -> str:
+        """What will speak ``voice`` (``pocket-cpu``, ``qwen3-cuda``)."""
+        ...
+
+    def need_mib(self, voice: DemoVoice) -> int:
+        """GPU memory ``voice`` needs (0: none, no lease)."""
+        ...
+
+    def speak(
+        self, text: str, voice: DemoVoice, reference: Optional[str],
+        language: str,
+    ) -> Tuple[bytes, int]:
+        """Return PCM s16le mono of the whole line and its rate.
+
+        ``reference`` is the clone's reference clip (``None`` for a
+        stock voice).
+
+        Raises:
+            TtsUnavailable: The engine could not speak.
+        """
+        ...
+
+    def close(self) -> None:
+        """Stop every engine this speaker started."""
         ...

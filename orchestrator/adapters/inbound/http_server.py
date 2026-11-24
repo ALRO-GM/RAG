@@ -7,7 +7,10 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``GET /transcripts``: recorded conversations a replay can use, and
   ``demos``: the scripted demos (``live.demo.v1``, LV-17); ``GET
   /demos/{id}/report`` and ``/voicebot``: their report and voice
-  example (#250).
+  example (#250); ``GET /demos/{id}/voices``: which examples can be
+  heard and each clip's length, ``GET /demos/{id}/voices/{line}.wav``:
+  one rendered clip, ``audio/wav`` (#254; 404 when it may not be played:
+  not rendered, text changed, consent withdrawn).
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
   "session_id"?, "employee"?: {"id", "name"}, "plan"?, "domain"?,
@@ -68,6 +71,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.interview import PlanError
 from orchestrator.application.sessions import LiveSessions, SessionError
 
@@ -85,6 +89,7 @@ def create_app(
     sessions: LiveSessions,
     token: Optional[str] = None,
     keepalive: float = 15.0,
+    demo_voices: Optional[DemoVoiceLibrary] = None,
 ) -> FastAPI:
     """Build the API over ``sessions``.
 
@@ -92,6 +97,8 @@ def create_app(
         sessions: The use case.
         token: Bearer token required on every route but ``/health``.
         keepalive: Seconds between SSE comments when nothing happens.
+        demo_voices: The scripted examples' rendered clips (``None``:
+            no example is heard).
     """
     app = FastAPI(
         title="Orchestrator", docs_url=None, redoc_url=None,
@@ -161,6 +168,31 @@ def create_app(
         found = await run_in_threadpool(sessions.list_transcripts)
         demos = await run_in_threadpool(sessions.list_demos)
         return {"transcripts": found, "demos": demos}
+
+    @app.get("/demos/{demo_id}/voices")
+    async def demo_voice_view(demo_id: str) -> Dict[str, Any]:
+        """Which examples of a demo can be heard, and their clips."""
+        if demo_voices is None:
+            raise SessionError("not_found", "no demo voices here")
+        try:
+            found: Dict[str, Any] = await run_in_threadpool(
+                demo_voices.view, demo_id)
+        except KeyError as exc:
+            raise SessionError("not_found", f"no demo {demo_id!r}") from exc
+        return found
+
+    @app.get("/demos/{demo_id}/voices/{clip}")
+    async def demo_voice_clip(demo_id: str, clip: str) -> Response:
+        """One rendered clip of a demo line, if it may be played."""
+        key = clip[:-4] if clip.endswith(".wav") else ""
+        if demo_voices is None or not key:
+            raise SessionError("not_found", "no such clip")
+        try:
+            wav = await run_in_threadpool(demo_voices.clip, demo_id, key)
+        except KeyError as exc:
+            raise SessionError("not_found", "no such clip") from exc
+        return Response(wav, media_type="audio/wav",
+                        headers={"Cache-Control": "private, no-store"})
 
     @app.get("/demos/{demo_id}/{part}")
     async def demo_part(demo_id: str, part: str) -> Dict[str, Any]:

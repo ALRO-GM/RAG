@@ -37,3 +37,7 @@ class VoiceDemo(BaseModel):
     exchanges: List[VoiceExchange] = Field(min_length=1)
     en: Optional[Dict[str, str]] = None
     """``title`` and ``intro`` in English."""
+    user: str = "cliente"
+    """The cast id of the customer who asks (#254: whose voice reads it)."""
+    bot: str = "asistente"
+    """The cast id of the assistant who answers."""

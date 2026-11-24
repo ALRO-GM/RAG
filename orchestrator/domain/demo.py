@@ -20,9 +20,14 @@ so a replayed sentence types in as a live one does. Plain data and
 rules: no I/O.
 """
 
+import copy
+import json
 import math
+import re
 from datetime import datetime, timedelta
-from typing import Dict, Iterable, Iterator, List, Literal, Optional, Set
+from typing import (
+    Any, Callable, Dict, Iterable, Iterator, List, Literal, Optional, Set,
+)
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -119,6 +124,26 @@ class DemoMandatory(BaseModel):
     items: List[DemoMandatoryItem] = Field(min_length=1)
 
 
+Gender = Literal["female", "male"]
+
+
+class DemoCharacter(BaseModel):
+    """A scripted person: the speaker id of their lines and their name.
+
+    ``gender`` is the one their name (and the voice that reads them)
+    has; ``None``: any (the voice assistant). ``gendered_text`` says the
+    script's wording about them is gendered («señor», «harto», «he»), so
+    renaming them to the other gender needs rewording, not a rename.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    gender: Optional[Gender] = None
+    gendered_text: bool = False
+
+
 class DemoScript(BaseModel):
     """A ``live.demo.v1`` file."""
 
@@ -143,6 +168,8 @@ class DemoScript(BaseModel):
     mandatory: Optional[DemoMandatory] = None
     report: Optional[CallReport] = None
     voicebot: Optional[VoiceDemo] = None
+    cast: List[DemoCharacter] = Field(default_factory=list)
+    """Who speaks (#254); empty: the transcript's speakers, no gender."""
     transcript: Transcript
 
     @model_validator(mode="after")
@@ -160,6 +187,7 @@ class DemoScript(BaseModel):
         if missing:
             raise ValueError(f"unknown sentences {missing}")
         self._known_sources()
+        self._known_cast()
         if not self.transcript.utterances:
             raise ValueError("the demo has no sentences")
         return self
@@ -185,6 +213,26 @@ class DemoScript(BaseModel):
                     raise ValueError(
                         f"report and call disagree on {result.item!r}"
                     )
+
+    def _known_cast(self) -> None:
+        """The cast names every speaker once, with the transcript's name."""
+        if not self.cast:
+            return
+        cast = {c.id: c for c in self.cast}
+        if len(cast) != len(self.cast):
+            raise ValueError("a person is twice in the cast")
+        speaking = {u.speaker for u in self.transcript.utterances}
+        if self.voicebot:
+            speaking |= {self.voicebot.user, self.voicebot.bot}
+        missing = sorted(speaking - set(cast))
+        if missing:
+            raise ValueError(f"not in the cast: {missing}")
+        for speaker in self.transcript.speakers:
+            if speaker.id in cast and speaker.name != cast[speaker.id].name:
+                raise ValueError(
+                    f"{speaker.id!r} is {speaker.name!r} in the transcript"
+                    f" but {cast[speaker.id].name!r} in the cast"
+                )
 
     def summary(self) -> Dict[str, object]:
         """What a page lists of the demo."""
@@ -248,3 +296,73 @@ def _shift(stamp: str, seconds: float) -> str:
     return (moved + timedelta(seconds=seconds)).isoformat(
         timespec="milliseconds"
     ).replace("+00:00", "Z")
+
+
+def recast(
+    data: Dict[str, Any], person: str, name: str,
+    gender: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Return a demo file's data with ``person`` renamed everywhere.
+
+    ``data`` is a ``live.demo.v1`` file as plain JSON data; every text
+    that says the old name (whole, first word, last word) says the new
+    one, and the cast entry gets the new name and, when given, the new
+    ``gender``. The new name has as many words as the old one and none
+    of its words is already in the file, so a rename can be undone by
+    the opposite rename.
+
+    Raises:
+        ValueError: ``person`` is not in the cast, the name does not
+            fit, the demo has a stored analysis that names people too,
+            or the gender changes for a person worded by gender.
+    """
+    cast = data.get("cast") or []
+    entry = next((c for c in cast if isinstance(c, dict)
+                  and c.get("id") == person), None)
+    if entry is None:
+        raise ValueError(f"{person!r} is not in the cast")
+    if data.get("result_session"):
+        raise ValueError("this demo's stored analysis names the people too")
+    if gender not in (None, "female", "male"):
+        raise ValueError("gender is female or male")
+    if (gender is not None and gender != entry.get("gender")
+            and entry.get("gendered_text")):
+        raise ValueError(
+            f"the script words {person!r} as {entry.get('gender')}:"
+            " rewording, not a rename, changes that"
+        )
+    old, new = str(entry["name"]).split(), name.split()
+    if len(new) != len(old) or not new:
+        raise ValueError(f"the new name has {len(old)} word(s), like the old")
+    pairs = {" ".join(old): " ".join(new), old[0]: new[0], old[-1]: new[-1]}
+    pairs = {k: v for k, v in pairs.items() if k != v}
+    text = json.dumps(data, ensure_ascii=False)
+    taken = [w for w in new if w not in old
+             and re.search(rf"(?<!\w){re.escape(w)}(?!\w)", text)]
+    if taken:
+        raise ValueError(f"already in the demo: {taken}")
+    if not pairs:
+        renamed = copy.deepcopy(data)
+    else:
+        pattern = re.compile("(?<!\\w)(?:" + "|".join(
+            re.escape(k) for k in sorted(pairs, key=len, reverse=True)
+        ) + ")(?!\\w)")
+        renamed = _map_strings(
+            data, lambda s: pattern.sub(lambda m: pairs[m.group(0)], s))
+    for item in renamed.get("cast") or []:
+        if isinstance(item, dict) and item.get("id") == person:
+            item["name"] = " ".join(new)
+            if gender is not None:
+                item["gender"] = gender
+    return dict(renamed)
+
+
+def _map_strings(value: Any, change: Callable[[str], str]) -> Any:
+    """Return ``value`` (JSON data) with ``change`` applied to every text."""
+    if isinstance(value, str):
+        return change(value)
+    if isinstance(value, list):
+        return [_map_strings(v, change) for v in value]
+    if isinstance(value, dict):
+        return {k: _map_strings(v, change) for k, v in value.items()}
+    return value

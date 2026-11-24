@@ -792,8 +792,30 @@
      "bot": "I understand it is the third time and I am sorry for the trouble. In three points: the charge is refunded, the refund takes three to ten days and, if you already cancelled, there will be no more charges."
     }
    }
-  ]
+  ],
+  "user": "cliente",
+  "bot": "asistente"
  },
+ "cast": [
+  {
+   "id": "agente",
+   "name": "Marta",
+   "gender": "female",
+   "gendered_text": false
+  },
+  {
+   "id": "cliente",
+   "name": "Andrés Ferrer",
+   "gender": "male",
+   "gendered_text": true
+  },
+  {
+   "id": "asistente",
+   "name": "Asistente de voz",
+   "gender": null,
+   "gendered_text": false
+  }
+ ],
  "transcript": {
   "schema": "transcript.v1",
   "session": {
