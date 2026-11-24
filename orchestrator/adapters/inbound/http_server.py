@@ -5,7 +5,9 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``GET /health``: no token.
 - ``GET /products``: the live products and what the page shows of them.
 - ``GET /transcripts``: recorded conversations a replay can use, and
-  ``demos``: the scripted demos (``live.demo.v1``, LV-17).
+  ``demos``: the scripted demos (``live.demo.v1``, LV-17); ``GET
+  /demos/{id}/report`` and ``/voicebot``: their report and voice
+  example (#250).
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
   "session_id"?, "employee"?: {"id", "name"}, "plan"?, "domain"?,
@@ -159,6 +161,14 @@ def create_app(
         found = await run_in_threadpool(sessions.list_transcripts)
         demos = await run_in_threadpool(sessions.list_demos)
         return {"transcripts": found, "demos": demos}
+
+    @app.get("/demos/{demo_id}/{part}")
+    async def demo_part(demo_id: str, part: str) -> Dict[str, Any]:
+        """The report or the voice example of a scripted demo."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            sessions.demo_part, demo_id, part
+        )
+        return found
 
     @app.get("/sessions")
     async def list_sessions() -> Dict[str, Any]:

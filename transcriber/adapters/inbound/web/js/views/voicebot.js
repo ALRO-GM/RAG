@@ -29,6 +29,8 @@ import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js"
 import { coveragePanel, planSetup, reportCard } from "./interview.js";
 import { connectionCard } from "./connection.js";
 import { needsOf } from "../lib/connection.js";
+import { voiceDemoView } from "./voice-demo.js";
+import { voiceDemo as findVoiceDemo } from "../lib/call-demo.js";
 
 const RETRY_MS = 2000;
 
@@ -43,8 +45,9 @@ function maybe(key, fallback, params) {
   return text === key ? fallback : text;
 }
 
-export async function voicebotView(ctx, root) {
+export async function voicebotView(ctx, root, [sub] = []) {
   root.classList.add("wide");
+  if (sub === "demo") return voiceDemo(ctx, root);
   let product = null;
   let topics = [];
   try {
@@ -157,6 +160,7 @@ export async function voicebotView(ctx, root) {
 
     root.append(
       pageHead(t("voicebot.title"), { lead: t("voicebot.lead") }),
+      h("p", { class: "vb-example" }, h("a", { class: "service-demo", href: "#/voicebot/demo" }, icon("play"), t("home.voicebot.demo"))),
       connection.node,
       h("section", { class: "card vb-start" },
         h("p", { class: "notice info", role: "note" }, t("voicebot.notice")),
@@ -412,5 +416,16 @@ export async function voicebotView(ctx, root) {
     });
     draw();
     follow();
+  }
+}
+
+/** The scripted voice example (#250): find the demo that carries it, then play it. */
+async function voiceDemo(ctx, root) {
+  try {
+    const found = findVoiceDemo((await ctx.api.liveTranscripts()).demos);
+    return await voiceDemoView(ctx, root, found?.id ?? "");
+  } catch (error) {
+    if (error?.kind === "unauthorized") throw error;
+    return voiceDemoView(ctx, root, "");
   }
 }

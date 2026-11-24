@@ -84,7 +84,8 @@ function sectionCrumbs(hash, t) {
     case "admin": return [here(t("nav.admin"))];
     case "enrol": return [here(t("nav.enrol"))];
     case "live": return [here(t("nav.live"))];
-    case "voicebot": return [here(t("nav.voicebot"))];
+    case "voicebot": return a === "demo" ? [{ label: t("nav.voicebot"), href: "#/voicebot" }, here(t("vdemo.crumb"))] : [here(t("nav.voicebot"))];
+    case "call-report": return [here(t("report.title"))];
     case "settings": return [here(t("nav.settings"))];
     case "s": return [sessions, here(a ?? "")];
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];

@@ -21,7 +21,8 @@ function serviceCard(service) {
     h("div", { class: "service-links" },
       h("a", { class: "button primary service-go", href: service.href, "aria-describedby": id },
         t("home.try"), icon("arrow")),
-      service.demo ? h("a", { class: "service-demo", href: service.demo }, icon("play"), t(`home.${service.id}.demo`)) : null));
+      service.demo ? h("a", { class: "service-demo", href: service.demo }, icon("play"), t(`home.${service.id}.demo`)) : null,
+      (service.more ?? []).map((m) => h("a", { class: "service-demo", href: m.href }, icon("play"), t(m.key)))));
 }
 
 // The overall percentage: seen as «67,5 %», read out as «Valoración general 67,5 %».

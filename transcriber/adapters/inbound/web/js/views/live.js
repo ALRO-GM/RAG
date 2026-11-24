@@ -28,6 +28,7 @@ import {
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
+import { pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
 import { confirmStep } from "./candidate.js";
@@ -73,7 +74,7 @@ function dot(kind, extra = "") {
   return h("span", { class: `state-dot ${kind} ${extra}`.trim(), "aria-hidden": "true" });
 }
 
-export async function liveView(ctx, root, [sub] = []) {
+export async function liveView(ctx, root, [sub, which] = []) {
   root.classList.add("wide");
   let products = [];
   let transcripts = [];
@@ -115,7 +116,8 @@ export async function liveView(ctx, root, [sub] = []) {
     setLeaveGuard(() => false);
   }
 
-  if (sub === "demo" && demos.length) startDemo(demos[0]);
+  const wanted = pickDemo(demos, which);
+  if (sub === "demo" && wanted) startDemo(wanted);
   else showForm(sub === "demo" ? t("live.scripted.none") : null);
   return cleanup;
 
@@ -298,7 +300,8 @@ export async function liveView(ctx, root, [sub] = []) {
     planSelect.addEventListener("change", loadCandidates);
     candidateSelect.addEventListener("change", syncRole);
     const field = (input, key) => h("div", { class: "field" }, h("label", { for: input.id }, t(key)), input);
-    const scripted = demos[0];
+    const scripted = pickDemo(demos);
+    const supportDemo = pickDemo(demos, "support");
     // append() of the h helper skips null (the DOM's own would write "null").
     append(root, [
       pageHead(t("live.title"), { lead: t("live.lead") }),
@@ -309,6 +312,12 @@ export async function liveView(ctx, root, [sub] = []) {
           h("p", { class: "hint" }, t("live.scripted.body"))),
         h("button", { type: "button", class: "primary big", onClick: () => startDemo(scripted) },
           icon("play"), t("live.scripted.start"))) : null,
+      supportDemo ? h("section", { class: "card lv-demo-card" },
+        h("div", { class: "lv-demo-text" },
+          h("h2", {}, t("live.support_demo.title")),
+          h("p", { class: "hint" }, t("live.support_demo.body"))),
+        h("button", { type: "button", class: "primary big", onClick: () => startDemo(supportDemo) },
+          icon("play"), t("live.support_demo.start"))) : null,
       h("div", { class: "live-start" },
         connection.node,
         h("section", { class: "card lv-new" },
@@ -337,7 +346,8 @@ export async function liveView(ctx, root, [sub] = []) {
     guarded = session.mode !== "demo";
     playing = session.mode === "demo" ? session.id : null;
     const demo = state.demo;
-    const resultHref = demo?.result_session ? `#/analysis/${encodeURIComponent(demo.result_session)}` : null;
+    const result = resultLink(demo);
+    const resultHref = result?.href ?? null;
 
     // ---- header: clock, what this is, who, and the actions
     const clock = h("span", { class: "lv-clock" });
@@ -480,7 +490,7 @@ export async function liveView(ctx, root, [sub] = []) {
       otherName.textContent = demo?.candidate ?? (other ? state.nameOf(other) ?? "" : "");
       stop.hidden = !live;
       fresh.hidden = live;
-      if (toResult) toResult.textContent = live ? t("live.end_result") : t("live.see_result", { name: demo.candidate });
+      if (toResult) toResult.textContent = result.kind === "report" ? t(live ? "live.report_end" : "live.report_see") : live ? t("live.end_result") : t("live.see_result", { name: demo.candidate });
       const counts = state.counts();
       fill(status,
         h("span", { class: `badge is-${live ? "processing" : state.state === "failed" ? "failed" : "indexed"}` }, t(`live.state.${state.state}`)),
@@ -724,7 +734,18 @@ export async function liveView(ctx, root, [sub] = []) {
           h("span", { class: "lv-badge done lv-rise", hidden: true }, icon("check"), t("live.now_used"))),
         guided ? h("span", { class: "live-say-label" }, t("live.say")) : null,
         h("p", { class: "lv-big" }, localized(card.suggestion, "text", lang)),
-        card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: localized(card.suggestion, "example", lang) })) : null);
+        card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: localized(card.suggestion, "example", lang) })) : null,
+        callSupport(card));
+    }
+
+    // A support call's «Ahora» card (#250): what the customer expressed, quoted, and the
+    // source in the knowledge base the suggestion comes from.
+    function callSupport(card) {
+      const signalsRow = card.signals.length && state.discomfort()?.record !== card.record ? h("ul", { class: "lv-signals" }, card.signals.map((s) => h("li", {},
+        h("span", { class: "tag warn" }, t(`live.signal.${s.signal}`)), " ", h("span", {}, t("live.customer_says")), " ", h("q", {}, s.quote)))) : null;
+      const sources = card.cites.length ? h("div", { class: "lv-sources" }, card.cites.map((c) => h("p", { class: "lv-source" },
+        h("span", { class: "lv-source-label" }, t("live.source_kb")), " ", c.text ?? t("live.source_missing")))) : null;
+      return signalsRow || sources ? h("div", { class: "lv-support" }, signalsRow, sources) : null;
     }
 
     function avoidCard(flag) {
@@ -737,10 +758,10 @@ export async function liveView(ctx, root, [sub] = []) {
 
     function endCard() {
       return h("div", { class: "lv-card lv-rise" },
-        h("div", { class: "lv-card-head is-done" }, dot("done"), t("live.ended_title")),
-        h("p", { class: "lv-big" }, resultHref ? t("live.ended_body") : t("live.ended_plain")),
+        h("div", { class: "lv-card-head is-done" }, dot("done"), t(result?.kind === "report" ? "live.report_ended_title" : "live.ended_title")),
+        h("p", { class: "lv-big" }, resultHref ? t(result.kind === "report" ? "live.report_ended" : "live.ended_body") : t("live.ended_plain")),
         h("div", { class: "row wrap" },
-          resultHref ? h("a", { class: "button primary", href: resultHref }, t("live.see_result", { name: demo.candidate }), icon("arrow")) : null,
+          resultHref ? h("a", { class: "button primary", href: resultHref }, result.kind === "report" ? t("live.report_see") : t("live.see_result", { name: demo.candidate }), icon("arrow")) : null,
           h("button", { type: "button", onClick: () => restart() }, icon("play"), t("live.replay_again"))));
     }
 
