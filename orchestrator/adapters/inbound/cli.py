@@ -49,6 +49,8 @@ from orchestrator.adapters.outbound.files import (
     load_product,
     load_transcript,
 )
+from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
+from orchestrator.adapters.outbound.fs_core_questions import FileCoreQuestions
 from orchestrator.adapters.outbound.fs_interview_plans import JsonPlanStore
 from orchestrator.adapters.outbound.http_interview import (
     HttpHandoff,
@@ -96,6 +98,7 @@ from orchestrator.adapters.outbound.runtime import (
     ThreadExecutor,
     ThreadRunner,
 )
+from orchestrator.application.candidates import CandidateBook
 from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
@@ -508,10 +511,37 @@ def build_interview(
     )
     report = (HttpReasoner(args.reasoner_url, args.token, timeout=100.0)
               if args.reasoner == "http" else reasoner)
+
+    def plan_exists(plan_id: str) -> bool:
+        try:
+            store.load(plan_id)
+        except KeyError:
+            return False
+        return True
+
+    candidates = CandidateBook(
+        JsonCandidateStore(args.interview_dir),
+        FileCoreQuestions(ROOT / "knowledge" / "interview"
+                          / "core-questions.json"),
+        plan_exists, retention_days(products),
+    )
     return InterviewWiring(
         planner, store, report,
         HttpHandoff(args.knowledge_url, args.token) if http else None,
+        candidates,
     )
+
+
+def retention_days(products: Dict[str, ProductConfig]) -> Optional[int]:
+    """Days a candidate profile is kept: the shortest text retention of
+    the interview products (``privacy.store_text_days``), if any."""
+    days = [
+        c.privacy.store_text_days for c in products.values()
+        if (c.interview is not None or any(
+            ch.role == "interviewer" for ch in c.source.channels.values()))
+        and c.privacy.store_text_days is not None
+    ]
+    return min(days) if days else None
 
 
 def build_mandatory(args: argparse.Namespace) -> MandatoryPort:

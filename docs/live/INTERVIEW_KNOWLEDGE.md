@@ -120,7 +120,9 @@ saturate the interview; a sixth slot is free). Each fills profile fields
 | 5 | `salary_expectation` | «¿Qué expectativa salarial tienes para este puesto?» | `salary.expectation_min`, `salary.expectation_max` | expectation, never pay history (Directiva 2023/970 art. 5.2); asked last |
 
 If the answer is already in the profile or the offer, it is not asked
-again; a «no» is recorded without asking why.
+again; a «no» is recorded without asking why. The profile, how answers
+are captured from the conversation and how they are corrected and
+deleted: `docs/live/CANDIDATE_PROFILE.md` (#235).
 
 ## 3. Review of the interview-method corpus
 
@@ -142,6 +144,17 @@ the 170 were edited and 7 were added (m171-m177). Found and fixed:
 Not changed: the records on structure, closing and per-role requirements
 read correctly; m057, m087 and m134 overlap (concrete example requests) but each is
 reached by a different situation, so they were kept.
+
+**The live index does not follow the file by itself** (checked for
+#235 by reading the code). The RAG's domain registry
+(`src/application/knowledge/registry.py`) serves the index stored under
+`data/processed/domains/<id>/` and reloads a searcher only when that
+index's fingerprint changes; nothing indexes an authored domain when the
+RAG starts. A changed `knowledge/domains/interview.generic/*.jsonl` is
+picked up only after `uv run --no-sync python -m src domain index
+interview.generic` (incremental by file hash; `--force` re-embeds
+everything) or after an upload or deletion in that domain through the
+library. `python -m src domain list` shows the chunks the index holds.
 
 ## 4. How the sources were read (the research log)
 

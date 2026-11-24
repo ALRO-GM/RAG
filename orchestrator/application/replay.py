@@ -32,12 +32,17 @@ STOP_CHECK = 0.25
 def default_roles(
     config: ProductConfig, transcript: Transcript
 ) -> Dict[str, str]:
-    """Give each speaker a role by order over the product's channels."""
+    """Give each speaker a role by order over the product's channels.
+
+    A speaker whose ``transcript.v1`` entry carries a role the product
+    knows (#235) keeps it.
+    """
     declared = [
         config.source.channels[c].role for c in sorted(config.source.channels)
     ] or ["unknown"]
     return {
-        s.id: declared[min(i, len(declared) - 1)]
+        s.id: s.role if s.role in declared
+        else declared[min(i, len(declared) - 1)]
         for i, s in enumerate(transcript.speakers)
     }
 

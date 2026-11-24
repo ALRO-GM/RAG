@@ -88,6 +88,10 @@ class Word(BaseModel):
 OverlapSource = Literal["voices", "detector", "both"]
 # How an enrolled person was recognised (see Speaker).
 Identification = Literal["threshold", "expected_floor"]
+SpeakerRole = Literal[
+    "interviewer", "candidate", "agent", "customer", "user", "bot",
+]
+"""A speaker's role in the conversation, as the live session gave it."""
 
 
 class Turn(BaseModel):
@@ -197,6 +201,8 @@ class Speaker(BaseModel):
     ``expected_floor`` (they were listed as present and their voice was
     only above the lower floor of the expected-speakers rule: a weaker
     identification); ``None`` for an anonymous voice or when unknown.
+    ``role`` (#235) is the speaker's role in a live session
+    (interviewer, candidate, agent, customer...); ``None`` when unknown.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -205,6 +211,7 @@ class Speaker(BaseModel):
     name: Optional[str] = None
     enrolled: bool
     identification: Optional[Identification] = None
+    role: Optional[SpeakerRole] = None
 
     @model_validator(mode="after")
     def _identified(self) -> "Speaker":
@@ -366,7 +373,9 @@ _SESSION_FIELDS = frozenset({
     "id", "title", "language", "started_at", "duration", "audio_sha256",
     "type", "goal",
 })
-_SPEAKER_FIELDS = frozenset({"id", "name", "enrolled", "identification"})
+_SPEAKER_FIELDS = frozenset({
+    "id", "name", "enrolled", "identification", "role",
+})
 _UTTERANCE_FIELDS = frozenset({
     "id", "turn", "index", "speaker", "start", "end", "text",
     "previous_speaker", "previous_utterance", "confidence",
@@ -399,7 +408,7 @@ _UTTERANCE_ADDED = frozenset({
     "speaker_certainty", "doubtful", "overlap", "alternative_speaker",
     "overlap_source", "language", "language_differs",
 })
-_SPEAKER_ADDED = frozenset({"identification"})
+_SPEAKER_ADDED = frozenset({"identification", "role"})
 _SESSION_ADDED = ("type", "goal")
 
 

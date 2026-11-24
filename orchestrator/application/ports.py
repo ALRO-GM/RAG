@@ -11,6 +11,7 @@ from typing import (
     Protocol, Tuple,
 )
 
+from orchestrator.domain.candidate import CandidateProfile, CoreQuestion
 from orchestrator.domain.demo import DemoScript
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
@@ -466,4 +467,36 @@ class GpuGate(Protocol):
 
     def drop(self) -> None:
         """Release the lease :meth:`take` wrote, if any."""
+        ...
+
+
+class CandidateStore(Protocol):
+    """Where the candidate profiles of each role are kept (#235)."""
+
+    def load(self, plan_id: str, candidate_id: str) -> CandidateProfile:
+        """Return one profile (``KeyError`` when there is none)."""
+        ...
+
+    def save(self, profile: CandidateProfile) -> None:
+        """Keep ``profile`` (replacing its older copy)."""
+        ...
+
+    def list(self, plan_id: str) -> List[CandidateProfile]:
+        """Every readable profile of a role."""
+        ...
+
+    def plans(self) -> List[str]:
+        """The roles (plan ids) that have profiles."""
+        ...
+
+    def delete(self, plan_id: str, candidate_id: str) -> bool:
+        """Delete one profile; ``False`` when there was none."""
+        ...
+
+
+class CoreQuestionSource(Protocol):
+    """The core questions of KN-4 (``interview.core.v1``)."""
+
+    def questions(self) -> List[CoreQuestion]:
+        """Return them in order (empty when the file cannot be read)."""
         ...

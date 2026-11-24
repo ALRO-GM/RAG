@@ -111,7 +111,9 @@ class Transcript(BaseModel):
     speaker name to the person id the transcriber enrolled it under
     (``transcript.v1`` speakers with ``enrolled: true``): the only link
     between one person's sessions. ``started_at`` is when the session
-    started (ISO 8601), when the source says so.
+    started (ISO 8601), when the source says so. ``roles`` maps a shown
+    speaker name to its role in a live session (``transcript.v1``
+    speakers' ``role``, #235: ``interviewer``, ``candidate``...).
     """
 
     session_id: str
@@ -121,6 +123,7 @@ class Transcript(BaseModel):
     conversation_goal: Optional[str] = None
     people: Dict[str, str] = Field(default_factory=dict)
     started_at: Optional[str] = None
+    roles: Dict[str, str] = Field(default_factory=dict)
 
     def speakers(self) -> List[str]:
         """Return the speakers in order of first appearance."""
@@ -301,6 +304,7 @@ def from_contract(contract: ContractTranscript) -> Transcript:
             None if contract.session.started_at is None
             else contract.session.started_at.isoformat()
         ),
+        roles={names[s.id]: s.role for s in contract.speakers if s.role},
     )
 
 

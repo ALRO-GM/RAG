@@ -29,6 +29,15 @@ Haiku) and `MANDATORY_ITEMS.md` (the similarity threshold).
   transcriber (`POST /api/live/sessions/{id}/speakers/{speaker}`) so the
   `transcript.v1` speakers carry it.
 
+## Role and candidate (interviews, #235)
+
+The start form of an interview also offers «Puesto» (an interview plan)
+and «Candidatura» (a candidate of that role, or a new name). With both,
+the candidate's answers to the core questions are captured and kept for
+the next rounds, shown as a «Preguntas comunes» row on the page and as
+«Datos de la candidata» on the result page:
+`docs/live/CANDIDATE_PROFILE.md`.
+
 ## What is shown
 
 | Choice | Where it is set | Default |

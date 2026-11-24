@@ -241,6 +241,22 @@ def read_job(store: AnalysisStore, session_id: str) -> Optional[JobSought]:
         return None
 
 
+def job_for(job: str, roles: Dict[str, str], participant: str) -> str:
+    """The job sought, for the people it is about (#235).
+
+    When the transcript gives roles (a live interview), only the
+    candidate (or a person without a role) is read against the job;
+    the interviewer gets the general reading. Without roles, everyone.
+    """
+    role = roles.get(participant)
+    return job if role in (None, "candidate") else ""
+
+
+def _role(role: Optional[str]) -> Dict[str, str]:
+    """``{"role": role}`` when the transcript gave one (#235), else ``{}``."""
+    return {"role": role} if role else {}
+
+
 def check_session(session_id: str) -> None:
     """Refuse a session id the contract does not allow."""
     if not is_session_id(session_id):
@@ -896,7 +912,10 @@ class SessionAnalysis:
             "session_id": session_id,
             "conversation_type": c.transcript.conversation_type,
             "conversation_goal": c.transcript.conversation_goal,
-            "speakers": [{"name": k, **v} for k, v in people.items()],
+            "speakers": [
+                {"name": k, **v, **_role(c.transcript.roles.get(k))}
+                for k, v in people.items()
+            ],
             "sentences": [s.model_dump(exclude_none=True)
                           for s in c.sentences],
         })
@@ -1206,7 +1225,8 @@ class SessionAnalysis:
                     result, catalogue, card.participant, acts, events
                 )
                 try:
-                    profiles.append(writer.write(facts, job.text))
+                    profiles.append(writer.write(facts, job_for(
+                        job.text, c.transcript.roles, card.participant)))
                 except LimitError:
                     raise
                 except ModelError as exc:

@@ -1491,3 +1491,26 @@ details.tech, details.controls { margin: 1rem 0; }
   .sf-person { break-inside: avoid-page; box-shadow: none; }
   .sf-more > summary::before { display: none; }
 }
+
+/* ---- the candidate across rounds (#235) -------------------------------------
+   «Preguntas comunes» on the live page: the lv-row of the topics, its open
+   questions as quiet outlined chips. «Datos de la candidata» on the result
+   page: a definition list, one line per core question, the details and the
+   corrections under «Más información». */
+.lv-role-box { border-top: 1px solid var(--line); padding-top: var(--s-3); }
+.lv-core .lv-chip.is-open { border-style: dashed; }
+.sf-candidate { display: flex; flex-direction: column; gap: var(--s-3); }
+.sf-cand-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.sf-cand-head h2 { margin: 0; font-size: var(--fs-lg); }
+.sf-cand-list { display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: var(--s-2) var(--s-4); margin: 0; }
+.sf-cand-list dt { color: var(--muted); font-weight: 500; }
+.sf-cand-list dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sf-cand-list dd.is-pending { color: var(--muted); font-style: italic; }
+.sf-cand-details { list-style: none; margin: 0; padding: 0; }
+.sf-cand-details > li { border-bottom: 1px solid var(--line); padding-bottom: var(--s-3); }
+.sf-cand-details p { margin: 0; }
+.sf-cand-edit input { flex: 1 1 14rem; min-width: 0; }
+@media (max-width: 560px) {
+  .sf-cand-list { grid-template-columns: 1fr; gap: var(--s-1); }
+  .sf-cand-list dd { margin-bottom: var(--s-2); }
+}

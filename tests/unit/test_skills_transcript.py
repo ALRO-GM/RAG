@@ -558,3 +558,20 @@ def test_a_broken_contract_document_is_corrupted(
     document = {**example(), **change}
     with pytest.raises(CorruptedDataError, match="Transcript 'x'"):
         parse_transcript("x", json.dumps(document))
+
+
+def test_a_contract_speaker_role_is_kept_by_shown_name() -> None:
+    """``transcript.v1`` speakers may carry a role (#235)."""
+    from src.domain.skills.transcript import from_contract
+    from src.domain.skills.transcript_contract import read_contract
+    from tests.unit.test_skills_ingest import example
+
+    document = example()
+    document["speakers"][0]["role"] = "interviewer"
+    document["speakers"][1]["role"] = "candidate"
+    transcript = from_contract(read_contract(document))
+    assert transcript.roles == {"Marta": "interviewer", "Luis": "candidate"}
+    assert from_contract(read_contract(example())).roles == {}
+    document["speakers"][2]["role"] = "boss"
+    with pytest.raises(InvalidInputError):
+        read_contract(document)

@@ -11,7 +11,7 @@ import { t, lang, percent } from "../i18n.js";
 import { competencies } from "../lib/help-analysis.js";
 import { clock, transcriptLink } from "../lib/session-analysis.js";
 import {
-  TIMELINE_TYPES, duration, peopleOf, plainSummary, sentenceAnchor, sentenceAt, sessionFacts, timeline,
+  TIMELINE_TYPES, duration, jobReading, peopleOf, plainSummary, rolesOf, sentenceAnchor, sentenceAt, sessionFacts, timeline,
 } from "../lib/analysis-results.js";
 import { oneLine } from "../lib/home.js";
 import { anyLegacy, personSummary, verdictKey } from "../lib/summary-first.js";
@@ -54,13 +54,16 @@ export function resultsState(kind, { reason = "", onRetry = null } = {}) {
  * `onRedo` redoes only the synthesis (offered on results that predate
  * the opinion), or null when it cannot run now.
  */
-export function resultsPanel({ id, run, data, onRedo = null }) {
+export function resultsPanel({ id, run, data, onRedo = null, candidate = null }) {
   const names = Object.fromEntries(competencies(lang).map((c) => [c.id, c]));
   const facts = sessionFacts(id, run, data);
   const people = peopleOf(data, names);
   const summaries = people.map(personSummary);
   const kind = people.map((p) => p.opinion?.conversationType).find(Boolean) || facts.type;
   const withJob = Boolean(facts.job);
+  // With roles (a live interview, #235) only the candidate is read against the job.
+  const roles = rolesOf(data);
+  const jobFor = (p) => withJob && jobReading(roles, p.name);
   const lines = new Map(); // sentence id -> its <li> in the transcript
   const transcript = transcriptBlock(id, run, data, people, lines);
   let sessionMore = null;
@@ -88,12 +91,13 @@ export function resultsPanel({ id, run, data, onRedo = null }) {
     }, `▶ ${label}`);
   };
 
-  // Only the first card starts open (the session's roles are not in the
-  // data, so the candidate of an interview cannot be told apart).
+  // Only one card starts open: the candidate's when the roles are known,
+  // else the first person's.
+  const first = Math.max(0, people.findIndex((p) => roles[p.name] === "candidate"));
   const cards = people.map((p, i) => personSummaryCard(summaries[i], {
-    conversationType: kind, withJob, id: `person-${p.position}`, open: i === 0,
+    conversationType: kind, withJob: jobFor(p), id: `person-${p.position}`, open: i === first,
     more: moreInfo(moreHint(summaries[i].more), () => [
-      reliabilityBlock(summaries[i]), opinionBlock(p, moment), personDetailBody(p, moment, withJob),
+      reliabilityBlock(summaries[i]), opinionBlock(p, moment), personDetailBody(p, moment, jobFor(p)),
     ]),
   }));
   // A row of the overview opens that person's card and moves the focus to it.
@@ -113,6 +117,7 @@ export function resultsPanel({ id, run, data, onRedo = null }) {
 
   return h("section", { class: "results sf-results", "aria-labelledby": "res-title" },
     overview(facts, summaries, kind, run, openPerson, onRedo),
+    candidate,
     people.length
       ? h("section", { class: "sf-people", "aria-label": t("res.people_title") }, cards)
       : h("p", { class: "hint" }, t("res.no_people")),

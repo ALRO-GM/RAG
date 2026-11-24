@@ -27,6 +27,7 @@ import {
   readPrefs, reminderDue, splitCards, viewPrefs, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
+import { coreCount, coreRows } from "../lib/candidate.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -152,6 +153,58 @@ export async function liveView(ctx, root, [sub] = []) {
     const start = h("button", { type: "button", class: "primary big", onClick: () => begin("live") }, icon("live"), t("live.start"));
     const replay = h("button", { type: "button", onClick: () => begin("replay") }, icon("play"), t("live.demo"));
     const formError = h("p", { class: "error", role: "alert", hidden: !message }, message ?? "");
+    // An interview may name the role (an interview plan) and the candidate
+    // (#235): their answers to the core questions are kept across rounds.
+    const planSelect = h("select", { id: "live-plan" }, h("option", { value: "" }, t("live.plan_none")));
+    const candidateSelect = h("select", { id: "live-candidate" }, h("option", { value: "" }, t("live.candidate_new")));
+    const candidateName = h("input", { id: "live-candidate-name", type: "text", maxlength: "80", autocomplete: "off", placeholder: t("live.candidate_name_hint") });
+    const candidateHint = h("p", { class: "hint" }, t("live.candidate_hint"));
+    const nameField = h("div", { class: "field" }, h("label", { for: "live-candidate-name" }, t("live.candidate_name")), candidateName);
+    const roleBox = h("div", { class: "stack tight lv-role-box", hidden: true },
+      h("div", { class: "field" }, h("label", { for: "live-plan" }, t("live.plan")), planSelect),
+      h("div", { class: "field" }, h("label", { for: "live-candidate" }, t("live.candidate")), candidateSelect),
+      nameField, candidateHint);
+    let plansLoaded = false;
+
+    async function loadPlans() {
+      if (plansLoaded) return;
+      plansLoaded = true;
+      try {
+        const found = await ctx.api.interviewPlans();
+        for (const plan of found?.plans ?? []) planSelect.append(h("option", { value: plan.id }, plan.title || plan.id));
+      } catch (error) {
+        if (error?.kind === "unauthorized") ctx.fail(error);
+      }
+      syncRole();
+    }
+
+    async function loadCandidates() {
+      fill(candidateSelect, h("option", { value: "" }, t("live.candidate_new")));
+      if (!planSelect.value) return syncRole();
+      try {
+        const found = await ctx.api.planCandidates(planSelect.value);
+        for (const c of found?.candidates ?? []) {
+          candidateSelect.append(h("option", { value: c.id }, t("live.candidate_option", { name: c.name, done: c.answered, all: (c.questions ?? []).length })));
+        }
+      } catch (error) {
+        if (error?.kind === "unauthorized") ctx.fail(error);
+      }
+      return syncRole();
+    }
+
+    function syncRole() {
+      const on = Boolean(planSelect.value);
+      candidateSelect.disabled = !on;
+      candidateName.disabled = !on || Boolean(candidateSelect.value);
+      nameField.hidden = Boolean(candidateSelect.value);
+    }
+
+    function roleChoice() {
+      if (roleBox.hidden || !planSelect.value) return {};
+      if (candidateSelect.value) return { plan: planSelect.value, candidate_id: candidateSelect.value };
+      const name = candidateName.value.trim();
+      return name ? { plan: planSelect.value, candidate: name } : { plan: planSelect.value };
+    }
 
     function chosen() {
       return products.find((p) => p.product === productSelect.value) ?? products[0];
@@ -174,6 +227,8 @@ export async function liveView(ctx, root, [sub] = []) {
           : t(`live.audio_hint.${audioSelect.value}`, { who: roleText(product.suggest_about?.[0] ?? "unknown") });
       transcriptSelect.value = defaultTranscript(transcripts, kind);
       replay.disabled = !transcripts.length;
+      roleBox.hidden = kind !== "interview" || !product?.live;
+      if (!roleBox.hidden) loadPlans();
     }
 
     async function begin(mode) {
@@ -184,7 +239,9 @@ export async function liveView(ctx, root, [sub] = []) {
       try {
         let session;
         if (mode === "live") {
-          session = await ctx.api.startLive({ product, audio: audioSelect.value, session_id: newSessionId("live"), employee: employee() });
+          session = await ctx.api.startLive({
+            product, audio: audioSelect.value, session_id: newSessionId("live"), employee: employee(), ...roleChoice(),
+          });
         } else {
           session = await ctx.api.startReplay(newSessionId("demo"), {
             product, transcript: transcriptSelect.value, speed: Number(speedSelect.value), employee: employee(),
@@ -203,6 +260,8 @@ export async function liveView(ctx, root, [sub] = []) {
     productSelect.addEventListener("change", sync);
     audioSelect.addEventListener("change", sync);
     employeeSelect.addEventListener("change", sync);
+    planSelect.addEventListener("change", loadCandidates);
+    candidateSelect.addEventListener("change", syncRole);
     const field = (input, key) => h("div", { class: "field" }, h("label", { for: input.id }, t(key)), input);
     const scripted = demos[0];
     root.append(
@@ -218,7 +277,7 @@ export async function liveView(ctx, root, [sub] = []) {
         h("section", { class: "card" },
           h("h2", {}, t("live.new")),
           field(productSelect, "live.product"), banner,
-          field(employeeSelect, "live.employee"), employeeHint,
+          field(employeeSelect, "live.employee"), employeeHint, roleBox,
           field(audioSelect, "live.audio"), liveHint, start),
         h("details", { class: "card lv-recorded" },
           h("summary", {}, t("live.recorded_title")),
@@ -277,6 +336,7 @@ export async function liveView(ctx, root, [sub] = []) {
     const discomfort = h("div", { "aria-live": "polite" });
     const nowCard = h("div", { class: "lv-now", "aria-live": "polite" });
     const topics = h("section", { class: "lv-row", hidden: true });
+    const coreRow = h("section", { class: "lv-row lv-core", hidden: true });
     const checklist = h("section", { class: "lv-row lv-tosay", hidden: true });
     const historyBody = h("div", { class: "lv-history" });
     const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
@@ -315,7 +375,7 @@ export async function liveView(ctx, root, [sub] = []) {
         modeGroup));
     const summary = h("div", {});
     const side = h("aside", { class: "lv-side" },
-      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, topics, checklist, history, options, summary);
+      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, topics, coreRow, checklist, history, options, summary);
 
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
     root.append(header, alerts, h("div", { class: "lv-body" }, talk, side));
@@ -391,6 +451,7 @@ export async function liveView(ctx, root, [sub] = []) {
       drawLines();
       drawNow();
       drawTopics();
+      drawCore();
       drawChecklist();
       drawHistory();
       drawSummary();
@@ -575,6 +636,30 @@ export async function liveView(ctx, root, [sub] = []) {
       wanted.forEach((node, i) => {
         if (row.children[i] !== node) row.insertBefore(node, row.children[i] ?? null);
       });
+    }
+
+    // The core questions (#235): asked once per candidate; an answered one
+    // shows its answer and is never suggested again.
+    let coreKey = null;
+    function drawCore() {
+      const profile = state.core;
+      coreRow.hidden = !profile;
+      if (!profile) return;
+      const rows = coreRows(t, profile, lang);
+      const key = JSON.stringify(rows.map((r) => [r.id, r.text]));
+      if (key === coreKey) return;
+      coreKey = key;
+      const count = coreCount(profile);
+      fill(coreRow,
+        h("div", { class: "lv-row-head" }, h("h3", {}, t("live.core")),
+          h("span", { class: "meta lv-count" }, t("live.core_count", { done: count.done, all: count.all }))),
+        h("div", { class: "lv-chips" }, rows.map((r) => {
+          const label = r.answered && r.text ? `${r.label}: ${r.text.length > 32 ? `${r.text.slice(0, 31)}…` : r.text}` : r.label;
+          const made = chip(r.answered, label, r.answered ? "" : "is-open");
+          made.title = r.answered ? `${r.label}: ${r.text}` : r.question;
+          return made;
+        })),
+        h("p", { class: "hint" }, t("live.core_hint", { name: profile.name })));
     }
 
     function drawChecklist() {

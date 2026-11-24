@@ -117,6 +117,7 @@ class TranscriptSpeaker(BaseModel):
     id: str
     name: Optional[str] = None
     enrolled: Optional[bool] = None
+    role: Optional[str] = None
 
 
 class TranscriptUtterance(BaseModel):

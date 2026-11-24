@@ -283,6 +283,7 @@ export class LiveState {
     this.avoid = []; // lines better avoided: { utterance, category, title, why, alternative, state }
     this.topics = null; // a demo's topics: [{ id, name, done }], else the script phases
     this.demo = null; // { id, title, candidate, result_session, note } of a scripted demo
+    this.core = null; // the candidate's profile with the core questions (#235), or null
     this.streamTime = 0; // the latest event's stream time (seconds)
     this.seen = 0; // messages applied so far: the order things arrived in
     this.arrived = new Map(); // record or flag key -> `seen` when it arrived or changed
@@ -329,6 +330,12 @@ export class LiveState {
         break;
       case "topics":
         if (Array.isArray(message.topics)) this.topics = message.topics.filter((x) => x && x.id && x.name);
+        break;
+      case "core":
+        if (message.profile && Array.isArray(message.profile.questions)) {
+          this.core = message.profile;
+          if (message.captured) this.arrived.set(`core|${message.captured}`, this.seen);
+        }
         break;
       default:
         break;

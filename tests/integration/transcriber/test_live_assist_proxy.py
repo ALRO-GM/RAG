@@ -209,3 +209,39 @@ def test_interview_plan_routes_are_forwarded() -> None:
     assert ALLOWED.match("interview/plans/plan-1/results")
     assert not ALLOWED.match("interview/plans/../x")
     assert web.get("/api/assist/interview/plans/plan-1").status_code == 401
+
+
+def test_candidate_routes_are_forwarded() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"id": "ana"})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    head = {"X-Access-Code": "code"}
+    base = "/api/assist/interview/plans/plan-1/candidates"
+    web.get(base, headers=head)
+    web.post(base, json={"name": "Ana"}, headers=head)
+    web.get(f"{base}/ana", headers=head)
+    web.put(f"{base}/ana/answers/work_authorization", json={"text": "Sí"},
+            headers=head)
+    web.delete(f"{base}/ana/answers/work_authorization", headers=head)
+    web.delete(f"{base}/ana", headers=head)
+    web.get("/api/assist/interview/candidates/by-session/live-1",
+            headers=head)
+    assert [(r.method, r.url.path) for r in seen] == [
+        ("GET", "/interview/plans/plan-1/candidates"),
+        ("POST", "/interview/plans/plan-1/candidates"),
+        ("GET", "/interview/plans/plan-1/candidates/ana"),
+        ("PUT", "/interview/plans/plan-1/candidates/ana/answers/"
+                "work_authorization"),
+        ("DELETE", "/interview/plans/plan-1/candidates/ana/answers/"
+                   "work_authorization"),
+        ("DELETE", "/interview/plans/plan-1/candidates/ana"),
+        ("GET", "/interview/candidates/by-session/live-1"),
+    ]
+    assert seen[3].content == '{"text":"Sí"}'.encode()
+    assert not ALLOWED.match("interview/plans/p/candidates/a/answers/../x")
+    assert not ALLOWED.match("interview/plans/p/candidates/a/answers/Bad")
+    assert web.get(f"{base}/ana").status_code == 401

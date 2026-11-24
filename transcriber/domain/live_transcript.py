@@ -6,12 +6,14 @@ the session the last revision of each sentence is kept, empty ones are
 dropped, and the rest, in time order, become the utterances of an
 ordinary ``transcript.v1`` document: consecutive sentences of one
 speaker form a turn and the ids are renumbered without gaps (live ids
-may skip numbers a partial reserved). No audio, words or roles leave.
+may skip numbers a partial reserved). No audio or words leave; each
+speaker keeps the role the session gave it (#235: interviewer,
+candidate, agent, customer...), when it is not ``unknown``.
 """
 
 from collections import Counter
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, cast, get_args
 
 from transcriber.domain.live import LiveSpeaker
 from transcriber.domain.models import (
@@ -19,11 +21,14 @@ from transcriber.domain.models import (
     Session,
     SessionState,
     Speaker,
+    SpeakerRole,
     Transcript,
     Utterance,
 )
 from transcriber.domain.sentences import regroup_utterances
 
+ROLES = get_args(SpeakerRole)
+"""The roles a transcript speaker may carry."""
 UNDETERMINED = "und"
 """Language of a transcript whose language is not known (ISO 639-2)."""
 
@@ -62,6 +67,11 @@ def _language(
     return heard.most_common(1)[0][0] if heard else UNDETERMINED
 
 
+def _role(role: str) -> Optional[SpeakerRole]:
+    """A live speaker's role for the transcript (``None``: unknown)."""
+    return cast(SpeakerRole, role) if role in ROLES else None
+
+
 def live_transcript(
     session_id: str,
     events: Sequence[Mapping[str, Any]],
@@ -91,7 +101,8 @@ def live_transcript(
     heard = {u.speaker for u in utterances}
     named = {s.id: s for s in speakers}
     listed = [
-        Speaker(id=s.id, name=s.name, enrolled=s.enrolled)
+        Speaker(id=s.id, name=s.name, enrolled=s.enrolled,
+                role=_role(s.role))
         for s in speakers if s.id in heard
     ] + [
         Speaker(id=who, enrolled=False)

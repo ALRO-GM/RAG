@@ -21,7 +21,7 @@ from transcriber.domain.live_session import (
     gpu_choice,
 )
 from transcriber.domain.live_transcript import last_finals, live_transcript
-from transcriber.domain.models import Pipeline
+from transcriber.domain.models import Pipeline, Transcript
 
 AT = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
 PIPELINE = Pipeline(recogniser="r", voice_model="none", transcriber="t")
@@ -171,13 +171,22 @@ def test_the_transcript_regroups_turns_and_follows_its_contract() -> None:
         "t0.s0", "t0.s1", "t1.s0"
     ]
     assert document["utterances"][2]["previous_utterance"] == "t0.s1"
+    # The roles are carried (#235), so the analysis can tell who is the
+    # candidate; an unknown role is left out.
     assert document["speakers"] == [
-        {"id": "S1", "name": "Ana", "enrolled": False},
-        {"id": "S2", "name": None, "enrolled": False},
+        {"id": "S1", "name": "Ana", "enrolled": False, "role": "interviewer"},
+        {"id": "S2", "name": None, "enrolled": False, "role": "candidate"},
     ]
     assert document["session"]["duration"] == 5.0
     assert document["session"]["language"] == "es"
-    assert "role" not in str(document)
+    assert Transcript.from_contract(document).speakers[1].role == "candidate"
+
+
+def test_an_unknown_role_is_not_written() -> None:
+    events = [final("t0.s0", "S1", 0.0, 1.0, "Hola.")]
+    transcript = live_transcript("a", events, [LiveSpeaker("S1", 0)],
+                                 PIPELINE)
+    assert "role" not in transcript.to_contract()["speakers"][0]
 
 
 def test_unknown_speakers_and_languages_are_still_a_transcript() -> None:

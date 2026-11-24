@@ -61,7 +61,8 @@ session), 4409 (wrong state: ended, or a second audio source) or 4429
   `need_mib` + `diarize_need_mib` (1500). See `MONO_DIARIZATION.md`.
 - **Hand-off (LV-11).** At the end the last revision of each final
   becomes a `transcript.v1` (empty sentences dropped, turns regrouped,
-  ids renumbered without gaps, no roles or audio), kept as
+  ids renumbered without gaps, no audio; each speaker keeps its role
+  when it is not `unknown`, #235), kept as
   `<data_dir>/live/<id>/transcript.json`. With `handoff.transcript_v1`
   it is published like a batch transcript; with `run_post_call` the
   RAG's post-call analysis is then started. Failures are recorded in
