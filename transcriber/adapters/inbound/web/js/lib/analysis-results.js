@@ -205,6 +205,63 @@ export function certaintyCounts(skills) {
   return counts;
 }
 
+const VERDICTS = ["strong", "adequate", "weak"];
+
+/** One skill opinion as the page reads it (or null when the data has none). */
+function skillOpinionOf(o) {
+  if (!o || typeof o.score !== "number") return null;
+  return {
+    id: o.competency_id ?? "",
+    name: o.name ?? "",
+    score: o.score,
+    verdict: VERDICTS.includes(o.verdict) ? o.verdict : "adequate",
+    conclusion: o.conclusion ?? "",
+    basis: o.basis ?? "participation",
+    confidence: ["low", "medium", "high"].includes(o.confidence) ? o.confidence : "low",
+    caveats: Array.isArray(o.caveats) ? o.caveats : [],
+    cites: (o.cites ?? []).map((c) => quoteOf(c)),
+    source: o.source ?? "rules",
+  };
+}
+
+/**
+ * The opinion on one person (synthesis format_version 2, additive): an
+ * overall score and verdict line, the opinion on every skill and the
+ * main strengths (at most 3) and improvements (at most 2). The headline
+ * is `overall.verdict` and `overall.line`; `confidence` and `caveats`
+ * are for the «Más información» section, never the headline. Older
+ * stored results have none of it: `overall` is then null and the lists
+ * are empty.
+ */
+export function opinionOf(profile) {
+  const skills = (profile?.skills ?? []).map(skillOpinionOf).filter(Boolean);
+  const byId = new Map(skills.map((k) => [k.id, k]));
+  const pick = (ids) => (ids ?? []).map((id) => byId.get(id)).filter(Boolean);
+  const o = profile?.overall;
+  const maximum = typeof o?.maximum === "number" ? o.maximum : 5;
+  const minimum = typeof o?.minimum === "number" ? o.minimum : 1;
+  const overall = o && typeof o.score === "number" ? {
+    score: o.score,
+    maximum,
+    minimum,
+    percent: typeof o.percent === "number" ? o.percent : Math.round(((o.score - minimum) / (maximum - minimum)) * 1000) / 10,
+    verdict: VERDICTS.includes(o.verdict) ? o.verdict : "adequate",
+    line: o.line ?? "",
+    frame: o.frame ?? "",
+    confidence: ["low", "medium", "high"].includes(o.confidence) ? o.confidence : "low",
+    caveats: Array.isArray(o.caveats) ? o.caveats : [],
+    source: o.source ?? "rules",
+  } : null;
+  return {
+    overall,
+    skills,
+    byId,
+    topStrengths: pick(profile?.top_strengths).slice(0, 3),
+    topImprovements: pick(profile?.top_improvements).slice(0, 2),
+    conversationType: typeof profile?.conversation_type === "string" ? profile.conversation_type : "",
+  };
+}
+
 /**
  * Everything the page knows about each person, in the order they first
  * spoke: participation, what the reports list as strengths and areas to
@@ -226,6 +283,8 @@ export function peopleOf(data, names = {}) {
     const report = reports.get(name) ?? {};
     const skills = skillsOf(cards.get(name), names);
     const profile = profiles.get(name) ?? null;
+    const opinion = opinionOf(profile);
+    for (const skill of skills) skill.opinion = opinion.byId.get(skill.id) ?? null;
     return {
       name,
       index,
@@ -244,6 +303,7 @@ export function peopleOf(data, names = {}) {
       certainty: certaintyCounts(skills),
       quotes: skills.reduce((n, k) => n + k.quotes.length, 0),
       profile,
+      opinion,
       confidence: ["low", "medium", "high"].includes(profile?.confidence) ? profile.confidence : "",
       events: events.get(name) ?? null,
     };

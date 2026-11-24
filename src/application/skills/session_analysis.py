@@ -101,6 +101,7 @@ from src.domain.skills.interaction import describe
 from src.domain.skills.judging import JudgeMode
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.speech import Sentence, transcript_sentences
+from src.domain.skills.opinion import OPINION_FORMAT_VERSION
 from src.domain.skills.synthesis import JobSought, PersonSynthesis, skipped
 from src.domain.skills.transcript import Transcript
 from src.domain.skills.transcript_contract import is_session_id
@@ -1225,6 +1226,8 @@ class SessionAnalysis:
             "session_id": session_id, "language": language,
             "synthetic": c.synthetic, "job": job.text,
             "use_claude": job.use_claude,
+            "format_version": OPINION_FORMAT_VERSION,
+            "conversation_type": result.conversation_type or "",
             "judge": {"mode": setup.mode, "models": models,
                       "fallback_reason": reason},
             "people": [p.model_dump(mode="json") for p in profiles],

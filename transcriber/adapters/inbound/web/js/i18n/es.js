@@ -945,7 +945,7 @@ export const es = {
   "sa.syn_none": "El modelo no dejó ningún punto que cite evidencias.",
   "sa.syn_skipped": "No se ha escrito la síntesis: {reason}",
   "sa.syn_no_evidence": "no hay ninguna cita de esta persona.",
-  "sa.syn_dropped": "Se descartaron {count} puntos del modelo por no citar evidencias o saltarse las reglas.",
+  "sa.syn_dropped": "Se descartaron {count} textos del modelo (puntos, preguntas, conclusiones o la línea global, sustituidas por un texto de reglas) por no citar evidencias o saltarse las reglas.",
   "sa.syn_model": "Escrito por {model}.",
   "help.step.synthesis.t": "Síntesis por persona",
   "help.step.synthesis.d": "Claude escribe, con todo lo anterior, en qué destaca cada persona (cada punto cita frases con su hora), qué no se pudo observar, cómo puede servir para el puesto que se busca y qué preguntar en la entrevista. Los puntos que no citan evidencias se descartan. Es un borrador para la entrevista, no una decisión ni una puntuación.",

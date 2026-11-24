@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   certaintyCounts, certaintyOf, doneResultSteps, duration, eventCounts, hasResults, peopleOf, plainSummary,
   progressOf, recordedAt, resultsKey, scalePoint, sentenceAt, sentenceAnchor, sessionFacts, sessionLength, skillsOf,
-  timeline,
+  opinionOf, timeline,
 } from "../../transcriber/adapters/inbound/web/js/lib/analysis-results.js";
 import {
   CLAUDE_MODEL, JUDGE_STEPS, MODEL_CHOICES, chosenModels, startBody, validModel,
@@ -258,4 +258,38 @@ test("the overview shows the header, one card and one detail per person, the cav
     const error = resultsState("error", { reason: "x", onRetry: () => {} }).all();
     assert.ok(error.some((n) => n.tagName === "BUTTON"));
   });
+});
+
+test("the opinion of a person: overall, skills, top picks; old files have none", () => {
+  assert.deepEqual(opinionOf(null).topStrengths, []);
+  assert.equal(opinionOf({ status: "done" }).overall, null);
+  const profile = {
+    participant: "Ana", conversation_type: "coaching",
+    overall: { score: 3.8, maximum: 5, verdict: "strong", line: "Bien.", frame: "q", confidence: "low", caveats: ["no_quotes"] },
+    skills: [
+      { competency_id: "a", name: "A", score: 4, verdict: "strong", conclusion: "ok", basis: "firm", confidence: "high", caveats: [], cites: [{ text: "hola", start: 3 }] },
+      { competency_id: "b", name: "B", score: 2, verdict: "weak", conclusion: "poco", basis: "participation", caveats: ["no_quotes"] },
+      { score: "x" },
+    ],
+    top_strengths: ["a", "zz"], top_improvements: ["b"],
+  };
+  const o = opinionOf(profile);
+  assert.equal(o.overall.verdict, "strong");
+  assert.equal(o.overall.percent, 70);
+  assert.equal(opinionOf({ overall: { score: 3.5, maximum: 4, minimum: 0 } }).overall.percent, 87.5);
+  assert.equal(opinionOf({ overall: { score: 4.4, maximum: 5, percent: 88.7 } }).overall.percent, 88.7);
+  assert.deepEqual(o.overall.caveats, ["no_quotes"]);
+  assert.deepEqual(o.topStrengths.map((k) => k.id), ["a"]);
+  assert.deepEqual(o.topImprovements.map((k) => k.id), ["b"]);
+  assert.equal(o.skills[0].cites[0].start, 3);
+  assert.equal(o.conversationType, "coaching");
+  assert.equal(o.skills[1].confidence, "low");
+  const people = peopleOf({
+    ...data, synthesis: { people: [profile] },
+    assessment: { scorecards: [{ participant: "Ana", assessments: [{ competency_id: "a", status: "insufficient_evidence" }] }] },
+  });
+  const ana = people.find((p) => p.name === "Ana");
+  assert.equal(ana.opinion.overall.score, 3.8);
+  assert.equal(ana.skills[0].opinion.verdict, "strong");
+  assert.equal(ana.skills[0].certainty, "insufficient");
 });

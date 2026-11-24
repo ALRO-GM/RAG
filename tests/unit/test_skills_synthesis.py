@@ -167,7 +167,7 @@ def test_the_prompt_lists_the_facts_the_rules_and_the_job() -> None:
         CompetencyLine(competency_id="c", name="C", status="other"),
     ])
     assert "(none)" in user_prompt(bare, "")
-    assert "no level (not enough evidence)" in user_prompt(bare, "")
+    assert "no level yet (little or nothing quoted)" in user_prompt(bare, "")
 
 
 # ------------------------------------------------------------- checks
@@ -365,12 +365,13 @@ def test_the_synthesizer_asks_once_per_person_and_caches() -> None:
     again = writer.write(maya(), "Shift lead")
     assert first == again and len(model.calls) == 1
     system, user, tokens = model.calls[0]
-    assert "English" in system and "Shift lead" in user and tokens == 1500
+    assert "English" in system and "Shift lead" in user and tokens == 3000
     writer.write(maya(), "Another job")
     assert len(model.calls) == 2
     tom = person_facts(session(), make_catalogue("en"), "Tom")
     none = ProfileSynthesizer(model).write(tom)
-    assert none.status == "skipped" and none.reason == "no_evidence"
+    assert none.status == "done" and none.reason == "no_evidence"
+    assert [k.source for k in none.skills] == ["rules", "rules"]
     assert len(model.calls) == 2
     assert none.unobserved == ["Active listening", "Planning"]
 
@@ -396,7 +397,7 @@ def test_the_report_shows_the_synthesis_on_top() -> None:
         "Puesto que se busca: Coordinador de turno", "En qué destaca",
         "Checks meaning.", "«What do you mean exactly»", "01:01",
         "nivel firme", "Encaje con el puesto", "How do you follow up?",
-        "Confianza: baja", "Se han descartado 1 puntos",
+        "Confianza: baja", "Se han descartado 1 textos",
         "Escrito por claude-code:opus.",
     ):
         assert text in page, text
@@ -437,8 +438,9 @@ def test_a_failing_model_propagates_to_the_step() -> None:
 def test_every_drop_reason_is_known() -> None:
     """The reasons stored are the documented ones."""
     from src.domain.skills.synthesis import DROP_REASONS
-    seen: List[str] = ["no_citation", "verdict", "comparison", "label",
-                       "personal"]
+    seen: List[str] = [
+        "no_citation", "empty", "verdict", "comparison", "label", "personal"
+    ]
     assert list(DROP_REASONS) == seen
 
 

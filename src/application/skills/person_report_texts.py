@@ -298,9 +298,12 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "syn_skipped": "No se ha escrito la síntesis: {reason}",
         "syn_no_evidence": "no hay ninguna cita de esta persona.",
         "syn_dropped": (
-            "Se han descartado {count} puntos del modelo por no citar "
-            "evidencias del análisis o por saltarse las reglas (veredicto, "
-            "comparación, etiqueta de personalidad o dato personal)."
+            "Se han descartado {count} textos del modelo (puntos, preguntas, "
+            "conclusiones por competencia o la línea global; las "
+            "conclusiones y la línea se sustituyen por un texto de reglas) "
+            "por no citar evidencias del análisis o por saltarse las reglas "
+            "(veredicto o recomendación, comparación, etiqueta de "
+            "personalidad o dato personal)."
         ),
         "syn_model": "Escrito por {model}.",
     },
@@ -584,9 +587,12 @@ TEXTS: Dict[str, Dict[str, str]] = {
         "syn_skipped": "No synthesis was written: {reason}",
         "syn_no_evidence": "there is no quote of this person.",
         "syn_dropped": (
-            "{count} points of the model were dropped for citing no "
-            "evidence of the analysis or breaking the rules (a verdict, a "
-            "comparison, a personality label or a personal attribute)."
+            "{count} texts of the model (points, questions, per-skill "
+            "conclusions or the overall line; conclusions and the line are "
+            "replaced by a rules-written text) were dropped for citing no "
+            "evidence of the analysis or breaking the rules (a verdict or "
+            "recommendation, a comparison, a personality label or a "
+            "personal attribute)."
         ),
         "syn_model": "Written by {model}.",
     },
