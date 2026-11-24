@@ -127,6 +127,19 @@ export function holdLines(focused) {
   return Boolean(focused?.classList?.contains?.("live-name-input"));
 }
 
+/** Pixels from the bottom within which the conversation still counts as "at the newest line". */
+export const FOLLOW_SLACK_PX = 48;
+
+/**
+ * Whether the conversation box shows its newest line, so new lines keep it
+ * pinned there: true at (or near) the bottom, false once the user scrolled
+ * back to read older lines (they stay put until the user comes back down).
+ */
+export function followsNewest(box, slack = FOLLOW_SLACK_PX) {
+  const below = Number(box?.scrollHeight) - Number(box?.scrollTop) - Number(box?.clientHeight);
+  return !(below > slack);
+}
+
 /** Seconds as "mm:ss" (minutes keep counting past the hour). */
 export function clockText(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0));
