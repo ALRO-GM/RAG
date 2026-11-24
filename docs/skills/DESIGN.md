@@ -934,14 +934,14 @@ that is stays in the data, to be shown under «Más información» and never
 as the headline.
 
 **Contract (additive; `synthesis.json` has `format_version: 2` and
-`conversation_type`; files without them are version 1 and read with the
+`conversation_type`; each person has `format_version` 2 too; files without them are version 1 and read with the
 new fields empty).** Per entry of `people` (`PersonSynthesis`):
 
 | Field | Meaning |
 |---|---|
 | `skills[]` | one per competency: `competency_id`, `name`, `score` (1 to the scale top), `verdict` (`strong` ≥ 3.75, `adequate` ≥ 2.5, else `weak`, on the 1–5 scale), `conclusion`, `basis` (`firm`, `provisional`, `observation`, `participation`), `confidence` (`low`/`medium`/`high`), `caveats` (codes `provisional`, `observations_only`, `no_quotes`, `short_participation`), `source` (`judge` or `rules`), `cites[]` (`text`, `turn`, `start`) |
-| `overall` | `score` (weighted mean, one decimal; weights firm 1.0, provisional 0.6, observation 0.4, participation 0.2), `maximum`, `verdict`, `line` (the headline sentence), `frame` (the question it answers), `confidence`, `caveats` (codes above plus `no_firm_levels`, `no_quotes`, `judge_unavailable`), `source` |
-| `top_strengths` / `top_improvements` | competency ids, at most 3 / 2, never the same id in both; strengths need a score of at least 2.5, improvements one below 3.75 |
+| `overall` | `score` (weighted mean, one decimal; weights firm 1.0, provisional 0.6, observation 0.4, participation 0.2), `maximum`, `minimum`, `percent` (score / maximum × 100, one decimal, for a «88,7 %» display), `verdict`, `line` (the headline sentence), `frame` (the question it answers), `confidence`, `caveats` (codes above plus `no_firm_levels`, `no_quotes`, `judge_unavailable`), `source` |
+| `top_strengths` / `top_improvements` | competency ids, at most 3 / 2 (lists may be empty), never the same id in both; only skills with a firm level, a provisional estimate or observations leaning one way count (never `participation`-basis ones); strengths need a scaled score of at least 2.5, improvements one below 3.75 |
 | `conversation_type` | the type the verdict was read through |
 
 The web helper `opinionOf(profile)` in `lib/analysis-results.js` reads
@@ -956,8 +956,8 @@ reunion_decision, lluvia_ideas and resolucion_problemas have their own
 question; `conversacion_libre`, `otro` or none use a generic one. The
 prompt names the type and asks for a score and conclusion for every
 competency, never «not enough evidence», leaning on what exists and
-saying so. A firm level is never overridden by the judge; a provisional
-one may move one point.
+saying so. The `entrevista` question asks which demonstrated strengths match which requirements and where the gaps are, skill by skill, not whether the person fits. A firm level is never overridden by the judge; a provisional
+one may move one point. A conclusion that breaks a guardrail (or is empty) is replaced whole by the rules' opinion, score included, and counted in `dropped`; so is a refused overall line.
 
 **Little or nothing found.** A person with no quote costs no call: the
 rules write the opinion (`status` `done`, `reason` `no_evidence`). A
@@ -966,7 +966,7 @@ rules' opinion too (a firm or provisional level is the score; otherwise
 the balance of the quoted observations moves the middle of the scale one
 point; with nothing quoted, the middle, flagged `no_quotes`). A failed
 judge call is still `skipped` (no written text) but carries rules
-opinions. The guardrails (no hiring verdict, no comparison, no personal
+opinions. The guardrails (no hiring verdict or recommendation, no «moves forward», no «ideal/strong candidate», no blanket «encaja / no encaja con el puesto», no comparison, no personal
 attribute) apply to every conclusion and to the overall line.
 
 **Limits.** The score and verdict are the judge's reading or the rules'
@@ -974,8 +974,4 @@ fallback, not a validated measure: the cut-offs and weights are display
 choices, nothing about their validity or reliability is established, and
 the neutral score when nothing was quoted is a default, not a finding.
 One conversation says little about a person. Checked only on the
-simulated discussion (7 `claude -p` calls, haiku): each of the 4 people
-got a judge opinion on all 11 competencies; the same person read as
-coaching or entrevista got different overall lines; with her evidence
-cut to two observations the overall stayed 3.0 with the line saying it
-rests on very little.
+simulated discussion with `experiments/skills/opinion_check.py` (7 `claude -p` calls, haiku; summary in `experiments/skills/results/opinion_check.json`): see that file for the scores, lines and how many skills the judge wrote against the rules.

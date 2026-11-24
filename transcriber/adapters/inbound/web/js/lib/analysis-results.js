@@ -241,6 +241,7 @@ export function opinionOf(profile) {
   const overall = o && typeof o.score === "number" ? {
     score: o.score,
     maximum: typeof o.maximum === "number" ? o.maximum : 5,
+    percent: typeof o.percent === "number" ? o.percent : Math.round((o.score / (typeof o.maximum === "number" ? o.maximum : 5)) * 1000) / 10,
     verdict: VERDICTS.includes(o.verdict) ? o.verdict : "adequate",
     line: o.line ?? "",
     frame: o.frame ?? "",

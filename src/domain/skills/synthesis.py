@@ -37,12 +37,14 @@ from src.domain.skills.opinion import (
     OPINION_FORMAT_VERSION,
     Certainty,
     OpinionBasis,
+    Verdict,
     OpinionQuote,
     OverallOpinion,
     SkillOpinion,
     frame,
     overall_caveats,
     overall_score,
+    scaled,
     top_picks,
     verdict_of,
 )
@@ -83,7 +85,9 @@ ENOUGH_WORDS = 300
 """Below this many words the confidence is never high (a short
 participation, as in :mod:`src.domain.skills.provisional`)."""
 
-DROP_REASONS = ("no_citation", "verdict", "comparison", "label", "personal")
+DROP_REASONS = (
+    "no_citation", "empty", "verdict", "comparison", "label", "personal"
+)
 """Why a point or question of the reply was dropped."""
 
 _VERDICT = re.compile(
@@ -92,7 +96,30 @@ _VERDICT = re.compile(
     r"no apt[oa]|apt[oa] para el puesto|descartarl[ao]|descartarle|"
     r"descartar su candidatura|hire (?:him|her|them)|do not hire|"
     r"should (?:not )?be hired|recommend hiring|unsuitable|not suitable|"
-    r"reject (?:the )?candidate|hiring decision)\b",
+    r"reject (?:the )?candidate|hiring decision|"
+    r"(?:would|do|does|did|should) not recommend|"
+    r"(?:recommend|recommended|recommending) "
+    r"(?:her|him|them|the candidate)|"
+    r"move (?:forward|on) with|(?:next|following) "
+    r"(?:phase|stage|round) of|"
+    r"(?:ideal|best|strong|perfect|top|good|right|weak|poor) "
+    r"candidate|"
+    r"(?:good|great|perfect|poor|bad|excellent|strong|weak) fit "
+    r"(?:for|with) (?:the|this|that) (?:job|role|position|post|vacancy)"
+    r"(?=\s*(?:[.,;:!?)]|$))|"
+    r"(?:is|are|seems?) (?:an? )?(?:good|great|perfect|poor|bad) "
+    r"(?:match|fit)(?=\s*(?:[.,;:!?)]|$))|"
+    r"(?:no )?recomiend\w+ (?:a |para )(?:ella|[eé]l|la candidat\w+|"
+    r"el candidat\w+|el puesto)|no (?:la |lo )?recomiendo|"
+    r"candidat[oa] (?:ideal|id[oó]ne\w+|fuerte|s[oó]lid\w+|"
+    r"perfect\w+|excelente|d[eé]bil)|"
+    r"(?:el|la) mejor candidat\w+|"
+    r"(?:pasar|pase|pasa|avanzar|avance|seguir) "
+    r"(?:a la|con la|a la siguiente|a la pr[oó]xima) "
+    r"(?:siguiente |pr[oó]xima )?(?:fase|ronda|etapa)|"
+    r"avanzar con (?:ella|[eé]l)|seguir adelante con (?:ella|[eé]l)|"
+    r"(?:no )?encaj\w+ (?:\w+ )?(?:con|para|en) (?:el|este|ese) "
+    r"(?:puesto|perfil|rol|cargo)(?=\s*(?:[.,;:!?)]|$)))\b",
     re.IGNORECASE,
 )
 _LABEL = re.compile(
@@ -203,7 +230,7 @@ _RANKING = re.compile(
     r"\b(?:better|worse|stronger|weaker|more|less|fewer)\b(?: \w+){0,3}? "
     r"than (?:the others|the rest|everyone|everybody|anyone|anybody|"
     r"any other|the other \w+|most (?:others|people|participants|of "
-    r"them|of the \w+)|most(?=\s*(?:[.,;:!?)]|$))|"
+    r"them|of the \w+)|most(?=(?=\s*(?:[.,;:!?)]|$)))|"
     r"other (?:participants|people|members|speakers|candidates|"
     r"colleagues)|others\b|(?:his|her|their) (?:peers|"
     r"colleagues|teammates))|"
@@ -298,6 +325,7 @@ class PersonFacts(BaseModel):
     participant: str
     language: str
     conversation_type: str = ""
+    minimum: int = 1
     maximum: int = 5
     words: int = 0
     turns: int = 0
@@ -354,7 +382,8 @@ class PersonSynthesis(BaseModel):
     ``questions`` from the model, after :func:`check_reply`.
     ``dropped`` counts what the check removed, by reason.
 
-    Added by #231 (``format_version`` 2; older files read with them
+    Added by #231 (``format_version`` 2, written on every opinion;
+    older files are 1 and read with them
     empty): ``skills`` has one opinion per competency, ``overall`` the
     score and verdict line, ``top_strengths`` (at most 3) and
     ``top_improvements`` (at most 2) the competency ids that stand out,
@@ -376,7 +405,7 @@ class PersonSynthesis(BaseModel):
     )
     dropped: Dict[str, int] = Field(default_factory=dict)
     parse_error: bool = False
-    format_version: int = OPINION_FORMAT_VERSION
+    format_version: int = 1
     conversation_type: str = ""
     skills: List[SkillOpinion] = Field(default_factory=list)
     overall: Optional[OverallOpinion] = None
@@ -433,7 +462,11 @@ SYSTEM_PROMPT = (
     "other personal or protected attribute.\n"
     "4. Do not compare this person with the other participants and do "
     "not rank anyone.\n"
-    "5. Never recommend hiring or rejecting. You DO give an opinion: a "
+    "5. Never recommend hiring or rejecting, never say whether to move "
+    "the person forward, never call anyone an ideal or strong candidate "
+    "and never say they fit or do not fit the job as a whole: describe "
+    "which shown strengths match which requirements and where the gaps "
+    "are. You DO give an opinion: a "
     "score on the scale and a short conclusion for EVERY competency "
     "listed, an overall verdict and the fit section (how the observed "
     "strengths could be useful and what to explore next). Never answer "
@@ -628,7 +661,7 @@ def _conclusion(
 ) -> str:
     """Return the rules' one-sentence conclusion for a skill."""
     spanish = facts.language == "es"
-    label = LABELS[verdict_of(_scaled(score, facts.maximum))][
+    label = LABELS[_read(facts, score)][
         "es" if spanish else "en"
     ]
     scale = f"{score}/{facts.maximum}"
@@ -660,18 +693,16 @@ def _conclusion(
     )
 
 
-def _scaled(score: float, maximum: int) -> float:
-    """Return ``score`` on the 1 to 5 scale the cut-offs are set on."""
-    if maximum == 5 or maximum <= 1:
-        return score
-    return 1 + (score - 1) * 4 / (maximum - 1)
+def _read(facts: PersonFacts, score: float) -> Verdict:
+    """Return the verdict ``score`` reads as on the facts' scale."""
+    return verdict_of(scaled(score, facts.minimum, facts.maximum))
 
 
 def _rules_score(
     facts: PersonFacts, line: CompetencyLine
 ) -> Tuple[int, OpinionBasis, Certainty]:
     """Return the analysis's own score, basis and confidence of a skill."""
-    middle = (facts.maximum + 1) // 2
+    middle = (facts.minimum + facts.maximum + 1) // 2
     if line.status == "rated" and line.rating is not None:
         level: Certainty = (
             "high" if facts.words >= ENOUGH_WORDS else "medium"
@@ -686,7 +717,8 @@ def _rules_score(
         minus = len(quotes) - plus
         shift = (plus > minus) - (minus > plus)
         return (
-            max(1, min(facts.maximum, middle + shift)), "observation", "low"
+            max(facts.minimum, min(facts.maximum, middle + shift)),
+            "observation", "low"
         )
     return middle, "participation", "low"
 
@@ -719,7 +751,7 @@ def rules_opinion(
     quotes = _competency_quotes(facts, line.competency_id)
     return SkillOpinion(
         competency_id=line.competency_id, name=line.name, score=score,
-        verdict=verdict_of(_scaled(score, facts.maximum)),
+        verdict=_read(facts, score),
         conclusion=_conclusion(facts, line, basis, score), basis=basis,
         confidence=level, caveats=_skill_caveats(facts, basis),
         source="rules", cites=[_as_quote(q) for q in quotes[:MAX_CITES]],
@@ -740,16 +772,14 @@ def _judge_opinion(
     ):
         score = base.score
     else:
-        score = max(1, min(facts.maximum, int(round(raw))))
+        score = max(facts.minimum, min(facts.maximum, int(round(raw))))
         if base.basis == "provisional":
             score = max(base.score - 1, min(base.score + 1, score))
     text = _clean(item.get("conclusion"))
-    reason = refusal(text, facts.others) if text else "no_citation"
+    reason = refusal(text, facts.others) if text else "empty"
     if reason:
         dropped[reason] = dropped.get(reason, 0) + 1
-        return base.model_copy(update={"score": score, "verdict": verdict_of(
-            _scaled(score, facts.maximum)
-        )})
+        return base
     ids = item.get("cites")
     own = {q.id: q for q in _competency_quotes(facts, line.competency_id)}
     cited = [
@@ -757,7 +787,7 @@ def _judge_opinion(
     ] if isinstance(ids, list) else []
     quotes = cited or list(own.values())
     return base.model_copy(update={
-        "score": score, "verdict": verdict_of(_scaled(score, facts.maximum)),
+        "score": score, "verdict": _read(facts, score),
         "conclusion": text, "source": "judge",
         "cites": [_as_quote(q) for q in quotes[:MAX_CITES]],
     })
@@ -767,7 +797,7 @@ def _overall_line(
     facts: PersonFacts, score: float, text: str
 ) -> Tuple[str, str]:
     """Return the overall verdict line and its source (judge or rules)."""
-    verdict = verdict_of(_scaled(score, facts.maximum))
+    verdict = _read(facts, score)
     spanish = facts.language == "es"
     if text and not refusal(text, facts.others):
         return text, "judge"
@@ -807,14 +837,20 @@ def with_opinions(
     said = _clean(
         overall_raw.get("verdict") if isinstance(overall_raw, dict) else ""
     )
+    reason = refusal(said, facts.others) if said else ""
+    if reason:
+        dropped[reason] = dropped.get(reason, 0) + 1
     line, source = _overall_line(facts, score, said)
     caveats = overall_caveats(skills)
     if data is None:
         caveats.append("judge_unavailable")
-    strengths, improvements = top_picks(skills)
+    strengths, improvements = top_picks(
+        skills, facts.minimum, facts.maximum
+    )
     overall = OverallOpinion(
-        score=score, maximum=facts.maximum,
-        verdict=verdict_of(_scaled(score, facts.maximum)), line=line,
+        score=score, maximum=facts.maximum, minimum=facts.minimum,
+        percent=round(score / facts.maximum * 100, 1),
+        verdict=_read(facts, score), line=line,
         frame=frame(facts.conversation_type, facts.language),
         confidence=result.confidence, caveats=caveats,
         source="judge" if source == "judge" else "rules",
@@ -823,6 +859,7 @@ def with_opinions(
         "skills": skills, "overall": overall, "dropped": dropped,
         "top_strengths": strengths, "top_improvements": improvements,
         "conversation_type": facts.conversation_type,
+        "format_version": OPINION_FORMAT_VERSION,
     })
 
 

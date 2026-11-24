@@ -438,8 +438,9 @@ def test_a_failing_model_propagates_to_the_step() -> None:
 def test_every_drop_reason_is_known() -> None:
     """The reasons stored are the documented ones."""
     from src.domain.skills.synthesis import DROP_REASONS
-    seen: List[str] = ["no_citation", "verdict", "comparison", "label",
-                       "personal"]
+    seen: List[str] = [
+        "no_citation", "empty", "verdict", "comparison", "label", "personal"
+    ]
     assert list(DROP_REASONS) == seen
 
 

@@ -4,6 +4,8 @@ import json
 from typing import Any, List
 
 from src.application.skills.synthesis import ProfileSynthesizer, person_facts
+import pytest
+
 from src.domain.skills.opinion import (
     DEFAULT_FRAME,
     FRAMES,
@@ -12,6 +14,7 @@ from src.domain.skills.opinion import (
     frame,
     overall_caveats,
     overall_score,
+    scaled,
     top_picks,
     verdict_of,
 )
@@ -19,6 +22,7 @@ from src.domain.skills.synthesis import (
     PersonFacts,
     PersonSynthesis,
     check_reply,
+    refusal,
     skipped,
     user_prompt,
 )
@@ -67,7 +71,7 @@ def test_the_conversation_type_frames_the_prompt() -> None:
     interview = user_prompt(facts(kind="entrevista"), "")
     assert "Conversation type: coaching" in coaching
     assert "acquired" in coaching and "acquired" not in interview
-    assert "fit the role" in interview
+    assert "match what the role" in interview
     assert "Conversation type: unknown" in user_prompt(facts(), "")
 
 
@@ -106,7 +110,10 @@ def test_the_judge_opinion_is_kept_but_a_firm_level_is_not_overridden(
     assert result.overall.line == "Coordinates the conversation well."
     assert result.overall.source == "judge"
     assert result.conversation_type == "coaching"
-    assert result.format_version == OPINION_FORMAT_VERSION
+    assert result.format_version == OPINION_FORMAT_VERSION == 2
+    assert result.overall is not None and result.overall.percent == round(
+        result.overall.score / 5 * 100, 1
+    )
     assert result.top_strengths == ["listening", "planning"]
     assert result.top_improvements == []
 
@@ -124,7 +131,8 @@ def test_a_missing_or_refused_entry_falls_back_to_the_rules() -> None:
     ]
     assert {s.source for s in result.skills} == {"rules"}
     planning = result.skills[1]
-    assert planning.score == 2 and "verdict" in result.dropped
+    assert planning.score == 3 and planning.verdict == "adequate"
+    assert result.dropped == {"verdict": 1, "comparison": 1}
     assert result.overall is not None and result.overall.source == "rules"
     assert result.overall.line.startswith("Overall reading:")
 
@@ -190,6 +198,9 @@ def test_overall_score_and_top_picks() -> None:
     assert top_picks([opinion("z", 5)]) == (["z"], [])
     assert overall_caveats(skills) == ["no_quotes"]
     assert overall_caveats([opinion("q", 3, "participation")]) == [
+        "no_firm_levels", "no_quotes"
+    ]
+    assert overall_caveats([opinion("q", 3, "observation")]) == [
         "no_firm_levels", "observations_only", "no_quotes"
     ]
 
@@ -202,7 +213,72 @@ def test_the_synthesizer_gives_opinions_without_a_call_when_nothing_quoted(
     result = ProfileSynthesizer(model).write(tom)
     assert model.calls == []
     assert result.status == "done" and result.overall is not None
-    assert result.top_strengths and result.reason == "no_evidence"
+    assert result.top_strengths == [] and result.reason == "no_evidence"
     old: List[Any] = [{"participant": "Tom", "status": "done"}]
     loaded = PersonSynthesis.model_validate(old[0])
     assert loaded.skills == [] and loaded.overall is None
+    assert loaded.format_version == 1
+
+
+@pytest.mark.parametrize("text", [
+    "No encaja con el puesto.",
+    "Encaja perfectamente con el puesto.",
+    "I would not recommend her for this position.",
+    "Good fit for the job; we should move forward with her.",
+    "She is a strong candidate for the role.",
+    "Es la candidata ideal.",
+    "Recomiendo pasar a la siguiente fase.",
+    "Sería buena idea avanzar con ella.",
+    "A good fit for the role.",
+])
+def test_decisions_and_blanket_fit_are_refused(text: str) -> None:
+    """The fit reading may describe skills, never decide."""
+    assert refusal(text, []) == "verdict"
+
+
+@pytest.mark.parametrize("text", [
+    "Sus respuestas sobre bases de datos encajan con lo que pide el "
+    "puesto; las pruebas automáticas quedan por debajo.",
+    "Her answers on databases match what the role asks for; automated "
+    "testing falls short.",
+    "Explains trade-offs clearly, a strength for the coordination tasks.",
+])
+def test_describing_the_match_skill_by_skill_is_allowed(text: str) -> None:
+    """Strengths against requirements pass."""
+    assert refusal(text, []) == ""
+
+
+def test_the_overall_line_and_empty_conclusions_are_checked_and_counted(
+) -> None:
+    """A verdict line is replaced and counted; an empty text is `empty`."""
+    text = reply(
+        skills=[{"id": "planning", "score": 5, "conclusion": ""},
+                {"id": "listening", "score": 4, "conclusion": "Fine."}],
+        overall={"verdict": "She is a strong candidate for the role."},
+    )
+    result = check_reply(text, facts(kind="entrevista"))
+    assert result.dropped == {"empty": 1, "verdict": 1}
+    assert result.skills[1].source == "rules" and result.skills[1].score == 3
+    assert result.overall is not None
+    assert result.overall.source == "rules"
+    assert "candidate" not in result.overall.line
+    assert "demonstrated strengths" in result.overall.frame
+    assert "hire" in result.overall.frame
+
+
+def test_participation_only_skills_are_never_strengths_or_improvements(
+) -> None:
+    """Lists ignore skills read from nothing; neutral observations too."""
+    skills = [
+        opinion("a", 5, "participation"), opinion("b", 3, "observation"),
+        opinion("c", 1, "participation"), opinion("d", 2, "observation"),
+    ]
+    assert top_picks(skills) == ([], ["d"])
+
+
+def test_top_picks_use_the_scaled_score_and_the_scale_minimum() -> None:
+    """On a 0 to 10 scale 6 is mid-range (adequate), 9 is strong."""
+    skills = [opinion("a", 9), opinion("b", 6), opinion("c", 1)]
+    strengths, improvements = top_picks(skills, 0, 10)
+    assert strengths == ["a", "b"] and improvements == ["c"]
+    assert scaled(5, 0, 10) == 3.0 and scaled(4, 1, 5) == 4

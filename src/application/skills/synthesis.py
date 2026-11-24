@@ -170,6 +170,7 @@ def person_facts(
     return PersonFacts(
         participant=participant, language=assessment.language,
         conversation_type=assessment.conversation_type or "",
+        minimum=catalogue.scale.minimum,
         maximum=catalogue.scale.maximum, words=speech.words,
         turns=speech.turns, word_share=speech.word_share,
         questions=speech.questions, acts=_acts(acts, participant),

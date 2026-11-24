@@ -275,6 +275,8 @@ test("the opinion of a person: overall, skills, top picks; old files have none",
   };
   const o = opinionOf(profile);
   assert.equal(o.overall.verdict, "strong");
+  assert.equal(o.overall.percent, 76);
+  assert.equal(opinionOf({ overall: { score: 4.4, maximum: 5, percent: 88.7 } }).overall.percent, 88.7);
   assert.deepEqual(o.overall.caveats, ["no_quotes"]);
   assert.deepEqual(o.topStrengths.map((k) => k.id), ["a"]);
   assert.deepEqual(o.topImprovements.map((k) => k.id), ["b"]);

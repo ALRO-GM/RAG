@@ -1,0 +1,179 @@
+[
+ {
+  "type": "reunion_decision",
+  "person": "Lucía",
+  "status": "done",
+  "dropped": {
+   "no_citation": 1
+  },
+  "score": 3.7,
+  "percent": 74.0,
+  "verdict": "adequate",
+  "line": "En esta reunión Lucía ayudó a llegar a decisiones y a próximos pasos concretos, con cierre y asignación de tareas, aunque dejó una pregunta y dos propuestas sin retomar y varias de sus valoraciones son provisionales.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "COMM",
+   "LISTEN",
+   "COORD"
+  ],
+  "top_improvements": [
+   "INFLU",
+   "INIT"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "reunion_decision",
+  "person": "Andrés",
+  "status": "done",
+  "dropped": {
+   "no_citation": 2
+  },
+  "score": 3.3,
+  "percent": 66.0,
+  "verdict": "adequate",
+  "line": "Sí, Andrés ayudó a que la reunión llegara a decisiones concretas y a próximos pasos con plazo, sobre todo mediante criterios cuantificados, aunque varios de sus argumentos no fueron atendidos.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "COMM",
+   "CONFL",
+   "SOLVE"
+  ],
+  "top_improvements": [
+   "INFLU",
+   "INCL"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "reunion_decision",
+  "person": "Nerea",
+  "status": "done",
+  "dropped": {
+   "no_citation": 2
+  },
+  "score": 3.4,
+  "percent": 68.0,
+  "verdict": "adequate",
+  "line": "En esta conversación Nerea sí ayudó a llegar a decisiones claras y pasos siguientes: cerró cuatro decisiones y varias tareas con plazo, aunque cuatro de sus propuestas y dos de sus preguntas quedaron sin respuesta.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "CONFL",
+   "SOLVE",
+   "INIT"
+  ],
+  "top_improvements": [
+   "COMM",
+   "LISTEN"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "reunion_decision",
+  "person": "Joaquín",
+  "status": "done",
+  "dropped": {
+   "no_citation": 1
+  },
+  "score": 3.6,
+  "percent": 72.0,
+  "verdict": "adequate",
+  "line": "Sí, en esta conversación ayudó a cerrar pasos siguientes con responsables y plazos, aunque la pregunta sobre los pedidos del domingo quedó abierta y algunas de sus propuestas no se retomaron.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "COMM",
+   "INFLU",
+   "SOLVE"
+  ],
+  "top_improvements": [
+   "LISTEN",
+   "COLLAB"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "coaching",
+  "person": "Lucía",
+  "status": "done",
+  "dropped": {
+   "no_citation": 1
+  },
+  "score": 3.7,
+  "percent": 74.0,
+  "verdict": "adequate",
+  "line": "En esta conversación de coaching, Lucía aplica con claridad técnicas de facilitación como resumir, acotar propuestas y fijar seguimiento, aunque la evidencia sobre feedback y desarrollo de otras personas es escasa.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "COMM",
+   "LISTEN",
+   "COORD"
+  ],
+  "top_improvements": [
+   "INFLU",
+   "INIT"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "entrevista",
+  "person": "Lucía",
+  "status": "done",
+  "dropped": {
+   "no_citation": 3
+  },
+  "score": 3.7,
+  "percent": 74.0,
+  "verdict": "adequate",
+  "line": "En esta conversación de entrevista, Lucía muestra con más firmeza comunicación, escucha y coordinación, con algo de capacidad de influencia, mientras que el feedback a otras personas no se observa y las propuestas sin respuesta dejan dudas sobre su influencia.",
+  "source": "judge",
+  "caveats": [],
+  "confidence": "high",
+  "top_strengths": [
+   "COMM",
+   "LISTEN",
+   "COORD"
+  ],
+  "top_improvements": [
+   "INFLU",
+   "INIT"
+  ],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ },
+ {
+  "type": "coaching+cut",
+  "person": "Lucía",
+  "status": "done",
+  "dropped": {},
+  "score": 3.0,
+  "percent": 60.0,
+  "verdict": "adequate",
+  "line": "Con la evidencia disponible, Lucía propone acciones concretas que podrían aplicar lo que se entrena en coaching, pero solo se observan dos citas y no se puede confirmar que la otra persona haya aplicado el aprendizaje, así que la conclusión es provisional.",
+  "source": "judge",
+  "caveats": [
+   "no_firm_levels",
+   "observations_only",
+   "short_participation"
+  ],
+  "confidence": "low",
+  "top_strengths": [],
+  "top_improvements": [],
+  "skills_by_judge": 11,
+  "skills_by_rules": 0
+ }
+]

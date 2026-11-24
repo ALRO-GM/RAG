@@ -63,10 +63,14 @@ FRAMES: Dict[str, Dict[str, str]] = {
               "habilidades que se trabajan?",
     },
     "entrevista": {
-        "en": "how well does the person fit the role (or the kind of "
-              "tasks) the interview is about?",
-        "es": "¿cómo encaja la persona con el puesto (o el tipo de "
-              "tareas) de la entrevista?",
+        "en": "which demonstrated strengths match what the role (or kind of "
+              "tasks) asks for, and where are the gaps? Describe the "
+              "match skill by skill; never say whether to hire or move "
+              "the person forward.",
+        "es": "¿qué fortalezas demostradas coinciden con lo que pide el "
+              "puesto (o el tipo de tareas) y dónde están las carencias? "
+              "Describe la coincidencia competencia por competencia; "
+              "nunca digas si contratar o avanzar a la persona.",
     },
     "venta": {
         "en": "did the person handle the customer well: needs found, "
@@ -133,6 +137,13 @@ LABELS: Dict[str, Dict[str, str]] = {
 """Words for the verdicts in the fallback sentences."""
 
 
+def scaled(score: float, minimum: int, maximum: int) -> float:
+    """Return ``score`` on the 1 to 5 scale the cut-offs are set on."""
+    if maximum <= minimum or (minimum, maximum) == (1, 5):
+        return score
+    return 1 + (score - minimum) * 4 / (maximum - minimum)
+
+
 def frame(conversation_type: Optional[str], language: str) -> str:
     """Return the question the verdict answers for this conversation."""
     chosen = FRAMES.get(conversation_type or "", DEFAULT_FRAME)
@@ -189,6 +200,8 @@ class OverallOpinion(BaseModel):
 
     score: float
     maximum: int
+    minimum: int = 1
+    percent: float = 0.0
     verdict: Verdict
     line: str
     frame: str
@@ -207,28 +220,42 @@ def overall_score(skills: Sequence[SkillOpinion]) -> float:
 
 
 def top_picks(
-    skills: Sequence[SkillOpinion],
+    skills: Sequence[SkillOpinion], minimum: int = 1, maximum: int = 5,
 ) -> Tuple[List[str], List[str]]:
     """Return the ids of the main strengths (≤3) and improvements (≤2).
 
+    Only skills with something behind them count: a firm or provisional
+    level, or observations that lean one way (a score away from the
+    middle of the scale). Skills read from participation alone are
+    never listed, so a person with nothing quoted has empty lists.
     Strengths are the highest scores at ``adequate`` or above,
-    improvements the lowest scores below ``strong``; ties go to the
-    firmer basis, then to the rubric's order. A skill is never both.
+    improvements the lowest scores below ``strong`` (cut-offs on the
+    scaled score); ties go to the firmer basis, then to the rubric's
+    order. A skill is never both.
     """
     rank = list(WEIGHTS)
     order = {s.competency_id: i for i, s in enumerate(skills)}
+    middle = (minimum + maximum + 1) // 2
+
+    def value(s: SkillOpinion) -> float:
+        return scaled(s.score, minimum, maximum)
 
     def firmer(s: SkillOpinion) -> int:
         return rank.index(s.basis)
 
+    backed = [
+        s for s in skills
+        if s.basis in ("firm", "provisional")
+        or (s.basis == "observation" and s.score != middle)
+    ]
     strong = sorted(
-        (s for s in skills if s.score >= ADEQUATE_FROM),
+        (s for s in backed if value(s) >= ADEQUATE_FROM),
         key=lambda s: (-s.score, firmer(s), order[s.competency_id]),
     )[:MAX_TOP_STRENGTHS]
     taken = {s.competency_id for s in strong}
     weak = sorted(
-        (s for s in skills
-         if s.competency_id not in taken and s.score < STRONG_FROM),
+        (s for s in backed
+         if s.competency_id not in taken and value(s) < STRONG_FROM),
         key=lambda s: (s.score, firmer(s), order[s.competency_id]),
     )[:MAX_TOP_IMPROVEMENTS]
     return (
@@ -242,8 +269,9 @@ def overall_caveats(skills: Sequence[SkillOpinion]) -> List[str]:
     found: List[str] = []
     if not any(s.basis == "firm" for s in skills):
         found.append("no_firm_levels")
-    if skills and all(s.basis in ("participation", "observation")
-                      for s in skills):
+    if any(s.basis == "observation" for s in skills) and all(
+        s.basis in ("participation", "observation") for s in skills
+    ):
         found.append("observations_only")
     if any("short_participation" in s.caveats for s in skills):
         found.append("short_participation")

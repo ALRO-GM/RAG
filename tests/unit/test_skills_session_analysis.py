@@ -658,6 +658,7 @@ def synthesis_build(
     limit: int = 100,
     asked: Optional[List[bool]] = None,
     own: Optional[int] = None,
+    transcripts: Optional[List[Transcript]] = None,
 ) -> SessionAnalysis:
     """The flow with a budget shared by steps f, g and i."""
     retriever = EvidenceRetriever(
@@ -682,7 +683,39 @@ def synthesis_build(
             budget=budget, synthesis=writer,
         )
 
-    return build(model, store, judges=judges)
+    return build(model, store, judges=judges, transcripts=transcripts)
+
+
+def test_synthesis_json_carries_the_opinion_contract_of_the_type() -> None:
+    """Contract v2 end to end: type, overall, skills, top lists, percent."""
+    store = InMemoryAnalysisStore()
+    transcript = make_transcript(session_id="s1").model_copy(
+        update={"conversation_type": "coaching"}
+    )
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model, transcripts=[transcript]).run("s1")
+    stored = json.loads(store.files[("s1", "synthesis.json")])
+    assert stored["format_version"] == 2
+    assert stored["conversation_type"] == "coaching"
+    prompts = [u for _, u, _ in model.calls if "Items you may cite" in u]
+    assert prompts and all("Conversation type: coaching" in u for u in prompts)
+    for person in stored["people"]:
+        assert person["format_version"] == 2
+        assert person["conversation_type"] == "coaching"
+        overall = person["overall"]
+        assert set(overall) >= {
+            "score", "maximum", "minimum", "percent", "verdict", "line",
+            "frame", "confidence", "caveats", "source",
+        }
+        assert overall["percent"] == round(
+            overall["score"] / overall["maximum"] * 100, 1
+        )
+        assert "acquired" in overall["frame"]
+        for skill in person["skills"]:
+            assert set(skill) >= {
+                "competency_id", "name", "score", "verdict", "conclusion",
+                "basis", "confidence", "caveats", "source", "cites",
+            }
 
 
 def test_step_i_writes_checked_profiles_and_puts_them_in_the_reports() -> (
