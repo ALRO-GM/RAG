@@ -4,8 +4,13 @@
 // that never hangs an example: a clip that does not load or play within
 // its length (plus a margin) is given up, the example goes on with the
 // text and the page says once that the sound is not available. Nothing
-// plays before the viewer starts an example. No DOM here: the audio
-// element, the clip loader and the clock are injected, so node --test
+// plays before the viewer starts an example.
+//
+// Clips play through Web Audio: the bytes are fetched with the access code
+// and decoded by an AudioContext the page resumes inside the viewer's
+// click. Never an <audio> on a blob: URL — the public site's
+// Content-Security-Policy (`media-src 'self'`) refuses those. No DOM here:
+// the context, the clip loader and the clock are injected, so node --test
 // runs it with fakes.
 
 /** Where the sound on/off is remembered (this browser only). */
@@ -55,28 +60,82 @@ export function voicesNoteKey(view, example) {
   return kinds.has("clone") ? "dvoice.clone" : "dvoice.stock";
 }
 
+/** A new AudioContext (suspended until resumed by a click), or null without Web Audio. */
+export function createAudioContext(win = globalThis) {
+  const Context = win?.AudioContext ?? win?.webkitAudioContext;
+  if (typeof Context !== "function") return null;
+  try {
+    return new Context();
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Plays one clip at a time. `load(key)` resolves to an address the audio
- * element can play (an object URL of the clip fetched with the access
- * code); `makeAudio(url)` returns an element with play(), pause(),
- * addEventListener; `onFail()` is called once, the first time a clip
- * cannot be played. `play(key, seconds)` resolves true when the clip ended,
- * false when it was off, stopped, failed or ran out of time: never hangs.
+ * The output of a ClipPlayer over a Web Audio `context` (null: no sound):
+ * `ready()` resumes it (true when running), `decode(bytes)` makes a buffer,
+ * `start(buffer)` plays it and returns { ended: Promise, stop() }.
+ */
+export function webAudioOutput(context) {
+  return {
+    async ready() {
+      if (!context) return false;
+      if (context.state !== "running") {
+        try {
+          await context.resume();
+        } catch {
+          return false;
+        }
+      }
+      return context.state === "running";
+    },
+    decode(bytes) {
+      if (!context) return Promise.reject(new Error("no Web Audio"));
+      return context.decodeAudioData(bytes);
+    },
+    start(buffer) {
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      const ended = new Promise((resolve) => { source.onended = () => resolve(); });
+      source.start();
+      return {
+        ended,
+        stop() {
+          try {
+            source.stop();
+          } catch {
+            // already stopped
+          }
+        },
+      };
+    },
+  };
+}
+
+/**
+ * Plays one clip at a time. `load(key)` resolves to the clip's bytes (an
+ * ArrayBuffer fetched with the access code); `output` is a
+ * webAudioOutput(); `onFail()` is called once, the first time a clip
+ * cannot be played. `play(key, seconds)` resolves true when the clip
+ * ended, false when it was off, stopped, failed or ran out of time: never
+ * hangs.
  */
 export class ClipPlayer {
-  constructor({ load, makeAudio, onFail = () => {}, schedule = setTimeout, cancel = clearTimeout }) {
+  constructor({ load, output, onFail = () => {}, schedule = setTimeout, cancel = clearTimeout }) {
     this.load = load;
-    this.makeAudio = makeAudio;
+    this.output = output;
     this.onFail = onFail;
-    this.schedule = schedule;
-    this.cancel = cancel;
+    // Called bare: the browser's setTimeout refuses another `this`.
+    this.schedule = (fn, ms) => schedule(fn, ms);
+    this.cancel = (id) => cancel(id);
     this.sound = true;
     this.failed = false;
     this.loads = new Map();
     this.current = null;
   }
 
-  /** Start loading the clips of `keys`, one after the other. */
+  /** Start loading (and decoding) the clips of `keys`, one after the other. */
   async prefetch(keys) {
     for (const key of keys) {
       if (this.stopped) return;
@@ -86,7 +145,7 @@ export class ClipPlayer {
 
   _load(key) {
     if (!this.loads.has(key)) {
-      const loading = Promise.resolve().then(() => this.load(key));
+      const loading = Promise.resolve().then(() => this.load(key)).then((bytes) => this.output.decode(bytes));
       loading.catch(() => {});
       this.loads.set(key, loading);
     }
@@ -110,31 +169,27 @@ export class ClipPlayer {
     this.stop();
     if (!this.sound) return Promise.resolve(false);
     return new Promise((resolve) => {
-      let audio = null;
+      let playing = null;
       let timer = null;
       const finish = (ok, broken = false) => {
         if (this.current !== entry) return;
         this.current = null;
         this.cancel(timer);
-        try {
-          audio?.pause?.();
-        } catch {
-          // already gone
-        }
+        playing?.stop();
         if (broken) this._fail();
         resolve(ok);
       };
       const entry = { stop: () => finish(false) };
       this.current = entry;
       timer = this.schedule(() => finish(false, true), Math.max(0, seconds) * 1000 + CLIP_MARGIN_MS);
-      this._load(key).then((url) => {
+      Promise.all([this._load(key), this.output.ready()]).then(([buffer, ready]) => {
         if (this.current !== entry) return;
-        audio = this.makeAudio(url);
-        audio.addEventListener?.("ended", () => finish(true), { once: true });
-        audio.addEventListener?.("error", () => finish(false, true), { once: true });
-        // Autoplay rules: a browser that refuses to play (no click yet) rejects here.
-        Promise.resolve(audio.play?.()).catch(() => finish(false, true));
-      }, () => finish(false, true));
+        // Autoplay rules: a context the viewer has not unlocked by a click stays suspended.
+        if (!ready) return finish(false, true);
+        playing = this.output.start(buffer);
+        playing.ended.then(() => finish(true));
+        return null;
+      }).catch(() => finish(false, true));
     });
   }
 
@@ -143,14 +198,10 @@ export class ClipPlayer {
     this.current?.stop();
   }
 
-  /** Stop and forget everything (`revoke(url)` frees each loaded address). */
-  async dispose(revoke = () => {}) {
+  /** Stop and forget everything. */
+  dispose() {
     this.stopped = true;
     this.stop();
-    for (const loading of this.loads.values()) {
-      const url = await loading.catch(() => null);
-      if (url) revoke(url);
-    }
     this.loads.clear();
   }
 }

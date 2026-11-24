@@ -108,7 +108,9 @@ mi voz». It is a separate consent from identification:
   enrolled voices, `DELETE /api/speakers/{id}/voice-clone`: the clip is
   deleted and the record says `voice_clone: false` with
   `voice_clone_withdrawn_at`. The voiceprint stays. Forgetting the
-  person deletes the clip too.
+  person deletes the clip too. Both (and enrolling again without the
+  box) also delete every clip of the scripted examples cloned from that
+  voice (§7).
 - The orchestrator reads the same two files (`fs_voice_profiles.py`,
   plain JSON and WAV, never the transcriber's code). A voice is
   clonable only with `voice_clone: true` **and** the clip;
@@ -331,6 +333,32 @@ tested with a fake gate and a real lease file.
 **Pending (owner):** real enrolled voices, a listener judging likeness
 and naturalness, and the cloned voice's behaviour with an IMG job
 actually queued.
+
+## 7. The scripted examples' voices (#254)
+
+The examples (`#/voicebot/demo`, `#/live/demo/support`, `#/live/demo`)
+can be heard with the cloned voice of an enrolled person, under the same
+consent as the voice bot: only a person with `voice_clone: true` **and**
+the reference clip can voice a scripted character, and only when the
+operator who renders the clips names them explicitly
+(`demo-voices render ... --voice agente=clone:<person>`; nobody is ever
+picked by default). The clips are rendered ahead of time with the same
+cloners (Qwen3-TTS under the GPU lease by default, OpenVoice with
+`--clone-engine openvoice`) and kept outside the repository,
+`data/transcriber/demo-voices/<demo>/`, mode 600, with a manifest whose
+`cloned_from` names the person (`docs/live/SUPPORT_DEMO.md`, «Voices»).
+
+**Withdrawal.** `FileSystemVoiceprintRepository.delete_clone_reference`
+(withdrawing, enrolling again without the box, forgetting the person)
+deletes those clips and their manifest entries in the same step as the
+reference clip (`transcriber/adapters/outbound/fs_demo_voices.py`; the
+two services share the manifest's format, not code). The orchestrator
+also checks the person's profile each time the page asks for the voices
+and deletes the clips of anyone who may no longer be cloned. An example
+with one clip missing is not heard at all: it falls back to text and
+says the voices are not available. There is still no spoken notice
+(#151); the page says the voices are synthetic, cloned with permission,
+and belong to no real customer.
 
 ## Limits
 

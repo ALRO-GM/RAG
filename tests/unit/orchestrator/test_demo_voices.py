@@ -2,6 +2,7 @@
 
 import json
 import re
+from array import array
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,12 +18,15 @@ from orchestrator.application.demo_voices import (
 from orchestrator.application.ports import TtsUnavailable
 from orchestrator.domain.demo import DemoScript, recast
 from orchestrator.domain.demo_voices import (
+    PEAK,
     STOCK_VOICES,
+    TARGET_RMS,
     DemoClip,
     DemoVoice,
     DemoVoiceManifest,
     check_voices,
     demo_lines,
+    even_loudness,
     page_view,
     parse_voice,
     playable,
@@ -561,3 +565,19 @@ def test_a_clip_that_does_not_fit_is_rendered_again() -> None:
         "t2.s0": DemoClip(**{**clip.model_dump(), "engine": "piper"})}})
     again = renderer(store).render(CALL, {})
     assert again.rendered == ["t2.s0"]
+
+
+def test_every_clip_is_brought_to_one_level_without_clipping() -> None:
+    quiet = array("h", [100, -100] * 500).tobytes()
+    loud = array("h", [20000, -20000] * 500).tobytes()
+    for pcm in (quiet, loud):
+        out = array("h")
+        out.frombytes(even_loudness(pcm))
+        rms = (sum(s * s for s in out) / len(out)) ** 0.5
+        assert rms == pytest.approx(TARGET_RMS, rel=0.01)
+    spiky = array("h", [0] * 999 + [1000]).tobytes()
+    out = array("h")
+    out.frombytes(even_loudness(spiky))
+    assert max(out) == PEAK, "the gain stops at the peak"
+    assert even_loudness(b"\x00\x00" * 10) == b"\x00\x00" * 10
+    assert even_loudness(b"") == b"" and even_loudness(b"\x01") == b""

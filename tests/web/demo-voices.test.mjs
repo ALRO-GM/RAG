@@ -7,7 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  CLIP_MARGIN_MS, ClipPlayer, SOUND_KEY, clipsOf, lineToPlay, readSound, voicesNoteKey, writeSound,
+  CLIP_MARGIN_MS, ClipPlayer, SOUND_KEY, clipsOf, createAudioContext, lineToPlay, readSound, voicesNoteKey, webAudioOutput, writeSound,
 } from "../../transcriber/adapters/inbound/web/js/lib/demo-voices.js";
 import { play, stepsOf } from "../../transcriber/adapters/inbound/web/js/lib/voice-demo.js";
 import * as i18n from "../../transcriber/adapters/inbound/web/js/i18n.js";
@@ -87,75 +87,73 @@ test("every voices text exists in both languages, Spanish first, synthetic and n
   }
 });
 
-/** An audio element that ends, fails or is refused, as the test says. */
-function fakeAudio(behaviour, made) {
-  return (url) => {
-    const listeners = {};
-    const audio = {
-      url, paused: false,
-      addEventListener(name, fn) { listeners[name] = fn; },
-      pause() { audio.paused = true; },
-      play() {
-        if (behaviour === "refused") return Promise.reject(Object.assign(new Error("no gesture"), { name: "NotAllowedError" }));
-        queueMicrotask(() => {
-          if (behaviour === "ends") listeners.ended?.();
-          if (behaviour === "error") listeners.error?.();
-        });
-        return Promise.resolve();
-      },
-    };
-    made.push(audio);
-    return audio;
+/** A Web Audio output whose clips end, fail to decode or stay suspended, as the test says. */
+function fakeOutput(behaviour, started) {
+  return {
+    ready: async () => behaviour !== "suspended",
+    decode: async (bytes) => {
+      if (behaviour === "undecodable") throw new Error("EncodingError");
+      return { bytes };
+    },
+    start(buffer) {
+      const sound = { buffer, stopped: false };
+      started.push(sound);
+      return {
+        ended: behaviour === "ends" ? Promise.resolve() : new Promise(() => {}),
+        stop() { sound.stopped = true; },
+      };
+    },
   };
 }
 
 function clock() {
   const timers = [];
+  // Like the browser's, they refuse to be called on another object.
   return {
     timers,
-    schedule: (fn, ms) => { timers.push({ fn, ms, live: true }); return timers.length; },
-    cancel: (id) => { if (timers[id - 1]) timers[id - 1].live = false; },
+    schedule: function (fn, ms) { assert.equal(this, undefined); timers.push({ fn, ms, live: true }); return timers.length; },
+    cancel: function (id) { assert.equal(this, undefined); if (timers[id - 1]) timers[id - 1].live = false; },
     fire() { for (const t of timers.filter((x) => x.live)) { t.live = false; t.fn(); } },
   };
 }
 
 test("a clip that ends resolves true; one that fails, is refused or never ends resolves false and is said once", async () => {
-  for (const [behaviour, expected] of [["ends", true], ["error", false], ["refused", false]]) {
-    const made = [];
+  for (const [behaviour, expected] of [["ends", true], ["undecodable", false], ["suspended", false]]) {
+    const started = [];
     let failures = 0;
-    const loaded = [];
     const player = new ClipPlayer({
-      load: async (key) => { loaded.push(key); return `blob:${key}`; },
-      makeAudio: fakeAudio(behaviour, made), onFail: () => { failures += 1; },
+      load: async (key) => `bytes:${key}`,
+      output: fakeOutput(behaviour, started), onFail: () => { failures += 1; },
     });
     assert.equal(await player.play("t0.s0", 2), expected, behaviour);
-    assert.equal(made[0].url, "blob:t0.s0");
-    if (!expected) {
+    if (expected) assert.equal(started[0].buffer.bytes, "bytes:t0.s0");
+    else {
+      assert.equal(started.length, 0);
       assert.equal(await player.play("t1.s0", 2), false);
       assert.equal(failures, 1, "said once");
     }
-    await player.dispose();
+    player.dispose();
   }
   const timers = clock();
-  const made = [];
+  const started = [];
   let failures = 0;
-  const silent = new ClipPlayer({ load: async () => "blob:x", makeAudio: fakeAudio("silent", made), onFail: () => { failures += 1; }, ...timers });
+  const silent = new ClipPlayer({ load: async () => "x", output: fakeOutput("silent", started), onFail: () => { failures += 1; }, ...timers });
   const pending = silent.play("t0.s0", 3);
   assert.equal(timers.timers[0].ms, 3000 + CLIP_MARGIN_MS);
   await new Promise((r) => setImmediate(r));
   timers.fire();
   assert.equal(await pending, false);
   assert.equal(failures, 1);
-  assert.equal(made[0].paused, true);
-  const broken = new ClipPlayer({ load: async () => { throw new Error("404"); }, makeAudio: fakeAudio("ends", []), onFail: () => { failures += 1; } });
+  assert.equal(started[0].stopped, true);
+  const broken = new ClipPlayer({ load: async () => { throw new Error("404"); }, output: fakeOutput("ends", []), onFail: () => { failures += 1; } });
   assert.equal(await broken.play("t0.s0", 1), false);
   assert.equal(failures, 2);
 });
 
 test("muted, nothing is loaded or played; a new line or the switch stops the one playing", async () => {
-  const made = [];
+  const started = [];
   const loaded = [];
-  const player = new ClipPlayer({ load: async (key) => { loaded.push(key); return key; }, makeAudio: fakeAudio("silent", made) });
+  const player = new ClipPlayer({ load: async (key) => { loaded.push(key); return key; }, output: fakeOutput("silent", started) });
   player.setSound(false);
   assert.equal(await player.play("t0.s0", 2), false);
   assert.deepEqual(loaded, []);
@@ -167,14 +165,43 @@ test("muted, nothing is loaded or played; a new line or the switch stops the one
   await new Promise((r) => setImmediate(r));
   player.setSound(false);
   assert.equal(await second, false);
-  assert.deepEqual(made.map((a) => a.paused), [true, true]);
+  assert.deepEqual(started.map((a) => a.stopped), [true, true]);
   await player.prefetch(["t2.s0", "t2.s0", "t3.s0"]);
   assert.deepEqual(loaded, ["t0.s0", "t1.s0", "t2.s0", "t3.s0"], "each clip loaded once");
-  const revoked = [];
-  await player.dispose((url) => revoked.push(url));
-  assert.deepEqual(revoked.sort(), ["t0.s0", "t1.s0", "t2.s0", "t3.s0"]);
+  player.dispose();
   await player.prefetch(["t9.s0"]);
   assert.equal(loaded.includes("t9.s0"), false, "a disposed player loads nothing");
+});
+
+test("the Web Audio output resumes, decodes and plays a buffer, and says when it cannot", async () => {
+  const calls = [];
+  let onended = null;
+  const context = {
+    state: "suspended", destination: "out",
+    async resume() { calls.push("resume"); this.state = "running"; },
+    async decodeAudioData(bytes) { calls.push(["decode", bytes]); return "buffer"; },
+    createBufferSource() {
+      const source = { connect: (to) => calls.push(["connect", to]), start: () => calls.push("start"), stop: () => calls.push("stop"),
+        set onended(fn) { onended = fn; } };
+      return source;
+    },
+  };
+  const output = webAudioOutput(context);
+  assert.equal(await output.ready(), true);
+  assert.equal(await output.decode("bytes"), "buffer");
+  const sound = output.start("buffer");
+  onended();
+  await sound.ended;
+  sound.stop();
+  assert.deepEqual(calls, ["resume", ["decode", "bytes"], ["connect", "out"], "start", "stop"]);
+  const refused = webAudioOutput({ state: "suspended", resume: async () => { throw new Error("no gesture"); } });
+  assert.equal(await refused.ready(), false);
+  assert.equal(await webAudioOutput(null).ready(), false);
+  await assert.rejects(() => webAudioOutput(null).decode("x"));
+  assert.equal(createAudioContext({}), null);
+  class Context { constructor() { this.state = "suspended"; } }
+  assert.ok(createAudioContext({ AudioContext: Context }) instanceof Context);
+  assert.equal(createAudioContext({ AudioContext: class { constructor() { throw new Error("x"); } } }), null);
 });
 
 test("the live call plays a line's clip once, when the line starts", () => {
@@ -236,4 +263,16 @@ test("the pages play only after a press, remember the switch and say the note on
   }
   const api = read(`${WEB}api.js`);
   assert.match(api, /\/voices\/\$\{encodeURIComponent\(line\)\}\.wav/);
+  assert.match(api, /response\.arrayBuffer\(\)/);
+});
+
+test("no clip is played from a blob: URL (the site's CSP has media-src 'self')", () => {
+  for (const file of ["lib/demo-voices.js", "views/voice-demo.js", "views/live.js"]) {
+    const code = read(WEB + file).replace(/\/\/.*$/gm, "");
+    assert.doesNotMatch(code, /createObjectURL/, file);
+    assert.doesNotMatch(code, /new Audio\(/, file);
+  }
+  assert.match(read(`${WEB}views/voice-demo.js`), /webAudioOutput\(audio\)/);
+  assert.match(read(`${WEB}views/live.js`), /webAudioOutput\(audioContext\)/);
+  assert.match(read(`${WEB}views/live.js`), /onClick: \(\) => \{ unlockAudio\(\); startDemo\(supportDemo\); \}/);
 });

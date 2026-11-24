@@ -14,7 +14,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { localized } from "../lib/live.js";
 import { abortableSleep, browserNarrator, play, stepsOf } from "../lib/voice-demo.js";
-import { ClipPlayer, clipsOf, readSound, voicesNoteKey, writeSound } from "../lib/demo-voices.js";
+import { ClipPlayer, clipsOf, createAudioContext, readSound, voicesNoteKey, webAudioOutput, writeSound } from "../lib/demo-voices.js";
 import { emptyState, icon, pageHead } from "../ui.js";
 
 export async function voiceDemoView(ctx, root, demoId) {
@@ -41,9 +41,11 @@ export async function voiceDemoView(ctx, root, demoId) {
   let closed = false;
   let sound = Boolean(clips || narrator) && readSound();
   const voiceNote = h("p", { class: "hint vd-voices", role: "status" });
+  // Web Audio, never a blob: URL (the site's CSP refuses those); resumed by «Empezar».
+  const audio = clips ? createAudioContext() : null;
   const player = clips ? new ClipPlayer({
-    load: async (key) => URL.createObjectURL(await ctx.api.liveDemoClip(demoId, key)),
-    makeAudio: (url) => new Audio(url),
+    load: (key) => ctx.api.liveDemoClip(demoId, key),
+    output: webAudioOutput(audio),
     onFail: () => { voiceNote.textContent = `${t(voicesNoteKey(voices, "voicebot"))} ${t("dvoice.failed")}`; },
   }) : null;
   player?.setSound(sound);
@@ -58,6 +60,7 @@ export async function voiceDemoView(ctx, root, demoId) {
       onChange: (e) => {
         sound = e.target.checked;
         writeSound(sound);
+        if (sound) audio?.resume?.().catch(() => {});
         player?.setSound(sound);
         if (!sound) narrator?.cancel();
       },
@@ -95,6 +98,8 @@ export async function voiceDemoView(ctx, root, demoId) {
   }
 
   async function run() {
+    // Inside the viewer's click: the browser lets this context sound from now on.
+    if (sound) audio?.resume?.().catch(() => {});
     halt();
     fill(talk);
     controller = new AbortController();
@@ -124,6 +129,7 @@ export async function voiceDemoView(ctx, root, demoId) {
   return () => {
     closed = true;
     halt();
-    player?.dispose((url) => URL.revokeObjectURL(url));
+    player?.dispose();
+    audio?.close?.().catch(() => {});
   };
 }

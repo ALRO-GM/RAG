@@ -41,6 +41,7 @@ from orchestrator.domain.demo_voices import (
     check_voices,
     clip_file,
     demo_lines,
+    even_loudness,
     page_view,
     parse_voice,
     playable,
@@ -218,6 +219,7 @@ class RenderDemoVoices:
                         f"{voice.spec} said nothing for {line.key}")
                 engine = self.speaker.engine(voice)
                 name = clip_file(line, voice, engine)
+                pcm = even_loudness(pcm)
                 self.store.write_clip(script.id, name, wav_bytes(pcm, rate))
                 written.append(name)
                 fresh[line.key] = DemoClip(

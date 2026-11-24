@@ -33,7 +33,9 @@ import {
   readPrefs, reminderDue, splitCards, viewPrefs, voiceProgress, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
-import { ClipPlayer, clipsOf, lineToPlay, readSound, voicesNoteKey, writeSound } from "../lib/demo-voices.js";
+import {
+  ClipPlayer, clipsOf, createAudioContext, lineToPlay, readSound, voicesNoteKey, webAudioOutput, writeSound,
+} from "../lib/demo-voices.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
 import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
@@ -112,16 +114,26 @@ export async function liveView(ctx, root, [sub, which] = []) {
   let ticker = null;
   let playing = null; // the id of a demo session this page started
   let demoVoices = null; // the clip player of a scripted demo that is heard
+  let audioContext = null; // Web Audio for the demo's clips (never a blob: URL, the CSP refuses it)
   setLeaveGuard(() => running && guarded);
 
   function dropVoices() {
-    demoVoices?.dispose((url) => URL.revokeObjectURL(url));
+    demoVoices?.dispose();
     demoVoices = null;
+  }
+
+  /** The demo's audio context, resumed: call it inside the viewer's click. */
+  function unlockAudio() {
+    audioContext ??= createAudioContext();
+    audioContext?.resume?.().catch(() => {});
+    return audioContext;
   }
 
   function cleanup() {
     closed = true;
     dropVoices();
+    audioContext?.close?.().catch(() => {});
+    audioContext = null;
     // A demo left behind would hold the one session slot until it ends.
     if (playing && running) ctx.api.stopLive(playing).catch(() => {});
     controller?.abort();
@@ -325,13 +337,13 @@ export async function liveView(ctx, root, [sub, which] = []) {
         h("div", { class: "lv-demo-text" },
           h("h2", {}, t("live.scripted.title")),
           h("p", { class: "hint" }, t("live.scripted.body"))),
-        h("button", { type: "button", class: "primary big", onClick: () => startDemo(scripted) },
+        h("button", { type: "button", class: "primary big", onClick: () => { unlockAudio(); startDemo(scripted); } },
           icon("play"), t("live.scripted.start"))) : null,
       supportDemo ? h("section", { class: "card lv-demo-card" },
         h("div", { class: "lv-demo-text" },
           h("h2", {}, t("live.support_demo.title")),
           h("p", { class: "hint" }, t("live.support_demo.body"))),
-        h("button", { type: "button", class: "primary big", onClick: () => startDemo(supportDemo) },
+        h("button", { type: "button", class: "primary big", onClick: () => { unlockAudio(); startDemo(supportDemo); } },
           icon("play"), t("live.support_demo.start"))) : null,
       h("div", { class: "live-start" },
         connection.node,
@@ -368,7 +380,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const clock = h("span", { class: "lv-clock" });
     const liveDot = dot("avoid", "lv-pulse");
     const stop = h("button", { type: "button", onClick: () => end() }, icon("stop"), t("live.stop"));
-    const again = h("button", { type: "button", class: "lv-icon-button", "aria-label": t("live.replay_again"), title: t("live.replay_again"), onClick: () => restart() },
+    const again = h("button", { type: "button", class: "lv-icon-button", "aria-label": t("live.replay_again"), title: t("live.replay_again"), onClick: () => { unlockAudio(); restart(); } },
       icon("play"), h("span", { class: "lv-button-text" }, t("live.replay_again")));
     const toResult = resultHref ? h("a", {
       class: "button primary", href: resultHref,
@@ -415,15 +427,18 @@ export async function liveView(ctx, root, [sub, which] = []) {
       if (!found) return;
       // No autoplay: a page opened by its address plays nothing until the viewer acts.
       const activated = globalThis.navigator?.userActivation?.hasBeenActive ?? true;
+      audioContext ??= createAudioContext();
+      if (activated) unlockAudio();
       const player = new ClipPlayer({
-        load: async (key) => URL.createObjectURL(await ctx.api.liveDemoClip(demo.id, key)),
-        makeAudio: (url) => new Audio(url),
+        load: (key) => ctx.api.liveDemoClip(demo.id, key),
+        output: webAudioOutput(audioContext),
         onFail: () => { voiceNote.textContent = `${said} ${t("dvoice.failed")}`; },
       });
       const on = readSound() && activated;
       player.setSound(on);
       soundBox.checked = on;
       soundBox.addEventListener("change", () => {
+        if (soundBox.checked) unlockAudio();
         writeSound(soundBox.checked);
         player.setSound(soundBox.checked);
       });

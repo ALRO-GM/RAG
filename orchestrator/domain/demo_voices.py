@@ -23,13 +23,17 @@ them in step with the text.
 - **What to play** (:func:`playable`): an example is heard only when
   every one of its lines has a clip of its current text and voice whose
   person (for a clone) still agrees; otherwise it falls back to text.
+- **Loudness** (:func:`even_loudness`): every clip is brought to one
+  level, so voices of different engines sound alike side by side.
 - **Timing** (:func:`retime`): the call's sentences take the clips' real
   lengths (the pauses between them kept), so the text types in while
   the voice says it, with the sound on or off.
 """
 
 import hashlib
+import math
 import re
+from array import array
 import unicodedata
 from dataclasses import dataclass
 from typing import (
@@ -403,3 +407,28 @@ def page_view(
         "voices": dict(sorted(kinds.items())),
         "kinds": sorted(set(kinds.values())),
     }
+
+
+TARGET_RMS = 3000.0
+"""Loudness every clip is brought to (16-bit RMS), so two engines of
+different levels sound alike side by side in one conversation."""
+PEAK = 30000
+"""Highest sample after the gain: the gain is lowered rather than clip."""
+
+
+def even_loudness(pcm: bytes, target: float = TARGET_RMS) -> bytes:
+    """Return 16-bit mono PCM scaled to ``target`` RMS, never clipping.
+
+    Silence stays silence; a gain is capped so the loudest sample stays
+    at or under :data:`PEAK`.
+    """
+    samples = array("h")
+    samples.frombytes(pcm[:len(pcm) - len(pcm) % 2])
+    if not samples:
+        return b""
+    rms = math.sqrt(sum(s * s for s in samples) / len(samples))
+    peak = max(abs(s) for s in samples)
+    if rms < 1.0 or peak == 0:
+        return samples.tobytes()
+    gain = min(target / rms, PEAK / peak)
+    return array("h", (int(round(s * gain)) for s in samples)).tobytes()
