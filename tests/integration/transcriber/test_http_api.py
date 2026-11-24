@@ -545,6 +545,7 @@ SAMPLES = {
     "speaker": "S1", "item": "aviso-datos",
     "plan_id": "plan-1", "candidate": "ana-ruiz",
     "question": "work_authorization",
+    "demo_id": "llamada-lumbre", "part": "report",
 }
 """A value for every path parameter the API has."""
 

@@ -524,6 +524,44 @@ class LiveSessions:
             return []
         return [d for d in self.demos.list() if d["product"] in self.products]
 
+    def demo_part(self, demo_id: str, part: str) -> Document:
+        """Return the report or the voice example of a demo (#250).
+
+        Args:
+            demo_id: The demo.
+            part: ``report`` or ``voicebot``.
+
+        Raises:
+            SessionError: ``not_found`` without that demo or that part.
+        """
+        try:
+            if self.demos is None or part not in ("report", "voicebot"):
+                raise KeyError(demo_id)
+            script = self.demos.load(demo_id)
+        except KeyError as exc:
+            raise SessionError("not_found", f"no demo {demo_id!r}") from exc
+        found = script.report if part == "report" else script.voicebot
+        if found is None:
+            raise SessionError("not_found", f"demo {demo_id!r} has no {part}")
+        body: Document = found.model_dump(mode="json", exclude_none=True)
+        if part == "report":
+            # The voice example keeps its own title and English texts.
+            body.update({"title": script.title, "en": dict(script.en or {})})
+        body.update({"demo": True, "id": script.id, "note": script.note,
+                     "sources": [s.model_dump(mode="json")
+                                 for s in script.sources],
+                     "mandatory_items": [
+                         i.model_dump(mode="json", exclude={"said_by"})
+                         for i in (script.mandatory.items
+                                   if script.mandatory else [])],
+                     "utterances": [
+                         u.model_dump(mode="json", include={
+                             "id", "speaker", "start", "end", "text"})
+                         for u in script.transcript.utterances],
+                     "speakers": [s.model_dump(mode="json")
+                                  for s in script.transcript.speakers]})
+        return body
+
     def list_sessions(self) -> List[Document]:
         """Every session kept, newest first."""
         with self._lock:

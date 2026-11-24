@@ -37,7 +37,8 @@ DEFAULT_URL = "http://127.0.0.1:8772"
 URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
-    rf"^(?:products|transcripts|sessions|sessions/{_ID}|voicebot/sample"
+    rf"^(?:products|transcripts|demos/{_ID}/(?:report|voicebot)"
+    rf"|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
     rf"|interview/plans|interview/plans/{_ID}"
@@ -108,6 +109,13 @@ def add_live_assist_proxy(
     async def assist_transcripts(request: Request) -> Response:
         """Recorded conversations a demo replay can use."""
         return await forward("transcripts", request)
+
+    @api.get("/assist/demos/{demo_id}/{part}")
+    async def assist_demo_part(
+        demo_id: str, part: str, request: Request
+    ) -> Response:
+        """The report or the voice example of a scripted demo (#250)."""
+        return await forward(f"demos/{demo_id}/{part}", request)
 
     @api.get("/assist/sessions")
     async def assist_sessions(request: Request) -> Response:

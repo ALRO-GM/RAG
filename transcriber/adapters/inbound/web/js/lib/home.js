@@ -8,11 +8,14 @@ import { sortSessions } from "./sessions.js";
 import { stepStatus } from "./session-analysis.js";
 import { hasResults, opinionOf } from "./analysis-results.js";
 
-/** The three services of the home, in the order they are shown; `demo` is a sample to watch (#232). */
+/**
+ * The three services of the home, in the order they are shown; `demo` is a sample to watch (#232)
+ * and `more` other samples of the same service (#250: the sample call-centre call).
+ */
 export const SERVICES = [
-  { id: "analyse", href: "#/sessions", icon: "analysis" },
-  { id: "live", href: "#/live", icon: "live", demo: "#/live/demo" },
-  { id: "voicebot", href: "#/voicebot", icon: "voicebot" },
+  { id: "analyse", href: "#/sessions", icon: "analysis", demo: "#/call-report/llamada-lumbre" },
+  { id: "live", href: "#/live", icon: "live", demo: "#/live/demo", more: [{ href: "#/live/demo/support", key: "home.live.demo_support" }] },
+  { id: "voicebot", href: "#/voicebot", icon: "voicebot", demo: "#/voicebot/demo" },
 ];
 
 /** The tools of the Administración area, in the order they are shown. */

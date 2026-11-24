@@ -282,6 +282,12 @@ export class Api {
   /** Recorded conversations a demo replay can use: id, title, utterances, seconds. */
   liveTranscripts() { return this.request("GET", "/assist/transcripts"); }
 
+  /** The prepared report of a scripted support call (#250): demo id -> call report and the call. */
+  liveDemoReport(id) { return this.request("GET", `/assist/demos/${encodeURIComponent(id)}/report`); }
+
+  /** The scripted voice-assistant example of a demo (#250). */
+  liveDemoVoice(id) { return this.request("GET", `/assist/demos/${encodeURIComponent(id)}/voicebot`); }
+
   /** Start a live session: { product, audio: "stereo" | "mic", session_id, employee? }. */
   startLive(body) { return this.request("POST", "/assist/sessions", { json: body }); }
 

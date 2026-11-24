@@ -265,3 +265,27 @@ def test_confirm_and_discard_routes_are_forwarded() -> None:
                    "salary_expectation"),
     ]
     assert not ALLOWED.match("interview/plans/p/candidates/a/proposals/X")
+
+
+def test_the_demo_report_and_voice_example_are_forwarded() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"demo": True})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    auth = {"X-Access-Code": "code"}
+    for part in ("report", "voicebot"):
+        answer = web.get(f"/api/assist/demos/llamada-lumbre/{part}",
+                         headers=auth)
+        assert answer.json() == {"demo": True}
+    assert [str(r.url) for r in seen] == [
+        "http://orch:8772/demos/llamada-lumbre/report",
+        "http://orch:8772/demos/llamada-lumbre/voicebot",
+    ]
+    assert web.get("/api/assist/demos/x/other",
+                   headers=auth).status_code == 404
+    assert web.get("/api/assist/demos/../report",
+                   headers=auth).status_code == 404
+    assert ALLOWED.match("demos/a.b-c/report")

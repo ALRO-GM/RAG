@@ -7,6 +7,10 @@ otherwise get from the services: the suggestions, prepared in advance
 and attached to the sentence after which they appear; the line better
 avoided with its hint; and the topics of the job with the sentence that
 covers each. Nothing is asked to a model, so every run is the same.
+A support demo (#250) also carries the knowledge chunks its suggestions
+cite, the mandatory items of the domain with the sentence that says each
+one (or none), a prepared call report (:mod:`.call_report`) and a voice
+assistant example (:mod:`.voice_demo`).
 ``demo`` is always true: the file is demo data, never a real person,
 and the page says so. ``result_session`` names the stored analysis the
 page links to at the end.
@@ -22,7 +26,9 @@ from typing import Dict, Iterable, Iterator, List, Literal, Optional, Set
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from orchestrator.domain.call_report import CallReport
 from orchestrator.domain.events import LiveEvent, Transcript, Utterance
+from orchestrator.domain.voice_demo import VoiceDemo
 
 DEMO_ID = r"^[a-z0-9][a-z0-9._-]{0,47}$"
 PARTIAL_EVERY_S = 0.25
@@ -51,6 +57,10 @@ class DemoSuggestion(BaseModel):
     text: str = Field(min_length=1)
     example: Optional[str] = None
     script_phase: Optional[str] = None
+    expressed: List[str] = Field(default_factory=list)
+    """Signals the customer expressed in the ``after`` sentence (support)."""
+    cites: List[str] = Field(default_factory=list)
+    """Ids of the demo's ``sources`` the suggestion comes from (support)."""
     en: Optional[Dict[str, str]] = None
     """``text`` and ``example`` in English (the conversation stays Spanish)."""
 
@@ -67,6 +77,46 @@ class DemoAvoid(BaseModel):
     alternative: str = Field(min_length=1)
     en: Optional[Dict[str, str]] = None
     """``title``, ``why`` and ``alternative`` in English."""
+
+
+class DemoSource(BaseModel):
+    """A knowledge chunk a prepared suggestion cites, copied as it is."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    """A short readable name of the chunk, shown instead of its id."""
+    text: str = Field(min_length=1)
+    """The chunk as the knowledge base has it (Spanish)."""
+    metadata: Dict[str, object] = Field(default_factory=dict)
+    en: Optional[Dict[str, str]] = None
+    """``title`` in English; the text stays as the knowledge base has it."""
+
+
+class DemoMandatoryItem(BaseModel):
+    """A mandatory item of the call and the sentence that says it, if any."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    phase: Optional[str] = None
+    en: Optional[Dict[str, str]] = None
+    """``text`` in English, for the report."""
+    said_by: Optional[str] = None
+    """The agent sentence that says it; none: the agent never says it."""
+
+
+class DemoMandatory(BaseModel):
+    """The mandatory items of a demo (as the product's domain lists them)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    domain: str = Field(min_length=1)
+    version: int = 1
+    remind_seconds: int = Field(default=45, ge=5)
+    items: List[DemoMandatoryItem] = Field(min_length=1)
 
 
 class DemoScript(BaseModel):
@@ -89,6 +139,10 @@ class DemoScript(BaseModel):
     topics: List[DemoTopic] = Field(default_factory=list)
     suggestions: List[DemoSuggestion] = Field(default_factory=list)
     avoid: List[DemoAvoid] = Field(default_factory=list)
+    sources: List[DemoSource] = Field(default_factory=list)
+    mandatory: Optional[DemoMandatory] = None
+    report: Optional[CallReport] = None
+    voicebot: Optional[VoiceDemo] = None
     transcript: Transcript
 
     @model_validator(mode="after")
@@ -98,12 +152,39 @@ class DemoScript(BaseModel):
         named = ([t.covered_by for t in self.topics]
                  + [s.after for s in self.suggestions]
                  + [a.utterance for a in self.avoid])
+        if self.mandatory:
+            named += [i.said_by for i in self.mandatory.items if i.said_by]
+        if self.report:
+            named += sorted(self.report.sentences())
         missing = sorted(set(named) - known)
         if missing:
             raise ValueError(f"unknown sentences {missing}")
+        self._known_sources()
         if not self.transcript.utterances:
             raise ValueError("the demo has no sentences")
         return self
+
+    def _known_sources(self) -> None:
+        """Every cited source and mandatory item of the report exists."""
+        sources = {s.id for s in self.sources}
+        cited = [c for s in self.suggestions for c in s.cites]
+        if self.voicebot:
+            cited += [c for e in self.voicebot.exchanges for c in e.cites]
+        missing = sorted(set(cited) - sources)
+        if missing:
+            raise ValueError(f"unknown sources {missing}")
+        if self.report:
+            items = {i.id for i in self.mandatory.items} \
+                if self.mandatory else set()
+            said = {i.id: i.said_by for i in self.mandatory.items} \
+                if self.mandatory else {}
+            for result in self.report.mandatory:
+                if result.item not in items:
+                    raise ValueError(f"unknown item {result.item!r}")
+                if (said[result.item] or None) != result.utterance:
+                    raise ValueError(
+                        f"report and call disagree on {result.item!r}"
+                    )
 
     def summary(self) -> Dict[str, object]:
         """What a page lists of the demo."""
@@ -113,6 +194,8 @@ class DemoScript(BaseModel):
             "candidate": self.candidate, "product": self.product,
             "seconds": round(last, 1), "result_session": self.result_session,
             "note": self.note, "en": dict(self.en or {}),
+            "report": self.report is not None,
+            "voicebot": self.voicebot is not None,
         }
 
 
