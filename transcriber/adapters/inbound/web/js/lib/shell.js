@@ -1,6 +1,7 @@
 // Pure logic of the app shell: the theme cycle, which navigation link is
-// the current page, the breadcrumbs of a route and the ranking of the
-// quick switcher (Ctrl/Cmd + K). No DOM here, so node --test can run it.
+// the current page, which routes form the Administración area, the
+// breadcrumbs of a route and the ranking of the quick switcher
+// (Ctrl/Cmd + K). No DOM here, so node --test can run it.
 
 /** The themes in the order the top-bar button cycles through them. */
 export const THEMES = ["system", "light", "dark"];
@@ -16,11 +17,26 @@ export function nextTheme(current) {
   return THEMES[(at + 1) % THEMES.length];
 }
 
-/** The section of an app hash: "#/s/abc" -> "#/", "#/lab/x" -> "#/lab". */
+/** Routes that belong to the sessions list: a session, its analysis, the help, a recording. */
+const SESSION_PARTS = new Set(["sessions", "s", "analysis", "help", "record"]);
+
+/** Routes of the Administración area (besides its own overview, #/admin). */
+export const ADMIN_PARTS = new Set(["admin", "settings", "enrol", "knowledge", "lab"]);
+
+/**
+ * The section of an app hash: "" -> "#/" (the home), "#/s/abc" ->
+ * "#/sessions", "#/lab/x" -> "#/lab".
+ */
 export function sectionOf(hash) {
   const first = String(hash ?? "").replace(/^#?\/?/, "").split("/")[0];
-  if (!first || first === "s" || first === "analysis" || first === "help") return "#/";
+  if (!first) return "#/";
+  if (SESSION_PARTS.has(first)) return "#/sessions";
   return `#/${first}`;
+}
+
+/** Whether `hash` is a page of the Administración area. */
+export function isAdminRoute(hash) {
+  return ADMIN_PARTS.has(String(hash ?? "").replace(/^#?\/?/, "").split("/")[0]);
 }
 
 /**
@@ -50,28 +66,31 @@ export function currentHref(hrefs, pathname, hash) {
  */
 export function crumbsFor(hash, t) {
   const parts = String(hash ?? "").replace(/^#?\/?/, "").split("/").filter(Boolean).map(safeDecode);
-  const sessions = { label: t("nav.sessions"), href: "#/" };
+  const sessions = { label: t("nav.sessions"), href: "#/sessions" };
+  const admin = { label: t("nav.admin"), href: "#/admin" };
   const here = (label) => ({ label, href: null });
   const [head, a, b, c] = parts;
   switch (head) {
-    case undefined: return [here(t("nav.sessions"))];
+    case undefined: return [here(t("nav.home"))];
+    case "sessions": return [here(t("nav.sessions"))];
     case "record": return [sessions, here(t("nav.record"))];
-    case "enrol": return [here(t("nav.enrol"))];
+    case "admin": return [here(t("nav.admin"))];
+    case "enrol": return [admin, here(t("nav.enrol"))];
     case "live": return [here(t("nav.live"))];
     case "voicebot": return [here(t("nav.voicebot"))];
-    case "settings": return [here(t("nav.settings"))];
+    case "settings": return [admin, here(t("nav.settings"))];
     case "s": return [sessions, here(a ?? "")];
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];
     case "help": return [sessions, here(t("help.title"))];
-    case "knowledge": return a ? [{ label: t("nav.knowledge"), href: "#/knowledge" }, here(a)] : [here(t("nav.knowledge"))];
+    case "knowledge": return a ? [admin, { label: t("nav.knowledge"), href: "#/knowledge" }, here(a)] : [admin, here(t("nav.knowledge"))];
     case "lab": {
       const lab = { label: t("nav.lab"), href: "#/lab" };
-      if (!a) return [here(t("nav.lab"))];
-      if (!b) return [lab, here(a)];
+      if (!a) return [admin, here(t("nav.lab"))];
+      if (!b) return [admin, lab, here(a)];
       const run = { label: b.slice(0, 8), href: `#/lab/${encodeURIComponent(a)}/${encodeURIComponent(b)}` };
-      return c ? [lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, run, here(c)] : [lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, here(b.slice(0, 8))];
+      return c ? [admin, lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, run, here(c)] : [admin, lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, here(b.slice(0, 8))];
     }
-    default: return [here(t("nav.sessions"))];
+    default: return [here(t("nav.home"))];
   }
 }
 

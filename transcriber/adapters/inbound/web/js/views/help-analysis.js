@@ -52,7 +52,7 @@ export async function helpAnalysisView(ctx, root, [param]) {
     h("li", {}, h("a", { href: `#/help/analysis/${s}` }, t(`help.sec.${s}`)))));
   root.append(
     h("h1", {}, t("help.title")),
-    h("p", { class: "meta" }, h("a", { href: "#/" }, t("nav.sessions"))),
+    h("p", { class: "meta" }, h("a", { href: "#/sessions" }, t("nav.sessions"))),
     h("p", {}, t("help.intro")),
     h("nav", { "aria-label": t("help.toc") }, h("strong", {}, t("help.toc")), toc),
     section("steps", list(STEPS.map((id) => entry(`step-${id}`,

@@ -6,6 +6,26 @@ line of today's SaaS dashboards, adapted to people who are not technical
 (HR staff, interviewers) and who often use a phone. This page is the
 brief; the tokens live at the top of `style.css`.
 
+## Calm palette (UI-1, issue #229)
+
+The owner approved three mock-ups on 2026-11-24, kept in
+[`docs/web/mockups/`](mockups/) (`Main.dc.html` the home, `Live.dc.html`
+the live page, `Perfil.dc.html` a result; plain HTML with inline styles,
+for reading only: they load a web font and a `support.js` the app never
+uses). `Live.dc.html` sets the style for every page:
+
+- a neutral light ground (`#f3f4f6`) with white cards and thin borders;
+- one muted indigo accent (`#3f4fa8`) for links, the main button and the
+  "suggestion" dot;
+- colour only in small dots and labels, never in large blocks: terracotta
+  means *better avoid*, green means *done*;
+- minimum information first, the rest behind «Más información».
+
+The home takes the layout of `Main.dc.html` (three service cards, then the
+latest sessions) but in this calm palette, not its saturated colour blocks.
+Fonts stay the system stack (the mock-ups' Inter and Space Grotesk are not
+loaded: CSP).
+
 ## Direction (research, November 2026)
 
 What current product UIs converge on, and what we took:
@@ -14,7 +34,7 @@ What current product UIs converge on, and what we took:
 |---|---|---|
 | Collapsible left sidebar for apps with many sections | 2026 SaaS dashboard reviews (saasframe.io) | Sidebar with three groups; collapses to icons on desktop, becomes a drawer on phones |
 | Command palette (Ctrl/Cmd + K) | Linear, saasui.design 2026 trends | Quick switcher: pages, theme, language |
-| Neutral colour with a sparing accent, themes generated from a few inputs | Linear's redesign (LCH, base + accent + contrast) | 12-step neutral scale + one indigo accent, light and dark |
+| Neutral colour with a sparing accent, themes generated from a few inputs | Linear's redesign (LCH, base + accent + contrast) | 12-step neutral scale + one muted indigo accent, light and dark |
 | A 12-step scale with fixed roles (1-2 canvas, 3-5 fills, 6-8 borders, 9-10 solid, 11-12 text) | Radix Colors docs | Same role mapping; our own values |
 | Dense but readable, minimal chrome | Linear, Vercel, Stripe dashboards | Thin borders, soft shadows, 4 px spacing grid; larger type than those tools (15-16 px) because readers are not engineers |
 
@@ -31,11 +51,25 @@ Only the style is adopted: no logo, name, font file or asset of any brand.
   stack** (Inter first, when the device has it), and icons are an SVG sprite
   (`icons.svg`, `<use href="icons.svg#i-…">`, own simple line drawings).
 - **Accessibility AA**: text contrast ≥ 4.5:1 in both themes. WCAG ratios
-  of the token pairs (computed from the hex values): light text 15.45,
-  muted on white 6.20 and on the canvas 5.84, links 6.00, white on the
-  primary button 5.21, danger on its chip 4.85, ok on its chip 4.83, warning
-  5.94; dark text 16.25, muted 9.06, links 8.53, primary button 7.60, chips
-  7.75 / 7.86 / 10.26. Placeholders use the muted colour. 2 px accent focus ring (5.21 light, 7.98 dark), 44 px
+  of the calm palette's token pairs, computed from the hex values with the
+  WCAG 2 formula on 2026-11-24:
+
+  | Pair | Light | Dark |
+  |---|---|---|
+  | `--text` on `--bg` / on `--surface` | 13.92 / 15.32 | 14.89 / 13.88 |
+  | `--muted` on `--surface` / on `--bg` | 6.58 / 5.98 | 6.99 / 7.50 |
+  | `--accent` (links, focus ring) on `--surface` / on `--bg` | 7.25 / 6.59 | 7.21 / 7.73 |
+  | `--accent-text` on `--accent` (main button) | 7.25 | 7.24 |
+  | `--accent-text` on `--accent-hover` | 9.44 | 9.05 |
+  | `--accent-ink` on `--active` (current nav item) | 6.38 | 6.08 |
+  | `--avoid` on `--avoid-bg` | 6.47 | 7.72 |
+  | `--avoid-strong` on `--avoid-bg` | 10.34 | – |
+  | `--done` on `--done-bg` | 6.00 | 8.67 |
+  | `--warn-text` on `--warn-bg` | 6.42 | 9.01 |
+  | `--surface` on `--danger` (solid danger button, error toast) | 7.65 | 8.61 |
+  | `--faint` on `--surface` (dots and outlines only, 3:1 target) | 3.32 | 4.31 |
+
+  Placeholders use the muted colour. 2 px accent focus ring, 44 px
   touch targets (40 px controls with a fine pointer), skip link, `aria-current`
   on the page's link, `prefers-reduced-motion` turns animation off.
 
@@ -43,14 +77,20 @@ Only the style is adopted: no logo, name, font file or asset of any brand.
 
 | Group | Tokens |
 |---|---|
-| Neutral | `--gray-1` … `--gray-12` |
-| Accent | `--accent-2` … `--accent-12` (indigo; `--accent-9` is the solid) |
-| Status | `--red-*`, `--green-*`, `--amber-*` (3 = background, 9 = solid, 11 = text) |
-| Roles (used by every rule) | `--bg`, `--surface`, `--surface-2`, `--sunken`, `--text`, `--muted`, `--line`, `--line-strong`, `--accent`, `--accent-ink`, `--active`, `--danger(-bg)`, `--ok(-bg)`, `--warn-bg`, `--warn-text`, `--focus` |
-| Type | `--font`, `--mono`, `--fs-xs` 12 px … `--fs-2xl` 26 px |
-| Space and shape | `--s-1` 4 px … `--s-10` 40 px; `--r-sm` 6, `--r-md` 8, `--r-lg` 12, `--r-xl` 16 px; `--shadow-sm/md/lg` |
+| Neutral | `--gray-1` … `--gray-12` (`--gray-2` the ground, `--gray-5` the line, `--gray-11` muted text, `--gray-12` text) |
+| Accent | `--accent-2` … `--accent-12` (muted indigo; `--accent-9` is the solid) |
+| Status | `--red-*` (terracotta), `--green-*`, `--amber-*` (3 = background, 9 = solid/dot, 11 = text, `--red-12` strong text) |
+| Roles (used by every rule) | `--bg`, `--surface`, `--surface-2`, `--sunken`, `--text`, `--muted`, `--faint`, `--line`, `--line-strong`, `--accent`, `--accent-hover`, `--accent-ink`, `--accent-text`, `--active`, `--danger(-bg)`, `--ok(-bg)`, `--warn-bg`, `--warn-text`, `--focus` |
+| Meaning (live and summary pages) | `--suggest`, `--suggest-dot` (accent: a suggestion), `--avoid`, `--avoid-dot`, `--avoid-bg`, `--avoid-strong` (terracotta: better avoid), `--done`, `--done-bg` (green: done, covered) |
+| Type | `--font`, `--mono`, `--fs-xs` 12 px … `--fs-2xl` 26 px, `--fs-display` (30–44 px, the home's question) |
+| Space and shape | `--s-1` 4 px … `--s-10` 40 px; `--r-sm` 6, `--r-md` 10, `--r-lg` 14, `--r-xl` 20 px; `--shadow-sm/md/lg` (lighter than before) |
 | Motion | `--fast` 120 ms, `--normal` 200 ms, `--ease` |
 | Charts and speakers | `--c0…6`, `--spk-*`, `--who-*`, `--cert-*` (kept from before, colour-blind-checked) |
+
+Rules use the role and meaning tokens, never a scale step or a hex value,
+so a later page (the summary-first analysis, #230; the live page, #232)
+gets both themes for free. Small components that carry the meaning
+colours: `.state-dot` (`.done`, `.avoid`, `.suggest`), `.type-chip`.
 
 Dark mode redefines the same names twice: under
 `@media (prefers-color-scheme: dark)` for `:root:not([data-theme="light"])`,
@@ -61,11 +101,15 @@ system → light → dark and remembers the choice in `localStorage`
 ## Shell and components
 
 - **Shell** (`js/shell.js`, pure parts in `js/lib/shell.js`): sidebar
-  (`<header class="top sidebar">`, grouped: Conversaciones, Empresa,
-  Laboratorio, Sistema), top bar with menu button, breadcrumbs (from the route),
-  "Ir a…" button and theme button; a bottom tab bar on phones
-  (Sesiones, Grabar, Conocimiento, Más). A loading skeleton shows if a page
-  takes more than 180 ms.
+  (`<header class="top sidebar">`) split in two. On top, what a worker
+  uses: Inicio (`#/`), Sesiones (`#/sessions`), En directo, Asistente de
+  voz. Below a rule, the **Administración** group (`.nav-admin`): Estado
+  del servicio (`#/admin`), Ajustes, Registrar voz, Conocimiento, Pruebas,
+  Estudio, Investigación. No password of its own yet. Breadcrumbs start
+  with «Administración» on those pages (`isAdminRoute`, `ADMIN_PARTS`).
+  Top bar with menu button, breadcrumbs (from the route), "Ir a…" button
+  and theme button; a bottom tab bar on phones (Inicio, Sesiones, En
+  directo, Más). A loading skeleton shows if a page takes more than 180 ms.
 - **Components** (`style.css` §5, helpers in `js/ui.js`): buttons (primary,
   default, ghost, danger, small, big), inputs, cards, badges/status chips,
   tabs, tables, empty states, toasts, dialogs (`<dialog>`), skeletons, the
@@ -75,9 +119,25 @@ system → light → dark and remembers the choice in `localStorage`
 
 ## Pages
 
-Every page uses the shell: Sesiones, Grabar, Registrar voz, Conocimiento
-(new: `#/knowledge`), Ajustes (`#/settings`: the quality/cost mode and
-the model of every step, each option with its measured trade-off;
-`docs/SETTINGS.md`), En directo (`#/live`: live assist with suggestion cards, sources, script phases and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the session and analysis pages, the help
-page, and the static `research.html` and `study.html`. ES/EN is unchanged
-(`js/i18n/es.js`, `en.js`).
+Every page uses the shell.
+
+- **Inicio** (`#/`, `js/views/home.js`, pure parts in `js/lib/home.js`):
+  «¿Qué quieres hacer?», then three service cards (icon, one sentence,
+  «Probar»): Analizar una conversación (→ `#/sessions`, where recording
+  and upload live), En directo (`#/live`), Asistente de voz
+  (`#/voicebot`). Below, the four latest sessions: title, type, and either
+  the state or, when the analysis wrote a synthesis, its one-line
+  conclusion (first sentence of the first person's job fit, else their
+  first strength) with a green «Analizada» dot. No score is shown: the
+  analysis stores none per session, and the pages never compute or rank
+  one.
+- **Sesiones** (`#/sessions`): the former home, unchanged.
+- **Administración** (`#/admin`, `js/views/admin.js`): the service status
+  (the API's health check) and one card per set-up tool.
+- The rest: Grabar, Registrar voz, Conocimiento (`#/knowledge`), Ajustes
+  (`#/settings`: the quality/cost mode and the model of every step, each
+  option with its measured trade-off; `docs/SETTINGS.md`), En directo
+  (`#/live`: live assist with suggestion cards, sources, script phases
+  and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the
+  session and analysis pages, the help page, and the static
+  `research.html` and `study.html`. ES/EN in `js/i18n/es.js`, `en.js`.

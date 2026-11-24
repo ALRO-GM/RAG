@@ -52,7 +52,7 @@ export async function transcriptView(ctx, root, params) {
     root.append(h("h1", {}, session.title || id), describedLine,
       h("p", { class: "notice" }, t("transcript.not_ready", { state: t(`state.${session.state}`) })),
       editor,
-      h("a", { class: "button", href: "#/" }, t("nav.sessions")));
+      h("a", { class: "button", href: "#/sessions" }, t("nav.sessions")));
     return null;
   }
   transcript = await ctx.api.getTranscript(id);
@@ -132,7 +132,7 @@ export async function transcriptView(ctx, root, params) {
 
   root.append(
     h("h1", {}, transcript.session.title || id),
-    h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/" }, t("nav.sessions"))),
+    h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/sessions" }, t("nav.sessions"))),
     describedLine, editor,
     bar, options, audio, message, weakNotice, namesBox,
     h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),

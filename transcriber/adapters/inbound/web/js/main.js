@@ -7,6 +7,8 @@ import { Api } from "./api.js";
 import { adoptCodeFrom } from "./lib/net.js";
 import { isBusy, setLeaveGuard } from "./device.js";
 import { installLanguageSwitch } from "./lang-switch.js";
+import { homeView } from "./views/home.js";
+import { adminView } from "./views/admin.js";
 import { sessionsView } from "./views/sessions.js";
 import { recordView } from "./views/record.js";
 import { enrolView } from "./views/enrol.js";
@@ -69,7 +71,9 @@ let cleanup = null;
 let token = 0;
 
 const ROUTES = [
-  [/^#?\/?$/, sessionsView],
+  [/^#?\/?$/, homeView],
+  [/^#\/sessions$/, sessionsView],
+  [/^#\/admin$/, adminView],
   [/^#\/record(?:\/([^/]+))?$/, recordView],
   [/^#\/enrol$/, enrolView],
   [/^#\/s\/([^/]+)(?:\/t\/(\d{1,6}))?$/, transcriptView],
@@ -107,7 +111,7 @@ function resolve(hash) {
     const m = pattern.exec(hash);
     if (m) return { view, params: m.slice(1).filter((x) => x !== undefined) };
   }
-  return { view: sessionsView, params: [] };
+  return { view: homeView, params: [] };
 }
 
 function stopCurrent() {
@@ -123,6 +127,7 @@ async function route() {
   stopCurrent();
   const mine = ++token;
   app.replaceChildren();
+  app.classList.remove("wide");
   setCrumbs(crumbsFor(location.hash, t));
   markCurrent();
   syncLogout();

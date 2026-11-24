@@ -17,20 +17,20 @@
     <header class="top sidebar" id="sidebar">
       <div class="brand"><span class="brand-mark"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-logo"/></svg></span><span class="label" data-i18n="app.title">Transcriptor</span></div>
       <nav data-i18n-label="nav.main" aria-label="Navegación principal">
-      <p class="nav-group" data-i18n="nav.group_work">Conversaciones</p>
-      <a href="#/" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
-      <a href="#/record" data-i18n="nav.record"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-record"/></svg><span class="label">Grabar</span></a>
+      <a href="#/" data-i18n="nav.home"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-home"/></svg><span class="label">Inicio</span></a>
+      <a href="#/sessions" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
       <a href="#/live" data-i18n="nav.live"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-live"/></svg><span class="label">En directo</span></a>
       <a href="#/voicebot" data-i18n="nav.voicebot"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-voicebot"/></svg><span class="label">Asistente de voz</span></a>
-      <a href="#/enrol" data-i18n="nav.enrol"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-enrol"/></svg><span class="label">Registrar voz</span></a>
-      <p class="nav-group" data-i18n="nav.group_company">Empresa</p>
-      <a href="#/knowledge" data-i18n="nav.knowledge"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-knowledge"/></svg><span class="label">Conocimiento</span></a>
-      <p class="nav-group" data-i18n="nav.group_lab">Laboratorio</p>
-      <a href="#/lab" data-i18n="nav.lab"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-lab"/></svg><span class="label">Pruebas</span></a>
-      <a href="research.html" data-i18n="nav.research"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-research"/></svg><span class="label">Investigación</span></a>
-      <a href="study.html" data-i18n="nav.study"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-study"/></svg><span class="label">Estudio</span></a>
-      <p class="nav-group" data-i18n="nav.group_system">Sistema</p>
+      <div class="nav-admin">
+      <p class="nav-group" id="nav-admin-title" data-i18n="nav.admin">Administración</p>
+      <a href="#/admin" data-i18n="nav.status"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-status"/></svg><span class="label">Estado del servicio</span></a>
       <a href="#/settings" data-i18n="nav.settings"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-settings"/></svg><span class="label">Ajustes</span></a>
+      <a href="#/enrol" data-i18n="nav.enrol"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-enrol"/></svg><span class="label">Registrar voz</span></a>
+      <a href="#/knowledge" data-i18n="nav.knowledge"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-knowledge"/></svg><span class="label">Conocimiento</span></a>
+      <a href="#/lab" data-i18n="nav.lab"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-lab"/></svg><span class="label">Pruebas</span></a>
+      <a href="study.html" data-i18n="nav.study"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-study"/></svg><span class="label">Estudio</span></a>
+      <a href="research.html" data-i18n="nav.research"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-research"/></svg><span class="label">Investigación</span></a>
+      </div>
       </nav>
       <div class="side-foot">
         <button type="button" class="logout" id="logout" hidden><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-logout"/></svg><span class="label" data-i18n="login.logout">Cerrar sesión</span></button>
@@ -54,9 +54,9 @@
     </div>
   </div>
   <nav class="bottom-nav" data-i18n-label="shell.quick" aria-label="Accesos rápidos">
-    <a href="#/" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
-    <a href="#/record" data-i18n="nav.record"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-record"/></svg><span class="label">Grabar</span></a>
-    <a href="#/knowledge" data-i18n="nav.knowledge"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-knowledge"/></svg><span class="label">Conocimiento</span></a>
+    <a href="#/" data-i18n="nav.home"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-home"/></svg><span class="label">Inicio</span></a>
+    <a href="#/sessions" data-i18n="nav.sessions"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-sessions"/></svg><span class="label">Sesiones</span></a>
+    <a href="#/live" data-i18n="nav.live"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-live"/></svg><span class="label">En directo</span></a>
     <button type="button" id="nav-more" aria-controls="sidebar" data-i18n="shell.more"><svg class="icon" aria-hidden="true" focusable="false"><use href="icons.svg#i-more"/></svg><span class="label">Más</span></button>
   </nav>
   <div class="toasts" id="toasts" role="status" aria-live="polite"></div>

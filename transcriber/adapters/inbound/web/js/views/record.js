@@ -24,7 +24,7 @@ export async function recordView(ctx, root, params) {
     ctx.api.consent("recording", lang),
   ]);
   if (existing && existing.state !== "recording") {
-    root.append(h("p", { class: "notice" }, t("record.not_recording")), h("a", { class: "button", href: "#/" }, t("nav.sessions")));
+    root.append(h("p", { class: "notice" }, t("record.not_recording")), h("a", { class: "button", href: "#/sessions" }, t("nav.sessions")));
     return null;
   }
 
@@ -329,7 +329,7 @@ export async function recordView(ctx, root, params) {
     await wake.release();
     window.removeEventListener("online", onOnline);
     setLeaveGuard(() => false);
-    ctx.navigate("#/");
+    ctx.navigate("#/sessions");
   }
 
   return () => {
