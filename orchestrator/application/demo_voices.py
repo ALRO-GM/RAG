@@ -4,10 +4,14 @@
 of a demo with the voice chosen for each scripted person, ahead of
 time, so playing an example needs no model, GPU or session slot. It
 renders only what changed (a line's text, voice or engine), takes the
-GPU lease only when an engine needs the GPU, never while a live session
-holds it, and replaces the clips only once every new one is written: a
-refused lease or a failing engine leaves the previous clips as they
-were.
+GPU lease only when an engine needs the GPU and only if nobody holds it
+(never beside a live session), keeps it until its engines have stopped,
+and replaces the clips only once every new one is written: a refused
+lease or a failing engine leaves the previous clips as they were. A
+clone consent withdrawn while it runs ends it without publishing that
+person's clips; clip files no manifest names (a render killed half-way)
+are swept when the next render starts, and by the transcriber when a
+consent is withdrawn.
 
 :class:`DemoVoiceLibrary` is what the live page uses. It answers which
 examples can be heard and their clips' lengths, gives a clip, and is
@@ -21,14 +25,14 @@ deleted, as the transcriber does when the consent is withdrawn.
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional
+from typing import AbstractSet, Callable, Dict, List, Optional, Set
 
 from orchestrator.application.ports import (
     DemoScripts,
     DemoSpeaker,
     DemoVoiceStore,
     Document,
-    GpuGate,
+    ExclusiveGpu,
     TtsUnavailable,
     VoiceProfiles,
 )
@@ -88,7 +92,8 @@ class RenderDemoVoices:
         store: Where the clips and the manifest go.
         speaker: Says one line with one voice.
         profiles: The enrolled people (consent and reference clip).
-        gate: The GPU lease (``None``: no GPU engine may be used).
+        gate: The GPU lease, taken alone (``None``: no GPU engine may be
+            used).
         now: The time stamped on new clips.
     """
 
@@ -98,7 +103,7 @@ class RenderDemoVoices:
         store: DemoVoiceStore,
         speaker: DemoSpeaker,
         profiles: VoiceProfiles,
-        gate: Optional[GpuGate] = None,
+        gate: Optional[ExclusiveGpu] = None,
         now: Callable[[], str] = utc_stamp,
     ):
         """Wire the ports; nothing is rendered yet."""
@@ -151,6 +156,8 @@ class RenderDemoVoices:
             raise DemoVoiceError("; ".join(problems))
         lines = demo_lines(script)
         old = self.store.manifest(demo_id)
+        # Files of a render killed half-way belong to no manifest: gone.
+        self.store.sweep(demo_id, referenced(old))
         stale = stale_lines(
             lines, voices, self.speaker.engine, old,
             lambda name: self.store.has_clip(demo_id, name),
@@ -169,24 +176,37 @@ class RenderDemoVoices:
             fresh = self._say(script, stale, voices)
         finally:
             if taken and self.gate is not None:
-                self.gate.drop()
+                # The lease goes back only once the GPU engine has stopped.
+                try:
+                    self.speaker.close()
+                finally:
+                    self.gate.drop()
         result.rendered = [line.key for line in stale]
         result.removed = self._swap(script, lines, voices, old, fresh)
         return result
 
     def _take(self, need: int) -> None:
-        """Hold the GPU lease for ``need`` MiB, or refuse the render."""
+        """Hold the GPU lease for ``need`` MiB alone, or refuse the render.
+
+        One step: a lease held by anybody, a live session included,
+        refuses it (the render must not take a session's memory).
+        """
         if self.gate is None:
             raise DemoVoiceError("a voice needs the GPU and no lease is wired")
-        # check() allows the GPU only under a live session's lease: a
-        # session is running, and the render must not take its memory.
-        if self.gate.check(0) is None:
-            raise DemoVoiceError(
-                "a live session holds the GPU: render when it has ended")
-        refused = self.gate.take(need)
+        refused = self.gate.take_alone(need)
         if refused:
             self.gate.drop()
             raise DemoVoiceError(f"GPU lease refused: {refused}")
+
+    def _gone(self, clips: Dict[str, DemoClip]) -> Set[str]:
+        """The cloned people of ``clips`` who may no longer be cloned."""
+        out: Set[str] = set()
+        for person in {c.cloned_from for c in clips.values()
+                       if c.cloned_from}:
+            found = self.profiles.get(person)
+            if found is None or not found.clonable:
+                out.add(person)
+        return out
 
     def _say(
         self, script: DemoScript, lines: List[DemoLine],
@@ -220,8 +240,13 @@ class RenderDemoVoices:
                 engine = self.speaker.engine(voice)
                 name = clip_file(line, voice, engine)
                 pcm = even_loudness(pcm)
-                self.store.write_clip(script.id, name, wav_bytes(pcm, rate))
                 written.append(name)
+                try:
+                    self.store.write_clip(script.id, name,
+                                          wav_bytes(pcm, rate))
+                except OSError as exc:  # swept by a withdrawal meanwhile
+                    raise DemoVoiceError(
+                        f"could not keep {line.key}: {exc}") from exc
                 fresh[line.key] = DemoClip(
                     key=line.key, file=name, person=line.person,
                     voice=voice.spec, kind=voice.kind,
@@ -251,6 +276,14 @@ class RenderDemoVoices:
         clips = {k: c for k, c in before.items()
                  if k in keys and k not in fresh}
         clips.update(fresh)
+        gone = self._gone(fresh)
+        if gone:
+            # Withdrawn while rendering: nothing of the run is published.
+            for clip in fresh.values():
+                self.store.delete_clip(script.id, clip.file)
+            raise DemoVoiceError(
+                f"clone consent withdrawn during the render ({len(gone)}"
+                " person(s)): the new clips were deleted, nothing changed")
         self.store.save_manifest(DemoVoiceManifest(
             demo=script.id, updated_at=self.now(),
             voices=specs, clips=dict(sorted(clips.items())),
@@ -259,7 +292,44 @@ class RenderDemoVoices:
         removed = sorted({c.file for c in before.values()} - kept)
         for name in removed:
             self.store.delete_clip(script.id, name)
+        # A withdrawal between the check and the save swept the new
+        # files (they were in no manifest yet): drop that person now.
+        manifest = purge_withdrawn(self.store, self.profiles, script.id)
+        lost = [c.key for c in fresh.values()
+                if not self.store.has_clip(script.id, c.file)]
+        if lost or (manifest is not None and set(manifest.clips) != keys):
+            raise DemoVoiceError(
+                f"{len(lost)} new clip(s) were removed while rendering"
+                " (a clone consent withdrawn?): render again")
         return removed
+
+
+def referenced(manifest: Optional[DemoVoiceManifest]) -> AbstractSet[str]:
+    """The clip files ``manifest`` names."""
+    return {c.file for c in manifest.clips.values()} if manifest else set()
+
+
+def purge_withdrawn(
+    store: DemoVoiceStore, profiles: VoiceProfiles, demo_id: str,
+) -> Optional[DemoVoiceManifest]:
+    """The demo's manifest without the clips of withdrawn people.
+
+    Those clips are deleted at once (files and entries).
+    """
+    manifest = store.manifest(demo_id)
+    if manifest is None:
+        return None
+    gone = withdrawn(manifest, profiles.get)
+    if not gone:
+        return manifest
+    for clip in manifest.clips.values():
+        if clip.cloned_from in gone:
+            store.delete_clip(demo_id, clip.file)
+    kept = {k: c for k, c in manifest.clips.items()
+            if c.cloned_from not in gone}
+    manifest = manifest.model_copy(update={"clips": kept})
+    store.save_manifest(manifest)
+    return manifest
 
 
 class DemoVoiceLibrary:
@@ -281,24 +351,8 @@ class DemoVoiceLibrary:
         self.profiles = profiles
 
     def _manifest(self, script: DemoScript) -> Optional[DemoVoiceManifest]:
-        """The manifest without the clips of withdrawn people.
-
-        Those clips are deleted at once (files and entries).
-        """
-        manifest = self.store.manifest(script.id)
-        if manifest is None:
-            return None
-        gone = withdrawn(manifest, self.profiles.get)
-        if not gone:
-            return manifest
-        for clip in manifest.clips.values():
-            if clip.cloned_from in gone:
-                self.store.delete_clip(script.id, clip.file)
-        kept = {k: c for k, c in manifest.clips.items()
-                if c.cloned_from not in gone}
-        manifest = manifest.model_copy(update={"clips": kept})
-        self.store.save_manifest(manifest)
-        return manifest
+        """The manifest without the clips of withdrawn people (deleted)."""
+        return purge_withdrawn(self.store, self.profiles, script.id)
 
     def _clips(self, script: DemoScript) -> Dict[str, Dict[str, DemoClip]]:
         """The clips that may be played now, per example."""

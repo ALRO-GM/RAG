@@ -244,7 +244,7 @@ def test_render_show_clear_from_the_command_line(
     tmp_path: Path, capsys: pytest.CaptureFixture[str],
 ) -> None:
     out = str(tmp_path / "dv")
-    common = ["--out", out, "--engines", "tone",
+    common = ["--out", out, "--outside-consent-hook", "--engines", "tone",
               "--voiceprints-dir", str(tmp_path / "vp"),
               "--gpu-lease-dir", str(tmp_path / "lease")]
     voices = [f"--voice={p}={v}" for p, v in STOCK.items()]
@@ -267,7 +267,11 @@ def test_render_show_clear_from_the_command_line(
     assert run("demo-voices", "show", CALL, "--out", out) == 0
     assert json.loads(capsys.readouterr().out)["clips"] == 0
     assert run("demo-voices", "render", CALL, "--out",
-               str(REPO / "examples"), "--engines", "tone") == 2
+               str(REPO / "examples"), "--engines", "tone",
+               "--outside-consent-hook") == 2
+    assert run("demo-voices", "render", CALL, "--out", out,
+               "--engines", "tone") == 2
+    assert "--outside-consent-hook" in capsys.readouterr().err
 
 
 def test_recast_renames_a_person_in_the_demo_file(
@@ -354,3 +358,34 @@ def test_serve_wires_the_library_from_its_folder(tmp_path: Path) -> None:
     args.demo_voices_dir = REPO / "examples"
     with pytest.raises(ValueError):
         cli.build_demo_voices(args)
+
+
+def test_a_render_takes_the_lease_only_when_nobody_holds_it(
+    tmp_path: Path,
+) -> None:
+    from orchestrator.adapters.outbound.gpu_gate import LeaseGpuGate
+    from tests.integration.orchestrator.test_natural_adapters import lease
+
+    folder = tmp_path / "gpu-lease"
+    gate = LeaseGpuGate(folder, free_mib=lambda: 6000, sleep=lambda _: None)
+    assert gate.take_alone(4400) is None
+    assert (folder / "lease.json").exists()
+    gate.drop()
+    assert not (folder / "lease.json").exists()
+    lease(folder, holder="transcriber-live", pid=os.getppid())
+    assert gate.take_alone(800) == \
+        "the GPU lease is held by transcriber-live", "never beside a session"
+    gate.drop()
+    assert (folder / "lease.json").exists(), "the session's lease stays"
+
+
+def test_sweep_removes_unnamed_and_half_written_clips(tmp_path: Path) -> None:
+    store = FsDemoVoices(tmp_path / "dv")
+    assert store.sweep(CALL, set()) == 0
+    store.write_clip(CALL, "a.wav", b"RIFF")
+    store.write_clip(CALL, "b.wav", b"RIFF")
+    (tmp_path / "dv" / CALL / ".part-x.wav").write_bytes(b"RI")
+    store.save_manifest(DemoVoiceManifest(demo=CALL))
+    assert store.sweep(CALL, {"a.wav"}) == 2
+    assert sorted(p.name for p in (tmp_path / "dv" / CALL).iterdir()) == [
+        "a.wav", "manifest.json"]

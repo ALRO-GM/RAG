@@ -4,7 +4,7 @@ import json
 import re
 from array import array
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import AbstractSet, Any, Dict, List, Optional, Tuple
 
 import pytest
 
@@ -93,6 +93,12 @@ class Store:
     def delete_clip(self, demo_id: str, name: str) -> None:
         self.files.pop((demo_id, name), None)
 
+    def sweep(self, demo_id: str, keep: AbstractSet[str]) -> int:
+        gone = [k for k in self.files if k[0] == demo_id and k[1] not in keep]
+        for k in gone:
+            del self.files[k]
+        return len(gone)
+
     def clear(self, demo_id: str) -> int:
         gone = [k for k in self.files if k[0] == demo_id]
         for k in gone:
@@ -117,23 +123,25 @@ def agreed(person: str) -> VoiceProfile:
 
 
 class Gate:
-    """A GpuGate whose answers the test sets."""
+    """An ExclusiveGpu whose answers the test sets."""
 
     def __init__(self, live: bool = False, refuse: Optional[str] = None):
         self.live = live
         self.refuse = refuse
         self.taken: List[int] = []
         self.dropped = 0
+        self.log: List[str] = []
 
-    def check(self, need_mib: int) -> Optional[str]:
-        return None if self.live else "no live GPU lease"
-
-    def take(self, need_mib: int) -> Optional[str]:
+    def take_alone(self, need_mib: int) -> Optional[str]:
         self.taken.append(need_mib)
+        self.log.append("take")
+        if self.live:
+            return "the GPU lease is held by transcriber-live"
         return self.refuse
 
     def drop(self) -> None:
         self.dropped += 1
+        self.log.append("drop")
 
 
 class Failing(ToneDemoSpeaker):
@@ -395,7 +403,8 @@ def test_a_refused_lease_keeps_the_previous_clips() -> None:
     profiles = Profiles(ana=agreed("ana"))
     for gate, why in ((Gate(refuse="the GPU lease is held by img"),
                        "refused"),
-                      (Gate(live=True), "live session"), (None, "no lease")):
+                      (Gate(live=True), "transcriber-live"),
+                      (None, "no lease")):
         with pytest.raises(DemoVoiceError, match=why):
             renderer(store, ToneDemoSpeaker(need=800), gate,
                      profiles).render(CALL, {"agente": "clone:ana"})
@@ -581,3 +590,53 @@ def test_every_clip_is_brought_to_one_level_without_clipping() -> None:
     assert max(out) == PEAK, "the gain stops at the peak"
     assert even_loudness(b"\x00\x00" * 10) == b"\x00\x00" * 10
     assert even_loudness(b"") == b"" and even_loudness(b"\x01") == b""
+
+
+def test_the_lease_goes_back_only_after_the_engine_stopped() -> None:
+    gate = Gate()
+
+    class Logged(ToneDemoSpeaker):
+        def close(self) -> None:
+            gate.log.append("close")
+
+    renderer(Store(), Logged(need=4400), gate,
+             Profiles(ana=agreed("ana"))).render(
+        CALL, {**STOCK, "agente": "clone:ana"})
+    assert gate.log == ["take", "close", "drop"]
+    refused = Gate(refuse="busy")
+    with pytest.raises(DemoVoiceError):
+        renderer(Store(), Logged(need=4400), refused,
+                 Profiles(ana=agreed("ana"))).render(
+            CALL, {**STOCK, "agente": "clone:ana"})
+    assert refused.log == ["take", "drop"], "nothing started, nothing closed"
+
+
+def test_a_consent_withdrawn_after_her_lines_publishes_none_of_them() -> None:
+    profiles = Profiles(ana=agreed("ana"))
+    store = Store()
+    renderer(store).render(CALL, STOCK)
+    before = (dict(store.files), store.manifests[CALL])
+
+    class Late(ToneDemoSpeaker):
+        def speak(self, text: str, voice: DemoVoice,
+                  reference: Optional[str],
+                  language: str) -> Tuple[bytes, int]:
+            if voice.person is None:  # her lines are done: withdraw now
+                profiles.people["ana"] = VoiceProfile("ana")
+            return super().speak(text, voice, reference, language)
+
+    with pytest.raises(DemoVoiceError, match="withdrawn during the render"):
+        renderer(store, Late(), Gate(), profiles).render(
+            CALL, {"cliente": "clone:ana", "agente": "piper:sharvard-f"})
+    assert (store.files, store.manifests[CALL]) == before
+
+
+def test_a_render_sweeps_files_no_manifest_names() -> None:
+    store = Store()
+    renderer(store).render(CALL, STOCK)
+    store.files[(CALL, "t0.s0-0000000000.wav")] = b"RIFF"  # a killed run
+    store.files[(CALL, ".part-x.wav")] = b"RI"
+    renderer(store).render(CALL, {})
+    assert len(store.files) == 27
+    assert set(n for _, n in store.files) == {
+        c.file for c in store.manifests[CALL].clips.values()}

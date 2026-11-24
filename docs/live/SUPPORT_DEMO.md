@@ -98,8 +98,7 @@ the candidate as well.
 | `clone:<person>[:female\|:male]` | Qwen3-TTS on the GPU (`--clone-engine qwen3`, default) or OpenVoice (`openvoice`) | as given, else unchecked |
 
 The command refuses (and changes nothing) when a person who speaks has no
-voice, when two people of the same example would share one (the agent
-and the assistant never talk to each other, so they may), when a voice's
+voice, when two people of the same example would share one, when a voice's
 gender is not the person's, and when a clone's person has no clone
 consent or no reference clip (`VOICE_CLONING.md` §2). A person left out
 keeps the voice of the last render, an explicit earlier choice; one
@@ -109,13 +108,23 @@ changed renders nothing. Every clip is brought to the same loudness
 (RMS 3000 of 32767, never clipping), so voices of different engines sit
 together.
 
+**One voice per person in a conversation (owner's decision).** The
+owner has two consenting voices and asked for one cloned voice per
+person in each conversation. The rule is therefore per example: the
+agent and the customer of the call never share a voice, nor do the
+customer and the assistant of the voice example; the agent and the
+assistant never talk to each other, so they may share one.
+
 **The GPU.** Piper and Pocket on the CPU need nothing. A clone (or Pocket
-on `cuda`) takes the GPU lease for the run, as «Escuchar ejemplo» does,
-and the render is **refused while a live session holds the lease** (it
-must not take that session's memory). A refused lease or an engine that
-fails mid-way leaves the previous clips and manifest exactly as they
-were: new clips are written beside the old ones and only swapped in once
-every line is done.
+on `cuda`) takes the GPU lease for the run **only if nobody holds it**,
+checked and taken in one step, so the render never joins a live
+session's lease or takes its memory; it gives the lease back only after
+its engine worker has stopped. A refused lease or an engine that fails
+mid-way leaves the previous clips and manifest exactly as they were: new
+clips are written beside the old ones and only swapped in once every
+line is done. Clip files that no manifest names (a render killed
+half-way, `.part-*` files) are deleted when the next render of that demo
+starts.
 
 On the workstation, run it through `systemd-run`, never next to a
 running session:
@@ -133,9 +142,12 @@ dry run with tones.
 
 **Where the audio lives.** Outside the repository (it is public):
 `data/transcriber/demo-voices/<demo>/` (git-ignored, beside the
-voiceprints; `--out` and the orchestrator's `--demo-voices-dir` change
-it, and both refuse a folder inside the checkout that is not under
-`data/`). Folders are mode 700, files 600. One WAV per line,
+voiceprints, the folder the transcriber's consent hook cleans). Another
+`--out` is refused unless `--outside-consent-hook` is given: a
+withdrawal does not reach clips there, and deleting them is the
+operator's job. The orchestrator's `--demo-voices-dir` changes the
+folder it serves; both refuse a folder inside the checkout that is not
+under `data/`. Folders are mode 700, files 600. One WAV per line,
 `<line>-<hash>.wav`, and `manifest.json` (`demo.voices.v1`): who reads
 whom (`voices`) and per line the file, person, voice, `kind` (`clone` or
 `stock`), `cloned_from` (the enrolled person of a clone), engine, text
@@ -162,10 +174,20 @@ person's consent, and the example falls back to text.
 **Consent.** Withdrawing the clone consent, enrolling again without it
 or forgetting the person deletes the reference clip **and**, in the same
 transcriber hook (`delete_clone_reference`), every demo clip whose
-manifest says `cloned_from` that person. The orchestrator checks again
-each time it is asked (a profile without consent or clip: its clips are
-deleted and the example falls back), so clips rendered into another
-folder are covered too.
+manifest says `cloned_from` that person, plus every clip file no
+manifest names (its owner cannot be told: a render killed half-way, or
+one still running whose clips are not published yet). The reference clip
+is deleted first, so a failing clean-up never leaves the voice clonable;
+the withdrawal is recorded and the error reported. A render running at
+that moment checks the consent again before publishing and, when it was
+withdrawn, deletes its new clips and fails, changing nothing; if the
+withdrawal lands between that check and the manifest write, the sweep has
+already removed the unpublished clips and the render fails asking to run
+again. What is covered: the hook cleans `<transcriber data>/demo-voices`
+(by default `data/transcriber/demo-voices`, the render's default); the
+orchestrator also re-checks consent for the folder it serves each time
+the page asks, deleting a withdrawn person's clips there. Clips rendered
+into any other folder (`--outside-consent-hook`) are not covered.
 
 **On the page.**
 - Voice example (`#/voicebot/demo`): nothing plays before «Empezar el

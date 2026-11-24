@@ -350,11 +350,19 @@ cloners (Qwen3-TTS under the GPU lease by default, OpenVoice with
 
 **Withdrawal.** `FileSystemVoiceprintRepository.delete_clone_reference`
 (withdrawing, enrolling again without the box, forgetting the person)
-deletes those clips and their manifest entries in the same step as the
-reference clip (`transcriber/adapters/outbound/fs_demo_voices.py`; the
-two services share the manifest's format, not code). The orchestrator
+deletes the reference clip first and then those clips, their manifest
+entries and any clip file no manifest names (a render killed half-way or
+still running; `transcriber/adapters/outbound/fs_demo_voices.py`, the two
+services share the manifest's format, not code). If that clean-up fails,
+the reference is already gone, the withdrawal is still recorded and the
+error is reported. A render in progress re-checks the consent before it
+publishes its clips and fails without publishing them. The orchestrator
 also checks the person's profile each time the page asks for the voices
-and deletes the clips of anyone who may no longer be cloned. An example
+and deletes the clips of anyone who may no longer be cloned, in the
+folder it serves. Covered: `<transcriber data>/demo-voices` (the
+render's default `--out`) and the served folder; clips rendered
+elsewhere need `--outside-consent-hook` and are the operator's to
+delete. An example
 with one clip missing is not heard at all: it falls back to text and
 says the voices are not available. There is still no spoken notice
 (#151); the page says the voices are synthetic, cloned with permission,

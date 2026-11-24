@@ -538,6 +538,25 @@ class DemoVoiceStore(Protocol):
         """Delete every clip and the manifest of a demo; how many clips."""
         ...
 
+    def sweep(self, demo_id: str, keep: AbstractSet[str]) -> int:
+        """Delete the demo's clip files (and half-written ones) not in
+        ``keep``; return how many."""
+        ...
+
+
+class ExclusiveGpu(Protocol):
+    """The GPU lease for work that must run alone (a demo render, #254)."""
+
+    def take_alone(self, need_mib: int) -> Optional[str]:
+        """Hold the lease only if nobody holds it (a live session
+        included), wait for the memory; return why not. Paired with one
+        :meth:`drop` whenever it returns."""
+        ...
+
+    def drop(self) -> None:
+        """Give the lease back."""
+        ...
+
 
 class DemoSpeaker(Protocol):
     """Says a demo line with a chosen voice, ahead of time (#254)."""

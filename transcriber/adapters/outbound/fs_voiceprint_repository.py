@@ -193,15 +193,22 @@ class FileSystemVoiceprintRepository:
         return None
 
     def delete(self, speaker_id: str) -> bool:
-        """Remove voiceprint, consent and clip; tell whether they existed."""
+        """Remove voiceprint, consent and clip; tell whether they existed.
+
+        The voiceprint is deleted even when the examples' clips cannot
+        be (that error is raised afterwards).
+        """
         path = self._path(speaker_id)
-        self.delete_clone_reference(speaker_id)
-        with self._lock:
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                return False
-        return True
+        try:
+            self.delete_clone_reference(speaker_id)
+        finally:
+            with self._lock:
+                try:
+                    path.unlink()
+                    existed = True
+                except FileNotFoundError:
+                    existed = False
+        return existed
 
     def _clip(self, speaker_id: str) -> Path:
         """Return the reference clip's file after checking the id."""
@@ -235,10 +242,20 @@ class FileSystemVoiceprintRepository:
         """
         path = self._clip(speaker_id)
         with self._lock:
-            forget_cloned_demo_clips(self.root.parent / DEMO_VOICES,
-                                     speaker_id)
+            # The reference goes first: a failing clean-up below never
+            # leaves the voice clonable.
             try:
                 path.unlink()
+                existed = True
             except FileNotFoundError:
-                return False
-        return True
+                existed = False
+            try:
+                forget_cloned_demo_clips(self.root.parent / DEMO_VOICES,
+                                         speaker_id)
+            except OSError as exc:
+                LOG.error("Could not delete the demo clips of %s: %s",
+                          speaker_id, exc)
+                raise StorageError(
+                    "The voice clip was deleted, but not the examples'"
+                    " clips made with it.") from exc
+        return existed

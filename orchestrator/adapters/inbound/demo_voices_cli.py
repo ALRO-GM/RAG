@@ -4,12 +4,15 @@
   demo with the voice the operator chose for each scripted person
   (``pocket:lola``, ``piper:davefx``, ``piper:sharvard-f``,
   ``piper:sharvard-m``, ``clone:<enrolled person>[:female|:male]``) and
-  keeps the clips outside the repository (``--out``, default
-  ``data/transcriber/demo-voices``). A person left out keeps the voice
-  of the last render. Only lines whose text, voice or engine changed are
-  rendered again. A clone needs the person's clone consent and is
-  rendered by ``--clone-engine`` (Qwen3-TTS by default, on the GPU under
-  the lease; never while a live session holds it).
+  keeps the clips outside the repository in
+  ``data/transcriber/demo-voices``, the folder the transcriber cleans when
+  a clone consent is withdrawn; another ``--out`` needs
+  ``--outside-consent-hook`` (its clips are the operator's to delete).
+  A person left out keeps the voice of the last render. Only lines whose
+  text, voice or engine changed are rendered again. A clone needs the
+  person's clone consent and is rendered by ``--clone-engine``
+  (Qwen3-TTS by default, on the GPU under the lease, taken only when
+  nobody holds it: never while a live session runs).
 - ``show <demo>``: the manifest (who reads whom, how many clips).
 - ``clear <demo>``: delete the demo's clips and manifest.
 - ``recast <demo> <person>=<new name> [--gender ...]``: rename a scripted
@@ -85,6 +88,10 @@ def add_demo_voices_parser(
         "--voice", action="append", default=[], metavar="PERSON=VOICE",
         help=f"one of {', '.join(STOCK_VOICES)} or "
              "clone:<person>[:female|:male] (repeat per person)")
+    render.add_argument(
+        "--outside-consent-hook", action="store_true",
+        help="allow --out other than the default: a withdrawn clone consent"
+             " does not reach clips there, deleting them is yours")
     render.add_argument("--engines", default="real", choices=("real", "tone"))
     render.add_argument("--clone-engine", default="qwen3",
                         choices=CLONE_ENGINES)
@@ -149,6 +156,13 @@ def build_speaker(args: argparse.Namespace) -> DemoSpeaker:
 def run_render(args: argparse.Namespace) -> int:
     """Render; print what was done as JSON."""
     check_outside_repository(args.out, ROOT)
+    if (Path(args.out).expanduser().resolve() != DEFAULT_OUT.resolve()
+            and not args.outside_consent_hook):
+        raise ValueError(
+            f"{args.out} is not {DEFAULT_OUT}, where withdrawing a clone"
+            " consent deletes the clips made with it; add"
+            " --outside-consent-hook to render there and delete them"
+            " yourself")
     speaker = build_speaker(args)
     directory = args.gpu_lease_dir or lease_directory(os.environ)
     render = RenderDemoVoices(

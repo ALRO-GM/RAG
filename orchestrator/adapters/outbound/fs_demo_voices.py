@@ -17,7 +17,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import AbstractSet, Optional
 
 from pydantic import ValidationError
 
@@ -144,4 +144,17 @@ class FsDemoVoices:
             folder.rmdir()
         except OSError:
             pass
+        return count
+
+    def sweep(self, demo_id: str, keep: AbstractSet[str]) -> int:
+        """Delete clip files and half-written ones not in ``keep``."""
+        folder = self._folder(demo_id)
+        if not folder.is_dir():
+            return 0
+        count = 0
+        for path in folder.iterdir():
+            if (path.is_file() and path.suffix == ".wav"
+                    and path.name not in keep):
+                path.unlink(missing_ok=True)
+                count += 1
         return count
