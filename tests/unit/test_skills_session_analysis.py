@@ -705,6 +705,13 @@ def test_step_i_writes_checked_profiles_and_puts_them_in_the_reports() -> (
     stored = json.loads(store.files[("s1", "synthesis.json")])
     assert stored["job"] == "Shift lead\n tasks"
     assert stored["judge"]["models"] == ["fake-judge"]
+    assert stored["format_version"] == 2
+    assert "conversation_type" in stored
+    for person in stored["people"]:
+        assert person["overall"]["verdict"] in ("strong", "adequate", "weak")
+        assert len(person["skills"]) >= 1
+        assert len(person["top_strengths"]) <= 3
+        assert len(person["top_improvements"]) <= 2
     done = [p for p in stored["people"] if p["status"] == "done"]
     assert done[0]["strengths"][0]["cites"][0]["id"] == "Q1"
     assert done[0]["dropped"] == {"no_citation": 1}

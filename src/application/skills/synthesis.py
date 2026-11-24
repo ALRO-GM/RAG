@@ -30,13 +30,14 @@ from src.domain.skills.synthesis import (
     PersonFacts,
     PersonSynthesis,
     check_reply,
-    skipped,
+    confidence,
     system_prompt,
     user_prompt,
+    with_opinions,
 )
 
-MAX_TOKENS = 1500
-"""Reply budget of one profile (the local model needs one)."""
+MAX_TOKENS = 3000
+"""Reply budget of one profile: an opinion per competency too (#231)."""
 
 EVENT_FIGURES = (
     "questions_asked", "questions_answered", "questions_unanswered",
@@ -168,6 +169,7 @@ def person_facts(
     speech = card.interaction
     return PersonFacts(
         participant=participant, language=assessment.language,
+        conversation_type=assessment.conversation_type or "",
         maximum=catalogue.scale.maximum, words=speech.words,
         turns=speech.turns, word_share=speech.word_share,
         questions=speech.questions, acts=_acts(acts, participant),
@@ -205,11 +207,17 @@ class ProfileSynthesizer:
     def write(self, facts: PersonFacts, job: str = "") -> PersonSynthesis:
         """Return the profile of the person ``facts`` describes.
 
-        A person with nothing quoted is skipped without a call
-        (``no_evidence``): there is nothing to explain.
+        A person with nothing quoted costs no call: the opinions come
+        from the rules alone (``reason`` ``no_evidence``, status
+        ``done``), still with a verdict for every skill (#231).
         """
         if not facts.quotes():
-            return skipped(facts, "no_evidence")
+            level, basis = confidence(facts)
+            return with_opinions(PersonSynthesis(
+                participant=facts.participant, reason="no_evidence",
+                unobserved=facts.unobserved(), confidence=level,
+                confidence_basis=basis,
+            ), facts)
         system = system_prompt(facts.language)
         user = user_prompt(facts, job)
         key = cache_key("synthesis", self.judge.model_name, system, user)
