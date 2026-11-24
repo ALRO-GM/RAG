@@ -203,6 +203,8 @@ class KnowledgeSettings(BaseModel):
     """Florence-2 checkpoint (``-large`` is 1.55 GB)."""
     max_figures: int = Field(default=200, ge=0)
     """Most figures captioned per document."""
+    interview_rules: str = "knowledge/interview/forbidden-questions.json"
+    """KN-4's questions better avoided in an interview (LV-17, #232)."""
 
 
 DEFAULT_SKILLS_EMBEDDING_MODEL = (

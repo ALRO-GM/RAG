@@ -18,8 +18,10 @@ function serviceCard(service) {
     h("span", { class: "service-icon" }, icon(service.icon)),
     h("h2", { id }, t(`home.${service.id}.title`)),
     h("p", {}, t(`home.${service.id}.body`)),
-    h("a", { class: "button primary service-go", href: service.href, "aria-describedby": id },
-      t("home.try"), icon("arrow")));
+    h("div", { class: "service-links" },
+      h("a", { class: "button primary service-go", href: service.href, "aria-describedby": id },
+        t("home.try"), icon("arrow")),
+      service.demo ? h("a", { class: "service-demo", href: service.demo }, icon("play"), t(`home.${service.id}.demo`)) : null));
 }
 
 // The overall percentage: seen as «67,5 %», read out as «Valoración general 67,5 %».

@@ -55,6 +55,8 @@ from typing import (
     Any, Callable, Dict, List, Mapping, Optional, Protocol, Tuple, Union,
 )
 
+from orchestrator.application.avoid import AvoidTracker
+from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
 from orchestrator.application.interview import (
     HeuristicFiller,
@@ -67,8 +69,10 @@ from orchestrator.application.interview import (
 from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.mandatory import MandatoryTracker, TickRefused
 from orchestrator.application.ports import (
+    AvoidPort,
     CancelToken,
     Clock,
+    DemoScripts,
     Document,
     EventSource,
     Executor,
@@ -110,6 +114,7 @@ from orchestrator.application.voice import (
 )
 from orchestrator.application.voicebot import VoiceBot
 from orchestrator.domain.config import InterviewSection, ProductConfig, Tts
+from orchestrator.domain.demo import with_partials
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.live_choices import (
     MODES,
@@ -141,6 +146,9 @@ MAX_NAME = 60
 DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
 CANDIDATE_CHARS = 80
 TICK_S = 0.1
+DEMO_STOP_S = 3.0
+"""Longest wait for a playing demo to stop before a new one starts."""
+STOP_POLL_S = 0.05
 """Seconds between two turn-taking ticks of an interview (#213)."""
 
 
@@ -191,6 +199,8 @@ class _Session:
     renames: List[Document] = field(default_factory=list)
     tracker: Optional[MandatoryTracker] = None
     handoff: Optional[Document] = None
+    avoid: Optional[AvoidTracker] = None
+    demo: Optional[Document] = None
 
     @property
     def assist_mode(self) -> Optional[str]:
@@ -222,6 +232,8 @@ class _Session:
             else None,
             "handoff": self.handoff,
             "plan": self.plan, "candidate": self.candidate,
+            "avoid": self.avoid.view() if self.avoid else None,
+            "demo": self.demo,
         }
 
 
@@ -242,12 +254,16 @@ class _Handler:
         self.assist.on_event(event)
         if self.session.tracker is not None:
             self.session.tracker.on_event(event)
+        if self.session.avoid is not None:
+            self.session.avoid.on_event(event)
 
     def finish(self) -> None:
         """Wait for the call and the checks in flight."""
         self.assist.finish()
         if self.session.tracker is not None:
             self.session.tracker.finish()
+        if self.session.avoid is not None:
+            self.session.avoid.finish()
 
 
 class _FeedSink:
@@ -383,6 +399,9 @@ class LiveSessions:
             seconds while the session runs (``None``: nobody ticks; the
             tests tick by hand).
         tick_s: Seconds between two ticks.
+        avoid: The check of interview questions better avoided (LV-17;
+            ``None``: no check).
+        demos: The scripted demos (LV-17; ``None``: none).
     """
 
     def __init__(
@@ -412,6 +431,8 @@ class LiveSessions:
         interview: Optional[InterviewWiring] = None,
         ticker: Optional[Runner] = None,
         tick_s: float = TICK_S,
+        avoid: Optional[AvoidPort] = None,
+        demos: Optional[DemoScripts] = None,
     ):
         """Wire the ports; no session yet."""
         self.products = {
@@ -446,6 +467,8 @@ class LiveSessions:
         self._shared: Dict[int, SharedCloner] = {}
         self.ticker = ticker
         self.tick_s = tick_s
+        self.avoid = avoid
+        self.demos = demos
         self._sessions: Dict[str, _Session] = {}
         self._lock = threading.Lock()
 
@@ -462,6 +485,12 @@ class LiveSessions:
     def list_transcripts(self) -> List[Document]:
         """Conversations a replay can use."""
         return self.transcripts.list()
+
+    def list_demos(self) -> List[Document]:
+        """Scripted demos a replay can play (their product must exist)."""
+        if self.demos is None:
+            return []
+        return [d for d in self.demos.list() if d["product"] in self.products]
 
     def list_sessions(self) -> List[Document]:
         """Every session kept, newest first."""
@@ -485,12 +514,17 @@ class LiveSessions:
         transcript_id: str,
         speed: Optional[float] = 1.0,
         employee: Optional[Mapping[str, Any]] = None,
+        demo: Optional[str] = None,
     ) -> Document:
         """Replay a recorded conversation as if it were live.
 
         ``employee`` (``{"id", "name"}``) names the transcript's speaker
-        with the employee's role.
+        with the employee's role. ``demo`` plays a scripted demo instead
+        (its own product and conversation; ``product`` and
+        ``transcript_id`` are not used).
         """
+        if demo is not None:
+            return self._start_demo(session_id, demo, speed)
         config = self._product(product)
         _check_id(session_id)
         person = check_employee(employee)
@@ -534,6 +568,77 @@ class LiveSessions:
 
         self.runner.start(job)
         return session.view()
+
+    def _start_demo(
+        self, session_id: str, demo_id: str, speed: Optional[float]
+    ) -> Document:
+        """Play a scripted demo through the replay (LV-17, #232).
+
+        No knowledge, reasoner, mandatory or avoid call is made: the
+        demo's prepared suggestions, hints and topics are published by
+        :class:`ScriptedAssist`. The sentences type in (partials).
+        """
+        _check_id(session_id)
+        if speed is not None and not MIN_SPEED <= speed <= MAX_SPEED:
+            raise SessionError(
+                "invalid_request",
+                f"speed must be between {MIN_SPEED} and {MAX_SPEED}",
+            )
+        try:
+            if self.demos is None:
+                raise KeyError(demo_id)
+            script = self.demos.load(demo_id)
+        except KeyError as exc:
+            raise SessionError("not_found", f"no demo {demo_id!r}") from exc
+        config = self._product(script.product)
+        self._stop_demos()
+        roles = default_roles(config, script.transcript)
+        names = {s.id: s.name for s in script.transcript.speakers
+                 if s.name}
+        session = self._open(
+            session_id, config, "demo", roles, None, names,
+            demo=script.summary(),
+        )
+        session.transcript = script.transcript.session.id
+        assist = ScriptedAssist(
+            script, session_id, roles, _FeedSink(session, None),
+            session.feed.publish,
+        )
+        session.assist = assist
+        assist.start()
+        handler = _Handler(session, assist)
+        events = list(transcript_to_events(script.transcript, roles))
+        for event in events:
+            event.session_id = session_id
+
+        def job() -> None:
+            try:
+                Replay(handler, self.clock, speed, session.stop_token).run(
+                    with_partials(events)
+                )
+            finally:
+                self._end(session)
+
+        self.runner.start(job)
+        return session.view()
+
+    def _stop_demos(self, wait_s: float = DEMO_STOP_S) -> None:
+        """Stop a demo still playing, so a new demo can start at once.
+
+        A demo left open in another tab would otherwise hold the one
+        session slot until it ends by itself (about a minute).
+        """
+        with self._lock:
+            playing = [s for s in self._sessions.values()
+                       if s.state == "running" and s.mode == "demo"]
+        for session in playing:
+            session.stop_token.cancel()
+        waited = 0.0
+        while playing and waited < wait_s and any(
+            s.state == "running" for s in playing
+        ):
+            self.clock.sleep(STOP_POLL_S)
+            waited += STOP_POLL_S
 
     def start_live(
         self, product: str, audio: str, session_id: Optional[str] = None,
@@ -940,6 +1045,7 @@ class LiveSessions:
         roles: Dict[str, str],
         employee: Optional[Dict[str, str]] = None,
         names: Optional[Dict[str, str]] = None,
+        demo: Optional[Document] = None,
     ) -> _Session:
         """Register a new running session (one at a time)."""
         with self._lock:
@@ -952,7 +1058,7 @@ class LiveSessions:
             session = _Session(
                 id=session_id, product=config, mode=mode, roles=roles,
                 feed=Feed(), stop_token=CancelToken(), employee=employee,
-                names=dict(names or {}),
+                names=dict(names or {}), demo=demo,
             )
             self._sessions[session_id] = session
             ended = [k for k, s in self._sessions.items()
@@ -1019,6 +1125,12 @@ class LiveSessions:
             )
             session.tracker = tracker
             tracker.start()
+        if self.avoid is not None and \
+                employee_role(session.product) == "interviewer":
+            session.avoid = AvoidTracker(
+                self.avoid, session.roles, session.feed.publish,
+                self.executor(), session.product.language,
+            )
         return assist
 
     def _preparing(self, session: _Session, speaker: NaturalVoice) -> None:

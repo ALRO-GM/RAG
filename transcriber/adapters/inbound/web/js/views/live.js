@@ -1,18 +1,21 @@
 // «En directo» (#/live): live assist during a support call or an interview.
 // Start a live session (stereo channels from the workstation, or this
-// browser's microphone) or a demo that replays a recorded conversation;
-// then follow the orchestrator's stream: the transcript with speakers and
-// partials, suggestion cards with their sources (knowledge chunks) and the
-// sentences they are about, the script-phase coverage of interviews and the
-// notice banner. Customer signals appear only in support calls; an
-// interview never shows signals or ratings about the candidate. The state
-// lives in lib/live.js (LiveState); this module only draws it.
+// browser's microphone), replay a recorded conversation, or watch the
+// scripted demo interview (#/live/demo); then follow the orchestrator's
+// stream. The state lives in lib/live.js (LiveState); this module only
+// draws it.
 //
-// LV-16 (#206): the enrolled employee chosen at the start, names edited
-// inline, which side's lines are shown, the newest suggestions open (the
-// rest collapsed), the assistance mode (pincelada / guiado) switched live,
-// the mandatory items in red until they are said, and the customer's
-// discomfort highlighted (support only).
+// LV-17 (#232), the calm page (docs/web/mockups/Live.dc.html): the
+// conversation on one side, muted for the employee («Tú»), typing in as it
+// is heard; on the other one «Ahora» card with one thing at a time (a line
+// better avoided, else the newest suggestion not used yet, with «Hecho» or
+// «Reformulado» once done); the topics as a quiet row of chips; what must
+// be said as another row; earlier suggestions with their sources, and the
+// options of LV-16 (which lines are shown, how many earlier suggestions
+// stay open, the assistance mode), under two disclosures. Nothing is drawn
+// twice: lines, chips and the card are kept by key, so only what is new
+// fades in. Customer signals appear only in support calls; an interview
+// never shows signals or ratings about the candidate.
 
 import { h, fill } from "../dom.js";
 import { t } from "../i18n.js";
@@ -20,13 +23,16 @@ import { describeError } from "../errors.js";
 import { setLeaveGuard } from "../device.js";
 import { LiveAudio } from "../live-audio.js";
 import {
-  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, latency, newSessionId, productKind,
+  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, latency, newSessionId, productKind,
   readPrefs, reminderDue, splitCards, viewPrefs, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
+const REMIND_MS = 3000;
+const RESTART_TRIES = 12;
+const RESTART_WAIT_MS = 250;
 const TYPE_OF = { support: "soporte", interview: "entrevista" };
 
 function liveError(error) {
@@ -50,13 +56,24 @@ function defaultTranscript(transcripts, kind) {
   return (transcripts.find((x) => x.type === TYPE_OF[kind]) ?? transcripts[0])?.id ?? "";
 }
 
-export async function liveView(ctx, root) {
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function dot(kind, extra = "") {
+  return h("span", { class: `state-dot ${kind} ${extra}`.trim(), "aria-hidden": "true" });
+}
+
+export async function liveView(ctx, root, [sub] = []) {
   root.classList.add("wide");
   let products = [];
   let transcripts = [];
+  let demos = [];
   try {
-    [{ products }, { transcripts }] = await Promise.all([ctx.api.liveProducts(), ctx.api.liveTranscripts()]);
-    products = products.filter((p) => productKind(p.product)); // the voice bot has its own page
+    const [listed, recorded] = await Promise.all([ctx.api.liveProducts(), ctx.api.liveTranscripts()]);
+    products = listed.products.filter((p) => productKind(p.product)); // the voice bot has its own page
+    transcripts = recorded.transcripts ?? [];
+    demos = recorded.demos ?? [];
   } catch (error) {
     if (error?.kind === "unauthorized") throw error;
     root.append(pageHead(t("live.title"), { lead: t("live.lead") }),
@@ -74,23 +91,46 @@ export async function liveView(ctx, root) {
   let controller = null;
   let audio = null;
   let running = false;
+  let guarded = false; // a demo can be left at any time; a real session asks first
   let ticker = null;
-  setLeaveGuard(() => running);
+  let playing = null; // the id of a demo session this page started
+  setLeaveGuard(() => running && guarded);
 
   function cleanup() {
     closed = true;
+    // A demo left behind would hold the one session slot until it ends.
+    if (playing && running) ctx.api.stopLive(playing).catch(() => {});
     controller?.abort();
     audio?.stop();
     clearInterval(ticker);
     setLeaveGuard(() => false);
   }
 
-  showForm();
+  if (sub === "demo" && demos.length) startDemo(demos[0]);
+  else showForm(sub === "demo" ? t("live.scripted.none") : null);
   return cleanup;
 
   // ---- start ----------------------------------------------------------
 
-  function showForm() {
+  async function startDemo(demo) {
+    for (let i = 0; i < RESTART_TRIES; i += 1) {
+      try {
+        const session = await ctx.api.startReplay(newSessionId("demo"), { demo: demo.id, speed: 1 });
+        if (!closed) showSession(session, null);
+        return null;
+      } catch (error) {
+        if (error?.kind === "unauthorized") return ctx.fail(error);
+        if (error?.code !== "busy" || i === RESTART_TRIES - 1) {
+          if (!closed) showForm(liveError(error));
+          return null;
+        }
+        await wait(RESTART_WAIT_MS); // the session before is still ending
+      }
+    }
+    return null;
+  }
+
+  function showForm(message = null) {
     clearInterval(ticker);
     root.replaceChildren();
     const productSelect = h("select", { id: "live-product" },
@@ -108,8 +148,8 @@ export async function liveView(ctx, root) {
     const banner = h("p", { class: "notice info", role: "note" });
     const liveHint = h("p", { class: "hint" });
     const start = h("button", { type: "button", class: "primary big", onClick: () => begin("live") }, icon("live"), t("live.start"));
-    const demo = h("button", { type: "button", class: "big", onClick: () => begin("replay") }, icon("play"), t("live.demo"));
-    const formError = h("p", { class: "error", role: "alert", hidden: true });
+    const replay = h("button", { type: "button", onClick: () => begin("replay") }, icon("play"), t("live.demo"));
+    const formError = h("p", { class: "error", role: "alert", hidden: !message }, message ?? "");
 
     function chosen() {
       return products.find((p) => p.product === productSelect.value) ?? products[0];
@@ -131,13 +171,13 @@ export async function liveView(ctx, root) {
         : micEmployee ? t("live.audio_hint.mic_employee")
           : t(`live.audio_hint.${audioSelect.value}`, { who: roleText(product.suggest_about?.[0] ?? "unknown") });
       transcriptSelect.value = defaultTranscript(transcripts, kind);
-      demo.disabled = !transcripts.length;
+      replay.disabled = !transcripts.length;
     }
 
     async function begin(mode) {
       formError.hidden = true;
       start.disabled = true;
-      demo.disabled = true;
+      replay.disabled = true;
       const product = chosen().product;
       try {
         let session;
@@ -162,41 +202,82 @@ export async function liveView(ctx, root) {
     audioSelect.addEventListener("change", sync);
     employeeSelect.addEventListener("change", sync);
     const field = (input, key) => h("div", { class: "field" }, h("label", { for: input.id }, t(key)), input);
+    const scripted = demos[0];
     root.append(
       pageHead(t("live.title"), { lead: t("live.lead") }),
+      formError,
+      scripted ? h("section", { class: "card lv-demo-card" },
+        h("div", { class: "lv-demo-text" },
+          h("h2", {}, t("live.scripted.title")),
+          h("p", { class: "hint" }, t("live.scripted.body"))),
+        h("button", { type: "button", class: "primary big", onClick: () => startDemo(scripted) },
+          icon("play"), t("live.scripted.start"))) : null,
       h("div", { class: "live-start" },
         h("section", { class: "card" },
           h("h2", {}, t("live.new")),
           field(productSelect, "live.product"), banner,
           field(employeeSelect, "live.employee"), employeeHint,
           field(audioSelect, "live.audio"), liveHint, start),
-        h("section", { class: "card" },
-          h("h2", {}, t("live.demo_title")), h("p", { class: "hint" }, t("live.demo_body")),
-          field(transcriptSelect, "live.transcript"), field(speedSelect, "live.speed"), demo)),
-      formError);
+        h("details", { class: "card lv-recorded" },
+          h("summary", {}, t("live.recorded_title")),
+          h("p", { class: "hint" }, t("live.demo_body")),
+          field(transcriptSelect, "live.transcript"), field(speedSelect, "live.speed"), replay)));
     sync();
   }
 
   // ---- a running session ----------------------------------------------
 
   function showSession(session, audioKind) {
+    clearInterval(ticker);
+    controller?.abort();
     root.replaceChildren();
     const state = new LiveState();
     state.apply({ type: "session", session });
     running = true;
-    const stop = h("button", { type: "button", class: "danger", onClick: () => end() }, icon("stop"), t("live.stop"));
-    const again = h("button", { type: "button", class: "primary", hidden: true, onClick: () => showForm() }, t("live.again"));
+    guarded = session.mode !== "demo";
+    playing = session.mode === "demo" ? session.id : null;
+    const demo = state.demo;
+    const resultHref = demo?.result_session ? `#/analysis/${encodeURIComponent(demo.result_session)}` : null;
+
+    // ---- header: clock, what this is, who, and the actions
+    const clock = h("span", { class: "lv-clock" });
+    const liveDot = dot("avoid", "lv-pulse");
+    const stop = h("button", { type: "button", onClick: () => end() }, icon("stop"), t("live.stop"));
+    const again = h("button", { type: "button", onClick: () => restart() }, icon("play"), t("live.replay_again"));
+    const toResult = resultHref ? h("a", {
+      class: "button primary", href: resultHref,
+      onClick: (e) => {
+        if (state.state !== "running") return;
+        e.preventDefault();
+        ctx.api.stopLive(session.id).catch(() => {}).finally(() => { location.hash = resultHref; });
+      },
+    }, t("live.end_result")) : null;
+    const fresh = h("button", { type: "button", class: "primary", onClick: () => showForm() }, t("live.again"));
+    const otherName = h("span", { class: "lv-other" });
+    const header = h("header", { class: "lv-head" },
+      h("div", { class: "lv-meta" },
+        h("span", { class: "lv-live" }, liveDot, clock),
+        h("strong", { class: "lv-title" }, demo?.title ?? t(`live.product.${productKind(state.page?.product)}`)),
+        otherName,
+        demo ? h("span", { class: "type-chip" }, t("live.scripted.badge")) : null),
+      h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
+
+    // ---- the conversation
+    const lines = h("ol", { class: "lv-lines", "aria-label": t("live.talk") });
+    const speaking = h("p", { class: "lv-speaking", "aria-live": "polite" });
+    const talk = h("section", { class: "lv-talk" }, h("h2", { class: "lv-label" }, t("live.talk")), lines, speaking);
+
+    // ---- the side: Ahora, topics, what to say, earlier, options
+    const discomfort = h("div", { "aria-live": "polite" });
+    const nowCard = h("div", { class: "lv-now", "aria-live": "polite" });
+    const topics = h("section", { class: "lv-row", hidden: true });
+    const checklist = h("section", { class: "lv-row lv-tosay", hidden: true });
+    const historyBody = h("div", { class: "lv-history" });
+    const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
     const status = h("div", { class: "row wrap live-status", role: "status" });
     const alerts = h("div", { class: "stack tight", "aria-live": "polite" });
-    const discomfort = h("div", { "aria-live": "polite" });
-    const phases = h("ol", { class: "live-phases", "aria-label": t("live.phases") });
-    const checklist = h("section", { class: "live-mandatory", "aria-label": t("live.mandatory_title"), hidden: true });
-    const lines = h("ol", { class: "live-lines", "aria-label": t("live.transcript_title") });
-    const cards = h("div", { class: "live-cards" });
-    const summary = h("div", {});
-    const banner = h("p", { class: "notice info", role: "note" }, maybe(`live.banner.${state.page?.banner}`, t("live.banner.default")));
+    const banner = h("p", { class: "hint" }, maybe(`live.banner.${state.page?.banner}`, t("live.banner.default")));
 
-    // View choices: remembered in this browser, defaults from «Ajustes».
     const showEmployee = h("input", { type: "checkbox", id: "live-show-employee", checked: prefs.showEmployee });
     const showOther = h("input", { type: "checkbox", id: "live-show-other", checked: prefs.showOther });
     const maxSelect = h("select", { id: "live-max" },
@@ -207,6 +288,7 @@ export async function liveView(ctx, root) {
         prefs.showOther = showOther.checked;
         prefs.max = Number(maxSelect.value);
         writePrefs(prefs);
+        historyKey = null;
         schedule();
       });
     }
@@ -216,24 +298,30 @@ export async function liveView(ctx, root) {
     }, t(`live.assist.${m}`)));
     const modeGroup = h("div", { class: "live-modes", role: "group", "aria-label": t("live.assist_label") },
       h("span", { class: "meta" }, t("live.assist_label")), modeButtons);
-    const controls = h("div", { class: "row wrap live-controls" },
-      h("label", { class: "check" }, showEmployee, t("live.show_employee")),
-      h("label", { class: "check" }, showOther, t("live.show_other")),
-      h("label", { class: "row tight live-max", for: "live-max" }, t("live.max_suggestions"), maxSelect),
-      modeGroup);
+    const options = h("details", { class: "lv-more" },
+      h("summary", {}, t("live.options")),
+      h("div", { class: "lv-options" },
+        demo ? h("p", { class: "hint" }, t("live.scripted.note")) : null,
+        banner, status, alerts,
+        h("label", { class: "check" }, showEmployee, t("live.show_employee")),
+        h("label", { class: "check" }, showOther, t("live.show_other")),
+        h("label", { class: "row tight live-max", for: "live-max" }, t("live.max_suggestions"), maxSelect),
+        modeGroup));
+    const summary = h("div", {});
+    const side = h("aside", { class: "lv-side" },
+      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, topics, checklist, history, options, summary);
 
-    root.append(
-      pageHead(t("live.title"), { actions: [stop, again] }),
-      banner, status, controls, alerts, discomfort, checklist, phases,
-      h("div", { class: "live-layout" },
-        h("section", { class: "live-pane" }, h("h2", {}, t("live.transcript_title")), lines),
-        h("section", { class: "live-pane" }, h("h2", {}, t("live.suggestions_title")), cards)),
-      summary);
+    root.append(header, h("div", { class: "lv-body" }, talk, side));
+
     let drawing = false;
     let reconnecting = false;
     let lastReminder = Date.now();
     let remind = false;
     let editing = null; // the speaker whose name is being typed
+    let nowKey = null;
+    let historyKey = null;
+    const lineNodes = new Map(); // utterance id -> { li, label, labelKey, text, flags }
+    const chipNodes = new Map(); // topic id -> { chip, done }
 
     function schedule() {
       if (drawing) return;
@@ -258,14 +346,24 @@ export async function liveView(ctx, root) {
       }
     }
 
+    function otherSpeaker() {
+      return [...state.speakers.keys()].find((s) => state.sideOf(s) === "other") ?? null;
+    }
+
     function draw() {
       const page = state.page ?? {};
-      const kind = productKind(page.product);
+      const live = state.state === "running";
+      clock.textContent = t(live ? "live.clock" : "live.clock_ended", { time: clockText(state.streamTime) });
+      liveDot.hidden = !live;
+      const other = otherSpeaker();
+      otherName.textContent = demo?.candidate ?? (other ? state.nameOf(other) ?? "" : "");
+      stop.hidden = !live;
+      fresh.hidden = live;
+      if (toResult) toResult.textContent = live ? t("live.end_result") : t("live.see_result", { name: demo.candidate });
       const counts = state.counts();
       fill(status,
-        h("span", { class: `badge is-${state.state === "running" ? "processing" : state.state === "failed" ? "failed" : "indexed"}` }, t(`live.state.${state.state}`)),
-        h("span", { class: "tag accent" }, t(`live.product.${kind}`)),
-        h("span", { class: "tag" }, session.mode === "replay" ? t("live.mode.replay") : t(`live.audio.${audioKind ?? "stereo"}`)),
+        h("span", { class: `badge is-${live ? "processing" : state.state === "failed" ? "failed" : "indexed"}` }, t(`live.state.${state.state}`)),
+        h("span", { class: "tag" }, session.mode === "live" ? t(`live.audio.${audioKind ?? "stereo"}`) : t("live.mode.replay")),
         state.employee ? h("span", { class: "tag" }, icon("enrol"), " ", state.nameOf(state.employee.speaker) ?? state.employee.name) : null,
         h("span", { class: "meta" }, t("live.calls", { ok: counts.ok ?? 0, all: state.records.length })));
       modeGroup.hidden = !(page.modes ?? []).length;
@@ -273,77 +371,28 @@ export async function liveView(ctx, root) {
         const on = button.dataset.mode === (state.mode ?? MODES[0]);
         button.setAttribute("aria-pressed", String(on));
         button.classList.toggle("primary", on);
-        button.disabled = state.state !== "running";
+        button.disabled = !live;
       }
       const notes = [];
       if (state.halted) notes.push(h("p", { class: "notice error", role: "alert" }, t(`live.halted.${state.halted}`)));
       if (state.state === "failed") notes.push(h("p", { class: "notice error", role: "alert" }, t("live.failed", { error: state.error ?? "" })));
-      if (reconnecting && state.state === "running") notes.push(h("p", { class: "notice" }, t("live.reconnecting")));
+      if (reconnecting && live) notes.push(h("p", { class: "notice" }, t("live.reconnecting")));
       for (const w of state.warnings.slice(-3)) notes.push(h("p", { class: "notice" }, maybe(`live.warning.${w.code}`, w.message)));
       for (const n of state.notices.slice(-2)) notes.push(h("p", { class: "notice" }, maybe(`live.notice.${n.code}`, n.message)));
       fill(alerts, notes);
       drawDiscomfort();
-      drawChecklist();
-      const coverage = state.coverage();
-      phases.hidden = !coverage.length;
-      fill(phases, coverage.map((c) => h("li", { class: `live-phase is-${c.state}` },
-        maybe(`live.phase.${c.phase}`, c.phase), c.count ? h("span", { class: "meta" }, ` ${c.count}`) : null)));
       drawLines();
-      drawCards();
+      drawNow();
+      drawTopics();
+      drawChecklist();
+      drawHistory();
       drawSummary();
-      stop.hidden = state.state !== "running";
-      again.hidden = state.state === "running";
     }
 
-    function drawDiscomfort() {
-      const found = state.discomfort();
-      if (!found) {
-        fill(discomfort);
-        return;
-      }
-      fill(discomfort, h("p", { class: "notice live-discomfort", role: "alert" },
-        h("strong", {}, t("live.discomfort")), " ",
-        found.signals.map((s) => h("span", { class: "tag warn" }, t(`live.signal.${s}`))), " ",
-        found.quote ? h("q", {}, found.quote) : null));
-    }
-
-    function drawChecklist() {
-      const items = state.checklist?.items ?? [];
-      checklist.hidden = !items.length;
-      if (!items.length) return;
-      const pending = state.pendingItems();
-      checklist.classList.toggle("is-done", !pending.length);
-      checklist.classList.toggle("remind", remind && pending.length > 0);
-      fill(checklist,
-        h("h2", {}, pending.length ? t("live.mandatory_pending", { n: pending.length }) : t("live.mandatory_done")),
-        h("ul", {}, items.map((item) => h("li", { class: `live-item is-${item.state}` },
-          h("span", { class: "live-item-mark", "aria-hidden": "true" }, item.state === "pending" ? "!" : ""),
-          h("span", { class: "live-item-text" }, item.text),
-          item.state === "said" ? h("span", { class: "meta" }, t("live.mandatory_said")) : null,
-          item.state === "ticked" ? h("span", { class: "meta" }, t("live.mandatory_ticked")) : null,
-          item.state === "pending" && state.state === "running"
-            ? h("button", { type: "button", class: "ghost small", onClick: () => tick(item) }, t("live.mandatory_tick"))
-            : null))));
-    }
-
-    async function tick(item) {
-      const yes = await openDialog({
-        title: t("live.mandatory_confirm_title"),
-        content: [h("p", {}, t("live.mandatory_confirm_body")), h("blockquote", {}, item.text)],
-        confirm: t("live.mandatory_confirm"),
-      });
-      if (!yes) return;
-      try {
-        const view = await ctx.api.tickMandatory(session.id, item.id);
-        if (view?.items) state.checklist = view;
-        schedule();
-      } catch (error) {
-        toast(liveError(error), { error: true });
-      }
-    }
+    // ---- conversation lines, kept by id so only new ones fade in
 
     function nameTag(speaker) {
-      const role = roleText(state.roleOf(speaker));
+      const employee = state.sideOf(speaker) === "employee";
       const name = state.nameOf(speaker);
       if (editing === speaker) {
         const input = h("input", { type: "text", class: "live-name-input", value: name ?? "", maxlength: "60", "aria-label": t("live.rename_label") });
@@ -373,38 +422,188 @@ export async function liveView(ctx, root) {
         });
         input.addEventListener("blur", save);
         setTimeout(() => input.focus(), 0);
-        return h("span", { class: "who" }, input, ` · ${role}`);
+        return input;
       }
-      const label = name ? `${name} · ${role}` : role;
-      if (state.state !== "running") return h("span", { class: "who" }, label);
+      const label = employee ? t("live.you") : name || roleText(state.roleOf(speaker));
+      if (state.state !== "running" || demo) return h("span", { class: "lv-name" }, label);
       return h("button", {
-        type: "button", class: "who live-who", title: t("live.rename_label"),
+        type: "button", class: "lv-name live-who", title: t("live.rename_label"),
         onClick: () => {
           editing = speaker;
-          drawLines(true);
+          schedule();
         },
-      }, label, " ", icon("edit"));
+      }, label);
     }
 
-    function drawLines(force = false) {
-      if (editing && !force) return; // keep the name being typed
-      const atEnd = lines.scrollHeight - lines.scrollTop - lines.clientHeight < 40;
+    function lineNode(u) {
+      let node = lineNodes.get(u.id);
+      if (!node) {
+        const label = h("span", { class: "lv-line-head" });
+        const text = h("span", { class: "lv-text" });
+        const li = h("li", { class: "lv-line lv-rise", id: `u-${u.id}` }, label, text);
+        node = { li, label, labelKey: null, text, flags: "" };
+        lineNodes.set(u.id, node);
+      }
+      const side = state.sideOf(u.speaker);
+      node.li.classList.toggle("is-employee", side === "employee");
+      node.li.classList.toggle("is-other", side === "other");
+      node.li.classList.toggle("partial", Boolean(u.partial));
+      node.li.classList.toggle("discomfort", u.id === state.discomfort()?.utterance);
+      if (node.text.textContent !== u.text) node.text.textContent = u.text;
+      const flags = state.flagsOf(u.id);
+      const key = `${u.speaker}|${state.nameOf(u.speaker)}|${editing === u.speaker}|${state.state}|${flags.map((f) => f.category).join(",")}`;
+      if (key !== node.labelKey) {
+        node.labelKey = key;
+        const isNew = flags.length && !node.flags;
+        node.flags = flags.map((f) => f.category).join(",");
+        fill(node.label, nameTag(u.speaker),
+          flags.length ? h("span", { class: `lv-flag${isNew ? " lv-rise" : ""}`, title: flags.map((f) => f.title).join(" · ") },
+            dot("avoid"), t("live.avoid")) : null);
+      }
+      return node.li;
+    }
+
+    function drawLines() {
+      if (editing && lines.contains(document.activeElement)) return; // keep the name being typed
+      const atEnd = lines.scrollHeight - lines.scrollTop - lines.clientHeight < 60;
       const all = state.lines();
       const shown = state.visibleLines(prefs);
-      const upset = state.discomfort()?.utterance;
-      let body;
-      if (!all.length) body = h("li", { class: "hint" }, t("live.waiting"));
-      else if (!shown.length) body = h("li", { class: "hint" }, t("live.lines_hidden"));
-      else {
-        body = shown.map((u) => h("li", {
-          id: `u-${u.id}`,
-          class: `live-line role-${state.roleOf(u.speaker)} side-${state.sideOf(u.speaker)}${u.partial ? " partial" : ""}${u.id === upset ? " discomfort" : ""}`,
-        }, nameTag(u.speaker), h("span", { class: "text" }, u.text)));
+      talk.hidden = !prefs.showEmployee && !prefs.showOther;
+      if (!shown.length) {
+        lineNodes.clear();
+        fill(lines, h("li", { class: "hint lv-empty" }, all.length ? t("live.lines_hidden") : t("live.waiting")));
+      } else {
+        lines.querySelector(".lv-empty")?.remove();
+        const wanted = shown.map(lineNode);
+        const keep = new Set(wanted);
+        for (const child of [...lines.children]) if (!keep.has(child)) child.remove();
+        for (const [id, node] of lineNodes) if (!keep.has(node.li)) lineNodes.delete(id);
+        wanted.forEach((li, i) => {
+          if (lines.children[i] !== li) lines.insertBefore(li, lines.children[i] ?? null);
+        });
       }
-      fill(lines, body);
-      lines.closest(".live-pane").hidden = !prefs.showEmployee && !prefs.showOther;
       if (atEnd) lines.scrollTop = lines.scrollHeight;
+      const who = state.state === "running" ? state.speaking() : null;
+      const other = otherSpeaker();
+      const said = !who ? "" : who === "employee" ? t("live.speaking_you")
+        : other && state.nameOf(other) ? t("live.speaking_other", { name: state.nameOf(other).split(" ")[0] }) : t("live.speaking_someone");
+      if (said !== speaking.textContent) fill(speaking, said ? [dot("suggest", "lv-pulse"), said] : []);
     }
+
+    // ---- the «Ahora» card: one thing at a time
+
+    function drawNow() {
+      const ended = state.state !== "running" && demo;
+      const shown = state.now();
+      const key = ended ? "ended"
+        : shown.kind === "avoid" ? `avoid|${shown.flag.utterance}|${shown.flag.category}`
+          : shown.kind === "suggestion" ? `card|${shown.card.record.call}|${shown.card.suggestion.text}` : "idle";
+      if (key !== nowKey) {
+        nowKey = key;
+        fill(nowCard, ended ? endCard() : shown.kind === "avoid" ? avoidCard(shown.flag)
+          : shown.kind === "suggestion" ? suggestionCard(shown.card) : h("p", { class: "lv-idle lv-rise" }, t("live.now_idle")));
+        nowCard.className = `lv-now${shown.kind === "avoid" && !ended ? " is-avoid" : ""}`;
+      }
+      const badge = nowCard.querySelector(".lv-badge");
+      if (badge) badge.hidden = !(shown.kind === "avoid" ? shown.done : shown.used);
+    }
+
+    function suggestionCard(card) {
+      const guided = card.record?.mode === "guiado" && !card.suggestion.example;
+      return h("div", { class: "lv-card lv-rise" },
+        h("div", { class: "lv-card-head is-suggest" }, dot("suggest"), t("live.now_suggestion"),
+          h("span", { class: "lv-badge done lv-rise", hidden: true }, icon("check"), t("live.now_used"))),
+        guided ? h("span", { class: "live-say-label" }, t("live.say")) : null,
+        h("p", { class: "lv-big" }, card.suggestion.text),
+        card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: card.suggestion.example })) : null);
+    }
+
+    function avoidCard(flag) {
+      return h("div", { class: "lv-card lv-rise" },
+        h("div", { class: "lv-card-head is-avoid" }, dot("avoid"), `${t("live.avoid")} · ${flag.title}`,
+          h("span", { class: "lv-badge done lv-rise", hidden: true }, icon("check"), t("live.avoid_done"))),
+        h("p", { class: "lv-big" }, flag.why),
+        h("div", { class: "lv-alt" }, h("span", { class: "lv-alt-label" }, t("live.avoid_alternative")), h("span", {}, flag.alternative)));
+    }
+
+    function endCard() {
+      return h("div", { class: "lv-card lv-rise" },
+        h("div", { class: "lv-card-head is-done" }, dot("done"), t("live.ended_title")),
+        h("p", { class: "lv-big" }, resultHref ? t("live.ended_body") : t("live.ended_plain")),
+        h("div", { class: "row wrap" },
+          resultHref ? h("a", { class: "button primary", href: resultHref }, t("live.see_result", { name: demo.candidate }), icon("arrow")) : null,
+          h("button", { type: "button", onClick: () => restart() }, icon("play"), t("live.replay_again"))));
+    }
+
+    // ---- quiet rows of chips: the topics and what must be said
+
+    function chip(done, label, extra = "") {
+      return h("span", { class: `lv-chip${done ? " done" : ""} ${extra}`.trim() },
+        done ? icon("check") : h("span", { class: "lv-ring", "aria-hidden": "true" }), label);
+    }
+
+    function drawTopics() {
+      const chips = state.topicChips();
+      topics.hidden = !chips.length;
+      if (!chips.length) return;
+      if (!topics.firstChild) {
+        topics.append(h("div", { class: "lv-row-head" }, h("h3", {}), h("span", { class: "meta lv-count" })),
+          h("div", { class: "lv-chips" }));
+      }
+      topics.querySelector("h3").textContent = state.topics ? t("live.topics") : t("live.topics_phases");
+      topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: chips.filter((c) => c.done).length, all: chips.length });
+      const row = topics.querySelector(".lv-chips");
+      const wanted = chips.map((c) => {
+        const name = c.name ?? maybe(`live.phase.${c.phase}`, c.phase);
+        const key = `${c.id}|${name}`;
+        const kept = chipNodes.get(key);
+        if (kept && kept.done === c.done) return kept.chip;
+        const made = chip(c.done, name, kept ? "lv-rise" : "");
+        if (kept) kept.chip.replaceWith(made);
+        chipNodes.set(key, { chip: made, done: c.done });
+        return made;
+      });
+      const keep = new Set(wanted);
+      for (const child of [...row.children]) if (!keep.has(child)) child.remove();
+      for (const [id, kept] of chipNodes) if (!keep.has(kept.chip)) chipNodes.delete(id);
+      wanted.forEach((node, i) => {
+        if (row.children[i] !== node) row.insertBefore(node, row.children[i] ?? null);
+      });
+    }
+
+    function drawChecklist() {
+      const items = state.checklist?.items ?? [];
+      checklist.hidden = !items.length;
+      if (!items.length) return;
+      const pending = state.pendingItems();
+      checklist.classList.toggle("remind", remind && pending.length > 0);
+      fill(checklist,
+        h("div", { class: "lv-row-head" }, h("h3", {}, t("live.to_say")),
+          h("span", { class: "meta" }, pending.length ? t("live.to_say_count", { n: pending.length }) : t("live.to_say_done"))),
+        remind && pending.length ? h("p", { class: "hint", role: "status" }, t("live.to_say_remind", { items: pending.map((i) => i.text).join(" · ") })) : null,
+        h("div", { class: "lv-chips" }, items.map((item) => (item.state === "pending" && state.state === "running"
+          ? h("button", { type: "button", class: "lv-chip is-button", title: t("live.mandatory_tick"), onClick: () => tick(item) },
+            h("span", { class: "lv-ring", "aria-hidden": "true" }), item.text)
+          : chip(item.state !== "pending", item.text, item.state === "ticked" ? "ticked" : "")))));
+    }
+
+    async function tick(item) {
+      const yes = await openDialog({
+        title: t("live.mandatory_confirm_title"),
+        content: [h("p", {}, t("live.mandatory_confirm_body")), h("blockquote", {}, item.text)],
+        confirm: t("live.mandatory_confirm"),
+      });
+      if (!yes) return;
+      try {
+        const view = await ctx.api.tickMandatory(session.id, item.id);
+        if (view?.items) state.checklist = view;
+        schedule();
+      } catch (error) {
+        toast(liveError(error), { error: true });
+      }
+    }
+
+    // ---- earlier suggestions, their sources and the lines better avoided
 
     function point(id) {
       const target = document.getElementById(`u-${id}`);
@@ -414,19 +613,16 @@ export async function liveView(ctx, root) {
       setTimeout(() => target.classList.remove("active"), 2000);
     }
 
-    function card(c, i, upset) {
+    function earlierCard(c) {
       const ms = latency(c.record.stages);
       const kind = productKind(state.page?.product);
-      // Each card keeps the mode its call was made in; older records have none.
-      const guided = (state.page?.modes ?? []).length > 0 && (c.record.mode ?? state.mode ?? MODES[0]) === "guiado";
-      const worried = upset && c.record === upset.record;
-      return h("article", { class: `card live-card${i === 0 ? " newest" : ""}${worried ? " discomfort" : ""}` },
+      return h("article", { class: "lv-earlier" },
         h("div", { class: "row wrap" },
           h("span", { class: "tag accent" }, maybe(`live.kind.${c.suggestion.kind}`, c.suggestion.kind)),
-          kind === "interview" && c.suggestion.script_phase ? h("span", { class: "tag" }, maybe(`live.phase.${c.suggestion.script_phase}`, c.suggestion.script_phase)) : null),
-        guided
-          ? h("div", { class: "live-say" }, h("span", { class: "live-say-label" }, t("live.say")), h("p", { class: "live-say-text" }, c.suggestion.text))
-          : h("p", { class: "live-text" }, c.suggestion.text),
+          kind === "interview" && c.suggestion.script_phase ? h("span", { class: "tag" }, maybe(`live.phase.${c.suggestion.script_phase}`, c.suggestion.script_phase)) : null,
+          state.used(c) ? h("span", { class: "lv-badge done" }, icon("check"), t("live.now_used")) : null),
+        h("p", { class: "live-text" }, c.suggestion.text),
+        c.suggestion.example ? h("p", { class: "hint" }, t("live.now_example", { text: c.suggestion.example })) : null,
         c.signals.length ? h("ul", { class: "live-signals" }, c.signals.map((s) => h("li", {},
           h("span", { class: "tag warn" }, t(`live.signal.${s.signal}`)), " ",
           h("span", {}, t("live.customer_says")), " ", h("q", {}, s.quote)))) : null,
@@ -435,23 +631,45 @@ export async function liveView(ctx, root) {
         c.cites.length ? h("div", { class: "live-cites" }, c.cites.map((ci) => h("details", {},
           h("summary", {}, t("live.source"), " ", h("code", {}, ci.id)),
           h("p", {}, ci.text ?? t("live.source_missing"))))) : null,
-        h("p", { class: "meta live-latency" }, t("live.latency", {
+        ms.total !== null ? h("p", { class: "meta live-latency" }, t("live.latency", {
           knowledge: ms.knowledge ?? "–", reasoner: ms.reasoner ?? "–", total: ms.total ?? "–",
-        })));
+        })) : null);
     }
 
-    function drawCards() {
-      const all = state.cards().slice(0, 30);
-      if (!all.length) {
-        fill(cards, h("p", { class: "hint" }, state.state === "running" ? t("live.no_suggestions") : t("live.none")));
+    function drawHistory() {
+      const earlier = state.earlier().slice(0, 30);
+      const key = [prefs.max, ...earlier.map((c) => `${c.record.call}:${state.used(c)}`),
+        ...state.avoid.map((f) => `${f.utterance}:${f.state}`)].join("|");
+      if (key === historyKey) return;
+      historyKey = key;
+      const { shown, older } = splitCards(earlier, prefs.max);
+      const avoided = state.avoid;
+      fill(historyBody,
+        earlier.length ? null : h("p", { class: "hint" }, t("live.history_empty")),
+        shown.map(earlierCard),
+        older.length ? h("details", { class: "live-older" },
+          h("summary", {}, t("live.older", { n: older.length })), older.map(earlierCard)) : null,
+        avoided.length ? h("section", { class: "lv-avoided" },
+          h("h3", {}, t("live.history_avoided")),
+          h("p", { class: "hint" }, t("live.avoid_hint")),
+          avoided.map((f) => h("article", { class: "lv-earlier" },
+            h("div", { class: "row wrap" }, h("span", { class: "lv-flag" }, dot("avoid"), `${t("live.avoid")} · ${f.title}`),
+              f.state === "rephrased" ? h("span", { class: "lv-badge done" }, icon("check"), t("live.avoid_done")) : null),
+            state.utterances.get(f.utterance) ? h("button", { type: "button", class: "ghost small", onClick: () => point(f.utterance) },
+              `«${state.utterances.get(f.utterance).text}»`) : null,
+            h("p", {}, f.why), h("p", { class: "hint" }, f.alternative)))) : null);
+    }
+
+    function drawDiscomfort() {
+      const found = state.discomfort();
+      if (!found) {
+        fill(discomfort);
         return;
       }
-      const upset = state.discomfort();
-      const { shown, older } = splitCards(all, prefs.max);
-      fill(cards, shown.map((c, i) => card(c, i, upset)),
-        older.length ? h("details", { class: "live-older" },
-          h("summary", {}, t("live.older", { n: older.length })),
-          older.map((c, i) => card(c, i + shown.length, upset))) : null);
+      fill(discomfort, h("p", { class: "lv-note", role: "status" },
+        dot("avoid"), h("strong", {}, t("live.discomfort")), " ",
+        found.signals.map((s) => h("span", { class: "tag warn" }, t(`live.signal.${s}`))), " ",
+        found.quote ? h("q", {}, found.quote) : null));
     }
 
     function drawSummary() {
@@ -466,7 +684,7 @@ export async function liveView(ctx, root) {
       fill(summary, h("section", { class: "card live-summary" },
         h("h2", {}, t("live.summary_title")),
         mandatory ? (missing.length
-          ? h("div", { class: "notice error", role: "alert" },
+          ? h("div", { class: "notice", role: "status" },
             h("strong", {}, t("live.summary_missing", { n: missing.length })),
             h("ul", {}, missing.map((m) => h("li", {}, m.text))))
           : h("p", { class: "notice info" }, t("live.summary_all"))) : null,
@@ -475,12 +693,15 @@ export async function liveView(ctx, root) {
           names.map(([s, n]) => `${n} (${roleText(state.roleOf(s))})`).join(", ")) : null));
     }
 
+    // ---- the stream and the actions
+
     async function follow() {
-      controller = new AbortController();
-      while (!closed) {
+      const mine = new AbortController();
+      controller = mine;
+      while (!closed && !mine.signal.aborted) {
         try {
           const how = await ctx.api.followLive(session.id, {
-            after: state.lastId, signal: controller.signal,
+            after: state.lastId, signal: mine.signal,
             onItem: (item) => {
               reconnecting = false;
               try {
@@ -495,13 +716,13 @@ export async function liveView(ctx, root) {
         } catch (error) {
           if (error?.kind === "unauthorized") return ctx.fail(error);
         }
-        if (closed) break;
+        if (closed || mine.signal.aborted) return null;
         reconnecting = true;
         schedule();
-        await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+        await wait(RETRY_MS);
       }
+      if (mine.signal.aborted) return null;
       running = false;
-      clearInterval(ticker);
       if (state.state === "running") state.state = "ended";
       await audio?.stop();
       audio = null;
@@ -515,7 +736,7 @@ export async function liveView(ctx, root) {
         const go = await openDialog({
           title: t("live.stop_pending_title"),
           content: [h("p", {}, t("live.stop_pending_body")), h("ul", { class: "live-pending-list" }, pending.map((i) => h("li", {}, i.text)))],
-          confirm: t("live.stop_anyway"), danger: true,
+          confirm: t("live.stop_anyway"),
         });
         if (!go) return;
       }
@@ -529,18 +750,27 @@ export async function liveView(ctx, root) {
       stop.disabled = false;
     }
 
-    // Insist on the unsaid items: every remind_seconds they flash and a toast names them.
+    async function restart() {
+      if (!demo) return;
+      again.disabled = true;
+      controller?.abort();
+      if (state.state === "running") await ctx.api.stopLive(session.id).catch(() => {});
+      running = false;
+      await startDemo(demo);
+    }
+
+    // The clock moves every second; unsaid items come back every remind_seconds, quietly.
     ticker = setInterval(() => {
+      if (state.state === "running") schedule();
       const pending = state.pendingItems();
       if (state.state !== "running" || !reminderDue(pending.length, state.checklist?.remind_seconds, lastReminder, Date.now())) return;
       lastReminder = Date.now();
       remind = true;
-      toast(t("live.mandatory_remind", { items: pending.map((i) => i.text).join(" · ") }), { error: true, ms: 6000 });
       schedule();
       setTimeout(() => {
         remind = false;
         schedule();
-      }, 3000);
+      }, REMIND_MS);
     }, TICK_MS);
 
     if (audioKind === "mic") {

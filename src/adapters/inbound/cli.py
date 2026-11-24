@@ -841,6 +841,9 @@ class RagCLI:
         analysis = skills.analysis_requests(
             app.transcript_store, app.settings.transcripts_dir
         )
+        demos = skills.install_demo_analyses()
+        if demos:
+            print(f"Demo results installed: {', '.join(demos)}")
         routes = TranscriptRoutes(
             app.ingest_transcript, app.show_transcript, token,
             # Deleting a session deletes what was analysed of it.
@@ -853,7 +856,7 @@ class RagCLI:
             analysis=analysis,
             knowledge=KnowledgeRoutes(
                 app.knowledge_query, app.knowledge_library,
-                app.knowledge_mandatory,
+                app.knowledge_mandatory, app.knowledge_avoid,
             ),
             reasoner=skills.reasoner,
             settings=skills.pipeline_settings,

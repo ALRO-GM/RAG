@@ -58,6 +58,8 @@ from orchestrator.adapters.outbound.http_knowledge import HttpKnowledge
 from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
 from orchestrator.adapters.outbound.http_settings import HttpSettings
 from orchestrator.adapters.outbound.http_mandatory import HttpMandatory
+from orchestrator.adapters.outbound.http_avoid import HttpAvoid
+from orchestrator.adapters.outbound.fs_demos import DirDemos
 from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
 from orchestrator.adapters.outbound.jsonl_sink import (
     JsonHandoff,
@@ -468,6 +470,9 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         natural=build_natural(args, gate), clone_gate=gate,
         interview=build_interview(args, products, sessions_ref),
         ticker=ThreadRunner(),
+        avoid=HttpAvoid(args.knowledge_url, args.token)
+        if args.knowledge == "http" else None,
+        demos=DirDemos(ROOT / "examples" / "demo"),
     )
     sessions_ref.append(sessions)
     return sessions

@@ -10,6 +10,13 @@
 // LV-16 (#206): the employee and the other party, names given during the
 // session, which side's lines are shown, how many suggestions stay open,
 // the assistance mode and the mandatory items (docs/live/EMPLOYEE_UX.md).
+//
+// LV-17 (#232): the calm page shows one thing at a time. `now()` picks the
+// single «Ahora» card (a line better avoided first, then the newest
+// suggestion not yet used); `used()` tells when the employee asked what a
+// suggestion proposed («Hecho»); the topics come from a scripted demo or
+// from the script phases; lines better avoided arrive as `avoid` flags
+// (a hint about the question, never about the candidate).
 
 export const SUPPORT = "live_assist.support";
 export const INTERVIEW = "live_assist.interview";
@@ -23,6 +30,10 @@ export const EMPLOYEE_ROLES = ["agent", "interviewer"];
 export const DISCOMFORT = ["complaint", "stated_frustration", "churn_risk", "urgency"];
 /** Where the page remembers this browser's view choices. */
 export const PREFS_KEY = "ragputin.live.view";
+/** Share of a suggestion's example words the employee must say for «Hecho». */
+export const ECHO_SHARE = 0.6;
+/** Words this short do not count when comparing an example with a line. */
+const SHORT_WORD = 4;
 
 /**
  * The view's choices: { showEmployee, showOther, max, mode }. The saved
@@ -79,6 +90,30 @@ export function splitCards(cards, max = 3) {
 export function reminderDue(pending, seconds, last, now) {
   if (!pending || !seconds) return false;
   return now - last >= seconds * 1000;
+}
+
+/** Lower case, accents and punctuation removed, words of `SHORT_WORD` letters or more. */
+export function contentWords(text) {
+  return String(text ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= SHORT_WORD);
+}
+
+/**
+ * Whether `line` says what `example` proposed: at least `share` of the
+ * example's content words appear in the line. Words, not meaning: a
+ * rephrased question with other words is not caught.
+ */
+export function echoes(example, line, share = ECHO_SHARE) {
+  const wanted = [...new Set(contentWords(example))];
+  if (!wanted.length) return false;
+  const said = new Set(contentWords(line));
+  return wanted.filter((w) => said.has(w)).length / wanted.length >= share;
+}
+
+/** Seconds as "mm:ss" (minutes keep counting past the hour). */
+export function clockText(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  return `${two(Math.floor(total / 60))}:${two(total % 60)}`;
 }
 
 /** Words of a hint, to tell a pincelada (≤ 8) from a guided sentence. */
@@ -215,12 +250,19 @@ export class LiveState {
     this.checklist = null; // mandatory items: { items: [{ id, text, state }], remind_seconds }
     this.handoff = null; // the end-of-session record
     this.notices = []; // { code, message } from the orchestrator
+    this.avoid = []; // lines better avoided: { utterance, category, title, why, alternative, state }
+    this.topics = null; // a demo's topics: [{ id, name, done }], else the script phases
+    this.demo = null; // { id, title, candidate, result_session, note } of a scripted demo
+    this.streamTime = 0; // the latest event's stream time (seconds)
+    this.seen = 0; // messages applied so far: the order things arrived in
+    this.arrived = new Map(); // record or flag key -> `seen` when it arrived or changed
   }
 
   /** Apply one feed message ({ type, ... }); `id` is its SSE number. */
   apply(message, id = null) {
     const number = Number.parseInt(id ?? "", 10);
     if (Number.isFinite(number) && number > this.lastId) this.lastId = number;
+    this.seen += 1;
     switch (message?.type) {
       case "session":
         this._session(message.session);
@@ -252,8 +294,23 @@ export class LiveState {
       case "notice":
         this.notices.push({ code: message.code, message: message.message });
         break;
+      case "avoid":
+        this._flags(message.flags);
+        break;
+      case "topics":
+        if (Array.isArray(message.topics)) this.topics = message.topics.filter((x) => x && x.id && x.name);
+        break;
       default:
         break;
+    }
+  }
+
+  _flags(flags) {
+    if (!Array.isArray(flags)) return;
+    const before = new Map(this.avoid.map((f) => [flagKey(f), f.state]));
+    this.avoid = flags.filter((f) => f && f.utterance && f.category && f.title);
+    for (const f of this.avoid) {
+      if (before.get(flagKey(f)) !== f.state) this.arrived.set(flagKey(f), this.seen);
     }
   }
 
@@ -265,6 +322,8 @@ export class LiveState {
     if (MODES.includes(view.assist_mode) && !this.mode) this.mode = view.assist_mode;
     if (view.mandatory) this.checklist = view.mandatory;
     if (view.handoff) this.handoff = view.handoff;
+    if (view.demo) this.demo = view.demo;
+    if (Array.isArray(view.avoid) && !this.avoid.length) this._flags(view.avoid);
     if (view.page) {
       this.page = view.page;
       for (const [speaker, role] of Object.entries(view.page.roles ?? {})) {
@@ -275,6 +334,7 @@ export class LiveState {
 
   _event(event) {
     if (!event) return;
+    if (typeof event.stream_time === "number" && event.stream_time > this.streamTime) this.streamTime = event.stream_time;
     const u = event.utterance;
     switch (event.type) {
       case "session_started":
@@ -306,6 +366,7 @@ export class LiveState {
   _record(record) {
     if (!record) return;
     this.records.push(record);
+    this.arrived.set(record, this.seen);
     if (HALTING.has(record.status)) this.halted = record.status;
   }
 
@@ -380,6 +441,68 @@ export class LiveState {
     return out;
   }
 
+  /** The flags of one line (better avoided), [] when it has none. */
+  flagsOf(utterance) {
+    return this.avoid.filter((f) => f.utterance === utterance);
+  }
+
+  /** Whether the employee already said what a card proposed (its example, or a guided sentence). */
+  used(card) {
+    const proposal = card?.suggestion?.example ?? (card?.record?.mode === "guiado" ? card.suggestion.text : null);
+    if (!proposal) return false;
+    const after = card.record?.trigger?.stream_time ?? 0;
+    return [...this.utterances.values()].some((u) => u.end >= after && this.sideOf(u.speaker) === "employee"
+      && echoes(proposal, u.text));
+  }
+
+  /**
+   * The one thing the «Ahora» card shows:
+   * - a line better avoided not rephrased yet ({ kind: "avoid", flag, done: false });
+   * - a rephrased one, until the other party has answered after the rephrasing
+   *   or a newer suggestion arrived ({ kind: "avoid", flag, done: true });
+   * - else the newest suggestion not used yet, or the newest one
+   *   ({ kind: "suggestion", card, used });
+   * - else { kind: "idle" }.
+   */
+  now() {
+    const cards = this.cards();
+    const open = [...this.avoid].reverse().find((f) => f.state !== "rephrased");
+    if (open) return { kind: "avoid", flag: open, done: false };
+    const rephrased = [...this.avoid].reverse().find((f) => f.state === "rephrased");
+    if (rephrased) {
+      const by = this.utterances.get(rephrased.rephrased_by);
+      const answered = by && [...this.utterances.values()].some((u) => u.start > by.start && this.sideOf(u.speaker) === "other");
+      const since = this.arrived.get(flagKey(rephrased)) ?? 0;
+      const newer = cards.some((c) => (this.arrived.get(c.record) ?? 0) > since);
+      if (!answered && !newer) return { kind: "avoid", flag: rephrased, done: true };
+    }
+    if (!cards.length) return { kind: "idle" };
+    const card = cards.find((c) => !this.used(c)) ?? cards[0];
+    return { kind: "suggestion", card, used: this.used(card) };
+  }
+
+  /** The suggestions not in the «Ahora» card, newest first (for «Sugerencias anteriores»). */
+  earlier() {
+    const shown = this.now();
+    return this.cards().filter((c) => shown.kind !== "suggestion" || c.suggestion !== shown.card.suggestion);
+  }
+
+  /**
+   * The chips of the topics: a demo's own topics ({ id, name, done }), or
+   * the script phases of an interview ({ id: phase, phase, done }), where a
+   * phase is done once a suggestion was about it.
+   */
+  topicChips() {
+    if (this.topics) return this.topics.map((x) => ({ id: x.id, name: x.name, done: Boolean(x.done) }));
+    return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));
+  }
+
+  /** Which side is speaking now (an open partial): "employee", "other" or null. */
+  speaking() {
+    const open = [...this.partials.values()].at(-1);
+    return open ? this.sideOf(open.speaker) : null;
+  }
+
   /** Calls by status ({ ok: 3, timeout: 1 }). */
   counts() {
     const counts = {};
@@ -391,4 +514,8 @@ export class LiveState {
   coverage() {
     return coverage(this.page?.script_phases ?? [], this.records);
   }
+}
+
+function flagKey(flag) {
+  return `${flag?.utterance}|${flag?.category}`;
 }

@@ -78,3 +78,66 @@ so they stay in this record.
 - No measurement of the voiceprint marking on real calls (only the
   synthetic one of `MONO_DIARIZATION.md`).
 - The page does not check that a renamed speaker exists in the session.
+
+## The calm page (LV-17, #232)
+
+Target: `docs/web/mockups/Live.dc.html` (approved 2026-11-24). One thing
+at a time, nothing overlapping, phone width (the «Ahora» card comes
+first there), light and dark.
+
+- **Conversation** (left): the employee's lines muted under «Tú», the
+  other party's larger under their name; a line types in as its
+  partials arrive and fades in once. «Está hablando» under the list.
+- **Ahora** (one card): a line better avoided while it is not
+  rephrased; a rephrased one (badge «Reformulado») until the other
+  party answers or a newer suggestion arrives; else the newest
+  suggestion the employee has not said yet, else the newest one with
+  «Hecho». «Hecho» means an employee line after the suggestion holds
+  at least 60 % of the content words (4 letters or more) of its
+  example (or of a guided sentence): words, not meaning.
+- **Topics**: a demo's job topics, else the product's script phases
+  (done once a suggestion was about the phase). **Por decir**: the
+  mandatory items as chips; a pending one is ticked by clicking it
+  (confirmation, logged as before). Every `remind_seconds` the row is
+  highlighted for 3 s with what is missing: no toast any more.
+- **Under disclosures**: «Sugerencias anteriores y de dónde salen»
+  (older suggestions, `about` sentences, sources, latency, the lines
+  better avoided) and «Opciones» (the LV-16 choices: lines shown,
+  earlier suggestions open, assistance mode; status, warnings, banner).
+
+## Lines better avoided
+
+Each final sentence of the **interviewer** (interview products only) is
+checked by the RAG, `POST /knowledge/interview/avoid {"text",
+"language"}`, against KN-4's `knowledge/interview/forbidden-questions.json`
+read through `src/domain/knowledge/interview_rules.py`
+(`src/adapters/outbound/fs_forbidden_rules.py`, which loads that module
+by name). The answer lists the categories with title, why and a lawful
+alternative; the orchestrator keeps them (`orchestrator/domain/avoid.py`)
+and publishes `{"type": "avoid", "flags": [...]}`. Limits: regular
+expressions only (no template refinement yet), Spanish and English; a
+hint about the question, never about the candidate and not legal advice;
+the rephrase rule is a display choice (a question within 30 s without
+that category), not measured; without the rules file or module the RAG
+answers 404 and the page says once that questions are not checked.
+
+## The scripted demo
+
+`#/live/demo` (also «Ver una entrevista de ejemplo» on the home and the
+start form) plays `examples/demo/entrevista-lucia.demo.json`
+(`live.demo.v1`, `demo: true`): a fictitious backend interview with
+«Lucía Marín», about 69 s, through the replay path
+(`POST /sessions/{id}/replay {"demo": id}`). Its suggestions, the
+age question's hint and the topics are prepared in the file and
+published by `orchestrator/application/demo.py`; no knowledge, reasoner
+or model call, so every run is the same. A new demo stops one still
+playing, and leaving the page stops it. It ends on
+`#/analysis/demo-entrevista-lucia-marin`: the RAG installs
+`examples/demo/entrevista-lucia.analysis.json` (`analysis.demo.v1`,
+synthesis `format_version` 2: 88,7 %, strengths solves with data,
+clear communication, ownership; improvements automated testing, below
+the required level, and delegating) when it starts, with the run marked
+`synthetic` and every other step `unavailable` («Demo data»). The
+overall score 4.548 is written with three decimals so that its percent
+is 88,7 (the #231 rule rounds scores to one decimal, which on a 1–5
+scale gives only multiples of 2,5 %). No hiring wording anywhere.
