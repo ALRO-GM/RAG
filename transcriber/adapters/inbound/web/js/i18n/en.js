@@ -246,8 +246,8 @@ export const en = {
   "record.reauth_label": "New link or code",
   "record.reauth_use": "Keep sending",
   "record.reauth_checking": "Checking the code…",
-  "record.reauth_invalid": "That is neither an access link nor a code. Copy the link the processing server shows.",
-  "record.reauth_wrong": "That code does not work either. Copy the link the processing server shows now.",
+  "record.reauth_invalid": "That is neither an access link nor a code. Copy the link shown on the screen of the person organising the meeting.",
+  "record.reauth_wrong": "That code does not work either. Copy the link now shown on the screen of the person organising the meeting.",
   "record.full": "The phone's memory is full of unsent audio ({seconds} s). Recording stopped so as not to lose it; it will be sent as soon as possible.",
 
   // ---- Pruebas (model lab) ----
@@ -1991,7 +1991,7 @@ export const en = {
   "conn.advice.server": "The processing server is not answering: tell the administrator.",
   "conn.advice.local": "Your network is slow or losing data: move closer to the router or use a cable, close downloads and videos, and check again.",
   "conn.advice.link": "The link to the processing server is slow: check again in a minute; if it stays the same, tell the administrator.",
-  "conn.advice.upload": "The audio upload is tight: use a cable or a network with more upload, and close anything that is sending files.",
+  "conn.advice.upload": "The audio upload is not enough: use a cable or a network with more upload, and close anything that is sending files.",
   "conn.advice.live_off": "Live audio is not available now: you can watch the demo; if you need live audio, tell the administrator.",
   "conn.advice.service_transcription": "Transcription is not available: check again in a minute; if it stays the same, tell the administrator.",
   "conn.advice.service_assistant": "The live assistant is not available: check again in a minute; if it stays the same, tell the administrator.",
@@ -2017,7 +2017,7 @@ export const en = {
   "conn.fig.up_need": "{rate} (the microphone needs 256 kbit/s)",
   "conn.fig.at": "Checked at {time}",
   "conn.fig.none": "—",
-  "conn.fig.up_failed": "Did not get through in time",
+  "conn.fig.up_failed": "Did not complete",
   "conn.unit.ms": "{value} ms",
   "conn.unit.kbps": "{value} kbit/s",
   "conn.unit.mbps": "{value} Mbit/s",

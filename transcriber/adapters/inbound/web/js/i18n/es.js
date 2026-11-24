@@ -246,8 +246,8 @@ export const es = {
   "record.reauth_label": "Enlace nuevo o código",
   "record.reauth_use": "Seguir enviando",
   "record.reauth_checking": "Comprobando el código…",
-  "record.reauth_invalid": "Eso no es un enlace de acceso ni un código. Copia el enlace que muestra el servidor de procesamiento.",
-  "record.reauth_wrong": "Ese código tampoco vale. Copia el enlace que muestra ahora el servidor de procesamiento.",
+  "record.reauth_invalid": "Eso no es un enlace de acceso ni un código. Copia el enlace que aparece en la pantalla de quien organiza la reunión.",
+  "record.reauth_wrong": "Ese código tampoco vale. Copia el enlace que aparece ahora en la pantalla de quien organiza la reunión.",
   "record.full": "Se ha llenado la memoria del teléfono con audio sin enviar ({seconds} s). La grabación se ha detenido para no perderlo; se enviará en cuanto se pueda.",
 
   // ---- Pruebas (model lab) ----
@@ -1991,7 +1991,7 @@ export const es = {
   "conn.advice.server": "El servidor de procesamiento no responde: avisa a administración.",
   "conn.advice.local": "Tu red va lenta o pierde datos: acércate al router o usa cable, cierra descargas y vídeos, y vuelve a comprobar.",
   "conn.advice.link": "El enlace con el servidor de procesamiento va lento: vuelve a comprobar en un minuto; si sigue igual, avisa a administración.",
-  "conn.advice.upload": "La subida de audio va justa: usa cable o una red con más subida, y cierra lo que esté enviando archivos.",
+  "conn.advice.upload": "La subida de audio no es suficiente: usa cable o una red con más subida, y cierra lo que esté enviando archivos.",
   "conn.advice.live_off": "El directo con audio no está disponible ahora: puedes ver la demostración; si necesitas el directo, avisa a administración.",
   "conn.advice.service_transcription": "La transcripción no está disponible: vuelve a comprobar en un minuto; si sigue igual, avisa a administración.",
   "conn.advice.service_assistant": "El asistente en directo no está disponible: vuelve a comprobar en un minuto; si sigue igual, avisa a administración.",
@@ -2017,7 +2017,7 @@ export const es = {
   "conn.fig.up_need": "{rate} (el micrófono necesita 256 kbit/s)",
   "conn.fig.at": "Comprobado a las {time}",
   "conn.fig.none": "—",
-  "conn.fig.up_failed": "No llegó a tiempo",
+  "conn.fig.up_failed": "No se completó",
   "conn.unit.ms": "{value} ms",
   "conn.unit.kbps": "{value} kbit/s",
   "conn.unit.mbps": "{value} Mbit/s",
