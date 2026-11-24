@@ -1514,3 +1514,11 @@ details.tech, details.controls { margin: 1rem 0; }
   .sf-cand-list { grid-template-columns: 1fr; gap: var(--s-1); }
   .sf-cand-list dd { margin-bottom: var(--s-2); }
 }
+/* Topics of a later round: what an earlier round left weak is marked, what
+   was covered is quieter; the talk balance is one thin bar in the header. */
+.lv-chip.is-weak:not(.done) { border-color: var(--accent); color: var(--text); }
+.lv-chip.is-covered:not(.done) { opacity: 0.7; }
+.lv-balance { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lv-balance-svg { width: 4.5rem; height: 0.5rem; flex: none; }
+.lv-balance-you { fill: var(--line-strong); }
+.lv-balance-other { fill: var(--accent); opacity: 0.55; }

@@ -1957,4 +1957,12 @@ export const es = {
   "cand.delete_title": "¿Borrar la ficha de {name}?",
   "cand.delete_body": "Se borran sus respuestas a las preguntas comunes y sus rondas. Las transcripciones y los análisis de las sesiones no se tocan.",
   "cand.deleted": "Ficha de {name} borrada.",
+  "live.topics_next": "Temas del puesto · primero lo pendiente",
+  "live.earlier.weak": "En una ronda anterior quedó por debajo del nivel pedido",
+  "live.earlier.open": "Aún sin tratar en rondas anteriores",
+  "live.earlier.covered": "Ya cubierto en una ronda anterior",
+  "live.talk_balance": "Tiempo de palabra",
+  "live.talk_you": "Tú {value} %",
+  "live.talk_other": "{who} {value} %",
+  "live.talk_label": "Tiempo de palabra: tú {you} %, {who} {other} %",
 };

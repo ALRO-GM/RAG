@@ -1957,4 +1957,12 @@ export const en = {
   "cand.delete_title": "Delete {name}'s profile?",
   "cand.delete_body": "Their answers to the core questions and their rounds are deleted. The sessions' transcripts and analyses are not touched.",
   "cand.deleted": "{name}'s profile deleted.",
+  "live.topics_next": "Topics of the role · what is left first",
+  "live.earlier.weak": "Below the required level in an earlier round",
+  "live.earlier.open": "Not covered in earlier rounds yet",
+  "live.earlier.covered": "Already covered in an earlier round",
+  "live.talk_balance": "Talk time",
+  "live.talk_you": "You {value}%",
+  "live.talk_other": "{who} {value}%",
+  "live.talk_label": "Talk time: you {you}%, {who} {other}%",
 };

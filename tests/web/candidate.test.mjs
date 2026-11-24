@@ -178,3 +178,27 @@ test("«Datos de la candidata»: compact first; how, quotes and corrections insi
     assert.ok(!quiet.all().some((n) => n.tagName === "INPUT" || n.tagName === "BUTTON"));
   });
 });
+
+test("the talk balance: each side's share of the final sentences' time, null before anyone spoke", () => {
+  const state = new LiveState();
+  assert.equal(state.talkBalance(), null);
+  state.apply({ type: "session", session: { page: { roles: { S1: "interviewer", S2: "candidate" } } } });
+  const final = (id, speaker, start, end) => ({ type: "event", event: { type: "final", utterance: { id, speaker, start, end, text: "x", revision: 0 } } });
+  state.apply(final("t0.s0", "S1", 0, 6));
+  state.apply(final("t1.s0", "S2", 6, 20));
+  state.apply(final("t2.s0", "S2", 20, 20)); // no length: ignored
+  assert.deepEqual(state.talkBalance(), { employee: 30, other: 70, seconds: 20 });
+});
+
+test("a later round's topics keep what earlier rounds left", () => {
+  const state = new LiveState();
+  state.apply({ type: "topics", topics: [
+    { id: "s2", name: "Pruebas", done: false, earlier: "weak" },
+    { id: "s1", name: "Python", done: true, earlier: "covered" },
+    { id: "s3", name: "Datos", done: false, earlier: "nonsense" },
+  ] });
+  assert.deepEqual(state.topicChips().map((c) => [c.id, c.earlier ?? null, c.done]), [["s2", "weak", false], ["s1", "covered", true], ["s3", null, false]]);
+  for (const key of ["live.topics_next", "live.earlier.weak", "live.earlier.open", "live.earlier.covered", "live.talk_label", "live.talk_you", "live.talk_other", "live.talk_balance"]) {
+    assert.ok(es[key] && en[key], key);
+  }
+});

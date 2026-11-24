@@ -17,7 +17,7 @@
 // fades in. Customer signals appear only in support calls; an interview
 // never shows signals or ratings about the candidate.
 
-import { h, fill } from "../dom.js";
+import { append, h, fill, svg } from "../dom.js";
 import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { setLeaveGuard } from "../device.js";
@@ -264,7 +264,8 @@ export async function liveView(ctx, root, [sub] = []) {
     candidateSelect.addEventListener("change", syncRole);
     const field = (input, key) => h("div", { class: "field" }, h("label", { for: input.id }, t(key)), input);
     const scripted = demos[0];
-    root.append(
+    // append() of the h helper skips null (the DOM's own would write "null").
+    append(root, [
       pageHead(t("live.title"), { lead: t("live.lead") }),
       formError,
       scripted ? h("section", { class: "card lv-demo-card" },
@@ -282,7 +283,8 @@ export async function liveView(ctx, root, [sub] = []) {
         h("details", { class: "card lv-recorded" },
           h("summary", {}, t("live.recorded_title")),
           h("p", { class: "hint" }, t("live.demo_body")),
-          field(transcriptSelect, "live.transcript"), field(speedSelect, "live.speed"), replay)));
+          field(transcriptSelect, "live.transcript"), field(speedSelect, "live.speed"), replay)),
+    ]);
     sync();
   }
 
@@ -316,12 +318,15 @@ export async function liveView(ctx, root, [sub] = []) {
     }, t("live.end_result")) : null;
     const fresh = h("button", { type: "button", class: "primary", onClick: () => showForm() }, t("live.again"));
     const otherName = h("span", { class: "lv-other" });
+    // Talk-time balance (#235): one quiet bar, no alert, drawn once a sentence is final.
+    const balance = h("span", { class: "lv-balance", hidden: true });
     const header = h("header", { class: "lv-head" },
       h("div", { class: "lv-meta" },
         h("span", { class: "lv-live" }, liveDot, clock),
         h("strong", { class: "lv-title" }, demo ? localized(demo, "title", lang) : t(`live.product.${productKind(state.page?.product)}`)),
         otherName,
-        demo ? h("span", { class: "type-chip" }, t("live.scripted.badge")) : null),
+        demo ? h("span", { class: "type-chip" }, t("live.scripted.badge")) : null,
+        balance),
       h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
 
     // ---- the conversation
@@ -452,6 +457,7 @@ export async function liveView(ctx, root, [sub] = []) {
       drawNow();
       drawTopics();
       drawCore();
+      drawBalance(other);
       drawChecklist();
       drawHistory();
       drawSummary();
@@ -617,7 +623,9 @@ export async function liveView(ctx, root, [sub] = []) {
         topics.append(h("div", { class: "lv-row-head" }, h("h3", {}), h("span", { class: "meta lv-count" })),
           h("div", { class: "lv-chips" }));
       }
-      topics.querySelector("h3").textContent = state.topics ? t("live.topics") : t("live.topics_phases");
+      // A later round of a candidate: the chips start from what earlier rounds left.
+      const rounds = chips.some((c) => c.earlier === "weak" || c.earlier === "covered");
+      topics.querySelector("h3").textContent = rounds ? t("live.topics_next") : state.topics ? t("live.topics") : t("live.topics_phases");
       topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: chips.filter((c) => c.done).length, all: chips.length });
       const row = topics.querySelector(".lv-chips");
       const wanted = chips.map((c) => {
@@ -625,7 +633,9 @@ export async function liveView(ctx, root, [sub] = []) {
         const key = `${c.id}|${name}`;
         const kept = chipNodes.get(key);
         if (kept && kept.done === c.done) return kept.chip;
-        const made = chip(c.done, name, kept ? "lv-rise" : "");
+        const earlier = c.earlier && rounds ? ` is-${c.earlier}` : "";
+        const made = chip(c.done, name, `${kept ? "lv-rise" : ""}${earlier}`.trim());
+        if (earlier) made.title = t(`live.earlier.${c.earlier}`);
         if (kept) kept.chip.replaceWith(made);
         chipNodes.set(key, { chip: made, done: c.done });
         return made;
@@ -636,6 +646,25 @@ export async function liveView(ctx, root, [sub] = []) {
       wanted.forEach((node, i) => {
         if (row.children[i] !== node) row.insertBefore(node, row.children[i] ?? null);
       });
+    }
+
+    let balanceKey = null;
+    function drawBalance(other) {
+      const share = state.talkBalance();
+      balance.hidden = !share;
+      if (!share) return;
+      const who = (demo?.candidate ?? (other ? state.nameOf(other) : null)) || t(`live.role.${state.roleOf(other ?? "") || "unknown"}`);
+      const you = Math.round(share.employee);
+      const key = `${you}|${who}`;
+      if (key === balanceKey) return;
+      balanceKey = key;
+      const label = t("live.talk_label", { you, who, other: 100 - you });
+      fill(balance,
+        svg("svg", { class: "lv-balance-svg", viewBox: "0 0 100 8", preserveAspectRatio: "none", role: "img", "aria-label": label, focusable: "false" },
+          svg("rect", { class: "lv-balance-you", x: 0, y: 0, width: Math.max(you, 0.5), height: 8, rx: 2 }),
+          svg("rect", { class: "lv-balance-other", x: you, y: 0, width: Math.max(100 - you, 0.5), height: 8, rx: 2 })),
+        h("span", { "aria-hidden": "true" }, t("live.talk_you", { value: you }), " · ", t("live.talk_other", { who, value: 100 - you })));
+      balance.title = t("live.talk_balance");
     }
 
     // The core questions (#235): asked once per candidate; an answered one

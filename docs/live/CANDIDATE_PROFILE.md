@@ -129,7 +129,47 @@ exacta». Not measured on real interviews.
   información» how each answer was obtained, the kept words, a field to
   correct it and the deletion.
 
-## 5. Speaker roles in the analysis
+## 5. The next round's plan and the talk balance
+
+**What a round leaves.** At the end of every round the profile gets a
+`rounds[]` entry with the plan's slots `covered` and left `weak`:
+
+- AI interviewer: from its sheet (`round_from_sheet`): covered = score
+  70 or more (or `filled` without a score); weak = a `minimo` or
+  `deseable` slot scored under 50, `partial`, `unknown` or `skipped`.
+- Live page: `TopicTracker` (`orchestrator/application/next_round.py`)
+  notes the slot an interviewer's sentence asks about (two content
+  words of the slot's label and questions, one when the label has a
+  single one) and reads the candidate's next answer with the AI
+  interviewer's cheap filler (`heuristic_fill`): `complete` = covered;
+  asked but not covered = weak. Word overlap only: a question in other
+  words is missed, and a long answer counts as covered without anyone
+  judging it.
+
+**The next round** (`orchestrator/domain/next_round.py`): each slot is
+`weak`, `open` (never covered) or `covered`, the newest round that
+mentions it deciding. The live page's topic chips come in that order
+(weak first, covered last and quieter; hover says why) under «Temas del
+puesto · primero lo pendiente», and done ones tick as the round covers
+them. The suggestions get the round's goal («Ronda N del puesto «T».
+Empieza por lo que dejaron las rondas anteriores: por debajo del nivel
+pedido: ...; sin tratar aún: ...», at most 480 characters) as the
+conversation goal of `reasoner.request.v1` (`context.session.goal`,
+which the suggester template already reads). The AI interviewer gets
+the plan with its slots reordered the same way (levels kept: `minimo`
+still first). A first round, or one with nothing weak or open, has no
+goal. The analysis's own weak points (the synthesis' improvements) are
+not read here: only the plan's slots.
+
+**Talk balance.** The live page's header shows one thin bar and «Tú
+62 % · Lucía 38 %»: each side's share of the time of its final
+sentences (`LiveState.talkBalance`, the seconds between start and end of
+every final). No threshold, colour change or alert. The round keeps the
+same shares per role (`rounds[].talk`; for the AI interviewer, its spoken
+audio against the candidate's finals). Pauses and overlaps are not
+counted; a voice wrongly attributed in mono counts for the wrong side.
+
+## 6. Speaker roles in the analysis
 
 `transcript.v1` speakers may now carry `role` (optional, additive; see
 `contracts/README.md`). The live hand-off writes the role the session
@@ -142,7 +182,7 @@ ring and bars only for the candidate (the interviewer gets the general
 reading) and opens the candidate's card first. Results without roles
 read as before.
 
-## 6. API (orchestrator, through `/api/assist/...` on the transcriber)
+## 7. API (orchestrator, through `/api/assist/...` on the transcriber)
 
 | Route | Body | Answer |
 |---|---|---|

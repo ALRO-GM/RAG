@@ -44,6 +44,7 @@ from orchestrator.domain.candidate import (
     without_answer,
 )
 from orchestrator.domain.events import LiveEvent
+from orchestrator.domain.next_round import round_from_sheet
 
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
 ANSWER_FINALS = 3
@@ -279,6 +280,9 @@ class CoreTracker:
         self.heard: List[str] = []
         self.captured: List[str] = []
         self.failed = False
+        self.covered: List[str] = []
+        self.weak: List[str] = []
+        self.seconds: Dict[str, float] = {}
         self._lock = threading.Lock()
 
     @property
@@ -304,6 +308,8 @@ class CoreTracker:
         if event.type != "final" or u is None:
             return
         role = self.roles.get(u.speaker, "unknown")
+        if role in (INTERVIEWER, CANDIDATE):
+            self.add_talk(role, u.end - u.start)
         if role == INTERVIEWER:
             self.asked(u.text)
         elif role == CANDIDATE:
@@ -345,11 +351,35 @@ class CoreTracker:
                 kept.append(item)
         return kept
 
+    def add_talk(self, role: str, seconds: float) -> None:
+        """Count ``seconds`` of speech of ``role`` (the talk balance)."""
+        if seconds > 0:
+            with self._lock:
+                self.seconds[role] = self.seconds.get(role, 0.0) + seconds
+
+    def note_sheet(self, sheet: Document) -> None:
+        """Take the covered and weak slots of the AI interviewer's sheet."""
+        self.covered, self.weak = round_from_sheet(sheet)
+
+    def talk(self) -> Dict[str, float]:
+        """Each role's share of the speaking time (0–1, three decimals)."""
+        with self._lock:
+            total = sum(self.seconds.values())
+            return {role: round(s / total, 3)
+                    for role, s in sorted(self.seconds.items())} \
+                if total > 0 else {}
+
     def finish(self) -> None:
-        """Note this session as one of the candidate's rounds."""
+        """Note this session as one of the candidate's rounds.
+
+        The round keeps the slots covered and left weak (for the next
+        round's plan) and the talk balance; never a rating.
+        """
         done = self.book.keep_round(self.plan_id, self.profile.id, Round(
             session_id=self.session_id, at=stamp(self.book.now()),
             kind="bot" if self.kind == "bot" else "live",
+            covered=list(self.covered), weak=list(self.weak),
+            talk=self.talk(),
         ))
         if done is not None:
             self.profile = done

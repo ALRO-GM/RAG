@@ -457,6 +457,25 @@ export class LiveState {
   }
 
   /**
+   * Who has talked how much (#235): the seconds of the final sentences of
+   * each side ("employee", "other") and the employee's share (0–1, one
+   * decimal of a percent), or null before anyone said anything. A quiet
+   * reading for the page, never an alert.
+   */
+  talkBalance() {
+    const seconds = { employee: 0, other: 0 };
+    for (const u of this.utterances.values()) {
+      const length = Number(u.end) - Number(u.start);
+      if (!Number.isFinite(length) || length <= 0) continue;
+      seconds[this.sideOf(u.speaker)] += length;
+    }
+    const total = seconds.employee + seconds.other;
+    if (total <= 0) return null;
+    const employee = Math.round((seconds.employee / total) * 1000) / 10;
+    return { employee, other: Math.round((100 - employee) * 10) / 10, seconds: Math.round(total * 10) / 10 };
+  }
+
+  /**
    * Suggestion cards, newest call first: { record, suggestion, signals,
    * cites, about } for every suggestion of an answered call, in the
    * order the orchestrator ranked them. Signals are empty unless the
@@ -533,7 +552,13 @@ export class LiveState {
    * phase is done once a suggestion was about it.
    */
   topicChips() {
-    if (this.topics) return this.topics.map((x) => ({ id: x.id, name: x.name, done: Boolean(x.done), ...(x.en ? { en: x.en } : {}) }));
+    if (this.topics) {
+      return this.topics.map((x) => ({
+        id: x.id, name: x.name, done: Boolean(x.done), ...(x.en ? { en: x.en } : {}),
+        // What earlier rounds of the candidate left (#235): weak, open or covered.
+        ...(["weak", "open", "covered"].includes(x.earlier) ? { earlier: x.earlier } : {}),
+      }));
+    }
     return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));
   }
 
