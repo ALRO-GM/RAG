@@ -94,14 +94,14 @@ test("a change to the recogniser warns that it needs a restart", () => {
   assert.equal(needsRestart(["analysis.judge", "live.asr"], catalogue), false);
 });
 
-test("the cost chip says local, quota, or that the image leaves the PC", () => {
+test("the cost chip says local, quota, or that the image leaves the processing server", () => {
   assert.equal(costOf("transcription.diarizer", "diarizen"), "local");
   assert.equal(costOf("analysis.judge", "claude_code"), "quota");
   assert.equal(costOf("analysis.judge", "local"), "local");
   assert.equal(costOf("knowledge.captions", "claude"), "cloud");
   assert.equal(costOf("knowledge.captions", "off"), null);
   assert.equal(costOf("live.deadline", "1800"), null);
-  assert.match(tEs(`set.cost.${costOf("knowledge.captions", "claude")}`), /sale del PC/);
+  assert.match(tEs(`set.cost.${costOf("knowledge.captions", "claude")}`), /sale del servidor de procesamiento/);
   assert.equal(tEs("set.cost.local"), "local, gratis");
 });
 
@@ -215,7 +215,7 @@ test("the page draws the presets, every step with its trade-off, and saves the d
   const root = new Node("main");
   await settingsView({ api, fail: (e) => { throw e; } }, root);
   const text = root.textContent;
-  for (const word of ["Máxima calidad", "Equilibrado", "Menor coste", "Personalizado", "Separar voces (quién habla)", "WER 0,088", "AMI DER 0,089", "local, gratis", "Al reiniciar el servicio", "Desde el próximo trabajo", "La imagen sale del PC"]) {
+  for (const word of ["Máxima calidad", "Equilibrado", "Menor coste", "Personalizado", "Separar voces (quién habla)", "WER 0,088", "AMI DER 0,089", "local, gratis", "Al reiniciar el servicio", "Desde el próximo trabajo", "La imagen sale del servidor de procesamiento"]) {
     assert.ok(text.includes(word), word);
   }
   const radios = root.all().filter((n) => n.tagName === "INPUT" && n.attributes.type === "radio");

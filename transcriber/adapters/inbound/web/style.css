@@ -1531,3 +1531,42 @@ details.tech, details.controls { margin: 1rem 0; }
 .sf-confirm-row input { flex: 1 1 12rem; min-width: 0; }
 .sf-confirm h3 { margin: 0; font-size: var(--fs-md); }
 .lv-confirm { border-color: var(--accent); }
+
+/* ---- connection check (#247, docs/live/CONNECTION.md) -------------------
+   One verdict with its icon, one sentence on what to do, the services as a
+   quiet list, the figures behind «Más información». In a session, a small
+   chip in the header: an icon and a word, never colour alone. */
+@media (min-width: 64rem) {
+  .live-start { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-rows: auto 1fr; align-items: start; }
+  .live-start > .lv-new { grid-column: 1; grid-row: 1 / span 2; }
+  .live-start > .conn-card { grid-column: 2; grid-row: 1; }
+  .live-start > .lv-recorded { grid-column: 2; grid-row: 2; }
+}
+.conn-card { gap: var(--s-3); }
+.conn-card .section-head { margin-bottom: 0; }
+.conn-verdict { margin: 0; display: flex; align-items: center; gap: var(--s-3); font-size: var(--fs-md); line-height: 1.35; }
+.conn-icon { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; flex: none; background: var(--sunken); color: var(--muted); }
+.conn-icon .icon { width: 1.1rem; height: 1.1rem; stroke-width: 2; }
+.conn-icon.is-good { background: var(--done-bg); color: var(--done); }
+.conn-icon.is-fair { background: var(--warn-bg); color: var(--warn-text); }
+.conn-icon.is-poor { background: var(--avoid-bg); color: var(--avoid); }
+.conn-advice { margin: 0; color: var(--text); }
+.conn-rows { list-style: none; margin: 0; padding: var(--s-2) 0 0; border-top: 1px solid var(--line); display: grid; gap: var(--s-1); font-size: var(--fs-sm); }
+.conn-row { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.conn-row-name { flex: 1 1 auto; min-width: 0; }
+.conn-row-state { color: var(--muted); white-space: nowrap; }
+.conn-row-state.is-unavailable { color: var(--text); font-weight: 600; }
+.conn-more .sf-more-body { padding-top: 0; }
+.conn-figures { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1) var(--s-4); margin: 0; font-size: var(--fs-sm); }
+.conn-figures dt { color: var(--muted); min-width: 0; }
+.conn-figures dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.conn-at { margin: 0; }
+.lv-conn { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
+.lv-conn .icon { width: 1em; height: 1em; stroke-width: 2; }
+.lv-conn[data-state="good"] .icon { color: var(--done); }
+.lv-conn[data-state="fair"] .icon { color: var(--amber-9); }
+.lv-conn[data-state="poor"] .icon, .lv-conn[data-state="lost"] .icon { color: var(--avoid-dot); }
+.lv-conn[data-state="poor"], .lv-conn[data-state="lost"] { color: var(--text); font-weight: 600; }
+.page-head + .conn-card { max-width: 40rem; margin-bottom: var(--s-4); }
+.lv-conn-note:not(:empty) { margin: calc(-1 * var(--s-3)) 0 var(--s-5); }
+.lv-conn-note .notice { margin: 0; }

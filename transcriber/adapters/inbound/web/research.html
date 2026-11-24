@@ -205,8 +205,8 @@
           <h2 id="h-integracion">Cómo se integra todo</h2>
           <h3>Lo que ya existe en este repositorio</h3>
           <ol class="pipeline">
-            <li><strong>Grabación</strong> desde el móvil en esta misma web, que sube el audio al ordenador de trabajo.</li>
-            <li><strong>Transcripción</strong> en el ordenador de trabajo: reconocimiento de voz (Whisper), separación e identificación de hablantes por voz registrada, tiempos por frase, confianza del reconocimiento y certeza del hablante por frase, y quién habló antes.</li>
+            <li><strong>Grabación</strong> desde el móvil en esta misma web, que sube el audio al servidor de procesamiento.</li>
+            <li><strong>Transcripción</strong> en el servidor de procesamiento: reconocimiento de voz (Whisper), separación e identificación de hablantes por voz registrada, tiempos por frase, confianza del reconocimiento y certeza del hablante por frase, y quién habló antes.</li>
             <li><strong>Contrato <code>transcript.v1</code></strong>: un JSON solo con texto, tiempos e identificadores, que es lo único que comparten el transcriptor y el analizador.</li>
             <li><strong>Analizador</strong>: lee el contrato, cuenta turnos, palabras y preguntas, recupera para cada indicador de la rúbrica los turnos de la persona que más se le parecen (BM25 más similitud semántica), pide a un modelo de lenguaje citas, indicador y nota, y comprueba con reglas que cada cita existe, es de esa persona y pertenece a la competencia, y que hay al menos tres incidentes de dos intercambios distintos.</li>
             <li><strong>Ficha de resultados</strong> por participante, con cada nota seguida de sus citas, turno y minuto.</li>

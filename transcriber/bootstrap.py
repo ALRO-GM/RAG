@@ -21,7 +21,7 @@ its tunnel (a chisel client) and its access code.
 import atexit
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import (
     AbstractSet, Callable, Dict, Mapping, Optional, Protocol, Sequence, Tuple,
@@ -74,6 +74,11 @@ from transcriber.adapters.outbound.http_pipeline_settings import (
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
+from transcriber.adapters.inbound.live_assist_proxy import (
+    DEFAULT_URL as DEFAULT_ORCHESTRATOR_URL,
+    URL_VARIABLE as ORCHESTRATOR_URL_VARIABLE,
+)
+from transcriber.adapters.outbound.http_health_probe import HttpHealthProbe
 from transcriber.adapters.outbound.http_knowledge import HttpKnowledge
 from transcriber.adapters.outbound.http_session_analysis import (
     HttpSessionAnalysis,
@@ -171,6 +176,7 @@ from transcriber.application.analysis import (
     AnalysisJudgeSetting,
     SessionAnalysisAccess,
 )
+from transcriber.application.connection import CheckServices, FixedProbe
 from transcriber.application.knowledge import KnowledgeAccess
 from transcriber.application.knowledge_media import (
     KNOWLEDGE_MEDIA_DIR,
@@ -323,6 +329,8 @@ class TranscriberContainer:
     rag_token: Optional[Callable[[], str]] = None
     """Returns the RAG's bearer token, which the RAG sends back on
     ``/internal/knowledge-media`` (``None``: no RAG linked)."""
+    services: Optional[CheckServices] = None
+    """The live page's connection check of the services (#247)."""
 
     def release_models(self) -> None:
         """Unload the speech, voice, overlap and name models (after a
@@ -831,7 +839,7 @@ def build_container(
         settings, sessions, voiceprints, decoder, recogniser, encoder,
         runner, clock, environment, locks,
     )
-    return TranscriberContainer(
+    container = TranscriberContainer(
         settings=settings,
         sessions=sessions,
         voiceprints=voiceprints,
@@ -923,6 +931,33 @@ def build_container(
             voiceprints, cpu_only=lambda: live_cpu_only(pipeline.current()),
         ),
     )
+    return replace(container, services=build_services(
+        environment, container.live is not None,
+        publisher.base_url
+        if isinstance(publisher, HttpTranscriptPublisher) else None,
+    ))
+
+
+def build_services(
+    environ: Mapping[str, str], live: bool, rag_url: Optional[str]
+) -> CheckServices:
+    """Return the connection check of the live page's services (#247).
+
+    The live assistant is the orchestrator the live page's proxy uses
+    (``TRANSCRIBER_ORCHESTRATOR_URL``, else its default); the knowledge
+    search is the RAG the transcripts go to, when they go to one over
+    HTTP (else it is not part of this installation).
+    """
+    orchestrator = (environ.get(ORCHESTRATOR_URL_VARIABLE)
+                    or DEFAULT_ORCHESTRATOR_URL).rstrip("/")
+    return CheckServices({
+        "transcription": FixedProbe(live),
+        "assistant": HttpHealthProbe(orchestrator + "/health"),
+        "knowledge": (
+            HttpHealthProbe(rag_url.rstrip("/") + "/health")
+            if rag_url else None
+        ),
+    })
 
 
 def build_knowledge_media(

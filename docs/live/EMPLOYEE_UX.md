@@ -127,6 +127,17 @@ first there), light and dark.
   Errors and one-time notices (failed, halted, reconnecting, warnings,
   questions not checked) are a line under the header, always in sight.
 
+## Connection quality (LV-19, #247)
+
+The start form shows «Calidad de la conexión»: one verdict (adecuada,
+justa, insuficiente) with what to do, the services the session depends
+on, and the figures under «Más información»; a poor result asks once
+before a live session starts, never blocks it. A running session shows
+a quiet chip in its header that changes only after a sustained problem
+and says plainly when the connection to the processing server is lost
+and when it is back. What is measured, the thresholds and why:
+`CONNECTION.md`.
+
 ## Lines better avoided
 
 Each final sentence of the **interviewer** (interview products only) is

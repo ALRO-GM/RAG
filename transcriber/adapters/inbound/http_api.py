@@ -65,6 +65,7 @@ from transcriber.application.analysis import MAX_JOB
 from transcriber.adapters.inbound.live_assist_proxy import (
     add_live_assist_proxy,
 )
+from transcriber.application.connection import NOT_SET_UP, SERVICES
 from transcriber.application.knowledge import (
     JSON_BODY_BYTES,
     UPLOAD_BODY_BYTES,
@@ -923,6 +924,7 @@ def create_app(
         )
 
     mount_knowledge(api, c)
+    mount_connection(api, c)
     # The live page reaches the orchestrator through here (a thin proxy).
     add_live_assist_proxy(api, c.settings.rag_token_file)
 
@@ -1051,6 +1053,35 @@ def create_app(
             name="pages",
         )
     return app
+
+
+UPLOAD_PROBE_BYTES = 128 * 1024
+"""Largest body of the connection check's upload (it sends 64 KiB)."""
+
+
+def mount_connection(api: APIRouter, c: TranscriberContainer) -> None:
+    """Add the live page's connection check (#247), behind the code.
+
+    ``GET /api/connection`` says, one word each, whether the live
+    transcription, the live assistant and the knowledge search answer
+    (``docs/live/CONNECTION.md``); ``POST /api/connection/upload``
+    reads a small body and throws it away, so the page can time how
+    fast it sends what a microphone would.
+    """
+
+    @api.get("/connection")
+    async def connection() -> Dict[str, Any]:
+        """Which services a live session depends on answer."""
+        check = c.services
+        if check is None:
+            return {"services": {name: NOT_SET_UP for name in SERVICES}}
+        return {"services": await run_in_threadpool(check)}
+
+    @api.post("/connection/upload")
+    async def connection_upload(request: Request) -> Dict[str, int]:
+        """Read the body (at most 128 KiB) and drop it; say its size."""
+        data = await read_body(request, UPLOAD_PROBE_BYTES)
+        return {"bytes": len(data)}
 
 
 def mount_knowledge(api: APIRouter, c: TranscriberContainer) -> None:

@@ -27,6 +27,8 @@ import {
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js";
 import { coveragePanel, planSetup, reportCard } from "./interview.js";
+import { connectionCard } from "./connection.js";
+import { needsOf } from "../lib/connection.js";
 
 const RETRY_MS = 2000;
 
@@ -93,9 +95,15 @@ export async function voicebotView(ctx, root) {
     const headset = h("input", { type: "checkbox", id: "vb-headset", checked: true });
     const start = h("button", { type: "button", class: "primary big", onClick: () => begin() }, icon("voicebot"), t("voicebot.start"));
     const formError = h("p", { class: "error", role: "alert", hidden: true });
+    // «Calidad de la conexión» (#247): the bot hears this browser's microphone.
+    const connection = connectionCard({
+      getCode: () => ctx.api.getCode?.() ?? null,
+      options: () => ({ needs: needsOf("live"), upload: true, liveAudio: Boolean(product.live) }),
+    });
     const sync = () => {
       modeHint.textContent = t(`voicebot.mode_hint.${mode.value}`);
       product = topics.find((p) => p.product === topic.value) ?? product;
+      connection.redraw();
       const interview = Boolean(product.interview);
       topicHint.textContent = maybe(`voicebot.topic_hint.${product.product}`, "");
       domainBox.hidden = interview || !product.domain;
@@ -149,6 +157,7 @@ export async function voicebotView(ctx, root) {
 
     root.append(
       pageHead(t("voicebot.title"), { lead: t("voicebot.lead") }),
+      connection.node,
       h("section", { class: "card vb-start" },
         h("p", { class: "notice info", role: "note" }, t("voicebot.notice")),
         topics.length > 1 ? h("div", { class: "field" }, h("label", { for: "vb-topic" }, t("voicebot.topic")), topic) : null,
@@ -159,6 +168,7 @@ export async function voicebotView(ctx, root) {
         start),
       formError, interviewBox);
     sync();
+    connection.check();
   }
 
   // ---- a running conversation ---------------------------------------------
