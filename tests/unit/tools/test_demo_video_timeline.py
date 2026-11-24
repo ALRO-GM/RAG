@@ -19,14 +19,15 @@ from tools.demo_video.timeline import (
 
 MARKS: Dict[str, float] = {
     "start": 0.0, "home": 2.4, "live": 11.8, "ended": 81.1,
-    "result": 85.1, "closing": 110.9,
+    "result": 85.1, "strengths": 93.9, "bars": 101.7, "more": 108.1,
+    "closing": 113.6,
 }
 """Marks as a recording keeps them (seconds from the video's start)."""
 
 
 def test_the_scripted_captions_fit_a_recording() -> None:
     """The captions resolve on real marks, in order, within two minutes."""
-    shown = resolve(CAPTIONS, MARKS, 113.8)
+    shown = resolve(CAPTIONS, MARKS, 116.5)
     assert len(shown) == len(CAPTIONS)
     assert [s.start for s in shown] == sorted(s.start for s in shown)
     assert all(len(s.text) <= MAX_CAPTION_CHARS for s in shown)

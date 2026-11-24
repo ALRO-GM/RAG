@@ -59,12 +59,13 @@ CAPTIONS: Tuple[Caption, ...] = (
     Caption("live", 65.2, 68.8, "Cinco de cinco temas cubiertos"),
     Caption("ended", 0.3, 3.6,
             "Fin de la entrevista: el análisis ya está listo"),
-    Caption("result", 0.6, 6.6,
+    Caption("result", 0.6, 6.4,
             "Al terminar, un resumen claro de la candidata"),
-    Caption("result", 7.2, 13.4, "Puntos fuertes y qué mejorar, con ejemplos"),
-    Caption("result", 14.0, 19.4,
+    Caption("strengths", 0.2, 5.4,
+            "Puntos fuertes y qué mejorar, con ejemplos"),
+    Caption("bars", 0.2, 5.0,
             "Cada competencia frente al nivel que pide el puesto"),
-    Caption("result", 20.0, 25.6, "Y el detalle, solo si lo necesitas"),
+    Caption("more", 0.3, 5.2, "Y el detalle, solo si lo necesitas"),
 )
 """What the video says, scene by scene (Spanish, like the page)."""
 

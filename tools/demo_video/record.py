@@ -444,14 +444,18 @@ async def play(page: CdpPage, recording: Recording, frames: Path) -> None:
     await act.at("result", 1.2)
     ring = await act.find(None, "main", 'svg[viewBox="0 0 120 120"]')
     await act.glide(ring, 1300, dx=95, dy=40)
-    await act.at("result", 6.8)
+    # Each caption starts once its part is in view: the marks are set
+    # when the gentle scroll has finished.
+    await act.at("result", 6.6)
     await act.scroll_to("Puntos fuertes", 120, 2200)
+    act.mark("strengths")
     await act.glide(await act.find("Puntos fuertes"), 1200, dx=-40, dy=60)
-    await act.at("result", 13.8)
+    await act.at("strengths", 5.6)
     await act.scroll_to("Lo que pide el puesto", 150, 2200)
+    act.mark("bars")
     await act.glide(await act.find("Lo que pide el puesto"), 1200, dx=140,
                     dy=50)
-    await act.at("result", 19.4)
+    await act.at("bars", 5.2)
     more = await act.page.evaluate(
         "(() => { const s = [...document.querySelectorAll('main summary')]"
         ".find((x) => x.innerText.trim().startsWith('Más información'));"
@@ -461,12 +465,13 @@ async def play(page: CdpPage, recording: Recording, frames: Path) -> None:
     if not more:
         raise RecordingError("no «Más información» on the result page")
     await act.glide(more, 900)
-    await act.at("result", 20.6)
+    await act.at("bars", 6.3)
     await act.click(more)
-    await act.at("result", 21.6)
+    act.mark("more")
+    await act.at("more", 1.0)
     await page.evaluate("__demo.scrollTo(document.querySelector('main'),"
                         " document.scrollingElement.scrollTop + 300, 1800)")
-    await act.at("result", 25.8)
+    await act.at("more", 5.4)
     await page.evaluate("__demo.card(true, "
                         + ", ".join(json.dumps(x) for x in CLOSING) + ")")
     act.mark("closing")

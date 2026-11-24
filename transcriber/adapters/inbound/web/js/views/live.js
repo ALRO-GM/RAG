@@ -23,7 +23,7 @@ import { describeError } from "../errors.js";
 import { setLeaveGuard } from "../device.js";
 import { LiveAudio } from "../live-audio.js";
 import {
-  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, holdLines, latency, localized, newSessionId, productKind,
+  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, followsNewest, holdLines, latency, localized, newSessionId, productKind,
   readPrefs, reminderDue, splitCards, viewPrefs, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
@@ -266,7 +266,10 @@ export async function liveView(ctx, root, [sub] = []) {
       h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
 
     // ---- the conversation
-    const lines = h("ol", { class: "lv-lines", "aria-label": t("live.talk") });
+    const lines = h("ol", { class: "lv-lines", "aria-label": t("live.talk"), tabindex: "0" });
+    // Stick to the newest line unless the user scrolled back to read.
+    let followLines = true;
+    lines.addEventListener("scroll", () => { followLines = followsNewest(lines); }, { passive: true });
     const speaking = h("p", { class: "lv-speaking", "aria-live": "polite" });
     const talk = h("section", { class: "lv-talk" }, h("h2", { class: "lv-label" }, t("live.talk")), lines, speaking);
 
@@ -469,7 +472,6 @@ export async function liveView(ctx, root, [sub] = []) {
 
     function drawLines() {
       if (editing && holdLines(document.activeElement)) return; // keep the name being typed
-      const atEnd = lines.scrollHeight - lines.scrollTop - lines.clientHeight < 60;
       const all = state.lines();
       const shown = state.visibleLines(prefs);
       talk.hidden = !prefs.showEmployee && !prefs.showOther;
@@ -486,7 +488,7 @@ export async function liveView(ctx, root, [sub] = []) {
           if (lines.children[i] !== li) lines.insertBefore(li, lines.children[i] ?? null);
         });
       }
-      if (atEnd) lines.scrollTop = lines.scrollHeight;
+      if (followLines) lines.scrollTop = lines.scrollHeight;
       const who = state.state === "running" ? state.speaking() : null;
       const other = otherSpeaker();
       const said = !who ? "" : who === "employee" ? t("live.speaking_you")

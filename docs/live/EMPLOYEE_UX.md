@@ -88,6 +88,10 @@ first there), light and dark.
 - **Conversation** (left): the employee's lines muted under «Tú», the
   other party's larger under their name; a line types in as its
   partials arrive and fades in once. «Está hablando» under the list.
+  The list is a box tied to the viewport's height and anchored to the
+  bottom: the newest line stays in view and older ones leave at the
+  top under a soft fade, with no scrollbar; scrolling back stops the
+  following until the user is at the bottom again (`followsNewest`).
 - **Ahora** (one card): a line better avoided while it is not
   rephrased (for at most 30 s of conversation, and only until a newer
   suggestion arrives: then it steps aside and stays as the line's label
