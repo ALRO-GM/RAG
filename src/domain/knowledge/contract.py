@@ -6,9 +6,15 @@ contract tests check both against the schemas and their examples.
 """
 
 from pathlib import PurePosixPath
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
 
 from src.domain.knowledge.domains import DOMAIN_ID_PATTERN
 from src.domain.knowledge.filters import KnowledgeFilters
@@ -38,8 +44,17 @@ class KnowledgeQuery(BaseModel):
     deadline_ms: Optional[int] = Field(default=None, ge=1)
 
 
+TIME_FIELDS = ("start_s", "end_s")
+"""Fields written only when set (added compatibly to v1, KN-3a)."""
+
+
 class ResultMetadata(BaseModel):
-    """The metadata of a returned chunk."""
+    """The metadata of a returned chunk.
+
+    ``start_s`` and ``end_s`` (seconds) are the part of a transcribed
+    recording the chunk covers; they are left out of the document for
+    every other chunk.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -48,6 +63,19 @@ class ResultMetadata(BaseModel):
     category: Optional[str] = None
     script_phase: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
+    start_s: Optional[float] = Field(default=None, ge=0)
+    end_s: Optional[float] = Field(default=None, ge=0)
+
+    @model_serializer(mode="wrap")
+    def _times_when_set(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> Dict[str, Any]:
+        """Leave the times out when the chunk has none."""
+        data: Dict[str, Any] = handler(self)
+        for name in TIME_FIELDS:
+            if data.get(name) is None:
+                data.pop(name, None)
+        return data
 
 
 class ResultChunk(BaseModel):
@@ -108,5 +136,6 @@ def result_chunk(domain: str, chunk: Chunk, score: float) -> ResultChunk:
         metadata=ResultMetadata(
             title=m.title, intent=m.intent, category=m.category,
             script_phase=m.script_phase, tags=list(m.tags),
+            start_s=m.start_s, end_s=m.end_s,
         ),
     )

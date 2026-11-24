@@ -1,13 +1,18 @@
 """In-memory fakes of the knowledge-domain ports."""
 
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-from src.application.knowledge.ports import ExtractedDocument, IndexState
+from src.application.knowledge.ports import (
+    ExtractedDocument,
+    IndexState,
+    MediaJob,
+)
 from src.application.ports import IndexSnapshot
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
     NotFoundError,
+    ServiceUnavailableError,
     UnsupportedDocumentError,
 )
 from src.domain.knowledge.documents import KnowledgeDocument
@@ -254,3 +259,91 @@ class ManualQueue:
             self.jobs.pop(0)()
             count += 1
         return count
+
+
+def contract_transcript(
+    *said: tuple[str, float, float, str],
+    names: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """A valid ``transcript.v1`` of ``(speaker, start, end, text)`` turns."""
+    names = names or {}
+    speakers: List[str] = list(dict.fromkeys(s[0] for s in said))
+    utterances: List[Dict[str, Any]] = []
+    previous: Optional[Dict[str, Any]] = None
+    for turn, (who, start, end, text) in enumerate(said):
+        utterance = {
+            "id": f"t{turn}.s0", "turn": turn, "index": 0, "speaker": who,
+            "start": start, "end": end, "text": text,
+            "previous_speaker": previous["speaker"] if previous else None,
+            "previous_utterance": previous["id"] if previous else None,
+            "confidence": None, "speaker_confidence": None,
+        }
+        utterances.append(utterance)
+        previous = utterance
+    return {
+        "schema": "transcript.v1",
+        "session": {"id": "kn-job", "title": None, "language": "es",
+                    "started_at": None, "duration": said[-1][2] if said
+                    else 0.0, "audio_sha256": None},
+        "speakers": [{"id": s, "name": names.get(s), "enrolled": False}
+                     for s in speakers],
+        "utterances": utterances,
+        "pipeline": {"recogniser": "fake", "voice_model": "fake",
+                     "transcriber": "0.1.0"},
+    }
+
+
+class FakeMediaTranscriber:
+    """The transcriber service, scripted.
+
+    ``answers`` are what successive ``status`` calls return (a
+    :class:`MediaJob`, or an exception to raise); when they run out the
+    job is done with ``transcript``. ``submit_error`` is raised by the
+    next ``submit``; ``busy`` ``forget`` calls are refused first.
+    """
+
+    def __init__(self, transcript: Optional[Dict[str, Any]] = None) -> None:
+        """Nothing sent yet."""
+        self.transcript = transcript or contract_transcript(
+            ("SPEAKER_01", 0.0, 4.0, "Hola, bienvenidos al curso."),
+            ("SPEAKER_02", 4.5, 9.0, "Hoy hablamos de reembolsos."),
+        )
+        self.answers: List[Any] = []
+        self.submitted: List[tuple[str, int, str, str, float]] = []
+        self.forgotten: List[str] = []
+        self.submit_error: Optional[Exception] = None
+        self.busy = 0
+
+    def submit(
+        self, job_id: str, data: bytes, file_format: str, language: str,
+        max_seconds: float,
+    ) -> MediaJob:
+        """Record the file; the job is queued."""
+        if self.submit_error is not None:
+            error, self.submit_error = self.submit_error, None
+            raise error
+        self.submitted.append(
+            (job_id, len(data), file_format, language, max_seconds)
+        )
+        return MediaJob("queued")
+
+    def status(self, job_id: str) -> MediaJob:
+        """Return the next scripted answer, then done."""
+        if self.answers:
+            answer = self.answers.pop(0)
+            if isinstance(answer, Exception):
+                raise answer
+            assert isinstance(answer, MediaJob)
+            return answer
+        return MediaJob("done", transcript=self.transcript)
+
+    def forget(self, job_id: str) -> None:
+        """Record the deletion (refused while ``busy``)."""
+        if self.busy:
+            self.busy -= 1
+            raise BusyError("running")
+        self.forgotten.append(job_id)
+
+
+UNREACHABLE = ServiceUnavailableError("down")
+"""What a fake transcriber that cannot be reached raises."""

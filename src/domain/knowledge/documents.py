@@ -5,6 +5,8 @@ in the background into Markdown whose front matter carries the
 document's metadata, and that file is indexed like any authored
 source. The type is decided by the file's first bytes, not only by its
 name; legacy binary Office files and anything unknown are refused.
+Audio and video files (:mod:`src.domain.knowledge.media`) are
+transcribed instead of extracted.
 """
 
 import hashlib
@@ -17,6 +19,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.errors import UnsupportedDocumentError
 from src.domain.knowledge.domains import DomainManifest, metadata_problems
+from src.domain.knowledge.media import (
+    MEDIA_EXTENSIONS,
+    MEDIA_TYPES,
+    TIMED_KEY,
+    looks_like_media,
+)
 from src.domain.models import ChunkMetadata
 
 DocumentStatus = Literal["queued", "processing", "indexed", "failed"]
@@ -37,6 +45,7 @@ EXTENSIONS: Dict[str, Tuple[str, ...]] = {
     "jpg": (".jpg", ".jpeg"),
     "tiff": (".tif", ".tiff"),
     "webp": (".webp",),
+    **MEDIA_EXTENSIONS,
 }
 """Supported types and the file extensions that announce them."""
 
@@ -145,7 +154,8 @@ def detect_type(name: str, head: bytes) -> str:
     that long). The extension chooses among the types whose signature
     matches: ``%PDF-`` for PDF, a ZIP header for DOCX/ODT/XLSX (their
     inside is checked at extraction) and, for text types, no NUL byte
-    and no binary signature.
+    and no binary signature; for audio and video, the start of any
+    audio or video container.
     """
     kind = type_from_name(name)
     if head.startswith(b"\xd0\xcf\x11\xe0"):
@@ -162,6 +172,14 @@ def detect_type(name: str, head: bytes) -> str:
         )
     is_pdf = b"%PDF-" in head[:1024]
     is_zip = head.startswith(b"PK\x03\x04")
+    if kind in MEDIA_TYPES:
+        if not looks_like_media(head):
+            raise UnsupportedDocumentError(
+                f"El contenido de {name!r} no es un audio o vídeo "
+                f"reconocible. / The content of {name!r} is not a "
+                "recognisable audio or video file."
+            )
+        return kind
     if kind in IMAGE_TYPES:
         starts = head.startswith(IMAGE_SIGNATURES[kind])
         if kind == "webp":
@@ -203,11 +221,17 @@ def document_id(name: str, data: bytes) -> str:
     return f"{(slug(stem)[:64].strip('-') or 'doc')}-{digest}"
 
 
+def is_media(document: KnowledgeDocument) -> bool:
+    """Tell whether a document is an audio or video file (transcribed)."""
+    return document.type in MEDIA_TYPES
+
+
 def document_text(document: KnowledgeDocument, body: str) -> str:
     """Return the indexed text of a document: front matter + Markdown.
 
     The front matter gives every chunk the document's metadata and its
-    name as title (for chunks before any heading).
+    name as title (for chunks before any heading); a transcribed
+    recording also says ``timed: true`` (its chunks carry their times).
     """
     m = document.metadata
     fields: Dict[str, object] = {"title": document.name}
@@ -219,5 +243,7 @@ def document_text(document: KnowledgeDocument, body: str) -> str:
             fields[key] = value
     if m.tags:
         fields["tags"] = list(m.tags)
+    if is_media(document):
+        fields[TIMED_KEY] = True
     head = yaml.safe_dump(fields, allow_unicode=True, sort_keys=False)
     return f"---\n{head}---\n{body.strip()}\n"

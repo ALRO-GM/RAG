@@ -8,7 +8,8 @@ import { h, fill, keepFocus } from "../dom.js";
 import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  ACCEPT, CATEGORIES, MODES, countByStatus, extensionOf, formatBytes, isDomainId, KnowledgeModel, parseTags, slugify,
+  ACCEPT, CATEGORIES, MODES, countByStatus, extensionOf, formatBytes, isDomainId, isMedia, KnowledgeModel, parseTags, slugify,
+  timeRange,
 } from "../lib/knowledge.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 
@@ -20,14 +21,19 @@ function knowledgeError(error) {
   return error?.kind === "client" && error.message && !base.includes(error.message) ? `${base} (${error.message})` : base;
 }
 
+function isPendingStatus(status) {
+  return status === "queued" || status === "processing";
+}
+
 function dateText(iso) {
   if (!iso) return "";
   const when = new Date(iso);
   return Number.isNaN(when.getTime()) ? "" : when.toLocaleString(lang, { dateStyle: "medium", timeStyle: "short" });
 }
 
-function statusBadge(status) {
-  return h("span", { class: `badge is-${status}` }, t(`kn.status.${status}`));
+function statusBadge(status, media = false) {
+  const key = media && status === "processing" ? "kn.status.transcribing" : `kn.status.${status}`;
+  return h("span", { class: `badge is-${status}` }, t(key));
 }
 
 /** The metadata fields (category, intent, phase, tags) prefilled from `metadata`. */
@@ -164,6 +170,7 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
       h("strong", {}, t("kn.drop_title")),
       h("span", {}, t("kn.drop_body")),
       h("span", { class: "formats" }, t("kn.drop_formats")),
+      h("span", { class: "formats" }, t("kn.drop_media")),
       input);
     const send = (files) => { if (files.length) model.addFiles(files, metadata.value()); };
     input.addEventListener("change", () => {
@@ -205,6 +212,7 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
   }
 
   function documentRow(doc) {
+    const media = isMedia(doc.name);
     const facts = [
       formatBytes(doc.size, lang),
       doc.pages ? t("kn.pages", { n: doc.pages }) : null,
@@ -214,9 +222,10 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
     return h("li", { class: "kn-file" },
       h("span", { class: "type", "aria-hidden": "true" }, doc.type || extensionOf(doc.name) || "?"),
       h("span", { class: "name", title: doc.name }, doc.name),
-      statusBadge(doc.status),
+      statusBadge(doc.status, media),
       h("span", { class: "meta" }, facts),
-      doc.status === "processing" ? h("progress", { "aria-label": t("kn.status.processing") }) : null,
+      doc.status === "processing" ? h("progress", { "aria-label": t(media ? "kn.status.transcribing" : "kn.status.processing") }) : null,
+      media && isPendingStatus(doc.status) ? h("p", { class: "hint" }, t("kn.media_wait")) : null,
       doc.status === "failed" ? h("p", { class: "error" }, doc.error || t("kn.failed_no_reason")) : null,
       metadataChips(doc.metadata),
       h("div", { class: "actions" },
@@ -258,7 +267,8 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
       h("ol", { class: "kn-results" }, chunks.map((chunk, i) => h("li", { class: "kn-result" },
         h("div", { class: "head" },
           h("span", { class: "score" }, `#${i + 1} · ${decimal(chunk.score ?? 0, 3)}`),
-          h("span", {}, chunk.metadata?.title || chunk.source?.file_path || chunk.id)),
+          h("span", {}, chunk.metadata?.title || chunk.source?.file_path || chunk.id),
+          timeRange(chunk.metadata) ? h("span", { class: "tag" }, t("kn.at_time", { time: timeRange(chunk.metadata) })) : null),
         h("p", {}, chunk.text),
         metadataChips(chunk.metadata)))));
   }

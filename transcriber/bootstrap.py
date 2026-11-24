@@ -24,7 +24,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
-    Callable, Dict, Mapping, Optional, Protocol, Sequence, Tuple,
+    AbstractSet, Callable, Dict, Mapping, Optional, Protocol, Sequence, Tuple,
 )
 
 from transcriber.adapters.outbound.av_audio_decoder import (
@@ -172,6 +172,10 @@ from transcriber.application.analysis import (
     SessionAnalysisAccess,
 )
 from transcriber.application.knowledge import KnowledgeAccess
+from transcriber.application.knowledge_media import (
+    KNOWLEDGE_MEDIA_DIR,
+    KnowledgeMediaJobs,
+)
 from transcriber.application.live import (
     LiveOptions, LiveTranscription,
 )
@@ -313,6 +317,12 @@ class TranscriberContainer:
     knowledge: KnowledgeAccess = KnowledgeAccess(None)
     name_model: Optional[LocalNameModel] = None
     live: Optional[LiveSessions] = None
+    knowledge_media: Optional[KnowledgeMediaJobs] = None
+    """Transcriptions of the knowledge library's audio and video (KN-3a);
+    only when transcripts go to a RAG over HTTP."""
+    rag_token: Optional[Callable[[], str]] = None
+    """Returns the RAG's bearer token, which the RAG sends back on
+    ``/internal/knowledge-media`` (``None``: no RAG linked)."""
 
     def release_models(self) -> None:
         """Unload the speech, voice, overlap and name models (after a
@@ -797,6 +807,18 @@ def build_container(
         choices=pipeline.current,
     )
     status = TranscriptionStatus(sessions, runner)
+
+    def transcribe_media(
+        repository: SessionRepository, media_locks: SessionLocks
+    ) -> TranscribeSession:
+        """The same pipeline over the knowledge-media repository."""
+        return TranscribeSession(
+            repository, voiceprints, decoder, recogniser, encoder,
+            media_locks, parameters, overlaps, diarizer, rule,
+            gpu if settings.runtime != "fake" else None,
+            choices=pipeline.current,
+        )
+
     rename = RenameSpeaker(sessions, voiceprints, locks)
     unname = UnnameSpeaker(sessions, voiceprints, locks)
     find_names = FindSpeakerNames(
@@ -883,12 +905,50 @@ def build_container(
             if isinstance(publisher, HttpTranscriptPublisher) else None
         ),
         name_model=name_model,
+        knowledge_media=(
+            build_knowledge_media(
+                settings, runner, voiceprints,
+                recogniser.supported_languages, transcribe_media,
+            )
+            if isinstance(publisher, HttpTranscriptPublisher) else None
+        ),
+        rag_token=(
+            publisher.bearer_token
+            if isinstance(publisher, HttpTranscriptPublisher) else None
+        ),
         live=build_live_sessions(
             settings, environment, publisher,
             HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
             if isinstance(publisher, HttpTranscriptPublisher) else None,
             voiceprints, cpu_only=lambda: live_cpu_only(pipeline.current()),
         ),
+    )
+
+
+def build_knowledge_media(
+    settings: TranscriberSettings,
+    runner: ThreadJobRunner,
+    voiceprints: VoiceprintRepository,
+    languages: AbstractSet[str],
+    pipeline: Callable[[SessionRepository, SessionLocks], TranscribeSession],
+) -> KnowledgeMediaJobs:
+    """Return the knowledge library's transcriptions (KN-3a).
+
+    They use their own repository under ``<data_dir>/knowledge-media``
+    (never listed, published or analysed) and the service's job runner
+    and models: ``pipeline`` builds the transcription over a repository
+    and its locks.
+    """
+    repository = FileSystemSessionRepository(
+        settings.data_dir / KNOWLEDGE_MEDIA_DIR
+    )
+    locks = ThreadSessionLocks()
+    transcribe = pipeline(repository, locks)
+    return KnowledgeMediaJobs(
+        repository, locks, ImportRecording(repository, locks, languages),
+        QueueTranscription(repository, voiceprints, runner, transcribe, locks),
+        TranscriptionStatus(repository, runner),
+        settings.api.upload_formats,
     )
 
 
@@ -976,7 +1036,9 @@ def start_container(
     again or deleted. A session whose record cannot be read is left
     alone and logged. Only the one process that runs the jobs for
     ``settings.data_dir`` (the service) may call it: a session failed
-    here is assumed to have no live job.
+    here is assumed to have no live job. The knowledge library's
+    transcriptions left by a stopped process are deleted (the RAG sends
+    the file again).
     """
     container = build_container(settings)
     if container.diarizer is not None:
@@ -999,6 +1061,11 @@ def start_container(
     recovery = container.recover_sessions()
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)
+    if container.knowledge_media is not None:
+        cleared = container.knowledge_media.clear()
+        if cleared:
+            LOG.info("Deleted %d knowledge-media job(s) left by a stopped"
+                     " service.", cleared)
     return container
 
 

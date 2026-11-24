@@ -71,6 +71,9 @@ class ChunkMetadata(BaseModel):
     (``docs/platform/CONTRACTS.md`` §2-3). ``title`` is the heading
     path of the chunk or the document's title; ``ref`` the id of the
     JSONL record the chunk comes from (it names the chunk in results).
+    ``start_s`` and ``end_s`` are the times, in seconds, of the part of
+    a transcribed recording the chunk covers (KN-3a); ``None`` for
+    every other source.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -81,12 +84,15 @@ class ChunkMetadata(BaseModel):
     category: Optional[str] = None
     script_phase: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
+    start_s: Optional[float] = Field(default=None, ge=0)
+    end_s: Optional[float] = Field(default=None, ge=0)
 
     def is_empty(self) -> bool:
         """Tell whether no field is set."""
         return not (
             self.title or self.ref or self.intent or self.category
             or self.script_phase or self.tags
+            or self.start_s is not None or self.end_s is not None
         )
 
 

@@ -205,6 +205,20 @@ class KnowledgeSettings(BaseModel):
     """Most figures captioned per document."""
     interview_rules: str = "knowledge/interview/forbidden-questions.json"
     """KN-4's questions better avoided in an interview (LV-17, #232)."""
+    transcriber_url: Optional[str] = Field(
+        default="http://127.0.0.1:8770",
+        pattern=r"^http://(127\.0\.0\.1|localhost)(:[0-9]{1,5})?/?$",
+    )
+    """The transcriber that transcribes audio and video uploads (KN-3a):
+    this machine only, the RAG's token goes with every request.
+    ``None`` refuses audio and video."""
+    max_media_seconds: int = Field(default=2 * 3600, ge=1)
+    """Longest audio or video accepted, in seconds (2 h)."""
+    media_wait_seconds: float = Field(default=6 * 3600.0, gt=0)
+    """Longest wait for one transcription, queue included (6 h: a live
+    session keeps the GPU and delays batch jobs)."""
+    media_poll_seconds: float = Field(default=5.0, gt=0)
+    """Time between two questions about a transcription."""
 
 
 DEFAULT_SKILLS_EMBEDDING_MODEL = (

@@ -1034,6 +1034,15 @@ def create_app(
         from transcriber.adapters.inbound.live_ws import add_live_routes
 
         add_live_routes(app, api, c.live, admit_code, limits.json_max_bytes)
+    if c.knowledge_media is not None and c.rag_token is not None:
+        from transcriber.adapters.inbound.knowledge_media_api import (
+            knowledge_media_router,
+        )
+
+        app.include_router(knowledge_media_router(
+            c.knowledge_media, c.rag_token, refuse,
+            limits.client_ip_header, limits.upload_max_bytes,
+        ))
     app.include_router(api)
     app.include_router(playback)
     if limits.static_dir is not None:
