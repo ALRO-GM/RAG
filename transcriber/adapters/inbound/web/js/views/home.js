@@ -1,10 +1,11 @@
 // The home (#/): three large service cards (analyse a conversation, live
 // assist, voice bot), each with an icon, one sentence and «Probar»; below,
 // the latest sessions, each with its type and, when its analysis wrote a
-// synthesis, the one-line conclusion of it. Pure helpers in lib/home.js.
+// synthesis, the one-line conclusion of it and, when the synthesis has an
+// overall reading (#230), its percentage with one decimal. Pure helpers in lib/home.js.
 
 import { h, fill } from "../dom.js";
-import { t, lang } from "../i18n.js";
+import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { typeLabel } from "../lib/describe.js";
@@ -21,6 +22,14 @@ function serviceCard(service) {
       t("home.try"), icon("arrow")));
 }
 
+// The overall percentage: seen as «67,5 %», read out as «Valoración general 67,5 %».
+function scoreTag(value) {
+  const shown = t("sf.percent", { value: decimal(value, 1) });
+  return h("span", { class: "recent-score" },
+    h("span", { "aria-hidden": "true" }, shown),
+    h("span", { class: "sr-only" }, t("sf.home_score", { value: shown })));
+}
+
 function sessionRow(session, found) {
   const kind = typeLabel(t, session.type);
   const when = session.started_at ? new Date(session.started_at).toLocaleDateString(lang, { day: "numeric", month: "short" }) : "";
@@ -35,6 +44,7 @@ function sessionRow(session, found) {
           h("span", { class: "recent-title" }, session.title || session.id),
           kind ? h("span", { class: "type-chip" }, kind) : null),
         h("span", { class: "recent-line" }, line)),
+      typeof found?.conclusion?.percent === "number" ? scoreTag(found.conclusion.percent) : null,
       found?.analysed ? h("span", { class: "recent-tag" }, h("span", { class: "state-dot done", "aria-hidden": "true" }), t("home.analysed")) : null));
 }
 

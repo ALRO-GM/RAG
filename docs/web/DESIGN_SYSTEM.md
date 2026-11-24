@@ -123,6 +123,62 @@ system → light → dark and remembers the choice in `localStorage`
 - Existing page classes (analysis results, lab, research and study charts)
   keep their names and pick up the new tokens.
 
+## Summary first (#230)
+
+Result pages show the minimum a worker needs and put the rest in a
+closed `<details class="sf-more">` «Más información» whose summary line
+says what is inside. Nothing is deleted; the confidence, the caveats and
+the «orientativo / provisional / evidencia insuficiente» notices live
+there. Pure parts in `js/lib/summary-first.js`, drawing in
+`js/views/summary-first.js`, styles in the «Summary first» section of
+`style.css`, dictionary keys `sf.*` (grouped at the end of `es.js` and
+`en.js`).
+
+- **Análisis** (`#/analysis/<id>`, after `docs/web/mockups/Perfil.dc.html`
+  in the calm palette): first the session in one paragraph (who, how
+  long, decisions, tasks, open questions), the job, and one row per
+  person in speaking order (percentage and verdict words; a click or
+  Enter opens that person's card and moves the focus to it), with a
+  one-line draft note. Then one card per person as a disclosure; only
+  the first starts open (the data has no speaker roles, so the candidate
+  of an interview cannot be picked, nor the interviewer left without a
+  fit reading). A card's header is always visible: name, percentage,
+  the verdict as descriptive words chosen by conversation type from
+  `overall.verdict` (`sf.verdict.<job|coaching|sale|general>.<strong|adequate|weak>`,
+  e.g. «Encaje alto con lo que pide el puesto»; never a decision such as
+  «pasa a la siguiente fase») and the first sentence of `overall.line`.
+  Open, it shows the score ring (SVG, the arc's `stroke-dasharray` from
+  `ringDash`), a summary of at most two sentences, at most 3 strengths
+  and 2 improvements (`top_strengths` / `top_improvements`), the bars of
+  those (at most 5, in that order) and «Ver las N competencias» with
+  every bar; the minimum-required mark only when a skill carries a
+  `required` level, which the analysis does not write yet. Text is never
+  cut inside a clause nor ended with «…»: a sentence too long for its
+  place is cut at its last clause boundary (`clauseCut`), or left out
+  (the competency name alone for a point). Each card's «Más
+  información» holds how reliable it is (confidence, caveats in words),
+  the whole reading (`overall.frame`, the full `overall.line`, every
+  competency's verdict, score, full conclusion, basis, author and cited
+  sentences), the reports' lists, the explained profile, every
+  competency with its quotes and the participation figures; the
+  session's «Más información» holds the facts, the draft and AI-Act
+  notices, the share of words, the events and the transcript. The known
+  open issues moved into «Detalles técnicos».
+- **Older analyses** (synthesis v1, no `overall`): no ring nor verdict;
+  the summary says once that the analysis predates the overall reading
+  and offers «Rehacer solo la síntesis» when it can run now
+  (`canRedoSynthesis`); strengths and improvements are the reports'
+  names and the bars the stored firm or provisional levels.
+- **Transcripción** (`#/s/<id>`): title, «Análisis», the player and the
+  conversation; type and goal, names, voices, filters and the weak-voice
+  notice under «Más información».
+- **Informe del entrevistador** (voice bot, `reportCard`): suitability,
+  summary, one bar per point of the plan and where the transcript went;
+  the tiles, notes, confidence, quotes, gaps and facts under «Más
+  información».
+- The live page's hand-off is not covered here (the live page is being
+  rebuilt separately, #232).
+
 ## Pages
 
 Every page uses the shell.
@@ -136,10 +192,16 @@ Every page uses the shell.
   conclusion (first sentence of the first person's job fit, else their
   first strength; a full stop after an abbreviation such as «Sr.» or
   «p. ej.» or a single letter does not end it) with a green «Analizada»
-  dot, kept even when the synthesis itself cannot be read. No score is shown: the
-  analysis stores none per session, and the pages never compute or rank
-  one.
-- **Sesiones** (`#/sessions`): the former home, unchanged.
+  dot, kept even when the synthesis itself cannot be read. When the
+  synthesis has an overall reading (v2, `overall`; docs/skills/DESIGN.md
+  §14.1) the line is that person's `overall.line` and the row shows its
+  `percent` with one decimal («67,5 %»); the pages never compute their
+  own score nor rank people.
+- **Sesiones** (`#/sessions`): the former home. Each card shows the
+  title, state, date, length, progress and the action that moves it
+  forward (open, resume, finish, or transcribe when there is no
+  transcript); the description, notes and the other actions (describe,
+  transcribe again, delete) sit under «Más opciones» (`splitActions`).
 - **Administración** (`#/admin`, `js/views/admin.js`): the service status
   (the API's health check) and one card per set-up tool.
 - The rest: Grabar, Registrar voz, Conocimiento (`#/knowledge`), Ajustes

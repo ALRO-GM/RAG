@@ -22,6 +22,20 @@ export function actionsFor(session) {
   }
 }
 
+/** Actions that move a session forward: shown on its card; the rest go under «Más opciones» (#230). */
+export const MAIN_ACTIONS = ["open", "resume", "finish"];
+
+/**
+ * The actions of a session split for a card that shows the minimum
+ * first: `main` (open, resume, finish; transcribe when there is no
+ * transcript yet) and `more` (describe, transcribe again, delete).
+ */
+export function splitActions(session) {
+  const all = actionsFor(session);
+  const isMain = (a) => MAIN_ACTIONS.includes(a) || (a === "transcribe" && session.state !== "done");
+  return { main: all.filter(isMain), more: all.filter((a) => !isMain(a)) };
+}
+
 /** Newest first, by start time when known, else by id. */
 export function sortSessions(sessions) {
   return [...sessions].sort((x, y) => {

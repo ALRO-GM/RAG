@@ -5,7 +5,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime, sessionIdFor } from "../lib/text.js";
 import { nextPollMs } from "../lib/net.js";
-import { actionsFor, progressPercent, sortSessions, stageLabel } from "../lib/sessions.js";
+import { progressPercent, sortSessions, splitActions, stageLabel } from "../lib/sessions.js";
 import { noticeSection } from "../consent.js";
 import { describeFields } from "../describe.js";
 import { describeLine } from "../lib/describe.js";
@@ -30,23 +30,32 @@ export async function sessionsView(ctx, root) {
     message.classList.toggle("error", isError);
   }
 
+  // Summary first (#230): title, state, progress and the main action; the
+  // conversation's description, notes and the other actions under «Más opciones».
   function describe(s) {
     const pct = progressPercent(s);
+    const { main, more } = splitActions(s);
+    const note = describeLine(t, s);
+    const extra = s.message && s.state !== "running" && s.state !== "queued" ? s.message : "";
     return h("li", { class: `card state-${s.state}` },
       h("h2", {}, s.title || s.id),
       h("p", { class: "meta" },
         h("span", { class: "badge" }, t(`state.${s.state}`)),
         s.started_at ? ` ${new Date(s.started_at).toLocaleString(lang)}` : "",
         s.duration > 0 ? ` · ${formatTime(s.duration)}` : ""),
-      describeLine(t, s) ? h("p", { class: "hint" }, describeLine(t, s)) : null,
       s.state === "running" || s.state === "queued"
         ? h("div", { class: "progress" },
           h("progress", { max: 100, value: pct ?? undefined, "aria-label": t("sessions.progress") }),
           h("span", {}, [pct !== null ? `${pct}%` : t("state.queued"), s.stage ? ` · ${stageLabel(t, s.stage)}` : "", s.message ? ` · ${s.message}` : ""].join("")))
         : null,
       s.state === "failed" && s.failure ? h("p", { class: "error" }, s.failure) : null,
-      s.message && s.state !== "running" && s.state !== "queued" ? h("p", { class: "hint" }, s.message) : null,
-      h("div", { class: "row" }, actionsFor(s).map((a) => button(s, a))));
+      main.length ? h("div", { class: "row" }, main.map((a) => button(s, a))) : null,
+      more.length || note || extra
+        ? h("details", { class: "sf-card-more" }, h("summary", {}, t("sf.session_actions")),
+          note ? h("p", { class: "hint" }, note) : null,
+          extra ? h("p", { class: "hint" }, extra) : null,
+          more.length ? h("div", { class: "row" }, more.map((a) => button(s, a))) : null)
+        : null);
   }
 
   function button(s, action) {
