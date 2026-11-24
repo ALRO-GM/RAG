@@ -338,7 +338,7 @@ def test_a_stereo_employee_names_their_channel() -> None:
     body = transcriber.bodies[0]
     assert body["speakers"][0] == {"channel": 0, "id": "S1",
                                    "role": "agent", "name": "Ana"}
-    assert "diarize" not in body
+    assert "diarize" not in body and "parties" not in body  # #249
     assert view["names"] == {"S1": "Ana"}
     assert view["employee"]["speaker"] == "S1"
 
@@ -461,3 +461,10 @@ def test_voice_check_events_and_unsure_lines_are_read() -> None:
         LiveEvent.model_validate({**check.to_contract(),
                                   "voice_check": {"state": "maybe",
                                                   "speaker": "ana"}})
+
+
+def test_only_two_party_products_announce_the_voice_check() -> None:
+    listed = {p["product"]: p["two_party"]
+              for p in sessions().list_products()}
+    assert listed == {"live_assist.support": True,
+                      "live_assist.interview": True}

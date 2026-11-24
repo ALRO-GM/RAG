@@ -116,8 +116,9 @@ Two-party mono sessions (#249, added compatibly inside v1): a
 (`listening`, with `seconds` heard of `needed`, repeated as it hears
 more; then `recognised`, `short`, `skipped` or `failed`), and an
 utterance whose speaker is not known from its voice yet has
-`speaker_unsure: true` (written only when true). Readers that validate
-strictly must be updated first (see `contracts/README.md`).
+`speaker_unsure: true` (written only when true). Both come only with
+the start request's `parties`; deploy the transcriber before the
+orchestrator (see `contracts/README.md`).
 
 Semantics: a partial and the final it becomes share the same `id`, and
 `revision` increases with each update. A final is never retracted, only

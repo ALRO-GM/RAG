@@ -62,6 +62,9 @@ function defaultTranscript(transcripts, kind) {
   return (transcripts.find((x) => x.type === TYPE_OF[kind]) ?? transcripts[0])?.id ?? "";
 }
 
+/** How long the voice chip says a correction was taken. */
+const CORRECTED_MS = 4000;
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -233,7 +236,7 @@ export async function liveView(ctx, root, [sub] = []) {
       start.disabled = !product?.live;
       audioSelect.disabled = !product?.live;
       // One microphone, two people (#249): the session starts with a voice check.
-      const micCheck = audioSelect.value === "mic" && saved?.choices?.["live.diarization"] !== "off";
+      const micCheck = audioSelect.value === "mic" && product?.two_party === true && saved?.choices?.["live.diarization"] !== "off";
       liveHint.textContent = !product?.live ? t("live.live_off")
         : micCheck ? t("live.audio_hint.mic_check")
           : t(`live.audio_hint.${audioSelect.value}`, { who: roleText(product.suggest_about?.[0] ?? "unknown") });
@@ -358,6 +361,7 @@ export async function liveView(ctx, root, [sub] = []) {
     const connChip = connectionChip();
     // The employee's voice check (#249): «Reconociendo tu voz…» → «Voz reconocida», quietly.
     const voiceChip = h("span", { class: "lv-voice", hidden: true, role: "status" });
+    let corrected = null; // { fix, until }: the last correction, said once in the chip
     const header = h("header", { class: "lv-head" },
       h("div", { class: "lv-meta" },
         h("span", { class: "lv-live" }, liveDot, clock),
@@ -560,13 +564,18 @@ export async function liveView(ctx, root, [sub] = []) {
     }
 
     // «Esta soy yo» / «Esta no soy yo» (#249): corrects that voice from now on and its earlier lines.
+    // Named with its line (aria-describedby: the line's text); after a
+    // correction the header's quiet voice chip (role status) says so once.
     function correctButton(u, fix) {
       const button = h("button", {
-        type: "button", class: "lv-fix", "data-fix": fix,
+        type: "button", class: "lv-fix", "data-fix": fix, "aria-describedby": `lv-text-${u.id}`,
         onClick: async () => {
           button.disabled = true;
           try {
             await ctx.api.liveVoice(session.id, { action: fix, utterance: u.id });
+            corrected = { fix, until: Date.now() + CORRECTED_MS };
+            schedule();
+            setTimeout(schedule, CORRECTED_MS + 50);
           } catch (error) {
             toast(liveError(error), { error: true });
           }
@@ -580,7 +589,7 @@ export async function liveView(ctx, root, [sub] = []) {
       let node = lineNodes.get(u.id);
       if (!node) {
         const label = h("span", { class: "lv-line-head" });
-        const text = h("span", { class: "lv-text" });
+        const text = h("span", { class: "lv-text", id: `lv-text-${u.id}` });
         const li = h("li", { class: "lv-line lv-rise", id: `u-${u.id}` }, label, text);
         node = { li, label, labelKey: null, text, flags: "" };
         lineNodes.set(u.id, node);
@@ -637,19 +646,22 @@ export async function liveView(ctx, root, [sub] = []) {
     // ---- the «Ahora» card: one thing at a time
 
     function drawVoice(voice, live) {
-      const shown = live && ["recognising", "recognised", "skipped"].includes(voice);
+      const fixed = live && corrected && Date.now() < corrected.until ? corrected.fix : null;
+      const shown = live && (fixed || ["recognising", "recognised", "skipped"].includes(voice));
       voiceChip.hidden = !shown;
       if (!shown) return;
-      const text = t(`live.voice.chip_${voice}`);
+      const text = fixed ? t(`live.voice.done_${fixed}`) : t(`live.voice.chip_${voice}`);
       if (voiceChip.textContent === text) return;
-      fill(voiceChip, voice === "recognised" ? icon("check") : voice === "recognising" ? dot("suggest", "lv-pulse") : null, text);
-      voiceChip.classList.toggle("is-done", voice === "recognised");
+      fill(voiceChip, fixed || voice === "recognised" ? icon("check") : voice === "recognising" ? dot("suggest", "lv-pulse") : null, text);
+      voiceChip.classList.toggle("is-done", Boolean(fixed) || voice === "recognised");
     }
 
     // While the voice check listens, it is the one thing «Ahora» shows.
+    // Built once per state; the progress moves in place, so a screen reader
+    // does not read the card again and «Saltar» keeps its focus.
+    let voiceBar = null;
     function voiceCard(voice) {
       const bar = h("span", { class: "lv-voice-bar" });
-      bar.style.width = `${Math.round(voiceProgress(state.voice) * 100)}%`;
       const skip = h("button", {
         type: "button", class: "small",
         onClick: async () => {
@@ -667,8 +679,8 @@ export async function liveView(ctx, root, [sub] = []) {
           voice === "recognising" ? t("live.voice.recognising") : t("live.voice.listening_head")),
         h("p", { class: "lv-big" }, t("live.voice.listening")),
         h("p", { class: "lv-example" }, t("live.voice.listening_hint")),
-        h("span", { class: "lv-voice-track", role: "progressbar", "aria-label": t("live.voice.progress"),
-          "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(Math.round(voiceProgress(state.voice) * 100)) }, bar),
+        (voiceBar = { bar, track: h("span", { class: "lv-voice-track", role: "progressbar", "aria-label": t("live.voice.progress"),
+          "aria-valuemin": "0", "aria-valuemax": "100" }, bar) }).track,
         h("div", { class: "row wrap" }, voice === "listening" ? skip : null,
           h("span", { class: "hint" }, t("live.voice.private"))));
     }
@@ -677,14 +689,20 @@ export async function liveView(ctx, root, [sub] = []) {
       const ended = state.state !== "running" && demo;
       const voice = state.state === "running" ? state.voiceStatus() : null;
       if (voice === "listening" || voice === "recognising") {
-        const key = `voice|${voice}|${Math.round(voiceProgress(state.voice) * 20)}`;
+        const key = `voice|${voice}`;
         if (key !== nowKey) {
           nowKey = key;
           fill(nowCard, voiceCard(voice));
           nowCard.className = "lv-now";
         }
+        const done = String(Math.round(voiceProgress(state.voice) * 100));
+        if (voiceBar && voiceBar.track.getAttribute("aria-valuenow") !== done) {
+          voiceBar.track.setAttribute("aria-valuenow", done);
+          voiceBar.bar.style.width = `${done}%`;
+        }
         return;
       }
+      voiceBar = null;
       const shown = state.now();
       const key = ended ? "ended"
         : shown.kind === "avoid" ? `avoid|${shown.flag.utterance}|${shown.flag.category}`

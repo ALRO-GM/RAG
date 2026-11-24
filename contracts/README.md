@@ -70,13 +70,17 @@ sessions, optional and written only there: the event type
 id; `seconds` heard and `needed`), and the utterance's
 `speaker_unsure` (written only when true). Every other session's
 events are unchanged. Readers: the orchestrator's `LiveEvent` forbids
-unknown fields and types (an event it cannot read is counted as
-rejected and skipped, the session goes on), the live page reads them as
-plain objects. **Deploy order:** the orchestrator (reader) before the
-transcriber (writer); with `ragputin-servicios restart`, both restart
-together, which is fine as long as no live session runs across it. The
-start request's `parties` is a field of the transcriber's own API
-(`docs/live/LIVE_SESSION.md`), sent only by the new orchestrator.
+unknown fields and types, the live page reads them as plain objects.
+Both appear only in a session started with the transcriber's new
+`parties` field (`docs/live/LIVE_SESSION.md`), which only the new
+orchestrator sends, and the old transcriber refuses it (422: its
+request model forbids unknown fields). **Deploy order:** the
+transcriber first, then the orchestrator. A new transcriber with the old
+orchestrator works as before (no `parties`, so none of the new events);
+the old transcriber with the new orchestrator would refuse every
+one-microphone live session. With `ragputin-servicios restart` both
+restart together, which is fine as long as no live session runs across
+it.
 
 ## `knowledge.result.v1`: the times of a recording's chunk
 

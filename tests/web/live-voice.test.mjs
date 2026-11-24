@@ -99,7 +99,7 @@ const KEYS = [
   "live.audio_hint.mic_check", "live.voice.listening", "live.voice.listening_head", "live.voice.listening_hint",
   "live.voice.recognising", "live.voice.progress", "live.voice.private", "live.voice.skip", "live.voice.chip_recognising",
   "live.voice.chip_recognised", "live.voice.chip_skipped", "live.voice.short", "live.voice.failed", "live.voice.unsure",
-  "live.voice.mine", "live.voice.not_mine",
+  "live.voice.mine", "live.voice.not_mine", "live.voice.done_mine", "live.voice.done_not_mine",
 ];
 
 test("the voice check's texts exist in both languages and read in the language set", () => {

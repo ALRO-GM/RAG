@@ -508,7 +508,9 @@ class LiveSessions:
         """The products the page can start, with what it shows."""
         return [
             {**page_info(c, self._channel_roles(c)),
-             "live": self.transcriber is not None}
+             "live": self.transcriber is not None,
+             # One microphone starts with the voice check (#249).
+             "two_party": c.tts is None and two_parties(c) is not None}
             for _, c in sorted(self.products.items())
         ]
 

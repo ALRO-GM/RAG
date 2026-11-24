@@ -6,6 +6,7 @@ as Sortformer may split one person); the fake voice encoder tells the
 tones apart by their spectrum. No real model.
 """
 
+import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import jsonschema
@@ -99,6 +100,7 @@ def run(
     check: bool = True, prints: Sequence[Any] = (),
     requests: Optional[Requests] = None,
     settings: VoiceCheckSettings = CHECK,
+    background: bool = False, script: Any = sentences,
 ) -> Tuple[List[Dict[str, Any]], MonoAttributor]:
     timer = VirtualTimer()
     made: List[MonoAttributor] = []
@@ -107,7 +109,7 @@ def run(
         mono = MonoAttributor(
             diarizer, timer, SETTINGS,
             LiveNaming(FakeVoiceEncoder(), list(prints)), given,
-            background=False,
+            background=background,
             parties=PartyPlan(EMPLOYEE, OTHER, check, settings),
         )
         made.append(mono)
@@ -116,7 +118,7 @@ def run(
         return mono
 
     live = LiveTranscription(
-        LoudnessVad, ScriptedAsr(sentences, timer, cost=0.1),
+        LoudnessVad, ScriptedAsr(script, timer, cost=0.1),
         TimerClock(timer), timer,
         LiveSettings(endpoint=ENDPOINT, realtime=True), attributor,
     )
@@ -350,3 +352,66 @@ def test_a_check_without_voice_has_no_reference() -> None:
     sides = PartySides(CHECK)
     sides.recognise(np.zeros(2, dtype=np.float32), None)
     assert sides.reference is None and sides.check_slot is None
+
+
+def test_the_worker_thread_path_reaches_recognised() -> None:
+    # The service embeds in a worker thread (background=True).
+    events, mono = run(TALK, ScriptedDiarizer(lag=1.0), background=True)
+    assert checks(events)[-1] == "recognised"
+    assert speakers(events) == ["ana", "S2", "ana", "S2"]
+    assert mono.sides is not None and mono.sides.reference is not None
+
+
+def test_another_person_s_voiceprint_never_makes_the_employee() -> None:
+    # Only the employee's enrolment may name the employee's slot.
+    events, _ = run(TALK, ScriptedDiarizer(lag=1.0), check=False,
+                    prints=[enrolled("luis", LOW)])
+    assert set(speakers(events)) == {"S2"}
+
+
+def test_a_correction_before_its_frames_moves_the_voice_later() -> None:
+    # Frames lag 4 s: when «Esta soy yo» arrives the line has no slot
+    # yet; once its frames come, its voice (slot 1) follows, so the
+    # later high-tone line is the employee's too.
+    requests = Requests()
+    requests.at = [(0.0, "skip", "", False), (9.0, "mine", "t0.s1", True)]
+    events, mono = run(TALK, ScriptedDiarizer(lag=4.0), requests=requests)
+    assert speakers(events) == ["S2", "ana", "S2", "ana"]
+    kinds = [r["event"] for r in mono.diagnosis()]
+    assert "correction_slot" in kinds
+    first = next(r for r in mono.diagnosis() if r["event"] == "correction")
+    assert first["slot"] is None
+
+
+def test_the_last_requests_count_when_the_diarizer_failed() -> None:
+    timer = VirtualTimer()
+    mono = MonoAttributor(
+        ScriptedDiarizer(fail_start=True), timer, SETTINGS,
+        LiveNaming(FakeVoiceEncoder(), []), (), background=False,
+        parties=PartyPlan(EMPLOYEE, OTHER, True, CHECK),
+    )
+    mono.start()
+    assert mono.problem is not None
+    mono.notices()
+    mono.skip()
+    assert mono.finish() == []
+    assert [state for state, _, _ in mono.notices()] == ["skipped"]
+
+
+def test_the_diagnosis_holds_no_words() -> None:
+    def secret(seconds: float, final: bool) -> str:
+        return "Zanahoria morada confidencial." if final else "Zanahoria"
+
+    events, mono = run(TALK, ScriptedDiarizer(lag=1.0), script=secret)
+    assert any("Zanahoria" in json.dumps(e) for e in events)
+    kept = json.dumps(mono.diagnosis())
+    assert "Zanahoria" not in kept and "morada" not in kept
+    assert {r["event"] for r in mono.diagnosis()} >= {"final", "sentence"}
+
+
+def test_by_default_one_slot_per_person_even_for_a_close_voice() -> None:
+    # The measured defaults: match 0.86, no split rule.
+    sides = PartySides(VoiceCheckSettings())
+    sides.recognise(np.asarray([1.0, 0.0], dtype=np.float32), 0)
+    sides.voices({0: (unit([1, 0.05]), 3.0), 1: (unit([1, 0.1]), 3.0)})
+    assert sides.side(0) == "employee" and sides.side(1) == "other"

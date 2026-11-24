@@ -202,6 +202,7 @@ class MonoAttributor:
         )
         self._notices: List[str] = []
         self._held: List[LiveUtterance] = []
+        self._waiting_pins: Dict[str, Side] = {}
         self._log: List[Dict[str, Any]] = []
         self._voiceprint_names: Dict[int, str] = {}
         if parties is not None:
@@ -511,8 +512,8 @@ class MonoAttributor:
             # An enrolment that names a slot still helps (#249), unless
             # the employee said that voice is not theirs.
             known = sides.slots.get(slot)
-            named = slot in self._voiceprint_names and (
-                known is None or known.pinned != "other")
+            named = self._voiceprint_names.get(slot) == parties.employee.id \
+                and (known is None or known.pinned != "other")
             mine = sides.side(slot) == "employee" or named
             out[slot] = parties.employee.id if mine else parties.other.id
         return out
@@ -572,15 +573,36 @@ class MonoAttributor:
         if parties is None or sides is None:
             return []
         side: Side = "employee" if mine else "other"
-        slot = self.speakers.slot_of(ident)
+        # A slot guessed from part of the line's frames may be wrong: the
+        # voice is moved once they are complete.
+        slot = self.speakers.settled_slot(ident)
         self._note("correction", id=ident, side=side, slot=slot)
         changed: Dict[str, LiveUtterance] = {}
         if slot is not None:
             sides.pin(slot, side)
             changed.update((u.id, u) for u in self._apply_sides())
+        else:
+            # Its frames have not come yet: the voice follows once they do.
+            self._waiting_pins[ident] = side
         speaker = parties.employee.id if mine else parties.other.id
         changed.update((u.id, u) for u in self.speakers.pin(ident, speaker))
         return list(changed.values())
+
+    def _late_pins(self) -> List[LiveUtterance]:
+        """Pin the slots of corrections whose frames came after them."""
+        sides = self.sides
+        if sides is None or not self._waiting_pins:
+            return []
+        done = False
+        for ident, side in list(self._waiting_pins.items()):
+            slot = self.speakers.settled_slot(ident)
+            if slot is None:
+                continue
+            del self._waiting_pins[ident]
+            sides.pin(slot, side)
+            self._note("correction_slot", id=ident, side=side, slot=slot)
+            done = True
+        return self._apply_sides() if done else []
 
     def skip(self) -> None:
         """Skip the employee's voice check (thread-safe, see the engine)."""
@@ -667,6 +689,7 @@ class MonoAttributor:
         self._pull()
         if len(self.frames) != before:
             changed.update((u.id, u) for u in self._revisions())
+            changed.update((u.id, u) for u in self._late_pins())
             if self.sides is not None and self.sides.reference is not None:
                 changed.update((u.id, u) for u in self._apply_sides())
         changed.update((u.id, u) for u in self._naming_step())
@@ -705,15 +728,19 @@ class MonoAttributor:
                 except TranscriberError as exc:
                     self._fail(exc)
             self._pull(self._fed / SAMPLE_RATE, FINISH_TIMEOUT)
-            if self.problem is not None:
-                return []
-            changed = {u.id: u for u in self._revisions()}
+            changed: Dict[str, LiveUtterance] = {}
             if self._parties is not None:
+                # The page's last requests and the check's voice count
+                # even when the diarizer failed.
                 changed.update((u.id, u) for u in self._requests())
                 changed.update(
                     (u.id, u) for u in self._reference_step(True))
                 held, self._held = self._held, []
                 changed.update((u.id, u) for u in held)
+            if self.problem is not None:
+                return self._count(changed)
+            changed.update((u.id, u) for u in self._revisions())
+            changed.update((u.id, u) for u in self._late_pins())
             changed.update((u.id, u) for u in self._naming_step(True))
             changed.update((u.id, u) for u in self._naming_step(True))
             if self.sides is not None:

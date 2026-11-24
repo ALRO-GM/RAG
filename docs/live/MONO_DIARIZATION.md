@@ -175,15 +175,19 @@ people.
    slot's side: the employee's or the other person's id. No anonymous
    label is ever shown, so a third or fourth slot is never a third or
    fourth person.
-3. **Sides of the slots.** Each slot's clean speech (as for naming,
-   from 2 s, then each time it doubles) is embedded; the slot whose
-   voice is nearest to the check, at cosine ≥ 0.93, is the employee's,
-   and so is any other slot at ≥ 0.97 (the employee split in two
-   slots); every other slot is the other person's. A slot not compared
-   yet keeps the stand-in's side and its sentences say `speaker_unsure`
-   (except the slot that spoke the check).
-   An enrolment, when the employee has one, still names their slot
-   (0.95, as before) unless the employee said that voice is not theirs.
+3. **Sides of the slots.** Each slot's clean speech (frames complete,
+   at least 80 % that slot alone; the check's own sentences included)
+   is embedded as for naming: from 2 s, then each time it doubles, up
+   to 30 s. Then the slot whose voice is nearest to the check, at
+   cosine ≥ 0.86, is the employee's and every other slot the other
+   person's (one slot per person; a "split" rule that would also give
+   the employee a second close slot exists in the settings, `split`,
+   but is off: it cost more than it gained, below). A slot not
+   compared yet keeps the stand-in's side and its sentences say
+   `speaker_unsure` (except the slot that spoke the check). An
+   enrolment, when the employee has one, still names their slot (0.95,
+   as before) unless the employee said that voice is not theirs; only
+   the employee's own voiceprint can do that.
 4. **Corrections.** «Esta soy yo» / «Esta no soy yo» on a line pins
    that line and its slot to the side chosen: the slot's earlier lines
    are revised (`speaker_update`) and its later ones follow.
@@ -228,8 +232,14 @@ PYTHONPATH=. python experiments/live/voice_check.py score --work W   # -> experi
 ```
 
 Share of sentences on the right side, 5 s check (after the last
-revision unless said; CALLHOME 3,384 sentences, two-person calls 1,460,
-AMI 1,815):
+revision unless said; CALLHOME 3,384 sentences of 20 trials,
+two-person calls 1,460 of 10, AMI 1,815 of 8). The first rows are the
+alternatives, scored as if every sentence fed the voices and they were
+compared after each one; the last row simulates **the rule as it
+ships** (`shipped()` in the script: purity ≥ 0.8, the check's audio in
+its slot's voice, the 2 s / doubling / 30 s embedding schedule, the
+check's slot until then, match 0.86, no split rule). Every number
+quoted below for the chosen rule is of that simulation.
 
 | Approach | CALLHOME | two-person calls | AMI pairs |
 |---|---|---|---|
@@ -238,32 +248,49 @@ AMI 1,815):
 | Two references (check, and the other person learnt as heard) | 0.697 | 0.717 | 0.599 |
 | The check's slot only | 0.734 | 0.792 | 0.634 |
 | The slot nearest to the check (today's naming, check as voiceprint) | 0.806 | 0.792 | 0.598 |
-| **Chosen: nearest slot ≥ 0.93, split ≥ 0.97, check slot until then** | **0.814** (0.780 at first emission) | **0.792** | **0.593** (0.605) |
+| **Shipped: nearest slot ≥ 0.86, check slot until then** | **0.807** (0.806 at first emission) | **0.792** | **0.652** (0.660) |
 
-The chosen rule by kind of sentence (CALLHOME, 5 s): clean 0.974,
-overlapped 0.715; under 1 s 0.561, 1–2 s 0.836, 2–4 s 0.855, 4 s and
-more 0.932. On the two-person calls clean sentences are 0.996: what is
+The shipped rule by kind of sentence (CALLHOME, 5 s): clean 0.959,
+overlapped 0.714; under 1 s 0.575, 1–2 s 0.827, 2–4 s 0.844, 4 s and
+more 0.917. On the two-person calls clean sentences are 0.996: what is
 left is overlap and very short sentences, where the slots themselves
-are wrong. Check length (chosen rule, CALLHOME / AMI): 3 s 0.796 /
-0.664, 5 s 0.814 / 0.593, 8 s 0.812 / 0.591. The threshold barely
-matters on CALLHOME (0.779–0.813 flat from 0.50 to 0.93 at every
-length; lower at 0.95+ with short checks); on AMI the higher values are
-better, because there the check's slot is a better guess than any
-comparison: 0.93 is the highest value that loses nothing on CALLHOME.
-The split rule changes CALLHOME by +0.018 (3 s), +0.001 (5 s), 0 (8 s)
-and AMI by 0 at 0.97; at 0.95 it costs up to 0.038 on CALLHOME (5 and
-8 s). Sentences
-sent `speaker_unsure` (their slot not compared yet, not the check's):
-50 of 3,384 on CALLHOME, all shown as the other person and right as
-often as the rest (0.820 vs 0.780); 127 of 1,815 on AMI, mostly wrong
-(0.221 vs 0.634; 72 of them had no slot at all). The mark is a hint, a
-reason to look at the correction, not a measured confidence.
+are wrong. Check length (shipped rule, CALLHOME / two-person / AMI):
+3 s 0.808 / 0.793 / 0.664, 5 s 0.807 / 0.792 / 0.652, 8 s 0.812 /
+0.789 / 0.632; the simulated "3 s" check is 6.1 s on average (whole
+segments), "5 s" 8.7 s, "8 s" 11.3 s.
+
+Thresholds, on the shipped simulation:
+- `match`: CALLHOME is flat from 0.50 to 0.90 at every check length
+  (0.808 / 0.807 / 0.812) and drops at 0.93 with the 3 s check (0.750)
+  and at 0.97 with the 5 s one (0.749). AMI is best at 0.85–0.87 with both (3 s:
+  0.664 from 0.85 up; 5 s: 0.652 up to 0.87, 0.634 from 0.88). 0.86 sits in the
+  middle of the best range on both. The first version shipped 0.93,
+  chosen on the idealised simulation; on the shipped one 0.93 loses
+  0.058 on CALLHOME with a 3 s check and 0.018 on AMI with a 5 s one,
+  so it was changed.
+- `split`: with match 0.86, giving the employee a second slot at 0.97
+  costs 0.012 (3 s), 0.011 (5 s) and 0.019 (8 s) on CALLHOME and changes
+  nothing on AMI; at 0.95 the same, at 0.93 up to 0.050. It is off.
+  The first version shipped it at 0.97; that was the idealised
+  simulation's +0.001 at 5 s. With it off, an employee whom Sortformer
+  splits in two slots has the second one shown as the other person
+  until «Esta soy yo».
+- `purity` 0.8 (as the naming): 0.0 and 0.5 give the same on CALLHOME
+  and −0.012 (3 s), +0.001 (5 s), 0 (8 s) on AMI; kept.
+
+Sentences sent `speaker_unsure` (their slot not compared yet, not the
+check's): 142 of 3,384 on CALLHOME, all shown as the other person and
+right more often than the rest (0.873 vs 0.803); 294 of 1,815 on AMI,
+right about half the time (0.531 vs 0.684; 72 sentences had no slot at
+all and count as wrong). The mark means "not compared yet", a reason
+to look at the correction, not a measured confidence; no band around
+the threshold is marked, because none was measured.
 
 Reading: telling the two people apart sentence by sentence with this
 voice model is weak (≈ 0.69 on telephone speech, ≈ 0.53 in the room);
 the slots carry the information and the check only has to say which
 slot is the employee. The far-field room (AMI) stays poor with every
-approach (0.53–0.66): Sortformer's slots there are much worse (DER
+approach (0.53–0.66 at 5 s): Sortformer's slots there are much worse (DER
 0.39 above), the check is taken in the middle of a four-person meeting
 and the two other people add confusions; corrections are the way out
 there.

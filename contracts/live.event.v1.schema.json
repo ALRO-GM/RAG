@@ -195,7 +195,7 @@
             "boolean",
             "null"
           ],
-          "description": "two-party mono session (#249): the attribution is not sure whose sentence this is"
+          "description": "two-party mono session (#249): the voice of this sentence has not been compared with the employee's voice check yet"
         },
         "language": {
           "type": [

@@ -1331,6 +1331,8 @@ export const en = {
   "live.voice.unsure": "not sure who is speaking",
   "live.voice.mine": "This is me",
   "live.voice.not_mine": "This is not me",
+  "live.voice.done_mine": "Corrected: that voice is yours",
+  "live.voice.done_not_mine": "Corrected: that voice is the other person's",
   "live.show_employee": "My lines",
   "live.show_other": "The other person's lines",
   "live.max_suggestions": "Suggestions in view",

@@ -231,8 +231,8 @@ class MonoSpeakers:
     ``labels`` are the anonymous ids of the slots, in slot order
     (:func:`slot_labels`). A two-party session (#249) gives every slot
     a name (the employee's or the other person's id), so no anonymous
-    label is ever shown, and marks the slots whose side is not sure
-    (``speaker_unsure``).
+    label is ever shown, and marks the slots whose voice has not been
+    compared with the employee's voice check yet (``speaker_unsure``).
     """
 
     def __init__(
@@ -281,7 +281,8 @@ class MonoSpeakers:
         return speaker, not pick.complete
 
     def unsure(self, slot: Optional[int]) -> bool:
-        """Tell whether ``slot``'s speaker is a close call (two-party)."""
+        """Tell whether ``slot``'s voice has not been compared with the
+        employee's voice check yet (two-party, ``speaker_unsure``)."""
         return slot is not None and slot in self._unsure
 
     def sent(
@@ -304,6 +305,13 @@ class MonoSpeakers:
         """Return the slot of the final ``ident`` (``None``: unknown)."""
         sent = self._sent.get(ident)
         return sent.slot if sent is not None else None
+
+    def settled_slot(self, ident: str) -> Optional[int]:
+        """Return the slot of final ``ident`` once its frames are complete."""
+        sent = self._sent.get(ident)
+        if sent is None or not sent.complete:
+            return None
+        return sent.slot
 
     def pinned(self) -> Dict[str, str]:
         """Return the speaker of every pinned final."""
@@ -381,7 +389,8 @@ class MonoSpeakers:
         """Give slots the enrolled ids ``names``; return the finals changed.
 
         Slots missing from ``names`` go back to their anonymous label.
-        ``unsure`` marks the slots whose speaker is a close call. A
+        ``unsure`` marks the slots whose voice has not been compared with
+        the voice check yet (``speaker_unsure``). A
         pinned final keeps its speaker.
         """
         self._names = {

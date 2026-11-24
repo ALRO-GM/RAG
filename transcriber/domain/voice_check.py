@@ -50,9 +50,10 @@ class VoiceCheckSettings(BaseModel):
     began, else it is ``short`` and the session keeps the diarizer's
     voices as before. A slot whose voice (its clean speech so far, at
     least ``slot_seconds``) is compared with the check: the nearest
-    slot, at ``match`` or more, is the employee's, and so is another
-    slot at ``split`` or more (one person split in two slots). The
-    values come from ``experiments/live/voice_check.py`` (see
+    slot, at ``match`` or more, is the employee's; with ``split`` set,
+    so is another slot at ``split`` or more (one person split in two
+    slots: off by default, it cost more than it gained in the
+    measurement). The values come from ``experiments/live/voice_check.py`` (see
     ``docs/live/MONO_DIARIZATION.md`` §"Voice check").
     """
 
@@ -62,8 +63,8 @@ class VoiceCheckSettings(BaseModel):
     min_seconds: float = Field(default=3.0, gt=0, le=30)
     wait_seconds: float = Field(default=20.0, gt=0, le=120)
     slot_seconds: float = Field(default=2.0, ge=0, le=60)
-    match: float = Field(default=0.93, ge=-1, le=1)
-    split: float = Field(default=0.97, ge=-1, le=1.01)
+    match: float = Field(default=0.86, ge=-1, le=1)
+    split: Optional[float] = Field(default=None, ge=-1, le=1)
 
 
 class VoiceCheck:
@@ -167,8 +168,8 @@ class PartySides:
     §"Voice check"): once slots have voice enough to compare
     (:meth:`voices`), the slot nearest to the check, at ``match`` or
     more, is the employee's, and every other slot the other person's,
-    unless its voice is as close as ``split`` (the diarizer split the
-    employee in two). Until a slot is compared, the slot that spoke
+    unless ``split`` is set and its voice is that close (the diarizer
+    split the employee in two). Until a slot is compared, the slot that spoke
     the check stands in for the employee (:meth:`recognise`). Before
     the check every slot is the other person's. A slot the employee
     corrected keeps that side.
@@ -250,6 +251,7 @@ class PartySides:
             elif named and slot == best:
                 known.side, known.source = "employee", "voice"
             elif named and known.score is not None \
+                    and self.settings.split is not None \
                     and known.score >= self.settings.split:
                 known.side, known.source = "employee", "split"
             elif not named and slot == self.check_slot \
