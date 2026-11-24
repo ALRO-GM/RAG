@@ -266,6 +266,12 @@ def test_the_report_and_the_voice_example_are_served() -> None:
     voice = live.demo_part(DEMO_ID, "voicebot")
     assert len(voice["exchanges"]) == 4
     assert voice["sources"] == report["sources"]
+    # The voice example keeps its own title and English texts, not the call's.
+    assert voice["title"] == "Hablar con el asistente de voz de Lumbre Hogar"
+    assert voice["en"]["title"].startswith("Talking to the")
+    assert voice["en"]["intro"].startswith("A customer talks")
+    assert report["title"].startswith("Llamada")
+    assert report["en"]["title"].startswith("Call")
 
 
 @pytest.mark.parametrize("demo_id,part", [
@@ -300,3 +306,34 @@ def test_the_demo_is_a_demo_session_a_real_one_can_replace() -> None:
     live = sessions()
     live.start_replay("demo-s", "", "", speed=None, demo=DEMO_ID)
     assert live.get("demo-s")["mode"] == "demo"
+
+
+def test_the_call_matches_what_the_knowledge_base_says() -> None:
+    demo = script()
+    text = " ".join(u.text for u in demo.transcript.utterances).lower()
+    # Lumbre Plus renews monthly (s17): no 12-month contract is offered.
+    assert "doce meses" not in text and "12 meses" not in text
+    sources = {s.id: s.text for s in demo.sources}
+    assert "se renueva cada mes" in sources["s17"].lower()
+    assert "no ha usado el envío gratuito" in text
+
+
+def test_sources_have_readable_titles_and_items_an_english_name() -> None:
+    demo = script()
+    assert all(s.title and s.en and s.en.get("title") for s in demo.sources)
+    assert all(not s.title.startswith("s") or " " in s.title
+               for s in demo.sources)
+    assert demo.mandatory is not None
+    assert all(i.en and i.en.get("text") for i in demo.mandatory.items)
+    assert demo.report is not None
+    late = next(m for m in demo.report.mandatory
+                if m.outcome == "said_late")
+    assert "derechos" in late.note and late.en
+    assert "rights" in late.en["note"]
+
+
+def test_the_cited_chunks_carry_their_title_to_the_page() -> None:
+    first = play()
+    cites = [m["record"]["retrieved"][0]["metadata"]["title"]
+             for m in first if m["type"] == "suggestion"]
+    assert cites[0] == "Baja antes de la renovación y devolución del cobro"

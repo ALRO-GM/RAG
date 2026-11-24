@@ -28,7 +28,7 @@ import {
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
-import { pickDemo, resultLink } from "../lib/call-demo.js";
+import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
 import { confirmStep } from "./candidate.js";
@@ -735,16 +735,18 @@ export async function liveView(ctx, root, [sub, which] = []) {
         guided ? h("span", { class: "live-say-label" }, t("live.say")) : null,
         h("p", { class: "lv-big" }, localized(card.suggestion, "text", lang)),
         card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: localized(card.suggestion, "example", lang) })) : null,
-        callSupport(card));
+        demo ? callSupport(card) : null);
     }
 
     // A support call's «Ahora» card (#250): what the customer expressed, quoted, and the
     // source in the knowledge base the suggestion comes from.
     function callSupport(card) {
-      const signalsRow = card.signals.length && state.discomfort()?.record !== card.record ? h("ul", { class: "lv-signals" }, card.signals.map((s) => h("li", {},
+      const extras = demoCardExtras(card, demo, state.discomfort()?.record);
+      const signalsRow = extras.signals.length ? h("ul", { class: "lv-signals" }, extras.signals.map((s) => h("li", {},
         h("span", { class: "tag warn" }, t(`live.signal.${s.signal}`)), " ", h("span", {}, t("live.customer_says")), " ", h("q", {}, s.quote)))) : null;
-      const sources = card.cites.length ? h("div", { class: "lv-sources" }, card.cites.map((c) => h("p", { class: "lv-source" },
-        h("span", { class: "lv-source-label" }, t("live.source_kb")), " ", c.text ?? t("live.source_missing")))) : null;
+      const sources = extras.sources.length ? h("div", { class: "lv-sources" }, extras.sources.map((c) => h("p", { class: "lv-source" },
+        h("span", { class: "lv-source-label" }, t("live.source_kb")), " ", c.text ?? t("live.source_missing"),
+        lang === "en" ? h("span", { class: "meta" }, " ", t("live.source_es")) : null))) : null;
       return signalsRow || sources ? h("div", { class: "lv-support" }, signalsRow, sources) : null;
     }
 

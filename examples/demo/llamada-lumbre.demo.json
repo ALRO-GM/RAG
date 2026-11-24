@@ -15,8 +15,8 @@
   {
    "after": "t1.s0",
    "kind": "answer",
-   "text": "Compruebe cuándo se dio de baja: una suscripción cancelada antes de su renovación no se cobra.",
-   "example": "Déjeme comprobar en su cuenta cuándo se registró la baja.",
+   "text": "Compruebe cuándo se dio de baja y si usó el envío gratis ese mes: una suscripción cancelada antes de su renovación no se cobra, y si se cobró sin usar el envío, se devuelve completa.",
+   "example": "Déjeme comprobar cuándo se registró la baja y si ha usado el envío gratuito este mes.",
    "script_phase": "diagnosis",
    "expressed": [
     "complaint",
@@ -26,8 +26,8 @@
     "s18"
    ],
    "en": {
-    "text": "Check when the subscription was cancelled: one cancelled before its renewal is not charged.",
-    "example": "Let me check in your account when the cancellation was registered."
+    "text": "Check when it was cancelled and whether free shipping was used that month: a subscription cancelled before its renewal is not charged, and if it was charged without using the shipping, it is refunded in full.",
+    "example": "Let me check when the cancellation was registered and whether you used the free shipping this month."
    }
   },
   {
@@ -104,8 +104,8 @@
   {
    "after": "t11.s0",
    "kind": "answer",
-   "text": "Ofrezca mantener Lumbre Plus y un vale del 10 % para la próxima compra, ya resuelto el cobro.",
-   "example": "Puede quedarse con el envío gratis, y le damos un vale del diez por ciento por las molestias.",
+   "text": "Ofrezca seguir con Lumbre Plus y un vale del 10 % para la próxima compra, ya resuelto el cobro.",
+   "example": "Puede seguir con el envío gratis, y le damos un vale del diez por ciento por las molestias.",
    "script_phase": "resolution",
    "expressed": [],
    "cites": [
@@ -113,7 +113,7 @@
     "s17"
    ],
    "en": {
-    "text": "Offer to keep Lumbre Plus and a 10 % voucher for the next purchase, now that the charge is solved.",
+    "text": "Offer to stay on Lumbre Plus and a 10 % voucher for the next purchase, now that the charge is solved.",
     "example": "You can keep the free shipping, and we give you a 10 % voucher for the trouble."
    }
   },
@@ -156,6 +156,10 @@
  "sources": [
   {
    "id": "s17",
+   "title": "Suscripción Lumbre Plus",
+   "en": {
+    "title": "Lumbre Plus subscription"
+   },
    "text": "La suscripción Lumbre Plus cuesta 3,99 euros al mes e incluye envíos gratuitos sin importe mínimo. Se renueva cada mes y puede cancelarse desde la zona de cliente en cualquier momento.",
    "metadata": {
     "intent": "billing",
@@ -168,6 +172,10 @@
   },
   {
    "id": "s18",
+   "title": "Baja antes de la renovación y devolución del cobro",
+   "en": {
+    "title": "Cancelling before renewal and refunding the charge"
+   },
    "text": "Una suscripción cancelada antes de su renovación no se cobra. Si se cobró una renovación y la persona no ha usado el envío gratuito en ese mes, se devuelve el cargo completo.",
    "metadata": {
     "intent": "billing",
@@ -180,6 +188,10 @@
   },
   {
    "id": "s20",
+   "title": "Cuándo llega un reembolso",
+   "en": {
+    "title": "When a refund arrives"
+   },
    "text": "El abono de un reembolso aparece en el extracto del banco en 3 a 10 días según la entidad. El agente puede facilitar el número de referencia de la operación para que el banco lo localice.",
    "metadata": {
     "intent": "billing",
@@ -192,6 +204,10 @@
   },
   {
    "id": "s42",
+   "title": "Queja repetida en varios contactos",
+   "en": {
+    "title": "A complaint repeated over several contacts"
+   },
    "text": "Si el cliente repite la misma queja en varios contactos, trátala como queja recurrente: consulta el historial completo del caso y no pidas que vuelva a explicarlo desde el principio.",
    "metadata": {
     "intent": "complaint",
@@ -204,6 +220,10 @@
   },
   {
    "id": "s43",
+   "title": "Frustración expresada",
+   "en": {
+    "title": "Expressed frustration"
+   },
    "text": "Cuando el cliente dice \"estoy harto\" o \"es la tercera vez que llamo\", la frustración es expresada. Reconoce la situación con una frase concreta como \"Entiendo que es la tercera vez\" y pasa a la solución sin excusas.",
    "metadata": {
     "intent": "stated_frustration",
@@ -216,6 +236,10 @@
   },
   {
    "id": "s46",
+   "title": "Resumen en tres puntos",
+   "en": {
+    "title": "A three-point summary"
+   },
    "text": "Un cliente que dice \"nadie me da una respuesta clara\" necesita un resumen en tres puntos: qué ha pasado, qué se va a hacer y cuándo. Evita términos internos y siglas.",
    "metadata": {
     "intent": "stated_frustration",
@@ -228,6 +252,10 @@
   },
   {
    "id": "s52",
+   "title": "Cliente que quiere cancelar Lumbre Plus",
+   "en": {
+    "title": "Customer who wants to cancel Lumbre Plus"
+   },
    "text": "Ante un cliente que quiere cancelar Lumbre Plus, ofrece primero resolver el motivo real. Si insiste, tramita la baja sin trabas y confirma por escrito que no habrá más cobros.",
    "metadata": {
     "intent": "churn_risk",
@@ -240,6 +268,10 @@
   },
   {
    "id": "s53",
+   "title": "Vale tras una mala experiencia",
+   "en": {
+    "title": "Voucher after a bad experience"
+   },
    "text": "Con riesgo de abandono tras una mala experiencia, el agente puede ofrecer un vale del 10 % para la próxima compra, siempre después de resolver el problema y nunca como sustituto de la solución.",
    "metadata": {
     "intent": "churn_risk",
@@ -252,6 +284,10 @@
   },
   {
    "id": "s54",
+   "title": "Cliente que dice que no vuelve a comprar",
+   "en": {
+    "title": "Customer who says they will not buy again"
+   },
    "text": "Cuando alguien dice \"ya es la última vez que compro aquí\", no lo discutas. Agradece que lo diga, repite el problema con tus palabras para confirmar que lo has entendido y propón una solución con fecha.",
    "metadata": {
     "intent": "churn_risk",
@@ -272,57 +308,69 @@
     "id": "aviso-datos",
     "text": "Aviso legal de protección de datos: quién trata los datos, para qué y los derechos del cliente",
     "phase": "opening",
-    "said_by": "t10.s0"
+    "said_by": "t10.s0",
+    "en": {
+     "text": "Legal data-protection notice: who processes the data, what for and the customer's rights"
+    }
    },
    {
     "id": "condiciones-contrato",
     "text": "Condiciones del contrato: precio, duración y permanencia",
     "phase": "resolution",
-    "said_by": "t12.s0"
+    "said_by": "t12.s0",
+    "en": {
+     "text": "Contract conditions: price, length and lock-in"
+    }
    },
    {
     "id": "desistimiento",
     "text": "Derecho de desistimiento de 14 días por ser una contratación a distancia",
     "phase": "closing",
-    "said_by": "t16.s0"
+    "said_by": "t16.s0",
+    "en": {
+     "text": "14-day right of withdrawal because it is a distance contract"
+    }
    },
    {
     "id": "aceptacion-expresa",
     "text": "Pedir la aceptación expresa de las condiciones antes de cerrar la contratación",
     "phase": "closing",
-    "said_by": null
+    "said_by": null,
+    "en": {
+     "text": "Ask for the express acceptance of the conditions before closing the contract"
+    }
    }
   ]
  },
  "report": {
   "summary": {
-   "result": "Andrés Ferrer llamó para darse de baja de Lumbre Plus por un cobro de más. Se le devolvió el cobro y se quedó con un contrato nuevo de doce meses, sin permanencia y con un vale del 10 %.",
+   "result": "Andrés Ferrer llamó para darse de baja de Lumbre Plus por un cobro de más. Se le devolvió el cobro y siguió con Lumbre Plus (mensual, sin permanencia) con un vale del 10 %.",
    "en": {
-    "result": "Andrés Ferrer called to cancel Lumbre Plus because of an extra charge. The charge was refunded and he stayed with a new twelve-month contract, no lock-in and a 10 % voucher."
+    "result": "Andrés Ferrer called to cancel Lumbre Plus because of an extra charge. The charge was refunded and he stayed on Lumbre Plus (monthly, no lock-in) with a 10 % voucher."
    },
    "strengths": [
     {
      "title": "Resolvió el cobro con una acción concreta",
-     "text": "Dio la razón sin discutir, devolvió el cobro en el momento y dio el plazo y la referencia del abono. El cliente pasó de amenazar con irse a apuntar la referencia.",
+     "text": "Dio la razón sin discutir, comprobó la baja y que no había usado el envío gratuito (la condición para devolver el cobro completo), lo devolvió en el momento y dio el plazo y la referencia. El cliente pasó de amenazar con irse a apuntar la referencia.",
      "about": [
       "t6.s0",
       "t8.s0"
      ],
      "en": {
       "title": "Solved the charge with a concrete action",
-      "text": "It agreed without arguing, refunded the charge at once and gave the term and the reference of the refund. The customer went from threatening to leave to writing the reference down."
+      "text": "It agreed without arguing, checked the cancellation and that free shipping had not been used (the condition for a full refund), refunded at once and gave the term and the reference. The customer went from threatening to leave to writing the reference down."
      }
     },
     {
      "title": "Ofreció una alternativa a la baja y la explicó claro",
-     "text": "Antes de tramitar la baja propuso quedarse con precio, duración y sin permanencia dichos en una frase, y contestó sin rodeos la duda sobre irse pronto.",
+     "text": "Antes de tramitar la baja propuso seguir con Lumbre Plus con precio, renovación mensual y salida libre dichos en una frase, y contestó sin rodeos la duda sobre irse pronto.",
      "about": [
       "t12.s0",
       "t14.s0"
      ],
      "en": {
       "title": "Offered an alternative to leaving and explained it clearly",
-      "text": "Before processing the cancellation it offered to stay, with price, length and no lock-in said in one sentence, and answered the doubt about leaving early without detours."
+      "text": "Before processing the cancellation it offered to stay on Lumbre Plus, with price, monthly renewal and free exit said in one sentence, and answered the doubt about leaving early without detours."
      }
     }
    ],
@@ -341,7 +389,7 @@
     },
     {
      "title": "Cerrar con todo lo obligatorio",
-     "text": "El aviso de datos se dijo tarde, no se pidió la aceptación expresa del contrato y la pregunta «¿me llegará algo por escrito?» se quedó sin respuesta.",
+     "text": "El aviso de datos se dijo tarde y sin los derechos del cliente, no se pidió la aceptación expresa del contrato y la pregunta «¿me llegará algo por escrito?» se quedó sin respuesta.",
      "about": [
       "t10.s0",
       "t15.s0",
@@ -349,7 +397,7 @@
      ],
      "en": {
       "title": "Close with everything that is mandatory",
-      "text": "The data notice was said late, the express acceptance of the contract was not asked and the question «will I get anything in writing?» was left unanswered."
+      "text": "The data notice was said late and without the customer's rights, the express acceptance of the contract was not asked and the question «will I get anything in writing?» was left unanswered."
      }
     }
    ]
@@ -388,9 +436,9 @@
     "utterance": "t6.s0",
     "effect": "helped",
     "reaction": "t7.s0",
-    "why": "Da la razón, pide disculpas, confirma la baja en el historial y devuelve el cobro. El cliente da las gracias y pasa a preguntar por el dinero.",
+    "why": "Da la razón, pide disculpas, confirma la baja y que no usó el envío gratuito (lo que exige la devolución completa) y devuelve el cobro. El cliente da las gracias y pasa a preguntar por el dinero.",
     "en": {
-     "why": "Agrees, apologises, confirms the cancellation in the history and refunds the charge. The customer says thanks and moves on to ask about the money."
+     "why": "Agrees, apologises, confirms the cancellation and that free shipping was not used (what a full refund requires) and refunds the charge. The customer says thanks and moves on to ask about the money."
     }
    },
    {
@@ -406,27 +454,27 @@
     "utterance": "t10.s0",
     "effect": "neutral",
     "reaction": "t11.s0",
-    "why": "Dice el aviso de datos, pero con la llamada ya avanzada: la página lo recordó antes. El cliente lo acepta sin más.",
+    "why": "Dice el aviso de datos con la llamada ya avanzada (la página lo recordó antes) y sin mencionar los derechos del cliente. Él lo acepta sin más.",
     "en": {
-     "why": "Says the data notice, but well into the call: the page had reminded it before. The customer accepts it without more."
+     "why": "Says the data notice well into the call (the page had reminded it before) and without mentioning the customer's rights. He accepts it without more."
     }
    },
    {
     "utterance": "t12.s0",
     "effect": "helped",
     "reaction": "t13.s0",
-    "why": "Ofrece quedarse con precio, duración y permanencia claros y un vale. El cliente se interesa y pregunta por las condiciones.",
+    "why": "Ofrece seguir con Lumbre Plus con precio, renovación mensual y salida libre claros, y un vale. El cliente se interesa y pregunta si se renueva sola y si puede irse.",
     "en": {
-     "why": "Offers to stay with price, length and lock-in clear, and a voucher. The customer is interested and asks about the conditions."
+     "why": "Offers to stay on Lumbre Plus with price, monthly renewal and free exit clear, and a voucher. The customer is interested and asks whether it renews by itself and whether he can leave."
     }
    },
    {
     "utterance": "t14.s0",
     "effect": "helped",
     "reaction": "t15.s0",
-    "why": "Responde a la duda sin rodeos: sin permanencia y se cancela cuando quiera. El cliente decide quedarse.",
+    "why": "Responde a la duda sin rodeos: se renueva cada mes y se cancela cuando quiera, sin cobro si es antes de renovar. El cliente decide seguir.",
     "en": {
-     "why": "Answers the doubt plainly: no lock-in and he can cancel whenever he wants. The customer decides to stay."
+     "why": "Answers the doubt plainly: it renews monthly and he can cancel whenever he wants, with no charge if before the renewal. The customer decides to stay."
     }
    },
    {
@@ -496,37 +544,37 @@
     },
     {
      "id": "resolver",
-     "name": "Resolver el cobro y dar plazo y referencia",
+     "name": "Comprobar las condiciones, devolver el cobro y dar plazo y referencia",
      "status": "followed",
      "about": [
       "t6.s0",
       "t8.s0"
      ],
      "en": {
-      "name": "Solve the charge and give term and reference"
+      "name": "Check the conditions, refund the charge and give term and reference"
      }
     },
     {
      "id": "alternativa",
-     "name": "Ofrecer una alternativa antes de tramitar la baja",
+     "name": "Ofrecer seguir con el servicio antes de tramitar la baja",
      "status": "followed",
      "about": [
       "t12.s0"
      ],
      "en": {
-      "name": "Offer an alternative before processing the cancellation"
+      "name": "Offer to stay on the service before processing the cancellation"
      }
     },
     {
      "id": "condiciones",
-     "name": "Leer las condiciones del contrato",
+     "name": "Decir las condiciones: precio, renovación y permanencia",
      "status": "followed",
      "about": [
       "t12.s0",
       "t14.s0"
      ],
      "en": {
-      "name": "Read the contract conditions"
+      "name": "Say the conditions: price, renewal and lock-in"
      }
     },
     {
@@ -618,13 +666,13 @@
     },
     {
      "id": "oferta",
-     "moment": "La oferta de quedarse",
+     "moment": "La oferta de seguir",
      "utterance": "t12.s0",
-     "top": "Puedo dejarlo sin cobros de más: doce meses, tres con noventa y nueve al mes y sin permanencia. ¿Le parece bien?",
+     "top": "Puede seguir con Lumbre Plus: tres con noventa y nueve al mes, se renueva cada mes y la cancela cuando quiera. Y le damos un vale del diez por ciento. ¿Le parece bien?",
      "why": "Dice lo importante en una frase corta y termina con una pregunta que el cliente puede contestar.",
      "en": {
       "moment": "The offer to stay",
-      "top": "I can leave it with no extra charges: twelve months, 3.99 a month and no lock-in. Does that sound good?",
+      "top": "You can stay on Lumbre Plus: 3.99 a month, it renews every month and you cancel whenever you want. And we give you a 10 % voucher. Does that sound good?",
       "why": "It says what matters in one short sentence and ends with a question the customer can answer."
      }
     },
@@ -647,18 +695,18 @@
     "item": "aviso-datos",
     "outcome": "said_late",
     "utterance": "t10.s0",
-    "note": "Se dijo a minuto y medio de empezar, después de que la página lo recordara.",
+    "note": "Se dijo a minuto y medio de empezar, después de que la página lo recordara, y sin los derechos del cliente (acceso, rectificación, supresión).",
     "en": {
-     "note": "It was said a minute and a half into the call, after the page had reminded it."
+     "note": "It was said a minute and a half into the call, after the page had reminded it, and without the customer's rights (access, rectification, erasure)."
     }
    },
    {
     "item": "condiciones-contrato",
     "outcome": "said",
     "utterance": "t12.s0",
-    "note": "Precio, duración y permanencia, en una frase.",
+    "note": "Precio mensual, renovación mensual y salida libre, en una frase.",
     "en": {
-     "note": "Price, length and lock-in, in one sentence."
+     "note": "Monthly price, monthly renewal and free exit, in one sentence."
     }
    },
    {
@@ -753,7 +801,7 @@
    "title": "Llamada de demostración · Baja por un cobro de más",
    "language": "es",
    "started_at": "2026-11-24T11:00:00+01:00",
-   "duration": 163.8,
+   "duration": 174.2,
    "audio_sha256": null,
    "type": "soporte",
    "goal": "Llamada ficticia de demostración de atención al cliente"
@@ -849,8 +897,8 @@
     "index": 0,
     "speaker": "agente",
     "start": 59.7,
-    "end": 71.93,
-    "text": "Tiene toda la razón, señor Ferrer, y le pido disculpas. Ya veo su baja del veintiocho de septiembre en el historial, así que esa renovación no debía cobrarse. Se la devuelvo ahora mismo.",
+    "end": 75.63,
+    "text": "Tiene toda la razón, señor Ferrer, y le pido disculpas. Ya veo su baja del veintiocho de septiembre y también que este mes no ha usado el envío gratuito, así que esa renovación no debía cobrarse y se la devuelvo completa ahora mismo.",
     "previous_speaker": "cliente",
     "previous_utterance": "t5.s0",
     "overlap": false
@@ -860,8 +908,8 @@
     "turn": 7,
     "index": 0,
     "speaker": "cliente",
-    "start": 72.83,
-    "end": 75.79,
+    "start": 76.53,
+    "end": 79.49,
     "text": "Bueno, gracias. ¿Y cuándo me llega el dinero?",
     "previous_speaker": "agente",
     "previous_utterance": "t6.s0",
@@ -872,8 +920,8 @@
     "turn": 8,
     "index": 0,
     "speaker": "agente",
-    "start": 76.69,
-    "end": 85.95,
+    "start": 80.39,
+    "end": 89.65,
     "text": "Entre tres y diez días, según su banco. Le doy la referencia de la operación para que puedan localizarla: erre, e, efe, siete, cuatro, dos.",
     "previous_speaker": "cliente",
     "previous_utterance": "t7.s0",
@@ -884,8 +932,8 @@
     "turn": 9,
     "index": 0,
     "speaker": "cliente",
-    "start": 86.85,
-    "end": 93.14,
+    "start": 90.55,
+    "end": 96.85,
     "text": "Vale, apunto. Pues entonces dé usted de baja todo lo demás, que ya estoy harto de esto.",
     "previous_speaker": "agente",
     "previous_utterance": "t8.s0",
@@ -896,8 +944,8 @@
     "turn": 10,
     "index": 0,
     "speaker": "agente",
-    "start": 94.04,
-    "end": 102.93,
+    "start": 97.75,
+    "end": 106.64,
     "text": "Se lo tramito, por supuesto. Antes, le informo de que Lumbre Hogar trata sus datos personales solo para gestionar esta llamada y su contrato.",
     "previous_speaker": "cliente",
     "previous_utterance": "t9.s0",
@@ -908,8 +956,8 @@
     "turn": 11,
     "index": 0,
     "speaker": "cliente",
-    "start": 103.83,
-    "end": 109.76,
+    "start": 107.54,
+    "end": 113.46,
     "text": "Sí, sí, adelante. Aunque me da pena, con lo bien que me venía el envío gratis.",
     "previous_speaker": "agente",
     "previous_utterance": "t10.s0",
@@ -920,9 +968,9 @@
     "turn": 12,
     "index": 0,
     "speaker": "agente",
-    "start": 110.66,
-    "end": 131.03,
-    "text": "Entonces, si le parece, puede quedarse con Lumbre Plus con un contrato nuevo de doce meses, a tres con noventa y nueve euros al mes fijos y sin permanencia. Además le damos un vale del diez por ciento para su próxima compra por las molestias. Como lo contrataría por teléfono, es un contrato a distancia.",
+    "start": 114.36,
+    "end": 136.59,
+    "text": "Entonces, si le parece, puede seguir con Lumbre Plus: son tres con noventa y nueve euros al mes, con envío gratis sin importe mínimo, se renueva cada mes y puede cancelarla cuando quiera. Además le damos un vale del diez por ciento para su próxima compra por las molestias. Como se lo confirmo por teléfono, es una contratación a distancia.",
     "previous_speaker": "cliente",
     "previous_utterance": "t11.s0",
     "overlap": false
@@ -932,9 +980,9 @@
     "turn": 13,
     "index": 0,
     "speaker": "cliente",
-    "start": 131.93,
-    "end": 135.63,
-    "text": "¿Doce meses? ¿Y si dentro de dos meses quiero irme?",
+    "start": 137.49,
+    "end": 142.3,
+    "text": "¿Se renueva sola cada mes? ¿Y si dentro de dos meses quiero irme?",
     "previous_speaker": "agente",
     "previous_utterance": "t12.s0",
     "overlap": false
@@ -944,9 +992,9 @@
     "turn": 14,
     "index": 0,
     "speaker": "agente",
-    "start": 136.53,
-    "end": 143.2,
-    "text": "No pasaría nada: no tiene permanencia y puede darse de baja cuando quiera desde su zona de cliente.",
+    "start": 143.2,
+    "end": 153.2,
+    "text": "Se renueva cada mes y puede darse de baja cuando quiera desde su zona de cliente; si lo hace antes de la renovación, no se le cobra.",
     "previous_speaker": "cliente",
     "previous_utterance": "t13.s0",
     "overlap": false
@@ -956,9 +1004,9 @@
     "turn": 15,
     "index": 0,
     "speaker": "cliente",
-    "start": 144.1,
-    "end": 148.17,
-    "text": "Entonces vale, me quedo con eso. ¿Me llegará algo por escrito?",
+    "start": 154.1,
+    "end": 157.8,
+    "text": "Entonces vale, sigo con eso. ¿Me llegará algo por escrito?",
     "previous_speaker": "agente",
     "previous_utterance": "t14.s0",
     "overlap": false
@@ -968,9 +1016,9 @@
     "turn": 16,
     "index": 0,
     "speaker": "agente",
-    "start": 149.07,
-    "end": 156.11,
-    "text": "Como lo contrata por teléfono, dispone de catorce días naturales para desistir sin dar ninguna explicación. Queda hecho, entonces.",
+    "start": 158.7,
+    "end": 166.48,
+    "text": "Como se lo hemos confirmado por teléfono, dispone de catorce días naturales para desistir sin dar ninguna explicación. Queda hecho, entonces.",
     "previous_speaker": "cliente",
     "previous_utterance": "t15.s0",
     "overlap": false
@@ -980,8 +1028,8 @@
     "turn": 17,
     "index": 0,
     "speaker": "cliente",
-    "start": 157.01,
-    "end": 158.61,
+    "start": 167.38,
+    "end": 168.98,
     "text": "Perfecto, pues muchas gracias.",
     "previous_speaker": "agente",
     "previous_utterance": "t16.s0",
@@ -992,8 +1040,8 @@
     "turn": 18,
     "index": 0,
     "speaker": "agente",
-    "start": 159.51,
-    "end": 162.84,
+    "start": 169.88,
+    "end": 173.21,
     "text": "A usted, señor Ferrer. Que tenga un buen día.",
     "previous_speaker": "cliente",
     "previous_utterance": "t17.s0",

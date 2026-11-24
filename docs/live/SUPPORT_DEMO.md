@@ -8,9 +8,14 @@ model. Company, agent, customer and every sentence are invented
 **The example in two lines.** Andrés Ferrer calls to cancel Lumbre Plus
 because the October renewal was charged after he cancelled in September;
 after a hurtful moment (he is asked to repeat his data for the third
-time) the charge is refunded and he stays on a new twelve-month contract
-with no lock-in. The agent says the data notice late, never asks for the
+time) the agent checks the two conditions of the knowledge base (cancelled
+before the renewal, free shipping not used that month), refunds the charge
+and he stays on the monthly Lumbre Plus with a 10 % voucher. The agent says
+the data notice late and without the customer's rights, never asks for the
 express acceptance and leaves «¿me llegará algo por escrito?» unanswered.
+Every offer is backed by the knowledge base (`support.demo` chunks s17,
+s18, s20, s43, s46, s52, s53, s54): Lumbre Plus renews monthly and can be
+cancelled any time, so no 12-month contract is offered.
 
 ## Where it is
 
@@ -24,7 +29,7 @@ express acceptance and leaves «¿me llegará algo por escrito?» unanswered.
 with extra optional parts (`sources`, `mandatory`, `report`,
 `voicebot`); the orchestrator serves the last two at
 `GET /demos/{id}/report` and `/voicebot` (proxied under
-`/api/assist/demos/...`). The call has 19 sentences and lasts 2 min 44 s.
+`/api/assist/demos/...`). The call has 19 sentences and its last sentence ends at 173 s (2 min 53 s).
 
 ## What is scripted, what works on a real call, what is missing
 
@@ -38,7 +43,7 @@ with extra optional parts (`sources`, `mandatory`, `report`,
 | Report: sentence by sentence (helped / neutral / hurt by the customer's next reaction, better wording) | written by hand | **not built**: nothing judges a line by the reaction today |
 | Report: reference script followed / skipped / reordered, and whether the script looks improvable | written by hand | **not built**: no reference script is stored for a call type and nothing aligns a call to one |
 | Report: top-scorer wording | **illustrative text written for the demo**, labelled so on the page; it is not from real agents and not a measurement | **not built** |
-| Report: mandatory items said / said late / never | consistent with the call (checked by a test) | the said / missing part is real data of the hand-off record; «late» is not computed |
+| Report: mandatory items said / said late / never | consistent with the call (checked by a test); the data notice is marked late **and incomplete** (the item asks for who, what for and the customer's rights; the agent's sentence has no rights) | the said / missing part is real data of the hand-off record; «late» and «incomplete» are not computed |
 | Report: customer questions left unanswered | written by hand | **not built** |
 | Voice assistant example | the answers are written; sources copied from the same domain | the real bot (`#/voicebot`) answers with the reasoner and the RAG |
 
@@ -71,8 +76,18 @@ was not measured.
 - The report's two strengths and two things to improve, and every row,
   point at lines of the call («Línea 5»); the chips open the full
   conversation at the foot of the page.
-- English is complete for the report and the voice example; the call
-  itself stays in Spanish, as the interview demo does.
+- **What is translated.** English: the report (all its texts and the
+  names of the mandatory items), the voice example's questions and
+  answers and the source titles, the live page's suggestions and every
+  label. **What is not:** the call's own sentences (the call is in
+  Spanish, as the interview demo); the text of the knowledge-base chunks
+  quoted as sources (live card and voice example), which quote a Spanish
+  knowledge base and carry the label «(source text, in Spanish)» on the
+  English page; the mandatory-items checklist on the live page, which
+  lists the domain's Spanish wording exactly as a real call does.
+- The top-scorer section is headed «Otras formas de decirlo (ejemplo)» /
+  «Other ways to say it (example)» and carries a note: the sentences are
+  written for the demo, not taken from real colleagues.
 - The demo video tool (`tools/demo_video`) keeps using the interview
   demo; it was not re-recorded.
 - Screenshots of a throwaway dev stack (fake models) are in

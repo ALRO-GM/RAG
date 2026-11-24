@@ -7,16 +7,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  lineNumbers, pickDemo, resultLink, sourcesOf, voiceDemo,
+  demoCardExtras, lineNumbers, pickDemo, resultLink, sourcesOf, voiceDemo,
 } from "../../transcriber/adapters/inbound/web/js/lib/call-demo.js";
 import {
-  callLines, effectCounts, isDemoReport, itemText, lineOf, mmss, outcomeCounts, stepCounts,
+  callLines, countParts, effectCounts, isDemoReport, itemText, lineOf, mmss, outcomeCounts, stepCounts,
 } from "../../transcriber/adapters/inbound/web/js/lib/call-report.js";
 import {
-  TIMING, abortableSleep, browserNarrator, play, readMs, stepsOf,
+  TIMING, abortableSleep, browserNarrator, narrationLimitMs, play, readMs, stepsOf,
 } from "../../transcriber/adapters/inbound/web/js/lib/voice-demo.js";
 import { SERVICES } from "../../transcriber/adapters/inbound/web/js/lib/home.js";
 import { crumbsFor } from "../../transcriber/adapters/inbound/web/js/lib/shell.js";
+import { t as tr, setLanguage } from "../../transcriber/adapters/inbound/web/js/i18n.js";
 import { LiveState, citations, signalLines } from "../../transcriber/adapters/inbound/web/js/lib/live.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -244,4 +245,71 @@ test("every word the new pages use exists in both languages", () => {
   for (const s of ["followed", "reordered", "skipped"]) assert.ok(es[`report.step.${s}`] && en[`report.step.${s}`]);
   for (const o of ["said", "said_late", "never"]) assert.ok(es[`report.outcome.${o}`] && en[`report.outcome.${o}`]);
   for (const g of ["question", "data"]) assert.ok(es[`report.gap.${g}`] && en[`report.gap.${g}`]);
+});
+
+test("a real session's card gets no source block, a scripted demo's does", () => {
+  const state = new LiveState();
+  for (const m of feed()) state.apply(m);
+  const card = state.cards()[0];
+  assert.ok(card.cites.length);
+  assert.deepEqual(demoCardExtras(card, null), { signals: [], sources: [] });
+  assert.deepEqual(demoCardExtras(card, undefined, state.records[0]), { signals: [], sources: [] });
+  const demo = demoCardExtras(card, LISTED[1]);
+  assert.equal(demo.sources[0].id, "s18");
+  assert.equal(demo.signals.length, 2);
+  // The banner already quotes a discomfort signal of the same record: not repeated.
+  assert.deepEqual(demoCardExtras(card, LISTED[1], card.record).signals, []);
+  assert.equal(demoCardExtras(null, LISTED[1]).sources.length, 0);
+  // And the view only asks for it in a demo.
+  assert.match(read(`${WEB}views/live.js`), /demo \? callSupport\(card\) : null/);
+});
+
+test("counts use the singular and the plural of each language", () => {
+  const spanish = (key, p) => es[key].replace("{n}", p.n);
+  assert.deepEqual(countParts(spanish, [["report.n_hurt", 1], ["report.n_hurt", 2]]), ["1 perjudicó", "2 perjudicaron"]);
+  assert.deepEqual(countParts(spanish, [["report.n_late", 1], ["report.n_said", 1], ["report.n_said", 3]]), ["1 dicho tarde", "1 dicho a tiempo", "3 dichos a tiempo"]);
+  assert.deepEqual(countParts(spanish, [["report.n_helped", 1], ["report.n_neutral", 3], ["report.n_skipped", 1]]), ["1 ayudó", "3 neutras", "1 omitido"]);
+  for (const key of Object.keys(es).filter((k) => /^report\.n_.*_one$/.test(k))) {
+    const other = key.replace(/_one$/, "_other");
+    assert.ok(es[other] && en[key] && en[other], key);
+  }
+  const english = (key, p) => en[key].replace("{n}", p.n);
+  assert.deepEqual(countParts(english, [["report.n_hurt", 1], ["report.n_late", 2]]), ["1 hurt", "2 said late"]);
+  setLanguage("es");
+  assert.match(tr("report.counts", { parts: "1 ayudó" }), /1 ayudó/);
+});
+
+test("mandatory item names and source titles have an English version", () => {
+  assert.match(itemText("aviso-datos", DATA.mandatory_items, "en"), /^Legal data-protection notice/);
+  assert.match(itemText("aviso-datos", DATA.mandatory_items, "es"), /^Aviso legal/);
+  assert.equal(itemText("aviso-datos", [{ id: "aviso-datos", text: "x" }], "en"), "x");
+  const [step] = stepsOf(VOICE, DEMO.sources, "en").filter((x) => x.kind === "bot");
+  assert.equal(step.sources[0].title, "Cancelling before renewal and refunding the charge");
+  assert.equal(stepsOf(VOICE, DEMO.sources, "es").find((x) => x.kind === "bot").sources[0].title, "Baja antes de la renovación y devolución del cobro");
+  assert.ok(DEMO.sources.every((x) => x.title && x.en?.title));
+  assert.match(es["report.top_title"], /\(ejemplo\)/);
+  assert.match(en["report.top_title"], /\(example\)/);
+  assert.equal(es["live.source_es"] !== "", true);
+  assert.match(en["live.source_es"], /in Spanish/);
+});
+
+test("a voice that never reports its end cannot hang the example", async () => {
+  assert.equal(narrationLimitMs("a b c"), TIMING.minRead * 3 + 3000);
+  let fire = null;
+  let cancelled = 0;
+  const synth = { getVoices: () => [{ lang: "es-ES" }], speak() {}, cancel() { cancelled += 1; } };
+  class Utter { constructor(text) { this.text = text; } }
+  const narrator = browserNarrator(synth, Utter, "es", { schedule: (fn, ms) => { fire = { fn, ms }; return 1; }, cancel: () => {} });
+  const pending = narrator.speak("hola que tal");
+  assert.equal(fire.ms, narrationLimitMs("hola que tal"));
+  fire.fn();
+  assert.equal(await pending, false);
+  assert.equal(cancelled, 1);
+});
+
+test("the voice example does not announce each step twice", () => {
+  const view = read(`${WEB}views/voice-demo.js`);
+  assert.doesNotMatch(view, /vd-talk[^\n]*aria-live/);
+  assert.match(view, /role: "status"/);
+  assert.doesNotMatch(view, /h\("code", \{\}, s\.id\)/);
 });

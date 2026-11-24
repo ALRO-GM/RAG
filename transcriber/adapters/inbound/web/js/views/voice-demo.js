@@ -34,7 +34,7 @@ export async function voiceDemoView(ctx, root, demoId) {
   let closed = false;
   let sound = Boolean(narrator);
 
-  const talk = h("ol", { class: "vd-talk", "aria-label": t("vdemo.talk"), "aria-live": "polite" });
+  const talk = h("ol", { class: "vd-talk", "aria-label": t("vdemo.talk") });
   const status = h("p", { class: "hint", role: "status" });
   const start = h("button", { type: "button", class: "primary big", onClick: () => run() }, icon("play"), t("vdemo.start"));
   const stop = h("button", { type: "button", hidden: true, onClick: () => halt() }, icon("stop"), t("vdemo.stop"));
@@ -62,8 +62,8 @@ export async function voiceDemoView(ctx, root, demoId) {
     } else {
       talk.querySelector(".vd-thinking")?.remove();
       talk.append(h("li", { class: "vd-turn is-bot" }, h("span", { class: "vd-who" }, t("voicebot.bot")), h("span", { class: "vd-text" }, step.text),
-        step.sources.length ? h("span", { class: "vd-sources" }, h("span", { class: "cr-label" }, t("vdemo.sources")),
-          step.sources.map((s) => h("details", { open: true }, h("summary", {}, t("live.source"), " ", h("code", {}, s.id)), h("p", {}, s.text)))) : null));
+        step.sources.length ? h("span", { class: "vd-sources" }, h("span", { class: "cr-label" }, t("vdemo.sources"), lang === "en" ? ` ${t("live.source_es")}` : ""),
+          step.sources.map((s) => h("details", { open: true }, h("summary", {}, t("live.source"), ": ", s.title), h("p", {}, s.text)))) : null));
     }
     talk.lastElementChild?.scrollIntoView?.({ block: "nearest" });
     status.textContent = step.kind === "bot" ? t("vdemo.speaking") : step.kind === "thinking" ? t("voicebot.thinking") : t("vdemo.listening");

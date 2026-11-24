@@ -136,7 +136,7 @@ class ScriptedAssist:
         by_id = {s.id: s for s in self.script.sources}
         return [
             {"id": c, "text": by_id[c].text, "score": None,
-             "metadata": dict(by_id[c].metadata)}
+             "metadata": {**by_id[c].metadata, "title": by_id[c].title}}
             for c in cites if c in by_id
         ]
 

@@ -58,11 +58,21 @@ export function outcomeCounts(report) {
  * The text of a mandatory item: from the demo's list of items when it is there
  * (the one the live page showed), else the id.
  */
-export function itemText(id, items) {
-  return (items ?? []).find((i) => i.id === id)?.text ?? id;
+export function itemText(id, items, language = "es") {
+  const item = (items ?? []).find((i) => i.id === id);
+  return (language === "en" && item?.en?.text) || item?.text || id;
 }
 
 /** Whether the report may be drawn: its demo flag is set and it has the five parts. */
 export function isDemoReport(data) {
   return Boolean(data?.demo === true && data.summary && data.lines_review?.length && data.script && data.top_scorers && data.mandatory);
+}
+
+/**
+ * A count sentence with the right singular or plural of each part:
+ * `parts` are [key, n] and the dictionary has `<key>_one` and `<key>_other`
+ * («1 perjudicó», «2 perjudicaron»); the sentence is built by `join`.
+ */
+export function countParts(t, parts) {
+  return parts.map(([key, n]) => t(`${key}_${n === 1 ? "one" : "other"}`, { n }));
 }

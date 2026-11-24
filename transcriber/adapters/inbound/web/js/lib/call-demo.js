@@ -36,3 +36,13 @@ export function sourcesOf(ids, sources) {
   const byId = new Map((sources ?? []).map((s) => [s.id, s]));
   return (ids ?? []).filter((id) => byId.has(id)).map((id) => ({ id, text: byId.get(id).text }));
 }
+
+/**
+ * What a scripted support demo adds to the «Ahora» card (#250): the signals not already in the
+ * discomfort banner and the cited sources. A real session (no `demo`) gets nothing extra.
+ */
+export function demoCardExtras(card, demo, discomfortRecord = null) {
+  if (!demo) return { signals: [], sources: [] };
+  const signals = discomfortRecord && discomfortRecord === card?.record ? [] : card?.signals ?? [];
+  return { signals, sources: card?.cites ?? [] };
+}

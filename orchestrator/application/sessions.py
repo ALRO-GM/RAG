@@ -544,8 +544,10 @@ class LiveSessions:
         if found is None:
             raise SessionError("not_found", f"demo {demo_id!r} has no {part}")
         body: Document = found.model_dump(mode="json", exclude_none=True)
-        body.update({"demo": True, "id": script.id, "title": script.title,
-                     "note": script.note, "en": dict(script.en or {}),
+        if part == "report":
+            # The voice example keeps its own title and English texts.
+            body.update({"title": script.title, "en": dict(script.en or {})})
+        body.update({"demo": True, "id": script.id, "note": script.note,
                      "sources": [s.model_dump(mode="json")
                                  for s in script.sources],
                      "mandatory_items": [

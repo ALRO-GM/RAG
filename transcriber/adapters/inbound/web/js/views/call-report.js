@@ -13,7 +13,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { localized } from "../lib/live.js";
 import {
-  callLines, effectCounts, isDemoReport, itemText, lineOf, outcomeCounts, stepCounts,
+  callLines, countParts, effectCounts, isDemoReport, itemText, lineOf, outcomeCounts, stepCounts,
 } from "../lib/call-report.js";
 import { emptyState, icon, pageHead } from "../ui.js";
 
@@ -102,7 +102,7 @@ function summarySection(data, chips) {
   return h("section", { class: "card cr-section", "aria-labelledby": "cr-summary" },
     h("h2", { id: "cr-summary" }, t("report.summary")),
     h("p", { class: "cr-result" }, localized(s, "result", lang)),
-    h("p", { class: "hint" }, t("report.counts", { helped: counts.helped, neutral: counts.neutral, hurt: counts.hurt })),
+    h("p", { class: "hint" }, t("report.counts", { parts: countParts(t, [["report.n_helped", counts.helped], ["report.n_neutral", counts.neutral], ["report.n_hurt", counts.hurt]]).join(", ") })),
     h("div", { class: "cr-two" },
       h("div", {}, h("h3", {}, t("report.strengths")), h("ul", { class: "cr-points" }, s.strengths.map((p) => point(p, "strength")))),
       h("div", {}, h("h3", {}, t("report.improve")), h("ul", { class: "cr-points" }, s.improve.map((p) => point(p, "improve"))))));
@@ -128,7 +128,7 @@ function scriptSection(data, chips) {
   const counts = stepCounts(data);
   const verdict = script.verdict;
   return section("script", t("report.script_title"), t("report.script_hint", { name: localized(script, "name", lang) }),
-    h("p", { class: "hint" }, t("report.script_counts", { followed: counts.followed, reordered: counts.reordered, skipped: counts.skipped })),
+    h("p", { class: "hint" }, t("report.script_counts", { parts: countParts(t, [["report.n_followed", counts.followed], ["report.n_reordered", counts.reordered], ["report.n_skipped", counts.skipped]]).join(", ") })),
     h("ol", { class: "cr-steps" }, script.steps.map((s) => h("li", { class: `cr-step is-${s.status}` },
       h("span", { class: `cr-state is-${s.status}` }, icon(STEP_ICON[s.status]), t(`report.step.${s.status}`)),
       h("span", { class: "cr-step-text" }, h("strong", {}, localized(s, "name", lang)),
@@ -156,10 +156,10 @@ function leftSection(data, chips, quote) {
   const counts = outcomeCounts(data);
   const gaps = data.unanswered ?? [];
   return section("left", t("report.left_title"), t("report.left_hint"),
-    h("p", { class: "hint" }, t("report.left_counts", { said: counts.said, late: counts.said_late, never: counts.never })),
+    h("p", { class: "hint" }, t("report.left_counts", { parts: countParts(t, [["report.n_said", counts.said], ["report.n_late", counts.said_late], ["report.n_never", counts.never]]).join(", ") })),
     h("ul", { class: "cr-items" }, data.mandatory.map((m) => h("li", { class: `cr-item is-${m.outcome}` },
       h("span", { class: `cr-state is-${m.outcome}` }, icon(OUTCOME_ICON[m.outcome]), t(`report.outcome.${m.outcome}`)),
-      h("span", { class: "cr-step-text" }, h("strong", {}, itemText(m.item, data.mandatory_items)),
+      h("span", { class: "cr-step-text" }, h("strong", {}, itemText(m.item, data.mandatory_items, lang)),
         h("span", { class: "hint" }, " · ", localized(m, "note", lang))),
       chips(m.utterance ? [m.utterance] : [])))),
     h("h3", {}, t("report.unanswered_title")),

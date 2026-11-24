@@ -24,7 +24,9 @@ export function stepsOf(demo, sources, language = "es") {
     steps.push({ kind: "thinking", index, text: "" });
     steps.push({
       kind: "bot", index, text: pick(e, "bot"),
-      sources: (e.cites ?? []).filter((id) => byId.has(id)).map((id) => ({ id, text: byId.get(id).text })),
+      sources: (e.cites ?? []).filter((id) => byId.has(id)).map((id) => ({
+        id, text: byId.get(id).text, title: (language === "en" && byId.get(id).en?.title) || byId.get(id).title || id,
+      })),
     });
   });
   return steps;
@@ -57,6 +59,11 @@ export async function play(steps, { show, narrate = null, sleep, signal = null }
   }
 }
 
+/** Longest wait for a voice to report its end: three times the reading time plus a few seconds, in ms. */
+export function narrationLimitMs(text) {
+  return readMs(text, TIMING.perWordBot) * 3 + 3000;
+}
+
 /** A sleep that rejects with an AbortError when `signal` aborts. */
 export function abortableSleep(signal, schedule = setTimeout, cancel = clearTimeout) {
   return (ms) => new Promise((resolve, reject) => {
@@ -81,23 +88,34 @@ export function abortableSleep(signal, schedule = setTimeout, cancel = clearTime
  * browser and no server voice, GPU or session is used), or null when the
  * browser has none. `speak(text)` resolves true when the voice ended.
  */
-export function browserNarrator(synth, Utterance, language = "es") {
+export function browserNarrator(synth, Utterance, language = "es", { schedule = setTimeout, cancel = clearTimeout } = {}) {
   if (!synth || typeof Utterance !== "function") return null;
   const tag = language === "en" ? "en" : "es";
   return {
     speak(text) {
       return new Promise((resolve) => {
+        // A browser whose voice never reports the end must not hang the example.
+        const limit = narrationLimitMs(text);
+        let timer = null;
+        const finish = (ok) => {
+          cancel(timer);
+          resolve(ok);
+        };
+        timer = schedule(() => {
+          synth.cancel?.();
+          resolve(false);
+        }, limit);
         const u = new Utterance(text);
         const voices = synth.getVoices?.() ?? [];
         const voice = voices.find((v) => String(v.lang).toLowerCase().startsWith(tag === "es" ? "es-es" : "en")) ?? voices.find((v) => String(v.lang).toLowerCase().startsWith(tag));
         if (!voice && voices.length) {
-          resolve(false); // voices are loaded and none speaks this language: the text stays on screen
+          finish(false); // voices are loaded and none speaks this language: the text stays on screen
           return;
         }
         if (voice) u.voice = voice;
         u.lang = voice?.lang ?? (tag === "es" ? "es-ES" : "en-GB");
-        u.onend = () => resolve(true);
-        u.onerror = () => resolve(false);
+        u.onend = () => finish(true);
+        u.onerror = () => finish(false);
         synth.speak(u);
       });
     },

@@ -85,8 +85,13 @@ class DemoSource(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    """A short readable name of the chunk, shown instead of its id."""
     text: str = Field(min_length=1)
+    """The chunk as the knowledge base has it (Spanish)."""
     metadata: Dict[str, object] = Field(default_factory=dict)
+    en: Optional[Dict[str, str]] = None
+    """``title`` in English; the text stays as the knowledge base has it."""
 
 
 class DemoMandatoryItem(BaseModel):
@@ -97,6 +102,8 @@ class DemoMandatoryItem(BaseModel):
     id: str = Field(min_length=1)
     text: str = Field(min_length=1)
     phase: Optional[str] = None
+    en: Optional[Dict[str, str]] = None
+    """``text`` in English, for the report."""
     said_by: Optional[str] = None
     """The agent sentence that says it; none: the agent never says it."""
 
