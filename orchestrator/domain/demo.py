@@ -37,6 +37,8 @@ class DemoTopic(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     covered_by: str
+    en: Optional[Dict[str, str]] = None
+    """The same texts in English (``name``), for a page in English."""
 
 
 class DemoSuggestion(BaseModel):
@@ -49,6 +51,8 @@ class DemoSuggestion(BaseModel):
     text: str = Field(min_length=1)
     example: Optional[str] = None
     script_phase: Optional[str] = None
+    en: Optional[Dict[str, str]] = None
+    """``text`` and ``example`` in English (the conversation stays Spanish)."""
 
 
 class DemoAvoid(BaseModel):
@@ -61,6 +65,8 @@ class DemoAvoid(BaseModel):
     title: str = Field(min_length=1)
     why: str = Field(min_length=1)
     alternative: str = Field(min_length=1)
+    en: Optional[Dict[str, str]] = None
+    """``title``, ``why`` and ``alternative`` in English."""
 
 
 class DemoScript(BaseModel):
@@ -75,6 +81,8 @@ class DemoScript(BaseModel):
     product: str
     title: str
     candidate: str
+    en: Optional[Dict[str, str]] = None
+    """``title`` and ``note`` in English."""
     result_session: Optional[str] = Field(
         default=None, pattern=r"^demo-[A-Za-z0-9._-]{1,59}$"
     )
@@ -104,7 +112,7 @@ class DemoScript(BaseModel):
             "id": self.id, "demo": True, "title": self.title,
             "candidate": self.candidate, "product": self.product,
             "seconds": round(last, 1), "result_session": self.result_session,
-            "note": self.note,
+            "note": self.note, "en": dict(self.en or {}),
         }
 
 

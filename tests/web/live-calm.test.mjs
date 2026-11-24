@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  INTERVIEW, LiveState, clockText, contentWords, echoes,
+  AVOID_HOLD_S, INTERVIEW, LiveState, clockText, contentWords, echoes, holdLines, localized,
 } from "../../transcriber/adapters/inbound/web/js/lib/live.js";
 import { SERVICES } from "../../transcriber/adapters/inbound/web/js/lib/home.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -150,7 +150,7 @@ test("a rephrased flag gives way to a newer suggestion", () => {
 test("the home offers the sample interview and every new text is in both languages", () => {
   assert.equal(SERVICES.find((s) => s.id === "live").demo, "#/live/demo");
   for (const key of ["live.now", "live.avoid", "live.avoid_done", "live.now_used", "live.topics", "live.history",
-    "live.options", "live.end_result", "live.see_result", "live.scripted.title", "home.live.demo", "live.notice.avoid_unavailable"]) {
+    "live.options", "live.end_result", "live.see_result", "live.scripted.title", "home.live.demo", "live.notice.avoid_no_rules", "live.notice.avoid_unreachable"]) {
     assert.ok(es[key], key);
     assert.ok(en[key], key);
   }
@@ -158,4 +158,36 @@ test("the home offers the sample interview and every new text is in both languag
   assert.equal(es["live.avoid_done"], "Reformulado");
   // Hints are about the question: no word rates the candidate.
   for (const text of [es["live.avoid_hint"], en["live.avoid_hint"]]) assert.match(text, /no|not/);
+});
+
+test("a flag never rephrased steps aside after a while or for a newer suggestion", () => {
+  const flag = { utterance: "u1", category: "age", title: "Edad", why: "w", alternative: "a", state: "flagged", at: 10 };
+  const state = new LiveState();
+  state.apply({ type: "session", session: { page: PAGE } });
+  state.apply({ type: "avoid", flags: [flag] });
+  state.apply(event("final", { id: "u1", speaker: "entrevistador", text: "¿Qué edad tienes?", start: 10, end: 12 }));
+  assert.equal(nowLabel(state), "avoid:age");
+  state.apply(event("final", { id: "u2", speaker: "candidata", text: "Prefiero no decirlo.", start: 13, end: 10 + AVOID_HOLD_S + 1 }));
+  assert.equal(nowLabel(state), "idle");
+  assert.equal(state.flagsOf("u1").length, 1); // the line keeps its label
+  const again = new LiveState();
+  again.apply({ type: "session", session: { page: PAGE } });
+  again.apply({ type: "avoid", flags: [flag] });
+  again.apply(record(1, { id: "u1", end: 12 }, { kind: "question", text: "Pregunta por Python" }));
+  assert.equal(nowLabel(again), "Pregunta por Python");
+});
+
+test("demo texts follow the page's language and a name being typed holds the lines", () => {
+  const item = { text: "Pregunta", en: { text: "Ask" } };
+  assert.equal(localized(item, "text", "en"), "Ask");
+  assert.equal(localized(item, "text", "es"), "Pregunta");
+  assert.equal(localized({ text: "Solo" }, "text", "en"), "Solo");
+  assert.equal(localized(null, "text", "en"), "");
+  const input = { classList: { contains: (c) => c === "live-name-input" } };
+  const button = { classList: { contains: () => false } };
+  assert.equal(holdLines(input), true);
+  assert.equal(holdLines(button), false); // clicking a name button must draw the input
+  assert.equal(holdLines(null), false);
+  assert.ok(DEMO.suggestions.every((x) => x.en?.text && x.en?.example));
+  assert.ok(DEMO.topics.every((x) => x.en?.name) && DEMO.avoid.every((x) => x.en?.why) && DEMO.en?.title);
 });

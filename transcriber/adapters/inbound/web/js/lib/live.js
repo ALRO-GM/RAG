@@ -30,6 +30,8 @@ export const EMPLOYEE_ROLES = ["agent", "interviewer"];
 export const DISCOMFORT = ["complaint", "stated_frustration", "churn_risk", "urgency"];
 /** Where the page remembers this browser's view choices. */
 export const PREFS_KEY = "ragputin.live.view";
+/** Seconds a line better avoided keeps the «Ahora» card if it is not rephrased (then only its label stays). */
+export const AVOID_HOLD_S = 30;
 /** Share of a suggestion's example words the employee must say for «Hecho». */
 export const ECHO_SHARE = 0.6;
 /** Words this short do not count when comparing an example with a line. */
@@ -108,6 +110,21 @@ export function echoes(example, line, share = ECHO_SHARE) {
   if (!wanted.length) return false;
   const said = new Set(contentWords(line));
   return wanted.filter((w) => said.has(w)).length / wanted.length >= share;
+}
+
+/**
+ * A text of a feed item in the page's language: `item.en[field]` on an
+ * English page when the item carries one (the scripted demo does), else
+ * `item[field]`.
+ */
+export function localized(item, field, language = "es") {
+  if (language === "en" && typeof item?.en?.[field] === "string" && item.en[field]) return item.en[field];
+  return item?.[field] ?? "";
+}
+
+/** Whether the conversation must not be redrawn now: a speaker's name is being typed there. */
+export function holdLines(focused) {
+  return Boolean(focused?.classList?.contains?.("live-name-input"));
 }
 
 /** Seconds as "mm:ss" (minutes keep counting past the hour). */
@@ -466,7 +483,10 @@ export class LiveState {
    */
   now() {
     const cards = this.cards();
-    const open = [...this.avoid].reverse().find((f) => f.state !== "rephrased");
+    // A flag left unrephrased steps aside after AVOID_HOLD_S or when a newer suggestion arrives.
+    const newerThan = (flag) => cards.some((c) => (this.arrived.get(c.record) ?? 0) > (this.arrived.get(flagKey(flag)) ?? 0));
+    const open = [...this.avoid].reverse().find((f) => f.state !== "rephrased"
+      && this.streamTime - (f.at ?? 0) <= AVOID_HOLD_S && !newerThan(f));
     if (open) return { kind: "avoid", flag: open, done: false };
     const rephrased = [...this.avoid].reverse().find((f) => f.state === "rephrased");
     if (rephrased) {
@@ -493,7 +513,7 @@ export class LiveState {
    * phase is done once a suggestion was about it.
    */
   topicChips() {
-    if (this.topics) return this.topics.map((x) => ({ id: x.id, name: x.name, done: Boolean(x.done) }));
+    if (this.topics) return this.topics.map((x) => ({ id: x.id, name: x.name, done: Boolean(x.done), ...(x.en ? { en: x.en } : {}) }));
     return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));
   }
 

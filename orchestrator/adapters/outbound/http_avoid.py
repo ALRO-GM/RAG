@@ -42,6 +42,8 @@ class HttpAvoid:
                 self.url, json={"text": text, "language": language},
                 headers=self.headers, timeout=self.timeout,
             )
+            if response.status_code == 404:
+                raise AvoidUnavailable("no interview rules", "no_rules")
             response.raise_for_status()
             body = response.json()
         except (httpx.HTTPError, ValueError) as exc:

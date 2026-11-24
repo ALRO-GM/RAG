@@ -107,7 +107,9 @@ export function conversationType(data) {
 /** The facts of the session header. */
 export function sessionFacts(id, run, data) {
   const interaction = data?.interaction ?? {};
-  const people = (interaction.per_speaker ?? []).length || (data?.reports?.people ?? []).length;
+  // Who took part: the interaction step, else the reports, else the assessment's team count.
+  const people = (interaction.per_speaker ?? []).length || (data?.reports?.people ?? []).length
+    || (typeof data?.assessment?.team?.speakers === "number" ? data.assessment.team.speakers : 0);
   return {
     recorded: recordedAt(id),
     analysed: isoDate(run?.finished_at ?? run?.started_at),
@@ -245,6 +247,8 @@ export function opinionOf(profile) {
     score: o.score,
     maximum,
     minimum,
+    // Stored results carry `percent` (from the unrounded mean since #232); the
+    // fallback from the one-decimal score is only for files without it.
     percent: typeof o.percent === "number" ? o.percent : Math.round(((o.score - minimum) / (maximum - minimum)) * 1000) / 10,
     verdict: VERDICTS.includes(o.verdict) ? o.verdict : "adequate",
     line: o.line ?? "",

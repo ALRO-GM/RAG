@@ -294,7 +294,16 @@ class DemoScripts(Protocol):
 
 
 class AvoidUnavailable(Exception):
-    """The check of questions better avoided could not be made."""
+    """The check of questions better avoided could not be made.
+
+    ``reason`` is ``no_rules`` (the RAG has no interview rules) or
+    ``unreachable`` (the RAG did not answer or answered wrongly).
+    """
+
+    def __init__(self, message: str, reason: str = "unreachable"):
+        """Keep the message and why."""
+        super().__init__(message)
+        self.reason = reason
 
 
 class AvoidPort(Protocol):

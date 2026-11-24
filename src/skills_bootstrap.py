@@ -639,9 +639,13 @@ class SkillsContainer:
         )
         from src.application.skills.demo_analysis import install_demos
 
+        import sys
+
         return install_demos(
             FileSystemAnalysisStore(self.settings.analysis_dir),
             read_demo_analyses(REPOSITORY_ROOT / "examples" / "demo"),
+            FileAnalysisLock(self.settings.analysis_dir),
+            report=lambda message: print(message, file=sys.stderr),
         )
 
     def session_outputs(self, transcripts_dir: str) -> SessionEraser:

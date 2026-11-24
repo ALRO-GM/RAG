@@ -9,7 +9,12 @@ import pytest
 from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
 from orchestrator.adapters.outbound.fs_demos import DirDemos
 from orchestrator.adapters.outbound.runtime import InlineExecutor
-from orchestrator.application.avoid import AvoidTracker
+from orchestrator.application.avoid import (
+    MAX_FAILURES,
+    NOTICES,
+    PAUSE_S,
+    AvoidTracker,
+)
 from orchestrator.application.ports import AvoidUnavailable, Document
 from orchestrator.application.replay import transcript_to_events
 from orchestrator.application.sessions import LiveSessions, SessionError
@@ -130,15 +135,52 @@ def test_a_line_given_to_the_interviewer_later_is_checked() -> None:
     assert port.asked == ["¿Qué edad tienes?"]
 
 
-def test_an_unavailable_check_turns_the_tracker_off_with_one_notice() -> None:
+def test_failures_rest_then_retry_and_each_cause_is_said_once() -> None:
+    port = FakeAvoid(fail=True)
     published: List[Document] = []
-    track = AvoidTracker(FakeAvoid(fail=True), {"S1": "interviewer"},
-                         published.append, InlineExecutor(), None)
+    track = AvoidTracker(port, {"S1": "interviewer"}, published.append,
+                         InlineExecutor(), None)
+    assert track.language == "es"
+    for i in range(MAX_FAILURES):
+        track.on_event(line(f"u{i}", "S1", "¿Qué edad tienes?", float(i)))
+    assert not track.available
+    assert [m["code"] for m in published] == ["avoid_unreachable"]
+    track.on_event(line("u8", "S1", "¿Qué edad tienes?", 10.0))
+    assert "u8" not in track._checked
+    port.fail = False
+    track.on_event(line("u9", "S1", "¿Qué edad tienes?", PAUSE_S + 5))
+    assert track.available and port.asked == ["¿Qué edad tienes?"]
+    assert published[-1]["type"] == "avoid"
+
+
+def test_missing_rules_say_so_and_one_failure_does_not_stop() -> None:
+    class NoRules(FakeAvoid):
+        def check(self, text: str, language: str) -> Document:
+            raise AvoidUnavailable("404", "no_rules")
+
+    published: List[Document] = []
+    track = AvoidTracker(NoRules(), {"S1": "interviewer"}, published.append,
+                         InlineExecutor())
     track.on_event(line("u1", "S1", "¿Qué edad tienes?"))
-    track.on_event(line("u2", "S1", "¿Y tu edad?"))
-    track._check("u3", "¿edad?", 0.0)
-    assert [m["code"] for m in published] == ["avoid_unavailable"]
-    assert not track.available and track.language == "es"
+    assert track.available
+    assert published == [{"type": "notice", "code": "avoid_no_rules",
+                          "message": NOTICES["no_rules"]}]
+
+
+def test_a_line_given_to_the_candidate_later_loses_its_flag() -> None:
+    published: List[Document] = []
+    track = AvoidTracker(FakeAvoid(), {"S1": "interviewer",
+                                       "S2": "candidate"},
+                         published.append, InlineExecutor())
+    track.on_event(line("u1", "S1", "¿Qué edad tienes?"))
+    assert track.view()[0]["utterance"] == "u1"
+    track.on_event(line("u1", "S2", "", kind="speaker_update"))
+    assert track.view() == [] and published[-1]["flags"] == []
+    ledger = AvoidLedger()
+    ledger.record("u1", 0.0, "¿Qué edad tienes?", [AGE])
+    ledger.record("u2", 3.0, "¿Y en Python?", [])
+    assert ledger.drop("u2") is False
+    assert ledger.flags[0].state == "flagged"
 
 
 # ---- the demo file and its replay -------------------------------------------
@@ -288,3 +330,31 @@ def test_a_new_demo_stops_the_one_still_playing() -> None:
     live.start_replay("demo-b", "", "", demo="entrevista-lucia")
     assert live.get("demo-a")["state"] == "ended"
     assert live.get("demo-b")["state"] == "running"
+
+
+def test_a_real_session_stops_a_playing_demo_but_not_the_reverse() -> None:
+    runner = InlineRunner(hold=True)
+
+    class RunningClock(Clock):
+        def sleep(self, seconds: float) -> None:
+            super().sleep(seconds)
+            while runner.jobs:
+                runner.jobs.pop(0)()
+
+    live = LiveSessions(
+        {"live_assist.interview": product("live_assist.interview")},
+        FakeKnowledge([]), FakeReasoner(),
+        Transcripts({"t": transcript()}), RunningClock(), runner,
+        InlineExecutor, demos=DirDemos(DEMOS),
+    )
+    live.start_replay("demo-a", "", "", demo="entrevista-lucia")
+    live.start_replay("real-1", "live_assist.interview", "t")
+    assert live.get("demo-a")["state"] == "ended"
+    assert live.get("real-1")["state"] == "running"
+    with pytest.raises(SessionError) as busy:
+        live.start_replay("demo-b", "", "", demo="entrevista-lucia")
+    assert busy.value.code == "busy"
+    assert live.get("real-1")["state"] == "running"
+    with pytest.raises(SessionError) as taken:
+        live.start_replay("real-1", "", "", demo="entrevista-lucia")
+    assert taken.value.code == "wrong_state"

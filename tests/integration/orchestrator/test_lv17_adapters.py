@@ -41,14 +41,18 @@ def test_sentences_go_to_the_rag_s_avoid_check() -> None:
     assert seen[0].headers["authorization"] == "Bearer tok"
 
 
-@pytest.mark.parametrize("response", [
-    httpx.Response(404), httpx.Response(200, text="nope"),
-    httpx.Response(200, json=[1]),
+@pytest.mark.parametrize("response, reason", [
+    (httpx.Response(404), "no_rules"), (httpx.Response(500), "unreachable"),
+    (httpx.Response(200, text="nope"), "unreachable"),
+    (httpx.Response(200, json=[1]), "unreachable"),
 ])
-def test_avoid_failures_are_one_exception(response: httpx.Response) -> None:
+def test_avoid_failures_are_one_exception(
+    response: httpx.Response, reason: str
+) -> None:
     port = HttpAvoid("http://rag:8000", client=client(lambda r: response))
-    with pytest.raises(AvoidUnavailable):
+    with pytest.raises(AvoidUnavailable) as failed:
         port.check("hola", "es")
+    assert failed.value.reason == reason
 
 
 def test_the_routes_list_and_play_the_demo() -> None:

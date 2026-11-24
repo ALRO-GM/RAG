@@ -196,3 +196,13 @@ def test_the_demo_flags_only_its_age_question() -> None:
             continue
         found = [h.category for h in rules.hints(line["text"], "es")]
         assert found == (["age"] if line["id"] in flagged else []), line
+
+
+def test_the_route_needs_the_token(client: TestClient) -> None:
+    answer = client.post("/knowledge/interview/avoid",
+                         json={"text": "¿Qué edad tienes?"})
+    assert answer.status_code == 401
+    wrong = client.post("/knowledge/interview/avoid",
+                        headers={"Authorization": "Bearer nope"},
+                        json={"text": "¿Qué edad tienes?"})
+    assert wrong.status_code == 401

@@ -546,6 +546,7 @@ class LiveSessions:
         if person is not None and speaker is not None:
             person = {**person, "role": roles[speaker], "speaker": speaker}
             names[speaker] = person["name"]
+        self._stop_demos()
         session = self._open(session_id, config, "replay", roles,
                              person if speaker else None, names)
         session.transcript = transcript_id
@@ -591,6 +592,12 @@ class LiveSessions:
         except KeyError as exc:
             raise SessionError("not_found", f"no demo {demo_id!r}") from exc
         config = self._product(script.product)
+        with self._lock:
+            taken = session_id in self._sessions
+        if taken:
+            raise SessionError(
+                "wrong_state", f"session {session_id!r} exists"
+            )
         self._stop_demos()
         roles = default_roles(config, script.transcript)
         names = {s.id: s.name for s in script.transcript.speakers
@@ -623,10 +630,11 @@ class LiveSessions:
         return session.view()
 
     def _stop_demos(self, wait_s: float = DEMO_STOP_S) -> None:
-        """Stop a demo still playing, so a new demo can start at once.
+        """Stop a demo still playing, so a new session can start at once.
 
         A demo left open in another tab would otherwise hold the one
-        session slot until it ends by itself (about a minute).
+        session slot until it ends by itself (about a minute). Only
+        demos are stopped: a real session is never stopped for anything.
         """
         with self._lock:
             playing = [s for s in self._sessions.values()
@@ -692,6 +700,7 @@ class LiveSessions:
                           if speaker else None)
         if plan is not None:
             self._check_plan(plan)
+        self._stop_demos()  # a demo never keeps a real session waiting
         session = self._open(session_id, config, "live", roles, person,
                              names)
         session.audio = audio

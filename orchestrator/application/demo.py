@@ -78,6 +78,8 @@ class ScriptedAssist:
                 suggestion["example"] = prepared.example
             if prepared.script_phase:
                 suggestion["script_phase"] = prepared.script_phase
+            if prepared.en:
+                suggestion["en"] = dict(prepared.en)
             self.sink.write(SuggestionRecord(
                 session_id=self.session_id, call=self.calls,
                 request_id=f"{self.session_id}-demo-{self.calls}"[:64],
@@ -89,7 +91,7 @@ class ScriptedAssist:
                 stages=Stages(),
             ))
         hints = [
-            a.model_dump(exclude={"utterance"})
+            a.model_dump(exclude={"utterance"}, exclude_none=True)
             for a in self.script.avoid if a.utterance == u.id
         ]
         if role == "interviewer" and self.ledger.record(
@@ -104,7 +106,8 @@ class ScriptedAssist:
     def _topics(self) -> None:
         """Publish every topic with whether it is covered."""
         self.publish({"type": "topics", "topics": [
-            {"id": t.id, "name": t.name, "done": t.id in self.covered}
+            {"id": t.id, "name": t.name, "done": t.id in self.covered,
+             **({"en": dict(t.en)} if t.en else {})}
             for t in self.script.topics
         ]})
 

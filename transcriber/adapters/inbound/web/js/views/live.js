@@ -18,12 +18,12 @@
 // never shows signals or ratings about the candidate.
 
 import { h, fill } from "../dom.js";
-import { t } from "../i18n.js";
+import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { setLeaveGuard } from "../device.js";
 import { LiveAudio } from "../live-audio.js";
 import {
-  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, latency, newSessionId, productKind,
+  AUDIO, LiveState, MAX_SUGGESTIONS, MODES, SPEEDS, clockText, holdLines, latency, localized, newSessionId, productKind,
   readPrefs, reminderDue, splitCards, viewPrefs, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
@@ -115,12 +115,14 @@ export async function liveView(ctx, root, [sub] = []) {
   async function startDemo(demo) {
     for (let i = 0; i < RESTART_TRIES; i += 1) {
       try {
-        const session = await ctx.api.startReplay(newSessionId("demo"), { demo: demo.id, speed: 1 });
+        // A few random letters: two demos started within one second get different ids.
+        const id = `${newSessionId("demo")}-${Math.random().toString(36).slice(2, 6) || "x"}`;
+        const session = await ctx.api.startReplay(id, { demo: demo.id, speed: 1 });
         if (!closed) showSession(session, null);
         return null;
       } catch (error) {
         if (error?.kind === "unauthorized") return ctx.fail(error);
-        if (error?.code !== "busy" || i === RESTART_TRIES - 1) {
+        if (!["busy", "wrong_state"].includes(error?.code) || i === RESTART_TRIES - 1) {
           if (!closed) showForm(liveError(error));
           return null;
         }
@@ -243,7 +245,8 @@ export async function liveView(ctx, root, [sub] = []) {
     const clock = h("span", { class: "lv-clock" });
     const liveDot = dot("avoid", "lv-pulse");
     const stop = h("button", { type: "button", onClick: () => end() }, icon("stop"), t("live.stop"));
-    const again = h("button", { type: "button", onClick: () => restart() }, icon("play"), t("live.replay_again"));
+    const again = h("button", { type: "button", class: "lv-icon-button", "aria-label": t("live.replay_again"), title: t("live.replay_again"), onClick: () => restart() },
+      icon("play"), h("span", { class: "lv-button-text" }, t("live.replay_again")));
     const toResult = resultHref ? h("a", {
       class: "button primary", href: resultHref,
       onClick: (e) => {
@@ -257,7 +260,7 @@ export async function liveView(ctx, root, [sub] = []) {
     const header = h("header", { class: "lv-head" },
       h("div", { class: "lv-meta" },
         h("span", { class: "lv-live" }, liveDot, clock),
-        h("strong", { class: "lv-title" }, demo?.title ?? t(`live.product.${productKind(state.page?.product)}`)),
+        h("strong", { class: "lv-title" }, demo ? localized(demo, "title", lang) : t(`live.product.${productKind(state.page?.product)}`)),
         otherName,
         demo ? h("span", { class: "type-chip" }, t("live.scripted.badge")) : null),
       h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
@@ -275,7 +278,7 @@ export async function liveView(ctx, root, [sub] = []) {
     const historyBody = h("div", { class: "lv-history" });
     const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
     const status = h("div", { class: "row wrap live-status", role: "status" });
-    const alerts = h("div", { class: "stack tight", "aria-live": "polite" });
+    const alerts = h("div", { class: "stack tight lv-alerts", "aria-live": "polite" });
     const banner = h("p", { class: "hint" }, maybe(`live.banner.${state.page?.banner}`, t("live.banner.default")));
 
     const showEmployee = h("input", { type: "checkbox", id: "live-show-employee", checked: prefs.showEmployee });
@@ -301,8 +304,8 @@ export async function liveView(ctx, root, [sub] = []) {
     const options = h("details", { class: "lv-more" },
       h("summary", {}, t("live.options")),
       h("div", { class: "lv-options" },
-        demo ? h("p", { class: "hint" }, t("live.scripted.note")) : null,
-        banner, status, alerts,
+        demo ? h("p", { class: "hint" }, localized(demo, "note", lang) || t("live.scripted.note")) : null,
+        banner, status,
         h("label", { class: "check" }, showEmployee, t("live.show_employee")),
         h("label", { class: "check" }, showOther, t("live.show_other")),
         h("label", { class: "row tight live-max", for: "live-max" }, t("live.max_suggestions"), maxSelect),
@@ -311,7 +314,8 @@ export async function liveView(ctx, root, [sub] = []) {
     const side = h("aside", { class: "lv-side" },
       h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, topics, checklist, history, options, summary);
 
-    root.append(header, h("div", { class: "lv-body" }, talk, side));
+    // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
+    root.append(header, alerts, h("div", { class: "lv-body" }, talk, side));
 
     let drawing = false;
     let reconnecting = false;
@@ -457,14 +461,14 @@ export async function liveView(ctx, root, [sub] = []) {
         const isNew = flags.length && !node.flags;
         node.flags = flags.map((f) => f.category).join(",");
         fill(node.label, nameTag(u.speaker),
-          flags.length ? h("span", { class: `lv-flag${isNew ? " lv-rise" : ""}`, title: flags.map((f) => f.title).join(" · ") },
+          flags.length ? h("span", { class: `lv-flag${isNew ? " lv-rise" : ""}`, title: flags.map((f) => localized(f, "title", lang)).join(" · ") },
             dot("avoid"), t("live.avoid")) : null);
       }
       return node.li;
     }
 
     function drawLines() {
-      if (editing && lines.contains(document.activeElement)) return; // keep the name being typed
+      if (editing && holdLines(document.activeElement)) return; // keep the name being typed
       const atEnd = lines.scrollHeight - lines.scrollTop - lines.clientHeight < 60;
       const all = state.lines();
       const shown = state.visibleLines(prefs);
@@ -514,16 +518,16 @@ export async function liveView(ctx, root, [sub] = []) {
         h("div", { class: "lv-card-head is-suggest" }, dot("suggest"), t("live.now_suggestion"),
           h("span", { class: "lv-badge done lv-rise", hidden: true }, icon("check"), t("live.now_used"))),
         guided ? h("span", { class: "live-say-label" }, t("live.say")) : null,
-        h("p", { class: "lv-big" }, card.suggestion.text),
-        card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: card.suggestion.example })) : null);
+        h("p", { class: "lv-big" }, localized(card.suggestion, "text", lang)),
+        card.suggestion.example ? h("p", { class: "lv-example" }, t("live.now_example", { text: localized(card.suggestion, "example", lang) })) : null);
     }
 
     function avoidCard(flag) {
       return h("div", { class: "lv-card lv-rise" },
-        h("div", { class: "lv-card-head is-avoid" }, dot("avoid"), `${t("live.avoid")} · ${flag.title}`,
+        h("div", { class: "lv-card-head is-avoid" }, dot("avoid"), `${t("live.avoid")} · ${localized(flag, "title", lang)}`,
           h("span", { class: "lv-badge done lv-rise", hidden: true }, icon("check"), t("live.avoid_done"))),
-        h("p", { class: "lv-big" }, flag.why),
-        h("div", { class: "lv-alt" }, h("span", { class: "lv-alt-label" }, t("live.avoid_alternative")), h("span", {}, flag.alternative)));
+        h("p", { class: "lv-big" }, localized(flag, "why", lang)),
+        h("div", { class: "lv-alt" }, h("span", { class: "lv-alt-label" }, t("live.avoid_alternative")), h("span", {}, localized(flag, "alternative", lang))));
     }
 
     function endCard() {
@@ -554,7 +558,7 @@ export async function liveView(ctx, root, [sub] = []) {
       topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: chips.filter((c) => c.done).length, all: chips.length });
       const row = topics.querySelector(".lv-chips");
       const wanted = chips.map((c) => {
-        const name = c.name ?? maybe(`live.phase.${c.phase}`, c.phase);
+        const name = c.name ? localized(c, "name", lang) : maybe(`live.phase.${c.phase}`, c.phase);
         const key = `${c.id}|${name}`;
         const kept = chipNodes.get(key);
         if (kept && kept.done === c.done) return kept.chip;
@@ -621,8 +625,8 @@ export async function liveView(ctx, root, [sub] = []) {
           h("span", { class: "tag accent" }, maybe(`live.kind.${c.suggestion.kind}`, c.suggestion.kind)),
           kind === "interview" && c.suggestion.script_phase ? h("span", { class: "tag" }, maybe(`live.phase.${c.suggestion.script_phase}`, c.suggestion.script_phase)) : null,
           state.used(c) ? h("span", { class: "lv-badge done" }, icon("check"), t("live.now_used")) : null),
-        h("p", { class: "live-text" }, c.suggestion.text),
-        c.suggestion.example ? h("p", { class: "hint" }, t("live.now_example", { text: c.suggestion.example })) : null,
+        h("p", { class: "live-text" }, localized(c.suggestion, "text", lang)),
+        c.suggestion.example ? h("p", { class: "hint" }, t("live.now_example", { text: localized(c.suggestion, "example", lang) })) : null,
         c.signals.length ? h("ul", { class: "live-signals" }, c.signals.map((s) => h("li", {},
           h("span", { class: "tag warn" }, t(`live.signal.${s.signal}`)), " ",
           h("span", {}, t("live.customer_says")), " ", h("q", {}, s.quote)))) : null,
@@ -653,11 +657,11 @@ export async function liveView(ctx, root, [sub] = []) {
           h("h3", {}, t("live.history_avoided")),
           h("p", { class: "hint" }, t("live.avoid_hint")),
           avoided.map((f) => h("article", { class: "lv-earlier" },
-            h("div", { class: "row wrap" }, h("span", { class: "lv-flag" }, dot("avoid"), `${t("live.avoid")} · ${f.title}`),
+            h("div", { class: "row wrap" }, h("span", { class: "lv-flag" }, dot("avoid"), `${t("live.avoid")} · ${localized(f, "title", lang)}`),
               f.state === "rephrased" ? h("span", { class: "lv-badge done" }, icon("check"), t("live.avoid_done")) : null),
             state.utterances.get(f.utterance) ? h("button", { type: "button", class: "ghost small", onClick: () => point(f.utterance) },
               `«${state.utterances.get(f.utterance).text}»`) : null,
-            h("p", {}, f.why), h("p", { class: "hint" }, f.alternative)))) : null);
+            h("p", {}, localized(f, "why", lang)), h("p", { class: "hint" }, localized(f, "alternative", lang))))) : null);
     }
 
     function drawDiscomfort() {

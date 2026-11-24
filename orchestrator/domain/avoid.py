@@ -38,6 +38,8 @@ class AvoidFlag(BaseModel):
     alternative: str = Field(min_length=1)
     state: FlagState = "flagged"
     rephrased_by: Optional[str] = None
+    en: Optional[Dict[str, str]] = None
+    """English texts of a prepared (demo) hint, if any."""
 
 
 def is_question(text: str) -> bool:
@@ -45,9 +47,9 @@ def is_question(text: str) -> bool:
     return "?" in text or "¿" in text
 
 
-def parse_hints(answer: Mapping[str, Any]) -> List[Dict[str, str]]:
+def parse_hints(answer: Mapping[str, Any]) -> List[Dict[str, Any]]:
     """Return the well-formed hints of a check's answer (others dropped)."""
-    found: List[Dict[str, str]] = []
+    found: List[Dict[str, Any]] = []
     for hint in answer.get("hints") or []:
         if not isinstance(hint, Mapping):
             continue
@@ -73,7 +75,7 @@ class AvoidLedger:
 
     def record(
         self, utterance: str, at: float, text: str,
-        hints: Sequence[Mapping[str, str]],
+        hints: Sequence[Mapping[str, Any]],
     ) -> bool:
         """Take the check of one line; return whether a flag changed."""
         changed = False
@@ -114,6 +116,16 @@ class AvoidLedger:
         flag.state = "rephrased"
         flag.rephrased_by = utterance
         return True
+
+    def drop(self, utterance: str) -> bool:
+        """Forget a line's flags (it was not the interviewer's after all)."""
+        before = len(self.flags)
+        self.flags = [f for f in self.flags if f.utterance != utterance]
+        self._clean = [c for c in self._clean if c[0] != utterance]
+        for flag in self.flags:
+            if flag.rephrased_by == utterance:
+                flag.state, flag.rephrased_by = "flagged", None
+        return len(self.flags) != before
 
     def view(self) -> List[Dict[str, Any]]:
         """Return every flag as JSON, oldest first."""

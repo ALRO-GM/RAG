@@ -582,7 +582,7 @@ tr.flag-nc th[scope="row"]::after { content: " (NC)"; color: var(--warn-text); f
 .service p { margin: 0; color: var(--muted); line-height: 1.5; }
 .service-icon { width: 3.5rem; height: 3.5rem; display: grid; place-items: center; border-radius: var(--r-lg); background: var(--active); color: var(--accent-ink); }
 .service-icon .icon { width: 1.75rem; height: 1.75rem; stroke-width: 1.6; }
-.service-links { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); }
+.service-links { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1); min-height: calc(var(--target) * 2 + var(--s-1)); }
 .service-go { align-self: flex-start; min-height: var(--target); padding: 0 var(--s-5); border-radius: var(--r-md); }
 .service-demo { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--target); font-weight: 500; }
 .service-demo .icon { width: 1em; height: 1em; }
@@ -1206,7 +1206,7 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .lv-chip { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 2.25rem; padding: 0 var(--s-3); border-radius: var(--r-full); border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-md); font-weight: 500; }
 .lv-chip.done { background: var(--done-bg); color: var(--done); border-color: transparent; }
-.lv-chip.is-button { cursor: pointer; }
+.lv-chip.is-button { cursor: pointer; text-align: left; }
 .lv-chip.is-button:hover, .lv-chip.is-button:focus-visible { border-color: var(--accent); color: var(--text); }
 .lv-count { font-variant-numeric: tabular-nums; }
 .lv-empty { padding: var(--s-2) 0; }
@@ -1228,6 +1228,18 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-recorded { align-self: start; }
 .lv-recorded > summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
 .lv-recorded[open] { gap: var(--s-3); }
+.lv-alerts:not(:empty) { margin: calc(-1 * var(--s-3)) 0 var(--s-5); }
+.lv-alerts .notice { margin: 0; }
+@media (max-width: 40rem) {
+  .lv-head { padding: var(--s-2) var(--s-3); gap: var(--s-2); margin-bottom: var(--s-4); }
+  .lv-meta { gap: var(--s-1) var(--s-3); }
+  .lv-title { font-size: var(--fs-md); }
+  .lv-other, .lv-meta .type-chip { font-size: var(--fs-sm); }
+  .lv-actions { width: 100%; flex-wrap: nowrap; }
+  .lv-actions > .button, .lv-actions > button:not(.lv-icon-button) { flex: 1 1 auto; justify-content: center; }
+  .lv-icon-button { min-width: var(--target); padding: 0; justify-content: center; }
+  .lv-icon-button .lv-button-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 .lv-rise { animation: rise 0.5s var(--ease) both; }
 .lv-pulse { animation: pulse 1.6s ease-in-out infinite; }
 @media (min-width: 64rem) {

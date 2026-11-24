@@ -43,6 +43,7 @@ from src.domain.skills.analysis_run import (
     shown_status,
     steps_to_run,
 )
+from src.domain.skills.opinion import SkillOpinion, weighted_mean
 from src.domain.skills.speech import Sentence
 from src.domain.skills.synthesis import JobSought
 from src.domain.skills.transcript import Transcript
@@ -707,10 +708,14 @@ def test_synthesis_json_carries_the_opinion_contract_of_the_type() -> None:
             "score", "maximum", "minimum", "percent", "verdict", "line",
             "frame", "confidence", "caveats", "source",
         }
+        # The percent comes from the unrounded weighted mean (#232).
+        mean = weighted_mean([SkillOpinion.model_validate(k)
+                              for k in person["skills"]])
         assert overall["percent"] == round(
-            (overall["score"] - overall["minimum"])
+            (mean - overall["minimum"])
             / (overall["maximum"] - overall["minimum"]) * 100, 1
         )
+        assert overall["score"] == round(mean, 1)
         assert "acquired" in overall["frame"]
         for skill in person["skills"]:
             assert set(skill) >= {

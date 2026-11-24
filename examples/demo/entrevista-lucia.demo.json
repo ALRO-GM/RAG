@@ -6,32 +6,51 @@
  "product": "live_assist.interview",
  "title": "Entrevista · Desarrolladora backend",
  "candidate": "Lucía Marín",
+ "en": {
+  "title": "Interview · Backend developer",
+  "note": "Demo data: a fictitious interview, a fixed script and suggestions prepared in advance; no model is called. Lucía Marín is not a real person."
+ },
  "result_session": "demo-entrevista-lucia-marin",
  "topics": [
   {
    "id": "python_apis",
    "name": "Python y APIs",
-   "covered_by": "t1.s0"
+   "covered_by": "t1.s0",
+   "en": {
+    "name": "Python and APIs"
+   }
   },
   {
    "id": "databases",
    "name": "Bases de datos",
-   "covered_by": "t3.s0"
+   "covered_by": "t3.s0",
+   "en": {
+    "name": "Databases"
+   }
   },
   {
    "id": "experience",
    "name": "Experiencia",
-   "covered_by": "t5.s0"
+   "covered_by": "t5.s0",
+   "en": {
+    "name": "Experience"
+   }
   },
   {
    "id": "testing",
    "name": "Pruebas automáticas",
-   "covered_by": "t7.s0"
+   "covered_by": "t7.s0",
+   "en": {
+    "name": "Automated testing"
+   }
   },
   {
    "id": "teamwork",
    "name": "Trabajo en equipo",
-   "covered_by": "t9.s0"
+   "covered_by": "t9.s0",
+   "en": {
+    "name": "Teamwork"
+   }
   }
  ],
  "suggestions": [
@@ -40,28 +59,44 @@
    "kind": "follow_up",
    "text": "Pregunta cómo midió la mejora",
    "example": "¿Cómo supiste que el problema estaba en la base de datos?",
-   "script_phase": "technical"
+   "script_phase": "technical",
+   "en": {
+    "text": "Ask how she measured the improvement",
+    "example": "How did you know the problem was in the database?"
+   }
   },
   {
    "after": "t3.s0",
    "kind": "question",
    "text": "Aún no habéis hablado de pruebas",
    "example": "¿Cómo comprobasteis que nada se rompía al migrar?",
-   "script_phase": "technical"
+   "script_phase": "technical",
+   "en": {
+    "text": "You have not talked about testing yet",
+    "example": "How did you check nothing broke during the migration?"
+   }
   },
   {
    "after": "t7.s0",
    "kind": "question",
    "text": "Pide un ejemplo de trabajo en equipo",
    "example": "Cuéntame un desacuerdo con un compañero y cómo lo resolvisteis.",
-   "script_phase": "behavioural"
+   "script_phase": "behavioural",
+   "en": {
+    "text": "Ask for an example of teamwork",
+    "example": "Tell me about a disagreement with a colleague and how you solved it."
+   }
   },
   {
    "after": "t9.s0",
    "kind": "reminder",
    "text": "Cierra con los siguientes pasos",
    "example": "Gracias, Lucía. Esta semana te escribimos con los siguientes pasos.",
-   "script_phase": "closing"
+   "script_phase": "closing",
+   "en": {
+    "text": "Close with the next steps",
+    "example": "Thank you, Lucía. We will write to you this week with the next steps."
+   }
   }
  ],
  "avoid": [
@@ -70,7 +105,12 @@
    "category": "age",
    "title": "Edad",
    "why": "La edad no puede influir en la selección.",
-   "alternative": "Pregunta por la experiencia: «¿Cuántos años llevas con Python en producción?»"
+   "alternative": "Pregunta por la experiencia: «¿Cuántos años llevas con Python en producción?»",
+   "en": {
+    "title": "Age",
+    "why": "Age cannot weigh in the selection.",
+    "alternative": "Ask about experience: “How many years have you run Python in production?”"
+   }
   }
  ],
  "transcript": {
@@ -166,8 +206,8 @@
     "start": 32.58,
     "end": 36.41,
     "text": "Perdona, lo reformulo: ¿cuántos años llevas con Python en producción?",
-    "previous_speaker": "entrevistador",
-    "previous_utterance": "t4.s0",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t3.s0",
     "overlap": false
    },
    {

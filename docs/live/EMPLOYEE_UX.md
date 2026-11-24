@@ -89,7 +89,9 @@ first there), light and dark.
   other party's larger under their name; a line types in as its
   partials arrive and fades in once. «Está hablando» under the list.
 - **Ahora** (one card): a line better avoided while it is not
-  rephrased; a rephrased one (badge «Reformulado») until the other
+  rephrased (for at most 30 s of conversation, and only until a newer
+  suggestion arrives: then it steps aside and stays as the line's label
+  and in the history); a rephrased one (badge «Reformulado») until the other
   party answers or a newer suggestion arrives; else the newest
   suggestion the employee has not said yet, else the newest one with
   «Hecho». «Hecho» means an employee line after the suggestion holds
@@ -103,7 +105,9 @@ first there), light and dark.
 - **Under disclosures**: «Sugerencias anteriores y de dónde salen»
   (older suggestions, `about` sentences, sources, latency, the lines
   better avoided) and «Opciones» (the LV-16 choices: lines shown,
-  earlier suggestions open, assistance mode; status, warnings, banner).
+  earlier suggestions open, assistance mode; status and banner).
+  Errors and one-time notices (failed, halted, reconnecting, warnings,
+  questions not checked) are a line under the header, always in sight.
 
 ## Lines better avoided
 
@@ -118,8 +122,11 @@ and publishes `{"type": "avoid", "flags": [...]}`. Limits: regular
 expressions only (no template refinement yet), Spanish and English; a
 hint about the question, never about the candidate and not legal advice;
 the rephrase rule is a display choice (a question within 30 s without
-that category), not measured; without the rules file or module the RAG
-answers 404 and the page says once that questions are not checked.
+that category), not measured. A line a later `speaker_update` gives to
+the candidate loses its flag. Without the rules file or module the RAG
+answers 404 (notice `avoid_no_rules`); a RAG that does not answer gives
+`avoid_unreachable`. Each cause is said once; after 3 failures in a row
+the checks rest for 60 s of conversation, then try again.
 
 ## The scripted demo
 
@@ -130,14 +137,23 @@ start form) plays `examples/demo/entrevista-lucia.demo.json`
 (`POST /sessions/{id}/replay {"demo": id}`). Its suggestions, the
 age question's hint and the topics are prepared in the file and
 published by `orchestrator/application/demo.py`; no knowledge, reasoner
-or model call, so every run is the same. A new demo stops one still
-playing, and leaving the page stops it. It ends on
+or model call, so every run is the same. Its hints, suggestion texts,
+topics and title also come in English (`en`) for a page in English;
+the conversation stays Spanish. A new demo, a live session or a
+recorded replay stops a demo still playing (a demo never stops a real
+session), and leaving the page stops it. It ends on
 `#/analysis/demo-entrevista-lucia-marin`: the RAG installs
-`examples/demo/entrevista-lucia.analysis.json` (`analysis.demo.v1`,
-synthesis `format_version` 2: 88,7 %, strengths solves with data,
-clear communication, ownership; improvements automated testing, below
-the required level, and delegating) when it starts, with the run marked
-`synthetic` and every other step `unavailable` («Demo data»). The
-overall score 4.548 is written with three decimals so that its percent
-is 88,7 (the #231 rule rounds scores to one decimal, which on a 1–5
-scale gives only multiples of 2,5 %). No hiring wording anywhere.
+`examples/demo/entrevista-lucia.analysis.json` (`analysis.demo.v1`)
+when it starts: the synthesis (`format_version` 2: strengths solves with
+data, clear communication, ownership; improvements automated testing,
+below the required level, and delegating) plus the two results the
+summary-first page needs, the sentences and an assessment with one
+scorecard (the candidate's, no levels), so she is the only person of
+it. The run is `synthetic`, every step carries «Demo data» and the
+steps not given read `unavailable`. It is installed only over nothing
+or over another synthetic run, under the analysis lock; a failure is
+printed and the RAG starts anyway. The overall opinion is computed with
+the real rules of `src/domain/skills/opinion.py` from the file's eight
+skill scores: weighted mean 4.548, percent 88,7 (since #232 the percent
+comes from the unrounded mean; the shown score stays 4.5), no caveats.
+No hiring wording anywhere.
