@@ -1,0 +1,145 @@
+{
+  "schema": "interview.core.v1",
+  "version": 1,
+  "max_questions": 6,
+  "disclaimer": {
+    "es": "No es asesoramiento jurídico. Redacción de trabajo; el aviso legal de cada pregunta remite a knowledge/interview/forbidden-questions.json.",
+    "en": "This is not legal advice. Working wording; each question's legal note points to knowledge/interview/forbidden-questions.json."
+  },
+  "rules": {
+    "es": "Se hacen una sola vez por candidato, con las mismas palabras a todas las personas, sea cual sea el puesto. Una pregunta, un dato. Si la respuesta ya consta en la ficha del candidato o en la oferta, no se repite. Si la respuesta es un «no», se anota sin preguntar el motivo.",
+    "en": "Asked once per candidate, with the same words to everyone, whatever the job. One question, one fact. If the answer is already in the candidate profile or the offer, do not repeat it. A “no” is recorded without asking why."
+  },
+  "questions": [
+    {
+      "id": "work_mode_location",
+      "order": 1,
+      "phase": "opening",
+      "question": {
+        "es": "El puesto es [modalidad: presencial, híbrido o remoto] en [ciudad]. ¿Te encaja esa modalidad y esa ubicación?",
+        "en": "The job is [mode: on-site, hybrid or remote] in [city]. Does that mode and location work for you?"
+      },
+      "profile_fields": [
+        {"path": "availability.work_mode_ok", "type": "boolean"},
+        {"path": "availability.location_note", "type": "string", "optional": true}
+      ],
+      "why": {
+        "es": "Un requisito excluyente que conviene saber al principio (así nadie pasa media entrevista sin saber que no encaja).",
+        "en": "A knock-out requirement worth knowing early, so nobody sits through half an interview before finding out it does not fit."
+      },
+      "follow_up": {
+        "es": "Si duda: «¿Qué te haría falta para que encajara?» (una sola repregunta, solo sobre la modalidad o el desplazamiento).",
+        "en": "If unsure: “What would you need for it to work?” (one follow-up, only about mode or commute)."
+      },
+      "legal_note": {
+        "es": "Se describe el puesto y se pregunta si encaja. No se pregunta dónde vive exactamente ni por qué no podría desplazarse (dirección exacta y motivos familiares: ver excess_personal_data e indirect_proxies).",
+        "en": "Describe the job and ask whether it fits. Do not ask exactly where the person lives or why they could not commute (exact address and family reasons: see excess_personal_data and indirect_proxies)."
+      },
+      "related_forbidden": ["excess_personal_data", "indirect_proxies"]
+    },
+    {
+      "id": "work_authorization",
+      "order": 2,
+      "phase": "opening",
+      "question": {
+        "es": "¿Tienes autorización para trabajar en España?",
+        "en": "Are you authorised to work in Spain?"
+      },
+      "profile_fields": [
+        {"path": "eligibility.work_authorization", "type": "boolean"}
+      ],
+      "why": {
+        "es": "Para contratar a una persona extranjera hace falta autorización de residencia y trabajo; se pregunta a todas las personas igual y solo eso.",
+        "en": "Hiring a foreign national requires a residence and work authorisation; it is asked of everyone in the same way and nothing more."
+      },
+      "follow_up": {
+        "es": "Si responde que no o que está en trámite: «¿Desde cuándo podrías empezar a trabajar con ella?». No se pregunta nacionalidad ni país.",
+        "en": "If the answer is no or pending: “From when could you start working with it?”. Do not ask nationality or country."
+      },
+      "legal_note": {
+        "es": "LO 4/2000 art. 36.1 (verificado) exige la autorización para trabajar. Nunca nacionalidad, país de origen ni lugar de nacimiento (ver origin_nationality_language).",
+        "en": "LO 4/2000 art. 36(1) (verified) requires the authorisation to work. Never nationality, country of origin or place of birth (see origin_nationality_language)."
+      },
+      "related_forbidden": ["origin_nationality_language"],
+      "legal_basis": ["lo4-2000"]
+    },
+    {
+      "id": "start_date_notice",
+      "order": 3,
+      "phase": "experience",
+      "question": {
+        "es": "¿Cuándo podrías incorporarte, contando con el preaviso que tengas que dar en tu trabajo actual?",
+        "en": "When could you start, counting any notice you have to give in your current job?"
+      },
+      "profile_fields": [
+        {"path": "availability.earliest_start", "type": "date_or_text"},
+        {"path": "availability.notice_days", "type": "integer", "unit": "days", "optional": true}
+      ],
+      "why": {
+        "es": "Fecha de incorporación y preaviso en una sola respuesta: dos campos, una pregunta.",
+        "en": "Start date and notice period in one answer: two fields, one question."
+      },
+      "follow_up": {
+        "es": "Si no concreta: «¿Dirías que es más cerca de dos semanas o de dos meses?».",
+        "en": "If vague: “Would you say closer to two weeks or two months?”."
+      },
+      "legal_note": {
+        "es": "Sin motivos: no se pregunta por qué ni qué hará hasta entonces.",
+        "en": "No reasons: do not ask why, nor what the person will do until then."
+      },
+      "related_forbidden": ["indirect_proxies"]
+    },
+    {
+      "id": "motivation",
+      "order": 4,
+      "phase": "experience",
+      "question": {
+        "es": "¿Qué te ha llevado a presentarte a este puesto?",
+        "en": "What led you to apply for this job?"
+      },
+      "profile_fields": [
+        {"path": "motivation.summary", "type": "string", "max_chars": 280}
+      ],
+      "why": {
+        "es": "Abre la conversación con algo que la persona puede contar con sus palabras y orienta las repreguntas de conducta; es la única pregunta común abierta.",
+        "en": "Opens the conversation on something the person can say in their own words and guides the behavioural follow-ups; it is the only open core question."
+      },
+      "follow_up": {
+        "es": "Si es genérica: «¿Qué parte del puesto te atrae más?».",
+        "en": "If generic: “Which part of the job appeals to you most?”."
+      },
+      "legal_note": {
+        "es": "Si la respuesta incluye datos protegidos (hijos, salud, religión), no se sigue por ahí y no se anotan.",
+        "en": "If the answer includes protected data (children, health, religion), do not follow it up and do not record it."
+      },
+      "related_forbidden": ["family_status", "health"]
+    },
+    {
+      "id": "salary_expectation",
+      "order": 5,
+      "phase": "closing",
+      "question": {
+        "es": "¿Qué expectativa salarial tienes para este puesto?",
+        "en": "What salary do you expect for this job?"
+      },
+      "profile_fields": [
+        {"path": "salary.expectation_min", "type": "number", "unit": "EUR/year", "optional": true},
+        {"path": "salary.expectation_max", "type": "number", "unit": "EUR/year", "optional": true}
+      ],
+      "why": {
+        "es": "Para saber si encaja con la banda del puesto. Va al final, cuando ya se ha hablado del trabajo. Si la oferta publica la banda, se dice antes de preguntar.",
+        "en": "To see whether it fits the job's pay band. It goes last, after the work has been discussed. If the offer publishes the band, say it before asking."
+      },
+      "follow_up": {
+        "es": "Si no quiere dar cifra: «¿Prefieres que te diga primero la banda del puesto?». No se insiste.",
+        "en": "If the person gives no figure: “Would you like me to tell you the job's pay band first?”. Do not insist."
+      },
+      "legal_note": {
+        "es": "Expectativa, nunca lo que cobraba o cobra: la Directiva (UE) 2023/970 art. 5.2 (verificada) prohíbe preguntar por el historial retributivo; su transposición en España no se ha comprobado (ver pay_history).",
+        "en": "Expectation, never what the person earned or earns: Directive (EU) 2023/970 art. 5(2) (verified) bars asking about pay history; its transposition in Spain was not checked (see pay_history)."
+      },
+      "related_forbidden": ["pay_history"],
+      "legal_basis": ["dir-2023-970"]
+    }
+  ]
+}

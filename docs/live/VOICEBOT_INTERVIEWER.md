@@ -59,7 +59,7 @@ label (only for the comparison; the bot never says it).
 
 ## 2. The interview-method corpus
 
-`knowledge/domains/interview.generic/metodo-entrevista.jsonl`: 170 own,
+`knowledge/domains/interview.generic/metodo-entrevista.jsonl`: 177 own,
 fictional records in Spanish, beside the 64 seed records (unchanged).
 The chunk metadata schema is closed (`title`, `intent`, `category`,
 `script_phase`, `tags`), so the role type and the competency are tags:
@@ -67,9 +67,9 @@ The chunk metadata schema is closed (`title`, `intent`, `category`,
 | Metadata | Values |
 |---|---|
 | `script_phase` | opening, experience, technical, behavioural, closing |
-| `tags` role | `puesto_todos` (115), `puesto_tecnico` (10), `puesto_atencion_cliente` (10), `puesto_almacen` (10), `puesto_hosteleria` (9), `puesto_comercio` (8), `puesto_oficina` (8) |
+| `tags` role | `puesto_todos` (122), `puesto_tecnico` (10), `puesto_atencion_cliente` (10), `puesto_almacen` (10), `puesto_hosteleria` (9), `puesto_comercio` (8), `puesto_oficina` (8) |
 | `tags` competency | `comp_<id>` of the rubric's 11 competencies (`knowledge/rubrics/core.es.json`), 6 to 9 records each |
-| `tags` kind | `star` (46), `repregunta` (36), `requisito` (19), `legal` (17), `estructura` (14), `exploracion` (13), `evidencia` (11), `cierre` (8), `ejemplo_respuesta` (6) |
+| `tags` kind | `star` (46), `repregunta` (36), `requisito` (20), `legal` (20), `estructura` (15), `exploracion` (15), `evidencia` (11), `cierre` (8), `ejemplo_respuesta` (6) |
 
 Content: structure and timing of a 15–30 minute interview and how to
 introduce an AI interviewer; per role type what to explore, requirement
@@ -82,9 +82,13 @@ disability, origin, criminal record unless the job requires it) and how
 to redirect, with the legal bases (Constitución art. 14, Estatuto de
 los Trabajadores arts. 4.2.c and 17, Ley 15/2022, LO 3/2007, RGPD art. 9
 and minimisation, Directivas 2000/78/CE and 2000/43/CE). The citations
-were written from general knowledge and not checked against the
-official texts: a lawyer should review them before the corpus is used
-with real candidates. Counts are checked by
+were re-checked on 2026-11-24 against the BOE consolidated texts and the
+EU Official Journal (#234, `docs/live/INTERVIEW_KNOWLEDGE.md`): the
+records now give article numbers read in those texts, and the machine-
+readable list of forbidden questions lives in
+`knowledge/interview/forbidden-questions.json`. Not legal advice: a
+lawyer should still review it before the corpus is used with real
+candidates. Counts are checked by
 `tests/integration/test_seed_domains.py`.
 
 ## 3. The plan (`interview.plan.v1`)
