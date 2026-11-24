@@ -12,6 +12,7 @@ import {
   speakerName, weakSpeakers,
 } from "../lib/transcript.js";
 import { nameRows, reasonKey, searchFinished } from "../lib/names.js";
+import { moreInfo } from "./summary-first.js";
 
 const LEAD_KEY = "transcriber.lead";
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -130,17 +131,22 @@ export async function transcriptView(ctx, root, params) {
     h("label", { class: "check" }, doubtBox, h("span", {}, t("player.only_doubtful"))),
     h("label", { class: "check" }, followBox, h("span", {}, t("player.follow"))));
 
+  // Summary first (#230): the title, the way to the analysis, the player
+  // and the conversation; the description, names, voices, filters and
+  // notices under «Más información».
   root.append(
     h("h1", {}, transcript.session.title || id),
     h("p", { class: "meta" }, `${formatTime(transcript.session.duration)} · `, h("a", { href: "#/sessions" }, t("nav.sessions"))),
-    describedLine, editor,
-    bar, options, audio, message, weakNotice, namesBox,
-    h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
-    list,
-    h("div", { class: "row" },
+    h("div", { class: "row wrap" },
+      h("a", { class: "button primary", href: `#/analysis/${encodeURIComponent(id)}` }, t("nav.analysis")),
       h("button", { type: "button", onClick: download }, t("transcript.download")),
-      h("a", { class: "button", href: `#/analysis/${encodeURIComponent(id)}` }, t("nav.analysis")),
-      analysisBusy));
+      analysisBusy),
+    bar, audio, message,
+    moreInfo(t("sf.transcript_more_hint"), [
+      describedLine, editor, options, weakNotice, namesBox,
+      h("details", { class: "speakers" }, h("summary", {}, t("speakers.title")), speakersPanel),
+    ], { extraClass: "sf-page-more" }),
+    list);
 
   function skip(delta) {
     audio.currentTime = Math.max(0, audio.currentTime + delta);

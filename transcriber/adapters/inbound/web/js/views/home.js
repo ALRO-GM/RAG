@@ -1,10 +1,11 @@
 // The home (#/): three large service cards (analyse a conversation, live
 // assist, voice bot), each with an icon, one sentence and «Probar»; below,
 // the latest sessions, each with its type and, when its analysis wrote a
-// synthesis, the one-line conclusion of it. Pure helpers in lib/home.js.
+// synthesis, the one-line conclusion of it and, when the synthesis has an
+// overall reading (#230), its percentage with one decimal. Pure helpers in lib/home.js.
 
 import { h, fill } from "../dom.js";
-import { t, lang } from "../i18n.js";
+import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { typeLabel } from "../lib/describe.js";
@@ -35,6 +36,10 @@ function sessionRow(session, found) {
           h("span", { class: "recent-title" }, session.title || session.id),
           kind ? h("span", { class: "type-chip" }, kind) : null),
         h("span", { class: "recent-line" }, line)),
+      typeof found?.conclusion?.percent === "number"
+        ? h("span", { class: "recent-score", title: t("sf.home_score", { value: t("sf.percent", { value: decimal(found.conclusion.percent, 1) }) }) },
+          t("sf.percent", { value: decimal(found.conclusion.percent, 1) }))
+        : null,
       found?.analysed ? h("span", { class: "recent-tag" }, h("span", { class: "state-dot done", "aria-hidden": "true" }), t("home.analysed")) : null));
 }
 

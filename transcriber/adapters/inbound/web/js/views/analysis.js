@@ -1,6 +1,6 @@
 // "Análisis" of a session (#/analysis/<id>): the results for a person in
-// HR first (the session at a glance, one card per person, every detail
-// expandable: views/analysis-results.js), then the form that starts or
+// HR first (the session at a glance, one summary per person, every detail
+// behind «Más información»: views/analysis-results.js, #230), then the form that starts or
 // resumes the RAG's analysis (the job sought, the Claude model of each
 // judged step), and, collapsed, the technical details: the steps as they
 // advance (status, time, judge, tokens) and what each produced. Person
@@ -97,6 +97,7 @@ export async function analysisView(ctx, root, [rawId]) {
     h("summary", {}, t("sa.tech_title")),
     h("div", { class: "stack" },
       h("p", { class: "hint" }, t("sa.intro"), " ", h("a", { href: helpHref() }, t("help.link"))),
+      h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
       summary, usageTotal, steps));
   const controls = h("details", { class: "upload controls no-print" },
     h("summary", {}, t("sa.controls_title")),
@@ -114,7 +115,6 @@ export async function analysisView(ctx, root, [rawId]) {
       h("a", { href: "#/sessions" }, t("nav.sessions")), " · ",
       h("button", { type: "button", class: "link", onClick: () => printPage() }, t("res.print"))),
     progress, results,
-    h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
     controls, tech);
 
   function say(text, error = false) {
@@ -193,7 +193,8 @@ export async function analysisView(ctx, root, [rawId]) {
       fill(results, resultsState("error", { reason: describeError(failure), onRetry: () => loadResults() }));
       return;
     }
-    fill(results, resultsPanel({ id, run, data }));
+    const onRedo = canRedoSynthesis(run) ? () => begin(false, ["synthesis"]) : null;
+    fill(results, resultsPanel({ id, run, data, onRedo }));
   }
 
   // Printing shows every section open; what was closed closes again after.

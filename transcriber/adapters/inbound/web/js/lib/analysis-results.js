@@ -221,6 +221,7 @@ function skillOpinionOf(o) {
     caveats: Array.isArray(o.caveats) ? o.caveats : [],
     cites: (o.cites ?? []).map((c) => quoteOf(c)),
     source: o.source ?? "rules",
+    required: typeof o.required === "number" ? o.required : null,
   };
 }
 

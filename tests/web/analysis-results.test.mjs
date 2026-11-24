@@ -172,7 +172,7 @@ test("the Claude model choice: aliases, full ids, nothing that could be an optio
 });
 
 test("every new text exists in both languages and never ranks people", () => {
-  const keys = Object.keys(es).filter((k) => /^(res|gl)\./.test(k) || /^sa\.(model|tradeoff|controls|tech)/.test(k));
+  const keys = Object.keys(es).filter((k) => /^(res|gl|sf)\./.test(k) || /^sa\.(model|tradeoff|controls|tech)/.test(k));
   assert.ok(keys.length > 100);
   for (const key of keys) {
     assert.ok(en[key], `missing in en: ${key}`);
@@ -180,7 +180,7 @@ test("every new text exists in both languages and never ranks people", () => {
       assert.doesNotMatch(text, /\b(mejor|peor|mejores|peores|best|worst|better|worse|ranking|top)\b/i, key);
     }
   }
-  for (const key of Object.keys(en)) if (/^(res|gl)\./.test(key)) assert.ok(es[key], `missing in es: ${key}`);
+  for (const key of Object.keys(en)) if (/^(res|gl|sf)\./.test(key)) assert.ok(es[key], `missing in es: ${key}`);
   for (const n of [1, 2, 3, 4, 5]) assert.ok(es[`res.scale_${n}`] && en[`res.scale_${n}`]);
   for (const key of ["res.draft_title", "res.draft_text", "res.fairness"]) assert.ok(es[key] && en[key], key);
 });
@@ -231,7 +231,7 @@ async function withDom(fn) {
   }
 }
 
-test("the overview shows the header, one card and one detail per person, the caveats", async () => {
+test("the overview shows the summary, one card with its «Más información» per person, the caveats behind it", async () => {
   await withDom(async () => {
     const { resultsPanel, resultsState } = await import("../../transcriber/adapters/inbound/web/js/views/analysis-results.js");
     // Node 21+ has a global navigator ("en-US"): fix the language first.
@@ -241,17 +241,22 @@ test("the overview shows the header, one card and one detail per person, the cav
     const nodes = panel.all();
     const cards = nodes.filter((n) => n.tagName === "ARTICLE");
     assert.equal(cards.length, 2);
-    const details = nodes.filter((n) => n.tagName === "DETAILS" && n.className.startsWith("person-detail"));
-    assert.equal(details.length, 2);
+    const more = nodes.filter((n) => n.tagName === "DETAILS" && n.className === "sf-more");
+    assert.equal(more.length, 2);
+    assert.ok(more.every((d) => d.open === false));
     const text = panel.text();
-    // The caveats are all there.
-    for (const key of ["res.draft_title", "res.draft_text", "res.fairness", "res.people_hint"]) assert.ok(text.includes(es[key]), key);
+    // The caveats are all there, inside the session's closed «Más información».
+    const session = nodes.find((n) => n.id === "sf-session-more");
+    assert.equal(session.open, false);
+    for (const key of ["res.draft_title", "res.draft_text", "res.fairness"]) assert.ok(session.text().includes(es[key]), key);
+    assert.ok(text.includes(es["sf.draft_short"]));
     // Every quote has a button that opens the transcript at its sentence.
     const transcript = nodes.find((n) => n.id === "an-transcript");
     assert.equal(transcript.open, false);
     const jump = nodes.find((n) => n.tagName === "BUTTON" && n.className === "moment");
     jump.listeners.click[0]();
     assert.equal(transcript.open, true);
+    assert.equal(session.open, true);
     // Technical names never reach the overview.
     assert.doesNotMatch(text, /claude-code|tokens/);
     assert.ok(resultsState("loading").attributes["aria-busy"]);

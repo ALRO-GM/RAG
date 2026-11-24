@@ -6,7 +6,7 @@
 
 import { sortSessions } from "./sessions.js";
 import { stepStatus } from "./session-analysis.js";
-import { hasResults } from "./analysis-results.js";
+import { hasResults, opinionOf } from "./analysis-results.js";
 
 /** The three services of the home, in the order they are shown. */
 export const SERVICES = [
@@ -89,15 +89,22 @@ export function oneLine(text, max = CONCLUSION_MAX) {
 }
 
 /**
- * The one-line conclusion of a synthesis result: the first point on the
- * job fit of the first person profiled, else their first strength;
- * null when there is none. `{ person, text }`.
+ * The one-line conclusion of a synthesis result for the first person
+ * profiled: their overall line (synthesis v2) with its percentage, one
+ * decimal (`percent`, only when stored), else the first point on the job
+ * fit, else their first strength; null when there is none.
+ * `{ person, text[, percent] }`.
  */
 export function conclusionOf(synthesis) {
   for (const person of synthesis?.people ?? []) {
     if (person?.status === "skipped") continue;
+    const overall = opinionOf(person).overall;
     const point = [...(person?.fit ?? []), ...(person?.strengths ?? [])].find((p) => String(p?.text ?? "").trim());
-    if (point) return { person: String(person.participant ?? ""), text: oneLine(point.text) };
+    const text = oneLine(overall?.line) || (point ? oneLine(point.text) : "");
+    if (!text && !overall) continue;
+    const found = { person: String(person.participant ?? ""), text };
+    if (overall && Number.isFinite(overall.percent)) found.percent = Math.round(overall.percent * 10) / 10;
+    return found;
   }
   return null;
 }

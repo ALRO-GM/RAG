@@ -1,9 +1,10 @@
-// The overview of a finished analysis, written for a person in HR: the
-// session at a glance, one card per person, and every detail (levels,
-// quotes, observations, events, the transcript) one click away without
-// downloading anything. It only shows what the RAG stored; it never
-// ranks people nor computes a score. Technical data stays in the
-// "Detalles técnicos" section of the page.
+// The overview of a finished analysis, written for a person in HR,
+// summary first (#230): the session at a glance, one summary per person,
+// and every detail (levels, quotes, observations, caveats, events, the
+// transcript) behind «Más información», without downloading anything. It
+// only shows what the RAG stored (the percentages are the synthesis'
+// own); it never ranks people. Technical data stays in the "Detalles
+// técnicos" section of the page.
 
 import { h } from "../dom.js";
 import { t, lang, percent } from "../i18n.js";
@@ -12,6 +13,9 @@ import { clock, transcriptLink } from "../lib/session-analysis.js";
 import {
   TIMELINE_TYPES, duration, peopleOf, plainSummary, sentenceAnchor, sentenceAt, sessionFacts, timeline,
 } from "../lib/analysis-results.js";
+import { oneLine } from "../lib/home.js";
+import { anyLegacy, personSummary, verdictKey } from "../lib/summary-first.js";
+import { legacyNote, moreHint, moreInfo, percentText, personSummaryCard, reliabilityBlock } from "./summary-first.js";
 
 /** A technical word with its plain explanation on hover or keyboard focus. */
 export function term(text, key) {
@@ -39,19 +43,32 @@ export function resultsState(kind, { reason = "", onRetry = null } = {}) {
     h("h2", {}, t("res.empty_title")), h("p", {}, t("res.empty")));
 }
 
-/** The whole overview of a session's results. */
-export function resultsPanel({ id, run, data }) {
+/**
+ * The whole overview of a session's results, summary first (#230): the
+ * session in one paragraph with each person's verdict, then one summary
+ * per person (ring, verdict, strengths, improvements, bars), each with
+ * its «Más información»; the session's details (facts, notices,
+ * participation, events, transcript) in a last «Más información».
+ * `onRedo` redoes only the synthesis (offered on results that predate
+ * the opinion), or null when it cannot run now.
+ */
+export function resultsPanel({ id, run, data, onRedo = null }) {
   const names = Object.fromEntries(competencies(lang).map((c) => [c.id, c]));
   const facts = sessionFacts(id, run, data);
   const people = peopleOf(data, names);
+  const summaries = people.map(personSummary);
+  const kind = people.map((p) => p.opinion?.conversationType).find(Boolean) || facts.type;
+  const withJob = Boolean(facts.job);
   const lines = new Map(); // sentence id -> its <li> in the transcript
   const transcript = transcriptBlock(id, run, data, people, lines);
+  let sessionMore = null;
 
   // Open the transcript at the sentence of a moment and show it.
   function jump(seconds) {
     const sentence = sentenceAt(data?.sentences, seconds);
     const line = sentence ? lines.get(sentence.id) : null;
     if (!line) return;
+    if (sessionMore) sessionMore.open = true;
     transcript.open = true;
     for (const other of lines.values()) other.classList?.remove("flash");
     line.classList?.add("flash");
@@ -69,46 +86,58 @@ export function resultsPanel({ id, run, data }) {
     }, `▶ ${label}`);
   };
 
-  const details = people.map((p) => personDetail(p, moment, Boolean(facts.job)));
-  const openPerson = (index) => {
-    const target = details[index];
-    if (!target) return;
-    target.open = true;
-    target.scrollIntoView?.({ block: "start", behavior: "smooth" });
-    target.querySelector?.("summary")?.focus?.();
-  };
-
-  return h("section", { class: "results", "aria-labelledby": "res-title" },
-    header(facts, run),
+  const cards = people.map((p, i) => personSummaryCard(summaries[i], {
+    conversationType: kind, withJob, id: `person-${p.position}`,
+    more: moreInfo(moreHint(summaries[i].more), () => [reliabilityBlock(summaries[i]), personDetailBody(p, moment, withJob)]),
+  }));
+  const openPerson = (index) => cards[index]?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+  sessionMore = moreInfo(t("sf.session_more_hint"), () => [
+    sessionDetails(facts),
     people.length ? participation(people) : null,
-    people.length
-      ? h("section", { class: "block", "aria-labelledby": "res-people" },
-        h("h2", { id: "res-people" }, t("res.people_title")),
-        h("p", { class: "hint" }, t("res.people_hint")),
-        h("div", { class: "person-cards" }, people.map((p) => personCard(p, () => openPerson(p.index)))))
-      : h("p", { class: "hint" }, t("res.no_people")),
-    people.length
-      ? h("section", { class: "block", "aria-labelledby": "res-detail" },
-        h("h2", { id: "res-detail" }, t("res.detail_title")),
-        h("div", { class: "toolbar no-print" },
-          h("button", { type: "button", onClick: () => toggleAll(details, true) }, t("res.open_all")),
-          h("button", { type: "button", onClick: () => toggleAll(details, false) }, t("res.close_all"))),
-        details)
-      : null,
     eventsBlock(data, moment),
-    transcript);
+    transcript,
+  ], { id: "sf-session-more", extraClass: "sf-session-more" });
+
+  return h("section", { class: "results sf-results", "aria-labelledby": "res-title" },
+    overview(facts, summaries, kind, run, openPerson, onRedo),
+    people.length
+      ? h("section", { class: "sf-people", "aria-label": t("res.people_title") }, cards)
+      : h("p", { class: "hint" }, t("res.no_people")),
+    sessionMore);
 }
 
-function toggleAll(list, open) {
-  for (const d of list) {
-    d.open = open;
-    for (const inner of d.querySelectorAll?.("details") ?? []) inner.open = open;
-  }
+// ---- the session at a glance -------------------------------------------------
+
+function overview(facts, summaries, kind, run, openPerson, onRedo) {
+  const meta = [
+    facts.recorded ? t("res.recorded_value", facts.recorded) : facts.analysed,
+    duration(t, facts.seconds),
+    facts.type ? t(`type.${facts.type}`) : "",
+  ].filter(Boolean).join(" · ");
+  const glance = summaries.some((s) => s.overall)
+    ? h("ul", { class: "sf-glance" }, summaries.map((s, i) => h("li", {},
+      h("button", { type: "button", class: "sf-glance-row", onClick: () => openPerson(i) },
+        h("span", { class: `dot who-${s.colour}`, "aria-hidden": "true" }),
+        h("span", { class: "sf-glance-name" }, s.name),
+        s.overall && s.overall.percent !== null ? h("span", { class: "sf-glance-score" }, percentText(s.overall.percent)) : null,
+        s.overall ? h("span", { class: "sf-glance-verdict" }, t(verdictKey(s.overall.verdict, kind))) : null))))
+    : null;
+  return h("header", { class: "session-head sf-head" },
+    h("h2", { id: "res-title" }, t("res.title")),
+    meta || facts.synthetic
+      ? h("p", { class: "sf-meta" }, meta, facts.synthetic ? [" ", h("span", { class: "badge warn" }, t("res.synthetic_badge"))] : null)
+      : null,
+    h("p", { class: "lead" }, plainSummary(t, facts)),
+    facts.job ? h("p", { class: "sf-job" }, h("strong", {}, t("sf.job")), " ", oneLine(facts.job)) : null,
+    glance,
+    anyLegacy(summaries) ? legacyNote(onRedo) : null,
+    run?.status === "failed" ? h("p", { class: "notice" }, t("res.partial")) : null,
+    h("p", { class: "sf-draft" }, t("sf.draft_short")));
 }
 
 // ---- header ----------------------------------------------------------------
 
-function header(facts, run) {
+function sessionDetails(facts) {
   const items = [];
   const add = (label, value) => {
     if (value === "" || value === null || value === undefined) return;
@@ -120,19 +149,14 @@ function header(facts, run) {
   add(t("res.participants"), String(facts.people));
   add(t("res.type"), facts.type ? t(`type.${facts.type}`) : t("res.type_unknown"));
   add(t("res.status"), h("span", { class: `badge status-${facts.status}` }, t(`res.status_${facts.status}`)));
-  return h("header", { class: "session-head" },
-    h("h2", { id: "res-title" }, t("res.title")),
-    h("p", { class: "lead" }, plainSummary(t, facts)),
+  return h("div", { class: "stack" },
     facts.goal ? h("p", { class: "hint" }, t("res.goal", { goal: facts.goal })) : null,
     facts.job ? h("p", { class: "hint" }, t("res.job", { job: facts.job })) : null,
     h("dl", { class: "facts" }, items),
     h("div", { class: "draft-notice", role: "note" },
       h("strong", {}, t("res.draft_title")), " ", t("res.draft_text"),
       facts.synthetic ? h("p", {}, h("span", { class: "badge warn" }, t("res.synthetic_badge")), " ", t("sa.synthetic_data")) : null,
-      h("p", { class: "hint" }, t("res.fairness"))),
-    run?.status === "failed"
-      ? h("p", { class: "notice" }, t("res.partial"))
-      : null);
+      h("p", { class: "hint" }, t("res.fairness"))));
 }
 
 // A stacked bar of each person's share of the words, in speaking order:
@@ -161,26 +185,17 @@ function certaintyBadges(counts) {
     h("li", {}, h("span", { class: `badge cert-${kind}` }, String(counts[kind])), " ", term(t(`res.cert_${kind}_n`), kind))));
 }
 
-function personCard(p, open) {
-  const stat = (label, value, key) => (value === null || value === "" ? null
-    : h("div", {}, h("dt", {}, key ? term(label, key) : label), h("dd", {}, value)));
+// What the reports list for a person and how sure each level is (inside «Más información»).
+function reportFacts(p) {
   const names = (list) => (list.length ? list.join(", ") : t("res.none_yet"));
-  return h("article", { class: `person-card who-${p.colour}` },
-    h("h3", {}, h("span", { class: `dot who-${p.colour}`, "aria-hidden": "true" }), p.name),
-    h("dl", { class: "stats" },
-      stat(t("res.share"), p.share === null ? null : percent(p.share, 0), "share"),
-      stat(t("res.turns"), p.turns, "turns"),
-      stat(t("res.overlaps"), p.overlaps, "overlaps"),
-      stat(t("res.questions"), p.questions, "questions"),
-      stat(t("res.quotes"), p.quotes, "evidence")),
+  return h("div", { class: "stack tight" },
     h("p", {}, h("strong", {}, term(t("res.strengths"), "strengths")), " ", names(p.strengths)),
     h("p", {}, h("strong", {}, term(t("res.to_develop"), "to_develop")), " ", names(p.toDevelop)),
     certaintyBadges(p.certainty),
     p.confidence
       ? h("p", { class: "hint" }, term(t("res.profile_confidence"), "confidence"), " ",
         h("span", { class: `badge conf-${p.confidence}` }, t(`sa.syn_conf_${p.confidence}`)))
-      : null,
-    h("button", { type: "button", class: "no-print", onClick: open }, t("res.see_detail", { name: p.name })));
+      : null);
 }
 
 // ---- the detail of a person ------------------------------------------------
@@ -260,22 +275,21 @@ function participationTable(p) {
     h("tbody", {}, rows.map(([key, value]) => h("tr", {}, h("th", { scope: "row" }, t(key)), h("td", {}, String(value)))))));
 }
 
-function personDetail(p, moment, withJob) {
-  return h("details", { class: `person-detail who-${p.colour}`, id: `person-${p.position}` },
-    h("summary", {},
-      h("span", { class: `dot who-${p.colour}`, "aria-hidden": "true" }),
-      h("span", { class: "person-name" }, p.name),
-      h("span", { class: "hint" }, t("res.summary_counts", { firm: p.certainty.firm, provisional: p.certainty.provisional, quotes: p.quotes }))),
-    h("div", { class: "stack" },
-      p.why.length ? h("p", { class: "notice" }, t("res.few_levels")) : null,
-      h("details", { class: "sub", open: true },
-        h("summary", {}, h("h4", {}, t("res.profile_title"))), profileBlock(p, moment, withJob)),
-      h("details", { class: "sub", open: true },
-        h("summary", {}, h("h4", {}, t("res.skills_title", { count: p.skills.length }))),
-        h("p", { class: "hint" }, t("res.skills_hint")),
-        p.skills.length ? h("div", { class: "skills" }, p.skills.map((s) => skillItem(s, moment))) : h("p", { class: "hint" }, t("res.no_skills"))),
-      h("details", { class: "sub" },
-        h("summary", {}, h("h4", {}, t("res.participation_title"))), participationTable(p))));
+// Everything else about a person, for «Más información»: the reports'
+// lists and certainty, the explained profile, every competency with its
+// quotes, and the participation figures.
+function personDetailBody(p, moment, withJob) {
+  return h("div", { class: "stack" },
+    p.why.length ? h("p", { class: "notice" }, t("res.few_levels")) : null,
+    reportFacts(p),
+    h("details", { class: "sub" },
+      h("summary", {}, h("h4", {}, t("res.profile_title"))), profileBlock(p, moment, withJob)),
+    h("details", { class: "sub" },
+      h("summary", {}, h("h4", {}, t("res.skills_title", { count: p.skills.length }))),
+      h("p", { class: "hint" }, t("res.skills_hint")),
+      p.skills.length ? h("div", { class: "skills" }, p.skills.map((s) => skillItem(s, moment))) : h("p", { class: "hint" }, t("res.no_skills"))),
+    h("details", { class: "sub" },
+      h("summary", {}, h("h4", {}, t("res.participation_title"))), participationTable(p)));
 }
 
 // ---- events and transcript -------------------------------------------------

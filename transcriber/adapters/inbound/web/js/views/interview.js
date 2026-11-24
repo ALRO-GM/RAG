@@ -14,6 +14,7 @@ import {
   removeSlot, reportFigures, scoreClass, setEssential,
 } from "../lib/interview.js";
 import { icon, toast } from "../ui.js";
+import { moreInfo } from "./summary-first.js";
 
 const WEIGHTS = [1, 2, 3, 4, 5];
 
@@ -298,35 +299,32 @@ export function coveragePanel(state) {
 
 // ---- after: the report ----------------------------------------------------------
 
-/** The visual report of one interview (a draft for the recruiter). */
+/**
+ * The visual report of one interview (a draft for the recruiter), summary
+ * first (#230): the suitability, the summary, one bar per point of the
+ * plan and where the transcript went; the tiles, notes, confidence,
+ * quotes, gaps and facts behind «Más información».
+ */
 export function reportCard(result) {
   const sheet = result.sheet;
   const figures = reportFigures(sheet);
   const handoff = result.handoff ?? {};
   const suitability = figures.suitability;
-  return h("section", { class: "card iv-report", "aria-label": t("iv.report") },
-    h("h2", {}, t("iv.report_title", { title: sheet.title })),
+  const quotes = figures.byWeight.reduce((n, s) => n + Math.min(3, s.answers?.length ?? 0), 0);
+  const more = moreInfo(t("sf.iv_more_hint", { quotes, gaps: figures.gaps.length }), () => [
     h("div", { class: "draft-notice", role: "note" }, h("strong", {}, t("res.draft_title")), " ", t("iv.draft")),
-    h("div", { class: "iv-headline" },
-      h("div", { class: `iv-suit is-${scoreClass(suitability)}` },
-        h("span", { class: "iv-suit-value" }, suitability === null ? "–" : String(Math.round(suitability))),
-        h("span", { class: "iv-suit-label" }, t("iv.suitability"))),
-      h("div", { class: "iv-tiles" },
-        tile(figures.meets, t("iv.tile.meets"), "good"),
-        tile(figures.gaps.length, t("iv.tile.gaps"), "low"),
-        tile(figures.above.length, t("iv.tile.above"), "accent"),
-        tile(figures.unknown, t("iv.tile.unknown"), "mid"),
-        tile(figures.skipped, t("iv.tile.skipped"), "mid"))),
-    sheet.summary ? h("p", { class: "iv-summary" }, sheet.summary) : null,
-    h("h3", {}, t("iv.by_skill")),
+    h("div", { class: "iv-tiles" },
+      tile(figures.meets, t("iv.tile.meets"), "good"),
+      tile(figures.gaps.length, t("iv.tile.gaps"), "low"),
+      tile(figures.above.length, t("iv.tile.above"), "accent"),
+      tile(figures.unknown, t("iv.tile.unknown"), "mid"),
+      tile(figures.skipped, t("iv.tile.skipped"), "mid")),
     h("ol", { class: "iv-skills" }, figures.byWeight.map((s) => h("li", { class: "iv-skill" },
       h("div", { class: "row wrap iv-skill-head" },
         h("span", { class: "iv-skill-label" }, s.label), levelTag(s.level),
         h("span", { class: "tag" }, t("iv.weight_short", { w: s.weight ?? 3 })),
         s.status === "unknown" || s.status === "skipped" || s.status === "empty" ? statusBadge(s.status) : null,
         s.above ? h("span", { class: "tag accent" }, t("iv.above")) : null),
-      h("div", { class: "row iv-skill-bar" }, scoreBar(s.score),
-        h("span", { class: "iv-score" }, s.score === null || s.score === undefined ? "–" : String(s.score))),
       h("p", { class: "meta" }, [
         s.notes || null,
         s.confidence !== null && s.confidence !== undefined
@@ -342,10 +340,25 @@ export function reportCard(result) {
       turns: sheet.turns, minutes: Math.round((sheet.elapsed_s ?? 0) / 60), to_min: sheet.turns_to_minimums ?? "–",
       filler: sheet.filler, scorer: sheet.scorer ?? "status",
     })),
+  ]);
+  return h("section", { class: "card iv-report", "aria-label": t("iv.report") },
+    h("h2", {}, t("iv.report_title", { title: sheet.title })),
+    h("div", { class: "iv-headline" },
+      h("div", { class: `iv-suit is-${scoreClass(suitability)}` },
+        h("span", { class: "iv-suit-value" }, suitability === null ? "–" : String(Math.round(suitability))),
+        h("span", { class: "iv-suit-label" }, t("iv.suitability"))),
+      sheet.summary ? h("p", { class: "iv-summary" }, sheet.summary) : null),
+    h("h3", {}, t("iv.by_skill")),
+    h("ol", { class: "iv-skills" }, figures.byWeight.map((s) => h("li", { class: "iv-skill" },
+      h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label), levelTag(s.level)),
+      h("div", { class: "row iv-skill-bar" }, scoreBar(s.score),
+        h("span", { class: "iv-score" }, s.score === null || s.score === undefined ? "–" : String(s.score)))))),
     h("p", { class: "meta" }, handoff.transcript
       ? [t(handoff.analysis ? "iv.handoff.analysis" : "iv.handoff.transcript"), " ",
         h("a", { href: `#/analysis/${encodeURIComponent(sheet.session_id)}` }, t("iv.open_analysis"))]
-      : t("iv.handoff.none", { error: handoff.error ?? "" })));
+      : t("iv.handoff.none", { error: handoff.error ?? "" })),
+    h("p", { class: "sf-draft" }, t("sf.iv_draft_short")),
+    more);
 }
 
 function tile(value, label, kind) {
