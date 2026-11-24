@@ -412,9 +412,14 @@ async function withDom(run) {
     createTextNode: (text) => new FakeText(text),
   };
   globalThis.Node = FakeNode;
+  // Node 21+ has navigator.language, which would pick English: pin Spanish.
+  const i18n = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
+  const language = i18n.lang;
+  i18n.setLanguage("es");
   try {
     return await run(await import("../../transcriber/adapters/inbound/web/js/views/connection.js"));
   } finally {
+    i18n.setLanguage(language);
     Object.assign(globalThis, saved);
   }
 }
