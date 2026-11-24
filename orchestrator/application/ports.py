@@ -331,9 +331,23 @@ class VoiceCloner(Protocol):
         """Load the model and the reference voice, off the hot path."""
         ...
 
-    def unload(self) -> None:
+    @property
+    def generation(self) -> int:
+        """Which model start is current (it grows with every start).
+
+        A caller that decides to stop the model reads this *before* it
+        looks at why, and passes it to :meth:`unload`.
+        """
+        ...
+
+    def unload(self, generation: Optional[int] = None) -> None:
         """Stop the model now, whoever holds it (a load in progress is
-        killed): its (GPU) memory is free when this returns."""
+        killed): its (GPU) memory is free when this returns.
+
+        With ``generation`` the stop is for that start only: if another
+        start has begun since, it is a no-op, so a stale decision cannot
+        kill a model a newer session just started.
+        """
         ...
 
     def release(self) -> None:

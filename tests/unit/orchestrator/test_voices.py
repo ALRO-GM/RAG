@@ -55,6 +55,7 @@ class FakeCloner:
         self.controls: List[Optional[Mapping[str, float]]] = []
         self.warmed = 0
         self.unloaded = threading.Event()
+        self.generation = 1
 
     def speak(self, text: str, reference: str, language: str,
               cancel: CancelToken,
@@ -77,7 +78,9 @@ class FakeCloner:
             raise TtsUnavailable("no model")
         self.loaded = True
 
-    def unload(self) -> None:
+    def unload(self, generation: Optional[int] = None) -> None:
+        if generation is not None and generation != self.generation:
+            return
         self.loaded = False
         self.unloaded.set()
 
@@ -610,3 +613,43 @@ def test_a_sample_whose_lease_cannot_be_taken_leaves_nothing_taken() -> None:
         live.sample({"voicebot.voice": "clone:ana",
                      "voicebot.clone_engine": "openvoice"})
     assert gate.dropped == 0, "no drop for a take that never happened"
+
+
+def test_a_stale_lease_lost_decision_cannot_kill_a_newer_worker() -> None:
+    """The refusal is seen for start 1; start 2 begins before it acts."""
+    cloner = FakeCloner(gpu=True)
+    cloner.loaded = True
+
+    class Racing(FakeGate):
+        def check(self, need_mib: int) -> Optional[str]:
+            cloner.generation += 1  # another session starts a worker now
+            return "no live GPU lease"
+
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=Racing(),
+                        watch_s=60)
+    assert voice._clone("Hola.", CancelToken()) is None
+    assert not cloner.unloaded.wait(0.3), "the new worker was spared"
+    assert cloner.loaded
+    voice._unload(cloner.generation)  # a decision about the current one
+    assert cloner.unloaded.is_set()
+    voice.close()
+
+
+def test_the_watcher_reads_the_generation_before_the_gate() -> None:
+    """Reading it after the gate would unload a newer worker."""
+    cloner = FakeCloner(gpu=True)
+    cloner.loaded = True
+    holder: List[ClonedVoice] = []
+
+    class Racing(FakeGate):
+        def check(self, need_mib: int) -> Optional[str]:
+            cloner.generation += 1  # a new worker starts meanwhile
+            holder[0]._stop.set()  # one watcher round only
+            return "no live GPU lease"
+
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=Racing(),
+                        watch_s=0.01)
+    holder.append(voice)
+    voice._watch()
+    assert cloner.loaded and not cloner.unloaded.is_set()
+    voice.close()

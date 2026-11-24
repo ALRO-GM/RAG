@@ -12,14 +12,18 @@ that the engine's Piper base voice speaks with), one JSON answer per
 line on its standard output (first ``{"ready": true, ...}`` once loaded, then
 ``{"id", "path", "sample_rate", "synth_ms"}`` or ``{"id", "error"}``).
 The WAV it writes is read, its file deleted, and its frames returned.
-The text is never logged. One process, started on first use and again
-if it dies; one sentence at a time goes through it.
+The worker runs in a session (process group) of its own, so stopping it
+kills Piper's children too; the price is that it no longer receives the
+terminal's Ctrl-C (fine under systemd). The text is never logged.
+One process, started on first use and again if it dies; one sentence at
+a time goes through it.
 """
 
 import json
 import os
 import queue
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -76,6 +80,9 @@ class SubprocessCloner:
         self._swap = threading.Lock()
         """Guards ``_process`` and ``_aborts`` (held only for a swap)."""
         self._aborts = 0
+        self._generation = 0
+        self._reap = threading.Lock()
+        """Makes the group kill and the reaping of a worker one step."""
         self._lines: "queue.Queue[str]" = queue.Queue()
         self._lock = threading.Lock()
         self._count = 0
@@ -90,17 +97,36 @@ class SubprocessCloner:
         """Whether the worker process is running (its memory is taken)."""
         with self._swap:
             process = self._process
-        return process is not None and process.poll() is None
+        return process is not None and not self._exited(process)
+
+    @property
+    def generation(self) -> int:
+        """The current start: it grows each time a worker is started."""
+        with self._swap:
+            return self._generation
 
     def warm(
         self, reference: str, language: str,
         controls: Optional[Mapping[str, float]] = None,
     ) -> None:
-        """Start the worker and speak one word with ``reference``."""
+        """Start the worker and speak one word with ``reference``.
+
+        A worker already running is being handed to a new holder: the
+        generation grows, so a stop decided for the previous hold is
+        dropped (the new holder's own watcher decides again).
+        """
+        with self._swap:
+            if (self._process is not None
+                    and not self._exited(self._process)):
+                self._generation += 1
         self.speak("Hola.", reference, language, CancelToken(), controls)
 
-    def unload(self) -> None:
+    def unload(self, generation: Optional[int] = None) -> None:
         """Stop the worker now, even while it loads or speaks.
+
+        With ``generation`` only that start is stopped: when a newer
+        worker has begun to start since the decision was taken, nothing
+        happens (the check and the abort share one lock hold).
 
         It does not wait for the lock a sentence or the loading holds
         (only for the tiny swap lock). A worker that is ready gets its
@@ -111,6 +137,8 @@ class SubprocessCloner:
         waiting on the process fails at once (``TtsUnavailable``).
         """
         with self._swap:
+            if generation is not None and generation != self._generation:
+                return
             self._aborts += 1
             process = self._process
             graceful = self._ready
@@ -128,20 +156,54 @@ class SubprocessCloner:
                     process.stdin.close()
             except (OSError, ValueError):
                 pass
+            self._wait_exit(process, GRACE_S)
+        self._kill_and_reap(process)
+        shutil.rmtree(self.worker_tmp, ignore_errors=True)
+
+    @staticmethod
+    def _exited(process: "subprocess.Popen[str]") -> bool:
+        """Whether the worker has exited, *without* reaping it.
+
+        ``Popen.poll`` reaps, and a reaped pid may be reused, so it must
+        never decide anything here: only :meth:`_kill_and_reap` reaps.
+        """
+        if process.returncode is not None:
+            return True
+        try:
+            return os.waitid(os.P_PID, process.pid,
+                             os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+        except ChildProcessError:  # pragma: no cover - reaped elsewhere
+            return True
+
+    def _wait_exit(
+        self, process: "subprocess.Popen[str]", timeout: float
+    ) -> None:
+        """Wait up to ``timeout`` s for an exit, leaving it unreaped."""
+        end = time.monotonic() + timeout
+        while not self._exited(process) and time.monotonic() < end:
+            time.sleep(0.01)
+
+    def _kill_and_reap(self, process: "subprocess.Popen[str]") -> None:
+        """Kill the worker's whole process group, then reap the worker.
+
+        The worker is started in a session of its own, so its pid is its
+        group id and nothing outside the worker is hit (Piper children
+        go too, even when the worker already exited on its own). The
+        group is signalled only while the leader is not reaped, so its
+        pid cannot have been reused; the reaping and the check share a
+        lock, which makes a second stop of the same process a no-op.
+        """
+        with self._reap:
+            if process.returncode is not None:
+                return
             try:
-                process.wait(timeout=GRACE_S)
-            except subprocess.TimeoutExpired:
-                pass
-        if process.poll() is None:
-            try:
-                process.kill()
-            except OSError:  # pragma: no cover - already gone
+                os.killpg(process.pid, signal.SIGKILL)
+            except OSError:  # the group is already empty
                 pass
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:  # pragma: no cover
                 pass
-        shutil.rmtree(self.worker_tmp, ignore_errors=True)
 
     def release(self) -> None:
         """The only holder is done: a GPU worker is stopped."""
@@ -185,18 +247,20 @@ class SubprocessCloner:
         """Start the worker if it is not running, and wait until ready."""
         with self._swap:
             process = self._process
-            aborts = self._aborts
-        if process is not None and process.poll() is None:
+        if process is not None and not self._exited(process):
             return
         self._stop()
         self._lines = queue.Queue()
         self.worker_tmp.mkdir(exist_ok=True)
+        with self._swap:
+            self._generation += 1  # a stale unload(old) is now a no-op
+            aborts = self._aborts
         env = {**os.environ, "TMPDIR": str(self.worker_tmp)}
         try:
             started = subprocess.Popen(
                 self.command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                bufsize=1, env=env,
+                bufsize=1, env=env, start_new_session=True,
             )
         except OSError as exc:
             raise TtsUnavailable(f"cannot run the cloner: {exc}") from exc
@@ -275,9 +339,6 @@ class SubprocessCloner:
                 process.stdin.close()
         except OSError:
             pass
-        try:
-            process.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
+        self._wait_exit(process, 2)
+        self._kill_and_reap(process)  # also Piper children left behind
         shutil.rmtree(self.worker_tmp, ignore_errors=True)
