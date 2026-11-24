@@ -61,6 +61,23 @@ candidate against the job. **Deploy order:** the RAG's `ContractSpeaker`
 forbids fields it does not know, so restart the RAG (reader) before the
 transcriber and the orchestrator (writers).
 
+## `knowledge.result.v1`: the times of a recording's chunk
+
+Added compatibly on 2026-11-24 (#244), optional and written only when
+set: `chunks[].metadata.start_s` and `end_s` are the seconds of the
+part of a transcribed audio or video upload the chunk covers, so it can
+be cited by time («min 03:12»). Every other chunk has neither. Readers:
+the orchestrator and the web read chunks as plain objects, and the
+orchestrator passes the metadata on as `reasoner.request.v1`'s free
+`retrieved[].metadata`, so none refuses the new fields. **Deploy
+order:** any reader that validates the schema strictly first, then the
+RAG (writer); today that is only the contract tests.
+
+The audio or video itself reaches the transcriber through its
+`/internal/knowledge-media` routes, which answer with an ordinary
+`transcript.v1` (no new contract; `docs/KNOWLEDGE.md` §8). Such a
+transcript is never posted to `POST /transcripts`.
+
 ## `transcript.v1`: the diarizer and its licence
 
 Added compatibly on 2026-11-15 (#68), all three optional and written

@@ -201,7 +201,9 @@ Example: `{"schema": "knowledge.query.v1", "request_id": "r-91", "domain": "inte
               "intent": {"type": ["string", "null"]},
               "category": {"type": ["string", "null"]},
               "script_phase": {"type": ["string", "null"]},
-              "tags": {"type": "array", "items": {"type": "string"}}
+              "tags": {"type": "array", "items": {"type": "string"}},
+              "start_s": {"type": "number", "minimum": 0},
+              "end_s": {"type": "number", "minimum": 0}
             }
           }
         }
@@ -212,7 +214,9 @@ Example: `{"schema": "knowledge.query.v1", "request_id": "r-91", "domain": "inte
 }
 ```
 `source` is the existing `MinimalSource` of `Chunk`, so the 42 / BEIR
-tools keep working.
+tools keep working. `start_s` and `end_s` (added compatibly, KN-3a #244)
+are the seconds of a transcribed recording the chunk covers; they are
+written only for chunks of audio or video uploads (`docs/KNOWLEDGE.md` §8).
 
 ## 4. reasoner.request.v1
 

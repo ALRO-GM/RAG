@@ -37,6 +37,10 @@ class LimitError(RagError):
     """A usage limit refuses the request now (try again later)."""
 
 
+class ServiceUnavailableError(RagError):
+    """Another service of the platform (the transcriber) cannot be reached."""
+
+
 class CorruptedDataError(RagError):
     """A file exists but cannot be parsed or is inconsistent."""
 

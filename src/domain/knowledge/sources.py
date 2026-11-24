@@ -18,6 +18,7 @@ import yaml
 from src.domain.chunking.text_chunker import TextChunker
 from src.domain.errors import InvalidInputError
 from src.domain.knowledge.domains import DomainManifest, metadata_problems
+from src.domain.knowledge.media import TIMED_KEY, span_times, time_marks
 from src.domain.models import Chunk, ChunkMetadata
 from src.domain.text_analysis import tokenize
 
@@ -191,12 +192,38 @@ def chunk_markdown(
     max_size: int,
     target: Optional[int] = None,
 ) -> List[Chunk]:
-    """Chunk a Markdown or text file, labelled by its front matter."""
+    """Chunk a Markdown or text file, labelled by its front matter.
+
+    With ``timed: true`` in the front matter (a transcribed recording,
+    :mod:`src.domain.knowledge.media`) each chunk also gets the start
+    and end time of what it covers.
+    """
     front = split_front_matter(path, text)
     base = read_metadata(
         front.fields, manifest, lambda k: f"{path}:{front.lines.get(k, 1)}"
     )
-    return chunk_text(path, text, max_size, target, front.body_start, base)
+    chunks = chunk_text(path, text, max_size, target, front.body_start, base)
+    if front.fields.get(TIMED_KEY) is True:
+        chunks = with_times(text, chunks)
+    return chunks
+
+
+def with_times(text: str, chunks: List[Chunk]) -> List[Chunk]:
+    """Return ``chunks`` of ``text`` with the times their span covers."""
+    marks = time_marks(text)
+    timed: List[Chunk] = []
+    for chunk in chunks:
+        span = span_times(
+            marks, chunk.first_character_index, chunk.last_character_index
+        )
+        if span is not None:
+            chunk = chunk.model_copy(update={
+                "metadata": chunk.metadata.model_copy(update={
+                    "start_s": span[0], "end_s": span[1],
+                }),
+            })
+        timed.append(chunk)
+    return timed
 
 
 def at_line(path: str, number: int) -> Where:

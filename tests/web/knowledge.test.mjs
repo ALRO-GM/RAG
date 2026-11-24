@@ -5,8 +5,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ACCEPT, CATEGORIES, KnowledgeModel, POLL_MS, checkFile, cleanMetadata, countByStatus, extensionOf, formatBytes,
-  isDomainId, listOf, needsPolling, parseTags, queryBody, requestId, serviceMissing, slugify, sortDocuments,
+  ACCEPT, CATEGORIES, KnowledgeModel, MEDIA_EXTENSIONS, MEDIA_MAX_BYTES, MAX_BYTES, POLL_MS, checkFile, clockText,
+  cleanMetadata, countByStatus, extensionOf, formatBytes, isDomainId, isMedia, listOf, timeRange, needsPolling, parseTags, queryBody, requestId, serviceMissing, slugify, sortDocuments,
 } from "../../transcriber/adapters/inbound/web/js/lib/knowledge.js";
 import { Api, ApiFailure } from "../../transcriber/adapters/inbound/web/js/api.js";
 
@@ -23,6 +23,31 @@ test("the eight document formats and four image formats are accepted, others and
   assert.equal(extensionOf("Informe.Final.PDF"), "pdf");
   for (const ext of [".pdf", ".docx", ".odt", ".txt", ".md", ".html", ".csv", ".xlsx", ".png", ".jpg", ".tiff", ".webp"]) assert.ok(ACCEPT.includes(ext), ext);
   for (const type of ["image/png", "image/jpeg", "image/tiff", "image/webp"]) assert.ok(ACCEPT.includes(type), type);
+});
+
+test("audio and video are accepted (the transcriber's formats), with their own size limit", () => {
+  assert.deepEqual(MEDIA_EXTENSIONS, ["wav", "flac", "ogg", "opus", "mp3", "m4a", "mp4", "aac", "webm", "mov", "3gp", "amr", "wma"]);
+  for (const name of ["clase.MP3", "b.m4a", "c.wav", "d.mp4", "e.mov", "f.webm", "g.3gp"]) {
+    assert.equal(checkFile({ name, size: 10 }), null, name);
+    assert.ok(isMedia(name), name);
+  }
+  assert.equal(checkFile({ name: "x.aiff", size: 10 }), "type");
+  assert.equal(checkFile({ name: "clase.mp4", size: MAX_BYTES + 1 }), null);
+  assert.equal(checkFile({ name: "clase.mp4", size: MEDIA_MAX_BYTES + 1 }), "size");
+  assert.equal(checkFile({ name: "a.pdf", size: MAX_BYTES + 1 }), "size");
+  assert.ok(!isMedia("a.pdf"));
+  for (const type of ["audio/*", "video/*", ".mp3", ".mp4", ".wma"]) assert.ok(ACCEPT.includes(type), type);
+});
+
+test("a chunk of a recording is cited by its time; a document's chunk has none", () => {
+  assert.equal(clockText(192), "03:12");
+  assert.equal(clockText(3725.9), "1:02:05");
+  assert.equal(clockText(-4), "00:00");
+  assert.equal(timeRange({ start_s: 192, end_s: 220 }), "03:12–03:40");
+  assert.equal(timeRange({ start_s: 192, end_s: 192.4 }), "03:12");
+  assert.equal(timeRange({ start_s: 5 }), "00:05");
+  assert.equal(timeRange({ title: "x" }), null);
+  assert.equal(timeRange(undefined), null);
 });
 
 test("sizes read as people write them in each language", () => {

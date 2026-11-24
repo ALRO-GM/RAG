@@ -29,6 +29,9 @@ from src.adapters.outbound.docling_pages import DoclingPages, docling_available
 from src.adapters.outbound.document_extractors import DocumentExtractors
 from src.adapters.outbound.florence_captioner import FlorenceCaptioner
 from src.adapters.outbound.gpu_lease_file import FileGpuGate, lease_directory
+from src.adapters.outbound.http_media_transcriber import (
+    HttpMediaTranscriber,
+)
 from src.adapters.outbound.fs_document_store import FileSystemDocumentStore
 from src.adapters.outbound.fs_forbidden_rules import FileForbiddenRules
 from src.adapters.outbound.fs_domain_catalogue import (
@@ -83,6 +86,7 @@ from src.application.knowledge.ports import (
     IndexState,
 )
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.media import MediaTranscription
 from src.application.knowledge.avoid import AvoidQuestions
 from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
@@ -512,9 +516,29 @@ class Container:
             choices, self.extractors_for, (k.ocr, k.caption_backend)
         )
 
+    media_token: Optional[str] = None
+    """The RAG's bearer token, sent to the transcriber with audio and
+    video uploads (set by ``serve``; ``None``: they are refused)."""
+
+    @cached_property
+    def media_transcription(self) -> Optional[MediaTranscription]:
+        """Audio and video uploads, transcribed by the transcriber (KN-3a).
+
+        ``None`` without a token or a transcriber URL.
+        """
+        k = self.knowledge_settings
+        token = self.media_token
+        if not token or k.transcriber_url is None:
+            return None
+        return MediaTranscription(
+            HttpMediaTranscriber(k.transcriber_url, lambda: token),
+            k.max_media_seconds, k.media_poll_seconds, k.media_wait_seconds,
+        )
+
     @cached_property
     def knowledge_library(self) -> KnowledgeLibrary:
-        """Domains and their uploaded documents (one background worker)."""
+        """Domains and their uploaded documents (one background worker,
+        and one more that waits for the transcriptions)."""
         k = self.knowledge_settings
         return KnowledgeLibrary(
             self.knowledge_registry,
@@ -523,6 +547,8 @@ class Container:
             ThreadJobQueue(),
             k.max_upload_bytes,
             utc_now,
+            self.media_transcription,
+            ThreadJobQueue("knowledge-media"),
         )
 
     @cached_property

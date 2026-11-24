@@ -136,5 +136,6 @@ def test_metadata_errors_and_validation() -> None:
     assert DocumentMetadata(intent="", tags=["a", "", "a"]) \
         .chunk_metadata().model_dump() == {
             "title": None, "ref": None, "intent": None, "category": None,
-            "script_phase": None, "tags": ["a"],
+            "script_phase": None, "tags": ["a"], "start_s": None,
+            "end_s": None,
         }

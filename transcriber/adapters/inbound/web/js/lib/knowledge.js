@@ -10,8 +10,15 @@
 //   PATCH/DELETE /knowledge/domains/{id}/documents/{doc},
 //   POST /knowledge/query (knowledge.query.v1 -> knowledge.result.v1).
 
+/** Audio and video formats: what is said in them is transcribed (KN-3a);
+ * the transcriber's recording formats. */
+export const MEDIA_EXTENSIONS = ["wav", "flac", "ogg", "opus", "mp3", "m4a", "mp4", "aac", "webm", "mov", "3gp", "amr", "wma"];
+
 /** File extensions a company document may have. */
-export const EXTENSIONS = ["pdf", "docx", "odt", "txt", "md", "markdown", "html", "htm", "csv", "xlsx", "png", "jpg", "jpeg", "tif", "tiff", "webp"];
+export const EXTENSIONS = [
+  "pdf", "docx", "odt", "txt", "md", "markdown", "html", "htm", "csv", "xlsx", "png", "jpg", "jpeg", "tif", "tiff", "webp",
+  ...MEDIA_EXTENSIONS,
+];
 
 /** The file picker's accept attribute (extensions and their media types). */
 export const ACCEPT = [
@@ -20,11 +27,17 @@ export const ACCEPT = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.oasis.opendocument.text",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "image/png", "image/jpeg", "image/tiff", "image/webp",
+  "image/png", "image/jpeg", "image/tiff", "image/webp", "audio/*", "video/*",
 ].join(",");
 
 /** Largest file sent (the server keeps its own, possibly smaller, limit). */
 export const MAX_BYTES = 100 * 1024 * 1024;
+
+/** Largest audio or video file sent: the RAG's own upload limit (200 MiB). */
+export const MEDIA_MAX_BYTES = 200 * 1024 * 1024;
+
+/** Longest recording the RAG accepts (knowledge.max_media_seconds), in minutes. */
+export const MEDIA_MAX_MINUTES = 120;
 
 /** The dialogue-act categories a chunk may be filed under (CONTRACTS.md §2). */
 export const CATEGORIES = [
@@ -49,12 +62,39 @@ export function extensionOf(name) {
   return m ? m[1].toLowerCase() : "";
 }
 
-/** Why `file` cannot be sent ("type", "empty", "size") or null when it can. */
-export function checkFile(file, maxBytes = MAX_BYTES) {
+/** Whether a file or document name is audio or video (transcribed, not read). */
+export function isMedia(name) {
+  return MEDIA_EXTENSIONS.includes(extensionOf(name));
+}
+
+/** Why `file` cannot be sent ("type", "empty", "size") or null when it can.
+ * Audio and video may be as large as MEDIA_MAX_BYTES. */
+export function checkFile(file, maxBytes = MAX_BYTES, mediaMaxBytes = MEDIA_MAX_BYTES) {
   if (!EXTENSIONS.includes(extensionOf(file?.name))) return "type";
   if (!(file.size > 0)) return "empty";
-  if (file.size > maxBytes) return "size";
+  if (file.size > (isMedia(file.name) ? mediaMaxBytes : maxBytes)) return "size";
   return null;
+}
+
+/** Seconds as the server writes them in a transcript: "03:12", "1:02:05". */
+export function clockText(seconds) {
+  const whole = Math.max(Math.floor(Number(seconds) || 0), 0);
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const s = whole % 60;
+  const two = (n) => String(n).padStart(2, "0");
+  return h ? `${h}:${two(m)}:${two(s)}` : `${two(m)}:${two(s)}`;
+}
+
+/** The part of a recording a retrieved chunk covers ("03:12–03:40"), or null
+ * for a chunk of a document (knowledge.result.v1 metadata start_s/end_s). */
+export function timeRange(metadata) {
+  const start = metadata?.start_s;
+  if (typeof start !== "number") return null;
+  const end = metadata?.end_s;
+  const from = clockText(start);
+  const to = typeof end === "number" ? clockText(end) : from;
+  return to === from ? from : `${from}–${to}`;
 }
 
 /** A byte count for people: "820 B", "1,4 MB" / "1.4 MB". */

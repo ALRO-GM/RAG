@@ -179,7 +179,10 @@ class TranscriptionOptions(BaseModel):
     present; only their voiceprints are considered. ``None`` considers
     every enrolled person. ``language``: the language spoken, when it
     differs from the one the session was opened with; it replaces the
-    session's language when the session is queued.
+    session's language when the session is queued. ``max_seconds``: the
+    longest recording accepted; a longer one fails at the decode stage,
+    before any model runs (the knowledge library's limit, KN-3a).
+    ``None``: no limit.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -187,6 +190,7 @@ class TranscriptionOptions(BaseModel):
     language: Optional[str] = None
     num_speakers: Optional[int] = Field(default=None, ge=1)
     expected_speakers: Optional[List[str]] = None
+    max_seconds: Optional[float] = Field(default=None, gt=0)
 
 
 class _Silent:
@@ -264,6 +268,22 @@ def skipped_note(count: int) -> str:
         f"{count} enrolled voiceprint(s) of another voice model were not"
         " compared; those people must enrol again to be recognised."
     )
+
+
+def minutes_text(seconds: float) -> str:
+    """Return ``seconds`` as ``"H h MM min"`` or ``"M min"`` (rounded up)."""
+    minutes = int(-(-seconds // 60))
+    hours, rest = divmod(minutes, 60)
+    return f"{hours} h {rest:02d} min" if hours else f"{minutes} min"
+
+
+def check_duration(duration: float, limit: Optional[float]) -> None:
+    """Refuse a recording longer than ``limit`` seconds (``None``: any)."""
+    if limit is not None and duration > limit:
+        raise InvalidInputError(
+            f"The recording lasts {minutes_text(duration)}; the limit is"
+            f" {minutes_text(limit)}."
+        )
 
 
 STOPPED_NOTE = (
@@ -489,6 +509,7 @@ class TranscribeSession:
         advance()  # decode
         recording = self._sessions.recording(running.id)
         audio = self._decoder.decode(recording)
+        check_duration(audio.duration, options.max_seconds)
         advance()  # recognise
         language = recognition_language(running.language)
         speech = self._retried(

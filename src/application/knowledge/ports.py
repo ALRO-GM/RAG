@@ -7,7 +7,9 @@ indexing and search services are built by the composition root
 """
 
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Protocol, Sequence, Tuple
+from typing import (
+    Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple,
+)
 
 from src.application.ports import IndexSnapshot
 from src.domain.knowledge.documents import KnowledgeDocument
@@ -224,6 +226,49 @@ class ImageCaptioner(Protocol):
 
         Raises an error when the model cannot run; the caller goes on
         without captions.
+        """
+        ...
+
+
+@dataclass(frozen=True)
+class MediaJob:
+    """Where the transcription of a recording is (KN-3a).
+
+    ``state``: ``queued``, ``running``, ``done`` or ``failed``;
+    ``message`` the reason of a failure; ``transcript`` the
+    ``transcript.v1`` document once ``done``.
+    """
+
+    state: str
+    message: Optional[str] = None
+    transcript: Optional[Dict[str, Any]] = None
+
+
+class MediaTranscriber(Protocol):
+    """The transcriber service, transcribing a library's recordings.
+
+    The RAG loads no speech model: the recording is sent to the
+    transcriber, which runs its own pipeline and GPU rules. Every method
+    raises ``ServiceUnavailableError`` when the service cannot be
+    reached, ``NotFoundError`` for a job it does not have (``status``)
+    and ``UnsupportedDocumentError`` for a format it refuses.
+    """
+
+    def submit(
+        self, job_id: str, data: bytes, file_format: str, language: str,
+        max_seconds: float,
+    ) -> MediaJob:
+        """Start transcribing ``data`` as job ``job_id``."""
+        ...
+
+    def status(self, job_id: str) -> MediaJob:
+        """Return the job (with its transcript once done)."""
+        ...
+
+    def forget(self, job_id: str) -> None:
+        """Delete the job and what the transcriber kept of it.
+
+        Raises ``BusyError`` while it is running.
         """
         ...
 

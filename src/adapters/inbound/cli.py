@@ -838,6 +838,7 @@ class RagCLI:
                   "--token_file to receive them)")
         skills = SkillsContainer(SkillsSettings())
         app.pipeline_choices = skills.pipeline_settings.current
+        app.media_token = token or None
         analysis = skills.analysis_requests(
             app.transcript_store, app.settings.transcripts_dir
         )
@@ -867,6 +868,10 @@ class RagCLI:
             print(f"Knowledge: /knowledge/* (domains in {k.domains_dir} "
                   f"and {k.data_dir}; indexes in {k.index_dir}; "
                   f"{resumed} upload(s) resumed)")
+            if k.transcriber_url is not None:
+                print(f"Knowledge audio and video: transcribed by "
+                      f"{k.transcriber_url} (at most "
+                      f"{k.max_media_seconds // 60} min each)")
         if token:
             self._start_warm_up(app, skills)
         uvicorn.run(create_app(app.search, app.answers, routes),

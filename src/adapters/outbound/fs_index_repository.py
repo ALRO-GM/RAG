@@ -144,10 +144,18 @@ def chunk_line(chunk: Chunk) -> str:
     """Return the JSON line of ``chunk``; empty metadata is left out.
 
     Indexes without metadata (the 42 corpus, the benchmarks) keep the
-    exact files they had before chunks could carry metadata.
+    exact files they had before chunks could carry metadata, and chunks
+    without times (all but transcribed recordings) the lines they had
+    before ``start_s``/``end_s`` existed.
     """
     if chunk.metadata.is_empty():
         return chunk.model_dump_json(exclude={"metadata"})
+    untimed = {
+        name for name in ("start_s", "end_s")
+        if getattr(chunk.metadata, name) is None
+    }
+    if untimed:
+        return chunk.model_dump_json(exclude={"metadata": untimed})
     return chunk.model_dump_json()
 
 
