@@ -653,3 +653,86 @@ def test_the_watcher_reads_the_generation_before_the_gate() -> None:
     voice._watch()
     assert cloner.loaded and not cloner.unloaded.is_set()
     voice.close()
+
+
+def test_a_refused_clone_sample_says_its_reason_once() -> None:
+    """The gate's refusal was said twice: "X; X" (#253)."""
+    live = bot_sessions([], tts=FakeTts())
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = FakeCloner(gpu=True)
+    live.clone_gate = FakeGate("the GPU lease is held by ragputin-img")
+    _, used = live.sample({"voicebot.voice": "clone:ana",
+                           "voicebot.clone_engine": "openvoice"})
+    assert used["engine"] == "piper" and used["clone"] is False
+    assert used["reason"] == "the GPU lease is held by ragputin-img"
+
+
+def test_every_sample_is_logged_without_text_or_person(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A sample, spoken or failed, leaves one line: what spoke and why,
+    never the sentence, the audio or who was cloned (#253)."""
+    from orchestrator.application.sessions import SessionError
+    from orchestrator.domain.voices import SAMPLE_TEXT
+
+    caplog.set_level("INFO", logger="orchestrator")
+    live = bot_sessions([], tts=FakeTts())
+    live.profiles = type("P", (), {"get": staticmethod(profiles(AGREED))})()
+    live.cloner = FakeCloner(gpu=True)
+    live.clone_gate = FakeGate()
+    pick = {"voicebot.voice": "clone:ana",
+            "voicebot.clone_engine": "openvoice"}
+    live.sample(pick)
+    live.clone_gate = FakeGate("300 MiB free on the GPU, 800 needed")
+    live.sample(pick)
+    with pytest.raises(SessionError):
+        bot_sessions([]).sample(pick)
+    lines = [r.getMessage() for r in caplog.records
+             if r.name == "orchestrator.application.sessions"]
+    assert len(lines) == 3, lines
+    assert lines[0].startswith("voice sample: voice=clone (openvoice) "
+                               "engine=openvoice clone=yes ms=")
+    assert lines[1].endswith("reason=300 MiB free on the GPU, 800 needed")
+    assert "engine=piper clone=no" in lines[1]
+    assert lines[2].startswith("voice sample failed: voice=clone")
+    assert lines[2].endswith("error=no voice bot here")
+    assert caplog.records[-1].levelname == "WARNING"
+    for line in lines:
+        assert "ana" not in line and SAMPLE_TEXT[:20] not in line
+
+
+class SilentTts(FakeTts):
+    """A Piper that says nothing."""
+
+    def synthesize(self, request: Any, cancel: Any) -> Any:
+        return iter(())
+
+
+def test_a_sample_nothing_could_say_is_refused_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from orchestrator.application.sessions import SessionError
+
+    caplog.set_level("INFO", logger="orchestrator")
+    live = bot_sessions([], tts=SilentTts())
+    with pytest.raises(SessionError) as refused:
+        live.sample({"voicebot.voice": "davefx"})
+    assert refused.value.code == "unavailable"
+    assert "nothing was said" in str(refused.value)
+    assert "voice sample failed: voice=davefx" in caplog.text
+    assert "error=nothing was said" in caplog.text
+
+
+def test_an_unexpected_sample_error_is_logged_with_its_type(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Broken(FakeTts):
+        def synthesize(self, request: Any, cancel: Any) -> Any:
+            raise RuntimeError("cannot schedule new futures after shutdown")
+
+    caplog.set_level("INFO", logger="orchestrator")
+    live = bot_sessions([], tts=Broken())
+    with pytest.raises(RuntimeError):
+        live.sample({})
+    assert "voice sample failed: voice=default" in caplog.text
+    assert "error=RuntimeError" in caplog.text

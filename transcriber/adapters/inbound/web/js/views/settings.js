@@ -12,7 +12,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   PRESETS, applyPreset, changedSteps, clampRange, costOf, isRange, keys, label, needsRestart, presetOf, rateOptions, saveBody,
-  stepsByGroup, voiceOptions, voicebotChoices, controlsReach, PIPER_CONTROLS,
+  stepsByGroup, voiceOptions, voicebotChoices, controlsReach, PIPER_CONTROLS, sampleFailure, playWav,
 } from "../lib/settings.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 
@@ -34,7 +34,9 @@ export async function settingsView(ctx, root) {
   let draft = {};
   let speakers = [];
   const sampleStatus = h("p", { class: "hint", role: "status" });
-  let sampleUrl = null;
+  const sampleAgain = h("span", { class: "row tight" });
+  let sampleAudio = null; // the WAV bytes of the last sample
+  let audioCtx = null;
 
   async function load() {
     try {
@@ -53,28 +55,74 @@ export async function settingsView(ctx, root) {
     render();
   }
 
+  // The sample plays through Web Audio, never an <audio> element: the public
+  // site's Content-Security-Policy (media-src 'self') refuses the blob: URL
+  // it would need, and every sample failed there with «Algo ha salido mal»
+  // (#253). The context is made and resumed inside the click, so it may
+  // still sound when a cloned voice answers seconds later; «Volver a
+  // escuchar» plays it again with a click of its own. Failures say why.
   async function playSample(button) {
     button.disabled = true;
-    fill(sampleStatus, t("set.sample_wait"));
+    const clone = String(draft["voicebot.voice"] ?? "").startsWith("clone:");
+    fill(sampleStatus, t(clone ? "set.sample_wait_clone" : "set.sample_wait"));
+    fill(sampleAgain);
+    wake();
+    let sample;
     try {
-      const sample = await ctx.api.voiceSample(voicebotChoices(draft));
-      if (sampleUrl) URL.revokeObjectURL(sampleUrl);
-      sampleUrl = URL.createObjectURL(sample.blob);
-      await new Audio(sampleUrl).play();
-      fill(sampleStatus, sampleText(sample));
+      sample = await ctx.api.voiceSample(voicebotChoices(draft));
     } catch (error) {
       if (error?.kind === "unauthorized") return ctx.fail(error);
-      fill(sampleStatus, `${t("set.sample_unavailable")} ${describeError(error)}`);
+      fill(sampleStatus, `${t("set.sample_unavailable")} ${failureText(error)}`);
+      return;
     } finally {
       button.disabled = false;
     }
+    try {
+      sampleAudio = await sample.blob.arrayBuffer();
+    } catch (error) {
+      fill(sampleStatus, `${t("set.sample_unavailable")} ${failureText(error)}`);
+      return;
+    }
+    await sound(sampleText(sample));
+  }
+
+  async function sound(said) {
+    if (!audioCtx) {
+      fill(sampleStatus, `${said} ${failureText({ name: "NoAudio" })}`);
+      return;
+    }
+    fill(sampleAgain, h("button", { type: "button", class: "ghost", onClick: () => { wake(); sound(said); } }, icon("play"), " ", t("set.sample_again")));
+    try {
+      await playWav(audioCtx, sampleAudio);
+      fill(sampleStatus, said);
+    } catch (error) {
+      fill(sampleStatus, `${said} ${failureText(error)}`);
+    }
+  }
+
+  // The page's one AudioContext, made (and woken) within a click.
+  function wake() {
+    try {
+      audioCtx ??= new (globalThis.AudioContext ?? globalThis.webkitAudioContext)();
+      audioCtx.resume?.()?.catch?.(() => {});
+    } catch {
+      audioCtx = null;
+    }
+  }
+
+  function failureText(error) {
+    const why = sampleFailure(error);
+    if (!why) return describeError(error);
+    const text = t(why.key);
+    return why.detail ? `${text} (${why.detail}).` : text;
   }
 
   function sampleText(sample) {
     if (!sample.engine) {
       return sample.clone ? t("set.sample_clone") : sample.note ? t("set.sample_piper_because", { note: sample.note }) : t("set.sample_piper");
     }
-    const engine = label(t, `set.engine.${sample.engine}`, sample.engine);
+    const name = sample.clone && sample.engine.startsWith("qwen3") ? "qwen3-clone" : sample.engine;
+    const engine = label(t, `set.engine.${name}`, sample.engine);
     return sample.note ? t("set.sample_engine_because", { engine, note: sample.note }) : t("set.sample_engine", { engine });
   }
 
@@ -202,7 +250,7 @@ export async function settingsView(ctx, root) {
 
   function sampleBar() {
     const button = h("button", { type: "button", onClick: () => playSample(button) }, icon("play"), " ", t("set.sample"));
-    return h("div", { class: "row wrap tight" }, button, sampleStatus);
+    return h("div", { class: "row wrap tight" }, button, sampleAgain, sampleStatus);
   }
 
   function render() {

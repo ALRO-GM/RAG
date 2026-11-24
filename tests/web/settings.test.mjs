@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  GROUPS, PRESETS, analysisPrefill, applyPreset, changedSteps, clampRange, costOf, defaultChoices, isRange, keys, label,
+  playWav, sampleFailure, GROUPS, PRESETS, analysisPrefill, applyPreset, changedSteps, clampRange, costOf, defaultChoices, isRange, keys, label,
   controlsReach, PIPER_CONTROLS, needsRestart, numberText, presetOf, rateOptions, saveBody, stepsByGroup, voiceOptions, voicebotChoices,
 } from "../../transcriber/adapters/inbound/web/js/lib/settings.js";
 import { crumbsFor } from "../../transcriber/adapters/inbound/web/js/lib/shell.js";
@@ -241,13 +241,11 @@ test("the voice bot shows sliders, clonable people and plays the draft", async (
   const saved = { revision: 1, stored: true, choices: defaultChoices(catalogue), catalogue };
   const asked = [];
   const played = [];
-  globalThis.URL.createObjectURL = () => "blob:x";
-  globalThis.URL.revokeObjectURL = () => {};
-  globalThis.Audio = class { constructor(src) { this.src = src; } play() { played.push(this.src); return Promise.resolve(); } };
+  fakeAudio(played).gesture = true;
   const api = {
     pipelineSettings: async () => saved,
     speakers: async () => ({ speakers: [{ id: "ana", name: "Ana", voice_clone: true, words_per_second: 3.25 }, { id: "bea", name: "Bea", voice_clone: false }] }),
-    voiceSample: async (choices) => { asked.push(choices); return { blob: {}, clone: false, lengthScale: 1, note: "no consent to cloning" }; },
+    voiceSample: async (choices) => { asked.push(choices); return { blob: wavBlob("x"), clone: false, lengthScale: 1, note: "no consent to cloning" }; },
   };
   const root = new Node("main");
   await settingsView({ api, fail: (e) => { throw e; } }, root);
@@ -268,8 +266,150 @@ test("the voice bot shows sliders, clonable people and plays the draft", async (
   assert.equal(asked.length, 1);
   assert.equal(asked[0]["voicebot.voice"], "clone:ana");
   assert.ok(Object.keys(asked[0]).every((k) => k.startsWith("voicebot.")));
-  assert.deepEqual(played, ["blob:x"]);
+  assert.deepEqual(played, ["x"]);
   assert.match(root.textContent, /Ha hablado Piper: no consent to cloning/);
+});
+
+// A browser's Web Audio as the sample uses it. Like Safari or an iPhone, a
+// context only sounds if it was woken (resume) during a click; `played`
+// gets the label of each WAV started on a running context.
+function fakeAudio(played, { wakeable = true } = {}) {
+  const browser = { gesture: false, made: 0 };
+  globalThis.AudioContext = class {
+    constructor() { browser.made += 1; this.state = "suspended"; this.currentTime = 0; this.destination = {}; }
+    resume() { if (browser.gesture && wakeable) this.state = "running"; return Promise.resolve(); }
+    async decodeAudioData(data) {
+      const label = new TextDecoder().decode(data);
+      if (label === "broken") throw Object.assign(new Error("bad wav"), { name: "EncodingError" });
+      return { duration: 1, label };
+    }
+    createBufferSource() {
+      const ctx = this;
+      return { buffer: null, connect() {}, start() { if (ctx.state === "running") played.push(this.buffer.label); } };
+    }
+  };
+  // Playing through an <audio> element would be refused on the public site
+  // (its CSP: media-src 'self', no blob:), so the page must not use one.
+  globalThis.Audio = class { play() { return Promise.reject(Object.assign(new Error("no supported source"), { name: "NotSupportedError" })); } };
+  globalThis.URL.createObjectURL = () => "blob:refused-by-csp";
+  globalThis.URL.revokeObjectURL = () => {};
+  return browser;
+}
+
+const wavBlob = (label) => ({ arrayBuffer: async () => new TextEncoder().encode(label).buffer });
+
+async function samplePage(voiceSample) {
+  installDom();
+  const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
+  setLanguage("es");
+  const { settingsView } = await import("../../transcriber/adapters/inbound/web/js/views/settings.js");
+  const saved = { revision: 1, stored: true, choices: { ...defaultChoices(catalogue), "voicebot.voice": "clone:ana" }, catalogue };
+  const api = { pipelineSettings: async () => saved, speakers: async () => ({ speakers: [{ id: "ana", name: "Ana", voice_clone: true }] }), voiceSample };
+  const root = new Node("main");
+  await settingsView({ api, fail: (e) => { throw e; } }, root);
+  const button = root.all().find((n) => n.tagName === "BUTTON" && n.textContent.includes("Escuchar ejemplo"));
+  return { root, button };
+}
+
+const slowClone = (label = "clone") => async () => {
+  await new Promise((resolve) => setTimeout(resolve, 20)); // the clone's model loads
+  return { blob: wavBlob(label), clone: true, lengthScale: 1, note: "", engine: "qwen3-cuda" };
+};
+
+function click(browser, node) {
+  browser.gesture = true;
+  node.fire("click");
+  browser.gesture = false;
+}
+
+test("a cloned sample plays without an <audio> element, seconds after the click (#253)", async () => {
+  const played = [];
+  const { root, button } = await samplePage(slowClone());
+  const browser = fakeAudio(played);
+  click(browser, button);
+  assert.match(root.textContent, /Preparando el ejemplo con la voz clonada… Carga su modelo: tarda unos 5–10 segundos\./);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.deepEqual(played, ["clone"]);
+  assert.match(root.textContent, /Ha hablado la voz clonada \(Qwen3-TTS\)\./);
+  assert.doesNotMatch(root.textContent, /Algo ha salido mal/);
+  assert.equal(browser.made, 1);
+  const again = root.all().find((n) => n.tagName === "BUTTON" && n.textContent.includes("Volver a escuchar"));
+  click(browser, again);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(played, ["clone", "clone"], "played again without asking the server");
+});
+
+test("when the browser keeps it silent, the page says so and offers to play it again (#253)", async () => {
+  const played = [];
+  const { root, button } = await samplePage(slowClone());
+  fakeAudio(played, { wakeable: false });
+  button.fire("click");
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.deepEqual(played, []);
+  assert.match(root.textContent, /El navegador no ha dejado que suene\. Pulsa «Volver a escuchar»\./);
+  assert.ok(root.all().some((n) => n.tagName === "BUTTON" && n.textContent.includes("Volver a escuchar")));
+  assert.equal(button.disabled, false);
+});
+
+test("audio the browser cannot decode, or no Web Audio at all, is said plainly (#253)", async () => {
+  let { root, button } = await samplePage(slowClone("broken"));
+  let browser = fakeAudio([]);
+  click(browser, button);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.match(root.textContent, /El navegador no puede reproducir este audio\./);
+  ({ root, button } = await samplePage(slowClone()));
+  browser = fakeAudio([]);
+  delete globalThis.AudioContext;
+  click(browser, button);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.match(root.textContent, /Este navegador no puede reproducir audio aquí\./);
+});
+
+test("a sample the voice service could not make says why in plain words (#253)", async () => {
+  for (const [failure, expected] of [
+    [{ kind: "unavailable", status: 503, code: "unavailable", message: "nothing was said" }, /No se pudo reproducir el ejemplo\. No se ha podido generar ninguna voz \(nothing was said\)\./],
+    [{ kind: "unavailable", status: 502, code: "orchestrator_unavailable", message: "ReadTimeout" }, /ha tardado demasiado/],
+    [{ kind: "unavailable", status: 502, code: "orchestrator_unavailable", message: "ConnectError" }, /El servicio del bot de voz no responde/],
+  ]) {
+    const { root, button } = await samplePage(async () => { throw Object.assign(new Error(failure.message), failure); });
+    const browser = fakeAudio([]);
+    click(browser, button);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.match(root.textContent, expected);
+    assert.equal(root.all().some((n) => n.tagName === "BUTTON" && n.textContent.includes("Volver a escuchar")), false);
+    assert.equal(button.disabled, false);
+  }
+});
+
+test("sampleFailure names the reason, or leaves the generic text", () => {
+  assert.equal(sampleFailure({ name: "NotAllowedError" }).key, "set.sample_err.blocked");
+  assert.equal(sampleFailure({ name: "NotSupportedError" }).key, "set.sample_err.format");
+  assert.equal(sampleFailure({ name: "EncodingError" }).key, "set.sample_err.format");
+  assert.equal(sampleFailure({ name: "NoAudio" }).key, "set.sample_err.no_audio");
+  assert.equal(sampleFailure({ code: "orchestrator_unavailable", message: "ReadTimeout" }).key, "set.sample_err.slow");
+  assert.equal(sampleFailure({ code: "orchestrator_unavailable", message: "ConnectError" }).key, "set.sample_err.service");
+  assert.deepEqual(sampleFailure({ code: "unavailable", message: "x".repeat(200) }).detail.length, 120);
+  assert.equal(sampleFailure({ kind: "unavailable", code: "network" }), null);
+  for (const key of ["set.sample_err.blocked", "set.sample_err.format", "set.sample_err.slow", "set.sample_err.service", "set.sample_err.no_voice", "set.sample_err.no_audio", "set.sample_again", "set.sample_wait_clone", "set.engine.qwen3-clone"]) {
+    assert.notEqual(tEs(key), key, key);
+    assert.notEqual(tEn(key), key, key);
+  }
+});
+
+test("playWav decodes a copy and starts it on a running context only", async () => {
+  const started = [];
+  const ctx = {
+    state: "running", currentTime: 2, destination: "out",
+    decodeAudioData: async (data) => ({ duration: data.byteLength / 10 }),
+    createBufferSource: () => ({ connect(to) { this.to = to; }, start(at) { started.push([this.to, at, this.buffer.duration]); } }),
+  };
+  const data = new ArrayBuffer(30);
+  assert.equal(await playWav(ctx, data), 3);
+  assert.equal(data.byteLength, 30, "the caller's bytes are kept for «Volver a escuchar»");
+  assert.deepEqual(started, [["out", 2, 3]]);
+  ctx.state = "suspended";
+  await assert.rejects(playWav(ctx, data), (error) => error.name === "NotAllowedError");
+  assert.equal(started.length, 1);
 });
 
 test("without a RAG the page explains why", async () => {

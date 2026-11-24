@@ -538,3 +538,34 @@ def test_warming_a_running_worker_makes_older_decisions_stale(
     assert cloner.generation == first + 1
     cloner.unload(first)
     assert cloner.loaded, "the decision was about the previous hold"
+
+
+def test_serve_logs_the_orchestrators_lines_to_stderr(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """``orchestrator.log`` gets a line for each sample (#253)."""
+    import logging
+
+    from orchestrator.adapters.inbound import cli
+
+    logger = logging.getLogger("orchestrator")
+    before = list(logger.handlers)
+    for handler in before:  # an earlier serve test may have added one
+        logger.removeHandler(handler)
+    try:
+        cli.log_to_stderr()
+        cli.log_to_stderr()  # once, however many times it is called
+        assert len(logger.handlers) == 1
+        logging.getLogger("orchestrator.application.sessions").info(
+            "voice sample: voice=davefx engine=piper clone=no ms=12")
+        assert "INFO orchestrator.application.sessions: voice sample: " \
+            "voice=davefx" in capsys.readouterr().err
+        logging.getLogger("httpx").warning("not ours")
+        assert "not ours" not in capsys.readouterr().err
+    finally:
+        for handler in list(logger.handlers):
+            logger.removeHandler(handler)
+        for handler in before:
+            logger.addHandler(handler)
+        logger.propagate = True
+        logger.setLevel(logging.NOTSET)

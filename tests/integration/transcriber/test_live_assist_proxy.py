@@ -289,3 +289,27 @@ def test_the_demo_report_and_voice_example_are_forwarded() -> None:
     assert web.get("/api/assist/demos/../report",
                    headers=auth).status_code == 404
     assert ALLOWED.match("demos/a.b-c/report")
+
+
+def test_the_sample_may_take_longer_than_a_plain_call() -> None:
+    """A cloned voice may wait for GPU memory and load its model (#253)."""
+    from transcriber.adapters.inbound.live_assist_proxy import (
+        SAMPLE_TIMEOUT,
+        TIMEOUT,
+    )
+
+    waits = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        waits[request.url.path] = request.extensions["timeout"]["read"]
+        return httpx.Response(200, content=b"RIFF",
+                              headers={"content-type": "audio/wav"})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    auth = {"X-Access-Code": "code"}
+    web.post("/api/assist/voicebot/sample", json={"choices": {}},
+             headers=auth)
+    web.get("/api/assist/products", headers=auth)
+    assert waits["/voicebot/sample"] == SAMPLE_TIMEOUT
+    assert SAMPLE_TIMEOUT >= 140.0  # 20 s for memory + 120 s to speak
+    assert waits["/products"] == TIMEOUT
