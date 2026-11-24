@@ -21,6 +21,7 @@ from orchestrator.domain.candidate import (
     candidate_id,
     capture,
     core_questions,
+    fold,
     expired,
     new_profile,
     salary,
@@ -230,6 +231,28 @@ def test_a_vague_start_is_not_captured() -> None:
     assert start_and_notice("Tendría que hablarlo en casa") is None
 
 
+@pytest.mark.parametrize("text", [
+    "a partir del 3 de quimioterapia",
+    "a mediados de tratamiento",
+    "a finales de la baja",
+    "desde el 5 de revisión",
+])
+def test_a_free_word_is_never_kept_as_the_start(text: str) -> None:
+    found = start_and_notice(text)
+    assert found is None or not found.fields.get(
+        "availability.earliest_start")
+
+
+@pytest.mark.parametrize("text", [
+    "a partir del lunes", "desde el 3 de mayo", "a mediados de mes",
+    "a partir del mes que viene",
+])
+def test_start_words_are_months_weekdays_and_units(text: str) -> None:
+    found = start_and_notice(text)
+    assert found is not None
+    assert found.fields["availability.earliest_start"] == fold(text)
+
+
 @pytest.mark.parametrize(("text", "low", "high"), [
     ("Entre 28 y 32 mil euros brutos al año", 28000, 32000),
     ("Unos 30.000 euros", 30000, 30000),
@@ -237,6 +260,10 @@ def test_a_vague_start_is_not_captured() -> None:
     ("Pues 35 mil", 35000, 35000),
     ("entre 28.000 y 32.000", 28000, 32000),
     ("Around 40k", 40000, 40000),
+    ("Busco unos 33.000", 33000, 33000),
+    ("Me gustaría cobrar 35.000", 35000, 35000),
+    ("I'm looking for around 45k", 45000, 45000),
+    ("Unos 30.000 euros brutos al año", 30000, 30000),
 ])
 def test_salary_figures_and_ranges(text: str, low: int, high: int) -> None:
     found = salary(text)
@@ -257,6 +284,15 @@ def test_salary_figures_and_ranges(text: str, low: int, high: int) -> None:
     "I make 40k now and want 45k",
     "My current salary is 40,000",
     "40.000 de fijo más 5.000 de variable",
+    # Second review: a whitelist, not a blacklist.
+    "Me pagan 28.000",
+    "Lo que me pagaban en la otra empresa, 28.000, y algo más",
+    "En mi último trabajo eran 28.000",
+    "28.000, como antes",
+    "I was on 40k",
+    "They pay me 40k",
+    "Unos 32.000, aunque con 2 días de teletrabajo podría bajar.",
+    "Tenía 30.000 de base",
 ])
 def test_unsure_salaries_are_not_captured(text: str) -> None:
     assert salary(text) is None
@@ -508,7 +544,7 @@ def test_an_answer_is_captured_only_after_its_question() -> None:
 def test_an_answer_may_take_a_few_sentences_then_it_is_let_go() -> None:
     track, _, _, _ = tracker()
     track.on_event(final("t0.s0", "S1", "¿Qué expectativa salarial tienes?"))
-    track.on_event(final("t1.s0", "S2", "Pues mira,"))
+    track.on_event(final("t1.s0", "S2", "Pues,"))
     track.on_event(final("t2.s0", "S2", "unos 32.000 euros al año."))
     assert "salary_expectation" in track.profile.proposals
     track.on_event(final("t3.s0", "S1",

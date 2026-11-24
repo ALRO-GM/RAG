@@ -934,7 +934,8 @@ class InterviewDirector:
             scorer = "haiku"
         else:
             slots = status_scores(slots)
-        closed_by = agenda.closed_by
+        # Stopped while the salary question waited: the plan was covered.
+        closed_by = agenda.closed_by or self.deferred_close
         return Sheet(
             session_id=self.session_id, plan_id=self.plan.id,
             plan_revision=self.plan.revision, title=self.plan.title,

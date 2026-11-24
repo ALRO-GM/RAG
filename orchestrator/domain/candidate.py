@@ -277,11 +277,16 @@ _NOW = re.compile(
     r"desde ya|desde manana|cuando querais|cuando quieras|manana mismo|"
     r"immediately|right away|straight away|tomorrow)\b"
 )
+_MONTHS = (r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
+           r"septiembre|setiembre|octubre|noviembre|diciembre)")
+_WEEKDAYS = r"(lunes|martes|miercoles|jueves|viernes|sabado|domingo)"
 _START = (
     re.compile(r"\b(en|dentro de) " + _AMOUNT + r" " + _UNIT + r"\b"),
-    re.compile(r"\ba (principios|mediados|finales) de \w+"),
-    re.compile(r"\b(a partir del?|desde el) (\d{1,2} de \w+|lunes|martes|"
-               r"miercoles|jueves|viernes|\w+ que viene|proximo mes)"),
+    re.compile(r"\ba (principios|mediados|finales) de (" + _MONTHS[1:-1]
+               + r"|mes|ano)\b"),
+    re.compile(r"\b(a partir del?|desde el) (\d{1,2} de " + _MONTHS + r"|"
+               + _WEEKDAYS + r"|(mes|semana|" + _WEEKDAYS[1:-1]
+               + r") que viene|proximo mes|proxima semana)\b"),
     re.compile(r"\bin " + _AMOUNT + r" " + _UNIT + r"\b"),
     re.compile(r"\b(from|on|at the (start|beginning|end) of) "
                r"(january|february|march|april|may|june|july|august|"
@@ -338,13 +343,31 @@ _SPAN = re.compile(
     r"\b(entre|between)\b|\d\s*(k|mil)?\s*(-|a|y|to|and)\s*\d"
 )
 _PAY_HISTORY = re.compile(
-    r"\b(cobro|cobraba|cobre|gano|ganaba|percibo|percibia|"
+    r"\b(pag(o|an|aba|aban|ado|aron|ando)|cobr(o|aba|e|amos|ando)|"
+    r"gan(o|aba|e|amos|ando)|percib\w*|"
     r"(salario|sueldo|nomina|retribucion) (actual|anterior)|"
     r"(mi|el) (salario|sueldo) (es|era)|ahora|actualmente|hoy en dia|"
-    r"en mi (trabajo|empresa|puesto) (actual|anterior)|"
-    r"i (make|earn|made|earned|get paid)|current(ly)?|my salary (is|was)|"
+    r"antes|otra empresa|ultimo (trabajo|puesto|empleo)|"
+    r"(trabajo|empresa|puesto) (actual|anterior)|eran|tenia|"
+    r"i (make|earn|made|earned|get paid|was on|am on)|i'm on|"
+    r"they pay|paid|current(ly)?|previous|last|my salary|"
     r"right now|at the moment)\b"
 )
+_EXPECTATION = re.compile(
+    r"\b(busco|buscaria|espero|esperaria|me gustaria|pediria|pido|"
+    r"aspiro a|aspiraria a|mi expectativa|estaria en|estaria sobre|"
+    r"mi idea (es|seria)|i'?m looking for|i am looking for|i expect|"
+    r"i'?d like|i would like|i'?m aiming (for|at)|around|about)\b"
+)
+"""Words that say the figure after them is what the person expects."""
+_FILLER = frozenset(
+    "unos unas sobre alrededor de del entre y a e o mas menos aprox "
+    "aproximadamente euros euro eur brutos bruto anuales anual al ano "
+    "pues bueno vale mil k gross a year per annum between and to eur "
+    "approximately roughly".split()
+)
+"""Words an answer may have besides the figure and still be «just the
+figure» («Unos 30.000 euros brutos al año»)."""
 """Words of the current or past pay: an answer with them is never taken
 (Directive 2023/970 art. 5.2: pay history is not asked nor kept)."""
 
@@ -352,17 +375,25 @@ _PAY_HISTORY = re.compile(
 def salary(text: str) -> Optional[Captured]:
     """Read a yearly salary figure or range in euros.
 
-    ``30.000``, ``30 mil``, ``30k``, ``entre 28 y 32 mil``: a range when
-    two figures are said with «entre», «y», «a» or a dash; a «mil» or
-    «k» after the last figure applies to the bare figures before it.
-    A monthly figure, a refusal or anything outside 6 000–500 000 is not
-    taken.
+    A whitelist: the answer is taken only when it is essentially the
+    figure or range («Unos 30.000 euros brutos al año», «entre 28 y 32
+    mil», «30k») or the figure comes with an expectation («busco», «me
+    gustaría», «pediría», «I'm looking for»...), and nothing in it
+    speaks of the current or past pay («me pagan», «cobraba», «en la
+    otra empresa», «antes», «I was on»...: Directive 2023/970 art. 5.2).
+    A range needs «entre», «y», «a» or a dash; a «mil» or «k» after the
+    last figure applies to the bare figures before it. A monthly figure,
+    a refusal or anything outside 6 000–500 000 is not taken.
     """
     folded = fold(text)
     if (_DECLINE.search(folded) or _MONTHLY.search(folded)
             or _PAY_HISTORY.search(folded)):
         return None
     plain = _THOUSANDS.sub("", folded)
+    rest = re.findall(r"[a-z']+", _FIGURE.sub(" ", plain))
+    if not _EXPECTATION.search(plain) and not all(
+            w in _FILLER for w in rest):
+        return None
     figures: List[Tuple[float, bool]] = []
     for found in _FIGURE.finditer(plain):
         number = float(found.group(1).replace(",", "."))

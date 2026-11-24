@@ -103,18 +103,23 @@ ask the interviewer to say how the data are used.
    sentences (at most 3) starting within 30 s; any other substantive
    interviewer sentence (three words or more: an instruction, another
    question) lets the question go.
-   - work mode/location, work authorisation: a clear yes or no; «en
-     trámite», «depende», «no sé», «quizás», «claro que no» read as no,
-     and a sentence with both gives nothing;
+   - work mode/location, work authorisation: a clear yes or no («claro
+     que no» reads as no); «en trámite», «depende», «no sé», «quizás» or
+     a sentence with both give nothing;
    - start date and notice: «de inmediato», «en dos semanas», «a
-     principios de marzo»... and «N días/semanas/meses de preaviso» (in
-     days), «sin preaviso» = 0;
-   - salary: one figure or a range («entre 28 y 32 mil», «30.000»,
-     «30k») in euros per year, 6 000–500 000. Nothing is taken when the
-     answer mentions the current or past pay («cobro», «gano», «mi
-     salario actual», «ahora», «I make», «current salary»...: Directive
-     2023/970 art. 5.2), a monthly figure, a refusal, a fixed plus
-     variable split or three figures;
+     principios de marzo», «a partir del lunes»... (only month names,
+     weekdays and fixed time units: a free word is never kept) and «N
+     días/semanas/meses de preaviso» (in days), «sin preaviso» = 0;
+   - salary (a whitelist): one figure or a range («entre 28 y 32 mil»,
+     «30.000», «30k») in euros per year, 6 000–500 000, taken only when
+     the answer is essentially the figure («Unos 30.000 euros brutos al
+     año») or the figure comes with an expectation («busco», «me
+     gustaría», «pediría», «I'm looking for»...). Nothing is taken when
+     the answer mentions the current or past pay anywhere («me pagan»,
+     «cobraba», «gano», «en la otra empresa», «antes», «mi salario
+     actual», «I was on», «they pay», «current»...: Directive 2023/970
+     art. 5.2), nor a monthly figure, a refusal, a fixed plus variable
+     split or three figures;
    - motivation: **never read** from the candidate's words (any word
      list lets special-category data through); the interviewer may type
      it.

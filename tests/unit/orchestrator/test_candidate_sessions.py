@@ -445,3 +445,33 @@ def test_a_reask_after_a_core_question_rewords_that_question() -> None:
     assert hint.payload["answer_so_far"] == "Pues mira"
     assert told == ["work_authorization"]  # re-asks keep it waiting
     assert not boss.closed
+
+
+def test_a_stop_while_the_salary_waits_keeps_the_plans_close() -> None:
+    from orchestrator.application.interview import (
+        HeuristicFiller,
+        InterviewDirector,
+    )
+    from orchestrator.domain.interview import InterviewPlan, Slot
+    from tests.unit.orchestrator.test_interview_usecases import (
+        NOW,
+        Clock,
+        Output,
+    )
+
+    core = [q for q in Core().questions() if q.id == "salary_expectation"]
+    plan = InterviewPlan(id="p", title="T", minutes=20, slots=[
+        Slot(id="s1", label="Caja", level="minimo", questions=["¿Caja?"])])
+    boss = InterviewDirector(
+        plan, "vb-1", InterviewSection(max_probes=1), HeuristicFiller(),
+        FakeReasoner(), Output(), Clock(), Store(), Handoff(), False, "Ana",
+        now=lambda: NOW, core_open=lambda: list(core),
+    )
+    boss.plan_turn("", None, CancelToken())  # opens with the slot
+    salary = boss.plan_turn("No lo conozco.", "t0.s0", CancelToken())
+    assert salary.payload["topic"].startswith("¿Qué expectativa salarial")
+    assert boss.deferred_close == "covered" and not boss.closed
+    result = boss.finish()  # stopped before the answer
+    assert result is not None
+    assert result["sheet"]["closed_by"] == "covered"
+    assert result["sheet"]["state"] == "closed"
