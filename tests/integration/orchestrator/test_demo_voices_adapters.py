@@ -254,8 +254,8 @@ def test_render_show_clear_from_the_command_line(
     assert run("demo-voices", "render", CALL, *common) == 0
     assert json.loads(capsys.readouterr().out)["rendered"] == []
     assert run("demo-voices", "render", CALL, *common,
-               "--voice", "agente=piper:davefx") == 1
-    assert "female" in capsys.readouterr().err
+               "--voice", "agente=pocket:lola") == 1
+    assert "female voice" in capsys.readouterr().err
     assert run("demo-voices", "render", CALL, *common,
                "--voice", "agente=clone:ana") == 1
     assert "no enrolled person" in capsys.readouterr().err
@@ -280,13 +280,13 @@ def test_recast_renames_a_person_in_the_demo_file(
     folder = tmp_path / "demos"
     shutil.copytree(DEMOS, folder)
     before = (folder / f"{CALL}.demo.json").read_text("utf-8")
-    assert run("demo-voices", "recast", CALL, "agente=Mario",
-               "--gender", "male", "--demos-dir", str(folder)) == 0
-    assert json.loads(capsys.readouterr().out)["was"] == "Marta"
-    demo = DirDemos(folder).load(CALL)
-    assert demo.transcript.speakers[0].name == "Mario"
     assert run("demo-voices", "recast", CALL, "agente=Marta",
                "--gender", "female", "--demos-dir", str(folder)) == 0
+    assert json.loads(capsys.readouterr().out)["was"] == "Mario"
+    demo = DirDemos(folder).load(CALL)
+    assert demo.transcript.speakers[0].name == "Marta"
+    assert run("demo-voices", "recast", CALL, "agente=Mario",
+               "--gender", "male", "--demos-dir", str(folder)) == 0
     assert (folder / f"{CALL}.demo.json").read_text("utf-8") == before
     assert run("demo-voices", "recast", CALL, "cliente=Ana Gil",
                "--gender", "female", "--demos-dir", str(folder)) == 2

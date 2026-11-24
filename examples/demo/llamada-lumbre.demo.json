@@ -2,13 +2,13 @@
  "schema": "live.demo.v1",
  "demo": true,
  "id": "llamada-lumbre",
- "note": "Datos de demostración: llamada ficticia de una empresa ficticia (Lumbre Hogar), guion fijo y sugerencias preparadas; no se llama a ningún modelo. Andrés Ferrer y Marta no son personas reales.",
+ "note": "Datos de demostración: llamada ficticia de una empresa ficticia (Lumbre Hogar), guion fijo y sugerencias preparadas; no se llama a ningún modelo. Andrés Ferrer y Mario no son personas reales.",
  "product": "live_assist.support",
  "title": "Llamada · Baja por un cobro de más",
  "candidate": "Andrés Ferrer",
  "en": {
   "title": "Call · Cancellation because of an extra charge",
-  "note": "Demo data: a fictitious call of a fictitious company (Lumbre Hogar), a fixed script and suggestions prepared in advance; no model is called. Andrés Ferrer and Marta are not real people."
+  "note": "Demo data: a fictitious call of a fictitious company (Lumbre Hogar), a fixed script and suggestions prepared in advance; no model is called. Andrés Ferrer and Mario are not real people."
  },
  "topics": [],
  "suggestions": [
@@ -644,11 +644,11 @@
      "id": "aviso",
      "moment": "El saludo y el aviso de datos",
      "utterance": "t0.s0",
-     "top": "Lumbre Hogar, le habla Marta. Antes de nada le informo de que tratamos sus datos solo para gestionar esta llamada. ¿En qué puedo ayudarle?",
+     "top": "Lumbre Hogar, le habla Mario. Antes de nada le informo de que tratamos sus datos solo para gestionar esta llamada. ¿En qué puedo ayudarle?",
      "why": "Lo dice en la primera frase, antes de que el cliente cuente nada, y no hay que interrumpirle después.",
      "en": {
       "moment": "The greeting and the data notice",
-      "top": "Lumbre Hogar, this is Marta. First of all, I inform you that we use your data only to handle this call. How can I help you?",
+      "top": "Lumbre Hogar, this is Mario. First of all, I inform you that we use your data only to handle this call. How can I help you?",
       "why": "It is said in the first sentence, before the customer tells anything, and nobody has to be interrupted later."
      }
     },
@@ -799,8 +799,8 @@
  "cast": [
   {
    "id": "agente",
-   "name": "Marta",
-   "gender": "female",
+   "name": "Mario",
+   "gender": "male",
    "gendered_text": false
   },
   {
@@ -831,7 +831,7 @@
   "speakers": [
    {
     "id": "agente",
-    "name": "Marta",
+    "name": "Mario",
     "enrolled": true
    },
    {
@@ -848,7 +848,7 @@
     "speaker": "agente",
     "start": 0.6,
     "end": 5.04,
-    "text": "Lumbre Hogar, atención al cliente, le habla Marta. ¿En qué puedo ayudarle?",
+    "text": "Lumbre Hogar, atención al cliente, le habla Mario. ¿En qué puedo ayudarle?",
     "previous_speaker": null,
     "previous_utterance": null,
     "overlap": false

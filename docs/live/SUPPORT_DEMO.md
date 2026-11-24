@@ -3,7 +3,7 @@
 One fictitious call, shown three ways, for people who want to see what
 the product does for a customer-service team without a microphone or a
 model. Company, agent, customer and every sentence are invented
-(`Lumbre Hogar`, Marta, Andrés Ferrer); the pages say so.
+(`Lumbre Hogar`, Mario, Andrés Ferrer); the pages say so.
 
 **The example in two lines.** Andrés Ferrer calls to cancel Lumbre Plus
 because the October renewal was charged after he cancelled in September;
@@ -66,24 +66,28 @@ scripted person with their own synthetic voice. The clips are made
 GPU or session slot.
 
 **Who is who.** The demo file names the people once, in `cast`: their
-speaker id, name and gender (`agente` Marta, female; `cliente` Andrés
-Ferrer, male; `asistente`, any). The voice example's sides point at the
+speaker id, name and gender (`agente` Mario, male; `cliente` Andrés
+Ferrer, male; `asistente`, any). The agent was Marta until the owner's
+two consenting cloned voices, both male, were chosen for the call; he
+was renamed with the command below (`agente=Mario --gender male`). The voice example's sides point at the
 cast (`voicebot.user` = `cliente`, `voicebot.bot` = `asistente`), so the
 customer has the same voice in both examples. A voice of known gender
 reads only a person of that gender. To give a person a name that fits
 another voice, rename them everywhere in the file at once:
 
 ```sh
-uv run --no-sync python -m orchestrator demo-voices recast llamada-lumbre agente=Mario --gender male
+uv run --no-sync python -m orchestrator demo-voices recast llamada-lumbre agente=<Name> --gender <female|male>
 ```
 
 `recast` changes every text that says the old name (whole, first and
-last word: the report, the notes, «le habla Marta») and refuses a new
+last word: the report, the notes, «le habla Mario») and refuses a new
 name of a different word count, a word already in the file, or a gender
 change for a person the script words by gender (`gendered_text`: the
 customer is «señor Ferrer», «harto», «he»; changing that needs
-rewording, not a rename). The agent's lines and the report about her are
-neutral, so the agent can change gender with a rename. The interview
+rewording, not a rename). The agent's lines and the report about the
+agent are neutral (checked in Spanish and English after the rename: no
+«la agente», «ella», «she» or feminine adjective), so the agent can
+change gender with a rename. The interview
 demo has a cast too, but `recast` refuses it: its stored analysis names
 the candidate as well.
 

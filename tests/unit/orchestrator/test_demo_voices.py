@@ -38,8 +38,8 @@ from orchestrator.domain.voices import VoiceProfile
 REPO = Path(__file__).resolve().parents[3]
 DEMOS = REPO / "examples" / "demo"
 CALL = "llamada-lumbre"
-STOCK = {"agente": "pocket:lola", "cliente": "piper:davefx",
-         "asistente": "piper:sharvard-f"}
+STOCK = {"agente": "piper:sharvard-m", "cliente": "piper:davefx",
+         "asistente": "pocket:lola"}
 
 
 def raw(demo: str = CALL) -> Dict[str, Any]:
@@ -206,26 +206,26 @@ def _names(data: Dict[str, Any]) -> str:
 def test_the_report_names_only_the_cast() -> None:
     data = raw()
     report = json.dumps(data["report"], ensure_ascii=False)
-    assert "Andrés Ferrer" in report and "Marta" in report
+    assert "Andrés Ferrer" in report and "Mario" in report
     capitalised = set(re.findall(r"\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\b", report))
     # The only people the report names are the cast's.
-    for name in ("Lucía", "Pablo", "Luis", "Irene", "Ana", "Mario"):
+    for name in ("Lucía", "Pablo", "Luis", "Irene", "Ana", "Marta"):
         assert name not in capitalised
 
 
 def test_a_rename_reaches_every_text_and_can_be_undone() -> None:
     data = raw()
-    renamed = recast(data, "agente", "Mario", "male")
+    renamed = recast(data, "agente", "Marta", "female")
     text = _names(renamed)
-    assert "Marta" not in text and text.count("Mario") >= 4
+    assert "Mario" not in text and text.count("Marta") >= 4
     demo = DemoScript.model_validate(renamed)
-    assert demo.transcript.speakers[0].name == "Mario"
-    assert demo.cast[0].gender == "male"
-    assert "Mario" in demo.transcript.utterances[0].text
+    assert demo.transcript.speakers[0].name == "Marta"
+    assert demo.cast[0].gender == "female"
+    assert "Marta" in demo.transcript.utterances[0].text
     assert demo.report is not None
     report = json.dumps(demo.report.model_dump(), ensure_ascii=False)
-    assert "Mario" in report and "Marta" not in report
-    assert recast(renamed, "agente", "Marta", "female") == data
+    assert "Marta" in report and "Mario" not in report
+    assert recast(renamed, "agente", "Mario", "male") == data
     customer = recast(data, "cliente", "Pablo Gil")
     assert "Ferrer" not in _names(customer)
     assert "señor Gil" in _names(customer)
@@ -245,8 +245,8 @@ def test_a_rename_that_cannot_be_undone_is_refused() -> None:
     with pytest.raises(ValueError, match="analysis"):
         recast(raw("entrevista-lucia"), "candidata", "Ana Gil")
     with pytest.raises(ValueError, match="gender"):
-        recast(data, "agente", "Mario", "other")
-    assert recast(data, "agente", "Marta") == data
+        recast(data, "agente", "Marta", "other")
+    assert recast(data, "agente", "Mario") == data
 
 
 # ---- voices ----
@@ -278,27 +278,27 @@ def test_stock_voices_that_fit_the_cast_pass() -> None:
 
 
 def test_a_voice_of_the_other_gender_is_refused() -> None:
-    problems = check_voices(script(), _voices(agente="piper:sharvard-m"),
+    problems = check_voices(script(), _voices(agente="piper:sharvard-f"),
                             Profiles().get)
-    assert any("male voice" in p and "Marta" in p for p in problems)
+    assert any("female voice" in p and "Mario" in p for p in problems)
     # A clone of unknown gender cannot be checked; a declared one is.
     assert check_voices(script(), _voices(agente="clone:ana"),
                         Profiles(ana=agreed("ana")).get) == []
-    assert check_voices(script(), _voices(agente="clone:ana:male"),
+    assert check_voices(script(), _voices(agente="clone:ana:female"),
                         Profiles(ana=agreed("ana")).get)
 
 
 def test_two_people_of_one_example_never_share_a_voice() -> None:
-    problems = check_voices(script(), _voices(cliente="pocket:lola"),
+    problems = check_voices(script(), _voices(cliente="piper:sharvard-m"),
                             Profiles().get)
-    assert any("share pocket:lola in the call" in p for p in problems)
+    assert any("share piper:sharvard-m in the call" in p for p in problems)
     shared = _voices(cliente="clone:ana", asistente="clone:ana")
     problems = check_voices(script(), shared,
                             Profiles(ana=agreed("ana")).get)
     assert problems == [
         "'asistente' and 'cliente' would share clone:ana in the voicebot"]
     # The agent and the assistant never talk to each other.
-    assert check_voices(script(), _voices(asistente="pocket:lola"),
+    assert check_voices(script(), _voices(asistente="piper:sharvard-m"),
                         Profiles().get) == []
 
 
@@ -343,7 +343,7 @@ def test_render_writes_one_clip_per_line_and_a_manifest() -> None:
     assert set(manifest.clips) == {x.key for x in demo_lines(script())}
     clip = manifest.clips["t0.s0"]
     assert (clip.voice, clip.kind, clip.cloned_from, clip.engine) == (
-        "pocket:lola", "stock", None, "tone")
+        "piper:sharvard-m", "stock", None, "tone")
     assert clip.seconds > 0 and store.has_clip(CALL, clip.file)
     assert store.files[(CALL, clip.file)][:4] == b"RIFF"
     assert len(store.files) == 27
@@ -357,10 +357,10 @@ def test_render_again_renders_only_what_changed() -> None:
     again = renderer(store, speaker).render(CALL, {})
     assert again.rendered == [] and len(again.kept) == 27
     assert speaker.said == [] and store.saves == saves
-    one = renderer(store, speaker).render(CALL, {"agente": "piper:sharvard-f",
-                                                 "asistente": "pocket:lola"})
+    one = renderer(store, speaker).render(
+        CALL, {"agente": "piper:davefx", "cliente": "piper:sharvard-m"})
     agent = [x.key for x in demo_lines(script())
-             if x.person in ("agente", "asistente")]
+             if x.person in ("agente", "cliente")]
     assert sorted(one.rendered) == sorted(agent)
     assert len(store.files) == 27  # the replaced clips are gone
     data = raw()
@@ -372,7 +372,7 @@ def test_render_again_renders_only_what_changed() -> None:
 
 def test_a_missing_voice_is_never_picked_silently() -> None:
     with pytest.raises(DemoVoiceError, match="no voice for 'asistente'"):
-        renderer(Store()).render(CALL, {"agente": "pocket:lola",
+        renderer(Store()).render(CALL, {"agente": "piper:sharvard-m",
                                         "cliente": "piper:davefx"})
     with pytest.raises(DemoVoiceError, match="unknown voice"):
         renderer(Store()).render(CALL, {**STOCK, "agente": "lola"})
@@ -419,7 +419,7 @@ def test_an_engine_failure_keeps_the_previous_clips() -> None:
     before = (dict(store.files), store.manifests[CALL])
     with pytest.raises(DemoVoiceError, match="worker died"):
         renderer(store, Failing(after=3)).render(
-            CALL, {"agente": "piper:sharvard-f", "asistente": "pocket:lola"})
+            CALL, {"agente": "piper:davefx", "cliente": "piper:sharvard-m"})
     assert (store.files, store.manifests[CALL]) == before
 
 
@@ -627,7 +627,7 @@ def test_a_consent_withdrawn_after_her_lines_publishes_none_of_them() -> None:
 
     with pytest.raises(DemoVoiceError, match="withdrawn during the render"):
         renderer(store, Late(), Gate(), profiles).render(
-            CALL, {"cliente": "clone:ana", "agente": "piper:sharvard-f"})
+            CALL, {"cliente": "clone:ana", "agente": "piper:davefx"})
     assert (store.files, store.manifests[CALL]) == before
 
 

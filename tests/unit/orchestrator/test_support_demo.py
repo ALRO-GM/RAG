@@ -258,7 +258,7 @@ def test_the_report_and_the_voice_example_are_served() -> None:
     assert report["demo"] is True and report["id"] == DEMO_ID
     assert report["top_scorers"]["illustrative"] is True
     assert len(report["utterances"]) == 19
-    assert report["speakers"][0]["name"] == "Marta"
+    assert report["speakers"][0]["name"] == "Mario"
     assert [i["id"] for i in report["mandatory_items"]][-1] \
         == "aceptacion-expresa"
     assert all("said_by" not in i for i in report["mandatory_items"])
