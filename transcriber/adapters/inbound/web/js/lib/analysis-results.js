@@ -238,10 +238,13 @@ export function opinionOf(profile) {
   const byId = new Map(skills.map((k) => [k.id, k]));
   const pick = (ids) => (ids ?? []).map((id) => byId.get(id)).filter(Boolean);
   const o = profile?.overall;
+  const maximum = typeof o?.maximum === "number" ? o.maximum : 5;
+  const minimum = typeof o?.minimum === "number" ? o.minimum : 1;
   const overall = o && typeof o.score === "number" ? {
     score: o.score,
-    maximum: typeof o.maximum === "number" ? o.maximum : 5,
-    percent: typeof o.percent === "number" ? o.percent : Math.round((o.score / (typeof o.maximum === "number" ? o.maximum : 5)) * 1000) / 10,
+    maximum,
+    minimum,
+    percent: typeof o.percent === "number" ? o.percent : Math.round(((o.score - minimum) / (maximum - minimum)) * 1000) / 10,
     verdict: VERDICTS.includes(o.verdict) ? o.verdict : "adequate",
     line: o.line ?? "",
     frame: o.frame ?? "",

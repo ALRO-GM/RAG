@@ -7,7 +7,7 @@
    "no_citation": 1
   },
   "score": 3.7,
-  "percent": 74.0,
+  "percent": 67.5,
   "verdict": "adequate",
   "line": "En esta reunión Lucía ayudó a llegar a decisiones y a próximos pasos concretos, con cierre y asignación de tareas, aunque dejó una pregunta y dos propuestas sin retomar y varias de sus valoraciones son provisionales.",
   "source": "judge",
@@ -33,7 +33,7 @@
    "no_citation": 2
   },
   "score": 3.3,
-  "percent": 66.0,
+  "percent": 57.5,
   "verdict": "adequate",
   "line": "Sí, Andrés ayudó a que la reunión llegara a decisiones concretas y a próximos pasos con plazo, sobre todo mediante criterios cuantificados, aunque varios de sus argumentos no fueron atendidos.",
   "source": "judge",
@@ -59,7 +59,7 @@
    "no_citation": 2
   },
   "score": 3.4,
-  "percent": 68.0,
+  "percent": 60.0,
   "verdict": "adequate",
   "line": "En esta conversación Nerea sí ayudó a llegar a decisiones claras y pasos siguientes: cerró cuatro decisiones y varias tareas con plazo, aunque cuatro de sus propuestas y dos de sus preguntas quedaron sin respuesta.",
   "source": "judge",
@@ -85,7 +85,7 @@
    "no_citation": 1
   },
   "score": 3.6,
-  "percent": 72.0,
+  "percent": 65.0,
   "verdict": "adequate",
   "line": "Sí, en esta conversación ayudó a cerrar pasos siguientes con responsables y plazos, aunque la pregunta sobre los pedidos del domingo quedó abierta y algunas de sus propuestas no se retomaron.",
   "source": "judge",
@@ -111,7 +111,7 @@
    "no_citation": 1
   },
   "score": 3.7,
-  "percent": 74.0,
+  "percent": 67.5,
   "verdict": "adequate",
   "line": "En esta conversación de coaching, Lucía aplica con claridad técnicas de facilitación como resumir, acotar propuestas y fijar seguimiento, aunque la evidencia sobre feedback y desarrollo de otras personas es escasa.",
   "source": "judge",
@@ -137,7 +137,7 @@
    "no_citation": 3
   },
   "score": 3.7,
-  "percent": 74.0,
+  "percent": 67.5,
   "verdict": "adequate",
   "line": "En esta conversación de entrevista, Lucía muestra con más firmeza comunicación, escucha y coordinación, con algo de capacidad de influencia, mientras que el feedback a otras personas no se observa y las propuestas sin respuesta dejan dudas sobre su influencia.",
   "source": "judge",
@@ -161,7 +161,7 @@
   "status": "done",
   "dropped": {},
   "score": 3.0,
-  "percent": 60.0,
+  "percent": 50.0,
   "verdict": "adequate",
   "line": "Con la evidencia disponible, Lucía propone acciones concretas que podrían aplicar lo que se entrena en coaching, pero solo se observan dos citas y no se puede confirmar que la otra persona haya aplicado el aprendizaje, así que la conclusión es provisional.",
   "source": "judge",

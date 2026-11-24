@@ -945,7 +945,7 @@ export const en = {
   "sa.syn_none": "The model left no point that cites evidence.",
   "sa.syn_skipped": "No synthesis was written: {reason}",
   "sa.syn_no_evidence": "there is no quote of this person.",
-  "sa.syn_dropped": "{count} points of the model were dropped for citing no evidence or breaking the rules.",
+  "sa.syn_dropped": "{count} texts of the model (points, questions, conclusions or the overall line, replaced by a rules-written text) were dropped for citing no evidence or breaking the rules.",
   "sa.syn_model": "Written by {model}.",
   "help.step.synthesis.t": "Synthesis per person",
   "help.step.synthesis.d": "Claude writes, from everything above, what each person stands out in (every point cites sentences with their time), what could not be observed, how it could help in the job sought and what to ask in the interview. Points citing no evidence are dropped. It is a draft for the interview, not a decision or a score.",

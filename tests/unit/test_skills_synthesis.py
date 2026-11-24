@@ -397,7 +397,7 @@ def test_the_report_shows_the_synthesis_on_top() -> None:
         "Puesto que se busca: Coordinador de turno", "En qué destaca",
         "Checks meaning.", "«What do you mean exactly»", "01:01",
         "nivel firme", "Encaje con el puesto", "How do you follow up?",
-        "Confianza: baja", "Se han descartado 1 puntos",
+        "Confianza: baja", "Se han descartado 1 textos",
         "Escrito por claude-code:opus.",
     ):
         assert text in page, text

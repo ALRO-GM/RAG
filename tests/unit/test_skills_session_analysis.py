@@ -708,7 +708,8 @@ def test_synthesis_json_carries_the_opinion_contract_of_the_type() -> None:
             "frame", "confidence", "caveats", "source",
         }
         assert overall["percent"] == round(
-            overall["score"] / overall["maximum"] * 100, 1
+            (overall["score"] - overall["minimum"])
+            / (overall["maximum"] - overall["minimum"]) * 100, 1
         )
         assert "acquired" in overall["frame"]
         for skill in person["skills"]:

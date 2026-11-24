@@ -144,6 +144,16 @@ def scaled(score: float, minimum: int, maximum: int) -> float:
     return 1 + (score - minimum) * 4 / (maximum - minimum)
 
 
+def overall_percent(score: float, minimum: int, maximum: int) -> float:
+    """Return ``score`` as a percentage of the scale range, one decimal.
+
+    The lowest score of the scale is 0 % and the highest 100 %.
+    """
+    if maximum <= minimum:
+        return 0.0
+    return round((score - minimum) / (maximum - minimum) * 100, 1)
+
+
 def frame(conversation_type: Optional[str], language: str) -> str:
     """Return the question the verdict answers for this conversation."""
     chosen = FRAMES.get(conversation_type or "", DEFAULT_FRAME)

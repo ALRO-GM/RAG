@@ -13,6 +13,7 @@ from src.domain.skills.opinion import (
     SkillOpinion,
     frame,
     overall_caveats,
+    overall_percent,
     overall_score,
     scaled,
     top_picks,
@@ -112,7 +113,7 @@ def test_the_judge_opinion_is_kept_but_a_firm_level_is_not_overridden(
     assert result.conversation_type == "coaching"
     assert result.format_version == OPINION_FORMAT_VERSION == 2
     assert result.overall is not None and result.overall.percent == round(
-        result.overall.score / 5 * 100, 1
+        (result.overall.score - 1) / 4 * 100, 1
     )
     assert result.top_strengths == ["listening", "planning"]
     assert result.top_improvements == []
@@ -230,6 +231,22 @@ def test_the_synthesizer_gives_opinions_without_a_call_when_nothing_quoted(
     "Recomiendo pasar a la siguiente fase.",
     "Sería buena idea avanzar con ella.",
     "A good fit for the role.",
+    "Yo la contrataría.",
+    "No la recomendaría para el puesto.",
+    "Strong hire.",
+    "Worth hiring.",
+    "He is not a fit for this role.",
+    "She is the right person for the job.",
+    "Es un perfil idóneo para el puesto.",
+    "Recomendaría su incorporación.",
+    "Sería una buena incorporación al equipo.",
+    "I'd advance her to the next round.",
+    "She should progress to the final interview.",
+    "Debería avanzar en el proceso.",
+    "Clearly suited to the role.",
+    "Overall, a great match for this position.",
+    "She is a good fit for the role and the team.",
+    "Encaja muy bien en el puesto que se busca.",
 ])
 def test_decisions_and_blanket_fit_are_refused(text: str) -> None:
     """The fit reading may describe skills, never decide."""
@@ -242,6 +259,15 @@ def test_decisions_and_blanket_fit_are_refused(text: str) -> None:
     "Her answers on databases match what the role asks for; automated "
     "testing falls short.",
     "Explains trade-offs clearly, a strength for the coordination tasks.",
+    "Her planning matches what the role asks for; follow-up is thinner.",
+    "Su escucha activa coincide con lo que pide el puesto; el "
+    "seguimiento queda por debajo.",
+    "The proposal is a good fit for the budget.",
+    "Her questions were a good fit with the customer's needs.",
+    "Recomienda a la clienta el plan anual.",
+    "Her listening is strong; a good fit for the role's customer-facing "
+    "tasks.",
+    "The team moved on with the next stage of the project.",
 ])
 def test_describing_the_match_skill_by_skill_is_allowed(text: str) -> None:
     """Strengths against requirements pass."""
@@ -274,6 +300,8 @@ def test_participation_only_skills_are_never_strengths_or_improvements(
         opinion("c", 1, "participation"), opinion("d", 2, "observation"),
     ]
     assert top_picks(skills) == ([], ["d"])
+    assert overall_percent(5, 1, 5) == 100.0
+    assert overall_percent(3.5, 0, 4) == 87.5
 
 
 def test_top_picks_use_the_scaled_score_and_the_scale_minimum() -> None:

@@ -43,6 +43,7 @@ from src.domain.skills.opinion import (
     SkillOpinion,
     frame,
     overall_caveats,
+    overall_percent,
     overall_score,
     scaled,
     top_picks,
@@ -90,36 +91,52 @@ DROP_REASONS = (
 )
 """Why a point or question of the reply was dropped."""
 
+_ROLE = r"(?:job|role|position|post|vacancy)\b(?!['’]s)"
+_PUESTO = r"(?:puesto|perfil|rol|cargo|vacante)\b(?! (?:de|del)\b)"
 _VERDICT = re.compile(
-    r"\b(?:(?:recomiendo|recomendamos|recomendar[ií]a|aconsejo) "
-    r"(?:su )?contrat\w*|no contratar|contratarl[ao]s?|contratarle|"
-    r"no apt[oa]|apt[oa] para el puesto|descartarl[ao]|descartarle|"
-    r"descartar su candidatura|hire (?:him|her|them)|do not hire|"
-    r"should (?:not )?be hired|recommend hiring|unsuitable|not suitable|"
-    r"reject (?:the )?candidate|hiring decision|"
-    r"(?:would|do|does|did|should) not recommend|"
+    r"\b(?:"
+    # hiring decisions, either language
+    r"(?:recomiendo|recomendamos|aconsejo) (?:su )?contrat\w*|"
+    r"contrat(?:ar|ari)\w*|(?:la|lo|le|las|los|les) contrat\w+|"
+    r"yo contrat\w+|"
+    r"hire|worth hiring|hiring (?:her|him|them)|do not hire|"
+    r"should (?:not )?be hired|recommend hiring|hiring decision|"
+    r"no apt[oa]|apt[oa] para el puesto|descartarl[ao]s?|descartarle|"
+    r"descartar su candidatura|unsuitable|not suitable|"
+    r"reject (?:the )?candidate|"
+    # recommendations
+    r"(?:would|do|does|did|should|'d) not recommend|"
     r"(?:recommend|recommended|recommending) "
     r"(?:her|him|them|the candidate)|"
-    r"move (?:forward|on) with|(?:next|following) "
-    r"(?:phase|stage|round) of|"
-    r"(?:ideal|best|strong|perfect|top|good|right|weak|poor) "
-    r"candidate|"
-    r"(?:good|great|perfect|poor|bad|excellent|strong|weak) fit "
-    r"(?:for|with) (?:the|this|that) (?:job|role|position|post|vacancy)"
-    r"(?=\s*(?:[.,;:!?)]|$))|"
-    r"(?:is|are|seems?) (?:an? )?(?:good|great|perfect|poor|bad) "
-    r"(?:match|fit)(?=\s*(?:[.,;:!?)]|$))|"
+    r"recomendar[ií]a\w*|no (?:la |lo )?recomiendo|"
     r"(?:no )?recomiend\w+ (?:a |para )(?:ella|[eé]l|la candidat\w+|"
-    r"el candidat\w+|el puesto)|no (?:la |lo )?recomiendo|"
-    r"candidat[oa] (?:ideal|id[oó]ne\w+|fuerte|s[oó]lid\w+|"
-    r"perfect\w+|excelente|d[eé]bil)|"
-    r"(?:el|la) mejor candidat\w+|"
+    r"el candidat\w+|el puesto)|"
+    r"(?:su|la|una buena|buena) incorporaci[oó]n|"
+    # moving the person on
+    r"move (?:forward|on) with (?:her|him|them|the candidate)|"
+    r"(?:advance|progress|proceed|move|go|put|send|take)\w*"
+    r"(?: (?:her|him|them))? (?:on )?(?:to|into) the "
+    r"(?:next|final|second|third|following) "
+    r"(?:round|stage|phase|interview)|"
     r"(?:pasar|pase|pasa|avanzar|avance|seguir) "
     r"(?:a la|con la|a la siguiente|a la pr[oó]xima) "
     r"(?:siguiente |pr[oó]xima )?(?:fase|ronda|etapa)|"
-    r"avanzar con (?:ella|[eé]l)|seguir adelante con (?:ella|[eé]l)|"
-    r"(?:no )?encaj\w+ (?:\w+ )?(?:con|para|en) (?:el|este|ese) "
-    r"(?:puesto|perfil|rol|cargo)(?=\s*(?:[.,;:!?)]|$)))\b",
+    r"avanz\w+ en el proceso|avanzar con (?:ella|[eé]l)|"
+    r"seguir adelante con (?:ella|[eé]l)|"
+    # labels of the person as a whole
+    r"(?:ideal|best|strong|perfect|top|good|right|weak|poor) candidate|"
+    r"candidat[oa] (?:ideal|id[oó]ne\w+|fuerte|s[oó]lid\w+|"
+    r"perfect\w+|excelente|d[eé]bil)|(?:el|la) mejor candidat\w+|"
+    r"(?:right|ideal|perfect|best) person for the|id[oó]ne[oa]s?|"
+    # blanket fit with the job
+    r"not an? (?:good |great )?(?:fit|match)\b|"
+    r"(?:good|great|perfect|poor|bad|excellent|strong|weak) (?:fit|match) "
+    r"(?:for|with|to) (?:the|this|that) " + _ROLE + r"|"
+    r"suited (?:to|for) (?:the|this|that) " + _ROLE + r"|"
+    r"(?:is|are|seems?) (?:an? )?(?:good|great|perfect|poor|bad) "
+    r"(?:match|fit)(?=\s*(?:[.,;:!?)]|$))|"
+    r"(?:no )?encaj\w+(?: \w+){0,2} (?:con|para|en) (?:el|este|ese) "
+    + _PUESTO + r")",
     re.IGNORECASE,
 )
 _LABEL = re.compile(
@@ -849,7 +866,7 @@ def with_opinions(
     )
     overall = OverallOpinion(
         score=score, maximum=facts.maximum, minimum=facts.minimum,
-        percent=round(score / facts.maximum * 100, 1),
+        percent=overall_percent(score, facts.minimum, facts.maximum),
         verdict=_read(facts, score), line=line,
         frame=frame(facts.conversation_type, facts.language),
         confidence=result.confidence, caveats=caveats,
