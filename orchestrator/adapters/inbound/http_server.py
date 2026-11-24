@@ -4,7 +4,8 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 
 - ``GET /health``: no token.
 - ``GET /products``: the live products and what the page shows of them.
-- ``GET /transcripts``: recorded conversations a replay can use.
+- ``GET /transcripts``: recorded conversations a replay can use, and
+  ``demos``: the scripted demos (``live.demo.v1``, LV-17).
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
   "session_id"?, "employee"?: {"id", "name"}, "plan"?, "domain"?,
@@ -20,6 +21,8 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``POST /sessions/{id}/replay`` ``{"product", "transcript",
   "speed"?, "employee"?}``: replay a transcript as a live session
   (``speed`` 1 is real time, ``null`` as fast as the services answer).
+  With ``{"demo": id}`` it plays a scripted demo instead (its own
+  product and conversation; prepared suggestions, no model call).
 - ``POST /sessions/{id}/stop``.
 - ``POST /sessions/{id}/mode`` ``{"mode": "pincelada"|"guiado"}``,
   ``POST /sessions/{id}/speakers/{speaker}`` ``{"name"}`` and
@@ -144,7 +147,8 @@ def create_app(
     async def transcripts() -> Dict[str, Any]:
         """Conversations for a replay."""
         found = await run_in_threadpool(sessions.list_transcripts)
-        return {"transcripts": found}
+        demos = await run_in_threadpool(sessions.list_demos)
+        return {"transcripts": found, "demos": demos}
 
     @app.get("/sessions")
     async def list_sessions() -> Dict[str, Any]:
@@ -222,6 +226,12 @@ def create_app(
             isinstance(speed, bool) or not isinstance(speed, (int, float))
         ):
             raise SessionError("invalid_request", "speed must be a number")
+        demo = _optional(data, "demo")
+        if demo is not None:
+            return await run_in_threadpool(
+                sessions.start_replay, session_id, "", "",
+                float(speed) if speed is not None else None, None, demo,
+            )
         return await run_in_threadpool(
             sessions.start_replay, session_id, _text(data, "product"),
             _text(data, "transcript"),

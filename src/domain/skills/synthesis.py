@@ -48,6 +48,7 @@ from src.domain.skills.opinion import (
     scaled,
     top_picks,
     verdict_of,
+    weighted_mean,
 )
 from src.domain.skills.speech import clock
 
@@ -866,7 +867,9 @@ def with_opinions(
     )
     overall = OverallOpinion(
         score=score, maximum=facts.maximum, minimum=facts.minimum,
-        percent=overall_percent(score, facts.minimum, facts.maximum),
+        percent=overall_percent(
+            weighted_mean(skills), facts.minimum, facts.maximum
+        ),
         verdict=_read(facts, score), line=line,
         frame=frame(facts.conversation_type, facts.language),
         confidence=result.confidence, caveats=caveats,

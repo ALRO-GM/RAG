@@ -220,13 +220,22 @@ class OverallOpinion(BaseModel):
     source: Source = "rules"
 
 
-def overall_score(skills: Sequence[SkillOpinion]) -> float:
-    """Return the weighted mean of the skill scores, to one decimal."""
+def weighted_mean(skills: Sequence[SkillOpinion]) -> float:
+    """Return the weighted mean of the skill scores, not rounded.
+
+    The percentage is computed from it (#232), so rounding the shown
+    score to one decimal does not move the percentage in steps of
+    2,5 % on a 1 to 5 scale.
+    """
     total = sum(WEIGHTS[s.basis] for s in skills)
     if not total:
         return 0.0
-    mean = sum(s.score * WEIGHTS[s.basis] for s in skills) / total
-    return round(mean, 1)
+    return sum(s.score * WEIGHTS[s.basis] for s in skills) / total
+
+
+def overall_score(skills: Sequence[SkillOpinion]) -> float:
+    """Return the weighted mean of the skill scores, to one decimal."""
+    return round(weighted_mean(skills), 1)
 
 
 def top_picks(

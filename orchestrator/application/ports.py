@@ -11,6 +11,7 @@ from typing import (
     Protocol, Tuple,
 )
 
+from orchestrator.domain.demo import DemoScript
 from orchestrator.domain.events import LiveEvent, Transcript
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
@@ -272,6 +273,48 @@ class MandatoryPort(Protocol):
 
         Raises:
             MandatoryUnavailable: The sentence could not be checked.
+        """
+        ...
+
+
+class DemoScripts(Protocol):
+    """The scripted demos of the live page (``live.demo.v1``, LV-17)."""
+
+    def list(self) -> List[Document]:
+        """Return every demo as a page lists it."""
+        ...
+
+    def load(self, demo_id: str) -> DemoScript:
+        """Return one demo.
+
+        Raises:
+            KeyError: There is no such demo.
+        """
+        ...
+
+
+class AvoidUnavailable(Exception):
+    """The check of questions better avoided could not be made.
+
+    ``reason`` is ``no_rules`` (the RAG has no interview rules) or
+    ``unreachable`` (the RAG did not answer or answered wrongly).
+    """
+
+    def __init__(self, message: str, reason: str = "unreachable"):
+        """Keep the message and why."""
+        super().__init__(message)
+        self.reason = reason
+
+
+class AvoidPort(Protocol):
+    """The RAG's check of interview questions better avoided (LV-17)."""
+
+    def check(self, text: str, language: str) -> Document:
+        """Return ``hints: [{"category", "title", "why", "alternative"}]``.
+
+        Raises:
+            AvoidUnavailable: The sentence could not be checked (no
+                rules, no service).
         """
         ...
 

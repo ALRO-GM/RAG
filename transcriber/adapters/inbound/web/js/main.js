@@ -80,7 +80,7 @@ const ROUTES = [
   [/^#\/analysis\/([^/]+)$/, analysisView],
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
   [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
-  [/^#\/live$/, liveView],
+  [/^#\/live(?:\/(demo))?$/, liveView],
   [/^#\/voicebot$/, voicebotView],
   [/^#\/settings$/, settingsView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],

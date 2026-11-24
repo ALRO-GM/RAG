@@ -56,7 +56,7 @@ def test_the_token_guards_everything_but_health() -> None:
     names = [p["product"] for p in answer.json()["products"]]
     assert names == ["live_assist.interview", "live_assist.support"]
     assert web.get("/transcripts", headers=AUTH).json() == {
-        "transcripts": [{"id": "t"}]}
+        "transcripts": [{"id": "t"}], "demos": []}
 
 
 def test_a_replay_is_streamed_as_server_sent_events() -> None:

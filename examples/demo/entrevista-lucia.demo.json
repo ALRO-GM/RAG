@@ -1,0 +1,287 @@
+{
+ "schema": "live.demo.v1",
+ "demo": true,
+ "id": "entrevista-lucia",
+ "note": "Datos de demostración: entrevista ficticia, guion fijo y sugerencias preparadas; no se llama a ningún modelo. Lucía Marín no es una persona real.",
+ "product": "live_assist.interview",
+ "title": "Entrevista · Desarrolladora backend",
+ "candidate": "Lucía Marín",
+ "en": {
+  "title": "Interview · Backend developer",
+  "note": "Demo data: a fictitious interview, a fixed script and suggestions prepared in advance; no model is called. Lucía Marín is not a real person."
+ },
+ "result_session": "demo-entrevista-lucia-marin",
+ "topics": [
+  {
+   "id": "python_apis",
+   "name": "Python y APIs",
+   "covered_by": "t1.s0",
+   "en": {
+    "name": "Python and APIs"
+   }
+  },
+  {
+   "id": "databases",
+   "name": "Bases de datos",
+   "covered_by": "t3.s0",
+   "en": {
+    "name": "Databases"
+   }
+  },
+  {
+   "id": "experience",
+   "name": "Experiencia",
+   "covered_by": "t5.s0",
+   "en": {
+    "name": "Experience"
+   }
+  },
+  {
+   "id": "testing",
+   "name": "Pruebas automáticas",
+   "covered_by": "t7.s0",
+   "en": {
+    "name": "Automated testing"
+   }
+  },
+  {
+   "id": "teamwork",
+   "name": "Trabajo en equipo",
+   "covered_by": "t9.s0",
+   "en": {
+    "name": "Teamwork"
+   }
+  }
+ ],
+ "suggestions": [
+  {
+   "after": "t1.s0",
+   "kind": "follow_up",
+   "text": "Pregunta cómo midió la mejora",
+   "example": "¿Cómo supiste que el problema estaba en la base de datos?",
+   "script_phase": "technical",
+   "en": {
+    "text": "Ask how she measured the improvement",
+    "example": "How did you know the problem was in the database?"
+   }
+  },
+  {
+   "after": "t3.s0",
+   "kind": "question",
+   "text": "Aún no habéis hablado de pruebas",
+   "example": "¿Cómo comprobasteis que nada se rompía al migrar?",
+   "script_phase": "technical",
+   "en": {
+    "text": "You have not talked about testing yet",
+    "example": "How did you check nothing broke during the migration?"
+   }
+  },
+  {
+   "after": "t7.s0",
+   "kind": "question",
+   "text": "Pide un ejemplo de trabajo en equipo",
+   "example": "Cuéntame un desacuerdo con un compañero y cómo lo resolvisteis.",
+   "script_phase": "behavioural",
+   "en": {
+    "text": "Ask for an example of teamwork",
+    "example": "Tell me about a disagreement with a colleague and how you solved it."
+   }
+  },
+  {
+   "after": "t9.s0",
+   "kind": "reminder",
+   "text": "Cierra con los siguientes pasos",
+   "example": "Gracias, Lucía. Esta semana te escribimos con los siguientes pasos.",
+   "script_phase": "closing",
+   "en": {
+    "text": "Close with the next steps",
+    "example": "Thank you, Lucía. We will write to you this week with the next steps."
+   }
+  }
+ ],
+ "avoid": [
+  {
+   "utterance": "t4.s0",
+   "category": "age",
+   "title": "Edad",
+   "why": "La edad no puede influir en la selección.",
+   "alternative": "Pregunta por la experiencia: «¿Cuántos años llevas con Python en producción?»",
+   "en": {
+    "title": "Age",
+    "why": "Age cannot weigh in the selection.",
+    "alternative": "Ask about experience: “How many years have you run Python in production?”"
+   }
+  }
+ ],
+ "transcript": {
+  "schema": "transcript.v1",
+  "session": {
+   "id": "demo-entrevista-lucia",
+   "title": "Entrevista de demostración · Desarrolladora backend",
+   "language": "es",
+   "started_at": "2026-11-24T10:00:00+01:00",
+   "duration": 70.0,
+   "audio_sha256": null,
+   "type": "entrevista",
+   "goal": "Entrevista ficticia de demostración para un puesto de desarrollo backend"
+  },
+  "speakers": [
+   {
+    "id": "entrevistador",
+    "name": "Entrevistador",
+    "enrolled": true
+   },
+   {
+    "id": "candidata",
+    "name": "Lucía Marín",
+    "enrolled": true
+   }
+  ],
+  "utterances": [
+   {
+    "id": "t0.s0",
+    "turn": 0,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 0.6,
+    "end": 5.66,
+    "text": "Hola, Lucía, gracias por venir. Para empezar, cuéntame un proyecto del que estés orgullosa.",
+    "previous_speaker": null,
+    "previous_utterance": null,
+    "overlap": false
+   },
+   {
+    "id": "t1.s0",
+    "turn": 1,
+    "index": 0,
+    "speaker": "candidata",
+    "start": 6.56,
+    "end": 13.34,
+    "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+    "previous_speaker": "entrevistador",
+    "previous_utterance": "t0.s0",
+    "overlap": false
+   },
+   {
+    "id": "t2.s0",
+    "turn": 2,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 14.24,
+    "end": 17.41,
+    "text": "¿Cómo supiste que el problema estaba en la base de datos?",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t1.s0",
+    "overlap": false
+   },
+   {
+    "id": "t3.s0",
+    "turn": 3,
+    "index": 0,
+    "speaker": "candidata",
+    "start": 18.31,
+    "end": 26.31,
+    "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+    "previous_speaker": "entrevistador",
+    "previous_utterance": "t2.s0",
+    "overlap": false
+   },
+   {
+    "id": "t4.s0",
+    "turn": 4,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 27.21,
+    "end": 29.38,
+    "text": "Muy bien. Por cierto, ¿qué edad tienes?",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t3.s0",
+    "overlap": false
+   },
+   {
+    "id": "t4.s1",
+    "turn": 4,
+    "index": 1,
+    "speaker": "entrevistador",
+    "start": 32.58,
+    "end": 36.41,
+    "text": "Perdona, lo reformulo: ¿cuántos años llevas con Python en producción?",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t3.s0",
+    "overlap": false
+   },
+   {
+    "id": "t5.s0",
+    "turn": 5,
+    "index": 0,
+    "speaker": "candidata",
+    "start": 37.31,
+    "end": 40.53,
+    "text": "Cinco años, los tres últimos con servicios en tiempo real.",
+    "previous_speaker": "entrevistador",
+    "previous_utterance": "t4.s1",
+    "overlap": false
+   },
+   {
+    "id": "t6.s0",
+    "turn": 6,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 41.43,
+    "end": 44.15,
+    "text": "¿Cómo comprobasteis que nada se rompía al migrar?",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t5.s0",
+    "overlap": false
+   },
+   {
+    "id": "t7.s0",
+    "turn": 7,
+    "index": 0,
+    "speaker": "candidata",
+    "start": 45.05,
+    "end": 51.77,
+    "text": "Teníamos pruebas de los casos principales, aunque las escribimos después del código, no antes, y no medimos la cobertura.",
+    "previous_speaker": "entrevistador",
+    "previous_utterance": "t6.s0",
+    "overlap": false
+   },
+   {
+    "id": "t8.s0",
+    "turn": 8,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 52.67,
+    "end": 56.17,
+    "text": "Cuéntame un desacuerdo con un compañero y cómo lo resolvisteis.",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t7.s0",
+    "overlap": false
+   },
+   {
+    "id": "t9.s0",
+    "turn": 9,
+    "index": 0,
+    "speaker": "candidata",
+    "start": 57.07,
+    "end": 64.85,
+    "text": "Discutimos si dividir el servicio. Propuse medirlo una semana y nos quedamos con su idea. Eso sí, me cuesta delegar: tiendo a resolverlo yo.",
+    "previous_speaker": "entrevistador",
+    "previous_utterance": "t8.s0",
+    "overlap": false
+   },
+   {
+    "id": "t10.s0",
+    "turn": 10,
+    "index": 0,
+    "speaker": "entrevistador",
+    "start": 65.75,
+    "end": 69.47,
+    "text": "Gracias, Lucía. Esta semana te escribimos con los siguientes pasos.",
+    "previous_speaker": "candidata",
+    "previous_utterance": "t9.s0",
+    "overlap": false
+   }
+  ]
+ }
+}

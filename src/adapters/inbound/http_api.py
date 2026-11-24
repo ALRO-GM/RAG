@@ -21,7 +21,9 @@ the response (VB-2, the voice bot speaks before the reply ends);
 relabels and deletes their documents (``docs/KNOWLEDGE.md``);
 ``GET /knowledge/domains/{id}/mandatory`` gives a domain's mandatory
 script items and ``POST /knowledge/mandatory`` tells which of them an
-employee's sentence says (LV-16). These routes need a bearer token,
+employee's sentence says (LV-16); ``POST /knowledge/interview/avoid``
+lists the protected topics an interviewer's question touches (LV-17).
+These routes need a bearer token,
 compared in constant time; when no token is configured they are not
 mounted at all, so they are never open.
 """
@@ -40,6 +42,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.avoid import AvoidQuestions
 from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.pipeline_settings import PipelineSettings
@@ -189,12 +192,14 @@ class KnowledgeRoutes:
 
     ``query`` answers ``POST /knowledge/query``; ``library`` (optional)
     adds the domain and document routes; ``mandatory`` (optional) the
-    mandatory items of a domain and their check (LV-16).
+    mandatory items of a domain and their check (LV-16); ``avoid``
+    (optional) the check of interview questions better avoided (LV-17).
     """
 
     query: KnowledgeQueryService
     library: Optional[KnowledgeLibrary] = None
     mandatory: Optional[MandatoryItems] = None
+    avoid: Optional[AvoidQuestions] = None
 
 
 @dataclass(frozen=True)
@@ -614,6 +619,8 @@ def mount_knowledge(
 
     if routes.mandatory is not None:
         mount_mandatory(app, routes.mandatory, guard)
+    if routes.avoid is not None:
+        mount_avoid(app, routes.avoid, guard)
     if routes.library is not None:
         mount_library(app, routes.library, guard)
 
@@ -648,6 +655,34 @@ def mount_mandatory(
             )
         try:
             found = await run_in_threadpool(mandatory.check, domain, text)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(dict(found))
+
+
+def mount_avoid(
+    app: FastAPI, avoid: AvoidQuestions, guard: List[Any]
+) -> None:
+    """Add the check of interview questions better avoided (LV-17)."""
+
+    @app.post("/knowledge/interview/avoid", dependencies=guard)
+    async def avoid_check(request: Request) -> JSONResponse:
+        """``{"text", "language"?}``: the protected topics it touches.
+
+        ``404`` when there are no interview rules to check with.
+        """
+        body = await read_body(request, KNOWLEDGE_QUERY_MAX_BYTES)
+        try:
+            data = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="body is not JSON")
+        text = data.get("text") if isinstance(data, dict) else None
+        language = data.get("language", "es") if isinstance(
+            data, dict) else "es"
+        if not isinstance(text, str) or not isinstance(language, str):
+            raise HTTPException(status_code=422, detail="text is required")
+        try:
+            found = await run_in_threadpool(avoid.check, text, language)
         except RagError as exc:
             raise analysis_error(exc)
         return JSONResponse(dict(found))

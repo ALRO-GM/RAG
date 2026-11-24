@@ -30,6 +30,7 @@ from src.adapters.outbound.document_extractors import DocumentExtractors
 from src.adapters.outbound.florence_captioner import FlorenceCaptioner
 from src.adapters.outbound.gpu_lease_file import FileGpuGate, lease_directory
 from src.adapters.outbound.fs_document_store import FileSystemDocumentStore
+from src.adapters.outbound.fs_forbidden_rules import FileForbiddenRules
 from src.adapters.outbound.fs_domain_catalogue import (
     FileSystemDomainCatalogue,
 )
@@ -82,6 +83,7 @@ from src.application.knowledge.ports import (
     IndexState,
 )
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.avoid import AvoidQuestions
 from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
@@ -534,6 +536,13 @@ class Container:
         return MandatoryItems(
             self.knowledge_registry.manifest, self.knowledge_embedder
         )
+
+    @cached_property
+    def knowledge_avoid(self) -> AvoidQuestions:
+        """Questions better avoided in an interview (LV-17, #232)."""
+        return AvoidQuestions(FileForbiddenRules(
+            Path(self.knowledge_settings.interview_rules)
+        ))
 
 
 class KnowledgeIndexFactory:

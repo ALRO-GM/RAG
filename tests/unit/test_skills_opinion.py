@@ -14,6 +14,7 @@ from src.domain.skills.opinion import (
     frame,
     overall_caveats,
     overall_percent,
+    weighted_mean,
     overall_score,
     scaled,
     top_picks,
@@ -113,8 +114,9 @@ def test_the_judge_opinion_is_kept_but_a_firm_level_is_not_overridden(
     assert result.conversation_type == "coaching"
     assert result.format_version == OPINION_FORMAT_VERSION == 2
     assert result.overall is not None and result.overall.percent == round(
-        (result.overall.score - 1) / 4 * 100, 1
+        (weighted_mean(result.skills) - 1) / 4 * 100, 1
     )
+    assert result.overall.score == round(weighted_mean(result.skills), 1)
     assert result.top_strengths == ["listening", "planning"]
     assert result.top_improvements == []
 

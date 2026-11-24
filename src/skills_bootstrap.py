@@ -629,6 +629,25 @@ class SkillsContainer:
             settings=self.pipeline_settings.current,
         )
 
+    def install_demo_analyses(self) -> List[str]:
+        """Install the prepared results of the live page's demos (#232).
+
+        Returns the sessions written now (none when they are current).
+        """
+        from src.adapters.outbound.fs_demo_analyses import (
+            read_demo_analyses,
+        )
+        from src.application.skills.demo_analysis import install_demos
+
+        import sys
+
+        return install_demos(
+            FileSystemAnalysisStore(self.settings.analysis_dir),
+            read_demo_analyses(REPOSITORY_ROOT / "examples" / "demo"),
+            FileAnalysisLock(self.settings.analysis_dir),
+            report=lambda message: print(message, file=sys.stderr),
+        )
+
     def session_outputs(self, transcripts_dir: str) -> SessionEraser:
         """Return the eraser of the other commands' per-session files."""
         return FileSystemSessionOutputs(

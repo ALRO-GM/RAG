@@ -1,0 +1,533 @@
+{
+ "schema": "analysis.demo.v1",
+ "demo": true,
+ "session_id": "demo-entrevista-lucia-marin",
+ "note": "Datos de demostración: resultado preparado a mano para la entrevista ficticia de «Lucía Marín»; no lo calculó el análisis ni ningún modelo. Solo se resume a la candidata.",
+ "started_at": "2026-11-24T10:01:10Z",
+ "title": "Entrevista · Desarrolladora backend",
+ "job": "Desarrolladora backend · Python",
+ "files": {
+  "sentences": {
+   "session_id": "demo-entrevista-lucia-marin",
+   "conversation_type": "entrevista",
+   "conversation_goal": "Entrevista ficticia de demostración para un puesto de desarrollo backend",
+   "speakers": [
+    {
+     "name": "Entrevistador",
+     "sentences": 7,
+     "words": 70
+    },
+    {
+     "name": "Lucía Marín",
+     "sentences": 5,
+     "words": 99
+    }
+   ],
+   "sentences": [
+    {
+     "id": "t0.s0",
+     "turn": 0,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "Hola, Lucía, gracias por venir. Para empezar, cuéntame un proyecto del que estés orgullosa.",
+     "start": 0.6,
+     "end": 5.66
+    },
+    {
+     "id": "t1.s0",
+     "turn": 1,
+     "index": 0,
+     "speaker": "Lucía Marín",
+     "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+     "start": 6.56,
+     "end": 13.34,
+     "previous_speaker": "Entrevistador"
+    },
+    {
+     "id": "t2.s0",
+     "turn": 2,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "¿Cómo supiste que el problema estaba en la base de datos?",
+     "start": 14.24,
+     "end": 17.41,
+     "previous_speaker": "Lucía Marín"
+    },
+    {
+     "id": "t3.s0",
+     "turn": 3,
+     "index": 0,
+     "speaker": "Lucía Marín",
+     "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+     "start": 18.31,
+     "end": 26.31,
+     "previous_speaker": "Entrevistador"
+    },
+    {
+     "id": "t4.s0",
+     "turn": 4,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "Muy bien. Por cierto, ¿qué edad tienes?",
+     "start": 27.21,
+     "end": 29.38,
+     "previous_speaker": "Lucía Marín"
+    },
+    {
+     "id": "t4.s1",
+     "turn": 4,
+     "index": 1,
+     "speaker": "Entrevistador",
+     "text": "Perdona, lo reformulo: ¿cuántos años llevas con Python en producción?",
+     "start": 32.58,
+     "end": 36.41,
+     "previous_speaker": "Lucía Marín"
+    },
+    {
+     "id": "t5.s0",
+     "turn": 5,
+     "index": 0,
+     "speaker": "Lucía Marín",
+     "text": "Cinco años, los tres últimos con servicios en tiempo real.",
+     "start": 37.31,
+     "end": 40.53,
+     "previous_speaker": "Entrevistador"
+    },
+    {
+     "id": "t6.s0",
+     "turn": 6,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "¿Cómo comprobasteis que nada se rompía al migrar?",
+     "start": 41.43,
+     "end": 44.15,
+     "previous_speaker": "Lucía Marín"
+    },
+    {
+     "id": "t7.s0",
+     "turn": 7,
+     "index": 0,
+     "speaker": "Lucía Marín",
+     "text": "Teníamos pruebas de los casos principales, aunque las escribimos después del código, no antes, y no medimos la cobertura.",
+     "start": 45.05,
+     "end": 51.77,
+     "previous_speaker": "Entrevistador"
+    },
+    {
+     "id": "t8.s0",
+     "turn": 8,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "Cuéntame un desacuerdo con un compañero y cómo lo resolvisteis.",
+     "start": 52.67,
+     "end": 56.17,
+     "previous_speaker": "Lucía Marín"
+    },
+    {
+     "id": "t9.s0",
+     "turn": 9,
+     "index": 0,
+     "speaker": "Lucía Marín",
+     "text": "Discutimos si dividir el servicio. Propuse medirlo una semana y nos quedamos con su idea. Eso sí, me cuesta delegar: tiendo a resolverlo yo.",
+     "start": 57.07,
+     "end": 64.85,
+     "previous_speaker": "Entrevistador"
+    },
+    {
+     "id": "t10.s0",
+     "turn": 10,
+     "index": 0,
+     "speaker": "Entrevistador",
+     "text": "Gracias, Lucía. Esta semana te escribimos con los siguientes pasos.",
+     "start": 65.75,
+     "end": 69.47,
+     "previous_speaker": "Lucía Marín"
+    }
+   ],
+   "demo": true
+  },
+  "assessment": {
+   "session_id": "demo-entrevista-lucia-marin",
+   "language": "es",
+   "catalogue": "demo",
+   "catalogue_version": "demo",
+   "judge_model": "demo",
+   "embedding_model": "",
+   "min_incidents": 2,
+   "rules": {},
+   "team": {
+    "speakers": 2,
+    "turns": 11,
+    "words": 169,
+    "participation_equality": 0.8284023668639051,
+    "dominant_speaker": "Lucía Marín",
+    "dominant_share": 0.5857988165680473,
+    "has_timestamps": true,
+    "per_speaker": [
+     {
+      "speaker": "Entrevistador",
+      "turns": 6,
+      "words": 70,
+      "word_share": 0.41420118343195267,
+      "turn_share": 0.5454545454545454,
+      "mean_words_per_turn": 11.666666666666666,
+      "questions": 4,
+      "seconds": 27.37,
+      "overlapping_starts": 0,
+      "words_per_minute": 153.5,
+      "median_response_seconds": 0.9
+     },
+     {
+      "speaker": "Lucía Marín",
+      "turns": 5,
+      "words": 99,
+      "word_share": 0.5857988165680473,
+      "turn_share": 0.45454545454545453,
+      "mean_words_per_turn": 19.8,
+      "questions": 0,
+      "seconds": 32.5,
+      "overlapping_starts": 0,
+      "words_per_minute": 182.8,
+      "median_response_seconds": 0.9
+     }
+    ]
+   },
+   "scorecards": [
+    {
+     "participant": "Lucía Marín",
+     "person_id": null,
+     "interaction": {
+      "speaker": "Lucía Marín",
+      "turns": 5,
+      "words": 99,
+      "word_share": 0.5857988165680473,
+      "turn_share": 0.45454545454545453,
+      "mean_words_per_turn": 19.8,
+      "questions": 0,
+      "seconds": 32.5,
+      "overlapping_starts": 0,
+      "words_per_minute": 182.8,
+      "median_response_seconds": 0.9
+     },
+     "assessments": []
+    }
+   ],
+   "seconds": 69.47,
+   "started_at": "2026-11-24T10:00:00+01:00",
+   "conversation_type": "entrevista",
+   "format_version": 1,
+   "demo": true
+  }
+ },
+ "synthesis": {
+  "session_id": "demo-entrevista-lucia-marin",
+  "language": "es",
+  "synthetic": true,
+  "demo": true,
+  "job": "Desarrolladora backend · Python",
+  "use_claude": false,
+  "format_version": 2,
+  "conversation_type": "entrevista",
+  "judge": {
+   "mode": "demo",
+   "models": [],
+   "fallback_reason": ""
+  },
+  "people": [
+   {
+    "participant": "Lucía Marín",
+    "status": "done",
+    "reason": "",
+    "model": "demo",
+    "strengths": [
+     {
+      "text": "Resuelve con datos: midió cada consulta y explicó la mejora con cifras.",
+      "basis": "firm",
+      "cites": [
+       {
+        "id": "Q1",
+        "kind": "firm",
+        "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+        "competency_id": "resolucion_datos",
+        "indicator_id": "",
+        "polarity": "positive",
+        "turn": 3,
+        "start": 18.31,
+        "rating": 5
+       }
+      ]
+     },
+     {
+      "text": "Comunica claro: respuestas ordenadas y con ejemplos propios.",
+      "basis": "firm",
+      "cites": [
+       {
+        "id": "Q2",
+        "kind": "firm",
+        "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+        "competency_id": "comunicacion",
+        "indicator_id": "",
+        "polarity": "positive",
+        "turn": 1,
+        "start": 6.56,
+        "rating": 5
+       }
+      ]
+     },
+     {
+      "text": "Asume responsabilidad: contó un fallo suyo y cómo lo corrigió.",
+      "basis": "firm",
+      "cites": [
+       {
+        "id": "Q3",
+        "kind": "firm",
+        "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+        "competency_id": "responsabilidad",
+        "indicator_id": "",
+        "polarity": "positive",
+        "turn": 3,
+        "start": 18.31,
+        "rating": 5
+       }
+      ]
+     }
+    ],
+    "unobserved": [],
+    "fit": [
+     {
+      "text": "Su experiencia con Python, APIs y bases de datos coincide con lo que pide el puesto; la carencia está en las pruebas automáticas.",
+      "basis": "firm",
+      "cites": [
+       {
+        "id": "Q4",
+        "kind": "firm",
+        "text": "Cinco años, los tres últimos con servicios en tiempo real.",
+        "competency_id": "python_apis",
+        "indicator_id": "",
+        "polarity": "positive",
+        "turn": 5,
+        "start": 37.31,
+        "rating": 5
+       }
+      ]
+     }
+    ],
+    "questions": [
+     "¿Cómo plantearías las pruebas de un servicio nuevo antes de escribir el código?",
+     "¿Qué tareas de tu último proyecto podrías haber delegado y en quién?"
+    ],
+    "confidence": "medium",
+    "confidence_basis": {
+     "firm": 0,
+     "provisional": 0,
+     "firm_quotes": 0,
+     "quotes": 0,
+     "words": 0
+    },
+    "dropped": {},
+    "parse_error": false,
+    "format_version": 2,
+    "conversation_type": "entrevista",
+    "skills": [
+     {
+      "competency_id": "resolucion_datos",
+      "name": "Resuelve con datos",
+      "score": 5,
+      "verdict": "strong",
+      "conclusion": "Localizó el problema midiendo cada consulta con trazas y explicó la mejora con cifras (de 2 s a 200 ms).",
+      "basis": "firm",
+      "confidence": "medium",
+      "caveats": [],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+        "turn": 1,
+        "start": 6.56
+       },
+       {
+        "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+        "turn": 3,
+        "start": 18.31
+       }
+      ],
+      "required": 4
+     },
+     {
+      "competency_id": "comunicacion",
+      "name": "Comunicación clara",
+      "score": 5,
+      "verdict": "strong",
+      "conclusion": "Respuestas ordenadas, breves y con ejemplos propios.",
+      "basis": "firm",
+      "confidence": "medium",
+      "caveats": [],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+        "turn": 1,
+        "start": 6.56
+       },
+       {
+        "text": "Cinco años, los tres últimos con servicios en tiempo real.",
+        "turn": 5,
+        "start": 37.31
+       }
+      ],
+      "required": 4
+     },
+     {
+      "competency_id": "responsabilidad",
+      "name": "Asume responsabilidad",
+      "score": 5,
+      "verdict": "strong",
+      "conclusion": "Contó que el índice que faltaba lo había quitado ella, lo comunicó al equipo y lo corrigió.",
+      "basis": "firm",
+      "confidence": "medium",
+      "caveats": [],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+        "turn": 3,
+        "start": 18.31
+       }
+      ],
+      "required": 3
+     },
+     {
+      "competency_id": "python_apis",
+      "name": "Python y APIs",
+      "score": 5,
+      "verdict": "strong",
+      "conclusion": "Cinco años con Python en producción y una migración de API explicada con detalle.",
+      "basis": "firm",
+      "confidence": "medium",
+      "caveats": [],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Migramos el sistema de pedidos a una API nueva en Python. Las consultas pasaron de dos segundos a doscientos milisegundos.",
+        "turn": 1,
+        "start": 6.56
+       },
+       {
+        "text": "Cinco años, los tres últimos con servicios en tiempo real.",
+        "turn": 5,
+        "start": 37.31
+       }
+      ],
+      "required": 4
+     },
+     {
+      "competency_id": "trabajo_equipo",
+      "name": "Trabajo en equipo",
+      "score": 5,
+      "verdict": "strong",
+      "conclusion": "Ante un desacuerdo propuso medir antes de decidir y aceptó la idea de su compañero.",
+      "basis": "provisional",
+      "confidence": "low",
+      "caveats": [
+       "provisional"
+      ],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Discutimos si dividir el servicio. Propuse medirlo una semana y nos quedamos con su idea. Eso sí, me cuesta delegar: tiendo a resolverlo yo.",
+        "turn": 9,
+        "start": 57.07
+       }
+      ],
+      "required": 3
+     },
+     {
+      "competency_id": "pruebas_automaticas",
+      "name": "Pruebas automáticas",
+      "score": 3,
+      "verdict": "adequate",
+      "conclusion": "Usa pruebas de los casos principales, pero las escribe después del código y no mide cobertura: por debajo del nivel que pide el puesto.",
+      "basis": "provisional",
+      "confidence": "low",
+      "caveats": [
+       "provisional"
+      ],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Teníamos pruebas de los casos principales, aunque las escribimos después del código, no antes, y no medimos la cobertura.",
+        "turn": 7,
+        "start": 45.05
+       }
+      ],
+      "required": 4
+     },
+     {
+      "competency_id": "delegar",
+      "name": "Delegar",
+      "score": 3,
+      "verdict": "adequate",
+      "conclusion": "Dice que tiende a resolverlo todo ella antes de pedir ayuda.",
+      "basis": "provisional",
+      "confidence": "low",
+      "caveats": [
+       "provisional"
+      ],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Discutimos si dividir el servicio. Propuse medirlo una semana y nos quedamos con su idea. Eso sí, me cuesta delegar: tiendo a resolverlo yo.",
+        "turn": 9,
+        "start": 57.07
+       }
+      ],
+      "required": 4
+     },
+     {
+      "competency_id": "bases_datos",
+      "name": "Bases de datos",
+      "score": 4,
+      "verdict": "strong",
+      "conclusion": "Encontró una consulta que recorría la tabla entera y la resolvió con un índice y una caché.",
+      "basis": "observation",
+      "confidence": "low",
+      "caveats": [
+       "observations_only"
+      ],
+      "source": "judge",
+      "cites": [
+       {
+        "text": "Medí cada consulta con trazas. Una recorría la tabla entera: ese índice lo había quitado yo. Lo conté al equipo, lo repuse y añadimos una caché.",
+        "turn": 3,
+        "start": 18.31
+       }
+      ],
+      "required": 4
+     }
+    ],
+    "overall": {
+     "score": 4.5,
+     "maximum": 5,
+     "minimum": 1,
+     "percent": 88.7,
+     "verdict": "strong",
+     "line": "Lo que mostró coincide con lo que pide el puesto en Python, bases de datos y comunicación; la carencia está en las pruebas automáticas.",
+     "frame": "¿qué fortalezas demostradas coinciden con lo que pide el puesto (o el tipo de tareas) y dónde están las carencias? Describe la coincidencia competencia por competencia; nunca digas si contratar o avanzar a la persona.",
+     "confidence": "medium",
+     "caveats": [],
+     "source": "judge"
+    },
+    "top_strengths": [
+     "resolucion_datos",
+     "comunicacion",
+     "responsabilidad"
+    ],
+    "top_improvements": [
+     "pruebas_automaticas",
+     "delegar"
+    ]
+   }
+  ],
+  "open_issues": []
+ }
+}

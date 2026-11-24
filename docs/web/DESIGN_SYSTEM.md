@@ -207,7 +207,9 @@ Every page uses the shell.
 - The rest: Grabar, Registrar voz, Conocimiento (`#/knowledge`), Ajustes
   (`#/settings`: the quality/cost mode and the model of every step, each
   option with its measured trade-off; `docs/SETTINGS.md`), En directo
-  (`#/live`: live assist with suggestion cards, sources, script phases
-  and the notice banner; `docs/platform/ORCHESTRATOR.md`), Pruebas, the
+  (`#/live`, the calm page of `Live.dc.html` since #232: one «Ahora»
+  card, topic chips, earlier suggestions and options under
+  disclosures, `#/live/demo` the scripted interview;
+  `docs/live/EMPLOYEE_UX.md`), Pruebas, the
   session and analysis pages, the help page, and the static
   `research.html` and `study.html`. ES/EN in `js/i18n/es.js`, `en.js`.
