@@ -33,7 +33,7 @@ RAG_PORT          ?= 8000
 	install-cuda system system-benchmark study coverage ci site \
 	infra-up infra-proxy tunnel-client tunnel-secret transcriber-serve transcriber-test \
 	rag-token rag-serve \
-	lab-env lab-envs lab-selftest
+	lab-env lab-envs lab-selftest demo-video demo-video-tools
 
 install:
 	uv sync
@@ -246,3 +246,17 @@ lint:
 lint-strict:
 	uv run flake8 .
 	uv run mypy . --strict
+
+## demo-video-tools: a static ffmpeg (the imageio-ffmpeg wheel) in its
+## own environment under ~/.local/share/ragputin/tools, not in .venv.
+DEMO_VIDEO_TOOLS ?= $(HOME)/.local/share/ragputin/tools/demo-video
+demo-video-tools:
+	test -x $(DEMO_VIDEO_TOOLS)/bin/python || uv venv -q $(DEMO_VIDEO_TOOLS)
+	VIRTUAL_ENV=$(DEMO_VIDEO_TOOLS) uv pip install -q imageio-ffmpeg
+
+## demo-video: record the 2-minute demo (home, live interview, result)
+## with its own CPU-only instances on spare ports, to
+## ~/.local/share/ragputin/demo-video (tools/demo_video/README.md).
+DEMO_ARGS ?=
+demo-video:
+	uv run --no-sync python -m tools.demo_video.record $(DEMO_ARGS)
