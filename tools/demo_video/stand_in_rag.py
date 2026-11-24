@@ -5,7 +5,8 @@ The recording needs only the result page of the scripted interview
 models at start-up; this small app installs the demo results of
 ``examples/demo`` into a temporary store with the RAG's own code
 (``install_demos``) and serves the two read routes the page calls,
-so the result page shows exactly what the real RAG would show.
+so the result page shows exactly what the real RAG would show, plus
+``GET /health`` (the live page's connection check asks it, #247).
 
 Usage: ``python -m tools.demo_video.stand_in_rag STORE_DIR PORT``.
 """
@@ -35,6 +36,11 @@ def build_app(store_dir: Path) -> FastAPI:
     print(f"demo analyses installed: {installed}", flush=True)
     results = AnalysisResults(store)
     app = FastAPI()
+
+    @app.get("/health")
+    def health() -> Dict[str, str]:
+        """Say the stand-in is up (the connection check asks)."""
+        return {"status": "ok"}
 
     @app.get("/analysis/sessions/{session_id}")
     def status(session_id: str) -> Dict[str, Any]:

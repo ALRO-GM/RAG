@@ -210,6 +210,8 @@ Every page uses the shell.
   (`#/live`, the calm page of `Live.dc.html` since #232: one «Ahora»
   card, topic chips, earlier suggestions and options under
   disclosures, `#/live/demo` the scripted interview;
-  `docs/live/EMPLOYEE_UX.md`), Pruebas, the
+  `docs/live/EMPLOYEE_UX.md`; its start form and «Asistente de voz»
+  carry the «Calidad de la conexión» card and a session the `.lv-conn`
+  chip, `docs/live/CONNECTION.md`), Pruebas, the
   session and analysis pages, the help page, and the static
   `research.html` and `study.html`. ES/EN in `js/i18n/es.js`, `en.js`.

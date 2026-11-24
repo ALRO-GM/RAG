@@ -879,3 +879,14 @@ class EventCheck(Protocol):
     def problem(self, event: Mapping[str, Any]) -> Optional[str]:
         """Return why ``event`` breaks the contract, or ``None``."""
         ...
+
+
+class ServiceProbe(Protocol):
+    """Whether one service a live session depends on answers (#247)."""
+
+    def available(self) -> bool:
+        """Return ``True`` when the service answers its health check.
+
+        Never raises: a failure to reach the service is ``False``.
+        """
+        ...

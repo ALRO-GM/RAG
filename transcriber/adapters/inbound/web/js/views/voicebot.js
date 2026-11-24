@@ -27,6 +27,8 @@ import {
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js";
 import { coveragePanel, planSetup, reportCard } from "./interview.js";
+import { connectionCard } from "./connection.js";
+import { needsOf } from "../lib/connection.js";
 
 const RETRY_MS = 2000;
 
@@ -93,6 +95,11 @@ export async function voicebotView(ctx, root) {
     const headset = h("input", { type: "checkbox", id: "vb-headset", checked: true });
     const start = h("button", { type: "button", class: "primary big", onClick: () => begin() }, icon("voicebot"), t("voicebot.start"));
     const formError = h("p", { class: "error", role: "alert", hidden: true });
+    // «Calidad de la conexión» (#247): the bot hears this browser's microphone.
+    const connection = connectionCard({
+      getCode: () => ctx.api.getCode?.() ?? null,
+      options: () => ({ needs: needsOf("live"), upload: true }),
+    });
     const sync = () => {
       modeHint.textContent = t(`voicebot.mode_hint.${mode.value}`);
       product = topics.find((p) => p.product === topic.value) ?? product;
@@ -157,8 +164,9 @@ export async function voicebotView(ctx, root) {
         h("label", { class: "check", for: "vb-headset" }, headset, " ", t("voicebot.headset")),
         h("p", { class: "hint" }, t("voicebot.headset_hint")),
         start),
-      formError, interviewBox);
+      formError, connection.node, interviewBox);
     sync();
+    connection.check();
   }
 
   // ---- a running conversation ---------------------------------------------
