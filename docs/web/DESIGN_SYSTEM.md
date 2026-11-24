@@ -87,9 +87,12 @@ Only the style is adopted: no logo, name, font file or asset of any brand.
 | Motion | `--fast` 120 ms, `--normal` 200 ms, `--ease` |
 | Charts and speakers | `--c0…6`, `--spk-*`, `--who-*`, `--cert-*` (kept from before, colour-blind-checked) |
 
-Rules use the role and meaning tokens, never a scale step or a hex value,
-so a later page (the summary-first analysis, #230; the live page, #232)
-gets both themes for free. Small components that carry the meaning
+New rules use the role and meaning tokens rather than a scale step or a
+hex value, so a later page (the summary-first analysis, #230; the live
+page, #232) gets both themes for free. Some older rules (hover borders,
+the skeleton, toasts, the drop zone, the interviewer's bars) still name a
+scale step, which both themes define, and the print block
+sets plain hex colours on purpose. Small components that carry the meaning
 colours: `.state-dot` (`.done`, `.avoid`, `.suggest`), `.type-chip`.
 
 Dark mode redefines the same names twice: under
@@ -105,8 +108,11 @@ system → light → dark and remembers the choice in `localStorage`
   uses: Inicio (`#/`), Sesiones (`#/sessions`), En directo, Asistente de
   voz. Below a rule, the **Administración** group (`.nav-admin`): Estado
   del servicio (`#/admin`), Ajustes, Registrar voz, Conocimiento, Pruebas,
-  Estudio, Investigación. No password of its own yet. Breadcrumbs start
-  with «Administración» on those pages (`isAdminRoute`, `ADMIN_PARTS`).
+  Estudio, Investigación (a `role="group"` labelled by its heading). No
+  password of its own yet. `crumbsFor` builds the breadcrumbs of a route
+  within its section and, when `isAdminRoute` says the route belongs to
+  the area (`ADMIN_PARTS`: admin, settings, enrol, knowledge, lab), puts
+  «Administración» (`#/admin`) in front, except on `#/admin` itself.
   Top bar with menu button, breadcrumbs (from the route), "Ir a…" button
   and theme button; a bottom tab bar on phones (Inicio, Sesiones, En
   directo, Más). A loading skeleton shows if a page takes more than 180 ms.
@@ -128,7 +134,9 @@ Every page uses the shell.
   (`#/voicebot`). Below, the four latest sessions: title, type, and either
   the state or, when the analysis wrote a synthesis, its one-line
   conclusion (first sentence of the first person's job fit, else their
-  first strength) with a green «Analizada» dot. No score is shown: the
+  first strength; a full stop after an abbreviation such as «Sr.» or
+  «p. ej.» or a single letter does not end it) with a green «Analizada»
+  dot, kept even when the synthesis itself cannot be read. No score is shown: the
   analysis stores none per session, and the pages never compute or rank
   one.
 - **Sesiones** (`#/sessions`): the former home, unchanged.

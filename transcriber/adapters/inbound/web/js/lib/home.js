@@ -57,12 +57,31 @@ export function sessionHref(session, analysed) {
   return analysed ? `#/analysis/${id}` : `#/s/${id}`;
 }
 
+/** Words after which a full stop does not end the sentence (ES and EN, lower case, no dot). */
+export const ABBREVIATIONS = new Set([
+  "sr", "sra", "srta", "dr", "dra", "d", "dña", "ud", "uds", "vd", "etc", "ej", "p", "pág", "núm", "nº", "aprox", "dpto", "tel", "vs",
+  "mr", "mrs", "ms", "prof", "st", "jr", "e.g", "i.e", "approx", "dept", "fig",
+]);
+
+/** The text up to the first full stop, question or exclamation mark that ends a sentence. */
+export function firstSentence(text) {
+  const pattern = /[.!?](?=\s|$)/g;
+  let m;
+  while ((m = pattern.exec(text)) !== null) {
+    if (m[0] === ".") {
+      const word = text.slice(0, m.index).split(/\s/).pop().replace(/^[«"'(¿¡]+/, "");
+      if (word.length === 1 || ABBREVIATIONS.has(word.toLowerCase())) continue;
+    }
+    return text.slice(0, m.index + 1);
+  }
+  return text;
+}
+
 /** The first sentence of `text`, cut at `max` characters with an ellipsis. */
 export function oneLine(text, max = CONCLUSION_MAX) {
   const flat = String(text ?? "").replace(/\s+/g, " ").trim();
   if (!flat) return "";
-  const end = flat.search(/[.!?](\s|$)/);
-  const sentence = end >= 0 ? flat.slice(0, end + 1) : flat;
+  const sentence = firstSentence(flat);
   if (sentence.length <= max) return sentence;
   const cut = sentence.slice(0, max - 1);
   const space = cut.lastIndexOf(" ");
@@ -81,6 +100,29 @@ export function conclusionOf(synthesis) {
     if (point) return { person: String(person.participant ?? ""), text: oneLine(point.text) };
   }
   return null;
+}
+
+/**
+ * What the home shows of `session`'s analysis: `{ analysed, conclusion }`,
+ * or null when there is none to ask for or the RAG did not answer.
+ * `api` has analysisStatus(id) and analysisStep(id, step). A synthesis
+ * that cannot be read keeps the row analysed, without a conclusion.
+ */
+export async function analysisFacts(api, session) {
+  if (!mayHaveAnalysis(session)) return null;
+  let run;
+  try {
+    run = await api.analysisStatus(session.id);
+  } catch {
+    return null; // no analysis, or the RAG is away: the row shows the session alone
+  }
+  const analysed = isAnalysed(run);
+  if (!analysed || !hasSynthesis(run)) return { analysed, conclusion: null };
+  try {
+    return { analysed, conclusion: conclusionOf(await api.analysisStep(session.id, "synthesis")) };
+  } catch {
+    return { analysed, conclusion: null };
+  }
 }
 
 /** The state of the service from a health check: "ok" when it answered, else "down". */

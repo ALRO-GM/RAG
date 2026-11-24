@@ -343,9 +343,10 @@ def test_every_page_has_the_language_switch(page: str) -> None:
     assert [b.get("data-lang") for b in switch] == ["es", "en"]
     assert all(b.get("type") == "button" for b in header.buttons)
     assert all(b.get("aria-pressed") in ("true", "false") for b in switch)
-    assert [g.get("data-i18n-label") for g in header.groups] == [
-        "lang.switch"
-    ]
+    switches = [g for g in header.groups if g.get("class") != "nav-admin"]
+    assert [g.get("data-i18n-label") for g in switches] == ["lang.switch"]
+    admin = [g for g in header.groups if g.get("class") == "nav-admin"]
+    assert [g.get("aria-labelledby") for g in admin] == ["nav-admin-title"]
     keys = dictionary_keys("es") & dictionary_keys("en")
     assert header.title.get("data-i18n") in keys
     assert header.links

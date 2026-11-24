@@ -8,7 +8,7 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { formatTime } from "../lib/text.js";
 import { typeLabel } from "../lib/describe.js";
-import { SERVICES, conclusionOf, hasSynthesis, isAnalysed, latestSessions, mayHaveAnalysis, sessionHref } from "../lib/home.js";
+import { SERVICES, analysisFacts, latestSessions, sessionHref } from "../lib/home.js";
 import { emptyState, icon } from "../ui.js";
 
 function serviceCard(service) {
@@ -36,19 +36,6 @@ function sessionRow(session, found) {
           kind ? h("span", { class: "type-chip" }, kind) : null),
         h("span", { class: "recent-line" }, line)),
       found?.analysed ? h("span", { class: "recent-tag" }, h("span", { class: "state-dot done", "aria-hidden": "true" }), t("home.analysed")) : null));
-}
-
-/** The analysis facts of `session`: whether it has results, and the conclusion of its synthesis. */
-async function analysisOf(api, session) {
-  if (!mayHaveAnalysis(session)) return null;
-  try {
-    const run = await api.analysisStatus(session.id);
-    const analysed = isAnalysed(run);
-    if (!analysed || !hasSynthesis(run)) return { analysed, conclusion: null };
-    return { analysed, conclusion: conclusionOf(await api.analysisStep(session.id, "synthesis")) };
-  } catch {
-    return null; // no analysis, or the RAG is away: the row shows the session alone
-  }
 }
 
 export async function homeView(ctx, root) {
@@ -83,7 +70,7 @@ export async function homeView(ctx, root) {
   const found = new Map();
   const draw = () => fill(list, sessions.map((s) => sessionRow(s, found.get(s.id))));
   draw();
-  Promise.all(sessions.map(async (s) => found.set(s.id, await analysisOf(ctx.api, s)))).then(() => {
+  Promise.all(sessions.map(async (s) => found.set(s.id, await analysisFacts(ctx.api, s)))).then(() => {
     if (!stopped) draw();
   });
   return () => { stopped = true; };

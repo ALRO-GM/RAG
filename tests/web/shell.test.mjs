@@ -61,6 +61,12 @@ test("breadcrumbs name the section, then the ids from the address; the last has 
   assert.deepEqual(lab.map((c) => c.label), ["<nav.admin>", "<nav.lab>", "sess", "01234567", "review"]);
   assert.equal(lab.at(-1).href, null);
   assert.equal(crumbsFor("#/%E0%A4%A", t).length, 1, "a broken escape does not throw");
+  for (const hash of ["#/settings", "#/enrol", "#/knowledge", "#/lab"]) {
+    assert.deepEqual(crumbsFor(hash, t)[0], { label: "<nav.admin>", href: "#/admin" }, `${hash} starts from the area`);
+  }
+  for (const hash of ["", "#/sessions", "#/live", "#/voicebot", "#/s/x"]) {
+    assert.notEqual(crumbsFor(hash, t)[0].label, "<nav.admin>", hash);
+  }
 });
 
 test("the switcher folds accents and ranks prefixes over substrings over scattered letters", () => {

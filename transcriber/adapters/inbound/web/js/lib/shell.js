@@ -65,9 +65,16 @@ export function currentHref(hrefs, pathname, hash) {
  * ids from the address are shown as they are.
  */
 export function crumbsFor(hash, t) {
+  const trail = sectionCrumbs(hash, t);
+  const head = String(hash ?? "").replace(/^#?\/?/, "").split("/")[0];
+  // Every page of the Administración area but its overview starts from it.
+  return isAdminRoute(hash) && head !== "admin" ? [{ label: t("nav.admin"), href: "#/admin" }, ...trail] : trail;
+}
+
+/** The breadcrumbs of a route within its own section (crumbsFor adds the area). */
+function sectionCrumbs(hash, t) {
   const parts = String(hash ?? "").replace(/^#?\/?/, "").split("/").filter(Boolean).map(safeDecode);
   const sessions = { label: t("nav.sessions"), href: "#/sessions" };
-  const admin = { label: t("nav.admin"), href: "#/admin" };
   const here = (label) => ({ label, href: null });
   const [head, a, b, c] = parts;
   switch (head) {
@@ -75,20 +82,20 @@ export function crumbsFor(hash, t) {
     case "sessions": return [here(t("nav.sessions"))];
     case "record": return [sessions, here(t("nav.record"))];
     case "admin": return [here(t("nav.admin"))];
-    case "enrol": return [admin, here(t("nav.enrol"))];
+    case "enrol": return [here(t("nav.enrol"))];
     case "live": return [here(t("nav.live"))];
     case "voicebot": return [here(t("nav.voicebot"))];
-    case "settings": return [admin, here(t("nav.settings"))];
+    case "settings": return [here(t("nav.settings"))];
     case "s": return [sessions, here(a ?? "")];
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];
     case "help": return [sessions, here(t("help.title"))];
-    case "knowledge": return a ? [admin, { label: t("nav.knowledge"), href: "#/knowledge" }, here(a)] : [admin, here(t("nav.knowledge"))];
+    case "knowledge": return a ? [{ label: t("nav.knowledge"), href: "#/knowledge" }, here(a)] : [here(t("nav.knowledge"))];
     case "lab": {
       const lab = { label: t("nav.lab"), href: "#/lab" };
-      if (!a) return [admin, here(t("nav.lab"))];
-      if (!b) return [admin, lab, here(a)];
+      if (!a) return [here(t("nav.lab"))];
+      if (!b) return [lab, here(a)];
       const run = { label: b.slice(0, 8), href: `#/lab/${encodeURIComponent(a)}/${encodeURIComponent(b)}` };
-      return c ? [admin, lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, run, here(c)] : [admin, lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, here(b.slice(0, 8))];
+      return c ? [lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, run, here(c)] : [lab, { label: a, href: `#/lab/${encodeURIComponent(a)}` }, here(b.slice(0, 8))];
     }
     default: return [here(t("nav.home"))];
   }
