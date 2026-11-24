@@ -18,6 +18,16 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   (the recruiter's edit, with the ``revision`` it was based on; 409 when
   older) and ``GET /interview/plans/{id}/results`` (the candidates
   interviewed from it, for the comparison view).
+- ``GET``/``POST /interview/plans/{id}/candidates`` (``{"name"}``),
+  ``GET``/``DELETE /interview/plans/{id}/candidates/{candidate}``,
+  ``PUT``/``DELETE /interview/plans/{id}/candidates/{candidate}/answers/
+  {question}`` (``{"text"}``: the interviewer's answer; ``DELETE``
+  forgets it), ``POST .../candidates/{candidate}/confirm``
+  (``{"questions"?}``: confirm captured proposals, all without a list),
+  ``DELETE .../candidates/{candidate}/proposals/{question}`` and ``GET
+  /interview/candidates/by-session/{session}``: the candidates of a
+  role and their answers to the core questions (#235). ``POST
+  /sessions`` takes ``candidate_id`` too.
 - ``POST /sessions/{id}/replay`` ``{"product", "transcript",
   "speed"?, "employee"?}``: replay a transcript as a live session
   (``speed`` 1 is real time, ``null`` as fast as the services answer).
@@ -169,7 +179,7 @@ def create_app(
             _text(data, "audio"), data.get("session_id") or None,
             data.get("employee"),
             _optional(data, "plan"), _optional(data, "domain"),
-            _optional(data, "candidate"),
+            _optional(data, "candidate"), _optional(data, "candidate_id"),
         )
 
     def planner() -> Any:
@@ -214,6 +224,109 @@ def create_app(
         """The candidates interviewed from a plan."""
         found: Dict[str, Any] = await run_in_threadpool(
             planner().results, plan_id
+        )
+        return found
+
+    def book() -> Any:
+        wiring = sessions.interview
+        if wiring is None or wiring.candidates is None:
+            raise SessionError("unavailable", "no candidate profiles here")
+        return wiring.candidates
+
+    @app.get("/interview/plans/{plan_id}/candidates")
+    async def list_candidates(plan_id: str) -> Dict[str, Any]:
+        """The candidates of a role."""
+        found: Dict[str, Any] = await run_in_threadpool(book().list, plan_id)
+        return found
+
+    @app.post("/interview/plans/{plan_id}/candidates", status_code=201)
+    async def add_candidate(plan_id: str, request: Request) -> Dict[str, Any]:
+        """Add a candidate to a role."""
+        data = await body(request)
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().create, plan_id, data.get("name")
+        )
+        return found
+
+    @app.get("/interview/plans/{plan_id}/candidates/{candidate_id}")
+    async def show_candidate(
+        plan_id: str, candidate_id: str
+    ) -> Dict[str, Any]:
+        """One candidate and their answers."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().get, plan_id, candidate_id
+        )
+        return found
+
+    @app.delete("/interview/plans/{plan_id}/candidates/{candidate_id}")
+    async def delete_candidate(
+        plan_id: str, candidate_id: str
+    ) -> Dict[str, Any]:
+        """Delete a candidate's profile."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().delete, plan_id, candidate_id
+        )
+        return found
+
+    @app.put("/interview/plans/{plan_id}/candidates/{candidate_id}"
+             "/answers/{question_id}")
+    async def correct_answer(
+        plan_id: str, candidate_id: str, question_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Keep the interviewer's answer to a core question."""
+        data = await body(request)
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().correct, plan_id, candidate_id, question_id,
+            data.get("text"),
+        )
+        return found
+
+    @app.delete("/interview/plans/{plan_id}/candidates/{candidate_id}"
+                "/answers/{question_id}")
+    async def clear_answer(
+        plan_id: str, candidate_id: str, question_id: str
+    ) -> Dict[str, Any]:
+        """Forget one answer (the question is open again)."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().clear, plan_id, candidate_id, question_id
+        )
+        return found
+
+    @app.post("/interview/plans/{plan_id}/candidates/{candidate_id}"
+              "/confirm")
+    async def confirm_answers(
+        plan_id: str, candidate_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Confirm proposals: ``{"questions": [...]}``, or all of them."""
+        data = await body(request)
+        wanted = data.get("questions")
+        if wanted is not None and not (
+            isinstance(wanted, list)
+            and all(isinstance(q, str) for q in wanted)
+        ):
+            raise SessionError("invalid_request",
+                               "questions must be a list of ids")
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().confirm, plan_id, candidate_id, wanted
+        )
+        return found
+
+    @app.delete("/interview/plans/{plan_id}/candidates/{candidate_id}"
+                "/proposals/{question_id}")
+    async def discard_proposal(
+        plan_id: str, candidate_id: str, question_id: str
+    ) -> Dict[str, Any]:
+        """Discard one captured proposal."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().discard, plan_id, candidate_id, question_id
+        )
+        return found
+
+    @app.get("/interview/candidates/by-session/{session_id}")
+    async def session_candidate(session_id: str) -> Dict[str, Any]:
+        """The candidate interviewed in a session."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().by_session, session_id
         )
         return found
 

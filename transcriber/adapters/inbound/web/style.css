@@ -1491,3 +1491,43 @@ details.tech, details.controls { margin: 1rem 0; }
   .sf-person { break-inside: avoid-page; box-shadow: none; }
   .sf-more > summary::before { display: none; }
 }
+
+/* ---- the candidate across rounds (#235) -------------------------------------
+   «Preguntas comunes» on the live page: the lv-row of the topics, its open
+   questions as quiet outlined chips. «Datos de la candidata» on the result
+   page: a definition list, one line per core question, the details and the
+   corrections under «Más información». */
+.lv-role-box { border-top: 1px solid var(--line); padding-top: var(--s-3); }
+.lv-core .lv-chip.is-open { border-style: dashed; }
+.sf-candidate { display: flex; flex-direction: column; gap: var(--s-3); }
+.sf-cand-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.sf-cand-head h2 { margin: 0; font-size: var(--fs-lg); }
+.sf-cand-list { display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: var(--s-2) var(--s-4); margin: 0; }
+.sf-cand-list dt { color: var(--muted); font-weight: 500; }
+.sf-cand-list dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sf-cand-list dd.is-pending { color: var(--muted); font-style: italic; }
+.sf-cand-details { list-style: none; margin: 0; padding: 0; }
+.sf-cand-details > li { border-bottom: 1px solid var(--line); padding-bottom: var(--s-3); }
+.sf-cand-details p { margin: 0; }
+.sf-cand-edit input { flex: 1 1 14rem; min-width: 0; }
+@media (max-width: 560px) {
+  .sf-cand-list { grid-template-columns: 1fr; gap: var(--s-1); }
+  .sf-cand-list dd { margin-bottom: var(--s-2); }
+}
+/* Topics of a later round: what an earlier round left weak is marked, what
+   was covered is quieter; the talk balance is one thin bar in the header. */
+.lv-chip.is-weak:not(.done) { border-color: var(--accent); color: var(--text); }
+.lv-chip.is-covered:not(.done) { opacity: 0.7; }
+.lv-balance { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lv-balance-svg { width: 4.5rem; height: 0.5rem; flex: none; }
+.lv-balance-you { fill: var(--line-strong); }
+.lv-balance-other { fill: var(--accent); opacity: 0.55; }
+/* «Confirmar datos» (#235): proposals read from the conversation wait for
+   the interviewer; a quiet list with small actions, never an alert. */
+.lv-core .lv-chip.is-proposed { border-style: dotted; color: var(--text); }
+.sf-confirm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.sf-confirm-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); border-top: 1px solid var(--line); padding-top: var(--s-2); }
+.sf-confirm-what { min-width: 0; overflow-wrap: anywhere; flex: 1 1 12rem; }
+.sf-confirm-row input { flex: 1 1 12rem; min-width: 0; }
+.sf-confirm h3 { margin: 0; font-size: var(--fs-md); }
+.lv-confirm { border-color: var(--accent); }

@@ -21,6 +21,7 @@ import {
 } from "../lib/session-analysis.js";
 import { publishWhenFree } from "../lib/names.js";
 import { doneResultSteps, hasResults, progressOf, resultsKey } from "../lib/analysis-results.js";
+import { candidateBlock } from "./candidate.js";
 import { resultsPanel, resultsState } from "./analysis-results.js";
 
 const POLL_MS = 3000;
@@ -179,7 +180,11 @@ export async function analysisView(ctx, root, [rawId]) {
     shownKey = key;
     if (!results.querySelector?.(".results")) fill(results, resultsState("loading"));
     const names = doneResultSteps(run);
-    const answers = await Promise.allSettled(names.map((name) => ctx.api.analysisStep(id, name)));
+    const [answers, candidate] = await Promise.all([
+      Promise.allSettled(names.map((name) => ctx.api.analysisStep(id, name))),
+      // The candidate interviewed in this session (#235), when the orchestrator keeps one.
+      Promise.resolve(ctx.api.sessionCandidate?.(id)).catch(() => null),
+    ]);
     if (stopped || key !== shownKey) return;
     const data = {};
     let failure = null;
@@ -194,7 +199,8 @@ export async function analysisView(ctx, root, [rawId]) {
       return;
     }
     const onRedo = canRedoSynthesis(run) ? () => begin(false, ["synthesis"]) : null;
-    fill(results, resultsPanel({ id, run, data, onRedo }));
+    const block = candidate?.questions ? candidateBlock(candidate, { api: ctx.api }) : null;
+    fill(results, resultsPanel({ id, run, data, onRedo, candidate: block }));
   }
 
   // Printing shows every section open; what was closed closes again after.

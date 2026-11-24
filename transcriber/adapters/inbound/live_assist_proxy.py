@@ -12,7 +12,9 @@ Only the orchestrator's own routes exist here (``products``,
 ``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
 ``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
 ``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; the AI
-interviewer's ``interview/plans``, one plan and its ``results``), and
+interviewer's ``interview/plans``, one plan and its ``results``; the
+candidates of a role, one candidate, their answers to the core questions
+and the candidate of a session, #235), and
 session, speaker and item ids are checked; the stream is passed through
 as it comes (Server-Sent Events, with the voice bot's audio inside). It
 is an inbound adapter that talks HTTP itself on purpose: it adds no
@@ -39,7 +41,13 @@ ALLOWED = re.compile(
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
     rf"|interview/plans|interview/plans/{_ID}"
-    rf"|interview/plans/{_ID}/results)$"
+    rf"|interview/plans/{_ID}/results"
+    rf"|interview/plans/{_ID}/candidates"
+    rf"|interview/plans/{_ID}/candidates/{_ID}"
+    rf"|interview/plans/{_ID}/candidates/{_ID}"
+    rf"/(?:answers|proposals)/[a-z][a-z0-9_]{{1,40}}"
+    rf"|interview/plans/{_ID}/candidates/{_ID}/confirm"
+    rf"|interview/candidates/by-session/{_ID})$"
 )
 MAX_BODY = 16 * 1024
 PLAN_BODY = 96 * 1024
@@ -189,6 +197,82 @@ def add_live_assist_proxy(
     ) -> Response:
         """The candidates interviewed from a plan."""
         return await forward(f"interview/plans/{plan_id}/results", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/candidates")
+    async def assist_candidates(plan_id: str, request: Request) -> Response:
+        """The candidates of a role (#235)."""
+        return await forward(f"interview/plans/{plan_id}/candidates", request)
+
+    @api.post("/assist/interview/plans/{plan_id}/candidates")
+    async def assist_new_candidate(
+        plan_id: str, request: Request
+    ) -> Response:
+        """Add a candidate to a role."""
+        return await forward(f"interview/plans/{plan_id}/candidates", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/candidates/{candidate}")
+    async def assist_candidate(
+        plan_id: str, candidate: str, request: Request
+    ) -> Response:
+        """One candidate and their answers."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}", request)
+
+    @api.delete("/assist/interview/plans/{plan_id}/candidates/{candidate}")
+    async def assist_delete_candidate(
+        plan_id: str, candidate: str, request: Request
+    ) -> Response:
+        """Delete a candidate's profile."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}", request)
+
+    @api.put("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+             "/answers/{question}")
+    async def assist_correct(
+        plan_id: str, candidate: str, question: str, request: Request
+    ) -> Response:
+        """Keep the interviewer's answer to a core question."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}"
+            f"/answers/{question}", request)
+
+    @api.delete("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+                "/answers/{question}")
+    async def assist_clear(
+        plan_id: str, candidate: str, question: str, request: Request
+    ) -> Response:
+        """Forget one answer."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}"
+            f"/answers/{question}", request)
+
+    @api.post("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+              "/confirm")
+    async def assist_confirm(
+        plan_id: str, candidate: str, request: Request
+    ) -> Response:
+        """Confirm captured proposals."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}/confirm",
+            request)
+
+    @api.delete("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+                "/proposals/{question}")
+    async def assist_discard(
+        plan_id: str, candidate: str, question: str, request: Request
+    ) -> Response:
+        """Discard one captured proposal."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}"
+            f"/proposals/{question}", request)
+
+    @api.get("/assist/interview/candidates/by-session/{session_id}")
+    async def assist_session_candidate(
+        session_id: str, request: Request
+    ) -> Response:
+        """The candidate interviewed in a session."""
+        return await forward(f"interview/candidates/by-session/{session_id}",
+                             request)
 
     async def forward(path: str, request: Request) -> Response:
         """Forward one call of the live page to the orchestrator."""

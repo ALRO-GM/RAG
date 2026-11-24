@@ -12,6 +12,7 @@ the only thing two services share: neither imports the other's code.
 | `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
 | `tts.request.v1` | orchestrator | Piper adapter |
 | `interview.plan.v1`, `interview.sheet.v1` | orchestrator (`data/interview/`, AI interviewer #208) | web (via the transcriber), orchestrator |
+| `interview.candidate.v1` (no schema file: the pydantic model `orchestrator/domain/candidate.py` is its definition) | orchestrator (`data/interview/candidates/`, #235) | web (via the transcriber), orchestrator |
 | `settings.v1` | `src/` (`GET/PUT /settings`, `data/settings.json`; the web saves it through the transcriber) | `transcriber/`, orchestrator, `src/` analysis and knowledge (read at job/session start) |
 
 The platform contracts are specified in `docs/platform/CONTRACTS.md`.
@@ -47,6 +48,18 @@ measurement: the analyzer and the person report show them and do not
 use them in a rating. They can be changed after the recording; the
 next publish carries the new values. A document without them reads as
 before (no type, no goal).
+
+## `transcript.v1`: the speaker's role
+
+Added compatibly on 2026-11-24 (#235), optional and written only when
+known: `speakers[].role` is the role the live session gave the voice,
+one of `interviewer`, `candidate`, `agent`, `customer`, `user`, `bot`
+(the roles of `live.event.v1` without `unknown`). The live hand-off and
+the AI interviewer write it; batch transcripts do not. The analyzer
+keeps it (`sentences` step, `speakers[].role`) and reads only the
+candidate against the job. **Deploy order:** the RAG's `ContractSpeaker`
+forbids fields it does not know, so restart the RAG (reader) before the
+transcriber and the orchestrator (writers).
 
 ## `transcript.v1`: the diarizer and its licence
 

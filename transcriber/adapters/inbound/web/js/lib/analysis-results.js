@@ -98,6 +98,29 @@ export function eventCounts(events) {
   return counts;
 }
 
+/**
+ * Each person's role in the conversation (#235: interviewer, candidate...),
+ * from the sentences step; {} for results without roles.
+ */
+export function rolesOf(data) {
+  const roles = {};
+  for (const s of data?.sentences?.speakers ?? []) {
+    if (s && typeof s.name === "string" && typeof s.role === "string" && s.role) roles[s.name] = s.role;
+  }
+  return roles;
+}
+
+/**
+ * Whether a person's summary is read against the job: everyone when the
+ * results have no roles (as before), else only the candidate (and a
+ * person without a role).
+ */
+export function jobReading(roles, name) {
+  if (!Object.keys(roles ?? {}).length) return true;
+  const role = roles[name];
+  return role === undefined || role === "candidate";
+}
+
 /** The kind of conversation declared when it was recorded, or "" when unknown. */
 export function conversationType(data) {
   const kind = data?.assessment?.conversation_type ?? data?.sentences?.conversation_type ?? "";

@@ -88,9 +88,10 @@ def interview_transcript(
             "goal": f"Entrevista para el puesto «{title}»"[:500],
         },
         "speakers": [
-            {"id": BOT_ID, "name": "Entrevistador IA", "enrolled": False},
+            {"id": BOT_ID, "name": "Entrevistador IA", "enrolled": False,
+             "role": "interviewer"},
             {"id": CANDIDATE_ID, "name": candidate or None,
-             "enrolled": False},
+             "enrolled": False, "role": "candidate"},
         ],
         "utterances": utterances,
         "pipeline": {

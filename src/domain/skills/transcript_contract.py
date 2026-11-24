@@ -84,6 +84,10 @@ class ContractSession(_Strict):
 
 
 Identification = Literal["threshold", "expected_floor"]
+SpeakerRole = Literal[
+    "interviewer", "candidate", "agent", "customer", "user", "bot",
+]
+"""A speaker's role in a live conversation (#235), when the source says."""
 
 
 class ContractSpeaker(_Strict):
@@ -93,12 +97,15 @@ class ContractSpeaker(_Strict):
     recognised: ``threshold``, or ``expected_floor`` (listed as present
     and only above the lower floor: a weaker identification; a person
     who spoke without being listed is given a listed name this way).
+    ``role`` (optional, #235) is the speaker's role in a live session:
+    in an interview, ``interviewer`` or ``candidate``.
     """
 
     id: str = Field(min_length=1)
     name: Optional[str] = None
     enrolled: bool
     identification: Optional[Identification] = None
+    role: Optional[SpeakerRole] = None
 
     @model_validator(mode="after")
     def _identified(self) -> "ContractSpeaker":

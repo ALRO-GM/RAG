@@ -26,7 +26,9 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
+from typing import (
+    TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol, Set, Tuple,
+)
 
 from orchestrator.application.ports import (
     BotOutput,
@@ -38,6 +40,7 @@ from orchestrator.application.ports import (
     ReasonerPort,
     ReasonerUnavailable,
 )
+from orchestrator.domain.candidate import CoreQuestion
 from orchestrator.domain.config import InterviewSection
 from orchestrator.domain.interview import (
     COMPETENCIES,
@@ -58,6 +61,7 @@ from orchestrator.domain.interview import (
     suitability,
 )
 from orchestrator.domain.interview_agenda import (
+    MAX_TURNS,
     Agenda,
     Fill,
     Step,
@@ -73,6 +77,14 @@ from orchestrator.domain.interview_transcript import (
 )
 from orchestrator.domain.records import TurnRecord
 from orchestrator.domain.turn_taking import BotTurn
+
+if TYPE_CHECKING:  # pragma: no cover
+    from orchestrator.application.candidates import CandidateBook
+
+CORE_EARLY = ("opening", "experience")
+"""Phases of the core questions the AI interviewer asks first (#235)."""
+CORE_LATE = ("closing",)
+"""Phases of those it asks just before closing."""
 
 OFFER_CHARS = 12000
 MIN_OFFER_CHARS = 40
@@ -583,6 +595,8 @@ class InterviewWiring:
     store: PlanStore
     reasoner: ReasonerPort
     handoff: Optional[InterviewHandoff] = None
+    candidates: Optional["CandidateBook"] = None
+    """The candidate profiles (#235; ``None``: not kept)."""
 
 
 @dataclass(frozen=True)
@@ -611,6 +625,12 @@ class InterviewDirector:
         candidate: How the recruiter calls the candidate (optional).
         model: The report's model alias.
         now: Wall-clock time.
+        core_open: The candidate's core questions still open (#235;
+            ``None``: none are asked). Those with ``[...]`` blanks the
+            plan cannot fill (work mode and city) are left out.
+        on_core: Told which core question each turn asks (``None``: the
+            turn asks something else), so the answer can be read even
+            when the model words the question its own way.
     """
 
     def __init__(
@@ -628,6 +648,8 @@ class InterviewDirector:
         candidate: Optional[str] = None,
         model: str = "haiku",
         now: Callable[[], datetime] = datetime.now,
+        core_open: Optional[Callable[[], List[CoreQuestion]]] = None,
+        on_core: Optional[Callable[[Optional[str]], None]] = None,
     ):
         """Start the agenda; nothing has been said yet."""
         self.plan = plan
@@ -652,6 +674,12 @@ class InterviewDirector:
         self.closing = False
         self.finished: Optional[Document] = None
         self.filler_ms: List[float] = []
+        self.core_open = core_open
+        self.core_asked: Set[str] = set()
+        self.core_target: Optional[str] = None
+        self.on_core = on_core
+        self.deferred_close: Optional[str] = None
+        """Why the agenda closed while the salary question was asked."""
         self._lock = threading.Lock()
 
     @property
@@ -691,7 +719,9 @@ class InterviewDirector:
             return self._aside(kind, answer)
         with self._lock:
             agenda = self.agenda
-            if utterance is not None and answer.strip():
+            core_answer = self.core_target is not None
+            self.core_target = None
+            if utterance is not None and answer.strip() and not core_answer:
                 target = (agenda.slots.get(agenda.target)
                           if agenda.target else None)
                 asked = self.clock.now()
@@ -712,10 +742,30 @@ class InterviewDirector:
                     return TurnPlan(self._payload(step), answer[:1000],
                                     step)
                 agenda.answer(utterance, answer, fills)
+            if self.deferred_close is not None:
+                # The salary question was answered: close as decided.
+                agenda.closed_by = self.deferred_close
+                self.deferred_close = None
+            core = self._core_turn(CORE_EARLY, opened=agenda.opened)
+            if core is not None:
+                return core
             step = agenda.step(self.clock.now())
+            if step.action == "close" and agenda.turns <= MAX_TURNS:
+                core = self._core_turn(CORE_LATE, opened=True)
+                if core is not None:
+                    # Ask it with the interview still open (so its answer
+                    # is heard), then close on the next turn.
+                    self.deferred_close = agenda.closed_by
+                    agenda.closed_by = None
+                    return core
+            if step.action == "open" and self.core_asked:
+                step = Step("ask", step.slot, step.missing,
+                            step.minutes_left)
             self.closing = step.action == "close"
             payload = self._payload(step)
             self._publish_coverage(step)
+        if self.on_core is not None:
+            self.on_core(None)
         slot = step.slot
         query = (f"{slot.label}. {slot.questions[0]}" if slot is not None
                  else answer or self.plan.title)
@@ -766,10 +816,63 @@ class InterviewDirector:
 
     # ---- internals ---------------------------------------------------
 
+    def _core_turn(
+        self, phases: Tuple[str, ...], opened: bool
+    ) -> Optional[TurnPlan]:
+        """Ask the next open core question of ``phases`` (#235), once.
+
+        Early ones are asked before the plan's first slot (the opening
+        turn greets and asks the first of them); late ones (the salary
+        expectation) just before closing. Questions with blanks are
+        left to a person. Called with the lock held.
+        """
+        if self.core_open is None or (opened and phases == CORE_EARLY):
+            return None
+        question = next((
+            q for q in self.core_open()
+            if q.phase in phases and not q.has_blanks
+            and q.id not in self.core_asked
+        ), None)
+        if question is None:
+            return None
+        self.core_asked.add(question.id)
+        self.core_target = question.id
+        if self.on_core is not None:
+            self.on_core(question.id)
+        text = question.text(self.plan.language)
+        first = phases == CORE_EARLY and len(self.core_asked) == 1
+        payload: Document = {
+            "title": self.plan.title, "summary": self.plan.summary,
+            "minutes": self.plan.minutes,
+            "minutes_left": self.agenda.minutes_left(self.clock.now()),
+            "action": "open" if first else "ask",
+            "topic": text, "questions": [text], "evidence": "",
+        }
+        step = Step("open" if first else "ask", None,
+                    minutes_left=payload["minutes_left"])
+        return TurnPlan(payload, text[:1000], step)
+
     def _aside(self, kind: BotTurn, answer: str) -> TurnPlan:
-        """A re-ask or a hint on the slot being asked (no agenda step)."""
+        """A re-ask or a hint on the slot being asked (no agenda step).
+
+        After a core question it rewords that question (#235).
+        """
         with self._lock:
             agenda = self.agenda
+            core = next((q for q in (self.core_open() if self.core_open
+                                     else [])
+                         if q.id == self.core_target), None)
+            if core is not None:
+                text = core.text(self.plan.language)
+                step = Step("hint" if kind == "hint" else "reask", None,
+                            minutes_left=agenda.minutes_left(
+                                self.clock.now()))
+                payload = self._payload(step)
+                payload.update({"topic": text, "questions": [text]})
+                if kind == "hint" and answer.strip():
+                    payload["answer_so_far"] = (
+                        answer.strip()[-ANSWER_SO_FAR:])
+                return TurnPlan(payload, text[:1000], step)
             slot = agenda.slots.get(agenda.target) if agenda.target else None
             step = Step("hint" if kind == "hint" else "reask", slot,
                         minutes_left=agenda.minutes_left(self.clock.now()))
@@ -831,7 +934,8 @@ class InterviewDirector:
             scorer = "haiku"
         else:
             slots = status_scores(slots)
-        closed_by = agenda.closed_by
+        # Stopped while the salary question waited: the plan was covered.
+        closed_by = agenda.closed_by or self.deferred_close
         return Sheet(
             session_id=self.session_id, plan_id=self.plan.id,
             plan_revision=self.plan.revision, title=self.plan.title,

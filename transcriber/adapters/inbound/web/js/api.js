@@ -328,6 +328,46 @@ export class Api {
   /** The candidates interviewed from a plan, for the comparison. */
   planResults(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}/results`); }
 
+  // ---- candidates of a role and their core answers (#235) ----
+
+  /** The candidates of a role (plan): { candidates: [profile view], questions, retention_days }. */
+  planCandidates(planId) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates`); }
+
+  /** Add a candidate to a role: { name }. */
+  createCandidate(planId, name) {
+    return this.request("POST", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates`, { json: { name } });
+  }
+
+  /** Delete a candidate's profile (answers and rounds). */
+  deleteCandidate(planId, id) {
+    return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}`);
+  }
+
+  /** Keep the interviewer's answer to a core question (typed words). */
+  correctAnswer(planId, id, question, text) {
+    return this.request("PUT", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/answers/${encodeURIComponent(question)}`, { json: { text } });
+  }
+
+  /** Forget one answer: the question is open again. */
+  clearAnswer(planId, id, question) {
+    return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/answers/${encodeURIComponent(question)}`);
+  }
+
+  /** Confirm captured proposals (all of them without `questions`). */
+  confirmAnswers(planId, id, questions) {
+    return this.request("POST", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/confirm`, { json: questions ? { questions } : {} });
+  }
+
+  /** Discard one captured proposal (the question stays open). */
+  discardProposal(planId, id, question) {
+    return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/proposals/${encodeURIComponent(question)}`);
+  }
+
+  /** The candidate interviewed in a session (404 when none). */
+  sessionCandidate(sessionId) {
+    return this.request("GET", `/assist/interview/candidates/by-session/${encodeURIComponent(sessionId)}`);
+  }
+
   /**
    * Follow a session's Server-Sent Events from number `after`: `onItem`
    * gets each { id, event, data }. Resolves "end" when the session is

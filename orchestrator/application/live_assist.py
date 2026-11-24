@@ -20,7 +20,7 @@ Transcript text is never logged here.
 
 import threading
 from collections import deque
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 from orchestrator.application.ports import (
     CancelToken,
@@ -63,6 +63,8 @@ class LiveAssist:
         executor: Runs a call (inline or on a thread).
         roles: Speaker id → role.
         session: ``type`` and ``goal`` of the conversation, if known.
+        screen: Drops suggestions before they are written (#235: the
+            core questions a candidate already answered).
     """
 
     def __init__(
@@ -75,6 +77,9 @@ class LiveAssist:
         executor: Executor,
         roles: Dict[str, str],
         session: Optional[Dict[str, Optional[str]]] = None,
+        screen: Optional[
+            Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
+        ] = None,
     ):
         """Wire the ports; no call yet."""
         if config.trigger is None or config.reasoner is None:
@@ -89,6 +94,7 @@ class LiveAssist:
         self.executor = executor
         self.roles = dict(roles)
         self.session = session or {}
+        self.screen = screen
         self.policy = TriggerPolicy(config.trigger, roles)
         self.skips: Dict[str, int] = {}
         self.calls = 0
@@ -218,10 +224,11 @@ class LiveAssist:
     ) -> List[Dict[str, Any]]:
         """Quote and rank signals (support) or remove them (others)."""
         with self._lock:
-            return present(
+            shown = present(
                 suggestions, self._texts, self.roles,
                 self.reasoner_config.expressed_signals, self.signal_history,
             )
+        return self.screen(shown) if self.screen is not None else shown
 
     def _retrieve(
         self,

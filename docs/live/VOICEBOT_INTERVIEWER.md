@@ -129,7 +129,11 @@ refused.
 voice bot's **turn director** (`VoiceBot(director=...)`): the bot asks
 it what each turn does and sends its `payload` to `interviewer@1`; the
 model only words the step. The bot **speaks first** (`VoiceBot.open`),
-and answers after the close are skipped (`skipped.closed`). When an
+and answers after the close are skipped (`skipped.closed`). With a
+candidate profile (#235, `docs/live/CANDIDATE_PROFILE.md`) the opening
+and the next turns ask the candidate's open core questions first (not
+the work-mode one, whose blanks the plan cannot fill), and the salary
+expectation is asked just before the close; answered ones never. When an
 answer ends is decided by the turn-taking of §5, not by each final.
 
 After each candidate answer the **slot filler** says which slots the

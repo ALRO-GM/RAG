@@ -901,3 +901,53 @@ def test_a_shared_budget_spends_one_limit() -> None:
     assert budget.calls == 2 and budget.remaining == 0
     with pytest.raises(LimitError):
         shared.complete("s", "u", 1)
+
+
+def test_roles_go_into_the_sentences_and_the_job_reading() -> None:
+    """A live interview's roles (#235) reach the sentences step; only the
+    candidate (or a person without a role) is read against the job."""
+    from src.application.skills.session_analysis import job_for
+
+    transcript = make_transcript(session_id="s1")
+    names = transcript.speakers()
+    with_roles = transcript.model_copy(update={"roles": {
+        names[0]: "interviewer", names[1]: "candidate"}})
+    store = InMemoryAnalysisStore()
+    build(store=store, transcripts=[with_roles]).run(
+        "s1", only=["sentences"])
+    speakers = AnalysisResults(store).result("s1", "sentences")["speakers"]
+    roles = {s["name"]: s.get("role") for s in speakers}
+    assert roles[names[0]] == "interviewer"
+    assert roles[names[1]] == "candidate"
+    assert all(roles[n] is None for n in names[2:])
+    assert job_for("Backend", with_roles.roles, names[0]) == ""
+    assert job_for("Backend", with_roles.roles, names[1]) == "Backend"
+    assert job_for("Backend", with_roles.roles, "Nobody") == "Backend"
+    assert job_for("Backend", {}, names[0]) == "Backend"
+
+
+def test_the_synthesis_reads_only_the_candidate_against_the_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Step i passes the job sought only for the candidate (#235)."""
+    seen: List[Any] = []
+    original = ProfileSynthesizer.write
+
+    def spy(self: ProfileSynthesizer, facts: Any, job: str = "") -> Any:
+        seen.append((facts.participant, job))
+        return original(self, facts, job)
+
+    monkeypatch.setattr(ProfileSynthesizer, "write", spy)
+    transcript = make_transcript(session_id="s1")
+    names = transcript.speakers()
+    with_roles = transcript.model_copy(update={"roles": {
+        names[0]: "interviewer", names[1]: "candidate"}})
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model, transcripts=[with_roles]).run(
+        "s1", job=JobSought(text="Backend"))
+    jobs = dict(seen)
+    assert jobs[names[0]] == ""
+    assert jobs.get(names[1]) == "Backend"
+    assert all(job == "Backend" for name, job in seen
+               if name not in names[:1])

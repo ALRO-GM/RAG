@@ -32,7 +32,8 @@
           "id": {"type": "string", "minLength": 1},
           "name": {"type": ["string", "null"]},
           "enrolled": {"type": "boolean"},
-          "identification": {"type": ["string", "null"], "enum": ["threshold", "expected_floor", null]}
+          "identification": {"type": ["string", "null"], "enum": ["threshold", "expected_floor", null]},
+          "role": {"type": ["string", "null"], "enum": ["interviewer", "candidate", "agent", "customer", "user", "bot", null]}
         }
       }
     },

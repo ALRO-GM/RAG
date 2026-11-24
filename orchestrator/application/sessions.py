@@ -56,6 +56,8 @@ from typing import (
 )
 
 from orchestrator.application.avoid import AvoidTracker
+from orchestrator.application.candidates import CoreTracker
+from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
 from orchestrator.application.interview import (
@@ -113,6 +115,12 @@ from orchestrator.application.voice import (
     tts_controls,
 )
 from orchestrator.application.voicebot import VoiceBot
+from orchestrator.domain.candidate import CandidateProfile
+from orchestrator.domain.next_round import (
+    focus_goal,
+    reordered,
+    topic_states,
+)
 from orchestrator.domain.config import InterviewSection, ProductConfig, Tts
 from orchestrator.domain.demo import with_partials
 from orchestrator.domain.events import LiveEvent
@@ -201,6 +209,9 @@ class _Session:
     handoff: Optional[Document] = None
     avoid: Optional[AvoidTracker] = None
     demo: Optional[Document] = None
+    core: Optional[CoreTracker] = None
+    topics: Optional[TopicTracker] = None
+    goal: Optional[str] = None
 
     @property
     def assist_mode(self) -> Optional[str]:
@@ -232,6 +243,8 @@ class _Session:
             else None,
             "handoff": self.handoff,
             "plan": self.plan, "candidate": self.candidate,
+            "candidate_id": self.core.profile.id if self.core else None,
+            "goal": self.goal,
             "avoid": self.avoid.view() if self.avoid else None,
             "demo": self.demo,
         }
@@ -256,6 +269,10 @@ class _Handler:
             self.session.tracker.on_event(event)
         if self.session.avoid is not None:
             self.session.avoid.on_event(event)
+        if self.session.core is not None:
+            self.session.core.on_event(event)
+        if self.session.topics is not None:
+            self.session.topics.on_event(event)
 
     def finish(self) -> None:
         """Wait for the call and the checks in flight."""
@@ -264,6 +281,11 @@ class _Handler:
             self.session.tracker.finish()
         if self.session.avoid is not None:
             self.session.avoid.finish()
+        core = self.session.core
+        if core is not None:
+            if self.session.topics is not None:
+                core.covered, core.revisit = self.session.topics.result()
+            core.finish()
 
 
 class _FeedSink:
@@ -305,6 +327,9 @@ class _BotFeed:
         if (message.get("type") == "backchannel"
                 and self._backchannel is not None):
             feed.strip([self._backchannel], "audio")
+        if (message.get("type") == "interview_result"
+                and self.session.core is not None):
+            self.session.core.note_sheet(dict(message.get("sheet") or {}))
         number = feed.publish(message)
         if message.get("type") == "speech" and message.get("audio"):
             self._audio.setdefault(int(message["turn"]), []).append(number)
@@ -313,6 +338,11 @@ class _BotFeed:
 
     def record(self, record: TurnRecord) -> None:
         """Count, publish and log one turn's record."""
+        if self.session.core is not None and record.spoken:
+            # The AI interviewer's share of the talk (#235); which core
+            # question it asked comes from its director, not its words.
+            self.session.core.add_talk("interviewer",
+                                       record.audio_ms / 1000.0)
         counts = self.session.by_status
         counts[record.status] = counts.get(record.status, 0) + 1
         self.session.feed.publish({
@@ -653,6 +683,7 @@ class LiveSessions:
         employee: Optional[Mapping[str, Any]] = None,
         plan: Optional[str] = None, domain: Optional[str] = None,
         candidate: Optional[str] = None,
+        candidate_id: Optional[str] = None,
     ) -> Document:
         """Start a live session on the transcriber and follow it.
 
@@ -662,11 +693,17 @@ class LiveSessions:
         ``plan`` is the interview plan of a ``voicebot.interview``
         session (required there); ``domain`` replaces the knowledge
         domain of a plain voice bot (its topic); ``candidate`` names
-        the candidate on the interview's sheet.
+        the candidate on the interview's sheet. A live-page interview
+        may name a plan too (the role, #235): with ``candidate_id`` (a
+        candidate of that role) or ``candidate`` (a new one) the
+        session keeps the candidate's answers to the core questions.
         """
         choices = self.settings.current() if self.settings else None
         config = self._topic(self._product(product, choices), domain)
-        if (plan is None) != (config.interview is None):
+        interviews = (config.interview is not None
+                      or employee_role(config) == "interviewer")
+        if (config.interview is not None and plan is None) or (
+                plan is not None and not interviews):
             raise SessionError(
                 "invalid_request",
                 "an interview session needs a plan, and only it",
@@ -700,13 +737,30 @@ class LiveSessions:
                           if speaker else None)
         if plan is not None:
             self._check_plan(plan)
+        profile = self._candidate(plan, candidate, candidate_id)
+        made = profile if profile is not None and not candidate_id else None
         self._stop_demos()  # a demo never keeps a real session waiting
-        session = self._open(session_id, config, "live", roles, person,
-                             names)
+        try:
+            session = self._open(session_id, config, "live", roles, person,
+                                 names)
+        except SessionError:
+            self._forget_new(made)
+            raise
         session.audio = audio
         session.plan = plan
         if candidate:
             session.candidate = " ".join(candidate.split())[:CANDIDATE_CHARS]
+        if profile is not None and self.interview is not None \
+                and self.interview.candidates is not None:
+            session.candidate = profile.name
+            session.core = CoreTracker(
+                self.interview.candidates, profile, session_id,
+                session.roles, session.feed.publish,
+                "bot" if config.interview is not None else "live",
+            )
+            session.core.start()
+            if config.interview is None and plan is not None:
+                self._topics(session, plan, profile)
         # A voice bot's voice starts loading now, while the transcriber
         # starts its session (its GPU lease is what a GPU voice waits for).
         early = (self._assist(session, {})
@@ -721,8 +775,11 @@ class LiveSessions:
         except TranscriberUnavailable as exc:
             session.error = str(exc)
             self._end(session, "failed")
+            # A candidate made for this session is not left behind empty.
+            self._forget_new(made)
             raise SessionError("transcriber", str(exc)) from exc
-        assist = early if early is not None else self._assist(session, {})
+        assist = early if early is not None else self._assist(
+            session, self._about(session))
         session.feed.publish({"type": "transcriber", "session": started})
         handler = _Handler(session, assist)
         source = self.events
@@ -981,6 +1038,66 @@ class LiveSessions:
         knowledge = config.knowledge.model_copy(update={"domains": [domain]})
         return config.model_copy(update={"knowledge": knowledge})
 
+    def _candidate(
+        self, plan: Optional[str], name: Optional[str],
+        candidate_id: Optional[str],
+    ) -> Optional[CandidateProfile]:
+        """The candidate of a session for a role, made when new (#235).
+
+        ``None`` without a plan, without a candidate or where candidate
+        profiles are not kept.
+        """
+        wiring = self.interview
+        book = wiring.candidates if wiring is not None else None
+        if plan is None or book is None or not (candidate_id or name):
+            return None
+        try:
+            if candidate_id:
+                return book.profile(plan, candidate_id)
+            made = book.create(plan, name)
+            return book.profile(plan, str(made["id"]))
+        except PlanError as exc:
+            code = exc.code if exc.code in ("not_found", "invalid_request") \
+                else "invalid_request"
+            raise SessionError(code, str(exc)) from exc
+
+    def _forget_new(self, made: Optional[CandidateProfile]) -> None:
+        """Delete a candidate made for a session that did not start."""
+        wiring = self.interview
+        if made is not None and wiring is not None \
+                and wiring.candidates is not None:
+            wiring.candidates.forget_new(made.plan_id, made.id)
+
+    def _topics(
+        self, session: _Session, plan_id: str, profile: CandidateProfile
+    ) -> None:
+        """Show the role's topics in the next round's order (#235)."""
+        wiring = self.interview
+        if wiring is None:
+            return
+        try:
+            plan = wiring.store.load(plan_id)
+        except KeyError:
+            return
+        states = topic_states(plan, profile.rounds)
+        session.topics = TopicTracker(plan, states, session.roles,
+                                      session.feed.publish)
+        session.topics.start()
+        goal = focus_goal(plan.title, states, len(profile.rounds),
+                          session.product.language)
+        session.goal = goal
+
+    @staticmethod
+    def _about(session: _Session) -> Dict[str, Optional[str]]:
+        """The conversation's kind and goal for the suggestions.
+
+        A later round of a candidate (#235) names what earlier rounds
+        left, so the suggestions start from it.
+        """
+        if session.goal is None:
+            return {}
+        return {"type": "entrevista", "goal": session.goal}
+
     def _check_plan(self, plan_id: str) -> Document:
         """Check the interview plan exists."""
         if self.interview is None:
@@ -999,6 +1116,10 @@ class LiveSessions:
         if section is None or wiring is None or session.plan is None:
             return None
         plan = wiring.store.load(session.plan)
+        if session.core is not None:
+            # A later round starts from what earlier ones left (#235).
+            plan = reordered(plan, topic_states(
+                plan, session.core.profile.rounds))
         reasoner = session.product.reasoner
         model = reasoner.model if reasoner else "haiku"
         filler: SlotFiller = (
@@ -1010,6 +1131,8 @@ class LiveSessions:
             plan, session.id, section, filler, wiring.reasoner, output,
             self.clock, wiring.store, wiring.handoff, section.post_call,
             session.candidate, model,
+            core_open=session.core.open if session.core else None,
+            on_core=session.core.expect if session.core else None,
         )
 
     def _listen(self, session: _Session, bot: VoiceBot) -> None:
@@ -1124,6 +1247,7 @@ class LiveSessions:
             session.product, self.knowledge, self.reasoner,
             _FeedSink(session, log), self.clock, self.executor(),
             session.roles, about,
+            screen=session.core.screen if session.core else None,
         )
         session.assist = assist
         knowledge = session.product.knowledge
