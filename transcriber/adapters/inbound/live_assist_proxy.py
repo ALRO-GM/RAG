@@ -44,7 +44,9 @@ ALLOWED = re.compile(
     rf"|interview/plans/{_ID}/results"
     rf"|interview/plans/{_ID}/candidates"
     rf"|interview/plans/{_ID}/candidates/{_ID}"
-    rf"|interview/plans/{_ID}/candidates/{_ID}/answers/[a-z][a-z0-9_]{{1,40}}"
+    rf"|interview/plans/{_ID}/candidates/{_ID}"
+    rf"/(?:answers|proposals)/[a-z][a-z0-9_]{{1,40}}"
+    rf"|interview/plans/{_ID}/candidates/{_ID}/confirm"
     rf"|interview/candidates/by-session/{_ID})$"
 )
 MAX_BODY = 16 * 1024
@@ -243,6 +245,26 @@ def add_live_assist_proxy(
         return await forward(
             f"interview/plans/{plan_id}/candidates/{candidate}"
             f"/answers/{question}", request)
+
+    @api.post("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+              "/confirm")
+    async def assist_confirm(
+        plan_id: str, candidate: str, request: Request
+    ) -> Response:
+        """Confirm captured proposals."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}/confirm",
+            request)
+
+    @api.delete("/assist/interview/plans/{plan_id}/candidates/{candidate}"
+                "/proposals/{question}")
+    async def assist_discard(
+        plan_id: str, candidate: str, question: str, request: Request
+    ) -> Response:
+        """Discard one captured proposal."""
+        return await forward(
+            f"interview/plans/{plan_id}/candidates/{candidate}"
+            f"/proposals/{question}", request)
 
     @api.get("/assist/interview/candidates/by-session/{session_id}")
     async def assist_session_candidate(

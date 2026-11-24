@@ -9,23 +9,24 @@ words, to every candidate. Their answers are kept in the candidate's
 profile, so a later round shows them as answered and never suggests
 them again.
 
-Capturing is deterministic and conservative:
+Capturing is deterministic and conservative, and only **proposes**:
 
 * :func:`asked_core` says which core question an interviewer's sentence
-  asks (word patterns per question, Spanish and English, on the folded
-  text). Nothing is captured unless the question was heard first.
+  asks (word patterns close to the core questions' own words, Spanish
+  and English). A question about a past job, a need or the current pay
+  is not a core question. Nothing is captured unless the question was
+  heard first (the AI interviewer says which one it asked).
 * :func:`capture` reads the candidate's answer with fixed rules: a clear
-  yes or no, a notice period or a start phrase, a salary figure or
-  range in euros per year, or the motivation in the candidate's words.
-  When the rules are not sure, nothing is captured and the question
-  stays open (the interviewer can type the answer).
-* A captured answer never replaces an answer already kept, and a
-  corrected one (typed by the interviewer) is only changed by another
-  correction.
-* A «no» to the work mode or location, and every yes/no answer, is kept
-  without the candidate's words, so a reason they may have given is
-  never stored; a motivation that names a protected characteristic
-  (family, health, origin...) is not recorded.
+  yes or no, a notice period or a start phrase, or a salary expectation
+  in euros per year (never a figure said with the current or past pay).
+  The motivation is never read from the candidate's words. When the
+  rules are not sure, nothing is captured.
+* What is captured is a **proposal**: it does not count as answered
+  until the interviewer confirms it («Confirmar datos»), edits it or
+  discards it. A proposal never replaces a confirmed or corrected
+  answer.
+* No answer keeps the candidate's words, so a reason given with a «no»,
+  an origin or a pay history said with an answer is never stored.
 
 Plain data and functions: no I/O.
 """
@@ -38,22 +39,19 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from orchestrator.domain.interview import is_protected
 
 SCHEMA = "interview.candidate.v1"
 CORE_SCHEMA = "interview.core.v1"
 LANGUAGES = ("es", "en")
 NAME_CHARS = 80
 SUMMARY_CHARS = 280
-QUOTE_CHARS = 160
 MAX_ROUNDS = 20
 """Rounds kept per candidate (the oldest are dropped)."""
 MIN_SALARY, MAX_SALARY = 6000, 500000
 """A yearly figure outside this range is not taken as a salary."""
-MIN_MOTIVATION_WORDS = 6
 
 Value = Union[bool, int, float, str, None]
-Source = Literal["captured", "corrected"]
+Source = Literal["proposed", "confirmed", "corrected"]
 
 
 def fold(text: str) -> str:
@@ -121,45 +119,59 @@ def core_questions(data: Mapping[str, Any]) -> List[CoreQuestion]:
 
 ASKED: Dict[str, Tuple[str, ...]] = {
     "work_mode_location": (
-        r"(modalidad|presencial|hibrido|teletrabajo|remoto|ubicacion|"
-        r"desplazarte|desplazamiento).{0,80}\b(encaja|te va|viene bien|"
-        r"te cuadra|te parece|puedes|podrias|ok)\b",
-        r"\b(encaja|viene bien|te cuadra).{0,60}(modalidad|presencial|"
-        r"hibrido|remoto|ubicacion)",
-        r"\b(on-site|hybrid|remote|location|commute)\b.{0,80}\b(work for "
-        r"you|ok for you|suit you|fine)\b",
+        r"\b(modalidad|presencial|hibrido|teletrabajo|remoto|ubicacion)\b"
+        r".{0,80}\bte (encaja|viene bien|cuadra|va bien)\b",
+        r"\bte (encaja|viene bien|cuadra|va bien)\b.{0,60}\b(modalidad|"
+        r"presencial|hibrido|remoto|ubicacion)\b",
+        r"\b(on-site|hybrid|remote|location)\b.{0,80}\b(work for you|suit "
+        r"you|ok for you)\b",
     ),
     "work_authorization": (
-        r"\b(autorizacion|permiso) (para|de) trabaj",
-        r"\bautorizad[oa] para trabajar\b",
-        r"\b(authori[sz]ed|permit|right) to work\b",
-        r"\bwork (permit|authori[sz]ation)\b",
+        r"\b(tienes|cuentas con|dispones de) (la |el |una |un )?"
+        r"(autorizacion|permiso) (para|de) trabaj",
+        r"\b(estas|estás) autorizad[oa] para trabajar\b",
+        r"\bare you (authori[sz]ed|allowed|permitted) to work\b",
+        r"\bdo you have (a |the )?(work permit|right to work|work "
+        r"authori[sz]ation)\b",
     ),
     "start_date_notice": (
-        r"\b(incorporarte|incorporacion|incorporar(te)? con nosotros)\b",
-        r"\bpreaviso\b",
-        r"\bcuando (podrias|puedes) (empezar|comenzar)\b",
-        r"\bwhen could you (start|join)\b",
-        r"\bnotice (period|you have to give)\b",
+        r"\bcuando (podrias|puedes|podras) (incorporarte|empezar|comenzar)\b",
+        r"\b(que|cuanto) preaviso (tienes|tendrias|debes dar|tienes que "
+        r"dar)\b",
+        r"\bwhen (could|can) you (start|join)\b",
+        r"\bhow much notice (do|would) you\b",
     ),
     "motivation": (
-        r"\bque te (ha llevado|lleva|llevo|ha animado|motiva|ha motivado)"
-        r".{0,40}(presentarte|puesto|candidatura|oferta)",
-        r"\bpor que (te has presentado|te presentas|te interesa|quieres)"
-        r".{0,30}(puesto|oferta|trabajo)",
-        r"\b(what|why) (led|made|brought) you (to )?(apply|here)\b",
-        r"\bwhy (did you apply|this job|are you interested)\b",
+        r"\bque te ha llevado a presentarte a (este|esta) "
+        r"(puesto|oferta|candidatura)\b",
+        r"\bpor que te (has presentado|presentas) a (este|esta) "
+        r"(puesto|oferta)\b",
+        r"\bpor que te interesa (este|el) puesto\b",
+        r"\bwhat led you to apply (for|to) this (job|role|position)\b",
+        r"\bwhy did you apply (for|to) this (job|role|position)\b",
     ),
     "salary_expectation": (
         r"\bexpectativas? (salarial|economica|de salario|de sueldo)",
         r"\bpretensiones (salariales|economicas)\b",
-        r"\bcuanto (esperas|te gustaria|quieres) (cobrar|ganar)\b",
-        r"\bbanda salarial\b.{0,40}\?",
-        r"\bsalary (do you expect|expectation)",
-        r"\bexpected salary\b",
+        r"\bcuanto (esperas|te gustaria|quieres) (cobrar|ganar) (en|con) "
+        r"(este|esta)\b",
+        r"\bwhat salary do you expect\b",
+        r"\bsalary expectations?\b",
     ),
 }
-"""Patterns (on the folded sentence) of each core question being asked."""
+"""Patterns (on the folded sentence) of each core question being asked.
+
+They follow the core questions' own words closely: a question about a
+past job, a need («¿necesitas permiso...?», whose «no» means the
+opposite) or the current pay is not a core question."""
+
+_NOT_ASKED = re.compile(
+    r"\b(necesit\w*|hace falta|need|require\w*|anterior|ultimo|ultima|"
+    r"pasad[oa]|previous|last|former|(salario|sueldo) actual|cobras|"
+    r"ganas|current (salary|pay))\b"
+)
+"""Words that make a sentence about another thing (a past job, a need,
+the current pay): it is never taken as a core question."""
 
 _COMPILED = {k: [re.compile(p) for p in v] for k, v in ASKED.items()}
 
@@ -170,17 +182,17 @@ def asked_core(
     """Return the id of the core question ``text`` asks, if any.
 
     Only the questions listed are looked for (the open ones, say); the
-    first one in their order that matches wins.
+    first one in their order that matches wins. A sentence about a past
+    job, a need or the current pay is never a core question.
     """
     folded = fold(text)
+    if _NOT_ASKED.search(folded):
+        return None
     for question in questions:
         for pattern in _COMPILED.get(question.id, []):
             if pattern.search(folded):
                 return question.id
     return None
-
-
-# ---- reading an answer ------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -189,7 +201,6 @@ class Captured:
 
     fields: Dict[str, Value]
     summary: str = ""
-    quote: str = ""
 
 
 _POSITIVE = (
@@ -207,6 +218,8 @@ _YES = re.compile(
     r"(permit|authori[sz]ation))\b"
 )
 _NO = re.compile(
+    r"\b(claro|por supuesto|desde luego|pues) que no\b|"
+    r"\b(of course|definitely|certainly) not\b|\bno$|"
     r"\bno (me )?(encaja|puedo|podria|tengo|dispongo|cuento|estoy|"
     r"me viene bien|me viene|viene bien|me va bien|me va|me cuadra)\b|"
     r"\b(doesn't|does not|don't|do not|can't|cannot) (work|suit|have)\b|"
@@ -308,7 +321,7 @@ def start_and_notice(text: str) -> Optional[Captured]:
     fields: Dict[str, Value] = {"availability.earliest_start": start}
     if notice is not None:
         fields["availability.notice_days"] = notice
-    return Captured(fields, summary=start or "", quote=_quote(text))
+    return Captured(fields, summary=start or "")
 
 
 _THOUSANDS = re.compile(r"(?<=\d)[.\s](?=\d{3}\b)")
@@ -321,7 +334,19 @@ _DECLINE = re.compile(
     r"\b(prefiero no|no quiero (decir|dar)|no lo se|no sabria|depende|"
     r"lo hablamos|rather not|prefer not)\b"
 )
-_SPAN = re.compile(r"\b(entre|between|de)\b|\d\s*(-|a|y|to|and)\s*\d")
+_SPAN = re.compile(
+    r"\b(entre|between)\b|\d\s*(k|mil)?\s*(-|a|y|to|and)\s*\d"
+)
+_PAY_HISTORY = re.compile(
+    r"\b(cobro|cobraba|cobre|gano|ganaba|percibo|percibia|"
+    r"(salario|sueldo|nomina|retribucion) (actual|anterior)|"
+    r"(mi|el) (salario|sueldo) (es|era)|ahora|actualmente|hoy en dia|"
+    r"en mi (trabajo|empresa|puesto) (actual|anterior)|"
+    r"i (make|earn|made|earned|get paid)|current(ly)?|my salary (is|was)|"
+    r"right now|at the moment)\b"
+)
+"""Words of the current or past pay: an answer with them is never taken
+(Directive 2023/970 art. 5.2: pay history is not asked nor kept)."""
 
 
 def salary(text: str) -> Optional[Captured]:
@@ -334,7 +359,8 @@ def salary(text: str) -> Optional[Captured]:
     taken.
     """
     folded = fold(text)
-    if _DECLINE.search(folded) or _MONTHLY.search(folded):
+    if (_DECLINE.search(folded) or _MONTHLY.search(folded)
+            or _PAY_HISTORY.search(folded)):
         return None
     plain = _THOUSANDS.sub("", folded)
     figures: List[Tuple[float, bool]] = []
@@ -354,53 +380,18 @@ def salary(text: str) -> Optional[Captured]:
         return None
     low, high = int(values[0]), int(values[-1])
     return Captured(
-        {"salary.expectation_min": low, "salary.expectation_max": high},
-        quote=_quote(text),
-    )
-
-
-_PRIVATE = re.compile(
-    r"\b(hij[oa]s?|bebe|embaraz\w*|pareja|marido|mujer|esposa?|novi[oa]|"
-    r"casad[oa]|divorci\w*|separad[oa]|viud[oa]|madre|padre|familia\w*|"
-    r"cuidar|cuido|salud|enferm\w*|baja|tratamiento|discapacidad|"
-    r"religi\w*|iglesia|mezquita|sindicat\w*|afiliad[oa]|partido|"
-    r"nacionalidad|extranjer[oa]|inmigra\w*|anos tengo|mi edad|"
-    r"children|kids?|pregnan\w*|husband|wife|partner|family|health|"
-    r"illness|religion|union|nationality|my age)\b"
-)
-"""Words of a personal circumstance an answer may bring up: the
-motivation is then not recorded (KN-4's legal note)."""
-
-
-def motivation(text: str) -> Optional[Captured]:
-    """Keep the motivation in the candidate's words (280 characters).
-
-    Nothing is kept for a short answer or when the answer names a
-    protected characteristic (it is not followed up nor recorded).
-    """
-    words = text.split()
-    if (len(words) < MIN_MOTIVATION_WORDS or is_protected(text)
-            or _PRIVATE.search(fold(text))):
-        return None
-    summary = " ".join(words)
-    if len(summary) > SUMMARY_CHARS:
-        summary = summary[:SUMMARY_CHARS - 1].rsplit(" ", 1)[0] + "…"
-    return Captured({"motivation.summary": summary}, summary=summary)
-
-
-def _quote(text: str) -> str:
-    """The first characters of an answer, cut at a word."""
-    clean = " ".join(text.split())
-    if len(clean) <= QUOTE_CHARS:
-        return clean
-    return clean[:QUOTE_CHARS - 1].rsplit(" ", 1)[0] + "…"
+        {"salary.expectation_min": low, "salary.expectation_max": high})
 
 
 def capture(question_id: str, text: str) -> Optional[Captured]:
     """Read the answer ``text`` to a core question, conservatively.
 
-    ``None`` when the rules are not sure: the question stays open.
-    Yes/no answers keep no quote (a reason given is never stored).
+    ``None`` when the rules are not sure: the question stays open. The
+    motivation is never read from the candidate's words (any word list
+    lets special-category data through): the interviewer types it. No
+    answer keeps the candidate's words (a reason, an origin or a pay
+    history said with it is never stored); what is kept is a proposal
+    until the interviewer confirms it.
     """
     if not text.strip():
         return None
@@ -417,8 +408,6 @@ def capture(question_id: str, text: str) -> Optional[Captured]:
         return Captured({"eligibility.work_authorization": answer})
     if question_id == "start_date_notice":
         return start_and_notice(text)
-    if question_id == "motivation":
-        return motivation(text)
     if question_id == "salary_expectation":
         return salary(text)
     return None
@@ -434,18 +423,19 @@ class _Strict(BaseModel):
 
 
 class CoreAnswer(_Strict):
-    """The kept answer to one core question.
+    """One answer to a core question.
 
-    ``source`` is ``captured`` (read from the conversation) or
-    ``corrected`` (typed by the interviewer); ``quote`` is the
-    candidate's words when they may be kept (never for a yes/no).
+    ``source`` is ``proposed`` (read from the conversation by the rules,
+    waiting for the interviewer), ``confirmed`` (a proposal the
+    interviewer confirmed) or ``corrected`` (typed by the interviewer).
+    Only confirmed and corrected answers count as answered. No answer
+    keeps the candidate's words.
     """
 
     question: str
     fields: Dict[str, Value] = Field(default_factory=dict)
     summary: str = Field(default="", max_length=SUMMARY_CHARS)
-    quote: str = Field(default="", max_length=QUOTE_CHARS)
-    source: Source = "captured"
+    source: Source = "proposed"
     session_id: Optional[str] = None
     at: str
 
@@ -453,9 +443,12 @@ class CoreAnswer(_Strict):
 class Round(_Strict):
     """One interview of the candidate for this role.
 
-    ``covered`` are the plan's slots the round gave evidence for;
-    ``weak`` those left open or below the required level (they lead the
-    next round); ``talk`` the share of speaking time per role (0–1).
+    ``covered`` are the plan's slots the round gave evidence for. ``weak``
+    are those the AI interviewer's result sheet left below the required
+    level (its own scores); ``revisit`` those a live-page round asked about
+    whose answer looked incomplete by the word rules: a prompt to come
+    back to them, never a rating. ``talk`` is the share of speaking time
+    per role (0–1).
     """
 
     session_id: str
@@ -463,11 +456,16 @@ class Round(_Strict):
     kind: Literal["live", "bot"] = "live"
     covered: List[str] = Field(default_factory=list)
     weak: List[str] = Field(default_factory=list)
+    revisit: List[str] = Field(default_factory=list)
     talk: Dict[str, float] = Field(default_factory=dict)
 
 
 class CandidateProfile(_Strict):
-    """``interview.candidate.v1``: one candidate for one role."""
+    """``interview.candidate.v1``: one candidate for one role.
+
+    ``answers`` hold the confirmed and corrected answers; ``proposals``
+    the captured ones still waiting for the interviewer.
+    """
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -480,6 +478,7 @@ class CandidateProfile(_Strict):
     created_at: str
     updated_at: str
     answers: Dict[str, CoreAnswer] = Field(default_factory=dict)
+    proposals: Dict[str, CoreAnswer] = Field(default_factory=dict)
     rounds: List[Round] = Field(default_factory=list)
 
     def to_contract(self) -> Dict[str, Any]:
@@ -521,27 +520,52 @@ def new_profile(
     )
 
 
+def _changed(profile: CandidateProfile, now: datetime,
+             **update: Any) -> CandidateProfile:
+    return profile.model_copy(update={**update, "updated_at": stamp(now)})
+
+
 def with_capture(
     profile: CandidateProfile, question_id: str, found: Captured,
     session_id: Optional[str], now: datetime,
 ) -> Optional[CandidateProfile]:
-    """Keep a captured answer; ``None`` when the question has one.
+    """Keep a captured answer as a proposal; ``None`` when answered.
 
-    A capture never replaces an answer already kept (captured or
-    corrected): a wrong one is fixed by a correction.
+    A capture never touches a confirmed or corrected answer; it replaces
+    an older proposal (still unconfirmed) to the same question.
     """
     if question_id in profile.answers:
         return None
-    answer = CoreAnswer(
+    proposal = CoreAnswer(
         question=question_id, fields=dict(found.fields),
-        summary=found.summary[:SUMMARY_CHARS],
-        quote=found.quote[:QUOTE_CHARS], source="captured",
+        summary=found.summary[:SUMMARY_CHARS], source="proposed",
         session_id=session_id, at=stamp(now),
     )
-    return profile.model_copy(update={
-        "answers": {**profile.answers, question_id: answer},
-        "updated_at": stamp(now),
-    })
+    return _changed(profile, now,
+                    proposals={**profile.proposals, question_id: proposal})
+
+
+def with_confirmed(
+    profile: CandidateProfile, question_ids: List[str], now: datetime
+) -> CandidateProfile:
+    """Confirm proposals as answers (unknown ids are ignored)."""
+    answers = dict(profile.answers)
+    proposals = dict(profile.proposals)
+    for qid in question_ids:
+        found = proposals.pop(qid, None)
+        if found is not None:
+            answers[qid] = found.model_copy(update={
+                "source": "confirmed", "at": stamp(now)})
+    return _changed(profile, now, answers=answers, proposals=proposals)
+
+
+def without_proposal(
+    profile: CandidateProfile, question_id: str, now: datetime
+) -> CandidateProfile:
+    """Discard one proposal."""
+    proposals = {k: v for k, v in profile.proposals.items()
+                 if k != question_id}
+    return _changed(profile, now, proposals=proposals)
 
 
 def with_correction(
@@ -552,7 +576,8 @@ def with_correction(
 
     The typed words are read with the same rules as a capture to fill
     the fields; when they say nothing the rules understand, they are
-    kept as the summary. A yes/no keeps no other words.
+    kept as the summary. The motivation is kept as typed. A proposal to
+    the same question is dropped.
     """
     words = " ".join(str(text or "").split())[:SUMMARY_CHARS]
     if not words:
@@ -567,10 +592,11 @@ def with_correction(
         question=question.id, fields=fields, summary=summary,
         source="corrected", session_id=None, at=stamp(now),
     )
-    return profile.model_copy(update={
-        "answers": {**profile.answers, question.id: answer},
-        "updated_at": stamp(now),
-    })
+    proposals = {k: v for k, v in profile.proposals.items()
+                 if k != question.id}
+    return _changed(profile, now,
+                    answers={**profile.answers, question.id: answer},
+                    proposals=proposals)
 
 
 def without_answer(
@@ -578,8 +604,7 @@ def without_answer(
 ) -> CandidateProfile:
     """Forget the answer to one question (it is open again)."""
     answers = {k: v for k, v in profile.answers.items() if k != question_id}
-    return profile.model_copy(update={"answers": answers,
-                                      "updated_at": stamp(now)})
+    return _changed(profile, now, answers=answers)
 
 
 def with_round(
@@ -588,49 +613,83 @@ def with_round(
     """Add (or replace, by session) one round; the newest are kept."""
     rounds = [r for r in profile.rounds if r.session_id != kept.session_id]
     rounds = (rounds + [kept])[-MAX_ROUNDS:]
-    return profile.model_copy(update={"rounds": rounds,
-                                      "updated_at": stamp(now)})
+    return _changed(profile, now, rounds=rounds)
 
 
 def open_questions(
     profile: CandidateProfile, questions: List[CoreQuestion]
 ) -> List[CoreQuestion]:
-    """The core questions the profile has no answer to, in order."""
+    """The core questions without a confirmed or corrected answer."""
     return [q for q in questions if q.id not in profile.answers]
+
+
+def _parsed(text: str, now: datetime) -> Optional[datetime]:
+    try:
+        found = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if (found.tzinfo is None) != (now.tzinfo is None):
+        found = found.replace(tzinfo=now.tzinfo)
+    return found
+
+
+def age_unknown(profile: CandidateProfile) -> bool:
+    """Whether the profile's last change cannot be read (never purged)."""
+    return _parsed(profile.updated_at, datetime.now()) is None
 
 
 def expired(
     profile: CandidateProfile, now: datetime, days: Optional[int]
 ) -> bool:
-    """Whether the profile is older than the retention (``None``: never)."""
+    """Whether the profile is older than the retention (``None``: never).
+
+    A profile whose ``updated_at`` cannot be read is **not** expired: it
+    is kept and the caller reports it (:func:`age_unknown`), so nothing is
+    deleted on a guess.
+    """
     if days is None:
         return False
-    try:
-        updated = datetime.fromisoformat(profile.updated_at)
-    except ValueError:
-        return True
-    if (updated.tzinfo is None) != (now.tzinfo is None):
-        updated = updated.replace(tzinfo=now.tzinfo)
-    return now - updated > timedelta(days=days)
+    updated = _parsed(profile.updated_at, now)
+    return updated is not None and now - updated > timedelta(days=days)
+
+
+def without_old_proposals(
+    profile: CandidateProfile, now: datetime, days: Optional[int]
+) -> Optional[CandidateProfile]:
+    """Drop proposals older than the retention; ``None`` if none were."""
+    if days is None:
+        return None
+    kept = {}
+    for qid, proposal in profile.proposals.items():
+        at = _parsed(proposal.at, now)
+        if at is None or now - at <= timedelta(days=days):
+            kept[qid] = proposal
+    if len(kept) == len(profile.proposals):
+        return None
+    return profile.model_copy(update={"proposals": kept})
 
 
 def view(
     profile: CandidateProfile, questions: List[CoreQuestion]
 ) -> Dict[str, Any]:
-    """The profile for the pages: each core question with its answer."""
+    """The profile for the pages: each core question, answer, proposal."""
     rows = []
     for q in questions:
         kept = profile.answers.get(q.id)
+        proposal = profile.proposals.get(q.id)
         rows.append({
             "id": q.id, "order": q.order, "phase": q.phase,
             "question": dict(q.question),
             "fields": [f.model_dump() for f in q.profile_fields],
             "answer": kept.model_dump(mode="json") if kept else None,
+            "proposal": proposal.model_dump(mode="json")
+            if proposal and not kept else None,
         })
     return {
         "schema": SCHEMA, "id": profile.id, "plan_id": profile.plan_id,
         "name": profile.name, "created_at": profile.created_at,
         "updated_at": profile.updated_at, "questions": rows,
         "answered": sum(1 for r in rows if r["answer"]),
+        "proposed": sum(1 for r in rows if r["proposal"]),
         "rounds": [r.model_dump(mode="json") for r in profile.rounds],
     }

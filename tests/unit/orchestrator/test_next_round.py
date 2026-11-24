@@ -70,7 +70,8 @@ def test_the_goal_of_a_later_round_names_what_is_left() -> None:
                                          covered=["s1"], weak=["s2"])])
     goal = focus_goal("Backend", states, 1)
     assert goal is not None and goal.startswith("Ronda 2 del puesto")
-    assert "por debajo del nivel pedido: Pruebas automáticas" in goal
+    assert "por debajo del nivel en la entrevista de IA: Pruebas " \
+        "automáticas" in goal
     assert "sin tratar aún: Bases de datos; Inglés" in goal
     english = focus_goal("Backend", states, 1, "en")
     assert english is not None and english.startswith("Round 2")
@@ -118,3 +119,16 @@ def test_the_live_round_marks_topics_and_reports_the_round() -> None:
     last = published[-1]["topics"]
     assert [t["done"] for t in last if t["id"] == "s2"] == [True]
     assert len(published) == 2
+
+
+def test_a_live_round_leaves_topics_to_revisit_not_weak() -> None:
+    rounds = [Round(session_id="r1", at="x", revisit=["s3"], weak=["s2"],
+                    covered=["s1"])]
+    states = topic_states(plan(), rounds)
+    assert [(t.slot.id, t.earlier) for t in states] == [
+        ("s2", "weak"), ("s3", "revisit"), ("s4", "open"), ("s1", "covered"),
+    ]
+    goal = focus_goal("Backend", states, 1)
+    assert goal is not None and "volver a tratar" in goal
+    english = focus_goal("Backend", states, 1, "en")
+    assert english is not None and "to go back to" in english

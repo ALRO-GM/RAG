@@ -284,7 +284,7 @@ class _Handler:
         core = self.session.core
         if core is not None:
             if self.session.topics is not None:
-                core.covered, core.weak = self.session.topics.result()
+                core.covered, core.revisit = self.session.topics.result()
             core.finish()
 
 
@@ -339,8 +339,8 @@ class _BotFeed:
     def record(self, record: TurnRecord) -> None:
         """Count, publish and log one turn's record."""
         if self.session.core is not None and record.spoken:
-            # What the AI interviewer said: maybe a core question (#235).
-            self.session.core.asked(" ".join(record.spoken))
+            # The AI interviewer's share of the talk (#235); which core
+            # question it asked comes from its director, not its words.
             self.session.core.add_talk("interviewer",
                                        record.audio_ms / 1000.0)
         counts = self.session.by_status
@@ -738,9 +738,14 @@ class LiveSessions:
         if plan is not None:
             self._check_plan(plan)
         profile = self._candidate(plan, candidate, candidate_id)
+        made = profile if profile is not None and not candidate_id else None
         self._stop_demos()  # a demo never keeps a real session waiting
-        session = self._open(session_id, config, "live", roles, person,
-                             names)
+        try:
+            session = self._open(session_id, config, "live", roles, person,
+                                 names)
+        except SessionError:
+            self._forget_new(made)
+            raise
         session.audio = audio
         session.plan = plan
         if candidate:
@@ -770,6 +775,8 @@ class LiveSessions:
         except TranscriberUnavailable as exc:
             session.error = str(exc)
             self._end(session, "failed")
+            # A candidate made for this session is not left behind empty.
+            self._forget_new(made)
             raise SessionError("transcriber", str(exc)) from exc
         assist = early if early is not None else self._assist(
             session, self._about(session))
@@ -1054,6 +1061,13 @@ class LiveSessions:
                 else "invalid_request"
             raise SessionError(code, str(exc)) from exc
 
+    def _forget_new(self, made: Optional[CandidateProfile]) -> None:
+        """Delete a candidate made for a session that did not start."""
+        wiring = self.interview
+        if made is not None and wiring is not None \
+                and wiring.candidates is not None:
+            wiring.candidates.forget_new(made.plan_id, made.id)
+
     def _topics(
         self, session: _Session, plan_id: str, profile: CandidateProfile
     ) -> None:
@@ -1118,6 +1132,7 @@ class LiveSessions:
             self.clock, wiring.store, wiring.handoff, section.post_call,
             session.candidate, model,
             core_open=session.core.open if session.core else None,
+            on_core=session.core.expect if session.core else None,
         )
 
     def _listen(self, session: _Session, bot: VoiceBot) -> None:

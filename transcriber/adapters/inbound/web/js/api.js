@@ -353,6 +353,16 @@ export class Api {
     return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/answers/${encodeURIComponent(question)}`);
   }
 
+  /** Confirm captured proposals (all of them without `questions`). */
+  confirmAnswers(planId, id, questions) {
+    return this.request("POST", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/confirm`, { json: questions ? { questions } : {} });
+  }
+
+  /** Discard one captured proposal (the question stays open). */
+  discardProposal(planId, id, question) {
+    return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}/proposals/${encodeURIComponent(question)}`);
+  }
+
   /** The candidate interviewed in a session (404 when none). */
   sessionCandidate(sessionId) {
     return this.request("GET", `/assist/interview/candidates/by-session/${encodeURIComponent(sessionId)}`);

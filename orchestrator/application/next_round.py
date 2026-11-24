@@ -2,14 +2,16 @@
 
 A live-page interview with a role and a candidate shows the plan's slots
 as its topics (``{"type": "topics", "topics": [...]}``), in the next
-round's order: what earlier rounds left weak first, then what is still
+round's order: what earlier rounds left below the level or to revisit
+first, then what is still
 open, then what is covered (each chip says which with ``earlier``).
 During the round a slot is marked done when the interviewer asked about
 it (two content words of the slot, or its only one) and the candidate's
 answer covers it by the cheap filler of the AI interviewer
 (:func:`~orchestrator.domain.interview_agenda.heuristic_fill`,
-``complete``); a slot asked but not covered that way is weak for the
-next round. No model
+``complete``); a slot asked but not covered that way is one to
+**revisit** in the next round: a prompt to come back to it, not a
+judgement of the answer. No model
 is called and nothing here rates the person.
 """
 
@@ -115,13 +117,13 @@ class TopicTracker:
             self._publish()
 
     def result(self) -> Tuple[List[str], List[str]]:
-        """The covered and the weak slot ids of this round."""
+        """The covered slot ids and those to revisit, of this round."""
         with self._lock:
             order = [s.id for s in self.plan.slots]
             covered = [s for s in order if s in self.covered]
-            weak = [s for s in order
-                    if s in self.touched and s not in self.covered]
-        return covered, weak
+            revisit = [s for s in order
+                       if s in self.touched and s not in self.covered]
+        return covered, revisit
 
     def _publish(self) -> None:
         self.publish({"type": "topics", "topics": [

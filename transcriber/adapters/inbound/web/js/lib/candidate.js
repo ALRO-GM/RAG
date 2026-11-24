@@ -2,7 +2,10 @@
 // the live page's «Preguntas comunes» row and the result page's «Datos de
 // la candidata» block. A profile is the orchestrator's view of
 // `interview.candidate.v1`: { id, plan_id, name, questions: [{ id, order,
-// question: { es, en }, fields, answer }], answered, rounds }. No DOM here.
+// question: { es, en }, fields, answer, proposal }], answered, proposed,
+// rounds }. An `answer` is confirmed or typed by the interviewer; a
+// `proposal` was read from the conversation and waits for «Confirmar
+// datos»: it never counts as answered. No DOM here.
 
 /** The core questions the dictionaries have a short label for (cand.q.<id>). */
 export const CORE_IDS = ["work_mode_location", "work_authorization", "start_date_notice", "motivation", "salary_expectation"];
@@ -19,8 +22,8 @@ export function grouped(value, language = "es") {
  * range in euros per year; the start date the candidate's own phrase and
  * the notice in days; the motivation its kept words.
  */
-export function answerText(t, row, language = "es") {
-  const answer = row?.answer;
+export function answerText(t, row, language = "es", entry = row?.answer) {
+  const answer = entry;
   if (!answer) return "";
   const fields = answer.fields ?? {};
   const yesNo = Object.values(fields).find((v) => typeof v === "boolean");
@@ -52,8 +55,9 @@ export function questionLabel(t, row, language = "es") {
 
 /**
  * The rows of a profile, in the questions' order: label, whether it is
- * answered, the answer in words, who gave it (captured or corrected),
- * the candidate's words kept (never for a yes/no) and the session.
+ * answered (confirmed or corrected), the answer in words, who gave it,
+ * and a proposal waiting for confirmation (its words, never counted as
+ * answered).
  */
 export function coreRows(t, profile, language = "es") {
   return [...(profile?.questions ?? [])]
@@ -64,14 +68,19 @@ export function coreRows(t, profile, language = "es") {
       question: row.question?.[language] ?? row.question?.es ?? "",
       answered: Boolean(row.answer),
       text: answerText(t, row, language),
-      source: row.answer?.source === "corrected" ? "corrected" : row.answer ? "captured" : "",
-      quote: String(row.answer?.quote ?? ""),
-      session: row.answer?.session_id ?? null,
+      source: row.answer ? (row.answer.source === "corrected" ? "corrected" : "confirmed") : "",
+      proposed: !row.answer && Boolean(row.proposal),
+      proposal: row.answer ? "" : answerText(t, row, language, row.proposal),
+      session: row.answer?.session_id ?? row.proposal?.session_id ?? null,
     }));
 }
 
-/** How many core questions are answered, and how many there are. */
+/** How many core questions are answered, how many wait for confirmation, and how many there are. */
 export function coreCount(profile) {
   const questions = profile?.questions ?? [];
-  return { done: questions.filter((q) => q.answer).length, all: questions.length };
+  return {
+    done: questions.filter((q) => q.answer).length,
+    proposed: questions.filter((q) => !q.answer && q.proposal).length,
+    all: questions.length,
+  };
 }

@@ -4,6 +4,7 @@ import argparse
 import json
 import stat
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,7 +19,12 @@ from orchestrator.adapters.outbound.fakes import FakeTts
 from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
 from orchestrator.adapters.outbound.fs_core_questions import FileCoreQuestions
 from orchestrator.application.candidates import CandidateBook
-from orchestrator.domain.candidate import new_profile
+from orchestrator.domain.candidate import (
+    Captured,
+    Value,
+    new_profile,
+    with_capture,
+)
 from tests.unit.orchestrator.fixtures import PRODUCTS, REPO
 from tests.unit.orchestrator.test_candidate import NOW
 from tests.unit.orchestrator.test_interview_sessions import live
@@ -140,3 +146,52 @@ def test_the_cli_keeps_profiles_for_the_interview_retention(
     assert book.retention_days == 30
     assert len(book.questions()) == 5
     assert book.plan_exists("nope") is False
+
+
+def test_proposals_are_confirmed_or_discarded_through_the_routes(
+    tmp_path: Path,
+) -> None:
+    web = wired(tmp_path)
+    plan = web.post("/interview/plans", json={"offer": OFFER}).json()
+    base = f"/interview/plans/{plan['id']}/candidates"
+    web.post(base, json={"name": "Ana Ruiz"})
+    store = JsonCandidateStore(tmp_path)
+    profile = store.load(plan["id"], "ana-ruiz")
+    answers: List[Tuple[str, Dict[str, Value]]] = [
+        ("work_authorization", {"eligibility.work_authorization": True}),
+        ("salary_expectation", {"salary.expectation_min": 30000,
+                                "salary.expectation_max": 30000}),
+    ]
+    for qid, fields in answers:
+        changed = with_capture(profile, qid, Captured(fields), "s1", NOW)
+        assert changed is not None
+        profile = changed
+    store.save(profile)
+    one = f"{base}/ana-ruiz"
+    assert web.get(one).json()["proposed"] == 2
+    gone = web.delete(f"{one}/proposals/salary_expectation")
+    assert gone.status_code == 200 and gone.json()["proposed"] == 1
+    assert web.delete(f"{one}/proposals/salary_expectation"
+                      ).status_code == 404
+    bad = web.post(f"{one}/confirm", json={"questions": "all"})
+    assert bad.status_code == 422
+    done = web.post(f"{one}/confirm", json={})
+    assert done.status_code == 200
+    assert done.json()["answered"] == 1 and done.json()["proposed"] == 0
+    assert web.post(f"{one}/confirm", json={
+        "questions": ["motivation"]}).status_code == 404
+
+
+def test_the_retention_applies_when_the_orchestrator_starts(
+    tmp_path: Path,
+) -> None:
+    store = JsonCandidateStore(tmp_path)
+    old = new_profile("plan-1", "Ana", [], NOW)
+    store.save(old.model_copy(update={"updated_at": "2020-01-01T00:00:00"}))
+    args = argparse.Namespace(
+        interview_dir=tmp_path, knowledge="fake", reasoner="fake",
+        knowledge_url="http://x", reasoner_url="http://x", token=None,
+        fake_delay_ms=0.0,
+    )
+    build_interview(args, load_products(PRODUCTS), [])
+    assert store.list("plan-1") == []

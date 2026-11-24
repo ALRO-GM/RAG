@@ -22,15 +22,19 @@ from orchestrator.domain.candidate import (
     capture,
     core_questions,
     expired,
-    motivation,
     new_profile,
     salary,
     start_and_notice,
+    age_unknown,
+    open_questions,
     view,
     with_capture,
+    with_confirmed,
     with_correction,
     with_round,
     without_answer,
+    without_old_proposals,
+    without_proposal,
     yes_no,
 )
 from orchestrator.domain.events import LiveEvent
@@ -90,13 +94,15 @@ def book(
             store, clock)
 
 
-def final(uid: str, speaker: str, text: str, seq: int = 0) -> LiveEvent:
+def final(uid: str, speaker: str, text: str, seq: int = 0,
+          at: float = 0.0) -> LiveEvent:
     return LiveEvent.model_validate({
         "schema": "live.event.v1", "session_id": "s1", "seq": seq,
         "type": "final", "at": "2026-11-24T10:00:00Z",
         "stream_time": float(seq),
         "utterance": {"id": uid, "turn": seq, "index": 0, "speaker": speaker,
-                      "start": 0.0, "end": 1.0, "text": text, "revision": 0},
+                      "start": at, "end": at + 1.0, "text": text,
+                      "revision": 0},
     })
 
 
@@ -138,6 +144,19 @@ def test_each_committed_question_is_recognised_when_asked() -> None:
     "¿Cómo resolviste el problema de rendimiento?",
     "¿Qué tal el viaje hasta aquí?",
     "Tell me about a hard bug you fixed.",
+    # Close to a core question, but about another thing (review #235).
+    "¿Necesitas autorización para trabajar en España?",
+    "¿Necesitas permiso de trabajo?",
+    "Do you need a work permit?",
+    "¿Cuál es tu salario actual?",
+    "¿Cuánto cobras ahora?",
+    "¿Qué tal fue tu incorporación en tu último trabajo?",
+    "¿Cómo gestionaste el preaviso en tu anterior empresa?",
+    "Why did you apply to your last job?",
+    "¿Por qué quieres dejar tu trabajo actual?",
+    "¿Cómo te integraste al llegar?",
+    "¿Cómo organizas tu día cuando trabajas en remoto? ¿Rindes más?",
+    "Pregunta cómo trabaja en remoto y si puedes pedir un ejemplo",
 ])
 def test_other_questions_are_not_core_questions(text: str) -> None:
     assert asked_core(text, questions()) is None
@@ -164,21 +183,29 @@ def test_only_the_listed_questions_are_looked_for() -> None:
     ("Estoy en trámite", None),
     ("Bueno, depende del horario", None),
     ("Hmm", None),
+    ("Claro que no.", False),
+    ("Of course not.", False),
+    ("No, bueno, sí.", None),
+    ("Sí, ¿por qué no?", None),
 ])
 def test_yes_or_no_only_when_clear(text: str,
                                    expected: Optional[bool]) -> None:
     assert yes_no(text) is expected
 
 
-def test_a_no_to_the_work_mode_keeps_no_reason() -> None:
+def test_no_answer_keeps_the_candidates_words() -> None:
     found = capture("work_mode_location",
                     "No, no me viene bien porque cuido de mi madre")
     assert found is not None
     assert found.fields == {"availability.work_mode_ok": False,
                             "availability.location_note": None}
-    assert found.quote == "" and found.summary == ""
-    authorised = capture("work_authorization", "Sí, tengo permiso de trabajo")
-    assert authorised is not None and authorised.quote == ""
+    assert found.summary == ""
+    authorised = capture("work_authorization",
+                         "Sí, soy española, tengo permiso de trabajo")
+    assert authorised is not None and authorised.summary == ""
+    assert "español" not in str(authorised)
+    paid = capture("salary_expectation", "Soy de Venezuela y pido 33.000")
+    assert paid is not None and "venezuela" not in str(paid).lower()
     assert capture("work_authorization", "Está en trámite") is None
 
 
@@ -222,21 +249,29 @@ def test_salary_figures_and_ranges(text: str, low: int, high: int) -> None:
     "1.800 al mes", "Prefiero no decirlo", "Depende de las condiciones",
     "Tengo 3 años de experiencia", "30 y 40", "un millón",
     "5, 10 o 20 mil",
+    # Pay history is never taken as the expectation (review #235).
+    "Mi salario actual es de 27.000 y busco 33.000.",
+    "Ahora mismo cobro 28.000.",
+    "Ahora gano 27.000, me gustaría llegar a 33.000.",
+    "En mi empresa actual tengo 30.000 y quiero 34.000",
+    "I make 40k now and want 45k",
+    "My current salary is 40,000",
+    "40.000 de fijo más 5.000 de variable",
 ])
 def test_unsure_salaries_are_not_captured(text: str) -> None:
     assert salary(text) is None
 
 
-def test_the_motivation_is_kept_unless_it_is_personal() -> None:
-    kept = motivation("Me encanta el producto y quiero trabajar en un "
-                      "equipo que cuide la calidad")
-    assert kept is not None and kept.summary.startswith("Me encanta")
-    assert motivation("Por mis hijos necesito un horario estable y cerca "
-                      "de casa") is None
-    assert motivation("Me interesa mucho") is None
-    long = motivation("quiero " * 80)
-    assert long is not None and len(long.summary) <= 280
-    assert long.summary.endswith("…")
+@pytest.mark.parametrize("text", [
+    "Me encanta el producto y quiero trabajar en un equipo que cuide la "
+    "calidad",
+    "Me mudé desde Venezuela hace un año y busco un trabajo estable aquí.",
+    "Tengo ansiedad y necesito un ambiente más tranquilo que el actual.",
+])
+def test_the_motivation_is_never_read_from_the_candidates_words(
+    text: str,
+) -> None:
+    assert capture("motivation", text) is None
 
 
 def test_unknown_questions_and_empty_answers_capture_nothing() -> None:
@@ -255,17 +290,32 @@ def test_ids_come_from_the_name_and_never_clash() -> None:
         new_profile("dev", "   ", [], NOW)
 
 
-def test_a_capture_never_replaces_an_answer() -> None:
+def test_a_capture_is_only_a_proposal_until_confirmed() -> None:
     profile = new_profile("dev", "Lucía", [], NOW)
     first = with_capture(profile, "work_authorization",
                          Captured({"eligibility.work_authorization": True}),
                          "s1", NOW)
     assert first is not None
-    assert with_capture(first, "work_authorization",
+    assert first.answers == {}
+    assert first.proposals["work_authorization"].source == "proposed"
+    assert open_questions(first, questions())[1].id == "work_authorization"
+    again = with_capture(first, "work_authorization",
+                         Captured({"eligibility.work_authorization": False}),
+                         "s2", NOW)
+    assert again is not None and again.proposals[
+        "work_authorization"].fields == {
+        "eligibility.work_authorization": False}
+    confirmed = with_confirmed(first, ["work_authorization", "nope"], NOW)
+    assert confirmed.proposals == {}
+    assert confirmed.answers["work_authorization"].source == "confirmed"
+    assert with_capture(confirmed, "work_authorization",
                         Captured({"eligibility.work_authorization": False}),
                         "s2", NOW) is None
+    dropped = without_proposal(first, "work_authorization", NOW)
+    assert dropped.proposals == {} and dropped.answers == {}
     question = questions()[1]
     corrected = with_correction(first, question, "No", NOW)
+    assert corrected.proposals == {}
     answer = corrected.answers["work_authorization"]
     assert answer.source == "corrected"
     assert answer.fields == {"eligibility.work_authorization": False}
@@ -309,7 +359,22 @@ def test_profiles_expire_after_the_retention() -> None:
     assert expired(profile, NOW + timedelta(days=31), 30)
     assert not expired(profile, NOW + timedelta(days=999), None)
     broken = profile.model_copy(update={"updated_at": "yesterday"})
-    assert expired(broken, NOW, 30)
+    assert not expired(broken, NOW, 30)  # kept and reported, never guessed
+    assert age_unknown(broken) and not age_unknown(profile)
+
+
+def test_old_proposals_go_with_the_retention() -> None:
+    profile = new_profile("dev", "Lucía", [], NOW)
+    old = with_capture(profile, "salary_expectation", Captured({}), "s1",
+                       NOW - timedelta(days=40))
+    assert old is not None
+    fresh = with_capture(old, "work_authorization", Captured({}), "s2", NOW)
+    assert fresh is not None
+    trimmed = without_old_proposals(fresh, NOW, 30)
+    assert trimmed is not None and list(trimmed.proposals) == [
+        "work_authorization"]
+    assert without_old_proposals(trimmed, NOW, 30) is None
+    assert without_old_proposals(fresh, NOW, None) is None
 
 
 def test_the_view_lists_every_question_with_its_answer() -> None:
@@ -319,6 +384,12 @@ def test_the_view_lists_every_question_with_its_answer() -> None:
     assert shown["answered"] == 1
     assert [r["id"] for r in shown["questions"]][1] == "work_authorization"
     assert shown["questions"][1]["answer"]["source"] == "corrected"
+    proposed = with_capture(profile, "salary_expectation", Captured({}),
+                            "s1", NOW)
+    assert proposed is not None
+    seen = view(proposed, questions())
+    assert seen["proposed"] == 1 and seen["answered"] == 1
+    assert seen["questions"][4]["proposal"]["source"] == "proposed"
     assert shown["questions"][0]["answer"] is None
 
 
@@ -425,10 +496,13 @@ def test_an_answer_is_captured_only_after_its_question() -> None:
     track.on_event(final("t1.s0", "S1",
                          "¿Tienes autorización para trabajar en España?"))
     track.on_event(final("t2.s0", "S2", "Sí, claro, sin problema."))
-    assert track.answered() == {"work_authorization"}
+    # A proposal, not an answer: the question is still open.
+    assert track.answered() == set()
     assert published[-1]["captured"] == "work_authorization"
-    kept = candidates.profile("dev", "lucia").answers["work_authorization"]
-    assert kept.session_id == "s1" and kept.source == "captured"
+    profile = candidates.profile("dev", "lucia")
+    kept = profile.proposals["work_authorization"]
+    assert kept.session_id == "s1" and kept.source == "proposed"
+    assert profile.answers == {}
 
 
 def test_an_answer_may_take_a_few_sentences_then_it_is_let_go() -> None:
@@ -436,13 +510,31 @@ def test_an_answer_may_take_a_few_sentences_then_it_is_let_go() -> None:
     track.on_event(final("t0.s0", "S1", "¿Qué expectativa salarial tienes?"))
     track.on_event(final("t1.s0", "S2", "Pues mira,"))
     track.on_event(final("t2.s0", "S2", "unos 32.000 euros al año."))
-    assert "salary_expectation" in track.answered()
+    assert "salary_expectation" in track.profile.proposals
     track.on_event(final("t3.s0", "S1",
                          "¿Cuándo podrías incorporarte con el preaviso?"))
     for n in range(3):
         track.on_event(final(f"t4.s{n}", "S2", "Bueno, ya veremos."))
     track.on_event(final("t5.s0", "S2", "En dos semanas."))
-    assert "start_date_notice" not in track.answered()
+    assert "start_date_notice" not in track.profile.proposals
+
+
+def test_an_instruction_or_a_late_answer_lets_the_question_go() -> None:
+    track, _, _, _ = tracker()
+    track.on_event(final("t0.s0", "S1",
+                         "¿Tienes autorización para trabajar en España?"))
+    track.on_event(final("t1.s0", "S2", "Soy ciudadana europea."))
+    track.on_event(final("t2.s0", "S1", "Vale. Ahora háblame de tu último "
+                                        "proyecto con clientes."))
+    track.on_event(final("t3.s0", "S2", "Sí, claro, en mi último proyecto "
+                                        "lideré un equipo de cinco."))
+    assert track.profile.proposals == {}
+    track.on_event(final("t4.s0", "S1", "¿Qué expectativa salarial tienes?",
+                         at=10.0))
+    track.on_event(final("t5.s0", "S2", "Unos 30.000.", at=60.0))
+    assert track.profile.proposals == {}
+    track.on_event(final("t6.s0", "S1", "Bien."))  # too short to let go
+    assert track.pending is None
 
 
 def test_a_new_question_lets_the_pending_one_go() -> None:
@@ -481,11 +573,25 @@ def test_a_correction_made_meanwhile_is_never_overwritten() -> None:
     track, _, candidates, _ = tracker()
     track.on_event(final("t0.s0", "S1", "¿Qué te ha llevado a presentarte "
                                         "a este puesto?"))
-    candidates.correct("dev", "lucia", "motivation", "Crecer en backend")
-    track.on_event(final("t1.s0", "S2", "Me gusta mucho lo que hacéis con "
-                                        "el producto y el equipo"))
-    kept = candidates.profile("dev", "lucia").answers["motivation"]
-    assert kept.summary == "Crecer en backend"
+    track.on_event(final("t1.s0", "S1",
+                         "¿Tienes autorización para trabajar en España?"))
+    candidates.correct("dev", "lucia", "work_authorization", "No")
+    track.on_event(final("t2.s0", "S2", "Sí, claro."))
+    profile = candidates.profile("dev", "lucia")
+    assert profile.answers["work_authorization"].fields == {
+        "eligibility.work_authorization": False}
+    assert profile.proposals == {}
+
+
+def test_the_ai_interviewer_says_which_question_it_asked() -> None:
+    track, _, _, _ = tracker(roles={"S1": "candidate"})
+    track.expect("work_authorization")
+    track.on_event(final("t0.s0", "S1", "Sí, la tengo."))
+    assert "work_authorization" in track.profile.proposals
+    track.expect("salary_expectation")
+    track.expect(None)  # the next turn asked something else
+    track.on_event(final("t1.s0", "S1", "30.000 euros"))
+    assert "salary_expectation" not in track.profile.proposals
 
 
 def test_a_failed_write_is_said_once_and_the_session_goes_on() -> None:
@@ -512,3 +618,66 @@ def test_the_round_is_noted_at_the_end_and_unknown_roles_are_ignored(
     assert [r.session_id for r in candidates.profile("dev", "lucia").rounds
             ] == ["s1"]
     assert track.plan_id == "dev"
+
+
+def test_the_interviewer_confirms_edits_or_discards_proposals() -> None:
+    candidates, _, _ = book()
+    candidates.create("dev", "Lucía")
+    for qid, found in (
+        ("work_authorization",
+         Captured({"eligibility.work_authorization": True})),
+        ("salary_expectation",
+         Captured({"salary.expectation_min": 30000,
+                   "salary.expectation_max": 30000})),
+        ("start_date_notice",
+         Captured({"availability.earliest_start": "de inmediato"},
+                  summary="de inmediato")),
+    ):
+        candidates.keep_capture("dev", "lucia", qid, found, "s1")
+    shown = candidates.get("dev", "lucia")
+    assert shown["proposed"] == 3 and shown["answered"] == 0
+    one = candidates.confirm("dev", "lucia", ["work_authorization"])
+    assert one["answered"] == 1 and one["proposed"] == 2
+    dropped = candidates.discard("dev", "lucia", "start_date_notice")
+    assert dropped["proposed"] == 1
+    every = candidates.confirm("dev", "lucia")
+    assert every["answered"] == 2 and every["proposed"] == 0
+    with pytest.raises(PlanError) as missing:
+        candidates.confirm("dev", "lucia", ["motivation"])
+    assert missing.value.code == "not_found"
+    with pytest.raises(PlanError) as nothing:
+        candidates.discard("dev", "lucia", "motivation")
+    assert nothing.value.code == "not_found"
+
+
+def test_a_profile_made_for_a_session_that_failed_is_forgotten() -> None:
+    candidates, store, _ = book()
+    candidates.create("dev", "Ana")
+    candidates.forget_new("dev", "ana")
+    assert store.kept == {}
+    candidates.forget_new("dev", "ana")  # already gone: nothing happens
+    candidates.create("dev", "Bea")
+    candidates.correct("dev", "bea", "motivation", "Le gusta el sector")
+    candidates.forget_new("dev", "bea")
+    assert ("dev", "bea") in store.kept  # it has data: kept
+
+
+def test_the_sweep_drops_old_proposals_and_keeps_unreadable_dates(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    candidates, store, clock = book(days=30)
+    candidates.create("dev", "Ana")
+    candidates.keep_capture("dev", "ana", "work_authorization",
+                            Captured({}), "s1")
+    clock.at = NOW + timedelta(days=20)
+    candidates.correct("dev", "ana", "motivation", "Le gusta el sector")
+    clock.at = NOW + timedelta(days=35)
+    assert candidates.purge() == 0
+    assert store.kept[("dev", "ana")].proposals == {}
+    odd = store.kept[("dev", "ana")].model_copy(
+        update={"updated_at": "unknown"})
+    store.kept[("dev", "ana")] = odd
+    clock.at = NOW + timedelta(days=400)
+    assert candidates.purge() == 0
+    assert ("dev", "ana") in store.kept
+    assert "unreadable updated_at" in caplog.text

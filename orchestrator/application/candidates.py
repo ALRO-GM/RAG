@@ -2,19 +2,21 @@
 
 :class:`CandidateBook` keeps the candidates of each role (an interview
 plan): it creates them, shows them with the core questions of KN-4,
-takes the interviewer's corrections, deletes a candidate on request and
-drops the profiles older than the retention of the interview products
-(``privacy.store_text_days``). :class:`CoreTracker` follows one session
-(the live page or the AI interviewer): when the interviewer asks a core
-question that is still open, it reads the candidate's next answer with
-the fixed rules of :mod:`orchestrator.domain.candidate` and keeps what
-they are sure of. Each change is published as ``{"type": "core",
-"profile": ...}``; answered questions are screened out of the live
-suggestions.
+takes the interviewer's confirmations, corrections and discards,
+deletes a candidate on request and applies the retention of the
+interview products (``privacy.store_text_days``). :class:`CoreTracker`
+follows one session (the live page or the AI interviewer): when a core
+question still open is asked, it reads the candidate's answer right
+after it with the fixed rules of :mod:`orchestrator.domain.candidate`
+and keeps what they are sure of as a **proposal** for the interviewer
+to confirm («Confirmar datos»). Each change is published as
+``{"type": "core", "profile": ...}``; only confirmed or corrected
+answers are screened out of the live suggestions.
 
 No model is called here: capturing is deterministic.
 """
 
+import logging
 import threading
 from datetime import datetime
 from typing import Callable, Dict, List, Optional, Set
@@ -30,6 +32,7 @@ from orchestrator.domain.candidate import (
     Captured,
     CoreQuestion,
     Round,
+    age_unknown,
     asked_core,
     capture,
     clean_name,
@@ -39,16 +42,24 @@ from orchestrator.domain.candidate import (
     stamp,
     view,
     with_capture,
+    with_confirmed,
     with_correction,
     with_round,
     without_answer,
+    without_old_proposals,
+    without_proposal,
 )
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.next_round import round_from_sheet
 
+LOG = logging.getLogger(__name__)
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
 ANSWER_FINALS = 3
 """Candidate sentences read for an answer before the question is let go."""
+ANSWER_WINDOW_S = 30.0
+"""Seconds after the question within which the answer must start."""
+SUBSTANTIVE_WORDS = 3
+"""An interviewer sentence of this many words lets a pending question go."""
 SUGGESTION_KEYS = ("text", "example", "say")
 """Fields of a suggestion that may word a question."""
 
@@ -129,11 +140,52 @@ class CandidateBook:
             clean = clean_name(name)
         except ValueError as exc:
             raise PlanError("invalid_request", str(exc)) from exc
+        self.purge()
         with self._lock:
             taken = [p.id for p in self.store.list(plan_id)]
             profile = new_profile(plan_id, clean, taken, self.now())
             self.store.save(profile)
         return view(profile, self.questions())
+
+    def confirm(
+        self, plan_id: str, candidate_id: str,
+        question_ids: Optional[List[str]] = None,
+    ) -> Document:
+        """Confirm proposals (``None``: all of them) as answers."""
+        with self._lock:
+            profile = self._load(plan_id, candidate_id)
+            wanted = (list(profile.proposals) if question_ids is None
+                      else list(question_ids))
+            missing = [q for q in wanted if q not in profile.proposals]
+            if missing:
+                raise PlanError("not_found",
+                                f"no proposal for {missing[0]!r}")
+            changed = with_confirmed(profile, wanted, self.now())
+            self.store.save(changed)
+        return view(changed, self.questions())
+
+    def discard(
+        self, plan_id: str, candidate_id: str, question_id: str
+    ) -> Document:
+        """Discard one proposal (the question stays open)."""
+        with self._lock:
+            profile = self._load(plan_id, candidate_id)
+            if question_id not in profile.proposals:
+                raise PlanError("not_found",
+                                f"no proposal for {question_id!r}")
+            changed = without_proposal(profile, question_id, self.now())
+            self.store.save(changed)
+        return view(changed, self.questions())
+
+    def forget_new(self, plan_id: str, candidate_id: str) -> None:
+        """Delete a profile made for a session that did not start."""
+        with self._lock:
+            try:
+                profile = self.store.load(plan_id, candidate_id)
+            except KeyError:
+                return
+            if not (profile.answers or profile.proposals or profile.rounds):
+                self.store.delete(plan_id, candidate_id)
 
     def correct(
         self, plan_id: str, candidate_id: str, question_id: str,
@@ -177,10 +229,10 @@ class CandidateBook:
         self, plan_id: str, candidate_id: str, question_id: str,
         found: Captured, session_id: str,
     ) -> Optional[CandidateProfile]:
-        """Keep a captured answer unless the question has one already.
+        """Keep a captured answer as a proposal unless it is answered.
 
-        The profile is read again first, so an answer corrected on
-        another page meanwhile is never overwritten.
+        The profile is read again first, so an answer corrected or
+        confirmed on another page meanwhile is never overwritten.
         """
         with self._lock:
             try:
@@ -208,7 +260,14 @@ class CandidateBook:
             return changed
 
     def purge(self) -> int:
-        """Delete the profiles older than the retention; return how many."""
+        """Apply the retention to every profile; return how many went.
+
+        A profile unchanged for longer than the retention is deleted, and
+        older unconfirmed proposals are dropped from the others. A
+        profile whose last change cannot be read is kept and logged
+        (never deleted on a guess). Runs when the orchestrator starts,
+        on every new candidate and whenever profiles are listed.
+        """
         if self.retention_days is None:
             return 0
         removed = 0
@@ -216,8 +275,18 @@ class CandidateBook:
         with self._lock:
             for plan_id in self.store.plans():
                 for found in self.store.list(plan_id):
+                    if age_unknown(found):
+                        LOG.warning("candidate %s/%s: unreadable updated_at "
+                                    "%r, kept", plan_id, found.id,
+                                    found.updated_at)
+                        continue
                     if expired(found, now, self.retention_days):
                         removed += int(self.store.delete(plan_id, found.id))
+                        continue
+                    trimmed = without_old_proposals(found, now,
+                                                    self.retention_days)
+                    if trimmed is not None:
+                        self.store.save(trimmed)
         return removed
 
     # ---- internals -----------------------------------------------------
@@ -277,11 +346,13 @@ class CoreTracker:
         self.kind = kind
         self.questions = book.questions()
         self.pending: Optional[str] = None
+        self.pending_at: Optional[float] = None
         self.heard: List[str] = []
         self.captured: List[str] = []
         self.failed = False
         self.covered: List[str] = []
         self.weak: List[str] = []
+        self.revisit: List[str] = []
         self.seconds: Dict[str, float] = {}
         self._lock = threading.Lock()
 
@@ -291,7 +362,7 @@ class CoreTracker:
         return self.profile.plan_id
 
     def answered(self) -> Set[str]:
-        """The core questions with a kept answer."""
+        """The core questions with a confirmed or corrected answer."""
         return set(self.profile.answers)
 
     def open(self) -> List[CoreQuestion]:
@@ -311,45 +382,78 @@ class CoreTracker:
         if role in (INTERVIEWER, CANDIDATE):
             self.add_talk(role, u.end - u.start)
         if role == INTERVIEWER:
-            self.asked(u.text)
+            self.asked(u.text, u.end)
         elif role == CANDIDATE:
-            self.answer(u.text)
+            self.answer(u.text, u.start)
 
-    def asked(self, text: str) -> None:
-        """An interviewer's sentence: maybe a core question still open."""
+    def asked(self, text: str, at: Optional[float] = None) -> None:
+        """An interviewer's sentence on the live page.
+
+        A core question still open waits for the candidate's answer;
+        any other substantive sentence (an instruction, another
+        question) lets a waiting one go.
+        """
         with self._lock:
             found = asked_core(text, self.open())
             if found is not None:
-                self.pending, self.heard = found, []
-            elif self.pending is not None and "?" in text:
-                self.pending, self.heard = None, []
+                self._wait(found, at)
+            elif len(text.split()) >= SUBSTANTIVE_WORDS:
+                self._release()
 
-    def answer(self, text: str) -> None:
-        """A candidate's sentence: read it when a core question waits."""
+    def expect(self, question_id: Optional[str],
+               at: Optional[float] = None) -> None:
+        """The AI interviewer asked ``question_id`` (``None``: another thing).
+
+        The bot's own words are not matched: it says which core question
+        its turn asks, so a reworded question still counts.
+        """
+        with self._lock:
+            if question_id is not None and question_id not in self.answered():
+                self._wait(question_id, at)
+            else:
+                self._release()
+
+    def answer(self, text: str, at: Optional[float] = None) -> None:
+        """A candidate's sentence: read it when a core question waits.
+
+        Only the sentences right after the question count: at most
+        :data:`ANSWER_FINALS`, starting within :data:`ANSWER_WINDOW_S`.
+        """
         with self._lock:
             pending = self.pending
             if pending is None:
+                return
+            if (at is not None and self.pending_at is not None
+                    and at - self.pending_at > ANSWER_WINDOW_S):
+                self._release()
                 return
             self.heard.append(text)
             found = capture(pending, " ".join(self.heard))
             if found is None:
                 if len(self.heard) >= ANSWER_FINALS:
-                    self.pending, self.heard = None, []
+                    self._release()
                 return
-            self.pending, self.heard = None, []
+            self._release()
         self._keep(pending, found)
 
+    def _wait(self, question_id: str, at: Optional[float]) -> None:
+        self.pending, self.pending_at, self.heard = question_id, at, []
+
+    def _release(self) -> None:
+        self.pending, self.pending_at, self.heard = None, None, []
+
     def screen(self, suggestions: List[Document]) -> List[Document]:
-        """Drop the suggestions that ask a core question already answered."""
+        """Drop the suggestions that ask a core question already answered.
+
+        Only confirmed or corrected answers count; each field of a
+        suggestion is matched on its own.
+        """
         answered = [q for q in self.questions if q.id in self.answered()]
         if not answered:
             return suggestions
-        kept = []
-        for item in suggestions:
-            words = " ".join(str(item.get(k) or "") for k in SUGGESTION_KEYS)
-            if asked_core(words, answered) is None:
-                kept.append(item)
-        return kept
+        return [item for item in suggestions if not any(
+            asked_core(str(item.get(k) or ""), answered)
+            for k in SUGGESTION_KEYS)]
 
     def add_talk(self, role: str, seconds: float) -> None:
         """Count ``seconds`` of speech of ``role`` (the talk balance)."""
@@ -379,7 +483,7 @@ class CoreTracker:
             session_id=self.session_id, at=stamp(self.book.now()),
             kind="bot" if self.kind == "bot" else "live",
             covered=list(self.covered), weak=list(self.weak),
-            talk=self.talk(),
+            revisit=list(self.revisit), talk=self.talk(),
         ))
         if done is not None:
             self.profile = done

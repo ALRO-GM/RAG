@@ -1522,3 +1522,12 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-balance-svg { width: 4.5rem; height: 0.5rem; flex: none; }
 .lv-balance-you { fill: var(--line-strong); }
 .lv-balance-other { fill: var(--accent); opacity: 0.55; }
+/* «Confirmar datos» (#235): proposals read from the conversation wait for
+   the interviewer; a quiet list with small actions, never an alert. */
+.lv-core .lv-chip.is-proposed { border-style: dotted; color: var(--text); }
+.sf-confirm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.sf-confirm-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); border-top: 1px solid var(--line); padding-top: var(--s-2); }
+.sf-confirm-what { min-width: 0; overflow-wrap: anywhere; flex: 1 1 12rem; }
+.sf-confirm-row input { flex: 1 1 12rem; min-width: 0; }
+.sf-confirm h3 { margin: 0; font-size: var(--fs-md); }
+.lv-confirm { border-color: var(--accent); }

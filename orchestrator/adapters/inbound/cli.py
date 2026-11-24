@@ -525,6 +525,7 @@ def build_interview(
                           / "core-questions.json"),
         plan_exists, retention_days(products),
     )
+    candidates.purge()  # the retention applies from the start
     return InterviewWiring(
         planner, store, report,
         HttpHandoff(args.knowledge_url, args.token) if http else None,

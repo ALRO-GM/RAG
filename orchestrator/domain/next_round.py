@@ -4,15 +4,18 @@ What earlier rounds left open feeds the next one. Each slot of the role's
 plan gets a state from the candidate's rounds (the newest round that
 mentions it decides):
 
-* ``weak``: asked but below the required level (a ``minimo`` or
-  ``deseable`` slot scored under 50, not known, skipped or only partly
-  answered);
+* ``weak``: the AI interviewer's result sheet left it below the
+  required level (its own scores: a ``minimo`` or ``deseable`` slot
+  under 50, not known, skipped or partial);
+* ``revisit``: a live-page round asked about it and the answer looked
+  incomplete by the word rules: a prompt to come back to it, never a
+  rating;
 * ``open``: never covered;
 * ``covered``: answered at the level (score 70 or more, or filled).
 
-The next round starts from ``weak``, then ``open``; ``covered`` slots go
-last. :func:`round_from_sheet` reads a round of the AI interviewer from
-its sheet; a live-page round is read by
+The next round starts from ``weak``, then ``revisit``, then ``open``;
+``covered`` slots go last. :func:`round_from_sheet` reads a round of the
+AI interviewer from its sheet; a live-page round is read by
 :class:`~orchestrator.application.next_round.TopicTracker`. Nothing here
 rates the person: the states say what is still to ask.
 
@@ -25,8 +28,8 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 from orchestrator.domain.candidate import Round
 from orchestrator.domain.interview import InterviewPlan, Slot
 
-Earlier = Literal["weak", "open", "covered"]
-ORDER: Tuple[Earlier, ...] = ("weak", "open", "covered")
+Earlier = Literal["weak", "revisit", "open", "covered"]
+ORDER: Tuple[Earlier, ...] = ("weak", "revisit", "open", "covered")
 GOAL_CHARS = 480
 """Longest goal sent with the suggestions (``transcript.v1`` allows 500)."""
 COVERED_SCORE, WEAK_SCORE = 70, 50
@@ -77,6 +80,8 @@ def topic_states(
     for kept in rounds:
         for sid in kept.covered:
             states[sid] = "covered"
+        for sid in kept.revisit:
+            states[sid] = "revisit"
         for sid in kept.weak:
             states[sid] = "weak"
     found = [TopicState(s, states.get(s.id, "open")) for s in plan.ordered()]
@@ -107,21 +112,30 @@ def focus_goal(
     if rounds < 1:
         return None
     weak = [t.slot.label for t in states if t.earlier == "weak"]
+    again = [t.slot.label for t in states if t.earlier == "revisit"]
     still = [t.slot.label for t in states if t.earlier == "open"]
-    if not weak and not still:
+    if not weak and not again and not still:
         return None
     if language == "en":
         parts = [f"Round {rounds + 1} for the role «{title}». Start with "
                  "what earlier rounds left:"]
         if weak:
-            parts.append("below the required level: " + "; ".join(weak))
+            parts.append("below the required level in the AI interview: "
+                         + "; ".join(weak))
+        if again:
+            parts.append("to go back to (answer looked incomplete): "
+                         + "; ".join(again))
         if still:
             parts.append("not covered yet: " + "; ".join(still))
     else:
         parts = [f"Ronda {rounds + 1} del puesto «{title}». Empieza por lo "
                  "que dejaron las rondas anteriores:"]
         if weak:
-            parts.append("por debajo del nivel pedido: " + "; ".join(weak))
+            parts.append("por debajo del nivel en la entrevista de IA: "
+                         + "; ".join(weak))
+        if again:
+            parts.append("volver a tratar (la respuesta pareció "
+                         "incompleta): " + "; ".join(again))
         if still:
             parts.append("sin tratar aún: " + "; ".join(still))
     goal = " ".join([parts[0], ". ".join(parts[1:]) + "."])

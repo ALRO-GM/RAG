@@ -12,15 +12,15 @@ import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
 
 const tEs = (key, params = {}) => String(es[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
 
-const question = (id, order, answer = null) => ({
-  id, order, phase: "opening", question: { es: `¿${id}?`, en: `${id}?` }, fields: [], answer,
+const question = (id, order, answer = null, proposal = null) => ({
+  id, order, phase: "opening", question: { es: `¿${id}?`, en: `${id}?` }, fields: [], answer, proposal,
 });
-const answer = (fields, extra = {}) => ({ question: "x", fields, summary: "", quote: "", source: "captured", session_id: "r1", at: "2026-11-24T10:00:00", ...extra });
+const answer = (fields, extra = {}) => ({ question: "x", fields, summary: "", source: "confirmed", session_id: "r1", at: "2026-11-24T10:00:00", ...extra });
 
 const PROFILE = {
-  schema: "interview.candidate.v1", id: "lucia-marin", plan_id: "dev", name: "Lucía Marín", answered: 4,
+  schema: "interview.candidate.v1", id: "lucia-marin", plan_id: "dev", name: "Lucía Marín", answered: 3, proposed: 1,
   questions: [
-    question("salary_expectation", 5, answer({ "salary.expectation_min": 28000, "salary.expectation_max": 32000 }, { quote: "Entre 28 y 32 mil" })),
+    question("salary_expectation", 5, null, answer({ "salary.expectation_min": 28000, "salary.expectation_max": 32000 }, { source: "proposed" })),
     question("work_mode_location", 1, answer({ "availability.work_mode_ok": false, "availability.location_note": null })),
     question("work_authorization", 2, answer({ "eligibility.work_authorization": true }, { source: "corrected" })),
     question("start_date_notice", 3, answer({ "availability.earliest_start": "en dos semanas", "availability.notice_days": 15 })),
@@ -42,14 +42,17 @@ test("every core question has a short label in both languages, and every new tex
 test("answers in words: yes/no from the dictionary, euros grouped, start and notice, kept words", () => {
   const rows = coreRows(tEs, PROFILE, "es");
   assert.deepEqual(rows.map((r) => r.id), ["work_mode_location", "work_authorization", "start_date_notice", "motivation", "salary_expectation"]);
-  assert.deepEqual(rows.map((r) => r.text), ["No", "Sí", "en dos semanas · preaviso de 15 días", "", "28.000–32.000 € al año"]);
-  assert.deepEqual(rows.map((r) => r.answered), [true, true, true, false, true]);
+  assert.deepEqual(rows.map((r) => r.text), ["No", "Sí", "en dos semanas · preaviso de 15 días", "", ""]);
+  // A proposal never counts as answered.
+  assert.deepEqual(rows.map((r) => r.answered), [true, true, true, false, false]);
+  assert.deepEqual(rows.map((r) => r.proposed), [false, false, false, false, true]);
+  assert.equal(rows[4].proposal, "28.000–32.000 € al año");
   assert.equal(rows[1].source, "corrected");
+  assert.equal(rows[0].source, "confirmed");
   assert.equal(rows[3].source, "");
-  assert.equal(rows[4].quote, "Entre 28 y 32 mil");
   assert.equal(rows[0].label, es["cand.q.work_mode_location"]);
-  assert.deepEqual(coreCount(PROFILE), { done: 4, all: 5 });
-  assert.deepEqual(coreCount(null), { done: 0, all: 0 });
+  assert.deepEqual(coreCount(PROFILE), { done: 3, proposed: 1, all: 5 });
+  assert.deepEqual(coreCount(null), { done: 0, proposed: 0, all: 0 });
   assert.equal(grouped(30000, "en"), "30,000");
   assert.equal(grouped("x"), "");
   const one = { id: "salary_expectation", answer: answer({ "salary.expectation_min": 30000, "salary.expectation_max": 30000 }) };
@@ -136,45 +139,63 @@ async function withDom(fn) {
   }
 }
 
-test("«Datos de la candidata»: compact first; how, quotes and corrections inside «Más información»", async () => {
+test("«Datos de la candidata»: compact first, «Confirmar datos» for proposals, corrections inside «Más información»", async () => {
   await withDom(async () => {
     const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
     setLanguage("es");
     const { candidateBlock } = await import("../../transcriber/adapters/inbound/web/js/views/candidate.js");
     const calls = [];
+    const confirmed = { ...PROFILE, questions: PROFILE.questions.map((q) => (q.id === "salary_expectation" ? { ...q, answer: { ...q.proposal, source: "confirmed" }, proposal: null } : q)) };
     const api = {
       correctAnswer: async (...args) => { calls.push(["correct", ...args]); return { ...PROFILE, questions: PROFILE.questions.map((q) => (q.id === "motivation" ? { ...q, answer: answer({ "motivation.summary": "Crecer" }, { summary: "Crecer", source: "corrected" }) } : q)) }; },
       clearAnswer: async (...args) => { calls.push(["clear", ...args]); return PROFILE; },
+      confirmAnswers: async (...args) => { calls.push(["confirm", ...args]); return confirmed; },
+      discardProposal: async (...args) => { calls.push(["discard", ...args]); return PROFILE; },
     };
     const block = candidateBlock(PROFILE, { api });
     const shown = block.shown();
     assert.ok(shown.includes(es["cand.title"]));
-    assert.ok(shown.includes("Lucía Marín") && shown.includes("4 de 5 preguntas comunes") && shown.includes("2 rondas"));
-    assert.ok(shown.includes(es["cand.q.salary_expectation"]) && shown.includes("28.000–32.000 € al año"));
+    assert.ok(shown.includes("Lucía Marín") && shown.includes("3 de 5 preguntas comunes") && shown.includes("2 rondas"));
+    assert.ok(shown.includes("Por confirmar: 28.000–32.000 € al año"), "a proposal is said as such");
+    assert.ok(shown.includes(es["cand.confirm_title"]) && shown.includes(es["cand.confirm_hint"]));
     assert.ok(shown.includes(es["cand.pending"]), "the open question says so");
-    assert.ok(!shown.includes("Entre 28 y 32 mil"), "the candidate's words only inside");
     assert.ok(!shown.includes(es["cand.source_corrected"]));
+    // Confirm the one proposal: it is sent and the block draws the answer.
+    const confirm = block.all().find((n) => n.tagName === "BUTTON" && n.text() === es["cand.confirm"]);
+    confirm.listeners.click[0]();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(calls[0], ["confirm", "dev", "lucia-marin", ["salary_expectation"]]);
+    assert.ok(!block.shown().includes(es["cand.confirm_title"]), "nothing left to confirm");
+    assert.ok(block.shown().includes("4 de 5 preguntas comunes"));
     const more = block.querySelector("details.sf-more");
     more.open = true;
     more.listeners.toggle[0]();
     const inside = block.text();
-    assert.ok(inside.includes("Entre 28 y 32 mil"));
-    assert.ok(inside.includes(es["cand.source_corrected"]) && inside.includes(es["cand.source_captured"]));
+    assert.ok(inside.includes(es["cand.source_corrected"]) && inside.includes(es["cand.source_confirmed"]));
     assert.ok(inside.includes("#151"), "the pending owner decisions are said");
     // Correct the open motivation: the typed words are sent and the block draws the answer.
-    const inputs = block.all().filter((n) => n.tagName === "INPUT");
+    const details = block.querySelector("ul.sf-cand-details");
+    const inputs = details.all().filter((n) => n.tagName === "INPUT");
     inputs[3].value = "Crecer";
-    const saves = block.all().filter((n) => n.tagName === "BUTTON" && n.text() === es["cand.save"]);
+    const saves = details.all().filter((n) => n.tagName === "BUTTON" && n.text() === es["cand.save"]);
     saves[3].listeners.click[0]();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    assert.deepEqual(calls[0], ["correct", "dev", "lucia-marin", "motivation", "Crecer"]);
+    assert.deepEqual(calls[1], ["correct", "dev", "lucia-marin", "motivation", "Crecer"]);
     assert.ok(block.shown().includes("Crecer"));
     assert.ok(block.querySelector("details.sf-more").open, "the details stay open after a correction");
-    // A read-only block has no edit fields nor delete button.
+    // Discard and confirm all, on a fresh block.
+    const again = candidateBlock({ ...PROFILE, questions: [...PROFILE.questions, question("extra", 6, null, answer({}, { summary: "x", source: "proposed" }))] }, { api });
+    const all = again.all().find((n) => n.tagName === "BUTTON" && n.text() === "Confirmar los 2");
+    all.listeners.click[0]();
+    again.all().find((n) => n.tagName === "BUTTON" && n.text() === es["cand.discard"]).listeners.click[0]();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(calls.slice(2).map((c) => c[0]), ["confirm", "discard"]);
+    assert.equal(calls[2].length, 3, "confirm all sends no list");
+    // A read-only block has no edit fields, no confirmation and no delete button.
     const quiet = candidateBlock(PROFILE);
-    const details = quiet.querySelector("details.sf-more");
-    details.open = true;
-    details.listeners.toggle[0]();
+    const box = quiet.querySelector("details.sf-more");
+    box.open = true;
+    box.listeners.toggle[0]();
     assert.ok(!quiet.all().some((n) => n.tagName === "INPUT" || n.tagName === "BUTTON"));
   });
 });
@@ -196,9 +217,13 @@ test("a later round's topics keep what earlier rounds left", () => {
     { id: "s2", name: "Pruebas", done: false, earlier: "weak" },
     { id: "s1", name: "Python", done: true, earlier: "covered" },
     { id: "s3", name: "Datos", done: false, earlier: "nonsense" },
+    { id: "s4", name: "Inglés", done: false, earlier: "revisit" },
   ] });
-  assert.deepEqual(state.topicChips().map((c) => [c.id, c.earlier ?? null, c.done]), [["s2", "weak", false], ["s1", "covered", true], ["s3", null, false]]);
-  for (const key of ["live.topics_next", "live.earlier.weak", "live.earlier.open", "live.earlier.covered", "live.talk_label", "live.talk_you", "live.talk_other", "live.talk_balance"]) {
+  assert.deepEqual(state.topicChips().map((c) => [c.id, c.earlier ?? null, c.done]), [["s2", "weak", false], ["s1", "covered", true], ["s3", null, false], ["s4", "revisit", false]]);
+  // A live round's «revisit» is a prompt, never a rating.
+  assert.doesNotMatch(es["live.earlier.revisit"], /nivel/);
+  assert.match(es["live.earlier.revisit"], /no es una valoración/);
+  for (const key of ["live.topics_next", "live.earlier.weak", "live.earlier.revisit", "live.earlier.open", "live.earlier.covered", "live.talk_label", "live.talk_you", "live.talk_other", "live.talk_balance"]) {
     assert.ok(es[key] && en[key], key);
   }
 });

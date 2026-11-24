@@ -245,3 +245,23 @@ def test_candidate_routes_are_forwarded() -> None:
     assert not ALLOWED.match("interview/plans/p/candidates/a/answers/../x")
     assert not ALLOWED.match("interview/plans/p/candidates/a/answers/Bad")
     assert web.get(f"{base}/ana").status_code == 401
+
+
+def test_confirm_and_discard_routes_are_forwarded() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"id": "ana"})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    head = {"X-Access-Code": "code"}
+    base = "/api/assist/interview/plans/plan-1/candidates/ana"
+    web.post(f"{base}/confirm", json={}, headers=head)
+    web.delete(f"{base}/proposals/salary_expectation", headers=head)
+    assert [(r.method, r.url.path) for r in seen] == [
+        ("POST", "/interview/plans/plan-1/candidates/ana/confirm"),
+        ("DELETE", "/interview/plans/plan-1/candidates/ana/proposals/"
+                   "salary_expectation"),
+    ]
+    assert not ALLOWED.match("interview/plans/p/candidates/a/proposals/X")

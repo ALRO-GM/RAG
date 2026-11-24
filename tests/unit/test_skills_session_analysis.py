@@ -924,3 +924,30 @@ def test_roles_go_into_the_sentences_and_the_job_reading() -> None:
     assert job_for("Backend", with_roles.roles, names[1]) == "Backend"
     assert job_for("Backend", with_roles.roles, "Nobody") == "Backend"
     assert job_for("Backend", {}, names[0]) == "Backend"
+
+
+def test_the_synthesis_reads_only_the_candidate_against_the_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Step i passes the job sought only for the candidate (#235)."""
+    seen: List[Any] = []
+    original = ProfileSynthesizer.write
+
+    def spy(self: ProfileSynthesizer, facts: Any, job: str = "") -> Any:
+        seen.append((facts.participant, job))
+        return original(self, facts, job)
+
+    monkeypatch.setattr(ProfileSynthesizer, "write", spy)
+    transcript = make_transcript(session_id="s1")
+    names = transcript.speakers()
+    with_roles = transcript.model_copy(update={"roles": {
+        names[0]: "interviewer", names[1]: "candidate"}})
+    store = InMemoryAnalysisStore()
+    model = FakeChatModel(responder=profile_reply)
+    synthesis_build(store, model, transcripts=[with_roles]).run(
+        "s1", job=JobSought(text="Backend"))
+    jobs = dict(seen)
+    assert jobs[names[0]] == ""
+    assert jobs.get(names[1]) == "Backend"
+    assert all(job == "Backend" for name, job in seen
+               if name not in names[:1])

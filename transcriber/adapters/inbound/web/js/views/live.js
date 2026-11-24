@@ -28,6 +28,7 @@ import {
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
+import { confirmStep } from "./candidate.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -342,6 +343,7 @@ export async function liveView(ctx, root, [sub] = []) {
     const nowCard = h("div", { class: "lv-now", "aria-live": "polite" });
     const topics = h("section", { class: "lv-row", hidden: true });
     const coreRow = h("section", { class: "lv-row lv-core", hidden: true });
+    const confirmBox = h("div", {}); // «Confirmar datos» once the session ends
     const checklist = h("section", { class: "lv-row lv-tosay", hidden: true });
     const historyBody = h("div", { class: "lv-history" });
     const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
@@ -380,7 +382,7 @@ export async function liveView(ctx, root, [sub] = []) {
         modeGroup));
     const summary = h("div", {});
     const side = h("aside", { class: "lv-side" },
-      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, topics, coreRow, checklist, history, options, summary);
+      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, checklist, history, options, summary);
 
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
     root.append(header, alerts, h("div", { class: "lv-body" }, talk, side));
@@ -624,7 +626,7 @@ export async function liveView(ctx, root, [sub] = []) {
           h("div", { class: "lv-chips" }));
       }
       // A later round of a candidate: the chips start from what earlier rounds left.
-      const rounds = chips.some((c) => c.earlier === "weak" || c.earlier === "covered");
+      const rounds = chips.some((c) => ["weak", "revisit", "covered"].includes(c.earlier));
       topics.querySelector("h3").textContent = rounds ? t("live.topics_next") : state.topics ? t("live.topics") : t("live.topics_phases");
       topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: chips.filter((c) => c.done).length, all: chips.length });
       const row = topics.querySelector(".lv-chips");
@@ -675,7 +677,7 @@ export async function liveView(ctx, root, [sub] = []) {
       coreRow.hidden = !profile;
       if (!profile) return;
       const rows = coreRows(t, profile, lang);
-      const key = JSON.stringify(rows.map((r) => [r.id, r.text]));
+      const key = JSON.stringify([state.state, rows.map((r) => [r.id, r.text, r.proposal])]);
       if (key === coreKey) return;
       coreKey = key;
       const count = coreCount(profile);
@@ -683,12 +685,25 @@ export async function liveView(ctx, root, [sub] = []) {
         h("div", { class: "lv-row-head" }, h("h3", {}, t("live.core")),
           h("span", { class: "meta lv-count" }, t("live.core_count", { done: count.done, all: count.all }))),
         h("div", { class: "lv-chips" }, rows.map((r) => {
-          const label = r.answered && r.text ? `${r.label}: ${r.text.length > 32 ? `${r.text.slice(0, 31)}…` : r.text}` : r.label;
-          const made = chip(r.answered, label, r.answered ? "" : "is-open");
-          made.title = r.answered ? `${r.label}: ${r.text}` : r.question;
+          const label = r.answered && r.text ? `${r.label}: ${r.text.length > 32 ? `${r.text.slice(0, 31)}…` : r.text}`
+            : r.proposed ? t("live.core_proposed", { what: r.label }) : r.label;
+          const made = chip(r.answered, label, r.answered ? "" : r.proposed ? "is-open is-proposed" : "is-open");
+          made.title = r.answered ? `${r.label}: ${r.text}` : r.proposed ? t("live.core_proposed_title", { value: r.proposal }) : r.question;
           return made;
         })),
         h("p", { class: "hint" }, t("live.core_hint", { name: profile.name })));
+      drawConfirm();
+    }
+
+    // «Confirmar datos» (#235): once the session ends, what was read from
+    // the conversation is confirmed, edited or discarded here; nothing
+    // counts as answered before.
+    function drawConfirm() {
+      const profile = state.core;
+      const step = profile && state.state !== "running"
+        ? confirmStep(profile, { api: ctx.api, onChange: (changed) => { state.core = changed; coreKey = null; drawCore(); } })
+        : null;
+      fill(confirmBox, step ? h("section", { class: "lv-row lv-confirm" }, step) : null);
     }
 
     function drawChecklist() {

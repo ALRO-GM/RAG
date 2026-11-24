@@ -555,8 +555,9 @@ export class LiveState {
     if (this.topics) {
       return this.topics.map((x) => ({
         id: x.id, name: x.name, done: Boolean(x.done), ...(x.en ? { en: x.en } : {}),
-        // What earlier rounds of the candidate left (#235): weak, open or covered.
-        ...(["weak", "open", "covered"].includes(x.earlier) ? { earlier: x.earlier } : {}),
+        // What earlier rounds of the candidate left (#235): weak (the AI interview's
+        // own scores), revisit (a live round's answer looked incomplete), open or covered.
+        ...(["weak", "revisit", "open", "covered"].includes(x.earlier) ? { earlier: x.earlier } : {}),
       }));
     }
     return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));

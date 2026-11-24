@@ -33,33 +33,52 @@ files mode 600, written atomically; ids checked against
 
 ```
 schema, id, plan_id, name (≤ 80), created_at, updated_at,
-answers{ <question id>: {question, fields{path: value}, summary (≤ 280),
-                         quote (≤ 160), source: captured|corrected,
-                         session_id, at} },
-rounds[ {session_id, at, kind: live|bot, covered[], weak[], talk{}} ]   # ≤ 20
+answers{   <question id>: {question, fields{path: value}, summary (≤ 280),
+                           source: confirmed|corrected, session_id, at} },
+proposals{ <question id>: {..., source: proposed} },
+rounds[ {session_id, at, kind: live|bot, covered[], weak[], revisit[],
+         talk{}} ]                                                    # ≤ 20
 ```
 
 - `fields` are the profile paths of the core question
   (`eligibility.work_authorization`, `salary.expectation_min`, ...).
-- `quote` keeps the candidate's own words **only** for the start date and
-  the salary; never for a yes/no answer (so a reason given with a «no» is
-  not stored) and never for the motivation (its kept words are the
-  summary).
+- **Proposals are not facts.** What the rules read from the conversation
+  is kept under `proposals` and does not count as answered (it is not
+  shown as answered, it does not keep the question from being suggested
+  or asked again) until the interviewer confirms it in «Confirmar datos»
+  (§4). Confirmed and typed answers are under `answers`.
+- **No words of the candidate are kept.** No quote is stored: a reason
+  given with a «no», an origin or a pay history said with an answer
+  never reaches the file. `summary` is the start phrase the rules read
+  («en dos semanas») or the words the interviewer typed.
 - No audio, no transcript, no score of the person.
 
-**Retention.** A profile is deleted once it has not changed for the
-shortest `privacy.store_text_days` of the interview products (30 days in
+**Retention.** The retention is the shortest `privacy.store_text_days` of
+the interview products (30 days in
 `config/products/live_assist.interview.yaml` and
-`voicebot.interview.yaml`); the check runs whenever profiles are listed
-or read (`CandidateBook.purge`). Without that setting nothing expires.
+`voicebot.interview.yaml`). `CandidateBook.purge` applies it when the
+orchestrator starts, on every new candidate and whenever a role's
+candidates are listed (a profile is also checked when it is read):
+
+- a profile not changed for more than those days is deleted;
+- an unconfirmed proposal older than those days is dropped from the
+  profile;
+- a profile whose `updated_at` cannot be read is **kept and logged**
+  (warning `candidate <plan>/<id>: unreadable updated_at`), never deleted
+  on a guess; deleting it is a person's decision.
+
+Without that setting nothing expires.
 
 **Deletion on request.** `DELETE
 /interview/plans/{plan}/candidates/{candidate}` (on the page: «Borrar
 ficha de la candidatura» under «Más información» of «Datos de la
-candidata», after a confirmation) deletes the file. One answer can be
-forgotten with `DELETE .../answers/{question}`. The sessions'
-transcripts, hand-off records and analyses are separate and are not
-touched (they follow their own retention).
+candidata», after a confirmation) deletes the file, proposals included.
+One answer can be forgotten with `DELETE .../answers/{question}` and one
+proposal discarded with `DELETE .../proposals/{question}`. A candidate
+created for a session that then fails to start is deleted again while
+it is still empty. The sessions' transcripts, hand-off records and
+analyses are separate and are not touched (they follow their own
+retention).
 
 **Pending.** The owner decisions of #151 (legal basis for candidates'
 data, retention days, processor terms) are still open: the 30 days are
@@ -67,99 +86,118 @@ the products' current setting, not a decision. Consent is the
 interview's: the mandatory items (`uso-datos`, `aviso-asistente`) still
 ask the interviewer to say how the data are used.
 
-## 3. How answers are captured (deterministic)
+## 3. How proposals are captured (deterministic)
 
 `orchestrator/domain/candidate.py`, no model call:
 
-1. **The question must be heard first.** `asked_core` matches the
-   interviewer's sentence (live page: role `interviewer`; AI interviewer:
-   what the bot actually spoke) against word patterns per question, in
-   Spanish and English, on the folded text. Only questions still open are
-   looked for.
-2. **The next candidate sentences are read** (at most 3; a new question
-   from the interviewer lets it go):
+1. **The question must be asked first.** On the live page `asked_core`
+   matches the interviewer's sentence against patterns close to the core
+   questions' own words, in Spanish and English. A sentence about a past
+   job («¿Qué tal fue tu incorporación en tu último trabajo?»), a need
+   («¿Necesitas permiso de trabajo?», whose «no» means the opposite) or
+   the current pay is never a core question. Only questions still
+   without a confirmed answer are looked for. The AI interviewer does
+   not rely on its own wording: its director says which core question
+   each turn asks.
+2. **Only the answer right after it is read**: the candidate's next
+   sentences (at most 3) starting within 30 s; any other substantive
+   interviewer sentence (three words or more: an instruction, another
+   question) lets the question go.
    - work mode/location, work authorisation: a clear yes or no; «en
-     trámite», «depende», «no sé», «quizás» or a sentence with both give
-     nothing;
+     trámite», «depende», «no sé», «quizás», «claro que no» read as no,
+     and a sentence with both gives nothing;
    - start date and notice: «de inmediato», «en dos semanas», «a
      principios de marzo»... and «N días/semanas/meses de preaviso» (in
      days), «sin preaviso» = 0;
    - salary: one figure or a range («entre 28 y 32 mil», «30.000»,
-     «30k») in euros per year, 6 000–500 000; a monthly figure, a refusal
-     or three figures give nothing (the interviewer types it);
-   - motivation: the answer's words (≤ 280 characters) unless it is
-     shorter than 6 words or names a personal circumstance (children,
-     family, health, religion, union, origin, age...: then it is not
-     recorded, as KN-4's legal note says).
-3. **Nothing is overwritten.** A capture never replaces an answer
-   already kept, and the profile is read again before writing, so an
-   answer corrected meanwhile on another page stays.
+     «30k») in euros per year, 6 000–500 000. Nothing is taken when the
+     answer mentions the current or past pay («cobro», «gano», «mi
+     salario actual», «ahora», «I make», «current salary»...: Directive
+     2023/970 art. 5.2), a monthly figure, a refusal, a fixed plus
+     variable split or three figures;
+   - motivation: **never read** from the candidate's words (any word
+     list lets special-category data through); the interviewer may type
+     it.
+3. **Nothing is overwritten.** A capture never touches a confirmed or
+   corrected answer; it replaces an older unconfirmed proposal to the
+   same question. The profile is read again before writing.
 
 **Correcting.** `PUT .../answers/{question} {"text"}` keeps the
 interviewer's words as a `corrected` answer (the same rules fill the
 fields when they can: «No» becomes `false`, «entre 30 y 34 mil» the two
-figures). Only another correction or «Quitar respuesta» changes it.
+figures) and drops a proposal to that question.
 
 **Limits.** Word patterns miss paraphrases («¿Tienes papeles?» is not
 recognised as the authorisation question) and an answer said before
-the question is not taken. A misheard «sí»/«no» from the recogniser is
-taken as said: the answer is visible at once on the live page and on the
-result page with «Leída de la conversación... corrígela si no es
-exacta». Not measured on real interviews.
+the question is not taken. A misheard «sí»/«no» becomes a wrong
+proposal: that is why nothing counts before the interviewer confirms
+it. Not measured on real interviews.
 
-## 4. What later rounds show
+## 4. Confirming, and what later rounds show
 
+- **«Confirmar datos».** When a live session ends, the side of the live
+  page shows the proposals of this candidate: each with «Confirmar»,
+  «Editar» (type the answer) and «Descartar», and «Confirmar los N» for
+  all at once (`POST .../candidates/{id}/confirm`, `{"questions"?}`).
+  The same step is on the result page, in «Datos de la candidata».
 - **Live page.** A quiet row «Preguntas comunes · N de 5 respondidas»
-  under the topics: answered ones as done chips with their answer
-  (hover: the whole answer), open ones as dashed chips (hover: the
-  question). Suggestions that would ask an answered question are dropped
-  before they reach the page (`CoreTracker.screen` in
-  `LiveAssist`). The feed message is `{"type": "core", "profile": ...,
-  "captured"?: id}`.
+  under the topics: confirmed answers as done chips with their answer,
+  proposals as dotted chips «… · por confirmar», open ones as dashed
+  chips (hover: the question). Suggestions that would ask a confirmed
+  question are dropped before they reach the page (`CoreTracker.screen`,
+  each field of a suggestion matched on its own). The feed message is
+  `{"type": "core", "profile": ..., "captured"?: id}`.
 - **AI interviewer.** It opens with the open core questions of the
   opening and experience phases (authorisation, start date, motivation),
-  then the plan's slots; the salary expectation is asked just before
-  closing. Answered ones are never asked. The work mode/location
+  then the plan's slots; the salary expectation is asked when the plan
+  is covered, with the interview still open, and the interview closes on
+  the next turn. A re-ask or hint while a core question waits rewords
+  that question. Confirmed ones are never asked. The work mode/location
   question has blanks («[modalidad] en [ciudad]») the plan cannot fill,
   so the bot leaves it to a person.
 - **Result page.** `#/analysis/<session>` shows «Datos de la candidata»
   under the overview when the orchestrator knows the session's candidate
   (`GET /interview/candidates/by-session/{session}`): one line per core
-  question (answer or «Pendiente»), the number of rounds; under «Más
-  información» how each answer was obtained, the kept words, a field to
-  correct it and the deletion.
+  question (answer, «Por confirmar: …» or «Pendiente»), the number of
+  rounds, «Confirmar datos» when there are proposals; under «Más
+  información» how each answer was obtained, a field to correct it and
+  the deletion.
 
 ## 5. The next round's plan and the talk balance
 
 **What a round leaves.** At the end of every round the profile gets a
-`rounds[]` entry with the plan's slots `covered` and left `weak`:
+`rounds[]` entry with the plan's slots:
 
-- AI interviewer: from its sheet (`round_from_sheet`): covered = score
-  70 or more (or `filled` without a score); weak = a `minimo` or
-  `deseable` slot scored under 50, `partial`, `unknown` or `skipped`.
-- Live page: `TopicTracker` (`orchestrator/application/next_round.py`)
-  notes the slot an interviewer's sentence asks about (two content
+- AI interviewer, from its result sheet (`round_from_sheet`), with the
+  sheet's own scores: `covered` = score 70 or more (or `filled` without a
+  score); `weak` = a `minimo` or `deseable` slot scored under 50,
+  `partial`, `unknown` or `skipped`.
+- Live page, `TopicTracker` (`orchestrator/application/next_round.py`):
+  it notes the slot an interviewer's sentence asks about (two content
   words of the slot's label and questions, one when the label has a
   single one) and reads the candidate's next answer with the AI
-  interviewer's cheap filler (`heuristic_fill`): `complete` = covered;
-  asked but not covered = weak. Word overlap only: a question in other
-  words is missed, and a long answer counts as covered without anyone
-  judging it.
+  interviewer's cheap filler (`heuristic_fill`): `complete` = `covered`;
+  asked but not covered = `revisit` («volver a tratar»). This is a prompt
+  to come back to the topic because the answer looked incomplete by word
+  rules, **not a rating** and not «below the required level». Word
+  overlap only: a question in other words is missed, and a long answer
+  counts as covered without anyone judging it.
 
 **The next round** (`orchestrator/domain/next_round.py`): each slot is
-`weak`, `open` (never covered) or `covered`, the newest round that
-mentions it deciding. The live page's topic chips come in that order
-(weak first, covered last and quieter; hover says why) under «Temas del
-puesto · primero lo pendiente», and done ones tick as the round covers
-them. The suggestions get the round's goal («Ronda N del puesto «T».
-Empieza por lo que dejaron las rondas anteriores: por debajo del nivel
-pedido: ...; sin tratar aún: ...», at most 480 characters) as the
-conversation goal of `reasoner.request.v1` (`context.session.goal`,
-which the suggester template already reads). The AI interviewer gets
-the plan with its slots reordered the same way (levels kept: `minimo`
-still first). A first round, or one with nothing weak or open, has no
-goal. The analysis's own weak points (the synthesis' improvements) are
-not read here: only the plan's slots.
+`weak`, `revisit`, `open` (never covered) or `covered`, the newest round
+that mentions it deciding. The live page's topic chips come in that
+order (covered last and quieter; hover says why) under «Temas del puesto
+· primero lo pendiente», and done ones tick as the round covers them. The
+suggestions get the round's goal («Ronda N del puesto «T». Empieza por lo
+que dejaron las rondas anteriores: por debajo del nivel en la entrevista
+de IA: ...; volver a tratar (la respuesta pareció incompleta): ...; sin
+tratar aún: ...», at most 480 characters) as the conversation goal of
+`reasoner.request.v1` (`context.session.goal`, which the suggester
+template already reads). The AI interviewer gets the plan with its slots
+reordered the same way (levels kept: `minimo` still first). A first
+round, or one with nothing left, has no goal. The analysis's own weak
+points (the synthesis' improvements) are not read here: only the plan's
+slots.
 
 **Talk balance.** The live page's header shows one thin bar and «Tú
 62 % · Lucía 38 %»: each side's share of the time of its final
@@ -190,5 +228,7 @@ read as before.
 | `POST /interview/plans/{plan}/candidates` | `{"name"}` | 201 the new candidate |
 | `GET`/`DELETE /interview/plans/{plan}/candidates/{id}` | — | the candidate / `{"deleted": true}` |
 | `PUT`/`DELETE .../candidates/{id}/answers/{question}` | `{"text"}` / — | the candidate |
+| `POST .../candidates/{id}/confirm` | `{"questions"?}` (none: all) | the candidate |
+| `DELETE .../candidates/{id}/proposals/{question}` | — | the candidate |
 | `GET /interview/candidates/by-session/{session}` | — | the candidate whose rounds include the session (404 otherwise) |
 | `POST /sessions` | adds `candidate_id` (and `plan` for a live-page interview) | the session (`candidate_id`) |

@@ -122,7 +122,9 @@ saturate the interview; a sixth slot is free). Each fills profile fields
 If the answer is already in the profile or the offer, it is not asked
 again; a «no» is recorded without asking why. The profile, how answers
 are captured from the conversation and how they are corrected and
-deleted: `docs/live/CANDIDATE_PROFILE.md` (#235).
+deleted: `docs/live/CANDIDATE_PROFILE.md` (#235). Answers read from the
+conversation are proposals the interviewer confirms; the motivation is
+only typed by the interviewer.
 
 ## 3. Review of the interview-method corpus
 

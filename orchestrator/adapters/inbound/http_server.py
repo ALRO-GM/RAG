@@ -22,9 +22,12 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   ``GET``/``DELETE /interview/plans/{id}/candidates/{candidate}``,
   ``PUT``/``DELETE /interview/plans/{id}/candidates/{candidate}/answers/
   {question}`` (``{"text"}``: the interviewer's answer; ``DELETE``
-  forgets it) and ``GET /interview/candidates/by-session/{session}``:
-  the candidates of a role and their answers to the core questions
-  (#235). ``POST /sessions`` takes ``candidate_id`` too.
+  forgets it), ``POST .../candidates/{candidate}/confirm``
+  (``{"questions"?}``: confirm captured proposals, all without a list),
+  ``DELETE .../candidates/{candidate}/proposals/{question}`` and ``GET
+  /interview/candidates/by-session/{session}``: the candidates of a
+  role and their answers to the core questions (#235). ``POST
+  /sessions`` takes ``candidate_id`` too.
 - ``POST /sessions/{id}/replay`` ``{"product", "transcript",
   "speed"?, "employee"?}``: replay a transcript as a live session
   (``speed`` 1 is real time, ``null`` as fast as the services answer).
@@ -286,6 +289,36 @@ def create_app(
         """Forget one answer (the question is open again)."""
         found: Dict[str, Any] = await run_in_threadpool(
             book().clear, plan_id, candidate_id, question_id
+        )
+        return found
+
+    @app.post("/interview/plans/{plan_id}/candidates/{candidate_id}"
+              "/confirm")
+    async def confirm_answers(
+        plan_id: str, candidate_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Confirm proposals: ``{"questions": [...]}``, or all of them."""
+        data = await body(request)
+        wanted = data.get("questions")
+        if wanted is not None and not (
+            isinstance(wanted, list)
+            and all(isinstance(q, str) for q in wanted)
+        ):
+            raise SessionError("invalid_request",
+                               "questions must be a list of ids")
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().confirm, plan_id, candidate_id, wanted
+        )
+        return found
+
+    @app.delete("/interview/plans/{plan_id}/candidates/{candidate_id}"
+                "/proposals/{question_id}")
+    async def discard_proposal(
+        plan_id: str, candidate_id: str, question_id: str
+    ) -> Dict[str, Any]:
+        """Discard one captured proposal."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().discard, plan_id, candidate_id, question_id
         )
         return found
 
