@@ -288,6 +288,15 @@ export class Api {
   /** The scripted voice-assistant example of a demo (#250). */
   liveDemoVoice(id) { return this.request("GET", `/assist/demos/${encodeURIComponent(id)}/voicebot`); }
 
+  /** Which examples of a demo can be heard and each clip's length, in seconds (#254). */
+  liveDemoVoices(id) { return this.request("GET", `/assist/demos/${encodeURIComponent(id)}/voices`); }
+
+  /** One rendered line of a demo as a Blob (audio/wav), fetched with the access code (#254). */
+  async liveDemoClip(id, line) {
+    const response = await this.request("GET", `/assist/demos/${encodeURIComponent(id)}/voices/${encodeURIComponent(line)}.wav`, { raw: true });
+    return response.blob();
+  }
+
   /** Start a live session: { product, audio: "stereo" | "mic", session_id, employee? }. */
   startLive(body) { return this.request("POST", "/assist/sessions", { json: body }); }
 

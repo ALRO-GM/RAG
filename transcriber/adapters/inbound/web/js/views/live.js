@@ -16,6 +16,12 @@
 // twice: lines, chips and the card are kept by key, so only what is new
 // fades in. Customer signals appear only in support calls; an interview
 // never shows signals or ratings about the candidate.
+//
+// DM-3 (#254): a scripted demo whose lines have rendered clips is heard.
+// The orchestrator replays it at speed 1 with each sentence as long as its
+// clip, and the page plays a line's clip when that line starts (its first
+// partial), so voice and typing stay in step; muted, the timing is the
+// same. Nothing plays until the viewer has pressed something on the page.
 
 import { append, h, fill, svg } from "../dom.js";
 import { t, lang } from "../i18n.js";
@@ -27,6 +33,7 @@ import {
   readPrefs, reminderDue, splitCards, viewPrefs, voiceProgress, writePrefs,
 } from "../lib/live.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
+import { ClipPlayer, clipsOf, lineToPlay, readSound, voicesNoteKey, writeSound } from "../lib/demo-voices.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
 import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
@@ -104,10 +111,17 @@ export async function liveView(ctx, root, [sub, which] = []) {
   let guarded = false; // a demo can be left at any time; a real session asks first
   let ticker = null;
   let playing = null; // the id of a demo session this page started
+  let demoVoices = null; // the clip player of a scripted demo that is heard
   setLeaveGuard(() => running && guarded);
+
+  function dropVoices() {
+    demoVoices?.dispose((url) => URL.revokeObjectURL(url));
+    demoVoices = null;
+  }
 
   function cleanup() {
     closed = true;
+    dropVoices();
     // A demo left behind would hold the one session slot until it ends.
     if (playing && running) ctx.api.stopLive(playing).catch(() => {});
     controller?.abort();
@@ -145,6 +159,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
   function showForm(message = null) {
     clearInterval(ticker);
+    dropVoices();
     root.replaceChildren();
     const productSelect = h("select", { id: "live-product" },
       products.map((p) => h("option", { value: p.product }, t(`live.product.${productKind(p.product)}`))));
@@ -381,6 +396,44 @@ export async function liveView(ctx, root, [sub, which] = []) {
         balance, voiceChip, connChip.node),
       h("div", { class: "lv-actions" }, demo ? again : null, demo ? toResult : stop, demo ? null : fresh));
 
+    // ---- the scripted demo's voices (#254): each line's clip as it starts
+    dropVoices();
+    const voiceNote = h("p", { class: "hint lv-demo-voices", role: "status", hidden: !demo });
+    const soundBox = h("input", { type: "checkbox", id: "live-demo-sound" });
+    const soundLabel = h("label", { class: "check lv-sound", for: "live-demo-sound", hidden: true }, soundBox, t("dvoice.sound"));
+    header.querySelector(".lv-actions")?.prepend(soundLabel);
+    let clips = null;
+    const startedLines = new Set();
+    if (demo) loadVoices();
+
+    async function loadVoices() {
+      const view = await Promise.resolve(ctx.api.liveDemoVoices?.(demo.id)).catch(() => null);
+      if (closed || playing !== session.id) return;
+      const said = t(voicesNoteKey(view, "call"));
+      voiceNote.textContent = said;
+      const found = clipsOf(view, "call");
+      if (!found) return;
+      // No autoplay: a page opened by its address plays nothing until the viewer acts.
+      const activated = globalThis.navigator?.userActivation?.hasBeenActive ?? true;
+      const player = new ClipPlayer({
+        load: async (key) => URL.createObjectURL(await ctx.api.liveDemoClip(demo.id, key)),
+        makeAudio: (url) => new Audio(url),
+        onFail: () => { voiceNote.textContent = `${said} ${t("dvoice.failed")}`; },
+      });
+      const on = readSound() && activated;
+      player.setSound(on);
+      soundBox.checked = on;
+      soundBox.addEventListener("change", () => {
+        writeSound(soundBox.checked);
+        player.setSound(soundBox.checked);
+      });
+      if (readSound() && !activated) voiceNote.textContent = `${said} ${t("dvoice.press")}`;
+      soundLabel.hidden = false;
+      clips = found;
+      demoVoices = player;
+      player.prefetch([...found.keys()]);
+    }
+
     // ---- the conversation
     const lines = h("ol", { class: "lv-lines", "aria-label": t("live.talk"), tabindex: "0" });
     // Stick to the newest line unless the user scrolled back to read.
@@ -438,7 +491,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
     // Lost / back (#247): one persistent live region, changed only when that state changes.
     const note = connectionNote();
-    root.append(header, note.node, alerts, h("div", { class: "lv-body" }, talk, side));
+    root.append(header, voiceNote, note.node, alerts, h("div", { class: "lv-body" }, talk, side));
 
     let drawing = false;
     let reconnecting = false;
@@ -996,11 +1049,15 @@ export async function liveView(ctx, root, [sub, which] = []) {
             after: state.lastId, signal: mine.signal,
             onItem: (item) => {
               reconnecting = false;
+              let message = null;
               try {
-                state.apply(JSON.parse(item.data), item.id);
+                message = JSON.parse(item.data);
+                state.apply(message, item.id);
               } catch {
                 return;
               }
+              const line = lineToPlay(message, clips, startedLines);
+              if (line && demoVoices) demoVoices.play(line, clips.get(line));
               schedule();
             },
           });
