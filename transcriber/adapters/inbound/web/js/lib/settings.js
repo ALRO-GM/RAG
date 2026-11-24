@@ -177,3 +177,40 @@ export function controlsReach(draft) {
   if (voice.startsWith("clone:")) return (draft?.["voicebot.clone_engine"] ?? "qwen3") === "openvoice" ? "openvoice" : "maybe";
   return voice === "davefx" || voice === "sharvard" ? "piper" : "none";
 }
+
+/**
+ * Play a sample's WAV bytes on `ctx` (an AudioContext, or a stand-in with
+ * the same members); resolves to its seconds. Web Audio, not an <audio>
+ * element: the public site's Content-Security-Policy (`media-src 'self'`)
+ * refuses blob: and data: media, and a context made inside the click keeps
+ * its permission to sound while a cloned voice takes seconds (#253).
+ * Rejects with NotAllowedError when the browser keeps the context silent.
+ */
+export async function playWav(ctx, data) {
+  const buffer = await ctx.decodeAudioData(data.slice(0));
+  if (ctx.state === "suspended") {
+    throw Object.assign(new Error("the browser keeps the audio suspended"), { name: "NotAllowedError" });
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(ctx.currentTime);
+  return buffer.duration;
+}
+
+/**
+ * Why «Escuchar ejemplo» failed, in words for the page (#253): an i18n key
+ * and a short detail from the server, or null when the generic error text
+ * fits. `error` is an ApiFailure (the request) or a DOMException (playing).
+ */
+export function sampleFailure(error) {
+  if (error?.name === "NotAllowedError") return { key: "set.sample_err.blocked", detail: "" };
+  if (error?.name === "NotSupportedError" || error?.name === "EncodingError") return { key: "set.sample_err.format", detail: "" };
+  if (error?.name === "NoAudio") return { key: "set.sample_err.no_audio", detail: "" };
+  if (error?.code === "orchestrator_unavailable") {
+    const slow = /timeout/i.test(String(error.message ?? ""));
+    return { key: slow ? "set.sample_err.slow" : "set.sample_err.service", detail: "" };
+  }
+  if (error?.code === "unavailable") return { key: "set.sample_err.no_voice", detail: String(error.message ?? "").slice(0, 120) };
+  return null;
+}

@@ -57,6 +57,11 @@ TIMEOUT = 45.0
 """Seconds for a plain call (starting a live session waits for the GPU)."""
 PLAN_TIMEOUT = 180.0
 """Seconds for drafting an interview plan (the planner model writes it)."""
+SAMPLE_TIMEOUT = 150.0
+"""Seconds for «Escuchar ejemplo»: a cloned or natural voice on the GPU
+may wait 20 s for the memory and up to 120 s for its model to speak
+(the orchestrator's ``WAIT_SECONDS`` and ``SAMPLE_BUDGET_MS``), longer
+than :data:`TIMEOUT` (#253)."""
 
 
 def read_token(path: Optional[Path]) -> Optional[str]:
@@ -309,7 +314,8 @@ def add_live_assist_proxy(
         url = f"{base}/{path}"
         if path.endswith("/suggestions/stream"):
             return await _stream(client(), url, headers, params)
-        wait = PLAN_TIMEOUT if path == "interview/plans" else TIMEOUT
+        wait = (PLAN_TIMEOUT if path == "interview/plans"
+                else SAMPLE_TIMEOUT if path == "voicebot/sample" else TIMEOUT)
         try:
             async with client(wait) as http:
                 answer = await http.request(

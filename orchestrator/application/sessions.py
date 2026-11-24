@@ -48,8 +48,10 @@ candidate (#213): the session ticks its turn-taking (``ticker``) and
 the feed also carries ``{"type": "backchannel"}``.
 """
 
+import logging
 import re
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import (
     Any, Callable, Dict, List, Mapping, Optional, Protocol, Tuple, Union,
@@ -158,6 +160,8 @@ DEMO_STOP_S = 3.0
 """Longest wait for a playing demo to stop before a new one starts."""
 STOP_POLL_S = 0.05
 """Seconds between two turn-taking ticks of an interview (#213)."""
+LOG = logging.getLogger(__name__)
+"""Where each «Escuchar ejemplo» is logged (no text, no audio; #253)."""
 
 
 class _Assistant(Protocol):
@@ -997,8 +1001,26 @@ class LiveSessions:
 
         ``choices`` are the voice bot's steps being edited (unsaved);
         anything not valid keeps the product's. A natural voice on the
-        GPU takes the lease for the sample when nobody holds it.
+        GPU takes the lease for the sample when nobody holds it. Every
+        sample is logged (:func:`sample_log`): what spoke, why not the
+        chosen voice, how long it took, or why it failed (#253).
         """
+        started = time.perf_counter()
+        kind = _voice_kind(choices)
+        try:
+            wav, used = self._sample(choices)
+        except SessionError as exc:
+            LOG.warning("%s", sample_log(kind, None, started, str(exc)))
+            raise
+        except Exception as exc:
+            LOG.exception("%s", sample_log(kind, None, started,
+                                           type(exc).__name__))
+            raise
+        LOG.info("%s", sample_log(kind, used, started))
+        return wav, used
+
+    def _sample(self, choices: Mapping[str, str]) -> Tuple[bytes, Document]:
+        """Render the sample (see :meth:`sample`)."""
         config = next((c for c in self.products.values()
                        if c.tts is not None), None)
         if config is None or config.tts is None or self.tts is None:
@@ -1045,8 +1067,8 @@ class LiveSessions:
             if gate is not None and taken:
                 gate.drop()
         if refused or speaker.refusal:
-            used["reason"] = "; ".join(
-                r for r in (used["reason"], refused, speaker.refusal) if r)
+            used["reason"] = _join_reasons(
+                used["reason"], refused, speaker.refusal)
         return wav, used
 
     def _natural_sample(
@@ -1067,7 +1089,7 @@ class LiveSessions:
             if gate is not None and taken:
                 gate.drop()
         engine = speaker.first_speaker or "piper"
-        reason = "; ".join(r for r in (plan.reason, refused, *heard) if r)
+        reason = _join_reasons(plan.reason, refused, *heard)
         return wav, {
             "voice": tts.voice, "length_scale": plan.length_scale,
             "clone": plan.clone is not None and engine.startswith("qwen3"),
@@ -1441,6 +1463,36 @@ def _with_reason(
     reason = "; ".join(r for r in (plan.reason, *more) if r)
     return VoicePlan(plan.voice, plan.length_scale,
                      plan.clone if clone is not False else None, reason)
+
+
+def _join_reasons(*reasons: Optional[str]) -> str:
+    """Join the reasons that are set, each once, in order."""
+    return "; ".join(dict.fromkeys(str(r) for r in reasons if r))
+
+
+def _voice_kind(choices: Mapping[str, str]) -> str:
+    """What kind of voice a sample asks for, without the person's id."""
+    option = str(choices.get("voicebot.voice", "") or "")
+    if option.startswith("clone:"):
+        return f"clone ({choices.get('voicebot.clone_engine') or 'default'})"
+    return option[:32] or "default"
+
+
+def sample_log(
+    kind: str, used: Optional[Document], started: float, error: str = "",
+) -> str:
+    """One log line about a sample: the voice asked for, what spoke, why.
+
+    Never the text said, the audio or who is cloned (``kind`` comes from
+    :func:`_voice_kind`); ``started`` is a ``time.perf_counter`` reading.
+    """
+    ms = round((time.perf_counter() - started) * 1000)
+    if used is None:
+        return f"voice sample failed: voice={kind} ms={ms} error={error[:160]}"
+    reason = str(used.get("reason") or "")[:200]
+    return (f"voice sample: voice={kind} engine={used.get('engine')} "
+            f"clone={'yes' if used.get('clone') else 'no'} ms={ms}"
+            + (f" reason={reason}" if reason else ""))
 
 
 def _check_id(session_id: str) -> None:

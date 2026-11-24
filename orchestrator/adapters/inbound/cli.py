@@ -29,6 +29,7 @@ lease (``--gpu-lease-dir``).
 """
 
 import argparse
+import logging
 import importlib
 import ipaddress
 import json
@@ -552,6 +553,25 @@ def build_mandatory(args: argparse.Namespace) -> MandatoryPort:
     return FileMandatory(ROOT / "knowledge" / "domains")
 
 
+def log_to_stderr() -> logging.Logger:
+    """Send the orchestrator's own log lines (INFO and up) to stderr.
+
+    Under ``ragputin-servicios`` stderr is ``orchestrator.log``; only the
+    ``orchestrator`` loggers are routed (no library's request lines; the
+    root logger has no handler under ``serve``, so nothing is doubled).
+    The lines never carry conversation text or audio (#253).
+    """
+    logger = logging.getLogger("orchestrator")
+    if not any(getattr(h, "_orchestrator", False) for h in logger.handlers):
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        setattr(handler, "_orchestrator", True)
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    return logger
+
+
 def run_serve(args: argparse.Namespace) -> int:
     """Run ``serve`` until interrupted."""
     if not is_loopback(args.host):
@@ -564,6 +584,7 @@ def run_serve(args: argparse.Namespace) -> int:
         token = read_code(args.token_file)
         if not token:
             raise ValueError(f"no token in {args.token_file}")
+    log_to_stderr()
     sessions = build_sessions(args)
     import uvicorn
 

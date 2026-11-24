@@ -41,6 +41,42 @@ with the voice bot's *unsaved* choices says a fixed Spanish sentence
 `audio/wav`; the headers `X-Voice-Clone`, `X-Voice-Length-Scale` and
 `X-Voice-Note` say what spoke and why not the clone.
 
+**Why it did not play on the public site (#253).** The page played the
+WAV through `new Audio(blob:…)`. The public site's
+`Content-Security-Policy` (`infra/Caddyfile`, served by
+rag.peer4u.app) has `media-src 'self'`, which refuses `blob:` media:
+`play()` rejects with `NotSupportedError` and the page said «No se pudo
+reproducir el ejemplo. Algo ha salido mal. Inténtalo de nuevo» (no code,
+no status: the generic text). Reproduced in headless Chrome with that
+exact header: an `<audio>` on a blob URL failed every time; Web Audio
+(`decodeAudioData`, as the voice bot's own speech) played. On
+`127.0.0.1:8770` there is no such header, which is why it worked
+locally. It was not a timeout: a timed-out call answers 502/504 and the
+page says «El servidor de procesamiento no está disponible», and the
+orchestrator logged nothing. The sample now plays through one
+`AudioContext` made and resumed inside the click (a browser that wants a
+click for sound, such as Safari, otherwise refuses audio that starts
+seconds later: Chrome with `--autoplay-policy=user-gesture-required`
+refused an `<audio>` started 6 s after the click), with «Volver a
+escuchar» to play it again, and every failure says why in words.
+
+Time along the path, measured 2026-11-24 on the workstation (real
+engines, an enrolled consenting voice, the sample taking the GPU lease;
+each sample starts the model and stops it after, so every sample is a
+cold load): Piper 0.18–0.52 s, OpenVoice clone 4.4–5.5 s, Qwen3-TTS
+clone 9.0–9.7 s. Limits: the page's request has none; the transcriber's
+proxy waited 45 s and now 150 s for a sample (`SAMPLE_TIMEOUT`: up to
+20 s for GPU memory plus `SAMPLE_BUDGET_MS`, 120 s, for the model to
+speak); the inner Caddy waits 15 min for an answer
+(`response_header_timeout`, `docs/DEPLOYMENT.md`); the Peer4U Caddy's
+limit is not in this repository (enrolments already wait minutes through
+it). The page says a cloned sample takes about 5–10 s. A sample with the
+model already loaded by a running session was not measured. The
+orchestrator logs one line per sample (`voice sample: voice=clone
+(qwen3) engine=qwen3-cuda clone=yes ms=9081`, or `voice sample failed:
+... error=...`): never the sentence, the audio or who is cloned. Not
+checked on the owner's own phone or browser.
+
 **Matching the operator's rate.** At enrolment the transcriber now
 measures the person's speaking rate on the reading: recognised words
 over the seconds of speech regions (`speaking_rate`,
