@@ -199,6 +199,9 @@ def dev_stack(work: Path, base_port: int) -> Iterator[Tuple[str, str]]:
             "--transcriber-code-file", str(work / "no-code"),
             "--interview-dir", str(work / "interview"),
             "--voiceprints-dir", str(work / "voiceprints"),
+            # No rendered voices: the video keeps the scripted timing and
+            # is silent (Chrome runs muted, ffmpeg writes no audio track).
+            "--demo-voices-dir", str(work / "demo-voices"),
         ],
         "transcriber": ["-m", "transcriber", "serve", "--port", str(web),
                         "--no-tunnel", "--dev-pages"],

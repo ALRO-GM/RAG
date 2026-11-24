@@ -113,6 +113,20 @@
    }
   }
  ],
+ "cast": [
+  {
+   "id": "entrevistador",
+   "name": "Entrevistador",
+   "gender": "male",
+   "gendered_text": false
+  },
+  {
+   "id": "candidata",
+   "name": "Lucía Marín",
+   "gender": "female",
+   "gendered_text": true
+  }
+ ],
  "transcript": {
   "schema": "transcript.v1",
   "session": {

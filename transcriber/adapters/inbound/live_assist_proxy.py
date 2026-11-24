@@ -11,7 +11,9 @@ Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
 ``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
 ``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
-``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; the AI
+``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; a scripted
+demo's ``report``, ``voicebot``, ``voices`` and one rendered line clip,
+``voices/<line>.wav`` (#254, never cached); the AI
 interviewer's ``interview/plans``, one plan and its ``results``; the
 candidates of a role, one candidate, their answers to the core questions
 and the candidate of a session, #235), and
@@ -37,7 +39,8 @@ DEFAULT_URL = "http://127.0.0.1:8772"
 URL_VARIABLE = "TRANSCRIBER_ORCHESTRATOR_URL"
 _ID = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
 ALLOWED = re.compile(
-    rf"^(?:products|transcripts|demos/{_ID}/(?:report|voicebot)"
+    rf"^(?:products|transcripts|demos/{_ID}/(?:report|voicebot|voices)"
+    rf"|demos/{_ID}/voices/[A-Za-z0-9][A-Za-z0-9._-]{{0,47}}\.wav"
     rf"|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
@@ -121,6 +124,13 @@ def add_live_assist_proxy(
     ) -> Response:
         """The report or the voice example of a scripted demo (#250)."""
         return await forward(f"demos/{demo_id}/{part}", request)
+
+    @api.get("/assist/demos/{demo_id}/voices/{clip}")
+    async def assist_demo_clip(
+        demo_id: str, clip: str, request: Request
+    ) -> Response:
+        """One rendered line of a scripted demo, ``audio/wav`` (#254)."""
+        return await forward(f"demos/{demo_id}/voices/{clip}", request)
 
     @api.get("/assist/sessions")
     async def assist_sessions(request: Request) -> Response:
@@ -329,7 +339,8 @@ def add_live_assist_proxy(
             media_type=answer.headers.get("content-type",
                                           "application/json"),
             headers={k: v for k, v in answer.headers.items()
-                     if k.lower().startswith("x-voice-")},
+                     if k.lower().startswith("x-voice-")
+                     or k.lower() == "cache-control"},
         )
 
 

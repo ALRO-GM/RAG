@@ -313,3 +313,34 @@ def test_the_sample_may_take_longer_than_a_plain_call() -> None:
     assert waits["/voicebot/sample"] == SAMPLE_TIMEOUT
     assert SAMPLE_TIMEOUT >= 140.0  # 20 s for memory + 120 s to speak
     assert waits["/products"] == TIMEOUT
+
+
+def test_the_demo_voices_are_forwarded_with_their_audio() -> None:
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith(".wav"):
+            return httpx.Response(200, content=b"RIFFdata", headers={
+                "content-type": "audio/wav",
+                "cache-control": "private, no-store"})
+        return httpx.Response(200, json={"examples": {}})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    auth = {"X-Access-Code": "code"}
+    assert web.get("/api/assist/demos/llamada-lumbre/voices",
+                   headers=auth).json() == {"examples": {}}
+    clip = web.get("/api/assist/demos/llamada-lumbre/voices/vb0.user.wav",
+                   headers=auth)
+    assert clip.content == b"RIFFdata"
+    assert clip.headers["content-type"] == "audio/wav"
+    assert clip.headers["cache-control"] == "private, no-store"
+    assert [str(r.url) for r in seen] == [
+        "http://orch:8772/demos/llamada-lumbre/voices",
+        "http://orch:8772/demos/llamada-lumbre/voices/vb0.user.wav",
+    ]
+    for bad in ("voices/x.mp3", "voices/..%2Fx.wav", "voices/a/b.wav"):
+        assert web.get(f"/api/assist/demos/llamada-lumbre/{bad}",
+                       headers=auth).status_code == 404
+    assert web.get("/api/assist/demos/llamada-lumbre/voices/t0.s0.wav"
+                   ).status_code == 401, "behind the access code"

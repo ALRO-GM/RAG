@@ -1,9 +1,12 @@
 // Pure logic of the voice-assistant example (#/voicebot/demo, #250): the
 // scripted exchange between a customer and the voice assistant of the
 // same fictitious company, played step by step: the customer speaks (text
-// appears), the assistant «thinks», then answers with its sources, spoken
-// aloud when the browser has a voice. No DOM, microphone, server session
-// or model here, so node --test runs it with a fake clock and narrator.
+// appears), the assistant «thinks», then answers with its sources. With
+// rendered clips (#254) both sides are heard and every line lasts as long
+// as its clip, with the sound on or off; without them the assistant is
+// spoken by the browser's own voice when it has one. No DOM, microphone,
+// server session or model here, so node --test runs it with a fake clock
+// and narrator.
 
 /** Pause before a customer line, a short «thinking» pause and the reading speed, in ms. */
 export const TIMING = { beforeUser: 700, perWordUser: 260, thinking: 900, perWordBot: 330, after: 1200, minRead: 1200 };
@@ -20,10 +23,10 @@ export function stepsOf(demo, sources, language = "es") {
   const pick = (item, field) => (language === "en" && item?.en?.[field]) || item?.[field] || "";
   const steps = [];
   (demo?.exchanges ?? []).forEach((e, index) => {
-    steps.push({ kind: "user", index, text: pick(e, "user") });
+    steps.push({ kind: "user", index, key: `vb${index}.user`, text: pick(e, "user") });
     steps.push({ kind: "thinking", index, text: "" });
     steps.push({
-      kind: "bot", index, text: pick(e, "bot"),
+      kind: "bot", index, key: `vb${index}.bot`, text: pick(e, "bot"),
       sources: (e.cites ?? []).filter((id) => byId.has(id)).map((id) => ({
         id, text: byId.get(id).text, title: (language === "en" && byId.get(id).en?.title) || byId.get(id).title || id,
       })),
@@ -36,19 +39,32 @@ export function stepsOf(demo, sources, language = "es") {
  * Play the steps in order. `show(step)` draws one; `narrate(text)` speaks
  * the assistant's line and resolves when it ends (or at once when there
  * is no voice); `sleep(ms)` waits and rejects when `signal` aborts.
- * Resolves true when it reached the end, false when stopped.
+ * With `clips` (Map line key -> seconds) every line takes its clip's
+ * length and `voice(key, seconds)` plays it (null: muted, same timing);
+ * the browser's voice is then not used. Resolves true when it reached
+ * the end, false when stopped.
  */
-export async function play(steps, { show, narrate = null, sleep, signal = null }) {
+export async function play(steps, { show, narrate = null, sleep, signal = null, clips = null, voice = null }) {
+  const heard = async (step) => {
+    const seconds = clips?.get(step.key);
+    if (!seconds) return false;
+    // The clip and its length run together: muted or failed, the time is the same.
+    await Promise.all([sleep(seconds * 1000), voice ? voice(step.key, seconds) : null]);
+    return true;
+  };
   try {
     for (const step of steps) {
       if (signal?.aborted) return false;
       if (step.kind === "user") await sleep(TIMING.beforeUser);
       show(step);
-      if (step.kind === "user") await sleep(readMs(step.text, TIMING.perWordUser));
-      else if (step.kind === "thinking") await sleep(TIMING.thinking);
+      if (step.kind === "user") {
+        if (!(await heard(step))) await sleep(readMs(step.text, TIMING.perWordUser));
+      } else if (step.kind === "thinking") await sleep(TIMING.thinking);
       else {
-        const spoken = narrate ? await narrate(step.text) : false;
-        if (!spoken) await sleep(readMs(step.text, TIMING.perWordBot));
+        if (!(await heard(step))) {
+          const spoken = narrate ? await narrate(step.text) : false;
+          if (!spoken) await sleep(readMs(step.text, TIMING.perWordBot));
+        }
         await sleep(TIMING.after);
       }
     }

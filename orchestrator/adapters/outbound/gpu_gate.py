@@ -141,6 +141,29 @@ class LeaseGpuGate:
             self.sleep(0.5)
             waited += 0.5
 
+    def take_alone(self, need_mib: int) -> Optional[str]:
+        """:meth:`take`, but refused while anybody holds the lease, a
+        live session included: checked and taken in one step, under the
+        same lock (a demo render, #254)."""
+        with self._lock:
+            self._users += 1
+            try:
+                lease = self._valid()
+                if lease is not None:
+                    return (f"the GPU lease is held by "
+                            f"{str(lease.get('holder'))[:40]}")
+                self._acquire(need_mib)
+            except BaseException:
+                self._users -= 1
+                raise
+        waited = 0.0
+        while True:
+            short = self._memory(need_mib)
+            if short is None or waited >= self.wait_seconds:
+                return short
+            self.sleep(0.5)
+            waited += 0.5
+
     def drop(self) -> None:
         """Give back one :meth:`take`; the last one deletes the lease.
 

@@ -1,4 +1,5 @@
-"""Command line: ``python -m orchestrator check-config | replay | serve``.
+"""Command line: ``python -m orchestrator check-config | replay | serve |
+demo-voices``.
 
 ``replay`` talks to knowledge and the reasoner through ports. Each is
 ``fake`` (in process, no service), ``http`` (the RAG service) or, for
@@ -26,6 +27,10 @@ venvs under ``--natural-dir`` (off with ``--natural-tts off`` or when
 none is installed; ``docs/live/NATURAL_TTS.md`` §6); Pocket TTS on the
 CPU is warmed at start, a GPU engine only under the live session's GPU
 lease (``--gpu-lease-dir``).
+
+The scripted examples are heard with the clips ``demo-voices render``
+keeps in ``--demo-voices-dir`` (:mod:`.demo_voices_cli`, #254); a call
+whose clips are all there is replayed at their pace.
 """
 
 import argparse
@@ -63,6 +68,15 @@ from orchestrator.adapters.outbound.http_settings import HttpSettings
 from orchestrator.adapters.outbound.http_mandatory import HttpMandatory
 from orchestrator.adapters.outbound.http_avoid import HttpAvoid
 from orchestrator.adapters.outbound.fs_demos import DirDemos
+from orchestrator.adapters.outbound.fs_demo_voices import (
+    FsDemoVoices,
+    check_outside_repository,
+)
+from orchestrator.adapters.inbound.demo_voices_cli import (
+    DEFAULT_OUT as DEMO_VOICES_DIR,
+    add_demo_voices_parser,
+    run_demo_voices,
+)
 from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
 from orchestrator.adapters.outbound.jsonl_sink import (
     JsonHandoff,
@@ -100,6 +114,7 @@ from orchestrator.adapters.outbound.runtime import (
     ThreadRunner,
 )
 from orchestrator.application.candidates import CandidateBook
+from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
@@ -178,6 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--fake-delay-ms", type=float, default=0.0,
                         help="latency of the fakes")
     add_serve_parser(sub)
+    add_demo_voices_parser(sub)
     return parser
 
 
@@ -241,6 +257,9 @@ def add_serve_parser(
     serve.add_argument("--interview-dir", type=Path,
                        default=ROOT / "data" / "interview",
                        help="interview plans and sheets (#208)")
+    serve.add_argument("--demo-voices-dir", type=Path,
+                       default=DEMO_VOICES_DIR,
+                       help="the scripted examples' rendered voices (#254)")
 
 
 def parse_speed(text: str) -> Optional[float]:
@@ -476,10 +495,20 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         ticker=ThreadRunner(),
         avoid=HttpAvoid(args.knowledge_url, args.token)
         if args.knowledge == "http" else None,
-        demos=DirDemos(ROOT / "examples" / "demo"),
+        demos=build_demo_voices(args),
     )
     sessions_ref.append(sessions)
     return sessions
+
+
+def build_demo_voices(args: argparse.Namespace) -> DemoVoiceLibrary:
+    """The demos, heard with their rendered clips when there are some."""
+    folder = Path(getattr(args, "demo_voices_dir", DEMO_VOICES_DIR))
+    check_outside_repository(folder, ROOT)
+    return DemoVoiceLibrary(
+        DirDemos(ROOT / "examples" / "demo"), FsDemoVoices(folder),
+        DirVoiceProfiles(args.voiceprints_dir),
+    )
 
 
 def build_interview(
@@ -596,7 +625,10 @@ def run_serve(args: argparse.Namespace) -> int:
     print(f"orchestrator on http://{args.host}:{args.port} "
           f"(products: {', '.join(sorted(sessions.products))}; "
           f"live: {live}; token: {'yes' if token else 'no'})", flush=True)
-    uvicorn.run(create_app(sessions, token), host=args.host,
+    voices = sessions.demos if isinstance(
+        sessions.demos, DemoVoiceLibrary) else None
+    uvicorn.run(create_app(sessions, token, demo_voices=voices),
+                host=args.host,
                 port=args.port, log_level="warning")
     return 0
 
@@ -619,6 +651,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return run_check(args)
         if args.command == "serve":
             return run_serve(args)
+        if args.command == "demo-voices":
+            return run_demo_voices(args)
         return run_replay(args)
     except (ConfigError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

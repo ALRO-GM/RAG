@@ -260,9 +260,11 @@ class WithdrawVoiceClone:
         consent = self._voiceprints.consent(speaker_id)
         if voiceprint is None or consent is None:
             raise NotFoundError(f"No enrolled speaker {speaker_id}.")
-        self._voiceprints.delete_clone_reference(speaker_id)
-        if consent.voice_clone:
-            self._voiceprints.save(voiceprint, consent.model_copy(update={
-                "voice_clone": False,
-                "voice_clone_withdrawn_at": self._clock.now(),
-            }))
+        try:
+            self._voiceprints.delete_clone_reference(speaker_id)
+        finally:
+            # Recorded even when the examples' clips could not be deleted.
+            if consent.voice_clone:
+                self._voiceprints.save(voiceprint, consent.model_copy(
+                    update={"voice_clone": False,
+                            "voice_clone_withdrawn_at": self._clock.now()}))

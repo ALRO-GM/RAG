@@ -5,7 +5,8 @@ voice model, consent version, date, speaking rate) and the consent
 record, written atomically. Nothing of the enrolment sample is stored,
 except ``<speaker id>.clone.wav`` (16-bit mono) while the person agrees
 to their voice being cloned for the voice bot; the orchestrator reads
-both files (``docs/live/VOICE_CLONING.md``).
+both files (``docs/live/VOICE_CLONING.md``). Deleting that clip also
+deletes the scripted examples' clips cloned from the voice (#254).
 
 Vectors of different voice models cannot be compared, so the
 repository is bound to the voice model in use: it refuses to store a
@@ -34,6 +35,10 @@ import numpy.typing as npt
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from transcriber.adapters.outbound.fs_demo_voices import (
+    DIRECTORY as DEMO_VOICES,
+    forget_cloned_demo_clips,
+)
 from transcriber.adapters.outbound.fs_storage import (
     atomic_write,
     child_path,
@@ -188,15 +193,22 @@ class FileSystemVoiceprintRepository:
         return None
 
     def delete(self, speaker_id: str) -> bool:
-        """Remove voiceprint, consent and clip; tell whether they existed."""
+        """Remove voiceprint, consent and clip; tell whether they existed.
+
+        The voiceprint is deleted even when the examples' clips cannot
+        be (that error is raised afterwards).
+        """
         path = self._path(speaker_id)
-        self.delete_clone_reference(speaker_id)
-        with self._lock:
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                return False
-        return True
+        try:
+            self.delete_clone_reference(speaker_id)
+        finally:
+            with self._lock:
+                try:
+                    path.unlink()
+                    existed = True
+                except FileNotFoundError:
+                    existed = False
+        return existed
 
     def _clip(self, speaker_id: str) -> Path:
         """Return the reference clip's file after checking the id."""
@@ -222,11 +234,28 @@ class FileSystemVoiceprintRepository:
             atomic_write(path, buffer.getvalue())
 
     def delete_clone_reference(self, speaker_id: str) -> bool:
-        """Remove the reference clip; tell whether there was one."""
+        """Remove the reference clip; tell whether there was one.
+
+        The scripted examples' clips cloned from this voice (#254,
+        ``<data>/demo-voices``) are deleted with it, every time: the
+        consent they were made under has ended.
+        """
         path = self._clip(speaker_id)
         with self._lock:
+            # The reference goes first: a failing clean-up below never
+            # leaves the voice clonable.
             try:
                 path.unlink()
+                existed = True
             except FileNotFoundError:
-                return False
-        return True
+                existed = False
+            try:
+                forget_cloned_demo_clips(self.root.parent / DEMO_VOICES,
+                                         speaker_id)
+            except OSError as exc:
+                LOG.error("Could not delete the demo clips of %s: %s",
+                          speaker_id, exc)
+                raise StorageError(
+                    "The voice clip was deleted, but not the examples'"
+                    " clips made with it.") from exc
+        return existed
