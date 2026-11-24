@@ -151,8 +151,8 @@ test("which voices the Piper controls reach", () => {
   assert.equal(PIPER_CONTROLS.length, 4);
 });
 
-test("the breadcrumbs of #/settings", () => {
-  assert.deepEqual(crumbsFor("#/settings", tEs), [{ label: "Ajustes", href: null }]);
+test("the breadcrumbs of #/settings: Ajustes inside the Administración area", () => {
+  assert.deepEqual(crumbsFor("#/settings", tEs), [{ label: "Administración", href: "#/admin" }, { label: "Ajustes", href: null }]);
 });
 
 // ---- the page in a stand-in DOM ---------------------------------------------

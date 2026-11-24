@@ -197,7 +197,7 @@ export async function enrolView(ctx, root) {
     phase = "reading";
     result.replaceChildren(
       h("p", { class: "ok" }, t("enrol.ok", { name: name.value.trim() })),
-      h("a", { class: "button primary", href: "#/" }, t("nav.sessions")));
+      h("a", { class: "button primary", href: "#/sessions" }, t("nav.sessions")));
     done.hidden = true;
   }
 

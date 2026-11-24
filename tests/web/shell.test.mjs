@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  crumbsFor, currentHref, fold, matchScore, moveSelection, nextTheme, paletteShortcut, rankCommands, sectionOf, storedTheme,
+  crumbsFor, currentHref, fold, isAdminRoute, matchScore, moveSelection, nextTheme, paletteShortcut, rankCommands, sectionOf, storedTheme,
 } from "../../transcriber/adapters/inbound/web/js/lib/shell.js";
 
 const t = (key) => `<${key}>`;
@@ -17,18 +17,28 @@ test("the theme button cycles system -> light -> dark -> system; unknown values 
   assert.equal(storedTheme("dark"), "dark");
 });
 
-test("a route belongs to the section of its first part; sessions own transcripts and analyses", () => {
+test("a route belongs to the section of its first part; sessions own transcripts, analyses and recordings", () => {
   assert.equal(sectionOf(""), "#/");
-  assert.equal(sectionOf("#/s/abc"), "#/");
-  assert.equal(sectionOf("#/analysis/abc"), "#/");
+  assert.equal(sectionOf("#/"), "#/");
+  assert.equal(sectionOf("#/sessions"), "#/sessions");
+  assert.equal(sectionOf("#/s/abc"), "#/sessions");
+  assert.equal(sectionOf("#/analysis/abc"), "#/sessions");
+  assert.equal(sectionOf("#/record"), "#/sessions");
   assert.equal(sectionOf("#/lab/x/y"), "#/lab");
   assert.equal(sectionOf("#/knowledge/hr"), "#/knowledge");
 });
 
+test("the Administración area holds the set-up pages, not the three services", () => {
+  for (const hash of ["#/admin", "#/settings", "#/enrol", "#/knowledge/hr", "#/lab/s/r"]) assert.ok(isAdminRoute(hash), hash);
+  for (const hash of ["", "#/", "#/sessions", "#/s/x", "#/live", "#/voicebot", "#/analysis/x", null]) assert.ok(!isAdminRoute(hash), hash);
+});
+
 test("the current link matches index.html routes and the other pages by file", () => {
-  const hrefs = ["#/", "#/record", "#/knowledge", "#/lab", "research.html", "study.html"];
+  const hrefs = ["#/", "#/sessions", "#/live", "#/admin", "#/knowledge", "#/lab", "research.html", "study.html"];
   assert.equal(currentHref(hrefs, "/", "#/knowledge/hr"), "#/knowledge");
   assert.equal(currentHref(hrefs, "/index.html", ""), "#/");
+  assert.equal(currentHref(hrefs, "/index.html", "#/s/abc"), "#/sessions");
+  assert.equal(currentHref(hrefs, "/index.html", "#/admin"), "#/admin");
   assert.equal(currentHref(hrefs, "/research.html", ""), "research.html");
   const fromStudy = ["index.html#/", "index.html#/lab", "study.html"];
   assert.equal(currentHref(fromStudy, "/study.html", ""), "study.html");
@@ -36,16 +46,27 @@ test("the current link matches index.html routes and the other pages by file", (
 });
 
 test("breadcrumbs name the section, then the ids from the address; the last has no link", () => {
-  assert.deepEqual(crumbsFor("", t), [{ label: "<nav.sessions>", href: null }]);
-  assert.deepEqual(crumbsFor("#/s/s%201", t), [{ label: "<nav.sessions>", href: "#/" }, { label: "s 1", href: null }]);
-  assert.deepEqual(crumbsFor("#/analysis/abc", t).map((c) => c.href), ["#/", "#/s/abc", null]);
-  assert.deepEqual(crumbsFor("#/knowledge", t), [{ label: "<nav.knowledge>", href: null }]);
+  assert.deepEqual(crumbsFor("", t), [{ label: "<nav.home>", href: null }]);
+  assert.deepEqual(crumbsFor("#/sessions", t), [{ label: "<nav.sessions>", href: null }]);
+  assert.deepEqual(crumbsFor("#/s/s%201", t), [{ label: "<nav.sessions>", href: "#/sessions" }, { label: "s 1", href: null }]);
+  assert.deepEqual(crumbsFor("#/record", t).map((c) => c.href), ["#/sessions", null]);
+  assert.deepEqual(crumbsFor("#/analysis/abc", t).map((c) => c.href), ["#/sessions", "#/s/abc", null]);
+  assert.deepEqual(crumbsFor("#/admin", t), [{ label: "<nav.admin>", href: null }]);
+  assert.deepEqual(crumbsFor("#/knowledge", t), [{ label: "<nav.admin>", href: "#/admin" }, { label: "<nav.knowledge>", href: null }]);
+  assert.deepEqual(crumbsFor("#/enrol", t).map((c) => c.label), ["<nav.admin>", "<nav.enrol>"]);
   assert.deepEqual(crumbsFor("#/voicebot", t), [{ label: "<nav.voicebot>", href: null }]);
-  assert.deepEqual(crumbsFor("#/knowledge/hr", t), [{ label: "<nav.knowledge>", href: "#/knowledge" }, { label: "hr", href: null }]);
+  assert.deepEqual(crumbsFor("#/live", t), [{ label: "<nav.live>", href: null }]);
+  assert.deepEqual(crumbsFor("#/knowledge/hr", t), [{ label: "<nav.admin>", href: "#/admin" }, { label: "<nav.knowledge>", href: "#/knowledge" }, { label: "hr", href: null }]);
   const lab = crumbsFor("#/lab/sess/0123456789abcdef/review", t);
-  assert.deepEqual(lab.map((c) => c.label), ["<nav.lab>", "sess", "01234567", "review"]);
+  assert.deepEqual(lab.map((c) => c.label), ["<nav.admin>", "<nav.lab>", "sess", "01234567", "review"]);
   assert.equal(lab.at(-1).href, null);
   assert.equal(crumbsFor("#/%E0%A4%A", t).length, 1, "a broken escape does not throw");
+  for (const hash of ["#/settings", "#/enrol", "#/knowledge", "#/lab"]) {
+    assert.deepEqual(crumbsFor(hash, t)[0], { label: "<nav.admin>", href: "#/admin" }, `${hash} starts from the area`);
+  }
+  for (const hash of ["", "#/sessions", "#/live", "#/voicebot", "#/s/x"]) {
+    assert.notEqual(crumbsFor(hash, t)[0].label, "<nav.admin>", hash);
+  }
 });
 
 test("the switcher folds accents and ranks prefixes over substrings over scattered letters", () => {

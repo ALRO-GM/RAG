@@ -111,7 +111,7 @@ export async function analysisView(ctx, root, [rawId]) {
     h("h1", {}, t("sa.title")),
     h("p", { class: "meta no-print" }, id, " · ",
       h("a", { href: `#/s/${encodeURIComponent(id)}` }, t("sa.back_session")), " · ",
-      h("a", { href: "#/" }, t("nav.sessions")), " · ",
+      h("a", { href: "#/sessions" }, t("nav.sessions")), " · ",
       h("button", { type: "button", class: "link", onClick: () => printPage() }, t("res.print"))),
     progress, results,
     h("div", { class: "notice" }, h("strong", {}, t("sa.issues_title")), issues),
