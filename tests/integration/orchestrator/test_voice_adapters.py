@@ -458,3 +458,83 @@ def test_piper_children_die_with_the_worker(tmp_path: Path) -> None:
             time.sleep(0.01)
         assert not alive(child), "Piper outlived the worker"
         worker.close()
+
+
+EXITS_AFTER_EOF = textwrap.dedent('''
+    import json, subprocess, sys
+    c = subprocess.Popen([sys.executable, "-c",
+                          "import time; time.sleep(60)"])
+    open(sys.argv[1], "w").write(str(c.pid))
+    print(json.dumps({"ready": True}), flush=True)
+    sys.stdin.read()
+''')
+
+
+def pid_alive(pid: int) -> bool:
+    """Whether ``pid`` runs (a zombie is not running)."""
+    try:
+        return Path(f"/proc/{pid}/stat").read_text().split()[2] != "Z"
+    except OSError:
+        return False
+
+
+def test_a_worker_that_exits_after_eof_still_loses_its_piper_child(
+    tmp_path: Path,
+) -> None:
+    import time
+
+    pidfile = tmp_path / "child.pid"
+    script = tmp_path / "parent.py"
+    script.write_text(EXITS_AFTER_EOF, encoding="utf-8")
+    worker = SubprocessCloner(
+        Path("unused"), "fake", load_timeout=5.0,
+        command=[sys.executable, str(script), str(pidfile)])
+    worker._ensure()
+    child = int(pidfile.read_text())
+    worker.unload()  # EOF: the worker exits by itself, the child stays
+    end = time.monotonic() + 5
+    while pid_alive(child) and time.monotonic() < end:
+        time.sleep(0.01)
+    assert not pid_alive(child)
+    worker.close()
+
+
+def test_no_signal_is_ever_sent_to_a_reaped_worker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    script = tmp_path / "worker.py"
+    script.write_text(FAKE_WORKER, encoding="utf-8")
+    worker = SubprocessCloner(Path("unused"), "fake", load_timeout=5.0,
+                              command=[sys.executable, str(script)])
+    sent: List[int] = []
+    real = os.killpg
+
+    def killpg(pgid: int, sig: int) -> None:
+        sent.append(pgid)
+        real(pgid, sig)
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    worker._ensure()
+    pid = worker._process.pid  # type: ignore[union-attr]
+    worker.unload()  # graceful: exits on EOF, then killed once and reaped
+    assert sent == [pid]
+    assert worker.loaded is False
+    worker.unload()  # again, the stale handle: nothing is signalled
+    worker._stop()
+    worker.close()
+    assert sent == [pid], "a reaped pid may belong to somebody else"
+
+
+def test_warming_a_running_worker_makes_older_decisions_stale(
+    cloner: SubprocessCloner, tmp_path: Path
+) -> None:
+    clip = tmp_path / "ref.wav"
+    clip.write_bytes(b"x")
+    cloner.warm(str(clip), "es")
+    first = cloner.generation
+    cloner.warm(str(clip), "es")  # a new session reuses the live worker
+    assert cloner.generation == first + 1
+    cloner.unload(first)
+    assert cloner.loaded, "the decision was about the previous hold"

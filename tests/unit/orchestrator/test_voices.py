@@ -633,3 +633,23 @@ def test_a_stale_lease_lost_decision_cannot_kill_a_newer_worker() -> None:
     voice._unload(cloner.generation)  # a decision about the current one
     assert cloner.unloaded.is_set()
     voice.close()
+
+
+def test_the_watcher_reads_the_generation_before_the_gate() -> None:
+    """Reading it after the gate would unload a newer worker."""
+    cloner = FakeCloner(gpu=True)
+    cloner.loaded = True
+    holder: List[ClonedVoice] = []
+
+    class Racing(FakeGate):
+        def check(self, need_mib: int) -> Optional[str]:
+            cloner.generation += 1  # a new worker starts meanwhile
+            holder[0]._stop.set()  # one watcher round only
+            return "no live GPU lease"
+
+    voice = ClonedVoice(cloner, FakeTts(), AGREED, gate=Racing(),
+                        watch_s=0.01)
+    holder.append(voice)
+    voice._watch()
+    assert cloner.loaded and not cloner.unloaded.is_set()
+    voice.close()
