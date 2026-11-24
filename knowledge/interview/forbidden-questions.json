@@ -1,0 +1,1873 @@
+{
+  "schema": "interview.forbidden.v1",
+  "version": 1,
+  "language_of_patterns": "es+en",
+  "disclaimer": {
+    "es": "No es asesoramiento jurídico. Son notas de trabajo hechas a partir de textos oficiales consultados el 2026-11-24; la ley cambia y la aplicación depende del caso. Revisión por un profesional del derecho laboral antes de usarlo con personas reales.",
+    "en": "This is not legal advice. Working notes made from official texts read on 2026-11-24; law changes and its application depends on the case. A labour-law professional must review it before use with real people."
+  },
+  "checked_on": "2026-11-24",
+  "pattern_rules": "Each pattern is a Python regular expression applied to the question text lowercased, with accents removed (NFKD, combining marks dropped) and typographic apostrophes turned into '. The match is a hint for a person, never a verdict.",
+  "sources": {
+    "aepd-relaciones-laborales": {
+      "title": "AEPD, La protección de datos en las relaciones laborales (guía actualizada en diciembre 2025)",
+      "id": null,
+      "url": "https://www.aepd.es/guias/la-proteccion-de-datos-en-las-relaciones-laborales.pdf",
+      "kind": "AEPD guide",
+      "text_read": true,
+      "how_read": "PDF downloaded from aepd.es and read as text"
+    },
+    "ai-act": {
+      "title": "Reglamento (UE) 2024/1689 (Ley de IA)",
+      "id": "32024R1689",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+      "kind": "EU Official Journal text (EUR-Lex)",
+      "text_read": true,
+      "how_read": "Publications Office resource http://publications.europa.eu/resource/celex/32024R1689 (same OJ text as EUR-Lex; eur-lex.europa.eu itself answered with a bot challenge)"
+    },
+    "ce": {
+      "title": "Constitución Española (1978)",
+      "id": "BOE-A-1978-31229",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-1978-31229/texto (current version)"
+    },
+    "cp": {
+      "title": "Ley Orgánica 10/1995, del Código Penal",
+      "id": "BOE-A-1995-25444",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-1995-25444/texto (current version)"
+    },
+    "dir-2000-43": {
+      "title": "Directiva 2000/43/CE (igualdad de trato sin distinción de origen racial o étnico)",
+      "id": "32000L0043",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0043",
+      "kind": "EU Official Journal text (EUR-Lex)",
+      "text_read": false,
+      "how_read": "not read"
+    },
+    "dir-2000-78": {
+      "title": "Directiva 2000/78/CE (igualdad de trato en el empleo y la ocupación)",
+      "id": "32000L0078",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0078",
+      "kind": "EU Official Journal text (EUR-Lex)",
+      "text_read": true,
+      "how_read": "Publications Office resource http://publications.europa.eu/resource/celex/32000L0078 (same OJ text as EUR-Lex; eur-lex.europa.eu itself answered with a bot challenge)"
+    },
+    "dir-2023-970": {
+      "title": "Directiva (UE) 2023/970 (transparencia retributiva)",
+      "id": "32023L0970",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32023L0970",
+      "kind": "EU Official Journal text (EUR-Lex)",
+      "text_read": true,
+      "how_read": "Publications Office resource http://publications.europa.eu/resource/celex/32023L0970 (same OJ text as EUR-Lex; eur-lex.europa.eu itself answered with a bot challenge)"
+    },
+    "et": {
+      "title": "Real Decreto Legislativo 2/2015, texto refundido de la Ley del Estatuto de los Trabajadores",
+      "id": "BOE-A-2015-11430",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2015-11430/texto (current version)"
+    },
+    "ley15-2022": {
+      "title": "Ley 15/2022, integral para la igualdad de trato y la no discriminación",
+      "id": "BOE-A-2022-11589",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2022-11589/texto (current version)"
+    },
+    "lgd": {
+      "title": "Real Decreto Legislativo 1/2013, texto refundido de la Ley General de derechos de las personas con discapacidad",
+      "id": "BOE-A-2013-12632",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-12632",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2013-12632/texto (current version)"
+    },
+    "lisos": {
+      "title": "Real Decreto Legislativo 5/2000, texto refundido de la Ley sobre Infracciones y Sanciones en el Orden Social (LISOS)",
+      "id": "BOE-A-2000-15060",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2000-15060/texto (current version)"
+    },
+    "lo1-1996": {
+      "title": "Ley Orgánica 1/1996, de Protección Jurídica del Menor",
+      "id": "BOE-A-1996-1069",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1996-1069",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-1996-1069/texto (current version)"
+    },
+    "lo3-2007": {
+      "title": "Ley Orgánica 3/2007, para la igualdad efectiva de mujeres y hombres",
+      "id": "BOE-A-2007-6115",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6115",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2007-6115/texto (current version)"
+    },
+    "lo4-2000": {
+      "title": "Ley Orgánica 4/2000, sobre derechos y libertades de los extranjeros en España y su integración social",
+      "id": "BOE-A-2000-544",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-544",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2000-544/texto (current version)"
+    },
+    "lo8-2021": {
+      "title": "Ley Orgánica 8/2021, de protección integral a la infancia y la adolescencia frente a la violencia",
+      "id": "BOE-A-2021-9347",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2021-9347",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2021-9347/texto (current version)"
+    },
+    "lopdgdd": {
+      "title": "Ley Orgánica 3/2018, de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD)",
+      "id": "BOE-A-2018-16673",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-2018-16673/texto (current version)"
+    },
+    "prl": {
+      "title": "Ley 31/1995, de Prevención de Riesgos Laborales",
+      "id": "BOE-A-1995-24292",
+      "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292",
+      "kind": "BOE consolidated text",
+      "text_read": true,
+      "how_read": "BOE open-data API, legislacion-consolidada/id/BOE-A-1995-24292/texto (current version)"
+    },
+    "rgpd": {
+      "title": "Reglamento (UE) 2016/679 (RGPD)",
+      "id": "32016R0679",
+      "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+      "kind": "EU Official Journal text (EUR-Lex)",
+      "text_read": true,
+      "how_read": "Publications Office resource http://publications.europa.eu/resource/celex/32016R0679 (same OJ text as EUR-Lex; eur-lex.europa.eu itself answered with a bot challenge)"
+    }
+  },
+  "categories": [
+    {
+      "id": "age",
+      "category": "age",
+      "title": {
+        "es": "Edad",
+        "en": "Age"
+      },
+      "patterns": {
+        "es": [
+          "\\bcuantos anos (tienes|cumples)(?! de | en | con | trabajando)",
+          "\\bque edad tienes\\b",
+          "\\bfecha de nacimiento",
+          "\\bcuando naciste",
+          "\\ben que ano (naciste|terminaste|acabaste|empezaste el colegio)",
+          "\\btu edad\\b"
+        ],
+        "en": [
+          "\\bhow old are you\\b",
+          "\\bhow old are your (?:kids|children)",
+          "\\bwhat(?:'s| is) your age",
+          "\\bdate of birth",
+          "\\bwhat year were you born",
+          "\\bwhen were you born",
+          "\\bwhat year did you (?:finish|graduate|leave)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Cuántos años tienes?",
+          "¿Cuál es tu fecha de nacimiento?",
+          "¿En qué año terminaste el colegio?"
+        ],
+        "en": [
+          "How old are you?",
+          "What is your date of birth?",
+          "What year did you graduate from school?"
+        ]
+      },
+      "why": {
+        "es": "La edad es un motivo protegido en el acceso al empleo; la edad no dice nada de la capacidad para el puesto.",
+        "en": "Age is a protected ground in access to employment and says nothing about ability to do the job."
+      },
+      "legal_basis": [
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a9",
+          "quote": "No podrán establecerse limitaciones, segregaciones o exclusiones por razón de las causas previstas en esta ley para el acceso al empleo por cuenta ajena, público o privado, incluidos los criterios de selección",
+          "verified": true
+        },
+        {
+          "source": "ce",
+          "ref": "art. 14",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a14",
+          "quote": "Los españoles son iguales ante la ley, sin que pueda prevalecer discriminación alguna por razón de nacimiento, raza, sexo, religión, opinión o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        },
+        {
+          "source": "dir-2000-78",
+          "ref": "art. 4.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0078",
+          "quote": "una diferencia de trato basada en una característica relacionada con cualquiera de los motivos mencionados en el artículo 1 no tendrá carácter discriminatorio cuando, debido a la naturaleza de la actividad profesional concreta de que se trate o al contexto en que se lleve a cabo, dicha característica constituya un requisito profesional esencial y determinante, siempre y cuando el objetivo sea legítimo y el requisito, proporcionado.",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Solo si la ley fija una edad mínima para la tarea: «¿Tienes 18 años cumplidos?». En cualquier otro caso, no se pregunta.",
+        "en": "Only where the law sets a minimum age for the task: “Are you at least 18?”. Otherwise do not ask."
+      },
+      "exceptions": [
+        {
+          "es": "Edad mínima legal: el ET prohíbe admitir al trabajo a menores de 16 años y los trabajos nocturnos a menores de 18.",
+          "en": "Legal minimum age: the Workers' Statute bars under-16s from work and under-18s from night work.",
+          "basis": [
+            {
+              "source": "et",
+              "ref": "art. 6.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a6",
+              "quote": "Se prohíbe la admisión al trabajo a los menores de dieciséis años.",
+              "verified": true
+            },
+            {
+              "source": "et",
+              "ref": "art. 6.2",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a6",
+              "quote": "Los trabajadores menores de dieciocho años no podrán realizar trabajos nocturnos",
+              "verified": true
+            }
+          ]
+        },
+        {
+          "es": "Requisito profesional esencial y determinante, con objetivo legítimo y requisito proporcionado.",
+          "en": "Genuine and determining occupational requirement, with a legitimate aim and a proportionate requirement.",
+          "basis": [
+            {
+              "source": "dir-2000-78",
+              "ref": "art. 4.1",
+              "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0078",
+              "quote": "una diferencia de trato basada en una característica relacionada con cualquiera de los motivos mencionados en el artículo 1 no tendrá carácter discriminatorio cuando, debido a la naturaleza de la actividad profesional concreta de que se trate o al contexto en que se lleve a cabo, dicha característica constituya un requisito profesional esencial y determinante, siempre y cuando el objetivo sea legítimo y el requisito, proporcionado.",
+              "verified": true
+            },
+            {
+              "source": "ley15-2022",
+              "ref": "art. 4.2",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a4",
+              "quote": "No se considera discriminación la diferencia de trato basada en alguna de las causas previstas en el apartado 1 del artículo 2 de esta ley derivada de una disposición, conducta, acto, criterio o práctica que pueda justificarse objetivamente por una finalidad legítima y como medio adecuado, necesario y proporcionado para alcanzarla.",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "verified"
+    },
+    {
+      "id": "family_status",
+      "category": "family",
+      "title": {
+        "es": "Estado civil, pareja, hijos y planes familiares",
+        "en": "Marital status, partner, children and family plans"
+      },
+      "patterns": {
+        "es": [
+          "\\b(estas|eres) (casad[oa]|solter[oa]|divorciad[oa]|separad[oa]|viud[oa])",
+          "\\bestado civil",
+          "\\btienes (pareja|novi[oa]|marido|mujer|esposa|esposo|hijos|ninos)",
+          "\\bcuantos hijos",
+          "\\bque edad tienen (tus|sus) (hijos|ninos)",
+          "\\b(quieres|piensas|planeas) tener (hijos|un hijo|familia)",
+          "\\bplanes (de|para) (tener )?(hijos|formar una familia|familia)",
+          "\\bformar una familia",
+          "\\b(piensas casarte|te vas a casar|vas a casarte)",
+          "\\b(quieres|piensas|planeas|vas a) ser (madre|padre)",
+          "\\beres (madre|padre)\\b",
+          "\\bquien (cuida|cuidara|se queda con) (de )?(tus|los) (hijos|ninos)"
+        ],
+        "en": [
+          "\\bare you (married|single|divorced|separated|widowed)",
+          "\\bmarital status",
+          "\\bget married",
+          "\\bhow old are your",
+          "\\bdo you have (a |any )?(boyfriend|girlfriend|partner|husband|wife|kids|children)",
+          "\\bhow many (kids|children)",
+          "\\bplans? (to|for|of) (have|having|start|starting) (kids|children|a baby|a family)",
+          "\\b(want|plan|planning|thinking) (to |of |about )?(have|having|start|starting) (kids|children|a baby|a family)",
+          "\\bwho (looks after|takes care of|will look after) your (kids|children)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Estás casada?",
+          "¿Tienes hijos o piensas tenerlos pronto?",
+          "¿Quién cuida de tus hijos cuando trabajas?"
+        ],
+        "en": [
+          "Are you married?",
+          "Do you have kids, or are you planning to have children?",
+          "Who looks after your children while you work?"
+        ]
+      },
+      "why": {
+        "es": "El estado civil y el trato desfavorable por conciliación son motivos expresos del ET; la situación familiar figura en el delito del art. 314 CP. Para la disponibilidad basta describir el horario.",
+        "en": "Marital status and unfavourable treatment for work-life balance rights are grounds named in the Workers' Statute; family situation appears in the criminal offence of art. 314 CP. For availability, describing the schedule is enough."
+      },
+      "legal_basis": [
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "lo3-2007",
+          "ref": "art. 5 (párr. 1)",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6115#a5",
+          "quote": "El principio de igualdad de trato y de oportunidades entre mujeres y hombres, aplicable en el ámbito del empleo privado y en el del empleo público, se garantizará, en los términos previstos en la normativa aplicable, en el acceso al empleo",
+          "verified": true
+        },
+        {
+          "source": "ce",
+          "ref": "art. 18.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a18",
+          "quote": "Se garantiza el derecho al honor, a la intimidad personal y familiar y a la propia imagen.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a9",
+          "quote": "No podrán establecerse limitaciones, segregaciones o exclusiones por razón de las causas previstas en esta ley para el acceso al empleo por cuenta ajena, público o privado, incluidos los criterios de selección",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Describe el horario y pregunta a todos igual: «El puesto es de jueves a domingo, de 10 a 14 y de 17 a 21. ¿Puedes cubrirlo?». Si dice que no, no preguntes el motivo.",
+        "en": "Describe the schedule and ask everyone the same: “The job is Thursday to Sunday, 10-14 and 17-21. Can you cover it?”. If the answer is no, do not ask why."
+      },
+      "exceptions": [],
+      "verification": "verified"
+    },
+    {
+      "id": "pregnancy",
+      "category": "pregnancy_maternity",
+      "title": {
+        "es": "Embarazo y maternidad",
+        "en": "Pregnancy and maternity"
+      },
+      "patterns": {
+        "es": [
+          "\\bembarazad[oa]",
+          "\\bembarazo",
+          "\\bquedarte embarazada",
+          "\\bbaja (por |de )?maternidad",
+          "\\b(quieres|piensas|planeas|vas a) (tener|ser) (madre|un bebe)"
+        ],
+        "en": [
+          "\\bpregnan",
+          "\\bplan(?:ning)? (?:on )?(?:getting|becoming) pregnant",
+          "\\bmaternity leave",
+          "\\bexpecting a baby"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Estás embarazada?",
+          "¿Piensas quedarte embarazada en los próximos años?",
+          "¿Vas a coger la baja de maternidad pronto?"
+        ],
+        "en": [
+          "Are you pregnant?",
+          "Are you planning on getting pregnant soon?",
+          "Will you be taking maternity leave any time soon?"
+        ]
+      },
+      "why": {
+        "es": "Todo trato desfavorable relacionado con el embarazo o la maternidad es discriminación directa por razón de sexo; además es un dato de salud.",
+        "en": "Any unfavourable treatment related to pregnancy or maternity is direct sex discrimination; it is also health data."
+      },
+      "legal_basis": [
+        {
+          "source": "lo3-2007",
+          "ref": "art. 8",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6115#a8",
+          "quote": "Constituye discriminación directa por razón de sexo todo trato desfavorable a las mujeres relacionado con el embarazo o la maternidad.",
+          "verified": true
+        },
+        {
+          "source": "lo3-2007",
+          "ref": "art. 5 (párr. 1)",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6115#a5",
+          "quote": "El principio de igualdad de trato y de oportunidades entre mujeres y hombres, aplicable en el ámbito del empleo privado y en el del empleo público, se garantizará, en los términos previstos en la normativa aplicable, en el acceso al empleo",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "No hay pregunta sobre esto. Describe las tareas y el horario y pregunta si puede realizarlos: «¿Puedes realizar estas tareas y este horario?».",
+        "en": "There is no question on this. Describe the tasks and schedule and ask whether the person can do them: “Can you do these tasks and this schedule?”."
+      },
+      "exceptions": [
+        {
+          "es": "La protección de la maternidad en la evaluación de riesgos (PRL art. 26) se aplica a la trabajadora ya contratada que comunica su situación; no autoriza a preguntar antes de contratar.",
+          "en": "Maternity protection in the risk assessment (PRL art. 26) applies to an employee who has already been hired and discloses her situation; it does not allow asking before hiring.",
+          "basis": [
+            {
+              "source": "prl",
+              "ref": "art. 26.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292#a26",
+              "quote": "La evaluación de los riesgos a que se refiere el artículo 16 de la presente Ley deberá comprender la determinación de la naturaleza, el grado y la duración de la exposición de las trabajadoras en situación de embarazo o parto reciente",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "verified"
+    },
+    {
+      "id": "health",
+      "category": "health",
+      "title": {
+        "es": "Salud, enfermedades, bajas y medicación",
+        "en": "Health, illness, sick leave and medication"
+      },
+      "patterns": {
+        "es": [
+          "\\b(tienes|padeces|sufres) (algun[oa]? )?(enfermedad|dolencia|problema de salud|problemas de salud|lesion|alergia)",
+          "\\bbajas? medicas?",
+          "\\b(estado|condiciones?) de salud",
+          "\\btu salud\\b",
+          "\\bmedicacion",
+          "\\btratamiento medico",
+          "\\btu salud mental|\\bproblemas? de salud mental|\\b(tienes|padeces|sufres) (de )?(depresion|ansiedad)",
+          "\\bestas en tratamiento",
+          "\\bestas (sana|sano|enferm[oa])\\b",
+          "\\bfumas\\b|\\bbebes( alcohol)?\\b|\\bconsumes (drogas|alcohol)",
+          "\\bhas estado de baja",
+          "\\bcuantos dias (has )?(faltado|estado de baja)",
+          "\\bte han operado|\\bhas tenido (una )?(operacion|cirugia)"
+        ],
+        "en": [
+          "\\bany (health|medical) (problems?|conditions?|issues?)",
+          "\\bdo you have (a |any )?(illness|disease|medical condition|injur(?:y|ies)|allerg)",
+          "\\b(sick|medical) (leave|days)",
+          "\\bhow many sick days",
+          "\\bmedication",
+          "\\byour mental health|\\bmental health (?:issues?|problems?|condition)",
+          "\\bdo you (?:have|suffer from) (?:depression|anxiety)",
+          "\\bdo you (?:smoke|drink)\\b|\\bare you (?:healthy|sick|ill)\\b",
+          "\\byour health",
+          "\\bhave you (ever )?had (an? )?(surgery|operation)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Tienes algún problema de salud?",
+          "¿Cuántas bajas médicas has tenido el último año?",
+          "¿Tomas alguna medicación?"
+        ],
+        "en": [
+          "Do you have any health problems?",
+          "How many sick days did you take last year?",
+          "Are you on any medication?"
+        ]
+      },
+      "why": {
+        "es": "La Ley 15/2022 dice expresamente que el empleador no puede preguntar por las condiciones de salud de quien aspira al puesto; la salud es dato de categoría especial (RGPD art. 9).",
+        "en": "Law 15/2022 states that the employer cannot ask about the health of a job applicant; health is special-category data (GDPR art. 9)."
+      },
+      "legal_basis": [
+        {
+          "source": "ley15-2022",
+          "ref": "art. 9.5",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a9",
+          "quote": "El empleador no podrá preguntar sobre las condiciones de salud del aspirante al puesto.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.3",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "La enfermedad no podrá amparar diferencias de trato distintas de las que deriven del propio proceso de tratamiento de la misma, de las limitaciones objetivas que imponga para el ejercicio de determinadas actividades o de las exigidas por razones de salud pública.",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "lopdgdd",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673#a9",
+          "quote": "el solo consentimiento del afectado no bastará para levantar la prohibición del tratamiento de datos cuya finalidad principal sea identificar su ideología, afiliación sindical, religión, orientación sexual, creencias u origen racial o étnico.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        },
+        {
+          "source": "lisos",
+          "ref": "art. 16.1.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
+          "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
+        },
+        {
+          "source": "prl",
+          "ref": "art. 22.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292#a22",
+          "quote": "Esta vigilancia sólo podrá llevarse a cabo cuando el trabajador preste su consentimiento.",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Describe la tarea y pregunta por ella: «El puesto exige estar de pie toda la jornada y mover cajas de hasta 15 kilos. ¿Has hecho tareas parecidas?». Nunca por su estado físico.",
+        "en": "Describe the task and ask about it: “The job means standing all day and moving boxes up to 15 kg. Have you done similar tasks?”. Never about physical condition."
+      },
+      "exceptions": [
+        {
+          "es": "La vigilancia de la salud (PRL art. 22) es posterior a la contratación, voluntaria salvo excepciones legales y a cargo de los servicios de prevención; no es una pregunta de la entrevista.",
+          "en": "Health surveillance (PRL art. 22) happens after hiring, is voluntary except in legal cases, and belongs to the prevention service; it is not an interview question.",
+          "basis": [
+            {
+              "source": "prl",
+              "ref": "art. 22.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292#a22",
+              "quote": "Esta vigilancia sólo podrá llevarse a cabo cuando el trabajador preste su consentimiento.",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "disability",
+      "category": "disability",
+      "title": {
+        "es": "Discapacidad",
+        "en": "Disability"
+      },
+      "patterns": {
+        "es": [
+          "\\bdiscapacidad|\\bdiscapacitad|\\bminusvalia",
+          "\\btienes (algun[oa]? )?(limitacion|incapacidad)",
+          "\\bincapacidad (laboral|permanente)",
+          "\\bgrado de (discapacidad|minusvalia)"
+        ],
+        "en": [
+          "\\bdisabilit(?:y|ies)|\\bdisabled\\b|\\bhandicap",
+          "\\bany (physical|mental) limitations?",
+          "\\bphysical limitations"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Tienes alguna discapacidad?",
+          "¿Qué grado de discapacidad tienes reconocido?",
+          "¿Tienes alguna limitación física para este trabajo?"
+        ],
+        "en": [
+          "Do you have a disability?",
+          "Do you have any physical limitations?",
+          "What is your disability percentage?"
+        ]
+      },
+      "why": {
+        "es": "La discapacidad es un motivo protegido (ET, Ley 15/2022, LGD). La empresa debe valorar ajustes razonables, no preguntar por la condición.",
+        "en": "Disability is a protected ground (Workers' Statute, Law 15/2022, General Disability Law). The employer must consider reasonable adjustments rather than ask about the condition."
+      },
+      "legal_basis": [
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "lgd",
+          "ref": "art. 63",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-12632#a63",
+          "quote": "Se entenderá que se vulnera el derecho a la igualdad de oportunidades de las personas con discapacidad, definidas en el artículo 4.1, cuando, por motivo de o por razón de discapacidad, se produzcan discriminaciones directas o indirectas, discriminación por asociación, acosos, incumplimientos de las exigencias de accesibilidad y de realizar ajustes razonables",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 9.5",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a9",
+          "quote": "El empleador no podrá preguntar sobre las condiciones de salud del aspirante al puesto.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Describe las tareas esenciales y pregunta a todos igual: «¿Puedes realizar estas tareas?». Para el propio proceso, ofrece ajustes sin pedir el motivo: «¿Necesitas algo para hacer la entrevista, como más tiempo?».",
+        "en": "Describe the essential tasks and ask everyone the same: “Can you do these tasks?”. For the process itself, offer adjustments without asking why: “Do you need anything to take the interview, such as more time?”."
+      },
+      "exceptions": [
+        {
+          "es": "La candidata o el candidato puede revelarlo por iniciativa propia para pedir un ajuste razonable; se anota el ajuste, no el motivo. La denegación de ajustes razonables es discriminación (Ley 15/2022 art. 4.1; LGD art. 40.2).",
+          "en": "The candidate may disclose it unprompted to ask for a reasonable adjustment; record the adjustment, not the reason. Denying reasonable adjustments is discrimination (Law 15/2022 art. 4.1; General Disability Law art. 40.2).",
+          "basis": [
+            {
+              "source": "ley15-2022",
+              "ref": "art. 4.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a4",
+              "quote": "Se consideran vulneraciones de este derecho la discriminación, directa o indirecta, por asociación y por error, la discriminación múltiple o interseccional, la denegación de ajustes razonables",
+              "verified": true
+            },
+            {
+              "source": "lgd",
+              "ref": "art. 40.2",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2013-12632#a40",
+              "quote": "Las empresas están obligadas a adoptar las medidas adecuadas para la adaptación del puesto de trabajo y la accesibilidad de la empresa",
+              "verified": true
+            }
+          ]
+        },
+        {
+          "es": "Trabajadores especialmente sensibles (PRL art. 25): obligación de protección una vez contratado, no una pregunta previa.",
+          "en": "Especially sensitive workers (PRL art. 25): a protection duty once hired, not a prior question.",
+          "basis": [
+            {
+              "source": "prl",
+              "ref": "art. 25.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-24292#a25",
+              "quote": "El empresario garantizará de manera específica la protección de los trabajadores que, por sus propias características personales o estado biológico conocido, incluidos aquellos que tengan reconocida la situación de discapacidad física, psíquica o sensorial, sean especialmente sensibles a los riesgos derivados del trabajo.",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "verified"
+    },
+    {
+      "id": "religion_ideology",
+      "category": "belief",
+      "title": {
+        "es": "Religión, creencias, ideología y opiniones políticas",
+        "en": "Religion, beliefs, ideology and political views"
+      },
+      "patterns": {
+        "es": [
+          "\\b(que|cual es tu) religion",
+          "\\btu religion",
+          "\\beres (creyente|catolic[oa]|musulman|musulmana|judi[oa]|ateo|atea|practicante|cristian[oa]|evangelic[oa])",
+          "\\bvas a (la )?(iglesia|mezquita|sinagoga|misa)",
+          "\\bque (votas|votaste)|\\ba quien votas|\\bpartido (politico )?(votas|apoyas)",
+          "\\btus? (ideas|opiniones|creencias) (politicas|religiosas)",
+          "\\btu ideologia\\b",
+          "\\bde que (partido|ideologia)",
+          "\\b(perteneces|militas|estas afiliad[oa]) (a|en) (algun )?partido",
+          "\\beres (religios[oa]|de derechas|de izquierdas)"
+        ],
+        "en": [
+          "\\bwhat(?:'s| is)? ?(your )?religion",
+          "\\bare you (religious|christian|muslim|jewish|catholic|an atheist|atheist)",
+          "\\b(go|attend) (to )?(church|mosque|synagogue)",
+          "\\bwho (did you|do you) vote for|\\bwhich political party|\\bwhat party do you (?:vote|support)",
+          "\\bpolitical (views|opinions|beliefs|affiliation)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Qué religión practicas?",
+          "¿A quién votaste en las últimas elecciones?",
+          "¿Cuáles son tus ideas políticas?"
+        ],
+        "en": [
+          "What religion are you?",
+          "Who did you vote for in the last election?",
+          "What are your political views?"
+        ]
+      },
+      "why": {
+        "es": "Nadie puede ser obligado a declarar su ideología, religión o creencias; son motivos protegidos y datos de categoría especial que ni el consentimiento basta para tratar con ese fin.",
+        "en": "Nobody can be forced to declare their ideology, religion or beliefs; they are protected grounds and special-category data that consent alone cannot lift when that is the purpose."
+      },
+      "legal_basis": [
+        {
+          "source": "ce",
+          "ref": "art. 16.2",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a16",
+          "quote": "Nadie podrá ser obligado a declarar sobre su ideología, religión o creencias.",
+          "verified": true
+        },
+        {
+          "source": "ce",
+          "ref": "art. 14",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a14",
+          "quote": "Los españoles son iguales ante la ley, sin que pueda prevalecer discriminación alguna por razón de nacimiento, raza, sexo, religión, opinión o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "lopdgdd",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673#a9",
+          "quote": "el solo consentimiento del afectado no bastará para levantar la prohibición del tratamiento de datos cuya finalidad principal sea identificar su ideología, afiliación sindical, religión, orientación sexual, creencias u origen racial o étnico.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "No hay pregunta sobre esto. Si el puesto exige trabajar en festivos o fines de semana, describe el calendario y pregunta si puede cumplirlo, sin preguntar por qué.",
+        "en": "There is no question on this. If the job requires holidays or weekends, describe the calendar and ask whether the person can cover it, without asking why."
+      },
+      "exceptions": [
+        {
+          "es": "Organizaciones de tendencia (ideológica, religiosa): UNVERIFIED. El ET no lo recoge en los artículos revisados; depende de jurisprudencia y de la Directiva 2000/78 (art. 4.2) que no se ha contrastado. Pide revisión jurídica.",
+          "en": "Tendency organisations (ideological, religious): UNVERIFIED. Not in the Workers' Statute articles checked; it rests on case law and on Directive 2000/78 art. 4.2, which was not checked. Ask a lawyer.",
+          "basis": []
+        }
+      ],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "union",
+      "category": "union",
+      "title": {
+        "es": "Afiliación sindical",
+        "en": "Trade-union membership"
+      },
+      "patterns": {
+        "es": [
+          "\\beres (del )?(sindicat|afiliad)",
+          "\\bestas afiliad[oa]",
+          "\\bafiliacion sindical",
+          "\\bsindicato",
+          "\\bdelegad[oa] sindical",
+          "\\bhas sido (sindicalista|delegad[oa])"
+        ],
+        "en": [
+          "\\b(?:are|were|have) you (?:ever )?(?:been )?(?:a )?(?:member of|in) (?:a |any |the )?(?:trade )?union",
+          "\\btrade union",
+          "\\bunion (?:member|membership|rep|representative|activit)",
+          "\\bjoin (?:a |the )?union"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Estás afiliado a algún sindicato?",
+          "¿Has sido delegado sindical en tu empresa anterior?",
+          "¿Perteneces a algún sindicato?"
+        ],
+        "en": [
+          "Are you a member of a trade union?",
+          "Have you ever been in a union?",
+          "Were you a union representative at your last job?"
+        ]
+      },
+      "why": {
+        "es": "La afiliación o no a un sindicato es un motivo protegido (ET) y un dato de categoría especial (RGPD art. 9); la libertad sindical es un derecho fundamental.",
+        "en": "Union membership or not is a protected ground (Workers' Statute) and special-category data (GDPR art. 9); union freedom is a fundamental right."
+      },
+      "legal_basis": [
+        {
+          "source": "ce",
+          "ref": "art. 28.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a28",
+          "quote": "Todos tienen derecho a sindicarse libremente.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "lopdgdd",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673#a9",
+          "quote": "el solo consentimiento del afectado no bastará para levantar la prohibición del tratamiento de datos cuya finalidad principal sea identificar su ideología, afiliación sindical, religión, orientación sexual, creencias u origen racial o étnico.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "No hay pregunta sobre esto. Pregunta por experiencia y funciones, no por el tipo de organización: «¿Qué responsabilidades tenías en tu último puesto?».",
+        "en": "There is no question on this. Ask about experience and duties, not the kind of organisation: “What were your responsibilities in your last job?”."
+      },
+      "exceptions": [],
+      "verification": "verified"
+    },
+    {
+      "id": "origin_nationality_language",
+      "category": "origin",
+      "title": {
+        "es": "Origen, nacionalidad, etnia y lengua materna",
+        "en": "Origin, nationality, ethnicity and mother tongue"
+      },
+      "patterns": {
+        "es": [
+          "\\bde donde eres\\b",
+          "\\bde que pais eres",
+          "\\b(cual es )?tu nacionalidad",
+          "\\bdonde naciste",
+          "\\blugar de nacimiento",
+          "\\bpais de origen",
+          "\\bde donde es tu familia",
+          "\\b(cual es )?tu (lengua|idioma) materna?",
+          "\\bidioma materno",
+          "\\btu (origen|etnia)\\b",
+          "\\bde que etnia",
+          "\\beres (gitan[oa]|extranjer[oa]|inmigrante|espanol[a]?|de aqui|de fuera)",
+          "\\btu acento"
+        ],
+        "en": [
+          "\\bwhere (?:are|were) you (?:from|born)",
+          "\\bwhere do you come from",
+          "\\bwhat(?:'s| is) your nationality|\\bwhat nationality",
+          "\\bplace of birth|\\bcountry of origin",
+          "\\bethnic(?:ity)?\\b|\\bwhat race",
+          "\\byour (?:native|mother|first) (?:language|tongue)|\\bwhat(?:\\'s| is) your first language|\\bare you a native speaker",
+          "\\bwhere is your family from",
+          "\\bare you an? (?:immigrant|foreigner|citizen)",
+          "\\bare you from (?:here|around here)",
+          "\\byour accent"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿De dónde eres?",
+          "¿Cuál es tu nacionalidad?",
+          "¿Cuál es tu lengua materna?"
+        ],
+        "en": [
+          "Where are you from?",
+          "What is your nationality?",
+          "What is your first language?"
+        ]
+      },
+      "why": {
+        "es": "El origen racial o étnico, la nacionalidad y la lengua son motivos protegidos. Lo único relevante es si puede trabajar legalmente.",
+        "en": "Racial or ethnic origin, nationality and language are protected grounds. The only relevant point is whether the person may work legally."
+      },
+      "legal_basis": [
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1 (primera frase)",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Se reconoce el derecho de toda persona a la igualdad de trato y no discriminación con independencia de su nacionalidad",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "lopdgdd",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673#a9",
+          "quote": "el solo consentimiento del afectado no bastará para levantar la prohibición del tratamiento de datos cuya finalidad principal sea identificar su ideología, afiliación sindical, religión, orientación sexual, creencias u origen racial o étnico.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        },
+        {
+          "source": "dir-2000-43",
+          "ref": "art. 3.1.a",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0043",
+          "quote": null,
+          "verified": false,
+          "note": "Not checked against the text (EUR-Lex refused automated access and the Publications Office mirror returned no document for this act). From memory it applies to access to employment; confirm before relying on it."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "«¿Tienes autorización para trabajar en España?» (a todas las personas) y, si el puesto lo exige, «¿Qué nivel de inglés tienes? Cuéntame cómo lo has usado en el trabajo».",
+        "en": "“Are you authorised to work in Spain?” (to everyone) and, where the job requires it, “What is your level of English? Tell me how you have used it at work.”"
+      },
+      "exceptions": [
+        {
+          "es": "Autorización de residencia y trabajo: el extranjero mayor de 16 años la necesita para trabajar (LO 4/2000 art. 36.1); se pregunta a todos igual, sin preguntar por la nacionalidad ni el país.",
+          "en": "Residence and work authorisation: a foreign national over 16 needs it to work (LO 4/2000 art. 36.1); ask everyone the same, without asking nationality or country.",
+          "basis": [
+            {
+              "source": "lo4-2000",
+              "ref": "art. 36.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-544#a36",
+              "quote": "Los extranjeros mayores de dieciséis años precisarán, para ejercer cualquier actividad lucrativa, laboral o profesional, de la correspondiente autorización administrativa previa para residir y trabajar.",
+              "verified": true
+            }
+          ]
+        },
+        {
+          "es": "Idioma exigido por el puesto: se comprueba el nivel o el uso real, nunca la lengua materna. La diferencia de trato debe estar justificada objetivamente (Ley 15/2022 art. 4.2).",
+          "en": "Language required by the job: check the level or real use, never the mother tongue. Any difference in treatment must be objectively justified (Law 15/2022 art. 4.2).",
+          "basis": [
+            {
+              "source": "ley15-2022",
+              "ref": "art. 4.2",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a4",
+              "quote": "No se considera discriminación la diferencia de trato basada en alguna de las causas previstas en el apartado 1 del artículo 2 de esta ley derivada de una disposición, conducta, acto, criterio o práctica que pueda justificarse objetivamente por una finalidad legítima y como medio adecuado, necesario y proporcionado para alcanzarla.",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "sexual_orientation_gender",
+      "category": "sexual_orientation_gender",
+      "title": {
+        "es": "Orientación sexual, identidad y expresión de género, nombre anterior",
+        "en": "Sexual orientation, gender identity and expression, former name"
+      },
+      "patterns": {
+        "es": [
+          "\\borientacion sexual",
+          "\\beres (una persona |un hombre |una mujer )?(gay|lesbiana|bisexual|homosexual|heterosexual|trans|transgenero|transexual)",
+          "\\bidentidad (de genero|sexual)",
+          "\\bcambio de (sexo|genero|nombre)",
+          "\\bte has operado",
+          "\\bnombre (de nacimiento|anterior)",
+          "\\bhas cambiado de nombre",
+          "\\bcon que genero te identificas"
+        ],
+        "en": [
+          "\\bsexual orientation",
+          "\\bare you (gay|lesbian|bisexual|straight|homosexual|trans|transgender)",
+          "\\bgender (identity|transition)",
+          "\\bsex change",
+          "\\bbirth name|\\bdead ?name|\\bformer name",
+          "\\bdid you change your name",
+          "\\bwhat gender do you identify"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Cuál es tu orientación sexual?",
+          "¿Has cambiado de nombre o de género?",
+          "¿Eres una persona trans?"
+        ],
+        "en": [
+          "What is your sexual orientation?",
+          "Are you transgender?",
+          "What was your birth name?"
+        ]
+      },
+      "why": {
+        "es": "La orientación e identidad sexual, la expresión de género y las características sexuales son motivos protegidos (ET tras la Ley 4/2023); la vida sexual es dato de categoría especial.",
+        "en": "Sexual orientation and identity, gender expression and sex characteristics are protected grounds (Workers' Statute as amended by Law 4/2023); sex life is special-category data."
+      },
+      "legal_basis": [
+        {
+          "source": "et",
+          "ref": "art. 4.2.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no ser discriminadas directa o indirectamente para el empleo o, una vez empleados, por razones de estado civil, edad dentro de los límites marcados por esta ley, origen racial o étnico, condición social, religión o convicciones, ideas políticas, orientación sexual, identidad sexual, expresión de género, características sexuales, afiliación o no a un sindicato, por razón de lengua dentro del Estado español, discapacidad, así como por razón de sexo, incluido el trato desfavorable dispensado a mujeres u hombres por el ejercicio de los derechos de conciliación o corresponsabilidad de la vida familiar y laboral.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 9.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Quedan prohibidos el tratamiento de datos personales que revelen el origen étnico o racial, las opiniones políticas, las convicciones religiosas o filosóficas, o la afiliación sindical, y el tratamiento de datos genéticos, datos biométricos dirigidos a identificar de manera unívoca a una persona física, datos relativos a la salud o datos relativos a la vida sexual o las orientación sexuales de una persona física.",
+          "verified": true
+        },
+        {
+          "source": "lopdgdd",
+          "ref": "art. 9.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2018-16673#a9",
+          "quote": "el solo consentimiento del afectado no bastará para levantar la prohibición del tratamiento de datos cuya finalidad principal sea identificar su ideología, afiliación sindical, religión, orientación sexual, creencias u origen racial o étnico.",
+          "verified": true
+        },
+        {
+          "source": "cp",
+          "ref": "art. 314",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1995-25444#a314",
+          "quote": "Quienes produzcan una grave discriminación en el empleo, público o privado, contra alguna persona por razón de su ideología, religión o creencias, su situación familiar, su pertenencia a una etnia, raza o nación, su origen nacional, su sexo, edad, orientación o identidad sexual o de género, razones de género, de aporofobia o de exclusión social, la enfermedad que padezca o su discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "No hay pregunta sobre esto. Pregunta «¿Cómo prefieres que te llame?» y usa lo que te diga.",
+        "en": "There is no question on this. Ask “What would you like me to call you?” and use the answer."
+      },
+      "exceptions": [],
+      "verification": "verified"
+    },
+    {
+      "id": "criminal_record",
+      "category": "criminal_record",
+      "title": {
+        "es": "Antecedentes penales, detenciones y condenas",
+        "en": "Criminal record, arrests and convictions"
+      },
+      "patterns": {
+        "es": [
+          "\\bantecedentes (penales|policiales)",
+          "\\bcertificado de antecedentes",
+          "\\bhas sido (condenad|detenid|arrestad|procesad)",
+          "\\btienes (algun )?(delito|condena)",
+          "\\bcondenas? (previas|penales)",
+          "\\bhas estado en (la )?(carcel|prision)",
+          "\\bproblemas con la (justicia|policia)"
+        ],
+        "en": [
+          "\\bcriminal (record|history|background)",
+          "\\bhave you (ever )?been (convicted|arrested|charged|in prison|in jail)",
+          "\\bcriminal convictions?",
+          "\\bpolice record",
+          "\\bever been in (prison|jail)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Tienes antecedentes penales?",
+          "¿Has sido condenado alguna vez?",
+          "¿Has tenido problemas con la justicia?"
+        ],
+        "en": [
+          "Do you have a criminal record?",
+          "Have you ever been convicted of a crime?",
+          "Have you ever been arrested?"
+        ]
+      },
+      "why": {
+        "es": "Los datos de condenas solo se tratan bajo supervisión pública o cuando una ley lo autoriza (RGPD art. 10). La AEPD indica que no se puede exigir un certificado de antecedentes penales salvo que una norma lo contemple.",
+        "en": "Conviction data may only be processed under public supervision or where a law allows it (GDPR art. 10). The AEPD says a criminal-record certificate cannot be required unless a rule provides it."
+      },
+      "legal_basis": [
+        {
+          "source": "rgpd",
+          "ref": "art. 10",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "El tratamiento de datos personales relativos a condenas e infracciones penales o medidas de seguridad conexas sobre la base del artículo 6, apartado 1, sólo podrá llevarse a cabo bajo la supervisión de las autoridades públicas o cuando lo autorice el Derecho de la Unión o de los Estados miembros que establezca garantías adecuadas para los derechos y libertades de los interesados.",
+          "verified": true
+        },
+        {
+          "source": "aepd-relaciones-laborales",
+          "ref": "apartado 3 «Selección y contratación», «Entrevistas de trabajo» (pp. 20-23)",
+          "url": "https://www.aepd.es/guias/la-proteccion-de-datos-en-las-relaciones-laborales.pdf",
+          "quote": null,
+          "verified": true,
+          "note": "Read in the PDF text: interview answers are not consent; criminal-record certificates cannot be requested unless a law provides it; asking personal questions unrelated to the job was held discriminatory (STSJ cited by the guide); requesting personal data in selection that leads to discrimination can be a very serious infraction (LISOS)."
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 5.1.c",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "adecuados, pertinentes y limitados a lo necesario en relación con los fines para los que son tratados («minimización de datos»)",
+          "verified": true
+        },
+        {
+          "source": "lisos",
+          "ref": "art. 16.1.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
+          "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "No se pregunta. Si el puesto implica contacto habitual con menores, la empresa solicita el certificado del Registro Central de Delincuentes Sexuales según la ley, fuera de la conversación.",
+        "en": "Do not ask. If the job involves regular contact with minors, the employer requests the Central Registry of Sex Offenders certificate as the law requires, outside the conversation."
+      },
+      "exceptions": [
+        {
+          "es": "Contacto habitual con menores: requisito legal de no haber sido condenado por delitos contra la libertad e indemnidad sexuales y de acreditarlo con certificación negativa (LO 8/2021 art. 57.1). Antes lo recogía el art. 13.5 de la LO 1/1996 (retirado); la guía de la AEPD de diciembre 2025 aún cita el artículo antiguo.",
+          "en": "Regular contact with minors: legal requirement of no conviction for offences against sexual freedom and integrity, proved with a negative certificate (LO 8/2021 art. 57.1). It used to be art. 13.5 of LO 1/1996 (since removed); the AEPD guide of December 2025 still cites the old article.",
+          "basis": [
+            {
+              "source": "lo8-2021",
+              "ref": "art. 57.1",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2021-9347#a5-9",
+              "quote": "Será requisito para el acceso y ejercicio de cualesquiera profesiones, oficios y actividades que impliquen contacto habitual con personas menores de edad, el no haber sido condenado por sentencia firme por cualquier delito contra la libertad e indemnidad sexuales",
+              "verified": true
+            },
+            {
+              "source": "lo1-1996",
+              "ref": "art. 13 (versión vigente)",
+              "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1996-1069#a13",
+              "quote": "Obligaciones de los ciudadanos y deber de reserva.",
+              "verified": true,
+              "note": "Its former apartados 4 and 5 (certificate for work with minors) were removed by LO 8/2021 disp. final 8.3; the requirement is now art. 57 of LO 8/2021. The AEPD guide of December 2025 still cites art. 13.5."
+            }
+          ]
+        },
+        {
+          "es": "Otras normas sectoriales (seguridad privada, aviación, blanqueo de capitales) que la AEPD cita como ejemplos: NO verificadas contra el texto de cada norma.",
+          "en": "Other sector rules (private security, aviation, anti-money-laundering) cited by the AEPD as examples: NOT checked against each rule's text.",
+          "basis": []
+        }
+      ],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "physical_appearance",
+      "category": "appearance",
+      "title": {
+        "es": "Aspecto físico, peso, altura, tatuajes",
+        "en": "Physical appearance, weight, height, tattoos"
+      },
+      "patterns": {
+        "es": [
+          "\\bcuanto (pesas|mides)",
+          "\\btu (peso|altura|estatura)\\b",
+          "\\btienes (algun )?(tatuaje|piercing)",
+          "\\bfoto(grafia)? (tuya|de cuerpo)|\\bmanda(me)? una foto",
+          "\\bcolor de (piel|pelo|ojos)"
+        ],
+        "en": [
+          "\\bhow much do you weigh",
+          "\\bwhat(?:'s| is) your (weight|height)",
+          "\\bhow tall are you",
+          "\\bdo you have (?:any )?(?:tattoos?|piercings?)",
+          "\\bsend (?:me )?a (?:photo|picture) of you"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Cuánto pesas?",
+          "¿Tienes algún tatuaje o piercing?",
+          "Mándame una foto tuya, por favor."
+        ],
+        "en": [
+          "How much do you weigh?",
+          "Do you have any tattoos?",
+          "Please send me a photo of yourself."
+        ]
+      },
+      "why": {
+        "es": "El aspecto físico no se menciona como tal en los artículos revisados; cae en la cláusula abierta «cualquier otra condición o circunstancia personal o social» y suele ocultar sexo, edad, salud u origen.",
+        "en": "Physical appearance is not named as such in the articles checked; it falls under the open clause “any other personal or social condition or circumstance” and often hides sex, age, health or origin."
+      },
+      "legal_basis": [
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": "Nadie podrá ser discriminado por razón de nacimiento, origen racial o étnico, sexo, religión, convicción u opinión, edad, discapacidad, orientación o identidad sexual, expresión de género, enfermedad o condición de salud, estado serológico y/o predisposición genética a sufrir patologías y trastornos, lengua, situación socioeconómica, o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "ce",
+          "ref": "art. 14",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229#a14",
+          "quote": "Los españoles son iguales ante la ley, sin que pueda prevalecer discriminación alguna por razón de nacimiento, raza, sexo, religión, opinión o cualquier otra condición o circunstancia personal o social.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 2.1 (cláusula abierta) aplicada al aspecto físico: no contrastado con jurisprudencia",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a2",
+          "quote": null,
+          "verified": false,
+          "note": "Whether each specific appearance criterion is protected was not checked against case law."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Si el puesto exige uniforme o una norma de imagen, descríbela y pregunta: «¿Puedes cumplir esta norma de uniformidad?».",
+        "en": "If the job requires a uniform or an image rule, describe it and ask: “Can you follow this uniform rule?”."
+      },
+      "exceptions": [],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "pay_history",
+      "category": "pay",
+      "title": {
+        "es": "Historial retributivo (lo que cobraba o cobra)",
+        "en": "Pay history (what the person earned or earns)"
+      },
+      "patterns": {
+        "es": [
+          "\\bcuanto (cobrabas|ganabas|cobras|ganas)\\b",
+          "\\bcuanto te pagaban",
+          "\\bcual (era|es|fue) tu (ultimo |actual |anterior )?(sueldo|salario)",
+          "\\btu (ultimo|anterior|actual) (sueldo|salario)",
+          "\\b(sueldo|salario) (anterior|actual)",
+          "\\bque (sueldo|salario) tenias",
+          "\\bhistorial (salarial|retributivo)",
+          "\\btus? (ultimas? )?nominas?"
+        ],
+        "en": [
+          "\\bhow much (?:do|did) you (?:make|earn)",
+          "\\bwhat (?:do|did) you (?:make|earn)(?! of | out )",
+          "\\bwhat (?:is|was) your (?:current|last|previous|present) (?:salary|pay|wage)",
+          "\\bsalary history|\\bpay history",
+          "\\bpay ?slips?"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Cuánto cobrabas en tu último trabajo?",
+          "¿Cuál es tu sueldo actual?",
+          "¿Me enseñas tus últimas nóminas?"
+        ],
+        "en": [
+          "How much did you earn in your last job?",
+          "What is your current salary?",
+          "Can I see your last payslips?"
+        ]
+      },
+      "why": {
+        "es": "La Directiva (UE) 2023/970 impide preguntar al solicitante por su historial retributivo. Se pregunta por la expectativa para este puesto, no por el pasado.",
+        "en": "Directive (EU) 2023/970 bars asking applicants about their pay history. Ask the expectation for this job, not the past."
+      },
+      "legal_basis": [
+        {
+          "source": "dir-2023-970",
+          "ref": "art. 5.2",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32023L0970",
+          "quote": "Ningún empleador podrá hacer a los solicitantes preguntas sobre su historial retributivo en sus relaciones laborales actuales o anteriores.",
+          "verified": true
+        },
+        {
+          "source": "dir-2023-970",
+          "ref": "art. 34.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32023L0970",
+          "quote": "a más tardar el 7 de junio de 2026",
+          "verified": true,
+          "note": "Deadline for Member States. Whether and how Spain transposed it was NOT checked."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "«¿Qué expectativa salarial tienes para este puesto?» (pregunta básica del bloque de preguntas comunes).",
+        "en": "“What salary do you expect for this job?” (one of the core questions)."
+      },
+      "exceptions": [],
+      "status_note": {
+        "es": "La directiva obligaba a los Estados a transponerla antes del 7 de junio de 2026. No se ha comprobado si España la ha transpuesto ni cómo; hasta saberlo, se trata como buena práctica de la UE, no como prohibición española contrastada.",
+        "en": "Member States had to transpose the directive by 7 June 2026. Whether and how Spain did was not checked; until known, treat it as EU good practice, not a verified Spanish prohibition."
+      },
+      "verification": "partly_verified"
+    },
+    {
+      "id": "excess_personal_data",
+      "category": "data_minimisation",
+      "title": {
+        "es": "Datos personales innecesarios en la entrevista (DNI, cuenta, dirección exacta, redes sociales)",
+        "en": "Unnecessary personal data in the interview (ID number, bank account, exact address, social media)"
+      },
+      "patterns": {
+        "es": [
+          "\\b(dame|dime|me das|pasame|facilitame) tu (dni|nie|pasaporte|iban|direccion|numero de (cuenta|seguridad social))",
+          "\\bcual es tu (dni|nie|direccion|numero de cuenta|iban|numero de la seguridad social)",
+          "\\btu (instagram|facebook|tiktok|perfil de redes)",
+          "\\btus? redes sociales",
+          "\\bdireccion (exacta|completa)",
+          "\\bdonde vives (exactamente|en concreto)"
+        ],
+        "en": [
+          "\\byour (?:ssn|social security number|passport|id number|bank account|iban|home address)",
+          "\\bwhat(?:'s| is) your address",
+          "\\byour (?:social media|instagram|facebook|tiktok)\\b",
+          "\\bexact address"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Me das tu DNI y tu número de cuenta?",
+          "¿Cuál es tu dirección exacta?",
+          "¿Me pasas tu Instagram?"
+        ],
+        "en": [
+          "What is your social security number?",
+          "What is your home address?",
+          "Can you share your Instagram?"
+        ]
+      },
+      "why": {
+        "es": "Solo se piden los datos necesarios para valorar la candidatura (minimización). Los datos para el contrato se piden después, y las respuestas de la entrevista no equivalen a consentimiento.",
+        "en": "Only data needed to assess the application may be asked (minimisation). Data for the contract is asked later, and interview answers are not consent."
+      },
+      "legal_basis": [
+        {
+          "source": "rgpd",
+          "ref": "art. 5.1.c",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "adecuados, pertinentes y limitados a lo necesario en relación con los fines para los que son tratados («minimización de datos»)",
+          "verified": true
+        },
+        {
+          "source": "aepd-relaciones-laborales",
+          "ref": "apartado 3 «Selección y contratación», «Entrevistas de trabajo» (pp. 20-23)",
+          "url": "https://www.aepd.es/guias/la-proteccion-de-datos-en-las-relaciones-laborales.pdf",
+          "quote": null,
+          "verified": true,
+          "note": "Read in the PDF text: interview answers are not consent; criminal-record certificates cannot be requested unless a law provides it; asking personal questions unrelated to the job was held discriminatory (STSJ cited by the guide); requesting personal data in selection that leads to discrimination can be a very serious infraction (LISOS)."
+        },
+        {
+          "source": "lisos",
+          "ref": "art. 16.1.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
+          "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Para la ubicación, describe el centro y pregunta: «El puesto es en Valencia. ¿Te encaja esa ubicación?».",
+        "en": "For location, describe the workplace and ask: “The job is in Valencia. Does that location work for you?”."
+      },
+      "exceptions": [
+        {
+          "es": "Datos necesarios para la ejecución del contrato (DNI, cuenta, Seguridad Social) cuando ya se va a contratar.",
+          "en": "Data needed to perform the contract (ID, bank account, social security) once hiring is decided.",
+          "basis": [
+            {
+              "source": "rgpd",
+              "ref": "art. 5.1.c",
+              "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+              "quote": "adecuados, pertinentes y limitados a lo necesario en relación con los fines para los que son tratados («minimización de datos»)",
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "indirect_proxies",
+      "category": "indirect",
+      "title": {
+        "es": "Preguntas indirectas que revelan datos protegidos",
+        "en": "Indirect questions that reveal protected data"
+      },
+      "patterns": {
+        "es": [
+          "\\bcon quien (vives|convives)",
+          "\\bque haces (los|el) (domingos?|sabados?|viernes|fin de semana)",
+          "\\bpor que no (puedes|podrias|podras) (hacer|cubrir|trabajar)",
+          "\\bcual es el motivo (por el que )?no puedes",
+          "\\bque hacen tus (padres|hermanos)",
+          "\\bde que trabajan tus padres",
+          "\\bcuando terminaste (el colegio|el instituto|la carrera)",
+          "\\bcuidas a (alguien|tus padres|un familiar)",
+          "\\btienes que cuidar a"
+        ],
+        "en": [
+          "\\bwho do you live with",
+          "\\bwhat do you do on (?:sundays|saturdays|fridays|weekends)",
+          "\\bwhy can(?:'?t|not| not) you (?:work|cover|do)",
+          "\\bwhat is the reason you can(?:'?t|not| not)",
+          "\\bwhat do your parents do",
+          "\\bwhen did you (?:finish|leave) (?:school|high school|college)",
+          "\\bdo you (?:have to )?care for (?:an? )?(?:elderly|parents|relative)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Con quién vives?",
+          "¿Qué haces los domingos?",
+          "¿Por qué no puedes cubrir el turno de tarde?"
+        ],
+        "en": [
+          "Who do you live with?",
+          "What do you do on Sundays?",
+          "Why can't you work the evening shift?"
+        ]
+      },
+      "why": {
+        "es": "Un criterio aparentemente neutro que pone a personas protegidas en desventaja es discriminación indirecta. La razón de un «no» puede llevar a familia, salud o creencias.",
+        "en": "A seemingly neutral criterion that puts protected people at a disadvantage is indirect discrimination. The reason behind a “no” can lead to family, health or belief."
+      },
+      "legal_basis": [
+        {
+          "source": "ley15-2022",
+          "ref": "art. 4.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a4",
+          "quote": "Se consideran vulneraciones de este derecho la discriminación, directa o indirecta, por asociación y por error, la discriminación múltiple o interseccional, la denegación de ajustes razonables",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 9.2",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a9",
+          "quote": "Se entenderán discriminatorios los criterios y sistemas de acceso al empleo, público o privado, o en las condiciones de trabajo que produzcan situaciones de discriminación indirecta por razón de las causas previstas en esta ley.",
+          "verified": true
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        },
+        {
+          "source": "lisos",
+          "ref": "art. 16.1.c",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
+          "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
+        }
+      ],
+      "lawful_alternative": {
+        "es": "Pregunta solo si puede o no: «¿Puedes cubrir este turno?». Anota sí o no y, si el puesto lo permite, qué horario podría cubrir.",
+        "en": "Ask only whether it is possible: “Can you cover this shift?”. Record yes or no and, if the job allows, which schedule they could cover."
+      },
+      "exceptions": [],
+      "verification": "partly_verified"
+    },
+    {
+      "id": "past_claims",
+      "category": "retaliation",
+      "title": {
+        "es": "Reclamaciones o demandas contra empleadores anteriores",
+        "en": "Claims or lawsuits against former employers"
+      },
+      "patterns": {
+        "es": [
+          "\\bhas (denunciado|demandado|reclamado) a (una|tu|alguna|la) (empresa|empleador|anterior)",
+          "\\b(demandaste|denunciaste) a (tu|una|la) (empresa|empleador|anterior)",
+          "\\bhas tenido (algun )?(juicio|pleito|conflicto laboral) con"
+        ],
+        "en": [
+          "\\bhave you (?:ever )?(?:sued|filed a (?:complaint|lawsuit|claim) against)",
+          "\\bever (?:sued|taken legal action against) (?:a|an|your|any) (?:employer|company)"
+        ]
+      },
+      "examples": {
+        "es": [
+          "¿Alguna vez has denunciado a una empresa?",
+          "¿Has demandado a tu empresa anterior?",
+          "¿Has tenido algún juicio con un empleador?"
+        ],
+        "en": [
+          "Have you ever sued an employer?",
+          "Have you filed a complaint against a former employer?",
+          "Have you ever taken legal action against a company?"
+        ]
+      },
+      "why": {
+        "es": "El ET prohíbe las represalias por reclamar derechos laborales. El texto citado se refiere a las personas trabajadoras; su aplicación a quien solo es candidata no se ha contrastado, pero el uso de esta información para descartar sería una práctica de riesgo.",
+        "en": "The Workers' Statute bars retaliation for claiming labour rights. The cited text speaks of workers; whether it covers someone who is only an applicant was not checked, but using this information to screen out is a risky practice."
+      },
+      "legal_basis": [
+        {
+          "source": "et",
+          "ref": "art. 4.2.h",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a4",
+          "quote": "A no sufrir ningún trato desfavorable, perjuicio o represalia como consecuencia del ejercicio o reclamación de sus derechos laborales",
+          "verified": true,
+          "note": "Applies to workers; its application to applicants is unverified."
+        },
+        {
+          "source": "et",
+          "ref": "art. 17.1",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a17",
+          "quote": "Se entenderán nulos y sin efecto los preceptos reglamentarios, las cláusulas de los convenios colectivos, los pactos individuales y las decisiones unilaterales del empresario que den lugar en el empleo, así como en materia de retribuciones, jornada y demás condiciones de trabajo, a situaciones de discriminación directa o indirecta desfavorables por razón de edad o discapacidad",
+          "verified": true
+        }
+      ],
+      "lawful_alternative": {
+        "es": "«¿Cómo fue tu salida de la empresa anterior?» solo si hace falta, y sin insistir.",
+        "en": "“How did your last role end?” only if needed, and without pressing."
+      },
+      "exceptions": [],
+      "verification": "partly_verified"
+    }
+  ],
+  "ai_limits": [
+    {
+      "id": "emotion-inference",
+      "limit": {
+        "es": "No inferir emociones de los candidatos en la entrevista (voz, cara, lenguaje).",
+        "en": "Do not infer candidates' emotions in the interview (voice, face, language)."
+      },
+      "status": "prohibited_practice_to_check",
+      "why": {
+        "es": "El art. 5.1.f del Reglamento de IA prohíbe los sistemas de IA que infieren emociones de una persona en lugares de trabajo y centros educativos, salvo motivos médicos o de seguridad. Que una entrevista de selección cuente como «lugar de trabajo» NO se ha verificado (consideraciones y directrices de la Comisión no revisadas): se trata como límite del producto por prudencia.",
+        "en": "Art. 5(1)(f) of the AI Act prohibits AI systems that infer emotions of a person in the workplace and education, except for medical or safety reasons. Whether a selection interview counts as “workplace” was NOT verified (recitals and Commission guidelines not read): treated as a product limit out of caution."
+      },
+      "basis": [
+        {
+          "source": "ai-act",
+          "ref": "art. 5.1.f",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "la introducción en el mercado, la puesta en servicio para este fin específico o el uso de sistemas de IA para inferir las emociones de una persona física en los lugares de trabajo y en los centros educativos, excepto cuando el sistema de IA esté destinado a ser instalado o introducido en el mercado por motivos médicos o de seguridad;",
+          "verified": true
+        },
+        {
+          "source": "ai-act",
+          "ref": "art. 50.3",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "Los responsables del despliegue de un sistema de reconocimiento de emociones o de un sistema de categorización biométrica informarán del funcionamiento del sistema a las personas físicas expuestas a él",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "Ningún campo del informe ni de la ficha puntúa emoción, estrés, confianza ni «energía» a partir de la voz o la cara.",
+        "en": "No field of the report or sheet scores emotion, stress, confidence or “energy” from voice or face."
+      }
+    },
+    {
+      "id": "biometric-categorisation",
+      "limit": {
+        "es": "No deducir raza, opiniones políticas, afiliación sindical, creencias, vida sexual u orientación a partir de datos biométricos.",
+        "en": "Do not infer race, political opinions, union membership, beliefs, sex life or orientation from biometric data."
+      },
+      "status": "prohibited_practice",
+      "why": {
+        "es": "Art. 5.1.g del Reglamento de IA (texto verificado; el fragmento citado está cortado a propósito en «orient...»).",
+        "en": "Art. 5(1)(g) of the AI Act (text verified; the quoted fragment is cut at “orient...”)."
+      },
+      "basis": [
+        {
+          "source": "ai-act",
+          "ref": "art. 5.1.g",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "la introducción en el mercado, la puesta en servicio para este fin específico o el uso de sistemas de categorización biométrica que clasifiquen individualmente a las personas físicas sobre la base de sus datos biométricos para deducir o inferir su raza, opiniones políticas, afiliación sindical, convicciones religiosas o filosóficas, vida sexual u orient",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "El análisis de voz solo atribuye hablantes; no clasifica personas por rasgos protegidos.",
+        "en": "Voice analysis only attributes speakers; it does not classify people by protected traits."
+      }
+    },
+    {
+      "id": "recruitment-high-risk",
+      "limit": {
+        "es": "Un sistema de IA para contratación o selección que filtre solicitudes o evalúe candidatos es de ALTO RIESGO.",
+        "en": "An AI system used to recruit or select people, filter applications or evaluate candidates is HIGH-RISK."
+      },
+      "status": "high_risk",
+      "why": {
+        "es": "Art. 6.2 y anexo III, punto 4.a. Implica obligaciones (gestión de riesgos, supervisión humana, registros, información a candidatos y trabajadores, etc.) que NO se han revisado en detalle. El art. 113 fija la aplicación general desde el 2 de agosto de 2026; no se ha comprobado si se ha aplazado por una modificación posterior (UNVERIFIED).",
+        "en": "Art. 6(2) and Annex III point 4(a). It brings obligations (risk management, human oversight, logging, information to candidates and workers, etc.) that were NOT reviewed in detail. Art. 113 sets general application from 2 August 2026; whether a later amendment postponed it was not checked (UNVERIFIED)."
+      },
+      "basis": [
+        {
+          "source": "ai-act",
+          "ref": "art. 6.2",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "también se considerarán de alto riesgo los sistemas de IA contemplados en el anexo III.",
+          "verified": true
+        },
+        {
+          "source": "ai-act",
+          "ref": "anexo III, punto 4.a",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "Sistemas de IA destinados a ser utilizados para la contratación o la selección de personas físicas, en particular para publicar anuncios de empleo específicos, analizar y filtrar las solicitudes de empleo y evaluar a los candidatos",
+          "verified": true
+        },
+        {
+          "source": "ai-act",
+          "ref": "art. 113",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "Será aplicable a partir del 2 de agosto de 2026.",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "La puntuación de ajuste a la oferta es un borrador para una persona; la decisión de selección no la toma el sistema.",
+        "en": "The fit-to-offer score is a draft for a person; the selection decision is not taken by the system."
+      }
+    },
+    {
+      "id": "tell-it-is-ai",
+      "limit": {
+        "es": "Decir desde la primera frase que la persona habla con una IA.",
+        "en": "Say from the first sentence that the person is talking to an AI."
+      },
+      "status": "obligation",
+      "why": {
+        "es": "Art. 50.1 del Reglamento de IA: los sistemas destinados a interactuar con personas deben informar de que son IA salvo que sea evidente. El art. 13 del RGPD exige informar sobre el tratamiento de datos en el momento de obtenerlos.",
+        "en": "Art. 50(1) of the AI Act: systems meant to interact with people must say they are AI unless obvious. GDPR art. 13 requires information on data processing when data is collected."
+      },
+      "basis": [
+        {
+          "source": "ai-act",
+          "ref": "art. 50.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "estén informadas de que están interactuando con un sistema de IA, excepto cuando resulte evidente",
+          "verified": true
+        },
+        {
+          "source": "rgpd",
+          "ref": "art. 13.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Cuando se obtengan de un interesado datos personales relativos a él, el responsable del tratamiento, en el momento en que estos se obtengan, le facilitará toda la información indicada a continuación",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "Ya cubierto por los elementos obligatorios `aviso-asistente` y `uso-datos` del manifiesto.",
+        "en": "Already covered by the mandatory items `aviso-asistente` and `uso-datos` of the manifest."
+      }
+    },
+    {
+      "id": "no-solely-automated-decision",
+      "limit": {
+        "es": "No tomar una decisión que afecte significativamente al candidato basada únicamente en tratamiento automatizado.",
+        "en": "Do not take a significantly affecting decision based solely on automated processing."
+      },
+      "status": "right",
+      "why": {
+        "es": "RGPD art. 22.1 (verificado). Las excepciones del art. 22.2 y sus garantías no se han analizado.",
+        "en": "GDPR art. 22(1) (verified). The art. 22(2) exceptions and safeguards were not analysed."
+      },
+      "basis": [
+        {
+          "source": "rgpd",
+          "ref": "art. 22.1",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679",
+          "quote": "Todo interesado tendrá derecho a no ser objeto de una decisión basada únicamente en el tratamiento automatizado, incluida la elaboración de perfiles, que produzca efectos jurídicos en él o le afecte significativamente de modo similar.",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "Una persona revisa el informe antes de cualquier decisión.",
+        "en": "A person reviews the report before any decision."
+      }
+    },
+    {
+      "id": "employer-informs-workers",
+      "limit": {
+        "es": "Si la empresa usa IA de alto riesgo en el lugar de trabajo, informa antes a los trabajadores y a sus representantes.",
+        "en": "If the employer uses high-risk AI at work it must first inform workers and their representatives."
+      },
+      "status": "obligation_of_deployer",
+      "why": {
+        "es": "Art. 26.7 del Reglamento de IA (texto verificado); es obligación de la empresa usuaria, no del producto, pero conviene decirlo en la documentación.",
+        "en": "AI Act art. 26(7) (text verified); it is the user company's duty, not the product's, but worth stating in the documentation."
+      },
+      "basis": [
+        {
+          "source": "ai-act",
+          "ref": "art. 26.7",
+          "url": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32024R1689",
+          "quote": "los responsables del despliegue que sean empleadores informarán a los representantes de los trabajadores y a los trabajadores afectados de que estarán expuestos a la utilización del sistema de IA de alto riesgo.",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "Documentar para el cliente.",
+        "en": "Document for the customer."
+      }
+    },
+    {
+      "id": "spanish-ai-discrimination",
+      "limit": {
+        "es": "La Ley 15/2022 aplica la igualdad de trato también a la inteligencia artificial y a la gestión masiva de datos.",
+        "en": "Law 15/2022 applies equal treatment also to artificial intelligence and mass data management."
+      },
+      "status": "applies",
+      "why": {
+        "es": "Art. 3.1.o en el ámbito del empleo (art. 3.1.a), ambos verificados.",
+        "en": "Art. 3(1)(o) with employment scope (art. 3(1)(a)), both verified."
+      },
+      "basis": [
+        {
+          "source": "ley15-2022",
+          "ref": "art. 3.1.o",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a3",
+          "quote": "Inteligencia Artificial y gestión masiva de datos, así como otras esferas de análoga significación.",
+          "verified": true
+        },
+        {
+          "source": "ley15-2022",
+          "ref": "art. 3.1.a",
+          "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589#a3",
+          "quote": "Empleo, por cuenta ajena y por cuenta propia, que comprende el acceso, las condiciones de trabajo, incluidas las retributivas y las de despido, la promoción profesional y la formación para el empleo.",
+          "verified": true
+        }
+      ],
+      "product_rule": {
+        "es": "Los modelos y listas de palabras del detector de preguntas deben probarse contra sesgos.",
+        "en": "Models and word lists of the question detector must be tested for bias."
+      }
+    }
+  ]
+}
