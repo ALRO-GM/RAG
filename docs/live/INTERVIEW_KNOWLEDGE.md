@@ -42,13 +42,16 @@ ai_limits[ {id, limit, status, why, basis[...], product_rule} ]
   apostrophes; each pattern is a Python regular expression searched in
   that text, in either language. A hit is a hint for a person, never a
   verdict. Tests check that every example trips its own category and that
-  no recommended alternative or core question trips any category.
+  no recommended alternative or core question trips any category. They also keep two lists: innocent
+  questions that must return nothing («¿Cuántos años tienes de experiencia?», "How old is the
+  codebase?") and known misses that must hit their category («¿Eres español?», «¿Fumas?»).
 - **Basis.** `source` is a key of `sources`; `ref` the article as the law
   numbers it; `url` the official page (BOE consolidated text with the
   article anchor, EUR-Lex, or the AEPD guide); `quote` the exact words
   read there (checked against the fetched text when the file was
   generated); `verified` is true only when the wording was read in the
   official text; otherwise `note` says what was not checked.
+- LISOS art. 16.1.c carries a note with its open doubt (see §5), so every category that cites it (`health`, `indirect_proxies`, `criminal_record`, `excess_personal_data`) is `partly_verified`.
 - **`verification`** of a category is `verified` only when every basis
   and exception basis is verified and unannotated; any note, unverified
   basis or exception without basis makes it `partly_verified`.
@@ -122,18 +125,18 @@ again; a «no» is recorded without asking why.
 ## 3. Review of the interview-method corpus
 
 `knowledge/domains/interview.generic/metodo-entrevista.jsonl`
-(`docs/live/VOICEBOT_INTERVIEWER.md` §2) went from 170 to 177 records.
-Found and fixed:
+(`docs/live/VOICEBOT_INTERVIEWER.md` §2) went from 170 to 177 records: 57 of
+the 170 were edited and 7 were added (m171-m177). Found and fixed:
 
 | Problem | Records | Fix |
 |---|---|---|
-| Several questions in one quoted question (not one thing per turn, bad for voice) | 46 records in all: 17 compound STAR/follow-up questions (e.g. m020, m055, m094, m118) and the quoted runs of 2-3 questions (e.g. m016, m042, m101, m124) | first question kept; the rest worded as «si falta, en otro turno». A test now forbids more than one `?` per quoted question outside the legal guard |
-| Closed (yes/no) behavioural questions | m083, m102, m142, m016 | rewritten as open («¿Qué hiciste tú?», «Cuéntame una vez…») |
+| Several questions in one quoted question (not one thing per turn, bad for voice) | 48 of the 57 changed records (the other 9 are the legal ones below): 17 compound STAR/follow-up questions (e.g. m020, m055, m094, m118) and quoted runs of 2-3 questions (e.g. m016, m042, m101, m124) | first question kept; the rest worded as «si falta, en otro turno», each one thing. A test forbids more than one `?` and an «… y qué/cómo …» compound inside a quoted question (outside the legal guard and m006, which quotes the bad example) |
+| Closed (yes/no) behavioural questions | m083, m102, m142, m016; the hypothetical «cómo actuaría» of m176 became past behaviour | rewritten as open («¿Qué hiciste tú?», «Cuéntame una vez…») |
 | Invites a health disclosure | m160: «con o sin algún ajuste» | removed; asks «¿Puedes realizar estas tareas?» to everyone; cites Ley 15/2022 art. 9.5 |
 | Outdated citation | m163: LO 1/1996 art. 13.5 | replaced by LO 8/2021 art. 57 (13.5 was removed) and RGPD art. 10 |
 | Inconsistent with the product | m140: «tras dos seguimientos» | the AI asks one (`interview.max_probes`); two for a person |
 | Duplicate | m161 repeated m005 (ajustes) | m161 now the legal point (denying adjustments is discrimination) |
-| Vague / uncited law | m154-m158, m162, m168, m169 | article numbers added and checked (CE 16.2, LOPDGDD 9.1, LO 4/2000 36.1, AI Act 50.1); the Directiva 2000/43 mention marked unchecked |
+| Vague / uncited law | m155, m158, m162, m168, m169 (m154, m156, m157, m159 were left as they were) | article numbers added and checked (ET 6.1/6.2, CE 16.2, LOPDGDD 9.1, LO 4/2000 36.1, AI Act 50.1); the Directiva 2000/43 mention marked unchecked |
 | Gaps | pay history, past claims, emotion inference, the core questions, driving/delivery, vulnerable persons, team leads | m171-m177. The three role families have no `puesto_*` type (a code constant in `ROLE_TYPES`), so they are tagged `puesto_todos` until a follow-up adds the types |
 
 Not changed: the records on structure, closing and per-role requirements

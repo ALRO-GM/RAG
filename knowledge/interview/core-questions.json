@@ -28,8 +28,8 @@
         "en": "A knock-out requirement worth knowing early, so nobody sits through half an interview before finding out it does not fit."
       },
       "follow_up": {
-        "es": "Si duda: «¿Qué te haría falta para que encajara?» (una sola repregunta, solo sobre la modalidad o el desplazamiento).",
-        "en": "If unsure: “What would you need for it to work?” (one follow-up, only about mode or commute)."
+        "es": "No hay repregunta: un «no» o una duda se anotan tal cual, sin preguntar el motivo.",
+        "en": "No follow-up: a “no” or a doubt is recorded as it is, without asking why."
       },
       "legal_note": {
         "es": "Se describe el puesto y se pregunta si encaja. No se pregunta dónde vive exactamente ni por qué no podría desplazarse (dirección exacta y motivos familiares: ver excess_personal_data e indirect_proxies).",

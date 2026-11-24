@@ -164,15 +164,16 @@
       },
       "patterns": {
         "es": [
-          "\\bcuantos anos (tienes|tiene|cumples)",
-          "\\bque edad (tienes|tiene)",
+          "\\bcuantos anos (tienes|cumples)(?! de | en | con | trabajando)",
+          "\\bque edad tienes\\b",
           "\\bfecha de nacimiento",
           "\\bcuando naciste",
           "\\ben que ano (naciste|terminaste|acabaste|empezaste el colegio)",
           "\\btu edad\\b"
         ],
         "en": [
-          "\\bhow old (are|is)",
+          "\\bhow old are you\\b",
+          "\\bhow old are your (?:kids|children)",
           "\\bwhat(?:'s| is) your age",
           "\\bdate of birth",
           "\\bwhat year were you born",
@@ -308,15 +309,20 @@
           "\\bestado civil",
           "\\btienes (pareja|novi[oa]|marido|mujer|esposa|esposo|hijos|ninos)",
           "\\bcuantos hijos",
+          "\\bque edad tienen (tus|sus) (hijos|ninos)",
           "\\b(quieres|piensas|planeas) tener (hijos|un hijo|familia)",
           "\\bplanes (de|para) (tener )?(hijos|formar una familia|familia)",
           "\\bformar una familia",
-          "\\bpiensas casarte",
+          "\\b(piensas casarte|te vas a casar|vas a casarte)",
+          "\\b(quieres|piensas|planeas|vas a) ser (madre|padre)",
+          "\\beres (madre|padre)\\b",
           "\\bquien (cuida|cuidara|se queda con) (de )?(tus|los) (hijos|ninos)"
         ],
         "en": [
           "\\bare you (married|single|divorced|separated|widowed)",
           "\\bmarital status",
+          "\\bget married",
+          "\\bhow old are your",
           "\\bdo you have (a |any )?(boyfriend|girlfriend|partner|husband|wife|kids|children)",
           "\\bhow many (kids|children)",
           "\\bplans? (to|for|of) (have|having|start|starting) (kids|children|a baby|a family)",
@@ -403,8 +409,8 @@
           "\\bembarazad[oa]",
           "\\bembarazo",
           "\\bquedarte embarazada",
-          "\\bbaja (por )?maternidad",
-          "\\bmaternidad\\b"
+          "\\bbaja (por |de )?maternidad",
+          "\\b(quieres|piensas|planeas|vas a) (tener|ser) (madre|un bebe)"
         ],
         "en": [
           "\\bpregnan",
@@ -502,7 +508,10 @@
           "\\btu salud\\b",
           "\\bmedicacion",
           "\\btratamiento medico",
-          "\\bsalud mental|\\bdepresion|\\bansiedad",
+          "\\btu salud mental|\\bproblemas? de salud mental|\\b(tienes|padeces|sufres) (de )?(depresion|ansiedad)",
+          "\\bestas en tratamiento",
+          "\\bestas (sana|sano|enferm[oa])\\b",
+          "\\bfumas\\b|\\bbebes( alcohol)?\\b|\\bconsumes (drogas|alcohol)",
           "\\bhas estado de baja",
           "\\bcuantos dias (has )?(faltado|estado de baja)",
           "\\bte han operado|\\bhas tenido (una )?(operacion|cirugia)"
@@ -513,7 +522,9 @@
           "\\b(sick|medical) (leave|days)",
           "\\bhow many sick days",
           "\\bmedication",
-          "\\bmental health|\\bdepression|\\banxiety",
+          "\\byour mental health|\\bmental health (?:issues?|problems?|condition)",
+          "\\bdo you (?:have|suffer from) (?:depression|anxiety)",
+          "\\bdo you (?:smoke|drink)\\b|\\bare you (?:healthy|sick|ill)\\b",
           "\\byour health",
           "\\bhave you (ever )?had (an? )?(surgery|operation)"
         ]
@@ -582,7 +593,8 @@
           "ref": "art. 16.1.c",
           "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
           "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
-          "verified": true
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
         },
         {
           "source": "prl",
@@ -611,7 +623,7 @@
           ]
         }
       ],
-      "verification": "verified"
+      "verification": "partly_verified"
     },
     {
       "id": "disability",
@@ -748,14 +760,17 @@
           "\\beres (creyente|catolic[oa]|musulman|musulmana|judi[oa]|ateo|atea|practicante|cristian[oa]|evangelic[oa])",
           "\\bvas a (la )?(iglesia|mezquita|sinagoga|misa)",
           "\\bque (votas|votaste)|\\ba quien votas|\\bpartido (politico )?(votas|apoyas)",
-          "\\btus? (ideas|opiniones|creencias|ideologia)( politicas?)?",
-          "\\bde que (partido|ideologia)"
+          "\\btus? (ideas|opiniones|creencias) (politicas|religiosas)",
+          "\\btu ideologia\\b",
+          "\\bde que (partido|ideologia)",
+          "\\b(perteneces|militas|estas afiliad[oa]) (a|en) (algun )?partido",
+          "\\beres (religios[oa]|de derechas|de izquierdas)"
         ],
         "en": [
           "\\bwhat(?:'s| is)? ?(your )?religion",
           "\\bare you (religious|christian|muslim|jewish|catholic|an atheist|atheist)",
           "\\b(go|attend) (to )?(church|mosque|synagogue)",
-          "\\bwho (did you|do you) vote for|\\bwhich (political )?party",
+          "\\bwho (did you|do you) vote for|\\bwhich political party|\\bwhat party do you (?:vote|support)",
           "\\bpolitical (views|opinions|beliefs|affiliation)"
         ]
       },
@@ -949,7 +964,7 @@
           "\\bidioma materno",
           "\\btu (origen|etnia)\\b",
           "\\bde que etnia",
-          "\\beres (gitan[oa]|extranjer[oa]|inmigrante)",
+          "\\beres (gitan[oa]|extranjer[oa]|inmigrante|espanol[a]?|de aqui|de fuera)",
           "\\btu acento"
         ],
         "en": [
@@ -958,9 +973,10 @@
           "\\bwhat(?:'s| is) your nationality|\\bwhat nationality",
           "\\bplace of birth|\\bcountry of origin",
           "\\bethnic(?:ity)?\\b|\\bwhat race",
-          "\\b(?:native|mother) (?:language|tongue)|\\bnative speaker|\\bfirst language",
+          "\\byour (?:native|mother|first) (?:language|tongue)|\\bwhat(?:\\'s| is) your first language|\\bare you a native speaker",
           "\\bwhere is your family from",
-          "\\bare you an? (?:immigrant|foreigner)",
+          "\\bare you an? (?:immigrant|foreigner|citizen)",
+          "\\bare you from (?:here|around here)",
           "\\byour accent"
         ]
       },
@@ -1188,7 +1204,7 @@
         "en": [
           "\\bcriminal (record|history|background)",
           "\\bhave you (ever )?been (convicted|arrested|charged|in prison|in jail)",
-          "\\bconvictions?\\b",
+          "\\bcriminal convictions?",
           "\\bpolice record",
           "\\bever been in (prison|jail)"
         ]
@@ -1237,7 +1253,8 @@
           "ref": "art. 16.1.c",
           "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
           "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
-          "verified": true
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
         }
       ],
       "lawful_alternative": {
@@ -1355,7 +1372,8 @@
         "es": [
           "\\bcuanto (cobrabas|ganabas|cobras|ganas)\\b",
           "\\bcuanto te pagaban",
-          "\\bcual (era|es) tu (ultimo |actual )?(sueldo|salario)",
+          "\\bcual (era|es|fue) tu (ultimo |actual |anterior )?(sueldo|salario)",
+          "\\btu (ultimo|anterior|actual) (sueldo|salario)",
           "\\b(sueldo|salario) (anterior|actual)",
           "\\bque (sueldo|salario) tenias",
           "\\bhistorial (salarial|retributivo)",
@@ -1363,7 +1381,7 @@
         ],
         "en": [
           "\\bhow much (?:do|did) you (?:make|earn)",
-          "\\bwhat (?:do|did) you (?:make|earn)",
+          "\\bwhat (?:do|did) you (?:make|earn)(?! of | out )",
           "\\bwhat (?:is|was) your (?:current|last|previous|present) (?:salary|pay|wage)",
           "\\bsalary history|\\bpay history",
           "\\bpay ?slips?"
@@ -1425,14 +1443,14 @@
           "\\b(dame|dime|me das|pasame|facilitame) tu (dni|nie|pasaporte|iban|direccion|numero de (cuenta|seguridad social))",
           "\\bcual es tu (dni|nie|direccion|numero de cuenta|iban|numero de la seguridad social)",
           "\\btu (instagram|facebook|tiktok|perfil de redes)",
-          "\\bredes sociales",
+          "\\btus? redes sociales",
           "\\bdireccion (exacta|completa)",
           "\\bdonde vives (exactamente|en concreto)"
         ],
         "en": [
           "\\byour (?:ssn|social security number|passport|id number|bank account|iban|home address)",
           "\\bwhat(?:'s| is) your address",
-          "\\b(?:social media|instagram|facebook|tiktok)\\b",
+          "\\byour (?:social media|instagram|facebook|tiktok)\\b",
           "\\bexact address"
         ]
       },
@@ -1473,7 +1491,8 @@
           "ref": "art. 16.1.c",
           "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
           "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
-          "verified": true
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
         }
       ],
       "lawful_alternative": {
@@ -1569,7 +1588,8 @@
           "ref": "art. 16.1.c",
           "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2000-15060#a16",
           "quote": "Solicitar datos prohibidos por la normativa legal o reglamentaria o de carácter personal en cualquier proceso de intermediación o colocación, establecer condiciones, mediante la publicidad, difusión o por cualquier otro medio o adoptar decisiones que constituyan discriminaciones para el acceso al empleo por cualquier causa, condición o circunstancia personal o social, prohibida por la normativa.",
-          "verified": true
+          "verified": true,
+          "note": "Open doubt: the article is written for intermediation and placement processes; whether it reaches an employer's own interview was not checked (the AEPD guide applies it to selection)."
         }
       ],
       "lawful_alternative": {
@@ -1577,7 +1597,7 @@
         "en": "Ask only whether it is possible: “Can you cover this shift?”. Record yes or no and, if the job allows, which schedule they could cover."
       },
       "exceptions": [],
-      "verification": "verified"
+      "verification": "partly_verified"
     },
     {
       "id": "past_claims",

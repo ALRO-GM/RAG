@@ -245,6 +245,77 @@ def test_a_core_question_that_trips_a_pattern_is_reported(
     assert core_hits(rules, worse)[worse.questions[0].id] == ["age"]
 
 
+INNOCENT = [
+    "¿Cuántos años tienes de experiencia?",
+    "¿Cuántos años tiene la empresa en la que trabajas?",
+    "¿Qué edad tiene el proyecto?",
+    "How old is the codebase?",
+    "¿Cuáles son tus ideas para mejorar el producto?",
+    "Cuéntame tus opiniones sobre el diseño de la API",
+    "In that negotiation, which party had more leverage?",
+    "¿Has gestionado las redes sociales de una marca?",
+    "Have you run social media campaigns?",
+    "What was the first language you learned to code in?",
+    "What are your convictions about code quality?",
+    "What do you make of this situation?",
+    "¿Cómo gestionas la ansiedad antes de una presentación?",
+    "¿Has trabajado en un hospital de maternidad?",
+]
+
+MISSES = {
+    "¿Cuál fue tu último salario?": "pay_history",
+    "¿Eres español?": "origin_nationality_language",
+    "Are you a citizen?": "origin_nationality_language",
+    "¿Eres de aquí?": "origin_nationality_language",
+    "¿Te vas a casar?": "family_status",
+    "¿Quieres ser madre?": "family_status",
+    "¿Eres madre?": "family_status",
+    "¿Eres religioso?": "religion_ideology",
+    "¿Perteneces a algún partido político?": "religion_ideology",
+    "¿Estás en tratamiento?": "health",
+    "¿Estás sana?": "health",
+    "¿Fumas?": "health",
+    "¿Bebes alcohol?": "health",
+    "¿Qué edad tienen tus hijos?": "family_status",
+}
+
+
+def test_innocent_questions_are_not_flagged(rules: ForbiddenRules) -> None:
+    """Ordinary interview questions that share words with a pattern."""
+    for question in INNOCENT:
+        assert rules.hits(question) == [], question
+
+
+def test_known_misses_are_flagged_in_their_category(
+        rules: ForbiddenRules) -> None:
+    """Direct questions an earlier version let through."""
+    for question, category in MISSES.items():
+        assert category in rules.hits(question), question
+
+
+def test_lisos_doubt_makes_its_categories_partly_verified(
+        rules: ForbiddenRules) -> None:
+    """Every category citing LISOS 16.1.c carries the open-doubt note."""
+    for cat in rules.categories:
+        for basis in cat.legal_basis:
+            if basis.source == "lisos":
+                assert basis.note and "intermediation" in basis.note
+                assert cat.verification == "partly_verified", cat.id
+
+
+def test_work_mode_follow_up_does_not_ask_why(core: CoreQuestions) -> None:
+    """A «no» to the mode or location is noted without asking the reason."""
+    follow = {q.id: q for q in core.questions}["work_mode_location"]
+    assert "sin preguntar el motivo" in follow.follow_up.es
+    assert "falta para que encajara" not in follow.follow_up.es
+
+
+COMPOUND = re.compile(
+    r"¿[^?]*\by (qué|cómo|cuál|cuándo|quién|con qué|por qué|a quién|dónde)"
+    r"\b[^?]*\?")
+"""Two questions joined by «y» inside one quoted question."""
+
+
 def corpus() -> List[Dict[str, Any]]:
     """Read the interview-method corpus."""
     return [json.loads(x) for x in CORPUS.read_text("utf-8").splitlines()]
@@ -257,6 +328,8 @@ def test_corpus_has_one_question_per_quoted_question() -> None:
             continue
         for quoted in re.findall(r'"([^"]+)"', row["text"]):
             assert quoted.count("?") <= 1, (row["id"], quoted)
+            if row["id"] != "m006":  # m006 quotes the compound to avoid
+                assert not COMPOUND.search(quoted), (row["id"], quoted)
 
 
 def test_corpus_questions_are_not_forbidden_ones(
