@@ -8,9 +8,14 @@ end; ``attribution.jsonl`` the speaker attribution's numbers of a
 two-party session (#249: ids, times, slots, cosines, decisions; no
 text); ``session.json`` the session's small record (#264: the
 start request, speakers, names, model and state, so a restart can
-rebuild the transcript from the events). No audio is ever written
-here: live mode keeps text only (``docs/platform/ARCHITECTURE.md``
-§8). Files are private to the user (mode 600 in a 700 directory).
+rebuild the transcript from the events; since #265 also the silence
+put in for lost audio and the samples received, which a recovery
+fills). No audio is ever written here. Live mode keeps no recording:
+the only audio a live session can leave is what the page could not send
+during an outage, kept by :mod:`~transcriber.adapters.outbound.
+fs_recovery_store` (another folder) only until it is transcribed
+(``docs/platform/ARCHITECTURE.md`` §8). Files are private to the user
+(mode 600 in a 700 directory).
 """
 
 import json

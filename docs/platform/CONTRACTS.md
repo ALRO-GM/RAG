@@ -132,6 +132,19 @@ outage arrives late, so its finals carry a large `timings.lag_ms`. The
 orchestrator must know the new code before the transcriber sends it:
 deploy both together (or the orchestrator first).
 
+Recovered audio (#265): no change to `live.event.v1` (a recovery emits no
+event; the live stream has ended by then). The merged transcript is an
+ordinary `transcript.v1`, published again under the same session id
+(the RAG replaces it); voices of the recovered audio that could not be
+told apart are listed as `R1`, `R2`… with no role. Additive elsewhere:
+the product config's `privacy.buffer_audio_on_outage` (bool, default
+false) and `privacy.buffer_max_hours` (1–168, default 48); the
+orchestrator's session view and product list carry `page.buffer`
+(`{"on", "max_hours"}`); the transcriber's internal `session.json`
+record gains `received_samples` and `silences`; the orchestrator gains
+`POST /sessions/{id}/recovered`. See `docs/live/LIVE_SESSION.md`
+«Long outages».
+
 Semantics: a partial and the final it becomes share the same `id`, and
 `revision` increases with each update. A final is never retracted, only
 revised by `speaker_update`. `turn` increases when the speaker changes,

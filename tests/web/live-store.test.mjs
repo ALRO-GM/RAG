@@ -188,6 +188,16 @@ async function started(r, received = 0) {
   return socket;
 }
 
+/** «Terminar» with no connection, then «Terminar ya» once it waits. */
+async function finishOffline(r) {
+  let done = null;
+  r.audio.finish().then((result) => { done = result; });
+  for (let i = 0; i < 200 && !r.audio._finish && done === null; i += 1) await settle();
+  r.audio.endNow();
+  for (let i = 0; i < 200 && done === null; i += 1) await settle();
+  return done;
+}
+
 async function chunks(backend) {
   return (await backend.all("chunks")).map((c) => [c.seq, c.offset, c.samples]);
 }
@@ -223,12 +233,7 @@ test("an outage is written in 5 s chunks; «Terminar» offline ends here and los
   assert.deepEqual((await chunks(r.backend)).map((c) => c[2]), [16000 * CHUNK_SECONDS, 16000 * CHUNK_SECONDS]);
   assert.equal(finishLine(r.audio.link).key, "live.finish.offline_kept");
   assert.equal(finishLine(r.audio.link).button, "live.finish.now_kept");
-  let done = null;
-  r.audio.finish().then((result) => { done = result; });
-  await settle();
-  r.audio.endNow();
-  await settle();
-  await settle();
+  const done = await finishOffline(r);
   assert.deepEqual(done, { lostSeconds: 0, keptSeconds: 12 });
   const stored = await chunks(r.backend);
   assert.equal(stored.reduce((n, c) => n + c[2], 0), 16000 * 12, "all 12 s kept");
@@ -272,12 +277,7 @@ test("a browser out of room says so (once), and the audio counts as lost", async
   assert.deepEqual(r.problems, ["quota"]);
   assert.equal(r.audio.link.keeping, false);
   assert.equal(finishLine(r.audio.link).button, "live.finish.now");
-  let done = null;
-  r.audio.finish().then((result) => { done = result; });
-  await settle();
-  r.audio.endNow();
-  await settle();
-  await settle();
+  const done = await finishOffline(r);
   assert.equal(done.keptSeconds, 0);
   assert.equal(done.lostSeconds, 6);
   assert.equal(storageProblem({ name: "Other" }), "storage");
@@ -416,4 +416,23 @@ test("the API sends a chunk with its offset and closes, deletes and lists", asyn
     ["DELETE", "/api/live/sessions/iv-1/recovery", null],
     ["GET", "/api/live/recoveries", null],
   ]);
+});
+
+test("the new notices change only the sentence about the audio; the old ids stay", () => {
+  const pairs = [["interview_ai_notice@2", "interview_ai_notice@3"], ["support_ai_notice@1", "support_ai_notice@2"]];
+  for (const [old, now] of pairs) {
+    assert.ok(es[`live.banner.${old}`] && en[`live.banner.${old}`], `${old} stays`);
+    assert.equal(es[`live.banner.${now}`],
+      es[`live.banner.${old}`].replace("No se guarda el audio.", "El audio se borra en cuanto se transcribe."));
+    assert.equal(en[`live.banner.${now}`],
+      en[`live.banner.${old}`].replace("No audio is kept.", "The audio is deleted as soon as it is transcribed."));
+  }
+  for (const dict of [es, en]) {
+    for (const [key, text] of Object.entries(dict)) {
+      if (!key.startsWith("live.banner.") || /@1$|interview_ai_notice@2$/.test(key)) continue;
+      assert.doesNotMatch(text, /No se guarda el audio|No audio is kept/, key);
+    }
+  }
+  assert.match(es["voicebot.notice"], /El audio se borra en cuanto se transcribe;/);
+  assert.match(en["voicebot.notice"], /The audio is deleted as soon as it is transcribed;/);
 });

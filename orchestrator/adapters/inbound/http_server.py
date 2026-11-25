@@ -88,6 +88,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.interview import PlanError
 from orchestrator.application.recovered_round import (
@@ -487,7 +488,8 @@ def create_app(
             raise SessionError("invalid_request", "a transcript is needed")
         try:
             found: Dict[str, Any] = await run_in_threadpool(
-                RecoveredRound(sessions).rebuild, session_id, transcript)
+                RecoveredRound(sessions, InlineExecutor()).rebuild,
+                session_id, transcript)
         except ValueError as exc:
             raise SessionError("invalid_request", str(exc)) from exc
         return found

@@ -670,11 +670,13 @@ data are kept remain the owner's open decision: "until a person deletes
 the file" is the owner's rule as implemented here, not legal advice.
 
 **Notice.** The live page's candidate notice is now
-`interview_ai_notice@2` («Después, la IA puede preparar un borrador de
-análisis de las respuestas, que revisa una persona antes de cualquier
-decisión»); `@1` («No puntúa ni valora a nadie») stays in the
-dictionaries for old records but no product uses it, because it is no
-longer true.
+`interview_ai_notice@3`: `@2` («Después, la IA puede preparar un
+borrador de análisis de las respuestas, que revisa una persona antes de
+cualquier decisión») with «No se guarda el audio» replaced by «El audio
+se borra en cuanto se transcribe.» (#265, the owner's wording of
+2026-11-26: audio lost in an outage is kept until it is transcribed).
+`@1` («No puntúa ni valora a nadie») and `@2` stay in the dictionaries
+for old records but no product uses them.
 
 **Limits of the judgement.** It is a model's reading of a few minutes of
 speech, transcribed: it can be wrong about facts, especially in narrow

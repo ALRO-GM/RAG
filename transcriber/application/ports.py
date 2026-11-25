@@ -856,7 +856,8 @@ class FreeGpuMemory(Protocol):
 class LiveLog(Protocol):
     """Where a live session's events are kept (``jsonl_live_log``).
 
-    Text only: no audio is ever written (§8, minimisation).
+    Text only: no audio is ever written here (§8, minimisation; the
+    audio an outage lost goes to :class:`RecoveryStore`, #265).
     """
 
     def append(self, session_id: str, event: Mapping[str, Any]) -> None:

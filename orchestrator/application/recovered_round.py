@@ -25,7 +25,11 @@ import logging
 from typing import Any, Callable, Iterable, Optional, Protocol, Tuple
 from typing import runtime_checkable
 
-from orchestrator.application.ports import Document, TranscriberUnavailable
+from orchestrator.application.ports import (
+    Document,
+    Executor,
+    TranscriberUnavailable,
+)
 from orchestrator.application.rebuild_round import (
     RoundRebuild,
     events_of_transcript,
@@ -51,11 +55,14 @@ class RecoveredRound:
     Args:
         sessions: The live sessions (products, ports, wiring and the
             sessions this process still knows).
+        executor: Runs the trackers' checks; inline, so every check is
+            done when the replay ends (as ``rebuild-round`` does).
     """
 
-    def __init__(self, sessions: Any) -> None:
-        """Keep the live sessions."""
+    def __init__(self, sessions: Any, executor: Executor) -> None:
+        """Keep the live sessions and the executor."""
         self.sessions = sessions
+        self.executor = executor
 
     def _owner(self, session_id: str) -> Tuple[Any, Any]:
         """The plan and the candidate's profile of a session, if any."""
@@ -89,7 +96,7 @@ class RecoveredRound:
             live.feed.publish if live is not None else (lambda m: None))
         wiring = self.sessions.interview if plan is not None else None
         rebuilt = RoundRebuild(
-            self.sessions.executor(), self.sessions.mandatory,
+            self.executor, self.sessions.mandatory,
             self.sessions.avoid, wiring,
         ).rebuild(
             session_id, events, roles, product=product, plan=plan,

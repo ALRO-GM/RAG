@@ -30,6 +30,9 @@ from tests.unit.orchestrator.test_interview_kept import (
 from tests.unit.orchestrator.test_interview_usecases import Store
 
 
+INLINE = InlineExecutor()
+
+
 class Book:
     """The candidates: one file whose rounds include ``r9``."""
 
@@ -62,7 +65,7 @@ def sessions(store: Store, book: Optional[Book], live: Any = None) -> Any:
     return SimpleNamespace(
         interview=wired, products={
             "live_assist.interview": product("live_assist.interview")},
-        executor=InlineExecutor, mandatory=None, avoid=None,
+        mandatory=None, avoid=None,
         find=lambda sid: live, write_handoff=written.append,
         written=written)
 
@@ -71,11 +74,11 @@ def test_the_recovered_round_is_judged_again_for_its_candidate() -> None:
     store = Store()
     store.save(plan())
     world = sessions(store, Book())
-    summary = RecoveredRound(world).rebuild("r9", transcript("r9"))
+    summary = RecoveredRound(world, INLINE).rebuild("r9", transcript("r9"))
     assert summary["accuracy"] == "ready" and summary["saved"] is True
     assert store.result("dev", "r9")["candidate_id"] == "ana-ruiz"
     with pytest.raises(ValueError):
-        RecoveredRound(world).rebuild("other", transcript("r9"))
+        RecoveredRound(world, INLINE).rebuild("other", transcript("r9"))
 
 
 def test_a_session_still_in_memory_sees_the_new_judgement() -> None:
@@ -87,7 +90,7 @@ def test_a_session_still_in_memory_sees_the_new_judgement() -> None:
         feed=SimpleNamespace(publish=feed.append), accuracy=None,
         handoff={"session_id": "r9"})
     world = sessions(store, Book(), live)
-    RecoveredRound(world).rebuild("r9", transcript("r9"))
+    RecoveredRound(world, INLINE).rebuild("r9", transcript("r9"))
     assert live.accuracy is not None and live.accuracy["state"] == "ready"
     assert live.handoff["recovered"] is True
     assert world.written == [live] and feed
@@ -95,9 +98,9 @@ def test_a_session_still_in_memory_sees_the_new_judgement() -> None:
 
 def test_without_a_candidate_only_the_trackers_run() -> None:
     world = sessions(Store(), Book(found=False))
-    summary = RecoveredRound(world).rebuild("r9", transcript("r9"))
+    summary = RecoveredRound(world, INLINE).rebuild("r9", transcript("r9"))
     assert summary["accuracy"] is None and summary["parts"] == []
-    assert RecoveredRound(sessions(Store(), None)).rebuild(
+    assert RecoveredRound(sessions(Store(), None), INLINE).rebuild(
         "r9", transcript("r9"))["parts"] == []
 
 
