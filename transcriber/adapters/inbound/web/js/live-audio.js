@@ -16,8 +16,11 @@
 // behind, sending pauses (nothing is dropped); audio the bounded outbox
 // had to let go is announced as {"type": "gap"} and becomes silence on
 // the server. A page that reattached after a reload sends
-// {"type": "align"} first. The outbox lives only in memory: the audio is
-// never stored.
+// {"type": "align"} first. When the microphone produced nothing for a
+// while (a suspended tab, a laptop asleep) that time goes as a gap too, so
+// the stream stays on the wall clock. «Terminar» (finish) waits until the
+// server has everything before it says stop. The outbox lives only in
+// memory: the audio is never stored.
 
 import { Capture } from "./capture.js";
 import { Outbox, backoffMs } from "./lib/live-link.js";
@@ -28,6 +31,10 @@ const PAUSE_MS = 250; // a paused socket is looked at again this often
 const READY_TIMEOUT_MS = 30000; // a socket that never says ready is closed and retried
 const SILENT_MS = 20000; // no message for this long while audio waits: the socket is dead
 const ENDED = new Set(["not_found", "wrong_state"]);
+const PAUSE_SAMPLES = 16000 * 2; // the microphone silent for over 2 s of wall time = a pause
+const FINISH_CAP_MS = 60000; // «Terminar» waits at most this long while connected
+const FINISH_TICK_MS = 250;
+const STOPPED_WAIT_MS = 5000; // the server's "stopped" after our stop
 
 /** The socket address of a session's audio, on this page's host. */
 export function audioUrl(loc, id) {
@@ -82,8 +89,12 @@ export class LiveAudio {
     this.attempt = 0;
     this.state = "connecting";
     this.lastHeard = 0;
-    this._timers = { retry: null, ready: null, pump: null, watch: null };
+    this._timers = { retry: null, ready: null, pump: null, watch: null, finish: null };
     this._first = null;
+    this.clockStart = null; // when the first captured sample began (deps.now)
+    this.clockSamples = 0; // samples captured or put in as silence since then
+    this._finish = null; // { resolve, openMs } while «Terminar» waits
+    this._stopped = null; // resolves on the server's "stopped"
   }
 
   /** Connect (retrying until a first "ready"), then start the microphone. */
@@ -121,6 +132,10 @@ export class LiveAudio {
   _connect() {
     this._timers.retry = null;
     if (this.stopping || this.ended) return;
+    this._open();
+  }
+
+  _open() {
     const { openSocket, location: loc } = this.deps;
     let socket;
     try {
@@ -135,7 +150,10 @@ export class LiveAudio {
     this.refusal = null;
     this._clear("ready");
     this._timers.ready = this.deps.setTimeout(() => socket.close(), READY_TIMEOUT_MS);
-    socket.addEventListener("open", () => socket.send(JSON.stringify({ type: "auth", access_code: this.code })));
+    socket.addEventListener("open", () => {
+      if (this.stopping || socket !== this.socket) return;
+      socket.send(JSON.stringify({ type: "auth", access_code: this.code }));
+    });
     socket.addEventListener("message", (event) => this._message(socket, event));
     socket.addEventListener("close", () => this._closed(socket));
   }
@@ -153,11 +171,17 @@ export class LiveAudio {
     else if (message?.type === "ack") {
       this.outbox.ack(Number(message.samples));
       this.onLink(this.link);
-    } else if (message?.type === "error") this.refusal = message.code ?? "refused";
+      this._finishCheck();
+    } else if (message?.type === "stopped") this._stopped?.();
+    else if (message?.type === "error") this.refusal = message.code ?? "refused";
   }
 
   _ready(socket, message) {
     this._clear("ready");
+    if (this.stopping) {
+      socket.close();
+      return;
+    }
     const received = Number(message.received_samples) || 0;
     if (!this.everOpen && received > 0 && this.outbox.acked === 0) {
       // A page that reattached (a reload): its audio goes after what the
@@ -176,6 +200,7 @@ export class LiveAudio {
     this._first?.resolve();
     this._first = null;
     this._pump();
+    this._finishCheck();
   }
 
   /** Close a socket that went silent while audio waits for its ack. */
@@ -221,6 +246,7 @@ export class LiveAudio {
   _end(kind) {
     this.ended = true;
     for (const name of Object.keys(this._timers)) this._clear(name);
+    this._finishDone();
     this._setState("ended");
     this._first?.reject(new Error(kind));
     this._first = null;
@@ -240,9 +266,26 @@ export class LiveAudio {
     }
     this.pending = [];
     this.pendingBytes = 0;
+    this._keepOnClock(piece.length / 2);
     this.outbox.push(piece);
+    this.clockSamples += piece.length / 2;
     this._pump();
     this.onLink(this.link);
+  }
+
+  /** The microphone produced nothing for a while: that time goes as silence. */
+  _keepOnClock(samples) {
+    const now = this.deps.now();
+    if (this.clockStart === null) {
+      this.clockStart = now - (samples / 16000) * 1000;
+      return;
+    }
+    const due = Math.round(((now - this.clockStart) / 1000) * 16000);
+    const missing = due - this.clockSamples - samples;
+    if (missing > PAUSE_SAMPLES) {
+      this.outbox.skip(missing);
+      this.clockSamples += missing;
+    }
   }
 
   /** Send what the server does not have yet, unless the socket is behind. */
@@ -255,6 +298,11 @@ export class LiveAudio {
       this.sendAt += gap;
     }
     for (const piece of pieces) {
+      if (!piece.bytes) {
+        socket.send(JSON.stringify({ type: "gap", samples: piece.samples }));
+        this.sendAt = piece.offset + piece.samples;
+        continue;
+      }
       if (!force && socket.bufferedAmount > MAX_BEHIND) {
         // Behind: pause (the outbox keeps the audio) and look again soon.
         if (this._timers.pump === null) {
@@ -270,22 +318,111 @@ export class LiveAudio {
     }
   }
 
-  /** Stop the microphone and end the session's audio ({"type": "stop"}). */
+  /**
+   * «Terminar» (#263): stop the microphone, then wait until the server has
+   * everything still held (reconnecting meanwhile), at most `capMs` of
+   * connected time; `endNow()` stops waiting. Then say stop and wait for
+   * the server's "stopped". Resolves { lostSeconds }: what never arrived.
+   */
+  async finish({ capMs = FINISH_CAP_MS } = {}) {
+    try {
+      await this.capture?.stop();
+    } catch {
+      // already stopped
+    }
+    this._flush();
+    if (!this.ended && this.everOpen && this.outbox.pendingSeconds > 0) {
+      await new Promise((resolve) => {
+        this._finish = { resolve, openMs: 0, capMs };
+        this._finishTick();
+        this._finishCheck();
+      });
+    }
+    const lostSeconds = this.outbox.pendingSeconds;
+    await this._sayStop();
+    return { lostSeconds };
+  }
+
+  /** Stop waiting in `finish()`: what is still held is lost. */
+  endNow() {
+    this._finishDone();
+  }
+
+  /** The piece being filled goes to the outbox as it is. */
+  _flush() {
+    if (!this.pendingBytes) return;
+    const piece = new Uint8Array(this.pendingBytes);
+    let at = 0;
+    for (const part of this.pending) {
+      piece.set(part, at);
+      at += part.length;
+    }
+    this.pending = [];
+    this.pendingBytes = 0;
+    this.outbox.push(piece);
+    this._pump();
+  }
+
+  _finishTick() {
+    this._timers.finish = this.deps.setTimeout(() => {
+      this._timers.finish = null;
+      const wait = this._finish;
+      if (!wait) return;
+      if (this.state === "open") wait.openMs += FINISH_TICK_MS;
+      this.onLink(this.link);
+      if (wait.openMs >= wait.capMs) this._finishDone();
+      else this._finishTick();
+    }, FINISH_TICK_MS);
+  }
+
+  _finishCheck() {
+    if (this._finish && this.outbox.pendingSeconds <= 0) this._finishDone();
+  }
+
+  _finishDone() {
+    const wait = this._finish;
+    this._finish = null;
+    this._clear("finish");
+    wait?.resolve();
+  }
+
+  async _sayStop() {
+    const socket = this.socket;
+    this.stopping = true;
+    for (const name of ["retry", "pump", "watch", "ready", "finish"]) this._clear(name);
+    if (socket && socket.readyState === 1 && this.ready) {
+      this._pump(true);
+      const stopped = new Promise((resolve) => {
+        this._stopped = resolve;
+        this.deps.setTimeout(resolve, STOPPED_WAIT_MS);
+      });
+      socket.send(JSON.stringify({ type: "stop" }));
+      await stopped;
+      this._stopped = null;
+    }
+    socket?.close();
+    this._first?.resolve();
+    this._first = null;
+  }
+
+  /** Stop the microphone and end the session's audio at once ({"type": "stop"}). */
   async stop() {
     try {
       await this.capture?.stop();
     } catch {
       // already stopped
     }
+    this._finishDone();
     const socket = this.socket;
     if (socket && socket.readyState === 1 && this.ready) {
       this._pump(true); // what is still held goes before the stop
       socket.send(JSON.stringify({ type: "stop" }));
-      this.stopping = true;
       this.deps.setTimeout(() => socket.close(), 3000);
+    } else {
+      socket?.close(); // connecting, or not ready: never left behind
     }
     this.stopping = true;
-    for (const name of ["retry", "pump", "watch", "ready"]) this._clear(name);
+    for (const name of ["retry", "pump", "watch", "ready", "finish"]) this._clear(name);
     this._first?.resolve(); // a start still connecting ends quietly
     this._first = null;
   }

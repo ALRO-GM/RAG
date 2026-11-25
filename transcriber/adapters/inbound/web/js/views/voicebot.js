@@ -30,6 +30,8 @@ import { coveragePanel, planSetup, reportBehindClick } from "./interview.js";
 import { connectionCard } from "./connection.js";
 import { needsOf } from "../lib/connection.js";
 import { voiceDemoView } from "./voice-demo.js";
+import { forgetSession, reattachPlan, rememberSession, rememberedSession } from "../lib/live-link.js";
+import { busyNotice } from "./live-busy.js";
 import { voiceDemo as findVoiceDemo } from "../lib/call-demo.js";
 
 const RETRY_MS = 2000;
@@ -79,8 +81,25 @@ export async function voicebotView(ctx, root, [sub] = []) {
     setLeaveGuard(() => false);
   }
 
-  showForm();
+  const kept = rememberedSession();
+  if (kept?.page === "voicebot") reattach(kept);
+  else showForm();
   return cleanup;
+
+  /** #263: a reload (or a return) goes back to the conversation still running. */
+  async function reattach(kept) {
+    const plan = await reattachPlan((id) => ctx.api.liveSession(id), kept);
+    if (plan.unauthorized) return ctx.fail(plan.unauthorized);
+    if (closed) return null;
+    if (plan.show) return resume(plan.show);
+    if (plan.forget) forgetSession(kept.id);
+    return showForm();
+  }
+
+  function resume(session) {
+    const owner = topics.find((p) => p.product === session.product);
+    return showSession(session, { mode: MODES[0], headset: true, interview: Boolean(owner?.interview) });
+  }
 
   // ---- start ------------------------------------------------------------
 
@@ -154,8 +173,19 @@ export async function voicebotView(ctx, root, [sub] = []) {
         if (product.interview) toast(botError(error), { error: true });
         start.disabled = false;
         start.replaceChildren(icon("voicebot"), t("voicebot.start"));
+        if (error?.code === "busy") showBusy();
       }
       return null;
+    }
+
+    // #263: the one session slot is taken: go back to it, or end it.
+    async function showBusy() {
+      const card = await busyNotice(ctx, {
+        here: "voicebot",
+        onBack: resume,
+        onEnded: () => { formError.hidden = true; },
+      });
+      if (card && !closed) formError.after(card);
     }
 
     root.append(
@@ -178,6 +208,7 @@ export async function voicebotView(ctx, root, [sub] = []) {
   // ---- a running conversation ---------------------------------------------
 
   function showSession(session, { mode, headset, interview = false }) {
+    rememberSession(session, "mic", "voicebot");
     root.replaceChildren();
     const state = new VoiceBotState();
     state.apply({ type: "session", session });
@@ -387,6 +418,7 @@ export async function voicebotView(ctx, root, [sub] = []) {
         await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
       }
       running = false;
+      forgetSession(session.id);
       if (state.state === "running") state.state = "ended";
       await audio?.stop();
       audio = null;

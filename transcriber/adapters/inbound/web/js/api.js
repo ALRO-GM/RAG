@@ -312,6 +312,9 @@ export class Api {
 
   liveSession(id) { return this.request("GET", `/assist/sessions/${encodeURIComponent(id)}`); }
 
+  /** Every session the orchestrator keeps, newest first (#263: which one holds the slot). */
+  liveSessions() { return this.request("GET", "/assist/sessions"); }
+
   /** Switch a session's assistance mode: "pincelada" | "guiado" (LV-16). */
   liveMode(id, mode) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mode`, { json: { mode } });

@@ -44,7 +44,10 @@ import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
 import { confirmStep } from "./candidate.js";
 import { confirmStart, connectionCard, connectionChip, connectionNote, lastLinkLevel } from "./connection.js";
-import { feedOutcome, forgetSession, linkLine, rememberSession, rememberedSession } from "../lib/live-link.js";
+import {
+  finishLine, followUntilEnd, forgetSession, linkLine, reattachPlan, rememberSession, rememberedSession,
+} from "../lib/live-link.js";
+import { busyNotice } from "./live-busy.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -147,7 +150,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
   }
 
   const wanted = pickDemo(demos, which);
-  const kept = sub ? null : rememberedSession();
+  const remembered = sub ? null : rememberedSession();
+  const kept = remembered?.page === "live" ? remembered : null;
   if (sub === "demo" && wanted) startDemo(wanted);
   else if (kept) reattach(kept);
   else showForm(sub === "demo" ? t("live.scripted.none") : null);
@@ -155,17 +159,12 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
   /** #263: a reload (or a return) goes back to the session still running. */
   async function reattach(kept) {
-    try {
-      const session = await ctx.api.liveSession(kept.id);
-      if (closed) return null;
-      if (session?.state === "running") return showSession(session, kept.audio);
-      forgetSession(kept.id);
-      return showForm();
-    } catch (error) {
-      if (error?.kind === "unauthorized") return ctx.fail(error);
-      if (feedOutcome(error) === "ended") forgetSession(kept.id);
-      return closed ? null : showForm(feedOutcome(error) === "ended" ? null : liveError(error));
-    }
+    const plan = await reattachPlan((id) => ctx.api.liveSession(id), kept);
+    if (plan.unauthorized) return ctx.fail(plan.unauthorized);
+    if (closed) return null;
+    if (plan.show) return showSession(plan.show, kept.audio);
+    if (plan.forget) forgetSession(kept.id);
+    return showForm(plan.error ? liveError(plan.error) : null);
   }
 
   // ---- start ----------------------------------------------------------
@@ -342,8 +341,23 @@ export async function liveView(ctx, root, [sub, which] = []) {
         formError.textContent = liveError(error);
         formError.hidden = false;
         sync();
+        if (error?.code === "busy") showBusy();
       }
       return null;
+    }
+
+    // #263: the one session slot is taken (maybe by a tab that was closed):
+    // go back to that session, or end it and start this one.
+    async function showBusy() {
+      const card = await busyNotice(ctx, {
+        here: "live",
+        onBack: (running) => showSession(running, running.audio),
+        onEnded: () => {
+          formError.hidden = true;
+          sync();
+        },
+      });
+      if (card && !closed) formError.after(card);
     }
 
     productSelect.addEventListener("change", sync);
@@ -398,7 +412,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     running = true;
     guarded = session.mode !== "demo";
     playing = session.mode === "demo" ? session.id : null;
-    if (session.mode === "live") rememberSession(session, audioKind);
+    if (session.mode === "live") rememberSession(session, audioKind, "live");
     const demo = state.demo;
     const result = resultLink(demo);
     const resultHref = result?.href ?? null;
@@ -534,8 +548,13 @@ export async function liveView(ctx, root, [sub, which] = []) {
     // Lost / back (#247): one persistent live region, changed only when that state changes.
     const note = connectionNote();
     // #263: one calm line for a lost connection (the microphone's audio waits here meanwhile).
-    const linkNode = h("p", { class: "notice", role: "status", "aria-live": "polite", hidden: true });
+    // The sentence changes only with the state (a screen reader hears it once); the seconds sit outside it.
+    const linkText = h("span", { role: "status", "aria-live": "polite" });
+    const linkCount = h("span", {});
+    const finishNow = h("button", { type: "button", class: "small", hidden: true, onClick: () => audio?.endNow() });
+    const linkNode = h("p", { class: "notice", hidden: true }, linkText, " ", linkCount, " ", finishNow);
     let audioLink = null;
+    let finishing = false; // «Terminar» waits for what is still held
     root.append(header, voiceNote, note.node, linkNode, alerts, h("div", { class: "lv-body" }, talk, side));
 
     let drawing = false;
@@ -1186,11 +1205,18 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
     function drawLink() {
       const live = state.state === "running";
+      const ending = finishing ? finishLine(audioLink) : null;
       // The persistent «connection lost» line says it already; no second one.
-      const line = live ? linkLine({ audio: audioLink, feed: reconnecting && note.kind !== "lost" }) : null;
+      const line = ending ?? (live ? linkLine({ audio: audioLink, feed: reconnecting && note.kind !== "lost" }) : null);
       const text = line ? t(line.key, line.params) : "";
-      if (linkNode.textContent !== text) linkNode.textContent = text;
+      const count = line?.count ? t(line.count, line.params) : "";
+      if (linkText.textContent !== text) linkText.textContent = text;
+      if (linkCount.textContent !== count) linkCount.textContent = count;
+      finishNow.hidden = !line?.button;
+      if (line?.button) finishNow.textContent = t(line.button, line.params);
       linkNode.hidden = !line;
+      // One line only: while this page's audio waits, the watch's lost / back line steps aside.
+      note.node.hidden = Boolean(line && line.key !== "live.reconnecting");
     }
 
     function micProblem(kind) {
@@ -1201,41 +1227,38 @@ export async function liveView(ctx, root, [sub, which] = []) {
     async function follow() {
       const mine = new AbortController();
       controller = mine;
-      while (!closed && !mine.signal.aborted) {
-        try {
-          const how = await ctx.api.followLive(session.id, {
-            after: state.lastId, signal: mine.signal, idleMs: FEED_IDLE_MS,
-            onOpen: () => {
-              if (!reconnecting) return;
-              reconnecting = false;
-              schedule();
-            },
-            onItem: (item) => {
-              reconnecting = false;
-              let message = null;
-              try {
-                message = JSON.parse(item.data);
-                state.apply(message, item.id);
-              } catch {
-                return;
-              }
-              const line = lineToPlay(message, clips, startedLines);
-              if (line && demoVoices) demoVoices.play(line, clips.get(line));
-              schedule();
-            },
-          });
-          if (how === "end") break;
-        } catch (error) {
-          const outcome = feedOutcome(error);
-          if (outcome === "unauthorized") return ctx.fail(error);
-          if (outcome === "ended") break; // a 404: the session is gone, no endless retry
-        }
-        if (closed || mine.signal.aborted) return null;
-        reconnecting = true;
-        schedule();
-        await wait(RETRY_MS);
-      }
-      if (mine.signal.aborted) return null;
+      const result = await followUntilEnd({
+        wait, retryMs: RETRY_MS,
+        stopped: () => closed || mine.signal.aborted,
+        onRetry: () => {
+          reconnecting = true;
+          schedule();
+        },
+        follow: () => ctx.api.followLive(session.id, {
+          after: state.lastId, signal: mine.signal, idleMs: FEED_IDLE_MS,
+          onOpen: () => {
+            if (!reconnecting) return;
+            reconnecting = false;
+            schedule();
+          },
+          onItem: (item) => {
+            reconnecting = false;
+            let message = null;
+            try {
+              message = JSON.parse(item.data);
+              state.apply(message, item.id);
+            } catch {
+              return;
+            }
+            const line = lineToPlay(message, clips, startedLines);
+            if (line && demoVoices) demoVoices.play(line, clips.get(line));
+            schedule();
+          },
+        }),
+      });
+      if (result.how === "unauthorized") return ctx.fail(result.error);
+      // "ended" is a 404: the session is gone, no endless retry.
+      if (result.how === "aborted" || mine.signal.aborted) return null;
       running = false;
       forgetSession(session.id);
       if (state.state === "running") state.state = "ended";
@@ -1277,11 +1300,18 @@ export async function liveView(ctx, root, [sub, which] = []) {
       }
       stop.disabled = true;
       try {
-        await audio?.stop();
+        // #263: what the outage held goes first (at most a minute connected, or until «Terminar ya»).
+        finishing = true;
+        drawLink();
+        const { lostSeconds } = audio ? await audio.finish() : { lostSeconds: 0 };
+        finishing = false;
+        drawLink();
         await ctx.api.stopLive(session.id);
+        if (lostSeconds >= 1) toast(t("live.finish.lost", { n: Math.round(lostSeconds) }), { error: true });
       } catch (error) {
         toast(liveError(error), { error: true });
       }
+      finishing = false;
       stop.disabled = false;
     }
 

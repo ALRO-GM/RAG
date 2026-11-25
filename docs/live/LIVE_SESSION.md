@@ -35,46 +35,75 @@ through it dies. A short outage must cost nothing:
 | What | Where | How |
 |---|---|---|
 | Offsets | `LiveSession.received` | samples (per channel) the session took, silence included; sent as `received_samples` in `ready` and in `GET /api/live/sessions/{id}` |
-| Ack | `live_ws.ACK_SECONDS` = 1 s | after a message, when new samples were taken and 1 s passed: `{"type": "ack", "samples": N}`; the page forgets everything before N |
+| Ack | `live_ws.ACK_SECONDS` = 1 s | `{"type": "ack", "samples": N}` when new samples were taken and 1 s passed, after a message or, when the page sends nothing, from a timer (the last audio is acknowledged too); the page forgets everything before N |
 | Outbox | `js/lib/live-link.js` `Outbox` | every 100 ms piece with its absolute offset, in the page's memory only, bounded to 30 min (`MAX_OUTBOX_SECONDS`, about 58 MB); the oldest goes first when full |
-| Reconnect | `js/live-audio.js` | backoff 0.5, 1, 2, 4, 8, 8… s (±20 % jitter), reset once `ready`; until stopped, or the server says the session ended (`not_found`, `wrong_state`), was taken over (`replaced`) or refuses the code; a socket that never says ready is closed after 30 s, one that sends nothing for 20 s while audio waits for its ack is closed and retried |
-| Resend | `ready.received_samples` | the page sends from that sample on (the first piece cut at the exact sample): nothing lost, nothing twice |
+| Reconnect | `js/live-audio.js` | backoff 0.5, 1, 2, 4, 8, 8… s (±20 % jitter), reset once `ready`; until stopped, or the server says the session ended (`not_found`, `wrong_state`), was taken over (`replaced`) or refuses the code; a socket that never says ready is closed after 30 s, one that sends nothing for 20 s while audio waits for its ack is closed and retried; `stop` closes a socket still connecting and nothing re-arms |
+| Resend | `ready.received_samples` | the page sends from that sample on (the first piece cut at the exact sample): nothing lost, nothing twice, whatever was in flight when the link dropped |
 | Behind | `bufferedAmount` > 10 s | sending pauses (checked again every 250 ms); nothing is dropped |
-| Gap | `{"type": "gap", "samples": k}` | audio the full outbox let go becomes `k` samples of silence on the server, so stream time stays on the wall clock (at most 4 h per message) |
+| Gap | `{"type": "gap", "samples": k}` | audio the full outbox let go, or wall time the microphone produced nothing for (over 2 s: a suspended tab, a laptop asleep), becomes `k` samples of silence on the server, so stream time stays on the wall clock; refused when it would take the stream more than 5 s past the wall clock (`gap_fits`) |
 | Reattach | `{"type": "align", "held": n}` | a page that reloaded (first `ready` with `received_samples` > 0) has no outbox: the server fills the time nobody sent with silence, leaving room for the `n` samples the page holds |
-| Takeover | `claim_source` | a newer socket takes the source; the older one's audio is refused (`replaced`, 4409), so the server never takes audio twice even if it has not noticed the old socket died |
-| Grace | `live.source_grace_seconds` = 600 | a source that goes away without `stop` leaves the session waiting 10 min (instead of the 120 s idle stop) with a `warning` `source_lost`; a returning source gives `source_back` with `warning.seconds`, the time away; past the grace the session ends (`end_reason: source_lost`) |
-| Late audio | `live.catch_up_seconds` = 3 | resent audio is read as fast as the recogniser goes (the live engine is not paced); while it is more than 3 s late no partials are made; finals carry the real `timings.lag_ms` |
+| Takeover | `claim_source` | a newer socket takes the source; the older one's audio is refused (`replaced`, 4409), so the server never takes audio twice even if it has not noticed the old socket died. The same holds for a second tab on the same session: the newest tab's microphone wins and the other tab stops sending and says «Esta sesión está enviando el audio desde otra pestaña o ventana.» (it does not retry) |
+| Grace | `live.source_grace_seconds` = 600, `live.source_gone_seconds` = 120 | a source that goes away without `stop` leaves the session waiting 10 min (instead of the 120 s idle stop) with a `warning` `source_lost`; 2 min when its socket closed with 1001 «going away» (a closed tab). Which close codes the public tunnel really delivers on a reset was not checked: an abnormal close (1006) gets the long grace. A returning source gives `source_back` with `warning.seconds`; past the grace the session ends (`end_reason: source_lost`) |
+| Catch-up | worker, `engine.skip_partials` | after `source_back` the resent audio is read as fast as the recogniser goes (the live engine is not paced) with no partials until the queue is empty; its finals come with the real `timings.lag_ms`. Lateness alone never turns partials off (a CPU-degraded session keeps them) |
+| Re-anchor | `PaceWatch`, `LiveEngine.realign` | when 10 pieces in a row arrive at the pace of speech with nothing queued, and the timings think the audio is more than 1 s older than it is (a microphone pause the page did not report), the origin of the timings moves forward: `lag_ms` is true again, so partials and suggestions come back |
 | Suggestions | `orchestrator/domain/triggers.py` `LATE_MS` = 10 s | a final heard more than 10 s late asks for no suggestion (skip reason `late`); topics, concepts, mandatory items and avoid hints still take it |
+| Stop | `live.stop_drain_seconds` = 15 | a stop asked over HTTP lets a connected source send what it holds for up to 15 s (until its own `stop` or its socket closes) instead of refusing that audio |
 
-The page (`#/live`) shows one line under the header (`role="status"`,
-text, not colour): «Sin conexión: la entrevista se sigue grabando en
-este navegador (N s pendientes)» while the audio socket is down, then
+The page (`#/live`) shows one line under the header, text not colour:
+a sentence in a `role="status"` region that changes only with the
+state (a screen reader hears it once) and the seconds beside it,
+outside the region. «Sin conexión: la entrevista se sigue grabando en
+este navegador» «(N s pendientes)» while the audio socket is down, then
 «Conexión recuperada: enviando lo pendiente» while more than 2 s wait
-for their ack, then nothing. The stream of suggestions (SSE) says
-«Se cortó la conexión; reconectando…» only until it answers again; a
-404 means the session ended (no endless retry); no byte for 40 s
-(keepalives come every 15 s) reconnects it. The running session's id
-is kept in `sessionStorage`: a reload, or coming back to `#/live`,
-reattaches to it (stream from the start, audio reconnects) instead of
-the start form.
+for their ack, then nothing. While it shows, the connection watch's
+own lost / back line steps aside (one line only). The stream of
+suggestions (SSE) says «Se cortó la conexión; reconectando…» only
+until it answers again; a 404 means the session ended (no endless
+retry); no byte for 40 s (keepalives come every 15 s) reconnects it.
+The running session's id, audio kind and page are kept in
+`sessionStorage`: a reload, or coming back to `#/live` (or to the
+voice assistant), reattaches to it (stream from the start, audio
+reconnects) instead of the start form.
+
+«Terminar» first stops the microphone and waits until the server has
+acknowledged everything still held: «Enviando lo pendiente antes de
+terminar…» «(N s pendientes)», or with the socket down «Sin conexión:
+lo pendiente se enviará en cuanto vuelva la conexión. Puedes esperar o
+terminar ya.», with a button «Terminar ya: se pierden N s». The wait
+counts at most 60 s of connected time (the time offline is not
+counted: the page waits for the link to come back). Then the page
+says stop, waits for the server's «stopped» (at most 5 s) and stops the
+session; a toast says how many seconds never arrived, if any. The voice
+assistant's «Terminar» still stops at once.
+
+When the one session slot is taken (a tab closed during a session
+leaves it running for its grace, and a new tab has nothing to
+reattach to), the start forms of «En directo» and of the voice
+assistant say «Ya hay otra sesión en directo en marcha» with
+«Volver a la sesión» (reattach; on the other page when the session
+belongs to it) and «Terminarla» (asks first; then the new one can
+start).
 
 The audio held during an outage lives only in the page's memory and is
 dropped as soon as it is acknowledged, so the notice «No se guarda el
-audio» stays true. A closed tab, a crashed browser or an outage longer
-than the grace still lose that audio (persistent local recording is a
-follow-up).
+audio» stays true. Still lost: a closed tab, a crashed browser or a
+reload (the page's memory goes with it; the reattached page fills that
+time with silence), an outage longer than the grace, audio the 30 min
+outbox had to let go, what «Terminar ya» or the 60 s cap gives up, and
+whatever the voice assistant held at its «Terminar» (persistent local
+recording is a follow-up).
 
-The transcriber's own log (`transcriber serve`'s output) now has one
-line per live session start, end with its reason (`stop`, `idle`,
-`source_lost`, `failed`) and seconds, source connected / lost / back,
-audio socket closed with its code, and silence put in: ids, codes and
-seconds, never words or audio.
+The transcriber's own log (`transcriber serve`'s output) has one line
+per live session start, end with its reason (`stop`, `idle`,
+`source_lost`, `failed`) and seconds, source connected / lost (with
+the close code) / back, audio socket closed, silence put in, and
+timings re-anchored: ids, codes and seconds, never words or audio.
 
 Not measured (the GPU was busy; everything above was tested with the
 fake runtime, fake sockets and fake timers): the catch-up speed after a
 60 s or 5 min outage on the real recogniser, the CPU-degraded mode
-under catch-up, and the behaviour through the real tunnel.
+under catch-up, the close codes and behaviour through the real tunnel,
+and a real browser's capture during a suspended tab.
 
 ## Behaviour
 
