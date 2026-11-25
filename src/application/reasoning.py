@@ -40,7 +40,11 @@ from src.domain.reasoning.roles import (
     Status,
     Usage,
 )
-from src.domain.reasoning.templates import get_template, template_role
+from src.domain.reasoning.templates import (
+    SLOW_MAX_S,
+    get_template,
+    template_role,
+)
 from src.domain.skills.rubric import RubricCatalogue
 from src.domain.skills.usage import UsageLedger
 
@@ -138,8 +142,11 @@ class Reasoner:
         ledger: Where tokens are counted per role, if anywhere.
         clock: Monotonic seconds (replaced in tests).
         live_models: Builds the (warm) model of the live roles
-            (``suggester`` and ``conversational``); ``models`` serves
-            them too when it is not given, and always the judge.
+            (``suggester``, ``conversational`` and the quick
+            ``structured`` slot filler); ``models`` serves them too when
+            it is not given, and always the judge and the ``slow``
+            templates (the interview's planner and report, #267), with
+            their own deadline up to ``SLOW_MAX_S``.
     """
 
     def __init__(
@@ -223,7 +230,12 @@ class Reasoner:
         else:
             template = get_template(request.template, request.role)
         started = self.clock()
-        factory = self.models if template is None else self.live_models
+        # The judge and the slow templates (planner, report: #267) run on
+        # the cold per-call backend with their own deadline; only the live
+        # turns use the warm processes and their short time-out, so a long
+        # call never holds a warm process a live call is waiting for.
+        slow = template is None or template.slow
+        factory = self.models if slow else self.live_models
         chat = MeteredModel(factory(request.model), request.role,
                             self.ledger)
         usage = Usage()
@@ -241,9 +253,12 @@ class Reasoner:
                 asked = request.constraints.max_output_tokens
                 cap = min(asked or template.max_output_tokens,
                           template.max_output_tokens)
+                deadline = _deadline_s(request)
+                if template.slow:
+                    deadline = min(deadline or SLOW_MAX_S, SLOW_MAX_S)
                 text = chat.complete(
                     template.system(request), template.user(request), cap,
-                    _deadline_s(request), on_text,
+                    deadline, on_text,
                 )
                 parsed = template.parse(text, request)
                 limit = request.constraints.max_suggestions

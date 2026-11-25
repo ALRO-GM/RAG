@@ -102,6 +102,11 @@ OFFER_CHARS = 12000
 MIN_OFFER_CHARS = 40
 PLANNER_DEADLINE_MS = 120000
 REPORT_DEADLINE_MS = 90000
+CLIENT_MARGIN_S = 30.0
+"""What the orchestrator's HTTP client waits beyond a slow call's own
+deadline: the RAG starts a cold ``claude`` process for it (#267)."""
+PLANNER_TIMEOUT_S = PLANNER_DEADLINE_MS / 1000.0 + CLIENT_MARGIN_S
+REPORT_TIMEOUT_S = REPORT_DEADLINE_MS / 1000.0 + CLIENT_MARGIN_S
 JUDGE_CHUNKS = 3
 """Knowledge chunks the judge gets per slot (#259)."""
 PLAIN_REPORT = "interview.report@1"
@@ -358,6 +363,8 @@ class InterviewPlanner:
             except ValueError as exc:
                 error = f"unusable draft: {exc}"[:300]
         if plan is None:
+            LOG.warning("planner %s: generic plan used (%s)", plan_id,
+                        (error or "no draft")[:200])
             plan = fallback_plan(plan_id, title or "Entrevista", source,
                                  minutes, self.language, now, error,
                                  role_type)
@@ -845,6 +852,8 @@ class InterviewDirector:
         self.last_question = ""
         self.closing = False
         self.finished: Optional[Document] = None
+        self.report_error: Optional[str] = None
+        """Why the last report was not scored by the model, if it was not."""
         self.filler_ms: List[float] = []
         self.core_open = core_open
         self.core_asked: Set[str] = set()
@@ -1112,6 +1121,7 @@ class InterviewDirector:
         except Exception:  # noqa: BLE001 - logged, general knowledge
             LOG.exception("report: chunks of %s not read", self.session_id)
             chunks = {}
+        self.report_error = None
         data = self._report(slots, chunks)
         if data is not None:
             plain = slots
@@ -1156,6 +1166,7 @@ class InterviewDirector:
             summary=summary, other_skills=others, scorer=scorer,
             finished_at=self.now(), to_check=to_check, judge=judge,
             candidate_id=self.candidate_id,
+            report_error=self.report_error,
         )
 
     def _texts(self) -> Dict[str, str]:
@@ -1191,9 +1202,22 @@ class InterviewDirector:
             f"{self.session_id}-report"[-64:],
         )
         try:
-            return _ok_data(self.reasoner.reason(request, CancelToken()))
-        except ReasonerUnavailable:
+            response = self.reasoner.reason(request, CancelToken())
+        except ReasonerUnavailable as exc:
+            self.report_error = f"unavailable: {exc}"[:300]
+            LOG.warning("report %s: reasoner unavailable: %s",
+                        self.session_id, str(exc)[:200])
             return None
+        data = _ok_data(response)
+        if data is None:
+            failure = response.get("error")
+            failure = failure if isinstance(failure, dict) else {}
+            self.report_error = (
+                f"{response.get('status')}: {failure.get('kind') or ''} "
+                f"{str(failure.get('message') or '')[:200]}").strip()[:300]
+            LOG.warning("report %s: not scored by the model (%s)",
+                        self.session_id, self.report_error)
+        return data
 
     def _handoff(self, transcript: Document, sheet: Sheet) -> Document:
         """Publish the transcript and maybe start the analysis."""

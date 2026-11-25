@@ -497,6 +497,8 @@ export function reportCard(result) {
         h("a", { href: `#/analysis/${encodeURIComponent(sheet.session_id)}` }, t("iv.open_analysis"))]
       : t("iv.handoff.none", { error: handoff.error ?? "" })),
     h("p", { class: "sf-draft" }, t("sf.iv_draft_short")),
+    // #267: the model's report failed; the scores are only the status estimate.
+    sheet.report_error ? h("p", { class: "notice", role: "status" }, t("iv.report_error", { reason: sheet.report_error })) : null,
     accuracyBlock(sheet),
     more);
 }

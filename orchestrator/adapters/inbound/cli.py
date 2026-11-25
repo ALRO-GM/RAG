@@ -120,6 +120,8 @@ from orchestrator.adapters.outbound.runtime import (
 from orchestrator.application.candidates import CandidateBook
 from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.interview import (
+    PLANNER_TIMEOUT_S,
+    REPORT_TIMEOUT_S,
     InterviewPlanner,
     InterviewWiring,
 )
@@ -528,7 +530,8 @@ def build_interview(
     http = args.knowledge == "http"
     reasoner = build_reasoner(args)
     planner_reasoner = (
-        HttpReasoner(args.reasoner_url, args.token, timeout=150.0)
+        HttpReasoner(args.reasoner_url, args.token,
+                     timeout=PLANNER_TIMEOUT_S)
         if args.reasoner == "http" else reasoner
     )
     fixed = product.interview
@@ -544,7 +547,8 @@ def build_interview(
         section, product.language,
         model=product.reasoner.model if product.reasoner else "haiku",
     )
-    report = (HttpReasoner(args.reasoner_url, args.token, timeout=100.0)
+    report = (HttpReasoner(args.reasoner_url, args.token,
+                           timeout=REPORT_TIMEOUT_S)
               if args.reasoner == "http" else reasoner)
 
     def plan_exists(plan_id: str) -> bool:
@@ -661,7 +665,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.command == "interview":
             args.token = read_code(args.rag_token_file)
             reasoner = (HttpReasoner(args.reasoner_url, args.token,
-                                     timeout=150.0)
+                                     timeout=REPORT_TIMEOUT_S)
                         if args.reasoner == "http" else build_reasoner(args))
             return run_interview(args, reasoner, build_knowledge(args))
         return run_replay(args)

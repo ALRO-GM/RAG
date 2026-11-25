@@ -39,6 +39,7 @@ from src.domain.errors import (
     CorruptedDataError,
     ModelAuthError,
     ModelError,
+    ModelTimeoutError,
     QuotaExhaustedError,
 )
 from src.domain.runtime import ModelOption, RuntimePlan
@@ -653,3 +654,34 @@ def test_each_claude_model_has_its_own_cached_answers() -> None:
         candidates(), CATALOGUE
     )
     assert again.calls == []
+
+
+def test_a_deadline_bounds_the_cold_call_and_its_retries() -> None:
+    """#267: the interview's report and planner come here with 90-120 s."""
+    runner = FakeRunner(result())
+    model = judge(runner, timeout=180)
+    assert model.complete_within("s", "u", 5, 90.0)
+    assert 89.0 < runner.calls[-1]["timeout"] <= 90.0
+    assert model.complete_within("s", "u", 5, None)
+    assert runner.calls[-1]["timeout"] == 180
+    short_cap = judge(FakeRunner(result()), timeout=30)
+    short_cap.complete_within("s", "u", 5, 90.0)
+    assert short_cap._runner.calls[-1]["timeout"] <= 30.0  # type: ignore
+    late = subprocess.TimeoutExpired(["claude"], 1)
+    with pytest.raises(ModelTimeoutError, match="within 90 s"):
+        judge(FakeRunner(error=late)).complete_within("s", "u", 5, 90.0)
+    with pytest.raises(ModelTimeoutError):
+        judge(FakeRunner(result())).complete_within("s", "u", 5, 0.0)
+    busy = FakeRunner(result("overloaded", is_error=True,
+                             api_error_status=529), 1)
+    waited: List[float] = []
+    model = judge(busy, retries=2, backoff=1.0, sleep=waited.append)
+    with pytest.raises(ModelError):
+        model.complete_within("s", "u", 5, 60.0)
+    assert len(busy.calls) == 3 and waited == [1.0, 2.0]
+    tight = FakeRunner(result("overloaded", is_error=True,
+                              api_error_status=529), 1)
+    model = judge(tight, retries=2, backoff=100.0, sleep=waited.append)
+    with pytest.raises(ModelError):
+        model.complete_within("s", "u", 5, 60.0)
+    assert len(tight.calls) == 1  # no retry the deadline cannot fit
