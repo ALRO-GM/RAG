@@ -13,7 +13,21 @@ Backpressure: at most ``queue_seconds`` of audio wait for the
 recogniser. :meth:`LiveSession.feed` blocks while the queue is full, so
 the socket that calls it stops reading and the sender (the browser)
 sees its buffer grow; once the queue holds ``behind_seconds`` the
-session emits an ``asr_behind`` warning.
+session emits an ``asr_behind`` warning. A connected source is never
+refused for a full queue: the browser keeps the audio (#263).
+
+Resume (#263): the session counts the samples it took
+(:attr:`LiveSession.received`); a source that comes back resends from
+there. One source at a time: a newer socket takes the source over and
+the older one's audio is refused (:class:`SourceReplacedError`), so
+nothing is taken twice. Audio the client lost becomes silence
+(:meth:`LiveSession.silence`, :meth:`LiveSession.align`) so the stream
+time stays on the wall clock. A source that goes away without a stop
+leaves the session waiting ``source_grace_seconds`` (instead of
+``idle_seconds``) with a ``source_lost`` warning, and a ``source_back``
+one with the time away when it returns. Start, end (with its reason),
+source lost and back are logged on :data:`LIFECYCLE` without any
+content.
 
 Every event is checked against ``live.event.v1`` (:class:`EventCheck`)
 and written to the session's live log (:class:`LiveLog`, text only)
@@ -39,7 +53,19 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
+
+import numpy as np
 
 from transcriber.application.live import (
     FloatArray,
@@ -63,22 +89,35 @@ from transcriber.domain.errors import (
     BusyError,
     InvalidInputError,
     NotFoundError,
+    SourceReplacedError,
     StateError,
     TranscriberError,
 )
-from transcriber.domain.live import EndpointSettings, LiveSpeaker, renamed
+from transcriber.domain.live import (
+    SAMPLE_RATE,
+    EndpointSettings,
+    LiveSpeaker,
+    renamed,
+)
 from transcriber.domain.live_session import (
     AudioBacklog,
     LiveServiceSettings,
     LiveSessionRequest,
+    align_samples,
     channel_speakers,
     decode_pcm,
+    gap_samples,
     gpu_choice,
 )
 from transcriber.domain.live_transcript import live_transcript
 from transcriber.domain.models import Pipeline
 
 LOG = logging.getLogger(__name__)
+LIFECYCLE_LOGGER = "transcriber.live.lifecycle"
+LIFECYCLE = logging.getLogger(LIFECYCLE_LOGGER)
+"""Where a live session's start, end, source lost / back and socket
+closes are logged (#263): ids, reasons, codes and seconds, never words
+or audio. ``transcriber serve`` prints it."""
 
 UTTERANCE_ID = r"^t[0-9]+\.s[0-9]+$"
 """The pattern of a live utterance id (``live.event.v1``)."""
@@ -87,6 +126,24 @@ Event = Dict[str, Any]
 Builder = Callable[[LiveOptions], LiveTranscription]
 Arrival = Tuple[List[FloatArray], float]
 """Audio of every channel and the monotonic time it was received."""
+
+
+@dataclass(frozen=True)
+class SourceNotice:
+    """The audio source went away (``lost``) or came back (``back``).
+
+    Queued with the audio, so the worker warns in stream order;
+    ``seconds`` is how long the source was away (``back`` only).
+    """
+
+    kind: Literal["lost", "back"]
+    seconds: float = 0.0
+
+
+Queued = Union[Arrival, SourceNotice, None]
+"""What the worker reads: audio, a source notice, or the end (None)."""
+
+EndReason = Literal["stop", "idle", "source_lost", "failed"]
 
 DEGRADED_MESSAGE = (
     "The GPU did not free {need} MiB within {wait:g} s ({why}); the"
@@ -177,7 +234,12 @@ class LiveSession:
         self.transcript: Optional[Dict[str, Any]] = None
         self.voice: Optional[VoiceControl] = None
         self.rejected = 0
-        self._audio: "queue.Queue[Optional[Arrival]]" = queue.Queue()
+        self.received = 0
+        """Samples (per channel) taken so far, silence included (#263)."""
+        self.gap_seconds = 0.0
+        """Seconds of silence put in for audio the source lost."""
+        self.end_reason: Optional[EndReason] = None
+        self._audio: "queue.Queue[Queued]" = queue.Queue()
         self._now = now
         self._backlog = AudioBacklog(
             settings.queue_seconds, settings.behind_seconds
@@ -186,7 +248,10 @@ class LiveSession:
         self._stopping = False
         self._done = threading.Event()
         self._behind = False
-        self._source = False
+        self._source: Optional[int] = None
+        self._sources = 0
+        self._lost_at: Optional[float] = None
+        self._origin: Optional[float] = None
         self._ready = threading.Event()
 
     @property
@@ -205,34 +270,89 @@ class LiveSession:
         return self.state in (LiveState.STARTING, LiveState.RUNNING) \
             and not self._stopping
 
-    def feed(self, data: bytes) -> float:
+    def feed(self, data: bytes, source: Optional[int] = None) -> float:
         """Queue one PCM message; return the seconds of audio waiting.
 
         Blocks while ``queue_seconds`` of audio already wait (the
-        caller, a socket, then stops reading). Raises
-        :class:`StateError` once the session is stopping or over and
-        :class:`BusyError` when the queue stays full for
-        ``feed_timeout`` seconds.
+        caller, a socket, then stops reading); it is never refused for
+        that (#263). ``source`` is the claim of the socket that sends
+        it (:meth:`claim_source`): once a newer socket took the source
+        over this raises :class:`SourceReplacedError`, so no audio is
+        taken twice. Raises :class:`StateError` once the session is
+        stopping or over.
         """
-        chunks = decode_pcm(data, self.channels)
+        return self._take(decode_pcm(data, self.channels), source)
+
+    def silence(
+        self, samples: object, source: Optional[int] = None
+    ) -> int:
+        """Queue ``samples`` of silence for audio the source lost (#263).
+
+        The stream time then stays on the wall clock. Queued one second
+        at a time, with the same backpressure as :meth:`feed`. Returns
+        the samples queued.
+        """
+        count = gap_samples(samples)
+        left = count
+        while left > 0:
+            piece = min(left, SAMPLE_RATE)
+            self._take(
+                [np.zeros(piece, dtype=np.float32)] * self.channels, source
+            )
+            left -= piece
+        with self._room:
+            self.gap_seconds += count / SAMPLE_RATE
+        return count
+
+    def align(self, held: object, source: Optional[int] = None) -> int:
+        """Fill the time no audio came for with silence; return samples.
+
+        A page that reattached after a reload (#263) does not know what
+        it missed: it says how many samples it ``held`` to send, and the
+        silence puts those right before the present. Nothing before
+        the first audio.
+        """
+        with self._room:
+            elapsed = (
+                0.0 if self._origin is None else self._now() - self._origin
+            )
+            missing = 0 if self._origin is None else align_samples(
+                elapsed, self.received, held
+            )
+        return self.silence(missing, source) if missing else 0
+
+    def _take(
+        self, chunks: Sequence[FloatArray], source: Optional[int]
+    ) -> float:
+        """Queue one piece of audio of every channel (see :meth:`feed`)."""
         samples = len(chunks[0])
         with self._room:
-            if not self._room.wait_for(
-                lambda: not self.active or not self._backlog.full(),
-                self.settings.feed_timeout,
-            ):
-                raise BusyError(
-                    f"live session {self.id} is behind: its audio queue"
-                    " stayed full"
+            self._room.wait_for(
+                lambda: not self.active or not self._backlog.full()
+                or self._replaced(source),
+            )
+            if self._replaced(source):
+                raise SourceReplacedError(
+                    f"another socket took live session {self.id}'s audio"
+                    " over"
                 )
             if not self.active:
                 raise StateError(f"live session {self.id} is not running")
             self._backlog.add(samples)
             self._behind = self._behind or self._backlog.warn()
             waiting = self._backlog.seconds
-        if samples:
-            self._audio.put((chunks, self._now()))
+            if samples:
+                now = self._now()
+                if self._origin is None:
+                    self._origin = now - samples / SAMPLE_RATE
+                self.received += samples
+                # Under the lock: two sockets never interleave their audio.
+                self._audio.put((list(chunks), now))
         return waiting
+
+    def _replaced(self, source: Optional[int]) -> bool:
+        """Tell whether ``source`` lost the source to a newer socket."""
+        return source is not None and self._source != source
 
     def wait_ready(self, timeout: Optional[float] = None) -> bool:
         """Wait until the recogniser is loaded (or the session is over).
@@ -247,25 +367,70 @@ class LiveSession:
         self.state = LiveState.RUNNING
         self._ready.set()
 
-    def claim_source(self) -> bool:
-        """Take the session's one audio source; False if taken or over."""
-        with self._room:
-            if self._source or not self.active:
-                return False
-            self._source = True
-            return True
+    def claim_source(self) -> Optional[int]:
+        """Take the session's one audio source; ``None`` once it is over.
 
-    def release_source(self) -> None:
-        """Let another source connect (the socket closed)."""
+        Returns the claim (a number) the socket passes to
+        :meth:`feed`. A newer socket takes the source over from an
+        older one (#263: after a dropped connection the server may not
+        have noticed the old socket died yet); the older one's audio is
+        then refused. A source that comes back after one was lost is
+        announced to the worker (``source_back``).
+        """
         with self._room:
-            self._source = False
+            if not self.active:
+                return None
+            self._sources += 1
+            replaced = self._source is not None
+            self._source = self._sources
+            self._room.notify_all()
+            away = None
+            if self._lost_at is not None:
+                away = max(self._now() - self._lost_at, 0.0)
+                self._lost_at = None
+                self._audio.put(SourceNotice("back", away))
+        LIFECYCLE.info(
+            "Live session %s: audio source %d connected"
+            " (resume at %.1f s%s%s)",
+            self.id, self._source, self.received / SAMPLE_RATE,
+            ", replacing the previous one" if replaced else "",
+            "" if away is None else f", back after {away:.1f} s",
+        )
+        return self._source
 
-    def stop(self) -> None:
+    def release_source(self, source: Optional[int] = None) -> None:
+        """The socket of ``source`` closed: let another one connect.
+
+        Without a stop this is a lost source: the session waits
+        ``source_grace_seconds`` for one to come back (#263). A
+        replaced socket's release changes nothing. ``None`` releases
+        whatever source is connected.
+        """
+        with self._room:
+            if self._source is None or (
+                source is not None and source != self._source
+            ):
+                return
+            self._source = None
+            lost = self.active
+            if lost:
+                self._lost_at = self._now()
+                self._audio.put(SourceNotice("lost"))
+        if lost:
+            LIFECYCLE.info(
+                "Live session %s: audio source lost at %.1f s; waiting up"
+                " to %g s for it", self.id, self.received / SAMPLE_RATE,
+                self.settings.source_grace_seconds,
+            )
+
+    def stop(self, reason: EndReason = "stop") -> None:
         """Take no more audio; the worker ends the session."""
         with self._room:
             if self._stopping:
                 return
             self._stopping = True
+            if self.end_reason is None:
+                self.end_reason = reason
             self._room.notify_all()
         self._audio.put(None)
 
@@ -273,18 +438,30 @@ class LiveSession:
         """Wait until the session is over; tell whether it is."""
         return self._done.wait(timeout)
 
-    def next_audio(self) -> Optional[Arrival]:
-        """Return the next queued audio and when it came, or ``None``.
+    def next_audio(self) -> Queued:
+        """Return the next queued audio (and when it came), or ``None``.
 
-        ``None`` once the session is stopped.
+        ``None`` once the session is stopped; a :class:`SourceNotice`
+        when the source went away or came back.
 
         A session that gets no audio for ``idle_seconds`` stops by
-        itself (a closed tab must not hold the GPU).
+        itself (a closed tab must not hold the GPU); one whose source
+        went away without a stop waits ``source_grace_seconds`` from
+        that moment instead (#263).
         """
+        with self._room:
+            lost_at = self._lost_at
+            if lost_at is None:
+                timeout = self.settings.idle_seconds
+            else:
+                timeout = max(
+                    self.settings.source_grace_seconds
+                    - (self._now() - lost_at), 0.0,
+                )
         try:
-            return self._audio.get(timeout=self.settings.idle_seconds)
+            return self._audio.get(timeout=timeout)
         except queue.Empty:
-            self.stop()
+            self.stop("idle" if lost_at is None else "source_lost")
             return None
 
     def read_audio(self, chunks: Sequence[FloatArray]) -> bool:
@@ -301,10 +478,19 @@ class LiveSession:
             self.state = state
             self.error = error
             self._stopping = True
+            if state == LiveState.FAILED:
+                self.end_reason = "failed"
+            elif self.end_reason is None:
+                self.end_reason = "stop"
             self._room.notify_all()
         self.hub.close()
         self._ready.set()
         self._done.set()
+        LIFECYCLE.info(
+            "Live session %s ended: %s (%s; %.1f s of audio, %.1f s of it"
+            " silence for lost audio)", self.id, self.end_reason,
+            state.value, self.received / SAMPLE_RATE, self.gap_seconds,
+        )
 
     def info(self) -> Dict[str, Any]:
         """Return what the API shows of the session."""
@@ -325,6 +511,8 @@ class LiveSession:
             "events": len(events),
             "finals": sum(1 for e in events if e.get("type") == "final"),
             "rejected_events": self.rejected,
+            "received_samples": self.received,
+            "end_reason": self.end_reason,
             "transcript": self.transcript,
             "error": self.error,
         }
@@ -406,6 +594,10 @@ class LiveSessions:
             name=f"live-{request.session_id}", daemon=True,
         )
         worker.start()
+        LIFECYCLE.info(
+            "Live session %s started (%d channel(s), %s)", session.id,
+            session.channels, request.product or "no product",
+        )
         return session
 
     def get(self, session_id: str) -> LiveSession:
@@ -481,9 +673,12 @@ class LiveSessions:
     @staticmethod
     def options(
         request: LiveSessionRequest, device: str, model: str,
-        compute_type: str,
+        compute_type: str, catch_up: Optional[float] = None,
     ) -> LiveOptions:
-        """Return the options of the recogniser for ``request``."""
+        """Return the options of the recogniser for ``request``.
+
+        ``catch_up``: seconds late beyond which no partials are made.
+        """
         return LiveOptions(
             model=model, device=device, compute_type=compute_type,
             language=request.language, diarize=request.diarize,
@@ -491,7 +686,7 @@ class LiveSessions:
             settings=LiveSettings(
                 endpoint=EndpointSettings(hang_ms=request.hang_ms),
                 partial_every_ms=request.partial_every_ms,
-                realtime=True,
+                realtime=True, catch_up_seconds=catch_up,
             ),
         )
 
@@ -573,9 +768,10 @@ class LiveSessions:
             session.device, session.model = device, model
             if degraded is not None and self._p.lease is not None:
                 self._p.lease.release()
-            live = self._p.build(
-                self.options(session.request, device, model, compute)
-            )
+            live = self._p.build(self.options(
+                session.request, device, model, compute,
+                self._s.catch_up_seconds,
+            ))
             engine = live.engine(
                 session.id, session.speakers, emit,
                 diarize=session.request.diarize,
@@ -597,6 +793,9 @@ class LiveSessions:
                 arrival = session.next_audio()
                 if arrival is None:
                     break
+                if isinstance(arrival, SourceNotice):
+                    emit(source_warning(engine, self._p.clock, arrival))
+                    continue
                 chunks, arrived = arrival
                 engine.push(chunks, arrived)
                 if session.read_audio(chunks):
@@ -696,6 +895,30 @@ class LiveSessions:
                 summary["analysis"] = "started"
         except TranscriberError as exc:
             summary["error"] = str(exc)
+
+
+SOURCE_LOST_MESSAGE = (
+    "The audio source went away; the session waits for it to come back."
+)
+SOURCE_BACK_MESSAGE = (
+    "The audio source is back after {seconds:.0f} s; its audio arrives"
+    " late and is read as fast as possible."
+)
+
+
+def source_warning(
+    engine: LiveEngine, clock: Clock, notice: SourceNotice
+) -> Event:
+    """Return the ``source_lost`` / ``source_back`` warning (#263)."""
+    if notice.kind == "lost":
+        return engine.events.warning(
+            clock.now(), engine.stream_time, "source_lost",
+            SOURCE_LOST_MESSAGE,
+        )
+    return engine.events.warning(
+        clock.now(), engine.stream_time, "source_back",
+        SOURCE_BACK_MESSAGE.format(seconds=notice.seconds), notice.seconds,
+    )
 
 
 def _parse_time(text: Optional[str]) -> Optional[datetime]:

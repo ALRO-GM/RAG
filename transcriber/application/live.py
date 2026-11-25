@@ -89,6 +89,9 @@ class LiveSettings(BaseModel):
     endpoint: EndpointSettings = EndpointSettings()
     partial_every_ms: int = Field(default=800, ge=100)
     realtime: bool = True
+    catch_up_seconds: Optional[float] = Field(default=None, gt=0)
+    """In real time, audio read more than this late gets no partials
+    (catch-up after a lost connection, #263); finals are unchanged."""
 
 
 class LiveOptions(BaseModel):
@@ -578,6 +581,10 @@ class _Run:
             return
         stream.last_partial = now
         timer = self._timer
+        late = self._s.catch_up_seconds
+        if self._s.realtime and late is not None \
+                and timer.monotonic() - self.wall(now) > late:
+            return  # catching up: the final will say it
         began = timer.monotonic()
         heard = self._asr.decode(self._audio(stream, start, now), False)
         done = timer.monotonic()

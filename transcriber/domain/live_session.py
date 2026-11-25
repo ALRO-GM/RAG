@@ -15,6 +15,9 @@ messages; no I/O:
   16 kHz (two channels interleaved) into one float array per channel.
 * :class:`AudioBacklog`: how much audio waits for the recogniser; the
   socket stops reading when it is full (backpressure).
+* :func:`gap_samples` and :func:`align_samples`: the silence that keeps
+  the stream time on the wall clock when a source lost audio or a new
+  page takes a session over (#263).
 """
 
 from typing import List, Literal, Optional
@@ -276,6 +279,40 @@ class AudioBacklog:
         return False
 
 
+MAX_GAP_SECONDS = 4 * 3600.0
+"""Longest silence one ``gap`` message may ask for (#263)."""
+
+
+def gap_samples(samples: object) -> int:
+    """Return the samples of silence a ``gap`` message asks for.
+
+    ``samples`` comes from the client's JSON. Raises
+    :class:`InvalidInputError` unless it is a whole number from 0 to
+    :data:`MAX_GAP_SECONDS` of audio.
+    """
+    if isinstance(samples, bool) or not isinstance(samples, int) \
+            or samples < 0 or samples > MAX_GAP_SECONDS * SAMPLE_RATE:
+        raise InvalidInputError(
+            "a gap is a whole number of samples, at most"
+            f" {MAX_GAP_SECONDS:g} s"
+        )
+    return samples
+
+
+def align_samples(elapsed: float, received: int, held: object) -> int:
+    """Return the silence that puts a session's stream back on the clock.
+
+    ``elapsed`` seconds have passed since the session took audio,
+    ``received`` samples (per channel) were taken and the client still
+    holds ``held`` samples it is about to send (a page that reattached
+    after a reload, #263). The missing audio is unknown: it becomes
+    silence, so later speech keeps its wall-clock time. Never negative.
+    """
+    pending = gap_samples(held)
+    due = int(round(max(elapsed, 0.0) * SAMPLE_RATE))
+    return max(due - received - pending, 0)
+
+
 GpuChoice = Literal["wait", "gpu", "cpu"]
 """What a live session does after asking for the GPU (§7 steps 3-4)."""
 
@@ -314,9 +351,13 @@ class LiveServiceSettings(BaseModel):
     ``queue_seconds`` of audio may wait for the recogniser
     before the socket pushes back; ``behind_seconds`` waiting gives an
     ``asr_behind`` warning. ``max_sessions`` run at once (one GPU);
-    ``kept_sessions`` ended ones stay readable. ``feed_timeout`` is how
-    long a full queue may block a socket before the audio is refused;
-    a session without audio for ``idle_seconds`` stops by itself.
+    ``kept_sessions`` ended ones stay readable. A full queue blocks the
+    socket (the browser keeps the audio); a connected source is never
+    refused for it (#263). A session without audio for
+    ``idle_seconds`` stops by itself; one whose source went away
+    without a stop waits ``source_grace_seconds`` for it to come back
+    (#263). Audio more than ``catch_up_seconds`` late is read with no
+    partials until it is on time again.
     A diarized mono session asks for ``diarize_need_mib`` more GPU
     memory (Sortformer and the voice encoder) and names its voices
     with ``diarization``; a two-party one checks the employee's voice
@@ -338,7 +379,11 @@ class LiveServiceSettings(BaseModel):
     max_sessions: int = Field(default=1, ge=1)
     kept_sessions: int = Field(default=8, ge=0)
     feed_timeout: float = Field(default=30.0, gt=0)
+    """Unused since #263 (a full queue never refuses audio); kept so
+    existing settings files still load."""
     idle_seconds: float = Field(default=120.0, gt=0)
+    source_grace_seconds: float = Field(default=600.0, gt=0)
+    catch_up_seconds: float = Field(default=3.0, gt=0)
     diarize_need_mib: int = Field(default=1500, ge=0)
     diarization: MonoDiarizationSettings = MonoDiarizationSettings()
     voice_check: VoiceCheckSettings = VoiceCheckSettings()

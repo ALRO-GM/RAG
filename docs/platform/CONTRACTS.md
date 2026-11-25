@@ -89,8 +89,9 @@ Readers are deployed before writers. Each schema goes in
       "type": "object", "additionalProperties": false,
       "required": ["code", "message"],
       "properties": {
-        "code": {"enum": ["gpu_degraded", "asr_behind", "source_lost", "quota", "other"]},
-        "message": {"type": "string"}
+        "code": {"enum": ["gpu_degraded", "asr_behind", "source_lost", "source_back", "quota", "other"]},
+        "message": {"type": "string"},
+        "seconds": {"type": "number", "minimum": 0, "description": "#263: how long the condition lasted (source_back: the time the audio source was away)"}
       }
     },
     "voice_check": {
@@ -120,6 +121,16 @@ utterance whose speaker is not known from its voice yet has
 `speaker_unsure: true` (written only when true). Both come only with
 the start request's `parties`; deploy the transcriber before the
 orchestrator (see `contracts/README.md`).
+
+Lost audio source (#263, added compatibly inside v1): when the audio
+socket of a session closes without a stop, the transcriber emits a
+`warning` with code `source_lost` and keeps the session waiting for the
+source (`source_grace_seconds`, 10 min by default) instead of ending it;
+when a source connects again it emits `source_back` with
+`warning.seconds`, the time the source was away. Audio resent after an
+outage arrives late, so its finals carry a large `timings.lag_ms`. The
+orchestrator must know the new code before the transcriber sends it:
+deploy both together (or the orchestrator first).
 
 Semantics: a partial and the final it becomes share the same `id`, and
 `revision` increases with each update. A final is never retracted, only

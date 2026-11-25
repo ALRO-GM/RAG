@@ -15,8 +15,11 @@ The command (``docs/transcriber/ARCHITECTURE.md`` §5):
 5. runs the API with uvicorn on the bound socket;
 6. once the API listens, starts the tunnel (unless ``--no-tunnel``) and
    prints the join link and its QR code;
-7. prints a line for every change of a job or of the tunnel until
-   Ctrl-C (or SIGTERM), then stops the tunnel and the server.
+7. prints a line for every change of a job or of the tunnel, and every
+   live session's start, end, lost or returned audio source and socket
+   close (:class:`LineHandler`, #263: ids, reasons and seconds, never
+   words), until Ctrl-C (or SIGTERM), then stops the tunnel and the
+   server.
 
 The access code is written to the terminal and nowhere else: it is
 never passed to a logger, and the API never logs URLs with it (the code
@@ -24,6 +27,7 @@ travels in a header and in the link's fragment).
 """
 
 import fcntl
+import logging
 import signal
 import socket
 import threading
@@ -38,6 +42,7 @@ from fastapi import FastAPI
 
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.adapters.inbound.join import LOCAL_HOST, join_link, qr_text
+from transcriber.application.live_session import LIFECYCLE
 from transcriber.application.ports import Tunnel
 from transcriber.bootstrap import TranscriberContainer, password_checker
 from transcriber.config import TranscriberSettings
@@ -108,6 +113,22 @@ Snapshot = Tuple[str, Optional[str], int, Optional[str], Optional[str]]
 def _time() -> str:
     """Return the wall-clock time for a progress line."""
     return datetime.now().strftime("%H:%M:%S")
+
+
+class LineHandler(logging.Handler):
+    """Print a logger's records as progress lines, with the time."""
+
+    def __init__(self, write: Callable[[str], None]) -> None:
+        """Print through ``write``."""
+        super().__init__(logging.INFO)
+        self._write = write
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Print one record as ``HH:MM:SS  message``."""
+        try:
+            self._write(f"{_time()}  {record.getMessage()}")
+        except Exception:  # a log line must never break a session
+            self.handleError(record)
 
 
 class ProgressLines:
@@ -269,6 +290,9 @@ def serve(
             except Exception as exc:  # keep watching; never stop serving
                 write(f"{_time()}  progress unavailable: {exc}")
 
+    lifecycle = LineHandler(write)
+    LIFECYCLE.addHandler(lifecycle)
+    LIFECYCLE.setLevel(logging.INFO)
     watcher = threading.Thread(target=watch, name="serve-watch", daemon=True)
     main = threading.current_thread() is threading.main_thread()
     previous = signal.signal(signal.SIGTERM, _on_sigterm) if main else None
@@ -295,6 +319,7 @@ def serve(
             bound.close()
         if main:
             signal.signal(signal.SIGTERM, previous)
+        LIFECYCLE.removeHandler(lifecycle)
     write("Stopped.")
     return 0 if started else 1
 

@@ -24,8 +24,19 @@ Routes (all need the access code, as the rest of the API):
     The browser's microphone: binary messages of signed 16-bit
     little-endian PCM at 16 kHz, channels interleaved (at most one
     second each). The text message ``{"type": "stop"}`` ends the
-    session. The server first sends ``{"type": "ready", ...}``; a full
-    audio queue stops it reading (backpressure).
+    session. The server first sends ``{"type": "ready", ...}`` with
+    ``received_samples``, the samples (per channel) the session has
+    taken so far: a client that reconnects resends from there (#263).
+    About every :data:`ACK_SECONDS` it sends ``{"type": "ack",
+    "samples": N}`` (everything before N is taken; the client forgets
+    it). ``{"type": "gap", "samples": k}`` says the client lost ``k``
+    samples (they become silence); ``{"type": "align", "held": n}``,
+    from a page that reattached after a reload, fills the time no audio
+    came for with silence, leaving room for the ``n`` samples it is
+    about to send. A full audio queue stops the server reading
+    (backpressure); a connected source is never refused for it. A newer
+    socket takes the source over; the older one is closed with
+    ``4409`` and the code ``replaced``.
 
 A browser cannot set a header on a WebSocket, so a socket without the
 ``X-Access-Code`` header must send ``{"type": "auth", "access_code":
@@ -40,7 +51,8 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Callable, Dict, Mapping, Optional
+import time
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.concurrency import run_in_threadpool
@@ -53,10 +65,15 @@ from transcriber.adapters.inbound.http_api import (
     parse_json,
     read_body,
 )
-from transcriber.application.live_session import LiveSession, LiveSessions
+from transcriber.application.live_session import (
+    LIFECYCLE,
+    LiveSession,
+    LiveSessions,
+)
 from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
+    SourceReplacedError,
     StateError,
     TranscriberError,
 )
@@ -82,8 +99,12 @@ CLOSE_CODES = {
     "not_found": 4404,
     "wrong_state": 4409,
     "busy": 4409,
+    "replaced": 4409,
     "too_many_attempts": 4429,
 }
+
+ACK_SECONDS = 1.0
+"""How often the audio socket acknowledges what it took (#263)."""
 
 
 READY_TIMEOUT = 120.0
@@ -102,6 +123,8 @@ def error_code(exc: TranscriberError) -> str:
     """Return the stable code of a domain error on a socket."""
     if isinstance(exc, NotFoundError):
         return "not_found"
+    if isinstance(exc, SourceReplacedError):
+        return "replaced"
     if isinstance(exc, InvalidInputError):
         return "invalid_input"
     if isinstance(exc, StateError):
@@ -224,14 +247,13 @@ def add_live_routes(
             return
         try:
             session = live.get(session_id)
-            if not session.claim_source():
-                raise StateError(
-                    f"live session {session_id} already has an audio source"
-                    " or has ended"
-                )
+            source = session.claim_source()
+            if source is None:
+                raise StateError(f"live session {session_id} has ended")
         except TranscriberError as exc:
             await refuse(socket, error_code(exc), str(exc))
             return
+        closed = "unknown"
         try:
             # The client starts sending on "ready": hold it back until
             # the recogniser is loaded, so no audio queues meanwhile.
@@ -244,10 +266,17 @@ def add_live_routes(
                     PCM_BYTES * session.channels * SAMPLE_RATE
                     * MAX_MESSAGE_SECONDS
                 ),
+                "received_samples": session.received,
             })
-            await _pump_audio(socket, session)
+            closed = await _pump_audio(socket, session, source)
+        except (WebSocketDisconnect, RuntimeError) as exc:
+            closed = str(getattr(exc, "code", "") or type(exc).__name__)
         finally:
-            session.release_source()
+            session.release_source(source)
+            LIFECYCLE.info(
+                "Live session %s: audio socket %d closed (%s)",
+                session_id, source, closed,
+            )
 
     @app.websocket("/api/live/{session_id}/events")
     async def live_events(socket: WebSocket, session_id: str) -> None:
@@ -260,41 +289,83 @@ def add_live_routes(
         await follow_events(socket, session_id, live, admit)
 
 
-async def _pump_audio(socket: WebSocket, session: LiveSession) -> None:
+async def _pump_audio(
+    socket: WebSocket, session: LiveSession, source: int
+) -> str:
     """Feed the socket's messages to ``session`` until stop or close.
 
     Each message is queued from the thread pool; while the session's
-    queue is full the call blocks and the socket is not read.
+    queue is full the call blocks and the socket is not read. What was
+    taken is acknowledged about every :data:`ACK_SECONDS`. Returns how
+    the socket ended (its close code or the refusal), for the log.
     """
+    acked = (session.received, time.monotonic())
     while True:
         try:
             message = await socket.receive()
-        except WebSocketDisconnect:
-            return
+        except WebSocketDisconnect as exc:
+            return str(exc.code)
         if message["type"] == "websocket.disconnect":
-            return
+            return str(message.get("code", "disconnect"))
         data = message.get("bytes")
         text = message.get("text")
         try:
             if data is not None:
-                await run_in_threadpool(session.feed, data)
-            elif text is not None and _is_stop(text):
-                await run_in_threadpool(session.stop)
-                await socket.send_json({"type": "stopped"})
-                await socket.close(1000)
-                return
+                await run_in_threadpool(session.feed, data, source)
+            elif text is not None:
+                command = _command(text)
+                kind = command.get("type")
+                if kind == "stop":
+                    await run_in_threadpool(session.stop)
+                    await socket.send_json({"type": "stopped"})
+                    await socket.close(1000)
+                    return "stop"
+                if kind == "gap":
+                    samples = await run_in_threadpool(
+                        session.silence, command.get("samples"), source
+                    )
+                    LIFECYCLE.info(
+                        "Live session %s: the client lost %.1f s of audio;"
+                        " silence put in", session.id, samples / SAMPLE_RATE,
+                    )
+                elif kind == "align":
+                    samples = await run_in_threadpool(
+                        session.align, command.get("held", 0), source
+                    )
+                    LIFECYCLE.info(
+                        "Live session %s: a reattached page; %.1f s of"
+                        " silence put in", session.id, samples / SAMPLE_RATE,
+                    )
         except TranscriberError as exc:
             await refuse(socket, error_code(exc), str(exc))
-            return
+            return error_code(exc)
+        acked = await _maybe_ack(socket, session, acked)
 
 
-def _is_stop(text: str) -> bool:
-    """Tell whether a text message asks to stop the session."""
+async def _maybe_ack(
+    socket: WebSocket, session: LiveSession, last: Tuple[int, float]
+) -> Tuple[int, float]:
+    """Send ``{"type": "ack"}`` when new audio was taken and it is time.
+
+    ``last`` is the samples last acknowledged and when; returns the
+    new pair.
+    """
+    samples, at = last
+    now = time.monotonic()
+    taken = session.received
+    if taken == samples or now - at < ACK_SECONDS:
+        return last
+    await socket.send_json({"type": "ack", "samples": taken})
+    return taken, now
+
+
+def _command(text: str) -> Dict[str, Any]:
+    """Return a text message as a JSON object (empty when it is not)."""
     try:
         message = json.loads(text)
     except ValueError:
-        return False
-    return isinstance(message, dict) and message.get("type") == "stop"
+        return {}
+    return message if isinstance(message, dict) else {}
 
 
 EVENT_POLL_SECONDS = 1.0

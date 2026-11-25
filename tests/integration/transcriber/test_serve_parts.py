@@ -3,6 +3,7 @@ settings from the environment and the progress lines."""
 
 import io
 import json
+import logging
 import socket
 import time
 from pathlib import Path
@@ -21,6 +22,7 @@ from transcriber.adapters.inbound.cli import (
 )
 from transcriber.adapters.inbound.serve import (
     WEB_DIR,
+    LineHandler,
     ProgressLines,
     bind_port,
     dev_settings,
@@ -31,6 +33,7 @@ from transcriber.adapters.outbound.fs_access_code import (
     kept_access_code,
     new_access_code,
 )
+from transcriber.application.live_session import LIFECYCLE
 from transcriber.application.ports import RecordedAudio, TunnelStatus
 from transcriber.bootstrap import (
     TranscriberContainer,
@@ -38,6 +41,7 @@ from transcriber.bootstrap import (
     build_container,
 )
 from transcriber.config import TranscriberSettings, load_settings
+from transcriber.domain.live_session import LiveSessionRequest
 
 WAIT = 30.0
 
@@ -293,3 +297,48 @@ class TestBindPort:
                 pass  # it listens: a connection waits in its queue
         finally:
             first.close()
+
+
+class TestLifecycleLines:
+    def test_a_live_session_s_life_is_printed_without_content(
+        self, tmp_path: Path
+    ) -> None:
+        """#263: start, lost / back source and end become serve lines."""
+        lines: List[str] = []
+        handler = LineHandler(lines.append)
+        LIFECYCLE.addHandler(handler)
+        LIFECYCLE.setLevel(logging.INFO)
+        container = build_container(TranscriberSettings(
+            data_dir=tmp_path / "data", runtime="fake",
+        ))
+        live = container.live
+        assert live is not None
+        try:
+            session = live.start(
+                LiveSessionRequest(session_id="life-1")
+            )
+            source = session.claim_source()
+            session.release_source(source)
+            session.claim_source()
+            live.stop("life-1", 30.0)
+        finally:
+            LIFECYCLE.removeHandler(handler)
+            container.runner.close(30.0)
+        text = "\n".join(lines)
+        assert "life-1 started" in text
+        assert "audio source lost" in text
+        assert "back after" in text
+        assert "life-1 ended: stop" in text
+        assert all(line[2] == ":" and line[5] == ":" for line in lines)
+
+    def test_a_broken_line_never_breaks_the_caller(self) -> None:
+        def broken(line: str) -> None:
+            raise OSError("closed terminal")
+
+        handler = LineHandler(broken)
+        record = logging.LogRecord("x", logging.INFO, "f", 1, "m", None, None)
+        logging.raiseExceptions = False
+        try:
+            handler.emit(record)
+        finally:
+            logging.raiseExceptions = True

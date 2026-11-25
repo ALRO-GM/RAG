@@ -8,6 +8,7 @@ audio, and the transcript is published when the start request asks.
 
 import json
 import stat
+import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
@@ -22,6 +23,7 @@ from tests.unit.transcriber.live_fakes import (
     chunks_of,
     pcm,
 )
+from transcriber.adapters.inbound import live_ws
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.bootstrap import TranscriberContainer, build_container
 from transcriber.config import ApiSettings, TranscriberSettings
@@ -107,7 +109,7 @@ def test_a_live_session_from_start_to_transcript(
     assert ready == {
         "type": "ready", "session_id": "call-1", "channels": 2,
         "sample_rate": 16000, "format": "pcm_s16le",
-        "max_message_bytes": 64000,
+        "max_message_bytes": 64000, "received_samples": 0,
     }
     events = follow(client, "/api/live/call-1/events")
     for event in events:
@@ -210,8 +212,11 @@ def test_socket_refusals_name_their_reason(client: TestClient) -> None:
     )
     with client.websocket_connect("/api/live/r/audio") as ws:
         ws.receive_json()
-        assert refused(client, "/api/live/r/audio") == ("wrong_state", 4409)
         ws.send_bytes(b"\x00")
+        assert ws.receive_json()["code"] == "invalid_input"
+    with client.websocket_connect("/api/live/r/audio") as ws:
+        ws.receive_json()
+        ws.send_text(json.dumps({"type": "gap", "samples": -1}))
         assert ws.receive_json()["code"] == "invalid_input"
     client.post("/api/live/sessions/r/stop")
     assert refused(client, "/api/live/r/audio") == ("wrong_state", 4409)
@@ -319,3 +324,96 @@ def test_a_two_party_session_checks_the_voice_and_takes_corrections(
     assert client.post(path, json={"action": "skip"}).status_code == 409
     assert client.post("/api/live/sessions/zzz/voice",
                        json={"action": "skip"}).status_code == 404
+
+
+# ---- #263: a short connection loss costs nothing ----------------------
+
+def test_a_dropped_audio_socket_resumes_where_the_server_stopped(
+    client: TestClient, container: TranscriberContainer,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Drop the socket mid-session: the session waits, says so, and a
+    new socket resumes from the samples the server acknowledged."""
+    monkeypatch.setattr(live_ws, "ACK_SECONDS", 0.0)
+    start(client, session_id="drop", handoff={"transcript_v1": True})
+    data = speech()
+    half = len(data) // 2 // 3200 * 3200
+    with client.websocket_connect("/api/live/drop/audio") as ws:
+        assert ws.receive_json()["received_samples"] == 0
+        acks = []
+        for message in chunks_of(data[:half], 3200):
+            ws.send_bytes(message)
+            acks.append(ws.receive_json())
+        assert acks[-1] == {"type": "ack", "samples": half // 2}
+    # the socket dropped without a stop: the session is still there
+    assert container.live is not None
+    session = container.live.get("drop")
+    wait_for(lambda: session.info()["events"] > 0 and any(
+        e["type"] == "warning" for e in session.hub.history()))
+    assert session.active
+    with client.websocket_connect("/api/live/drop/audio") as ws:
+        ready = ws.receive_json()
+        assert ready["received_samples"] == half // 2
+        resume = ready["received_samples"] * 2
+        for message in chunks_of(data[resume:], 3200):
+            ws.send_bytes(message)
+        ws.send_text(json.dumps({"type": "stop"}))
+        while ws.receive_json() != {"type": "stopped"}:
+            pass
+    events = follow(client, "/api/live/drop/events")
+    for event in events:
+        jsonschema.validate(event, LIVE_SCHEMA)
+    codes = [e["warning"]["code"] for e in events if e["type"] == "warning"]
+    assert codes == ["source_lost", "source_back"]
+    back = [e for e in events if e["type"] == "warning"][1]["warning"]
+    assert back["seconds"] >= 0
+    info = client.get("/api/live/sessions/drop").json()
+    assert info["received_samples"] * 2 == len(data)
+    assert info["end_reason"] == "stop" and info["finals"] >= 1
+
+
+def test_a_newer_socket_takes_the_source_and_the_old_is_told(
+    client: TestClient,
+) -> None:
+    start(client, session_id="two")
+    with client.websocket_connect("/api/live/two/audio") as old:
+        old.receive_json()
+        old.send_bytes(b"\x00\x00" * 1600)
+        with client.websocket_connect("/api/live/two/audio") as new:
+            assert new.receive_json()["received_samples"] == 1600
+            old.send_bytes(b"\x00\x00" * 1600)
+            error = old.receive_json()
+            assert error["code"] == "replaced"
+            with pytest.raises(WebSocketDisconnect) as closed:
+                old.receive_text()
+            assert closed.value.code == 4409
+            new.send_bytes(b"\x00\x00" * 1600)
+            new.send_text(json.dumps({"type": "stop"}))
+            while new.receive_json() != {"type": "stopped"}:
+                pass
+    info = client.get("/api/live/sessions/two").json()
+    assert info["received_samples"] == 3200, "the old piece was not taken"
+
+
+def test_lost_audio_and_a_reattached_page_become_silence(
+    client: TestClient,
+) -> None:
+    start(client, session_id="gap")
+    with client.websocket_connect("/api/live/gap/audio") as ws:
+        ws.receive_json()
+        ws.send_bytes(b"\x00\x00" * 1600)
+        ws.send_text(json.dumps({"type": "gap", "samples": 32000}))
+        ws.send_text(json.dumps({"type": "align", "held": 16000 * 3600}))
+        ws.send_text(json.dumps({"type": "stop"}))
+        while ws.receive_json() != {"type": "stopped"}:
+            pass
+    info = client.get("/api/live/sessions/gap").json()
+    assert info["received_samples"] == 1600 + 32000
+
+
+def wait_for(check: Any) -> None:
+    """Poll ``check`` until true (the session runs on its own thread)."""
+    deadline = time.monotonic() + WAIT
+    while not check():
+        assert time.monotonic() < deadline, "timed out"
+        time.sleep(0.02)

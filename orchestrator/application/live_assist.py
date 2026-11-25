@@ -15,7 +15,10 @@ is made in the session (skip reason ``halted``), as the design says
 signals are quoted and rank them in support, and are removed in every
 other product. The assistance mode (``pincelada`` or ``guiado``, LV-16)
 goes in the request's constraints and can change between two calls.
-Transcript text is never logged here.
+Speech heard more than ``late_ms`` late (audio resent after a lost
+connection, #263) asks for no suggestion (skip reason ``late``): it
+would come too late to help. The window and every tracker of the
+session still take it. Transcript text is never logged here.
 """
 
 import threading
@@ -42,7 +45,13 @@ from orchestrator.domain.records import (
     TriggerInfo,
 )
 from orchestrator.domain.signals import present
-from orchestrator.domain.triggers import Firing, Skip, TriggerPolicy
+from orchestrator.domain.triggers import (
+    LATE_MS,
+    Firing,
+    Skip,
+    TriggerPolicy,
+    is_late,
+)
 
 MAX_REQUEST_ID = 64
 CHUNK_TEXT = 600
@@ -65,6 +74,9 @@ class LiveAssist:
         session: ``type`` and ``goal`` of the conversation, if known.
         screen: Drops suggestions before they are written (#235: the
             core questions a candidate already answered).
+        late_ms: Speech heard later than this (``timings.lag_ms``)
+            asks for no suggestion, skip reason ``late`` (#263);
+            ``None`` turns the rule off.
     """
 
     def __init__(
@@ -80,6 +92,7 @@ class LiveAssist:
         screen: Optional[
             Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
         ] = None,
+        late_ms: Optional[float] = LATE_MS,
     ):
         """Wire the ports; no call yet."""
         if config.trigger is None or config.reasoner is None:
@@ -106,6 +119,8 @@ class LiveAssist:
         self._texts: Dict[str, Tuple[str, str]] = {}
         self.signal_history: Dict[str, int] = {}
         self.halted: Optional[str] = None
+        self.late_ms = late_ms
+        self._late = False
         self.mode: Optional[str] = config.reasoner.mode
         """Assistance mode sent to the ``@2`` templates; the page may
         switch it during the session (the next call uses it)."""
@@ -113,6 +128,8 @@ class LiveAssist:
     def on_event(self, event: LiveEvent) -> None:
         """Handle one event: keep the window, maybe start a call."""
         u = event.utterance
+        if event.type == "final":
+            self._late = is_late(event, self.late_ms)
         if event.type == "final" and u is not None:
             item = {"id": u.id, "speaker": u.speaker, "text": u.text,
                     "start": u.start, "end": u.end}
@@ -131,6 +148,9 @@ class LiveAssist:
                 self.skips.get(decision.reason, 0) + 1
             )
         elif isinstance(decision, Firing):
+            if self._late:  # a turn_end goes with its last final
+                self.skips["late"] = self.skips.get("late", 0) + 1
+                return
             self._fire(event, decision)
 
     def _replace(self, item: Dict[str, Any]) -> None:

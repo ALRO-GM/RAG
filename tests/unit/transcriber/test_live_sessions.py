@@ -53,6 +53,7 @@ from transcriber.domain.errors import (
     InvalidInputError,
     NotFoundError,
     PublishError,
+    SourceReplacedError,
     StateError,
 )
 from transcriber.domain.live import EndpointSettings, LiveSpeaker
@@ -330,16 +331,23 @@ def test_old_ended_sessions_are_forgotten() -> None:
     assert [s.id for s in harness.live.list()] == ["b", "c"]
 
 
-def test_one_audio_source_at_a_time() -> None:
+def test_one_audio_source_at_a_time_the_newest_wins() -> None:
     harness = Harness(device="cpu")
     session = harness.live.start(LiveSessionRequest(session_id="a"))
-    assert session.claim_source() and not session.claim_source()
-    session.release_source()
-    assert session.claim_source()
+    first = session.claim_source()
+    second = session.claim_source()
+    assert first and second and first != second
+    with pytest.raises(SourceReplacedError):
+        session.feed(b"\x00\x00", first)
+    session.release_source(first)  # a replaced socket changes nothing
+    session.feed(b"\x00\x00", second)
+    assert session.received == 1
     harness.live.stop("a", WAIT)
+    assert session.claim_source() is None
 
 
-def test_a_full_queue_blocks_then_refuses_and_warns_it_is_behind() -> None:
+def test_a_full_queue_blocks_but_never_refuses_and_warns_it_is_behind(
+) -> None:
     gate = threading.Event()
     harness = Harness(
         LiveServiceSettings(
@@ -349,10 +357,18 @@ def test_a_full_queue_blocks_then_refuses_and_warns_it_is_behind() -> None:
     )
     session = harness.live.start(LiveSessionRequest(session_id="a"))
     tone = pcm(bursts([(0.0, 0.25)], 0.25))
-    with pytest.raises(BusyError):
+    fed = threading.Event()
+
+    def feed_all() -> None:
         for _ in range(20):
             session.feed(tone)
+        fed.set()
+
+    feeder = threading.Thread(target=feed_all, daemon=True)
+    feeder.start()
+    assert not fed.wait(0.6), "a full queue blocks the source"
     gate.set()
+    assert fed.wait(WAIT), "and lets it go on once there is room"
     harness.live.stop("a", WAIT)
     codes = [
         e["warning"]["code"] for e in session.hub.history()

@@ -71,9 +71,11 @@ class Timings(_Strict):
 class LiveWarning(_Strict):
     """Something the live pipeline wants the person to know."""
 
-    code: Literal["gpu_degraded", "asr_behind", "source_lost", "quota",
-                  "other"]
+    code: Literal["gpu_degraded", "asr_behind", "source_lost",
+                  "source_back", "quota", "other"]
     message: str
+    seconds: Optional[float] = Field(default=None, ge=0)
+    """#263: how long it lasted (``source_back``: the time away)."""
 
 
 class VoiceCheck(_Strict):

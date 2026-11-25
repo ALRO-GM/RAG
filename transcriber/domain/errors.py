@@ -29,6 +29,13 @@ class BusyError(StateError):
     """
 
 
+class SourceReplacedError(StateError):
+    """A newer socket took a live session's audio source over (#263).
+
+    The older socket's audio is no longer taken, so the two never mix.
+    """
+
+
 class ConsentRequiredError(InvalidInputError):
     """A voice cannot be enrolled without the person's explicit consent."""
 

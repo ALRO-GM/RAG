@@ -49,7 +49,8 @@ MAX_HANG_MS = 700
 SourceKind = Literal["stereo_channels", "mono_diarized", "single_speaker"]
 UtteranceEvent = Literal["partial", "final", "speaker_update"]
 WarningCode = Literal[
-    "gpu_degraded", "asr_behind", "source_lost", "quota", "other"
+    "gpu_degraded", "asr_behind", "source_lost", "source_back", "quota",
+    "other",
 ]
 
 
@@ -587,11 +588,17 @@ class LiveEventStream:
 
     def warning(
         self, at: datetime, stream_time: float, code: WarningCode,
-        message: str,
+        message: str, seconds: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Return a ``warning`` event (shown to the user as a banner)."""
+        """Return a ``warning`` event (shown to the user as a banner).
+
+        ``seconds`` is how long the condition lasted, when it has a
+        length (``source_back``: the time the source was away, #263).
+        """
         event = self._event("warning", at, stream_time)
         event["warning"] = {"code": code, "message": message}
+        if seconds is not None:
+            event["warning"]["seconds"] = round(max(seconds, 0.0), 3)
         return event
 
 
