@@ -880,15 +880,16 @@ class LiveSessions:
                 session.error = failed
                 judging = (session.judge is not None
                            and session.topics is not None)
+                if judging:
+                    # Marked reporting while still running, so no
+                    # «Reintentar» can slip in once it has ended.
+                    with self._lock:
+                        session.accuracy = {"state": "reporting"}
                 self._end(session, "failed" if failed else "ended",
                           keep_feed=judging)
                 if judging:
                     # After the end (#259 review): the session no longer
-                    # counts as running while its round is judged; marked
-                    # reporting first, so «Reintentar» cannot start a
-                    # second judgement meanwhile.
-                    with self._lock:
-                        session.accuracy = {"state": "reporting"}
+                    # counts as running while its round is judged.
                     self.runner.start(lambda: self._judge_round(session))
 
         self.runner.start(job)
@@ -910,8 +911,11 @@ class LiveSessions:
                     session.handoff = {**session.handoff,
                                        "accuracy": session.accuracy}
                     self._write_handoff(session)
-        except Exception:  # noqa: BLE001 - logged, the session is over
+        except Exception:  # noqa: BLE001 - logged, shown as failed
             LOG.exception("accuracy: round %s not judged", session.id)
+            session.accuracy = {"state": "failed", "saved": False}
+            session.feed.publish({"type": "accuracy",
+                                  **session.accuracy})
         finally:
             session.feed.publish({"type": "status",
                                   "session": session.view()})
@@ -934,9 +938,10 @@ class LiveSessions:
             found = session.accuracy or {}
             state = found.get("state")
             # A ready judgement whose report could not be saved may run
-            # again; a running or saved one may not.
-            if state == "reporting" or (state == "ready"
-                                        and found.get("saved")):
+            # again; a running or saved one may not, nor one whose
+            # candidate's file is gone (it would not be saved either).
+            if state == "reporting" or (state == "ready" and (
+                    found.get("saved") or found.get("why") == "no_file")):
                 raise SessionError("wrong_state",
                                    f"the judgement is {state}")
             session.accuracy = {"state": "reporting"}

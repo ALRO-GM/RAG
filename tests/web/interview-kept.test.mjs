@@ -150,3 +150,26 @@ test("a report without a person's file says so and can be deleted from the compa
     assert.ok(!reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention"]));
   });
 });
+
+test("the page follows the server's rule of which reports are in a file", async () => {
+  assert.equal(es["live.accuracy_no_file"], "No se ha guardado: la ficha de la persona ya no existe.");
+  const state = new LiveState();
+  state.apply({ type: "accuracy", state: "ready", saved: false, why: "no_file", slots: [], to_check: [] });
+  assert.equal(state.accuracy.why, "no_file");
+  await withDom("es", async () => {
+    const { comparisonCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const { reportPage } = await import("../../transcriber/adapters/inbound/web/js/views/interview-report.js");
+    const results = { plan: { id: "dev", revision: 0, slots: [] }, candidates: [
+      // An old AI sheet: no candidate_id, but its session is a round of a file.
+      { session_id: "vb-old", candidate: "Ana", owned: true, plan_revision: 0, slots: [] },
+      // A report whose file is gone.
+      { session_id: "r1", kind: "live", candidate: "Luis", candidate_id: "gone", owned: false, plan_revision: 0, slots: [] }] };
+    const card = comparisonCard(results, { onDelete: () => {} });
+    const deletable = card.all().filter((n) => n.tagName === "BUTTON");
+    assert.equal(deletable.length, 1);
+    const rows = card.all().filter((n) => n.tagName === "TR").slice(1);
+    assert.ok(rows[1].text().includes(es["iv.no_file"]) && !rows[0].text().includes(es["iv.no_file"]));
+    assert.ok(reportPage({ ...LIVE, candidate_id: "gone", owned: false }).text().includes(es["iv.retention_no_file"]));
+    assert.ok(reportPage({ ...LIVE, candidate_id: null, owned: true }).text().includes(es["iv.retention"]));
+  });
+});

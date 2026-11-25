@@ -2225,4 +2225,5 @@ export const es = {
   "iv.delete_report_body": "Se borra el informe de esta entrevista, con sus citas y valoraciones. No se puede deshacer.",
   "iv.deleted_report": "Informe borrado.",
   "live.accuracy_nothing": "No hubo respuestas que valorar: no se ha guardado ningún informe.",
+  "live.accuracy_no_file": "No se ha guardado: la ficha de la persona ya no existe.",
 };

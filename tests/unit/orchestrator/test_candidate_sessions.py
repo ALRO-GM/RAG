@@ -796,3 +796,41 @@ def test_a_live_round_and_its_replayed_transcript_attribute_alike() -> None:
                   [p.status for p in s.points]) for s in slots], texts)
 
     assert shape(again) == shape(seen)
+
+
+def test_a_judgement_that_raises_ends_as_failed_not_stuck() -> None:
+    """Re-review of #262: never «Preparando…» forever."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    live = wired(conversation("r1", round_lines(one)), AskingReasoner(),
+                 store)
+
+    def boom(topics: Any) -> Any:
+        raise RuntimeError("odd")
+
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    session = live._find("r1")
+    assert session.judge is not None
+    session.judge.judge = boom  # type: ignore[method-assign]
+    session.accuracy = {"state": "failed"}
+    live.rejudge("r1")
+    assert live.get("r1")["accuracy"] == {"state": "failed", "saved": False}
+    # The end of a round: the same, and the page is told.
+    runner = FirstInline()
+    held = wired(conversation("r2", round_lines(one)), AskingReasoner(),
+                 store, runner)
+    held.start_live("live_assist.interview", "stereo", session_id="r2",
+                    plan="plan-1", candidate="Lucía Marín")
+    target = held._find("r2")
+    assert target.judge is not None
+    target.judge.judge = boom  # type: ignore[method-assign]
+    runner.held.pop()()
+    assert held.get("r2")["accuracy"] == {"state": "failed", "saved": False}
+    found, finished = held.feed("r2").read(0, 0.01)
+    assert finished
+    assert {"type": "accuracy", "state": "failed", "saved": False} in [
+        m for _, m in found]
+    held.rejudge("r2")  # a failed round can be retried

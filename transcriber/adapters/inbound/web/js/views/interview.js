@@ -534,8 +534,8 @@ export function comparisonCard(results, { onDelete = null } = {}) {
   // What is true of each row (#262): in a person's file until it is deleted,
   // or with the position, deleted from here.
   const notes = [
-    rows.some((r) => r.candidateId) ? h("p", { class: "hint" }, t("iv.retention")) : null,
-    rows.some((r) => !r.candidateId) ? h("p", { class: "hint" }, t("iv.retention_no_file")) : null,
+    rows.some((r) => r.owned) ? h("p", { class: "hint" }, t("iv.retention")) : null,
+    rows.some((r) => !r.owned) ? h("p", { class: "hint" }, t("iv.retention_no_file")) : null,
   ];
   return h("div", { class: "iv-compare-wrap" },
     h("table", { class: "iv-compare" },
@@ -543,7 +543,7 @@ export function comparisonCard(results, { onDelete = null } = {}) {
         slots.map((s) => h("th", { title: s.label }, h("span", { class: "iv-th" }, s.label), " ", h("span", { class: "tag" }, t("iv.weight_short", { w: s.weight ?? 3 })))))),
       h("tbody", {}, rows.map((r) => h("tr", {},
         h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null,
-          r.candidateId ? null : [" ", h("span", { class: "tag" }, t("iv.no_file")),
+          r.owned ? null : [" ", h("span", { class: "tag" }, t("iv.no_file")),
             onDelete ? [" ", h("button", { type: "button", class: "small danger", onClick: () => onDelete(r) }, t("iv.delete_report"))] : null]),
         h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), " ", h("span", { class: "meta" }, shortDate(r.finished)),
           " ", h("a", { href: reportHref(results.plan?.id ?? "", r.session) }, t("iv.open_report"))),

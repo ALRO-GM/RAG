@@ -195,3 +195,13 @@ def test_the_retention_applies_when_the_orchestrator_starts(
     )
     build_interview(args, load_products(PRODUCTS), [])
     assert store.list("plan-1") == []
+
+
+def test_every_stored_file_has_an_id_even_unreadable(tmp_path: Path) -> None:
+    """#262: a file that cannot be read still owns its reports."""
+    store = JsonCandidateStore(tmp_path)
+    store.save(new_profile("dev", "Ana Ruiz", [], NOW))
+    (tmp_path / "candidates" / "dev" / "broken.json").write_text("{", "utf-8")
+    assert [p.id for p in store.list("dev")] == ["ana-ruiz"]
+    assert store.ids("dev") == ["ana-ruiz", "broken"]
+    assert store.ids("other") == []

@@ -1090,6 +1090,9 @@ export async function liveView(ctx, root, [sub, which] = []) {
       if (found.saved && found.plan_id && found.session_id) {
         saved = h("p", { class: "hint" }, t("live.accuracy_saved"), " ",
           h("a", { href: reportHref(found.plan_id, found.session_id) }, t("iv.open_report")), " · ", t("iv.retention"));
+      } else if (found.why === "no_file") {
+        // The person's file was deleted: judging again would not save it.
+        saved = h("p", { class: "hint" }, t("live.accuracy_no_file"));
       } else {
         // Ready but not saved: it may be judged (and saved) again.
         const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));

@@ -355,6 +355,7 @@ export class LiveState {
             state: message.state, judge: message.judge ?? null, slots: message.slots ?? [], to_check: message.to_check ?? [],
             // #262: the full report is kept with the plan's results (the candidate's file).
             saved: Boolean(message.saved), plan_id: message.plan_id ?? null, session_id: message.session_id ?? null,
+            why: message.why ?? null,
           };
         }
         break;

@@ -257,21 +257,40 @@ class CandidateBook:
         ``False`` (nothing saved) when the file is gone.
         """
         with self._lock:
-            try:
-                self.store.load(plan_id, candidate_id)
-            except KeyError:
+            if candidate_id not in self.store.ids(plan_id):
                 LOG.info("candidate %s/%s gone: report not kept", plan_id,
                          candidate_id)
                 return False
-            save()
+            save()  # a file that cannot be read still exists: it is kept
         return True
+
+    def owns(self, plan_id: str) -> Callable[[Document], bool]:
+        """Tell, for the reports of a role, which are in a candidate's file.
+
+        A report is in a file when it names a stored profile (readable
+        or not) or its session is a round of a readable profile. While a
+        profile of the role cannot be read, every report counts as in a
+        file: its rounds are unknown, so none is offered for deletion.
+        """
+        try:
+            ids = set(self.store.ids(plan_id))
+            readable = self.store.list(plan_id)
+        except KeyError:
+            return lambda report: False
+        unknown = len(ids) > len(readable)
+        sessions = {r.session_id for p in readable for r in p.rounds}
+
+        def owned(report: Document) -> bool:
+            return unknown or report.get("candidate_id") in ids or \
+                report.get("session_id") in sessions
+
+        return owned
 
     def delete_unowned_report(self, plan_id: str, session_id: str) -> Document:
         """Delete a stored report that belongs to no candidate's file.
 
-        Only for a report with no living file (no ``candidate_id`` whose
-        profile exists, and no profile with that session as a round):
-        those go with their file. ``conflict`` otherwise.
+        Only for a report in no file by :meth:`owns` (those go with
+        their file): ``conflict`` otherwise.
         """
         if self.plans is None:
             raise PlanError("unavailable", "no stored reports here")
@@ -281,12 +300,10 @@ class CandidateBook:
             except (KeyError, ValueError) as exc:
                 raise PlanError("not_found",
                                 f"no report {session_id!r}") from exc
-            for profile in self.store.list(plan_id):
-                if report.get("candidate_id") == profile.id or any(
-                        r.session_id == session_id for r in profile.rounds):
-                    raise PlanError(
-                        "conflict", "this report is in a candidate's file; "
-                        "it goes when the file is deleted")
+            if self.owns(plan_id)(report):
+                raise PlanError(
+                    "conflict", "this report is in a candidate's file (or a "
+                    "file that cannot be read); it goes with the file")
             try:
                 gone = self.plans.delete_result(plan_id, session_id)
             except OSError as exc:

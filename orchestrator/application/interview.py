@@ -233,6 +233,10 @@ class InterviewPlanner:
         self.new_id = new_id
         self.model = model
         self._lock = threading.Lock()
+        self.owns: Callable[[str], Callable[[Document], bool]] = (
+            lambda plan_id: lambda report: bool(report.get("candidate_id")))
+        """Which reports of a role are in a candidate's file (the
+        candidate book's rule when there is one)."""
 
     # ---- queries ------------------------------------------------------
 
@@ -257,10 +261,11 @@ class InterviewPlanner:
         """One stored interview report of a plan, in full (#262)."""
         self._load(plan_id)
         try:
-            return self.store.result(plan_id, session_id)
+            found = self.store.result(plan_id, session_id)
         except (KeyError, ValueError) as exc:
             raise PlanError("not_found",
                             f"no report {session_id!r}") from exc
+        return {**found, "owned": self.owns(plan_id)(found)}
 
     def results(self, plan_id: str) -> Document:
         """The candidates interviewed for a plan, for the comparison view.
@@ -269,6 +274,7 @@ class InterviewPlanner:
         last); each carries the per-slot scores.
         """
         plan = self._load(plan_id)
+        owned = self.owns(plan_id)
         rows: List[Dict[str, Any]] = []
         for sheet in self.store.results(plan_id):
             rows.append({
@@ -276,6 +282,7 @@ class InterviewPlanner:
                 "kind": "live" if sheet.get("kind") == "live" else "ai",
                 "candidate": sheet.get("candidate"),
                 "candidate_id": sheet.get("candidate_id"),
+                "owned": owned(sheet),
                 "finished_at": sheet.get("finished_at"),
                 "suitability": sheet.get("suitability"),
                 "closed_by": sheet.get("closed_by"),
@@ -751,8 +758,11 @@ class InterviewWiring:
     """The candidate profiles (#235; ``None``: not kept)."""
 
     def __post_init__(self) -> None:
-        """One closer for the positions (it serialises closings)."""
+        """One closer for the positions; the planner learns which
+        reports are in a candidate's file (#262)."""
         self.positions = PositionCloser(self.store)
+        if self.candidates is not None:
+            self.planner.owns = self.candidates.owns
 
 
 @dataclass(frozen=True)

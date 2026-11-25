@@ -156,11 +156,12 @@ class LiveJudge:
                        {k.quote for k in checks}]
         checks = checks[:MAX_CHECKS]
         judged, checks = to_originals(judged, checks, originals)
-        saved = self._keep(judged, checks, len(texts))
+        saved, why = self._keep(judged, checks, len(texts))
         result = {
             "state": "ready", "judge": self.template,
             "plan_id": self.plan.id, "title": self.plan.title,
             "session_id": self.session_id, "saved": saved,
+            **({"why": why} if why else {}),
             "slots": [
                 s.model_dump(mode="json", include={
                     "id", "label", "level", "status", "points",
@@ -217,8 +218,13 @@ class LiveJudge:
             return None
 
     def _keep(self, judged: List[SheetSlot], checks: List[CheckItem],
-              utterances: int) -> bool:
-        """Store the full report with the plan's results (#262)."""
+              utterances: int) -> Tuple[bool, Optional[str]]:
+        """Store the full report with the plan's results (#262).
+
+        Returns whether it was stored and, if not, why: ``no_file`` (the
+        candidate's file was deleted: judging again would not help) or
+        ``error`` (it may be retried).
+        """
         sheet = Sheet(
             session_id=self.session_id, plan_id=self.plan.id,
             plan_revision=self.plan.revision, title=self.plan.title,
@@ -231,16 +237,17 @@ class LiveJudge:
         try:
             if self.candidate_id and book is not None:
                 # Never an orphan: the file may be deleted meanwhile.
-                return book.keep_report(
+                kept = book.keep_report(
                     self.plan.id, self.candidate_id,
                     lambda: self.wiring.store.save_result(
                         self.plan.id, sheet.to_contract()))
+                return (True, None) if kept else (False, "no_file")
             self.wiring.store.save_result(self.plan.id, sheet.to_contract())
-        except (OSError, KeyError) as exc:
+        except Exception as exc:  # noqa: BLE001 - logged, may be retried
             LOG.warning("judge %s: report not kept (%s)", self.session_id,
                         type(exc).__name__)
-            return False
-        return True
+            return False, "error"
+        return True, None
 
 
 def _origin(quote_: str, said: List[Tuple[str, str]],

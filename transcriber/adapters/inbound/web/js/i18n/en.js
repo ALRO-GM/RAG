@@ -2225,4 +2225,5 @@ export const en = {
   "iv.delete_report_body": "The report of this interview is deleted, with its quotes and judgements. This cannot be undone.",
   "iv.deleted_report": "Report deleted.",
   "live.accuracy_nothing": "There were no answers to judge: no report was saved.",
+  "live.accuracy_no_file": "Not saved: the person's file no longer exists.",
 };

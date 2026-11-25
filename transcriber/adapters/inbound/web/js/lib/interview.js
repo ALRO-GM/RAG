@@ -230,8 +230,10 @@ export function comparisonRows(results) {
     const byId = new Map((row.slots ?? []).map((s) => [s.id, s]));
     return {
       session: row.session_id, kind: row.kind === "live" ? "live" : "ai", candidate: row.candidate, suitability: row.suitability ?? null,
-      // #262: a report without a candidate's file is kept with the position and deleted from here.
+      // #262: a report without a candidate's file is kept with the position and deleted from here;
+      // `owned` is the server's rule (it names a stored file, or its session is a round of one).
       candidateId: row.candidate_id ?? null,
+      owned: typeof row.owned === "boolean" ? row.owned : Boolean(row.candidate_id),
       finished: row.finished_at, closedBy: row.closed_by, stale: (row.plan_revision ?? 0) !== (plan.revision ?? 0),
       slots: order.map((id) => byId.get(id) ?? { id, score: null, status: "empty" }),
     };

@@ -566,7 +566,10 @@ git-ignored data folder; files written mode 600):
   judgement is ready **and the candidate's file still exists**: the
   check and the save run under the same lock as deleting a file, so a
   file deleted while the judgement ran (or before «Reintentar») never
-  gets an orphan report. A failed or lost judgement stores nothing, and
+  gets an orphan report (the page then says «No se ha guardado: la ficha
+de la persona ya no existe.», with no «Reintentar»). A judgement that
+raises ends as failed (never stuck on «Preparando…»). A failed or lost
+judgement stores nothing, and
   the page says so («No se pudo preparar el borrador …; no se ha
   guardado ningún informe.», with «Reintentar»; also offered when the
   judgement is ready but its save failed). Quotes point at the
@@ -581,7 +584,12 @@ candidate's file («Datos de la candidata») lists their reports by kind
 and date with the same link: a report belongs to the file when it names
 the profile (`candidate_id`) or its session is one of the profile's
 rounds (older sheets name no profile). The live end summary links to
-the saved report. A report in a person's file says «Se conserva en la
+the saved report. Whether a report is in a person's file is decided by
+the server with one rule, used by every page: it names a stored profile
+(even one whose file cannot be read), or its session is a round of a
+readable profile; while any profile of the role cannot be read, every
+report counts as in a file, so none is offered for deletion. A report
+in a person's file says «Se conserva en la
 ficha de la persona hasta que la borres.»; one without a file (an AI
 interview held without a candidate profile, or a report whose profile
 is gone) says «Sin ficha de persona: se conserva con el puesto hasta

@@ -430,3 +430,64 @@ def test_a_report_without_a_file_is_deleted_from_the_position() -> None:
     no_plans = CandidateBook(profiles, Core(), lambda p: True, 30)
     with pytest.raises(PlanError):
         no_plans.delete_unowned_report("dev", "vb-y")
+
+
+def test_which_reports_are_in_a_file_follows_one_rule() -> None:
+    """Re-review of #262: page and server agree; unreadable files own."""
+    store, profiles = Store(), MemoryCandidates()
+    store.save(plan())
+    ana = new_profile("dev", "Ana Ruiz", [], NOW).model_copy(update={
+        "rounds": [Round(session_id="vb-old", at="2026-11-20T10:00:00",
+                         kind="bot")]})
+    profiles.save(ana)
+    for row in ({"session_id": "vb-old"},  # an old sheet: a round of Ana
+                {"session_id": "r1", "candidate_id": "gone"},
+                {"session_id": "r2", "candidate_id": ana.id},
+                {"session_id": "vb-x"}):
+        store.save_result("dev", row)
+    files = book(store, profiles)
+    planner = wiring(store, Judge()).planner
+    planner.owns = files.owns
+    rows = {r["session_id"]: r["owned"]
+            for r in planner.results("dev")["candidates"]}
+    assert rows == {"vb-old": True, "r1": False, "r2": True, "vb-x": False}
+    assert planner.report("dev", "vb-old")["owned"] is True
+    assert planner.report("dev", "r1")["owned"] is False
+    with pytest.raises(PlanError):  # the page offered no delete either
+        files.delete_unowned_report("dev", "vb-old")
+    # A profile file that cannot be read: its rounds are unknown, so every
+    # report counts as in a file and none can be deleted from the position.
+    profiles.unreadable = ["broken"]
+    assert planner.report("dev", "vb-x")["owned"] is True
+    with pytest.raises(PlanError) as refused:
+        files.delete_unowned_report("dev", "vb-x")
+    assert refused.value.code == "conflict"
+    profiles.unreadable = []
+    assert files.delete_unowned_report("dev", "vb-x")["deleted"] is True
+
+
+def test_a_report_of_a_deleted_file_says_why_it_was_not_saved() -> None:
+    store, profiles = Store(), MemoryCandidates()
+    store.save(plan())
+    files = book(store, profiles)
+    reasoner = Judge()
+    wired = InterviewWiring(wiring(store, reasoner).planner, store, reasoner,
+                            candidates=files)
+    judge = LiveJudge(plan(), wired, "r1", lambda m: None,
+                      candidate_id="gone")
+    slots, texts = answered(1, 1)
+    result = judge.judge_slots(slots, texts)
+    assert result is not None
+    assert (result["saved"], result["why"]) == (False, "no_file")
+    broken = Store()
+    broken.save(plan())
+
+    def fail(plan_id: str, sheet: Document) -> None:
+        raise ValueError("odd")
+
+    broken.save_result = fail  # type: ignore[method-assign]
+    other = LiveJudge(plan(), wiring(broken, Judge()), "r2",
+                      lambda m: None)
+    result = other.judge_slots(*answered(1, 1))
+    assert result is not None
+    assert (result["saved"], result["why"]) == (False, "error")

@@ -490,6 +490,10 @@ class CandidateStore(Protocol):
         """The roles (plan ids) that have profiles."""
         ...
 
+    def ids(self, plan_id: str) -> List[str]:
+        """The ids of every stored profile of a role, readable or not."""
+        ...
+
     def delete(self, plan_id: str, candidate_id: str) -> bool:
         """Delete one profile; ``False`` when there was none."""
         ...
