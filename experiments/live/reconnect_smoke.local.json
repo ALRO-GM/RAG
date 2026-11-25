@@ -1,0 +1,961 @@
+{
+ "base": "http://127.0.0.1:8770",
+ "product": "live_assist.support",
+ "audio": "stereo",
+ "wav": "sim-soporte-lumbre.stereo.wav",
+ "script_words": 320,
+ "started": "2026-11-25T20:57:04+0100",
+ "runs": [
+  {
+   "scenario": "a",
+   "what": "baseline, no fault",
+   "session": "smoke-a-1795636624",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1730897,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.85,
+   "finish": {
+    "pending_at_finish_s": 0.18,
+    "wait_for_acks_s": 1.0,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 81,
+    "final": 31,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [],
+   "finals": 31,
+   "words": 318,
+   "similarity_to_baseline": null,
+   "similarity_to_script": 0.959,
+   "partials": 81,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 31,
+      "p50": 742,
+      "p90": 787,
+      "max": 860
+     },
+     "client_lag_ms": {
+      "n": 31,
+      "p50": 925,
+      "p90": 1850,
+      "max": 3525
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 132,
+   "feed_suggestions": 13,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "b",
+   "what": "one 3 s drop mid-speech",
+   "session": "smoke-b-1795636745",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [
+    {
+     "at_s": 30.0,
+     "seconds": 3.0
+    }
+   ],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1730897,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 6.22,
+   "finish": {
+    "pending_at_finish_s": 0.48,
+    "wait_for_acks_s": 0.75,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 30.0,
+     "outage_s": 3.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 3,
+     "drop_to_ready_s": 3.69,
+     "ready_after_network_back_s": 0.69,
+     "backlog_at_ready_s": 3.7,
+     "ready_to_caught_up_sent_s": 0.03,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 4.7,
+     "first_partial_after_ready_s": 1.67
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 478400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 77,
+    "final": 31,
+    "warning": 2,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 30.0
+    },
+    {
+     "code": "source_back",
+     "seconds": 3.693,
+     "at_s": 33.7
+    }
+   ],
+   "finals": 31,
+   "words": 318,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.959,
+   "partials": 77,
+   "partials_after_last_ready": 56,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 7,
+      "p50": 694,
+      "p90": 739,
+      "max": 743
+     },
+     "client_lag_ms": {
+      "n": 7,
+      "p50": 839,
+      "p90": 930,
+      "max": 931
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 3,
+      "p50": 2514,
+      "p90": 2514,
+      "max": 2514
+     },
+     "client_lag_ms": {
+      "n": 3,
+      "p50": 2698,
+      "p90": 3689,
+      "max": 3937
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 21,
+      "p50": 760,
+      "p90": 807,
+      "max": 866
+     },
+     "client_lag_ms": {
+      "n": 21,
+      "p50": 935,
+      "p90": 1796,
+      "max": 3523
+     }
+    }
+   },
+   "feed_items": 130,
+   "feed_suggestions": 13,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "c",
+   "what": "one 60 s drop",
+   "session": "smoke-c-1795636865",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [
+    {
+     "at_s": 20.0,
+     "seconds": 60.0
+    }
+   ],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1730897,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.64,
+   "finish": {
+    "pending_at_finish_s": 0.48,
+    "wait_for_acks_s": 0.75,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 20.0,
+     "outage_s": 60.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 11,
+     "drop_to_ready_s": 66.71,
+     "ready_after_network_back_s": 6.71,
+     "backlog_at_ready_s": 66.8,
+     "ready_to_caught_up_sent_s": 0.24,
+     "ready_to_live_s": 4.01,
+     "catch_up_x_realtime": 17.7,
+     "first_partial_after_ready_s": 4.65
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 318400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 27,
+    "final": 31,
+    "warning": 3,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 20.1
+    },
+    {
+     "code": "source_back",
+     "seconds": 66.712,
+     "at_s": 86.7
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 87.0
+    }
+   ],
+   "finals": 31,
+   "words": 318,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.959,
+   "partials": 27,
+   "partials_after_last_ready": 14,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 4,
+      "p50": 722,
+      "p90": 742,
+      "max": 742
+     },
+     "client_lag_ms": {
+      "n": 4,
+      "p50": 863,
+      "p90": 919,
+      "max": 936
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 21,
+      "p50": 36463,
+      "p90": 59619,
+      "max": 66601
+     },
+     "client_lag_ms": {
+      "n": 21,
+      "p50": 36797,
+      "p90": 59749,
+      "max": 66822
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 6,
+      "p50": 724,
+      "p90": 774,
+      "max": 792
+     },
+     "client_lag_ms": {
+      "n": 6,
+      "p50": 898,
+      "p90": 1477,
+      "max": 1987
+     }
+    }
+   },
+   "feed_items": 73,
+   "feed_suggestions": 5,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "d",
+   "what": "two drops: 3 s, then 10 s",
+   "session": "smoke-d-1795636985",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [
+    {
+     "at_s": 20.0,
+     "seconds": 3.0
+    },
+    {
+     "at_s": 60.0,
+     "seconds": 10.0
+    }
+   ],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1730897,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.63,
+   "finish": {
+    "pending_at_finish_s": 0.48,
+    "wait_for_acks_s": 0.75,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 20.0,
+     "outage_s": 3.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 3,
+     "drop_to_ready_s": 3.82,
+     "ready_after_network_back_s": 0.82,
+     "backlog_at_ready_s": 3.9,
+     "ready_to_caught_up_sent_s": 0.03,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 4.9,
+     "first_partial_after_ready_s": 2.33
+    },
+    {
+     "at_stream_s": 60.0,
+     "outage_s": 10.0,
+     "held_at_drop_s": 0.2,
+     "connect_attempts": 5,
+     "drop_to_ready_s": 14.72,
+     "ready_after_network_back_s": 4.72,
+     "backlog_at_ready_s": 14.8,
+     "ready_to_caught_up_sent_s": 0.09,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 15.8,
+     "first_partial_after_ready_s": 2.04
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 318400
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 958400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 66,
+    "final": 31,
+    "warning": 6,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 20.1
+    },
+    {
+     "code": "source_back",
+     "seconds": 3.815,
+     "at_s": 23.8
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 24.0
+    },
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 60.0
+    },
+    {
+     "code": "source_back",
+     "seconds": 14.722,
+     "at_s": 74.7
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 74.9
+    }
+   ],
+   "finals": 31,
+   "words": 318,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.959,
+   "partials": 66,
+   "partials_after_last_ready": 27,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 4,
+      "p50": 720,
+      "p90": 738,
+      "max": 739
+     },
+     "client_lag_ms": {
+      "n": 4,
+      "p50": 859,
+      "p90": 916,
+      "max": 934
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 17,
+      "p50": 778,
+      "p90": 7120,
+      "max": 12824
+     },
+     "client_lag_ms": {
+      "n": 17,
+      "p50": 974,
+      "p90": 7219,
+      "max": 12995
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 10,
+      "p50": 736,
+      "p90": 801,
+      "max": 863
+     },
+     "client_lag_ms": {
+      "n": 10,
+      "p50": 951,
+      "p90": 2143,
+      "max": 3526
+     }
+    }
+   },
+   "feed_items": 122,
+   "feed_suggestions": 12,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "e",
+   "what": "network down for the last 10 s and 3 s after: stop with 10 s held",
+   "session": "smoke-e-1795637105",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [
+    {
+     "at_s": 98.1810625,
+     "seconds": 13.0
+    }
+   ],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1730897,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.67,
+   "finish": {
+    "pending_at_finish_s": 10.18,
+    "wait_for_acks_s": 6.76,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 98.1810625,
+     "outage_s": 13.0,
+     "held_at_drop_s": 0.2,
+     "connect_attempts": 5,
+     "drop_to_ready_s": 15.57,
+     "ready_after_network_back_s": 2.57,
+     "backlog_at_ready_s": 10.08,
+     "ready_to_caught_up_sent_s": 0.05,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 11.1,
+     "first_partial_after_ready_s": null
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 1569600
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 73,
+    "final": 31,
+    "warning": 3,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 98.2
+    },
+    {
+     "code": "source_back",
+     "seconds": 15.572,
+     "at_s": 113.8
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 113.8
+    }
+   ],
+   "finals": 31,
+   "words": 318,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.959,
+   "partials": 73,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 27,
+      "p50": 738,
+      "p90": 784,
+      "max": 852
+     },
+     "client_lag_ms": {
+      "n": 27,
+      "p50": 923,
+      "p90": 1424,
+      "max": 3529
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 4,
+      "p50": 9414,
+      "p90": 11774,
+      "max": 12786
+     },
+     "client_lag_ms": {
+      "n": 4,
+      "p50": 10145,
+      "p90": 12284,
+      "max": 12960
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 127,
+   "feed_suggestions": 13,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  }
+ ],
+ "finished": "2026-11-25T21:07:12+0100"
+}
