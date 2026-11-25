@@ -211,8 +211,10 @@
             "auth",
             "transient",
             "timeout",
-            "invalid_output"
-          ]
+            "invalid_output",
+            "busy"
+          ],
+          "description": "busy (#268): a call that gives way (interview.ticks@1) found no free slow slot and was not made"
         },
         "message": {
           "type": "string"

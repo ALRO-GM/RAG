@@ -323,7 +323,9 @@ def with_session_ticks(
     decided it (``rules`` or ``live_model``): the session's tick was
     backed by the candidate's words, and dropping it silently would
     hide it. Its utterance then also answers the point, and the point's
-    status follows :func:`points_status` again.
+    status follows :func:`points_status` again. A tick whose utterance is
+    no longer one of the candidate's (``texts``: a role changed later) is
+    not kept.
     """
     during = {s.id: {p.id: p for p in s.points} for s in session}
     kept: List[SheetSlot] = []
@@ -331,7 +333,8 @@ def with_session_ticks(
         ticked = during.get(slot.id, {})
         points = [
             ticked[p.id].model_copy() if p.status == "pending"
-            and p.id in ticked and ticked[p.id].status != "pending" else p
+            and p.id in ticked and ticked[p.id].status != "pending"
+            and ticked[p.id].utterance in texts else p
             for p in slot.points
         ]
         if points == slot.points:

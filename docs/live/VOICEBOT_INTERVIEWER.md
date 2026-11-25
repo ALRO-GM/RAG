@@ -809,10 +809,19 @@ tick must name one of the candidate's answers asked about (without
   process per call), so it can neither delay a suggestion nor take or
   displace the warm process the suggestions use; and it **yields**
   (`Template.yields`, `YIELDING_CALLS` = 1): it takes one of the 3 slow
-  slots only when one is free at once, and at most one tick call holds
-  one, so the planner, the report and the after-session attribution
-  never wait behind it (a tick that finds no slot is a time-out at once
-  and ticks nothing). 20 s deadline.
+  slots only when more slots are free than calls are waiting for one,
+  and at most one tick call holds one. So it never goes before a waiting
+  planner, report or attribution call; a slow call that arrives after a
+  tick started, when the other two slots are busy too, may wait for it,
+  at most its 20 s deadline. A tick that finds no slot is not made
+  (error kind `busy`, counted as skipped) and ticks nothing.
+- **Stops with the round:** at `session_ended` (and when the session
+  ends) the ticker stops: no new call, a waiting one is not made, and a
+  call already in flight finishes but its answer is ignored.
+- **Counted:** the session view and the hand-off record have `ticks`:
+  `{"calls", "failed", "skipped", "ticked"}` (numbers only); when every
+  tick call of a round failed or was skipped, the orchestrator logs a
+  warning.
 - **Late speech** (a final heard over 10 s late after a reconnect, #263)
   gets no suggestion but is still ticked, in the next call.
 - A failed, late or malformed reply ticks nothing; its finals are not

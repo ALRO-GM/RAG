@@ -86,6 +86,10 @@ class ModelTimeoutError(ModelError):
     """A model did not answer within the time it was given."""
 
 
+class SlotBusyError(ModelError):
+    """A call that gives way found no free slot and was not made (#268)."""
+
+
 def short_reason(exc: Exception) -> str:
     """Return a one-line reason for a (pydantic) validation error."""
     errors = getattr(exc, "errors", None)

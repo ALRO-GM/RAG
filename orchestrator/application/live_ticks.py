@@ -19,10 +19,14 @@ suggestion but is still ticked, in the next call.
 It never touches the suggestions: it is its own call, on its own thread
 (the session's runner), on the reasoner's **cold** backend (the
 template is ``slow``) and it *yields*: it takes a slow slot only when
-one is free and uses at most one of them, so it never makes the
-planner, the report or the attribution wait. A call that finds no free
-slot, fails or comes late ticks nothing and is logged with its status
-only, never words; its finals are not asked again.
+more are free than calls are waiting, and uses at most one of them, so
+it never goes before a waiting planner, report or attribution (one that
+comes later may wait for it, at most its 20 s deadline). A call that
+finds no free slot (``busy``: skipped), fails or comes late ticks
+nothing and is logged with its status only, never words; its finals are
+not asked again. :meth:`LiveTicker.stop` (the round ended) makes no new
+call and ignores the answer of one in flight; :meth:`LiveTicker.view`
+counts the calls (numbers only).
 """
 
 import logging
@@ -91,6 +95,9 @@ class LiveTicker:
         self.sleep = sleep
         self.calls = 0
         self.failed = 0
+        self.skipped = 0
+        self.ticked = 0
+        self.stopped = False
         self.session_id = "live"
         self._lines: List[Dict[str, Any]] = []
         self._answers: List[str] = []
@@ -100,12 +107,17 @@ class LiveTicker:
 
     def on_event(self, event: LiveEvent) -> None:
         """Keep the conversation; a candidate final waits for a call."""
+        if event.type == "session_ended":
+            self.stop()
+            return
         u = event.utterance
         if event.type != "final" or u is None:
             return
         item = {"id": u.id, "speaker": u.speaker, "text": u.text,
                 "start": u.start, "end": u.end}
         with self._lock:
+            if self.stopped:
+                return
             self.session_id = event.session_id
             self._lines = [x for x in self._lines if x["id"] != u.id]
             self._lines.append(item)
@@ -117,6 +129,28 @@ class LiveTicker:
                 return  # the call in flight or waiting will cover it
             self._busy = True
         self.start(self._run)
+
+    def stop(self) -> None:
+        """The round ended: no new call; one in flight is ignored.
+
+        Logs a warning (numbers only) when every call of the round failed
+        or was skipped.
+        """
+        with self._lock:
+            if self.stopped:
+                return
+            self.stopped = True
+            self._answers = []
+            made, bad = self.calls, self.failed + self.skipped
+        if made and bad >= made:
+            LOG.warning("ticks %s: none of the round's %d tick calls "
+                        "ticked (%d failed, %d skipped)", self.session_id,
+                        made, self.failed, self.skipped)
+
+    def view(self) -> Dict[str, int]:
+        """The round's tick calls: made, failed, skipped and concepts."""
+        return {"calls": self.calls, "failed": self.failed,
+                "skipped": self.skipped, "ticked": self.ticked}
 
     def _run(self) -> None:
         """Wait for the spacing, ask about every waiting answer, repeat."""
@@ -131,14 +165,17 @@ class LiveTicker:
                 self.sleep(wait)
             with self._lock:
                 answers, self._answers = self._answers, []
-                if not answers:
+                if not answers or self.stopped:
                     self._busy = False
                     return
                 self._last = self.clock()
                 lines = self._window(answers)
                 session_id = self.session_id
             try:
-                self._ask(session_id, answers[-MAX_ANSWERS:], lines)
+                with self._lock:
+                    stopped = self.stopped
+                if not stopped:
+                    self._ask(session_id, answers[-MAX_ANSWERS:], lines)
             except Exception as exc:  # noqa: BLE001 - logged, goes on
                 self.failed += 1
                 LOG.warning("ticks %s: call not made (%s)", session_id,
@@ -184,11 +221,23 @@ class LiveTicker:
                      request["request_id"], type(exc).__name__)
             return
         data = response.get("data")
+        error = response.get("error")
+        kind = error.get("kind") if isinstance(error, dict) else None
+        if kind == "busy":
+            self.skipped += 1  # no free slow slot: it gave way
+            LOG.info("ticks %s: skipped, no free slot", request["request_id"])
+            return
         if response.get("status") != "ok" or not isinstance(data, dict):
             self.failed += 1
-            error = response.get("error")
             LOG.info("ticks %s: status %s, error %s", request["request_id"],
-                     response.get("status"),
-                     error.get("kind") if isinstance(error, dict) else None)
+                     response.get("status"), kind)
             return
+        with self._lock:
+            if self.stopped:
+                return  # the round ended meanwhile: the result is ignored
+        raw = data.get("points")
+        before = self.topics.ticked_count()
         self.topics.suggested(request["payload"], data)
+        self.ticked += self.topics.ticked_count() - before
+        if not isinstance(raw, list):
+            self.failed += 1

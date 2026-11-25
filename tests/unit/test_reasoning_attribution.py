@@ -162,18 +162,18 @@ def test_a_batch_ties_each_tick_to_the_answer_it_names() -> None:
 
 
 def test_a_tick_call_yields_its_slow_slot() -> None:
-    """Review of #268: ticks never make the planner or report wait."""
-    model = FakeChatModel([json.dumps({"treated": ["s2.p1"]})] * 3)
+    """Review of #268: ticks never go before a planner or report."""
+    model = FakeChatModel([json.dumps({"treated": ["s2.p1"]})] * 4)
     reasoner = Reasoner(lambda alias: model)
     assert reasoner.reason(ticks(POINTS)).status == "ok"
-    taken = [reasoner._slow.acquire(blocking=False) for _ in range(3)]
-    assert all(taken)  # the call gave its slot back
-    out = reasoner.reason(ticks(POINTS))  # every slot busy: no wait
-    assert out.status == "timeout" and out.error is not None
-    for _ in range(3):
-        reasoner._slow.release()
-    assert reasoner._yielding.acquire(blocking=False)  # one already runs
+    assert reasoner._free == 3 and reasoner._yielding == 0  # given back
+    reasoner._free = 0  # every slot busy: no wait
     out = reasoner.reason(ticks(POINTS))
-    assert out.status == "timeout"
-    reasoner._yielding.release()
+    assert out.status == "error" and out.error is not None
+    assert out.error.kind == "busy"
+    reasoner._free, reasoner._waiting = 1, 1  # a report waits for it
+    assert reasoner.reason(ticks(POINTS)).error.kind == "busy"  # type: ignore
+    reasoner._free, reasoner._waiting = 2, 1  # one more than waiting
     assert reasoner.reason(ticks(POINTS)).status == "ok"
+    reasoner._free, reasoner._waiting, reasoner._yielding = 3, 0, 1
+    assert reasoner.reason(ticks(POINTS)).error.kind == "busy"  # type: ignore

@@ -53,10 +53,12 @@ class Template:
     waits."""
     yields: bool = False
     """A ``slow`` call that gives way (#268: the live page's concept
-    ticks): it takes a slow slot only when one is free at once, and at
-    most one such call runs at a time, so it never makes the planner,
-    the report or the attribution wait; otherwise it fails at once as a
-    time-out."""
+    ticks): it takes a slow slot only when more are free than calls are
+    waiting for one, and at most one such call runs at a time, so it
+    never goes before a waiting planner, report or attribution call;
+    otherwise it fails at once (error kind ``busy``). A call that comes
+    after it has started may still wait for it, at most its deadline
+    (20 s), when every other slot is busy too."""
 
 
 SLOW_MAX_S = 180.0

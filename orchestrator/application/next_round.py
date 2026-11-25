@@ -239,6 +239,12 @@ class TopicTracker:
                     for uid, (speaker, text, _) in sorted(
                         self.lines.items(), key=lambda kv: kv[1][2])]
 
+    def ticked_count(self) -> int:
+        """How many concepts of the round are not pending."""
+        with self._lock:
+            return sum(1 for points in self.points.values()
+                       for p in points if p.status != "pending")
+
     def focus_points(self) -> Document:
         """The pending concepts for the suggester (#268).
 

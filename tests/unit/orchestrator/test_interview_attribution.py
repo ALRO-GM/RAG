@@ -50,6 +50,7 @@ from orchestrator.domain.interview_attribution import (
     batches,
     merged,
     read_attribution,
+    with_session_ticks,
 )
 from orchestrator.domain.next_round import topic_states
 from tests.unit.orchestrator.test_candidate import final
@@ -667,6 +668,9 @@ class Ticks(FakeReasoner):
             return {"status": "timeout", "error": {"kind": "timeout"}}
         if self.answer == "garbage":
             return {"status": "ok", "data": {"points": {"x": [1]}}}
+        if self.answer == "busy":
+            return {"status": "error",
+                    "error": {"kind": "busy", "message": "yields"}}
         first = request["payload"]["points"][0]["id"]
         return {"status": "ok", "data": {"points": [
             {"id": first, "utterance": request["payload"]["answers"][-1]}]}}
@@ -778,7 +782,7 @@ def test_a_failed_tick_ticks_nothing_and_logs_no_words(
             ticker.on_event(event)
     assert all(p.status == "pending" for p in topics.points["s2"])
     assert "apoya" not in caplog.text
-    assert ticker.failed == (0 if answer == "garbage" else 1)
+    assert ticker.failed == 1 and ticker.calls == 1
 
 
 def test_the_live_interview_product_keeps_the_measured_suggester() -> None:
@@ -834,3 +838,94 @@ def test_the_rejudge_summary_says_why_nothing_was_answered() -> None:
         "state": "nothing_answered", "saved": False, "plan_state": "open",
         "attribution_error": "timeout: timeout"}
     assert "attribution_error" not in summary(None, "open")
+
+
+def test_no_tick_call_after_the_round_ends() -> None:
+    """Re-review of #268 (N1, the reviewer's probe)."""
+    topics, _ = tracker()
+    reasoner, runner, clock = Ticks(), Later(), Clock()
+    ticker = LiveTicker(reasoner, topics, topics.roles, runner.start,
+                        every_s=30.0, clock=clock.now, sleep=clock.sleep)
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas de running?"),
+                  final("u2", "S2", "Miro cómo apoya el pie.")):
+        topics.on_event(event)
+        ticker.on_event(event)
+    runner.run()
+    assert len(reasoner.ticks) == 1
+    clock.t = 5.0
+    late = final("u3", "S2", "Y lo blandita que es.")
+    topics.on_event(late)
+    ticker.on_event(late)  # waits for the spacing...
+    ticker.on_event(late.model_copy(update={"type": "session_ended",
+                                            "utterance": None}))
+    runner.run()  # ...and the round ends while it waits
+    assert len(reasoner.ticks) == 1
+    ticker.on_event(final("u4", "S2", "Otra cosa."))
+    assert runner.jobs == []  # nothing after the end
+
+
+def test_a_call_in_flight_when_the_round_ends_is_ignored() -> None:
+    topics, _ = tracker()
+
+    class Ending(Ticks):
+        def reason(self, request: Document, cancel: CancelToken) -> Document:
+            ticker.stop()  # the round ends while the call runs
+            return super().reason(request, cancel)
+
+    reasoner = Ending()
+    ticker = LiveTicker(reasoner, topics, topics.roles, lambda job: job())
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas de running?"),
+                  final("u2", "S2", "Miro cómo apoya el pie.")):
+        topics.on_event(event)
+        ticker.on_event(event)
+    assert len(reasoner.ticks) == 1
+    assert all(p.status == "pending" for p in topics.points["s2"])
+
+
+def test_skipped_and_failed_ticks_are_counted_and_warned_about(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Re-review of #268 (N2)."""
+    topics, _ = tracker()
+    ticker = LiveTicker(Ticks("busy"), topics, topics.roles,
+                        lambda job: job(), every_s=0.0)
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas?"),
+                  final("u2", "S2", "Miro cómo apoya el pie."),
+                  final("u3", "S2", "Y la talla.")):
+        topics.on_event(event)
+        ticker.on_event(event)
+    assert ticker.view() == {"calls": 2, "failed": 0, "skipped": 2,
+                             "ticked": 0}
+    with caplog.at_level(logging.WARNING):
+        ticker.stop()
+    assert "none of the round's 2 tick calls ticked" in caplog.text
+    assert "apoya" not in caplog.text
+    topics, _ = tracker()
+    good = LiveTicker(Ticks(), topics, topics.roles, lambda job: job())
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas?"),
+                  final("u2", "S2", "Miro cómo apoya el pie.")):
+        topics.on_event(event)
+        good.on_event(event)
+    assert good.view()["ticked"] == 1
+
+
+def test_a_session_tick_of_a_line_no_longer_the_candidates_is_dropped(
+) -> None:
+    """Re-review of #268 (N4): a role changed after the tick."""
+    plan = the_plan()
+    session = attributed_slots(plan, {}, {})
+    s2 = next(s for s in session if s.id == "s2")
+    s2.points[0].status = "treated"
+    s2.points[0].utterance = "u9"  # now the interviewer's line
+    s2.points[0].by = "rules"
+    s2.points[1].status = "treated"
+    s2.points[1].utterance = "u2"
+    s2.points[1].by = "live_model"
+    kept = with_session_ticks(attributed_slots(plan, {}, {}), session,
+                              {"u2": "Miro la amortiguación."})
+    points = next(s for s in kept if s.id == "s2").points
+    assert points[0].status == "pending"
+    assert points[1].status == "treated" and points[1].by == "live_model"
+    answers = next(s for s in kept if s.id == "s2").answers
+    assert [a.utterance for a in answers] == ["u2"]
+    assert answers[0].quote == "Miro la amortiguación."

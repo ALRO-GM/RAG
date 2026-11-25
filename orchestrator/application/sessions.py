@@ -267,6 +267,7 @@ class _Session:
             "goal": self.goal,
             "avoid": self.avoid.view() if self.avoid else None,
             "demo": self.demo, "accuracy": self.accuracy,
+            "ticks": self.ticker.view() if self.ticker else None,
         }
 
 
@@ -1532,6 +1533,8 @@ class LiveSessions:
         ``keep_feed``: leave the feed open (a round still being judged
         closes it when done).
         """
+        if session.ticker is not None:
+            session.ticker.stop()  # #268 review: no tick after the round
         if isinstance(session.assist, LiveAssist):
             self._hand_off(session)
         with self._lock:
@@ -1560,6 +1563,8 @@ class LiveSessions:
             "names": dict(session.names), "renames": list(session.renames),
             "mandatory": tracker.summary() if tracker else None,
         }
+        if session.ticker is not None:
+            record["ticks"] = session.ticker.view()  # numbers only
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
         self._write_handoff(session)
