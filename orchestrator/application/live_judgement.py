@@ -65,6 +65,7 @@ from orchestrator.domain.interview_attribution import (
     RoundLine,
     attributed_slots,
     batches,
+    with_session_ticks,
     merged,
     read_attribution,
     round_payload,
@@ -166,7 +167,10 @@ class LiveJudge:
             if found is not None:
                 texts = {line.id: line.text for line in lines
                          if line.role == CANDIDATE}
-                slots = attributed_slots(self.plan, found, texts)
+                session, _ = topics.sheet_slots()
+                slots = with_session_ticks(
+                    attributed_slots(self.plan, found, texts), session,
+                    texts)
                 return self.judge_slots(slots, texts, "after_session",
                                         announced=True)
         slots, texts = topics.sheet_slots()
@@ -178,12 +182,14 @@ class LiveJudge:
     ) -> Tuple[Optional[Attribution], Optional[str]]:
         """Ask the model who answered what, batch by batch (#268).
 
-        Returns the merged attribution, or ``None`` and why (the status
-        and error kind of the failed batch, never words). Logs counts
-        only.
+        Returns the merged attribution, or ``None`` and why: the status
+        and error kind of a failed batch, ``unreadable`` (a reply of the
+        wrong shape), ``ids_unknown`` (every id it gave was dropped) or
+        ``empty`` (it attributed nothing); never words. Logs counts only.
         """
         parts = batches(lines)
         found: List[Attribution] = []
+        totals: Dict[str, int] = {}
         for n, batch in enumerate(parts):
             request = attribution_request(
                 self.plan, batch, self.model,
@@ -202,13 +208,29 @@ class LiveJudge:
                             "status %s, error %s", self.session_id, n,
                             len(batch), response.get("status"), kind)
                 return None, f"{response.get('status')}: {kind or '-'}"
+            stats: Dict[str, int] = {}
             try:
-                found.append(read_attribution(data, self.plan, batch))
+                found.append(read_attribution(data, self.plan, batch,
+                                              stats))
             except Exception as exc:  # noqa: BLE001 - logged, rules used
                 LOG.warning("attribution %s batch %d: reply not read (%s)",
                             self.session_id, n, type(exc).__name__)
                 return None, f"unreadable: {type(exc).__name__}"
+            LOG.info("attribution %s batch %d: %d entries given, %d kept, "
+                     "%d dropped%s", self.session_id, n,
+                     stats.get("given", 0), stats.get("kept", 0),
+                     stats.get("given", 0) - stats.get("kept", 0),
+                     "" if stats.get("shaped") else " (slots not a list)")
+            for key, value in stats.items():
+                totals[key] = totals.get(key, 0) + value
+            totals["batches"] = totals.get("batches", 0) + 1
         result = merged(found, [line.id for line in lines])
+        if not used_ids(result):
+            why = ("unreadable" if totals.get("shaped", 0) < len(parts)
+                   else "ids_unknown" if totals.get("given") else "empty")
+            LOG.warning("attribution %s: nothing usable (%s), rules used",
+                        self.session_id, why)
+            return None, why
         LOG.info("attribution %s: %d batches, %d of %d candidate "
                  "utterances used, %d points answered, %d concepts",
                  self.session_id, len(parts), len(used_ids(result)),
@@ -240,7 +262,9 @@ class LiveJudge:
         asked, texts = merged_slots([s for s in slots if s.answers], texts)
         if not asked:
             if announced:
-                self.publish({"type": "accuracy", "state": "empty"})
+                self.publish({"type": "accuracy", "state": "empty",
+                              **({"attribution_error": why} if why
+                                 else {})})
             return None
         if not announced:
             self.publish({"type": "accuracy", "state": "reporting"})
@@ -259,7 +283,8 @@ class LiveJudge:
                        {k.quote for k in checks}]
         checks = checks[:MAX_CHECKS]
         judged, checks = to_originals(judged, checks, originals)
-        saved, lost = self._keep(judged, checks, len(texts), attribution,
+        utterances = len({k.split(PART_MARK)[0] for k in texts})
+        saved, lost = self._keep(judged, checks, utterances, attribution,
                                  why)
         result = {
             "state": "ready", "judge": self.template,
@@ -336,7 +361,7 @@ class LiveJudge:
             session_id=self.session_id, plan_id=self.plan.id,
             plan_revision=self.plan.revision, title=self.plan.title,
             state="closed", kind="live", turns=utterances,
-            slots=judged, filler="rules", candidate=self.candidate,
+            slots=judged, filler=attribution, candidate=self.candidate,
             candidate_id=self.candidate_id, to_check=checks,
             judge=self.template, finished_at=self.now(),
             attribution=attribution,  # type: ignore[arg-type]

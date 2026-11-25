@@ -29,7 +29,7 @@ belongs to the candidate's file.
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from orchestrator.adapters.outbound.files import load_transcript
 from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
@@ -128,17 +128,27 @@ def run_interview(
                                     / "core-questions.json"),
         lambda plan_id: plan_id == plan.id, plans=store)
     wiring = InterviewWiring(planner, store, reasoner, candidates=book)
+    told: List[Dict[str, Any]] = []
     result = rejudge(transcript, plan, wiring, args.model, profile.name,
-                     profile.id, attribute=args.attribution == "model")
-    print(json.dumps(summary(result, plan.state), ensure_ascii=False))
+                     profile.id, publish=told.append,
+                     attribute=args.attribution == "model")
+    print(json.dumps(summary(result, plan.state, told), ensure_ascii=False))
     return 0 if result is not None and result.get("saved") else 1
 
 
-def summary(result: Any, plan_state: str) -> Dict[str, Any]:
-    """What the command prints: states and counts, no words."""
+def summary(result: Any, plan_state: str,
+            told: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """What the command prints: states and counts, no words.
+
+    ``told``: the feed messages of the run; when nothing was answered,
+    the last one says why the model's attribution was not used.
+    """
     if result is None:
+        why = next((m.get("attribution_error") for m in reversed(told or [])
+                    if m.get("attribution_error")), None)
         return {"state": "nothing_answered", "saved": False,
-                "plan_state": plan_state}
+                "plan_state": plan_state,
+                **({"attribution_error": why} if why else {})}
     labels: Dict[str, int] = {}
     for slot in result.get("slots") or []:
         for key, n in (slot.get("accuracy") or {}).items():

@@ -138,13 +138,23 @@ class Oracle(FakeReasoner):
             if self.fail == "broken":
                 return {"status": "ok", "data": {"slots": [
                     {"id": "s1", "answers": [{"not": "hashable"}]}]}}
+            if self.fail == "nothing":
+                return {"status": "ok", "data": {"slots": []}}
+            if self.fail == "numbers":
+                return {"status": "ok", "data": {"slots": [
+                    {"id": "s4", "answers": [2, 3, "[t3.s0]"]}]}}
             ids = {x["id"] for x in request["payload"]["round"]}
             round_ = next(r for r in SET["rounds"]
                           if ids & {x["id"] for x in r["lines"]})
+            data = oracle_reply(round_)
+            if self.fail == "brackets":
+                for slot in data["slots"]:
+                    slot["answers"] = [f" [{a}] " for a in slot["answers"]]
+                    for point in slot["points"]:
+                        point["utterance"] = f"[{point['utterance']}]"
             return {"schema": "reasoner.response.v1",
                     "request_id": request["request_id"],
-                    "role": "structured", "status": "ok",
-                    "data": oracle_reply(round_)}
+                    "role": "structured", "status": "ok", "data": data}
         return super().reason(request, cancel)
 
 
@@ -383,7 +393,8 @@ def test_a_failed_attribution_falls_back_to_the_rules_and_says_why(
     # Round A: the rules attributed nothing either: no report, no wait.
     none, told = judged(SET["rounds"][0], Oracle(fail), Store())
     assert none is None and told[-1] == {"type": "accuracy",
-                                         "state": "empty"}
+                                         "state": "empty",
+                                         "attribution_error": why}
 
 
 def test_a_failed_attribution_of_a_round_the_rules_follow_is_still_judged(
@@ -405,23 +416,71 @@ def test_a_failed_attribution_of_a_round_the_rules_follow_is_still_judged(
     assert ticked and {p["by"] for p in ticked} == {"rules"}
 
 
-def test_an_unreadable_attribution_never_breaks_the_end_of_a_round(
+@pytest.mark.parametrize("fail,why", [
+    ("garbage", "unreadable"), ("broken", "ids_unknown"),
+    ("nothing", "empty"), ("numbers", "ids_unknown"),
+])
+def test_an_unusable_attribution_falls_back_to_the_rules_with_a_reason(
+    fail: str, why: str, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Review of #268: a reply that is ok but unusable never loses the
+    round's report; the rules' attribution is judged and says why."""
+    store = Store()
+    with caplog.at_level(logging.INFO):
+        result, published = judged(SET["rounds"][1], Oracle(fail), store)
+    assert result is not None and result["attribution"] == "rules"
+    assert result["attribution_error"] == why
+    assert [m["state"] for m in published] == ["reporting", "ready"]
+    kept = Sheet.model_validate(store.result("set-running", "r-B"))
+    assert kept.attribution == "rules" and kept.filler == "rules"
+    assert "entries given" in caplog.text or fail == "garbage"
+    assert all(x["text"][:25] not in caplog.text
+               for x in SET["rounds"][1]["lines"])
+
+
+def test_ids_in_brackets_or_with_spaces_are_read() -> None:
+    result, _ = judged(SET["rounds"][1], Oracle("brackets"), Store())
+    assert result is not None and result["attribution"] == "after_session"
+    assert concepts(result["slots"]) == expected(SET["rounds"][1])
+
+
+def test_a_reply_that_cannot_be_read_falls_back_to_the_rules(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    result, published = judged(SET["rounds"][1], Oracle("garbage"), Store())
-    assert result is None and [m["state"] for m in published] == [
-        "reporting", "empty"]  # read as "nothing answered"
-    result, _ = judged(SET["rounds"][1], Oracle("broken"), Store())
-    assert result is None  # a non-string id is not an utterance
-
     def explode(*args: Any) -> Any:
         raise ValueError("unexpected")
 
     monkeypatch.setattr(
         "orchestrator.application.live_judgement.read_attribution", explode)
-    result, published = judged(SET["rounds"][1], Oracle(), Store())
+    result, _ = judged(SET["rounds"][1], Oracle(), Store())
     assert result is not None and result["attribution"] == "rules"
     assert result["attribution_error"] == "unreadable: ValueError"
+
+
+def test_session_ticks_the_model_missed_are_kept_with_who_decided() -> None:
+    """Review of #268 (M5): a concept ticked during the session and
+    missed by the model after it is kept, marked as the session's."""
+    round_ = {"id": "E", "lines": [
+        {"id": "e1", "role": "interviewer",
+         "text": "¿Qué sabes de zapatillas de running?"},
+        {"id": "e2", "role": "candidate",
+         "text": "Distingo los tipos de pisada al mirar la zancada."}],
+        "expected": {"s2": {"answers": ["e2"], "points": {}}}}
+
+    class Misses(Oracle):
+        def reason(self, request: Document, cancel: CancelToken) -> Document:
+            if request.get("template") == ATTRIBUTION_TEMPLATE:
+                return {"status": "ok", "data": oracle_reply(round_)}
+            return super().reason(request, cancel)
+
+    store = Store()
+    result, _ = judged(round_, Misses(), store)
+    assert result is not None and result["attribution"] == "after_session"
+    s2 = next(s for s in result["slots"] if s["id"] == "s2")
+    assert s2["points"][0]["status"] == "treated"
+    assert s2["points"][0]["by"] == "rules"
+    kept = Sheet.model_validate(store.result("set-running", "r-E"))
+    assert kept.filler == "after_session" and kept.turns == 1
 
 
 def test_an_experience_claim_is_never_wrong_after_the_model_attributes(
@@ -504,16 +563,17 @@ def test_the_suggester_ticks_pending_concepts_marked_as_a_live_model(
 ) -> None:
     topics, published = tracker()
     every = topics.focus_points()
-    assert every["label"] == ""  # no topic asked yet: every pending one
-    assert [p["id"] for p in every["points"]][:4] == [
-        "s1.p1", "s1.p2", "s1.p3", "s2.p1"]
-    assert len(every["points"]) == 14 and every["points"][3]["topic"] == (
+    assert every["label"] == ""  # no topic asked yet: the first pending
+    assert [p["id"] for p in every["points"]] == [
+        "s1.p1", "s1.p2", "s1.p3", "s2.p1", "s2.p2", "s2.p3", "s3.p1",
+        "s3.p2", "s3.p3"]
+    assert every["points"][3]["topic"] == (
         "Conocimiento de zapatillas de running")
     topics.on_event(final("u1", "S1", "¿Qué sabes de zapatillas de running?"))
     asked = topics.focus_points()
     assert asked["label"] == "Conocimiento de zapatillas de running"
-    assert [p["id"] for p in asked["points"]][:4] == [
-        "s2.p1", "s2.p2", "s2.p3", "s1.p1"]  # the topic asked first
+    assert [p["id"] for p in asked["points"]] == [
+        "s2.p1", "s2.p2", "s2.p3", "s1.p1", "s1.p2", "s1.p3", "s3.p1"]
     topics.on_event(final("u2", "S2", "Miro cómo apoya el pie al correr. "
                                       "Y cobraba con tarjeta."))
     before = len(published)
@@ -542,6 +602,47 @@ def test_the_suggester_ticks_pending_concepts_marked_as_a_live_model(
         for point in slot:
             point.status = "treated"
     assert topics.focus_points() == {}
+
+
+def test_focus_is_told_in_order_from_two_threads() -> None:
+    """Review of #268 (M2): the event thread and a call's thread never
+    tell an older focus line after a newer one."""
+    import threading
+
+    topics, _ = tracker()
+    told: List[Any] = []
+    topics.on_focus = lambda line: told.append(line)
+    topics.on_event(final("u1", "S1", "¿Qué sabes de zapatillas de running?"))
+    topics.on_event(final("u2", "S2", "Eh, pues algo sé."))
+    asked = topics.focus_points()
+
+    def tick(pid: str) -> None:
+        topics.suggested(asked, {"points": [{"id": pid, "utterance": "u2"}]})
+
+    def ask(n: int) -> None:
+        topics.on_event(final(f"q{n}", "S1",
+                              "¿Has llevado caja o TPV en la tienda?"))
+
+    threads = [threading.Thread(target=tick, args=(p,))
+               for p in ("s2.p1", "s2.p2", "s2.p3")]
+    threads += [threading.Thread(target=ask, args=(n,)) for n in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert told and told[-1] == topics.focus
+
+
+def test_speech_sent_again_after_a_reconnect_is_in_the_round_once() -> None:
+    topics, _ = tracker()
+    topics.on_event(final("u1", "S1", "¿Qué sabes de zapatillas?", at=1.0))
+    topics.on_event(final("u2", "S2", "Miro la pisada.", at=3.0))
+    topics.on_event(final("u2", "S2", "Miro la pisada.", at=3.0))  # again
+    topics.on_event(final("r7", "S2", "Miro la pisada.", at=3.02))  # new id
+    topics.on_event(final("u4", "S2", "Y la talla.", at=9.0))
+    topics.on_event(final("u3", "S2", "Y el drop.", at=6.0))  # late final
+    assert [x.id for x in topics.round_lines()] == ["u1", "u2", "u3", "u4"]
+    assert [u for u, _ in topics.answers.get("s2", [])].count("r7") == 0
 
 
 def test_the_rules_ticks_say_so() -> None:
@@ -638,3 +739,15 @@ def test_the_rejudge_command_attributes_with_the_model_or_the_rules(
     out = capsys.readouterr().out
     assert json.loads(out)["attribution"] == "rules"
     assert all(x["text"][:20] not in out for x in round_["lines"])
+
+
+def test_the_rejudge_summary_says_why_nothing_was_answered() -> None:
+    from orchestrator.adapters.inbound.interview_cli import summary
+
+    told = [{"type": "accuracy", "state": "reporting"},
+            {"type": "accuracy", "state": "empty",
+             "attribution_error": "timeout: timeout"}]
+    assert summary(None, "open", told) == {
+        "state": "nothing_answered", "saved": False, "plan_state": "open",
+        "attribution_error": "timeout: timeout"}
+    assert "attribution_error" not in summary(None, "open")

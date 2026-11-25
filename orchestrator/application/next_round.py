@@ -64,8 +64,11 @@ from orchestrator.domain.interview_points import (
 from orchestrator.domain.next_round import TopicState, focus_line
 
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
-FOCUS_POINTS = 24
+FOCUS_POINTS = 9
 """Most pending concepts one suggestion call is given (#268)."""
+OTHER_POINTS = 4
+"""Of those, most from topics other than the one asked (the rules may
+not know which is asked; a short list keeps the reply short)."""
 POINT_MARK = "."
 """Joins a slot id and a concept id in the suggester's concept ids."""
 _STOP = frozenset(
@@ -142,9 +145,12 @@ class TopicTracker:
         self.answers: Dict[str, List[Tuple[str, str]]] = {}
         """The candidate's answers to each slot asked (utterance, text),
         for the judgement of the round (#259)."""
-        self.lines: Dict[str, Tuple[str, str]] = {}
-        """Every final of the round in order: id → (speaker, text)."""
+        self.lines: Dict[str, Tuple[str, str, float]] = {}
+        """Every final of the round: id → (speaker, text, start)."""
         self._lock = threading.Lock()
+        self._focus_lock = threading.Lock()
+        """Serialises telling the focus (#268): the event thread and a
+        suggestion call's thread can both change it."""
 
     def start(self) -> None:
         """Show the topics in the next round's order."""
@@ -156,14 +162,17 @@ class TopicTracker:
         if event.type == "speaker_update" and u is not None:
             with self._lock:
                 if u.id in self.lines:
-                    self.lines[u.id] = (u.speaker, self.lines[u.id][1])
+                    _, text, start = self.lines[u.id]
+                    self.lines[u.id] = (u.speaker, text, start)
             return
         if event.type != "final" or u is None:
             return
         role = self.roles.get(u.speaker, "unknown")
         changed = False
         with self._lock:
-            self.lines[u.id] = (u.speaker, u.text)
+            if self._repeated(u.id, u.speaker, u.text, u.start):
+                return
+            self.lines[u.id] = (u.speaker, u.text, u.start)
             if role == INTERVIEWER:
                 asked = slot_asked(u.text, self.plan.slots)
                 if asked is not None:
@@ -173,13 +182,9 @@ class TopicTracker:
                     self.touched.add(asked.id)
             elif role == CANDIDATE and self.target is not None:
                 changed = self._answer(self.target, u.id, u.text)
-            focus = self._focus()
-            moved = focus != self.focus
-            self.focus = focus
         if changed:
             self._publish()
-        if moved and self.on_focus is not None:
-            self.on_focus(focus)
+        self._tell_focus()
 
     def _answer(self, slot: Slot, utterance: str, text: str) -> bool:
         """Take a candidate answer to ``slot``; tell whether it changed.
@@ -208,25 +213,41 @@ class TopicTracker:
                 return True
         return False
 
-    def round_lines(self) -> List[RoundLine]:
-        """Every final of the round in order, with its speaker's role.
+    def _repeated(self, uid: str, speaker: str, text: str,
+                  start: float) -> bool:
+        """Whether a final is speech already kept under another id.
 
-        The role is the one set now (roles set late in the session apply
+        After a reconnect the same speech can arrive again with a new
+        id: same speaker, same words, same start (within 50 ms). The
+        same id arriving again replaces its line instead. Lock held.
+        """
+        return any(other != uid and who == speaker and said == text
+                   and abs(at - start) <= 0.05
+                   for other, (who, said, at) in self.lines.items())
+
+    def round_lines(self) -> List[RoundLine]:
+        """Every final of the round by start time, with its speaker's role.
+
+        A late final takes its place by its start; speech re-sent after a
+        reconnect is kept once (:meth:`_repeated`). The role is the one
+        set now (roles set late in the session apply
         to the whole round); a speaker without one is ``unknown``.
         """
         with self._lock:
             return [RoundLine(uid, self.roles.get(speaker) or "unknown",
                               text)
-                    for uid, (speaker, text) in self.lines.items()]
+                    for uid, (speaker, text, _) in sorted(
+                        self.lines.items(), key=lambda kv: kv[1][2])]
 
     def focus_points(self) -> Document:
         """The pending concepts for the suggester (#268).
 
         ``{"label", "points": [{"id": "<slot>.<concept>", "text",
-        "topic"}]}``: those of the topic asked first (``label``, empty
-        when the rules saw none asked), then the other topics' in the
-        round's order, at most :data:`FOCUS_POINTS`; ``{}`` when no
-        concept is pending.
+        "topic"}]}``: all of the topic asked (``label``, empty when the
+        rules saw none asked), then at most :data:`OTHER_POINTS` of the
+        other topics in the round's order (:data:`FOCUS_POINTS` of them
+        when no topic is asked), at most :data:`FOCUS_POINTS` in all;
+        ``{}`` when no concept is pending.
         """
         with self._lock:
             target = self.target
@@ -237,6 +258,10 @@ class TopicTracker:
                       "topic": slot.label}
                      for slot in order
                      for p in pending(self.points.get(slot.id, []))]
+        if target is not None:
+            mine = [f for f in found
+                    if f["id"].startswith(f"{target.id}{POINT_MARK}")]
+            found = mine + found[len(mine):len(mine) + OTHER_POINTS]
         if not found:
             return {}
         return {"label": target.label if target is not None else "",
@@ -276,13 +301,23 @@ class TopicTracker:
                     if points_status(self.points[topic]) in (
                             "filled", "partial"):
                         self.covered.add(topic)
-            focus = self._focus()
-            moved = focus != self.focus
-            self.focus = focus
         if changed:
             self._publish()
-        if moved and self.on_focus is not None:
-            self.on_focus(focus)
+        self._tell_focus()
+
+    def _tell_focus(self) -> None:
+        """Tell ``on_focus`` the focus line when it changed.
+
+        Under its own lock, computed and told in one step, so two
+        threads never tell an older line after a newer one.
+        """
+        with self._focus_lock:
+            with self._lock:
+                focus = self._focus()
+                moved = focus != self.focus
+                self.focus = focus
+            if moved and self.on_focus is not None:
+                self.on_focus(focus)
 
     def _focus(self) -> Optional[str]:
         """The focus line of the topic being asked (lock held)."""

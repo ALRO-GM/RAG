@@ -145,6 +145,17 @@ def _str(value: object) -> str:
     return value if isinstance(value, str) else ""
 
 
+def _id(value: object) -> str:
+    """An id of the reply, normalised: stray spaces, brackets and quotes
+    removed («[t3.s0]», « t3.s0 »); a number becomes its digits (and
+    then matches nothing); anything else is empty."""
+    if isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float)):
+        return str(value)
+    return _str(value).strip().strip("[]\"'«» ").strip()
+
+
 def _inside(said: str, text: str) -> bool:
     """Whether ``said`` is (folded) part of ``text``."""
     words = fold(" ".join(said.split())).strip(_TRIM)
@@ -157,12 +168,12 @@ def read_point(
     """One concept of the reply, checked against the candidate's words."""
     if not isinstance(item, dict):
         return None
-    pid = _str(item.get("id"))
+    pid = _id(item.get("id"))
     raw = item.get("status") or "treated"
     if not pid or raw not in ("treated", "unknown"):
         return None
     status: PointStatus = "unknown" if raw == "unknown" else "treated"
-    utterance = _str(item.get("utterance"))
+    utterance = _id(item.get("utterance"))
     said = " ".join(_str(item.get("quote")).split())
     if utterance not in candidate:
         telling = len(said.split()) >= MIN_QUOTE_WORDS
@@ -179,38 +190,52 @@ def read_point(
 def read_attribution(
     data: Mapping[str, Any], plan: InterviewPlan,
     lines: Sequence[RoundLine],
+    stats: Optional[Dict[str, int]] = None,
 ) -> Attribution:
     """Read one batch's reply against the plan and the batch's lines.
 
     Answer ids keep the round's order and are only the candidate's
-    utterances of this batch; concepts follow :func:`read_point`.
+    utterances of this batch (ids are normalised first, :func:`_id`);
+    concepts follow :func:`read_point`. ``stats``, when given, gets the
+    counts the caller logs and decides on (no words): ``shaped`` (1 when
+    ``slots`` is a list), ``given`` (answer and concept entries the
+    reply gave) and ``kept``.
     """
     candidate = {line.id: line.text for line in lines
                  if line.role == CANDIDATE}
     order = {line.id: n for n, line in enumerate(lines)}
     known = {s.id: {p.id for p in s.points} for s in plan.slots}
     found: Attribution = {}
+    counts = {"shaped": 0, "given": 0, "kept": 0}
     raw = data.get("slots")
+    counts["shaped"] = int(isinstance(raw, list))
     for item in raw if isinstance(raw, list) else []:
         if not isinstance(item, dict):
             continue
-        sid = _str(item.get("id"))
+        sid = _id(item.get("id"))
+        given = item.get("answers")
+        given = given if isinstance(given, list) else []
+        points = item.get("points")
+        points = points if isinstance(points, list) else []
+        counts["given"] += len(given) + len(points)
         if sid not in known:
             continue
         slot = found.setdefault(sid, SlotFound())
-        given = item.get("answers")
-        ids = {a for a in (given if isinstance(given, list) else [])
-               if isinstance(a, str) and a in candidate}
+        ids = {_id(a) for a in given} & set(candidate)
+        counts["kept"] += len(ids)
         slot.answers = sorted(set(slot.answers) | ids, key=order.__getitem__)
         slot.complete = slot.complete or item.get("status") == "complete"
-        points = item.get("points")
-        for raw_point in points if isinstance(points, list) else []:
+        for raw_point in points:
             read = read_point(raw_point, candidate)
             if read is None or read[0] not in known[sid]:
                 continue
+            counts["kept"] += 1
             _keep_point(slot.points, *read)
         if not slot.answers and not slot.points:
             del found[sid]
+    if stats is not None:
+        for key, value in counts.items():
+            stats[key] = stats.get(key, 0) + value
     return found
 
 
@@ -285,3 +310,42 @@ def used_ids(found: Attribution) -> Set[str]:
     """Every utterance id the attribution uses (for counts in the log)."""
     return {u for s in found.values()
             for u in [*s.answers, *(p.utterance for p in s.points.values())]}
+
+
+def with_session_ticks(
+    slots: Sequence[SheetSlot], session: Sequence[SheetSlot],
+    texts: Mapping[str, str],
+) -> List[SheetSlot]:
+    """Keep what the session ticked and the model's reading missed.
+
+    A concept still pending after the model's attribution but treated
+    (or said unknown) during the session keeps that status, with who
+    decided it (``rules`` or ``live_model``): the session's tick was
+    backed by the candidate's words, and dropping it silently would
+    hide it. Its utterance then also answers the point, and the point's
+    status follows :func:`points_status` again.
+    """
+    during = {s.id: {p.id: p for p in s.points} for s in session}
+    kept: List[SheetSlot] = []
+    for slot in slots:
+        ticked = during.get(slot.id, {})
+        points = [
+            ticked[p.id].model_copy() if p.status == "pending"
+            and p.id in ticked and ticked[p.id].status != "pending" else p
+            for p in slot.points
+        ]
+        if points == slot.points:
+            kept.append(slot)
+            continue
+        said = [a.utterance for a in slot.answers]
+        extra = [p.utterance for p in points
+                 if p.utterance and p.utterance not in said]
+        answers = [*slot.answers, *(
+            Answer(utterance=u, quote=quote(texts.get(u, "")),
+                   status="partial") for u in dict.fromkeys(extra))]
+        settled = points_status(points)
+        kept.append(slot.model_copy(update={
+            "points": points, "answers": answers,
+            "status": settled if settled is not None
+            else "partial" if answers else "empty"}))
+    return kept
