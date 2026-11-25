@@ -27,7 +27,9 @@ from typing import Any, Dict
 
 from orchestrator.adapters.outbound.files import load_transcript
 from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
+from orchestrator.adapters.outbound.fs_core_questions import FileCoreQuestions
 from orchestrator.adapters.outbound.fs_interview_plans import JsonPlanStore
+from orchestrator.application.candidates import CandidateBook
 from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
@@ -68,6 +70,9 @@ def add_interview_parser(
     again.add_argument("--knowledge-url", default="http://127.0.0.1:8000")
     again.add_argument("--rag-token-file", type=Path, default=RAG_TOKEN_FILE)
     again.add_argument("--model", default="haiku")
+    again.add_argument("--force", action="store_true",
+                       help="judge a session that is not one of the "
+                            "candidate's rounds, or replace a stored report")
     again.add_argument("--fake-delay-ms", type=float, default=0.0)
 
 
@@ -80,20 +85,38 @@ def run_interview(
     path = args.transcript or (ROOT / "data" / "transcripts"
                                / f"{args.session}.transcript.v1.json")
     transcript = load_transcript(path)
+    if transcript.session.id != args.session:
+        raise ValueError(f"the transcript is of session "
+                         f"{transcript.session.id!r}, not {args.session!r}")
     store = JsonPlanStore(args.interview_dir)
     try:
         plan = store.load(args.plan)
     except KeyError as exc:
         raise ValueError(f"no plan {args.plan!r}") from exc
+    profiles = JsonCandidateStore(args.interview_dir)
     try:
-        profile = JsonCandidateStore(args.interview_dir).load(
-            args.plan, args.candidate)
+        profile = profiles.load(args.plan, args.candidate)
     except KeyError as exc:
         raise ValueError(f"no candidate {args.candidate!r} in that plan") \
             from exc
+    if not args.force:
+        if all(r.session_id != args.session for r in profile.rounds):
+            raise ValueError("that session is not one of the candidate's "
+                             "rounds (--force to judge it anyway)")
+        try:
+            store.result(args.plan, args.session)
+        except KeyError:
+            pass
+        else:
+            raise ValueError("a report of that session is already stored "
+                             "(--force to replace it)")
     planner = InterviewPlanner(store, knowledge, reasoner, None,
                                lambda: InterviewSection())
-    wiring = InterviewWiring(planner, store, reasoner)
+    book = CandidateBook(
+        profiles, FileCoreQuestions(ROOT / "knowledge" / "interview"
+                                    / "core-questions.json"),
+        lambda plan_id: plan_id == plan.id, plans=store)
+    wiring = InterviewWiring(planner, store, reasoner, candidates=book)
     result = rejudge(transcript, plan, wiring, args.model, profile.name,
                      profile.id)
     print(json.dumps(summary(result, plan.state), ensure_ascii=False))

@@ -34,7 +34,7 @@ export function reportPage(sheet) {
   const lead = t("rep.iv_lead", { kind: t(`iv.kind.${kind}`), date: shortDate(sheet?.finished_at), title: sheet?.title ?? "" });
   return h("div", { class: "stack" },
     pageHead(sheet?.candidate || t("rep.iv_title"), { lead }),
-    h("p", { class: "hint" }, t("iv.retention")),
+    h("p", { class: "hint" }, t(sheet?.candidate_id ? "iv.retention" : "iv.retention_no_file")),
     kind === "ai" ? reportCard({ sheet, handoff: {} })
       : h("section", { class: "card iv-report" }, accuracyBlock(sheet) ?? h("p", { class: "hint" }, t("rep.iv_missing"))));
 }

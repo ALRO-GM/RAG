@@ -2218,4 +2218,11 @@ export const en = {
   "live.accuracy_not_saved": "The draft could not be saved; it is only shown here.",
   "live.accuracy_retry": "Try again",
   "live.plan_closed": "{title} (position closed)",
+  "iv.retention_no_file": "No person's file: kept with the position until you delete it here.",
+  "iv.no_file": "no file",
+  "iv.delete_report": "Delete this report",
+  "iv.delete_report_title": "Delete this report?",
+  "iv.delete_report_body": "The report of this interview is deleted, with its quotes and judgements. This cannot be undone.",
+  "iv.deleted_report": "Report deleted.",
+  "live.accuracy_nothing": "There were no answers to judge: no report was saved.",
 };

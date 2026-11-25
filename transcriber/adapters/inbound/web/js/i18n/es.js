@@ -2218,4 +2218,11 @@ export const es = {
   "live.accuracy_not_saved": "El borrador no se ha podido guardar; solo se ve aquí.",
   "live.accuracy_retry": "Reintentar",
   "live.plan_closed": "{title} (puesto cerrado)",
+  "iv.retention_no_file": "Sin ficha de persona: se conserva con el puesto hasta que lo borres aquí.",
+  "iv.no_file": "sin ficha",
+  "iv.delete_report": "Borrar este informe",
+  "iv.delete_report_title": "¿Borrar este informe?",
+  "iv.delete_report_body": "Se borra el informe de esta entrevista, con sus citas y valoraciones. No se puede deshacer.",
+  "iv.deleted_report": "Informe borrado.",
+  "live.accuracy_nothing": "No hubo respuestas que valorar: no se ha guardado ningún informe.",
 };

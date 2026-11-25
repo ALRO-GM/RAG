@@ -1086,10 +1086,15 @@ export async function liveView(ctx, root, [sub, which] = []) {
         const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));
         return h("div", { class: "notice", role: "status" }, h("p", {}, t("live.accuracy_failed")), retry);
       }
-      const saved = found.saved && found.plan_id && found.session_id
-        ? h("p", { class: "hint" }, t("live.accuracy_saved"), " ",
-          h("a", { href: reportHref(found.plan_id, found.session_id) }, t("iv.open_report")), " · ", t("iv.retention"))
-        : h("p", { class: "hint" }, t("live.accuracy_not_saved"));
+      let saved;
+      if (found.saved && found.plan_id && found.session_id) {
+        saved = h("p", { class: "hint" }, t("live.accuracy_saved"), " ",
+          h("a", { href: reportHref(found.plan_id, found.session_id) }, t("iv.open_report")), " · ", t("iv.retention"));
+      } else {
+        // Ready but not saved: it may be judged (and saved) again.
+        const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));
+        saved = h("p", { class: "hint" }, t("live.accuracy_not_saved"), " ", retry);
+      }
       return h("div", {}, accuracyBlock(found), saved);
     }
 
@@ -1103,7 +1108,14 @@ export async function liveView(ctx, root, [sub, which] = []) {
           await new Promise((resolve) => setTimeout(resolve, 3000));
           const view = await ctx.api.liveSession(session.id);
           const found = view?.accuracy;
-          if (found && found.state !== "reporting") {
+          if (!found) {
+            // Nothing the candidate said could be judged: no report, no wait.
+            state.accuracy = null;
+            toast(t("live.accuracy_nothing"));
+            schedule();
+            return;
+          }
+          if (found.state !== "reporting") {
             state.apply({ type: "accuracy", ...found });
             schedule();
             return;

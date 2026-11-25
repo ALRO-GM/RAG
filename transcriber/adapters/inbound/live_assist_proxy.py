@@ -236,6 +236,14 @@ def add_live_assist_proxy(
         return await forward(
             f"interview/plans/{plan_id}/results/{session_id}", request)
 
+    @api.delete("/assist/interview/plans/{plan_id}/results/{session_id}")
+    async def assist_delete_plan_report(
+        plan_id: str, session_id: str, request: Request
+    ) -> Response:
+        """Delete a stored report that belongs to no candidate's file."""
+        return await forward(
+            f"interview/plans/{plan_id}/results/{session_id}", request)
+
     @api.post("/assist/interview/plans/{plan_id}/close")
     async def assist_close_plan(plan_id: str, request: Request) -> Response:
         """Close the position (no new interviews; nothing deleted)."""

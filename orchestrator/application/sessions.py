@@ -884,7 +884,11 @@ class LiveSessions:
                           keep_feed=judging)
                 if judging:
                     # After the end (#259 review): the session no longer
-                    # counts as running while its round is judged.
+                    # counts as running while its round is judged; marked
+                    # reporting first, so «Reintentar» cannot start a
+                    # second judgement meanwhile.
+                    with self._lock:
+                        session.accuracy = {"state": "reporting"}
                     self.runner.start(lambda: self._judge_round(session))
 
         self.runner.start(job)
@@ -923,12 +927,19 @@ class LiveSessions:
         session = self._find(session_id)
         if session.judge is None or session.topics is None:
             raise SessionError("wrong_state", "this round is not judged")
-        if session.state == "running":
-            raise SessionError("wrong_state", "the round is still running")
-        state = (session.accuracy or {}).get("state")
-        if state in ("reporting", "ready"):
-            raise SessionError("wrong_state", f"the judgement is {state}")
-        session.accuracy = {"state": "reporting"}
+        with self._lock:
+            if session.state == "running":
+                raise SessionError("wrong_state",
+                                   "the round is still running")
+            found = session.accuracy or {}
+            state = found.get("state")
+            # A ready judgement whose report could not be saved may run
+            # again; a running or saved one may not.
+            if state == "reporting" or (state == "ready"
+                                        and found.get("saved")):
+                raise SessionError("wrong_state",
+                                   f"the judgement is {state}")
+            session.accuracy = {"state": "reporting"}
         self.runner.start(lambda: self._judge_again(session))
         return session.view()
 

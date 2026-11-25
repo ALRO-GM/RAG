@@ -38,8 +38,10 @@ from orchestrator.domain.interview import (
     Answer,
     CheckItem,
     InterviewPlan,
+    Judgement,
     Sheet,
     SheetSlot,
+    fold,
 )
 from orchestrator.domain.events import Transcript
 from orchestrator.domain.interview_judgement import MAX_CHECKS, judge_slots
@@ -133,6 +135,8 @@ class LiveJudge:
         nothing is stored, the reason is logged (never the candidate's
         words) and ``{"state": "failed"}`` is published.
         """
+        originals = {s.id: [(a.utterance, texts.get(a.utterance) or a.quote)
+                            for a in s.answers] for s in slots}
         asked, texts = merged_slots([s for s in slots if s.answers], texts)
         if not asked:
             return None
@@ -151,6 +155,7 @@ class LiveJudge:
             checks += [c for c in found[1] if c.quote not in
                        {k.quote for k in checks}]
         checks = checks[:MAX_CHECKS]
+        judged, checks = to_originals(judged, checks, originals)
         saved = self._keep(judged, checks, len(texts))
         result = {
             "state": "ready", "judge": self.template,
@@ -222,13 +227,59 @@ class LiveJudge:
             candidate_id=self.candidate_id, to_check=checks,
             judge=self.template, finished_at=self.now(),
         )
+        book = self.wiring.candidates
         try:
+            if self.candidate_id and book is not None:
+                # Never an orphan: the file may be deleted meanwhile.
+                return book.keep_report(
+                    self.plan.id, self.candidate_id,
+                    lambda: self.wiring.store.save_result(
+                        self.plan.id, sheet.to_contract()))
             self.wiring.store.save_result(self.plan.id, sheet.to_contract())
         except (OSError, KeyError) as exc:
             LOG.warning("judge %s: report not kept (%s)", self.session_id,
                         type(exc).__name__)
             return False
         return True
+
+
+def _origin(quote_: str, said: List[Tuple[str, str]],
+            fallback: Optional[str]) -> Optional[str]:
+    """The original utterance whose words contain ``quote_``."""
+    words = fold(quote_).strip(" .…\"'«»")
+    if not words:
+        return fallback
+    return next((u for u, text in said if words in fold(text)), fallback)
+
+
+def to_originals(
+    judged: List[SheetSlot], checks: List[CheckItem],
+    originals: Dict[str, List[Tuple[str, str]]],
+) -> Tuple[List[SheetSlot], List[CheckItem]]:
+    """Point each quote at the utterance that said it, not the joined part.
+
+    A joined answer part keeps the id of its first utterance; a quote
+    from a later utterance of that part is moved to that utterance.
+    """
+    def moved(slot_id: str, j: Optional[Judgement]) -> Optional[Judgement]:
+        if j is None or not j.quote:
+            return j
+        return j.model_copy(update={"utterance": _origin(
+            j.quote, originals.get(slot_id, []), j.utterance)})
+
+    slots = []
+    for slot in judged:
+        points = [
+            p.model_copy(update={"judgement": moved(slot.id, p.judgement)})
+            for p in slot.points
+        ]
+        slots.append(slot.model_copy(update={
+            "judgement": moved(slot.id, slot.judgement), "points": points}))
+    every = [pair for found in originals.values() for pair in found]
+    fixed = [c.model_copy(update={"utterance": _origin(
+        c.quote, originals.get(c.slot or "", []) or every, c.utterance)})
+        for c in checks]
+    return slots, fixed
 
 
 def merged_answers(
@@ -273,6 +324,24 @@ def merged_slots(
     return found, joined
 
 
+def replayed_tracker(
+    transcript: Transcript, plan: InterviewPlan,
+) -> TopicTracker:
+    """The topic tracker of a round rebuilt from its ``transcript.v1``.
+
+    The speakers' ``role`` says who interviews and who answers. For the
+    same finals it attributes answers as the live round did; it can
+    differ when the live round revised a final after the tracker read
+    it, or when roles were set otherwise during the session.
+    """
+    roles = {s.id: s.role or "unknown" for s in transcript.speakers}
+    topics = TopicTracker(plan, topic_states(plan, []), roles,
+                          lambda message: None)
+    for event in transcript_to_events(transcript, roles):
+        topics.on_event(event)
+    return topics
+
+
 def rejudge(
     transcript: Transcript,
     plan: InterviewPlan,
@@ -293,10 +362,7 @@ def rejudge(
     could attribute to a topic of the plan.
     """
     roles = {s.id: s.role or "unknown" for s in transcript.speakers}
-    topics = TopicTracker(plan, topic_states(plan, []), roles,
-                          lambda message: None)
-    for event in transcript_to_events(transcript, roles):
-        topics.on_event(event)
+    topics = replayed_tracker(transcript, plan)
     session_id = next(transcript_to_events(transcript, roles)).session_id
     judge = LiveJudge(plan, wiring, session_id, publish, model,
                       candidate=candidate, candidate_id=candidate_id,

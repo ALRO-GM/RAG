@@ -243,7 +243,22 @@ export function planSetup(ctx, { onReady }) {
 
     async function showComparison() {
       try {
-        fill(comparison, comparisonCard(await ctx.api.planResults(saved.id)), h("p", { class: "hint" }, t("iv.retention")));
+        fill(comparison, comparisonCard(await ctx.api.planResults(saved.id), { onDelete: deleteReport }));
+      } catch (error) {
+        toast(describeError(error), { error: true });
+      }
+    }
+
+    async function deleteReport(row) {
+      const yes = await openDialog({
+        title: t("iv.delete_report_title"), content: [h("p", {}, t("iv.delete_report_body"))],
+        confirm: t("iv.delete_report"), danger: true,
+      });
+      if (!yes) return;
+      try {
+        await ctx.api.deletePlanReport(saved.id, row.session);
+        toast(t("iv.deleted_report"));
+        await showComparison();
       } catch (error) {
         toast(describeError(error), { error: true });
       }
@@ -512,19 +527,28 @@ export function shortDate(value) {
 }
 
 /** The candidates of one plan side by side: suitability and a bar per skill. */
-export function comparisonCard(results) {
+export function comparisonCard(results, { onDelete = null } = {}) {
   const rows = comparisonRows(results);
   const slots = results.plan?.slots ?? [];
   if (!rows.length) return h("p", { class: "hint" }, t("iv.compare_none"));
+  // What is true of each row (#262): in a person's file until it is deleted,
+  // or with the position, deleted from here.
+  const notes = [
+    rows.some((r) => r.candidateId) ? h("p", { class: "hint" }, t("iv.retention")) : null,
+    rows.some((r) => !r.candidateId) ? h("p", { class: "hint" }, t("iv.retention_no_file")) : null,
+  ];
   return h("div", { class: "iv-compare-wrap" },
     h("table", { class: "iv-compare" },
       h("thead", {}, h("tr", {}, h("th", {}, t("iv.candidate")), h("th", {}, t("iv.report_kind")), h("th", {}, t("iv.suitability")),
         slots.map((s) => h("th", { title: s.label }, h("span", { class: "iv-th" }, s.label), " ", h("span", { class: "tag" }, t("iv.weight_short", { w: s.weight ?? 3 })))))),
       h("tbody", {}, rows.map((r) => h("tr", {},
-        h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null),
+        h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null,
+          r.candidateId ? null : [" ", h("span", { class: "tag" }, t("iv.no_file")),
+            onDelete ? [" ", h("button", { type: "button", class: "small danger", onClick: () => onDelete(r) }, t("iv.delete_report"))] : null]),
         h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), " ", h("span", { class: "meta" }, shortDate(r.finished)),
           " ", h("a", { href: reportHref(results.plan?.id ?? "", r.session) }, t("iv.open_report"))),
         h("td", {}, r.kind === "live" ? h("span", { class: "meta" }, t("iv.no_score_live"))
           : [scoreBar(r.suitability), " ", r.suitability === null ? "–" : String(Math.round(r.suitability))]),
-        r.slots.map((s) => h("td", {}, scoreBar(s.score, { small: true }), " ", s.score === null || s.score === undefined ? t(`iv.status.${s.status ?? "empty"}`) : String(s.score))))))));
+        r.slots.map((s) => h("td", {}, scoreBar(s.score, { small: true }), " ", s.score === null || s.score === undefined ? t(`iv.status.${s.status ?? "empty"}`) : String(s.score))))))),
+    notes);
 }

@@ -107,7 +107,7 @@ def wired(documents: List[Document], reasoner: Any = None,
                                new_id=lambda: "plan-1")
     planner.create({"offer": OFFER})
     book = CandidateBook(store or MemoryCandidates(), Core(),
-                         lambda p: p in plans.plans, 30)
+                         lambda p: p in plans.plans, 30, plans=plans)
     return LiveSessions(
         {"live_assist.interview": product("live_assist.interview"),
          "live_assist.support": product()},
@@ -634,7 +634,8 @@ def test_a_round_is_judged_after_it_ends_and_the_file_has_no_words() -> None:
     live.start_live("live_assist.interview", "stereo", session_id="r1",
                     plan="plan-1", candidate="Lucía Marín")
     assert live.get("r1")["state"] == "ended"  # not running while judged
-    assert live.get("r1")["accuracy"] is None and len(runner.held) == 1
+    assert live.get("r1")["accuracy"] == {"state": "reporting"}
+    assert len(runner.held) == 1
     early, finished = live.feed("r1").read(0, 0.01)
     assert not finished  # the feed waits for the judgement
     assert not [m for _, m in early if m["type"] == "accuracy"]
@@ -691,3 +692,107 @@ def test_a_failed_round_is_judged_again_and_kept() -> None:
     with pytest.raises(SessionError) as again:
         live.rejudge("r1")
     assert again.value.code == "wrong_state"
+
+
+def test_only_one_judgement_of_a_round_runs_at_a_time() -> None:
+    """Review of #262: «Reintentar» never starts a second judgement."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    runner = FirstInline()
+    live = wired(conversation("r1", round_lines(one)), NoJudge(), store,
+                 runner)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert live.get("r1")["accuracy"] == {"state": "reporting"}
+    with pytest.raises(SessionError):  # the first one is still running
+        live.rejudge("r1")
+    runner.held.pop()()
+    assert live.get("r1")["accuracy"]["state"] == "failed"
+    live.rejudge("r1")
+    with pytest.raises(SessionError):  # a second quick POST
+        live.rejudge("r1")
+    assert len(runner.held) == 1
+
+
+def test_retry_after_a_save_that_failed_and_never_for_a_deleted_file() -> None:
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    live = wired(conversation("r1", round_lines(one)), AskingReasoner(),
+                 store)
+    assert live.interview is not None
+    plans = live.interview.store
+    real = plans.save_result
+
+    def broken(plan_id: str, sheet: Document) -> None:
+        raise OSError("disk full")
+
+    plans.save_result = broken  # type: ignore[method-assign]
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    found = live.get("r1")["accuracy"]
+    assert found["state"] == "ready" and found["saved"] is False
+    plans.save_result = real  # type: ignore[method-assign]
+    live.rejudge("r1")  # ready but not saved: accepted
+    assert live.get("r1")["accuracy"]["saved"] is True
+    with pytest.raises(SessionError):  # saved: nothing to retry
+        live.rejudge("r1")
+    # A file deleted before «Reintentar» never gets its report back.
+    book = live.interview.candidates
+    assert book is not None
+    candidate = live.get("r1")["candidate_id"]
+    book.delete("plan-1", candidate)
+    assert plans.results("plan-1") == []
+    live.get("r1")["accuracy"]  # view still has the old result in memory
+    session = live._find("r1")
+    session.accuracy = {"state": "failed"}
+    live.rejudge("r1")
+    assert live.get("r1")["accuracy"]["saved"] is False
+    assert plans.results("plan-1") == []
+
+
+def test_a_live_round_and_its_replayed_transcript_attribute_alike() -> None:
+    """Review of #262: what `interview rejudge` rebuilds is what the live
+    round saw, for the same finals (no revisions)."""
+    from orchestrator.application.live_judgement import replayed_tracker
+    from orchestrator.domain.events import Transcript
+
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    plan = probe.interview.store.load("plan-1")
+    one, two = plan.ordered()[:2]
+    lines = [
+        ["S1", f"Hablemos de {one.label}. {one.questions[0]}"],
+        ["S2", "Trabajé de dependienta en una tienda de deportes, "
+               "atendiendo clientes durante dos años."],
+        ["S2", "Sobre todo en caja."],
+        ["S1", f"Ahora {two.label}. {two.questions[0]}"],
+        ["S2", "Pues no mucho."],
+    ]
+    live = wired(conversation("r1", lines), AskingReasoner(), store)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    seen = live._find("r1").topics
+    assert seen is not None
+    transcript = Transcript.model_validate({
+        "session": {"id": "r1", "language": "es",
+                    "started_at": "2026-11-24T10:00:00Z"},
+        "speakers": [{"id": "S1", "role": "interviewer"},
+                     {"id": "S2", "role": "candidate"}],
+        "utterances": [
+            {"id": f"t{n}.s0", "turn": n, "index": 0, "speaker": who,
+             "start": float(n), "end": n + 0.9, "text": text}
+            for n, (who, text) in enumerate(lines)],
+    })
+    again = replayed_tracker(transcript, plan)
+
+    def shape(tracker: Any) -> Any:
+        slots, texts = tracker.sheet_slots()
+        return ([(s.id, s.status, [a.utterance for a in s.answers],
+                  [p.status for p in s.points]) for s in slots], texts)
+
+    assert shape(again) == shape(seen)

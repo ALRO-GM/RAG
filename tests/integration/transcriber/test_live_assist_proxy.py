@@ -199,6 +199,7 @@ def test_interview_plan_routes_are_forwarded() -> None:
     web.get("/api/assist/interview/plans/plan-1", headers=head)
     web.get("/api/assist/interview/plans/plan-1/results", headers=head)
     web.get("/api/assist/interview/plans/plan-1/results/r1", headers=head)
+    web.delete("/api/assist/interview/plans/plan-1/results/r1", headers=head)
     web.post("/api/assist/interview/plans/plan-1/close", json={},
              headers=head)
     web.post("/api/assist/interview/plans/plan-1/reopen", json={},
@@ -210,6 +211,7 @@ def test_interview_plan_routes_are_forwarded() -> None:
         ("GET", "/interview/plans/plan-1"),
         ("GET", "/interview/plans/plan-1/results"),
         ("GET", "/interview/plans/plan-1/results/r1"),
+        ("DELETE", "/interview/plans/plan-1/results/r1"),
         ("POST", "/interview/plans/plan-1/close"),
         ("POST", "/interview/plans/plan-1/reopen"),
         ("POST", "/sessions/r1/rejudge"),

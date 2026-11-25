@@ -275,6 +275,7 @@ class InterviewPlanner:
                 "session_id": sheet.get("session_id"),
                 "kind": "live" if sheet.get("kind") == "live" else "ai",
                 "candidate": sheet.get("candidate"),
+                "candidate_id": sheet.get("candidate_id"),
                 "finished_at": sheet.get("finished_at"),
                 "suitability": sheet.get("suitability"),
                 "closed_by": sheet.get("closed_by"),

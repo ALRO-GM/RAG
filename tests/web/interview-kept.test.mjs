@@ -126,3 +126,27 @@ test("the comparison opens every report; the candidate's file lists theirs", asy
       ["#/interview-report/dev/r1", "#/interview-report/dev/vb-1"]);
   });
 });
+
+test("a report without a person's file says so and can be deleted from the comparison", async () => {
+  assert.equal(es["iv.retention_no_file"], "Sin ficha de persona: se conserva con el puesto hasta que lo borres aquí.");
+  assert.equal(es["iv.delete_report_body"], "Se borra el informe de esta entrevista, con sus citas y valoraciones. No se puede deshacer.");
+  await withDom("es", async () => {
+    const { comparisonCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const { reportPage } = await import("../../transcriber/adapters/inbound/web/js/views/interview-report.js");
+    const asked = [];
+    const results = { plan: { id: "dev", revision: 0, slots: [] }, candidates: [
+      { session_id: "vb-1", candidate: "Sin ficha", finished_at: "2026-11-20T09:00:00", suitability: 50, plan_revision: 0, slots: [] },
+      { session_id: "r1", kind: "live", candidate: "Ana Ruiz", candidate_id: "ana-ruiz", plan_revision: 0, slots: [] }] };
+    const card = comparisonCard(results, { onDelete: (row) => asked.push(row.session) });
+    const text = card.text();
+    assert.ok(text.includes(es["iv.retention"]) && text.includes(es["iv.retention_no_file"]) && text.includes(es["iv.no_file"]));
+    const buttons = card.all().filter((n) => n.tagName === "BUTTON");
+    assert.equal(buttons.length, 1, "only the report without a file has a delete button");
+    buttons[0].listeners.click[0]();
+    assert.deepEqual(asked, ["vb-1"]);
+    const onlyFiled = comparisonCard({ ...results, candidates: [results.candidates[1]] }).text();
+    assert.ok(!onlyFiled.includes(es["iv.retention_no_file"]));
+    assert.ok(reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention_no_file"]));
+    assert.ok(!reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention"]));
+  });
+});

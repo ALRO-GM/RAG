@@ -563,9 +563,15 @@ git-ignored data folder; files written mode 600):
   parts of 700 characters), their concepts, each judgement with quote,
   reason and basis, and `to_check`; **no score** (`score` and
   `suitability` stay empty: the live page never scores). Stored when its
-  judgement is ready; a failed or lost judgement stores nothing, and the
-  page says so («No se pudo preparar el borrador …; no se ha guardado
-  ningún informe.», with «Reintentar»).
+  judgement is ready **and the candidate's file still exists**: the
+  check and the save run under the same lock as deleting a file, so a
+  file deleted while the judgement ran (or before «Reintentar») never
+  gets an orphan report. A failed or lost judgement stores nothing, and
+  the page says so («No se pudo preparar el borrador …; no se ha
+  guardado ningún informe.», with «Reintentar»; also offered when the
+  judgement is ready but its save failed). Quotes point at the
+  utterance that said them, not at the first utterance of a joined
+  answer part. Only one judgement of a round runs at a time.
 
 **Where it opens.** «Comparar candidatos de esta oferta» lists both
 kinds with their kind («Entrevista con IA» / «Entrevista en directo»),
@@ -575,17 +581,22 @@ candidate's file («Datos de la candidata») lists their reports by kind
 and date with the same link: a report belongs to the file when it names
 the profile (`candidate_id`) or its session is one of the profile's
 rounds (older sheets name no profile). The live end summary links to
-the saved report. Each place says «Se conserva en la ficha de la persona
-hasta que la borres.»
+the saved report. A report in a person's file says «Se conserva en la
+ficha de la persona hasta que la borres.»; one without a file (an AI
+interview held without a candidate profile, or a report whose profile
+is gone) says «Sin ficha de persona: se conserva con el puesto hasta
+que lo borres aquí.» and has «Borrar este informe» (with confirmation)
+in «Comparar candidatos» (`DELETE
+/interview/plans/{id}/results/{session}`, refused with 409 for a report
+that is in a file).
 
 **How long.** Nothing deletes these reports by time. They are deleted
 only when a person deletes the candidate's file («Borrar ficha de la
 candidatura»: the confirmation says how many reports go with it; if one
 cannot be deleted the file is kept, so deleting again finishes it). A
 candidate file with reports never expires by days
-(`CANDIDATE_PROFILE.md`). Reports of AI interviews held without a
-candidate profile belong to no file and are not deleted by anything in
-the product (owner decision, see below).
+(`CANDIDATE_PROFILE.md`). Reports without a file are deleted one by one
+from «Comparar candidatos»; nothing deletes them by time.
 
 **Closing a position.** «Cerrar el puesto» on the plan review (with a
 confirmation) only marks the plan `state: "closed"` and records when
@@ -597,9 +608,11 @@ before this had no state and load as open.
 **Long rounds and failures.** A live round is judged in calls of at
 most 4 slots (`JUDGE_BATCH`), each slot's answers joined into at most 6
 parts of 700 characters (`merged_answers`; parts beyond that are left
-out and counted in the log), so an 8-minute round stays inside the
-template's limits, the 4 000-token output cap and the 90 s deadline of
-each call. Why the owner's real round failed was not established (its
+out and counted in the log). The intent is that a long round (the
+owner's was about 8 minutes) stays inside the template's limits, the
+4 000-token output cap and the 90 s deadline of each call; that was
+tested with a synthetic 10-slot, 120-utterance round on the fake
+reasoner, not measured on the real model. Why the owner's real round failed was not established (its
 data were not read): the likely causes were the single call over many
 slots (deadline or output cap); not measured. Every failed call is now
 logged at WARNING with the batch, number of slots and answer
@@ -609,7 +622,9 @@ logged too and the judge falls back to general knowledge.
 
 **Judging a round again.** On the live page, «Reintentar» (while the
 orchestrator still has the round) judges it again (`POST
-/sessions/{id}/rejudge`, 202; the page polls the session). Offline, for
+/sessions/{id}/rejudge`, 202; the page polls the session; if the round
+turns out to have nothing to judge the page says «No hubo respuestas
+que valorar: no se ha guardado ningún informe.» and stops waiting). Offline, for
 a round whose judgement failed or was lost:
 
 ```
@@ -621,7 +636,13 @@ It reads `data/transcripts/<session>.transcript.v1.json` (the stored
 transcript of the session; speakers carry `role`), replays it through
 the topic tracker, judges it with the same code and stores the full
 report under the same session id, so it appears in «Comparar
-candidatos» and in the candidate's file. By default it asks the running
+candidatos» and in the candidate's file. It refuses (exit 2) when the
+transcript is of another session, when the session is not one of the
+candidate's rounds, or when a report of that session is already stored;
+`--force` judges it anyway and replaces the stored report. The rebuilt
+round is the live one for the same finals (a test compares them); it
+can differ when the live round revised a final after the tracker read
+it, or when roles were changed during the session. By default it asks the running
 RAG (`--reasoner http`, `--reasoner-url http://127.0.0.1:8000`, token
 from `~/.config/ragputin/rag-token`), which must already serve
 `interview.report@2`; `--reasoner

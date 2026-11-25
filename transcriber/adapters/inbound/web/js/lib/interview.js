@@ -230,6 +230,8 @@ export function comparisonRows(results) {
     const byId = new Map((row.slots ?? []).map((s) => [s.id, s]));
     return {
       session: row.session_id, kind: row.kind === "live" ? "live" : "ai", candidate: row.candidate, suitability: row.suitability ?? null,
+      // #262: a report without a candidate's file is kept with the position and deleted from here.
+      candidateId: row.candidate_id ?? null,
       finished: row.finished_at, closedBy: row.closed_by, stale: (row.plan_revision ?? 0) !== (plan.revision ?? 0),
       slots: order.map((id) => byId.get(id) ?? { id, score: null, status: "empty" }),
     };

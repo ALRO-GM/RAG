@@ -357,6 +357,11 @@ export class Api {
     return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/results/${encodeURIComponent(sessionId)}`);
   }
 
+  /** Delete a stored report that belongs to no candidate's file (#262). */
+  deletePlanReport(planId, sessionId) {
+    return this.request("DELETE", `/assist/interview/plans/${encodeURIComponent(planId)}/results/${encodeURIComponent(sessionId)}`);
+  }
+
   /** Close the position: no new interviews; nothing is deleted (#262). */
   closePlan(id) { return this.request("POST", `/assist/interview/plans/${encodeURIComponent(id)}/close`, { json: {} }); }
 

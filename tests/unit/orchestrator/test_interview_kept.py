@@ -287,7 +287,9 @@ def test_the_rejudge_command_prints_numbers_only(
     plans = JsonPlanStore(tmp_path / "interview")
     plans.save(plan())
     profiles = JsonCandidateStore(tmp_path / "interview")
-    ana = new_profile("dev", "Ana Ruiz", [], NOW)
+    ana = new_profile("dev", "Ana Ruiz", [], NOW).model_copy(update={
+        "rounds": [Round(session_id="r9", at="2026-11-25T10:00:00",
+                         kind="live")]})
     profiles.save(ana)
     path = tmp_path / "r9.transcript.v1.json"
     path.write_text(json.dumps(transcript()), "utf-8")
@@ -312,3 +314,119 @@ def test_the_rejudge_command_prints_numbers_only(
                     "--reasoner", "fake", "--knowledge", "fake",
                     "--rag-token-file", str(tmp_path / "none")])
     assert missing == 2
+
+
+def rejudge_args(tmp_path: Path, session: str, candidate: str,
+                 *more: str) -> List[str]:
+    return ["interview", "rejudge", session, "--plan", "dev",
+            "--candidate", candidate, "--transcript",
+            str(tmp_path / "r9.transcript.v1.json"),
+            "--interview-dir", str(tmp_path / "interview"),
+            "--reasoner", "fake", "--knowledge", "fake",
+            "--rag-token-file", str(tmp_path / "none"), *more]
+
+
+def test_the_rejudge_command_checks_what_it_is_given(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Review of #262: the right session, the candidate's round, no
+    silent overwrite."""
+    plans = JsonPlanStore(tmp_path / "interview")
+    plans.save(plan())
+    profiles = JsonCandidateStore(tmp_path / "interview")
+    ana = new_profile("dev", "Ana Ruiz", [], NOW)
+    profiles.save(ana)
+    (tmp_path / "r9.transcript.v1.json").write_text(
+        json.dumps(transcript()), "utf-8")
+    assert main(rejudge_args(tmp_path, "r8", ana.id, "--force")) == 2
+    assert "not 'r8'" in capsys.readouterr().err
+    assert main(rejudge_args(tmp_path, "r9", ana.id)) == 2
+    assert "not one of the candidate's rounds" in capsys.readouterr().err
+    assert main(rejudge_args(tmp_path, "r9", ana.id, "--force")) == 0
+    capsys.readouterr()
+    profiles.save(ana.model_copy(update={"rounds": [
+        Round(session_id="r9", at="2026-11-25T10:00:00", kind="live")]}))
+    assert main(rejudge_args(tmp_path, "r9", ana.id)) == 2
+    assert "already stored" in capsys.readouterr().err
+    assert main(rejudge_args(tmp_path, "r9", ana.id, "--force")) == 0
+
+
+def test_no_report_is_kept_once_the_file_is_gone() -> None:
+    """Review of #262: a file deleted while the judgement ran stays gone."""
+    store, profiles = Store(), MemoryCandidates()
+    store.save(plan())
+    files = book(store, profiles)
+    ana = new_profile("dev", "Ana Ruiz", [], NOW)
+    profiles.save(ana)
+    reasoner = Judge()
+    wired = InterviewWiring(wiring(store, reasoner).planner, store, reasoner,
+                            candidates=files)
+    judge = LiveJudge(plan(), wired, "r1", lambda m: None,
+                      candidate_id=ana.id)
+    files.delete("dev", ana.id)
+    slots, texts = answered(1, 1)
+    result = judge.judge_slots(slots, texts)
+    assert result is not None and result["state"] == "ready"
+    assert result["saved"] is False and store.results("dev") == []
+
+
+def test_a_quote_points_at_the_utterance_that_said_it() -> None:
+    """Review of #262: joined answer parts keep their first id only."""
+    slots, texts = answered(1, 3)
+    texts.update({"t1.0": "Uso un ORM.", "t1.1": "Reviso los planes.",
+                  "t1.2": "Uso índices compuestos en las consultas."})
+    later = merged_answers([(u, "") for u in texts], texts)
+    assert [u for u, _ in later] == ["t1.0"]  # one joined part
+
+    class Quoting(Judge):
+        def reason(self, request: Document, cancel: CancelToken) -> Document:
+            answer = super().reason(request, cancel)
+            if request.get("template") == "interview.report@2":
+                answer["data"]["slots"][0]["judgement"].update({
+                    "utterance": "t1.0",
+                    "quote": "índices compuestos en las consultas"})
+            return answer
+
+    store, reasoner = Store(), Quoting()
+    store.save(plan())
+    judge = LiveJudge(plan(), wiring(store, reasoner), "r1", lambda m: None)
+    result = judge.judge_slots(slots, texts)
+    assert result is not None and later
+    judged = result["slots"][0]["judgement"]
+    assert judged["utterance"] == "t1.2"
+    assert judged["quote"] == "índices compuestos en las consultas"
+
+
+def test_a_report_without_a_file_is_deleted_from_the_position() -> None:
+    """Review of #262: nothing with a person's words is undeletable."""
+    store, profiles = Store(), MemoryCandidates()
+    store.save(plan())
+    ana = new_profile("dev", "Ana Ruiz", [], NOW).model_copy(update={
+        "rounds": [Round(session_id="vb-ana", at="2026-11-20T10:00:00",
+                         kind="bot")]})
+    profiles.save(ana)
+    for row in ({"session_id": "vb-x"},
+                {"session_id": "r1", "candidate_id": ana.id},
+                {"session_id": "vb-ana"},
+                {"session_id": "r2", "candidate_id": "gone"}):
+        store.save_result("dev", row)
+    files = book(store, profiles)
+    assert files.delete_unowned_report("dev", "vb-x")["deleted"] is True
+    assert files.delete_unowned_report("dev", "r2")["deleted"] is True
+    for owned in ("r1", "vb-ana"):
+        with pytest.raises(PlanError) as refused:
+            files.delete_unowned_report("dev", owned)
+        assert refused.value.code == "conflict"
+    with pytest.raises(PlanError) as missing:
+        files.delete_unowned_report("dev", "vb-x")
+    assert missing.value.code == "not_found"
+    assert sorted(r["session_id"] for r in store.results("dev")) == [
+        "r1", "vb-ana"]
+    store.fail_delete = True
+    store.save_result("dev", {"session_id": "vb-y"})
+    with pytest.raises(PlanError) as failed:
+        files.delete_unowned_report("dev", "vb-y")
+    assert failed.value.code == "delete_failed"
+    no_plans = CandidateBook(profiles, Core(), lambda p: True, 30)
+    with pytest.raises(PlanError):
+        no_plans.delete_unowned_report("dev", "vb-y")

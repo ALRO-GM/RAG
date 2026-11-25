@@ -24,7 +24,9 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   older) and ``GET /interview/plans/{id}/results`` (the candidates
   interviewed from it, for the comparison view); ``GET
   /interview/plans/{id}/results/{session}``: one stored interview report
-  in full (#262); ``POST /interview/plans/{id}/close`` and ``/reopen``:
+  in full (#262), ``DELETE`` it when it belongs to no candidate's file
+  (409 when it does: it goes with the file); ``POST
+  /interview/plans/{id}/close`` and ``/reopen``:
   close or reopen the position (closing deletes nothing; a closed
   position starts no interview, 409 ``plan_closed``).
 - ``GET``/``POST /interview/plans/{id}/candidates`` (``{"name"}``),
@@ -281,6 +283,15 @@ def create_app(
         """One stored interview report of a plan, in full."""
         found: Dict[str, Any] = await run_in_threadpool(
             planner().report, plan_id, session_id
+        )
+        return found
+
+    @app.delete("/interview/plans/{plan_id}/results/{session_id}")
+    async def delete_plan_report(plan_id: str,
+                                 session_id: str) -> Dict[str, Any]:
+        """Delete a stored report that belongs to no candidate's file."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            book().delete_unowned_report, plan_id, session_id
         )
         return found
 
