@@ -963,6 +963,42 @@ reason too (the plan review already showed it).
 owner's session is to make one real, text-only check after deploy (a
 report or a rejudge through the service).
 
+### 8.3 Who answered what, on an invented spoken set (#268)
+
+`experiments/interview/attribution.py` on
+`experiments/interview/attribution_set.json`: three invented live-page
+rounds of one running-shop plan (10–13 utterances each, 20 expected
+(utterance, point) pairs, 22 concepts expected treated and 1 unknown),
+written in spoken Spanish with hesitations, paraphrase and answers that
+do not use the concepts' words, plus one candidate line that tries to
+instruct the model. Haiku through `claude -p` in process, sequential,
+2026-11-25; result `experiments/interview/attribution_results.json`
+(28 calls, all `ok`; a first run of 3 calls was stopped to change the
+suggester's payload and is not counted). **Synthetic**: the set and its
+expected answers were written by a model for this purpose; agreement
+with the writer's intent is not accuracy on real interviews.
+
+| Way | Pairs precision | Pairs recall | Concepts treated precision | Concepts treated recall |
+|---|---|---|---|---|
+| rules (live page, no model) | 3/6 = 0.50 | 3/20 = 0.15 | 0 ticked | 0/22 = 0.00 |
+| live: rules + `suggester.interview@3` per candidate final | 3/6 = 0.50 (the rules') | 0.15 | 20/20 = 1.00 | 20/22 = 0.91 |
+| after: `interview.attribution@1`, 2 runs per round | 40/46 = 0.87 | 40/40 = 1.00 | 43/46 = 0.93 | 43/44 = 0.98 |
+
+- The rules ticked no concept of the set, as in the real round of §6.3,
+  and attributed 6 pairs, 3 right; they also attributed the
+  instruction-like line to the topic being asked (the rules attribute
+  every candidate line after a question). The model's attribution never
+  used that line (0 of 6 runs) and found the 1 `unknown` concept in both
+  runs.
+- The model's extra pairs and ticks were all in round B (4 and 3 of the
+  6 and 3 wrong ones), the one where the expected attribution is most
+  debatable (answers that touch two points).
+- Wall time per call, cold process: attribution 7.0–10.2 s (median
+  9.0 s) for 10–13 utterances; suggester `@3` 3.1–5.8 s (median 4.0 s).
+  The suggester's time is a cold process's with a 60 s deadline, not the
+  warm live path's 1.8 s: whether `@3` answers within 1.8 s live was
+  **not measured**. A long round's attribution time was not measured.
+
 ## 9. How to run the test (owner)
 
 1. Restart the services after merging (`ragputin-servicios restart`):
