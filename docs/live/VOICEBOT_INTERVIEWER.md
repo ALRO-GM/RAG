@@ -1010,7 +1010,11 @@ latest plan. On read:
   page proposes ids the same way. Within one save the server cannot tell
   a renamed point from a replaced one that kept the id: the page never
   proposes an id the saved plan has, and a renamed point keeps its id
-  and its answers on purpose;
+  and its answers on purpose. Concept ids in plans edited between #258
+  and this change may already have been renumbered by an old page bug
+  (`editSlot` read the ids after overwriting them, so each concept edit
+  numbered them again from `p1`); this has no effect on the board,
+  which reads each sheet's own concepts and texts;
 
 So saving the plan (a new revision, even a title edit) never changes a
 figure by itself; changing a weight or a level re-orders the table at
@@ -1062,6 +1066,13 @@ profile the report names, or the profile one of whose rounds is its
 session — and each file's current name, which names the row).
 `GET /interview/plans` adds, per plan, `desirables`, `created_at`,
 `people`, `interviews_ai`, `interviews_live` and `last_interview`.
+`people` is counted without opening any candidate file (one per
+`candidate_id` a report names, plus one per report that names none), so
+it can differ from the table's rows: an older AI sheet linked to a file
+only by its rounds counts apart on the offer card but joins that
+person's row in the table. The report stored by `rebuild-round` and
+`rejudge` (#262, #268) also carries `plan_slots`: those of the plan
+they are given, the current one.
 
 **Where the old entry points go.** The voice-bot plan review's
 «Comparar candidatos de esta oferta» became «Ver las personas
