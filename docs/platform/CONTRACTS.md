@@ -15,7 +15,7 @@ Readers are deployed before writers. Each schema goes in
 | tts.request.v1 | orchestrator | Piper adapter | in-process call or `POST /tts` (audio bytes back) |
 | gpu-lease.v1 | transcriber (live) | IMG worker, transcriber JobRunner | file `$XDG_RUNTIME_DIR/gpu-lease/lease.json` |
 | transcript.v1 (exists) | transcriber | RAG / analyzer | `POST /transcripts` |
-| interview.plan.v1 / interview.sheet.v1 | orchestrator | interviewer page, post-call analysis | `GET`/`POST /interview/plans`, `GET`/`PUT /interview/plans/{id}`, `GET /interview/plans/{id}/results`; feed `coverage` / `interview_result` messages. Added compatibly (#258): a slot's optional `points` (0–6 concepts `{id, text}`) and, in the sheet, each concept's `status` (`treated`, `pending`, `unknown`), `quote` and `utterance`; `docs/live/VOICEBOT_INTERVIEWER.md` §4.1 |
+| interview.plan.v1 / interview.sheet.v1 | orchestrator | interviewer page, post-call analysis | `GET`/`POST /interview/plans`, `GET`/`PUT /interview/plans/{id}`, `GET /interview/plans/{id}/results`; feed `coverage` / `interview_result` messages. Added compatibly (#258): a slot's optional `points` (0–6 concepts `{id, text}`) and, in the sheet, each concept's `status` (`treated`, `pending`, `unknown`), `quote` and `utterance`; `docs/live/VOICEBOT_INTERVIEWER.md` §4.1. Added compatibly (#259): per slot and treated concept a `judgement` (`label` solid, correct_basic, wrong, off_topic, unclear, to_verify; `reason`, `quote`, `utterance`, `basis` documents/general, `cites`), per slot `accuracy` counts, sheet `to_check` (statements worth checking: `quote`, `utterance`, `why` wrong/contradiction/vague, `note`) and `judge`; §6.1 |
 
 ## 1. live.event.v1
 

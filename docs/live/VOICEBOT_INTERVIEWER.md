@@ -33,7 +33,8 @@ VoiceBot + InterviewDirector + TurnTaking (#213)
                         → Agenda: open | ask | probe | clarify | answer | close
                         → interviewer@1 words the step (warm Haiku, streamed, Piper)
                         → {"type": "coverage"} to the page
-   end of session → interview.report@1 scores the slots against the offer
+   end of session → interview.report@2 scores the slots against the offer
+                    and judges how accurate each answer was (§6.1)
                   → interview.sheet.v1 (kept with the plan) + transcript.v1
                   → POST /transcripts, optionally POST /analysis/sessions/{id}
 ```
@@ -392,7 +393,8 @@ a real microphone may differ.
 
 When the session ends the director:
 
-1. **Scores** each slot with `interview.report@1`: 0–100 **relative to
+1. **Scores** each slot with `interview.report@2` (`@1` stays
+   registered and scores without judging): 0–100 **relative to
    what this offer requires** (100 = meets the requirement for this job,
    e.g. junior level for a junior job), `above` (evidence beyond the
    requirement), the model's `confidence` 0–1, a note; plus «otras
@@ -429,6 +431,99 @@ Screenshots (fakes, no model): plan review, live coverage and report
 in the session's scratchpad (`interviewer/plan.png`, `coverage.png`,
 `report.png`), drawn by a harness page from a fake interview run.
 
+### 6.1 How accurate the answers were (#259)
+
+The same report call (`interview.report@2`) also judges **how accurate
+the answers were**, for each answered point and each treated concept of
+it, with one label, the candidate's quote (utterance id) and a reason
+of one sentence:
+
+| Label | Means |
+|---|---|
+| `solid` | correct, and shows knowledge beyond the surface for what fits in a one- or two-minute answer |
+| `correct_basic` | makes sense and is correct, but superficial |
+| `wrong` | contains something incorrect; the reason says what, and what is right |
+| `off_topic` | does not answer what was asked |
+| `unclear` | cannot be judged from what was said (too short, unclear transcription) |
+| `to_verify` | a claim about the candidate's own experience («trabajé tres años en X»): it cannot be checked in an interview, so it is never `wrong` |
+
+Concepts not treated and those the candidate said they do not know
+keep their coverage status (`not_treated`, `does_not_know`); they are
+not judged. `orchestrator/domain/interview_judgement.py` reads the
+reply defensively: an unknown label becomes `unclear`; the quote is
+always the candidate's own words (an utterance id that is not one of
+their answers to that point is dropped); a `wrong` label on an
+experience claim (by the model's `kind` or by first-person experience
+words) becomes `to_verify`; a reason or note that reads as a verdict on
+the person («miente», «se lo inventa», «apto / no apto», «contratar»,
+"lying", "suitable", "hire") is dropped.
+
+**Basis.** When the plan was made from an offer uploaded to a knowledge
+domain, the judge gets three chunks of that domain per answered point
+(a query with the point, its concepts and the answers) and cites the
+ids it used: the judgement says «base: documentos del dominio …».
+Otherwise (pasted offer, no chunks, or the knowledge service down) the
+basis is the model's general knowledge, and each judgement says so.
+
+**«Afirmaciones que conviene comprobar».** At most 10 statements: the
+ones the model lists (looks wrong, does not fit another answer of the
+same interview, or confident but vague where specifics were asked),
+kept only when the quote is the candidate's own words, then every
+`wrong` judgement. An experience claim is never listed as wrong. The
+page calls it a prompt to ask or check, not a conclusion about the
+person.
+
+**Score rule** (`capped_score`). The model's 0–100 score of a point is
+capped by its judgement, so a wrong answer never scores as covered:
+`wrong` 30, `off_topic` 20, `unclear` 50, `correct_basic` 75, and 50
+when any treated concept is `wrong`; `solid` and `to_verify` keep the
+model's score, and `above` is kept only for `solid`. The weighted
+suitability and the next round's states (§ CANDIDATE_PROFILE: covered
+at 70, weak under 50) are computed from the capped scores, so a wrong
+answer makes the point weak for the next round. The caps are a design
+choice, not measured. Each point also gets `accuracy`: counts of its
+concepts' labels plus `not_treated` and `does_not_know` (a point
+without concepts counts its own judgement).
+
+**Where it appears.** The AI interviewer's report (`#/voicebot`, after
+the interview): a judgement tag next to each point's bar, then
+«Precisión de las respuestas (borrador)» with, per point, its
+judgement, the counts, each concept with its label, quote, reason and
+basis, and the «conviene comprobar» list, under a visible note: a
+model's draft from one short interview, it judges answers and not the
+person, it can be wrong about facts, a person reviews it before any
+decision, and the candidate does not see it. **The live page**
+(`live_assist.interview` with a role's plan and a candidate) had no
+report of its own: when such a round ends, the slots the interviewer
+asked about, the candidate's answers to each (as the topic tracker
+attributed them) and the concepts treated go to the same template once
+(`orchestrator/application/live_judgement.py`; one Haiku call per
+round, none when nothing was answered). The result is published on the
+feed (`{"type": "accuracy", "state": "reporting" | "ready" |
+"failed"}`), kept in the session's hand-off record (`accuracy`) and
+drawn in the end summary of the live page with the same block. It has
+judgements only, no score: the live page never scores. A live round
+without a role's plan is not judged.
+
+**Notice.** The live page's candidate notice is now
+`interview_ai_notice@2` («Después, la IA puede preparar un borrador de
+análisis de las respuestas, que revisa una persona antes de cualquier
+decisión»); `@1` («No puntúa ni valora a nadie») stays in the
+dictionaries for old records but no product uses it, because it is no
+longer true.
+
+**Limits of the judgement.** It is a model's reading of a few minutes of
+speech, transcribed: it can be wrong about facts, especially in narrow
+or local topics, and with general knowledge as its basis it has no
+access to the company's own procedures. It cannot tell knowing from
+having prepared an answer, nor check anything the candidate says about
+their own past. A short answer is often `correct_basic` or `unclear`
+because the interview gave little time, not because the person knows
+little. Transcription errors can turn a right answer into a wrong one;
+the quote is shown so a person can check. Nothing here is a decision or
+a recommendation, and nothing of it is shown or said to the candidate.
+Measured agreement on an invented set: §8.1.
+
 ## 7. Settings («Ajustes», group «Entrevistador de IA»)
 
 | Step | Options (first is the default) |
@@ -450,7 +545,7 @@ section (`InterviewSection`), which the saved settings replace.
 `voicebot.reasoner_model` and `voicebot.voice` apply to the interviewer
 too. The time budget of each plan is edited in its review.
 
-## 8. What was run (no measurement)
+## 8. What was run
 
 The owner will test with two real interviews (shop assistant, backend
 developer), so no synthetic interview was measured: no turns-to-minimums,
@@ -472,6 +567,59 @@ scored the three answered slots 80, 55 and 90 with quotes and notes.
 It also gave 0 to the six slots that were never asked; that run led to
 the rule above (an unanswered slot stays unscored), applied after it
 (no new call): the suitability of that sheet goes from 31.4 to 41.4.
+
+### 8.1 Answer accuracy on an invented set (#259)
+
+Run on 2026-11-25 with `experiments/interview/answer_accuracy.py`
+(result `experiments/interview/answer_accuracy_results.json`), Haiku
+through `claude -p` on the subscription, one cold process per call,
+calls one after another. Set: `answer_accuracy_set.json`, **36 invented
+answers** (3 jobs: running shop assistant, junior Python backend
+developer, waiter; 3 questions each; one answer per label: `solid`,
+`correct_basic`, `wrong`, `off_topic`), written by the implementing
+model for this purpose. Each job is one 12-point "interview" judged by
+`interview.report@2` and read by `judge_slots` exactly as the product
+does; 3 repeats, so 9 report calls and 108 judgements.
+
+| Expected label | Judgements | Same label | Other labels given |
+|---|---|---|---|
+| `solid` | 27 | 26 (96.3 %) | `wrong` 1 |
+| `correct_basic` | 27 | 27 (100 %) | — |
+| `wrong` | 27 | 27 (100 %) | — |
+| `off_topic` | 27 | 26 (96.3 %) | `to_verify` 1 |
+| all | 108 | 106 (98.1 %) | |
+
+34 of the 36 answers got the same label in all three repeats. All 27
+`wrong` judgements were also listed in «conviene comprobar». The two
+disagreements: the waiter's `solid` answer on serving order says plated
+food is set down from the right, and the judge called that wrong
+(traditional service puts food from the left, so the set's own label is
+debatable); a running-shop `off_topic` answer («me gusta mucho correr
+por la montaña») was labelled `to_verify` as a personal claim. Report
+calls took 22.8–43.3 s each (cold processes, not the service's warm
+pool), and `claude -p` reported 5 413–10 758 output tokens per call
+although the template's cap is 4 000; no reply was cut, and how that
+count relates to the cap was not established.
+
+What this does and does not say: the answers were written to be
+clearly one label each, by a model, in neat written Spanish, so this
+is agreement with the writer's intent on easy cases, not accuracy on
+real, transcribed, hesitant answers, and not a check of the facts the
+judge relies on. No experience claims, no concepts and no domain
+documents were in the set. Not measured: real interviews, the live-page
+path, the concept-level judgements.
+
+Also run once in the same session (7 calls), the #258 templates on the
+real model for the first time: `interview.planner@2` on one invented
+running-shop offer gave 8 points with 3–6 concepts each (e.g. «tipos de
+pisada: neutra, pronadora, supinadora», «drop y su efecto en la
+carrera», «cómo elegir la talla»; competency points with «situación
+concreta con cliente» … «resultado para el cliente»), parsed by
+`plan_from_draft` with no fallback; `interview.slots@2` on six invented
+answers to one point with three concepts ticked exactly the expected
+concepts in all six (one `unknown` for «lo del drop no lo conozco»,
+nothing for an off-topic answer), with no fallback to the rules. No
+prompt change was needed.
 
 ## 9. How to run the test (owner)
 
