@@ -138,6 +138,9 @@ class MeteredModel:
 SLOW_CALLS = 3
 """Slow template calls (planner, report) running at once on the cold
 backend (#267); more wait, within their own deadline."""
+YIELDING_CALLS = 1
+"""Of those, most that may be ``yields`` calls (#268: the live concept
+ticks), which never wait for a slot."""
 
 
 class Reasoner:
@@ -171,6 +174,7 @@ class Reasoner:
         self.ledger = ledger
         self.clock = clock
         self._slow = threading.BoundedSemaphore(max(slow_calls, 1))
+        self._yielding = threading.BoundedSemaphore(YIELDING_CALLS)
 
     def confirm(
         self,
@@ -268,7 +272,8 @@ class Reasoner:
                     deadline = min(deadline or SLOW_MAX_S, SLOW_MAX_S)
                     text = self._slow_call(
                         chat, template.system(request),
-                        template.user(request), cap, deadline, on_text)
+                        template.user(request), cap, deadline, on_text,
+                        template.yields)
                 else:
                     text = chat.complete(
                         template.system(request), template.user(request),
@@ -325,12 +330,29 @@ class Reasoner:
     def _slow_call(
         self, chat: MeteredModel, system: str, user: str, cap: int,
         deadline: float, on_text: Optional[Callable[[str], None]],
+        yields: bool = False,
     ) -> str:
         """A slow template's call, at most :data:`SLOW_CALLS` at once.
 
         The wait for a free slot counts against the deadline; a call that
         cannot get one in time is a time-out, as if the model were late.
+        A ``yields`` call never waits: it runs only when a slot and the
+        :data:`YIELDING_CALLS` allowance are free at once, else it is a
+        time-out straight away.
         """
+        if yields:
+            if not self._yielding.acquire(blocking=False):
+                raise ModelTimeoutError("A yielding call is already running.")
+            try:
+                if not self._slow.acquire(blocking=False):
+                    raise ModelTimeoutError("No free slot: the call yields.")
+                try:
+                    return chat.complete(system, user, cap, deadline,
+                                         on_text)
+                finally:
+                    self._slow.release()
+            finally:
+                self._yielding.release()
         began = self.clock()
         if not self._slow.acquire(timeout=max(deadline, 0.0)):
             raise ModelTimeoutError(

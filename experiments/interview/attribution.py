@@ -176,7 +176,10 @@ def live_way(plan: InterviewPlan, round_: Dict[str, Any], reasoner: Any
     roles = {"S1": "interviewer", "S2": "candidate"}
     topics = TopicTracker(plan, topic_states(plan, []), roles,
                           lambda message: None)
-    ticker = LiveTicker(reasoner, topics, roles, lambda job: job())
+    # Inline and unspaced: each candidate final is asked about at once
+    # (the live page batches them, one call per 30 s at most).
+    ticker = LiveTicker(reasoner, topics, roles, lambda job: job(),
+                        every_s=0.0)
     for event in transcript_to_events(transcript(round_), roles):
         topics.on_event(event)
         ticker.on_event(event)

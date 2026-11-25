@@ -1308,12 +1308,15 @@ class LiveSessions:
 
         topics.on_focus = on_focus
         wiring = self.interview
-        if wiring is not None:
+        every = (session.product.interview or InterviewSection()
+                 ).tick_every_s
+        if wiring is not None and every > 0:
             reasoner = session.product.reasoner
             session.ticker = LiveTicker(
                 wiring.reasoner, topics, session.roles, self.runner.start,
                 reasoner.model if reasoner else "haiku",
-                session.product.language)
+                session.product.language, every_s=every,
+                clock=self.clock.now, sleep=self.clock.sleep)
 
     @staticmethod
     def _about(session: _Session) -> Dict[str, Optional[str]]:

@@ -780,28 +780,47 @@ advance was to use `@3` only if it lost at most 1 of 15 against `@2`;
 it lost 5, so the live product keeps `suggester.interview@2` and `@3`
 was removed.
 
-The ticks are instead a **separate call beside the suggestions**
-(`LiveTicker`, `orchestrator/application/live_ticks.py`, template
-`interview.ticks@1`): after each candidate final, the last six lines of
-the conversation, the speakers' roles and the pending concepts
+The ticks are instead a **separate, spaced call beside the
+suggestions** (`LiveTicker`, `orchestrator/application/live_ticks.py`,
+template `interview.ticks@1`). One call covers **every candidate final
+since the previous call**: the conversation from the line before the
+first of them (at most 30 lines), the speakers' roles, those finals'
+ids («Answers», at most 12) and the pending concepts
 (`TopicTracker.focus_points`: all those of the topic the rules think is
 asked, then at most 4 of other topics, at most 9; on real speech the
-rules often never see which topic is asked) go to the model, which
-replies `{"treated": ["s2.p1"]}`, concept ids only; they are tied to
-that final (it must be the candidate's) and its first words are the
-quote. It runs on the session's runner, on the reasoner's **cold**
-backend (the template is `slow`, one `claude -p` process per call), so
-it can never delay a suggestion nor take or displace the warm process
-the suggestions use; 20 s deadline; at most one call in flight, a final
-that arrives meanwhile waits as the next one and a newer final replaces
-it (the older is dropped as stale). A failed, late or malformed reply
-ticks nothing and is logged with its status only. **Cost: at most one
-Haiku call per candidate final** (fewer when finals come faster than a
-call takes); with about 68 candidate finals in an 8-minute round, up to
-about 68 calls, each a cold process. How long a tick call takes, and
-its precision, were **not measured** (the cold `@3` calls of §8.3 took
-3.1–5.8 s, so ticks appear a few seconds after the answer). A periodic
-batched filler call was not chosen: it would tick later still.
+rules often never see which topic is asked). The model replies
+`{"treated": [{"id": "s2.p1", "about": "<answer id>"}]}`, ids only; a
+tick must name one of the candidate's answers asked about (without
+`about`, the last of them), whose first words are the quote.
+
+- **Spacing:** two calls are at least `tick_every_s` apart (the
+  product's `interview` section, **30 s by default**; `0` turns the calls
+  off). The first candidate final is asked about at once; the next ones
+  wait and go together. At most one call is in flight. No call is made
+  when the round ends: the after-session attribution reads it all.
+- **Cost bound:** at most `round seconds / tick_every_s + 1` Haiku calls
+  a round, each a cold process: **at most about 17 for an 8-minute
+  round** at the default (16 intervals plus the first), and fewer when
+  the candidate is silent for longer than the interval. The first design
+  (one call per candidate final) would have been up to about 68 for the
+  real round of above.
+- **Never in the way:** it runs on the session's runner and on the
+  reasoner's **cold** backend (the template is `slow`, one `claude -p`
+  process per call), so it can neither delay a suggestion nor take or
+  displace the warm process the suggestions use; and it **yields**
+  (`Template.yields`, `YIELDING_CALLS` = 1): it takes one of the 3 slow
+  slots only when one is free at once, and at most one tick call holds
+  one, so the planner, the report and the after-session attribution
+  never wait behind it (a tick that finds no slot is a time-out at once
+  and ticks nothing). 20 s deadline.
+- **Late speech** (a final heard over 10 s late after a reconnect, #263)
+  gets no suggestion but is still ticked, in the next call.
+- A failed, late or malformed reply ticks nothing; its finals are not
+  asked again; the log has the status only, never words.
+
+How long a tick call takes, and its precision, were **not measured**
+(the cold `@3` calls of §8.3 took 3.1–5.8 s; with the 30 s spacing a
+tick appears up to about half a minute after the answer).
 
 **Ticks are hints, and a line can steer them.** What the candidate says
 is fenced and the prompt says it is never an instruction, but a
@@ -853,6 +872,11 @@ instead of the running RAG.
 The turn-taking values are the owner's (issue #213), not measured with
 real candidates; they are also fields of the product's `interview`
 section (`InterviewSection`), which the saved settings replace.
+
+The live page's concept-tick spacing (#268, §6.3) is
+`interview.tick_every_s` of the product's config (30 s by default, `0`
+turns the calls off); it is not in «Ajustes», and
+`live_assist.interview` has no `interview` section, so it uses 30 s.
 
 `voicebot.reasoner_model` and `voicebot.voice` apply to the interviewer
 too. The time budget of each plan is edited in its review.
@@ -974,7 +998,7 @@ model):
 | `interview.attribution@1` (each live round's attribution, #268; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `interview.slots@2` (slot filler) | 6 s | warm, min(6, 10) s | 120 s (same client) |
 | `interviewer@2` (voice bot) | 4 s | warm, min(4, 10) s | 10 s (default) |
-| `interview.ticks@1` (live concept ticks, #268) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
+| `interview.ticks@1` (live concept ticks, #268; yields: only a free slow slot, at most 1) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
 
 The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow

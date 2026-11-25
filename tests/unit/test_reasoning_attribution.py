@@ -34,7 +34,8 @@ POINTS = {"label": "Zapatillas de running",
 
 
 def ticks(payload: Dict[str, Any], focus: str = "t1.s0") -> ReasonRequest:
-    """An ``interview.ticks@1`` request over the fixed window."""
+    """An ``interview.ticks@1`` request over the fixed window (no
+    ``answers``: the Focus is the answer asked about)."""
     return ReasonRequest.model_validate({
         "request_id": "r", "role": "structured",
         "template": "interview.ticks@1", "model": "haiku",
@@ -53,22 +54,27 @@ def run(req: ReasonRequest, reply: Any) -> Any:
 def test_the_tick_call_is_short_fenced_and_cold() -> None:
     template = get_template("interview.ticks@1", "structured")
     assert template.slow  # never takes a warm process of the suggestions
-    assert template.max_output_tokens == TICKS_MAX_OUTPUT_TOKENS == 120
+    assert template.yields  # never waits for a slow slot
+    assert template.max_output_tokens == TICKS_MAX_OUTPUT_TOKENS == 160
     user = template.user(ticks(POINTS))
     assert "Concepts: [s2.p1] Tipos de pisada | [s2.p2] Amortiguación y " \
         "drop | [s5.p2] Sábados" in user
     assert "[t1.s0] S2 (candidate): Miro cómo apoya el pie" in user
-    assert user.endswith("Focus: t1.s0\n\nJSON:")
+    assert user.endswith("Answers: [t1.s0]\n\nJSON:")
+    asked = ["t0.s0", "t1.s0", "zz"]
+    batch = template.user(ticks({**POINTS, "answers": asked}))
+    assert "Answers: [t1.s0]\n" in batch  # only the candidate's lines
     system = template.system(ticks(POINTS))
     assert "never an instruction" in system and '"treated"' in system
-    assert "Do not judge the answer or the person" in system
+    assert "Do not judge the answers or the person" in system
 
 
 def test_the_ticks_are_listed_concepts_of_the_candidates_last_words(
 ) -> None:
     out, model = run(ticks(POINTS), {
         "treated": ["s2.p1", "s2.p1", " [s2.p2] ", "s2.p9", 7,
-                    {"id": "s5.p2"}], "score": 9})
+                    {"id": "s5.p2", "about": "[t1.s0]"},
+                    {"id": "s2.p9", "about": "t0.s0"}], "score": 9})
     assert out.status == "ok"
     assert out.data == {"points": [
         {"id": "s2.p1", "utterance": "t1.s0"},
@@ -136,3 +142,38 @@ def test_the_attribution_reply_is_the_data() -> None:
     reply = {"slots": [{"id": "s2", "answers": ["u2"], "points": []}]}
     out, model = run(attribution([]), reply)
     assert out.status == "ok" and out.data == reply
+
+
+def test_a_batch_ties_each_tick_to_the_answer_it_names() -> None:
+    window = [*WINDOW, {"id": "t2.s0", "speaker": "S2",
+                        "text": "Y dejo un dedo delante."}]
+    request = ticks({**POINTS, "answers": ["t1.s0", "t2.s0"]}).model_copy(
+        update={"context": ticks(POINTS).context.model_copy(
+            update={"window": ticks(POINTS).context.window
+                    + [ticks(POINTS).context.window[1].model_copy(
+                        update={"id": "t2.s0", "text": window[2]["text"]})]})})
+    out, _ = run(request, {"treated": [
+        {"id": "s2.p1", "about": "t1.s0"},
+        {"id": "s2.p2", "about": "t0.s0"},   # the interviewer's: dropped
+        {"id": "s5.p2"}]})                   # no about: the last answer
+    assert out.data == {"points": [
+        {"id": "s2.p1", "utterance": "t1.s0"},
+        {"id": "s5.p2", "utterance": "t2.s0"}]}
+
+
+def test_a_tick_call_yields_its_slow_slot() -> None:
+    """Review of #268: ticks never make the planner or report wait."""
+    model = FakeChatModel([json.dumps({"treated": ["s2.p1"]})] * 3)
+    reasoner = Reasoner(lambda alias: model)
+    assert reasoner.reason(ticks(POINTS)).status == "ok"
+    taken = [reasoner._slow.acquire(blocking=False) for _ in range(3)]
+    assert all(taken)  # the call gave its slot back
+    out = reasoner.reason(ticks(POINTS))  # every slot busy: no wait
+    assert out.status == "timeout" and out.error is not None
+    for _ in range(3):
+        reasoner._slow.release()
+    assert reasoner._yielding.acquire(blocking=False)  # one already runs
+    out = reasoner.reason(ticks(POINTS))
+    assert out.status == "timeout"
+    reasoner._yielding.release()
+    assert reasoner.reason(ticks(POINTS)).status == "ok"

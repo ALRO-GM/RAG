@@ -669,7 +669,7 @@ class Ticks(FakeReasoner):
             return {"status": "ok", "data": {"points": {"x": [1]}}}
         first = request["payload"]["points"][0]["id"]
         return {"status": "ok", "data": {"points": [
-            {"id": first, "utterance": request["context"]["focus"]}]}}
+            {"id": first, "utterance": request["payload"]["answers"][-1]}]}}
 
 
 class Later:
@@ -686,32 +686,82 @@ class Later:
             self.jobs.pop(0)()
 
 
-def test_the_ticker_ticks_beside_the_suggestions_one_call_at_a_time(
+class Clock:
+    """Manual seconds; sleeping moves them on."""
+
+    def __init__(self) -> None:
+        self.t = 0.0
+        self.slept: List[float] = []
+
+    def now(self) -> float:
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.t += seconds
+
+
+def test_one_tick_call_covers_every_answer_since_the_last_and_is_spaced(
 ) -> None:
+    """Review of #268: bounded cost: one call per interval at most."""
+    topics, _ = tracker()
+    reasoner, runner, clock = Ticks(), Later(), Clock()
+    ticker = LiveTicker(reasoner, topics, topics.roles, runner.start,
+                        every_s=30.0, clock=clock.now, sleep=clock.sleep)
+
+    def say(event: LiveEvent) -> None:
+        topics.on_event(event)
+        ticker.on_event(event)
+
+    say(final("u1", "S1", "¿Qué sabes de zapatillas de running?"))
+    assert runner.jobs == []  # the interviewer: no call
+    for n, text in enumerate(("Miro cómo apoya el pie.",
+                              "Y lo blandita que es.",
+                              "Y el hueco delante."), start=2):
+        say(final(f"u{n}", "S2", text))
+    assert len(runner.jobs) == 1  # one job; the others wait for it
+    runner.run()
+    assert len(reasoner.ticks) == 1
+    first = reasoner.ticks[0]
+    assert first["payload"]["answers"] == ["u2", "u3", "u4"]
+    assert [x["id"] for x in first["context"]["window"]] == [
+        "u1", "u2", "u3", "u4"]  # from the question on
+    assert first["template"] == "interview.ticks@1"
+    assert first["role"] == "structured"
+    assert first["constraints"] == {"deadline_ms": 20000}
+    assert first["payload"]["points"][0]["id"] == "s2.p1"
+    assert clock.slept == []  # the first call goes at once
+    clock.t = 10.0
+    say(final("u5", "S2", "Y la talla."))
+    say(final("u6", "S2", "Medio número más."))
+    runner.run()
+    assert clock.slept == [20.0]  # 30 s after the previous call
+    assert len(reasoner.ticks) == 2
+    assert reasoner.ticks[1]["payload"]["answers"] == ["u5", "u6"]
+    points = {p.id: p for p in topics.points["s2"]}
+    assert points["p1"].by == "live_model" and points["p1"].utterance == "u4"
+    assert points["p2"].by == "live_model" and points["p2"].utterance == "u6"
+    assert ticker.calls == 2 and ticker.failed == 0
+    # Eight minutes of a final every 5 s: at most one call per 30 s.
+    for n in range(96):
+        clock.t += 5.0
+        say(final(f"x{n}", "S2", f"Frase {n}."))
+        runner.run()
+    assert len(reasoner.ticks) <= 2 + 96 * 5 // 30 + 1
+
+
+def test_late_speech_is_ticked_in_the_next_call() -> None:
+    """#263: late finals get no suggestion but are still ticked."""
     topics, _ = tracker()
     reasoner, runner = Ticks(), Later()
     ticker = LiveTicker(reasoner, topics, topics.roles, runner.start)
-    for event in (final("u1", "S1", "¿Qué sabes de zapatillas de running?"),
-                  final("u2", "S2", "Miro cómo apoya el pie."),
-                  final("u3", "S2", "Y lo blandita que es."),
-                  final("u4", "S2", "Y el hueco delante.")):
+    late = final("u2", "S2", "Miro cómo apoya el pie.").model_copy(
+        update={"timings": {"lag_ms": 45000.0}})
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas?"), late):
         topics.on_event(event)
         ticker.on_event(event)
-    assert len(runner.jobs) == 1  # one in flight; u3 replaced by u4
-    assert ticker.stale == 1
     runner.run()
-    assert [r["context"]["focus"] for r in reasoner.ticks] == ["u2", "u4"]
-    request = reasoner.ticks[0]
-    assert request["template"] == "interview.ticks@1"
-    assert request["role"] == "structured"
-    assert request["constraints"] == {"deadline_ms": 20000}
-    assert request["payload"]["points"][0]["id"] == "s2.p1"
-    points = {p.id: p for p in topics.points["s2"]}
-    assert points["p1"].by == "live_model" and points["p1"].utterance == "u2"
-    assert points["p2"].by == "live_model" and points["p2"].utterance == "u4"
-    assert ticker.calls == 2 and ticker.failed == 0
-    ticker.on_event(final("u5", "S1", "Vale."))  # the interviewer: no call
-    assert runner.jobs == []
+    assert reasoner.ticks[0]["payload"]["answers"] == ["u2"]
 
 
 @pytest.mark.parametrize("answer", ["down", "timeout", "garbage"])

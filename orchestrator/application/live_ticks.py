@@ -1,28 +1,34 @@
 """Use case: tick a live round's concepts with the model, beside it (#268).
 
 The word rules of the topic tracker tick few concepts on real speech.
-:class:`LiveTicker` asks the model, after a candidate final, which of
-the pending concepts (:meth:`TopicTracker.focus_points`) the last answer
-talked about (template ``interview.ticks@1``) and gives the reply to
+:class:`LiveTicker` asks the model which of the pending concepts
+(:meth:`TopicTracker.focus_points`) the candidate's answers talked
+about (template ``interview.ticks@1``) and gives the reply to
 :meth:`TopicTracker.suggested`, which ticks them ``by: "live_model"``.
+
+**Bounded cost.** One call covers **every candidate final since the
+previous call**, and two calls are at least ``every_s`` apart (the
+product's ``interview.tick_every_s``, 30 s by default): at most about
+``minutes × 60 / every_s`` calls a round, about 16 for 8 minutes. At
+most one call is in flight; finals that arrive meanwhile wait for the
+next call, which covers them all. No call is made when the round ends:
+the after-session attribution reads the whole round anyway. Late
+speech (a final heard over 10 s late after a reconnect, #263) gets no
+suggestion but is still ticked, in the next call.
 
 It never touches the suggestions: it is its own call, on its own thread
 (the session's runner), on the reasoner's **cold** backend (the
-template is ``slow``), so it can neither delay a suggestion nor take or
-displace the warm process the suggestions use. At most one call is in
-flight; a final that arrives meanwhile waits as the next one, and a
-newer final replaces it (the older is dropped as stale and counted). A
-failed or late call ticks nothing and is logged with its status only,
-never words. Measured on the warm path, putting the ticks into the
-suggester's own reply (``suggester.interview@3``) made it miss the 1.8 s
-deadline far more often, losing suggestions: see the design doc §6.3.
+template is ``slow``) and it *yields*: it takes a slow slot only when
+one is free and uses at most one of them, so it never makes the
+planner, the report or the attribution wait. A call that finds no free
+slot, fails or comes late ticks nothing and is logged with its status
+only, never words; its finals are not asked again.
 """
 
 import logging
 import threading
-from typing import Any, Callable, Deque, Dict, List, Optional
-
-from collections import deque
+import time
+from typing import Any, Callable, Dict, List, Optional
 
 from orchestrator.application.next_round import CANDIDATE, TopicTracker
 from orchestrator.application.ports import (
@@ -38,12 +44,16 @@ TICKS_TEMPLATE = "interview.ticks@1"
 TICKS_DEADLINE_MS = 20000
 """Deadline of one tick call: a cold process start (2–5 s) and a short
 reply; a late tick is of no use to the interviewer."""
-WINDOW = 6
-"""Lines of the conversation the call sees (the suggester's)."""
+EVERY_S = 30.0
+"""Least seconds between two tick calls (the product can change it)."""
+MAX_LINES = 30
+"""Most lines of the conversation one call reads (the oldest go)."""
+MAX_ANSWERS = 12
+"""Most candidate finals one call asks about (the most recent)."""
 
 
 class LiveTicker:
-    """Ask for the concepts each candidate final treated, one at a time.
+    """Ask, now and then, which concepts the latest answers treated.
 
     Args:
         reasoner: The reasoner port (its cold path serves the template).
@@ -52,6 +62,9 @@ class LiveTicker:
         start: Runs a job in the background (the session's runner).
         model: The model alias.
         language: The interview's language.
+        every_s: Least seconds between two calls.
+        clock: Monotonic seconds.
+        sleep: Waits (replaced in tests).
     """
 
     def __init__(
@@ -62,6 +75,9 @@ class LiveTicker:
         start: Callable[[Callable[[], None]], None],
         model: str = "haiku",
         language: str = "es",
+        every_s: float = EVERY_S,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
     ):
         """No call yet."""
         self.reasoner = reasoner
@@ -70,73 +86,96 @@ class LiveTicker:
         self.start = start
         self.model = model
         self.language = language
+        self.every_s = max(every_s, 0.0)
+        self.clock = clock
+        self.sleep = sleep
         self.calls = 0
-        self.stale = 0
-        self._seq = 0
         self.failed = 0
-        self._window: Deque[Dict[str, Any]] = deque(maxlen=WINDOW)
+        self.session_id = "live"
+        self._lines: List[Dict[str, Any]] = []
+        self._answers: List[str] = []
+        self._last: Optional[float] = None
         self._lock = threading.Lock()
         self._busy = False
-        self._next: Optional[Document] = None
 
     def on_event(self, event: LiveEvent) -> None:
-        """Keep the window; ask about a candidate final."""
+        """Keep the conversation; a candidate final waits for a call."""
         u = event.utterance
         if event.type != "final" or u is None:
             return
         item = {"id": u.id, "speaker": u.speaker, "text": u.text,
                 "start": u.start, "end": u.end}
         with self._lock:
-            self._window = deque([w for w in self._window
-                                  if w["id"] != u.id], maxlen=WINDOW)
-            self._window.append(item)
+            self.session_id = event.session_id
+            self._lines = [x for x in self._lines if x["id"] != u.id]
+            self._lines.append(item)
             if self.roles.get(u.speaker) != CANDIDATE:
                 return
-            request = self._request(event.session_id, u.id,
-                                    list(self._window))
+            if u.id not in self._answers:
+                self._answers.append(u.id)
             if self._busy:
-                if self._next is not None:
-                    self.stale += 1
-                self._next = request
-                return
+                return  # the call in flight or waiting will cover it
             self._busy = True
-        self.start(lambda: self._run(request))
+        self.start(self._run)
 
-    def _request(self, session_id: str, focus: str,
-                 window: List[Dict[str, Any]]) -> Document:
-        """The call's ``reasoner.request.v1`` (payload read when run)."""
-        self._seq += 1
-        return {
-            "schema": "reasoner.request.v1",
-            "request_id": f"{session_id}-tick{self._seq}"[-64:],
-            "role": "structured", "model": self.model,
-            "template": TICKS_TEMPLATE, "language": self.language,
-            "context": {"window": window, "speaker_roles": dict(self.roles),
-                        "focus": focus},
-            "constraints": {"deadline_ms": TICKS_DEADLINE_MS},
-        }
-
-    def _run(self, request: Document) -> None:
-        """Ask, tick, then run the waiting request, if any."""
+    def _run(self) -> None:
+        """Wait for the spacing, ask about every waiting answer, repeat."""
         while True:
+            with self._lock:
+                if not self._answers:
+                    self._busy = False
+                    return
+                wait = 0.0 if self._last is None else (
+                    self._last + self.every_s - self.clock())
+            if wait > 0:
+                self.sleep(wait)
+            with self._lock:
+                answers, self._answers = self._answers, []
+                if not answers:
+                    self._busy = False
+                    return
+                self._last = self.clock()
+                lines = self._window(answers)
+                session_id = self.session_id
             try:
-                self._ask(request)
-            finally:
-                with self._lock:
-                    waiting, self._next = self._next, None
-                    if waiting is None:
-                        self._busy = False
-            if waiting is None:
-                return
-            request = waiting
+                self._ask(session_id, answers[-MAX_ANSWERS:], lines)
+            except Exception as exc:  # noqa: BLE001 - logged, goes on
+                self.failed += 1
+                LOG.warning("ticks %s: call not made (%s)", session_id,
+                            type(exc).__name__)
 
-    def _ask(self, request: Document) -> None:
+    def _window(self, answers: List[str]) -> List[Dict[str, Any]]:
+        """The lines from just before the first answer asked (lock held).
+
+        The previous line (usually the question) comes too; at most
+        :data:`MAX_LINES`, the most recent.
+        """
+        ids = [x["id"] for x in self._lines]
+        first = min((ids.index(a) for a in answers if a in ids),
+                    default=len(ids))
+        kept = self._lines[max(first - 1, 0):][-MAX_LINES:]
+        self._lines = self._lines[-MAX_LINES:]
+        return [dict(x) for x in kept]
+
+    def _ask(self, session_id: str, answers: List[str],
+             lines: List[Dict[str, Any]]) -> None:
         """One call; the concepts still pending are read now."""
         payload = self.topics.focus_points()
-        if not payload:
+        shown = {x["id"] for x in lines}
+        answers = [a for a in answers if a in shown]
+        if not payload or not answers:
             return
-        request = {**request, "payload": payload}
         self.calls += 1
+        request: Document = {
+            "schema": "reasoner.request.v1",
+            "request_id": f"{session_id}-tick{self.calls}"[-64:],
+            "role": "structured", "model": self.model,
+            "template": TICKS_TEMPLATE, "language": self.language,
+            "context": {"window": lines, "speaker_roles": dict(self.roles),
+                        "focus": answers[-1]},
+            "payload": {**payload, "answers": answers},
+            "constraints": {"deadline_ms": TICKS_DEADLINE_MS},
+        }
         try:
             response = self.reasoner.reason(request, CancelToken())
         except ReasonerUnavailable as exc:
@@ -152,9 +191,4 @@ class LiveTicker:
                      response.get("status"),
                      error.get("kind") if isinstance(error, dict) else None)
             return
-        try:
-            self.topics.suggested(payload, data)
-        except Exception as exc:  # noqa: BLE001 - logged, nothing ticked
-            self.failed += 1
-            LOG.warning("ticks %s: reply not used (%s)",
-                        request["request_id"], type(exc).__name__)
+        self.topics.suggested(request["payload"], data)
