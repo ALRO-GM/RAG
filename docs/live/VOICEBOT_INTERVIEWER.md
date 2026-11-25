@@ -543,12 +543,97 @@ the page shows it. The hand-off file
 (`<log_dir>/<session>.live_assist.interview.handoff.json`, written mode
 600) keeps only the labels, counts, bases, cited chunk ids and
 utterance ids of the judgement: no quote, reason or note
-(`without_words`), so it holds none of the candidate's words. It has no
-retention of its own (like the rest of the hand-off file); the AI
-interviewer's sheet, with quotes, stays in `data/interview/results/`
-as before (retention pending, §10). A judgement still pending when the
-orchestrator restarts is lost: the stored hand-off record then stays
-without `accuracy`.
+(`without_words`), so it holds none of the candidate's words. The full
+report is kept with the plan's results (§6.2). A judgement still
+pending when the orchestrator restarts is lost: nothing is stored, the
+hand-off record stays without `accuracy`, and the round can be judged
+again from its transcript (`interview rejudge`, §6.2).
+
+### 6.2 Reports kept in the candidate's file; closing a position (#262)
+
+**What is kept.** Every interview report is stored **in full** with the
+plan's results, `data/interview/results/<plan>/<session>.json` (the
+git-ignored data folder; files written mode 600):
+
+- the AI interviewer's `interview.sheet.v1` (`kind: "ai"`), as before,
+  now with `candidate_id` when the interview had a candidate profile;
+- a live-page round's report: an `interview.sheet.v1` with
+  `kind: "live"`, `candidate`, `candidate_id`, `judge`, `finished_at`,
+  the slots asked with the candidate's answers (joined into at most 6
+  parts of 700 characters), their concepts, each judgement with quote,
+  reason and basis, and `to_check`; **no score** (`score` and
+  `suitability` stay empty: the live page never scores). Stored when its
+  judgement is ready; a failed or lost judgement stores nothing, and the
+  page says so («No se pudo preparar el borrador …; no se ha guardado
+  ningún informe.», with «Reintentar»).
+
+**Where it opens.** «Comparar candidatos de esta oferta» lists both
+kinds with their kind («Entrevista con IA» / «Entrevista en directo»),
+date and «Abrir el informe» (`#/interview-report/<plan>/<session>`, the
+full report; a live one shows the judgement block, no score). The
+candidate's file («Datos de la candidata») lists their reports by kind
+and date with the same link: a report belongs to the file when it names
+the profile (`candidate_id`) or its session is one of the profile's
+rounds (older sheets name no profile). The live end summary links to
+the saved report. Each place says «Se conserva en la ficha de la persona
+hasta que la borres.»
+
+**How long.** Nothing deletes these reports by time. They are deleted
+only when a person deletes the candidate's file («Borrar ficha de la
+candidatura»: the confirmation says how many reports go with it; if one
+cannot be deleted the file is kept, so deleting again finishes it). A
+candidate file with reports never expires by days
+(`CANDIDATE_PROFILE.md`). Reports of AI interviews held without a
+candidate profile belong to no file and are not deleted by anything in
+the product (owner decision, see below).
+
+**Closing a position.** «Cerrar el puesto» on the plan review (with a
+confirmation) only marks the plan `state: "closed"` and records when
+(`closures`): no interview, AI or live, can start from it (409
+`plan_closed`), lists show it closed («· puesto cerrado»), and «Reabrir
+el puesto» opens it again. **Closing deletes nothing.** Plans stored
+before this had no state and load as open.
+
+**Long rounds and failures.** A live round is judged in calls of at
+most 4 slots (`JUDGE_BATCH`), each slot's answers joined into at most 6
+parts of 700 characters (`merged_answers`; parts beyond that are left
+out and counted in the log), so an 8-minute round stays inside the
+template's limits, the 4 000-token output cap and the 90 s deadline of
+each call. Why the owner's real round failed was not established (its
+data were not read): the likely causes were the single call over many
+slots (deadline or output cap); not measured. Every failed call is now
+logged at WARNING with the batch, number of slots and answer
+characters, the status, the error's kind and message and the type of
+`data`, never the candidate's words; a failed knowledge lookup is
+logged too and the judge falls back to general knowledge.
+
+**Judging a round again.** On the live page, «Reintentar» (while the
+orchestrator still has the round) judges it again (`POST
+/sessions/{id}/rejudge`, 202; the page polls the session). Offline, for
+a round whose judgement failed or was lost:
+
+```
+uv run --no-sync python -m orchestrator interview rejudge <session> \
+    --plan <plan id> --candidate <candidate id>
+```
+
+It reads `data/transcripts/<session>.transcript.v1.json` (the stored
+transcript of the session; speakers carry `role`), replays it through
+the topic tracker, judges it with the same code and stores the full
+report under the same session id, so it appears in «Comparar
+candidatos» and in the candidate's file. By default it asks the running
+RAG (`--reasoner http`, `--reasoner-url http://127.0.0.1:8000`, token
+from `~/.config/ragputin/rag-token`), which must already serve
+`interview.report@2`; `--reasoner
+experiments.live.orchestrator_reasoner:build` uses Haiku in process
+through `claude -p` instead. It works with the services running,
+prints only states and counts (`{"state", "saved", "slots", "to_check",
+"labels", "plan_state"}`), exits 0 when the report was stored, and a
+closed position can be judged too.
+
+**Pending (owner, #151).** The legal basis and how long candidates'
+data are kept remain the owner's open decision: "until a person deletes
+the file" is the owner's rule as implemented here, not legal advice.
 
 **Notice.** The live page's candidate notice is now
 `interview_ai_notice@2` («Después, la IA puede preparar un borrador de
@@ -730,6 +815,8 @@ estimate from that count, not measured). `post_call: on` adds the analysis's cal
   without a headset the microphone may hear them (one word, so never
   taken as the bot's echo; at worst it restarts the wait).
 - One interview at a time (the voice bot's one live session).
-- Privacy: the sheet holds candidate quotes and scores
-  (`data/interview/results/`); retention and who sees it are pending
-  decisions, as for the rest of the analysis.
+- Privacy: the reports hold candidate quotes, reasons and (AI
+  interviews) scores (`data/interview/results/`), kept until a person
+  deletes the candidate's file (§6.2); legal basis, retention and who
+  sees them are pending decisions (#151), as for the rest of the
+  analysis.

@@ -47,10 +47,12 @@ rounds[ {session_id, at, kind: live|bot, covered[], weak[], revisit[],
   shown as answered, it does not keep the question from being suggested
   or asked again) until the interviewer confirms it in «Confirmar datos»
   (§4). Confirmed and typed answers are under `answers`.
-- **No words of the candidate are kept.** No quote is stored: a reason
-  given with a «no», an origin or a pay history said with an answer
-  never reaches the file. `summary` is the start phrase the rules read
-  («en dos semanas») or the words the interviewer typed.
+- **The answers to the core questions keep no words of the candidate.**
+  No quote is stored there: a reason given with a «no», an origin or a
+  pay history said with an answer never reaches them. `summary` is the
+  start phrase the rules read («en dos semanas») or the words the
+  interviewer typed. The interview reports the file lists (#262) do
+  keep the candidate's words (quotes, reasons, «conviene comprobar»).
 - No audio, no transcript, no score of the person.
 
 **Retention.** The retention is the shortest `privacy.store_text_days` of
@@ -60,19 +62,27 @@ the interview products (30 days in
 orchestrator starts, on every new candidate and whenever a role's
 candidates are listed (a profile is also checked when it is read):
 
-- a profile not changed for more than those days is deleted;
+- a profile not changed for more than those days is deleted, **unless
+  it has stored interview reports** (#262): a file with reports is kept
+  with them until a person deletes it;
 - an unconfirmed proposal older than those days is dropped from the
   profile;
 - a profile whose `updated_at` cannot be read is **kept and logged**
   (warning `candidate <plan>/<id>: unreadable updated_at`), never deleted
   on a guess; deleting it is a person's decision.
 
-Without that setting nothing expires.
+Without that setting nothing expires. Nothing here deletes the stored
+interview reports (`VOICEBOT_INTERVIEWER.md` §6.2), and closing a
+position deletes nothing either.
 
 **Deletion on request.** `DELETE
 /interview/plans/{plan}/candidates/{candidate}` (on the page: «Borrar
 ficha de la candidatura» under «Más información» of «Datos de la
-candidata», after a confirmation) deletes the file, proposals included.
+candidata», after a confirmation that says how many reports go with
+it) deletes the file, proposals included, **and the candidate's stored
+interview reports** (AI and live, #262; the only way they are deleted;
+if one cannot be deleted the file is kept, so deleting again finishes
+it).
 One answer can be forgotten with `DELETE .../answers/{question}` and one
 proposal discarded with `DELETE .../proposals/{question}`. A candidate
 created for a session that then fails to start is deleted again while
