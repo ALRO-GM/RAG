@@ -129,7 +129,7 @@ def test_a_live_session_from_start_to_transcript(
     assert info["state"] == "ended" and info["transcript"]["published"]
     folder = container.settings.data_dir / "live" / "call-1"
     assert sorted(p.name for p in folder.iterdir()) == [
-        "events.jsonl", "session.json", "transcript.json"
+        "events.jsonl", "handed", "session.json", "transcript.json"
     ]
     record = json.loads((folder / "session.json").read_text())
     assert record["state"] == "ended" and record["end_reason"] == "stop"
@@ -516,7 +516,9 @@ def test_a_restarted_service_rebuilds_a_live_session_it_lost(
     assert first.live.get("cut-1").wait_handed_over(WAIT)
     first.runner.close(WAIT)
     folder = settings.data_dir / "live" / "cut-1"
-    (folder / "transcript.json").unlink()  # killed before it was written
+    # killed before the transcript was written: no transcript, no mark
+    (folder / "transcript.json").unlink()
+    (folder / "handed").unlink()
     published = settings.published() / "cut-1.transcript.v1.json"
     published.unlink()
     again = start_container(settings)

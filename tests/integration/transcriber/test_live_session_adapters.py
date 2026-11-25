@@ -186,25 +186,27 @@ def test_a_missing_check_is_logged(
     assert "not contract-checked" in caplog.text
 
 
-def test_the_session_record_and_the_recorded_sessions(
+def test_the_session_record_and_the_pending_sessions(
     tmp_path: Path,
 ) -> None:
-    """#264: ``session.json`` is private; only sessions with a record
-    are listed, newest first; a line cut by a crash is skipped."""
-    import os
-
+    """#264: ``session.json`` is private; only sessions with a record and
+    no ``handed`` mark are pending; a line cut by a crash is skipped."""
     log = JsonlLiveLog(tmp_path)
-    assert log.recorded() == []
+    assert log.pending() == []
     log.append("a", {"seq": 0})
     log.append("old", {"seq": 0})  # kept before #264: no record
     log.save_session("a", {"session_id": "a", "state": "running"})
     log.save_session("b", {"session_id": "b", "state": "ended"})
-    os.utime(log.directory("a") / "session.json", (1, 1))
     log.save_transcript("b", {"schema": "transcript.v1"})
     log.close("a")
     with (log.directory("a") / "events.jsonl").open("a") as stream:
         stream.write('{"seq": 1, "cut')
-    assert log.recorded() == ["b", "a"]
+    assert log.pending() == ["a", "b"]
+    assert log.has_transcript("b") and not log.has_transcript("a")
+    log.mark_handed("b")
+    assert log.pending() == ["a"]
+    handed = log.directory("b") / "handed"
+    assert stat.S_IMODE(handed.stat().st_mode) == 0o600
     assert log.read_events("a") == [{"seq": 0}]
     assert log.read_session("a") == {"session_id": "a", "state": "running"}
     assert log.read_session("old") is None
@@ -219,7 +221,7 @@ def test_the_session_record_and_the_recorded_sessions(
     with pytest.raises(ValueError):
         log.read_transcript("b")
     (tmp_path / "live" / "stray-file").write_text("x")
-    assert sorted(log.recorded()) == ["a", "b"]
+    assert log.pending() == ["a"]
 
 
 def test_the_live_marker_is_private_and_gone_when_nothing_is_on(

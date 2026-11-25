@@ -370,3 +370,151 @@ def test_a_session_stays_announced_until_its_transcript_is_handed_over(
             break
         threading.Event().wait(0.01)
     assert marker.marks[-1] == []
+
+
+# ---- #264 re-review: retries, order, intent -------------------------------
+
+def failing_session(log: MemoryLiveLog, session_id: str, ended: str) -> None:
+    """A session whose publish failed at its end (the RAG refused)."""
+    harness = Harness(device="cpu", log=log,
+                      publisher=RecordingPublisher(PublishError("down")))
+    run_session_logged(harness, session_id)
+    record = log.sessions[session_id]
+    assert record["publish_state"] == "failed"
+    assert record["publish_tries"] == 1
+    record["ended_at"] = ended
+
+
+def test_a_publish_that_keeps_failing_is_given_up_after_three_tries(
+) -> None:
+    log = MemoryLiveLog()
+    failing_session(log, "bad", "2026-11-25T10:00:00+00:00")
+    refusing = RecordingPublisher(PublishError("down"))
+    handover = HandOver(log, refusing, None, SystemClock(), "9.9")
+    for start in (2, 3):
+        found = handover.recover()
+        assert [h.session_id for h in found] == ["bad"]
+        handover.finish(found[0])
+        assert log.sessions["bad"]["publish_tries"] == start
+    assert log.sessions["bad"]["publish_state"] == "given_up"
+    assert log.sessions["bad"]["transcript"]["error"].startswith(
+        "not published after 3 tries")
+    assert handover.recover() == [], "never tried again"
+    assert "bad" in log.handed
+
+
+def test_recovery_follows_the_end_time_not_the_last_write() -> None:
+    """A retried session's record is rewritten (newer file) but its end
+    time does not move: older sessions are not starved."""
+    log = MemoryLiveLog()
+    failing_session(log, "old", "2026-11-25T09:00:00+00:00")
+    failing_session(log, "new", "2026-11-25T11:00:00+00:00")
+    handover = HandOver(log, RecordingPublisher(PublishError("down")), None,
+                        SystemClock(), "9.9")
+    first = handover.recover(limit=1)
+    assert [h.session_id for h in first] == ["new"]
+    handover.finish(first[0])  # rewrites new's record
+    assert log.sessions["new"]["ended_at"] == "2026-11-25T11:00:00+00:00"
+    again = handover.recover(limit=1)
+    assert [h.session_id for h in again] == ["new"]
+    handover.finish(again[0])  # third try: given up
+    assert [h.session_id for h in handover.recover(limit=1)] == ["old"]
+
+
+def test_done_sessions_are_not_opened_again_at_a_start() -> None:
+    """Handed over (published, or nothing asked): marked; a start reads
+    neither their record nor their transcript."""
+    log = MemoryLiveLog()
+    harness = Harness(device="cpu", log=log, publisher=RecordingPublisher(),
+                      analysis=RecordingAnalysis())
+    run_session_logged(harness, "done")
+    plain = Harness(device="cpu", log=log)
+    session = plain.live.start(LiveSessionRequest(session_id="plain"))
+    for message in chunks_of(speech(), 3200):
+        session.feed(message)
+    plain.live.stop("plain", WAIT)
+    assert session.wait_handed_over(WAIT)
+    assert {"done", "plain"} <= log.handed
+    read: List[str] = []
+
+    class Watched(MemoryLiveLog):
+        def read_session(self, session_id: str) -> Any:
+            read.append(session_id)
+            return super().read_session(session_id)
+
+        def read_transcript(self, session_id: str) -> Any:
+            read.append(session_id)
+            return super().read_transcript(session_id)
+
+    watched = Watched()
+    watched.__dict__.update(log.__dict__)
+    log = watched
+    assert HandOver(log, RecordingPublisher(), None, SystemClock(),
+                    "9.9").recover() == []
+    assert read == []
+
+
+def test_a_publish_whose_result_was_never_written_is_retried_once(
+) -> None:
+    """The process died between the publish and writing its result: the
+    next start publishes once more at most, and does not start a second
+    analysis when the RAG already has one."""
+    log = MemoryLiveLog()
+    failing_session(log, "cut", "2026-11-25T10:00:00+00:00")
+    log.sessions["cut"]["publish_state"] = "publishing"
+
+    class Analysed(RecordingAnalysis):
+        def status(self, session_id: str) -> Dict[str, Any]:
+            return {"steps": {"summary": {"state": "done"}}}
+
+    publisher, analysis = RecordingPublisher(PublishError("down")), Analysed()
+    handover = HandOver(log, publisher, analysis, SystemClock(), "9.9")
+    found = handover.recover()
+    assert [h.session_id for h in found] == ["cut"]
+    assert found[0].analysis_done is True
+    handover.finish(found[0])
+    assert log.sessions["cut"]["publish_state"] == "given_up", \
+        "once more at most"
+    assert handover.recover() == []
+    log2 = MemoryLiveLog()
+    failing_session(log2, "cut2", "2026-11-25T10:00:00+00:00")
+    log2.sessions["cut2"]["publish_state"] = "publishing"
+    ok, fresh = RecordingPublisher(), Analysed()
+    again = HandOver(log2, ok, fresh, SystemClock(), "9.9")
+    handed = again.recover()[0]
+    again.finish(handed)
+    assert len(ok.documents) == 1
+    assert fresh.started == [], "the RAG already had the analysis"
+    assert log2.sessions["cut2"]["publish_state"] == "published"
+
+
+def test_the_intent_is_written_before_the_publish() -> None:
+    log = MemoryLiveLog()
+    states: List[str] = []
+
+    class Watching(RecordingPublisher):
+        def publish(self, document: Any) -> None:
+            states.append(log.sessions["w"]["publish_state"])
+            super().publish(document)
+
+    harness = Harness(device="cpu", log=log, publisher=Watching())
+    run_session_logged(harness, "w")
+    assert states == ["publishing"]
+    assert log.sessions["w"]["publish_state"] == "published"
+
+
+def test_recovery_holds_the_marker_for_a_bounded_time(
+    monkeypatch: Any,
+) -> None:
+    from transcriber.application import live_session
+
+    log = MemoryLiveLog()
+    failing_session(log, "late", "2026-11-25T10:00:00+00:00")
+    monkeypatch.setattr(live_session, "RECOVER_BUDGET_S", -1.0)
+    publisher = RecordingPublisher()
+    again = Harness(device="cpu", log=log, publisher=publisher)
+    assert again.live.recover() == ["late"]
+    assert again.live.get("late").wait_handed_over(WAIT)
+    assert publisher.documents == [], "time was up: left for the next start"
+    assert log.sessions["late"]["publish_tries"] == 1
+    assert "late" not in log.handed

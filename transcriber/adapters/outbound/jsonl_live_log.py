@@ -24,6 +24,8 @@ EVENTS_FILE = "events.jsonl"
 TRANSCRIPT_FILE = "transcript.json"
 ATTRIBUTION_FILE = "attribution.jsonl"
 SESSION_FILE = "session.json"
+HANDED_FILE = "handed"
+"""Empty file: the session's hand-over is done (#264)."""
 
 
 class JsonlLiveLog:
@@ -100,17 +102,28 @@ class JsonlLiveLog:
             json.dump(document, stream, ensure_ascii=False, indent=1)
         os.replace(temporary, folder / SESSION_FILE)
 
-    def recorded(self) -> List[str]:
-        """Return the sessions with a record, newest record first."""
+    def pending(self) -> List[str]:
+        """Return the sessions with a record and no ``handed`` mark.
+
+        Only names and file existence are looked at: the work does not
+        grow with what was handed over long ago.
+        """
         if not self.root.is_dir():
             return []
-        found = [
-            (path.stat().st_mtime, folder.name)
-            for folder in self.root.iterdir()
-            if folder.is_dir()
-            for path in [folder / SESSION_FILE] if path.is_file()
-        ]
-        return [name for _, name in sorted(found, reverse=True)]
+        return sorted(
+            folder.name for folder in self.root.iterdir()
+            if folder.is_dir() and (folder / SESSION_FILE).is_file()
+            and not (folder / HANDED_FILE).exists()
+        )
+
+    def mark_handed(self, session_id: str) -> None:
+        """Leave the ``handed`` mark (private, empty)."""
+        path = self._folder(session_id) / HANDED_FILE
+        os.close(os.open(path, os.O_WRONLY | os.O_CREAT, 0o600))
+
+    def has_transcript(self, session_id: str) -> bool:
+        """Tell whether ``transcript.json`` is there (not reading it)."""
+        return (self.directory(session_id) / TRANSCRIPT_FILE).is_file()
 
     def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Return the kept transcript, or ``None`` without one."""

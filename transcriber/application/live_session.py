@@ -775,9 +775,19 @@ class LiveSessions:
         if adopted:
             self._mark()  # handing over: the services guard waits
 
+            deadline = self._p.timer.monotonic() + RECOVER_BUDGET_S
+
             def publish_all() -> None:
                 for handed, session in adopted:
                     try:
+                        if self._p.timer.monotonic() >= deadline:
+                            # Left for the next start: the marker (and
+                            # so the services guard) is not held longer.
+                            LOG.warning(
+                                "Live session %s: hand-over left for the"
+                                " next start (time is up)",
+                                handed.session_id)
+                            continue
                         self._handover.finish(handed)
                     except Exception:  # noqa: BLE001 - go on with the rest
                         LOG.exception("Live session %s: not published",
@@ -1033,7 +1043,8 @@ class LiveSessions:
         session.finished(state, error)
         self._mark()  # ended, still handing over
         session.record_extra = {"end_reason": session.end_reason,
-                                "error": error}
+                                "error": error,
+                                "ended_at": self._p.clock.now().isoformat()}
         self._handover.record(
             self.facts(session), state.value, transcript=session.transcript,
             **session.record_extra,
@@ -1045,6 +1056,8 @@ class LiveSessions:
                 handed.state = state.value
                 handed.extra = dict(session.record_extra)
                 self._handover.finish(handed)
+            elif self._p.log is not None:
+                self._p.log.mark_handed(session.id)  # nothing to hand
         except Exception:  # noqa: BLE001 - logged; the session has ended
             LOG.exception("Live session %s: hand-over failed", session.id)
         finally:
@@ -1113,6 +1126,9 @@ class LiveSessions:
             LOG.exception("The attribution of %s was not kept", session.id)
 
 
+RECOVER_BUDGET_S = 300.0
+"""Longest time the hand-overs found at a start may take (and hold the
+live marker); the rest are tried at the next start (#264)."""
 FAILED_MESSAGE = (
     "The live session stopped on an error ({error}); the transcript of"
     " what was heard until then is kept."

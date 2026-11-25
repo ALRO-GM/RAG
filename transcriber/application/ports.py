@@ -891,8 +891,16 @@ class LiveLog(Protocol):
         """
         ...
 
-    def recorded(self) -> List[str]:
-        """Return the sessions that have a record, newest first."""
+    def pending(self) -> List[str]:
+        """Return the sessions with a record whose hand-over is not done."""
+        ...
+
+    def mark_handed(self, session_id: str) -> None:
+        """Say a session's hand-over is done (it is not looked at again)."""
+        ...
+
+    def has_transcript(self, session_id: str) -> bool:
+        """Tell whether a session's transcript is kept."""
         ...
 
     def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
