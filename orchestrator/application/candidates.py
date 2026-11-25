@@ -9,7 +9,11 @@ follows one session (the live page or the AI interviewer): when a core
 question still open is asked, it reads the candidate's answer right
 after it with the fixed rules of :mod:`orchestrator.domain.candidate`
 and keeps what they are sure of as a **proposal** for the interviewer
-to confirm («Confirmar datos»). Each change is published as
+to confirm («Confirmar datos»). The candidate's file also lists their
+stored interview reports (#262: the AI interviewer's sheets and the
+live-page reports, in full); a profile with reports never expires by
+days, and deleting the file deletes those reports too: nothing else
+deletes them. Each change is published as
 ``{"type": "core", "profile": ...}``; only confirmed or corrected
 answers are screened out of the live suggestions.
 
@@ -21,7 +25,7 @@ import threading
 from datetime import datetime
 from typing import Callable, Dict, List, Optional, Set
 
-from orchestrator.application.interview import PlanError
+from orchestrator.application.interview import PlanError, PlanStore
 from orchestrator.application.ports import (
     CandidateStore,
     CoreQuestionSource,
@@ -72,8 +76,12 @@ class CandidateBook:
         core: The core questions.
         plan_exists: Tells whether a plan (role) exists.
         retention_days: Days a profile is kept after its last change
-            (``None``: no limit), from the interview products' privacy.
+            (``None``: no limit), from the interview products' privacy;
+            a profile with stored interview reports is kept whatever
+            its age (#262).
         now: Wall-clock time.
+        plans: The plans' stored interview reports (``None``: the file
+            lists none and deleting it deletes no report).
     """
 
     def __init__(
@@ -83,6 +91,7 @@ class CandidateBook:
         plan_exists: Callable[[str], bool],
         retention_days: Optional[int] = None,
         now: Callable[[], datetime] = datetime.now,
+        plans: Optional[PlanStore] = None,
     ):
         """Wire the store; nothing is read yet."""
         self.store = store
@@ -90,6 +99,7 @@ class CandidateBook:
         self.plan_exists = plan_exists
         self.retention_days = retention_days
         self.now = now
+        self.plans = plans
         self._lock = threading.Lock()
 
     # ---- queries -------------------------------------------------------
@@ -102,11 +112,11 @@ class CandidateBook:
         """The candidates of a role, newest change first."""
         self._check_plan(plan_id)
         self.purge()
-        questions = self.questions()
         rows = sorted(
-            (view(p, questions) for p in self.store.list(plan_id)),
+            (self._view(p) for p in self.store.list(plan_id)),
             key=lambda r: str(r["updated_at"]), reverse=True,
         )
+        questions = self.questions()
         return {
             "plan_id": plan_id, "candidates": rows,
             "questions": [q.model_dump() for q in questions],
@@ -114,8 +124,31 @@ class CandidateBook:
         }
 
     def get(self, plan_id: str, candidate_id: str) -> Document:
-        """One candidate with the core questions and their answers."""
-        return view(self._load(plan_id, candidate_id), self.questions())
+        """One candidate with the core questions, answers and reports."""
+        return self._view(self._load(plan_id, candidate_id))
+
+    def reports(self, profile: CandidateProfile) -> List[Document]:
+        """The candidate's stored interview reports, newest first.
+
+        A report is theirs when it names the profile or its session is
+        one of the profile's rounds (older sheets name no profile).
+        """
+        if self.plans is None:
+            return []
+        sessions = {r.session_id for r in profile.rounds}
+        try:
+            found = self.plans.results(profile.plan_id)
+        except KeyError:
+            return []
+        return [
+            {"session_id": r.get("session_id"),
+             "kind": "live" if r.get("kind") == "live" else "ai",
+             "finished_at": r.get("finished_at"), "title": r.get("title"),
+             "plan_id": profile.plan_id}
+            for r in found
+            if r.get("candidate_id") == profile.id
+            or r.get("session_id") in sessions
+        ]
 
     def profile(self, plan_id: str, candidate_id: str) -> CandidateProfile:
         """One candidate's profile (``PlanError`` when there is none)."""
@@ -214,16 +247,104 @@ class CandidateBook:
             self.store.save(changed)
         return view(changed, self.questions())
 
-    def delete(self, plan_id: str, candidate_id: str) -> Document:
-        """Delete a candidate's profile (answers and rounds)."""
+    def keep_report(
+        self, plan_id: str, candidate_id: str, save: Callable[[], None],
+    ) -> bool:
+        """Store a report of a candidate only while their file exists.
+
+        ``save`` runs under the same lock as :meth:`delete`, so a file
+        deleted while a judgement ran never gets an orphan report.
+        ``False`` (nothing saved) when the file is gone.
+        """
         with self._lock:
+            if candidate_id not in self.store.ids(plan_id):
+                LOG.info("candidate %s/%s gone: report not kept", plan_id,
+                         candidate_id)
+                return False
+            save()  # a file that cannot be read still exists: it is kept
+        return True
+
+    def owns(self, plan_id: str) -> Callable[[Document], bool]:
+        """Tell, for the reports of a role, which are in a candidate's file.
+
+        A report is in a file when it names a stored profile (readable
+        or not) or its session is a round of a readable profile. While a
+        profile of the role cannot be read, every report counts as in a
+        file: its rounds are unknown, so none is offered for deletion.
+        """
+        try:
+            ids = set(self.store.ids(plan_id))
+            readable = self.store.list(plan_id)
+        except KeyError:
+            return lambda report: False
+        unknown = len(ids) > len(readable)
+        sessions = {r.session_id for p in readable for r in p.rounds}
+
+        def owned(report: Document) -> bool:
+            return unknown or report.get("candidate_id") in ids or \
+                report.get("session_id") in sessions
+
+        return owned
+
+    def delete_unowned_report(self, plan_id: str, session_id: str) -> Document:
+        """Delete a stored report that belongs to no candidate's file.
+
+        Only for a report in no file by :meth:`owns` (those go with
+        their file): ``conflict`` otherwise.
+        """
+        if self.plans is None:
+            raise PlanError("unavailable", "no stored reports here")
+        with self._lock:
+            try:
+                report = self.plans.result(plan_id, session_id)
+            except (KeyError, ValueError) as exc:
+                raise PlanError("not_found",
+                                f"no report {session_id!r}") from exc
+            if self.owns(plan_id)(report):
+                raise PlanError(
+                    "conflict", "this report is in a candidate's file (or a "
+                    "file that cannot be read); it goes with the file")
+            try:
+                gone = self.plans.delete_result(plan_id, session_id)
+            except OSError as exc:
+                raise PlanError("delete_failed",
+                                "the report could not be deleted") from exc
+        return {"deleted": gone, "plan_id": plan_id,
+                "session_id": session_id}
+
+    def delete(self, plan_id: str, candidate_id: str) -> Document:
+        """Delete a candidate's file: profile, answers, rounds and reports.
+
+        The only way their stored interview reports are deleted (#262).
+        The reports go first: if one cannot be deleted the profile is
+        kept, so deleting again finishes it.
+        """
+        with self._lock:
+            try:
+                profile = self.store.load(plan_id, candidate_id)
+            except KeyError as exc:
+                raise PlanError("not_found", "no such candidate") from exc
+            reports = 0
+            for row in self.reports(profile):
+                try:
+                    reports += int(self.plans.delete_result(  # type: ignore
+                        plan_id, str(row["session_id"])))
+                except KeyError:
+                    continue
+                except OSError as exc:
+                    raise PlanError(
+                        "delete_failed", "a report could not be deleted; "
+                        "delete the file again to finish") from exc
             try:
                 gone = self.store.delete(plan_id, candidate_id)
             except KeyError as exc:
                 raise PlanError("not_found", "no such candidate") from exc
         if not gone:
             raise PlanError("not_found", f"no candidate {candidate_id!r}")
-        return {"deleted": True, "plan_id": plan_id, "id": candidate_id}
+        LOG.info("candidate %s/%s deleted with %d reports", plan_id,
+                 candidate_id, reports)
+        return {"deleted": True, "plan_id": plan_id, "id": candidate_id,
+                "reports_deleted": reports}
 
     def keep_capture(
         self, plan_id: str, candidate_id: str, question_id: str,
@@ -280,7 +401,8 @@ class CandidateBook:
                                     "%r, kept", plan_id, found.id,
                                     found.updated_at)
                         continue
-                    if expired(found, now, self.retention_days):
+                    if expired(found, now, self.retention_days) and \
+                            not self.reports(found):
                         removed += int(self.store.delete(plan_id, found.id))
                         continue
                     trimmed = without_old_proposals(found, now,
@@ -292,7 +414,15 @@ class CandidateBook:
     # ---- internals -----------------------------------------------------
 
     def _expired(self, profile: CandidateProfile) -> bool:
-        return expired(profile, self.now(), self.retention_days)
+        """Past the retention, unless it has stored reports (#262)."""
+        return expired(profile, self.now(), self.retention_days) and \
+            not self.reports(profile)
+
+    def _view(self, profile: CandidateProfile) -> Document:
+        """The profile's view with its stored reports."""
+        found = view(profile, self.questions())
+        found["reports"] = self.reports(profile)
+        return found
 
     def _check_plan(self, plan_id: str) -> None:
         if not self.plan_exists(plan_id):

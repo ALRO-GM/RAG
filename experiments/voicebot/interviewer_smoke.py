@@ -130,6 +130,12 @@ class Store:
         """Every sheet."""
         return list(self.sheets)
 
+    def result(self, plan_id: str, session_id: str) -> Document:
+        raise KeyError(session_id)
+
+    def delete_result(self, plan_id: str, session_id: str) -> bool:
+        return False
+
 
 class Clock:
     """Wall time."""

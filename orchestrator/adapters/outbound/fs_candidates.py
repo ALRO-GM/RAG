@@ -74,6 +74,10 @@ class JsonCandidateStore:
                 continue
         return found
 
+    def ids(self, plan_id: str) -> List[str]:
+        """The ids of every stored profile of a role, readable or not."""
+        return sorted(p.stem for p in self._folder(plan_id).glob("*.json"))
+
     def plans(self) -> List[str]:
         """The roles with a folder of profiles."""
         if not self.root.is_dir():

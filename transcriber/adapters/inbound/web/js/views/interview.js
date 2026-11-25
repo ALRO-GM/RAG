@@ -9,14 +9,14 @@
 // Scores are for the recruiter only: the bot never says them.
 
 import { h, fill } from "../dom.js";
-import { t } from "../i18n.js";
+import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   COMPETENCIES, LEVELS, MAX_MINUTES, MAX_POINTS, MIN_MINUTES, MIN_OFFER, ROLE_TYPES,
   addSlot, clonePlan, comparisonRows, editSlot, planCounts, planErrors, planForSave,
-  pointCounts, removeSlot, reportFigures, scoreClass, setEssential,
+  pointCounts, removeSlot, reportFigures, reportHref, scoreClass, setEssential,
 } from "../lib/interview.js";
-import { icon, toast } from "../ui.js";
+import { icon, openDialog, toast } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
 
 const WEIGHTS = [1, 2, 3, 4, 5];
@@ -142,7 +142,8 @@ export function planSetup(ctx, { onReady }) {
     try {
       const { plans } = await ctx.api.interviewPlans();
       fill(saved_plans, plans.length
-        ? plans.map((p) => option(p.id, t("iv.saved_row", { title: p.title, slots: p.slots, interviews: p.interviews }), null))
+        ? plans.map((p) => option(p.id, t(p.state === "closed" ? "iv.saved_row_closed" : "iv.saved_row",
+          { title: p.title, slots: p.slots, interviews: p.interviews }), null))
         : option("", t("iv.no_saved"), ""));
       open.disabled = !plans.length;
     } catch {
@@ -211,16 +212,53 @@ export function planSetup(ctx, { onReady }) {
     planMinutes.addEventListener("change", () => { plan.minutes = Number(planMinutes.value); drawReview(); });
     const candidate = h("input", { id: "iv-candidate", type: "text", maxLength: 80, placeholder: t("iv.candidate_placeholder") });
     const save = h("button", { type: "button", disabled: !dirty || errors.length > 0, onClick: () => persist() }, t("iv.save"));
+    const closed = saved.state === "closed";
     const start = h("button", {
-      type: "button", class: "primary big", disabled: dirty || errors.length > 0,
+      type: "button", class: "primary big", disabled: dirty || errors.length > 0 || closed,
       onClick: () => onReady(saved, candidate.value.trim()),
     }, icon("voicebot"), t("iv.start"));
+    const position = h("button", { type: "button", class: closed ? "" : "ghost", onClick: () => toggleState() },
+      t(closed ? "iv.reopen_position" : "iv.close_position"));
+
+    async function toggleState() {
+      if (!closed) {
+        const yes = await openDialog({
+          title: t("iv.close_title", { title: saved.title }),
+          content: [h("p", {}, t("iv.close_body"))],
+          confirm: t("iv.close_position"),
+        });
+        if (!yes) return;
+      }
+      try {
+        await (closed ? ctx.api.reopenPlan(saved.id) : ctx.api.closePlan(saved.id));
+        toast(t(closed ? "iv.reopened_ok" : "iv.closed_ok"));
+        show(await ctx.api.interviewPlan(saved.id));
+        loadSaved();
+      } catch (error) {
+        toast(describeError(error), { error: true });
+      }
+    }
     const compare = h("button", { type: "button", onClick: () => showComparison() }, t("iv.compare"));
     const comparison = h("div", { class: "iv-comparison" });
 
     async function showComparison() {
       try {
-        fill(comparison, comparisonCard(await ctx.api.planResults(saved.id)));
+        fill(comparison, comparisonCard(await ctx.api.planResults(saved.id), { onDelete: deleteReport }));
+      } catch (error) {
+        toast(describeError(error), { error: true });
+      }
+    }
+
+    async function deleteReport(row) {
+      const yes = await openDialog({
+        title: t("iv.delete_report_title"), content: [h("p", {}, t("iv.delete_report_body"))],
+        confirm: t("iv.delete_report"), danger: true,
+      });
+      if (!yes) return;
+      try {
+        await ctx.api.deletePlanReport(saved.id, row.session);
+        toast(t("iv.deleted_report"));
+        await showComparison();
       } catch (error) {
         toast(describeError(error), { error: true });
       }
@@ -239,6 +277,7 @@ export function planSetup(ctx, { onReady }) {
 
     fill(review,
       h("h2", {}, t("iv.review")),
+      closed ? h("p", { class: "notice", role: "status" }, t("iv.closed_notice")) : null,
       plan.planner?.status === "fallback" ? h("p", { class: "notice", role: "note" }, t("iv.fallback", { error: plan.planner.error ?? "" })) : null,
       h("p", { class: "hint" }, t("iv.review_hint")),
       h("div", { class: "row wrap iv-plan-head" },
@@ -250,7 +289,7 @@ export function planSetup(ctx, { onReady }) {
       h("div", { class: "row wrap" },
         h("button", { type: "button", disabled: plan.slots.length >= 12, onClick: () => { addSlot(plan); drawReview(); } }, icon("plus"), t("iv.add_slot"))),
       errors.length ? h("ul", { class: "error", role: "alert" }, errors.map((e) => h("li", {}, t(e)))) : null,
-      h("div", { class: "row wrap iv-actions" }, save, compare,
+      h("div", { class: "row wrap iv-actions" }, save, compare, position,
         dirty ? h("span", { class: "hint" }, t("iv.unsaved")) : null),
       h("div", { class: "field" }, h("label", { for: "iv-candidate" }, t("iv.candidate")), candidate,
         h("p", { class: "hint" }, t("iv.candidate_hint"))),
@@ -479,17 +518,37 @@ function tile(value, label, kind) {
   return h("div", { class: `iv-tile is-${kind}` }, h("span", { class: "iv-tile-value" }, String(value)), h("span", { class: "iv-tile-label" }, label));
 }
 
+/** A report's date as day and time, in the page's language. */
+export function shortDate(value) {
+  if (!value) return "";
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) return String(value);
+  return when.toLocaleString(lang === "en" ? "en-GB" : "es-ES", { dateStyle: "medium", timeStyle: "short" });
+}
+
 /** The candidates of one plan side by side: suitability and a bar per skill. */
-export function comparisonCard(results) {
+export function comparisonCard(results, { onDelete = null } = {}) {
   const rows = comparisonRows(results);
   const slots = results.plan?.slots ?? [];
   if (!rows.length) return h("p", { class: "hint" }, t("iv.compare_none"));
+  // What is true of each row (#262): in a person's file until it is deleted,
+  // or with the position, deleted from here.
+  const notes = [
+    rows.some((r) => r.owned) ? h("p", { class: "hint" }, t("iv.retention")) : null,
+    rows.some((r) => !r.owned) ? h("p", { class: "hint" }, t("iv.retention_no_file")) : null,
+  ];
   return h("div", { class: "iv-compare-wrap" },
     h("table", { class: "iv-compare" },
-      h("thead", {}, h("tr", {}, h("th", {}, t("iv.candidate")), h("th", {}, t("iv.suitability")),
+      h("thead", {}, h("tr", {}, h("th", {}, t("iv.candidate")), h("th", {}, t("iv.report_kind")), h("th", {}, t("iv.suitability")),
         slots.map((s) => h("th", { title: s.label }, h("span", { class: "iv-th" }, s.label), " ", h("span", { class: "tag" }, t("iv.weight_short", { w: s.weight ?? 3 })))))),
       h("tbody", {}, rows.map((r) => h("tr", {},
-        h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null),
-        h("td", {}, scoreBar(r.suitability), " ", r.suitability === null ? "–" : String(Math.round(r.suitability))),
-        r.slots.map((s) => h("td", {}, scoreBar(s.score, { small: true }), " ", s.score === null || s.score === undefined ? t(`iv.status.${s.status ?? "empty"}`) : String(s.score))))))));
+        h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null,
+          r.owned ? null : [" ", h("span", { class: "tag" }, t("iv.no_file")),
+            onDelete ? [" ", h("button", { type: "button", class: "small danger", onClick: () => onDelete(r) }, t("iv.delete_report"))] : null]),
+        h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), " ", h("span", { class: "meta" }, shortDate(r.finished)),
+          " ", h("a", { href: reportHref(results.plan?.id ?? "", r.session) }, t("iv.open_report"))),
+        h("td", {}, r.kind === "live" ? h("span", { class: "meta" }, t("iv.no_score_live"))
+          : [scoreBar(r.suitability), " ", r.suitability === null ? "–" : String(Math.round(r.suitability))]),
+        r.slots.map((s) => h("td", {}, scoreBar(s.score, { small: true }), " ", s.score === null || s.score === undefined ? t(`iv.status.${s.status ?? "empty"}`) : String(s.score))))))),
+    notes);
 }

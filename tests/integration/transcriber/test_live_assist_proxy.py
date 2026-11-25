@@ -198,11 +198,23 @@ def test_interview_plan_routes_are_forwarded() -> None:
                    json={"revision": 0}, headers=head).status_code == 200
     web.get("/api/assist/interview/plans/plan-1", headers=head)
     web.get("/api/assist/interview/plans/plan-1/results", headers=head)
+    web.get("/api/assist/interview/plans/plan-1/results/r1", headers=head)
+    web.delete("/api/assist/interview/plans/plan-1/results/r1", headers=head)
+    web.post("/api/assist/interview/plans/plan-1/close", json={},
+             headers=head)
+    web.post("/api/assist/interview/plans/plan-1/reopen", json={},
+             headers=head)
+    web.post("/api/assist/sessions/r1/rejudge", json={}, headers=head)
     assert [(r.method, r.url.path) for r in seen] == [
         ("POST", "/interview/plans"), ("GET", "/interview/plans"),
         ("PUT", "/interview/plans/plan-1"),
         ("GET", "/interview/plans/plan-1"),
         ("GET", "/interview/plans/plan-1/results"),
+        ("GET", "/interview/plans/plan-1/results/r1"),
+        ("DELETE", "/interview/plans/plan-1/results/r1"),
+        ("POST", "/interview/plans/plan-1/close"),
+        ("POST", "/interview/plans/plan-1/reopen"),
+        ("POST", "/sessions/r1/rejudge"),
     ]
     assert len(seen[0].content) > 40000
     assert seen[2].content == b'{"revision":0}'

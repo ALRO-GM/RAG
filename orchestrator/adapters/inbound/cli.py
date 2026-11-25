@@ -72,6 +72,10 @@ from orchestrator.adapters.outbound.fs_demo_voices import (
     FsDemoVoices,
     check_outside_repository,
 )
+from orchestrator.adapters.inbound.interview_cli import (
+    add_interview_parser,
+    run_interview,
+)
 from orchestrator.adapters.inbound.demo_voices_cli import (
     DEFAULT_OUT as DEMO_VOICES_DIR,
     add_demo_voices_parser,
@@ -194,6 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="latency of the fakes")
     add_serve_parser(sub)
     add_demo_voices_parser(sub)
+    add_interview_parser(sub)
     return parser
 
 
@@ -553,7 +558,7 @@ def build_interview(
         JsonCandidateStore(args.interview_dir),
         FileCoreQuestions(ROOT / "knowledge" / "interview"
                           / "core-questions.json"),
-        plan_exists, retention_days(products),
+        plan_exists, retention_days(products), plans=store,
     )
     candidates.purge()  # the retention applies from the start
     return InterviewWiring(
@@ -653,6 +658,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return run_serve(args)
         if args.command == "demo-voices":
             return run_demo_voices(args)
+        if args.command == "interview":
+            args.token = read_code(args.rag_token_file)
+            reasoner = (HttpReasoner(args.reasoner_url, args.token,
+                                     timeout=150.0)
+                        if args.reasoner == "http" else build_reasoner(args))
+            return run_interview(args, reasoner, build_knowledge(args))
         return run_replay(args)
     except (ConfigError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

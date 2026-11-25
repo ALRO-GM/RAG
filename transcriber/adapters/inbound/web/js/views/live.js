@@ -38,6 +38,7 @@ import {
 } from "../lib/demo-voices.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
 import { accuracyBlock, pointMark } from "./interview.js";
+import { reportHref } from "../lib/interview.js";
 import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
@@ -215,7 +216,12 @@ export async function liveView(ctx, root, [sub, which] = []) {
       plansLoaded = true;
       try {
         const found = await ctx.api.interviewPlans();
-        for (const plan of found?.plans ?? []) planSelect.append(h("option", { value: plan.id }, plan.title || plan.id));
+        // A closed position starts no interview (#262): shown, not chosen.
+        for (const plan of found?.plans ?? []) {
+          const shut = plan.state === "closed";
+          planSelect.append(h("option", { value: plan.id, disabled: shut },
+            shut ? t("live.plan_closed", { title: plan.title || plan.id }) : plan.title || plan.id));
+        }
       } catch (error) {
         if (error?.kind === "unauthorized") ctx.fail(error);
       }
@@ -1075,8 +1081,53 @@ export async function liveView(ctx, root, [sub, which] = []) {
       const found = state.accuracy;
       if (!found) return null;
       if (found.state === "reporting") return h("p", { class: "notice info", role: "status" }, t("live.accuracy_reporting"));
-      if (found.state === "failed") return h("p", { class: "notice", role: "status" }, t("live.accuracy_failed"));
-      return accuracyBlock(found);
+      if (found.state === "failed") {
+        // «Reintentar» (#262): the round is judged again; the result comes in the session's view.
+        const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));
+        return h("div", { class: "notice", role: "status" }, h("p", {}, t("live.accuracy_failed")), retry);
+      }
+      let saved;
+      if (found.saved && found.plan_id && found.session_id) {
+        saved = h("p", { class: "hint" }, t("live.accuracy_saved"), " ",
+          h("a", { href: reportHref(found.plan_id, found.session_id) }, t("iv.open_report")), " · ", t("iv.retention"));
+      } else if (found.why === "no_file") {
+        // The person's file was deleted: judging again would not save it.
+        saved = h("p", { class: "hint" }, t("live.accuracy_no_file"));
+      } else {
+        // Ready but not saved: it may be judged (and saved) again.
+        const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));
+        saved = h("p", { class: "hint" }, t("live.accuracy_not_saved"), " ", retry);
+      }
+      return h("div", {}, accuracyBlock(found), saved);
+    }
+
+    async function judgeAgain(button) {
+      button.disabled = true;
+      try {
+        await ctx.api.rejudgeLive(session.id);
+        state.accuracy = { state: "reporting", slots: [], to_check: [] };
+        schedule();
+        for (let tries = 0; tries < 120 && !closed; tries += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          const view = await ctx.api.liveSession(session.id);
+          const found = view?.accuracy;
+          if (!found) {
+            // Nothing the candidate said could be judged: no report, no wait.
+            state.accuracy = null;
+            toast(t("live.accuracy_nothing"));
+            schedule();
+            return;
+          }
+          if (found.state !== "reporting") {
+            state.apply({ type: "accuracy", ...found });
+            schedule();
+            return;
+          }
+        }
+      } catch (error) {
+        toast(describeError(error), { error: true });
+        button.disabled = false;
+      }
     }
 
     let accuracyKey = null;

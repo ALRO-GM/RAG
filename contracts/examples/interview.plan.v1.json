@@ -155,5 +155,7 @@
         }
       ]
     }
-  ]
+  ],
+  "state": "open",
+  "closures": []
 }

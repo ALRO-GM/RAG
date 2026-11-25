@@ -70,6 +70,12 @@ class MemoryCandidates:
     def plans(self) -> List[str]:
         return sorted({plan for plan, _ in self.kept})
 
+    unreadable: List[str] = []
+
+    def ids(self, plan_id: str) -> List[str]:
+        return sorted([c for plan, c in self.kept if plan == plan_id]
+                      + self.unreadable)
+
     def delete(self, plan_id: str, candidate_id: str) -> bool:
         return self.kept.pop((plan_id, candidate_id), None) is not None
 

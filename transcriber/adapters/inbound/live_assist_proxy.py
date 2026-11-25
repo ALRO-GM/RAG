@@ -42,10 +42,12 @@ ALLOWED = re.compile(
     rf"^(?:products|transcripts|demos/{_ID}/(?:report|voicebot|voices)"
     rf"|demos/{_ID}/voices/[A-Za-z0-9][A-Za-z0-9._-]{{0,47}}\.wav"
     rf"|sessions|sessions/{_ID}|voicebot/sample"
-    rf"|sessions/{_ID}/(?:replay|stop|barge-in|mode|suggestions/stream"
+    rf"|sessions/{_ID}/(?:replay|stop|rejudge|barge-in|mode"
+    rf"|suggestions/stream"
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
     rf"|interview/plans|interview/plans/{_ID}"
-    rf"|interview/plans/{_ID}/results"
+    rf"|interview/plans/{_ID}/results|interview/plans/{_ID}/results/{_ID}"
+    rf"|interview/plans/{_ID}/(?:close|reopen)"
     rf"|interview/plans/{_ID}/candidates"
     rf"|interview/plans/{_ID}/candidates/{_ID}"
     rf"|interview/plans/{_ID}/candidates/{_ID}"
@@ -157,6 +159,11 @@ def add_live_assist_proxy(
         """Stop a session."""
         return await forward(f"sessions/{session_id}/stop", request)
 
+    @api.post("/assist/sessions/{session_id}/rejudge")
+    async def assist_rejudge(session_id: str, request: Request) -> Response:
+        """Judge an ended live round again (#262)."""
+        return await forward(f"sessions/{session_id}/rejudge", request)
+
     @api.post("/assist/sessions/{session_id}/barge-in")
     async def assist_barge_in(session_id: str, request: Request) -> Response:
         """The user spoke over the voice bot."""
@@ -220,6 +227,32 @@ def add_live_assist_proxy(
     ) -> Response:
         """The candidates interviewed from a plan."""
         return await forward(f"interview/plans/{plan_id}/results", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/results/{session_id}")
+    async def assist_plan_report(
+        plan_id: str, session_id: str, request: Request
+    ) -> Response:
+        """One stored interview report of a plan, in full (#262)."""
+        return await forward(
+            f"interview/plans/{plan_id}/results/{session_id}", request)
+
+    @api.delete("/assist/interview/plans/{plan_id}/results/{session_id}")
+    async def assist_delete_plan_report(
+        plan_id: str, session_id: str, request: Request
+    ) -> Response:
+        """Delete a stored report that belongs to no candidate's file."""
+        return await forward(
+            f"interview/plans/{plan_id}/results/{session_id}", request)
+
+    @api.post("/assist/interview/plans/{plan_id}/close")
+    async def assist_close_plan(plan_id: str, request: Request) -> Response:
+        """Close the position (no new interviews; nothing deleted)."""
+        return await forward(f"interview/plans/{plan_id}/close", request)
+
+    @api.post("/assist/interview/plans/{plan_id}/reopen")
+    async def assist_reopen_plan(plan_id: str, request: Request) -> Response:
+        """Open the position again."""
+        return await forward(f"interview/plans/{plan_id}/reopen", request)
 
     @api.get("/assist/interview/plans/{plan_id}/candidates")
     async def assist_candidates(plan_id: str, request: Request) -> Response:
