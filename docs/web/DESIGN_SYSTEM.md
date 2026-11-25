@@ -106,7 +106,7 @@ system → light → dark and remembers the choice in `localStorage`
 - **Shell** (`js/shell.js`, pure parts in `js/lib/shell.js`): sidebar
   (`<header class="top sidebar">`) split in two. On top, what a worker
   uses: Inicio (`#/`), Sesiones (`#/sessions`), En directo, Asistente de
-  voz. Below a rule, the **Administración** group (`.nav-admin`): Estado
+  voz, Ofertas (`#/offers`, #271). Below a rule, the **Administración** group (`.nav-admin`): Estado
   del servicio (`#/admin`), Ajustes, Registrar voz, Conocimiento, Pruebas,
   Estudio, Investigación (a `role="group"` labelled by its heading). No
   password of its own yet. `crumbsFor` builds the breadcrumbs of a route
@@ -202,6 +202,18 @@ Every page uses the shell.
   forward (open, resume, finish, or transcribe when there is no
   transcript); the description, notes and the other actions (describe,
   transcribe again, delete) sit under «Más opciones» (`splitActions`).
+- **Ofertas** (`#/offers`, `js/views/offers.js`, pure parts in
+  `js/lib/offers.js`; #271): the open positions as cards (closed ones on
+  request) and, per offer (`#/offers/<plan>`), a real `<table>` of the
+  people interviewed: caption, column headers whose sort is a button
+  with `aria-sort`, the person as a sticky row header, every state in
+  words (a tinted cell or the terracotta mark of a missing required
+  point always carries its word), search and filters as labelled native
+  controls, a `role="status"` line saying how many are shown and the
+  order, the state kept in the address. The table scrolls inside its
+  `.table-wrap` on a phone. The order is the server's draft figure
+  (`docs/live/VOICEBOT_INTERVIEWER.md` §6.4), shown with the draft notice
+  and «Cómo se ordena»; the page computes no figure itself.
 - **Administración** (`#/admin`, `js/views/admin.js`): the service status
   (the API's health check) and one card per set-up tool.
 - The rest: Grabar, Registrar voz, Conocimiento (`#/knowledge`), Ajustes

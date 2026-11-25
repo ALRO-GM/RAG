@@ -177,6 +177,12 @@ it. Not measured on real interviews.
   rounds, «Confirmar datos» when there are proposals; under «Más
   información» how each answer was obtained, a field to correct it and
   the deletion.
+- **From «Ofertas»** (#271). The offer's table links each person with a
+  file to `#/offers/<plan>/person/<id>`, the same block (answers,
+  reports, deletion) without going through a session
+  (`GET /interview/plans/{plan}/candidates/{id}`); all the interviews of
+  one file make one row of that table
+  (`docs/live/VOICEBOT_INTERVIEWER.md` §6.4).
 
 ## 5. The next round's plan and the talk balance
 
