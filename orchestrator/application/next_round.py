@@ -13,6 +13,17 @@ answer covers it by the cheap filler of the AI interviewer
 **revisit** in the next round: a prompt to come back to it, not a
 judgement of the answer. No model
 is called and nothing here rates the person.
+
+A slot with concepts (#258) is followed concept by concept: each
+candidate answer to it marks the concepts it names
+(:func:`~orchestrator.domain.interview_points.point_hits`: ``treated``,
+or ``unknown`` when they say they do not know it), and the slot is done
+when none is pending and at least one was treated. The topics message
+lists each slot's concepts with their status and marks the topic being
+asked (``current``); ``on_focus`` gets the line of the concepts still
+to treat of that topic (or ``None``) whenever it changes, for the
+suggestions' goal. "Treated" only means the candidate talked about
+the concept: a hint for the interviewer, never a judgement.
 """
 
 import re
@@ -21,9 +32,20 @@ from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 from orchestrator.application.ports import Document
 from orchestrator.domain.events import LiveEvent
-from orchestrator.domain.interview import InterviewPlan, Slot, fold
+from orchestrator.domain.interview import (
+    InterviewPlan,
+    SheetPoint,
+    Slot,
+    fold,
+)
 from orchestrator.domain.interview_agenda import heuristic_fill
-from orchestrator.domain.next_round import TopicState
+from orchestrator.domain.interview_points import (
+    pending,
+    point_hits,
+    points_status,
+    record_hit,
+)
+from orchestrator.domain.next_round import TopicState, focus_line
 
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
 _STOP = frozenset(
@@ -42,16 +64,17 @@ def keywords(text: str) -> Set[str]:
 def slot_asked(text: str, slots: Sequence[Slot]) -> Optional[Slot]:
     """The slot an interviewer's sentence asks about, if one clearly.
 
-    Two shared content words with the slot's label and questions (one
-    when the label has a single content word); the slot sharing most
-    wins, ties go to the plan's order.
+    Two shared content words with the slot's label, questions and
+    concepts (one when the label has a single content word); the slot
+    sharing most wins, ties go to the plan's order.
     """
     heard = keywords(text)
     best: Optional[Slot] = None
     best_n = 0
     for slot in slots:
         label = keywords(slot.label)
-        topic = label | keywords(" ".join(slot.questions))
+        topic = label | keywords(" ".join(
+            [*slot.questions, *(p.text for p in slot.points)]))
         shared = len(heard & topic)
         needed = 1 if len(label) == 1 and heard & label else 2
         if shared >= needed and shared > best_n:
@@ -67,6 +90,9 @@ class TopicTracker:
         states: The slots with what earlier rounds left of them.
         roles: Speaker id → role (the session's mapping).
         publish: Sends one feed message.
+        language: The language of the focus line.
+        on_focus: Told the focus line (:func:`focus_line`) when it
+            changes (``None``: nothing pending of the topic asked).
     """
 
     def __init__(
@@ -75,15 +101,24 @@ class TopicTracker:
         states: Sequence[TopicState],
         roles: Dict[str, str],
         publish: Callable[[Document], object],
+        language: str = "es",
+        on_focus: Optional[Callable[[Optional[str]], None]] = None,
     ):
         """Nothing asked yet."""
         self.plan = plan
         self.states = list(states)
         self.roles = roles
         self.publish = publish
+        self.language = language
+        self.on_focus = on_focus
         self.target: Optional[Slot] = None
         self.covered: Set[str] = set()
         self.touched: Set[str] = set()
+        self.points: Dict[str, List[SheetPoint]] = {
+            s.id: [SheetPoint(id=p.id, text=p.text) for p in s.points]
+            for s in plan.slots
+        }
+        self.focus: Optional[str] = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -101,20 +136,50 @@ class TopicTracker:
             if role == INTERVIEWER:
                 asked = slot_asked(u.text, self.plan.slots)
                 if asked is not None:
+                    changed = self.target is None or (
+                        asked.id != self.target.id)
                     self.target = asked
                     self.touched.add(asked.id)
             elif role == CANDIDATE and self.target is not None:
-                for fill in heuristic_fill(u.text, self.target,
-                                           self.plan.slots):
-                    if fill.slot != self.target.id:
-                        continue
-                    self.touched.add(fill.slot)
-                    if fill.status == "complete" and \
-                            fill.slot not in self.covered:
-                        self.covered.add(fill.slot)
-                        changed = True
+                changed = self._answer(self.target, u.id, u.text)
+            focus = self._focus()
+            moved = focus != self.focus
+            self.focus = focus
         if changed:
             self._publish()
+        if moved and self.on_focus is not None:
+            self.on_focus(focus)
+
+    def _answer(self, slot: Slot, utterance: str, text: str) -> bool:
+        """Take a candidate answer to ``slot``; tell whether it changed.
+
+        Called with the lock held.
+        """
+        states = self.points[slot.id]
+        if states:
+            changed = False
+            for hit in point_hits(text, slot.points):
+                self.touched.add(slot.id)
+                changed = record_hit(states, hit, utterance) or changed
+            if points_status(states) in ("filled", "partial") and \
+                    slot.id not in self.covered:
+                self.covered.add(slot.id)
+            return changed
+        for fill in heuristic_fill(text, slot, self.plan.slots):
+            if fill.slot != slot.id:
+                continue
+            self.touched.add(fill.slot)
+            if fill.status == "complete" and fill.slot not in self.covered:
+                self.covered.add(fill.slot)
+                return True
+        return False
+
+    def _focus(self) -> Optional[str]:
+        """The focus line of the topic being asked (lock held)."""
+        if self.target is None:
+            return None
+        names = [p.text for p in pending(self.points[self.target.id])]
+        return focus_line(self.target.label, names, self.language)
 
     def result(self) -> Tuple[List[str], List[str]]:
         """The covered slot ids and those to revisit, of this round."""
@@ -126,6 +191,14 @@ class TopicTracker:
         return covered, revisit
 
     def _publish(self) -> None:
-        self.publish({"type": "topics", "topics": [
-            t.to_topic(t.slot.id in self.covered) for t in self.states
-        ]})
+        """Send the topics with their concepts and the one being asked."""
+        with self._lock:
+            target = self.target.id if self.target else None
+            topics = [
+                t.to_topic(t.slot.id in self.covered,
+                           [p.model_copy() for p in self.points.get(
+                               t.slot.id, [])],
+                           t.slot.id == target)
+                for t in self.states
+            ]
+        self.publish({"type": "topics", "topics": topics})

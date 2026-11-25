@@ -12,11 +12,13 @@ from orchestrator.domain.interview import (
     COMPETENCIES,
     InterviewPlan,
     PlannerInfo,
+    POINT_CHARS,
     PlanSource,
     Sheet,
     SheetSlot,
     StaleRevision,
     counts,
+    draft_points,
     draft_slots,
     edited_plan,
     fallback_plan,
@@ -151,3 +153,66 @@ def test_contract_examples_validate(name: str, model: Any) -> None:
                          .read_text("utf-8"))
     jsonschema.validate(example, schema)
     assert model.model_validate(example).to_contract()["schema"] == name
+
+
+# ---- concepts per point (#258) ------------------------------------------
+
+def test_a_draft_s_points_are_cleaned_and_numbered() -> None:
+    assert draft_points(None) == []
+    found = draft_points([
+        " Tipos de pisada. ", "tipos de pisada", {"text": "Amortiguación"},
+        "", 7, {"label": "sin texto"}, "Edad del cliente habitual",
+        "x" * 200, "Talla", "Plantillas", "Calcetines", "Sobra",
+    ])
+    assert [p.id for p in found] == ["p1", "p2", "p3", "p4", "p5", "p6"]
+    assert [p.text for p in found][:2] == ["Tipos de pisada", "Amortiguación"]
+    assert found[2].text == "x" * POINT_CHARS
+    assert all("Edad" not in p.text for p in found)
+    plan = make([item("Material de running", "deseable",
+                      points=["Tipos de pisada", "Drop"]), item("Caja")])
+    assert [p.text for p in plan.slots[0].points] == ["Tipos de pisada",
+                                                      "Drop"]
+    assert plan.slots[1].points == []
+
+
+def test_an_old_plan_without_points_still_loads() -> None:
+    document = json.loads((ROOT / "contracts" / "examples"
+                           / "interview.plan.v1.json").read_text("utf-8"))
+    for slot in document["slots"]:
+        slot.pop("points", None)
+    plan = InterviewPlan.model_validate(document)
+    assert all(s.points == [] for s in plan.slots)
+    sheet = SheetSlot(id="s1", label="a", level="minimo")
+    assert sheet.points == []
+
+
+def test_the_fallback_plan_has_generic_points() -> None:
+    plan = fallback_plan("p", "Puesto", PlanSource(), 20, "es", NOW)
+    assert [p.text for p in plan.slots[0].points] == [
+        "Dónde trabajó y en qué puesto", "Cuánto tiempo", "Tareas que hacía"]
+    competencies = [s for s in plan.slots if s.kind == "competency"]
+    assert competencies and all(
+        [p.text for p in s.points] == ["Situación concreta",
+                                       "Lo que hizo él o ella", "Resultado"]
+        for s in competencies)
+
+
+def test_an_edit_keeps_points_and_refuses_protected_or_repeated() -> None:
+    plan = make([item("Material de running", points=["Drop"])])
+    document = plan.to_contract()
+    document["slots"][0]["points"] = [{"id": "p1", "text": "Drop"},
+                                      {"id": "p2", "text": "Talla"}]
+    edited = edited_plan(plan, document, NOW)
+    assert [p.text for p in edited.slots[0].points] == ["Drop", "Talla"]
+    document = edited.to_contract()
+    document["slots"][0]["points"].append({"id": "p3",
+                                           "text": "Planes familiares"})
+    with pytest.raises(ValueError, match="protected"):
+        edited_plan(edited, document, NOW)
+    document["slots"][0]["points"][2] = {"id": "p1", "text": "Otra"}
+    with pytest.raises(ValueError, match="unique"):
+        edited_plan(edited, document, NOW)
+    document["slots"][0]["points"] = [
+        {"id": f"p{i}", "text": f"c{i}"} for i in range(1, 8)]
+    with pytest.raises(ValueError):
+        edited_plan(edited, document, NOW)

@@ -122,6 +122,7 @@ from orchestrator.domain.next_round import (
     focus_goal,
     reordered,
     topic_states,
+    with_focus,
 )
 from orchestrator.domain.config import InterviewSection, ProductConfig, Tts
 from orchestrator.domain.demo import with_partials
@@ -268,6 +269,15 @@ class _Handler:
         self.session.feed.publish(
             {"type": "event", "event": event.to_contract()}
         )
+        if self.session.topics is not None:
+            # First, so the suggestion this answer asks for already
+            # knows the concepts it treated (#258); its failure never
+            # keeps the event from the other use cases.
+            try:
+                self.session.topics.on_event(event)
+            except Exception:  # noqa: BLE001 - logged, the call goes on
+                LOG.exception("topics: event %s not followed",
+                              event.seq)
         self.assist.on_event(event)
         if self.session.tracker is not None:
             self.session.tracker.on_event(event)
@@ -275,8 +285,6 @@ class _Handler:
             self.session.avoid.on_event(event)
         if self.session.core is not None:
             self.session.core.on_event(event)
-        if self.session.topics is not None:
-            self.session.topics.on_event(event)
 
     def finish(self) -> None:
         """Wait for the call and the checks in flight."""
@@ -836,6 +844,7 @@ class LiveSessions:
             raise SessionError("transcriber", str(exc)) from exc
         assist = early if early is not None else self._assist(
             session, self._about(session))
+        self._follow_concepts(session, assist)
         session.feed.publish({"type": "transcriber", "session": started})
         handler = _Handler(session, assist)
         source = self.events
@@ -1155,11 +1164,37 @@ class LiveSessions:
             return
         states = topic_states(plan, profile.rounds)
         session.topics = TopicTracker(plan, states, session.roles,
-                                      session.feed.publish)
+                                      session.feed.publish,
+                                      session.product.language)
         session.topics.start()
         goal = focus_goal(plan.title, states, len(profile.rounds),
                           session.product.language)
         session.goal = goal
+
+    @staticmethod
+    def _follow_concepts(session: _Session, assist: _Assistant) -> None:
+        """Give the suggestions the concepts still to treat (#258).
+
+        The concepts of the topic being asked that are still pending go
+        into the goal of the suggester's next requests (its existing
+        call: no extra model call). The request's session is replaced
+        whole, never changed in place, as a call may be reading it.
+        """
+        topics = session.topics
+        if topics is None or not isinstance(assist, LiveAssist):
+            return
+        base = session.goal
+
+        def on_focus(line: Optional[str]) -> None:
+            goal = with_focus(base, line)
+            about = dict(assist.session)
+            if goal:
+                about.update({"type": "entrevista", "goal": goal})
+            else:
+                about.pop("goal", None)
+            assist.session = about
+
+        topics.on_focus = on_focus
 
     @staticmethod
     def _about(session: _Session) -> Dict[str, Optional[str]]:

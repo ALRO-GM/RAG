@@ -394,3 +394,58 @@ def test_spoken_template_v2_keeps_v1_and_never_mentions_fragments() -> None:
     reply = '{"text": "Abrimos a las nueve.", "cites": ["kb:1"]}'
     parsed = v2.parse(reply, req)
     assert parsed.reply is not None and parsed.reply.cites == ["kb:1"]
+
+
+# ---- concepts per point (#258) ------------------------------------------
+
+def test_the_planner_v2_asks_for_points_and_v1_stays_as_it_was() -> None:
+    model = FakeChatModel(['{"slots": []}', '{"slots": []}'])
+    r = reasoner(model)
+    for template in ("interview.planner@1", "interview.planner@2"):
+        r.reason(interview_request(template, offer="Oferta de dependiente",
+                                   minutes=20, competencies=[]))
+    (v1, user1, cap1), (v2, user2, cap2) = model.calls
+    assert "points" not in v1 and '"weight": 3}]}' in v1
+    assert '"points": ["short concrete concept"]' in v2
+    assert "tipos de pisada" in v2 and "Never a concept about" in v2
+    assert v2.endswith("No other field, no explanation.")
+    assert user1 == user2 and (cap1, cap2) == (2400, 3200)
+
+
+def test_the_slot_filler_v2_lists_each_slot_s_concepts() -> None:
+    model = FakeChatModel(['{"slots": []}'])
+    reasoner(model).reason(interview_request(
+        "interview.slots@2", slots=[
+            {"id": "s1", "label": "Running", "evidence": "-",
+             "points": [{"id": "p1", "text": "Tipos de pisada"}, "junk"]},
+            {"id": "s2", "label": "Caja", "points": "nope"}, 5],
+        target="s1", question="¿Zapatillas?", answer="Sé de pisada"))
+    system, user, cap = model.calls[0]
+    assert "treated|unknown" in system and "do not know it" in system
+    assert "Do not judge how good or correct" in system
+    assert "[s1] Running — evidence: -\n  concept [p1] Tipos de pisada" \
+        in user
+    assert "[s2] Caja" in user and "Asked about: s1" in user
+    assert cap == 800
+
+
+def test_the_interviewer_v2_names_the_concepts_of_the_step() -> None:
+    model = FakeChatModel(['{"text": "Me has hablado de A. ¿Y de B?"}'] * 2)
+    r = reasoner(model)
+    out = r.reason(request(
+        "conversational", template="interviewer@2", payload={
+            "title": "Dependiente", "action": "probe", "topic": "Running",
+            "missing": "lo que aún no ha mencionado: B y C",
+            "treated_points": ["Tipos de pisada", 4],
+            "pending_points": ["Drop", "Talla", "Plantillas", "Extra"]}))
+    assert out.reply is not None
+    system, user, cap = model.calls[0]
+    assert "Me has hablado de A. ¿Y de B y C?" in system
+    assert "Never say they are missing" in system and cap == 160
+    assert "Concepts already mentioned: Tipos de pisada\n" in user
+    assert "Concepts to ask about now: Drop | Talla | Plantillas\n" in user
+    assert user.index("Concepts to ask") < user.index("Knowledge:")
+    r.reason(request("conversational", template="interviewer@2",
+                     payload={"action": "ask", "topic": "Caja"}))
+    assert "Concepts" not in model.calls[1][1]
+    assert model.calls[1][0] == system  # one warm pool for every step

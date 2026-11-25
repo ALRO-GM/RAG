@@ -6,7 +6,7 @@ vad: {model: silero-v5, hang_ms: 700}
 asr: {kind: stream, model: faster-whisper-large-v3-turbo-int8, partial_every_ms: 800}
 attribution: {kind: single_speaker}
 knowledge: {domains: [interview.generic], top_k: 3}
-reasoner: {role: conversational, model: haiku, template: "interviewer@1", deadline_ms: 4000, max_inflight: 1}
+reasoner: {role: conversational, model: haiku, template: "interviewer@2", deadline_ms: 4000, max_inflight: 1}
 trigger: {on: final, speaker_roles: [candidate], min_words: 1, debounce_ms: 0, cancel_stale: true}
 tts: {kind: piper, voice: es_ES-davefx-medium, engine: pocket, pocket_voice: lola}
 ui: {kind: speaker}

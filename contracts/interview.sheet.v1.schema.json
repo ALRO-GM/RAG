@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "interview.sheet.v1",
   "title": "Slot sheet of one AI interview (#208)",
-  "description": "The plan's slots after the interview: status (filled, partial, empty, skipped, unknown = \"no lo conoce\"), the candidate's answers with transcript utterance ids and quotes, a 0-100 score relative to what the offer requires with the scorer's confidence, the weighted suitability and other useful skills. A draft for the recruiter, never shown to the candidate. Producer: orchestrator (data/interview/results).",
+  "description": "The plan's slots after the interview: status (filled, partial, empty, skipped, unknown = \"no lo conoce\"), the candidate's answers with transcript utterance ids and quotes, a 0-100 score relative to what the offer requires with the scorer's confidence, the weighted suitability and other useful skills; added compatibly (#258), per point of a slot whether the candidate talked about it (treated, pending, unknown = said they do not know it) with the quote and utterance that settled it, a hint and not a judgement of the answer. A draft for the recruiter, never shown to the candidate. Producer: orchestrator (data/interview/results).",
   "$defs": {
     "Answer": {
       "additionalProperties": false,
@@ -55,6 +55,54 @@
         "label"
       ],
       "title": "OtherSkill",
+      "type": "object"
+    },
+    "SheetPoint": {
+      "additionalProperties": false,
+      "description": "One concept of a slot after the interview (#258).\n\n``treated``: the candidate talked about it (not how well: that is\nnot judged here); ``pending``: not yet; ``unknown``: they said they\ndo not know it. ``quote`` and ``utterance`` are the words that\nsettled it.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "treated",
+            "pending",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "quote": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Quote",
+          "type": "string"
+        },
+        "utterance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Utterance"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "SheetPoint",
       "type": "object"
     },
     "SheetSlot": {
@@ -178,6 +226,13 @@
           ],
           "default": null,
           "title": "Scored By"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/SheetPoint"
+          },
+          "title": "Points",
+          "type": "array"
         }
       },
       "required": [

@@ -24,7 +24,12 @@ from orchestrator.application.ports import (
     ReasonerUnavailable,
 )
 from orchestrator.domain.config import InterviewSection
-from orchestrator.domain.interview import InterviewPlan, SheetSlot, Slot
+from orchestrator.domain.interview import (
+    InterviewPlan,
+    Point,
+    SheetSlot,
+    Slot,
+)
 from orchestrator.domain.records import TriggerInfo, TurnRecord
 
 NOW = datetime(2026, 11, 21, 10, 0, 0)
@@ -133,7 +138,7 @@ def test_the_planner_drafts_a_plan_from_pasted_text() -> None:
     assert labels[0].startswith("Experiencia de un año")
     request = reasoner.requests[0]
     assert request["role"] == "structured"
-    assert request["template"] == "interview.planner@1"
+    assert request["template"] == "interview.planner@2"
     assert len(request["payload"]["competencies"]) == 11
 
 
@@ -382,3 +387,112 @@ def test_reask_and_hint_turns_do_not_move_the_agenda() -> None:
     out: Output = boss.output  # type: ignore[assignment]
     assert [m["action"] for m in out.messages
             if m["type"] == "coverage"][-2:] == ["reask", "hint"]
+
+
+# ---- concepts per point (#258) ------------------------------------------
+
+def running() -> Slot:
+    return Slot(id="s1", label="Material de running", level="minimo",
+                questions=["¿Qué sabes de zapatillas de running?"],
+                points=[Point(id="p1", text="Tipos de pisada"),
+                        Point(id="p2", text="Amortiguación y drop"),
+                        Point(id="p3", text="Cómo elegir la talla")])
+
+
+def test_read_fills_reads_the_points_of_each_slot() -> None:
+    text = "Sé de pisada pronadora, el drop no lo controlo"
+    found = read_fills({"slots": [
+        {"id": "s1", "status": "partial", "quote": "pisada pronadora",
+         "points": [
+             {"id": "p1", "status": "treated", "quote": "pisada pronadora"},
+             {"id": "p2", "status": "unknown", "quote": "inventado"},
+             {"id": "p1", "status": "treated", "quote": "again"},
+             {"id": "p9", "status": "treated"},
+             {"id": "p3", "status": "pending"}, "junk"]},
+        {"id": "s2", "points": [{"id": "p1", "status": "treated"}]},
+        {"id": "s3", "points": "nope"},
+    ]}, text, {"s1", "s2", "s3"},
+        {"s1": {"p1", "p2", "p3"}, "s2": {"p1"}})
+    assert [(f.slot, f.status) for f in found] == [("s1", "partial"),
+                                                   ("s2", "partial")]
+    assert [(h.point, h.status) for h in found[0].points] == [
+        ("p1", "treated"), ("p2", "unknown")]
+    assert found[0].points[1].quote.startswith("Sé de pisada")
+    assert read_fills({"slots": [{"id": "s1", "status": "partial",
+                                  "points": [{"id": "p1",
+                                              "status": "treated"}]}]},
+                      text, {"s1"})[0].points == ()
+
+
+class Replies:
+    """A reasoner that answers the filler with fixed data."""
+
+    def __init__(self, data: Document) -> None:
+        self.data = data
+        self.requests: List[Document] = []
+
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        self.requests.append(request)
+        return {"status": "ok", "data": self.data}
+
+
+def test_the_reasoner_filler_sends_the_points_and_fills_the_gap() -> None:
+    target = running()
+    answer = "Conozco los tipos de pisada y sé elegir bien la talla."
+    told = Replies({"slots": [{"id": "s1", "status": "partial",
+                               "quote": "tipos de pisada", "points": [
+                                   {"id": "p1", "status": "treated"}]}]})
+    found = ReasonerFiller(told).fill(answer, target, [target], "",
+                                      CancelToken())
+    sent = told.requests[0]
+    assert sent["template"] == "interview.slots@2"
+    assert sent["payload"]["slots"][0]["points"][2] == {
+        "id": "p3", "text": "Cómo elegir la talla"}
+    assert [h.point for h in found[0].points] == ["p1"]  # the model decides
+    silent = Replies({"slots": [{"id": "s1", "status": "partial",
+                                 "quote": "tipos de pisada"}]})
+    found = ReasonerFiller(silent).fill(answer, target, [target], "",
+                                        CancelToken())
+    assert [h.point for h in found[0].points] == ["p1", "p3"]  # the rules
+    nothing = Replies({"slots": []})  # the model: it covers no slot
+    assert ReasonerFiller(nothing).fill(answer, target, [target], "",
+                                        CancelToken()) == []
+    plain = Replies({"slots": []})
+    assert ReasonerFiller(plain).fill("Nada que ver", target, [target], "",
+                                      CancelToken()) == []
+
+
+def test_the_interviewer_is_told_the_points_and_the_sheet_keeps_them() -> None:
+    store, handoff = Store(), Handoff()
+    plan = InterviewPlan(id="plan-1", title="Dependiente/a",
+                         slots=[running()])
+    reasoner = FakeReasoner()
+    boss = InterviewDirector(
+        plan, "vb-1", InterviewSection(max_probes=1), HeuristicFiller(),
+        reasoner, Output(), Clock(), store, handoff, False, "Ana",
+        now=lambda: NOW)
+    boss.plan_turn("", None, CancelToken())
+    boss.spoken(record("Hola. ¿Qué sabes de zapatillas de running?", 1))
+    answer = "Sé distinguir los tipos de pisada de cada cliente."
+    boss.heard("u1", answer, 3.0, 6.0)
+    probe = boss.plan_turn(answer, "u1", CancelToken())
+    assert probe.payload["action"] == "probe"
+    assert probe.payload["pending_points"] == ["Amortiguación y drop",
+                                               "Cómo elegir la talla"]
+    assert probe.payload["treated_points"] == ["Tipos de pisada"]
+    coverage = boss.output.messages[-1]["coverage"]  # type: ignore
+    assert [p["status"] for p in coverage["slots"][0]["points"]] == [
+        "treated", "pending", "pending"]
+    boss.spoken(record("Me has hablado de pisada. ¿Y del drop y la talla?",
+                       2))
+    more = "El drop no lo conozco."
+    boss.heard("u2", more, 9.0, 10.0)
+    boss.plan_turn(more, "u2", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    points = result["sheet"]["slots"][0]["points"]
+    assert [p["status"] for p in points] == ["treated", "unknown", "pending"]
+    ids = {u["text"]: u["id"] for u in handoff.transcripts[0]["utterances"]}
+    assert points[0]["utterance"] == ids[answer]
+    assert points[1]["utterance"] == ids[more]
+    assert points[2]["utterance"] is None

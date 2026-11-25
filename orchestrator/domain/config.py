@@ -187,10 +187,10 @@ class InterviewSection(_Strict):
     corpus: str = "interview.generic"
     corpus_top_k: int = Field(default=6, ge=1, le=10)
     planner_template: str = Field(
-        default="interview.planner@1", pattern=r"^[a-z_.]+@[0-9]+$"
+        default="interview.planner@2", pattern=r"^[a-z_.]+@[0-9]+$"
     )
     filler_template: str = Field(
-        default="interview.slots@1", pattern=r"^[a-z_.]+@[0-9]+$"
+        default="interview.slots@2", pattern=r"^[a-z_.]+@[0-9]+$"
     )
     report_template: str = Field(
         default="interview.report@1", pattern=r"^[a-z_.]+@[0-9]+$"

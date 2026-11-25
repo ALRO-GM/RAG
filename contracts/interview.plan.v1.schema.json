@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "interview.plan.v1",
   "title": "Interview plan of an AI interview (#208)",
-  "description": "What an AI job interview has to cover: slots made from a job offer (requirements and rubric competencies) with question ideas, the evidence wanted, a level (minimo/deseable/opcional) and an importance weight 1-5. Drafted by interview.planner@1, edited by the recruiter (revision grows by one per save). Producer: orchestrator (data/interview/plans). See docs/live/VOICEBOT_INTERVIEWER.md.",
+  "description": "What an AI job interview has to cover: slots made from a job offer (requirements and rubric competencies) with question ideas, the evidence wanted, a level (minimo/deseable/opcional), an importance weight 1-5 and, added compatibly (#258), 0-6 concrete points (concepts) a complete answer talks about. Drafted by interview.planner@1 or @2 (with points), edited by the recruiter (revision grows by one per save). Producer: orchestrator (data/interview/plans). See docs/live/VOICEBOT_INTERVIEWER.md.",
   "$defs": {
     "PlanSource": {
       "additionalProperties": false,
@@ -118,6 +118,29 @@
       "title": "PlannerInfo",
       "type": "object"
     },
+    "Point": {
+      "additionalProperties": false,
+      "description": "A concrete concept a complete answer to a slot talks about (#258).\n\nFor a knowledge, technical or requirement slot, what a person who\nknows the topic would mention («tipos de pisada»); for a\ncompetency slot, a part of a complete example (situation, own\naction, result) or what is specific to this job.",
+      "properties": {
+        "id": {
+          "pattern": "^p[0-9]{1,2}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
     "Slot": {
       "additionalProperties": false,
       "description": "One thing the interview must, should or may find out.",
@@ -195,6 +218,14 @@
           "minimum": 1,
           "title": "Weight",
           "type": "integer"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "maxItems": 6,
+          "title": "Points",
+          "type": "array"
         }
       },
       "required": [

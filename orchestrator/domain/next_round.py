@@ -19,6 +19,11 @@ AI interviewer from its sheet; a live-page round is read by
 :class:`~orchestrator.application.next_round.TopicTracker`. Nothing here
 rates the person: the states say what is still to ask.
 
+During a live round, :func:`focus_line` words the concepts of the topic
+being asked that are still to be treated (#258) and :func:`with_focus`
+adds them to the goal the suggestions get, so the existing suggester
+call steers to them without one more model call.
+
 Plain data and functions: no I/O.
 """
 
@@ -26,7 +31,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from orchestrator.domain.candidate import Round
-from orchestrator.domain.interview import InterviewPlan, Slot
+from orchestrator.domain.interview import InterviewPlan, SheetPoint, Slot
+from orchestrator.domain.interview_points import join_words
 
 Earlier = Literal["weak", "revisit", "open", "covered"]
 ORDER: Tuple[Earlier, ...] = ("weak", "revisit", "open", "covered")
@@ -42,10 +48,27 @@ class TopicState:
     slot: Slot
     earlier: Earlier
 
-    def to_topic(self, done: bool = False) -> Dict[str, Any]:
-        """The topic chip of the live page (``{"type": "topics"}``)."""
-        return {"id": self.slot.id, "name": self.slot.label, "done": done,
-                "earlier": self.earlier, "level": self.slot.level}
+    def to_topic(
+        self, done: bool = False,
+        points: Optional[Sequence[SheetPoint]] = None,
+        current: bool = False,
+    ) -> Dict[str, Any]:
+        """The topic chip of the live page (``{"type": "topics"}``).
+
+        A slot with concepts (#258) lists them with their status in this
+        round (``treated``, ``pending``, ``unknown``); ``current`` marks
+        the topic being asked.
+        """
+        topic: Dict[str, Any] = {
+            "id": self.slot.id, "name": self.slot.label, "done": done,
+            "earlier": self.earlier, "level": self.slot.level,
+        }
+        if points:
+            topic["points"] = [{"id": p.id, "text": p.text,
+                                "status": p.status} for p in points]
+        if current:
+            topic["current"] = True
+        return topic
 
 
 def round_from_sheet(
@@ -142,3 +165,38 @@ def focus_goal(
     if len(goal) > GOAL_CHARS:
         goal = goal[:GOAL_CHARS - 1].rsplit(" ", 1)[0] + "…"
     return goal
+
+
+def focus_line(
+    label: str, pending: Sequence[str], language: str = "es"
+) -> Optional[str]:
+    """The topic being asked and its concepts still to treat, or ``None``.
+
+    ``None`` when nothing of it is pending (no concepts, or all treated).
+    """
+    if not pending:
+        return None
+    if language[:2] == "en":
+        return (f"Topic being asked: «{label}»; concepts not treated yet: "
+                f"{join_words(pending, language)}.")
+    return (f"Tema en curso: «{label}»; conceptos aún sin tratar: "
+            f"{join_words(pending, language)}.")
+
+
+def with_focus(goal: Optional[str], line: Optional[str]) -> Optional[str]:
+    """The round's goal followed by the focus line, within the limit.
+
+    The focus line is kept whole; the goal is cut first when both do
+    not fit in :data:`GOAL_CHARS`.
+    """
+    if not line:
+        return goal
+    line = line[:GOAL_CHARS]
+    if not goal:
+        return line
+    room = GOAL_CHARS - len(line) - 1
+    if room < 20:
+        return line
+    if len(goal) > room:
+        goal = goal[:room - 1].rsplit(" ", 1)[0] + "…"
+    return f"{goal} {line}"

@@ -3,14 +3,16 @@
 * :class:`InterviewPlanner` turns a job offer (pasted text, or a
   document uploaded to a knowledge domain) and the interview-method
   corpus (``interview.generic``) into an ``interview.plan.v1`` with the
-  ``structured`` reasoner (template ``interview.planner@1``), keeps the
+  ``structured`` reasoner (template ``interview.planner@2``, which also
+  gives each slot its concrete points, #258), keeps the
   plans, takes the recruiter's edits and lists the candidates
   interviewed for one plan (the comparison view).
 * :class:`InterviewDirector` drives one interview: the voice bot asks
   it what each turn must do. After every candidate final the **slot
-  filler** (``interview.slots@1`` on the reasoner, or
+  filler** (``interview.slots@2`` on the reasoner, or
   :func:`~orchestrator.domain.interview_agenda.heuristic_fill`) says
-  which slots the answer covers; the
+  which slots the answer covers and which of their points it treats;
+  the
   :class:`~orchestrator.domain.interview_agenda.Agenda` decides the next
   step; the coverage goes to the page (``{"type": "coverage"}``). When
   the session ends it scores the slots against the offer
@@ -68,6 +70,7 @@ from orchestrator.domain.interview_agenda import (
     heuristic_fill,
     quote,
 )
+from orchestrator.domain.interview_points import PointHit, point_hits
 from orchestrator.domain.interview_transcript import (
     BOT_ID,
     CANDIDATE_ID,
@@ -432,10 +435,15 @@ class HeuristicFiller:
 
 
 class ReasonerFiller:
-    """The slot filler on the reasoner (``interview.slots@1``).
+    """The slot filler on the reasoner (``interview.slots@2``).
 
     A failed call falls back to the heuristic for that answer and is
-    counted in ``fallbacks``.
+    counted in ``fallbacks``. When the reply gives the slot asked but no
+    ``points`` field for it (an ``@1`` template, or the model left the
+    field out), the rules of
+    :func:`~orchestrator.domain.interview_points.point_hits` say which
+    of its points the answer treats. When the reply leaves the slot out
+    ("covers none"), the model's word stands: no rule adds it back.
 
     Args:
         reasoner: The reasoner port.
@@ -447,7 +455,7 @@ class ReasonerFiller:
     name = "haiku"
 
     def __init__(
-        self, reasoner: ReasonerPort, template: str = "interview.slots@1",
+        self, reasoner: ReasonerPort, template: str = "interview.slots@2",
         model: str = "haiku", language: str = "es",
     ):
         """Keep the port."""
@@ -472,7 +480,9 @@ class ReasonerFiller:
             "context": {"window": []},
             "payload": {
                 "slots": [{"id": s.id, "label": s.label,
-                           "evidence": s.evidence} for s in slots],
+                           "evidence": s.evidence,
+                           **({"points": [p.model_dump() for p in s.points]}
+                              if s.points else {})} for s in slots],
                 "target": target.id if target else "",
                 "question": question[:600], "answer": text[:2000],
             },
@@ -485,16 +495,47 @@ class ReasonerFiller:
         if data is None:
             self.fallbacks += 1
             return heuristic_fill(text, target, slots)
-        return read_fills(data, text, {s.id for s in slots})
+        fills = read_fills(data, text, {s.id for s in slots},
+                           {s.id: {p.id for p in s.points} for s in slots})
+        if target is None or not target.points or _has_points(data,
+                                                              target.id):
+            return fills
+        hits = tuple(point_hits(text, target.points))
+        return [f if f.slot != target.id or not hits else Fill(
+            f.slot, f.status, f.quote, hits) for f in fills]
+
+
+def _has_points(data: Dict[str, Any], sid: str) -> bool:
+    """Whether the reply leaves the rules nothing to add for a slot.
+
+    True when it gives the slot's ``points`` list, and when it leaves
+    the slot out (the model said the answer does not cover it).
+    """
+    items = data.get("slots")
+    given = [item for item in (items if isinstance(items, list) else [])
+             if isinstance(item, dict) and item.get("id") == sid]
+    return not given or any(isinstance(item.get("points"), list)
+                            for item in given)
+
+
+def _said(value: object, text: str, plain: str) -> str:
+    """The model's quote when it is the candidate's words, else theirs."""
+    said = " ".join(str(value or "").split())
+    if not said or said.lower().strip(" .…\"'«»") not in plain:
+        said = quote(text)
+    return said[:QUOTE_CHARS]
 
 
 def read_fills(
-    data: Dict[str, Any], text: str, known: "set[str]"
+    data: Dict[str, Any], text: str, known: "set[str]",
+    points: Optional[Dict[str, Set[str]]] = None,
 ) -> List[Fill]:
     """Read the filler's JSON: known slot ids, valid status, real quote.
 
     A quote that is not the candidate's words is replaced by the
-    answer's first words.
+    answer's first words. Each slot's ``points`` (#258) keep only the
+    ids of ``points[slot]`` with status ``treated`` or ``unknown``; a
+    slot given only points (no status) counts as ``partial``.
     """
     found: List[Fill] = []
     items = data.get("slots")
@@ -503,14 +544,35 @@ def read_fills(
         if not isinstance(item, dict):
             continue
         sid = str(item.get("id") or "")
+        hits = _point_hits(item.get("points"),
+                           (points or {}).get(sid, set()), text, plain)
         status = item.get("status")
+        if hits and status not in ("complete", "partial"):
+            status = "partial"
         if sid not in known or status not in ("complete", "partial"):
             continue
-        said = " ".join(str(item.get("quote") or "").split())
-        if not said or said.lower().strip(" .…\"'«»") not in plain:
-            said = quote(text)
-        found.append(Fill(sid, status, said[:QUOTE_CHARS]))
+        found.append(Fill(sid, status, _said(item.get("quote"), text, plain),
+                          hits))
     return found
+
+
+def _point_hits(
+    raw: object, known: Set[str], text: str, plain: str
+) -> Tuple[PointHit, ...]:
+    """Read one slot's ``points`` of the filler's JSON (known ids only)."""
+    hits: List[PointHit] = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict):
+            continue
+        pid = str(item.get("id") or "")
+        status = item.get("status")
+        if pid not in known or status not in ("treated", "unknown") or any(
+            h.point == pid for h in hits
+        ):
+            continue
+        hits.append(PointHit(pid, status,
+                             _said(item.get("quote"), text, plain)))
+    return tuple(hits)
 
 
 # ---- the scorer --------------------------------------------------------
@@ -900,6 +962,9 @@ class InterviewDirector:
             })
         if step.missing:
             payload["missing"] = step.missing
+        if step.points:
+            payload["pending_points"] = list(step.points)
+            payload["treated_points"] = list(step.treated)
         return payload
 
     def coverage(self) -> Document:
@@ -1010,11 +1075,16 @@ class InterviewDirector:
 
 
 def _with_refs(sheet: Sheet, refs: Dict[str, str]) -> Sheet:
-    """Point the sheet's answers at the transcript's utterance ids."""
+    """Point the sheet's answers and points at the transcript's ids."""
     slots = []
     for slot in sheet.slots:
         answers = [a.model_copy(update={
             "utterance": refs.get(a.utterance, a.utterance)
         }) for a in slot.answers]
-        slots.append(slot.model_copy(update={"answers": answers}))
+        points = [p.model_copy(update={
+            "utterance": refs.get(p.utterance, p.utterance)
+            if p.utterance else None
+        }) for p in slot.points]
+        slots.append(slot.model_copy(update={"answers": answers,
+                                             "points": points}))
     return sheet.model_copy(update={"slots": slots})

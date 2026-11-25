@@ -2,6 +2,9 @@
 // docs/live/VOICEBOT_INTERVIEWER.md): the job offer and the plan review
 // before the interview, the live coverage panel for the recruiter, the
 // visual report after it and the comparison of the candidates of one offer.
+// Each point can carry its concepts (#258): edited one per line in the
+// review, shown treated / not yet / does not know it in the coverage and
+// the report (an icon and a word, never the colour alone).
 // The state and the figures live in lib/interview.js; this module draws them.
 // Scores are for the recruiter only: the bot never says them.
 
@@ -9,9 +12,9 @@ import { h, fill } from "../dom.js";
 import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  COMPETENCIES, LEVELS, MAX_MINUTES, MIN_MINUTES, MIN_OFFER, ROLE_TYPES,
+  COMPETENCIES, LEVELS, MAX_MINUTES, MAX_POINTS, MIN_MINUTES, MIN_OFFER, ROLE_TYPES,
   addSlot, clonePlan, comparisonRows, editSlot, planCounts, planErrors, planForSave,
-  removeSlot, reportFigures, scoreClass, setEssential,
+  pointCounts, removeSlot, reportFigures, scoreClass, setEssential,
 } from "../lib/interview.js";
 import { icon, toast } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
@@ -44,6 +47,32 @@ function statusBadge(status) {
 
 function levelTag(level) {
   return h("span", { class: `tag iv-level is-${level}` }, t(`iv.level.${level}`));
+}
+
+/** A concept's sign: the check icon, an empty ring or a question mark (decoration; the word says it). */
+export function pointMark(status) {
+  if (status === "treated") return h("span", { class: "iv-point-mark", "aria-hidden": "true" }, icon("check"));
+  if (status === "unknown") return h("span", { class: "iv-point-mark", "aria-hidden": "true" }, "?");
+  return h("span", { class: "iv-point-mark", "aria-hidden": "true" }, h("span", { class: "lv-ring" }));
+}
+
+/**
+ * A slot's concepts, each with a mark and its status in words (#258);
+ * `quotes` adds the words that settled each one. Null when it has none.
+ */
+export function pointList(points, { quotes = false } = {}) {
+  if (!points?.length) return null;
+  const counts = pointCounts(points);
+  return h("div", { class: "iv-points" },
+    h("p", { class: "meta" }, t("iv.points_line", { done: counts.treated, all: counts.total })),
+    h("ul", { class: "iv-point-list" }, points.map((p) => {
+      const status = p.status ?? "pending";
+      return h("li", { class: `iv-point is-${status}` },
+        pointMark(status),
+        h("span", { class: "iv-point-text" }, p.text),
+        " ", h("span", { class: "iv-point-status" }, t(`iv.point.${status}`)),
+        quotes && p.quote && status !== "pending" ? [" ", h("q", {}, p.quote)] : null);
+    })));
 }
 
 // ---- before: the offer and the plan ------------------------------------------
@@ -244,6 +273,12 @@ export function planSetup(ctx, { onReady }) {
     questions.addEventListener("change", () => { editSlot(plan, slot.id, { questions: questions.value.split("\n") }); drawReview(); });
     const evidence = h("input", { id: `${key}-ev`, type: "text", value: slot.evidence ?? "", maxLength: 300, "aria-label": t("iv.evidence") });
     evidence.addEventListener("change", () => { editSlot(plan, slot.id, { evidence: evidence.value }); drawReview(); });
+    const points = h("textarea", {
+      id: `${key}-pts`, rows: Math.max(2, Math.min(MAX_POINTS, (slot.points ?? []).length + 1)),
+      value: (slot.points ?? []).map((p) => p.text).join("\n"), "aria-label": t("iv.points"),
+      "aria-describedby": `${key}-pts-hint`,
+    });
+    points.addEventListener("change", () => { editSlot(plan, slot.id, { points: points.value.split("\n") }); drawReview(); });
     const remove = h("button", { type: "button", class: "ghost", "aria-label": t("iv.remove"), onClick: () => { removeSlot(plan, slot.id); drawReview(); } }, icon("trash"));
     return h("li", { class: `iv-slot is-${slot.level}` },
       h("div", { class: "row wrap iv-slot-head" },
@@ -254,7 +289,8 @@ export function planSetup(ctx, { onReady }) {
         h("label", { class: "field" }, t("iv.weight"), weight),
         h("label", { class: "field" }, t("iv.competency"), competency)),
       h("label", { class: "field" }, t("iv.questions"), questions),
-      h("label", { class: "field" }, t("iv.evidence"), evidence));
+      h("label", { class: "field" }, t("iv.evidence"), evidence),
+      h("label", { class: "field" }, t("iv.points"), points, h("span", { class: "hint", id: `${key}-pts-hint` }, t("iv.points_hint", { n: MAX_POINTS }))));
   }
 
   fill(root,
@@ -294,7 +330,9 @@ export function coveragePanel(state) {
         h("span", { class: "iv-cover-label" }, s.label),
         s.current ? h("span", { class: "tag accent" }, t("iv.asking")) : null),
       s.asked ? h("p", { class: "meta" }, t("iv.attempts", { asked: s.asked, probes: s.probes })) : null,
-      s.answers?.length ? h("ul", { class: "iv-quotes" }, s.answers.map((a) => h("li", {}, h("q", {}, a.quote)))) : null))));
+      pointList(s.points),
+      s.answers?.length ? h("ul", { class: "iv-quotes" }, s.answers.map((a) => h("li", {}, h("q", {}, a.quote)))) : null))),
+    slots.some((s) => s.points?.length) ? h("p", { class: "hint" }, t("iv.points_note")) : null);
 }
 
 // ---- after: the report ----------------------------------------------------------
@@ -330,8 +368,10 @@ export function reportCard(result) {
         s.confidence !== null && s.confidence !== undefined
           ? t("iv.confidence", { pct: Math.round(s.confidence * 100), by: t(`iv.scored_by.${s.scored_by ?? "status"}`) }) : null,
       ].filter(Boolean).join(" · ")),
+      pointList(s.points, { quotes: true }),
       s.answers?.length ? h("ul", { class: "iv-quotes" }, s.answers.slice(0, 3).map((a) => h("li", {}, h("q", {}, a.quote),
         " ", h("span", { class: "meta" }, a.utterance)))) : null))),
+    figures.byWeight.some((s) => s.points?.length) ? h("p", { class: "hint" }, t("iv.points_note")) : null,
     figures.gaps.length ? h("div", {}, h("h3", {}, t("iv.gaps")),
       h("ul", { class: "iv-gaps" }, figures.gaps.map((s) => h("li", {}, s.label, " — ", t(`iv.status.${s.status}`))))) : null,
     sheet.other_skills?.length ? h("div", {}, h("h3", {}, t("iv.other_skills")),
@@ -352,7 +392,8 @@ export function reportCard(result) {
     h("ol", { class: "iv-skills" }, figures.byWeight.map((s) => h("li", { class: "iv-skill" },
       h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label), levelTag(s.level)),
       h("div", { class: "row iv-skill-bar" }, scoreBar(s.score),
-        h("span", { class: "iv-score" }, s.score === null || s.score === undefined ? "–" : String(s.score)))))),
+        h("span", { class: "iv-score" }, s.score === null || s.score === undefined ? "–" : String(s.score))),
+      s.points?.length ? h("p", { class: "meta" }, t("iv.points_line", { done: pointCounts(s.points).treated, all: s.points.length })) : null))),
     h("p", { class: "meta" }, handoff.transcript
       ? [t(handoff.analysis ? "iv.handoff.analysis" : "iv.handoff.transcript"), " ",
         h("a", { href: `#/analysis/${encodeURIComponent(sheet.session_id)}` }, t("iv.open_analysis"))]
