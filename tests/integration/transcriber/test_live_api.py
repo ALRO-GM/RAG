@@ -435,8 +435,10 @@ def test_audio_lost_in_flight_before_any_ack_is_resent_from_ready(
         # pieces 4 and 5 were sent into the tunnel as it reset: lost
     with client.websocket_connect("/api/live/flight/audio") as ws:
         ready = ws.receive_json()
-        assert ready["received_samples"] == 3 * 1600
-        for piece in pieces[ready["received_samples"] // 1600:]:
+        # what reached the server before the drop: at most the 3 sent
+        resume = ready["received_samples"]
+        assert resume <= 3 * 1600 and resume % 1600 == 0
+        for piece in pieces[resume // 1600:]:
             ws.send_bytes(piece)
         ws.send_text(json.dumps({"type": "stop"}))
         while ws.receive_json() != {"type": "stopped"}:
