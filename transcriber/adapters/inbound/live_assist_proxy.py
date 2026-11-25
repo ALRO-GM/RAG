@@ -60,8 +60,10 @@ PLAN_BODY = 96 * 1024
 """Largest plan body (a job offer of 12 000 characters, JSON-escaped)."""
 TIMEOUT = 45.0
 """Seconds for a plain call (starting a live session waits for the GPU)."""
-PLAN_TIMEOUT = 180.0
-"""Seconds for drafting an interview plan (the planner model writes it)."""
+PLAN_TIMEOUT = 200.0
+"""Seconds for drafting an interview plan: the orchestrator reads the
+uploaded offer (30 s), queries the method corpus (5 s) and waits for the
+planner (its 120 s deadline plus a 30 s margin, #267)."""
 SAMPLE_TIMEOUT = 150.0
 """Seconds for «Escuchar ejemplo»: a cloned or natural voice on the GPU
 may wait 20 s for the memory and up to 120 s for its model to speak

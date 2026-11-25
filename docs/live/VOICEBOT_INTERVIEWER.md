@@ -802,7 +802,14 @@ caps. A slow call therefore never holds a warm process or its lock: the
 warm backend serves one call at a time per model, so a 30 s report on it
 would have made every live suggestion wait behind it. A cold call costs
 a process start (about 2–5 s for Haiku), which is small against these
-deadlines.
+deadlines. The effective limit of a slow call is min(its `deadline_ms`,
+`SLOW_MAX_S` 180 s, the cold backend's `claude_timeout`, 180 s by
+default), and the output-token cap of the template is **not enforced**
+on the cold path (Claude Code has no such option). At most 3 slow calls
+run at once (`SLOW_CALLS`); another waits for a free slot and the wait
+counts against its deadline (a time-out if none frees in time). Usage
+and latency of the cold backend are kept per calling thread, so
+concurrent slow calls are metered each on its own.
 
 **Time-outs end to end** (orchestrator HTTP client → RAG `/reason` →
 model):
@@ -816,7 +823,12 @@ model):
 | `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
 
 The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow
-call, so it never gives up before the RAG answers.
+call, so it never gives up before the RAG answers. The page's «Preparar
+el plan» request waits in the transcriber proxy up to 200 s
+(`PLAN_TIMEOUT`, was 180 s): reading the uploaded offer (30 s), the
+corpus query (5 s) and the planner client (150 s) one after another.
+The report and the live judgement hold no page request (they run when a
+session ends; «Reintentar» answers 202 at once).
 `tests/unit/test_reasoning_limits.py` fails if a template's deadline no
 longer fits its serving path or a client gives up first;
 `tests/integration/test_reason_slow_calls.py` sends a simulated 30 s

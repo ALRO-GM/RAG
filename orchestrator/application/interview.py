@@ -1128,9 +1128,10 @@ class InterviewDirector:
             try:
                 slots, others, summary = read_report(data, plain)
                 scorer = "haiku"
-            except Exception:  # noqa: BLE001 - logged, status scores
+            except Exception as exc:  # noqa: BLE001 - logged, status scores
                 LOG.exception("report: reply of %s not read",
                               self.session_id)
+                self.report_error = f"unreadable: {type(exc).__name__}"
                 slots, others, summary = status_scores(plain), [], ""
                 data = None
             if data is not None and (
@@ -1143,9 +1144,11 @@ class InterviewDirector:
                          for sid, found in chunks.items()},
                         self._texts())
                     judge = self.config.report_template
-                except Exception:  # noqa: BLE001 - logged, plain scores
+                except Exception as exc:  # noqa: BLE001 - plain scores
                     LOG.exception("report: judgement of %s not read",
                                   self.session_id)
+                    self.report_error = (
+                        f"judgement unreadable: {type(exc).__name__}")
                     slots, to_check = scored, []
         else:
             slots = status_scores(slots)

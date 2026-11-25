@@ -109,7 +109,8 @@ def test_a_30_s_report_succeeds_and_a_live_call_keeps_its_cap(
     report = web.post("/reason", json=request(
         "interview.report@2", "structured", 90000), headers=AUTH).json()
     assert report["status"] == "ok" and report["data"]["summary"] == "ok"
-    assert cold.allowed == [90.0] and live.allowed == []
+    assert len(cold.allowed) == 1 and 89.5 < cold.allowed[0] <= 90.0
+    assert live.allowed == []
     late = web.post("/reason", json=request(
         "suggester.interview@2", "suggester", 1800), headers=AUTH).json()
     assert late["status"] == "timeout"
@@ -129,7 +130,7 @@ def test_a_slow_call_gets_at_most_the_serving_limit(tmp_path: Path) -> None:
         web.post("/reason", json=request(
             "interview.planner@2", "structured", deadline,
             {"offer": "x" * 50, "minutes": 20}), headers=AUTH)
-        assert cold.allowed[-1] == allowed
+        assert allowed - 0.5 < cold.allowed[-1] <= allowed
     for name in ("interview.planner@1", "interview.planner@2",
                  "interview.report@1", "interview.report@2"):
         assert get_template(name, "structured").slow
@@ -156,3 +157,44 @@ def test_a_live_call_never_waits_behind_a_slow_one(tmp_path: Path) -> None:
     cold.gate.set()
     slow.join(5)
     assert done and done[0]["status"] == "ok"
+
+
+def test_slow_calls_are_bounded_and_a_queued_one_waits_within_its_deadline(
+    tmp_path: Path,
+) -> None:
+    """#267 review: at most ``slow_calls`` cold calls at once."""
+    cold = TimedModel(180.0, 1.0, REPORT, "cold")
+    cold.gate = threading.Event()
+    live = TimedModel(10.0, 0.1, SUGGESTION, "warm")
+    store = FileSystemTranscriptStore(str(tmp_path / "transcripts"))
+    search = SearchService(FileSystemIndexRepository(str(tmp_path / "none")),
+                           tokenize, FakeEmbedder())
+    reasoner = Reasoner(lambda alias: cold, live_models=lambda alias: live,
+                        slow_calls=1)
+    web = TestClient(create_app(
+        search, AnswerService(search, FakeGenerator()),
+        TranscriptRoutes(IngestTranscript(store),
+                         ShowIngestedTranscript(store), TOKEN,
+                         reasoner=reasoner),
+    ))
+    first: List[Dict[str, Any]] = []
+    holder = threading.Thread(target=lambda: first.append(web.post(
+        "/reason", json=request("interview.report@2", "structured", 90000),
+        headers=AUTH).json()))
+    holder.start()
+    assert cold.started.wait(5)
+    queued = web.post("/reason", json=request(
+        "interview.report@2", "structured", 200), headers=AUTH).json()
+    assert queued["status"] == "timeout"
+    assert "No free slot" in queued["error"]["message"]
+    live_call = web.post("/reason", json=request(
+        "suggester.interview@2", "suggester", 1800), headers=AUTH).json()
+    assert live_call["status"] == "ok"  # live calls are never queued here
+    cold.gate.set()
+    holder.join(5)
+    assert first and first[0]["status"] == "ok"
+    cold.gate = None
+    again = web.post("/reason", json=request(
+        "interview.report@2", "structured", 90000), headers=AUTH).json()
+    assert again["status"] == "ok"  # the slot was given back
+    assert cold.allowed[-1] <= 90.0

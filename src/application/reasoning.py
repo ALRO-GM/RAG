@@ -13,6 +13,7 @@ unchanged. Tokens are counted per role in the
 Transcript text is never logged here.
 """
 
+import threading
 import time
 from typing import Callable, Dict, List, Optional
 
@@ -134,6 +135,11 @@ class MeteredModel:
         return text
 
 
+SLOW_CALLS = 3
+"""Slow template calls (planner, report) running at once on the cold
+backend (#267); more wait, within their own deadline."""
+
+
 class Reasoner:
     """Answer reasoner requests with a chat model per alias.
 
@@ -141,6 +147,8 @@ class Reasoner:
         models: Builds the chat model of an alias (cached by the caller).
         ledger: Where tokens are counted per role, if anywhere.
         clock: Monotonic seconds (replaced in tests).
+        slow_calls: Most ``slow`` template calls at once; another waits
+            for a free one, and its wait counts against its deadline.
         live_models: Builds the (warm) model of the live roles
             (``suggester``, ``conversational`` and the quick
             ``structured`` slot filler); ``models`` serves them too when
@@ -155,12 +163,14 @@ class Reasoner:
         ledger: Optional[UsageLedger] = None,
         clock: Callable[[], float] = time.perf_counter,
         live_models: Optional[ModelFactory] = None,
+        slow_calls: int = SLOW_CALLS,
     ):
         """Wire the model factories and the ledger."""
         self.models = models
         self.live_models = live_models or models
         self.ledger = ledger
         self.clock = clock
+        self._slow = threading.BoundedSemaphore(max(slow_calls, 1))
 
     def confirm(
         self,
@@ -256,10 +266,14 @@ class Reasoner:
                 deadline = _deadline_s(request)
                 if template.slow:
                     deadline = min(deadline or SLOW_MAX_S, SLOW_MAX_S)
-                text = chat.complete(
-                    template.system(request), template.user(request), cap,
-                    deadline, on_text,
-                )
+                    text = self._slow_call(
+                        chat, template.system(request),
+                        template.user(request), cap, deadline, on_text)
+                else:
+                    text = chat.complete(
+                        template.system(request), template.user(request),
+                        cap, deadline, on_text,
+                    )
                 parsed = template.parse(text, request)
                 limit = request.constraints.max_suggestions
                 suggestions = list(parsed.suggestions)
@@ -307,6 +321,28 @@ class Reasoner:
         response.usage = usage
         response.latency = _latency(chat.model, total_ms)
         return response
+
+    def _slow_call(
+        self, chat: MeteredModel, system: str, user: str, cap: int,
+        deadline: float, on_text: Optional[Callable[[str], None]],
+    ) -> str:
+        """A slow template's call, at most :data:`SLOW_CALLS` at once.
+
+        The wait for a free slot counts against the deadline; a call that
+        cannot get one in time is a time-out, as if the model were late.
+        """
+        began = self.clock()
+        if not self._slow.acquire(timeout=max(deadline, 0.0)):
+            raise ModelTimeoutError(
+                f"No free slot for a slow call within {deadline:g} s.")
+        try:
+            left = deadline - (self.clock() - began)
+            if left <= 0:
+                raise ModelTimeoutError(
+                    f"No free slot for a slow call within {deadline:g} s.")
+            return chat.complete(system, user, cap, left, on_text)
+        finally:
+            self._slow.release()
 
     def _judge(
         self, chat: MeteredModel, request: ReasonRequest

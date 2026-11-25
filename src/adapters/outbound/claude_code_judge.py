@@ -35,6 +35,7 @@ import re
 import signal
 import subprocess
 import tempfile
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Any, Callable, List, Mapping, Optional, Sequence
@@ -218,8 +219,31 @@ class ClaudeCodeJudge:
         self.effort = effort
         self._environ = os.environ if environ is None else environ
         self._runner = runner
-        self.last_usage: Optional[Usage] = None
-        self.last_latency: Optional[Latency] = None
+        self._local = threading.local()
+
+    @property
+    def last_usage(self) -> Optional[Usage]:
+        """The tokens of the last call made **by this thread** (#267).
+
+        One judge serves concurrent calls (the interview's slow calls,
+        the analysis); each request thread reads its own call's usage.
+        """
+        found: Optional[Usage] = getattr(self._local, "usage", None)
+        return found
+
+    @last_usage.setter
+    def last_usage(self, value: Optional[Usage]) -> None:
+        self._local.usage = value
+
+    @property
+    def last_latency(self) -> Optional[Latency]:
+        """The latency of the last call made by this thread."""
+        found: Optional[Latency] = getattr(self._local, "latency", None)
+        return found
+
+    @last_latency.setter
+    def last_latency(self, value: Optional[Latency]) -> None:
+        self._local.latency = value
 
     @property
     def model_name(self) -> str:

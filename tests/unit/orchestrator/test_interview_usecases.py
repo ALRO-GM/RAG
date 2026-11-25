@@ -589,6 +589,7 @@ def test_a_judgement_that_fails_keeps_the_plain_scores(
     assert sheet["scorer"] == "haiku" and sheet["judge"] is None
     assert sheet["slots"][0]["score"] == 80  # the model's, not capped
     assert sheet["to_check"] == []
+    assert sheet["report_error"] == "judgement unreadable: TypeError"
 
 
 def test_a_report_that_cannot_be_read_gives_status_scores(
@@ -597,6 +598,7 @@ def test_a_report_that_cannot_be_read_gives_status_scores(
     sheet = finished_sheet(monkeypatch, "read_report")
     assert sheet["scorer"] == "status" and sheet["judge"] is None
     assert sheet["slots"][0]["scored_by"] == "status"
+    assert sheet["report_error"] == "unreadable: TypeError"  # never silent
 
 
 class OddKnowledge:
