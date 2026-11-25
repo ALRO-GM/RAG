@@ -111,6 +111,29 @@ export class Outbox {
     return { gap, pieces };
   }
 
+  /**
+   * The server put in only `accepted` of the `asked` samples of silence of
+   * the gap sent at `at`: the silence piece shrinks and everything after
+   * it moves back. Returns the shift (0 or negative).
+   */
+  clamp(at, asked, accepted) {
+    const delta = accepted - asked;
+    if (delta >= 0) return 0;
+    const end = at + asked;
+    for (const piece of this.pieces) {
+      if (piece.offset >= end) {
+        piece.offset += delta;
+      } else if (!piece.bytes && piece.offset + piece.samples === end) {
+        const kept = Math.max(at + accepted - piece.offset, 0);
+        this.held -= piece.samples - kept;
+        piece.samples = kept;
+      }
+    }
+    this.pieces = this.pieces.filter((p) => p.samples > 0);
+    this.end += delta;
+    return delta;
+  }
+
   /** A page that reattached: its audio starts at the server's count. */
   rebase(base) {
     const shift = base - this.acked;

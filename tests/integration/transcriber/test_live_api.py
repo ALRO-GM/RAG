@@ -447,14 +447,29 @@ def test_audio_lost_in_flight_before_any_ack_is_resent_from_ready(
     assert info["received_samples"] == 5 * 1600
 
 
-def test_a_gap_past_the_wall_clock_is_refused(client: TestClient) -> None:
+def test_a_gap_past_the_wall_clock_is_clamped_not_fatal(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#263 re-review (N3): too much silence is cut to what fits, the
+    client is told, and the socket goes on taking audio."""
+    monkeypatch.setattr(live_ws, "ACK_SECONDS", 30.0)
     start(client, session_id="toolong")
     with client.websocket_connect("/api/live/toolong/audio") as ws:
         ws.receive_json()
         ws.send_bytes(b"\x00\x00" * 1600)
         ws.send_text(json.dumps({"type": "gap", "samples": 16000 * 3600}))
-        assert ws.receive_json()["code"] == "invalid_input"
-    client.post("/api/live/sessions/toolong/stop")
+        clamped = ws.receive_json()
+        assert clamped["type"] == "gap_clamped"
+        assert clamped["at"] == 1600 and clamped["asked"] == 16000 * 3600
+        assert 120 * 16000 <= clamped["samples"] < 121 * 16000
+        ws.send_bytes(b"\x00\x00" * 1600)  # still taken
+        ws.send_text(json.dumps({"type": "caught_up"}))
+        ws.send_text(json.dumps({"type": "stop"}))
+        while ws.receive_json() != {"type": "stopped"}:
+            pass
+    info = client.get("/api/live/sessions/toolong").json()
+    assert info["received_samples"] == 3200 + clamped["samples"]
+    assert info["source"] == "none"
 
 
 def test_the_last_audio_is_acknowledged_even_when_nothing_follows(

@@ -30,7 +30,11 @@ Routes (all need the access code, as the rest of the API):
     About every :data:`ACK_SECONDS` it sends ``{"type": "ack",
     "samples": N}`` (everything before N is taken; the client forgets
     it). ``{"type": "gap", "samples": k}`` says the client lost ``k``
-    samples (they become silence); ``{"type": "align", "held": n}``,
+    samples (they become silence); when that would take the stream more
+    than two minutes past the wall clock only part is put in and the
+    server answers ``{"type": "gap_clamped", "at", "asked", "samples"}``
+    so the client shifts its offsets. ``{"type": "caught_up"}`` says the
+    client has sent everything it held. ``{"type": "align", "held": n}``,
     from a page that reattached after a reload, fills the time no audio
     came for with silence, leaving room for the ``n`` samples it is
     about to send. A full audio queue stops the server reading
@@ -357,13 +361,23 @@ async def _read_audio(
                     await socket.close(1000)
                     return "stop"
                 if kind == "gap":
+                    at = session.received
+                    asked = command.get("samples")
                     samples = await run_in_threadpool(
-                        session.silence, command.get("samples"), source
+                        session.silence, asked, source
                     )
                     LIFECYCLE.info(
                         "Live session %s: the client lost %.1f s of audio;"
                         " silence put in", session.id, samples / SAMPLE_RATE,
                     )
+                    if samples != asked:
+                        # Not fatal (#263 review): the client re-bases.
+                        await socket.send_json({
+                            "type": "gap_clamped", "at": at, "asked": asked,
+                            "samples": samples,
+                        })
+                elif kind == "caught_up":
+                    await run_in_threadpool(session.caught_up)
                 elif kind == "align":
                     samples = await run_in_threadpool(
                         session.align, command.get("held", 0), source

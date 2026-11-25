@@ -114,10 +114,13 @@ function fakeCapture() {
   return { FakeCapture, box };
 }
 
+/** Let the microphone start (it comes before the socket). */
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 /** One 100 ms piece whose every byte is `n` (so pieces can be told apart). */
 const piece = (n) => new Uint8Array(3200).fill(n);
 
-function setup(extra = {}) {
+function setup(extra = {}, moreDeps = {}) {
   const clock = new Clock();
   const { FakeSocket, made } = fakeSockets();
   const { FakeCapture, box } = fakeCapture();
@@ -129,6 +132,7 @@ function setup(extra = {}) {
     deps: {
       openSocket: (url) => new FakeSocket(url), setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
       now: clock.now, random: () => 0.5, Capture: FakeCapture, location: { protocol: "https:", host: "x.example" },
+      ...moreDeps,
     },
     ...extra,
   });
@@ -137,6 +141,7 @@ function setup(extra = {}) {
 
 async function started(rig, received = 0) {
   const going = rig.audio.start();
+  await tick();
   const socket = rig.made.at(-1);
   socket.open();
   socket.server({ type: "ready", received_samples: received });
@@ -147,6 +152,7 @@ async function started(rig, received = 0) {
 test("the first connection sends the code, then audio only after ready", async () => {
   const rig = setup();
   const going = rig.audio.start();
+  await tick();
   const socket = rig.made[0];
   assert.equal(socket.url, "wss://x.example/api/live/entrevista-1/audio");
   socket.open();
@@ -236,7 +242,7 @@ test("audio the full outbox let go is announced as a gap, then the rest follows"
   const second = rig.made[1];
   second.open();
   second.server({ type: "ready", received_samples: 0 });
-  assert.deepEqual(second.texts().slice(1), [{ type: "gap", samples: 4800 }]);
+  assert.deepEqual(second.texts().slice(1), [{ type: "gap", samples: 4800 }, { type: "caught_up" }]);
   assert.deepEqual(second.audio().map((b) => b[0]), [4, 5, 6]);
 });
 
@@ -280,6 +286,7 @@ test("a socket taken over by another tab, or a refused code, is not retried", as
 test("a first connection refused fails the start; one that drops is retried", async () => {
   const rig = setup();
   const going = rig.audio.start();
+  await tick();
   rig.made[0].close(); // network, before ready
   assert.equal(rig.audio.link.state, "connecting");
   rig.clock.advance(500);
@@ -305,7 +312,7 @@ test("a socket that goes silent while audio waits is closed and reconnected", as
 test("a reloaded page reattaches: silence for the time missed, then its audio", async () => {
   const rig = setup();
   const socket = await started(rig, 32000);
-  assert.deepEqual(socket.texts().slice(1), [{ type: "align", held: 0 }]);
+  assert.deepEqual(socket.texts().slice(1), [{ type: "align", held: 0 }, { type: "caught_up" }]);
   rig.box.onPcm(piece(9));
   assert.deepEqual(socket.audio().map((b) => b[0]), [9]);
   assert.equal(rig.audio.outbox.pieces[0].offset, 32000);
@@ -597,6 +604,13 @@ function seeded(seed) {
  * it takes what reaches it (messages still in flight when a socket drops are
  * lost), counts samples, turns gaps into zeros, acknowledges now and then,
  * and answers ready with what it has.
+ *
+ * What it does not model: it is JavaScript, not the Python server (the
+ * Python side has its own socket tests); it never blocks (no backpressure,
+ * so `bufferedAmount` stays 0), never clamps a gap, never takes a source
+ * over, never ends the session, and has no `align` (no reload); messages
+ * are lost only at a drop, never reordered or duplicated; time is the fake
+ * clock, with no drift between the capture and the clocks.
  */
 class ProtocolServer {
   constructor() {
@@ -661,6 +675,7 @@ test("property: whatever the drops, pauses and losses in flight, the server ends
     const rig = setup();
     const server = new ProtocolServer();
     const going = rig.audio.start();
+    await tick();
     server.attach(rig.made[0]);
     await going;
     const expected = [];
@@ -719,4 +734,111 @@ test("property: whatever the drops, pauses and losses in flight, the server ends
     assert.equal(got.length, want.length, `seed ${seed}: length`);
     assert.ok(Buffer.from(got).equals(Buffer.from(want)), `seed ${seed}: same PCM`);
   }
+});
+
+test("the microphone comes first: refused, no socket ever claims the session's audio", async () => {
+  class Refused {
+    constructor() {}
+    async start() { throw new Error("denied"); }
+    async stop() {}
+  }
+  const rig = setup({}, { Capture: Refused });
+  await assert.rejects(rig.audio.start(), /denied/);
+  assert.equal(rig.made.length, 0);
+});
+
+test("a new session drops what the microphone heard before ready; a reattached one keeps and aligns it", async () => {
+  const rig = setup();
+  const going = rig.audio.start();
+  await tick();
+  rig.box.onPcm(piece(1)); // the model is still loading
+  rig.made[0].open();
+  rig.made[0].server({ type: "ready", received_samples: 0 });
+  await going;
+  assert.equal(rig.made[0].audio().length, 0, "dropped, as before");
+  const again = setup();
+  const back = again.audio.start();
+  await tick();
+  again.box.onPcm(piece(2));
+  again.made[0].open();
+  again.made[0].server({ type: "ready", received_samples: 32000 });
+  await back;
+  assert.deepEqual(again.made[0].texts()[1], { type: "align", held: 1600 });
+  assert.deepEqual(again.made[0].audio().map((b) => b[0]), [2]);
+});
+
+test("caught_up goes once per connection, after everything held was sent, not while behind", async () => {
+  const rig = setup();
+  const first = await started(rig);
+  const count = (socket) => socket.texts().filter((m) => m.type === "caught_up").length;
+  assert.equal(count(first), 1);
+  rig.box.onPcm(piece(1));
+  assert.equal(count(first), 1, "once per connection");
+  first.close();
+  for (let n = 2; n <= 4; n += 1) rig.box.onPcm(piece(n));
+  rig.clock.advance(500);
+  const second = rig.made[1];
+  second.bufferedAmount = 400000;
+  second.open();
+  second.server({ type: "ready", received_samples: 1600 });
+  assert.equal(count(second), 0, "still holding audio");
+  second.bufferedAmount = 0;
+  rig.clock.advance(250);
+  assert.deepEqual(second.audio().map((b) => b[0]), [2, 3, 4]);
+  assert.equal(count(second), 1);
+});
+
+test("a gap the server cuts short shifts what follows; the page goes on sending", async () => {
+  const rig = setup();
+  const socket = await started(rig);
+  rig.clock.advance(100);
+  rig.box.onPcm(piece(1));
+  socket.server({ type: "ack", samples: 1600 });
+  rig.clock.advance(3600 * 1000); // an hour with no samples
+  rig.box.onPcm(piece(2));
+  const gap = socket.texts().find((m) => m.type === "gap");
+  assert.equal(gap.samples, 3600 * 16000 - 1600, "the hour minus the piece itself");
+  rig.box.onPcm(piece(3));
+  socket.server({ type: "gap_clamped", at: 1600, asked: gap.samples, samples: 120 * 16000 });
+  assert.equal(rig.audio.sendAt, 1600 + 120 * 16000 + 3200);
+  assert.equal(rig.audio.outbox.end, 1600 + 120 * 16000 + 3200);
+  rig.box.onPcm(piece(4));
+  socket.server({ type: "ack", samples: 1600 + 120 * 16000 + 3200 });
+  assert.equal(rig.audio.outbox.pieces.length, 1, "the server's count means the same samples");
+  socket.close();
+  rig.clock.advance(500);
+  const back = rig.made[1];
+  back.open();
+  back.server({ type: "ready", received_samples: 1600 + 120 * 16000 + 3200 });
+  assert.deepEqual(back.audio().map((b) => b[0]), [4], "resent from the right sample");
+  assert.deepEqual(rig.problems, [], "not fatal");
+});
+
+test("pauses are measured on the monotonic clock; a sleep where it stood still counts too", async () => {
+  let mono = 0;
+  const rig = setup({}, { mono: () => mono });
+  const socket = await started(rig);
+  const step = (dMono, dWall) => {
+    socket.server({ type: "ack", samples: rig.audio.outbox.end });
+    mono += dMono;
+    rig.clock.advance(dWall);
+    rig.box.onPcm(piece(9));
+  };
+  step(100, 100);
+  step(100, 100);
+  step(100, 3600 * 1000); // the wall clock jumped, the monotonic one ran 100 ms: a sleep
+  step(30100, 30100); // a suspended tab: both ran
+  step(100, 100);
+  const gaps = socket.texts().filter((m) => m.type === "gap").map((m) => m.samples);
+  assert.deepEqual(gaps, [3600 * 16000 - 1600, 30000 * 16]);
+});
+
+test("the wait for the server's stopped is cleared once it comes", async () => {
+  const rig = setup();
+  const socket = await started(rig);
+  const done = rig.audio.finish();
+  await tick();
+  socket.server({ type: "stopped" });
+  await done;
+  assert.equal(rig.clock.jobs.length, 0, "no 5 s timer left behind");
 });

@@ -15,10 +15,15 @@
 // and resends from the server's received_samples. While the socket is
 // behind, sending pauses (nothing is dropped); audio the bounded outbox
 // had to let go is announced as {"type": "gap"} and becomes silence on
-// the server. A page that reattached after a reload sends
-// {"type": "align"} first. When the microphone produced nothing for a
-// while (a suspended tab, a laptop asleep) that time goes as a gap too, so
-// the stream stays on the wall clock. «Terminar» (finish) waits until the
+// the server; when the server takes less ({"type": "gap_clamped"}) the
+// page shifts its offsets and goes on. A page that reattached after a
+// reload sends {"type": "align"} first. When the microphone produced
+// nothing for a while (a suspended tab, a laptop asleep; measured on the
+// monotonic clock, plus the time it stood still while the computer slept)
+// that time goes as a gap too, so the stream stays on the wall clock. Once
+// a connection has sent everything held it says {"type": "caught_up"}.
+// The microphone is obtained before the socket claims the session's audio,
+// so a denied microphone never takes another browser's place. «Terminar» (finish) waits until the
 // server has everything before it says stop. The outbox lives only in
 // memory: the audio is never stored.
 
@@ -32,6 +37,7 @@ const READY_TIMEOUT_MS = 30000; // a socket that never says ready is closed and 
 const SILENT_MS = 20000; // no message for this long while audio waits: the socket is dead
 const ENDED = new Set(["not_found", "wrong_state"]);
 const PAUSE_SAMPLES = 16000 * 2; // the microphone silent for over 2 s of wall time = a pause
+const SLEPT_MS = 2000; // the wall clock ran this much past the monotonic one: the computer slept
 const FINISH_CAP_MS = 60000; // «Terminar» waits at most this long while connected
 const FINISH_TICK_MS = 250;
 const STOPPED_WAIT_MS = 5000; // the server's "stopped" after our stop
@@ -72,6 +78,7 @@ export class LiveAudio {
       clearTimeout: (...a) => globalThis.clearTimeout(...a),
       random: Math.random,
       now: () => Date.now(),
+      mono: deps.now ?? (() => globalThis.performance?.now?.() ?? Date.now()),
       Capture,
       location: globalThis.location,
       ...deps,
@@ -91,20 +98,17 @@ export class LiveAudio {
     this.lastHeard = 0;
     this._timers = { retry: null, ready: null, pump: null, watch: null, finish: null };
     this._first = null;
-    this.clockStart = null; // when the first captured sample began (deps.now)
-    this.clockSamples = 0; // samples captured or put in as silence since then
+    this._lastPiece = null; // { mono, wall } when the last piece was captured
+    this.caughtUp = false; // this connection has sent everything held
     this._finish = null; // { resolve, openMs } while «Terminar» waits
     this._stopped = null; // resolves on the server's "stopped"
+    this._fresh = true; // nothing reached a server yet: audio before the first ready is dropped
   }
 
   /** Connect (retrying until a first "ready"), then start the microphone. */
   async start() {
-    const first = new Promise((resolve, reject) => {
-      this._first = { resolve, reject };
-    });
-    this._connect();
-    await first;
-    if (this.stopping) return;
+    // The microphone first: if it is refused, no socket has claimed the
+    // session's audio from another browser (#263 re-review).
     this.capture = new this.deps.Capture({
       onPcm: (bytes) => this._send(bytes),
       onLevel: this.onLevel,
@@ -112,6 +116,12 @@ export class LiveAudio {
       echoCancellation: this.echoCancellation,
     });
     await this.capture.start();
+    if (this.stopping) return;
+    const first = new Promise((resolve, reject) => {
+      this._first = { resolve, reject };
+    });
+    this._connect();
+    await first;
   }
 
   /** What the page shows of the link. */
@@ -172,7 +182,8 @@ export class LiveAudio {
       this.outbox.ack(Number(message.samples));
       this.onLink(this.link);
       this._finishCheck();
-    } else if (message?.type === "stopped") this._stopped?.();
+    } else if (message?.type === "gap_clamped") this._clamped(message);
+    else if (message?.type === "stopped") this._stopped?.();
     else if (message?.type === "error") this.refusal = message.code ?? "refused";
   }
 
@@ -183,6 +194,13 @@ export class LiveAudio {
       return;
     }
     const received = Number(message.received_samples) || 0;
+    if (this._fresh && received === 0) {
+      // A new session: what the microphone heard while the model loaded
+      // is dropped, as before, so the stream starts on time.
+      this.outbox = new Outbox();
+    }
+    this._fresh = false;
+    this.caughtUp = false;
     if (!this.everOpen && received > 0 && this.outbox.acked === 0) {
       // A page that reattached (a reload): its audio goes after what the
       // server has, and the time nobody sent becomes silence.
@@ -268,24 +286,34 @@ export class LiveAudio {
     this.pendingBytes = 0;
     this._keepOnClock(piece.length / 2);
     this.outbox.push(piece);
-    this.clockSamples += piece.length / 2;
     this._pump();
     this.onLink(this.link);
   }
 
-  /** The microphone produced nothing for a while: that time goes as silence. */
+  /**
+   * The microphone produced nothing for a while: that time goes as
+   * silence. Measured between two pieces on the monotonic clock; when the
+   * wall clock ran well past it the computer slept (the monotonic clock
+   * may stand still then) and that time counts too.
+   */
   _keepOnClock(samples) {
-    const now = this.deps.now();
-    if (this.clockStart === null) {
-      this.clockStart = now - (samples / 16000) * 1000;
-      return;
-    }
-    const due = Math.round(((now - this.clockStart) / 1000) * 16000);
-    const missing = due - this.clockSamples - samples;
-    if (missing > PAUSE_SAMPLES) {
-      this.outbox.skip(missing);
-      this.clockSamples += missing;
-    }
+    const now = { mono: this.deps.mono(), wall: this.deps.now() };
+    const last = this._lastPiece;
+    this._lastPiece = now;
+    if (!last) return;
+    let elapsed = now.mono - last.mono;
+    const slept = now.wall - last.wall - elapsed;
+    if (slept > SLEPT_MS) elapsed += slept;
+    const missing = Math.round(elapsed * 16) - samples;
+    if (missing > PAUSE_SAMPLES) this.outbox.skip(missing);
+  }
+
+  /** The server put in less silence than asked: shift what follows. */
+  _clamped({ at, asked, samples }) {
+    if (![at, asked, samples].every(Number.isFinite)) return;
+    const delta = this.outbox.clamp(at, asked, samples);
+    if (this.sendAt >= at + asked) this.sendAt += delta;
+    this.onLink(this.link);
   }
 
   /** Send what the server does not have yet, unless the socket is behind. */
@@ -315,6 +343,11 @@ export class LiveAudio {
       }
       socket.send(piece.bytes);
       this.sendAt = piece.offset + piece.samples;
+    }
+    if (!this.caughtUp && this.sendAt >= this.outbox.end) {
+      // Everything held is sent: from now on the audio is live (#263 re-review).
+      this.caughtUp = true;
+      socket.send(JSON.stringify({ type: "caught_up" }));
     }
   }
 
@@ -392,12 +425,14 @@ export class LiveAudio {
     for (const name of ["retry", "pump", "watch", "ready", "finish"]) this._clear(name);
     if (socket && socket.readyState === 1 && this.ready) {
       this._pump(true);
+      let timer = null;
       const stopped = new Promise((resolve) => {
         this._stopped = resolve;
-        this.deps.setTimeout(resolve, STOPPED_WAIT_MS);
+        timer = this.deps.setTimeout(resolve, STOPPED_WAIT_MS);
       });
       socket.send(JSON.stringify({ type: "stop" }));
       await stopped;
+      this.deps.clearTimeout(timer);
       this._stopped = null;
     }
     socket?.close();

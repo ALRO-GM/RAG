@@ -40,14 +40,15 @@ through it dies. A short outage must cost nothing:
 | Reconnect | `js/live-audio.js` | backoff 0.5, 1, 2, 4, 8, 8… s (±20 % jitter), reset once `ready`; until stopped, or the server says the session ended (`not_found`, `wrong_state`), was taken over (`replaced`) or refuses the code; a socket that never says ready is closed after 30 s, one that sends nothing for 20 s while audio waits for its ack is closed and retried; `stop` closes a socket still connecting and nothing re-arms |
 | Resend | `ready.received_samples` | the page sends from that sample on (the first piece cut at the exact sample): nothing lost, nothing twice, whatever was in flight when the link dropped |
 | Behind | `bufferedAmount` > 10 s | sending pauses (checked again every 250 ms); nothing is dropped |
-| Gap | `{"type": "gap", "samples": k}` | audio the full outbox let go, or wall time the microphone produced nothing for (over 2 s: a suspended tab, a laptop asleep), becomes `k` samples of silence on the server, so stream time stays on the wall clock; refused when it would take the stream more than 5 s past the wall clock (`gap_fits`) |
+| Gap | `{"type": "gap", "samples": k}` | audio the full outbox let go, or time the microphone produced nothing for (over 2 s: a suspended tab, a laptop asleep), becomes `k` samples of silence on the server, so stream time stays on the wall clock. The page measures pauses on the monotonic clock (`performance.now()`); when the wall clock ran more than 2 s past it between two pieces the computer slept and that time counts too. The server puts in at most what keeps the stream within 120 s of its own clock (`gap_room`) and, when it cut a gap short, answers `{"type": "gap_clamped", "at", "asked", "samples"}`: the page moves what follows back by the difference and goes on (never fatal) |
+| Caught up | `{"type": "caught_up"}` | sent once per connection when everything held has been sent; until then a returned source's audio is a resend |
 | Reattach | `{"type": "align", "held": n}` | a page that reloaded (first `ready` with `received_samples` > 0) has no outbox: the server fills the time nobody sent with silence, leaving room for the `n` samples the page holds |
-| Takeover | `claim_source` | a newer socket takes the source; the older one's audio is refused (`replaced`, 4409), so the server never takes audio twice even if it has not noticed the old socket died. The same holds for a second tab on the same session: the newest tab's microphone wins and the other tab stops sending and says «Esta sesión está enviando el audio desde otra pestaña o ventana.» (it does not retry) |
+| Takeover | `claim_source` | a newer socket takes the source; the older one's audio is refused (`replaced`, 4409), so the server never takes audio twice even if it has not noticed the old socket died. The same holds for a second tab on the same session: the newest tab's microphone wins and the other tab stops sending and says «Esta sesión está enviando el audio desde otra pestaña o ventana.» (it does not retry). The page obtains its microphone before it opens the socket, so a refused microphone never takes another browser's place; `GET /api/live/sessions/{id}` says `source`: `connected`, `lost` or `none` |
 | Grace | `live.source_grace_seconds` = 600, `live.source_gone_seconds` = 120 | a source that goes away without `stop` leaves the session waiting 10 min (instead of the 120 s idle stop) with a `warning` `source_lost`; 2 min when its socket closed with 1001 «going away» (a closed tab). Which close codes the public tunnel really delivers on a reset was not checked: an abnormal close (1006) gets the long grace. A returning source gives `source_back` with `warning.seconds`; past the grace the session ends (`end_reason: source_lost`) |
 | Catch-up | worker, `engine.skip_partials` | after `source_back` the resent audio is read as fast as the recogniser goes (the live engine is not paced) with no partials until the queue is empty; its finals come with the real `timings.lag_ms`. Lateness alone never turns partials off (a CPU-degraded session keeps them) |
-| Re-anchor | `PaceWatch`, `LiveEngine.realign` | when 10 pieces in a row arrive at the pace of speech with nothing queued, and the timings think the audio is more than 1 s older than it is (a microphone pause the page did not report), the origin of the timings moves forward: `lag_ms` is true again, so partials and suggestions come back |
+| Re-anchor | `PaceWatch`, `LiveEngine.realign` | when 30 pieces in a row arrive at real-time pace (each 0.9–1.1 times its own length after the one before) with nothing queued, and the timings think the audio is more than 1 s older than it is (a microphone pause the page did not report), the origin of the timings moves forward: `lag_ms` is true again, so partials and suggestions come back. Never between a `source_back` and the page's `caught_up`: a resend of held audio, even one that happens to come at about real-time pace, keeps its true lateness (and asks for no suggestion) |
 | Suggestions | `orchestrator/domain/triggers.py` `LATE_MS` = 10 s | a final heard more than 10 s late asks for no suggestion (skip reason `late`); topics, concepts, mandatory items and avoid hints still take it |
-| Stop | `live.stop_drain_seconds` = 15 | a stop asked over HTTP lets a connected source send what it holds for up to 15 s (until its own `stop` or its socket closes) instead of refusing that audio |
+| Stop | `live.stop_drain_seconds` = 15 | a stop asked over HTTP lets a connected source send what it holds for up to 15 s (until its own `stop` or its socket closes) instead of refusing that audio; then it waits up to 60 s for the end, so the orchestrator's client waits 90 s for a stop (`STOP_TIMEOUT`; other calls keep 40 s) |
 
 The page (`#/live`) shows one line under the header, text not colour:
 a sentence in a `role="status"` region that changes only with the
@@ -82,7 +83,12 @@ reattach to), the start forms of «En directo» and of the voice
 assistant say «Ya hay otra sesión en directo en marcha» with
 «Volver a la sesión» (reattach; on the other page when the session
 belongs to it) and «Terminarla» (asks first; then the new one can
-start).
+start). When the running session's microphone is still connected from
+another browser, «Volver a la sesión» asks first: «Esta sesión recibe
+audio desde otro navegador; si vuelves aquí, este micrófono lo
+sustituye.» A page that goes back to a session it did not start never
+ends it when its own microphone fails («No se pudo usar el micrófono en
+esta página; la sesión sigue en marcha.»).
 
 The audio held during an outage lives only in the page's memory and is
 dropped as soon as it is acknowledged, so the notice «No se guarda el
@@ -103,7 +109,9 @@ Not measured (the GPU was busy; everything above was tested with the
 fake runtime, fake sockets and fake timers): the catch-up speed after a
 60 s or 5 min outage on the real recogniser, the CPU-degraded mode
 under catch-up, the close codes and behaviour through the real tunnel,
-and a real browser's capture during a suspended tab.
+and a real browser's capture during a suspended tab or a sleep (whether
+`performance.now()` stands still). The thresholds (2 s pause, 30 pieces
+at 0.9–1.1× for re-anchoring, 120 s gap slack) are chosen, not measured.
 
 ## Behaviour
 

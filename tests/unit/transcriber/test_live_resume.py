@@ -56,7 +56,7 @@ from transcriber.domain.live_session import (
     LiveSessionRequest,
     PaceWatch,
     align_samples,
-    gap_fits,
+    gap_room,
     gap_samples,
     source_grace,
 )
@@ -87,7 +87,7 @@ def wait_until(check: Any, timeout: float = WAIT) -> None:
     deadline = time.monotonic() + timeout
     while not check():
         assert time.monotonic() < deadline, "timed out"
-        time.sleep(0.01)
+        time.sleep(0.001)
 
 
 def test_gap_and_align_sizes_are_checked() -> None:
@@ -337,6 +337,7 @@ def test_realign_never_moves_back_nor_for_a_small_drift() -> None:
 
 
 def test_the_pace_watch_wants_steady_pieces_with_nothing_queued() -> None:
+    assert PaceWatch().steady == 30
     watch = PaceWatch(steady=3)
     t = 0.0
     assert not watch.observe(1600, t, True)
@@ -347,6 +348,12 @@ def test_the_pace_watch_wants_steady_pieces_with_nothing_queued() -> None:
     assert watch.observe(1600, t, True)
     t += 0.001  # a burst of resent audio
     assert not watch.observe(1600, t, True)
+    for _ in range(5):
+        t += 0.1 / 1.5  # a slow resend at 1.5x real time
+        assert not watch.observe(1600, t, True)
+    for _ in range(5):
+        t += 0.13  # slower than real time
+        assert not watch.observe(1600, t, True)
     t += 0.1
     assert not watch.observe(1600, t, False), "something waits behind it"
     watch.reset()
@@ -393,17 +400,19 @@ def test_a_session_re_anchors_once_its_audio_is_on_pace_again() -> None:
 
 
 def test_a_gap_cannot_take_the_stream_past_the_wall_clock() -> None:
-    assert gap_fits(None, 0, 5 * SAMPLE_RATE)
-    assert not gap_fits(None, 0, 6 * SAMPLE_RATE)
-    assert gap_fits(60.0, 30 * SAMPLE_RATE, 35 * SAMPLE_RATE)
-    assert not gap_fits(60.0, 30 * SAMPLE_RATE, 36 * SAMPLE_RATE)
+    assert gap_room(None, 0) == 120 * SAMPLE_RATE
+    assert gap_room(60.0, 30 * SAMPLE_RATE) == 150 * SAMPLE_RATE
+    assert gap_room(1.0, 200 * SAMPLE_RATE) == 0
     session, clock = lone_session()
     source = session.claim_source()
     session.feed(pcm(np.zeros(SAMPLE_RATE, dtype=np.float32)), source)
     clock["t"] += 9.0
+    # 10 s since the first audio, 1 s taken: at most 129 s more
+    assert session.silence(3600 * SAMPLE_RATE, source) == 129 * SAMPLE_RATE
+    assert session.received == 130 * SAMPLE_RATE
+    assert session.silence(SAMPLE_RATE, source) == 0, "nothing more now"
     with pytest.raises(InvalidInputError):
-        session.silence(3600 * SAMPLE_RATE, source)
-    assert session.silence(9 * SAMPLE_RATE, source) == 9 * SAMPLE_RATE
+        session.silence(-1, source)
 
 
 def test_a_page_that_left_gets_a_shorter_grace_than_a_dropped_link() -> None:
@@ -445,3 +454,80 @@ def test_a_stop_over_http_lets_the_source_finish_sending() -> None:
     other.claim_source()
     capped.live.stop("b", WAIT)
     assert other.state == LiveState.ENDED, "the cap ends it anyway"
+
+
+def resend_after_outage(caught_up_at: Any) -> List[Dict[str, Any]]:
+    """The reviewer's second probe, through the worker: 1 s on time, a
+    60 s outage, then the held audio (speech 55 s and 20 s before) is
+    resent at 1.5x real time with an empty queue, then 5 s of live
+    speech in real time. ``caught_up_at``: the piece after which the
+    page says it sent everything (``None``: it never says)."""
+    clock = ManualClock()
+
+    def build(options: LiveOptions) -> LiveTranscription:
+        return LiveTranscription(
+            LoudnessVad, ScriptedAsr(growing), SystemClock(), clock,
+            options.settings,
+        )
+
+    live = LiveSessions(
+        LivePorts(build=build, clock=SystemClock(), timer=clock),
+        LiveServiceSettings(idle_seconds=WAIT, source_grace_seconds=WAIT),
+        "cpu",
+    )
+    session = live.start(LiveSessionRequest(session_id="a"))
+    source = session.claim_source()
+    assert session.wait_ready(WAIT)
+
+    def send(audio: Any, step: float, src: Any,
+             then: Any = None) -> None:
+        for number, at in enumerate(range(0, len(audio), 1600)):
+            clock.t += step
+            session.feed(pcm(audio[at:at + 1600]), src)
+            if then is not None and number == then:
+                session.caught_up()
+            wait_until(lambda: session.idle()
+                       and session._backlog.seconds < 1e-9)
+
+    send(np.zeros(SAMPLE_RATE, dtype=np.float32), 0.1, source)
+    session.release_source(source)
+    clock.t += 60.0
+    back = session.claim_source()
+    held = bursts([(5.0, 7.0), (40.0, 42.0)], 60.0)
+    send(held, 0.1 / 1.5, back, caught_up_at)
+    send(bursts([(1.0, 3.0)], 5.0), 0.1, back)
+    session.release_source(back)
+    live.stop("a", WAIT)
+    return [e for e in session.hub.history() if e["type"] == "final"]
+
+
+def test_a_slow_resend_after_an_outage_keeps_stale_speech_late() -> None:
+    """#263 re-review (N2): held audio resent at 1.5x real time never
+    re-anchors the timings: speech from 55 s and 20 s before stays late
+    and asks for no suggestion."""
+    finals = resend_after_outage(len(range(0, 60 * SAMPLE_RATE, 1600)) - 1)
+    stale = finals[:2]
+    assert [round(f["utterance"]["start"]) for f in stale] == [6, 41]
+    for final in stale:
+        assert final["timings"]["lag_ms"] > 15000
+        assert is_late(LiveEvent.model_validate(final))
+    # once caught up, live speech in real time is put back on the clock
+    assert finals[-1]["timings"]["lag_ms"] < 2000
+
+
+def test_without_the_caught_up_signal_nothing_is_re_anchored() -> None:
+    finals = resend_after_outage(None)
+    assert all(f["timings"]["lag_ms"] > 15000 for f in finals)
+
+
+def test_the_session_says_whether_its_source_is_connected_or_lost() -> None:
+    """#263 re-review (N1): the page asks before taking a connected
+    source over, and not when it was lost."""
+    session, _ = lone_session()
+    assert session.source_state == "none"
+    source = session.claim_source()
+    assert session.info()["source"] == "connected"
+    session.release_source(source)
+    assert session.info()["source"] == "lost"
+    session.claim_source()
+    assert session.source_state == "connected"

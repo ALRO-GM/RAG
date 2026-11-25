@@ -107,7 +107,7 @@ from transcriber.domain.live_session import (
     align_samples,
     channel_speakers,
     decode_pcm,
-    gap_fits,
+    gap_room,
     gap_samples,
     gpu_choice,
     source_grace,
@@ -133,13 +133,14 @@ Arrival = Tuple[List[FloatArray], float]
 
 @dataclass(frozen=True)
 class SourceNotice:
-    """The audio source went away (``lost``) or came back (``back``).
+    """The audio source went away (``lost``), came back (``back``) or
+    has sent everything it held (``caught_up``).
 
-    Queued with the audio, so the worker warns in stream order;
+    Queued with the audio, so the worker acts in stream order;
     ``seconds`` is how long the source was away (``back`` only).
     """
 
-    kind: Literal["lost", "back"]
+    kind: Literal["lost", "back", "caught_up"]
     seconds: float = 0.0
 
 
@@ -295,9 +296,10 @@ class LiveSession:
 
         The stream time then stays on the wall clock. Queued one second
         at a time, with the same backpressure as :meth:`feed`. Returns
-        the samples queued. ``bounded``: refuse (``InvalidInputError``)
-        silence that would take the stream more than a few seconds past
-        the wall clock, so a faulty client cannot push hours of it.
+        the samples queued. ``bounded``: put in at most what keeps the
+        stream within :data:`GAP_SLACK_SECONDS` of the wall clock
+        (:func:`gap_room`), so a faulty client cannot push hours of it;
+        the caller tells the client how much was taken.
         """
         count = gap_samples(samples)
         if bounded:
@@ -306,11 +308,7 @@ class LiveSession:
                     None if self._origin is None
                     else self._now() - self._origin
                 )
-                if not gap_fits(elapsed, self.received, count):
-                    raise InvalidInputError(
-                        f"a gap of {count} samples would take live session"
-                        f" {self.id} past the wall clock"
-                    )
+                count = min(count, gap_room(elapsed, self.received))
         left = count
         while left > 0:
             piece = min(left, SAMPLE_RATE)
@@ -474,6 +472,22 @@ class LiveSession:
             self._room.notify_all()
         self._audio.put(None)
 
+    def caught_up(self) -> None:
+        """The source has sent everything it held (#263 review).
+
+        Until then a returned source's audio is a resend, never a sign
+        that the audio is on time again.
+        """
+        self._audio.put(SourceNotice("caught_up"))
+
+    @property
+    def source_state(self) -> str:
+        """``connected``, ``lost`` (waiting for it) or ``none``."""
+        with self._room:
+            if self._source is not None:
+                return "connected"
+            return "lost" if self._lost_at is not None else "none"
+
     def idle(self) -> bool:
         """Tell whether no audio waits for the worker."""
         return self._audio.empty()
@@ -553,6 +567,7 @@ class LiveSession:
             "finals": sum(1 for e in events if e.get("type") == "final"),
             "rejected_events": self.rejected,
             "received_samples": self.received,
+            "source": self.source_state,
             "end_reason": self.end_reason,
             "transcript": self.transcript,
             "error": self.error,
@@ -831,15 +846,21 @@ class LiveSessions:
                 ))
             session.mark_ready()
             pace = PaceWatch()
+            resending = False
             while True:
                 arrival = session.next_audio()
                 if arrival is None:
                     break
                 if isinstance(arrival, SourceNotice):
+                    if arrival.kind == "caught_up":
+                        resending = False
+                        continue
                     emit(source_warning(engine, self._p.clock, arrival))
                     # Resent audio comes in a burst: no partials until
-                    # it is read (#263); its finals still come.
-                    engine.skip_partials = arrival.kind == "back"
+                    # it is read (#263); its finals still come. Its
+                    # arrival times say nothing of when it was spoken.
+                    resending = arrival.kind == "back"
+                    engine.skip_partials = resending
                     pace.reset()
                     continue
                 chunks, arrived = arrival
@@ -847,8 +868,8 @@ class LiveSessions:
                 idle = session.idle()
                 if idle:
                     engine.skip_partials = False
-                if pace.observe(len(chunks[0]), arrived, idle) \
-                        and engine.realign(arrived):
+                on_pace = pace.observe(len(chunks[0]), arrived, idle)
+                if on_pace and not resending and engine.realign(arrived):
                     LIFECYCLE.info(
                         "Live session %s: audio on time again at %.1f s;"
                         " timings re-anchored", session.id,

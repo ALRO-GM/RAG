@@ -162,7 +162,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const plan = await reattachPlan((id) => ctx.api.liveSession(id), kept);
     if (plan.unauthorized) return ctx.fail(plan.unauthorized);
     if (closed) return null;
-    if (plan.show) return showSession(plan.show, kept.audio);
+    if (plan.show) return showSession(plan.show, kept.audio, { reattached: true });
     if (plan.forget) forgetSession(kept.id);
     return showForm(plan.error ? liveError(plan.error) : null);
   }
@@ -351,7 +351,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     async function showBusy() {
       const card = await busyNotice(ctx, {
         here: "live",
-        onBack: (running) => showSession(running, running.audio),
+        onBack: (running) => showSession(running, running.audio, { reattached: true }),
         onEnded: () => {
           formError.hidden = true;
           sync();
@@ -403,7 +403,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
   // ---- a running session ----------------------------------------------
 
-  function showSession(session, audioKind) {
+  /** `reattached`: a session this page did not start (a reload, «Volver a la sesión»). */
+  function showSession(session, audioKind, { reattached = false } = {}) {
     clearInterval(ticker);
     controller?.abort();
     root.replaceChildren();
@@ -1348,8 +1349,9 @@ export async function liveView(ctx, root, [sub, which] = []) {
         },
       });
       audio.start().catch(() => {
-        toast(t("live.mic.failed"), { error: true });
-        ctx.api.stopLive(session.id).catch(() => {});
+        // Only a session this page started is ended for a microphone that failed (#263 re-review).
+        toast(t(reattached ? "live.mic.failed_kept" : "live.mic.failed"), { error: true });
+        if (!reattached) ctx.api.stopLive(session.id).catch(() => {});
       });
     }
     draw();

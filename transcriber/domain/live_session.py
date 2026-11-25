@@ -15,7 +15,7 @@ messages; no I/O:
   16 kHz (two channels interleaved) into one float array per channel.
 * :class:`AudioBacklog`: how much audio waits for the recogniser; the
   socket stops reading when it is full (backpressure).
-* :func:`gap_samples`, :func:`gap_fits` and :func:`align_samples`: the
+* :func:`gap_samples`, :func:`gap_room` and :func:`align_samples`: the
   silence that keeps the stream time on the wall clock when a source
   lost audio, its microphone paused, or a new page takes a session over
   (#263).
@@ -303,22 +303,25 @@ def gap_samples(samples: object) -> int:
     return samples
 
 
-GAP_SLACK_SECONDS = 5.0
-"""How far a ``gap`` may take the stream past the wall clock (#263)."""
+GAP_SLACK_SECONDS = 120.0
+"""How far a ``gap`` may take the stream past the wall clock (#263).
+
+Generous: a page's clock may step forward after a sleep, and its first
+audio may reach the server late; it still stops hours of silence."""
 
 
-def gap_fits(
-    elapsed: Optional[float], received: int, gap: int,
+def gap_room(
+    elapsed: Optional[float], received: int,
     slack: float = GAP_SLACK_SECONDS,
-) -> bool:
-    """Tell whether ``gap`` samples of silence keep the stream on time.
+) -> int:
+    """Return the most samples of silence a ``gap`` may put in now.
 
     A session that took ``received`` samples over ``elapsed`` seconds
     (``None``: no audio yet) may not run more than ``slack`` seconds
     ahead of the wall clock: a client cannot push hours of silence.
     """
     wall = (elapsed or 0.0) + slack
-    return (received + gap) / SAMPLE_RATE <= wall
+    return max(int(wall * SAMPLE_RATE) - received, 0)
 
 
 def align_samples(elapsed: float, received: int, held: object) -> int:
@@ -341,15 +344,20 @@ class PaceWatch:
     After a pause of the microphone (a suspended tab, a laptop asleep)
     the stream time of later audio is behind the wall clock and every
     timing would say it is late. Once ``steady`` pieces in a row came
-    with the queue empty, each at least ``share`` of its own length
-    after the one before (not a burst of resent audio), the audio is on
-    time again and the timings may be re-anchored.
+    with the queue empty, each between ``low`` and ``high`` times its
+    own length after the one before (real time: neither a burst nor a
+    slow resend of held audio), the audio is on time again and the
+    timings may be re-anchored. The session also never re-anchors while
+    a returned source still resends what it held (#263 review).
     """
 
-    def __init__(self, steady: int = 10, share: float = 0.5) -> None:
+    def __init__(
+        self, steady: int = 30, low: float = 0.9, high: float = 1.1,
+    ) -> None:
         """Start with no piece seen."""
         self.steady = steady
-        self.share = share
+        self.low = low
+        self.high = high
         self._last: Optional[float] = None
         self._run = 0
 
@@ -359,9 +367,10 @@ class PaceWatch:
         ``arrived`` is when it came (monotonic) and ``idle`` whether
         nothing else waited behind it.
         """
+        length = samples / SAMPLE_RATE
         paced = (
             idle and self._last is not None
-            and arrived - self._last >= self.share * samples / SAMPLE_RATE
+            and self.low * length <= arrived - self._last <= self.high * length
         )
         self._last = arrived
         self._run = self._run + 1 if paced else 0

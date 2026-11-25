@@ -3,7 +3,10 @@
 // nothing to reattach to: say which session runs and offer «Volver a la
 // sesión» (reattach here, or on the page that owns it) and «Terminarla»
 // (stop it; then the new one can start). Used by «En directo» and the
-// voice assistant's start forms.
+// voice assistant's start forms. When the session's microphone is still
+// connected from another browser (someone may be in the middle of an
+// interview), «Volver a la sesión» asks first: this page's microphone
+// would take its place.
 
 import { h } from "../dom.js";
 import { t } from "../i18n.js";
@@ -16,6 +19,20 @@ import { rememberSession, runningSession, sessionPage } from "../lib/live-link.j
 function sessionName(session) {
   const kind = productKind(session?.product);
   return sessionPage(session) === "voicebot" ? t("voicebot.title") : t(`live.product.${kind}`);
+}
+
+/**
+ * Whether going back to `session` here would take a microphone that is
+ * still connected over (unknown counts as connected: ask).
+ */
+async function takesOver(ctx, session) {
+  if (session.audio !== "mic") return false;
+  try {
+    const info = await ctx.api.liveSource(session.id);
+    return info?.source === "connected";
+  } catch {
+    return true;
+  }
 }
 
 /**
@@ -39,7 +56,13 @@ export async function busyNotice(ctx, {
   const status = h("p", { class: "hint", role: "status" });
   const back = h("button", {
     type: "button", class: "primary",
-    onClick: () => {
+    onClick: async () => {
+      if (await takesOver(ctx, running)) {
+        const yes = await confirm({
+          title: t("live.busy.take_title"), content: [h("p", {}, t("live.busy.take_body"))], confirm: t("live.busy.take_confirm"),
+        });
+        if (!yes) return;
+      }
       if (page === here) {
         card.remove();
         onBack(running);

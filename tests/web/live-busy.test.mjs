@@ -53,11 +53,15 @@ async function withDom(fn) {
 const INTERVIEW = { id: "live-1", state: "running", product: "live_assist.interview", mode: "live", audio: "mic" };
 const BOT = { id: "voz-1", state: "running", product: "voicebot.support", mode: "live", audio: "mic" };
 
-function api(sessions, stopped = []) {
+function api(sessions, stopped = [], source = "lost") {
   return {
     api: {
       liveSessions: async () => ({ sessions }),
       stopLive: async (id) => { stopped.push(id); return {}; },
+      liveSource: async () => {
+        if (source instanceof Error) throw source;
+        return { source };
+      },
     },
   };
 }
@@ -129,4 +133,50 @@ test("both start forms show the card when the start answers busy", async () => {
     assert.match(view, /if \(error\?\.code === "busy"\) showBusy\(\);/, file);
     assert.match(view, /const card = await busyNotice\(ctx, \{/, file);
   }
+});
+
+test("busy: a microphone still connected from another browser is not taken over without asking", async () => {
+  await withDom(async (busyNotice) => {
+    for (const [source, asks] of [["connected", true], [new Error("down"), true], ["lost", false], ["none", false]]) {
+      const back = [];
+      const asked = [];
+      const card = await busyNotice(api([INTERVIEW], [], source), {
+        here: "live", onBack: (s) => back.push(s.id), onEnded: () => {}, confirm: async (o) => { asked.push(o); return false; },
+      });
+      await buttons(card)[0].click();
+      assert.equal(asked.length, asks ? 1 : 0, String(source));
+      assert.deepEqual(back, asks ? [] : ["live-1"], "a no keeps the other browser's microphone");
+      if (asks) {
+        assert.equal(asked[0].title, "¿Usar el micrófono de esta página?");
+        assert.equal(asked[0].content[0].text(),
+          "Esta sesión recibe audio desde otro navegador; si vuelves aquí, este micrófono lo sustituye.");
+        assert.equal(asked[0].confirm, "Volver y usar este micrófono");
+      }
+    }
+    const yes = [];
+    const card = await busyNotice(api([INTERVIEW], [], "connected"), {
+      here: "live", onBack: (s) => yes.push(s.id), onEnded: () => {}, confirm: async () => true,
+    });
+    await buttons(card)[0].click();
+    assert.deepEqual(yes, ["live-1"]);
+    const stereo = [];
+    const watch = await busyNotice(api([{ ...INTERVIEW, audio: "stereo" }], [], "connected"), {
+      here: "live", onBack: (s) => stereo.push(s.id), onEnded: () => {}, confirm: async () => assert.fail("no microphone to take"),
+    });
+    await buttons(watch)[0].click();
+    assert.deepEqual(stereo, ["live-1"]);
+  });
+});
+
+test("a microphone that fails on a reattached session never ends it; one this page started is ended", async () => {
+  const { readFileSync } = await import("node:fs");
+  for (const file of ["live.js", "voicebot.js"]) {
+    const view = readFileSync(new URL(`../../transcriber/adapters/inbound/web/js/views/${file}`, import.meta.url), "utf8");
+    assert.match(view, /toast\(t\(reattached \? "live\.mic\.failed_kept" : "live\.mic\.failed"\), \{ error: true \}\);\s+if \(!reattached\) ctx\.api\.stopLive/, file);
+    assert.doesNotMatch(view, /toast\(t\("live\.mic\.failed"\), \{ error: true \}\);\s+ctx\.api\.stopLive/, file);
+  }
+  const live = readFileSync(new URL("../../transcriber/adapters/inbound/web/js/views/live.js", import.meta.url), "utf8");
+  assert.match(live, /showSession\(plan\.show, kept\.audio, \{ reattached: true \}\)/);
+  assert.match(live, /onBack: \(running\) => showSession\(running, running\.audio, \{ reattached: true \}\)/);
+  assert.equal(es["live.mic.failed_kept"], "No se pudo usar el micrófono en esta página; la sesión sigue en marcha.");
 });

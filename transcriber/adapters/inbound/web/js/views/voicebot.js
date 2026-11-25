@@ -98,7 +98,7 @@ export async function voicebotView(ctx, root, [sub] = []) {
 
   function resume(session) {
     const owner = topics.find((p) => p.product === session.product);
-    return showSession(session, { mode: MODES[0], headset: true, interview: Boolean(owner?.interview) });
+    return showSession(session, { mode: MODES[0], headset: true, interview: Boolean(owner?.interview), reattached: true });
   }
 
   // ---- start ------------------------------------------------------------
@@ -207,7 +207,8 @@ export async function voicebotView(ctx, root, [sub] = []) {
 
   // ---- a running conversation ---------------------------------------------
 
-  function showSession(session, { mode, headset, interview = false }) {
+  /** `reattached`: a conversation this page did not start (a reload, «Volver a la sesión»). */
+  function showSession(session, { mode, headset, interview = false, reattached = false }) {
     rememberSession(session, "mic", "voicebot");
     root.replaceChildren();
     const state = new VoiceBotState();
@@ -444,8 +445,9 @@ export async function voicebotView(ctx, root, [sub] = []) {
     });
     audio.muted = mode === "push";
     audio.start().catch(() => {
-      toast(t("live.mic.failed"), { error: true });
-      ctx.api.stopLive(session.id).catch(() => {});
+      // Only a conversation this page started is ended for a microphone that failed (#263 re-review).
+      toast(t(reattached ? "live.mic.failed_kept" : "live.mic.failed"), { error: true });
+      if (!reattached) ctx.api.stopLive(session.id).catch(() => {});
     });
     draw();
     follow();
