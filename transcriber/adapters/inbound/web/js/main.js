@@ -23,6 +23,7 @@ import { liveView } from "./views/live.js";
 import { voicebotView } from "./views/voicebot.js";
 import { callReportView } from "./views/call-report.js";
 import { interviewReportView } from "./views/interview-report.js";
+import { offersView, offerView, personFileView } from "./views/offers.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor } from "./lib/shell.js";
 
@@ -83,7 +84,10 @@ const ROUTES = [
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
   [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
   [/^#\/live(?:\/(demo)(?:\/(support))?)?$/, liveView],
-  [/^#\/voicebot(?:\/(demo))?$/, voicebotView],
+  [/^#\/voicebot(?:\/(demo|interview)(?:\/([^/]+))?)?$/, voicebotView],
+  [/^#\/offers(?:\?(.*))?$/, offersView],
+  [/^#\/offers\/([^/?]+)\/person\/([^/?]+)$/, personFileView],
+  [/^#\/offers\/([^/?]+)(?:\?(.*))?$/, offerView],
   [/^#\/call-report\/([^/]+)$/, callReportView],
   [/^#\/interview-report\/([^/]+)\/([^/]+)$/, interviewReportView],
   [/^#\/settings$/, settingsView],

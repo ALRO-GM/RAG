@@ -47,7 +47,7 @@ function maybe(key, fallback, params) {
   return text === key ? fallback : text;
 }
 
-export async function voicebotView(ctx, root, [sub] = []) {
+export async function voicebotView(ctx, root, [sub, planId] = []) {
   root.classList.add("wide");
   if (sub === "demo") return voiceDemo(ctx, root);
   let product = null;
@@ -55,7 +55,9 @@ export async function voicebotView(ctx, root, [sub] = []) {
   try {
     const { products } = await ctx.api.liveProducts();
     topics = speakerProducts(products);
-    product = topics.find((p) => p.product === VOICEBOT) ?? topics[0] ?? null;
+    // #/voicebot/interview[/<plan>] (#271: «Nueva oferta» and «Hacer una entrevista con IA» on «Ofertas»).
+    const wanted = sub === "interview" ? INTERVIEW : VOICEBOT;
+    product = topics.find((p) => p.product === wanted) ?? topics.find((p) => p.product === VOICEBOT) ?? topics[0] ?? null;
   } catch (error) {
     if (error?.kind === "unauthorized") throw error;
     product = null;
@@ -132,7 +134,10 @@ export async function voicebotView(ctx, root, [sub] = []) {
       start.hidden = interview;
       interviewBox.hidden = !interview;
       if (interview && !interviewBox.firstChild) {
-        interviewBox.append(planSetup(ctx, { onReady: (plan, candidate) => begin({ plan: plan.id, candidate: candidate || undefined }) }));
+        interviewBox.append(planSetup(ctx, {
+          onReady: (plan, candidate) => begin({ plan: plan.id, candidate: candidate || undefined }),
+          initial: sub === "interview" && planId ? decodeURIComponent(planId) : null,
+        }));
       }
       if (!interview && product.domain && !domainsLoaded) loadDomains();
     };

@@ -2,8 +2,7 @@
 // docs/live/VOICEBOT_INTERVIEWER.md): the topics the page offers, editing an
 // interview plan (interview.plan.v1) before the interview, the live coverage
 // from the orchestrator's feed ("coverage", "interview", "interview_result"
-// messages), the report's figures and the comparison of candidates of one
-// offer; each point of the plan can carry the concrete concepts a complete
+// messages) and the report's figures; each point of the plan can carry the concrete concepts a complete
 // answer talks about, followed one by one (#258). No DOM and no text here (every text is in the dictionaries), so
 // node --test runs it.
 
@@ -220,22 +219,4 @@ export class InterviewState {
 /** Where a stored interview report opens (#262). */
 export function reportHref(planId, sessionId) {
   return `#/interview-report/${encodeURIComponent(planId)}/${encodeURIComponent(sessionId)}`;
-}
-
-/** The comparison of the candidates of one plan: one row each, slots in plan order. */
-export function comparisonRows(results) {
-  const plan = results?.plan ?? { slots: [] };
-  const order = plan.slots.map((s) => s.id);
-  return (results?.candidates ?? []).map((row) => {
-    const byId = new Map((row.slots ?? []).map((s) => [s.id, s]));
-    return {
-      session: row.session_id, kind: row.kind === "live" ? "live" : "ai", candidate: row.candidate, suitability: row.suitability ?? null,
-      // #262: a report without a candidate's file is kept with the position and deleted from here;
-      // `owned` is the server's rule (it names a stored file, or its session is a round of one).
-      candidateId: row.candidate_id ?? null,
-      owned: typeof row.owned === "boolean" ? row.owned : Boolean(row.candidate_id),
-      finished: row.finished_at, closedBy: row.closed_by, stale: (row.plan_revision ?? 0) !== (plan.revision ?? 0),
-      slots: order.map((id) => byId.get(id) ?? { id, score: null, status: "empty" }),
-    };
-  });
 }

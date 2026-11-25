@@ -358,6 +358,9 @@ export class Api {
   /** The candidates interviewed from a plan, for the comparison. */
   planResults(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}/results`); }
 
+  /** The offer page's table (#271): one row per person, best figure first. */
+  planBoard(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}/board`); }
+
   /** One stored interview report of a plan, in full (#262). */
   planReport(planId, sessionId) {
     return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/results/${encodeURIComponent(sessionId)}`);
@@ -381,6 +384,11 @@ export class Api {
 
   /** The candidates of a role (plan): { candidates: [profile view], questions, retention_days }. */
   planCandidates(planId) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates`); }
+
+  /** One candidate of a role: the profile view with their reports (#271: the file opened from «Ofertas»). */
+  planCandidate(planId, id) {
+    return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/candidates/${encodeURIComponent(id)}`);
+  }
 
   /** Add a candidate to a role: { name }. */
   createCandidate(planId, name) {

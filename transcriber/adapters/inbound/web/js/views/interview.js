@@ -1,7 +1,9 @@
 // The AI interviewer's parts of the voice-bot page (#208,
 // docs/live/VOICEBOT_INTERVIEWER.md): the job offer and the plan review
 // before the interview, the live coverage panel for the recruiter, the
-// visual report after it and the comparison of the candidates of one offer.
+// visual report after it. The people interviewed for one offer are compared
+// on the offer's own page (#271, views/offers.js), which reuses the plan
+// editor drawn here (planEditorBody).
 // Each point can carry its concepts (#258): edited one per line in the
 // review, shown treated / not yet / does not know it in the coverage and
 // the report (an icon and a word, never the colour alone).
@@ -13,9 +15,10 @@ import { t, lang } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
   COMPETENCIES, LEVELS, MAX_MINUTES, MAX_POINTS, MIN_MINUTES, MIN_OFFER, ROLE_TYPES,
-  addSlot, clonePlan, comparisonRows, editSlot, planCounts, planErrors, planForSave,
+  addSlot, clonePlan, editSlot, planCounts, planErrors, planForSave,
   pointCounts, removeSlot, reportFigures, reportHref, scoreClass, setEssential,
 } from "../lib/interview.js";
+import { offerHref } from "../lib/offers.js";
 import { icon, openDialog, toast } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
 
@@ -81,7 +84,7 @@ export function pointList(points, { quotes = false } = {}) {
  * The job offer form and the plan review. `onReady(plan, candidate)` is
  * called when the recruiter starts the interview with a saved plan.
  */
-export function planSetup(ctx, { onReady }) {
+export function planSetup(ctx, { onReady, initial = null }) {
   const root = h("div", { class: "stack iv-setup" });
   let plan = null;
   let saved = null;
@@ -152,10 +155,10 @@ export function planSetup(ctx, { onReady }) {
     }
   }
 
-  async function openSaved() {
-    if (!saved_plans.value) return;
+  async function openSaved(id = saved_plans.value) {
+    if (!id) return;
     try {
-      show(await ctx.api.interviewPlan(saved_plans.value));
+      show(await ctx.api.interviewPlan(id));
     } catch (error) {
       toast(describeError(error), { error: true });
     }
@@ -203,13 +206,8 @@ export function planSetup(ctx, { onReady }) {
   }
 
   function drawReview() {
-    const counts = planCounts(plan);
     const errors = planErrors(plan);
     const dirty = JSON.stringify(planForSave(plan)) !== JSON.stringify(planForSave(saved));
-    const planTitle = h("input", { id: "iv-plan-title", type: "text", value: plan.title, maxLength: 120 });
-    planTitle.addEventListener("change", () => { plan.title = planTitle.value; drawReview(); });
-    const planMinutes = h("input", { id: "iv-plan-minutes", type: "number", min: MIN_MINUTES, max: MAX_MINUTES, step: 5, value: plan.minutes });
-    planMinutes.addEventListener("change", () => { plan.minutes = Number(planMinutes.value); drawReview(); });
     const candidate = h("input", { id: "iv-candidate", type: "text", maxLength: 80, placeholder: t("iv.candidate_placeholder") });
     const save = h("button", { type: "button", disabled: !dirty || errors.length > 0, onClick: () => persist() }, t("iv.save"));
     const closed = saved.state === "closed";
@@ -238,31 +236,8 @@ export function planSetup(ctx, { onReady }) {
         toast(describeError(error), { error: true });
       }
     }
-    const compare = h("button", { type: "button", onClick: () => showComparison() }, t("iv.compare"));
-    const comparison = h("div", { class: "iv-comparison" });
-
-    async function showComparison() {
-      try {
-        fill(comparison, comparisonCard(await ctx.api.planResults(saved.id), { onDelete: deleteReport }));
-      } catch (error) {
-        toast(describeError(error), { error: true });
-      }
-    }
-
-    async function deleteReport(row) {
-      const yes = await openDialog({
-        title: t("iv.delete_report_title"), content: [h("p", {}, t("iv.delete_report_body"))],
-        confirm: t("iv.delete_report"), danger: true,
-      });
-      if (!yes) return;
-      try {
-        await ctx.api.deletePlanReport(saved.id, row.session);
-        toast(t("iv.deleted_report"));
-        await showComparison();
-      } catch (error) {
-        toast(describeError(error), { error: true });
-      }
-    }
+    // #271: the people interviewed for an offer are on its own page («Ofertas»).
+    const compare = h("a", { class: "button", href: offerHref(saved.id) }, t("iv.compare_offer"));
 
     async function persist() {
       save.disabled = true;
@@ -280,56 +255,12 @@ export function planSetup(ctx, { onReady }) {
       closed ? h("p", { class: "notice", role: "status" }, t("iv.closed_notice")) : null,
       plan.planner?.status === "fallback" ? h("p", { class: "notice", role: "note" }, t("iv.fallback", { error: plan.planner.error ?? "" })) : null,
       h("p", { class: "hint" }, t("iv.review_hint")),
-      h("div", { class: "row wrap iv-plan-head" },
-        h("div", { class: "field grow" }, h("label", { for: "iv-plan-title" }, t("iv.plan_title")), planTitle),
-        h("div", { class: "field" }, h("label", { for: "iv-plan-minutes" }, t("iv.minutes")), planMinutes)),
-      plan.summary ? h("p", { class: "meta" }, plan.summary) : null,
-      h("p", { class: "meta" }, t("iv.counts", { total: counts.total, minimo: counts.minimo, deseable: counts.deseable, opcional: counts.opcional })),
-      h("ol", { class: "iv-slots" }, plan.slots.map((slot) => slotEditor(slot))),
-      h("div", { class: "row wrap" },
-        h("button", { type: "button", disabled: plan.slots.length >= 12, onClick: () => { addSlot(plan); drawReview(); } }, icon("plus"), t("iv.add_slot"))),
-      errors.length ? h("ul", { class: "error", role: "alert" }, errors.map((e) => h("li", {}, t(e)))) : null,
+      planEditorBody(plan, drawReview),
       h("div", { class: "row wrap iv-actions" }, save, compare, position,
         dirty ? h("span", { class: "hint" }, t("iv.unsaved")) : null),
       h("div", { class: "field" }, h("label", { for: "iv-candidate" }, t("iv.candidate")), candidate,
         h("p", { class: "hint" }, t("iv.candidate_hint"))),
-      start, comparison);
-  }
-
-  function slotEditor(slot) {
-    const key = `iv-${slot.id}`;
-    const essential = h("input", { type: "checkbox", id: `${key}-min`, checked: slot.level === "minimo" });
-    essential.addEventListener("change", () => { setEssential(plan, slot.id, essential.checked); drawReview(); });
-    const label = h("input", { id: `${key}-label`, type: "text", value: slot.label, maxLength: 120, "aria-label": t("iv.slot_label") });
-    label.addEventListener("change", () => { editSlot(plan, slot.id, { label: label.value }); drawReview(); });
-    const level = select(`${key}-level`, LEVELS.map((l) => [l, t(`iv.level.${l}`)]), slot.level, t("iv.level"),
-      (v) => { editSlot(plan, slot.id, { level: v }); drawReview(); });
-    const weight = select(`${key}-weight`, WEIGHTS.map((w) => [String(w), t(`iv.weight.${w}`)]), String(slot.weight ?? 3),
-      t("iv.weight"), (v) => { editSlot(plan, slot.id, { weight: Number(v) }); drawReview(); });
-    const competency = select(`${key}-comp`, [["", t("iv.comp.none")], ...COMPETENCIES.map((c) => [c, t(`iv.comp.${c}`)])],
-      slot.competency ?? "", t("iv.competency"), (v) => { editSlot(plan, slot.id, { competency: v || null }); drawReview(); });
-    const questions = h("textarea", { id: `${key}-q`, rows: 2, value: slot.questions.join("\n"), "aria-label": t("iv.questions") });
-    questions.addEventListener("change", () => { editSlot(plan, slot.id, { questions: questions.value.split("\n") }); drawReview(); });
-    const evidence = h("input", { id: `${key}-ev`, type: "text", value: slot.evidence ?? "", maxLength: 300, "aria-label": t("iv.evidence") });
-    evidence.addEventListener("change", () => { editSlot(plan, slot.id, { evidence: evidence.value }); drawReview(); });
-    const points = h("textarea", {
-      id: `${key}-pts`, rows: Math.max(2, Math.min(MAX_POINTS, (slot.points ?? []).length + 1)),
-      value: (slot.points ?? []).map((p) => p.text).join("\n"), "aria-label": t("iv.points"),
-      "aria-describedby": `${key}-pts-hint`,
-    });
-    points.addEventListener("change", () => { editSlot(plan, slot.id, { points: points.value.split("\n") }); drawReview(); });
-    const remove = h("button", { type: "button", class: "ghost", "aria-label": t("iv.remove"), onClick: () => { removeSlot(plan, slot.id); drawReview(); } }, icon("trash"));
-    return h("li", { class: `iv-slot is-${slot.level}` },
-      h("div", { class: "row wrap iv-slot-head" },
-        h("label", { class: "check", for: `${key}-min` }, essential, " ", t("iv.essential")),
-        label, remove),
-      h("div", { class: "row wrap iv-slot-meta" },
-        h("label", { class: "field" }, t("iv.level"), level),
-        h("label", { class: "field" }, t("iv.weight"), weight),
-        h("label", { class: "field" }, t("iv.competency"), competency)),
-      h("label", { class: "field" }, t("iv.questions"), questions),
-      h("label", { class: "field" }, t("iv.evidence"), evidence),
-      h("label", { class: "field" }, t("iv.points"), points, h("span", { class: "hint", id: `${key}-pts-hint` }, t("iv.points_hint", { n: MAX_POINTS }))));
+      start);
   }
 
   fill(root,
@@ -344,10 +275,75 @@ export function planSetup(ctx, { onReady }) {
         h("div", { class: "field" }, h("label", { for: "iv-minutes" }, t("iv.minutes")), minutes)),
       make, formError,
       h("div", { class: "row wrap iv-saved" },
-        h("label", { for: "iv-saved" }, t("iv.saved")), saved_plans, open)),
+        h("label", { for: "iv-saved" }, t("iv.saved")), saved_plans, open),
+      h("p", { class: "hint" }, h("a", { href: "#/offers" }, t("iv.all_offers")))),
     review);
   loadSaved();
+  // #271: opened from an offer's page with its plan.
+  if (initial) openSaved(initial);
   return root;
+}
+
+/**
+ * The editable body of a plan: title and minutes, its counts and one editor
+ * per point (level, weight, competency, questions, evidence, concepts). Shared
+ * by the voice-bot page's review and the offer page (#271). Edits change
+ * `plan` in place and call `redraw`.
+ */
+export function planEditorBody(plan, redraw) {
+  const counts = planCounts(plan);
+  const errors = planErrors(plan);
+  const planTitle = h("input", { id: "iv-plan-title", type: "text", value: plan.title, maxLength: 120 });
+  planTitle.addEventListener("change", () => { plan.title = planTitle.value; redraw(); });
+  const planMinutes = h("input", { id: "iv-plan-minutes", type: "number", min: MIN_MINUTES, max: MAX_MINUTES, step: 5, value: plan.minutes });
+  planMinutes.addEventListener("change", () => { plan.minutes = Number(planMinutes.value); redraw(); });
+  return [
+    h("div", { class: "row wrap iv-plan-head" },
+      h("div", { class: "field grow" }, h("label", { for: "iv-plan-title" }, t("iv.plan_title")), planTitle),
+      h("div", { class: "field" }, h("label", { for: "iv-plan-minutes" }, t("iv.minutes")), planMinutes)),
+    plan.summary ? h("p", { class: "meta" }, plan.summary) : null,
+    h("p", { class: "meta" }, t("iv.counts", { total: counts.total, minimo: counts.minimo, deseable: counts.deseable, opcional: counts.opcional })),
+    h("ol", { class: "iv-slots" }, plan.slots.map((slot) => slotEditor(plan, slot, redraw))),
+    h("div", { class: "row wrap" },
+      h("button", { type: "button", disabled: plan.slots.length >= 12, onClick: () => { addSlot(plan); redraw(); } }, icon("plus"), t("iv.add_slot"))),
+    errors.length ? h("ul", { class: "error", role: "alert" }, errors.map((e) => h("li", {}, t(e)))) : null,
+  ];
+}
+
+function slotEditor(plan, slot, redraw) {
+  const key = `iv-${slot.id}`;
+  const essential = h("input", { type: "checkbox", id: `${key}-min`, checked: slot.level === "minimo" });
+  essential.addEventListener("change", () => { setEssential(plan, slot.id, essential.checked); redraw(); });
+  const label = h("input", { id: `${key}-label`, type: "text", value: slot.label, maxLength: 120, "aria-label": t("iv.slot_label") });
+  label.addEventListener("change", () => { editSlot(plan, slot.id, { label: label.value }); redraw(); });
+  const level = select(`${key}-level`, LEVELS.map((l) => [l, t(`iv.level.${l}`)]), slot.level, t("iv.level"),
+    (v) => { editSlot(plan, slot.id, { level: v }); redraw(); });
+  const weight = select(`${key}-weight`, WEIGHTS.map((w) => [String(w), t(`iv.weight.${w}`)]), String(slot.weight ?? 3),
+    t("iv.weight"), (v) => { editSlot(plan, slot.id, { weight: Number(v) }); redraw(); });
+  const competency = select(`${key}-comp`, [["", t("iv.comp.none")], ...COMPETENCIES.map((c) => [c, t(`iv.comp.${c}`)])],
+    slot.competency ?? "", t("iv.competency"), (v) => { editSlot(plan, slot.id, { competency: v || null }); redraw(); });
+  const questions = h("textarea", { id: `${key}-q`, rows: 2, value: slot.questions.join("\n"), "aria-label": t("iv.questions") });
+  questions.addEventListener("change", () => { editSlot(plan, slot.id, { questions: questions.value.split("\n") }); redraw(); });
+  const evidence = h("input", { id: `${key}-ev`, type: "text", value: slot.evidence ?? "", maxLength: 300, "aria-label": t("iv.evidence") });
+  evidence.addEventListener("change", () => { editSlot(plan, slot.id, { evidence: evidence.value }); redraw(); });
+  const points = h("textarea", {
+    id: `${key}-pts`, rows: Math.max(2, Math.min(MAX_POINTS, (slot.points ?? []).length + 1)),
+    value: (slot.points ?? []).map((p) => p.text).join("\n"), "aria-label": t("iv.points"),
+    "aria-describedby": `${key}-pts-hint`,
+  });
+  points.addEventListener("change", () => { editSlot(plan, slot.id, { points: points.value.split("\n") }); redraw(); });
+  const remove = h("button", { type: "button", class: "ghost", "aria-label": t("iv.remove"), onClick: () => { removeSlot(plan, slot.id); redraw(); } }, icon("trash"));
+  return h("li", { class: `iv-slot is-${slot.level}` },
+    h("div", { class: "row wrap iv-slot-head" },
+      h("label", { class: "check", for: `${key}-min` }, essential, " ", t("iv.essential")),
+      label, remove),
+    h("div", { class: "row wrap iv-slot-meta" },
+      h("label", { class: "field" }, t("iv.level"), level),
+      h("label", { class: "field" }, t("iv.weight"), weight),
+      h("label", { class: "field" }, t("iv.competency"), competency)),
+    h("label", { class: "field" }, t("iv.questions"), questions),
+    h("label", { class: "field" }, t("iv.evidence"), evidence),
+    h("label", { class: "field" }, t("iv.points"), points, h("span", { class: "hint", id: `${key}-pts-hint` }, t("iv.points_hint", { n: MAX_POINTS }))));
 }
 
 // ---- during: the live coverage -------------------------------------------------
@@ -541,31 +537,4 @@ export function shortDate(value) {
   const when = new Date(value);
   if (Number.isNaN(when.getTime())) return String(value);
   return when.toLocaleString(lang === "en" ? "en-GB" : "es-ES", { dateStyle: "medium", timeStyle: "short" });
-}
-
-/** The candidates of one plan side by side: suitability and a bar per skill. */
-export function comparisonCard(results, { onDelete = null } = {}) {
-  const rows = comparisonRows(results);
-  const slots = results.plan?.slots ?? [];
-  if (!rows.length) return h("p", { class: "hint" }, t("iv.compare_none"));
-  // What is true of each row (#262): in a person's file until it is deleted,
-  // or with the position, deleted from here.
-  const notes = [
-    rows.some((r) => r.owned) ? h("p", { class: "hint" }, t("iv.retention")) : null,
-    rows.some((r) => !r.owned) ? h("p", { class: "hint" }, t("iv.retention_no_file")) : null,
-  ];
-  return h("div", { class: "iv-compare-wrap" },
-    h("table", { class: "iv-compare" },
-      h("thead", {}, h("tr", {}, h("th", {}, t("iv.candidate")), h("th", {}, t("iv.report_kind")), h("th", {}, t("iv.suitability")),
-        slots.map((s) => h("th", { title: s.label }, h("span", { class: "iv-th" }, s.label), " ", h("span", { class: "tag" }, t("iv.weight_short", { w: s.weight ?? 3 })))))),
-      h("tbody", {}, rows.map((r) => h("tr", {},
-        h("th", { scope: "row" }, r.candidate || r.session, r.stale ? h("span", { class: "tag" }, t("iv.older_plan")) : null,
-          r.owned ? null : [" ", h("span", { class: "tag" }, t("iv.no_file")),
-            onDelete ? [" ", h("button", { type: "button", class: "small danger", onClick: () => onDelete(r) }, t("iv.delete_report"))] : null]),
-        h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), " ", h("span", { class: "meta" }, shortDate(r.finished)),
-          " ", h("a", { href: reportHref(results.plan?.id ?? "", r.session) }, t("iv.open_report"))),
-        h("td", {}, r.kind === "live" ? h("span", { class: "meta" }, t("iv.no_score_live"))
-          : [scoreBar(r.suitability), " ", r.suitability === null ? "–" : String(Math.round(r.suitability))]),
-        r.slots.map((s) => h("td", {}, scoreBar(s.score, { small: true }), " ", s.score === null || s.score === undefined ? t(`iv.status.${s.status ?? "empty"}`) : String(s.score))))))),
-    notes);
 }
