@@ -863,6 +863,10 @@ CUDA_VISIBLE_DEVICES= uv run --no-sync python -m orchestrator interview rejudge 
 `--force` replaces the stored report; `--reasoner
 experiments.live.orchestrator_reasoner:build` uses Haiku in process
 instead of the running RAG.
+`python -m orchestrator rebuild-round` (#264) attributes the replayed
+round the same way before judging it, takes the same `--attribution
+model|rules`, and prints the `attribution` it used (and
+`attribution_error` when the model's was not used).
 
 ## 7. Settings («Ajustes», group «Entrevistador de IA»)
 

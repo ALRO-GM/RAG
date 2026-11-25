@@ -532,6 +532,10 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
     ticked = [r for r in reasoner.requests
               if r.get("template") == "interview.ticks@1"]
     assert len(ticked) == 2  # one per candidate final
+    ticker = live._find("r1").ticker
+    assert ticker is not None and ticker.stopped  # ended with the round
+    assert live.get("r1")["ticks"]["calls"] == 2
+    assert live.get("r1")["handoff"]["ticks"]["calls"] == 2
     sent = ticked[0]["payload"]
     assert sent["label"] == one.label
     assert sent["points"][:2] == [
