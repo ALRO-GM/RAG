@@ -155,6 +155,22 @@ longer sentence as the title): «Conexión buena», «Conexión justa»,
 The scripted demo (`#/live/demo`) shows «Conexión buena» on a healthy
 stack; the demo recorder's stand-in RAG answers `GET /health` for this.
 
+### A lost connection costs nothing (#263)
+
+When the tunnel drops, the microphone's socket reconnects by itself and
+resends what the transcriber did not acknowledge; the session waits up
+to 10 min for it. The page then shows one calm line instead of toasts:
+«Sin conexión: la entrevista se sigue grabando en este navegador (N s
+pendientes)», then «Conexión recuperada: enviando lo pendiente», then
+nothing. The stream's «Se cortó la conexión; reconectando…» takes the
+same line only when the microphone has nothing to say and the watch's
+«Se ha perdido la conexión…» is not already shown; when the pings fail
+too, the watch's line appears above it. The transcriber's own
+`source_lost` / `source_back` warnings are not shown as banners on a
+page that sends the microphone (its line says it). A reload goes back
+to the running session. Details and what is not
+measured: `LIVE_SESSION.md`, «Connection loss».
+
 ## 5. Not done
 
 - No measurement on real calls or networks: the thresholds are chosen
