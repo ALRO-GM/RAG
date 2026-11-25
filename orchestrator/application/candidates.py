@@ -286,6 +286,28 @@ class CandidateBook:
 
         return owned
 
+    def person_of(self, plan_id: str) -> Callable[[Document], Optional[str]]:
+        """Tell, for the reports of a role, whose file each is in (#271).
+
+        The profile id the report names, else the profile one of whose
+        rounds is the report's session (older sheets name no profile);
+        ``None`` when it is in no file. The offer page joins a person's
+        interviews into one row with it.
+        """
+        try:
+            readable = self.store.list(plan_id)
+        except KeyError:
+            return lambda report: None
+        by_session = {r.session_id: p.id for p in readable for r in p.rounds}
+
+        def person(report: Document) -> Optional[str]:
+            named = report.get("candidate_id")
+            if isinstance(named, str) and named:
+                return named
+            return by_session.get(str(report.get("session_id") or ""))
+
+        return person
+
     def delete_unowned_report(self, plan_id: str, session_id: str) -> Document:
         """Delete a stored report that belongs to no candidate's file.
 

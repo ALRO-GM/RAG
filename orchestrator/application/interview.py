@@ -29,7 +29,7 @@ Scores are for the recruiter only: nothing here is ever spoken.
 import logging
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import (
     TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol, Set, Tuple,
@@ -85,6 +85,13 @@ from orchestrator.domain.interview_transcript import (
     Said,
     analysis_job,
     interview_transcript,
+)
+from orchestrator.domain.offer_board import (
+    MAX_REPORTS,
+    InterviewView,
+    interview_view,
+    latest_first,
+    order_key,
 )
 from orchestrator.domain.records import TurnRecord
 from orchestrator.domain.turn_taking import BotTurn
@@ -242,21 +249,45 @@ class InterviewPlanner:
             lambda plan_id: lambda report: bool(report.get("candidate_id")))
         """Which reports of a role are in a candidate's file (the
         candidate book's rule when there is one)."""
+        self.person_of: Callable[
+            [str], Callable[[Document], Optional[str]]] = (
+            lambda plan_id: lambda report: _text_or_none(
+                report.get("candidate_id")))
+        """Whose file a report of a role is in (a profile id; ``None``:
+        none), the candidate book's rule when there is one (#271)."""
 
     # ---- queries ------------------------------------------------------
 
     def list(self) -> List[Document]:
-        """The plans, newest first, as short rows."""
-        return [
-            {"id": p.id, "title": p.title, "role_type": p.role_type,
-             "minutes": p.minutes, "slots": len(p.slots),
-             "minimums": sum(1 for s in p.slots if s.level == "minimo"),
-             "revision": p.revision,
-             "updated_at": p.updated_at.isoformat() if p.updated_at
-             else None, "state": p.state,
-             "interviews": len(self.store.results(p.id))}
-            for p in self.store.list()
-        ]
+        """The plans, newest first, as short rows.
+
+        Each row also says (#271) how many points are desirable, how
+        many interviews of each kind were stored and when the last one
+        ended, for the offers page.
+        """
+        rows: List[Document] = []
+        for p in self.store.list():
+            results = self.store.results(p.id)
+            ends = [str(r.get("finished_at")) for r in results
+                    if isinstance(r.get("finished_at"), str)]
+            live = sum(1 for r in results if r.get("kind") == "live")
+            rows.append({
+                "id": p.id, "title": p.title, "role_type": p.role_type,
+                "minutes": p.minutes, "slots": len(p.slots),
+                "minimums": sum(1 for s in p.slots if s.level == "minimo"),
+                "desirables": sum(1 for s in p.slots
+                                  if s.level != "minimo"),
+                "revision": p.revision,
+                "created_at": p.created_at.isoformat() if p.created_at
+                else None,
+                "updated_at": p.updated_at.isoformat() if p.updated_at
+                else None, "state": p.state,
+                "interviews": len(results),
+                "interviews_ai": len(results) - live,
+                "interviews_live": live,
+                "last_interview": max(ends) if ends else None,
+            })
+        return rows
 
     def get(self, plan_id: str) -> Document:
         """One plan."""
@@ -302,6 +333,59 @@ class InterviewPlanner:
         rows.sort(key=lambda r: (r["suitability"] is None,
                                  -(r["suitability"] or 0.0)))
         return {"plan": plan.to_contract(), "candidates": rows}
+
+    def board(self, plan_id: str) -> Document:
+        """The offer page's table: one row per person, best figure first.
+
+        Every stored interview of the plan is read against the current
+        plan (:mod:`orchestrator.domain.offer_board`): one comparable
+        figure each, the state of each point, the accuracy counts and
+        the statements worth checking. A person's interviews (AI and
+        live, every round) make one row, shown by the latest; rows are
+        in :func:`~orchestrator.domain.offer_board.order_key` order. At
+        most :data:`~orchestrator.domain.offer_board.MAX_REPORTS`
+        reports are read (``truncated`` says when more exist). Derived
+        on read: nothing is stored.
+        """
+        plan = self._load(plan_id)
+        owned = self.owns(plan_id)
+        person_of = self.person_of(plan_id)
+        stored = self.store.results(plan_id)
+        reports = stored[:MAX_REPORTS]
+        people: Dict[str, List[InterviewView]] = {}
+        for sheet in reports:
+            view = interview_view(plan, sheet, owned(sheet))
+            person = person_of(sheet)
+            key = (f"file:{person}" if person
+                   else f"session:{view.session_id}")
+            people.setdefault(key, []).append(view)
+        rows: List[Tuple[InterviewView, Document]] = []
+        for key, views in people.items():
+            latest, *others = latest_first(views)
+            rows.append((latest, {
+                "person": key,
+                "candidate_id": key[5:] if key.startswith("file:") else None,
+                "name": next((v.candidate for v in [latest, *others]
+                              if v.candidate), None),
+                "latest": asdict(latest),
+                "others": [
+                    {k: getattr(v, k) for k in (
+                        "session_id", "kind", "finished_at", "figure",
+                        "figure_basis", "plan_changed", "less_reliable")}
+                    for v in others
+                ],
+            }))
+        rows.sort(key=lambda r: order_key(r[0]))
+        return {
+            "schema": "interview.board.v1",
+            "plan": plan.to_contract(),
+            "required": [s.id for s in plan.slots if s.level == "minimo"],
+            "desirable": [s.id for s in plan.slots if s.level != "minimo"],
+            "people": [{**row, "position": i}
+                       for i, (_, row) in enumerate(rows, start=1)],
+            "interviews": len(reports),
+            "truncated": len(stored) > len(reports),
+        }
 
     # ---- commands -----------------------------------------------------
 
@@ -441,6 +525,11 @@ class InterviewPlanner:
              "metadata": c.get("metadata") or {}}
             for c in (result.get("chunks") or [])[:10]
         ]
+
+
+def _text_or_none(value: object) -> Optional[str]:
+    """A non-empty string, or ``None``."""
+    return value if isinstance(value, str) and value else None
 
 
 def _int(value: object, default: int) -> int:
@@ -771,6 +860,7 @@ class InterviewWiring:
         self.positions = PositionCloser(self.store)
         if self.candidates is not None:
             self.planner.owns = self.candidates.owns
+            self.planner.person_of = self.candidates.person_of
 
 
 @dataclass(frozen=True)

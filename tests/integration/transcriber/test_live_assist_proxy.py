@@ -198,6 +198,7 @@ def test_interview_plan_routes_are_forwarded() -> None:
                    json={"revision": 0}, headers=head).status_code == 200
     web.get("/api/assist/interview/plans/plan-1", headers=head)
     web.get("/api/assist/interview/plans/plan-1/results", headers=head)
+    web.get("/api/assist/interview/plans/plan-1/board", headers=head)
     web.get("/api/assist/interview/plans/plan-1/results/r1", headers=head)
     web.delete("/api/assist/interview/plans/plan-1/results/r1", headers=head)
     web.post("/api/assist/interview/plans/plan-1/close", json={},
@@ -210,6 +211,7 @@ def test_interview_plan_routes_are_forwarded() -> None:
         ("PUT", "/interview/plans/plan-1"),
         ("GET", "/interview/plans/plan-1"),
         ("GET", "/interview/plans/plan-1/results"),
+        ("GET", "/interview/plans/plan-1/board"),
         ("GET", "/interview/plans/plan-1/results/r1"),
         ("DELETE", "/interview/plans/plan-1/results/r1"),
         ("POST", "/interview/plans/plan-1/close"),
@@ -219,6 +221,8 @@ def test_interview_plan_routes_are_forwarded() -> None:
     assert len(seen[0].content) > 40000
     assert seen[2].content == b'{"revision":0}'
     assert ALLOWED.match("interview/plans/plan-1/results")
+    assert ALLOWED.match("interview/plans/plan-1/board")
+    assert not ALLOWED.match("interview/plans/plan-1/board/x")
     assert not ALLOWED.match("interview/plans/../x")
     assert web.get("/api/assist/interview/plans/plan-1").status_code == 401
 

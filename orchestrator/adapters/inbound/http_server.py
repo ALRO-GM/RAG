@@ -23,6 +23,8 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   (the recruiter's edit, with the ``revision`` it was based on; 409 when
   older) and ``GET /interview/plans/{id}/results`` (the candidates
   interviewed from it, for the comparison view); ``GET
+  /interview/plans/{id}/board``: the offer page's table (#271), one row
+  per person with one comparable figure per interview, best first; ``GET
   /interview/plans/{id}/results/{session}``: one stored interview report
   in full (#262), ``DELETE`` it when it belongs to no candidate's file
   (409 when it does: it goes with the file); ``POST
@@ -275,6 +277,14 @@ def create_app(
         """The candidates interviewed from a plan."""
         found: Dict[str, Any] = await run_in_threadpool(
             planner().results, plan_id
+        )
+        return found
+
+    @app.get("/interview/plans/{plan_id}/board")
+    async def plan_board(plan_id: str) -> Dict[str, Any]:
+        """The offer page's table: one row per person, best figure first."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().board, plan_id
         )
         return found
 
