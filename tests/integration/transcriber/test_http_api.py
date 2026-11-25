@@ -30,6 +30,9 @@ from transcriber.adapters.inbound.access import (
     client_key,
 )
 from transcriber.adapters.inbound.http_api import create_app
+from transcriber.adapters.inbound.live_assist_proxy import (
+    URL_VARIABLE as PROXY_URL_VARIABLE,
+)
 from transcriber.adapters.inbound.playback import (
     UNSATISFIABLE,
     parse_range,
@@ -661,8 +664,13 @@ class TestAccess:
 
     @pytest.mark.parametrize("method, path", ROUTES)
     def test_every_route_needs_the_code(
-        self, container: TranscriberContainer, method: str, path: str
+        self, container: TranscriberContainer, method: str, path: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        # The proxied routes must not reach an orchestrator that happens
+        # to run on this machine (a rendered voice clip is WAV, not JSON):
+        # ``.invalid`` never resolves (RFC 2606), so they answer 502.
+        monkeypatch.setenv(PROXY_URL_VARIABLE, "http://orchestrator.invalid")
         app = create_app(container, CODE)
         plain = TestClient(app)
         container.open_session("s1", "es")
