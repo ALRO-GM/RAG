@@ -53,7 +53,12 @@
 		header Upgrade websocket
 	}
 	handle @tunnel {
-		reverse_proxy tunnel:8080
+		reverse_proxy tunnel:8080 {
+			# A config reload closes upgraded connections at once;
+			# give them time to end by themselves (#264: a reload must
+			# not cut a live interview).
+			stream_close_delay 10m
+		}
 	}
 	handle /_tunnel* {
 		respond 404
@@ -78,6 +83,9 @@
 			header_up -Forwarded
 			# Stream audio ranges and answers as they come.
 			flush_interval -1
+			# The live audio and events sockets outlive a config reload
+			# (#264), as the tunnel's own does.
+			stream_close_delay 10m
 			transport http {
 				dial_timeout 5s
 				# An enrolment waits for a running transcription job.

@@ -43,7 +43,14 @@ does not come it runs a small model on the CPU and emits a
 At the end (LV-11) the last revision of every final becomes a
 ``transcript.v1`` document, kept next to the log and, if the request
 asks (``handoff``), published to the RAG like a batch session, after
-which the RAG's post-call analysis may be started.
+which the RAG's post-call analysis may be started
+(:class:`~transcriber.application.live_handover.HandOver`). Since #264
+this also happens when the worker dies with an exception (the summary
+says ``partial``), the publishing runs after the session has ended (a
+stop never waits for the RAG), the session keeps a small record
+(``session.json``: request, speakers, names, model, state) from its
+start, and :meth:`LiveSessions.recover` rebuilds at startup the
+sessions a stopped process left without a transcript.
 """
 
 import logging
@@ -51,7 +58,6 @@ import queue
 import re
 import threading
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
 from typing import (
     Any,
@@ -75,12 +81,18 @@ from transcriber.application.live import (
     LiveTranscription,
     VoiceControl,
 )
+from transcriber.application.live_handover import (
+    Handed,
+    HandOver,
+    SessionFacts,
+)
 from transcriber.application.ports import (
     Clock,
     EventCheck,
     FreeGpuMemory,
     GpuLease,
     LiveLog,
+    LiveMarker,
     SessionAnalysisPort,
     Timer,
     TranscriptPublisher,
@@ -91,7 +103,6 @@ from transcriber.domain.errors import (
     NotFoundError,
     SourceReplacedError,
     StateError,
-    TranscriberError,
 )
 from transcriber.domain.live import (
     SAMPLE_RATE,
@@ -112,8 +123,6 @@ from transcriber.domain.live_session import (
     gpu_choice,
     source_grace,
 )
-from transcriber.domain.live_transcript import live_transcript
-from transcriber.domain.models import Pipeline
 
 LOG = logging.getLogger(__name__)
 LIFECYCLE_LOGGER = "transcriber.live.lifecycle"
@@ -147,7 +156,7 @@ class SourceNotice:
 Queued = Union[Arrival, SourceNotice, None]
 """What the worker reads: audio, a source notice, or the end (None)."""
 
-EndReason = Literal["stop", "idle", "source_lost", "failed"]
+EndReason = Literal["stop", "idle", "source_lost", "failed", "restart"]
 
 DEGRADED_MESSAGE = (
     "The GPU did not free {need} MiB within {wait:g} s ({why}); the"
@@ -162,6 +171,8 @@ class LiveState(str, Enum):
     RUNNING = "running"
     ENDED = "ended"
     FAILED = "failed"
+    RECOVERED = "recovered"
+    """Rebuilt from its log at startup after a stop of the service."""
 
 
 class EventHub:
@@ -243,6 +254,13 @@ class LiveSession:
         self.gap_seconds = 0.0
         """Seconds of silence put in for audio the source lost."""
         self.end_reason: Optional[EndReason] = None
+        self.compute: Optional[str] = None
+        self.handed_over = threading.Event()
+        """Set once the transcript is kept and published (or not asked)."""
+        self.record_extra: Dict[str, Any] = {}
+        """What the end added to the record (kept on later writes)."""
+        self.on_change: Callable[[], None] = lambda: None
+        """Told when the source connects or goes (the live marker)."""
         self._audio: "queue.Queue[Queued]" = queue.Queue()
         self._now = now
         self._backlog = AudioBacklog(
@@ -405,6 +423,7 @@ class LiveSession:
                 away = max(self._now() - self._lost_at, 0.0)
                 self._lost_at = None
                 self._audio.put(SourceNotice("back", away))
+        self.on_change()
         LIFECYCLE.info(
             "Live session %s: audio source %d connected"
             " (resume at %.1f s%s%s)",
@@ -440,6 +459,7 @@ class LiveSession:
                     self.settings.source_gone_seconds,
                 )
                 self._audio.put(SourceNotice("lost"))
+        self.on_change()
         if lost:
             LIFECYCLE.info(
                 "Live session %s: audio source lost at %.1f s (close %s);"
@@ -491,6 +511,10 @@ class LiveSession:
     def idle(self) -> bool:
         """Tell whether no audio waits for the worker."""
         return self._audio.empty()
+
+    def wait_handed_over(self, timeout: Optional[float] = None) -> bool:
+        """Wait until the transcript is kept and published (or not)."""
+        return self.handed_over.wait(timeout)
 
     def wait(self, timeout: Optional[float] = None) -> bool:
         """Wait until the session is over; tell whether it is."""
@@ -598,6 +622,7 @@ class LivePorts:
     publisher: Optional[TranscriptPublisher] = None
     analysis: Optional[SessionAnalysisPort] = None
     cpu_only: Optional[Callable[[], bool]] = None
+    marker: Optional[LiveMarker] = None
 
 
 class LiveSessions:
@@ -620,8 +645,12 @@ class LiveSessions:
         self._s = settings
         self._device = device
         self._version = version
+        self._handover = HandOver(
+            ports.log, ports.publisher, ports.analysis, ports.clock, version,
+        )
         self._sessions: Dict[str, LiveSession] = {}
         self._lock = threading.Lock()
+        self._marking = threading.Lock()
 
     def start(self, request: LiveSessionRequest) -> LiveSession:
         """Start ``request``'s session in a worker thread; return it.
@@ -650,6 +679,8 @@ class LiveSessions:
             name=f"live-{request.session_id}", daemon=True,
         )
         worker.start()
+        session.on_change = self._mark
+        self._mark()
         LIFECYCLE.info(
             "Live session %s started (%d channel(s), %s)", session.id,
             session.channels, request.product or "no product",
@@ -677,7 +708,110 @@ class LiveSessions:
             session.speakers = renamed(session.speakers, speaker, name)
         except ValueError as exc:
             raise InvalidInputError(str(exc)) from exc
+        self._handover.record(self.facts(session), session.state.value,
+                              transcript=session.transcript,
+                              **session.record_extra)
         return session
+
+    def source_connected(self) -> bool:
+        """Tell whether a running session has its audio socket connected.
+
+        The tunnel's supervisor does not restart the tunnel then (#264):
+        that would cut the very socket that works.
+        """
+        with self._lock:
+            sessions = list(self._sessions.values())
+        return any(s.active and s.source_state == "connected"
+                   for s in sessions)
+
+    def _mark(self) -> None:
+        """Announce the sessions that are on (#264); never raises."""
+        marker = self._p.marker
+        if marker is None:
+            return
+        with self._marking:  # one snapshot written at a time, in order
+            with self._lock:
+                sessions = list(self._sessions.values())
+            self._write_marker(marker, sessions)
+
+    @staticmethod
+    def _write_marker(
+        marker: LiveMarker, sessions: Sequence[LiveSession],
+    ) -> None:
+        """Write the snapshot (under the marking lock: newest wins)."""
+        try:
+            # A session that ended stays until its transcript is handed
+            # over: a restart then would lose the publish (#264).
+            marker.mark([
+                {"id": s.id,
+                 "state": s.state.value if s.active else "handing_over",
+                 "source": s.source_state}
+                for s in sessions
+                if s.active or not s.handed_over.is_set()
+            ])
+        except OSError:
+            LOG.exception("The live marker was not written")
+
+    @staticmethod
+    def facts(session: LiveSession) -> SessionFacts:
+        """What ``session``'s transcript and record are made of."""
+        return SessionFacts(
+            session.id, session.request, list(session.speakers),
+            session.channels, session.model, session.compute,
+            session.diarizer,
+        )
+
+    def recover(self) -> List[str]:
+        """Rebuild the sessions a stopped process left unfinished (#264).
+
+        Each one gets its transcript from its log, kept and (on a
+        thread, so the start is not delayed) published as its start
+        request asked; it is listed as ``recovered``. Returns their ids.
+        """
+        with self._lock:
+            running = list(self._sessions)
+        done = self._handover.recover(skip=running)
+        adopted = [(h, self._adopt(h)) for h in done]
+        if adopted:
+            self._mark()  # handing over: the services guard waits
+
+            deadline = self._p.timer.monotonic() + RECOVER_BUDGET_S
+
+            def publish_all() -> None:
+                for handed, session in adopted:
+                    try:
+                        if self._p.timer.monotonic() >= deadline:
+                            # Left for the next start: the marker (and
+                            # so the services guard) is not held longer.
+                            LOG.warning(
+                                "Live session %s: hand-over left for the"
+                                " next start (time is up)",
+                                handed.session_id)
+                            continue
+                        self._handover.finish(handed)
+                    except Exception:  # noqa: BLE001 - go on with the rest
+                        LOG.exception("Live session %s: not published",
+                                      handed.session_id)
+                    finally:
+                        session.handed_over.set()
+                        self._mark()
+
+            threading.Thread(
+                target=publish_all, name="live-recover", daemon=True,
+            ).start()
+        return [h.session_id for h in done]
+
+    def _adopt(self, handed: Handed) -> LiveSession:
+        """List a recovered session (ended, with its summary)."""
+        facts = handed.facts
+        request = (facts.request if facts is not None
+                   else LiveSessionRequest(session_id=handed.session_id))
+        session = LiveSession(request, self._s, [], self._p.timer.monotonic)
+        session.transcript = handed.summary
+        session.end_reason = "restart"
+        session.finished(LiveState.RECOVERED, None)
+        with self._lock:
+            return self._sessions.setdefault(session.id, session)
 
     def voice(
         self, session_id: str, action: str, utterance: Optional[str] = None,
@@ -812,10 +946,16 @@ class LiveSessions:
             waited += self._s.poll_seconds
 
     def _work(self, session: LiveSession) -> None:
-        """Run ``session`` to its end (the worker thread)."""
+        """Run ``session`` to its end (the worker thread).
+
+        Whatever ends it (the end of its audio, a stop, an exception),
+        what was heard is handed over: kept at once, published once the
+        session has ended (#264).
+        """
         emit = self._emitter(session)
         state, error = LiveState.ENDED, None
         engine: Optional[LiveEngine] = None
+        self._handover.record(self.facts(session), "starting")
         try:
             device, degraded = self._place(session)
             if device == "cuda":
@@ -823,6 +963,7 @@ class LiveSessions:
             else:
                 model, compute = self._s.cpu_model, self._s.cpu_compute_type
             session.device, session.model = device, model
+            session.compute = compute
             if degraded is not None and self._p.lease is not None:
                 self._p.lease.release()
             live = self._p.build(
@@ -845,6 +986,8 @@ class LiveSessions:
                     ),
                 ))
             session.mark_ready()
+            self._mark()
+            self._handover.record(self.facts(session), "running")
             pace = PaceWatch()
             resending = False
             while True:
@@ -881,12 +1024,13 @@ class LiveSessions:
                         "asr_behind", "The recogniser runs behind the audio.",
                     ))
             engine.finish()
-            self._hand_over(session, model, compute, engine.diarizer)
         except (InvalidInputError, StateError) as exc:
             state, error = LiveState.FAILED, str(exc)
+            self._say_failed(session, engine, emit, error)
         except Exception as exc:  # the worker must always end the session
             LOG.exception("Live session %s failed", session.id)
             state, error = LiveState.FAILED, type(exc).__name__
+            self._say_failed(session, engine, emit, error)
         finally:
             if engine is not None:
                 engine.abort()
@@ -895,7 +1039,66 @@ class LiveSessions:
                 self._p.lease.release()
             if self._p.log is not None:
                 self._p.log.close(session.id)
+        handed = self._keep(session, failed=state == LiveState.FAILED)
         session.finished(state, error)
+        self._mark()  # ended, still handing over
+        session.record_extra = {"end_reason": session.end_reason,
+                                "error": error,
+                                "ended_at": self._p.clock.now().isoformat()}
+        self._handover.record(
+            self.facts(session), state.value, transcript=session.transcript,
+            **session.record_extra,
+        )
+        try:
+            if handed is not None:
+                # The record is written again with the publish's result;
+                # until then the session stays in the live marker (#264).
+                handed.state = state.value
+                handed.extra = dict(session.record_extra)
+                self._handover.finish(handed)
+            elif self._p.log is not None:
+                self._p.log.mark_handed(session.id)  # nothing to hand
+        except Exception:  # noqa: BLE001 - logged; the session has ended
+            LOG.exception("Live session %s: hand-over failed", session.id)
+        finally:
+            session.handed_over.set()
+            self._mark()
+
+    def _say_failed(
+        self, session: LiveSession, engine: Optional[LiveEngine],
+        emit: Callable[[Event], None], error: str,
+    ) -> None:
+        """Tell the event readers the session failed (no words, #264)."""
+        if engine is None or not session.hub.history():
+            return
+        try:
+            emit(engine.events.warning(
+                self._p.clock.now(), engine.stream_time, "other",
+                FAILED_MESSAGE.format(error=error),
+            ))
+        except Exception:  # noqa: BLE001 - the hand-over matters more
+            LOG.exception("Live session %s: the failure was not told",
+                          session.id)
+
+    def _keep(self, session: LiveSession, failed: bool) -> Optional[Handed]:
+        """Keep the transcript of what was heard (also after a failure).
+
+        Nothing when no event was emitted (the recogniser never
+        started). Never raises: a failure here is logged.
+        """
+        events = session.hub.history()
+        if not events:
+            return None
+        try:
+            handed = self._handover.keep(
+                self.facts(session), events,
+                mark="partial" if failed else None,
+            )
+        except Exception:  # noqa: BLE001 - the session must still end
+            LOG.exception("Live session %s: no transcript", session.id)
+            return None
+        session.transcript = handed.summary
+        return handed
 
     def _keep_diagnosis(
         self, session: LiveSession, engine: LiveEngine
@@ -922,58 +1125,14 @@ class LiveSessions:
         except OSError:
             LOG.exception("The attribution of %s was not kept", session.id)
 
-    def _hand_over(
-        self, session: LiveSession, model: str, compute: str,
-        diarizer: Optional[str] = None,
-    ) -> None:
-        """Assemble the transcript; keep it, publish it, analyse it (LV-11).
 
-        A failure to publish or to start the analysis is recorded in
-        the session's ``transcript`` summary, not raised: the live part
-        went well.
-        """
-        events = session.hub.history()
-        started = events[0]["at"] if events else None
-        transcript = live_transcript(
-            session.id, events, session.speakers,
-            Pipeline(
-                recogniser=f"faster-whisper {model} {compute}",
-                voice_model="none", transcriber=self._version,
-                diarizer="channels" if session.channels == 2 else diarizer,
-            ),
-            language=session.request.language,
-            started_at=_parse_time(started),
-        )
-        document = transcript.to_contract()
-        summary: Dict[str, Any] = {
-            "utterances": len(transcript.utterances),
-            "published": False, "analysis": None, "error": None,
-        }
-        session.transcript = summary
-        if self._p.log is not None:
-            try:
-                self._p.log.save_transcript(session.id, document)
-            except OSError:
-                LOG.exception("The transcript of %s was not kept", session.id)
-        handoff = session.request.handoff
-        if not handoff.transcript_v1 or not transcript.utterances:
-            return
-        if self._p.publisher is None:
-            summary["error"] = "no RAG to publish to"
-            return
-        try:
-            self._p.publisher.publish(document)
-            summary["published"] = True
-            if handoff.run_post_call:
-                if self._p.analysis is None:
-                    summary["error"] = "no RAG analysis configured"
-                    return
-                self._p.analysis.start(session.id, False, False)
-                summary["analysis"] = "started"
-        except TranscriberError as exc:
-            summary["error"] = str(exc)
-
-
+RECOVER_BUDGET_S = 300.0
+"""Longest time the hand-overs found at a start may take (and hold the
+live marker); the rest are tried at the next start (#264)."""
+FAILED_MESSAGE = (
+    "The live session stopped on an error ({error}); the transcript of"
+    " what was heard until then is kept."
+)
 SOURCE_LOST_MESSAGE = (
     "The audio source went away; the session waits for it to come back."
 )
@@ -996,10 +1155,3 @@ def source_warning(
         clock.now(), engine.stream_time, "source_back",
         SOURCE_BACK_MESSAGE.format(seconds=notice.seconds), notice.seconds,
     )
-
-
-def _parse_time(text: Optional[str]) -> Optional[datetime]:
-    """Return the ISO time ``text`` of an event as a datetime, if any."""
-    if not text:
-        return None
-    return datetime.fromisoformat(text.replace("Z", "+00:00"))

@@ -10,7 +10,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import (
-    Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple,
+    Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple,
 )
 
 import numpy as np
@@ -185,6 +185,8 @@ class MemoryLiveLog:
         self.events: Dict[str, List[Dict[str, Any]]] = {}
         self.transcripts: Dict[str, Dict[str, Any]] = {}
         self.attribution: Dict[str, List[Dict[str, Any]]] = {}
+        self.sessions: Dict[str, Dict[str, Any]] = {}
+        self.handed: Set[str] = set()
         self.closed: List[str] = []
         self.fail = fail
 
@@ -207,6 +209,31 @@ class MemoryLiveLog:
 
     def close(self, session_id: str) -> None:
         self.closed.append(session_id)
+
+    def save_session(self, session_id: str, document: Any) -> None:
+        if self.fail:
+            raise OSError("disk full")
+        self.sessions[session_id] = dict(document)
+
+    def pending(self) -> List[str]:
+        return [k for k in self.sessions if k not in self.handed]
+
+    def mark_handed(self, session_id: str) -> None:
+        self.handed.add(session_id)
+
+    def has_transcript(self, session_id: str) -> bool:
+        return session_id in self.transcripts
+
+    def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
+        found = self.transcripts.get(session_id)
+        return dict(found) if found is not None else None
+
+    def read_events(self, session_id: str) -> List[Dict[str, Any]]:
+        return [dict(e) for e in self.events.get(session_id, [])]
+
+    def read_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        found = self.sessions.get(session_id)
+        return dict(found) if found is not None else None
 
 
 class SchemaCheck:

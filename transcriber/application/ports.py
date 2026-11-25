@@ -881,6 +881,52 @@ class LiveLog(Protocol):
         """Close the session's log (no more events)."""
         ...
 
+    def save_session(
+        self, session_id: str, document: Mapping[str, Any]
+    ) -> None:
+        """Keep the session's small record (``session.json``, #264).
+
+        The start request, speakers, names, model and state: what a
+        restart needs to rebuild the transcript. No audio.
+        """
+        ...
+
+    def pending(self) -> List[str]:
+        """Return the sessions with a record whose hand-over is not done."""
+        ...
+
+    def mark_handed(self, session_id: str) -> None:
+        """Say a session's hand-over is done (it is not looked at again)."""
+        ...
+
+    def has_transcript(self, session_id: str) -> bool:
+        """Tell whether a session's transcript is kept."""
+        ...
+
+    def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return a session's kept transcript, or ``None`` without one."""
+        ...
+
+    def read_events(self, session_id: str) -> List[Dict[str, Any]]:
+        """Return a session's logged events (unreadable lines skipped)."""
+        ...
+
+    def read_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return a session's record, or ``None`` when it has none."""
+        ...
+
+
+class LiveMarker(Protocol):
+    """Where the running live sessions are announced to the machine.
+
+    The services script reads it before a stop or a restart (#264).
+    """
+
+    def mark(self, sessions: Sequence[Mapping[str, Any]]) -> None:
+        """Say which sessions are on (``id``, ``state``, ``source``);
+        an empty list says none is."""
+        ...
+
 
 class EventCheck(Protocol):
     """Checks an event against its contract (``contracts/``)."""

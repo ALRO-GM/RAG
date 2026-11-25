@@ -259,6 +259,8 @@ def run_session(
         session.feed(message)
     harness.live.stop(request.session_id, WAIT)
     assert session.state == LiveState.ENDED, session.error
+    # Published after the end (#264): wait for the hand-over too.
+    assert session.wait_handed_over(WAIT)
     events = session.hub.history()
     for event in events:
         jsonschema.validate(event, LIVE_SCHEMA)

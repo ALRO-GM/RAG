@@ -195,9 +195,12 @@ class EventSource(Protocol):
     """The ``live.event.v1`` stream of a running session."""
 
     def follow(
-        self, session_id: str, stop: CancelToken
+        self, session_id: str, stop: CancelToken, from_seq: int = 0,
     ) -> Iterator[Document]:
         """Yield the session's events until it ends or ``stop`` is set.
+
+        ``from_seq``: the first event wanted (the stream is resumed
+        there after a drop, #264).
 
         Raises:
             TranscriberUnavailable: The stream could not be opened.

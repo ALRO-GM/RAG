@@ -129,6 +129,12 @@ def test_events_are_followed_until_a_normal_close() -> None:
     got = list(events.follow("s-1", CancelToken()))
     assert got == [{"seq": 0}, {"seq": 1}]
     assert seen[0]["url"] == "wss://host:8770/api/live/s-1/events"
+    again: List[Dict[str, Any]] = []
+    resumed = WsEvents("https://host:8770/", "c0de", opener=opener(
+        FakeSocket([closed(1000)]), again))
+    assert list(resumed.follow("s-1", CancelToken(), from_seq=7)) == []
+    assert again[0]["url"] == \
+        "wss://host:8770/api/live/s-1/events?from_seq=7"
     assert seen[0]["additional_headers"] == {"X-Access-Code": "c0de"}
     assert socket.closed
 
@@ -293,3 +299,17 @@ def test_a_stop_waits_longer_than_the_transcriber_may_take() -> None:
     port.stop("s")
     port.start({})
     assert waited == [STOP_TIMEOUT, 40.0]
+
+
+def test_a_drop_without_a_close_frame_is_not_the_end() -> None:
+    """#264 review: a TCP reset or a ping timeout (no close frame) must
+    be resumed, not taken for the end of the session."""
+    from websockets.exceptions import ConnectionClosedError
+
+    socket = FakeSocket(['{"seq": 0}', ConnectionClosedError(None, None)])
+    events = WsEvents("http://h", "c", opener=opener(socket, []))
+    got: List[Dict[str, Any]] = []
+    with pytest.raises(TranscriberUnavailable, match="abnormally"):
+        for document in events.follow("s", CancelToken()):
+            got.append(document)
+    assert got == [{"seq": 0}]

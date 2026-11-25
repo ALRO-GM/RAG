@@ -282,7 +282,11 @@ class Commands:
                 settings, args.keep_code or args.new_code, args.new_code
             )
             container = start_container(settings)
-            tunnel = None if args.no_tunnel else build_tunnel(settings, port)
+            live = container.live
+            tunnel = None if args.no_tunnel else build_tunnel(
+                settings, port,
+                live.source_connected if live is not None else None,
+            )
             options = ServeOptions(
                 port=port, tunnel=not args.no_tunnel,
                 dev_pages=args.dev_pages,

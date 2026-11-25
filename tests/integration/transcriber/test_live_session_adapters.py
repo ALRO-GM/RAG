@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pytest
@@ -184,3 +184,96 @@ def test_a_missing_check_is_logged(
     )
     assert live._p.check is None
     assert "not contract-checked" in caplog.text
+
+
+def test_the_session_record_and_the_pending_sessions(
+    tmp_path: Path,
+) -> None:
+    """#264: ``session.json`` is private; only sessions with a record and
+    no ``handed`` mark are pending; a line cut by a crash is skipped."""
+    log = JsonlLiveLog(tmp_path)
+    assert log.pending() == []
+    log.append("a", {"seq": 0})
+    log.append("old", {"seq": 0})  # kept before #264: no record
+    log.save_session("a", {"session_id": "a", "state": "running"})
+    log.save_session("b", {"session_id": "b", "state": "ended"})
+    log.save_transcript("b", {"schema": "transcript.v1"})
+    log.close("a")
+    with (log.directory("a") / "events.jsonl").open("a") as stream:
+        stream.write('{"seq": 1, "cut')
+    assert log.pending() == ["a", "b"]
+    assert log.has_transcript("b") and not log.has_transcript("a")
+    log.mark_handed("b")
+    assert log.pending() == ["a"]
+    handed = log.directory("b") / "handed"
+    assert stat.S_IMODE(handed.stat().st_mode) == 0o600
+    assert log.read_events("a") == [{"seq": 0}]
+    assert log.read_session("a") == {"session_id": "a", "state": "running"}
+    assert log.read_session("old") is None
+    assert log.read_transcript("b") == {"schema": "transcript.v1"}
+    assert log.read_transcript("a") is None
+    path = log.directory("a") / "session.json"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    path.write_text("[1]")
+    with pytest.raises(ValueError):
+        log.read_session("a")
+    (log.directory("b") / "transcript.json").write_text("[1]")
+    with pytest.raises(ValueError):
+        log.read_transcript("b")
+    (tmp_path / "live" / "stray-file").write_text("x")
+    assert log.pending() == ["a"]
+
+
+def test_the_live_marker_is_private_and_gone_when_nothing_is_on(
+    tmp_path: Path,
+) -> None:
+    import os
+
+    from transcriber.adapters.outbound.fs_live_marker import (
+        FileLiveMarker,
+        marker_path,
+    )
+
+    path = marker_path({"XDG_RUNTIME_DIR": str(tmp_path)})
+    assert path == tmp_path / "ragputin" / "live-active.json"
+    assert marker_path({}).name == "live-active.json"
+    marker = FileLiveMarker(path)
+    marker.mark([])
+    assert not path.exists()
+    marker.mark([{"id": "live-1", "state": "running", "source": "lost"}])
+    document = json.loads(path.read_text())
+    assert document["pid"] == os.getpid()
+    assert document["sessions"][0]["source"] == "lost"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    marker.mark([])
+    assert not path.exists()
+
+
+def test_the_live_marker_survives_writers_on_many_threads(
+    tmp_path: Path,
+) -> None:
+    import threading
+
+    from transcriber.adapters.outbound.fs_live_marker import FileLiveMarker
+
+    marker = FileLiveMarker(tmp_path / "ragputin" / "live-active.json")
+    errors: List[Exception] = []
+
+    def write(n: int) -> None:
+        try:
+            for k in range(50):
+                marker.mark([{"id": f"s{n}", "state": "running",
+                              "source": str(k)}])
+        except Exception as exc:  # noqa: BLE001 - collected
+            errors.append(exc)
+
+    threads = [threading.Thread(target=write, args=(n,)) for n in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert errors == []
+    document = json.loads(marker.path.read_text())
+    assert len(document["sessions"]) == 1
+    assert list(marker.path.parent.glob(".*.tmp")) == []

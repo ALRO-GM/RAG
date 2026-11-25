@@ -40,10 +40,12 @@ import ipaddress
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
+from orchestrator.application.event_follow import ResumingEvents
 from orchestrator.adapters.outbound.fakes import (
     FakeKnowledge,
     FakeReasoner,
@@ -75,6 +77,10 @@ from orchestrator.adapters.outbound.fs_demo_voices import (
 from orchestrator.adapters.inbound.interview_cli import (
     add_interview_parser,
     run_interview,
+)
+from orchestrator.adapters.inbound.round_cli import (
+    add_round_parser,
+    run_round,
 )
 from orchestrator.adapters.inbound.demo_voices_cli import (
     DEFAULT_OUT as DEMO_VOICES_DIR,
@@ -201,6 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_serve_parser(sub)
     add_demo_voices_parser(sub)
     add_interview_parser(sub)
+    add_round_parser(sub, DEFAULT_CONFIG_DIR)
     return parser
 
 
@@ -466,7 +473,9 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         from orchestrator.adapters.outbound.ws_events import WsEvents
 
         transcriber = HttpTranscriber(args.transcriber_url, code)
-        events = WsEvents(args.transcriber_url, code)
+        # #264: a dropped event stream is reopened where it was.
+        events = ResumingEvents(WsEvents(args.transcriber_url, code),
+                                time.sleep, time.monotonic)
     log_dir: Path = args.log_dir
 
     def log(session_id: str, product: str) -> SuggestionSink:
@@ -652,6 +661,21 @@ def run_check(args: argparse.Namespace) -> int:
     return 1 if errors else 0
 
 
+def run_rebuild(args: argparse.Namespace) -> int:
+    """Wire and run ``rebuild-round`` (#264)."""
+    args.token = read_code(args.rag_token_file)
+    reasoner = (HttpReasoner(args.reasoner_url, args.token,
+                             timeout=REPORT_TIMEOUT_S)
+                if args.reasoner == "http" else build_reasoner(args))
+    product = load_product(args.config_dir / f"{args.product}.yaml")
+    http = args.knowledge == "http"
+    return run_round(
+        args, product, reasoner, build_knowledge(args),
+        HttpMandatory(args.knowledge_url, args.token) if http else None,
+        HttpAvoid(args.knowledge_url, args.token) if http else None,
+    )
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Run the command line; return the exit status."""
     args = build_parser().parse_args(argv)
@@ -668,6 +692,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                                      timeout=REPORT_TIMEOUT_S)
                         if args.reasoner == "http" else build_reasoner(args))
             return run_interview(args, reasoner, build_knowledge(args))
+        if args.command == "rebuild-round":
+            return run_rebuild(args)
         return run_replay(args)
     except (ConfigError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

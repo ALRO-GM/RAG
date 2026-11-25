@@ -395,6 +395,46 @@ class TestSupervisor:
         assert len(calls) >= 3 + 2 + PROBE_FAILURES + 1
         tunnel.stop()
 
+    def test_a_connected_live_audio_socket_holds_off_the_restart(
+        self, tmp_path: Path
+    ) -> None:
+        """#264: the probe fails, but a live audio socket is connected
+        through the tunnel (it works): the client is not restarted; once
+        the socket is gone a broken path restarts it as before."""
+        answers: List[Optional[str]] = (
+            [None] + ["timed out"] * (PROBE_FAILURES + 5))
+        holding = threading.Event()
+        holding.set()
+        checked: List[int] = []
+
+        def probe() -> Optional[str]:
+            checked.append(1)
+            if len(checked) == PROBE_FAILURES + 4:
+                holding.clear()  # the interview's socket went away
+            return answers.pop(0) if answers else None
+
+        runner = FakeRunner()
+        tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path, runner,
+                              probe=probe, pause=lambda s: False,
+                              describe=no_process, started=start_of,
+                              hold=holding.is_set)
+        tunnel.start()
+        until(lambda: len(checked) >= PROBE_FAILURES + 3)
+        assert len(runner.started) == 1, "held: not restarted"
+        until(lambda: len(runner.started) == 2)
+        assert len(checked) >= PROBE_FAILURES + 4
+        tunnel.stop()
+
+    def test_a_broken_hold_check_never_holds(self, tmp_path: Path) -> None:
+        def broken() -> bool:
+            raise RuntimeError("no live sessions")
+
+        tunnel = ChiselTunnel(settings(tmp_path), 8770, tmp_path,
+                              FakeRunner(), hold=broken)
+        assert tunnel._held() is False
+        assert ChiselTunnel(settings(tmp_path), 8770, tmp_path,
+                            FakeRunner())._held() is False
+
     def test_the_reason_of_a_broken_path_is_shown(
         self, tmp_path: Path
     ) -> None:

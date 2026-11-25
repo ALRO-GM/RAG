@@ -356,3 +356,37 @@ def test_the_demo_voices_are_forwarded_with_their_audio() -> None:
                        headers=auth).status_code == 404
     assert web.get("/api/assist/demos/llamada-lumbre/voices/t0.s0.wav"
                    ).status_code == 401, "behind the access code"
+
+
+def test_a_stop_waits_for_the_whole_chain_behind_it() -> None:
+    """#264 review: «Terminar» goes page → proxy → orchestrator →
+    transcriber; each hop waits for the next one's worst case."""
+    import inspect
+
+    from orchestrator.adapters.outbound import http_transcriber
+    from orchestrator.application import sessions
+    from transcriber.adapters.inbound.live_assist_proxy import (
+        STOP_TIMEOUT,
+        TIMEOUT,
+    )
+    from transcriber.application.live_session import LiveSessions
+    from transcriber.domain.live_session import LiveServiceSettings
+
+    transcriber_worst = (
+        LiveServiceSettings().stop_drain_seconds
+        + inspect.signature(LiveSessions.stop).parameters["timeout"].default)
+    assert http_transcriber.STOP_TIMEOUT > transcriber_worst
+    assert STOP_TIMEOUT > http_transcriber.STOP_TIMEOUT + sessions.STOP_DRAIN_S
+    waits = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        waits[request.url.path] = request.extensions["timeout"]["read"]
+        return httpx.Response(200, json={"state": "ended"})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    auth = {"X-Access-Code": "code"}
+    web.post("/api/assist/sessions/live-1/stop", headers=auth)
+    web.post("/api/assist/sessions/live-1/mode", json={"mode": "guiado"},
+             headers=auth)
+    assert waits["/sessions/live-1/stop"] == STOP_TIMEOUT
+    assert waits["/sessions/live-1/mode"] == TIMEOUT

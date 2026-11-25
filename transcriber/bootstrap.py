@@ -56,6 +56,10 @@ from transcriber.adapters.outbound.fake_models import (
 )
 from transcriber.adapters.outbound.gpu_free_memory import NvidiaSmiFreeMemory
 from transcriber.adapters.outbound.jsonl_live_log import JsonlLiveLog
+from transcriber.adapters.outbound.fs_live_marker import (
+    FileLiveMarker,
+    marker_path,
+)
 from transcriber.adapters.outbound.jsonschema_event_check import (
     build_event_check,
 )
@@ -767,6 +771,7 @@ def build_live_sessions(
         log=JsonlLiveLog(settings.data_dir),
         check=check, publisher=publisher, analysis=analysis,
         cpu_only=cpu_only,
+        marker=None if fake else FileLiveMarker(marker_path(environ)),
     )
     device = "cpu" if fake or settings.device == "cpu" else "cuda"
     return LiveSessions(ports, settings.live, device, __version__)
@@ -1094,7 +1099,8 @@ def start_container(
     ``settings.data_dir`` (the service) may call it: a session failed
     here is assumed to have no live job. The knowledge library's
     transcriptions left by a stopped process are deleted (the RAG sends
-    the file again).
+    the file again). Live sessions left with events but no transcript
+    are rebuilt from their logs and handed over (#264).
     """
     container = build_container(settings)
     if container.diarizer is not None:
@@ -1117,6 +1123,15 @@ def start_container(
     recovery = container.recover_sessions()
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)
+    if container.live is not None:
+        # #264: live sessions a stopped process left without their
+        # hand-over. Never a reason not to start.
+        try:
+            for session_id in container.live.recover():
+                LOG.warning("Live session %s is handed over again after a"
+                            " restart", session_id)
+        except Exception:  # noqa: BLE001 - the service must start
+            LOG.exception("Live sessions were not recovered")
     if container.knowledge_media is not None:
         cleared = container.knowledge_media.clear()
         if cleared:
@@ -1125,16 +1140,21 @@ def start_container(
     return container
 
 
-def build_tunnel(settings: TranscriberSettings, port: int) -> Tunnel:
+def build_tunnel(
+    settings: TranscriberSettings, port: int,
+    hold: Optional[Callable[[], bool]] = None,
+) -> Tunnel:
     """Return the tunnel to the server for the API on ``port``.
 
     It is reported ``connected`` only once ``/api/health`` answers
-    through the server.
+    through the server. ``hold``: while it says so (a live audio socket
+    is connected, #264) failed probes never restart the client.
     """
     tunnel = settings.tunnel
     return ChiselTunnel(
         tunnel, port, settings.data_dir,
         probe=http_probe(tunnel.health_url(), tunnel.probe_timeout),
+        hold=hold,
     )
 
 

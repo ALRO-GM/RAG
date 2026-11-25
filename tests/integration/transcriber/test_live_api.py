@@ -123,12 +123,18 @@ def test_a_live_session_from_start_to_transcript(
     assert {u["speaker"] for u in finals} == {"S1", "S2"}
     late = follow(client, "/live/call-1/events?from_seq=1")
     assert late == events[1:]
+    assert container.live is not None
+    assert container.live.get("call-1").wait_handed_over(WAIT)
     info = client.get("/api/live/sessions/call-1").json()
     assert info["state"] == "ended" and info["transcript"]["published"]
     folder = container.settings.data_dir / "live" / "call-1"
     assert sorted(p.name for p in folder.iterdir()) == [
-        "events.jsonl", "transcript.json"
+        "events.jsonl", "handed", "session.json", "transcript.json"
     ]
+    record = json.loads((folder / "session.json").read_text())
+    assert record["state"] == "ended" and record["end_reason"] == "stop"
+    assert record["request"]["session_id"] == "call-1"
+    assert stat.S_IMODE((folder / "session.json").stat().st_mode) == 0o600
     assert stat.S_IMODE(folder.stat().st_mode) == 0o700
     logged = [
         json.loads(line)
@@ -275,6 +281,8 @@ def test_a_speaker_named_during_the_session_is_named_in_the_transcript(
                        json={"name": "A"}).status_code == 404
     send_audio(client, "named-1", speech(2), channels=2)
     follow(client, "/api/live/named-1/events")
+    assert container.live is not None
+    assert container.live.get("named-1").wait_handed_over(WAIT)
     published = json.loads(
         (container.settings.published() / "named-1.transcript.v1.json")
         .read_text()
@@ -488,3 +496,80 @@ def test_the_last_audio_is_acknowledged_even_when_nothing_follows(
         ws.send_text(json.dumps({"type": "stop"}))
         while ws.receive_json() != {"type": "stopped"}:
             pass
+
+
+def test_a_restarted_service_rebuilds_a_live_session_it_lost(
+    tmp_path: Path,
+) -> None:
+    """#264: a service killed mid-session leaves events and a record;
+    the next start keeps the transcript, publishes it as the record
+    asked, and lists the session as recovered."""
+    from transcriber.bootstrap import start_container
+
+    settings = TranscriberSettings(data_dir=tmp_path / "data",
+                                   runtime="fake")
+    first = build_container(settings)
+    client = TestClient(create_app(first, CODE), headers=AUTH)
+    start(client, session_id="cut-1", handoff={"transcript_v1": True})
+    send_audio(client, "cut-1", speech())
+    assert first.live is not None
+    assert first.live.get("cut-1").wait_handed_over(WAIT)
+    first.runner.close(WAIT)
+    folder = settings.data_dir / "live" / "cut-1"
+    # killed before the transcript was written: no transcript, no mark
+    (folder / "transcript.json").unlink()
+    (folder / "handed").unlink()
+    published = settings.published() / "cut-1.transcript.v1.json"
+    published.unlink()
+    again = start_container(settings)
+    try:
+        assert again.live is not None
+        info = again.live.get("cut-1").info()
+        assert info["state"] == "recovered"
+        assert info["transcript"]["recovered"] is True
+        assert (folder / "transcript.json").is_file()
+        for _ in range(500):
+            if published.is_file():
+                break
+            time.sleep(0.01)
+        assert json.loads(published.read_text())["session"]["id"] == "cut-1"
+        record = json.loads((folder / "session.json").read_text())
+        assert record["state"] == "recovered"
+    finally:
+        again.runner.close(WAIT)
+
+
+def test_recovery_never_stops_a_start_and_old_logs_stay_as_they_are(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#264 review: an old live log (no record) is not touched; a broken
+    one is logged; even a recovery that raises lets the service start."""
+    from transcriber.application.live_session import LiveSessions
+    from transcriber.bootstrap import start_container
+
+    settings = TranscriberSettings(data_dir=tmp_path / "data",
+                                   runtime="fake")
+    old = settings.data_dir / "live" / "old-1"
+    old.mkdir(parents=True)
+    (old / "events.jsonl").write_text('{"type": "final", "seq": 0}\n')
+    broken = settings.data_dir / "live" / "broken-1"
+    broken.mkdir(parents=True)
+    (broken / "events.jsonl").write_text('{"type": "final", "seq": 0}\n')
+    (broken / "session.json").write_text(json.dumps({
+        "session_id": "broken-1", "state": "running",
+        "request": {"session_id": "broken-1"}}))
+    container = start_container(settings)
+    try:
+        assert not (old / "transcript.json").exists()
+        assert not (broken / "transcript.json").exists()
+        assert container.live is not None
+        assert [s.id for s in container.live.list()] == []
+    finally:
+        container.runner.close(WAIT)
+
+    def explode(self: Any) -> Any:
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(LiveSessions, "recover", explode)
+    again = start_container(settings)
+    again.runner.close(WAIT)

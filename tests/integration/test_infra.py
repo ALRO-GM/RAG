@@ -62,8 +62,20 @@ class TestCaddyfile:
         assert tunnel is not None
         assert "path /_tunnel\n" in tunnel.group(1)
         assert "header Upgrade websocket" in tunnel.group(1)
-        assert "handle @tunnel {\n\t\treverse_proxy tunnel:8080\n" in text
+        assert "handle @tunnel {\n\t\treverse_proxy tunnel:8080 {\n" in text
         assert "handle /_tunnel* {\n\t\trespond 404" in text
+
+    def test_a_reload_does_not_cut_live_sockets(self) -> None:
+        """#264: upgraded connections (the tunnel, the live audio and
+        events sockets) get ten minutes to end after a reload."""
+        text = read("Caddyfile")
+        assert text.count("stream_close_delay 10m") == 2
+        for upstream in ("tunnel:8080", "tunnel:9000"):
+            block = re.search(
+                rf"reverse_proxy {upstream} \{{(.*?)\n\t\t\}}", text,
+                re.DOTALL)
+            assert block is not None
+            assert "stream_close_delay 10m" in block.group(1)
 
     def test_trusted_proxies_come_from_the_environment(self) -> None:
         assert ("trusted_proxies static {$TRUSTED_PROXIES:private_ranges}"
