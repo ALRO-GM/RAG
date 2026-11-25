@@ -24,6 +24,15 @@ asked (``current``); ``on_focus`` gets the line of the concepts still
 to treat of that topic (or ``None``) whenever it changes, for the
 suggestions' goal. "Treated" only means the candidate talked about
 the concept: a hint for the interviewer, never a judgement.
+
+During the round the existing suggestion call (``suggester.interview@3``,
+#268) also gets the pending concepts of the topic asked
+(:meth:`TopicTracker.focus_points`) and may say which of them the last
+answer treated (:meth:`TopicTracker.suggested`): those are ticked too,
+marked ``by: "live_model"``, while the rules' ticks are ``by:
+"rules"``. The tracker also keeps every final of the round in order
+(:meth:`TopicTracker.round_lines`), so the model can attribute the
+whole round after the session.
 """
 
 import re
@@ -32,6 +41,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 from orchestrator.application.ports import Document
 from orchestrator.domain.events import LiveEvent
+from orchestrator.domain.interview_attribution import RoundLine
 from orchestrator.domain.interview import (
     Answer,
     InterviewPlan,
@@ -42,6 +52,7 @@ from orchestrator.domain.interview import (
 )
 from orchestrator.domain.interview_agenda import heuristic_fill
 from orchestrator.domain.interview_points import (
+    PointHit,
     pending,
     quote,
     point_hits,
@@ -125,6 +136,8 @@ class TopicTracker:
         self.answers: Dict[str, List[Tuple[str, str]]] = {}
         """The candidate's answers to each slot asked (utterance, text),
         for the judgement of the round (#259)."""
+        self.lines: Dict[str, Tuple[str, str]] = {}
+        """Every final of the round in order: id → (speaker, text)."""
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -134,11 +147,17 @@ class TopicTracker:
     def on_event(self, event: LiveEvent) -> None:
         """Follow the interviewer's questions and the candidate's answers."""
         u = event.utterance
+        if event.type == "speaker_update" and u is not None:
+            with self._lock:
+                if u.id in self.lines:
+                    self.lines[u.id] = (u.speaker, self.lines[u.id][1])
+            return
         if event.type != "final" or u is None:
             return
         role = self.roles.get(u.speaker, "unknown")
         changed = False
         with self._lock:
+            self.lines[u.id] = (u.speaker, u.text)
             if role == INTERVIEWER:
                 asked = slot_asked(u.text, self.plan.slots)
                 if asked is not None:
@@ -182,6 +201,73 @@ class TopicTracker:
                 self.covered.add(fill.slot)
                 return True
         return False
+
+    def round_lines(self) -> List[RoundLine]:
+        """Every final of the round in order, with its speaker's role.
+
+        The role is the one set now (roles set late in the session apply
+        to the whole round); a speaker without one is ``unknown``.
+        """
+        with self._lock:
+            return [RoundLine(uid, self.roles.get(speaker) or "unknown",
+                              text)
+                    for uid, (speaker, text) in self.lines.items()]
+
+    def focus_points(self) -> Document:
+        """The pending concepts of the topic asked, for the suggester.
+
+        ``{"topic", "label", "points": [{"id", "text"}]}`` (#268), or
+        ``{}`` when no topic is asked or none of its concepts is pending.
+        """
+        with self._lock:
+            target = self.target
+            if target is None:
+                return {}
+            left = pending(self.points[target.id])
+            if not left:
+                return {}
+            return {"topic": target.id, "label": target.label,
+                    "points": [{"id": p.id, "text": p.text} for p in left]}
+
+    def suggested(self, asked: Document, data: Document) -> None:
+        """Tick the concepts the suggestion call said the answer treated.
+
+        ``asked`` is the request's payload (:meth:`focus_points` when it
+        was sent), ``data`` the reply's (``{"topic", "points": [{"id",
+        "utterance"}]}``). Only a concept of that topic not treated yet,
+        backed by a candidate utterance of this round, is ticked;
+        its quote is that utterance's first words. Marked ``by:
+        "live_model"``.
+        """
+        topic = asked.get("topic")
+        raw = data.get("points")
+        if not isinstance(topic, str) or data.get("topic") != topic or \
+                not isinstance(raw, list) or topic not in self.points:
+            return
+        changed = False
+        with self._lock:
+            for item in raw:
+                if not isinstance(item, dict):
+                    continue
+                said = self.lines.get(str(item.get("utterance")))
+                if said is None or self.roles.get(said[0]) != CANDIDATE:
+                    continue
+                hit = PointHit(str(item.get("id")), "treated",
+                               quote(said[1]), "live_model")
+                if record_hit(self.points[topic], hit,
+                              str(item.get("utterance"))):
+                    changed = True
+                    self.touched.add(topic)
+            if changed and points_status(self.points[topic]) in (
+                    "filled", "partial"):
+                self.covered.add(topic)
+            focus = self._focus()
+            moved = focus != self.focus
+            self.focus = focus
+        if changed:
+            self._publish()
+        if moved and self.on_focus is not None:
+            self.on_focus(focus)
 
     def _focus(self) -> Optional[str]:
         """The focus line of the topic being asked (lock held)."""

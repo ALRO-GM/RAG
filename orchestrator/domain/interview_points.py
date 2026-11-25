@@ -42,6 +42,7 @@ from typing import Iterable, List, Optional, Pattern, Sequence, Tuple
 
 from orchestrator.domain.interview import (
     QUOTE_CHARS,
+    DecidedBy,
     Point,
     PointStatus,
     SheetPoint,
@@ -178,11 +179,15 @@ def names_point(point: str, part: str, loose: bool = False) -> bool:
 
 @dataclass(frozen=True)
 class PointHit:
-    """One concept of a slot an answer treats or says it does not know."""
+    """One concept of a slot an answer treats or says it does not know.
+
+    ``by``: who decided it (#268), the rules unless a model said so.
+    """
 
     point: str
     status: PointStatus
     quote: str
+    by: DecidedBy = "rules"
 
 
 def parts(text: str) -> List[str]:
@@ -227,6 +232,7 @@ def record_hit(
         state.status = hit.status
         state.quote = hit.quote[:QUOTE_CHARS]
         state.utterance = utterance
+        state.by = hit.by
         return True
     return False
 

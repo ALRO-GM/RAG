@@ -1279,8 +1279,11 @@ class LiveSessions:
 
         The concepts of the topic being asked that are still pending go
         into the goal of the suggester's next requests (its existing
-        call: no extra model call). The request's session is replaced
-        whole, never changed in place, as a call may be reading it.
+        call: no extra model call), and, with their ids, into its
+        payload (#268): ``suggester.interview@3`` then says which of
+        them the last answer treated and the tracker ticks them. The
+        request's session and payload are replaced whole, never changed
+        in place, as a call may be reading them.
         """
         topics = session.topics
         if topics is None or not isinstance(assist, LiveAssist):
@@ -1295,8 +1298,11 @@ class LiveSessions:
             else:
                 about.pop("goal", None)
             assist.session = about
+            if topics is not None:
+                assist.payload = topics.focus_points()
 
         topics.on_focus = on_focus
+        assist.on_data = topics.suggested
 
     @staticmethod
     def _about(session: _Session) -> Dict[str, Optional[str]]:

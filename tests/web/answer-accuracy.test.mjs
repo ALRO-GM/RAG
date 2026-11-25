@@ -168,3 +168,35 @@ test("a report the model could not write says why, in the summary", async () => 
     assert.ok(!reportCard({ sheet: base, handoff: {} }).text().includes("El modelo no pudo"));
   });
 });
+
+test("who attributed the answers and decided each concept is said in words (#268)", async () => {
+  const byModel = {
+    ...RESULT, attribution: "after_session",
+    slots: [{ ...RESULT.slots[0], points: [
+      { ...RESULT.slots[0].points[0], by: "after_session" },
+      { id: "p2", text: "Tipos de pisada", status: "pending" },
+      { id: "p3", text: "Cómo elegir la talla", status: "unknown", by: "live_model" },
+    ] }],
+  };
+  await withDom("es", ({ accuracyBlock }) => {
+    const text = accuracyBlock(byModel).text();
+    assert.ok(text.includes(es["iv.attribution.after_session"]));
+    assert.ok(text.includes(es["iv.by.after_session"]) && text.includes(es["iv.by.live_model"]));
+    assert.ok(!text.includes(es["iv.by.rules"]), "a pending concept says nobody decided it");
+    const fallback = accuracyBlock({ ...RESULT, attribution: "rules", attribution_error: "timeout: timeout" }).text();
+    assert.ok(fallback.includes(es["iv.attribution.rules"]) && fallback.includes("El modelo no pudo hacerlo (timeout: timeout)."));
+    assert.ok(!accuracyBlock(RESULT).text().includes(es["iv.attribution.rules"]), "older results say nothing");
+  });
+  await withDom("en", ({ accuracyBlock }) => {
+    assert.ok(accuracyBlock(byModel).text().includes(en["iv.by.after_session"]));
+  });
+  for (const key of Object.keys(es).filter((k) => k.startsWith("iv.by.") || k.startsWith("iv.attribution"))) {
+    assert.ok(en[key], `${key} in English`);
+  }
+  const state = new LiveState();
+  state.apply({ type: "accuracy", state: "reporting" });
+  state.apply({ type: "accuracy", ...byModel, attribution_error: null });
+  assert.equal(state.accuracy.attribution, "after_session");
+  state.apply({ type: "accuracy", state: "empty" });
+  assert.equal(state.accuracy, null, "nothing answered: no report, no wait");
+});

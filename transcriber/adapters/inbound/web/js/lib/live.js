@@ -350,12 +350,16 @@ export class LiveState {
         if (message.handoff?.accuracy) this.accuracy = message.handoff.accuracy;
         break;
       case "accuracy":
+        // #268: the model read the round and found nothing answered: no report.
+        if (message.state === "empty") this.accuracy = null;
         if (["reporting", "ready", "failed"].includes(message.state)) {
           this.accuracy = {
             state: message.state, judge: message.judge ?? null, slots: message.slots ?? [], to_check: message.to_check ?? [],
             // #262: the full report is kept with the plan's results (the candidate's file).
             saved: Boolean(message.saved), plan_id: message.plan_id ?? null, session_id: message.session_id ?? null,
             why: message.why ?? null,
+            // #268: who attributed the answers (the model after the session, or the rules).
+            attribution: message.attribution ?? null, attribution_error: message.attribution_error ?? null,
           };
         }
         break;

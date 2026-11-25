@@ -9,9 +9,15 @@ and judged with the same template; the full report is stored with the
 plan's results (``<interview dir>/results/<plan>/<session>.json``), so
 it shows in «Comparar candidatos» and in the candidate's file (#262).
 
+Before judging, the model attributes the whole round's answers and
+concepts to the plan's points (``interview.attribution@1``, #268), so
+an older round judged with the rules' attribution can be redone with
+``--force``; ``--attribution rules`` keeps the rules of the replay.
+
 The reasoner is the one the orchestrator uses: ``http`` (default) asks
 the running RAG on ``--reasoner-url`` with the token of
-``--rag-token-file``, which must already have ``interview.report@2``;
+``--rag-token-file``, which must already have ``interview.report@2`` and
+``interview.attribution@1``;
 ``module:factory`` builds another adapter, e.g.
 ``experiments.live.orchestrator_reasoner:build`` (Haiku in process
 through ``claude -p``, the owner's subscription). It works with the
@@ -70,6 +76,11 @@ def add_interview_parser(
     again.add_argument("--knowledge-url", default="http://127.0.0.1:8000")
     again.add_argument("--rag-token-file", type=Path, default=RAG_TOKEN_FILE)
     again.add_argument("--model", default="haiku")
+    again.add_argument("--attribution", choices=("model", "rules"),
+                       default="model",
+                       help="who attributes the answers to the points: "
+                            "the model reading the whole round (default) "
+                            "or the word rules of the replay")
     again.add_argument("--force", action="store_true",
                        help="judge a session that is not one of the "
                             "candidate's rounds, or replace a stored report")
@@ -118,7 +129,7 @@ def run_interview(
         lambda plan_id: plan_id == plan.id, plans=store)
     wiring = InterviewWiring(planner, store, reasoner, candidates=book)
     result = rejudge(transcript, plan, wiring, args.model, profile.name,
-                     profile.id)
+                     profile.id, attribute=args.attribution == "model")
     print(json.dumps(summary(result, plan.state), ensure_ascii=False))
     return 0 if result is not None and result.get("saved") else 1
 
@@ -136,4 +147,7 @@ def summary(result: Any, plan_state: str) -> Dict[str, Any]:
             "judge": result.get("judge") or LIVE_JUDGE_TEMPLATE,
             "slots": len(result.get("slots") or []),
             "to_check": len(result.get("to_check") or []),
-            "labels": labels, "plan_state": plan_state}
+            "labels": labels, "plan_state": plan_state,
+            "attribution": result.get("attribution"),
+            **({"attribution_error": result["attribution_error"]}
+               if result.get("attribution_error") else {})}

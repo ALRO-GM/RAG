@@ -390,6 +390,19 @@ function judgementText(j) {
     h("span", { class: "iv-basis" }, `(${basis})`));
 }
 
+/** Who decided a concept's status (#268), in words: rules, a model during or after the session. */
+function decidedBy(by) {
+  return by ? h("span", { class: "meta iv-point-by" }, t(`iv.by.${by}`)) : null;
+}
+
+/** Who attributed the answers to the points of a live round (#268), and why not the model. */
+function attributionLine(result) {
+  const how = result?.attribution;
+  if (!how) return null;
+  return h("p", { class: "meta iv-attribution" }, t(`iv.attribution.${how}`),
+    how === "rules" && result.attribution_error ? [" ", t("iv.attribution_failed", { reason: result.attribution_error })] : null);
+}
+
 function countsLine(accuracy) {
   const parts = Object.entries(accuracy ?? {}).filter(([, n]) => n > 0)
     .map(([key, n]) => t("iv.judge_count", { n, label: t(`iv.judge.${key}`) }));
@@ -412,6 +425,7 @@ export function accuracyBlock(result) {
   return h("section", { class: "iv-accuracy", "aria-label": t("iv.judge_title") },
     h("h3", {}, t("iv.judge_title")),
     h("p", { class: "draft-notice", role: "note" }, t("iv.judge_note")),
+    attributionLine(result),
     h("ol", { class: "iv-skills" }, slots.map((s) => h("li", { class: "iv-skill" },
       h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label),
         s.judgement ? judgeTag(s.judgement.label) : null),
@@ -422,6 +436,7 @@ export function accuracyBlock(result) {
         return h("li", { class: "iv-point" },
           h("span", { class: "iv-point-text" }, p.text), " ",
           label ? judgeTag(label) : h("span", { class: "iv-point-status" }, t("iv.point.treated")),
+          p.status !== "pending" ? [" ", decidedBy(p.by)] : null,
           judgementText(p.judgement));
       })) : null))),
     checks.length ? h("div", { class: "iv-checks" },

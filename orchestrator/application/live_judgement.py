@@ -16,6 +16,21 @@ nothing of it is shown to the candidate. One model call per
 :data:`JUDGE_BATCH` answered slots; none when nothing was answered. A
 failed call is logged with its status and error (never the candidate's
 words) and stores nothing.
+
+**Who answered what** (#268). The word rules of the round attribute
+few answers on real speech, so before judging, the model reads the
+whole round (:meth:`TopicTracker.round_lines`: the interviewer's
+questions and the candidate's answers in order, fenced) with the plan's
+points and concepts and says which candidate utterances answer each
+point and which concepts were treated (``interview.attribution@1``,
+read by :mod:`orchestrator.domain.interview_attribution`): one call per
+batch of at most 120 utterances / 16,000 characters. The judge then
+gets those answers, and the stored report marks each concept the model
+ticked ``by: "after_session"`` and the round ``attribution:
+"after_session"``. When any attribution call fails (or the reply cannot
+be read) the round falls back to the rules' attribution of the session,
+as before, with ``attribution: "rules"`` and the reason (status and
+error kind, never words) in ``attribution_error``.
 """
 
 import logging
@@ -44,12 +59,26 @@ from orchestrator.domain.interview import (
     fold,
 )
 from orchestrator.domain.events import Transcript
+from orchestrator.domain.interview_attribution import (
+    CANDIDATE,
+    Attribution,
+    RoundLine,
+    attributed_slots,
+    batches,
+    merged,
+    read_attribution,
+    round_payload,
+    used_ids,
+)
 from orchestrator.domain.interview_judgement import MAX_CHECKS, judge_slots
 from orchestrator.domain.next_round import topic_states
 from orchestrator.domain.interview_points import quote
 
 LOG = logging.getLogger(__name__)
 LIVE_JUDGE_TEMPLATE = "interview.report@2"
+ATTRIBUTION_TEMPLATE = "interview.attribution@1"
+ATTRIBUTION_DEADLINE_MS = 90000
+"""Deadline of one attribution call (a slow template, #267)."""
 JUDGE_BATCH = 4
 """Slots judged in one call: a long round goes in several calls, each
 well inside the output cap and the 90 s deadline (12 short slots took
@@ -57,6 +86,8 @@ well inside the output cap and the 90 s deadline (12 short slots took
 ANSWER_PARTS, PART_CHARS = 6, 700
 """Answer parts per slot and characters per part: what the report
 template reads of each slot (``interview.report@2``)."""
+PART_MARK = "#"
+"""Joins an utterance id and a slot id in a joined part's key."""
 WORDS = ("quote", "reason", "note")
 """Fields with the candidate's words or the model's prose about them."""
 
@@ -92,6 +123,8 @@ class LiveJudge:
         candidate: The candidate's name, for the stored report.
         candidate_id: The candidate's profile, for the stored report.
         now: Wall-clock time.
+        attribute: Whether the model attributes the round's answers
+            before judging (#268); ``False`` keeps the rules' attribution.
     """
 
     def __init__(
@@ -105,6 +138,7 @@ class LiveJudge:
         candidate: Optional[str] = None,
         candidate_id: Optional[str] = None,
         now: Callable[[], datetime] = datetime.now,
+        attribute: bool = True,
     ):
         """Nothing judged yet."""
         self.plan = plan
@@ -116,14 +150,77 @@ class LiveJudge:
         self.candidate = candidate
         self.candidate_id = candidate_id
         self.now = now
+        self.attribute = attribute
 
     def judge(self, topics: TopicTracker) -> Optional[Document]:
-        """Judge the round (``None`` when nothing was answered)."""
+        """Attribute and judge the round (``None``: nothing answered).
+
+        The model's attribution of the whole round when it works
+        (:meth:`attribute_round`), else the rules' of the session.
+        """
+        lines = topics.round_lines()
+        found, why = None, None
+        if self.attribute and any(line.role == CANDIDATE for line in lines):
+            self.publish({"type": "accuracy", "state": "reporting"})
+            found, why = self.attribute_round(lines)
+            if found is not None:
+                texts = {line.id: line.text for line in lines
+                         if line.role == CANDIDATE}
+                slots = attributed_slots(self.plan, found, texts)
+                return self.judge_slots(slots, texts, "after_session",
+                                        announced=True)
         slots, texts = topics.sheet_slots()
-        return self.judge_slots(slots, texts)
+        return self.judge_slots(slots, texts, "rules", why,
+                                announced=why is not None)
+
+    def attribute_round(
+        self, lines: List[RoundLine],
+    ) -> Tuple[Optional[Attribution], Optional[str]]:
+        """Ask the model who answered what, batch by batch (#268).
+
+        Returns the merged attribution, or ``None`` and why (the status
+        and error kind of the failed batch, never words). Logs counts
+        only.
+        """
+        parts = batches(lines)
+        found: List[Attribution] = []
+        for n, batch in enumerate(parts):
+            request = attribution_request(
+                self.plan, batch, self.model,
+                f"{self.session_id}-attr{n}"[-64:])
+            try:
+                response = self.wiring.reasoner.reason(request, CancelToken())
+            except ReasonerUnavailable as exc:
+                LOG.warning("attribution %s batch %d: reasoner unavailable: "
+                            "%s", self.session_id, n, str(exc)[:200])
+                return None, "unavailable"
+            data = response.get("data")
+            if response.get("status") != "ok" or not isinstance(data, dict):
+                error = response.get("error")
+                kind = error.get("kind") if isinstance(error, dict) else None
+                LOG.warning("attribution %s batch %d (%d utterances): "
+                            "status %s, error %s", self.session_id, n,
+                            len(batch), response.get("status"), kind)
+                return None, f"{response.get('status')}: {kind or '-'}"
+            try:
+                found.append(read_attribution(data, self.plan, batch))
+            except Exception as exc:  # noqa: BLE001 - logged, rules used
+                LOG.warning("attribution %s batch %d: reply not read (%s)",
+                            self.session_id, n, type(exc).__name__)
+                return None, f"unreadable: {type(exc).__name__}"
+        result = merged(found, [line.id for line in lines])
+        LOG.info("attribution %s: %d batches, %d of %d candidate "
+                 "utterances used, %d points answered, %d concepts",
+                 self.session_id, len(parts), len(used_ids(result)),
+                 sum(1 for line in lines if line.role == CANDIDATE),
+                 sum(1 for s in result.values() if s.answers),
+                 sum(len(s.points) for s in result.values()))
+        return result, None
 
     def judge_slots(
         self, slots: List[SheetSlot], texts: Dict[str, str],
+        attribution: str = "rules", why: Optional[str] = None,
+        announced: bool = False,
     ) -> Optional[Document]:
         """Judge the answered slots in batches, keep and publish it.
 
@@ -133,14 +230,20 @@ class LiveJudge:
         go in one call, so a long round stays within the template's
         limits and the deadline. Any failed batch fails the judgement:
         nothing is stored, the reason is logged (never the candidate's
-        words) and ``{"state": "failed"}`` is published.
+        words) and ``{"state": "failed"}`` is published. ``attribution``
+        says who attributed the answers (``after_session`` or
+        ``rules``; ``why``: why not the model); ``announced``: the
+        ``reporting`` state was already published.
         """
         originals = {s.id: [(a.utterance, texts.get(a.utterance) or a.quote)
                             for a in s.answers] for s in slots}
         asked, texts = merged_slots([s for s in slots if s.answers], texts)
         if not asked:
+            if announced:
+                self.publish({"type": "accuracy", "state": "empty"})
             return None
-        self.publish({"type": "accuracy", "state": "reporting"})
+        if not announced:
+            self.publish({"type": "accuracy", "state": "reporting"})
         judged: List[SheetSlot] = []
         checks: List[CheckItem] = []
         for n in range(0, len(asked), JUDGE_BATCH):
@@ -156,12 +259,15 @@ class LiveJudge:
                        {k.quote for k in checks}]
         checks = checks[:MAX_CHECKS]
         judged, checks = to_originals(judged, checks, originals)
-        saved, why = self._keep(judged, checks, len(texts))
+        saved, lost = self._keep(judged, checks, len(texts), attribution,
+                                 why)
         result = {
             "state": "ready", "judge": self.template,
             "plan_id": self.plan.id, "title": self.plan.title,
             "session_id": self.session_id, "saved": saved,
-            **({"why": why} if why else {}),
+            **({"why": lost} if lost else {}),
+            "attribution": attribution,
+            **({"attribution_error": why} if why else {}),
             "slots": [
                 s.model_dump(mode="json", include={
                     "id", "label", "level", "status", "points",
@@ -218,7 +324,8 @@ class LiveJudge:
             return None
 
     def _keep(self, judged: List[SheetSlot], checks: List[CheckItem],
-              utterances: int) -> Tuple[bool, Optional[str]]:
+              utterances: int, attribution: str = "rules",
+              error: Optional[str] = None) -> Tuple[bool, Optional[str]]:
         """Store the full report with the plan's results (#262).
 
         Returns whether it was stored and, if not, why: ``no_file`` (the
@@ -232,6 +339,8 @@ class LiveJudge:
             slots=judged, filler="rules", candidate=self.candidate,
             candidate_id=self.candidate_id, to_check=checks,
             judge=self.template, finished_at=self.now(),
+            attribution=attribution,  # type: ignore[arg-type]
+            attribution_error=error,
         )
         book = self.wiring.candidates
         try:
@@ -250,13 +359,45 @@ class LiveJudge:
         return True, None
 
 
+def attribution_request(
+    plan: InterviewPlan, lines: List[RoundLine], model: str,
+    request_id: str,
+) -> Document:
+    """The ``reasoner.request.v1`` of one attribution batch (#268).
+
+    The plan's points (label, evidence, questions, concepts) and the
+    batch's utterances in order (id, role, words); the template fences
+    the words.
+    """
+    return {
+        "schema": "reasoner.request.v1", "request_id": request_id,
+        "role": "structured", "model": model,
+        "template": ATTRIBUTION_TEMPLATE, "language": plan.language,
+        "context": {"window": []},
+        "payload": {
+            "title": plan.title,
+            "slots": [{"id": s.id, "label": s.label, "evidence": s.evidence,
+                       "questions": s.questions[:3],
+                       "points": [{"id": p.id, "text": p.text}
+                                  for p in s.points]}
+                      for s in plan.slots],
+            "round": round_payload(lines),
+        },
+        "constraints": {"deadline_ms": ATTRIBUTION_DEADLINE_MS},
+    }
+
+
 def _origin(quote_: str, said: List[Tuple[str, str]],
             fallback: Optional[str]) -> Optional[str]:
-    """The original utterance whose words contain ``quote_``."""
+    """The original utterance whose words contain ``quote_``.
+
+    Without one, the fallback's own id (a part key made unique by
+    :func:`merged_slots` loses its ``#slot`` suffix).
+    """
     words = fold(quote_).strip(" .…\"'«»")
-    if not words:
-        return fallback
-    return next((u for u, text in said if words in fold(text)), fallback)
+    found = next((u for u, text in said if words and words in fold(text)),
+                 fallback)
+    return found.split(PART_MARK)[0] if found else found
 
 
 def to_originals(
@@ -269,7 +410,7 @@ def to_originals(
     from a later utterance of that part is moved to that utterance.
     """
     def moved(slot_id: str, j: Optional[Judgement]) -> Optional[Judgement]:
-        if j is None or not j.quote:
+        if j is None:
             return j
         return j.model_copy(update={"utterance": _origin(
             j.quote, originals.get(slot_id, []), j.utterance)})
@@ -280,8 +421,12 @@ def to_originals(
             p.model_copy(update={"judgement": moved(slot.id, p.judgement)})
             for p in slot.points
         ]
+        answers = [a.model_copy(update={
+            "utterance": a.utterance.split(PART_MARK)[0]})
+            for a in slot.answers]
         slots.append(slot.model_copy(update={
-            "judgement": moved(slot.id, slot.judgement), "points": points}))
+            "judgement": moved(slot.id, slot.judgement), "points": points,
+            "answers": answers}))
     every = [pair for found in originals.values() for pair in found]
     fixed = [c.model_copy(update={"utterance": _origin(
         c.quote, originals.get(c.slot or "", []) or every, c.utterance)})
@@ -314,8 +459,15 @@ def merged_answers(
 def merged_slots(
     slots: List[SheetSlot], texts: Dict[str, str],
 ) -> Tuple[List[SheetSlot], Dict[str, str]]:
-    """The slots with their answers joined (:func:`merged_answers`)."""
+    """The slots with their answers joined (:func:`merged_answers`).
+
+    One utterance can answer two slots (the model's attribution, #268)
+    and start a different joined part in each: the second part's key
+    is then ``<id>#<slot>``, so neither slot reads the other's words;
+    :func:`to_originals` points the quotes back at the utterances.
+    """
     joined: Dict[str, str] = dict(texts)
+    used: Dict[str, str] = {}
     found: List[SheetSlot] = []
     for slot in slots:
         parts = merged_answers([(a.utterance, a.quote) for a in slot.answers],
@@ -323,7 +475,9 @@ def merged_slots(
         if len(parts) > ANSWER_PARTS:
             LOG.info("judge: slot %s has %d answer parts, %d judged",
                      slot.id, len(parts), ANSWER_PARTS)
-        parts = parts[:ANSWER_PARTS]
+        parts = [(u if used.get(u, t) == t else f"{u}{PART_MARK}{slot.id}",
+                  t) for u, t in parts[:ANSWER_PARTS]]
+        used.update({u: t for u, t in parts})
         joined.update(dict(parts))
         found.append(slot.model_copy(update={"answers": [
             Answer(utterance=u, quote=quote(t), status="partial")
@@ -358,20 +512,23 @@ def rejudge(
     candidate_id: Optional[str] = None,
     publish: Callable[[Document], object] = lambda message: None,
     now: Callable[[], datetime] = datetime.now,
+    attribute: bool = True,
 ) -> Optional[Document]:
     """Judge a live round again from its stored ``transcript.v1`` (#262).
 
-    For a round whose judgement failed or was lost: the conversation is
+    For a round whose judgement failed or was lost, or to redo an older
+    round with the model's attribution (#268): the conversation is
     replayed through a :class:`TopicTracker` (speakers' ``role`` says who
-    interviews and who answers) and judged as at the end of the round;
-    the full report is stored with the plan's results under the same
-    session id. ``None`` when the candidate answered nothing the tracker
-    could attribute to a topic of the plan.
+    interviews and who answers) and attributed and judged as at the end
+    of the round (``attribute=False``: the rules' attribution only); the
+    full report is stored with the plan's results under the same
+    session id. ``None`` when nothing the candidate said was attributed
+    to a point of the plan.
     """
     roles = {s.id: s.role or "unknown" for s in transcript.speakers}
     topics = replayed_tracker(transcript, plan)
     session_id = next(transcript_to_events(transcript, roles)).session_id
     judge = LiveJudge(plan, wiring, session_id, publish, model,
                       candidate=candidate, candidate_id=candidate_id,
-                      now=now)
+                      now=now, attribute=attribute)
     return judge.judge(topics)
