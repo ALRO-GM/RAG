@@ -990,9 +990,10 @@ with the writer's intent is not accuracy on real interviews.
   every candidate line after a question). The model's attribution never
   used that line (0 of 6 runs) and found the 1 `unknown` concept in both
   runs.
-- The model's extra pairs and ticks were all in round B (4 and 3 of the
-  6 and 3 wrong ones), the one where the expected attribution is most
-  debatable (answers that touch two points).
+- All 6 unexpected pairs (2 and 4 in its two runs) and all 3 unexpected
+  ticks (2 and 1) were in round B, where several answers touch two
+  points and the expected attribution is most debatable; the one missed
+  concept was in round C, first run.
 - Wall time per call, cold process: attribution 7.0–10.2 s (median
   9.0 s) for 10–13 utterances; suggester `@3` 3.1–5.8 s (median 4.0 s).
   The suggester's time is a cold process's with a 60 s deadline, not the
