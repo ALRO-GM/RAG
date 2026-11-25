@@ -92,8 +92,11 @@ class LiveJudge:
         if not asked:
             return None
         self.publish({"type": "accuracy", "state": "reporting"})
-        chunks = judge_chunks(self.wiring.planner.knowledge, self.plan,
-                              asked, texts, self.session_id)
+        try:
+            chunks = judge_chunks(self.wiring.planner.knowledge, self.plan,
+                                  asked, texts, self.session_id)
+        except Exception:  # noqa: BLE001 - general knowledge instead
+            chunks = {}
         request = report_request(
             self.plan, asked, texts, chunks, "", self.template, self.model,
             f"{self.session_id}-judge"[-64:],

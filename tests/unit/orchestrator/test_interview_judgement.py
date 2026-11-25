@@ -84,7 +84,12 @@ def test_a_verdict_on_the_person_is_never_kept() -> None:
     for verdict in ("Miente sobre su experiencia.", "Se lo ha inventado.",
                     "No apto para el puesto.", "Conviene contratarla.",
                     "The candidate is lying.",
-                    "Not suitable for the role."):
+                    "Not suitable for the role.",
+                    "Parece que inventa los datos.", "Está inventando.",
+                    "Inventa cifras.", "Probablemente mienta.",
+                    "No la contrataría.", "Descartaría a la candidata.",
+                    "Fabricó la respuesta.", "She invented that.",
+                    "The answer looks likely dishonest."):
         assert clean_text(verdict) == "", verdict
     assert clean_text("  El drop no es el peso  ") == "El drop no es el peso"
     found = judgement_from({"label": "wrong", "utterance": "u1",
@@ -239,3 +244,13 @@ def test_a_reply_of_the_wrong_shape_never_raises() -> None:
     weird = judgement_from({"label": 3, "reason": {"a": 1}}, SAID, set())
     assert weird is not None and weird.label == "unclear"
     assert weird.reason == ""
+
+
+def test_more_ways_of_telling_one_s_own_experience() -> None:
+    for claim in ("He estado tres años en una tienda de running.",
+                  "Llevo más de cinco años como encargada.",
+                  "Llevo dos años de dependiente.",
+                  "I spent four years at a bike shop.",
+                  "Worked at a big supermarket for six years."):
+        assert is_experience(claim), claim
+    assert not is_experience("Llevo zapatillas con drop bajo.")

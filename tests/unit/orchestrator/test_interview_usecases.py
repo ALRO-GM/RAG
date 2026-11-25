@@ -26,6 +26,7 @@ from orchestrator.application.ports import (
 )
 from orchestrator.domain.config import InterviewSection
 from orchestrator.domain.interview import (
+    Answer,
     InterviewPlan,
     PlanSource,
     Point,
@@ -580,3 +581,50 @@ def test_a_report_that_cannot_be_read_gives_status_scores(
     sheet = finished_sheet(monkeypatch, "read_report")
     assert sheet["scorer"] == "status" and sheet["judge"] is None
     assert sheet["slots"][0]["scored_by"] == "status"
+
+
+class OddKnowledge:
+    """A knowledge service answering with chunks of the wrong shape."""
+
+    def __init__(self, result: Any) -> None:
+        self.result = result
+
+    def query(self, query: Document) -> Any:
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+def test_chunks_of_the_wrong_shape_are_skipped() -> None:
+    """Re-review of #259: odd chunks never stop the end of an interview."""
+    plan = InterviewPlan(
+        id="plan-1", title="T", slots=[running()],
+        source=PlanSource(kind="document", domain="tienda"))
+    slot = SheetSlot(id="s1", label="Running", level="minimo",
+                     answers=[Answer(utterance="u1", quote="El drop",
+                                     status="partial")])
+    for odd in ({"chunks": [{"text": "x"}]}, {"chunks": "abc"},
+                {"chunks": [1, None, {"id": 3, "text": "x"}]}, ["x"],
+                {"chunks": None}):
+        assert judge_chunks(OddKnowledge(odd), plan, [slot], {}, "r") == {}
+    good = {"chunks": [{"id": "c1", "text": "El drop"}, {"id": "c2"}]}
+    assert judge_chunks(OddKnowledge(good), plan, [slot], {}, "r") == {
+        "s1": [{"id": "c1", "text": "El drop"}]}
+
+
+def test_a_failing_chunk_lookup_still_ends_the_interview() -> None:
+    plan = InterviewPlan(
+        id="plan-1", title="T", slots=[running()],
+        source=PlanSource(kind="document", domain="tienda"))
+    boss = InterviewDirector(
+        plan, "vb-1", InterviewSection(max_probes=0), HeuristicFiller(),
+        FakeReasoner(), Output(), Clock(), Store(), None, False, "Ana",
+        now=lambda: NOW, knowledge=OddKnowledge(RuntimeError("odd")))
+    boss.plan_turn("", None, CancelToken())
+    answer = "Conozco los tipos de pisada de cada cliente."
+    boss.heard("u1", answer, 3.0, 6.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    judged = result["sheet"]["slots"][0]["judgement"]
+    assert judged["basis"] == "general"

@@ -1017,7 +1017,11 @@ class InterviewDirector:
         scorer = "status"
         to_check: List[CheckItem] = []
         judge: Optional[str] = None
-        chunks = self._chunks(slots)
+        try:
+            chunks = self._chunks(slots)
+        except Exception:  # noqa: BLE001 - logged, general knowledge
+            LOG.exception("report: chunks of %s not read", self.session_id)
+            chunks = {}
         data = self._report(slots, chunks)
         if data is not None:
             plain = slots
@@ -1186,8 +1190,13 @@ def judge_chunks(
             result = knowledge.query(query)
         except KnowledgeUnavailable:
             return {}
-        chunks = [{"id": str(c["id"]), "text": str(c["text"])[:600]}
-                  for c in (result.get("chunks") or [])[:JUDGE_CHUNKS]]
+        raw = result.get("chunks") if isinstance(result, dict) else None
+        chunks = [
+            {"id": c["id"], "text": c["text"][:600]}
+            for c in (raw if isinstance(raw, list) else [])
+            if isinstance(c, dict) and isinstance(c.get("id"), str)
+            and isinstance(c.get("text"), str)
+        ][:JUDGE_CHUNKS]
         if chunks:
             found[slot.id] = chunks
     return found

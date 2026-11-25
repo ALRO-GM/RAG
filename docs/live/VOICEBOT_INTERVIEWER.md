@@ -546,7 +546,9 @@ utterance ids of the judgement: no quote, reason or note
 (`without_words`), so it holds none of the candidate's words. It has no
 retention of its own (like the rest of the hand-off file); the AI
 interviewer's sheet, with quotes, stays in `data/interview/results/`
-as before (retention pending, §10).
+as before (retention pending, §10). A judgement still pending when the
+orchestrator restarts is lost: the stored hand-off record then stays
+without `accuracy`.
 
 **Notice.** The live page's candidate notice is now
 `interview_ai_notice@2` («Después, la IA puede preparar un borrador de
