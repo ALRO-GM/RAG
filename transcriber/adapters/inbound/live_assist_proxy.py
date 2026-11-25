@@ -64,6 +64,10 @@ PLAN_TIMEOUT = 200.0
 """Seconds for drafting an interview plan: the orchestrator reads the
 uploaded offer (30 s), queries the method corpus (5 s) and waits for the
 planner (its 120 s deadline plus a 30 s margin, #267)."""
+STOP_TIMEOUT = 120.0
+"""Seconds for «Terminar» (#264): the orchestrator's stop waits for the
+transcriber's (its client gives it 90 s: 15 s for the source to finish
+and 60 s for the end), then up to 15 s for the last events."""
 SAMPLE_TIMEOUT = 150.0
 """Seconds for «Escuchar ejemplo»: a cloned or natural voice on the GPU
 may wait 20 s for the memory and up to 120 s for its model to speak
@@ -360,7 +364,9 @@ def add_live_assist_proxy(
         if path.endswith("/suggestions/stream"):
             return await _stream(client(), url, headers, params)
         wait = (PLAN_TIMEOUT if path == "interview/plans"
-                else SAMPLE_TIMEOUT if path == "voicebot/sample" else TIMEOUT)
+                else SAMPLE_TIMEOUT if path == "voicebot/sample"
+                else STOP_TIMEOUT if path.startswith("sessions/")
+                and path.endswith("/stop") else TIMEOUT)
         try:
             async with client(wait) as http:
                 answer = await http.request(

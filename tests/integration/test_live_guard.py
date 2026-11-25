@@ -120,16 +120,22 @@ STUBS = ("systemctl", "pkill", "pgrep", "systemd-run", "curl")
 
 
 def run_script(
-    tmp_path: Path, *args: str,
+    tmp_path: Path, *args: str, restarting: bool = False,
 ) -> "subprocess.CompletedProcess[str]":
+    """Run the script with stand-ins; ``restarting``: every unit is in
+    systemd's auto-restart (``is-active`` says no)."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     calls = tmp_path / "calls.log"
     for name in STUBS:
         stub = bin_dir / name
         code = 1 if name == "pgrep" else 0
-        stub.write_text(f"#!/bin/sh\necho \"{name} $*\" >> '{calls}'\n"
-                        f"exit {code}\n")
+        body = f"echo \"{name} $*\" >> '{calls}'\n"
+        if name == "systemctl" and restarting:
+            body += 'case "$2" in is-active) exit 3;; esac\n'
+        if name == "curl":
+            body += "printf 200\n"
+        stub.write_text(f"#!/bin/sh\n{body}exit {code}\n")
         stub.chmod(0o755)
     environ = {
         "PATH": f"{bin_dir}:/usr/bin:/bin", "HOME": str(tmp_path / "home"),
@@ -181,6 +187,23 @@ def test_status_says_whether_an_interview_is_running(tmp_path: Path) -> None:
     done = run_script(tmp_path, "status")
     assert "Entrevista en directo:  Entrevista en directo en marcha" \
         in done.stdout
+
+
+def test_a_unit_in_auto_restart_is_stopped_then_started_with_limits(
+    tmp_path: Path,
+) -> None:
+    done = run_script(tmp_path, "start", restarting=True)
+    assert done.returncode == 0, done.stderr
+    lines = calls(tmp_path).splitlines()
+    for unit in ("ragputin-rag", "ragputin-transcriber",
+                 "ragputin-orchestrator"):
+        stop = lines.index(f"systemctl --user stop {unit}")
+        run = next(i for i, line in enumerate(lines)
+                   if line.startswith(f"systemd-run --user --unit={unit} "))
+        assert stop < run
+        assert "-p StartLimitIntervalSec=300 -p StartLimitBurst=5" \
+            in lines[run]
+        assert "-p Restart=on-failure -p RestartSec=2" in lines[run]
 
 
 def test_units_restart_on_failure() -> None:

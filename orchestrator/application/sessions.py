@@ -162,10 +162,10 @@ DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
 CANDIDATE_CHARS = 80
 TICK_S = 0.1
 DEMO_STOP_S = 3.0
+"""Longest wait for a playing demo to stop before a new one starts."""
 STOP_DRAIN_S = 15.0
 """Longest wait, after the transcriber stopped a live session, for its
 last events to be read before the follower is cancelled (#264)."""
-"""Longest wait for a playing demo to stop before a new one starts."""
 STOP_POLL_S = 0.05
 """Seconds between two turn-taking ticks of an interview (#213)."""
 LOG = logging.getLogger(__name__)

@@ -9,7 +9,8 @@
 # - stop y restart se niegan mientras hay una entrevista en directo (el arriendo de
 #   la GPU de «ragputin-live» o la marca del transcriptor, que también cubre una
 #   sesión esperando a que vuelva el audio); --force lo salta.
-# - las unidades se reinician solas si fallan (Restart=on-failure, RestartSec=2).
+# - las unidades se reinician solas si fallan (Restart=on-failure, RestartSec=2),
+#   como mucho 5 veces en 5 minutos (StartLimitBurst=5, StartLimitIntervalSec=300).
 # - status dice si hay una entrevista en directo en marcha.
 set -u
 DIR="${RAGPUTIN_DIR:-$HOME/Desktop/ideas/RAGPutin}"
@@ -47,9 +48,15 @@ activo() { # unidad en marcha, o el proceso ya corre (p. ej. lanzado a mano)
 lanzar() { # <unidad> <log> <comando>
   local unit=$1 log=$2 cmd=$3
   if activo "$unit"; then echo "$unit ya está en marcha"; return; fi
+  # Una unidad que se está reiniciando sola (auto-restart) o que agotó sus
+  # intentos sigue existiendo: se para y se limpia antes de arrancarla.
+  systemctl --user stop "$unit" 2>/dev/null
   systemctl --user reset-failed "$unit" 2>/dev/null
+  # Si falla, se reinicia sola a los 2 s; si falla 5 veces en 5 min (un
+  # arranque que no puede funcionar), deja de intentarlo.
   systemd-run --user --unit="$unit" --collect -p WorkingDirectory="$DIR" \
     -p Description="RAGPutin $unit" -p Restart=on-failure -p RestartSec=2 \
+    -p StartLimitIntervalSec=300 -p StartLimitBurst=5 \
     /bin/bash -lc "cd '$DIR' && exec $cmd >>'$log' 2>&1" >/dev/null \
     && echo "$unit arrancado (log: $log)"
 }

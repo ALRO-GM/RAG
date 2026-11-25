@@ -5,10 +5,13 @@ EventSource` (the transcriber's ``live.event.v1`` socket). Before #264 any
 close other than a normal one (1000) ended the following and failed the
 session in the orchestrator, although the transcriber keeps every event
 and serves them again from any ``from_seq``. Now a dropped stream is
-opened again from the next sequence number, with a short backoff, for as
-long as ``give_up_s`` passes without a single event; events already seen
-are never handed on twice. A refusal that will not change (the session
-is unknown, the code is refused) ends the following at once, as before.
+opened again from the next sequence number, with a short backoff; events
+already seen are never handed on twice. It gives up only when the stream
+has been impossible to keep for ``give_up_s`` in a row: a stream that
+stayed open ``healthy_s`` (an event or not: a session waiting for its
+audio source sends none for up to 10 min) counts as working again. A
+refusal that will not change (the session is unknown, the code is
+refused) ends the following at once, as before.
 
 No text is logged here: only ids, counts and reasons.
 """
@@ -44,7 +47,11 @@ class ResumingEvents:
             ``from_seq``).
         sleep: Waits that many seconds (``time.sleep``; tests pass a fake).
         clock: Monotonic seconds.
-        give_up_s: How long without any event the stream is retried.
+        give_up_s: How long the stream may stay impossible to keep before
+            the following ends: the transcriber's grace for a lost source
+            (600 s) plus a margin, as the session cannot outlive it.
+        healthy_s: How long an opened stream must stay up to count as
+            working (no event needed).
         first_wait_s: The first wait before reopening; doubles up to
             ``max_wait_s``.
     """
@@ -54,9 +61,10 @@ class ResumingEvents:
         inner: EventSource,
         sleep: Callable[[float], None],
         clock: Callable[[], float],
-        give_up_s: float = 120.0,
+        give_up_s: float = 660.0,
         first_wait_s: float = 0.5,
         max_wait_s: float = 5.0,
+        healthy_s: float = 5.0,
     ) -> None:
         """Keep the source and the retry policy."""
         self.inner = inner
@@ -65,6 +73,7 @@ class ResumingEvents:
         self.give_up_s = give_up_s
         self.first_wait_s = first_wait_s
         self.max_wait_s = max_wait_s
+        self.healthy_s = healthy_s
 
     def follow(
         self, session_id: str, stop: CancelToken, from_seq: int = 0,
@@ -80,6 +89,7 @@ class ResumingEvents:
         failing_since: Any = None
         attempt = 0
         while not stop.cancelled:
+            opened = self.clock()
             try:
                 for document in self.inner.follow(
                         session_id, stop, from_seq=position):
@@ -97,6 +107,8 @@ class ResumingEvents:
                 if permanent(exc) or stop.cancelled:
                     raise
                 now = self.clock()
+                if now - opened >= self.healthy_s:
+                    failing_since, attempt = None, 0  # it was working
                 failing_since = now if failing_since is None \
                     else failing_since
                 if now - failing_since >= self.give_up_s:

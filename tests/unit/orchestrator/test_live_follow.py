@@ -195,3 +195,29 @@ def test_without_the_wait_the_last_events_were_lost(
 ) -> None:
     view = run_stop(0.0, monkeypatch)
     assert view["events"] < len(documents())
+
+
+def test_a_stream_that_opens_and_stays_up_is_working_even_without_events(
+) -> None:
+    """#264 review: a session waiting for its source sends nothing for
+    minutes; streams that open, stay up a while and drop must not add up
+    to the give-up."""
+    clock = Clock()
+    drop = TranscriberUnavailable("closed abnormally (no close frame)")
+
+    class Quiet:
+        opened = 0
+
+        def follow(self, session_id: str, stop: CancelToken,
+                   from_seq: int = 0) -> Iterator[Document]:
+            Quiet.opened += 1
+            if Quiet.opened > 40:
+                return
+            clock.t += 60.0  # a minute up, no event, then a drop
+            raise drop
+            yield {}  # pragma: no cover - makes this a generator
+
+    follower = ResumingEvents(Quiet(), clock.sleep, clock.now, give_up_s=120)
+    assert list(follower.follow("s", CancelToken())) == []
+    assert Quiet.opened == 41, "never gave up: each stream was working"
+    assert set(clock.waits) == {0.5}

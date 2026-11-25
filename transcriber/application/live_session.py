@@ -650,6 +650,7 @@ class LiveSessions:
         )
         self._sessions: Dict[str, LiveSession] = {}
         self._lock = threading.Lock()
+        self._marking = threading.Lock()
 
     def start(self, request: LiveSessionRequest) -> LiveSession:
         """Start ``request``'s session in a worker thread; return it.
@@ -728,8 +729,16 @@ class LiveSessions:
         marker = self._p.marker
         if marker is None:
             return
-        with self._lock:
-            sessions = list(self._sessions.values())
+        with self._marking:  # one snapshot written at a time, in order
+            with self._lock:
+                sessions = list(self._sessions.values())
+            self._write_marker(marker, sessions)
+
+    @staticmethod
+    def _write_marker(
+        marker: LiveMarker, sessions: Sequence[LiveSession],
+    ) -> None:
+        """Write the snapshot (under the marking lock: newest wins)."""
         try:
             # A session that ended stays until its transcript is handed
             # over: a restart then would lose the publish (#264).

@@ -13,6 +13,7 @@ file whose pid is gone is stale (the process died).
 import json
 import os
 import tempfile
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -40,9 +41,19 @@ class FileLiveMarker:
     def __init__(self, path: Path) -> None:
         """Keep the path; nothing is written until a session starts."""
         self.path = path
+        self._lock = threading.Lock()
 
     def mark(self, sessions: Sequence[Mapping[str, Any]]) -> None:
-        """Say which live sessions are on; none removes the file."""
+        """Say which live sessions are on; none removes the file.
+
+        Called from several threads: one write at a time, each through
+        its own temporary file, so the file is never half written.
+        """
+        with self._lock:
+            self._write(sessions)
+
+    def _write(self, sessions: Sequence[Mapping[str, Any]]) -> None:
+        """Replace the file (or remove it) with ``sessions``."""
         if not sessions:
             try:
                 self.path.unlink()
@@ -55,7 +66,8 @@ class FileLiveMarker:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "sessions": [dict(s) for s in sessions],
         }
-        temporary = self.path.with_name(f".{self.path.name}.tmp")
+        temporary = self.path.with_name(
+            f".{self.path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
         descriptor = os.open(
             temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600
         )

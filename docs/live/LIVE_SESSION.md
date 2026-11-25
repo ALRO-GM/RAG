@@ -117,14 +117,17 @@ at 0.9–1.1× for re-anchoring, 120 s gap slack) are chosen, not measured.
 
 | What happens | Now | Recovered | Still lost |
 |---|---|---|---|
-| The live worker dies with an exception (CUDA out of memory, any error) | the readers get a `warning` `other` («The live session stopped on an error (…); the transcript of what was heard until then is kept.»); the transcript of every final so far is kept and published as the start request asked; the session's `transcript` summary says `partial: true`; state `failed`, `end_reason: failed` | everything heard until the error | the audio after the error (the page's socket is refused; it reconnects only to a new session) |
-| The transcriber stops mid-session (crash, kill, restart) | at its next start, every session with `events.jsonl` and no `transcript.json` is rebuilt from the events and its `session.json` (request, speakers, names, model, state; written at start, on every rename, at the end), kept, published as asked (on a thread, so the start is not delayed) and listed as `recovered` (`end_reason: restart`). A session logged before #264 (no record) is rebuilt and kept, but not published (nobody knows it was asked) | the transcript up to the last event written (events are flushed one by one) | the audio after the crash; the orchestrator's live view of that round (see below) |
+| The live worker dies with an exception (CUDA out of memory, any error) | the readers get a `warning` `other` («The live session stopped on an error (…); the transcript of what was heard until then is kept.»); the transcript of every final so far is kept and published as the start request asked; the session's `transcript` summary and its `session.json` say `partial: true`; state `failed`, `end_reason: failed`. The published `transcript.v1` itself does not say it is partial: the contract has no field for it and the RAG validates it strictly, so the post-call analysis cannot tell (left for a contract change) | everything heard until the error | the audio after the error (the page's socket is refused; it reconnects only to a new session) |
+| The transcriber stops mid-session (crash, kill, restart) | each session keeps `session.json` (request, speakers, names, model, state, and at the end the reason and the publish's result). At the next start, sessions with that record, newest first and at most 20 per start (the rest are counted in the log and wait), are handed over: one without `transcript.json` is rebuilt from `events.jsonl`, kept, published as asked and listed as `recovered` (`end_reason: restart`); one whose transcript was kept but not published (the process died while the RAG got it, or the RAG refused it) is published again (the RAG replaces a transcript of the same session). Publishing runs on a thread, so the start is not delayed. A session whose log or record cannot be used is logged (its id and the error's type) and left as it is; recovery never stops a start. Sessions logged before #264 (no record) are never touched | the transcript up to the last event written (events are flushed one by one); a publish that did not complete | the audio after the crash; the orchestrator's live view of that round (see below) |
 | The orchestrator stops mid-session | the page sees a 404 on its stream (#263) and ends; the transcriber's session goes on until its audio stops, then hands its transcript over as usual | the round's topics, mandatory items, lines to avoid and judgement with `python -m orchestrator rebuild-round` (below) | the suggestions shown during the round (they were advice of the moment) |
-| The event stream between transcriber and orchestrator drops | `ResumingEvents` reopens it with `?from_seq=` the next event, backoff 0.5 → 5 s, no event handed on twice; a refusal that cannot change (unknown session, wrong code) ends it at once | every event | nothing, unless the stream stays down 120 s without a single event: then the orchestrator ends the round as failed (rebuild it afterwards) |
+| The event stream between transcriber and orchestrator drops (a close code other than 1000, or no close frame at all: a reset, a ping time-out) | `ResumingEvents` reopens it with `?from_seq=` the next event, backoff 0.5 → 5 s, no event handed on twice; a refusal that cannot change (unknown session, wrong code) ends it at once. A stream that stayed open 5 s counts as working, with or without events (a session waiting for its source sends none) | every event | nothing, unless the stream cannot be kept for 660 s in a row (the source grace plus a minute): then the orchestrator ends the round as failed (rebuild it afterwards) |
 | «Terminar» with finals still on their way | the transcriber's stop returns once its session has ended; the orchestrator then waits up to 15 s (`STOP_DRAIN_S`) for its follower to read the last events (finals, `session_ended`) before it cancels it | the last finals reach the trackers and the judgement | anything the follower has not read after 15 s |
 
 Publishing to the RAG (and starting the post-call analysis) now happens
-after the session has ended, so a stop never waits for it.
+after the session has ended, so a stop never waits for it; until it is
+done the session stays in the live marker (state `handing_over`), so
+the services guard does not let a restart cut it, and its record is
+written again with the result.
 
 ### Timeouts, from the page down
 
@@ -132,11 +135,12 @@ after the session has ended, so a stop never waits for it.
 |---|---|---|
 | «Terminar» waits for the server to acknowledge the held audio (#263) | 60 s of connected time; «Terminar ya» ends at once | `js/live-audio.js` `FINISH_CAP_MS` |
 | …then for the transcriber's `stopped` | 5 s | `STOPPED_WAIT_MS` |
+| The page's stop request, through the transcriber's proxy to the orchestrator | 120 s (other calls 45 s); the page itself sets no limit | `live_assist_proxy.STOP_TIMEOUT` |
 | Transcriber: a stop over HTTP lets a connected source finish | 15 s | `live.stop_drain_seconds` |
 | Transcriber: then waits for the session's end | 60 s | `LiveSessions.stop(timeout)` |
 | Orchestrator → transcriber stop request | 90 s (other calls 40 s) | `http_transcriber.STOP_TIMEOUT` |
 | Orchestrator: last events after the transcriber's stop | 15 s | `sessions.STOP_DRAIN_S` |
-| Orchestrator: a dropped event stream is retried | 120 s without any event | `ResumingEvents.give_up_s` |
+| Orchestrator: a dropped event stream is retried | until it cannot be kept for 660 s in a row | `ResumingEvents.give_up_s` |
 | Transcriber: publish to the RAG (after the end, not in the stop) | 30 s per try, 3 retries, 1 → 2 → 4 s apart | `publish.http` |
 | A lost audio source is waited for (#263) | 600 s; 120 s after a close 1001 | `live.source_grace_seconds`, `live.source_gone_seconds` |
 | A session without audio stops | 120 s | `live.idle_seconds` |
@@ -182,7 +186,13 @@ copy is `infra/ragputin-servicios`. With it:
   `python3`, standard library; exit 0 free, 3 running, 2 cannot tell,
   which refuses too).
 - `status` adds `Entrevista en directo:` with the same line.
-- The units are started with `Restart=on-failure` and `RestartSec=2`.
+- The units are started with `Restart=on-failure` and `RestartSec=2`,
+  at most 5 starts in 5 minutes (`StartLimitBurst=5`,
+  `StartLimitIntervalSec=300`): a start that cannot work stops trying
+  instead of reloading the models in a loop. `start` first stops and
+  clears a unit that is still in its own restart loop.
+- A session that has ended but is still handing its transcript over is
+  «running» for the guard too.
 
 Install it (when no interview is running), from the main checkout after
 the merge:
@@ -197,10 +207,17 @@ It reads `infra/live_guard.py` from the same checkout
 ### Caddy
 
 The repository's `infra/Caddyfile` now has `stream_close_delay 10m` on
-the tunnel's upstream and on the API's, so a configuration reload no
-longer cuts the tunnel or a live socket at once. The Peer4U server
-block (`infra/ragputin.caddy`, changed by the owner by hand) needs the
-same line; replace its `reverse_proxy ragputin-web:80` with:
+the tunnel's upstream and on the API's. Honestly, that does little: the
+server's internal Caddy runs with `admin off` and is never reloaded;
+every site deploy (`infra/install-remote.sh`) recreates the `web`
+container and restarts `tunnel`, which cuts the tunnel and every live
+socket at once whatever that setting says. A deploy during an interview
+therefore still costs a tunnel reset, which the reconnect of #263 now
+absorbs (seconds of held audio, resent). The setting would only matter
+if that Caddy were ever reloaded in place. The block that is reloaded
+in place is the Peer4U server's (`infra/ragputin.caddy`, installed by
+`make infra-proxy`, changed by the owner by hand), and there the line
+helps: replace its `reverse_proxy ragputin-web:80` with:
 
 ```
 reverse_proxy ragputin-web:80 {

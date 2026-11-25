@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pytest
@@ -246,3 +246,32 @@ def test_the_live_marker_is_private_and_gone_when_nothing_is_on(
     assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
     marker.mark([])
     assert not path.exists()
+
+
+def test_the_live_marker_survives_writers_on_many_threads(
+    tmp_path: Path,
+) -> None:
+    import threading
+
+    from transcriber.adapters.outbound.fs_live_marker import FileLiveMarker
+
+    marker = FileLiveMarker(tmp_path / "ragputin" / "live-active.json")
+    errors: List[Exception] = []
+
+    def write(n: int) -> None:
+        try:
+            for k in range(50):
+                marker.mark([{"id": f"s{n}", "state": "running",
+                              "source": str(k)}])
+        except Exception as exc:  # noqa: BLE001 - collected
+            errors.append(exc)
+
+    threads = [threading.Thread(target=write, args=(n,)) for n in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert errors == []
+    document = json.loads(marker.path.read_text())
+    assert len(document["sessions"]) == 1
+    assert list(marker.path.parent.glob(".*.tmp")) == []
