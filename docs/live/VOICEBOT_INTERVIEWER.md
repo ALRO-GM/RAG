@@ -219,12 +219,15 @@ which concepts of the slot it treats, with the candidate's words:
   or two (first five letters of each word of four letters or more;
   «tipo», «cómo», «cuánto», «tiempo», «hacia», «siempre»… do not count),
   at least half if it has more, or a cue of the concept's kind: a figure
-  with years, months or weeks for «cuánto tiempo»; a first-person past
+  with years, months or weeks next to a verb of having worked («estuve
+  tres años», «llevo dos años trabajando», «cinco años de experiencia»)
+  for «cuánto tiempo»; a first-person past
   verb («expliqué», «decidí», «hice») for «lo que hizo»; a result verb
   («conseguimos», «se resolvió», «redujimos») for «resultado»; «una
   vez», «cuando trabajaba…», «hace dos años» for «situación»; shifts,
-  weekend days or «jornada» for «horario o turnos»; «empezar»,
-  «incorporarme» for the start date; «trabajé de/en», «estuve … en una
+  weekend days or «jornada» for «horario o turnos»; «empezar en / el /
+  ya / a partir…», «incorporarme…», «de inmediato» for the start date;
+  «trabajé / trabajaba / he trabajado de, como, en», «estuve … en una
   tienda» for the workplace; «me encargaba», «atendía» or a job gerund
   with its object («atendiendo clientes») for tasks. Concepts are only
   read for the slot asked, never for another slot the answer touches.
@@ -234,10 +237,15 @@ which concepts of the slot it treats, with the candidate's words:
 What the rules can and cannot do: they tick a concept only from its
 own words or those cues, and they were written to prefer missing a
 concept (it stays pending and the follow-up asks for it) to ticking one
-the candidate did not talk about. Filler words do not tick anything:
-«así es la vida», «aquí estoy», «cuando quieras», «siempre llego a
-tiempo», «voy hacia allí», «estoy pensando», «esta tarde no puedo» and
-«no sé qué decirte» leave every concept pending (unit tests). They do
+the candidate did not talk about. These sentences, each a unit test,
+tick nothing: «así es la vida», «aquí estoy», «cuando quieras»,
+«siempre llego a tiempo», «voy hacia allí», «estoy pensando», «esta
+tarde no puedo», «no sé qué decirte», «un porqué no te sé dar», «no
+tengo trabajo de eso», «trabajo de lo que salga», «me gustaría empezar
+a aprender», «un año de esos complicados» and «llevo dos semanas
+buscando». That list is what was checked, not a guarantee: other
+everyday sentences that happen to contain a cue (a past verb, a
+duration next to «estuve», a weekend day) can still tick a concept. They do
 **not** understand synonyms or paraphrases («elijo el número» is not
 «cómo elegir la talla»; «la amortiguación» alone is not «amortiguación
 y drop», which needs both words), so a concept written in words the
@@ -294,8 +302,9 @@ treated, and one asked but not done stays «volver a tratar» for the next
 round. «Temas del puesto» marks the topic being asked and shows
 «Falta por tratar en «tema»: B, C» plus, under «Conceptos de cada tema»,
 every topic's concepts with their status in this round (the status
-line keeps one live region and the list is redrawn inside a disclosure
-that keeps its state, so a screen reader hears the change). The pending
+line is one `role="status"` node whose text changes, and the list is
+redrawn inside a disclosure that keeps its state, so that a screen
+reader can announce the change; not tried with a screen reader). The pending
 concepts of the topic being asked also go into the **goal of the
 existing suggester call** (`suggester.interview@2`, «Tema en curso: …;
 conceptos aún sin tratar: B y C.»), so the suggestions steer to them
