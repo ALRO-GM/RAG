@@ -156,3 +156,15 @@ test("an old or status-only sheet draws no empty judgement section", async () =>
     assert.ok(accuracyBlock({ ...old, judge: "interview.report@2" }), "judged sheets still show their concepts");
   });
 });
+
+test("a report the model could not write says why, in the summary", async () => {
+  assert.equal(es["iv.report_error"], "El modelo no pudo puntuar ni valorar esta entrevista ({reason}). Las puntuaciones son una estimación por el estado de cada punto y no hay valoración de las respuestas.");
+  await withDom("es", ({ reportCard }) => {
+    const base = { schema: "interview.sheet.v1", session_id: "vb-1", title: "Tienda", suitability: 40, summary: "", turns: 3,
+      elapsed_s: 200, filler: "haiku", scorer: "status", other_skills: [], to_check: [],
+      slots: [{ id: "s1", label: "Caja", level: "minimo", weight: 3, status: "partial", score: 40, answers: [], points: [] }] };
+    const failed = reportCard({ sheet: { ...base, report_error: "timeout: timeout" }, handoff: {} }).text();
+    assert.ok(failed.includes("El modelo no pudo puntuar ni valorar esta entrevista (timeout: timeout)."));
+    assert.ok(!reportCard({ sheet: base, handoff: {} }).text().includes("El modelo no pudo"));
+  });
+});

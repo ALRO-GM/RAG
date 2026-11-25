@@ -2226,4 +2226,5 @@ export const es = {
   "iv.deleted_report": "Informe borrado.",
   "live.accuracy_nothing": "No hubo respuestas que valorar: no se ha guardado ningún informe.",
   "live.accuracy_no_file": "No se ha guardado: la ficha de la persona ya no existe.",
+  "iv.report_error": "El modelo no pudo puntuar ni valorar esta entrevista ({reason}). Las puntuaciones son una estimación por el estado de cada punto y no hay valoración de las respuestas.",
 };

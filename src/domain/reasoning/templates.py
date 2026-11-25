@@ -45,7 +45,17 @@ class Template:
     user: Callable[[ReasonRequest], str]
     parse: Callable[[str, ReasonRequest], Parsed]
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS
+    slow: bool = False
+    """A long call made once in a while, not on a live turn (the
+    interview's planner and report, #267): it runs in its own cold
+    process with its request's deadline (up to :data:`SLOW_MAX_S`), never
+    on the warm live processes, so it cannot hold them while a live call
+    waits."""
 
+
+SLOW_MAX_S = 180.0
+"""Longest a ``slow`` template may take on the serving path (#267): its
+``deadline_ms`` is honoured up to this; without one it gets this."""
 
 SUPPORT_MAX_OUTPUT_TOKENS = 200
 """Cap of ``suggester.support@1``: its JSON (suggestion, ids and signals)
@@ -566,7 +576,7 @@ def _structured_parse(reply: str, request: ReasonRequest) -> Parsed:
 INTERVIEW_PLANNER_V1 = Template(
     id="interview.planner@1", role="structured",
     system=_planner_system, user=_planner_user, parse=_structured_parse,
-    max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS,
+    max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS, slow=True,
 )
 
 
@@ -665,7 +675,7 @@ def _report_user(request: ReasonRequest) -> str:
 INTERVIEW_REPORT_V1 = Template(
     id="interview.report@1", role="structured",
     system=_report_system, user=_report_user, parse=_structured_parse,
-    max_output_tokens=REPORT_MAX_OUTPUT_TOKENS,
+    max_output_tokens=REPORT_MAX_OUTPUT_TOKENS, slow=True,
 )
 
 
@@ -704,7 +714,7 @@ def _planner_v2_system(request: ReasonRequest) -> str:
 INTERVIEW_PLANNER_V2 = Template(
     id="interview.planner@2", role="structured",
     system=_planner_v2_system, user=_planner_user, parse=_structured_parse,
-    max_output_tokens=PLANNER_V2_MAX_OUTPUT_TOKENS,
+    max_output_tokens=PLANNER_V2_MAX_OUTPUT_TOKENS, slow=True,
 )
 
 
@@ -918,7 +928,7 @@ def _report_v2_user(request: ReasonRequest) -> str:
 INTERVIEW_REPORT_V2 = Template(
     id="interview.report@2", role="structured",
     system=_report_v2_system, user=_report_v2_user, parse=_structured_parse,
-    max_output_tokens=REPORT_V2_MAX_OUTPUT_TOKENS,
+    max_output_tokens=REPORT_V2_MAX_OUTPUT_TOKENS, slow=True,
 )
 
 

@@ -732,7 +732,9 @@ the rule above (an unanswered slot stays unscored), applied after it
 Run on 2026-11-25 with `experiments/interview/answer_accuracy.py`
 (result `experiments/interview/answer_accuracy_results.json`), Haiku
 through `claude -p` on the subscription, one cold process per call,
-calls one after another. Set: `answer_accuracy_set.json`, **36 invented
+calls one after another, **in process, not through the service**: the
+running RAG then cut these calls at 10 s (#267, §8.2), so in production
+the report and the live judgement never finished until that fix. Set: `answer_accuracy_set.json`, **36 invented
 answers** (3 jobs: running shop assistant, junior Python backend
 developer, waiter; 3 questions each; one answer per label: `solid`,
 `correct_basic`, `wrong`, `off_topic`), written by the implementing
@@ -779,6 +781,72 @@ answers to one point with three concepts ticked exactly the expected
 concepts in all six (one `unknown` for «lo del drop no lo conozco»,
 nothing for an off-topic answer), with no fallback to the rules. No
 prompt change was needed.
+
+### 8.2 Slow calls through the service (#267)
+
+Every templated `/reason` call used to go through the warm live backend
+(`ClaudeCodeStream`), whose own time-out is 10 s and which only lets a
+request's `deadline_ms` shorten it. The planner and the report (90–120 s
+deadlines, 22–43 s measured in process) were therefore cut at 10 s: the
+AI interviewer's report fell back to status scores, the live judgement
+failed, and a plan that took longer than 10 s became the generic plan.
+
+**Routing rule.** A template marked `slow` (`interview.planner@1/@2`,
+`interview.report@1/@2`) runs on the **cold** backend (`ClaudeCodeJudge`,
+one `claude -p` process per call, as the analysis and the judge role
+use) with its request's deadline, up to `SLOW_MAX_S` = 180 s (a request
+without a deadline gets 180 s); a transient failure is retried only
+while time is left. Every other template (suggester, voice bot,
+interviewer, slot filler) stays on the warm processes with their short
+caps. A slow call therefore never holds a warm process or its lock: the
+warm backend serves one call at a time per model, so a 30 s report on it
+would have made every live suggestion wait behind it. A cold call costs
+a process start (about 2–5 s for Haiku), which is small against these
+deadlines. The effective limit of a slow call is min(its `deadline_ms`,
+`SLOW_MAX_S` 180 s, the cold backend's `claude_timeout`, 180 s by
+default), and the output-token cap of the template is **not enforced**
+on the cold path (Claude Code has no such option). At most 3 slow calls
+run at once (`SLOW_CALLS`); another waits for a free slot and the wait
+counts against its deadline (a time-out if none frees in time). Usage
+and latency of the cold backend are kept per calling thread, so
+concurrent slow calls are metered each on its own.
+
+**Time-outs end to end** (orchestrator HTTP client → RAG `/reason` →
+model):
+
+| Template (caller) | Request deadline | RAG backend and its limit | Orchestrator client |
+|---|---|---|---|
+| `interview.planner@2` (plan from an offer) | 120 s | cold, min(120, 180) s | 150 s (`PLANNER_TIMEOUT_S`) |
+| `interview.report@2` (AI interviewer's report; each live-judgement batch; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`, was 100 s) |
+| `interview.slots@2` (slot filler) | 6 s | warm, min(6, 10) s | 120 s (same client) |
+| `interviewer@2` (voice bot) | 4 s | warm, min(4, 10) s | 10 s (default) |
+| `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
+
+The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow
+call, so it never gives up before the RAG answers. The page's «Preparar
+el plan» request waits in the transcriber proxy up to 200 s
+(`PLAN_TIMEOUT`, was 180 s): reading the uploaded offer (30 s), the
+corpus query (5 s) and the planner client (150 s) one after another.
+The report and the live judgement hold no page request (they run when a
+session ends; «Reintentar» answers 202 at once).
+`tests/unit/test_reasoning_limits.py` fails if a template's deadline no
+longer fits its serving path or a client gives up first;
+`tests/integration/test_reason_slow_calls.py` sends a simulated 30 s
+report through `POST /reason` (it succeeds with 90 s allowed) and live
+calls that still time out at their caps, and shows a live call answered
+while a slow one is still running.
+
+**Failures are visible.** When the model could not write the AI
+interviewer's report, the sheet records why (`report_error`: the
+reasoner's status and error kind, never the candidate's words), the
+report page says «El modelo no pudo puntuar ni valorar esta entrevista
+(…)», and the orchestrator logs it; a generic plan is logged with its
+reason too (the plan review already showed it).
+
+**Not verified.** Only with fakes and the in-process measurement of
+§8.1: no call has gone through the running service with this fix. The
+owner's session is to make one real, text-only check after deploy (a
+report or a rejudge through the service).
 
 ## 9. How to run the test (owner)
 

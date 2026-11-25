@@ -589,6 +589,7 @@ def test_a_judgement_that_fails_keeps_the_plain_scores(
     assert sheet["scorer"] == "haiku" and sheet["judge"] is None
     assert sheet["slots"][0]["score"] == 80  # the model's, not capped
     assert sheet["to_check"] == []
+    assert sheet["report_error"] == "judgement unreadable: TypeError"
 
 
 def test_a_report_that_cannot_be_read_gives_status_scores(
@@ -597,6 +598,7 @@ def test_a_report_that_cannot_be_read_gives_status_scores(
     sheet = finished_sheet(monkeypatch, "read_report")
     assert sheet["scorer"] == "status" and sheet["judge"] is None
     assert sheet["slots"][0]["scored_by"] == "status"
+    assert sheet["report_error"] == "unreadable: TypeError"  # never silent
 
 
 class OddKnowledge:
@@ -644,3 +646,47 @@ def test_a_failing_chunk_lookup_still_ends_the_interview() -> None:
     assert result is not None
     judged = result["sheet"]["slots"][0]["judgement"]
     assert judged["basis"] == "general"
+
+
+class TimedOut(FakeReasoner):
+    """The report call times out the way the RAG reports it (#267)."""
+
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        if str(request.get("template") or "").startswith("interview."):
+            self.requests.append(request)
+            return {"schema": "reasoner.response.v1",
+                    "request_id": request["request_id"],
+                    "role": "structured", "status": "timeout",
+                    "error": {"kind": "timeout", "message":
+                              "Claude Code did not answer within 10 s."}}
+        return super().reason(request, cancel)
+
+
+def test_a_report_the_model_could_not_write_says_why(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """#267: no more silent status scores."""
+    boss = director(reasoner=TimedOut())
+    boss.plan_turn("", None, CancelToken())
+    answer = "Estuve dos años en caja en un supermercado del barrio"
+    boss.heard("u1", answer, 3.0, 7.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    with caplog.at_level("WARNING"):
+        result = boss.finish()
+    assert result is not None
+    sheet = result["sheet"]
+    assert sheet["scorer"] == "status" and sheet["judge"] is None
+    assert sheet["report_error"] == (
+        "timeout: timeout Claude Code did not answer within 10 s.")
+    assert "not scored by the model" in caplog.text
+    assert "supermercado" not in caplog.text
+
+
+def test_a_generic_plan_is_logged_with_its_reason(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level("WARNING"):
+        plan = planner(reasoner=TimedOut()).create({"offer": OFFER})
+    assert plan["planner"]["status"] == "fallback"
+    assert "timeout" in plan["planner"]["error"]
+    assert "generic plan used" in caplog.text

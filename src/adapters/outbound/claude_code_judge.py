@@ -35,6 +35,7 @@ import re
 import signal
 import subprocess
 import tempfile
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Any, Callable, List, Mapping, Optional, Sequence
@@ -218,8 +219,31 @@ class ClaudeCodeJudge:
         self.effort = effort
         self._environ = os.environ if environ is None else environ
         self._runner = runner
-        self.last_usage: Optional[Usage] = None
-        self.last_latency: Optional[Latency] = None
+        self._local = threading.local()
+
+    @property
+    def last_usage(self) -> Optional[Usage]:
+        """The tokens of the last call made **by this thread** (#267).
+
+        One judge serves concurrent calls (the interview's slow calls,
+        the analysis); each request thread reads its own call's usage.
+        """
+        found: Optional[Usage] = getattr(self._local, "usage", None)
+        return found
+
+    @last_usage.setter
+    def last_usage(self, value: Optional[Usage]) -> None:
+        self._local.usage = value
+
+    @property
+    def last_latency(self) -> Optional[Latency]:
+        """The latency of the last call made by this thread."""
+        found: Optional[Latency] = getattr(self._local, "latency", None)
+        return found
+
+    @last_latency.setter
+    def last_latency(self, value: Optional[Latency]) -> None:
+        self._local.latency = value
 
     @property
     def model_name(self) -> str:
@@ -278,16 +302,49 @@ class ClaudeCodeJudge:
                 delay *= 2
         raise ModelError("unreachable")  # pragma: no cover
 
-    def _once(self, system: str, user: str) -> str:
-        """Make one call."""
+    def complete_within(
+        self, system: str, user: str, max_tokens: int,
+        deadline_s: Optional[float],
+    ) -> str:
+        """Like :meth:`complete`, within ``deadline_s`` seconds in all.
+
+        The process is stopped at the deadline (or at :attr:`timeout`,
+        whichever comes first); a transient failure is retried only
+        while time is left (#267: the interview's report and planner
+        come here with deadlines of 90-120 s).
+        """
+        if deadline_s is None:
+            return self.complete(system, user, max_tokens)
+        ends = time.perf_counter() + min(self.timeout, deadline_s)
+        delay = self.backoff
+        for attempt in range(self.retries + 1):
+            left = ends - time.perf_counter()
+            if left <= 0:
+                break
+            try:
+                return self._once(system, user, left)
+            except TransientModelError:
+                if attempt == self.retries or \
+                        ends - time.perf_counter() <= delay:
+                    raise
+                self._sleep(delay)
+                delay *= 2
+        raise ModelTimeoutError(
+            f"Claude Code did not answer within {deadline_s:g} s."
+        )
+
+    def _once(self, system: str, user: str,
+              timeout: Optional[float] = None) -> str:
+        """Make one call (within ``timeout``, else :attr:`timeout`)."""
         self.last_usage = None
         self.last_latency = None
+        allowed = self.timeout if timeout is None else timeout
         started = time.perf_counter()
         with tempfile.TemporaryDirectory(prefix="judge-") as empty:
             try:
                 done = self._runner(
                     self.command(system), user, empty, self.environment(),
-                    self.timeout,
+                    allowed,
                 )
             except FileNotFoundError:
                 raise ModelError(
@@ -295,7 +352,7 @@ class ClaudeCodeJudge:
                 )
             except subprocess.TimeoutExpired:
                 raise ModelTimeoutError(
-                    f"Claude Code did not answer within {self.timeout:g} s."
+                    f"Claude Code did not answer within {allowed:g} s."
                 )
         total_ms = (time.perf_counter() - started) * 1000.0
         text = self.parse(done.returncode, done.stdout, done.stderr)

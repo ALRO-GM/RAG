@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "interview.sheet.v1",
   "title": "Slot sheet of one AI interview (#208)",
-  "description": "The plan's slots after the interview: status (filled, partial, empty, skipped, unknown = \"no lo conoce\"), the candidate's answers with transcript utterance ids and quotes, a 0-100 score relative to what the offer requires with the scorer's confidence, the weighted suitability and other useful skills; added compatibly (#258), per point of a slot whether the candidate talked about it (treated, pending, unknown = said they do not know it) with the quote and utterance that settled it, a hint and not a judgement of the answer. Added compatibly (#259): a judgement of how accurate the answers to each slot and each treated concept were (solid, correct_basic, wrong, off_topic, unclear, to_verify for unverifiable experience claims) with the quote, utterance, a one-sentence reason and its basis (domain documents with chunk ids, or the model's general knowledge); per-slot accuracy counts; to_check, statements worth checking (a prompt, never a verdict); judge, the template that judged. Added compatibly (#262): kind, ai (the AI interviewer) or live (a live-page round: judgements only, never a score), and candidate_id; kept in the candidate's file until a person deletes it. A draft for the recruiter, never shown to the candidate. Producer: orchestrator (data/interview/results).",
+  "description": "The plan's slots after the interview: status (filled, partial, empty, skipped, unknown = \"no lo conoce\"), the candidate's answers with transcript utterance ids and quotes, a 0-100 score relative to what the offer requires with the scorer's confidence, the weighted suitability and other useful skills; added compatibly (#258), per point of a slot whether the candidate talked about it (treated, pending, unknown = said they do not know it) with the quote and utterance that settled it, a hint and not a judgement of the answer. Added compatibly (#259): a judgement of how accurate the answers to each slot and each treated concept were (solid, correct_basic, wrong, off_topic, unclear, to_verify for unverifiable experience claims) with the quote, utterance, a one-sentence reason and its basis (domain documents with chunk ids, or the model's general knowledge); per-slot accuracy counts; to_check, statements worth checking (a prompt, never a verdict); judge, the template that judged. Added compatibly (#262): kind, ai (the AI interviewer) or live (a live-page round: judgements only, never a score), and candidate_id; kept in the candidate's file until a person deletes it. Added compatibly (#267): report_error, why the model did not score or judge it (status and error kind; the scores are then the status estimate). A draft for the recruiter, never shown to the candidate. Producer: orchestrator (data/interview/results).",
   "$defs": {
     "Answer": {
       "additionalProperties": false,
@@ -580,6 +580,19 @@
       ],
       "default": null,
       "title": "Judge"
+    },
+    "report_error": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Report Error"
     },
     "finished_at": {
       "anyOf": [

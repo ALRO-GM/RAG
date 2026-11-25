@@ -625,6 +625,10 @@ class Sheet(_Strict):
     """«Afirmaciones que conviene comprobar» (#259)."""
     judge: Optional[str] = None
     """The template that judged the answers (none: not judged)."""
+    report_error: Optional[str] = Field(default=None, max_length=300)
+    """Why the model did not score or judge it (#267): the reasoner's
+    status and error kind, never the candidate's words; the scores are
+    then the coarse estimate from each slot's status."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:

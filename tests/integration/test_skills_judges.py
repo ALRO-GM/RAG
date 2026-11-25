@@ -39,6 +39,7 @@ from src.domain.errors import (
     CorruptedDataError,
     ModelAuthError,
     ModelError,
+    ModelTimeoutError,
     QuotaExhaustedError,
 )
 from src.domain.runtime import ModelOption, RuntimePlan
@@ -653,3 +654,73 @@ def test_each_claude_model_has_its_own_cached_answers() -> None:
         candidates(), CATALOGUE
     )
     assert again.calls == []
+
+
+def test_a_deadline_bounds_the_cold_call_and_its_retries() -> None:
+    """#267: the interview's report and planner come here with 90-120 s."""
+    runner = FakeRunner(result())
+    model = judge(runner, timeout=180)
+    assert model.complete_within("s", "u", 5, 90.0)
+    assert 89.0 < runner.calls[-1]["timeout"] <= 90.0
+    assert model.complete_within("s", "u", 5, None)
+    assert runner.calls[-1]["timeout"] == 180
+    short_cap = judge(FakeRunner(result()), timeout=30)
+    short_cap.complete_within("s", "u", 5, 90.0)
+    assert short_cap._runner.calls[-1]["timeout"] <= 30.0  # type: ignore
+    late = subprocess.TimeoutExpired(["claude"], 1)
+    with pytest.raises(ModelTimeoutError, match="within 90 s"):
+        judge(FakeRunner(error=late)).complete_within("s", "u", 5, 90.0)
+    with pytest.raises(ModelTimeoutError):
+        judge(FakeRunner(result())).complete_within("s", "u", 5, 0.0)
+    busy = FakeRunner(result("overloaded", is_error=True,
+                             api_error_status=529), 1)
+    waited: List[float] = []
+    model = judge(busy, retries=2, backoff=1.0, sleep=waited.append)
+    with pytest.raises(ModelError):
+        model.complete_within("s", "u", 5, 60.0)
+    assert len(busy.calls) == 3 and waited == [1.0, 2.0]
+    tight = FakeRunner(result("overloaded", is_error=True,
+                              api_error_status=529), 1)
+    model = judge(tight, retries=2, backoff=100.0, sleep=waited.append)
+    with pytest.raises(ModelError):
+        model.complete_within("s", "u", 5, 60.0)
+    assert len(tight.calls) == 1  # no retry the deadline cannot fit
+
+
+def test_concurrent_calls_each_read_their_own_usage() -> None:
+    """#267 review: one cold judge serves interleaved slow calls."""
+    gate, started = threading.Event(), threading.Event()
+
+    class Interleaved(FakeRunner):
+        def __call__(self, command: Sequence[str], stdin: str, cwd: str,
+                     env: Dict[str, str], timeout: float,
+                     ) -> "subprocess.CompletedProcess[str]":
+            if stdin == "slow":
+                started.set()
+                gate.wait(5)
+                out = result("A", usage={"input_tokens": 100,
+                                         "output_tokens": 10})
+            else:
+                out = result("B", usage={"input_tokens": 7,
+                                         "output_tokens": 3})
+            return subprocess.CompletedProcess(list(command), 0, out, "")
+
+    model = judge(Interleaved())
+    seen: Dict[str, Any] = {}
+
+    def slow() -> None:
+        seen["slow"] = (model.complete_within("s", "slow", 5, 60.0),
+                        model.last_usage, model.last_latency)
+
+    worker = threading.Thread(target=slow)
+    worker.start()
+    assert started.wait(5)
+    assert model.complete("s", "quick", 5) == "B"
+    quick = model.last_usage
+    gate.set()
+    worker.join(5)
+    text, usage, latency = seen["slow"]
+    assert text == "A" and latency is not None
+    assert quick is not None and quick.output_tokens == 3
+    assert usage is not None and usage.output_tokens == 10
+    assert model.last_usage is quick  # this thread still sees its own

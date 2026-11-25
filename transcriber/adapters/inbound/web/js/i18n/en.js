@@ -2226,4 +2226,5 @@ export const en = {
   "iv.deleted_report": "Report deleted.",
   "live.accuracy_nothing": "There were no answers to judge: no report was saved.",
   "live.accuracy_no_file": "Not saved: the person's file no longer exists.",
+  "iv.report_error": "The model could not score or judge this interview ({reason}). The scores are an estimate from each point's status and there is no judgement of the answers.",
 };
