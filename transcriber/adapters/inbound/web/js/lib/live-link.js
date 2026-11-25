@@ -112,6 +112,23 @@ export class Outbox {
   }
 
   /**
+   * Put `samples` of silence right before offset `at` (a pause of the
+   * microphone found after the pieces from `at` were kept, never sent):
+   * those pieces move forward.
+   */
+  insertSilence(at, samples) {
+    const count = Math.floor(samples);
+    if (count <= 0 || at < this.start) return;
+    let index = this.pieces.findIndex((p) => p.offset >= at);
+    if (index === -1) index = this.pieces.length;
+    for (const piece of this.pieces.slice(index)) piece.offset += count;
+    this.pieces.splice(index, 0, { offset: at, samples: count, bytes: null });
+    this.end += count;
+    this.held += count;
+    while (this.held > this.maxSamples && this.pieces.length > 1) this._drop(true);
+  }
+
+  /**
    * The server put in only `accepted` of the `asked` samples of silence of
    * the gap sent at `at`: the silence piece shrinks and everything after
    * it moves back. Returns the shift (0 or negative).

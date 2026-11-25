@@ -477,10 +477,13 @@ test("the microphone paused for a while: that time goes as a gap, so the stream 
   rig.clock.advance(30000); // the tab was suspended: no samples at all
   rig.clock.advance(100);
   rig.box.onPcm(piece(3));
+  assert.equal(socket.texts().filter((m) => m.type === "gap").length, 0, "a suspected pause waits for a burst");
+  assert.deepEqual(socket.audio().map((b) => b[0]), [1, 2], "the piece after it waits too");
+  rig.clock.advance(500); // no burst came: a real pause
   const gap = socket.texts().find((m) => m.type === "gap");
   assert.deepEqual(gap, { type: "gap", samples: 30000 * 16 });
   assert.deepEqual(socket.audio().map((b) => b[0]), [1, 2, 3]);
-  rig.clock.advance(1500); // a short hiccup is not a pause
+  rig.clock.advance(1000); // a short hiccup is not a pause
   rig.box.onPcm(piece(4));
   assert.equal(socket.texts().filter((m) => m.type === "gap").length, 1);
   assert.equal(rig.audio.link.pendingSeconds, 0.2, "silence is not pending audio");
@@ -796,6 +799,7 @@ test("a gap the server cuts short shifts what follows; the page goes on sending"
   socket.server({ type: "ack", samples: 1600 });
   rig.clock.advance(3600 * 1000); // an hour with no samples
   rig.box.onPcm(piece(2));
+  rig.clock.advance(500); // settled: a real pause
   const gap = socket.texts().find((m) => m.type === "gap");
   assert.equal(gap.samples, 3600 * 16000 - 1600, "the hour minus the piece itself");
   rig.box.onPcm(piece(3));
@@ -827,7 +831,9 @@ test("pauses are measured on the monotonic clock; a sleep where it stood still c
   step(100, 100);
   step(100, 100);
   step(100, 3600 * 1000); // the wall clock jumped, the monotonic one ran 100 ms: a sleep
+  rig.clock.advance(500); // settled
   step(30100, 30100); // a suspended tab: both ran
+  rig.clock.advance(500);
   step(100, 100);
   const gaps = socket.texts().filter((m) => m.type === "gap").map((m) => m.samples);
   assert.deepEqual(gaps, [3600 * 16000 - 1600, 30000 * 16]);
@@ -841,4 +847,61 @@ test("the wait for the server's stopped is cleared once it comes", async () => {
   socket.server({ type: "stopped" });
   await done;
   assert.equal(rig.clock.jobs.length, 0, "no 5 s timer left behind");
+});
+
+test("a busy page that gets the microphone's pieces late, in a burst, sends no gap: the stream equals the wall clock", async () => {
+  const rig = setup();
+  const socket = await started(rig);
+  const ack = () => socket.server({ type: "ack", samples: rig.audio.outbox.end });
+  for (let i = 0; i < 20; i += 1) {
+    rig.clock.advance(100);
+    rig.box.onPcm(piece(1));
+  }
+  ack();
+  rig.clock.advance(3000); // the main thread was busy: the worklet's messages queued
+  for (let i = 0; i < 30; i += 1) rig.box.onPcm(piece(2)); // ...and arrive at once
+  for (let i = 0; i < 20; i += 1) {
+    rig.clock.advance(100);
+    rig.box.onPcm(piece(3));
+  }
+  rig.clock.advance(1000);
+  const gaps = socket.texts().filter((m) => m.type === "gap");
+  assert.deepEqual(gaps, []);
+  const sent = socket.audio().reduce((n, b) => n + b.length / 2, 0);
+  assert.equal(sent / 16, 7000, "70 pieces for 7 s of wall clock");
+});
+
+test("a burst that only partly makes up a stall fills just what is still missing", async () => {
+  const rig = setup();
+  const socket = await started(rig);
+  rig.clock.advance(100);
+  rig.box.onPcm(piece(1));
+  socket.server({ type: "ack", samples: 1600 });
+  rig.clock.advance(10000); // 10 s: the tab was suspended, then busy for 3 s
+  for (let i = 0; i < 31; i += 1) rig.box.onPcm(piece(2)); // the 3.1 s that were queued
+  rig.clock.advance(500);
+  const gaps = socket.texts().filter((m) => m.type === "gap").map((m) => m.samples);
+  assert.deepEqual(gaps, [6900 * 16], "the 10 s minus the 3.1 s that came late, once");
+  const order = socket.sent.filter((d) => typeof d !== "string" || JSON.parse(d).type === "gap")
+    .map((d) => (typeof d === "string" ? "gap" : d[0]));
+  assert.deepEqual(order.slice(0, 3), [1, "gap", 2], "the silence goes where the pause was");
+});
+
+test("a sleep is counted once, not again at the next pieces", async () => {
+  let mono = 0;
+  const rig = setup({}, { mono: () => mono });
+  const socket = await started(rig);
+  const step = (dMono, dWall) => {
+    socket.server({ type: "ack", samples: rig.audio.outbox.end });
+    mono += dMono;
+    rig.clock.advance(dWall);
+    rig.box.onPcm(piece(5));
+  };
+  step(100, 100);
+  step(100, 60000); // asleep a minute; the monotonic clock stood still
+  rig.clock.advance(500);
+  for (let i = 0; i < 50; i += 1) step(100, 100);
+  rig.clock.advance(500);
+  const gaps = socket.texts().filter((m) => m.type === "gap").map((m) => m.samples);
+  assert.deepEqual(gaps, [60000 * 16 - 1600]);
 });

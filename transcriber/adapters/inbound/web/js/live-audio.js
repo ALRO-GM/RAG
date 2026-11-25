@@ -38,6 +38,7 @@ const SILENT_MS = 20000; // no message for this long while audio waits: the sock
 const ENDED = new Set(["not_found", "wrong_state"]);
 const PAUSE_SAMPLES = 16000 * 2; // the microphone silent for over 2 s of wall time = a pause
 const SLEPT_MS = 2000; // the wall clock ran this much past the monotonic one: the computer slept
+const SETTLE_MS = 500; // a suspected pause waits this long for a burst of queued audio
 const FINISH_CAP_MS = 60000; // «Terminar» waits at most this long while connected
 const FINISH_TICK_MS = 250;
 const STOPPED_WAIT_MS = 5000; // the server's "stopped" after our stop
@@ -96,9 +97,10 @@ export class LiveAudio {
     this.attempt = 0;
     this.state = "connecting";
     this.lastHeard = 0;
-    this._timers = { retry: null, ready: null, pump: null, watch: null, finish: null };
+    this._timers = { retry: null, ready: null, pump: null, watch: null, finish: null, settle: null };
     this._first = null;
-    this._lastPiece = null; // { mono, wall } when the last piece was captured
+    this._clock = null; // { start, slept, captured, mono, wall }: the capture against the clock
+    this._hold = null; // { at, timer }: a suspected pause; pieces from `at` wait to be sent
     this.caughtUp = false; // this connection has sent everything held
     this._finish = null; // { resolve, openMs } while «Terminar» waits
     this._stopped = null; // resolves on the server's "stopped"
@@ -197,7 +199,12 @@ export class LiveAudio {
     if (this._fresh && received === 0) {
       // A new session: what the microphone heard while the model loaded
       // is dropped, as before, so the stream starts on time.
+      this._clear("settle");
+      this._hold = null;
+      this._clock = null;
       this.outbox = new Outbox();
+    } else {
+      this._settle();
     }
     this._fresh = false;
     this.caughtUp = false;
@@ -284,28 +291,68 @@ export class LiveAudio {
     }
     this.pending = [];
     this.pendingBytes = 0;
-    this._keepOnClock(piece.length / 2);
+    const offset = this.outbox.end;
     this.outbox.push(piece);
+    this._keepOnClock(piece.length / 2, offset);
     this._pump();
     this.onLink(this.link);
   }
 
   /**
    * The microphone produced nothing for a while: that time goes as
-   * silence. Measured between two pieces on the monotonic clock; when the
-   * wall clock ran well past it the computer slept (the monotonic clock
-   * may stand still then) and that time counts too.
+   * silence. Counted in total: the time due since the first piece (the
+   * monotonic clock, plus the time it stood still while the computer
+   * slept: the wall clock then ran well past it) against every sample
+   * captured or filled. A deficit over 2 s is only suspected at first:
+   * a busy page gets the microphone's queued pieces late, in a burst
+   * that makes it up. The pieces from there wait `SETTLE_MS`; then what
+   * is still missing goes as silence before them (#263, third review).
    */
-  _keepOnClock(samples) {
-    const now = { mono: this.deps.mono(), wall: this.deps.now() };
-    const last = this._lastPiece;
-    this._lastPiece = now;
-    if (!last) return;
-    let elapsed = now.mono - last.mono;
-    const slept = now.wall - last.wall - elapsed;
-    if (slept > SLEPT_MS) elapsed += slept;
-    const missing = Math.round(elapsed * 16) - samples;
-    if (missing > PAUSE_SAMPLES) this.outbox.skip(missing);
+  _keepOnClock(samples, offset) {
+    const mono = this.deps.mono();
+    const wall = this.deps.now();
+    const clock = this._clock;
+    if (!clock) {
+      this._clock = { start: mono - samples / 16, slept: 0, captured: samples, mono, wall };
+      return;
+    }
+    const slept = wall - clock.wall - (mono - clock.mono);
+    if (slept > SLEPT_MS) clock.slept += slept;
+    clock.mono = mono;
+    clock.wall = wall;
+    clock.captured += samples;
+    if (this._hold !== null && this._deficit() <= PAUSE_SAMPLES) {
+      this._settle(); // the burst made it up: no pause, nothing to fill
+    } else if (this._hold === null && this._deficit() > PAUSE_SAMPLES) {
+      this._hold = { at: offset };
+      this._timers.settle = this.deps.setTimeout(() => {
+        this._timers.settle = null;
+        this._settle();
+      }, SETTLE_MS);
+    }
+  }
+
+  /** Samples the capture is behind the clock, as of the last piece. */
+  _deficit() {
+    const clock = this._clock;
+    if (!clock) return 0;
+    const due = Math.round((clock.mono - clock.start + clock.slept) * 16);
+    return due - clock.captured;
+  }
+
+  /** Decide a suspected pause: what is still missing becomes silence. */
+  _settle() {
+    const hold = this._hold;
+    if (!hold) return;
+    this._clear("settle");
+    this._hold = null;
+    const missing = this._deficit();
+    if (missing > PAUSE_SAMPLES) {
+      this.outbox.insertSilence(hold.at, missing);
+      this._clock.captured += missing;
+    }
+    this._pump();
+    this.onLink(this.link);
   }
 
   /** The server put in less silence than asked: shift what follows. */
@@ -321,11 +368,13 @@ export class LiveAudio {
     const socket = this.socket;
     if (!socket || !this.ready || socket.readyState !== 1) return;
     const { gap, pieces } = this.outbox.from(this.sendAt);
+    const holdAt = this._hold?.at ?? Infinity; // a suspected pause is not sent yet
     if (gap > 0) {
       socket.send(JSON.stringify({ type: "gap", samples: gap }));
       this.sendAt += gap;
     }
     for (const piece of pieces) {
+      if (piece.offset >= holdAt) return;
       if (!piece.bytes) {
         socket.send(JSON.stringify({ type: "gap", samples: piece.samples }));
         this.sendAt = piece.offset + piece.samples;
@@ -364,6 +413,7 @@ export class LiveAudio {
       // already stopped
     }
     this._flush();
+    this._settle();
     if (!this.ended && this.everOpen && this.outbox.pendingSeconds > 0) {
       await new Promise((resolve) => {
         this._finish = { resolve, openMs: 0, capMs };
