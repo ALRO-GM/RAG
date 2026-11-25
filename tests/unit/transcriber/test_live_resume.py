@@ -29,9 +29,18 @@ from tests.unit.transcriber.test_live_sessions import (
     Harness,
     growing,
 )
-from transcriber.application.live import LiveSettings, LiveTranscription
+from orchestrator.domain.events import LiveEvent
+from orchestrator.domain.triggers import is_late
+from transcriber.adapters.outbound.system_clock import SystemClock
+from transcriber.application.live import (
+    LiveOptions,
+    LiveSettings,
+    LiveTranscription,
+)
 from transcriber.application.live_session import (
+    LivePorts,
     LiveSession,
+    LiveSessions,
     LiveState,
     SourceNotice,
 )
@@ -45,9 +54,25 @@ from transcriber.domain.live_session import (
     MAX_GAP_SECONDS,
     LiveServiceSettings,
     LiveSessionRequest,
+    PaceWatch,
     align_samples,
+    gap_fits,
     gap_samples,
+    source_grace,
 )
+
+
+class ManualClock:
+    """A monotonic clock the test moves; sleeps are not taken."""
+
+    def __init__(self) -> None:
+        self.t = 5000.0
+
+    def monotonic(self) -> float:
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        pass
 
 
 def warnings(session: LiveSession) -> List[Dict[str, Any]]:
@@ -96,6 +121,7 @@ def test_a_lost_source_waits_with_a_warning_and_comes_back() -> None:
     assert back["seconds"] >= 0.4
     session.feed(pcm(bursts([(0.0, 0.5)], 1.0)), again)
     assert session.received == 2 * SAMPLE_RATE
+    session.release_source(again)
     harness.live.stop("a", WAIT)
     assert session.state == LiveState.ENDED
     assert session.end_reason == "stop"
@@ -128,7 +154,8 @@ def test_a_stop_is_never_a_lost_source() -> None:
     harness = Harness(device="cpu")
     session = harness.live.start(LiveSessionRequest(session_id="a"))
     source = session.claim_source()
-    harness.live.stop("a", WAIT)
+    session.stop()
+    assert session.wait(WAIT)
     session.release_source(source)
     assert [w["code"] for w in warnings(session)] == []
 
@@ -161,6 +188,7 @@ def test_a_replaced_socket_blocked_on_a_full_queue_is_let_go() -> None:
     assert session.received == taken, "nothing of the old socket after it"
     gate.set()
     session.feed(tone, new)
+    session.release_source(new)
     harness.live.stop("a", WAIT)
 
 
@@ -226,25 +254,194 @@ def test_the_source_notices_are_queued_in_order() -> None:
     assert session.next_audio() == SourceNotice("back", 4.0)
 
 
-def test_late_audio_gets_no_partials_but_its_finals_come() -> None:
-    def run(catch_up: Any, late: float) -> List[str]:
-        timer = VirtualTimer()
-        live = LiveTranscription(
-            LoudnessVad, ScriptedAsr(growing), TimerClock(timer), timer,
-            LiveSettings(
-                endpoint=ENDPOINT, realtime=True,
-                catch_up_seconds=catch_up,
-            ),
-        )
-        events: List[Dict[str, Any]] = []
-        engine = live.engine("s", [LiveSpeaker("S1")], events.append)
-        engine.start()
-        engine.push([bursts([(0.2, 2.5)], 3.5)], arrived=timer.t - late)
-        engine.finish()
-        return [e["type"] for e in events]
+def engine_on(timer: VirtualTimer) -> Any:
+    """A real-time engine on ``timer`` and the events it emits."""
+    live = LiveTranscription(
+        LoudnessVad, ScriptedAsr(growing), TimerClock(timer), timer,
+        LiveSettings(endpoint=ENDPOINT, realtime=True),
+    )
+    events: List[Dict[str, Any]] = []
+    engine = live.engine("s", [LiveSpeaker("S1")], events.append)
+    engine.start()
+    return engine, events
 
-    on_time = run(3.0, 0.0)
-    assert "partial" in on_time and "final" in on_time
-    late = run(3.0, 60.0)
-    assert "partial" not in late and "final" in late
-    assert "partial" in run(None, 60.0), "without the setting: unchanged"
+
+def test_a_catching_up_engine_skips_partials_but_its_finals_come() -> None:
+    for skip in (False, True):
+        timer = VirtualTimer()
+        engine, events = engine_on(timer)
+        engine.skip_partials = skip
+        assert engine.skip_partials is skip
+        engine.push([bursts([(0.2, 2.5)], 3.5)], arrived=timer.t)
+        engine.finish()
+        kinds = [e["type"] for e in events]
+        assert "final" in kinds
+        assert ("partial" in kinds) is not skip
+
+
+def test_lateness_is_a_backlog_not_a_lag_cpu_mode_keeps_its_partials(
+) -> None:
+    """#263 review (minor 6): a slow recogniser is late by seconds, but
+    only a session catching up after its source came back skips
+    partials; lateness alone never does."""
+    timer = VirtualTimer()
+    engine, events = engine_on(timer)
+    engine.push([bursts([(0.2, 2.5)], 3.5)], arrived=timer.t - 8.0)
+    engine.finish()
+    assert "partial" in [e["type"] for e in events]
+
+
+def run_paused(realign: bool) -> List[Dict[str, Any]]:
+    """The reviewer's probe: 3 s on time, the microphone produces
+    nothing for 30 s, then on-time speech in 100 ms pieces."""
+    timer = VirtualTimer()
+    engine, events = engine_on(timer)
+    first = bursts([(0.2, 1.5)], 3.0)
+    for at in range(0, len(first), 1600):
+        timer.t += 0.1
+        engine.push([first[at:at + 1600]], arrived=timer.t)
+    timer.t += 30.0
+    pace = PaceWatch()
+    later = bursts([(1.5, 3.5)], 4.5)
+    for at in range(0, len(later), 1600):
+        timer.t += 0.1
+        engine.push([later[at:at + 1600]], arrived=timer.t)
+        if realign and pace.observe(1600, timer.t, True):
+            engine.realign(timer.t)
+    engine.finish()
+    out: List[Dict[str, Any]] = events
+    return out
+
+
+def test_a_microphone_pause_does_not_make_later_speech_late_for_good(
+) -> None:
+    stale = [e for e in run_paused(False) if e["type"] == "final"]
+    assert stale[-1]["timings"]["lag_ms"] > 25000, "the probe's failure"
+    events = run_paused(True)
+    finals = [e for e in events if e["type"] == "final"]
+    assert finals[-1]["timings"]["lag_ms"] < 2000
+    late = LiveEvent.model_validate(finals[-1])
+    assert not is_late(late), "suggestions come again"
+    later = [e for e in events if e["type"] == "partial"
+             and e["stream_time"] > 4.5]
+    assert later and all(e["timings"]["lag_ms"] < 2000 for e in later)
+
+
+def test_realign_never_moves_back_nor_for_a_small_drift() -> None:
+    timer = VirtualTimer()
+    engine, _ = engine_on(timer)
+    engine.push([np.zeros(16000, dtype=np.float32)], arrived=timer.t)
+    assert not engine.realign(timer.t + 0.5), "within the slack"
+    assert not engine.realign(timer.t - 10.0), "never backwards"
+    assert engine.realign(timer.t + 5.0)
+
+
+def test_the_pace_watch_wants_steady_pieces_with_nothing_queued() -> None:
+    watch = PaceWatch(steady=3)
+    t = 0.0
+    assert not watch.observe(1600, t, True)
+    for _ in range(2):
+        t += 0.1
+        assert not watch.observe(1600, t, True)
+    t += 0.1
+    assert watch.observe(1600, t, True)
+    t += 0.001  # a burst of resent audio
+    assert not watch.observe(1600, t, True)
+    t += 0.1
+    assert not watch.observe(1600, t, False), "something waits behind it"
+    watch.reset()
+    assert not watch.observe(1600, t + 0.1, True)
+
+
+def test_a_session_re_anchors_once_its_audio_is_on_pace_again() -> None:
+    """Through the worker: after a 30 s pause with no audio at all, the
+    finals of on-time speech are on time and partials are made."""
+    clock = ManualClock()
+
+    def build(options: LiveOptions) -> LiveTranscription:
+        return LiveTranscription(
+            LoudnessVad, ScriptedAsr(growing), SystemClock(), clock,
+            options.settings,
+        )
+
+    live = LiveSessions(
+        LivePorts(build=build, clock=SystemClock(), timer=clock),
+        LiveServiceSettings(idle_seconds=WAIT), "cpu",
+    )
+    session = live.start(LiveSessionRequest(session_id="a"))
+    source = session.claim_source()
+    assert session.wait_ready(WAIT)
+
+    def send(audio: Any) -> None:
+        for at in range(0, len(audio), 1600):
+            clock.t += 0.1
+            session.feed(pcm(audio[at:at + 1600]), source)
+            wait_until(lambda: session.idle()
+                       and session._backlog.seconds < 1e-9)
+
+    send(bursts([(0.2, 1.5)], 3.0))
+    clock.t += 30.0
+    send(bursts([(1.5, 3.5)], 4.5))
+    session.release_source(source)
+    live.stop("a", WAIT)
+    events = session.hub.history()
+    finals = [e for e in events if e["type"] == "final"]
+    assert len(finals) == 2
+    assert finals[-1]["timings"]["lag_ms"] < 2000
+    assert any(e["type"] == "partial" and e["stream_time"] > 4.5
+               for e in events)
+
+
+def test_a_gap_cannot_take_the_stream_past_the_wall_clock() -> None:
+    assert gap_fits(None, 0, 5 * SAMPLE_RATE)
+    assert not gap_fits(None, 0, 6 * SAMPLE_RATE)
+    assert gap_fits(60.0, 30 * SAMPLE_RATE, 35 * SAMPLE_RATE)
+    assert not gap_fits(60.0, 30 * SAMPLE_RATE, 36 * SAMPLE_RATE)
+    session, clock = lone_session()
+    source = session.claim_source()
+    session.feed(pcm(np.zeros(SAMPLE_RATE, dtype=np.float32)), source)
+    clock["t"] += 9.0
+    with pytest.raises(InvalidInputError):
+        session.silence(3600 * SAMPLE_RATE, source)
+    assert session.silence(9 * SAMPLE_RATE, source) == 9 * SAMPLE_RATE
+
+
+def test_a_page_that_left_gets_a_shorter_grace_than_a_dropped_link() -> None:
+    assert source_grace(1001, 600.0, 120.0) == 120.0
+    for code in (None, 1000, 1005, 1006, 1011):
+        assert source_grace(code, 600.0, 120.0) == 600.0
+    harness = Harness(LiveServiceSettings(
+        idle_seconds=WAIT, source_grace_seconds=WAIT,
+        source_gone_seconds=0.2,
+    ), device="cpu")
+    session = harness.live.start(LiveSessionRequest(session_id="a"))
+    source = session.claim_source()
+    session.release_source(source, 1001)
+    assert session.wait(WAIT)
+    assert session.end_reason == "source_lost"
+
+
+def test_a_stop_over_http_lets_the_source_finish_sending() -> None:
+    harness = Harness(LiveServiceSettings(stop_drain_seconds=WAIT),
+                      device="cpu")
+    session = harness.live.start(LiveSessionRequest(session_id="a"))
+    source = session.claim_source()
+    stopped = threading.Event()
+
+    def stop() -> None:
+        harness.live.stop("a", WAIT)
+        stopped.set()
+
+    threading.Thread(target=stop, daemon=True).start()
+    time.sleep(0.2)
+    session.feed(pcm(bursts([(0.0, 0.5)], 0.5)), source)  # still taken
+    assert not stopped.is_set()
+    session.stop()  # the page's own stop message
+    assert stopped.wait(WAIT)
+    assert session.received == 8000
+    capped = Harness(LiveServiceSettings(stop_drain_seconds=0.1),
+                     device="cpu")
+    other = capped.live.start(LiveSessionRequest(session_id="b"))
+    other.claim_source()
+    capped.live.stop("b", WAIT)
+    assert other.state == LiveState.ENDED, "the cap ends it anyway"

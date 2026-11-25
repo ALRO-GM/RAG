@@ -319,7 +319,8 @@ class TestLifecycleLines:
             )
             source = session.claim_source()
             session.release_source(source)
-            session.claim_source()
+            again = session.claim_source()
+            session.release_source(again, 1001)
             live.stop("life-1", 30.0)
         finally:
             LIFECYCLE.removeHandler(handler)
@@ -328,6 +329,7 @@ class TestLifecycleLines:
         assert "life-1 started" in text
         assert "audio source lost" in text
         assert "back after" in text
+        assert "(close 1001)" in text
         assert "life-1 ended: stop" in text
         assert all(line[2] == ":" and line[5] == ":" for line in lines)
 

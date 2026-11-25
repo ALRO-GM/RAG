@@ -273,7 +273,9 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
                             "voice_ms": round(voiced * 1000 / RATE)})
                 rows.append(row)
             await socket.send(json.dumps({"type": "stop"}))
-            await socket.recv()
+            # acks may come first (#263): read until the server says stopped
+            while json.loads(await socket.recv()).get("type") != "stopped":
+                pass
         await asyncio.wait_for(follower.ended.wait(), 60)
         task.cancel()
         info = (await client.get(f"{args.orchestrator}/sessions/{session}",

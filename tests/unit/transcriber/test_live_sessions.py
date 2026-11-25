@@ -342,6 +342,7 @@ def test_one_audio_source_at_a_time_the_newest_wins() -> None:
     session.release_source(first)  # a replaced socket changes nothing
     session.feed(b"\x00\x00", second)
     assert session.received == 1
+    session.release_source(second)
     harness.live.stop("a", WAIT)
     assert session.claim_source() is None
 

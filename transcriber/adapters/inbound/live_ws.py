@@ -52,7 +52,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, Callable, Dict, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.concurrency import run_in_threadpool
@@ -272,7 +272,9 @@ def add_live_routes(
         except (WebSocketDisconnect, RuntimeError) as exc:
             closed = str(getattr(exc, "code", "") or type(exc).__name__)
         finally:
-            session.release_source(source)
+            session.release_source(
+                source, int(closed) if closed.isdigit() else None
+            )
             LIFECYCLE.info(
                 "Live session %s: audio socket %d closed (%s)",
                 session_id, source, closed,
@@ -296,10 +298,44 @@ async def _pump_audio(
 
     Each message is queued from the thread pool; while the session's
     queue is full the call blocks and the socket is not read. What was
-    taken is acknowledged about every :data:`ACK_SECONDS`. Returns how
-    the socket ended (its close code or the refusal), for the log.
+    taken is acknowledged about every :data:`ACK_SECONDS`, also while
+    the client sends nothing (its last audio must be acknowledged for
+    it to stop, #263). Returns how the socket ended (its close code or
+    the refusal), for the log.
     """
-    acked = (session.received, time.monotonic())
+    last = _Acked(session.received, time.monotonic())
+    acker = asyncio.create_task(_ack_while_quiet(socket, session, last))
+    try:
+        return await _read_audio(socket, session, source, last)
+    finally:
+        acker.cancel()
+
+
+class _Acked:
+    """The samples last acknowledged on a socket, and when."""
+
+    def __init__(self, samples: int, at: float) -> None:
+        """Keep both."""
+        self.samples = samples
+        self.at = at
+
+
+async def _ack_while_quiet(
+    socket: WebSocket, session: LiveSession, last: _Acked
+) -> None:
+    """Acknowledge new audio every :data:`ACK_SECONDS`, messages or not."""
+    try:
+        while True:
+            await asyncio.sleep(max(ACK_SECONDS, 0.05))
+            await _maybe_ack(socket, session, last)
+    except (WebSocketDisconnect, RuntimeError):
+        return
+
+
+async def _read_audio(
+    socket: WebSocket, session: LiveSession, source: int, last: _Acked
+) -> str:
+    """The loop of :func:`_pump_audio`."""
     while True:
         try:
             message = await socket.receive()
@@ -339,24 +375,22 @@ async def _pump_audio(
         except TranscriberError as exc:
             await refuse(socket, error_code(exc), str(exc))
             return error_code(exc)
-        acked = await _maybe_ack(socket, session, acked)
+        await _maybe_ack(socket, session, last)
 
 
 async def _maybe_ack(
-    socket: WebSocket, session: LiveSession, last: Tuple[int, float]
-) -> Tuple[int, float]:
+    socket: WebSocket, session: LiveSession, last: _Acked
+) -> None:
     """Send ``{"type": "ack"}`` when new audio was taken and it is time.
 
-    ``last`` is the samples last acknowledged and when; returns the
-    new pair.
+    ``last`` is the samples last acknowledged and when; it is updated.
     """
-    samples, at = last
     now = time.monotonic()
     taken = session.received
-    if taken == samples or now - at < ACK_SECONDS:
-        return last
+    if taken == last.samples or now - last.at < ACK_SECONDS:
+        return
+    last.samples, last.at = taken, now
     await socket.send_json({"type": "ack", "samples": taken})
-    return taken, now
 
 
 def _command(text: str) -> Dict[str, Any]:

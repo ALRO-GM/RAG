@@ -417,3 +417,57 @@ def wait_for(check: Any) -> None:
     while not check():
         assert time.monotonic() < deadline, "timed out"
         time.sleep(0.02)
+
+
+def test_audio_lost_in_flight_before_any_ack_is_resent_from_ready(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#263 review: the drop comes before any ack (ACK_SECONDS > 0) and
+    the last pieces sent never reached the server; ``ready`` of the new
+    socket says where to resume, whatever the client last heard."""
+    monkeypatch.setattr(live_ws, "ACK_SECONDS", 30.0)
+    start(client, session_id="flight")
+    pieces = [bytes([n]) * 3200 for n in range(1, 6)]
+    with client.websocket_connect("/api/live/flight/audio") as ws:
+        ws.receive_json()
+        for piece in pieces[:3]:
+            ws.send_bytes(piece)
+        # pieces 4 and 5 were sent into the tunnel as it reset: lost
+    with client.websocket_connect("/api/live/flight/audio") as ws:
+        ready = ws.receive_json()
+        assert ready["received_samples"] == 3 * 1600
+        for piece in pieces[ready["received_samples"] // 1600:]:
+            ws.send_bytes(piece)
+        ws.send_text(json.dumps({"type": "stop"}))
+        while ws.receive_json() != {"type": "stopped"}:
+            pass
+    info = client.get("/api/live/sessions/flight").json()
+    assert info["received_samples"] == 5 * 1600
+
+
+def test_a_gap_past_the_wall_clock_is_refused(client: TestClient) -> None:
+    start(client, session_id="toolong")
+    with client.websocket_connect("/api/live/toolong/audio") as ws:
+        ws.receive_json()
+        ws.send_bytes(b"\x00\x00" * 1600)
+        ws.send_text(json.dumps({"type": "gap", "samples": 16000 * 3600}))
+        assert ws.receive_json()["code"] == "invalid_input"
+    client.post("/api/live/sessions/toolong/stop")
+
+
+def test_the_last_audio_is_acknowledged_even_when_nothing_follows(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The page waits for the ack of its last piece before it stops."""
+    monkeypatch.setattr(live_ws, "ACK_SECONDS", 0.1)
+    start(client, session_id="quiet")
+    with client.websocket_connect("/api/live/quiet/audio") as ws:
+        ws.receive_json()
+        ws.send_bytes(b"\x00\x00" * 1600)
+        message = ws.receive_json()
+        while message["samples"] < 1600:
+            message = ws.receive_json()
+        assert message == {"type": "ack", "samples": 1600}
+        ws.send_text(json.dumps({"type": "stop"}))
+        while ws.receive_json() != {"type": "stopped"}:
+            pass

@@ -89,9 +89,6 @@ class LiveSettings(BaseModel):
     endpoint: EndpointSettings = EndpointSettings()
     partial_every_ms: int = Field(default=800, ge=100)
     realtime: bool = True
-    catch_up_seconds: Optional[float] = Field(default=None, gt=0)
-    """In real time, audio read more than this late gets no partials
-    (catch-up after a lost connection, #263); finals are unchanged."""
 
 
 class LiveOptions(BaseModel):
@@ -391,6 +388,33 @@ class LiveEngine:
             raise InvalidInputError("the live session has not started")
         return self._run
 
+    @property
+    def skip_partials(self) -> bool:
+        """Tell whether partials are skipped (catching up, #263)."""
+        return self._run.skip_partials if self._run is not None else False
+
+    @skip_partials.setter
+    def skip_partials(self, skip: bool) -> None:
+        """Skip partials (or make them again) from the next frame on."""
+        self._started().skip_partials = skip
+
+    def realign(self, arrived: float, slack: float = 1.0) -> bool:
+        """Put the audio pushed so far back on the wall clock (#263).
+
+        Once audio arrives at the pace of speech again, its last sample
+        arrived at ``arrived`` (monotonic): when that is more than
+        ``slack`` seconds after the time the timings think it arrived
+        (a microphone that produced nothing for a while), the origin of
+        the timings moves forward, so ``lag_ms`` says the truth again.
+        Never backwards; nothing for a paced engine. Returns whether it
+        moved.
+        """
+        run = self._run
+        if run is None or self._paced:
+            return False
+        pushed = self.streams[0].available()
+        return run.realign(pushed / SAMPLE_RATE, arrived, slack)
+
     def push(
         self, chunks: Sequence[FloatArray], arrived: Optional[float] = None
     ) -> int:
@@ -468,6 +492,9 @@ class _Run:
         self._warned = False
         self._origin = timer.monotonic()
         self.summary = LiveSummary()
+        self.skip_partials = False
+        """Make no partials (a session catching up after its source came
+        back, #263); finals are unchanged."""
 
     def check_attribution(self, stream_time: float = 0.0) -> None:
         """Warn once when the speaker attribution has stopped."""
@@ -518,6 +545,17 @@ class _Run:
         """
         now = self._timer.monotonic() if at is None else at
         self._origin = now - seconds
+
+    def realign(self, seconds: float, at: float, slack: float) -> bool:
+        """Move the origin forward so stream time ``seconds`` is ``at``.
+
+        Only when that moves it by more than ``slack``; never back.
+        """
+        origin = at - seconds
+        if origin - self._origin <= slack:
+            return False
+        self._origin = origin
+        return True
 
     def wall(self, stream_time: float) -> float:
         """Return when stream time ``stream_time`` arrives (monotonic)."""
@@ -581,9 +619,7 @@ class _Run:
             return
         stream.last_partial = now
         timer = self._timer
-        late = self._s.catch_up_seconds
-        if self._s.realtime and late is not None \
-                and timer.monotonic() - self.wall(now) > late:
+        if self.skip_partials:
             return  # catching up: the final will say it
         began = timer.monotonic()
         heard = self._asr.decode(self._audio(stream, start, now), False)

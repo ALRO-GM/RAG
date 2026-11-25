@@ -131,7 +131,9 @@ async def stream_audio(
                                     - time.monotonic()))
             await audio.send(frames[first:first + per_chunk])
         await audio.send(json.dumps({"type": "stop"}))
-        await audio.recv()
+        # acks may come first (#263): read until the server says stopped
+        while json.loads(await audio.recv()).get("type") != "stopped":
+            pass
     return t0, ready_at
 
 
