@@ -196,7 +196,12 @@ export function finishLine(link) {
   if (!link || (link.pendingSeconds ?? 0) <= 0) return null;
   const n = Math.max(Math.ceil(link.pendingSeconds), 1);
   const offline = link.state !== "open";
-  return { key: offline ? "live.finish.offline" : "live.finish.sending", count: "live.link.pending", button: "live.finish.now", params: { n } };
+  // #265: kept in this browser, ending now loses nothing; it is sent after the session.
+  const kept = link.keeping === true;
+  return {
+    key: offline ? (kept ? "live.finish.offline_kept" : "live.finish.offline") : "live.finish.sending",
+    count: "live.link.pending", button: kept ? "live.finish.now_kept" : "live.finish.now", params: { n },
+  };
 }
 
 /**

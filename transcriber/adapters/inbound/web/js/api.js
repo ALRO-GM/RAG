@@ -318,6 +318,21 @@ export class Api {
   /** The transcriber's side of a live session: `source` is "connected", "lost" or "none" (#263). */
   liveSource(id) { return this.request("GET", `/live/sessions/${encodeURIComponent(id)}`); }
 
+  // #265: the audio kept in this browser during an outage, sent after the session.
+  recoveryStatus(id) { return this.request("GET", `/live/sessions/${encodeURIComponent(id)}/recovery`); }
+
+  putRecoveryChunk(id, seq, offset, bytes, channels = 1) {
+    return this.request("PUT", `/live/sessions/${encodeURIComponent(id)}/recovery/chunks/${seq}`, {
+      query: { offset, channels }, body: bytes, contentType: "application/octet-stream",
+    });
+  }
+
+  closeRecovery(id, body) { return this.request("POST", `/live/sessions/${encodeURIComponent(id)}/recovery/close`, { json: body }); }
+
+  discardRecovery(id) { return this.request("DELETE", `/live/sessions/${encodeURIComponent(id)}/recovery`); }
+
+  liveRecoveries() { return this.request("GET", "/live/recoveries"); }
+
   /** Switch a session's assistance mode: "pincelada" | "guiado" (LV-16). */
   liveMode(id, mode) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mode`, { json: { mode } });

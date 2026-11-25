@@ -48,6 +48,8 @@ import {
   finishLine, followUntilEnd, forgetSession, linkLine, reattachPlan, rememberSession, rememberedSession,
 } from "../lib/live-link.js";
 import { busyNotice } from "./live-busy.js";
+import { recoveryCard } from "./live-recovery.js";
+import { IdbBackend, LocalRecording, sessionMeta } from "../lib/live-store.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -122,6 +124,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
   let playing = null; // the id of a demo session this page started
   let demoVoices = null; // the clip player of a scripted demo that is heard
   let audioContext = null; // Web Audio for the demo's clips (never a blob: URL, the CSP refuses it)
+  let onHide = null; // #265: a tab being hidden or closed writes what it holds first
   setLeaveGuard(() => running && guarded);
 
   function dropVoices() {
@@ -144,8 +147,10 @@ export async function liveView(ctx, root, [sub, which] = []) {
     // A demo left behind would hold the one session slot until it ends.
     if (playing && running) ctx.api.stopLive(playing).catch(() => {});
     controller?.abort();
+    audio?.keepNow?.();
     audio?.stop();
     clearInterval(ticker);
+    if (onHide) globalThis.removeEventListener?.("pagehide", onHide);
     setLeaveGuard(() => false);
   }
 
@@ -399,6 +404,10 @@ export async function liveView(ctx, root, [sub, which] = []) {
     ]);
     sync();
     connection.check();
+    // #265: audio of an earlier interview that never reached the server waits here.
+    recoveryCard(ctx).then((card) => {
+      if (card && !closed && formError.isConnected) formError.after(card);
+    }).catch(() => {});
   }
 
   // ---- a running session ----------------------------------------------
@@ -542,8 +551,10 @@ export async function liveView(ctx, root, [sub, which] = []) {
         h("label", { class: "row tight live-max", for: "live-max" }, t("live.max_suggestions"), maxSelect),
         modeGroup));
     const summary = h("div", {});
+    const recoveryBox = h("div", {}); // #265: audio kept here, to send after the session
     const side = h("aside", { class: "lv-side" },
-      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, checklist, history, options, summary);
+      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, checklist, history, options, summary,
+      recoveryBox);
 
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
     // Lost / back (#247): one persistent live region, changed only when that state changes.
@@ -1266,7 +1277,15 @@ export async function liveView(ctx, root, [sub, which] = []) {
       await audio?.stop();
       audio = null;
       schedule();
+      await showKept();
       return null;
+    }
+
+    /** #265: what this browser kept of the session is offered for sending (nothing kept: nothing shown). */
+    async function showKept() {
+      if (!recording || await recording.forgetIfEmpty().catch(() => true)) return;
+      const card = await recoveryCard(ctx, { only: session.id }).catch(() => null);
+      if (card && !closed) fill(recoveryBox, card);
     }
 
     // One small ping every WATCH.everyMs (sooner after a failure), the
@@ -1304,16 +1323,34 @@ export async function liveView(ctx, root, [sub, which] = []) {
         // #263: what the outage held goes first (at most a minute connected, or until «Terminar ya»).
         finishing = true;
         drawLink();
-        const { lostSeconds } = audio ? await audio.finish() : { lostSeconds: 0 };
+        const { lostSeconds, keptSeconds = 0 } = audio ? await audio.finish() : { lostSeconds: 0 };
         finishing = false;
         drawLink();
-        await ctx.api.stopLive(session.id);
+        if (keptSeconds >= 1) toast(t("live.finish.kept", { n: Math.round(keptSeconds) }));
+        try {
+          await ctx.api.stopLive(session.id);
+        } catch (error) {
+          // #265: no connection, but the audio is kept here: the interview ends on this page.
+          if (keptSeconds <= 0) throw error;
+          endedHere();
+        }
         if (lostSeconds >= 1) toast(t("live.finish.lost", { n: Math.round(lostSeconds) }), { error: true });
       } catch (error) {
         toast(liveError(error), { error: true });
       }
       finishing = false;
       stop.disabled = false;
+    }
+
+    /** «Terminar» without connection, the audio kept here (#265): the session ends on this page. */
+    function endedHere() {
+      controller?.abort();
+      running = false;
+      forgetSession(session.id);
+      state.state = "ended";
+      audio = null;
+      schedule();
+      showKept();
     }
 
     async function restart() {
@@ -1339,16 +1376,29 @@ export async function liveView(ctx, root, [sub, which] = []) {
       }, REMIND_MS);
     }, TICK_MS);
 
+    // #265: with the product's leave, what the server has not acknowledged is kept in this browser too.
+    const buffer = session.page?.buffer;
+    const recording = audioKind === "mic" && buffer?.on ? new LocalRecording({
+      backend: new IdbBackend(),
+      meta: sessionMeta({ ...session, product: session.page?.product ?? session.product },
+        { maxHours: buffer.max_hours }),
+      onProblem: (kind) => toast(t(`live.store.${kind}`), { error: true }),
+    }) : null;
     if (audioKind === "mic") {
       audio = new LiveAudio({
         id: session.id, code: ctx.api.getCode(),
         onProblem: micProblem,
+        recording,
         onLink: (link) => {
           audioLink = link;
           drawLink();
         },
       });
-      audio.start().catch(() => {
+      if (onHide) globalThis.removeEventListener?.("pagehide", onHide);
+      onHide = () => audio?.keepNow?.();
+      globalThis.addEventListener?.("pagehide", onHide);
+      const opened = recording ? recording.open() : Promise.resolve();
+      opened.then(() => audio?.start()).catch(() => {
         // Only a session this page started is ended for a microphone that failed (#263 re-review).
         toast(t(reattached ? "live.mic.failed_kept" : "live.mic.failed"), { error: true });
         if (!reattached) ctx.api.stopLive(session.id).catch(() => {});
