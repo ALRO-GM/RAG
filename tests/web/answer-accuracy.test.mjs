@@ -129,3 +129,30 @@ test("the judgement block: per point, concepts, reasons, basis, what to check, t
     assert.ok(text.includes("Statements worth checking") && text.includes(en["iv.judge.wrong"]) && text.includes(en["iv.judge_note"]));
   });
 });
+
+test("on the voice page the report waits behind a button for the interviewer", async () => {
+  await withDom("es", ({ reportBehindClick }) => {
+    const sheet = { schema: "interview.sheet.v1", session_id: "vb-1", title: "Tienda", suitability: 30, summary: "", turns: 3,
+      elapsed_s: 200, filler: "haiku", scorer: "haiku", judge: "interview.report@2", other_skills: [], ...RESULT,
+      slots: RESULT.slots.map((s) => ({ ...s, weight: 3, score: 30, answers: [] })) };
+    const gate = reportBehindClick({ sheet, handoff: {} });
+    const before = gate.text();
+    assert.ok(before.includes(es["iv.report_ended"]) && before.includes(es["iv.report_private"]));
+    assert.ok(!before.includes(es["iv.judge_title"]) && !before.includes("30") && !before.includes(es["iv.suitability"]),
+      "nothing of the report before the click");
+    const button = gate.all().find((n) => n.tagName === "BUTTON");
+    assert.equal(button.text(), es["iv.report_open"]);
+    button.listeners.click[0]();
+    const after = gate.text();
+    assert.ok(after.includes(es["iv.judge_title"]) && after.includes(es["iv.suitability"]));
+    assert.ok(!es["iv.judge_note"].includes("no lo ve") && !en["iv.judge_note"].includes("does not see"));
+  });
+});
+
+test("an old or status-only sheet draws no empty judgement section", async () => {
+  await withDom("es", ({ accuracyBlock }) => {
+    const old = { slots: [{ id: "s1", label: "Running", points: [{ id: "p1", text: "Drop", status: "treated" }] }], to_check: [] };
+    assert.equal(accuracyBlock(old), null);
+    assert.ok(accuracyBlock({ ...old, judge: "interview.report@2" }), "judged sheets still show their concepts");
+  });
+});

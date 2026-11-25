@@ -59,7 +59,10 @@ from typing import (
 
 from orchestrator.application.avoid import AvoidTracker
 from orchestrator.application.candidates import CoreTracker
-from orchestrator.application.live_judgement import LiveJudge
+from orchestrator.application.live_judgement import (
+    LiveJudge,
+    without_words,
+)
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
@@ -302,15 +305,6 @@ class _Handler:
             if self.session.topics is not None:
                 core.covered, core.revisit = self.session.topics.result()
             core.finish()
-        judge, topics = self.session.judge, self.session.topics
-        if judge is not None and topics is not None:
-            # One report call on the round's answers (#259); a failure
-            # never keeps the session from ending.
-            try:
-                self.session.accuracy = judge.judge(topics)
-            except Exception:  # noqa: BLE001 - logged, the end goes on
-                LOG.exception("accuracy: round %s not judged",
-                              self.session.id)
 
 
 class _FeedSink:
@@ -884,10 +878,40 @@ class LiveSessions:
             finally:
                 handler.finish()
                 session.error = failed
-                self._end(session, "failed" if failed else "ended")
+                judging = (session.judge is not None
+                           and session.topics is not None)
+                self._end(session, "failed" if failed else "ended",
+                          keep_feed=judging)
+                if judging:
+                    # After the end (#259 review): the session no longer
+                    # counts as running while its round is judged.
+                    self.runner.start(lambda: self._judge_round(session))
 
         self.runner.start(job)
         return session.view()
+
+    def _judge_round(self, session: _Session) -> None:
+        """Judge an ended live round's answers, then close its feed.
+
+        The result goes to the feed (the page may still follow it) and
+        into the hand-off record, whose file keeps only the labels and
+        counts (:func:`~orchestrator.application.live_judgement.
+        without_words`). A failure is logged and changes nothing else.
+        """
+        judge, topics = session.judge, session.topics
+        try:
+            if judge is not None and topics is not None:
+                session.accuracy = judge.judge(topics)
+                if session.accuracy is not None and session.handoff:
+                    session.handoff = {**session.handoff,
+                                       "accuracy": session.accuracy}
+                    self._write_handoff(session)
+        except Exception:  # noqa: BLE001 - logged, the session is over
+            LOG.exception("accuracy: round %s not judged", session.id)
+        finally:
+            session.feed.publish({"type": "status",
+                                  "session": session.view()})
+            session.feed.close()
 
     def barge_in(self, session_id: str, by: str = "vad") -> Document:
         """The user spoke over the voice bot: stop its turn and playback."""
@@ -1412,8 +1436,13 @@ class LiveSessions:
 
         self.runner.start(wait)
 
-    def _end(self, session: _Session, state: str = "ended") -> None:
-        """Mark the session ended, hand it off and close its feed."""
+    def _end(self, session: _Session, state: str = "ended",
+             keep_feed: bool = False) -> None:
+        """Mark the session ended, hand it off and close its feed.
+
+        ``keep_feed``: leave the feed open (a round still being judged
+        closes it when done).
+        """
         if isinstance(session.assist, LiveAssist):
             self._hand_off(session)
         with self._lock:
@@ -1429,7 +1458,8 @@ class LiveSessions:
                 })
             voice.close()
         session.feed.publish({"type": "status", "session": session.view()})
-        session.feed.close()
+        if not keep_feed:
+            session.feed.close()
 
     def _hand_off(self, session: _Session) -> None:
         """Publish and keep the session's hand-off record (LV-16)."""
@@ -1441,19 +1471,26 @@ class LiveSessions:
             "names": dict(session.names), "renames": list(session.renames),
             "mandatory": tracker.summary() if tracker else None,
         }
-        if session.accuracy is not None:
-            record["accuracy"] = session.accuracy
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
-        if self.handoff_sink is not None:
-            try:
-                self.handoff_sink(session.id, session.product.product
-                                  ).write(record)
-            except OSError:
-                session.feed.publish({
-                    "type": "notice", "code": "handoff_not_kept",
-                    "message": "the hand-off record was not written",
-                })
+        self._write_handoff(session)
+
+    def _write_handoff(self, session: _Session) -> None:
+        """Keep the hand-off record in its file (judgement: labels only)."""
+        record = session.handoff
+        if self.handoff_sink is None or record is None:
+            return
+        kept = dict(record)
+        if isinstance(kept.get("accuracy"), dict):
+            kept["accuracy"] = without_words(kept["accuracy"])
+        try:
+            self.handoff_sink(session.id, session.product.product
+                              ).write(kept)
+        except OSError:
+            session.feed.publish({
+                "type": "notice", "code": "handoff_not_kept",
+                "message": "the hand-off record was not written",
+            })
 
     # ---- during a session (LV-16) ------------------------------------
 

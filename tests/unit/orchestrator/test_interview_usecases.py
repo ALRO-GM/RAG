@@ -543,3 +543,40 @@ def test_a_pasted_offer_or_the_plain_report_has_no_chunks() -> None:
     plain.config = InterviewSection(report_template="interview.report@1")
     assert plain._chunks([]) == {}
     assert knowledge.queries == []
+
+
+def finished_sheet(monkeypatch: pytest.MonkeyPatch, broken: str) -> Document:
+    """A short interview whose report step ``broken`` raises."""
+    import orchestrator.application.interview as module
+
+    def boom(*args: Any, **kwargs: Any) -> Any:
+        raise TypeError("odd reply")
+
+    monkeypatch.setattr(module, broken, boom)
+    boss = director()
+    boss.plan_turn("", None, CancelToken())
+    answer = "Estuve dos años en caja en un supermercado del barrio"
+    boss.heard("u1", answer, 3.0, 7.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    sheet: Document = result["sheet"]
+    return sheet
+
+
+def test_a_judgement_that_fails_keeps_the_plain_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review of #259: the end of the interview never breaks on it."""
+    sheet = finished_sheet(monkeypatch, "judge_slots")
+    assert sheet["scorer"] == "haiku" and sheet["judge"] is None
+    assert sheet["slots"][0]["score"] == 80  # the model's, not capped
+    assert sheet["to_check"] == []
+
+
+def test_a_report_that_cannot_be_read_gives_status_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sheet = finished_sheet(monkeypatch, "read_report")
+    assert sheet["scorer"] == "status" and sheet["judge"] is None
+    assert sheet["slots"][0]["scored_by"] == "status"

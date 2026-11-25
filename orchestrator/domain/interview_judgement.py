@@ -48,6 +48,8 @@ CAPS: Dict[str, int] = {
 WRONG_POINT_CAP = 50
 """Highest score of a slot with a treated concept judged ``wrong``."""
 MAX_CHECKS = 10
+MIN_QUOTE_WORDS = 3
+"""Words a quote needs to find its utterance without an id."""
 COUNT_KEYS: Tuple[str, ...] = (*JUDGE_LABELS, "not_treated", "does_not_know")
 
 _SYNONYMS = {
@@ -62,21 +64,50 @@ _EXPERIENCE = re.compile(
     r"me encargaba|me encargue|he sido|era (jefe|jefa|responsable)|"
     r"tengo (\w+ )?(anos?|meses) de experiencia|mi (anterior|ultimo) "
     r"(puesto|trabajo|empleo)|en mi (anterior|ultimo) (puesto|trabajo|"
-    r"empleo)|dirigi|lidere|gestione)\b"
+    r"empleo)|dirigi|lidere|gestione"
+    r"|i worked|i've worked|i have worked|i was (a|an|the|in charge|"
+    r"responsible)|i used to (work|be|run|manage|lead)|i led|i managed|"
+    r"i ran|i've been (a|an|working)|i have been (a|an|working)|"
+    r"(\w+ )?(years?|months?) of experience|in my (last|previous|former) "
+    r"(job|role|position|company))\b"
 )
-"""First-person claims about one's own experience (accents folded)."""
+"""First-person claims about one's own experience, in Spanish and
+English (accents folded)."""
 _VERDICT = re.compile(
-    r"\b(mient\w*|mentir\w*|mentira\w*|enga\w+|invent\w*|falsea\w*|"
-    r"(no )?apto|apta|contratar\w*|descart\w*|rechaz\w*|"
-    r"lie|lies|lying|liar|made (it|this|that) up|fabricat\w*|"
-    r"(not )?suitable|hire|hiring|reject\w*)\b"
+    r"\b(miente|mintio|mentia|esta mintiendo|ha mentido|nos miente|"
+    r"(es )?(un|una) mentiros[oa]|mentiros[oa]|"
+    r"se lo (ha )?inventad[oa]|se lo inventa|se lo invento|"
+    r"(se )?(ha|habria) inventado (su|la|lo|el|esto|eso)|"
+    r"no es apt[oa] para el puesto|(es )?apt[oa] para el puesto|"
+    r"(no )?(es|seria) (un|una) (buen|buena|mal|mala) candidat[oa]|"
+    r"(no )?(contratar|contratarl[aoe]s?|descartarl[aoe]s?|"
+    r"rechazarl[aoe]s?)|(no )?(recomiendo|aconsejo) (contratar|"
+    r"descartar|rechazar)|"
+    r"is lying|was lying|lied about|is a liar|made (it|this|that) up|"
+    r"fabricated (it|this|that|the|his|her|their)|"
+    r"(not )?suitable for the (role|job|position)|(do not |don't )?"
+    r"hire (him|her|them|this candidate)|should (not )?be hired|"
+    r"reject (him|her|them|this candidate))\b"
 )
-"""Words of a verdict on the person, not on an answer."""
+"""Phrases of a verdict on the person (accents folded), not on an
+answer: «miente», «se lo ha inventado», «no es apto para el puesto»,
+«contratarla», "is lying", "made it up", "not suitable for the role".
+Words that only look alike («inventario», «apto para alimentos»,
+«rechazo de pedidos», "suitable for outdoor use") are kept."""
+
+
+def _str(value: object) -> str:
+    """A reply field as text: strings and numbers, anything else empty."""
+    if isinstance(value, bool):
+        return ""
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return ""
 
 
 def clean_text(value: object, limit: int = REASON_CHARS) -> str:
     """One trimmed line, or empty when it reads as a verdict on the person."""
-    text = " ".join(str(value or "").split())[:limit]
+    text = " ".join(_str(value).split())[:limit]
     return "" if _VERDICT.search(fold(text)) else text
 
 
@@ -87,7 +118,7 @@ def label_of(value: object) -> Optional[JudgeLabel]:
     """
     if value is None or value == "":
         return None
-    word = str(value).strip().lower().replace(" ", "_")
+    word = _str(value).strip().lower().replace(" ", "_")
     word = _SYNONYMS.get(word, word)
     known: Dict[str, JudgeLabel] = {label: label for label in JUDGE_LABELS}
     return known.get(word, "unclear")
@@ -114,10 +145,13 @@ def judgement_from(
     label = label_of(item.get("label"))
     if label is None:
         return None
-    utterance = str(item.get("utterance") or "")
-    quote = " ".join(str(item.get("quote") or "").split())
+    utterance = _str(item.get("utterance"))
+    quote = " ".join(_str(item.get("quote")).split())
     if utterance not in said:
-        utterance = next((u for u, text in said.items() if quote and fold(
+        # Without a known id the quote names its utterance only when it
+        # is long enough to be telling (a single letter matches anything).
+        telling = len(quote.split()) >= MIN_QUOTE_WORDS
+        utterance = next((u for u, text in said.items() if telling and fold(
             quote).strip(" .…\"'«»") in fold(text)), "")
     if utterance:
         text = said[utterance]
@@ -125,7 +159,7 @@ def judgement_from(
             quote = text
     else:
         quote = ""
-    experience = str(item.get("kind") or "") == "experience" or (
+    experience = _str(item.get("kind")) == "experience" or (
         bool(quote) and is_experience(quote))
     if label == "wrong" and experience:
         label = "to_verify"
@@ -211,7 +245,8 @@ def judge_slots(
         known = set(chunks.get(slot.id, ()))
         judged = judgement_from(item.get("judgement"), said, known)
         by_point: Dict[str, Any] = {}
-        for p in item.get("points") or []:
+        raw_points = item.get("points")
+        for p in raw_points if isinstance(raw_points, list) else []:
             if isinstance(p, dict) and isinstance(p.get("id"), str):
                 by_point[p["id"]] = p
         points = [
@@ -253,10 +288,10 @@ def _checks(
     for item in raw if isinstance(raw, list) else []:
         if not isinstance(item, dict):
             continue
-        why = str(item.get("why") or "")
+        why = _str(item.get("why"))
         if why not in ("wrong", "contradiction", "vague"):
             continue
-        words = fold(" ".join(str(item.get("quote") or "").split())).strip(
+        words = fold(" ".join(_str(item.get("quote")).split())).strip(
             " .…\"'«»")
         judged = judgement_from({"label": "unclear", **item}, said, set())
         if judged is None or not judged.utterance or not words or (
@@ -264,7 +299,7 @@ def _checks(
             continue  # not the candidate's own words: never listed
         if why == "wrong" and is_experience(said[judged.utterance]):
             continue  # an experience claim is to verify, not wrong
-        add(judged.utterance, judged.quote, why, str(item.get("note") or ""),
+        add(judged.utterance, judged.quote, why, _str(item.get("note")),
             owner.get(judged.utterance))
     for slot in slots:
         judged_all = [slot.judgement, *(p.judgement for p in slot.points)]

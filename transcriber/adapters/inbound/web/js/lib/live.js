@@ -351,7 +351,7 @@ export class LiveState {
         break;
       case "accuracy":
         if (["reporting", "ready", "failed"].includes(message.state)) {
-          this.accuracy = { state: message.state, slots: message.slots ?? [], to_check: message.to_check ?? [] };
+          this.accuracy = { state: message.state, judge: message.judge ?? null, slots: message.slots ?? [], to_check: message.to_check ?? [] };
         }
         break;
       case "notice":

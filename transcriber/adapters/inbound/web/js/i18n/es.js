@@ -2173,7 +2173,7 @@ export const es = {
   "live.points_done": "«{topic}»: todos los conceptos tratados",
   "live.points_title": "Conceptos de cada tema",
   "iv.judge_title": "Precisión de las respuestas (borrador)",
-  "iv.judge_note": "Borrador de un modelo a partir de una entrevista corta: valora respuestas, no a la persona; puede equivocarse en los hechos, y una persona lo revisa antes de cualquier decisión. La persona candidata no lo ve.",
+  "iv.judge_note": "Borrador de un modelo a partir de una entrevista corta: valora respuestas, no a la persona; puede equivocarse en los hechos, y una persona lo revisa antes de cualquier decisión. Es para quien entrevista, no para la persona candidata.",
   "iv.judge.solid": "sólida",
   "iv.judge.correct_basic": "correcta, básica",
   "iv.judge.wrong": "contiene un error",
@@ -2192,4 +2192,7 @@ export const es = {
   "iv.check.vague": "segura pero poco concreta",
   "live.accuracy_reporting": "Preparando el borrador de precisión de las respuestas…",
   "live.accuracy_failed": "No se pudo preparar el borrador de precisión de las respuestas.",
+  "iv.report_ended": "La entrevista ha terminado.",
+  "iv.report_open": "Ver el informe — solo para quien entrevista",
+  "iv.report_private": "El informe tiene puntuaciones y un borrador sobre las respuestas. Ábrelo cuando la persona candidata ya no esté delante de la pantalla.",
 };

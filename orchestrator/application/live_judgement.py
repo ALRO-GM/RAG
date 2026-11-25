@@ -13,7 +13,7 @@ live page does not score, and nothing of it is shown to the candidate.
 One model call per round; none when nothing was answered.
 """
 
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from orchestrator.application.interview import (
     InterviewWiring,
@@ -30,6 +30,26 @@ from orchestrator.domain.interview import InterviewPlan
 from orchestrator.domain.interview_judgement import judge_slots
 
 LIVE_JUDGE_TEMPLATE = "interview.report@2"
+WORDS = ("quote", "reason", "note")
+"""Fields with the candidate's words or the model's prose about them."""
+
+
+def without_words(result: Document) -> Document:
+    """A round's judgement without quotes, reasons or notes.
+
+    What the hand-off file keeps (#259 review): the labels, counts,
+    bases, cited chunk ids and the utterance ids, never the candidate's
+    words or what the model wrote about them.
+    """
+    def strip(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {k: strip(v) for k, v in value.items() if k not in WORDS}
+        if isinstance(value, list):
+            return [strip(v) for v in value]
+        return value
+
+    kept: Document = strip(result)
+    return kept
 
 
 class LiveJudge:

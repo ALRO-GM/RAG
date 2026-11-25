@@ -83,7 +83,8 @@ def test_an_experience_claim_is_never_wrong() -> None:
 def test_a_verdict_on_the_person_is_never_kept() -> None:
     for verdict in ("Miente sobre su experiencia.", "Se lo ha inventado.",
                     "No apto para el puesto.", "Conviene contratarla.",
-                    "The candidate is lying.", "Not suitable."):
+                    "The candidate is lying.",
+                    "Not suitable for the role."):
         assert clean_text(verdict) == "", verdict
     assert clean_text("  El drop no es el peso  ") == "El drop no es el peso"
     found = judgement_from({"label": "wrong", "utterance": "u1",
@@ -175,3 +176,66 @@ def test_a_reply_without_judgements_changes_nothing_but_counts() -> None:
         for w in SAID["u1"].split()]
     _, checks = judge_slots({"to_check": many}, [running()], {}, SAID)
     assert len(checks) == 10
+
+
+def test_domain_sentences_that_look_like_verdicts_are_kept() -> None:
+    """Review of #259: the filter aims at the person, not at words."""
+    for fine in ("Confunde el inventario FIFO con LIFO.",
+                 "El envase debe ser apto para alimentos.",
+                 "Rechazo de pedidos: explica bien el proceso.",
+                 "Descarta bien las tallas que no sirven.",
+                 "The cable is suitable for outdoor use.",
+                 "Habla del engranaje y del enganche del remolque.",
+                 "Inventó un método de reposición: no, lo describe bien."):
+        assert clean_text(fine) == " ".join(fine.split()), fine
+    for verdict in ("Se lo ha inventado todo.", "Está mintiendo.",
+                    "No es apta para el puesto.", "Yo no la contrataría; "
+                    "no recomiendo contratar.", "Mejor descartarla.",
+                    "He made it up.", "She should not be hired.",
+                    "Reject this candidate."):
+        assert clean_text(verdict) == "", verdict
+
+
+def test_english_experience_claims_are_to_verify() -> None:
+    said = {"e1": "I worked three years at Amazon as a picker.",
+            "e2": "I've been a team lead for two years.",
+            "e3": "I have 5 years of experience with Django.",
+            "e4": "An index is a sorted structure that speeds up reads."}
+    for uid in ("e1", "e2", "e3"):
+        assert is_experience(said[uid]), uid
+        found = judgement_from({"label": "wrong", "utterance": uid},
+                               said, set())
+        assert found is not None and found.label == "to_verify", uid
+    assert not is_experience(said["e4"])
+
+
+def test_a_short_quote_without_an_id_names_no_utterance() -> None:
+    found = judgement_from({"label": "solid", "quote": "e"}, SAID, set())
+    assert found is not None and found.utterance is None
+    assert found.quote == ""
+    longer = judgement_from({"label": "solid", "quote": "entre el talón"},
+                            SAID, set())
+    assert longer is not None and longer.utterance == "u1"
+
+
+def test_a_reply_of_the_wrong_shape_never_raises() -> None:
+    """Review of #259: every field of the reply is read defensively."""
+    for odd in (
+        {"slots": [{"id": "s1", "points": 3, "judgement": [1]}]},
+        {"slots": [{"id": "s1", "points": True,
+                    "judgement": {"label": {"x": 1}, "reason": ["a"],
+                                  "utterance": 7, "quote": None,
+                                  "kind": [], "cites": "c1"}}]},
+        {"slots": [{"id": "s1", "points": [{"id": "p1", "label": 3,
+                                            "reason": {"a": 1}}]}],
+         "to_check": {"why": "wrong"}},
+        {"slots": "nope", "to_check": [{"why": ["wrong"], "quote": 3,
+                                        "utterance": {"u": 1}},
+                                       {"why": "vague", "quote": ["x"]}]},
+        {"slots": [None, 3, {"id": 4}]},
+    ):
+        slots, checks = judge_slots(odd, [running()], {"s1": ["c1"]}, SAID)
+        assert len(slots) == 1 and isinstance(checks, list)
+    weird = judgement_from({"label": 3, "reason": {"a": 1}}, SAID, set())
+    assert weird is not None and weird.label == "unclear"
+    assert weird.reason == ""

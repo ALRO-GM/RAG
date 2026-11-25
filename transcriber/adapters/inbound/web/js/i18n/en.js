@@ -2173,7 +2173,7 @@ export const en = {
   "live.points_done": "«{topic}»: every concept covered",
   "live.points_title": "Concepts of each topic",
   "iv.judge_title": "Accuracy of the answers (draft)",
-  "iv.judge_note": "A model's draft from one short interview: it judges answers, not the person; it can be wrong about facts, and a person reviews it before any decision. The candidate does not see it.",
+  "iv.judge_note": "A model's draft from one short interview: it judges answers, not the person; it can be wrong about facts, and a person reviews it before any decision. It is for the interviewer, not for the candidate.",
   "iv.judge.solid": "solid",
   "iv.judge.correct_basic": "correct, basic",
   "iv.judge.wrong": "contains an error",
@@ -2192,4 +2192,7 @@ export const en = {
   "iv.check.vague": "confident but not specific",
   "live.accuracy_reporting": "Preparing the draft of how accurate the answers were…",
   "live.accuracy_failed": "The draft of how accurate the answers were could not be prepared.",
+  "iv.report_ended": "The interview has ended.",
+  "iv.report_open": "See the report — for the interviewer only",
+  "iv.report_private": "The report has scores and a draft about the answers. Open it once the candidate is no longer in front of the screen.",
 };

@@ -26,7 +26,7 @@ import {
 } from "../lib/voicebot.js";
 import { emptyState, icon, pageHead, toast } from "../ui.js";
 import { INTERVIEW, InterviewState, speakerProducts } from "../lib/interview.js";
-import { coveragePanel, planSetup, reportCard } from "./interview.js";
+import { coveragePanel, planSetup, reportBehindClick } from "./interview.js";
 import { connectionCard } from "./connection.js";
 import { needsOf } from "../lib/connection.js";
 import { voiceDemoView } from "./voice-demo.js";
@@ -259,7 +259,8 @@ export async function voicebotView(ctx, root, [sub] = []) {
       h("span", { class: "text" }, l.text || (l.state === "thinking" ? t("voicebot.thinking") : "…")))) : h("li", { class: "hint" }, t(interview ? "voicebot.waiting_interview" : "voicebot.waiting")));
       if (ivState) {
         fill(coverage, coveragePanel(ivState));
-        if (ivState.result && !report.firstChild) fill(report, reportCard(ivState.result));
+        // The candidate may still be at this screen: the report waits for a click.
+        if (ivState.result && !report.firstChild) fill(report, reportBehindClick(ivState.result));
       }
       if (atEnd) lines.scrollTop = lines.scrollHeight;
       const record = state.records.at(-1);

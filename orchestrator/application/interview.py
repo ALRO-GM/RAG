@@ -26,6 +26,7 @@
 Scores are for the recruiter only: nothing here is ever spoken.
 """
 
+import logging
 import threading
 import time
 from dataclasses import dataclass
@@ -74,7 +75,7 @@ from orchestrator.domain.interview_agenda import (
     heuristic_fill,
     quote,
 )
-from orchestrator.domain.interview_judgement import judge_slots
+from orchestrator.domain.interview_judgement import clean_text, judge_slots
 from orchestrator.domain.interview_points import PointHit, point_hits
 from orchestrator.domain.interview_transcript import (
     BOT_ID,
@@ -89,6 +90,7 @@ from orchestrator.domain.turn_taking import BotTurn
 if TYPE_CHECKING:  # pragma: no cover
     from orchestrator.application.candidates import CandidateBook
 
+LOG = logging.getLogger(__name__)
 CORE_EARLY = ("opening", "experience")
 """Phases of the core questions the AI interviewer asks first (#235)."""
 CORE_LATE = ("closing",)
@@ -626,11 +628,13 @@ def read_report(
             merged.append(status_scores([slot])[0])
             continue
         confidence = item.get("confidence")
+        notes = item.get("notes")
         merged.append(slot.model_copy(update={
             "score": 0 if slot.status == "unknown"
             else max(0, min(100, int(round(score)))),
             "above": bool(item.get("above")) and slot.status == "filled",
-            "notes": " ".join(str(item.get("notes") or "").split())[:300],
+            "notes": clean_text(notes if isinstance(notes, str) else "",
+                                300),
             "confidence": (max(0.0, min(1.0, float(confidence)))
                            if isinstance(confidence, (int, float))
                            and not isinstance(confidence, bool) else None),
@@ -639,12 +643,17 @@ def read_report(
     others: List[OtherSkill] = []
     raw = data.get("other_skills")
     for item in raw if isinstance(raw, list) else []:
-        if isinstance(item, dict) and str(item.get("label") or "").strip():
+        label = item.get("label") if isinstance(item, dict) else None
+        said = item.get("quote") if isinstance(item, dict) else None
+        if isinstance(label, str) and label.strip():
             others.append(OtherSkill(
-                label=" ".join(str(item["label"]).split())[:120],
-                quote=" ".join(str(item.get("quote") or "").split())[:300],
+                label=" ".join(label.split())[:120],
+                quote=" ".join(said.split())[:300]
+                if isinstance(said, str) else "",
             ))
-    summary = " ".join(str(data.get("summary") or "").split())[:1200]
+    raw_summary = data.get("summary")
+    summary = clean_text(raw_summary if isinstance(raw_summary, str)
+                         else "", 1200)
     return merged, others[:8], summary
 
 
@@ -1011,15 +1020,29 @@ class InterviewDirector:
         chunks = self._chunks(slots)
         data = self._report(slots, chunks)
         if data is not None:
-            slots, others, summary = read_report(data, slots)
-            scorer = "haiku"
-            if self.config.report_template != PLAIN_REPORT:
-                slots, to_check = judge_slots(
-                    data, slots,
-                    {sid: [c["id"] for c in found]
-                     for sid, found in chunks.items()},
-                    self._texts())
-                judge = self.config.report_template
+            plain = slots
+            try:
+                slots, others, summary = read_report(data, plain)
+                scorer = "haiku"
+            except Exception:  # noqa: BLE001 - logged, status scores
+                LOG.exception("report: reply of %s not read",
+                              self.session_id)
+                slots, others, summary = status_scores(plain), [], ""
+                data = None
+            if data is not None and (
+                    self.config.report_template != PLAIN_REPORT):
+                scored = slots
+                try:
+                    slots, to_check = judge_slots(
+                        data, scored,
+                        {sid: [c["id"] for c in found]
+                         for sid, found in chunks.items()},
+                        self._texts())
+                    judge = self.config.report_template
+                except Exception:  # noqa: BLE001 - logged, plain scores
+                    LOG.exception("report: judgement of %s not read",
+                                  self.session_id)
+                    slots, to_check = scored, []
         else:
             slots = status_scores(slots)
         # Stopped while the salary question waited: the plan was covered.

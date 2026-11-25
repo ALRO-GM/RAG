@@ -364,8 +364,11 @@ function countsLine(accuracy) {
  * `result`: { slots, to_check } of a sheet (AI interviewer) or of a live round.
  */
 export function accuracyBlock(result) {
-  const slots = (result?.slots ?? []).filter((s) => s.judgement || s.points?.some((p) => p.judgement || p.status !== "pending"));
+  const judged = (result?.slots ?? []).some((s) => s.judgement || s.points?.some((p) => p.judgement));
   const checks = result?.to_check ?? [];
+  // Older sheets and status-only scores were never judged: no empty section.
+  if (!result?.judge && !judged && !checks.length) return null;
+  const slots = (result?.slots ?? []).filter((s) => s.judgement || s.points?.some((p) => p.judgement || p.status !== "pending"));
   if (!slots.length && !checks.length) return null;
   return h("section", { class: "iv-accuracy", "aria-label": t("iv.judge_title") },
     h("h3", {}, t("iv.judge_title")),
@@ -457,6 +460,19 @@ export function reportCard(result) {
     h("p", { class: "sf-draft" }, t("sf.iv_draft_short")),
     accuracyBlock(sheet),
     more);
+}
+
+/**
+ * The end of an AI interview on the page where the candidate just spoke
+ * (#259 review): only that it ended and a button for the interviewer; the
+ * report (scores and the judgement of the answers) is drawn after the click.
+ */
+export function reportBehindClick(result) {
+  const box = h("section", { class: "card iv-report-gate", "aria-label": t("iv.report") });
+  const open = h("button", { type: "button", class: "primary", onClick: () => fill(box, reportCard(result)) },
+    t("iv.report_open"));
+  fill(box, h("h2", {}, t("iv.report_ended")), h("p", { class: "hint" }, t("iv.report_private")), open);
+  return box;
 }
 
 function tile(value, label, kind) {

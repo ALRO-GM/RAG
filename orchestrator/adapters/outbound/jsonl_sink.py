@@ -1,6 +1,7 @@
 """Suggestion sink: one JSON line per reasoner call; hand-off records."""
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -76,12 +77,13 @@ class JsonHandoff:
         self.path = path
 
     def write(self, record: Dict[str, Any]) -> None:
-        """Write ``record`` (names, mode, mandatory items)."""
+        """Write ``record`` (names, mode, mandatory items, the round's
+        judgement labels), readable by its owner only (mode 600)."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(record, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            out.write(json.dumps(record, ensure_ascii=False, indent=2) + "\n")
 
 
 class MemoryHandoff:

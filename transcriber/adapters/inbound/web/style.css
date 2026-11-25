@@ -1690,3 +1690,4 @@ details.tech, details.controls { margin: 1rem 0; }
 .iv-judge-why q { font-style: italic; }
 .iv-basis { color: var(--faint); }
 .iv-checks ul { margin: 0; padding-left: var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
+.iv-report-gate { display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-start; }
