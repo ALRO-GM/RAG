@@ -208,3 +208,51 @@ def test_a_record_that_cannot_be_written_never_stops_a_session() -> None:
     session = harness.live.start(LiveSessionRequest(session_id="d"))
     harness.live.stop("d", WAIT)
     assert session.state == LiveState.ENDED
+
+
+class MemoryMarker:
+    """Keeps every announcement of the sessions that are on."""
+
+    def __init__(self) -> None:
+        self.marks: List[List[Dict[str, Any]]] = []
+
+    def mark(self, sessions: Any) -> None:
+        self.marks.append([dict(s) for s in sessions])
+
+
+def test_the_sessions_that_are_on_are_announced_for_the_services_guard(
+) -> None:
+    from dataclasses import replace
+
+    marker = MemoryMarker()
+    harness = Harness(device="cpu")
+    harness.live._p = replace(harness.live._p, marker=marker)
+    session = harness.live.start(LiveSessionRequest(session_id="m"))
+    assert marker.marks[0] == [{"id": "m", "state": "starting",
+                                "source": "none"}]
+    assert session.wait_ready(WAIT)
+    assert not harness.live.source_connected()
+    source = session.claim_source()
+    assert marker.marks[-1][0]["source"] == "connected"
+    assert harness.live.source_connected()
+    session.release_source(source)
+    assert marker.marks[-1] == [{"id": "m", "state": "running",
+                                 "source": "lost"}], \
+        "waiting for its source is still an interview on"
+    assert not harness.live.source_connected()
+    harness.live.stop("m", WAIT)
+    assert marker.marks[-1] == []
+
+
+def test_a_marker_that_cannot_be_written_never_stops_a_session() -> None:
+    from dataclasses import replace
+
+    class Broken:
+        def mark(self, sessions: Any) -> None:
+            raise OSError("read-only")
+
+    harness = Harness(device="cpu")
+    harness.live._p = replace(harness.live._p, marker=Broken())
+    session = harness.live.start(LiveSessionRequest(session_id="b"))
+    harness.live.stop("b", WAIT)
+    assert session.state == LiveState.ENDED

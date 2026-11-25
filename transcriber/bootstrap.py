@@ -56,6 +56,10 @@ from transcriber.adapters.outbound.fake_models import (
 )
 from transcriber.adapters.outbound.gpu_free_memory import NvidiaSmiFreeMemory
 from transcriber.adapters.outbound.jsonl_live_log import JsonlLiveLog
+from transcriber.adapters.outbound.fs_live_marker import (
+    FileLiveMarker,
+    marker_path,
+)
 from transcriber.adapters.outbound.jsonschema_event_check import (
     build_event_check,
 )
@@ -767,6 +771,7 @@ def build_live_sessions(
         log=JsonlLiveLog(settings.data_dir),
         check=check, publisher=publisher, analysis=analysis,
         cpu_only=cpu_only,
+        marker=None if fake else FileLiveMarker(marker_path(environ)),
     )
     device = "cpu" if fake or settings.device == "cpu" else "cuda"
     return LiveSessions(ports, settings.live, device, __version__)
@@ -1131,16 +1136,21 @@ def start_container(
     return container
 
 
-def build_tunnel(settings: TranscriberSettings, port: int) -> Tunnel:
+def build_tunnel(
+    settings: TranscriberSettings, port: int,
+    hold: Optional[Callable[[], bool]] = None,
+) -> Tunnel:
     """Return the tunnel to the server for the API on ``port``.
 
     It is reported ``connected`` only once ``/api/health`` answers
-    through the server.
+    through the server. ``hold``: while it says so (a live audio socket
+    is connected, #264) failed probes never restart the client.
     """
     tunnel = settings.tunnel
     return ChiselTunnel(
         tunnel, port, settings.data_dir,
         probe=http_probe(tunnel.health_url(), tunnel.probe_timeout),
+        hold=hold,
     )
 
 

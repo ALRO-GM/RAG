@@ -1,0 +1,92 @@
+#!/bin/bash
+# Uso: ragputin-servicios [start|status|stop|restart] [--force]
+# Arranca el RAG local y el servicio de transcripción de RAGPutin como unidades de
+# usuario de systemd (ragputin-rag, ragputin-transcriber), FUERA de la terminal de
+# Claude. Así, si systemd-oomd mata algo por falta de memoria, mata el servicio y no
+# la consola de Claude (antes mataba el scope de la terminal entero: 2026-11-15).
+#
+# #264 (copia revisable en el repositorio: infra/ragputin-servicios):
+# - stop y restart se niegan mientras hay una entrevista en directo (el arriendo de
+#   la GPU de «ragputin-live» o la marca del transcriptor, que también cubre una
+#   sesión esperando a que vuelva el audio); --force lo salta.
+# - las unidades se reinician solas si fallan (Restart=on-failure, RestartSec=2).
+# - status dice si hay una entrevista en directo en marcha.
+set -u
+DIR="${RAGPUTIN_DIR:-$HOME/Desktop/ideas/RAGPutin}"
+LOGS="$HOME/.local/state/ragputin"
+GUARD="$DIR/infra/live_guard.py"
+mkdir -p "$LOGS"
+ACCION="${1:-start}"
+FORCE=0
+[ "${2:-}" = "--force" ] && FORCE=1
+
+entrevista() { # 0 libre; 3 hay una entrevista; 2 no se sabe. Imprime una línea.
+  if [ ! -f "$GUARD" ]; then echo "No se pudo comprobar si hay una entrevista en directo (falta $GUARD)."; return 2; fi
+  python3 "$GUARD"
+}
+
+proteger() { # no parar nada bajo una entrevista en directo, salvo --force
+  [ "$FORCE" = 1 ] && return 0
+  local linea rc
+  linea=$(entrevista); rc=$?
+  [ "$rc" = 0 ] && return 0
+  echo "$linea"
+  echo "No se para nada. Si de verdad hay que hacerlo ahora: $0 $ACCION --force"
+  exit 3
+}
+
+activo() { # unidad en marcha, o el proceso ya corre (p. ej. lanzado a mano)
+  systemctl --user is-active --quiet "$1" && return 0
+  case $1 in
+    ragputin-rag) pgrep -f 'python -m src serve --host 127.0.0.1 --port 8000' >/dev/null ;;
+    ragputin-transcriber) pgrep -af 'python -m transcriber serve' | grep -v -- '--port' | grep -q . ;;
+    ragputin-orchestrator) pgrep -af 'python -m orchestrator serve' | grep -v -- '--port' | grep -q . ;;
+  esac
+}
+
+lanzar() { # <unidad> <log> <comando>
+  local unit=$1 log=$2 cmd=$3
+  if activo "$unit"; then echo "$unit ya está en marcha"; return; fi
+  systemctl --user reset-failed "$unit" 2>/dev/null
+  systemd-run --user --unit="$unit" --collect -p WorkingDirectory="$DIR" \
+    -p Description="RAGPutin $unit" -p Restart=on-failure -p RestartSec=2 \
+    /bin/bash -lc "cd '$DIR' && exec $cmd >>'$log' 2>&1" >/dev/null \
+    && echo "$unit arrancado (log: $log)"
+}
+
+esperar_rag() {
+  for _ in $(seq 1 90); do
+    curl -s -m 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health | grep -q 200 && { echo "RAG local: health 200"; return 0; }
+    sleep 2
+  done
+  echo "RAG local: sin respuesta en 3 min (mira $LOGS/rag-serve.log)"; return 1
+}
+
+case "$ACCION" in
+  start)
+    lanzar ragputin-rag "$LOGS/rag-serve.log" "make rag-serve TORCH=cuda"
+    esperar_rag
+    lanzar ragputin-transcriber "$LOGS/serve.log" \
+      "env TRANSCRIBER_LOCAL_RAG=1 make transcriber-serve TORCH=cuda SERVE_ARGS=--keep-code"
+    # Orquestador del directo (sin GPU): después del RAG (2026-11-21).
+    lanzar ragputin-orchestrator "$LOGS/orchestrator.log" \
+      ".venv/bin/python -m orchestrator serve --token-file $HOME/.config/ragputin/rag-token"
+    ;;
+  stop) proteger
+        systemctl --user stop ragputin-orchestrator ragputin-transcriber ragputin-rag 2>/dev/null
+        pkill -f "python -m orchestrator serve --token-file"; pkill -f "python -m transcriber serve --keep-code$"; pkill -f "python -m src serve --host 127.0.0.1 --port 8000"
+        # Esperar a que terminen de cerrarse: si no, "restart" los ve vivos y no arranca el RAG (2026-11-15).
+        for _ in $(seq 1 30); do
+          pgrep -f "python -m orchestrator serve --token-file|python -m transcriber serve --keep-code$|python -m src serve --host 127.0.0.1 --port 8000" >/dev/null || break
+          sleep 1
+        done
+        true ;;
+  restart) proteger; "$0" stop --force; "$0" start ;;
+  status)
+    for u in ragputin-rag ragputin-transcriber ragputin-orchestrator; do printf '%-22s %s\n' "$u" "$(activo $u && echo en marcha || echo parado)"; done
+    printf 'RAG local /health:     %s\n' "$(curl -s -m 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health)"
+    printf 'rag.peer4u.app health: %s\n' "$(curl -s -m 8 -o /dev/null -w '%{http_code}' https://rag.peer4u.app/api/health)"
+    printf 'Entrevista en directo:  %s\n' "$(entrevista)"
+    ;;
+  *) echo "Uso: $0 [start|status|stop|restart] [--force]"; exit 1 ;;
+esac

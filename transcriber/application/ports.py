@@ -904,6 +904,18 @@ class LiveLog(Protocol):
         ...
 
 
+class LiveMarker(Protocol):
+    """Where the running live sessions are announced to the machine.
+
+    The services script reads it before a stop or a restart (#264).
+    """
+
+    def mark(self, sessions: Sequence[Mapping[str, Any]]) -> None:
+        """Say which sessions are on (``id``, ``state``, ``source``);
+        an empty list says none is."""
+        ...
+
+
 class EventCheck(Protocol):
     """Checks an event against its contract (``contracts/``)."""
 

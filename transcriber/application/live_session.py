@@ -92,6 +92,7 @@ from transcriber.application.ports import (
     FreeGpuMemory,
     GpuLease,
     LiveLog,
+    LiveMarker,
     SessionAnalysisPort,
     Timer,
     TranscriptPublisher,
@@ -256,6 +257,8 @@ class LiveSession:
         self.compute: Optional[str] = None
         self.handed_over = threading.Event()
         """Set once the transcript is kept and published (or not asked)."""
+        self.on_change: Callable[[], None] = lambda: None
+        """Told when the source connects or goes (the live marker)."""
         self._audio: "queue.Queue[Queued]" = queue.Queue()
         self._now = now
         self._backlog = AudioBacklog(
@@ -418,6 +421,7 @@ class LiveSession:
                 away = max(self._now() - self._lost_at, 0.0)
                 self._lost_at = None
                 self._audio.put(SourceNotice("back", away))
+        self.on_change()
         LIFECYCLE.info(
             "Live session %s: audio source %d connected"
             " (resume at %.1f s%s%s)",
@@ -453,6 +457,7 @@ class LiveSession:
                     self.settings.source_gone_seconds,
                 )
                 self._audio.put(SourceNotice("lost"))
+        self.on_change()
         if lost:
             LIFECYCLE.info(
                 "Live session %s: audio source lost at %.1f s (close %s);"
@@ -615,6 +620,7 @@ class LivePorts:
     publisher: Optional[TranscriptPublisher] = None
     analysis: Optional[SessionAnalysisPort] = None
     cpu_only: Optional[Callable[[], bool]] = None
+    marker: Optional[LiveMarker] = None
 
 
 class LiveSessions:
@@ -670,6 +676,8 @@ class LiveSessions:
             name=f"live-{request.session_id}", daemon=True,
         )
         worker.start()
+        session.on_change = self._mark
+        self._mark()
         LIFECYCLE.info(
             "Live session %s started (%d channel(s), %s)", session.id,
             session.channels, request.product or "no product",
@@ -699,6 +707,33 @@ class LiveSessions:
             raise InvalidInputError(str(exc)) from exc
         self._handover.record(self.facts(session), session.state.value)
         return session
+
+    def source_connected(self) -> bool:
+        """Tell whether a running session has its audio socket connected.
+
+        The tunnel's supervisor does not restart the tunnel then (#264):
+        that would cut the very socket that works.
+        """
+        with self._lock:
+            sessions = list(self._sessions.values())
+        return any(s.active and s.source_state == "connected"
+                   for s in sessions)
+
+    def _mark(self) -> None:
+        """Announce the sessions that are on (#264); never raises."""
+        marker = self._p.marker
+        if marker is None:
+            return
+        with self._lock:
+            sessions = list(self._sessions.values())
+        try:
+            marker.mark([
+                {"id": s.id, "state": s.state.value,
+                 "source": s.source_state}
+                for s in sessions if s.active
+            ])
+        except OSError:
+            LOG.exception("The live marker was not written")
 
     @staticmethod
     def facts(session: LiveSession) -> SessionFacts:
@@ -919,6 +954,7 @@ class LiveSessions:
                     ),
                 ))
             session.mark_ready()
+            self._mark()
             self._handover.record(self.facts(session), "running")
             pace = PaceWatch()
             resending = False
@@ -973,6 +1009,7 @@ class LiveSessions:
                 self._p.log.close(session.id)
         handed = self._keep(session, failed=state == LiveState.FAILED)
         session.finished(state, error)
+        self._mark()
         self._handover.record(
             self.facts(session), state.value, end_reason=session.end_reason,
             error=error, transcript=session.transcript,

@@ -21,7 +21,10 @@ from a supervisor thread:
 4. while connected the probe goes on every ``probe_interval`` seconds:
    after :data:`PROBE_FAILURES` failures in a row the tunnel is
    reported ``reconnecting`` and the client is ended and started again
-   (chisel itself may stay up while the server's path is broken);
+   (chisel itself may stay up while the server's path is broken) —
+   except while ``hold`` says a live audio socket is connected through
+   it (#264): that socket works, so only the client's own exit restarts
+   it then;
 5. when it ends, it is started again after a delay that doubles with
    every failure up to a cap (a connection that lasted long enough
    resets it).
@@ -510,6 +513,7 @@ class ChiselTunnel:
         environ: Optional[Mapping[str, str]] = None,
         signal_process: Callable[[int, int], None] = os.kill,
         started: StartTime = process_start,
+        hold: Optional[Callable[[], bool]] = None,
     ) -> None:
         """Open ``R:0.0.0.0:<remote_port>`` to ``127.0.0.1:port``."""
         self._settings = settings
@@ -521,6 +525,7 @@ class ChiselTunnel:
         self._describe = describe
         self._signal = signal_process
         self._started = started
+        self._hold = hold
         self._environ = environ
         self._lock = threading.Lock()
         self._stopping = threading.Event()
@@ -663,11 +668,27 @@ class ChiselTunnel:
                     failed += 1
                     LOG.info("Tunnel probe failed (%d of %d): %s", failed,
                              PROBE_FAILURES, reason)
-                    if failed >= PROBE_FAILURES:
+                    if failed >= PROBE_FAILURES and self._held():
+                        if failed == PROBE_FAILURES:
+                            LOG.warning(
+                                "Tunnel probe failed %d times, but a live"
+                                " audio socket is connected through it:"
+                                " the client is not restarted", failed)
+                    elif failed >= PROBE_FAILURES:
                         lost = (f"no answer through the tunnel"
                                 f" {failed} times in a row; {reason}")
                         self._set("reconnecting", lost)
                         return lost
+
+    def _held(self) -> bool:
+        """Tell whether a working connection must not be cut (#264)."""
+        if self._hold is None:
+            return False
+        try:
+            return bool(self._hold())
+        except Exception:  # noqa: BLE001 - a broken check never holds
+            LOG.exception("The tunnel's hold check failed")
+            return False
 
     def _supervise(self) -> None:
         """End a leftover client, then connect and reconnect until stopped."""

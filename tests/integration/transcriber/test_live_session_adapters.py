@@ -211,3 +211,29 @@ def test_the_session_record_and_the_unfinished_sessions(
         log.read_session("a")
     (tmp_path / "live" / "stray-file").write_text("x")
     assert log.unfinished() == ["a"]
+
+
+def test_the_live_marker_is_private_and_gone_when_nothing_is_on(
+    tmp_path: Path,
+) -> None:
+    import os
+
+    from transcriber.adapters.outbound.fs_live_marker import (
+        FileLiveMarker,
+        marker_path,
+    )
+
+    path = marker_path({"XDG_RUNTIME_DIR": str(tmp_path)})
+    assert path == tmp_path / "ragputin" / "live-active.json"
+    assert marker_path({}).name == "live-active.json"
+    marker = FileLiveMarker(path)
+    marker.mark([])
+    assert not path.exists()
+    marker.mark([{"id": "live-1", "state": "running", "source": "lost"}])
+    document = json.loads(path.read_text())
+    assert document["pid"] == os.getpid()
+    assert document["sessions"][0]["source"] == "lost"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    marker.mark([])
+    assert not path.exists()
