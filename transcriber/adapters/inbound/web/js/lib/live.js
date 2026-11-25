@@ -17,6 +17,12 @@
 // suggestion proposed («Hecho»); the topics come from a scripted demo or
 // from the script phases; lines better avoided arrive as `avoid` flags
 // (a hint about the question, never about the candidate).
+//
+// #258: a topic of the role's plan (or of the scripted demo) can carry its
+// concepts, each treated / pending / unknown in this round, and the topic
+// being asked is `current`; `topicFocus()` says what of it is still to
+// treat («Falta por tratar: B, C»). "Treated" only means the candidate
+// talked about it: a hint for the interviewer, never a judgement.
 
 export const SUPPORT = "live_assist.support";
 export const INTERVIEW = "live_assist.interview";
@@ -605,9 +611,26 @@ export class LiveState {
         // What earlier rounds of the candidate left (#235): weak (the AI interview's
         // own scores), revisit (a live round's answer looked incomplete), open or covered.
         ...(["weak", "revisit", "open", "covered"].includes(x.earlier) ? { earlier: x.earlier } : {}),
+        // The topic's concepts and whether each was treated in this round (#258).
+        ...(Array.isArray(x.points) && x.points.length ? { points: x.points.filter((p) => p && p.id && p.text).map((p) => ({
+          id: p.id, text: p.text, status: ["treated", "unknown"].includes(p.status) ? p.status : "pending", ...(p.en ? { en: p.en } : {}),
+        })) } : {}),
+        ...(x.current ? { current: true } : {}),
       }));
     }
     return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));
+  }
+
+  /**
+   * The topic being asked and its concepts still to treat (#258), or null
+   * when no topic is current or it has no concepts:
+   * { id, name, en?, pending: [concept], points: [concept] }.
+   */
+  topicFocus() {
+    const topic = this.topicChips().find((c) => c.current && c.points?.length);
+    if (!topic) return null;
+    return { id: topic.id, name: topic.name, ...(topic.en ? { en: topic.en } : {}), points: topic.points,
+      pending: topic.points.filter((p) => p.status === "pending") };
   }
 
   /** Which side is speaking now (an open partial): "employee", "other" or null. */

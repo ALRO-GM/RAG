@@ -16,6 +16,33 @@
    "id": "python_apis",
    "name": "Python y APIs",
    "covered_by": "t1.s0",
+   "asked_by": "t0.s0",
+   "points": [
+    {
+     "id": "api",
+     "text": "Diseño de la API",
+     "covered_by": "t1.s0",
+     "en": {
+      "text": "API design"
+     }
+    },
+    {
+     "id": "speed",
+     "text": "Rendimiento medido",
+     "covered_by": "t1.s0",
+     "en": {
+      "text": "Measured performance"
+     }
+    },
+    {
+     "id": "prod",
+     "text": "Años con Python en producción",
+     "covered_by": "t5.s0",
+     "en": {
+      "text": "Years with Python in production"
+     }
+    }
+   ],
    "en": {
     "name": "Python and APIs"
    }
@@ -24,6 +51,33 @@
    "id": "databases",
    "name": "Bases de datos",
    "covered_by": "t3.s0",
+   "asked_by": "t2.s0",
+   "points": [
+    {
+     "id": "trace",
+     "text": "Diagnóstico con trazas",
+     "covered_by": "t3.s0",
+     "en": {
+      "text": "Diagnosis with traces"
+     }
+    },
+    {
+     "id": "index",
+     "text": "Índices",
+     "covered_by": "t3.s0",
+     "en": {
+      "text": "Indexes"
+     }
+    },
+    {
+     "id": "cache",
+     "text": "Caché",
+     "covered_by": "t3.s0",
+     "en": {
+      "text": "Cache"
+     }
+    }
+   ],
    "en": {
     "name": "Databases"
    }
@@ -32,6 +86,25 @@
    "id": "experience",
    "name": "Experiencia",
    "covered_by": "t5.s0",
+   "asked_by": "t4.s1",
+   "points": [
+    {
+     "id": "years",
+     "text": "Años de experiencia",
+     "covered_by": "t5.s0",
+     "en": {
+      "text": "Years of experience"
+     }
+    },
+    {
+     "id": "realtime",
+     "text": "Servicios en tiempo real",
+     "covered_by": "t5.s0",
+     "en": {
+      "text": "Real-time services"
+     }
+    }
+   ],
    "en": {
     "name": "Experience"
    }
@@ -40,6 +113,32 @@
    "id": "testing",
    "name": "Pruebas automáticas",
    "covered_by": "t7.s0",
+   "asked_by": "t6.s0",
+   "points": [
+    {
+     "id": "cases",
+     "text": "Pruebas de los casos principales",
+     "covered_by": "t7.s0",
+     "en": {
+      "text": "Tests of the main cases"
+     }
+    },
+    {
+     "id": "coverage",
+     "text": "Cobertura de las pruebas",
+     "covered_by": "t7.s0",
+     "en": {
+      "text": "Test coverage"
+     }
+    },
+    {
+     "id": "integration",
+     "text": "Pruebas de integración",
+     "en": {
+      "text": "Integration tests"
+     }
+    }
+   ],
    "en": {
     "name": "Automated testing"
    }
@@ -48,6 +147,33 @@
    "id": "teamwork",
    "name": "Trabajo en equipo",
    "covered_by": "t9.s0",
+   "asked_by": "t8.s0",
+   "points": [
+    {
+     "id": "situation",
+     "text": "Situación concreta",
+     "covered_by": "t9.s0",
+     "en": {
+      "text": "A concrete situation"
+     }
+    },
+    {
+     "id": "action",
+     "text": "Lo que hizo ella",
+     "covered_by": "t9.s0",
+     "en": {
+      "text": "What she did"
+     }
+    },
+    {
+     "id": "result",
+     "text": "Resultado",
+     "covered_by": "t9.s0",
+     "en": {
+      "text": "Result"
+     }
+    }
+   ],
    "en": {
     "name": "Teamwork"
    }

@@ -10,7 +10,8 @@ prepared suggestions attached to it (as ordinary suggestion records,
 backend ``demo-script``), the hint of a line better avoided through the
 same :class:`~orchestrator.domain.avoid.AvoidLedger` as a live session
 (so «rephrased» follows the same rule) and the topics it covers
-(``{"type": "topics"}``).
+(``{"type": "topics"}``), with the concepts of each topic ticked by
+their own sentences and the topic being asked marked ``current`` (#258).
 
 A support demo (#250) goes further, still from the file: a suggestion
 cites the knowledge chunks it comes from (``retrieved``, copied from the
@@ -21,7 +22,7 @@ names has been said (``{"type": "mandatory"}``); at the end the hand-off
 record says what was said and what was left unsaid.
 """
 
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Set
 
 from orchestrator.application.ports import Document, SuggestionSink
 from orchestrator.domain.avoid import AvoidLedger
@@ -64,6 +65,8 @@ class ScriptedAssist:
         self.calls = 0
         self.ledger = AvoidLedger()
         self.covered: List[str] = []
+        self.said: Set[str] = set()
+        self.current: Optional[str] = None
         self.checklist: Optional[Checklist] = None
         mandatory = script.mandatory
         if mandatory is not None:
@@ -126,9 +129,16 @@ class ScriptedAssist:
         ):
             self.publish({"type": "avoid", "flags": self.ledger.view()})
         self._said(u.id, event.stream_time)
-        if any(t.covered_by == u.id for t in self.script.topics):
-            self.covered += [t.id for t in self.script.topics
-                             if t.covered_by == u.id]
+        named = [t for t in self.script.topics if u.id in t.sentences()]
+        if named:
+            self.said.add(u.id)
+            self.covered += [t.id for t in named if t.covered_by == u.id]
+            # The topic asked becomes the current one; a topic without
+            # a question sentence becomes it when it is covered.
+            moved = [t.id for t in named if t.asked_by == u.id or (
+                t.asked_by is None and t.covered_by == u.id)]
+            if moved:
+                self.current = moved[0]
             self._topics()
 
     def _retrieved(self, cites: List[str]) -> List[Document]:
@@ -163,12 +173,27 @@ class ScriptedAssist:
                           "checklist": self.checklist.model_dump(mode="json")})
 
     def _topics(self) -> None:
-        """Publish every topic with whether it is covered."""
-        self.publish({"type": "topics", "topics": [
-            {"id": t.id, "name": t.name, "done": t.id in self.covered,
-             **({"en": dict(t.en)} if t.en else {})}
-            for t in self.script.topics
-        ]})
+        """Publish every topic with whether it is covered.
+
+        A topic with concepts lists them, each ``treated`` once its
+        sentence was said (``pending`` until then).
+        """
+        topics: List[Document] = []
+        for t in self.script.topics:
+            topic: Document = {"id": t.id, "name": t.name,
+                               "done": t.id in self.covered,
+                               **({"en": dict(t.en)} if t.en else {})}
+            if t.points:
+                topic["points"] = [
+                    {"id": p.id, "text": p.text,
+                     "status": "treated" if p.covered_by in self.said
+                     else "pending", **({"en": dict(p.en)} if p.en else {})}
+                    for p in t.points
+                ]
+            if t.id == self.current:
+                topic["current"] = True
+            topics.append(topic)
+        self.publish({"type": "topics", "topics": topics})
 
     def finish(self) -> None:
         """Publish the hand-off record of a demo with mandatory items.

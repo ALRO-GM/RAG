@@ -32,7 +32,30 @@
       "above": false,
       "notes": "Dos años en tienda, cubre lo pedido.",
       "confidence": 0.7,
-      "scored_by": "model"
+      "scored_by": "model",
+      "points": [
+        {
+          "id": "p1",
+          "text": "Dónde y en qué tienda",
+          "status": "treated",
+          "quote": "Estuve dos años en una tienda de deportes",
+          "utterance": "t1.s0"
+        },
+        {
+          "id": "p2",
+          "text": "Cuánto tiempo",
+          "status": "treated",
+          "quote": "dos años",
+          "utterance": "t1.s0"
+        },
+        {
+          "id": "p3",
+          "text": "Tareas con clientes",
+          "status": "treated",
+          "quote": "atendiendo en sala y en caja",
+          "utterance": "t1.s0"
+        }
+      ]
     },
     {
       "id": "s2",
@@ -54,7 +77,23 @@
       "above": false,
       "notes": "",
       "confidence": 0.4,
-      "scored_by": "model"
+      "scored_by": "model",
+      "points": [
+        {
+          "id": "p1",
+          "text": "Turnos rotativos",
+          "status": "treated",
+          "quote": "Sí, más o menos puedo",
+          "utterance": "t3.s0"
+        },
+        {
+          "id": "p2",
+          "text": "Sábados",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        }
+      ]
     },
     {
       "id": "s3",
@@ -70,7 +109,30 @@
       "above": false,
       "notes": "",
       "confidence": 0.8,
-      "scored_by": "model"
+      "scored_by": "model",
+      "points": [
+        {
+          "id": "p1",
+          "text": "Tipos de pisada",
+          "status": "unknown",
+          "quote": "De zapatillas no sé mucho",
+          "utterance": "t5.s0"
+        },
+        {
+          "id": "p2",
+          "text": "Amortiguación y drop",
+          "status": "unknown",
+          "quote": "De zapatillas no sé mucho",
+          "utterance": "t5.s0"
+        },
+        {
+          "id": "p3",
+          "text": "Cómo elegir la talla",
+          "status": "unknown",
+          "quote": "De zapatillas no sé mucho",
+          "utterance": "t5.s0"
+        }
+      ]
     },
     {
       "id": "s4",
@@ -86,7 +148,30 @@
       "above": false,
       "notes": "",
       "confidence": null,
-      "scored_by": null
+      "scored_by": null,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Situación concreta",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        },
+        {
+          "id": "p2",
+          "text": "Lo que hizo él o ella",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        },
+        {
+          "id": "p3",
+          "text": "Resultado",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        }
+      ]
     },
     {
       "id": "s5",
@@ -102,7 +187,30 @@
       "above": false,
       "notes": "",
       "confidence": null,
-      "scored_by": null
+      "scored_by": null,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Situación concreta",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        },
+        {
+          "id": "p2",
+          "text": "Lo que hizo él o ella",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        },
+        {
+          "id": "p3",
+          "text": "Resultado",
+          "status": "pending",
+          "quote": "",
+          "utterance": null
+        }
+      ]
     }
   ],
   "filler": "haiku",

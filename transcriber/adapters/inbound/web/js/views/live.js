@@ -37,6 +37,7 @@ import {
   ClipPlayer, clipsOf, createAudioContext, lineToPlay, readSound, voicesNoteKey, webAudioOutput, writeSound,
 } from "../lib/demo-voices.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
+import { pointMark } from "./interview.js";
 import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
@@ -842,14 +843,45 @@ export async function liveView(ctx, root, [sub, which] = []) {
         done ? icon("check") : h("span", { class: "lv-ring", "aria-hidden": "true" }), label);
     }
 
+    // The concepts of each topic (#258): the current topic's pending ones as
+    // a plain hint, then every topic's concepts with a mark and a word.
+    let pointsKey = null;
+    let pointsOpen = false; // the disclosure stays as the employee left it
+    function drawPoints(chips) {
+      const box = topics.querySelector(".lv-points");
+      const focus = state.topicFocus();
+      const withPoints = chips.filter((c) => c.points?.length);
+      const key = JSON.stringify([lang, focus?.id, withPoints.map((c) => [c.id, c.points.map((p) => p.status)])]);
+      if (key === pointsKey) return;
+      pointsKey = key;
+      box.hidden = !withPoints.length;
+      if (!withPoints.length) return fill(box);
+      const name = (item, field) => localized(item, field, lang);
+      const hint = focus ? h("p", { class: "lv-focus", role: "status" },
+        focus.pending.length
+          ? t("live.points_missing", { topic: name(focus, "name"), list: focus.pending.map((p) => name(p, "text")).join(", ") })
+          : t("live.points_done", { topic: name(focus, "name") })) : null;
+      const all = h("details", { class: "lv-more", open: pointsOpen },
+        h("summary", {}, t("live.points_title")),
+        h("ul", { class: "lv-point-topics" }, withPoints.map((c) => h("li", { class: c.current ? "is-current" : "" },
+          h("strong", {}, name(c, "name")),
+          h("ul", { class: "iv-point-list" }, c.points.map((p) => h("li", { class: `iv-point is-${p.status}` },
+            pointMark(p.status),
+            h("span", { class: "iv-point-text" }, name(p, "text")),
+            " ", h("span", { class: "iv-point-status" }, t(`iv.point.${p.status}`)))))))));
+      all.addEventListener("toggle", () => { pointsOpen = all.open; });
+      return fill(box, hint, all);
+    }
+
     function drawTopics() {
       const chips = state.topicChips();
       topics.hidden = !chips.length;
       if (!chips.length) return;
       if (!topics.firstChild) {
         topics.append(h("div", { class: "lv-row-head" }, h("h3", {}), h("span", { class: "meta lv-count" })),
-          h("div", { class: "lv-chips" }));
+          h("div", { class: "lv-chips" }), h("div", { class: "lv-points", hidden: true }));
       }
+      drawPoints(chips);
       // A later round of a candidate: the chips start from what earlier rounds left.
       const rounds = chips.some((c) => ["weak", "revisit", "covered"].includes(c.earlier));
       topics.querySelector("h3").textContent = rounds ? t("live.topics_next") : state.topics ? t("live.topics") : t("live.topics_phases");

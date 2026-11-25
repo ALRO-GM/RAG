@@ -242,7 +242,18 @@ def test_the_demo_replays_its_script_without_any_model_call() -> None:
     assert [f[0]["state"] for f in avoid] == ["flagged", "rephrased"]
     assert avoid[-1][0]["utterance"] == "t4.s0"
     topics = [m["topics"] for m in messages if m["type"] == "topics"]
-    assert [sum(t["done"] for t in ts) for ts in topics] == [0, 1, 2, 3, 4, 5]
+    done = [sum(t["done"] for t in ts) for ts in topics]
+    assert done == sorted(done) and sorted(set(done)) == [0, 1, 2, 3, 4, 5]
+    # The concepts of each topic are ticked by their own lines (#258);
+    # integration tests are never mentioned by Lucía, so they stay pending.
+    last = {t["id"]: t for t in topics[-1]}
+    assert [p["status"] for p in last["testing"]["points"]] == [
+        "treated", "treated", "pending"]
+    assert all(p["status"] == "treated" for p in last["python_apis"]["points"])
+    assert [i for i, t in last.items() if t.get("current")] == ["teamwork"]
+    asked = [next(t["id"] for t in ts if t.get("current"))
+             for ts in topics[1:]]
+    assert asked[0] == "python_apis" and "testing" in asked
     kinds = [m["event"]["type"] for m in messages if m["type"] == "event"]
     assert kinds.count("partial") > kinds.count("final") > 0
     assert messages[-1]["type"] == "status"

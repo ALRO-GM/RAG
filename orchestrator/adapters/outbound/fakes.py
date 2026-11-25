@@ -8,7 +8,10 @@ latency. It also plays the AI interviewer's templates (#208): the
 planner drafts a plan from the offer's bullet lines, the slot filler
 fills the slot asked when the answer has twelve words or more, the
 report scores the slots by status, and ``interviewer@1`` words each
-step with fixed phrases.
+step with fixed phrases. Their ``@2`` versions (#258) add the concepts
+of each slot: the planner gives generic ones, the filler marks those
+the rules of :func:`~orchestrator.domain.interview_points.point_hits`
+find, and the interviewer names the pending ones in its follow-up.
 """
 
 import json
@@ -23,6 +26,8 @@ from orchestrator.application.ports import (
     CancelToken,
     Document,
 )
+from orchestrator.domain.interview import Point
+from orchestrator.domain.interview_points import join_words, point_hits
 from orchestrator.domain.speech import SpeechChunk, split_sentences
 
 
@@ -116,7 +121,7 @@ class FakeReasoner:
         if request["role"] == "structured":
             return self._structured(request)
         if request["role"] == "conversational":
-            if request.get("template") == "interviewer@1":
+            if str(request.get("template") or "").startswith("interviewer@"):
                 return self._answer(request, _interviewer_text(request))
             return self._reply(request)
         window = request["context"]["window"]
@@ -175,18 +180,11 @@ class FakeReasoner:
         """The interview's planner, slot filler and report, without AI."""
         payload = request.get("payload") or {}
         template = request.get("template")
-        if template == "interview.planner@1":
-            data = _fake_plan(str(payload.get("offer") or ""))
-        elif template == "interview.slots@1":
-            answer = str(payload.get("answer") or "")
-            target = str(payload.get("target") or "")
-            words = len(answer.split())
-            slots = [] if not target or words < 4 else [{
-                "id": target,
-                "status": "complete" if words >= 12 else "partial",
-                "quote": " ".join(answer.split()[:20]),
-            }]
-            data = {"slots": slots}
+        if template in ("interview.planner@1", "interview.planner@2"):
+            data = _fake_plan(str(payload.get("offer") or ""),
+                              points=template.endswith("@2"))
+        elif template in ("interview.slots@1", "interview.slots@2"):
+            data = _fake_fill(payload, points=template.endswith("@2"))
         else:
             score = {"filled": 80, "partial": 45, "unknown": 0,
                      "skipped": 10}
@@ -285,8 +283,41 @@ class FakeTts:
             )
 
 
-def _fake_plan(offer: str) -> Document:
-    """A plan draft from the offer's bullet lines (fake planner)."""
+def _fake_fill(payload: Document, points: bool) -> Document:
+    """The fake slot filler: the slot asked, by the answer's length.
+
+    With ``points`` (``@2``) it also says which concepts of the slot
+    asked the rules find in the answer.
+    """
+    answer = str(payload.get("answer") or "")
+    target = str(payload.get("target") or "")
+    words = len(answer.split())
+    if not target or words < 4:
+        return {"slots": []}
+    item: Document = {
+        "id": target, "status": "complete" if words >= 12 else "partial",
+        "quote": " ".join(answer.split()[:20]),
+    }
+    if points:
+        slot = next((s for s in payload.get("slots") or []
+                     if isinstance(s, dict) and s.get("id") == target), {})
+        concepts = [Point.model_validate(p) for p in slot.get("points") or []]
+        item["points"] = [
+            {"id": h.point, "status": h.status, "quote": h.quote}
+            for h in point_hits(answer, concepts)
+        ]
+    return {"slots": [item]}
+
+
+_FAKE_POINTS = ["Dónde y en qué puesto", "Cuánto tiempo", "Tareas que hacía"]
+_FAKE_STAR = ["Situación concreta", "Lo que hizo él o ella", "Resultado"]
+
+
+def _fake_plan(offer: str, points: bool = False) -> Document:
+    """A plan draft from the offer's bullet lines (fake planner).
+
+    With ``points`` (``@2``) every slot gets generic concepts.
+    """
     bullets = [
         line.strip(" -*•\t") for line in offer.splitlines()
         if line.strip().startswith(("-", "*", "•"))
@@ -312,6 +343,10 @@ def _fake_plan(offer: str) -> Document:
                        "trabajo. ¿Cómo acabó?"],
          "evidence": "Problema, pasos y resultado.", "weight": 2},
     ]
+    if points:
+        for slot in slots:
+            slot["points"] = list(_FAKE_STAR if slot["kind"] == "competency"
+                                  else _FAKE_POINTS)
     first = next((line.strip() for line in offer.splitlines()
                   if line.strip()), "Puesto")
     return {"title": first[:80], "role_type": "otro",
@@ -328,6 +363,14 @@ def _interviewer_text(request: Document) -> str:
         return (f"Hola, soy el entrevistador de inteligencia artificial. "
                 f"La entrevista dura unos {payload.get('minutes', 20)} "
                 f"minutos. {question}")
+    asked = [str(p) for p in payload.get("pending_points") or []]
+    said = [str(p) for p in payload.get("treated_points") or []][-2:]
+    if action == "probe" and asked:
+        head = f"Me has hablado de {join_words(said)}. " if said else ""
+        return f"{head}¿Y de {join_words(asked)}?"
+    if action == "clarify" and asked:
+        return (f"No me ha quedado claro lo de {join_words(asked)}; "
+                "¿quieres contarme algo o pasamos a la siguiente pregunta?")
     if action == "probe":
         missing = payload.get("missing", "un ejemplo")
         return f"¿Me puedes concretar un poco más? Me falta {missing}."

@@ -8,8 +8,14 @@ does is decided here, so it can be tested without a model:
 * ``open``: greet and ask the first slot (``minimo`` slots first, in
   plan order).
 * After an answer to the slot asked: ``complete`` fills it and the
-  agenda moves on; the candidate saying they do not know the topic
-  marks it ``unknown`` («no lo conoce») and moves on; otherwise at most
+  agenda moves on (a slot with **points**, #258, is filled by its
+  points instead: see
+  :func:`~orchestrator.domain.interview_points.points_status`; its
+  follow-up and clarification name the points still pending, at most
+  :data:`~orchestrator.domain.interview_points.MAX_ASKED_POINTS`);
+  the candidate saying they do not know the topic marks it
+  ``unknown`` («no lo conoce», or only the points asked, for a slot
+  with points) and moves on; otherwise at most
   ``max_probes`` follow-ups (``probe``, one by default). When the
   follow-ups did not cover it, ``clarify`` offers the choice: refine
   the answer or go to the next question. A skip marks it ``skipped``;
@@ -23,21 +29,35 @@ does is decided here, so it can be tested without a model:
 
 :func:`heuristic_fill` is the cheap slot filler (no model): it says
 whether an answer covers the slot asked, from its length and markers of
-a concrete first-person example (past-tense verbs, figures, a result).
+a concrete first-person example (past-tense verbs, figures, a result),
+and which of its points it treats
+(:func:`~orchestrator.domain.interview_points.point_hits`).
 Plain data and functions: no I/O.
 """
 
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Set
+from typing import Dict, List, Literal, Optional, Set, Tuple
 
 from orchestrator.domain.interview import (
     QUOTE_CHARS,
     Answer,
     InterviewPlan,
+    SheetPoint,
     SheetSlot,
     Slot,
     fold,
+)
+from orchestrator.domain.interview_points import (
+    MAX_ASKED_POINTS,
+    PointHit,
+    join_words,
+    pending,
+    point_hits,
+    points_status,
+    quote,
+    record_hit,
+    says_unknown,
 )
 
 Action = Literal[
@@ -51,15 +71,11 @@ MAX_TURNS = 40
 DESEABLE_TIME, OPCIONAL_TIME = 0.30, 0.50
 """Share of the time budget that must be left to ask a deseable or an
 opcional slot once the minimos are settled."""
-QUOTE_WORDS = 30
-
-_UNKNOWN = re.compile(
-    r"\b(no (lo|la|los|las) (conozco|domino|he usado|he utilizado|he "
-    r"tocado)|no se (nada|que es|lo que es|de eso|sobre eso)|desconozco|"
-    r"no tengo (ni idea|experiencia (con|en|de))|nunca (he|lo he|la he) "
-    r"(trabajado|usado|utilizado|tocado)|no sabria (decirte|responder|"
-    r"contestar)|no he trabajado (nunca )?(con|en) (eso|esto|ello))"
-)
+__all__ = [
+    "Action", "Agenda", "Fill", "FillStatus", "MAX_TURNS", "PointHit",
+    "Step", "heuristic_fill", "is_question", "quote", "says_unknown",
+    "wants_skip",
+]
 _SKIP = re.compile(
     r"\b(pasamos|pasemos|pasar a la siguiente|siguiente pregunta|"
     r"(la )?siguiente,|saltar|saltemos|sigamos|prefiero (pasar|seguir|no "
@@ -88,15 +104,6 @@ _STOP = frozenset(
 )
 
 
-def says_unknown(text: str) -> bool:
-    """Tell whether the candidate says they do not know the topic."""
-    folded = fold(text)
-    if _UNKNOWN.search(folded):
-        return True
-    words = folded.replace(",", " ").replace(".", " ").split()
-    return len(words) <= 6 and "no" in words and "se" in words
-
-
 def wants_skip(text: str) -> bool:
     """Tell whether the candidate asks to go to the next question."""
     return bool(_SKIP.search(fold(text)))
@@ -105,13 +112,6 @@ def wants_skip(text: str) -> bool:
 def is_question(text: str) -> bool:
     """Tell whether the candidate asked something (ends with ``?``)."""
     return text.strip().endswith("?")
-
-
-def quote(text: str) -> str:
-    """Return the first words of ``text`` as a quote."""
-    words = text.split()
-    cut = " ".join(words[:QUOTE_WORDS])
-    return (cut + (" …" if len(words) > QUOTE_WORDS else ""))[:QUOTE_CHARS]
 
 
 def _keywords(text: str) -> Set[str]:
@@ -124,11 +124,12 @@ def _keywords(text: str) -> Set[str]:
 
 @dataclass(frozen=True)
 class Fill:
-    """One slot an answer gives evidence for."""
+    """One slot an answer gives evidence for, and the points it treats."""
 
     slot: str
     status: FillStatus
     quote: str
+    points: Tuple[PointHit, ...] = ()
 
 
 def heuristic_fill(
@@ -142,14 +143,18 @@ def heuristic_fill(
     when it has 10 words or more and a figure, a concrete marker or a
     word of the slot. Shorter or vaguer answers are ``partial``. Any
     other slot sharing two content words with a 15-word answer is
-    ``partial``.
+    ``partial``. Each fill carries the slot's points the answer treats
+    (or says it does not know); an answer that only touches points of
+    the slot asked, however short, is a ``partial`` fill of it.
     """
     folded = fold(text)
     words = len(text.split())
-    if words < 3 or says_unknown(text):
-        return []
-    found: List[Fill] = []
     said = quote(text)
+    hits = tuple(point_hits(text, target.points)) if target else ()
+    if words < 3 or says_unknown(text):
+        return ([Fill(target.id, "partial", said, hits)]
+                if target is not None and hits else [])
+    found: List[Fill] = []
     if target is not None:
         past = bool(_PAST.search(text.lower()))
         if target.kind == "competency":
@@ -157,7 +162,8 @@ def heuristic_fill(
                     and bool(_RESULT.search(folded)))
             if done or words >= 8:
                 found.append(Fill(target.id,
-                                  "complete" if done else "partial", said))
+                                  "complete" if done else "partial", said,
+                                  hits))
         else:
             topic = _keywords(
                 " ".join([target.label, target.evidence, *target.questions])
@@ -168,14 +174,18 @@ def heuristic_fill(
             )
             if done or words >= 4:
                 found.append(Fill(target.id,
-                                  "complete" if done else "partial", said))
+                                  "complete" if done else "partial", said,
+                                  hits))
+        if hits and not found:
+            found.append(Fill(target.id, "partial", said, hits))
     if words >= 15:
         heard = _keywords(text)
         for slot in slots:
             if target is not None and slot.id == target.id:
                 continue
             if len(heard & _keywords(slot.label + " " + slot.evidence)) >= 2:
-                found.append(Fill(slot.id, "partial", said))
+                found.append(Fill(slot.id, "partial", said,
+                                  tuple(point_hits(text, slot.points))))
     return found
 
 
@@ -187,6 +197,10 @@ class Step:
     slot: Optional[Slot] = None
     missing: str = ""
     minutes_left: float = 0.0
+    points: Tuple[str, ...] = ()
+    """The slot's pending points a ``probe`` or ``clarify`` names."""
+    treated: Tuple[str, ...] = ()
+    """The slot's points already treated (for «Me has hablado de A»)."""
 
 
 _MISSING_COMPETENCY = (
@@ -215,7 +229,9 @@ class Agenda:
         self.slots: Dict[str, Slot] = {s.id: s for s in plan.slots}
         self.state: Dict[str, SheetSlot] = {
             s.id: SheetSlot(id=s.id, label=s.label, level=s.level,
-                            weight=s.weight, competency=s.competency)
+                            weight=s.weight, competency=s.competency,
+                            points=[SheetPoint(id=p.id, text=p.text)
+                                    for p in s.points])
             for s in plan.slots
         }
         self.order = [s.id for s in plan.ordered()]
@@ -227,6 +243,8 @@ class Agenda:
         self.closed_by: Optional[str] = None
         self.turns = 0
         self.turns_to_minimums: Optional[int] = None
+        self.asked_points: List[str] = []
+        """The points the last follow-up of the slot asked about named."""
 
     # ---- time -------------------------------------------------------
 
@@ -251,7 +269,12 @@ class Agenda:
         if state.status in _DONE:
             return
         if says_unknown(text):
-            state.status = "unknown"
+            if not state.points:
+                state.status = "unknown"
+                return
+            self._unknown_points(target, utterance, text, fills)
+            if self.stage == "clarify":
+                self.stage = "none"
             return
         if self.stage == "clarify":
             if wants_skip(text) and state.status != "filled":
@@ -265,8 +288,30 @@ class Agenda:
                 and target not in self.answered_questions):
             self.pending_question = True
 
+    def _unknown_points(
+        self, sid: str, utterance: str, text: str, fills: List[Fill]
+    ) -> None:
+        """«No lo sé» to a slot with points: settle the points asked.
+
+        When the answer named no point itself, the points the last
+        follow-up asked about (all pending ones after the first
+        question) are marked ``unknown``: a "does not know" settles
+        them instead of leaving them pending forever.
+        """
+        state = self.state[sid]
+        if any(f.slot == sid and f.points for f in fills):
+            return
+        asked = set(self.asked_points) or {p.id for p in pending(
+            state.points)}
+        for point in state.points:
+            if point.id in asked:
+                record_hit(state.points,
+                           PointHit(point.id, "unknown", quote(text)),
+                           utterance)
+        self._settle(state)
+
     def _record(self, fill: Fill, utterance: str) -> None:
-        """Add one fill to its slot's answers and status."""
+        """Add one fill to its slot's answers, points and status."""
         state = self.state.get(fill.slot)
         if state is None or state.status in ("skipped", "unknown"):
             return
@@ -274,10 +319,33 @@ class Agenda:
             utterance=utterance, quote=fill.quote[:QUOTE_CHARS],
             status=fill.status,
         ))
-        if fill.status == "complete":
+        if state.points:
+            for hit in fill.points:
+                record_hit(state.points, hit, utterance)
+            if state.status == "empty":
+                state.status = "partial"
+            self._settle(state)
+        elif fill.status == "complete":
             state.status = "filled"
         elif state.status == "empty":
             state.status = "partial"
+
+    @staticmethod
+    def _settle(state: SheetSlot) -> None:
+        """Give a slot with points the status its points decide."""
+        settled = points_status(state.points)
+        if settled is not None:
+            state.status = settled
+
+    def _open(self, sid: str) -> bool:
+        """Whether a slot still has something to ask.
+
+        Not done, and a slot with points still has a pending one.
+        """
+        state = self.state[sid]
+        if state.status in _DONE:
+            return False
+        return not state.points or bool(pending(state.points))
 
     # ---- decisions --------------------------------------------------
 
@@ -314,13 +382,13 @@ class Agenda:
             if self.pending_question:
                 self.answered_questions.add(target)
                 return Step("answer", slot, minutes_left=left)
-            if state.status not in _DONE and self.stage != "none":
+            if self._open(target) and self.stage != "none":
                 if self.stage == "asked" and state.probes < self.max_probes:
                     state.probes += 1
-                    return Step("probe", slot, self._missing(slot), left)
+                    return self._follow_up("probe", slot, left)
                 if self.stage in ("asked", "probed"):
                     self.stage = "clarify"
-                    return Step("clarify", slot, self._missing(slot), left)
+                    return self._follow_up("clarify", slot, left)
             self.target = None
             self.stage = "none"
         self._note_minimums()
@@ -341,6 +409,7 @@ class Agenda:
         state = self.state[slot.id]
         state.asked += 1
         self.target = slot.id
+        self.asked_points = []
         self.stage = "asked"
         if state.probes >= self.max_probes:
             self.stage = "probed"
@@ -370,9 +439,32 @@ class Agenda:
             return slot
         return None
 
+    def _follow_up(self, action: Action, slot: Slot, left: float) -> Step:
+        """A ``probe`` or ``clarify`` step on ``slot``.
+
+        A slot with points names its pending ones (at most
+        :data:`MAX_ASKED_POINTS`) and those already treated; a slot
+        without points asks for the generic missing part, as before.
+        """
+        state = self.state[slot.id]
+        if not state.points:
+            return Step(action, slot, self._missing(slot), left)
+        asked = pending(state.points)[:MAX_ASKED_POINTS]
+        self.asked_points = [p.id for p in asked]
+        treated = tuple(p.text for p in state.points
+                        if p.status == "treated")
+        names = tuple(p.text for p in asked)
+        language = self.plan.language
+        missing = (f"what they have not mentioned yet: "
+                   f"{join_words(names, language)}"
+                   if language[:2] == "en" else
+                   f"lo que aún no ha mencionado: "
+                   f"{join_words(names, language)}")
+        return Step(action, slot, missing, left, names, treated)
+
     @staticmethod
     def _missing(slot: Slot) -> str:
-        """What a follow-up asks for."""
+        """What a follow-up asks for (a slot without points)."""
         if slot.kind == "competency":
             return _MISSING_COMPETENCY
         return _MISSING_REQUIREMENT

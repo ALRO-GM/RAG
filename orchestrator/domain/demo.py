@@ -6,7 +6,9 @@ the conversation (a ``transcript.v1``) and everything the page would
 otherwise get from the services: the suggestions, prepared in advance
 and attached to the sentence after which they appear; the line better
 avoided with its hint; and the topics of the job with the sentence that
-covers each. Nothing is asked to a model, so every run is the same.
+covers each, the sentence that asks about it and its concepts with the
+sentence that treats each, if any (#258). Nothing is asked to a model,
+so every run is the same.
 A support demo (#250) also carries the knowledge chunks its suggestions
 cite, the mandatory items of the domain with the sentence that says each
 one (or none), a prepared call report (:mod:`.call_report`) and a voice
@@ -40,6 +42,19 @@ PARTIAL_EVERY_S = 0.25
 """Stream seconds between two partials of a replayed demo sentence."""
 
 
+class DemoPoint(BaseModel):
+    """A concept of a demo topic, ticked when ``covered_by`` is said."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    covered_by: Optional[str] = None
+    """The sentence that treats it; none: it is never treated."""
+    en: Optional[Dict[str, str]] = None
+    """``text`` in English."""
+
+
 class DemoTopic(BaseModel):
     """A topic of the job, ticked when ``covered_by`` has been said."""
 
@@ -48,8 +63,19 @@ class DemoTopic(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     covered_by: str
+    asked_by: Optional[str] = None
+    """The sentence that asks about it (it becomes the current topic)."""
+    points: List[DemoPoint] = Field(default_factory=list)
+    """Its concepts (#258), each ticked by its own sentence."""
     en: Optional[Dict[str, str]] = None
     """The same texts in English (``name``), for a page in English."""
+
+    def sentences(self) -> List[str]:
+        """Every sentence the topic names."""
+        named = [self.covered_by]
+        if self.asked_by:
+            named.append(self.asked_by)
+        return named + [p.covered_by for p in self.points if p.covered_by]
 
 
 class DemoSuggestion(BaseModel):
@@ -176,7 +202,7 @@ class DemoScript(BaseModel):
     def _known_lines(self) -> "DemoScript":
         """Every reference names a sentence of the transcript."""
         known: Set[str] = {u.id for u in self.transcript.utterances}
-        named = ([t.covered_by for t in self.topics]
+        named = ([n for t in self.topics for n in t.sentences()]
                  + [s.after for s in self.suggestions]
                  + [a.utterance for a in self.avoid])
         if self.mandatory:

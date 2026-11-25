@@ -669,12 +669,146 @@ INTERVIEW_REPORT_V1 = Template(
 )
 
 
+# ---- concepts per point (#258) ------------------------------------------
+
+PLANNER_V2_MAX_OUTPUT_TOKENS = 3200
+"""Cap of ``interview.planner@2``: ``@1``'s slots plus up to six short
+concepts each."""
+SLOTS_V2_MAX_OUTPUT_TOKENS = 320
+"""Cap of ``interview.slots@2``: ``@1``'s slots plus the concepts each
+answer treats, with short quotes."""
+POINTS_SHAPE = '"weight": 3, "points": ["short concrete concept"]}]}'
+POINTS_RULE = (
+    " points are the 0 to 6 concrete concepts (at most 6 words each) a "
+    "complete answer to the slot talks about: for knowledge, technical "
+    "or requirement slots what a person who knows the topic would "
+    "mention (for running shoes: tipos de pisada, amortiguación y drop, "
+    "cómo elegir la talla); for competency slots the parts of a "
+    "complete example (situación concreta, lo que hizo él o ella, "
+    "resultado) or what is specific to this job. Never a concept about "
+    "a protected characteristic."
+)
+
+
+def _planner_v2_system(request: ReasonRequest) -> str:
+    """``@1``'s prompt with each slot's concepts (``points``)."""
+    v1 = _planner_system(request)
+    shape = '"weight": 3}]}'
+    return v1.replace(shape, POINTS_SHAPE, 1).replace(
+        " No other field, no explanation.",
+        POINTS_RULE + " No other field, no explanation.", 1)
+
+
+INTERVIEW_PLANNER_V2 = Template(
+    id="interview.planner@2", role="structured",
+    system=_planner_v2_system, user=_planner_user, parse=_structured_parse,
+    max_output_tokens=PLANNER_V2_MAX_OUTPUT_TOKENS,
+)
+
+
+def _slots_v2_system(request: ReasonRequest) -> str:
+    return (
+        "You track the coverage of a job interview. Given the plan's "
+        "slots (id, topic, evidence wanted and, for some, the concepts "
+        "to be treated with their ids), the interviewer's last "
+        "question and the candidate's answer, say which slots the "
+        "answer gives evidence for: complete when it gives a concrete "
+        "fact or a real first-person example with what they did (and the "
+        "result, for a competency), partial when it is on topic but "
+        "vague, generic, hypothetical or misses that. For a slot with "
+        "concepts also list each concept the answer talks about: "
+        "treated when the candidate talks about it, in their own words "
+        "or with a synonym; unknown when they say they do not know it "
+        "or have not worked with it. Leave out the concepts it does not "
+        "touch. Do not judge how good or correct the answer is. Reply "
+        "with one JSON object only: "
+        '{"slots": [{"id": "slot id", "status": "complete|partial", '
+        '"quote": "the candidate\'s own words, at most 20", "points": '
+        '[{"id": "concept id", "status": "treated|unknown", "quote": '
+        '"their words, at most 12"}]}]} with at most three slots, or '
+        '{"slots": []} when it covers none.'
+    )
+
+
+def _slots_v2_user(request: ReasonRequest) -> str:
+    rows = []
+    for slot in _payload_list(request, "slots")[:16]:
+        if not isinstance(slot, dict):
+            continue
+        rows.append(
+            f"[{str(slot.get('id'))[:12]}] {str(slot.get('label'))[:120]}"
+            f" — evidence: {str(slot.get('evidence') or '-')[:200]}"
+        )
+        points = slot.get("points")
+        for point in (points if isinstance(points, list) else [])[:6]:
+            if isinstance(point, dict):
+                rows.append(f"  concept [{str(point.get('id'))[:4]}] "
+                            f"{str(point.get('text'))[:80]}")
+    return (
+        "Slots:\n" + ("\n".join(rows) or "(none)")
+        + f"\nAsked about: {_payload_text(request, 'target', 12) or '-'}"
+        + f"\n\nInterviewer: {_payload_text(request, 'question', 600)}"
+        + f"\nCandidate: {_payload_text(request, 'answer', 2000)}"
+        + "\n\nJSON:"
+    )
+
+
+INTERVIEW_SLOTS_V2 = Template(
+    id="interview.slots@2", role="structured",
+    system=_slots_v2_system, user=_slots_v2_user, parse=_structured_parse,
+    max_output_tokens=SLOTS_V2_MAX_OUTPUT_TOKENS,
+)
+
+INTERVIEWER_POINTS_RULE = (
+    " When the step lists concepts to ask about (probe or clarify), "
+    "name them instead of asking generically for more: briefly say "
+    "what they already mentioned, if anything, then ask about the "
+    "concepts listed, all of them and only them, in one natural spoken "
+    "question (\"Me has hablado de A. ¿Y de B y C?\"; clarify: \"No me "
+    "ha quedado claro lo de B y C; ¿quieres contarme algo o pasamos a "
+    "la siguiente pregunta?\"). Never say they are missing, that the "
+    "answer was incomplete or how much of the topic they covered."
+)
+
+
+def _interviewer_v2_system(request: ReasonRequest) -> str:
+    """``@1``'s prompt with the rule for naming the pending concepts."""
+    v1 = _interviewer_system(request)
+    tail = " Reply with one JSON object: "
+    return v1.replace(tail, INTERVIEWER_POINTS_RULE + tail, 1)
+
+
+def _interviewer_v2_user(request: ReasonRequest) -> str:
+    """``@1``'s user prompt with the concepts of the step."""
+    head, _, rest = _interviewer_user(request).partition("\n\nKnowledge:")
+    extra = []
+    treated = [str(p)[:80] for p in _payload_list(request, "treated_points")
+               if isinstance(p, str)][:6]
+    asked = [str(p)[:80] for p in _payload_list(request, "pending_points")
+             if isinstance(p, str)][:3]
+    if treated:
+        extra.append("Concepts already mentioned: " + " | ".join(treated))
+    if asked:
+        extra.append("Concepts to ask about now: " + " | ".join(asked))
+    lines = "\n".join([head, *extra])
+    return f"{lines}\n\nKnowledge:{rest}"
+
+
+INTERVIEWER_V2 = Template(
+    id="interviewer@2", role="conversational",
+    system=_interviewer_v2_system, user=_interviewer_v2_user,
+    parse=_conversational_parse,
+    max_output_tokens=INTERVIEWER_MAX_OUTPUT_TOKENS,
+)
+
+
 _REGISTRY: Dict[str, Template] = {
     t.id: t for t in (
         CONVERSATIONAL_V1, CONVERSATIONAL_V2, SUGGESTER_INTERVIEW_V1,
         SUGGESTER_SUPPORT_V1,
         SUGGESTER_INTERVIEW_V2, SUGGESTER_SUPPORT_V2, INTERVIEWER_V1,
         INTERVIEW_PLANNER_V1, INTERVIEW_SLOTS_V1, INTERVIEW_REPORT_V1,
+        INTERVIEW_PLANNER_V2, INTERVIEW_SLOTS_V2, INTERVIEWER_V2,
     )
 }
 

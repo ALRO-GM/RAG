@@ -3,7 +3,8 @@
 // interview plan (interview.plan.v1) before the interview, the live coverage
 // from the orchestrator's feed ("coverage", "interview", "interview_result"
 // messages), the report's figures and the comparison of candidates of one
-// offer. No DOM and no text here (every text is in the dictionaries), so
+// offer; each point of the plan can carry the concrete concepts a complete
+// answer talks about, followed one by one (#258). No DOM and no text here (every text is in the dictionaries), so
 // node --test runs it.
 
 export const INTERVIEW = "voicebot.interview";
@@ -16,6 +17,9 @@ export const MIN_MINUTES = 5;
 export const MAX_MINUTES = 90;
 export const MAX_SLOTS = 12;
 export const MIN_OFFER = 40;
+export const MAX_POINTS = 6;
+export const POINT_CHARS = 80;
+export const POINT_STATUSES = ["treated", "pending", "unknown"];
 
 /** The products the voice-bot page can start (the ones that speak). */
 export function speakerProducts(products) {
@@ -38,7 +42,7 @@ export function addSlot(plan) {
   const id = nextId(plan);
   plan.slots.push({
     id, label: "", kind: "requirement", competency: null, level: "deseable",
-    phase: "experience", questions: [""], evidence: "", weight: 3,
+    phase: "experience", questions: [""], evidence: "", weight: 3, points: [],
   });
   return id;
 }
@@ -46,6 +50,33 @@ export function addSlot(plan) {
 /** Remove a slot. */
 export function removeSlot(plan, id) {
   plan.slots = plan.slots.filter((s) => s.id !== id);
+}
+
+/**
+ * The concepts of a slot from the editor's lines (one per line): trimmed,
+ * cut to POINT_CHARS, empty and repeated ones dropped, at most MAX_POINTS.
+ * A concept whose text did not change keeps its id; new ones get the next
+ * free `p<n>`.
+ */
+export function pointsFromLines(current, lines) {
+  const before = new Map((current ?? []).map((p) => [p.text, p.id]));
+  const texts = [];
+  for (const line of lines ?? []) {
+    const text = String(line).replace(/\s+/g, " ").trim().slice(0, POINT_CHARS).trim();
+    if (text && !texts.some((x) => x.toLowerCase() === text.toLowerCase())) texts.push(text);
+  }
+  const kept = texts.slice(0, MAX_POINTS);
+  const used = new Set(kept.map((t) => before.get(t)).filter(Boolean));
+  let next = 1;
+  return kept.map((text) => {
+    let id = before.get(text);
+    if (!id) {
+      while (used.has(`p${next}`)) next += 1;
+      id = `p${next}`;
+      used.add(id);
+    }
+    return { id, text };
+  });
 }
 
 /** Change fields of a slot; a competency makes it a competency slot. */
@@ -60,6 +91,7 @@ export function editSlot(plan, id, fields) {
   }
   if ("weight" in fields) slot.weight = Math.max(1, Math.min(5, Math.round(Number(fields.weight) || 3)));
   if ("questions" in fields) slot.questions = fields.questions.map((q) => q.trim()).filter(Boolean).slice(0, 4);
+  if ("points" in fields) slot.points = pointsFromLines(slot.points, fields.points);
 }
 
 /** Tick or untick "imprescindible": minimo, or back to deseable. */
@@ -82,11 +114,18 @@ export function planErrors(plan) {
   return errors;
 }
 
-/** The plan as sent back to the server (empty questions dropped). */
+/** The plan as sent back to the server (empty questions dropped; no concepts: []). */
 export function planForSave(plan) {
   const copy = clonePlan(plan);
-  copy.slots = copy.slots.map((s) => ({ ...s, questions: s.questions.map((q) => q.trim()).filter(Boolean) }));
+  copy.slots = copy.slots.map((s) => ({ ...s, questions: s.questions.map((q) => q.trim()).filter(Boolean), points: s.points ?? [] }));
   return copy;
+}
+
+/** How many of a slot's concepts are treated, pending or not known, and in all. */
+export function pointCounts(points) {
+  const out = Object.fromEntries(POINT_STATUSES.map((s) => [s, 0]));
+  for (const point of points ?? []) out[point.status ?? "pending"] = (out[point.status ?? "pending"] ?? 0) + 1;
+  return { ...out, total: (points ?? []).length };
 }
 
 /** The time budget's sum of minimums, for the review's summary line. */

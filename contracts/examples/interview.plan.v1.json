@@ -15,7 +15,7 @@
     "chars": 205
   },
   "planner": {
-    "template": "interview.planner@1",
+    "template": "interview.planner@2",
     "model": "fake",
     "status": "ok",
     "error": null,
@@ -35,7 +35,21 @@
         "Háblame de tu experiencia con esto: Experiencia mínima de un año en atención al cliente en tienda"
       ],
       "evidence": "Dónde, cuánto tiempo y qué hacía.",
-      "weight": 4
+      "weight": 4,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Dónde y en qué tienda"
+        },
+        {
+          "id": "p2",
+          "text": "Cuánto tiempo"
+        },
+        {
+          "id": "p3",
+          "text": "Tareas con clientes"
+        }
+      ]
     },
     {
       "id": "s2",
@@ -48,7 +62,17 @@
         "Háblame de tu experiencia con esto: Disponibilidad para turnos rotativos incluidos sábados"
       ],
       "evidence": "Dónde, cuánto tiempo y qué hacía.",
-      "weight": 4
+      "weight": 4,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Turnos rotativos"
+        },
+        {
+          "id": "p2",
+          "text": "Sábados"
+        }
+      ]
     },
     {
       "id": "s3",
@@ -61,7 +85,21 @@
         "Háblame de tu experiencia con esto: Valorable conocimiento de material de running"
       ],
       "evidence": "Dónde, cuánto tiempo y qué hacía.",
-      "weight": 4
+      "weight": 4,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Tipos de pisada"
+        },
+        {
+          "id": "p2",
+          "text": "Amortiguación y drop"
+        },
+        {
+          "id": "p3",
+          "text": "Cómo elegir la talla"
+        }
+      ]
     },
     {
       "id": "s4",
@@ -74,7 +112,21 @@
         "Cuéntame una vez en la que tuviste que explicar algo difícil. ¿Qué hiciste tú?"
       ],
       "evidence": "Situación, acción propia y resultado.",
-      "weight": 3
+      "weight": 3,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Situación concreta"
+        },
+        {
+          "id": "p2",
+          "text": "Lo que hizo él o ella"
+        },
+        {
+          "id": "p3",
+          "text": "Resultado"
+        }
+      ]
     },
     {
       "id": "s5",
@@ -87,7 +139,21 @@
         "Cuéntame un problema que resolviste en el trabajo. ¿Cómo acabó?"
       ],
       "evidence": "Problema, pasos y resultado.",
-      "weight": 2
+      "weight": 2,
+      "points": [
+        {
+          "id": "p1",
+          "text": "Situación concreta"
+        },
+        {
+          "id": "p2",
+          "text": "Lo que hizo él o ella"
+        },
+        {
+          "id": "p3",
+          "text": "Resultado"
+        }
+      ]
     }
   ]
 }

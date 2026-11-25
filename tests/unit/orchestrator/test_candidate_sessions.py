@@ -267,7 +267,7 @@ def asked(sessions: LiveSessions) -> List[Dict[str, Any]]:
     """The payload of every interviewer turn the reasoner was asked for."""
     reasoner: FakeReasoner = sessions.reasoner  # type: ignore[assignment]
     return [r["payload"] for r in reasoner.requests
-            if r.get("template") == "interviewer@1"]
+            if r.get("template") == "interviewer@2"]
 
 
 def test_the_ai_interviewer_asks_the_open_core_questions_first() -> None:
@@ -475,3 +475,41 @@ def test_a_stop_while_the_salary_waits_keeps_the_plans_close() -> None:
     assert result is not None
     assert result["sheet"]["closed_by"] == "covered"
     assert result["sheet"]["state"] == "closed"
+
+
+def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
+    """#258: the topic's concepts are ticked and the suggestions told."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    assert [p.text for p in one.points] == [
+        "Dónde y en qué puesto", "Cuánto tiempo", "Tareas que hacía"]
+    live = wired(conversation("r1", [
+        ["S1", f"Hablemos de {one.label}. {one.questions[0]}"],
+        ["S2", "Llevo dos años trabajando de cara al público."],
+        ["S1", "¿Y dónde fue, en qué puesto?"],
+        ["S2", "Trabajé de dependienta en una tienda de deportes."],
+    ]), AskingReasoner(), store)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    topics = [m["topics"] for m in messages(live, "r1")
+              if m["type"] == "topics"]
+    current = [next((t for t in ts if t.get("current")), None)
+               for ts in topics]
+    last = current[-1]
+    assert current[0] is None and last is not None and last["id"] == one.id
+    first = next(t for ts in topics for t in ts
+                 if t["id"] == one.id and any(
+                     p["status"] == "treated" for p in t["points"]))
+    assert [p["status"] for p in first["points"]] == [
+        "pending", "treated", "treated"]
+    assert all(p["status"] == "treated" for p in last["points"])
+    assert last["done"] is True
+    reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
+    goals = [r["context"]["session"].get("goal") for r in reasoner.requests
+             if r.get("role") == "suggester"]
+    assert goals[0] == (f"Tema en curso: «{one.label}»; conceptos aún sin "
+                        "tratar: Dónde y en qué puesto.")
+    assert goals[-1] is None  # nothing left of it: no goal (first round)
+    assert live.get("r1")["goal"] is None

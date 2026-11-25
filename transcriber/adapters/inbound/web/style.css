@@ -1663,3 +1663,19 @@ details.tech, details.controls { margin: 1rem 0; }
 .vd-thinking .vd-text { color: var(--muted); font-size: var(--fs-md); }
 .vd-sources { display: flex; flex-direction: column; gap: var(--s-1); font-size: var(--fs-sm); color: var(--muted); }
 .vd-sources details p { margin: var(--s-1) 0 0; }
+/* Concepts of a point (#258): a mark and a word, never the colour alone. */
+.iv-points { display: flex; flex-direction: column; gap: 2px; }
+.iv-points .meta { margin: 0; }
+.iv-point-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); }
+.iv-point { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); }
+.iv-point-mark { width: 1.1em; flex: none; display: inline-flex; justify-content: center; align-items: center; font-weight: 700; }
+.iv-point-mark .icon { width: 0.95em; height: 0.95em; }
+.iv-point-status { color: var(--muted); }
+.iv-point.is-treated .iv-point-mark { color: var(--ok); }
+.iv-point.is-unknown .iv-point-mark { color: var(--danger); }
+.iv-point.is-pending .iv-point-mark { color: var(--faint); }
+.iv-point q { font-style: italic; color: var(--muted); }
+.lv-points { display: flex; flex-direction: column; gap: var(--s-2); }
+.lv-focus { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--active); color: var(--text); font-size: var(--fs-md); }
+.lv-point-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.lv-point-topics > li.is-current > strong { color: var(--accent-ink); }

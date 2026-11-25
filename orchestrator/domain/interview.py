@@ -3,7 +3,8 @@
 An AI interviewer (product ``voicebot.interview``, #208) works from a
 plan made from a job offer: **slots**, each a requirement of the offer
 or a competency of the rubric (``knowledge/rubrics/core.es.json``),
-with question ideas, the evidence a complete answer shows and a level:
+with question ideas, the evidence a complete answer shows, the concrete
+**points** (concepts) a complete answer talks about (#258) and a level:
 ``minimo`` (must be answered before the interview closes), ``deseable``
 (asked when there is time) or ``opcional``. The planner model writes a
 draft; :func:`plan_from_draft` keeps only what fits the contract and
@@ -13,7 +14,10 @@ planner gives nothing usable.
 
 The **sheet** (``interview.sheet.v1``) is the plan's slots after the
 interview: each with its status (``filled``, ``partial``, ``empty``)
-and the candidate's answers with their utterance ids and quotes.
+and the candidate's answers with their utterance ids and quotes; a
+slot with points also says, point by point, whether the candidate
+talked about it (``treated``), not yet (``pending``) or said they do
+not know it (``unknown``), with the quote and utterance that settled it.
 
 Plain data and validation: no I/O.
 """
@@ -64,6 +68,10 @@ COMPETENCIES: Tuple[Tuple[str, str], ...] = (
 COMPETENCY_IDS = tuple(c for c, _ in COMPETENCIES)
 
 MAX_SLOTS = 12
+MAX_POINTS, POINT_CHARS = 6, 80
+"""Concepts per slot, and characters per concept (#258)."""
+PointStatus = Literal["treated", "pending", "unknown"]
+POINT_STATUSES: Tuple[PointStatus, ...] = ("treated", "pending", "unknown")
 MIN_MINUTES, MAX_MINUTES = 5, 90
 LABEL_CHARS, QUESTION_CHARS, EVIDENCE_CHARS = 120, 300, 300
 SUMMARY_CHARS = 400
@@ -112,6 +120,19 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class Point(_Strict):
+    """A concrete concept a complete answer to a slot talks about (#258).
+
+    For a knowledge, technical or requirement slot, what a person who
+    knows the topic would mention («tipos de pisada»); for a
+    competency slot, a part of a complete example (situation, own
+    action, result) or what is specific to this job.
+    """
+
+    id: str = Field(pattern=r"^p[0-9]{1,2}$")
+    text: str = Field(min_length=1, max_length=POINT_CHARS)
+
+
 class Slot(_Strict):
     """One thing the interview must, should or may find out."""
 
@@ -124,6 +145,8 @@ class Slot(_Strict):
     questions: List[str] = Field(min_length=1, max_length=4)
     evidence: str = Field(default="", max_length=EVIDENCE_CHARS)
     weight: int = Field(default=DEFAULT_WEIGHT, ge=MIN_WEIGHT, le=MAX_WEIGHT)
+    points: List[Point] = Field(default_factory=list, max_length=MAX_POINTS)
+    """The concepts to be treated (#258); none: the slot works as before."""
 
     @model_validator(mode="after")
     def _valid(self) -> "Slot":
@@ -136,6 +159,9 @@ class Slot(_Strict):
         for question in self.questions:
             if not question.strip() or len(question) > QUESTION_CHARS:
                 raise ValueError("each question has 1 to 300 characters")
+        ids = [p.id for p in self.points]
+        if len(set(ids)) != len(ids):
+            raise ValueError("point ids must be unique in a slot")
         return self
 
 
@@ -229,11 +255,35 @@ def _questions(value: object) -> List[str]:
     return found[:3]
 
 
+def draft_points(value: object) -> List[Point]:
+    """Return up to :data:`MAX_POINTS` usable concepts from a draft.
+
+    Each item is a string (or an object with ``text``); empty, repeated
+    and protected-characteristic ones are dropped, and ids are given in
+    order (``p1``, ``p2``…).
+    """
+    items = value if isinstance(value, list) else []
+    found: List[str] = []
+    for item in items:
+        raw = item.get("text") if isinstance(item, dict) else item
+        if not isinstance(raw, str):
+            continue
+        text = _line(raw, POINT_CHARS).strip(" .;,")
+        if not text or is_protected(text) or fold(text) in {
+            fold(f) for f in found
+        }:
+            continue
+        found.append(text)
+    return [Point(id=f"p{i}", text=text)
+            for i, text in enumerate(found[:MAX_POINTS], start=1)]
+
+
 def draft_slots(raw: object) -> Tuple[List[Slot], int]:
     """Read a planner's ``slots`` into valid slots; count those dropped.
 
     A slot without a label or a usable question, or about a protected
     characteristic, is dropped; at most :data:`MAX_SLOTS` are kept.
+    Its ``points`` are read by :func:`draft_points`.
     """
     slots: List[Slot] = []
     dropped = 0
@@ -258,6 +308,7 @@ def draft_slots(raw: object) -> Tuple[List[Slot], int]:
                    else "behavioural" if competency else "experience"),
             questions=questions,
             evidence=_line(item.get("evidence"), EVIDENCE_CHARS),
+            points=draft_points(item.get("points")),
         ))
     if slots and not any(s.level == "minimo" for s in slots):
         slots[0] = slots[0].model_copy(update={"level": "minimo"})
@@ -296,25 +347,30 @@ def plan_from_draft(
     )
 
 
+_STAR = ("Situación concreta", "Lo que hizo él o ella", "Resultado")
+"""The points of a competency slot: the parts of a complete example."""
 _FALLBACK = (
     ("Experiencia relacionada con el puesto", None, "minimo", "experience",
      "¿Qué experiencia tienes en un puesto parecido y qué tareas hacías "
-     "allí?", "Puesto, tiempo y tareas concretas que hacía."),
+     "allí?", "Puesto, tiempo y tareas concretas que hacía.",
+     ("Dónde trabajó y en qué puesto", "Cuánto tiempo", "Tareas que hacía")),
     ("Disponibilidad y condiciones", None, "minimo", "experience",
      "¿Qué disponibilidad tienes de horario y de incorporación?",
-     "Horarios, turnos y fecha en que puede empezar."),
+     "Horarios, turnos y fecha en que puede empezar.",
+     ("Horario o turnos", "Fecha de incorporación")),
     ("Comunicación clara", "COMM", "minimo", "behavioural",
      "Cuéntame una vez en la que tuviste que explicar algo complicado a "
      "alguien. ¿Qué hiciste tú y cómo salió?",
-     "Situación real, lo que explicó y cómo comprobó que se entendió."),
+     "Situación real, lo que explicó y cómo comprobó que se entendió.",
+     _STAR),
     ("Resolución de problemas", "SOLVE", "deseable", "behavioural",
      "Cuéntame un problema del trabajo que te tocó resolver. ¿Qué "
      "hiciste paso a paso y qué resultado tuvo?",
-     "Problema concreto, sus pasos y el resultado."),
+     "Problema concreto, sus pasos y el resultado.", _STAR),
     ("Colaboración y apoyo mutuo", "COLLAB", "deseable", "behavioural",
      "Cuéntame una vez en la que ayudaste a un compañero o te apoyaste "
      "en el equipo para sacar algo adelante.",
-     "Qué hizo él o ella por el equipo y qué se consiguió."),
+     "Qué hizo él o ella por el equipo y qué se consiguió.", _STAR),
 )
 
 
@@ -328,14 +384,19 @@ def fallback_plan(
     error: Optional[str] = None,
     role_type: Optional[str] = None,
 ) -> InterviewPlan:
-    """A generic plan, for when the planner gives nothing usable."""
+    """A generic plan, for when the planner gives nothing usable.
+
+    Its points are generic too: where, how long and which tasks for
+    the experience; the parts of a complete example for a competency.
+    """
     slots = [
         Slot(id=f"s{i}", label=label,
              kind="competency" if comp else "requirement",
              competency=comp, level=level, phase=phase,  # type: ignore
              questions=[question], evidence=evidence,
-             weight=_weight(None, level))  # type: ignore[arg-type]
-        for i, (label, comp, level, phase, question, evidence)
+             weight=_weight(None, level),  # type: ignore[arg-type]
+             points=draft_points(list(points)))
+        for i, (label, comp, level, phase, question, evidence, points)
         in enumerate(_FALLBACK, start=1)
     ]
     return InterviewPlan(
@@ -377,7 +438,7 @@ def edited_plan(
     for slot in plan.slots:
         if is_protected(slot.label) or any(
             is_protected(q) for q in slot.questions
-        ):
+        ) or any(is_protected(p.text) for p in slot.points):
             raise ValueError(
                 f"slot {slot.id} asks about a protected characteristic"
             )
@@ -396,6 +457,22 @@ class Answer(_Strict):
     utterance: str
     quote: str = Field(max_length=QUOTE_CHARS)
     status: Literal["complete", "partial"]
+
+
+class SheetPoint(_Strict):
+    """One concept of a slot after the interview (#258).
+
+    ``treated``: the candidate talked about it (not how well: that is
+    not judged here); ``pending``: not yet; ``unknown``: they said they
+    do not know it. ``quote`` and ``utterance`` are the words that
+    settled it.
+    """
+
+    id: str
+    text: str
+    status: PointStatus = "pending"
+    quote: str = Field(default="", max_length=QUOTE_CHARS)
+    utterance: Optional[str] = None
 
 
 class SheetSlot(_Strict):
@@ -423,6 +500,8 @@ class SheetSlot(_Strict):
     notes: str = Field(default="", max_length=EVIDENCE_CHARS)
     confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     scored_by: Optional[Literal["model", "status"]] = None
+    points: List[SheetPoint] = Field(default_factory=list)
+    """The slot's concepts and whether each was treated (#258)."""
 
 
 class OtherSkill(_Strict):

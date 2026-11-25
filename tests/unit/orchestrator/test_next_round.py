@@ -1,6 +1,6 @@
 """The next round from earlier rounds, and the live round's topics (#235)."""
 
-from typing import List
+from typing import List, Optional
 
 from orchestrator.application.next_round import (
     TopicTracker,
@@ -9,12 +9,15 @@ from orchestrator.application.next_round import (
 )
 from orchestrator.application.ports import Document
 from orchestrator.domain.candidate import Round
-from orchestrator.domain.interview import InterviewPlan, Slot
+from orchestrator.domain.interview import InterviewPlan, Point, Slot
 from orchestrator.domain.next_round import (
+    GOAL_CHARS,
     focus_goal,
+    focus_line,
     reordered,
     round_from_sheet,
     topic_states,
+    with_focus,
 )
 from tests.unit.orchestrator.test_candidate import final
 
@@ -116,9 +119,15 @@ def test_the_live_round_marks_topics_and_reports_the_round() -> None:
     track.on_event(final("t3.s0", "S1", "¿Qué bases de datos has usado?"))
     track.on_event(final("t4.s0", "S2", "Postgres, un poco."))
     assert track.result() == (["s2"], ["s3"])
+    done = [m for m in published
+            if any(t["done"] for t in m["topics"] if t["id"] == "s2")]
+    assert done and done[0]["topics"][0].get("current") is True
     last = published[-1]["topics"]
     assert [t["done"] for t in last if t["id"] == "s2"] == [True]
-    assert len(published) == 2
+    # Shown, s2 asked, s2 done, s3 asked: the current topic moves too.
+    assert len(published) == 4
+    assert [t["id"] for t in last if t.get("current")] == ["s3"]
+    assert all("points" not in t for t in last)  # no concepts in this plan
 
 
 def test_a_live_round_leaves_topics_to_revisit_not_weak() -> None:
@@ -132,3 +141,75 @@ def test_a_live_round_leaves_topics_to_revisit_not_weak() -> None:
     assert goal is not None and "volver a tratar" in goal
     english = focus_goal("Backend", states, 1, "en")
     assert english is not None and "to go back to" in english
+
+
+# ---- concepts per point (#258) ------------------------------------------
+
+def running_plan() -> InterviewPlan:
+    return InterviewPlan(id="shop", title="Tienda", slots=[
+        Slot(id="s1", label="Material de running", level="minimo",
+             questions=["¿Qué sabes de zapatillas de running?"],
+             points=[Point(id="p1", text="Tipos de pisada"),
+                     Point(id="p2", text="Amortiguación y drop")]),
+        Slot(id="s2", label="Caja registradora", level="minimo",
+             questions=["¿Has manejado una caja registradora?"]),
+    ])
+
+
+def test_the_live_round_ticks_concepts_and_tells_the_focus() -> None:
+    published: List[Document] = []
+    focus: List[Optional[str]] = []
+    plan = running_plan()
+    track = TopicTracker(plan, topic_states(plan, []),
+                         {"S1": "interviewer", "S2": "candidate"},
+                         published.append, "es", focus.append)
+    track.start()
+    assert [p["status"] for p in published[0]["topics"][0]["points"]] == [
+        "pending", "pending"]
+    assert "current" not in published[0]["topics"][0]
+    track.on_event(final("t0.s0", "S1", "Cuéntame, ¿qué sabes de "
+                                        "zapatillas de running?"))
+    assert focus == ["Tema en curso: «Material de running»; conceptos aún "
+                     "sin tratar: Tipos de pisada y Amortiguación y drop."]
+    track.on_event(final("t1.s0", "S2", "Miro la pisada de cada cliente."))
+    assert str(focus[-1]).endswith("sin tratar: Amortiguación y drop.")
+    last = published[-1]["topics"][0]
+    assert last["current"] is True and last["done"] is False
+    assert [p["status"] for p in last["points"]] == ["treated", "pending"]
+    track.on_event(final("t2.s0", "S2", "El drop no lo conozco."))
+    last = published[-1]["topics"][0]
+    assert [p["status"] for p in last["points"]] == ["treated", "unknown"]
+    assert last["done"] is True and focus[-1] is None
+    assert track.result() == (["s1"], [])
+    track.on_event(final("t3.s0", "S1", "¿Has manejado alguna caja "
+                                        "registradora?"))
+    assert [t["id"] for t in published[-1]["topics"] if t.get("current")
+            ] == ["s2"]
+    assert "points" not in published[-1]["topics"][1]
+
+
+def test_a_topic_whose_concepts_are_all_unknown_is_to_revisit() -> None:
+    plan = running_plan()
+    track = TopicTracker(plan, topic_states(plan, []),
+                         {"S1": "interviewer", "S2": "candidate"},
+                         lambda m: None)
+    track.on_event(final("t0.s0", "S1", "¿Y de zapatillas de running?"))
+    track.on_event(final("t1.s0", "S2", "La pisada no la conozco, y el drop "
+                                        "tampoco: no sé lo que es."))
+    assert track.result() == ([], ["s1"])
+
+
+def test_the_focus_line_joins_the_round_s_goal_within_the_limit() -> None:
+    assert focus_line("Caja", []) is None
+    line = focus_line("Running", ["Drop"], "en")
+    assert line == ("Topic being asked: «Running»; concepts not treated "
+                    "yet: Drop.")
+    assert with_focus(None, None) is None
+    assert with_focus("Ronda 2.", None) == "Ronda 2."
+    assert with_focus(None, line) == line
+    assert with_focus("Ronda 2.", line) == f"Ronda 2. {line}"
+    long_goal = "palabra " * 80
+    joined = with_focus(long_goal, line)
+    assert joined is not None and len(joined) <= GOAL_CHARS
+    assert joined.endswith(line) and "…" in joined
+    assert with_focus("x", "y" * 470) == "y" * 470
