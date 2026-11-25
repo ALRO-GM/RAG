@@ -52,28 +52,35 @@ export function removeSlot(plan, id) {
   plan.slots = plan.slots.filter((s) => s.id !== id);
 }
 
+// The lowest `p<n>` not taken (ids go up to p99 in the contract).
+function lowestFree(current, kept) {
+  const taken = new Set([...(current ?? []).map((p) => p.id), ...kept.filter(Boolean)]);
+  for (let i = 1; ; i += 1) if (!taken.has(`p${i}`)) return `p${i}`;
+}
+
 /**
  * The concepts of a slot from the editor's lines (one per line): trimmed,
  * cut to POINT_CHARS, empty and repeated ones dropped, at most MAX_POINTS.
- * A concept whose text did not change keeps its id; new ones get the next
- * free `p<n>`.
+ * A concept whose text did not change keeps its id; new ones get ids
+ * after the highest ever given in this slot, so a removed concept's id is
+ * never reused for another one.
  */
 export function pointsFromLines(current, lines) {
   const before = new Map((current ?? []).map((p) => [p.text, p.id]));
+  const highest = Math.max(0, ...(current ?? []).map((p) => Number(String(p.id).slice(1)) || 0));
   const texts = [];
   for (const line of lines ?? []) {
     const text = String(line).replace(/\s+/g, " ").trim().slice(0, POINT_CHARS).trim();
     if (text && !texts.some((x) => x.toLowerCase() === text.toLowerCase())) texts.push(text);
   }
-  const kept = texts.slice(0, MAX_POINTS);
-  const used = new Set(kept.map((t) => before.get(t)).filter(Boolean));
-  let next = 1;
-  return kept.map((text) => {
+  let next = highest;
+  const given = texts.map((x) => before.get(x));
+  return texts.slice(0, MAX_POINTS).map((text) => {
     let id = before.get(text);
     if (!id) {
-      while (used.has(`p${next}`)) next += 1;
-      id = `p${next}`;
-      used.add(id);
+      next += 1;
+      id = next > 99 ? lowestFree(current, given) : `p${next}`;
+      given.push(id);
     }
     return { id, text };
   });

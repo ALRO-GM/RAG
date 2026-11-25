@@ -276,6 +276,7 @@ export function planSetup(ctx, { onReady }) {
     const points = h("textarea", {
       id: `${key}-pts`, rows: Math.max(2, Math.min(MAX_POINTS, (slot.points ?? []).length + 1)),
       value: (slot.points ?? []).map((p) => p.text).join("\n"), "aria-label": t("iv.points"),
+      "aria-describedby": `${key}-pts-hint`,
     });
     points.addEventListener("change", () => { editSlot(plan, slot.id, { points: points.value.split("\n") }); drawReview(); });
     const remove = h("button", { type: "button", class: "ghost", "aria-label": t("iv.remove"), onClick: () => { removeSlot(plan, slot.id); drawReview(); } }, icon("trash"));
@@ -289,7 +290,7 @@ export function planSetup(ctx, { onReady }) {
         h("label", { class: "field" }, t("iv.competency"), competency)),
       h("label", { class: "field" }, t("iv.questions"), questions),
       h("label", { class: "field" }, t("iv.evidence"), evidence),
-      h("label", { class: "field" }, t("iv.points"), points, h("span", { class: "hint" }, t("iv.points_hint", { n: MAX_POINTS }))));
+      h("label", { class: "field" }, t("iv.points"), points, h("span", { class: "hint", id: `${key}-pts-hint` }, t("iv.points_hint", { n: MAX_POINTS }))));
   }
 
   fill(root,

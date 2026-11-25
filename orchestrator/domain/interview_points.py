@@ -6,13 +6,20 @@ drop»). :func:`point_hits` says which of them a candidate's words
 treat, sentence part by sentence part (split at ``.``, ``;``, ``?``,
 ``!`` and «pero»):
 
-* a point is **treated** when a part names it: at least half of the
-  point's content words (stems of their first five letters, at least
-  one) appear in it, or a cue of the point's kind does (a duration for
-  «cuánto tiempo», a first-person past action for «lo que hizo», a
-  result for «resultado»…; see :data:`_CUES`);
-* it is **unknown** («no lo conoce») when the part that names it also
-  says they do not know it («el drop no lo conozco»).
+* a point is **treated** when a part names it: **every** content word
+  of the point when it has one or two (stems of their first five
+  letters; «tipo», «cómo», «tiempo»… do not count), at least half when
+  it has more; or a cue of the point's kind (a figure with years or
+  months for «cuánto tiempo», a first-person past verb for «lo que
+  hizo», a result verb for «resultado»…; see :data:`_CUES`). Filler
+  words never count: «así», «aquí», «qué» are not past verbs, «cuando»
+  alone is not a situation, «hacia» is not «hacía», a gerund is not a
+  task, «esta tarde» is not a shift;
+* it is **unknown** («no lo conoce») when a part says they do not know
+  it and names one of its content words («el drop no lo conozco»).
+
+The rules prefer missing a concept (it stays pending and is asked
+about) to ticking one the candidate did not talk about.
 
 This is a hint for the interviewer, not a judgement: "treated" only
 means the candidate talked about the concept, never whether what they
@@ -57,39 +64,51 @@ _PARTS = re.compile(r"[.;!?¿¡]+|,?\s+pero\s+|\s+aunque\s+")
 _STOP = frozenset(
     "tipo tipos como cual cuales forma formas manera cosas cosa nivel "
     "sobre entre desde hasta para segun algun alguna alguno todos todas "
-    "cada otro otra otros otras usar saber hacer tener".split()
+    "cada otro otra otros otras usar saber hacer tener cuanto cuantos "
+    "cuanta cuantas donde cuando quien bien mucho mucha muchos muchas "
+    "poco algo todo esta este estos estas aqui alli hacia tiempo veces "
+    "siempre nunca".split()
 )
 _PAST = re.compile(
-    r"\b(\w{2,}(é|í)|hice|estuve|tuve|fui|puse|propuse|dije|traje|"
+    r"\b(\w{3,}(é|í)|hice|estuve|tuve|fui|puse|propuse|dije|traje|"
     r"pude|supe|quise|conduje|hicimos|estuvimos|tuvimos|fuimos)\b"
 )
+"""First-person past verbs (on the unfolded text: «expliqué», «decidí»)."""
+_NOT_PAST = frozenset(
+    "aquí allí ahí así qué café bebé comité esquí maní rubí jabalí "
+    "colibrí también".split()
+)
+"""Words ending in «é»/«í» that are not past verbs."""
 _RESULT = (
-    r"\b(al final|consegui|conseguimos|logre|logramos|resultado|se "
+    r"\b(consegui|conseguimos|logre|logramos|resultado|se "
     r"resolvio|funciono|redujimos|reduje|mejoro|mejoramos|gracias a eso|"
     r"desde entonces|aprendi|acabamos|terminamos|cerramos|quedo "
-    r"(resuelto|contento|satisfecho)|nos quedamos)"
+    r"(resuelto|contento|satisfecha?)|nos quedamos)"
 )
 _NUMBER = (r"(\d+|un|una|medio|dos|tres|cuatro|cinco|seis|siete|ocho|"
            r"nueve|diez)")
 _CUES: Tuple[Tuple[Pattern[str], Pattern[str]], ...] = tuple(
     (re.compile(point), re.compile(answer)) for point, answer in (
         (r"\b(situacion|contexto)\b",
-         r"\b(una vez|cuando|en mi (anterior|ultimo|antiguo)|el ano pasado|"
-         r"hace \w+ (anos?|meses)|teniamos|habia una?)\b"),
+         r"\b(una vez|cuando (trabajaba|estaba|estuve|era|tenia|llegue|"
+         r"empece)|en mi (anterior|ultimo|antiguo)|el ano pasado|"
+         r"hace \w+ (anos?|meses))\b"),
         (r"\b(resultado|como acabo|como termino)\b", _RESULT),
         (r"\b(cuanto tiempo|duracion|anos de)\b",
          rf"\b{_NUMBER} (anos?|meses|semanas)\b"),
         (r"\b(horario|turnos?)\b",
-         r"\b(horarios?|turnos?|mananas?|tardes?|noches?|fines? de semana|"
-         r"jornada)\b"),
+         r"\b(horarios?|turnos?|(de|por las) (mananas|tardes|noches)|"
+         r"fines? de semana|sabados|domingos|festivos|jornada)\b"),
         (r"\b(incorporacion|empezar)\b",
          r"\b(empezar|incorpor\w*|inmediat\w*|desde ya|en \w+ semanas?)\b"),
         (r"\b(donde|puesto|empresa)\b",
-         r"\b(trabaje|trabajaba|estuve|he estado|he trabajado|trabajo)\b"
-         r".*\b(en|de|como)\b"),
+         r"\b((trabaje|trabajaba|he trabajado|trabajo) (de|como|en)|"
+         r"estuve( \w+){0,3} en (un|una|el|la|caja))\b"),
         (r"\b(tareas|funciones)\b",
-         r"\b(me encargaba|me encargue|hacia|atendia|llevaba|tareas|"
-         r"funciones|\w{3,}(ando|iendo))\b"),
+         r"\b(me encargaba|me encargue|me ocupaba|atendia|mis tareas|"
+         r"mis funciones|(atendiendo|reponiendo|cobrando|vendiendo|"
+         r"preparando|limpiando|gestionando|organizando|cargando|"
+         r"descargando|montando|cocinando|sirviendo) \w+)\b"),
     )
 )
 """(point words, answer words): a point of that kind is treated when the
@@ -120,21 +139,35 @@ def _stems(text: str) -> List[str]:
     return list(dict.fromkeys(w[:5] for w in words if w not in _STOP))
 
 
-def names_point(point: str, part: str) -> bool:
-    """Tell whether ``part`` (some words of an answer) names ``point``."""
+def _past(part: str) -> bool:
+    """Whether ``part`` has a first-person past verb (not «así», «qué»)."""
+    return any(m.group(0) not in _NOT_PAST
+               for m in _PAST.finditer(part.lower()))
+
+
+def names_point(point: str, part: str, loose: bool = False) -> bool:
+    """Tell whether ``part`` (some words of an answer) names ``point``.
+
+    Strict (the default, for "treated"): all the point's stems when it
+    has one or two, half of them when more, or a cue of its kind.
+    ``loose`` (for "does not know it"): one stem is enough.
+    """
     folded = fold(part)
     concept = fold(point)
     for cue, answer in _CUES:
         if cue.search(concept) and answer.search(folded):
             return True
-    if _ACTION.search(concept) and _PAST.search(part.lower()):
+    if _ACTION.search(concept) and _past(part):
         return True
     stems = _stems(point)
     if not stems:
         return False
     heard = re.findall(r"[a-z0-9+#]{3,}", folded)
     found = sum(1 for s in stems if any(w.startswith(s) for w in heard))
-    return found >= max(1, math.ceil(len(stems) / 2))
+    if loose:
+        return found >= 1
+    needed = len(stems) if len(stems) <= 2 else math.ceil(len(stems) / 2)
+    return found >= needed
 
 
 @dataclass(frozen=True)
@@ -154,16 +187,17 @@ def parts(text: str) -> List[str]:
 def point_hits(text: str, points: Sequence[Point]) -> List[PointHit]:
     """Say which of ``points`` the answer ``text`` treats (or not knows).
 
-    The first part naming a point decides; a part that names it and
-    says they do not know it gives ``unknown``.
+    The first part naming a point decides: a part saying they do not
+    know it and naming one of its words gives ``unknown``; any other
+    part naming it (strictly) gives ``treated``.
     """
     found: List[PointHit] = []
     pieces = parts(text)
     for point in points:
         for piece in pieces:
-            if names_point(point.text, piece):
-                status: PointStatus = (
-                    "unknown" if says_unknown(piece) else "treated")
+            unknown = says_unknown(piece)
+            if names_point(point.text, piece, loose=unknown):
+                status: PointStatus = "unknown" if unknown else "treated"
                 found.append(PointHit(point.id, status, quote(piece)))
                 break
     return found

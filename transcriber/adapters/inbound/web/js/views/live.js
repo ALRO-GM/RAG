@@ -845,32 +845,37 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
     // The concepts of each topic (#258): the current topic's pending ones as
     // a plain hint, then every topic's concepts with a mark and a word.
+    // The nodes stay: the status line keeps its live region (a new one is
+    // often not announced) and the disclosure keeps its focus and state.
     let pointsKey = null;
-    let pointsOpen = false; // the disclosure stays as the employee left it
+    const pointsFocus = h("p", { class: "lv-focus", role: "status", hidden: true });
+    const pointsTitle = h("summary", {});
+    const pointsList = h("ul", { class: "lv-point-topics" });
+    const pointsAll = h("details", { class: "lv-more" }, pointsTitle, pointsList);
     function drawPoints(chips) {
       const box = topics.querySelector(".lv-points");
+      if (!box.firstChild) box.append(pointsFocus, pointsAll);
       const focus = state.topicFocus();
       const withPoints = chips.filter((c) => c.points?.length);
-      const key = JSON.stringify([lang, focus?.id, withPoints.map((c) => [c.id, c.points.map((p) => p.status)])]);
+      const key = JSON.stringify([lang, focus?.id, withPoints.map((c) => [c.id, c.current, c.points.map((p) => p.status)])]);
       if (key === pointsKey) return;
       pointsKey = key;
       box.hidden = !withPoints.length;
-      if (!withPoints.length) return fill(box);
+      if (!withPoints.length) return;
       const name = (item, field) => localized(item, field, lang);
-      const hint = focus ? h("p", { class: "lv-focus", role: "status" },
-        focus.pending.length
+      const line = !focus ? ""
+        : focus.pending.length
           ? t("live.points_missing", { topic: name(focus, "name"), list: focus.pending.map((p) => name(p, "text")).join(", ") })
-          : t("live.points_done", { topic: name(focus, "name") })) : null;
-      const all = h("details", { class: "lv-more", open: pointsOpen },
-        h("summary", {}, t("live.points_title")),
-        h("ul", { class: "lv-point-topics" }, withPoints.map((c) => h("li", { class: c.current ? "is-current" : "" },
-          h("strong", {}, name(c, "name")),
-          h("ul", { class: "iv-point-list" }, c.points.map((p) => h("li", { class: `iv-point is-${p.status}` },
-            pointMark(p.status),
-            h("span", { class: "iv-point-text" }, name(p, "text")),
-            " ", h("span", { class: "iv-point-status" }, t(`iv.point.${p.status}`)))))))));
-      all.addEventListener("toggle", () => { pointsOpen = all.open; });
-      return fill(box, hint, all);
+          : t("live.points_done", { topic: name(focus, "name") });
+      if (pointsFocus.textContent !== line) pointsFocus.textContent = line;
+      pointsFocus.hidden = !line;
+      pointsTitle.textContent = t("live.points_title");
+      fill(pointsList, withPoints.map((c) => h("li", { class: c.current ? "is-current" : "" },
+        h("strong", {}, name(c, "name")),
+        h("ul", { class: "iv-point-list" }, c.points.map((p) => h("li", { class: `iv-point is-${p.status}` },
+          pointMark(p.status),
+          h("span", { class: "iv-point-text" }, name(p, "text")),
+          " ", h("span", { class: "iv-point-status" }, t(`iv.point.${p.status}`))))))));
     }
 
     function drawTopics() {

@@ -426,7 +426,7 @@ def test_the_slot_filler_v2_lists_each_slot_s_concepts() -> None:
     assert "[s1] Running — evidence: -\n  concept [p1] Tipos de pisada" \
         in user
     assert "[s2] Caja" in user and "Asked about: s1" in user
-    assert cap == 320
+    assert cap == 800
 
 
 def test_the_interviewer_v2_names_the_concepts_of_the_step() -> None:

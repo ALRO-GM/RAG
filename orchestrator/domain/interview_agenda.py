@@ -143,9 +143,11 @@ def heuristic_fill(
     when it has 10 words or more and a figure, a concrete marker or a
     word of the slot. Shorter or vaguer answers are ``partial``. Any
     other slot sharing two content words with a 15-word answer is
-    ``partial``. Each fill carries the slot's points the answer treats
-    (or says it does not know); an answer that only touches points of
-    the slot asked, however short, is a ``partial`` fill of it.
+    ``partial``. The fill of the slot asked carries its points the
+    answer treats (or says it does not know); an answer that only
+    touches points of the slot asked, however short, is a ``partial``
+    fill of it. Points of other slots are never ticked from an answer
+    to another question.
     """
     folded = fold(text)
     words = len(text.split())
@@ -184,8 +186,8 @@ def heuristic_fill(
             if target is not None and slot.id == target.id:
                 continue
             if len(heard & _keywords(slot.label + " " + slot.evidence)) >= 2:
-                found.append(Fill(slot.id, "partial", said,
-                                  tuple(point_hits(text, slot.points))))
+                # No points: concepts are only read for the slot asked.
+                found.append(Fill(slot.id, "partial", said))
     return found
 
 

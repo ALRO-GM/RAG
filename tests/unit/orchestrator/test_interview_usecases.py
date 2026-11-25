@@ -438,7 +438,7 @@ class Replies:
 
 def test_the_reasoner_filler_sends_the_points_and_fills_the_gap() -> None:
     target = running()
-    answer = "Conozco los tipos de pisada y elijo bien la talla."
+    answer = "Conozco los tipos de pisada y sé elegir bien la talla."
     told = Replies({"slots": [{"id": "s1", "status": "partial",
                                "quote": "tipos de pisada", "points": [
                                    {"id": "p1", "status": "treated"}]}]})
@@ -454,11 +454,9 @@ def test_the_reasoner_filler_sends_the_points_and_fills_the_gap() -> None:
     found = ReasonerFiller(silent).fill(answer, target, [target], "",
                                         CancelToken())
     assert [h.point for h in found[0].points] == ["p1", "p3"]  # the rules
-    nothing = Replies({"slots": []})
-    found = ReasonerFiller(nothing).fill(answer, target, [target], "",
-                                         CancelToken())
-    assert [(f.slot, f.status) for f in found] == [("s1", "partial")]
-    assert [h.point for h in found[0].points] == ["p1", "p3"]
+    nothing = Replies({"slots": []})  # the model: it covers no slot
+    assert ReasonerFiller(nothing).fill(answer, target, [target], "",
+                                        CancelToken()) == []
     plain = Replies({"slots": []})
     assert ReasonerFiller(plain).fill("Nada que ver", target, [target], "",
                                       CancelToken()) == []

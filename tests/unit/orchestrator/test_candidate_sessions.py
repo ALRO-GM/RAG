@@ -18,6 +18,7 @@ from orchestrator.adapters.outbound.fakes import (
 )
 from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.candidates import CandidateBook
+from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
@@ -489,7 +490,8 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
         ["S1", f"Hablemos de {one.label}. {one.questions[0]}"],
         ["S2", "Llevo dos años trabajando de cara al público."],
         ["S1", "¿Y dónde fue, en qué puesto?"],
-        ["S2", "Trabajé de dependienta en una tienda de deportes."],
+        ["S2", "Trabajé de dependienta en una tienda de deportes, "
+               "atendiendo clientes."],
     ]), AskingReasoner(), store)
     live.start_live("live_assist.interview", "stereo", session_id="r1",
                     plan="plan-1", candidate="Lucía Marín")
@@ -503,13 +505,32 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
                  if t["id"] == one.id and any(
                      p["status"] == "treated" for p in t["points"]))
     assert [p["status"] for p in first["points"]] == [
-        "pending", "treated", "treated"]
+        "pending", "treated", "pending"]
     assert all(p["status"] == "treated" for p in last["points"])
     assert last["done"] is True
     reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
     goals = [r["context"]["session"].get("goal") for r in reasoner.requests
              if r.get("role") == "suggester"]
     assert goals[0] == (f"Tema en curso: «{one.label}»; conceptos aún sin "
-                        "tratar: Dónde y en qué puesto.")
+                        "tratar: Dónde y en qué puesto y Tareas que hacía.")
     assert goals[-1] is None  # nothing left of it: no goal (first round)
     assert live.get("r1")["goal"] is None
+
+
+def test_a_failing_topic_tracker_never_stops_the_suggestions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review of #258: the topics run first, so they must not break."""
+    def broken(self: TopicTracker, event: Any) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(TopicTracker, "on_event", broken)
+    live = wired(conversation("r1", [
+        ["S1", "¿Tienes autorización para trabajar en España?"],
+        ["S2", "Sí, la tengo desde hace años."],
+    ]), AskingReasoner(), MemoryCandidates())
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
+    assert any(r.get("role") == "suggester" for r in reasoner.requests)
+    assert live.get("r1")["state"] == "ended"

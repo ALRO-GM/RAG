@@ -1,6 +1,14 @@
 """The concepts of a plan's slot, followed answer by answer (#258)."""
 
-from orchestrator.domain.interview import Point, SheetPoint
+from datetime import datetime
+
+from orchestrator.domain.interview import (
+    PlanSource,
+    Point,
+    SheetPoint,
+    fallback_plan,
+)
+from orchestrator.domain.interview_agenda import Agenda, heuristic_fill
 from orchestrator.domain.interview_points import (
     PointHit,
     join_words,
@@ -32,7 +40,9 @@ def states(*statuses: str) -> list[SheetPoint]:
 
 def test_a_point_is_named_by_its_words_or_a_cue_of_its_kind() -> None:
     assert names_point("Tipos de pisada", "miro si la pisada es pronadora")
-    assert names_point("Amortiguación y drop", "el drop alto")
+    assert names_point("Amortiguación y drop", "la amortiguación y el drop")
+    assert not names_point("Amortiguación y drop", "el drop alto")  # both
+    assert names_point("Amortiguación y drop", "el drop", loose=True)
     assert not names_point("Tipos de pisada", "hay tipos de clientes")
     assert names_point("Cuánto tiempo", "estuve tres años allí")
     assert names_point("Fecha de incorporación", "podría empezar ya")
@@ -94,3 +104,48 @@ def test_lists_are_joined_as_spoken_and_unknown_is_shared() -> None:
     assert join_words(["A", "B"], "en") == "A and B"
     assert says_unknown("No lo conozco.") and says_unknown("no sé")
     assert not says_unknown("Sé hacerlo bien")
+
+
+NON_ANSWERS = [
+    ("Lo que hizo él o ella", "Bueno, así es la vida"),
+    ("Lo que hizo él o ella", "Aquí estoy"),
+    ("Lo que hizo él o ella", "Un café, por favor"),
+    ("Situación concreta", "Cuando quieras"),
+    ("Cuánto tiempo", "Siempre llego a tiempo"),
+    ("Tareas que hacía", "Voy hacia allí"),
+    ("Tareas que hacía", "Estoy pensando la respuesta"),
+    ("Horario o turnos", "Esta tarde no puedo"),
+    ("Resultado", "al final se hace"),
+    ("Dónde trabajó y en qué puesto", "Estuve pensando en eso"),
+]
+
+
+def test_filler_words_never_tick_a_concept() -> None:
+    """Review of #258: missing a concept beats a false tick."""
+    for point, said in NON_ANSWERS:
+        assert not names_point(point, said), (point, said)
+    assert names_point("Lo que hizo él o ella", "lo dejé preparado")
+    assert point_hits("Pues no sé qué decirte", STAR) == []
+
+
+def test_a_vague_star_answer_stays_partial_and_is_probed() -> None:
+    plan = fallback_plan("p", "Puesto", PlanSource(), 20, "es",
+                         datetime(2026, 11, 25))
+    comm = next(s for s in plan.slots if s.competency == "COMM")
+    text = "Pues cuando hay mucho jaleo, así es la vida, al final se hace."
+    fills = heuristic_fill(text, comm, plan.slots)
+    assert [h for f in fills for h in f.points] == []
+    agenda = Agenda(plan.model_copy(update={"slots": [comm]}), 0.0)
+    agenda.step(0.0)
+    agenda.answer("u1", text, fills)
+    assert agenda.state[comm.id].status == "partial"
+    probe = agenda.step(1.0)
+    assert probe.action == "probe" and len(probe.points) == 3
+
+
+def test_the_documented_limits_of_the_rules() -> None:
+    """What docs/live/VOICEBOT_INTERVIEWER.md §4.1 says they miss or tick."""
+    assert not names_point("Cómo elegir la talla", "elijo el número")
+    assert not names_point("Amortiguación y drop", "la amortiguación")
+    # A word of the concept used in another sense still ticks it.
+    assert names_point("Tipos de pisada", "dejé una pisada en el suelo mojado")

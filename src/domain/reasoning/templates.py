@@ -674,9 +674,11 @@ INTERVIEW_REPORT_V1 = Template(
 PLANNER_V2_MAX_OUTPUT_TOKENS = 3200
 """Cap of ``interview.planner@2``: ``@1``'s slots plus up to six short
 concepts each."""
-SLOTS_V2_MAX_OUTPUT_TOKENS = 320
-"""Cap of ``interview.slots@2``: ``@1``'s slots plus the concepts each
-answer treats, with short quotes."""
+SLOTS_V2_MAX_OUTPUT_TOKENS = 800
+"""Cap of ``interview.slots@2``: ``@1``'s three slots plus up to six
+concepts each with a quote of at most 12 words. An estimate from that
+count (3 × 6 × about 35 tokens, plus the slots), not measured; a reply
+cut by the cap falls back to the rules for that answer."""
 POINTS_SHAPE = '"weight": 3, "points": ["short concrete concept"]}]}'
 POINTS_RULE = (
     " points are the 0 to 6 concrete concepts (at most 6 words each) a "

@@ -206,16 +206,46 @@ which concepts of the slot it treats, with the candidate's words:
   concepts the answer talks about (in their words or a synonym) as
   `treated`, or `unknown` when the candidate says they do not know it;
   unknown concept ids and statuses are dropped and a quote that is not
-  the candidate's words is replaced by theirs. When the reply says
-  nothing about the concepts of the slot asked, the rules below decide.
-- rules (`orchestrator/domain/interview_points.py`, `point_hits`): the
-  answer is cut at `.`, `;`, `?`, `!`, «pero» and «aunque»; a part
-  treats a concept when it contains at least half of the concept's
-  content words (first five letters of each word of four letters or
-  more, «tipo», «cómo»… left out), or a cue of the concept's kind (a
-  duration for «cuánto tiempo», a past-tense verb for «lo que hizo», a
-  result word for «resultado», shifts, start date, workplace, tasks);
-  the same part saying «no lo conozco» / «no sé» makes it `unknown`.
+  the candidate's words is replaced by theirs. Only when the reply gives
+  the slot asked **without** a `points` field do the rules below decide
+  its concepts; when the reply leaves the slot out (it covers none), the
+  model's word stands and nothing is ticked. Reply cap 800 tokens (3
+  slots × 6 concepts with quotes; an estimate, not measured); a cut
+  reply falls back to the rules for that answer.
+- rules (`orchestrator/domain/interview_points.py`, `point_hits`), the
+  fallback of the model and the live page's matcher: the answer is cut
+  at `.`, `;`, `?`, `!`, «pero» and «aunque»; a part treats a concept
+  when it contains **all** the concept's content words if it has one
+  or two (first five letters of each word of four letters or more;
+  «tipo», «cómo», «cuánto», «tiempo», «hacia», «siempre»… do not count),
+  at least half if it has more, or a cue of the concept's kind: a figure
+  with years, months or weeks for «cuánto tiempo»; a first-person past
+  verb («expliqué», «decidí», «hice») for «lo que hizo»; a result verb
+  («conseguimos», «se resolvió», «redujimos») for «resultado»; «una
+  vez», «cuando trabajaba…», «hace dos años» for «situación»; shifts,
+  weekend days or «jornada» for «horario o turnos»; «empezar»,
+  «incorporarme» for the start date; «trabajé de/en», «estuve … en una
+  tienda» for the workplace; «me encargaba», «atendía» or a job gerund
+  with its object («atendiendo clientes») for tasks. Concepts are only
+  read for the slot asked, never for another slot the answer touches.
+  A part saying «no lo conozco» / «no sé» and naming one word of a
+  concept makes it `unknown`.
+
+What the rules can and cannot do: they tick a concept only from its
+own words or those cues, and they were written to prefer missing a
+concept (it stays pending and the follow-up asks for it) to ticking one
+the candidate did not talk about. Filler words do not tick anything:
+«así es la vida», «aquí estoy», «cuando quieras», «siempre llego a
+tiempo», «voy hacia allí», «estoy pensando», «esta tarde no puedo» and
+«no sé qué decirte» leave every concept pending (unit tests). They do
+**not** understand synonyms or paraphrases («elijo el número» is not
+«cómo elegir la talla»; «la amortiguación» alone is not «amortiguación
+y drop», which needs both words), so a concept written in words the
+candidate will not use is rarely ticked by them, and a concept that
+shares a word with an unrelated sentence can still be ticked (for
+example «Tipos de pisada» by «dejé una pisada en el suelo mojado»). The Haiku filler
+reads meaning and is the default for that reason; on the live page
+there is no model and the rules are all there is.
 
 "Treated" only means the candidate **talked about** the concept: it is
 a hint for the interviewer, not a judgement of whether what they said
@@ -263,7 +293,9 @@ the topic is done (✓) when none is pending and at least one was
 treated, and one asked but not done stays «volver a tratar» for the next
 round. «Temas del puesto» marks the topic being asked and shows
 «Falta por tratar en «tema»: B, C» plus, under «Conceptos de cada tema»,
-every topic's concepts with their status in this round. The pending
+every topic's concepts with their status in this round (the status
+line keeps one live region and the list is redrawn inside a disclosure
+that keeps its state, so a screen reader hears the change). The pending
 concepts of the topic being asked also go into the **goal of the
 existing suggester call** (`suggester.interview@2`, «Tema en curso: …;
 conceptos aún sin tratar: B y C.»), so the suggestions steer to them
@@ -274,7 +306,9 @@ concepts from it would need a change of `reasoner.response.v1`. The
 scripted interview (`#/live/demo`, `entrevista-lucia.demo.json`) ticks
 its topics' concepts by prepared lines (`asked_by`, `points[].covered_by`;
 the spoken lines are unchanged), and leaves «Pruebas de integración»
-pending.
+pending. A topic becomes current only on a line that asks about it; the
+opening «proyecto del que estés orgullosa» asks about none, so «Python y
+APIs» becomes current when Lucía's answer covers it.
 
 Not measured: how often the rules or Haiku mark a concept the candidate
 did talk about (or miss one) has not been measured on any interview;
@@ -475,8 +509,8 @@ estimate from that count, not measured). `post_call: on` adds the analysis's cal
   prompt were tried on two invented offers and two answers.
 - The rules filler, the concept matching (#258) and the «no lo sé» /
   «pasamos» detection are Spanish word lists; English interviews are not
-  handled yet. The concept rules miss synonyms (the Haiku filler is the
-  default for that reason) and can tick a concept from one shared word.
+  handled yet. The concept rules miss synonyms and paraphrases and can
+  still tick a concept from its own words used in another sense (§4.1).
 - Bot utterance times in the transcript come from the orchestrator's
   clock (session start ≈ transcriber stream start). A turn dropped
   because the candidate went on talking does not move the agenda if

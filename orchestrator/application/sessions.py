@@ -271,8 +271,13 @@ class _Handler:
         )
         if self.session.topics is not None:
             # First, so the suggestion this answer asks for already
-            # knows the concepts it treated (#258).
-            self.session.topics.on_event(event)
+            # knows the concepts it treated (#258); its failure never
+            # keeps the event from the other use cases.
+            try:
+                self.session.topics.on_event(event)
+            except Exception:  # noqa: BLE001 - logged, the call goes on
+                LOG.exception("topics: event %s not followed",
+                              event.seq)
         self.assist.on_event(event)
         if self.session.tracker is not None:
             self.session.tracker.on_event(event)

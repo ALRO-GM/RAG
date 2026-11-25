@@ -438,11 +438,12 @@ class ReasonerFiller:
     """The slot filler on the reasoner (``interview.slots@2``).
 
     A failed call falls back to the heuristic for that answer and is
-    counted in ``fallbacks``. When the reply says nothing about the
-    points of the slot asked (an ``@1`` template, or the model left the
+    counted in ``fallbacks``. When the reply gives the slot asked but no
+    ``points`` field for it (an ``@1`` template, or the model left the
     field out), the rules of
     :func:`~orchestrator.domain.interview_points.point_hits` say which
-    of them the answer treats.
+    of its points the answer treats. When the reply leaves the slot out
+    ("covers none"), the model's word stands: no rule adds it back.
 
     Args:
         reasoner: The reasoner port.
@@ -500,23 +501,21 @@ class ReasonerFiller:
                                                               target.id):
             return fills
         hits = tuple(point_hits(text, target.points))
-        if not hits:
-            return fills
-        merged = [f if f.slot != target.id else Fill(
+        return [f if f.slot != target.id or not hits else Fill(
             f.slot, f.status, f.quote, hits) for f in fills]
-        if not any(f.slot == target.id for f in merged):
-            merged.append(Fill(target.id, "partial", quote(text), hits))
-        return merged
 
 
 def _has_points(data: Dict[str, Any], sid: str) -> bool:
-    """Whether the filler's reply says something about a slot's points."""
+    """Whether the reply leaves the rules nothing to add for a slot.
+
+    True when it gives the slot's ``points`` list, and when it leaves
+    the slot out (the model said the answer does not cover it).
+    """
     items = data.get("slots")
-    return any(
-        isinstance(item, dict) and item.get("id") == sid
-        and isinstance(item.get("points"), list)
-        for item in (items if isinstance(items, list) else [])
-    )
+    given = [item for item in (items if isinstance(items, list) else [])
+             if isinstance(item, dict) and item.get("id") == sid]
+    return not given or any(isinstance(item.get("points"), list)
+                            for item in given)
 
 
 def _said(value: object, text: str, plain: str) -> str:

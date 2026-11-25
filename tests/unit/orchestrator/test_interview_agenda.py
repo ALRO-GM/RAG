@@ -212,8 +212,8 @@ def test_a_slot_with_points_is_filled_by_its_points_not_by_length() -> None:
     assert probe.points == ("Amortiguación y drop", "Cómo elegir la talla")
     assert probe.treated == ("Tipos de pisada",)
     assert "Amortiguación y drop y Cómo elegir la talla" in probe.missing
-    more = ("El drop y la amortiguación según el uso, y la talla medio "
-            "número más.")
+    more = ("El drop y la amortiguación según el uso, y para elegir la "
+            "talla, medio número más.")
     agenda.answer("u2", more, heuristic_fill(more, target, [target]))
     assert statuses(agenda) == ["treated"] * 3
     assert [s.status for s in agenda.sheet_slots()][0] == "filled"
@@ -227,7 +227,8 @@ def test_does_not_know_settles_the_points_asked_not_all() -> None:
     target = running(n=5)
     agenda = Agenda(plan([target, slot("s2")]), 0.0, max_probes=2)
     agenda.step(0.0)
-    text = "Sé de tipos de pisada y del drop de cada modelo de zapatilla."
+    text = ("Sé de tipos de pisada y de la amortiguación y el drop de "
+            "cada modelo.")
     agenda.answer("u1", text, heuristic_fill(text, target, [target]))
     probe = agenda.step(1.0)
     assert probe.points == ("Cómo elegir la talla", "Plantillas",
@@ -295,7 +296,7 @@ def test_a_slot_without_points_keeps_the_generic_follow_up() -> None:
 
 def test_a_short_answer_still_ticks_the_points_it_names() -> None:
     target = running()
-    fills = heuristic_fill("La talla.", target, [target])
+    fills = heuristic_fill("Elegir la talla.", target, [target])
     assert [(f.slot, f.status) for f in fills] == [("s1", "partial")]
     assert [h.point for h in fills[0].points] == ["p3"]
     assert heuristic_fill("Vale.", target, [target]) == []
@@ -304,3 +305,19 @@ def test_a_short_answer_still_ticks_the_points_it_names() -> None:
     english.step(0.0)
     english.answer("u1", "Algo", [])
     assert english.step(1.0).missing.startswith("what they have not")
+
+
+def test_points_of_a_slot_not_asked_are_never_ticked() -> None:
+    other = running().model_copy(update={"id": "s2"})
+    asked = slot("s1", label="Atención al cliente en tienda")
+    text = ("Atendía a los clientes de la tienda de material de running: "
+            "miraba los tipos de pisada, la amortiguación y el drop de cada "
+            "zapatilla, y les ayudaba a elegir la talla.")
+    fills = heuristic_fill(text, asked, [asked, other])
+    assert {f.slot for f in fills} == {"s1", "s2"}
+    assert all(f.points == () for f in fills)
+    agenda = Agenda(plan([asked, other]), 0.0)
+    agenda.step(0.0)
+    agenda.answer("u1", text, fills)
+    assert statuses(agenda, "s2") == ["pending"] * 3
+    assert agenda.state["s2"].status == "partial"

@@ -29,6 +29,10 @@ test("the review's lines become concepts that keep their ids", () => {
   assert.equal(found[3].text.length, POINT_CHARS);
   assert.equal(found.length, MAX_POINTS);
   assert.deepEqual(pointsFromLines(undefined, undefined), []);
+  // A removed concept's id is never given to a new one.
+  assert.deepEqual(pointsFromLines([{ id: "p1", text: "A" }, { id: "p2", text: "B" }], ["A", "C"]),
+    [{ id: "p1", text: "A" }, { id: "p3", text: "C" }]);
+  assert.equal(pointsFromLines([{ id: "p99", text: "A" }], ["A", "B"])[1].id, "p1", "past p99 the lowest free id");
   const plan = { slots: [{ id: "s1", label: "Running", questions: ["¿Qué sabes?"] }] };
   const id = addSlot(plan);
   assert.deepEqual(plan.slots.find((s) => s.id === id).points, []);
@@ -58,8 +62,11 @@ test("the live topics keep their concepts and say what is still to cover", () =>
 });
 
 test("the scripted interview's topics carry concepts in both languages, lines untouched", () => {
+  // Only lines that really ask about a topic make it current; the opening
+  // «proyecto del que estés orgullosa» asks about none.
+  assert.deepEqual(DEMO.topics.filter((x) => !x.asked_by).map((x) => x.id), ["python_apis"]);
   for (const topic of DEMO.topics) {
-    assert.ok(topic.asked_by && topic.points.length >= 2, topic.id);
+    assert.ok(topic.points.length >= 2, topic.id);
     for (const point of topic.points) assert.ok(point.text && point.en?.text, `${topic.id}.${point.id}`);
   }
   const said = new Set(DEMO.transcript.utterances.map((u) => u.id));
