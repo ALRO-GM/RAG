@@ -8,8 +8,8 @@ or said to be unknown. Each round is attributed three ways:
 * ``rules``: the round replayed through the live page's topic tracker
   (the word rules of #258, no model);
 * ``live``: the same replay, plus ``suggester.interview@3`` asked after
-  every candidate final with the pending concepts of the topic the
-  rules think is being asked, as the live page does (#268);
+  every candidate final with every pending concept (those of the topic
+  the rules think is asked first), as the live page does (#268);
 * ``after``: the model reading the whole round after the session
   (``interview.attribution@1`` through
   :meth:`~orchestrator.application.live_judgement.LiveJudge.attribute_round`).
@@ -167,8 +167,9 @@ def live_way(plan: InterviewPlan, round_: Dict[str, Any], reasoner: Any,
     """The rules plus ``suggester.interview@3`` after each candidate final.
 
     As the live page: the request carries the last :data:`WINDOW` lines,
-    the speakers' roles and the pending concepts of the topic the rules
-    think is asked; the reply's ticks go to :meth:`TopicTracker.suggested`.
+    the speakers' roles and the pending concepts
+    (:meth:`TopicTracker.focus_points`); the reply's ticks go to
+    :meth:`TopicTracker.suggested`.
     """
     roles = {"S1": "interviewer", "S2": "candidate"}
     topics = TopicTracker(plan, topic_states(plan, []), roles,

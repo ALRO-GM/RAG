@@ -523,14 +523,17 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
                         "tratar: Dónde y en qué puesto y Tareas que hacía.")
     assert goals[-1] is None  # nothing left of it: no goal (first round)
     assert live.get("r1")["goal"] is None
-    # #268: the same call gets the pending concepts with their ids.
+    # #268: the same call gets the pending concepts with their ids, those
+    # of the topic asked first.
     asked = [r for r in reasoner.requests if r.get("role") == "suggester"]
     assert asked[0]["template"] == "suggester.interview@3"
-    assert asked[0]["payload"] == {
-        "topic": one.id, "label": one.label,
-        "points": [{"id": p.id, "text": p.text}
-                   for p in one.points if p.text != "Cuánto tiempo"]}
-    assert "payload" not in asked[-1]  # nothing left to tick
+    sent = asked[0]["payload"]
+    assert sent["label"] == one.label
+    assert sent["points"][:2] == [
+        {"id": f"{one.id}.{p.id}", "text": p.text, "topic": one.label}
+        for p in one.points if p.text != "Cuánto tiempo"]
+    assert all(not p["id"].startswith(f"{one.id}.")
+               for p in asked[-1]["payload"]["points"])  # all treated
 
 
 def test_a_failing_topic_tracker_never_stops_the_suggestions(

@@ -22,9 +22,12 @@ WINDOW = [
      "text": "Miro cómo apoya el pie, si se le va hacia dentro."},
 ]
 ROLES = {"S1": "interviewer", "S2": "candidate"}
-POINTS = {"topic": "s2", "label": "Zapatillas de running",
-          "points": [{"id": "p1", "text": "Tipos de pisada"},
-                     {"id": "p2", "text": "Amortiguación y drop"}]}
+POINTS = {"label": "Zapatillas de running",
+          "points": [{"id": "s2.p1", "text": "Tipos de pisada",
+                      "topic": "Zapatillas de running"},
+                     {"id": "s2.p2", "text": "Amortiguación y drop",
+                      "topic": "Zapatillas de running"},
+                     {"id": "s5.p2", "text": "Sábados"}]}
 
 
 def suggest(payload: Dict[str, Any], mode: str = "pincelada") -> ReasonRequest:
@@ -52,8 +55,12 @@ def test_the_concepts_go_in_the_user_prompt_never_the_system_prompt() -> None:
     assert template.system(suggest(POINTS, "guiado")) == template.system(
         without)  # one warm process for every topic and mode
     user = template.user(with_points)
-    assert "Concepts still to treat (Zapatillas de running): [p1] Tipos " \
-        "de pisada | [p2] Amortiguación y drop" in user
+    assert "Topic being asked: Zapatillas de running\nConcepts still to " \
+        "treat: [s2.p1] Tipos de pisada (Zapatillas de running) | [s2.p2] " \
+        "Amortiguación y drop (Zapatillas de running) | [s5.p2] Sábados" \
+        in user
+    assert "Topic being asked: not known" in template.user(
+        suggest({**POINTS, "label": ""}))
     assert user.endswith("JSON:")
     assert "Concepts still to treat" not in template.user(without)
     system = template.system(without)
@@ -67,16 +74,16 @@ def test_the_ticks_are_known_concepts_backed_by_the_candidates_words(
     out, model = run(suggest(POINTS), {
         "suggestions": [{"kind": "follow_up", "text": "Preguntar drop",
                          "about": ["t1.s0"]}],
-        "treated": [{"id": "p1", "about": "t1.s0"},
-                    {"id": "p1", "about": "t1.s0"},
-                    {"id": "p2", "about": "t0.s0"},
-                    {"id": "p9", "about": "t1.s0"}, "junk",
-                    {"id": "p2", "about": ["zz", "t1.s0"]}],
+        "treated": [{"id": "s2.p1", "about": "t1.s0"},
+                    {"id": "s2.p1", "about": "t1.s0"},
+                    {"id": "s2.p2", "about": "t0.s0"},
+                    {"id": "s2.p9", "about": "t1.s0"}, "junk",
+                    {"id": "s2.p2", "about": ["zz", "t1.s0"]}],
         "score": 9})
     assert out.status == "ok" and len(out.suggestions) == 1
-    assert out.data == {"topic": "s2", "points": [
-        {"id": "p1", "utterance": "t1.s0"},
-        {"id": "p2", "utterance": "t1.s0"}]}
+    assert out.data == {"points": [
+        {"id": "s2.p1", "utterance": "t1.s0"},
+        {"id": "s2.p2", "utterance": "t1.s0"}]}
     assert model.calls[0][2] <= TICK_MAX_OUTPUT_TOKENS
 
 
@@ -85,7 +92,7 @@ def test_no_tick_no_data_and_the_suggestions_stand() -> None:
     assert out.status == "no_suggestion" and out.data is None
     out, _ = run(suggest({}), {"suggestions": [
         {"kind": "question", "text": "¿Y el drop?"}],
-        "treated": [{"id": "p1", "about": "t1.s0"}]})
+        "treated": [{"id": "s2.p1", "about": "t1.s0"}]})
     assert out.data is None and out.suggestions  # no concepts were listed
     out, _ = run(suggest(POINTS), "not json at all")
     assert out.status == "no_suggestion"

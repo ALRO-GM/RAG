@@ -26,9 +26,11 @@ suggestions' goal. "Treated" only means the candidate talked about
 the concept: a hint for the interviewer, never a judgement.
 
 During the round the existing suggestion call (``suggester.interview@3``,
-#268) also gets the pending concepts of the topic asked
-(:meth:`TopicTracker.focus_points`) and may say which of them the last
-answer treated (:meth:`TopicTracker.suggested`): those are ticked too,
+#268) also gets the pending concepts, those of the topic asked first
+and then the other topics' (:meth:`TopicTracker.focus_points`: on real
+speech the rules often never see which topic is asked), and may say
+which of them the last answer treated (:meth:`TopicTracker.suggested`):
+those are ticked too,
 marked ``by: "live_model"``, while the rules' ticks are ``by:
 "rules"``. The tracker also keeps every final of the round in order
 (:meth:`TopicTracker.round_lines`), so the model can attribute the
@@ -62,6 +64,10 @@ from orchestrator.domain.interview_points import (
 from orchestrator.domain.next_round import TopicState, focus_line
 
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
+FOCUS_POINTS = 24
+"""Most pending concepts one suggestion call is given (#268)."""
+POINT_MARK = "."
+"""Joins a slot id and a concept id in the suggester's concept ids."""
 _STOP = frozenset(
     "sobre entre desde hasta tienes puedes cuando donde porque tambien "
     "alguna alguno algun cuentame cuenta puesto persona personas "
@@ -214,53 +220,62 @@ class TopicTracker:
                     for uid, (speaker, text) in self.lines.items()]
 
     def focus_points(self) -> Document:
-        """The pending concepts of the topic asked, for the suggester.
+        """The pending concepts for the suggester (#268).
 
-        ``{"topic", "label", "points": [{"id", "text"}]}`` (#268), or
-        ``{}`` when no topic is asked or none of its concepts is pending.
+        ``{"label", "points": [{"id": "<slot>.<concept>", "text",
+        "topic"}]}``: those of the topic asked first (``label``, empty
+        when the rules saw none asked), then the other topics' in the
+        round's order, at most :data:`FOCUS_POINTS`; ``{}`` when no
+        concept is pending.
         """
         with self._lock:
             target = self.target
-            if target is None:
-                return {}
-            left = pending(self.points[target.id])
-            if not left:
-                return {}
-            return {"topic": target.id, "label": target.label,
-                    "points": [{"id": p.id, "text": p.text} for p in left]}
+            order = [t.slot for t in self.states]
+            if target is not None:
+                order = [target, *(s for s in order if s.id != target.id)]
+            found = [{"id": f"{slot.id}{POINT_MARK}{p.id}", "text": p.text,
+                      "topic": slot.label}
+                     for slot in order
+                     for p in pending(self.points.get(slot.id, []))]
+        if not found:
+            return {}
+        return {"label": target.label if target is not None else "",
+                "points": found[:FOCUS_POINTS]}
 
     def suggested(self, asked: Document, data: Document) -> None:
         """Tick the concepts the suggestion call said the answer treated.
 
         ``asked`` is the request's payload (:meth:`focus_points` when it
-        was sent), ``data`` the reply's (``{"topic", "points": [{"id",
-        "utterance"}]}``). Only a concept of that topic not treated yet,
-        backed by a candidate utterance of this round, is ticked;
-        its quote is that utterance's first words. Marked ``by:
+        was sent), ``data`` the reply's (``{"points": [{"id",
+        "utterance"}]}``). Only a concept the request listed and not
+        treated yet, backed by a candidate utterance of this round, is
+        ticked; its quote is that utterance's first words. Marked ``by:
         "live_model"``.
         """
-        topic = asked.get("topic")
+        listed = asked.get("points")
         raw = data.get("points")
-        if not isinstance(topic, str) or data.get("topic") != topic or \
-                not isinstance(raw, list) or topic not in self.points:
+        if not isinstance(listed, list) or not isinstance(raw, list):
             return
+        known = {p.get("id") for p in listed if isinstance(p, dict)}
         changed = False
         with self._lock:
             for item in raw:
-                if not isinstance(item, dict):
+                if not isinstance(item, dict) or item.get("id") not in known:
                     continue
+                topic, _, point = str(item["id"]).partition(POINT_MARK)
                 said = self.lines.get(str(item.get("utterance")))
-                if said is None or self.roles.get(said[0]) != CANDIDATE:
+                if topic not in self.points or said is None or \
+                        self.roles.get(said[0]) != CANDIDATE:
                     continue
-                hit = PointHit(str(item.get("id")), "treated",
-                               quote(said[1]), "live_model")
+                hit = PointHit(point, "treated", quote(said[1]),
+                               "live_model")
                 if record_hit(self.points[topic], hit,
                               str(item.get("utterance"))):
                     changed = True
                     self.touched.add(topic)
-            if changed and points_status(self.points[topic]) in (
-                    "filled", "partial"):
-                self.covered.add(topic)
+                    if points_status(self.points[topic]) in (
+                            "filled", "partial"):
+                        self.covered.add(topic)
             focus = self._focus()
             moved = focus != self.focus
             self.focus = focus

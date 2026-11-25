@@ -503,32 +503,45 @@ def test_the_round_is_kept_in_order_with_its_roles() -> None:
 def test_the_suggester_ticks_pending_concepts_marked_as_a_live_model(
 ) -> None:
     topics, published = tracker()
-    assert topics.focus_points() == {}
+    every = topics.focus_points()
+    assert every["label"] == ""  # no topic asked yet: every pending one
+    assert [p["id"] for p in every["points"]][:4] == [
+        "s1.p1", "s1.p2", "s1.p3", "s2.p1"]
+    assert len(every["points"]) == 14 and every["points"][3]["topic"] == (
+        "Conocimiento de zapatillas de running")
     topics.on_event(final("u1", "S1", "¿Qué sabes de zapatillas de running?"))
     asked = topics.focus_points()
-    assert asked["topic"] == "s2" and [p["id"] for p in asked["points"]] == [
-        "p1", "p2", "p3"]
-    topics.on_event(final("u2", "S2", "Miro cómo apoya el pie al correr."))
+    assert asked["label"] == "Conocimiento de zapatillas de running"
+    assert [p["id"] for p in asked["points"]][:4] == [
+        "s2.p1", "s2.p2", "s2.p3", "s1.p1"]  # the topic asked first
+    topics.on_event(final("u2", "S2", "Miro cómo apoya el pie al correr. "
+                                      "Y cobraba con tarjeta."))
     before = len(published)
-    topics.suggested(asked, {"topic": "s2", "points": [
-        {"id": "p1", "utterance": "u2"},
-        {"id": "p2", "utterance": "u1"},     # the interviewer's: dropped
-        {"id": "p3", "utterance": "nope"},   # unknown: dropped
-        {"id": "p9", "utterance": "u2"},     # not a concept: dropped
-        "junk"]})
+    topics.suggested(asked, {"points": [
+        {"id": "s2.p1", "utterance": "u2"},
+        {"id": "s3.p1", "utterance": "u2"},   # another topic: ticked too
+        {"id": "s2.p2", "utterance": "u1"},   # the interviewer's: dropped
+        {"id": "s2.p3", "utterance": "nope"},  # unknown: dropped
+        {"id": "s2.p9", "utterance": "u2"},   # not listed: dropped
+        {"id": "s6", "utterance": "u2"}, "junk"]})
     points = {p.id: p for p in topics.points["s2"]}
     assert points["p1"].status == "treated" and points["p1"].by == "live_model"
-    assert points["p1"].quote == "Miro cómo apoya el pie al correr."
+    assert points["p1"].quote.startswith("Miro cómo apoya el pie")
     assert points["p2"].status == "pending"
     assert points["p3"].status == "pending"
+    assert topics.points["s3"][0].status == "treated"
     assert len(published) == before + 1  # the topics again
-    assert [p["id"] for p in topics.focus_points()["points"]] == ["p2", "p3"]
-    topics.suggested(asked, {"topic": "s1", "points": [
-        {"id": "p2", "utterance": "u2"}]})  # another topic: ignored
-    topics.suggested({}, {"topic": "s2", "points": []})
+    assert [p["id"] for p in topics.focus_points()["points"]][:2] == [
+        "s2.p2", "s2.p3"]
+    topics.suggested({}, {"points": [{"id": "s2.p2", "utterance": "u2"}]})
+    topics.suggested(asked, {"points": "x"})
     assert points["p2"].status == "pending"
     sheet, _ = topics.sheet_slots()
     assert next(s for s in sheet if s.id == "s2").points[0].by == "live_model"
+    for slot in topics.points.values():
+        for point in slot:
+            point.status = "treated"
+    assert topics.focus_points() == {}
 
 
 def test_the_rules_ticks_say_so() -> None:
@@ -542,8 +555,8 @@ def test_the_assist_sends_the_payload_and_passes_the_data_on() -> None:
     class Ticking(FakeReasoner):
         def reason(self, request: Document, cancel: CancelToken) -> Document:
             answer = super().reason(request, cancel)
-            answer["data"] = {"topic": "s2", "points": [
-                {"id": "p1", "utterance": request["context"]["focus"]}]}
+            answer["data"] = {"points": [
+                {"id": "s2.p1", "utterance": request["context"]["focus"]}]}
             return answer
 
     reasoner = Ticking()
@@ -551,14 +564,15 @@ def test_the_assist_sends_the_payload_and_passes_the_data_on() -> None:
                         _Clock(), InlineExecutor(),
                         {"a": "agent", "c": "customer"})
     got: List[Tuple[Document, Document]] = []
-    assist.payload = {"topic": "s2", "points": [{"id": "p1", "text": "X"}]}
+    sent = {"label": "", "points": [{"id": "s2.p1", "text": "X"}]}
+    assist.payload = lambda: sent
     assist.on_data = lambda payload, data: got.append((payload, data))
     assist.on_event(final("u1", "c", "Una frase bastante larga del cliente.",
                           seq=1))
     assist.finish()
-    assert reasoner.requests[0]["payload"] == assist.payload
-    assert got == [(assist.payload, {"topic": "s2", "points": [
-        {"id": "p1", "utterance": "u1"}]})]
+    assert reasoner.requests[0]["payload"] == sent
+    assert got == [(sent, {"points": [
+        {"id": "s2.p1", "utterance": "u1"}]})]
 
     def broken(payload: Document, data: Document) -> None:
         raise ValueError("bad")
