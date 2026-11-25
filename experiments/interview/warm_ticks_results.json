@@ -1,0 +1,388 @@
+{
+ "schema": "warm-ticks-run.v1",
+ "synthetic": true,
+ "backend": "ClaudeCodeStream haiku, effort low (warm, in process)",
+ "started": "2026-11-25T20:30:04",
+ "deadline_ms": 1800.0,
+ "uncounted_calls": 2,
+ "summary": {
+  "suggester.interview@2": {
+   "calls": 15,
+   "answered": 15,
+   "within_1800ms": 14,
+   "over_cap": 0,
+   "other_failures": 0,
+   "with_suggestion": 15,
+   "with_ticks": 0,
+   "wall_ms": {
+    "min": 1076.0,
+    "median": 1167.0,
+    "p90": 1769.0,
+    "max": 1826.0
+   },
+   "output_tokens": {
+    "min": 60.0,
+    "median": 66.0,
+    "p90": 71.0,
+    "max": 200.0
+   }
+  },
+  "suggester.interview@3": {
+   "calls": 15,
+   "answered": 15,
+   "within_1800ms": 9,
+   "over_cap": 0,
+   "other_failures": 0,
+   "with_suggestion": 15,
+   "with_ticks": 10,
+   "wall_ms": {
+    "min": 1104.0,
+    "median": 1767.0,
+    "p90": 2059.0,
+    "max": 2774.0
+   },
+   "output_tokens": {
+    "min": 78.0,
+    "median": 174.0,
+    "p90": 293.0,
+    "max": 357.0
+   }
+  }
+ },
+ "rows": {
+  "suggester.interview@2": [
+   {
+    "focus": "a2",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1134,
+    "total_ms": 1133.619478001492,
+    "first_token_ms": 889.0,
+    "output_tokens": 64,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a3",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1127,
+    "total_ms": 1127.1861709828954,
+    "first_token_ms": 850.4,
+    "output_tokens": 66,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a5",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1156,
+    "total_ms": 1155.7402010075748,
+    "first_token_ms": 945.8,
+    "output_tokens": 65,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a6",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1186,
+    "total_ms": 1185.6208200042602,
+    "first_token_ms": 874.7,
+    "output_tokens": 71,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a7",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1076,
+    "total_ms": 1076.2252130080014,
+    "first_token_ms": 822.1,
+    "output_tokens": 67,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a9",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1150,
+    "total_ms": 1150.2259080007207,
+    "first_token_ms": 884.5,
+    "output_tokens": 65,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a10",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1769,
+    "total_ms": 1769.1626399755478,
+    "first_token_ms": 1568.5,
+    "output_tokens": 200,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a12",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1150,
+    "total_ms": 1150.066226022318,
+    "first_token_ms": 895.7,
+    "output_tokens": 63,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a13",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1165,
+    "total_ms": 1164.8372799973004,
+    "first_token_ms": 872.8,
+    "output_tokens": 60,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b2",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1167,
+    "total_ms": 1167.2945999889635,
+    "first_token_ms": 892.6,
+    "output_tokens": 65,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b3",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1582,
+    "total_ms": 1582.1217030170374,
+    "first_token_ms": 1308.3,
+    "output_tokens": 65,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b4",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1290,
+    "total_ms": 1290.2983230014797,
+    "first_token_ms": 1014.4,
+    "output_tokens": 66,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b6",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1234,
+    "total_ms": 1234.1314269870054,
+    "first_token_ms": 945.7,
+    "output_tokens": 68,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b8",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1213,
+    "total_ms": 1213.2715240004472,
+    "first_token_ms": 917.3,
+    "output_tokens": 67,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b10",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1826,
+    "total_ms": 1825.4218789807055,
+    "first_token_ms": 1593.8,
+    "output_tokens": 67,
+    "suggestions": 1,
+    "ticks": 0
+   }
+  ],
+  "suggester.interview@3": [
+   {
+    "focus": "a2",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1104,
+    "total_ms": 1103.550327999983,
+    "first_token_ms": 828.0,
+    "output_tokens": 78,
+    "suggestions": 1,
+    "ticks": 2
+   },
+   {
+    "focus": "a3",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 2774,
+    "total_ms": 2774.1274910222273,
+    "first_token_ms": 2523.8,
+    "output_tokens": 357,
+    "suggestions": 1,
+    "ticks": 3
+   },
+   {
+    "focus": "a5",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1972,
+    "total_ms": 1972.1751580073033,
+    "first_token_ms": 1762.4,
+    "output_tokens": 228,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "a6",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1412,
+    "total_ms": 1412.2925049741752,
+    "first_token_ms": 1201.7,
+    "output_tokens": 162,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "a7",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1427,
+    "total_ms": 1427.1386520122178,
+    "first_token_ms": 1210.3,
+    "output_tokens": 136,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "a9",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1600,
+    "total_ms": 1599.5836750080343,
+    "first_token_ms": 1347.4,
+    "output_tokens": 174,
+    "suggestions": 1,
+    "ticks": 2
+   },
+   {
+    "focus": "a10",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 2059,
+    "total_ms": 2058.9304550085217,
+    "first_token_ms": 1867.7,
+    "output_tokens": 293,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a12",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1373,
+    "total_ms": 1372.8873039945029,
+    "first_token_ms": 1183.8,
+    "output_tokens": 152,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "a13",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1767,
+    "total_ms": 1766.5324499830604,
+    "first_token_ms": 1541.6,
+    "output_tokens": 165,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b2",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1811,
+    "total_ms": 1810.8512289763894,
+    "first_token_ms": 1598.9,
+    "output_tokens": 221,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "b3",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1549,
+    "total_ms": 1548.901760019362,
+    "first_token_ms": 1334.0,
+    "output_tokens": 157,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "b4",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1562,
+    "total_ms": 1562.2651989979204,
+    "first_token_ms": 1382.1,
+    "output_tokens": 153,
+    "suggestions": 1,
+    "ticks": 0
+   },
+   {
+    "focus": "b6",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1855,
+    "total_ms": 1854.4408489833586,
+    "first_token_ms": 1599.5,
+    "output_tokens": 281,
+    "suggestions": 1,
+    "ticks": 2
+   },
+   {
+    "focus": "b8",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 1785,
+    "total_ms": 1785.3569730068557,
+    "first_token_ms": 1568.8,
+    "output_tokens": 194,
+    "suggestions": 1,
+    "ticks": 1
+   },
+   {
+    "focus": "b10",
+    "status": "ok",
+    "error": null,
+    "wall_ms": 2019,
+    "total_ms": 2019.1963039978873,
+    "first_token_ms": 1798.7,
+    "output_tokens": 249,
+    "suggestions": 1,
+    "ticks": 0
+   }
+  ]
+ }
+}

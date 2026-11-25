@@ -74,7 +74,7 @@ PointStatus = Literal["treated", "pending", "unknown"]
 DecidedBy = Literal["rules", "live_model", "after_session"]
 """Who decided a concept's status (#268): the word rules during the
 session; a model call during the session (the AI interviewer's slot
-filler, the live page's suggestion call); or the model reading the
+filler, the live page's tick call); or the model reading the
 whole round after the session."""
 POINT_STATUSES: Tuple[PointStatus, ...] = ("treated", "pending", "unknown")
 MIN_MINUTES, MAX_MINUTES = 5, 90

@@ -309,9 +309,9 @@ reader can announce the change; not tried with a screen reader). The pending
 concepts of the topic being asked also go into the **goal of the
 existing suggester call** («Tema en curso: …; conceptos aún sin tratar:
 B y C.»), so the suggestions steer to them with no extra model call.
-Since #268 that same call (`suggester.interview@3`, §6.3) also ticks
-concepts: the rules above still tick what they can, and the model adds
-what the last answer treated in other words. The
+Since #268 a separate call beside the suggestions (`interview.ticks@1`,
+§6.3) also ticks concepts: the rules above still tick what they can, and
+the model adds what the last answer treated in other words. The
 scripted interview (`#/live/demo`, `entrevista-lucia.demo.json`) ticks
 its topics' concepts by prepared lines (`asked_by`, `points[].covered_by`;
 the spoken lines are unchanged), and leaves «Pruebas de integración»
@@ -744,38 +744,77 @@ points: **2 to 5 Haiku calls** in all, instead of 1 to 3. How long the
 attribution of a long round takes was not measured (the invented rounds
 of §8.3 have 10–13 utterances).
 
-**When it fails.** If any attribution call fails (time-out, quota,
-unreachable reasoner) or its reply cannot be read, the round is judged
-with the rules' attribution of the session, as before, and the report
-says so (`attribution: "rules"`, `attribution_error`: the status and
-error kind, never words); the log has counts only. A malformed reply
-reads as "nothing answered" for what it got wrong. When the model says
-nothing of the round answers any point, the model's word stands: no
-report is stored and the page gets `{"type": "accuracy", "state":
-"empty"}` (it stops waiting).
+**When it fails or gives nothing usable.** The round is judged with
+the rules' attribution of the session, as before, and the report says
+so (`attribution: "rules"`, `attribution_error`, never words) when:
 
-**During the session.** The cheapest thing that adds meaning is the
-call that already exists. `suggester.interview@3` is `@2` (same system
-prompt plus one rule and a reply field, fixed for every topic and mode,
-so one warm process serves them) whose user prompt also lists the
-**pending concepts** (ids such as `s2.p1`, those of the topic the rules
-think is asked first, then the others, at most 24: on real speech the
-rules often never see which topic is asked) and whose reply may add
-`"treated": [{"id", "about": utterance id}]`. The response's `data`
-carries them (an additive use of that field of `reasoner.response.v1`)
-and the tracker ticks those still pending and backed by a candidate
-utterance of the round, the quote being that utterance's first words.
-The rules keep ticking as before. Cost: **no extra call**; the prompt
-grows by the concept list and the reply cap goes from 240 to 300 tokens
-(estimates, not measured); its latency on the warm live process was
-**not measured** (the 1.8 s deadline is unchanged: a late reply is
-dropped and ticks nothing). A call cancelled by a newer final ticks
-nothing; the next one sees the same window. A periodic batched filler
-call was not chosen: it would add calls and tick later.
+- any attribution call fails (time-out, quota, unreachable reasoner:
+  the status and error kind, e.g. `timeout: timeout`, `unavailable`);
+- a reply cannot be read, or its `slots` is not a list (`unreadable`);
+- every id it gave was dropped, e.g. ids in another form
+  (`ids_unknown`); ids wrapped in brackets or with stray spaces
+  («[t3.s0]», « t3.s0 ») are read, numbers are not;
+- it attributed nothing at all (`empty`).
+
+The log has, per batch, how many entries the reply gave, how many were
+kept and dropped, and whether `slots` was a list: counts only. Only
+when the rules found nothing answered either is no report stored; the
+page then gets `{"type": "accuracy", "state": "empty",
+"attribution_error": …}` (it stops waiting) and `interview rejudge`
+prints `nothing_answered` with that reason.
+
+**What the session ticked is kept.** A concept the rules or the live
+model ticked during the session (backed by the candidate's words) that
+the model's reading after the session left pending is kept, with who
+decided it (`rules` or `live_model`), and its utterance then also
+answers the point; it is not dropped silently. The model's reading only
+adds to the session's ticks, never removes one.
+
+**During the session.** The first design put the ticks into the
+existing suggestion call (`suggester.interview@3`: `@2` plus the pending
+concepts and a `treated` list in its reply). Measured on the warm path
+(§8.4) it made that call miss the 1.8 s deadline far more often (9 of 15
+replies within 1.8 s, against 14 of 15 for `@2`), and a missed deadline
+loses the turn's suggestions, not only the ticks. The rule set in
+advance was to use `@3` only if it lost at most 1 of 15 against `@2`;
+it lost 5, so the live product keeps `suggester.interview@2` and `@3`
+was removed.
+
+The ticks are instead a **separate call beside the suggestions**
+(`LiveTicker`, `orchestrator/application/live_ticks.py`, template
+`interview.ticks@1`): after each candidate final, the last six lines of
+the conversation, the speakers' roles and the pending concepts
+(`TopicTracker.focus_points`: all those of the topic the rules think is
+asked, then at most 4 of other topics, at most 9; on real speech the
+rules often never see which topic is asked) go to the model, which
+replies `{"treated": ["s2.p1"]}`, concept ids only; they are tied to
+that final (it must be the candidate's) and its first words are the
+quote. It runs on the session's runner, on the reasoner's **cold**
+backend (the template is `slow`, one `claude -p` process per call), so
+it can never delay a suggestion nor take or displace the warm process
+the suggestions use; 20 s deadline; at most one call in flight, a final
+that arrives meanwhile waits as the next one and a newer final replaces
+it (the older is dropped as stale). A failed, late or malformed reply
+ticks nothing and is logged with its status only. **Cost: at most one
+Haiku call per candidate final** (fewer when finals come faster than a
+call takes); with about 68 candidate finals in an 8-minute round, up to
+about 68 calls, each a cold process. How long a tick call takes, and
+its precision, were **not measured** (the cold `@3` calls of §8.3 took
+3.1–5.8 s, so ticks appear a few seconds after the answer). A periodic
+batched filler call was not chosen: it would tick later still.
+
+**Ticks are hints, and a line can steer them.** What the candidate says
+is fenced and the prompt says it is never an instruction, but a
+candidate's line can still make the model tick concepts (for example by
+naming them). Such a tick is bounded (at most 6 per reply, only
+concepts listed as pending), tied to a real utterance of the candidate,
+and shown as decided by the model; it is a hint for the interviewer
+about what was talked about, never a judgement, and the after-session
+judge still reads the words themselves.
 
 **Who decided each tick.** Every concept of a sheet now says `by`:
 `rules` (the word rules during the session), `live_model` (a model call
-during the session: the live suggester, or the AI interviewer's slot
+during the session: the live tick call, or the AI interviewer's slot
 filler) or `after_session` (the model reading the whole round); a live
 sheet says `attribution: "after_session" | "rules"` for its answers.
 The report shows it in words under «Precisión de las respuestas» («Qué
@@ -935,7 +974,8 @@ model):
 | `interview.attribution@1` (each live round's attribution, #268; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `interview.slots@2` (slot filler) | 6 s | warm, min(6, 10) s | 120 s (same client) |
 | `interviewer@2` (voice bot) | 4 s | warm, min(4, 10) s | 10 s (default) |
-| `suggester.interview@3` (#268) / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
+| `interview.ticks@1` (live concept ticks, #268) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
+| `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
 
 The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow
 call, so it never gives up before the RAG answers. The page's «Preparar
@@ -981,7 +1021,7 @@ with the writer's intent is not accuracy on real interviews.
 | Way | Pairs precision | Pairs recall | Concepts treated precision | Concepts treated recall |
 |---|---|---|---|---|
 | rules (live page, no model) | 3/6 = 0.50 | 3/20 = 0.15 | 0 ticked | 0/22 = 0.00 |
-| live: rules + `suggester.interview@3` per candidate final | 3/6 = 0.50 (the rules') | 0.15 | 20/20 = 1.00 | 20/22 = 0.91 |
+| live: rules + `suggester.interview@3` per candidate final (first design, replaced: §8.4) | 3/6 = 0.50 (the rules') | 0.15 | 20/20 = 1.00 | 20/22 = 0.91 |
 | after: `interview.attribution@1`, 2 runs per round | 40/46 = 0.87 | 40/40 = 1.00 | 43/46 = 0.93 | 43/44 = 0.98 |
 
 - The rules ticked no concept of the set, as in the real round of §6.3,
@@ -997,8 +1037,38 @@ with the writer's intent is not accuracy on real interviews.
 - Wall time per call, cold process: attribution 7.0–10.2 s (median
   9.0 s) for 10–13 utterances; suggester `@3` 3.1–5.8 s (median 4.0 s).
   The suggester's time is a cold process's with a 60 s deadline, not the
-  warm live path's 1.8 s: whether `@3` answers within 1.8 s live was
-  **not measured**. A long round's attribution time was not measured.
+  warm live path's 1.8 s (§8.4). A long round's attribution time was not
+  measured.
+- The `live` row is the first design (`@3`, the ticks inside the
+  suggester's reply). The design that replaced it (`interview.ticks@1`,
+  a separate call with a shorter concept list) was **not** measured on
+  this set: it asks the same question of the same model, so similar
+  ticks are expected, but that is not a measurement.
+
+### 8.4 The ticks inside the suggester's reply, on the warm path (#268)
+
+`experiments/interview/warm_ticks.py`, result
+`experiments/interview/warm_ticks_results.json`, 2026-11-25: the first
+15 candidate finals of the set of §8.3, each sent once to
+`suggester.interview@2` and once to the compact `suggester.interview@3`
+(concept ids only in the reply, at most 9 concepts listed; templates of
+commit 810f51b), sequentially, in process on the same warm backend the
+RAG uses (`ClaudeCodeStream`, Haiku, effort `low`), each template on
+its own warmed backend with one uncounted first call; 32 calls, text
+only, the owner's subscription. The calls had 10 s so the full reply
+time is seen; "within 1.8 s" is computed from it. No retrieved chunks
+for either. Synthetic set.
+
+| Template | Within 1.8 s | Time to full reply (median / p90 / max) | Output tokens (median / p90 / max) | Over the cap |
+|---|---|---|---|---|
+| `suggester.interview@2` | 14/15 | 1,167 / 1,769 / 1,826 ms | 66 / 71 / 200 | 0 |
+| `suggester.interview@3` | 9/15 | 1,767 / 2,059 / 2,774 ms | 174 / 293 / 357 | 0 |
+
+Output tokens include Haiku's hidden thinking (the process cap is the
+template's 240 plus 300 for it). `@3` gave a suggestion in all 15 and
+ticked something in 10. Decision (§6.3): keep `@2`; tick with a separate
+cold call. An earlier, longer `@3` (24 concepts, `{"id", "about"}` per
+tick) used 264–705 output tokens on the cold path of §8.3.
 
 ## 9. How to run the test (owner)
 
@@ -1050,10 +1120,14 @@ estimate from that count, not measured). `post_call: on` adds the analysis's cal
   handled yet. The concept rules miss synonyms and paraphrases and can
   still tick a concept from its own words used in another sense (§4.1).
 - The model's attribution after a live round (§6.3) was measured only on
-  three short invented rounds (§8.3); its precision on real speech, its
-  time on a long round and the live suggester's ticks on the warm path
-  are not measured. When it fails, the report falls back to the rules
-  and says so.
+  three short invented rounds (§8.3); its precision on real speech and
+  its time on a long round are not measured, nor are the live tick
+  call's time and precision. When it fails, the report falls back to
+  the rules and says so.
+- Warm-ups (`suggester.interview@2` is now warmed at service start)
+  share one warm backend per model: the first live call drops processes
+  warmed for other templates, so warming several templates helps only
+  the first one used (existing design, not changed here).
 - Bot utterance times in the transcript come from the orchestrator's
   clock (session start ≈ transcriber stream start). A turn dropped
   because the candidate went on talking does not move the agenda if

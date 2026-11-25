@@ -900,8 +900,11 @@ class RagCLI:
                 skills.reasoner.warm_up("conversational.voicebot@2")
                 skills.reasoner.warm_up("interviewer@2")
                 skills.reasoner.warm_up("interview.slots@2")
+                # The live interview's suggester (#268 review).
+                skills.reasoner.warm_up("suggester.interview@2")
                 print("Warm-up: live reasoner pools started "
-                      "(suggester, conversational, interviewer, slots)")
+                      "(suggester, conversational, interviewer, slots, "
+                      "interview suggester)")
             except Exception as exc:  # warm-up is best effort
                 print(f"Warm-up skipped: {type(exc).__name__}")
 

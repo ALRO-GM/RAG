@@ -25,13 +25,13 @@ to treat of that topic (or ``None``) whenever it changes, for the
 suggestions' goal. "Treated" only means the candidate talked about
 the concept: a hint for the interviewer, never a judgement.
 
-During the round the existing suggestion call (``suggester.interview@3``,
-#268) also gets the pending concepts, those of the topic asked first
-and then the other topics' (:meth:`TopicTracker.focus_points`: on real
-speech the rules often never see which topic is asked), and may say
-which of them the last answer treated (:meth:`TopicTracker.suggested`):
-those are ticked too,
-marked ``by: "live_model"``, while the rules' ticks are ``by:
+During the round a separate call beside the suggestions
+(:class:`~orchestrator.application.live_ticks.LiveTicker`, #268) gets
+the pending concepts, those of the topic asked first and a few of the
+other topics' (:meth:`TopicTracker.focus_points`: on real speech the
+rules often never see which topic is asked), and may say which of them
+the last answer treated (:meth:`TopicTracker.suggested`): those are
+ticked too, marked ``by: "live_model"``, while the rules' ticks are ``by:
 "rules"``. The tracker also keeps every final of the round in order
 (:meth:`TopicTracker.round_lines`), so the model can attribute the
 whole round after the session.
@@ -65,7 +65,7 @@ from orchestrator.domain.next_round import TopicState, focus_line
 
 INTERVIEWER, CANDIDATE = "interviewer", "candidate"
 FOCUS_POINTS = 9
-"""Most pending concepts one suggestion call is given (#268)."""
+"""Most pending concepts one tick call is given (#268)."""
 OTHER_POINTS = 4
 """Of those, most from topics other than the one asked (the rules may
 not know which is asked; a short list keeps the reply short)."""
@@ -150,7 +150,7 @@ class TopicTracker:
         self._lock = threading.Lock()
         self._focus_lock = threading.Lock()
         """Serialises telling the focus (#268): the event thread and a
-        suggestion call's thread can both change it."""
+        tick call's thread can both change it."""
 
     def start(self) -> None:
         """Show the topics in the next round's order."""
@@ -268,7 +268,7 @@ class TopicTracker:
                 "points": found[:FOCUS_POINTS]}
 
     def suggested(self, asked: Document, data: Document) -> None:
-        """Tick the concepts the suggestion call said the answer treated.
+        """Tick the concepts the tick call said the answer treated.
 
         ``asked`` is the request's payload (:meth:`focus_points` when it
         was sent), ``data`` the reply's (``{"points": [{"id",

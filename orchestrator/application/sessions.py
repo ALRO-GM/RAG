@@ -63,6 +63,7 @@ from orchestrator.application.live_judgement import (
     LiveJudge,
     without_words,
 )
+from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
@@ -225,6 +226,7 @@ class _Session:
     topics: Optional[TopicTracker] = None
     goal: Optional[str] = None
     judge: Optional[LiveJudge] = None
+    ticker: Optional[LiveTicker] = None
     accuracy: Optional[Document] = None
     """How accurate the round's answers were (#259), when judged."""
     followed: threading.Event = field(default_factory=threading.Event)
@@ -291,6 +293,11 @@ class _Handler:
             except Exception:  # noqa: BLE001 - logged, the call goes on
                 LOG.exception("topics: event %s not followed",
                               event.seq)
+        if self.session.ticker is not None:
+            try:
+                self.session.ticker.on_event(event)
+            except Exception:  # noqa: BLE001 - logged, the call goes on
+                LOG.exception("ticks: event %s not followed", event.seq)
         self.assist.on_event(event)
         if self.session.tracker is not None:
             self.session.tracker.on_event(event)
@@ -1273,17 +1280,17 @@ class LiveSessions:
                           session.product.language)
         session.goal = goal
 
-    @staticmethod
-    def _follow_concepts(session: _Session, assist: _Assistant) -> None:
+    def _follow_concepts(self, session: _Session,
+                         assist: _Assistant) -> None:
         """Give the suggestions the concepts still to treat (#258).
 
         The concepts of the topic being asked that are still pending go
         into the goal of the suggester's next requests (its existing
-        call: no extra model call); every pending concept, with its
-        id, goes into its payload (#268): ``suggester.interview@3`` then
-        says which of them the last answer treated and the tracker ticks
-        them. The request's session is replaced whole, never changed in
-        place, as a call may be reading it.
+        call: no extra model call). The request's session is replaced
+        whole, never changed in place, as a call may be reading it.
+        Beside the suggestions, a :class:`LiveTicker` (#268) asks the
+        model which pending concepts each candidate final treated, on
+        its own call that never delays or drops a suggestion.
         """
         topics = session.topics
         if topics is None or not isinstance(assist, LiveAssist):
@@ -1300,8 +1307,13 @@ class LiveSessions:
             assist.session = about
 
         topics.on_focus = on_focus
-        assist.payload = topics.focus_points
-        assist.on_data = topics.suggested
+        wiring = self.interview
+        if wiring is not None:
+            reasoner = session.product.reasoner
+            session.ticker = LiveTicker(
+                wiring.reasoner, topics, session.roles, self.runner.start,
+                reasoner.model if reasoner else "haiku",
+                session.product.language)
 
     @staticmethod
     def _about(session: _Session) -> Dict[str, Optional[str]]:

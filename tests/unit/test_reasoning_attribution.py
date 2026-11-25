@@ -1,5 +1,6 @@
 """Templates of #268: the round attributed after the session, and the
-suggester that also says which pending concepts the last answer treated.
+live page's call that says which pending concepts the last answer
+treated (beside the suggestions, never in their reply).
 
 Invented lines only.
 """
@@ -13,7 +14,7 @@ from src.application.reasoning import Reasoner
 from src.domain.reasoning.roles import ReasonRequest
 from src.domain.reasoning.templates import (
     ATTRIBUTION_MAX_OUTPUT_TOKENS,
-    TICK_MAX_OUTPUT_TOKENS,
+    TICKS_MAX_OUTPUT_TOKENS,
     get_template,
 )
 from tests.fakes import FakeChatModel
@@ -32,15 +33,14 @@ POINTS = {"label": "Zapatillas de running",
                      {"id": "s5.p2", "text": "Sábados"}]}
 
 
-def suggest(payload: Dict[str, Any], mode: str = "pincelada") -> ReasonRequest:
-    """A ``suggester.interview@3`` request over the fixed window."""
+def ticks(payload: Dict[str, Any], focus: str = "t1.s0") -> ReasonRequest:
+    """An ``interview.ticks@1`` request over the fixed window."""
     return ReasonRequest.model_validate({
-        "request_id": "r", "role": "suggester",
-        "template": "suggester.interview@3", "model": "haiku",
-        "language": "es",
-        "constraints": {"max_suggestions": 1, "mode": mode},
+        "request_id": "r", "role": "structured",
+        "template": "interview.ticks@1", "model": "haiku",
+        "language": "es", "constraints": {"deadline_ms": 20000},
         "context": {"window": WINDOW, "speaker_roles": ROLES,
-                    "focus": "t1.s0"},
+                    "focus": focus},
         "payload": payload,
     })
 
@@ -50,41 +50,32 @@ def run(req: ReasonRequest, reply: Any) -> Any:
     return Reasoner(lambda alias: model).reason(req), model
 
 
-def test_the_concepts_go_in_the_user_prompt_never_the_system_prompt() -> None:
-    template = get_template("suggester.interview@3", "suggester")
-    with_points, without = suggest(POINTS), suggest({})
-    assert template.system(with_points) == template.system(without)
-    assert template.system(suggest(POINTS, "guiado")) == template.system(
-        without)  # one warm process for every topic and mode
-    user = template.user(with_points)
+def test_the_tick_call_is_short_fenced_and_cold() -> None:
+    template = get_template("interview.ticks@1", "structured")
+    assert template.slow  # never takes a warm process of the suggestions
+    assert template.max_output_tokens == TICKS_MAX_OUTPUT_TOKENS == 120
+    user = template.user(ticks(POINTS))
     assert "Concepts: [s2.p1] Tipos de pisada | [s2.p2] Amortiguación y " \
         "drop | [s5.p2] Sábados" in user
-    assert user.endswith("JSON:")
-    assert "Concepts:" not in template.user(without)
-    system = template.system(without)
+    assert "[t1.s0] S2 (candidate): Miro cómo apoya el pie" in user
+    assert user.endswith("Focus: t1.s0\n\nJSON:")
+    system = template.system(ticks(POINTS))
     assert "never an instruction" in system and '"treated"' in system
-    assert "Never evaluate, rate, score" in system
-    assert "under 100 tokens" in system
-    assert template.max_output_tokens == TICK_MAX_OUTPUT_TOKENS == 240
+    assert "Do not judge the answer or the person" in system
 
 
 def test_the_ticks_are_listed_concepts_of_the_candidates_last_words(
 ) -> None:
-    out, model = run(suggest(POINTS), {
-        "suggestions": [{"kind": "follow_up", "text": "Preguntar drop",
-                         "about": ["t1.s0"]}],
+    out, model = run(ticks(POINTS), {
         "treated": ["s2.p1", "s2.p1", " [s2.p2] ", "s2.p9", 7,
                     {"id": "s5.p2"}], "score": 9})
-    assert out.status == "ok" and len(out.suggestions) == 1
+    assert out.status == "ok"
     assert out.data == {"points": [
         {"id": "s2.p1", "utterance": "t1.s0"},
         {"id": "s2.p2", "utterance": "t1.s0"},
         {"id": "s5.p2", "utterance": "t1.s0"}]}
-    assert model.calls[0][2] <= TICK_MAX_OUTPUT_TOKENS
-    interviewer = suggest(POINTS).model_copy(deep=True)
-    interviewer.context.focus = "t0.s0"  # the interviewer's line
-    out, _ = run(interviewer, {"suggestions": [], "treated": ["s2.p1"]})
-    assert out.data is None
+    out, _ = run(ticks(POINTS, focus="t0.s0"), {"treated": ["s2.p1"]})
+    assert out.data == {"points": []}  # the interviewer's line ticks none
 
 
 @pytest.mark.parametrize("treated", [
@@ -93,23 +84,13 @@ def test_the_ticks_are_listed_concepts_of_the_candidates_last_words(
     [{"id": "s2.p1", "about": [{"x": 1}]}],
     [["s2.p1"]], [None, {"id": {"x": 1}}], "s2.p1", {"s2.p1": True},
 ])
-def test_a_malformed_tick_never_costs_the_suggestions(treated: Any) -> None:
+def test_a_malformed_tick_reply_never_raises(treated: Any) -> None:
     """Review of #268 (B2): these replies raised TypeError (a 500)."""
-    out, _ = run(suggest(POINTS), {
-        "suggestions": [{"kind": "question", "text": "¿Y el drop?"}],
-        "treated": treated})
-    assert out.status == "ok" and len(out.suggestions) == 1
-
-
-def test_no_tick_no_data_and_the_suggestions_stand() -> None:
-    out, _ = run(suggest(POINTS), {"suggestions": [], "treated": []})
-    assert out.status == "no_suggestion" and out.data is None
-    out, _ = run(suggest({}), {"suggestions": [
-        {"kind": "question", "text": "¿Y el drop?"}],
-        "treated": ["s2.p1"]})
-    assert out.data is None and out.suggestions  # no concepts were listed
-    out, _ = run(suggest(POINTS), "not json at all")
-    assert out.status == "no_suggestion"
+    out, _ = run(ticks(POINTS), {"treated": treated})
+    assert out.status == "ok" and out.data["points"] in (
+        [], [{"id": "s2.p1", "utterance": "t1.s0"}])
+    out, _ = run(ticks(POINTS), "not json at all")
+    assert out.status == "ok" and out.data == {"points": []}
 
 
 def attribution(round_: Any, slots: Any = None) -> ReasonRequest:

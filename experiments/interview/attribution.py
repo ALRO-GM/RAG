@@ -7,9 +7,11 @@ or said to be unknown. Each round is attributed three ways:
 
 * ``rules``: the round replayed through the live page's topic tracker
   (the word rules of #258, no model);
-* ``live``: the same replay, plus ``suggester.interview@3`` asked after
-  every candidate final with every pending concept (those of the topic
-  the rules think is asked first), as the live page does (#268);
+* ``live``: the same replay, plus the live page's tick call
+  (``interview.ticks@1``, :class:`LiveTicker`) after every candidate
+  final (#268). The committed results of this way were measured with
+  ``suggester.interview@3``, the first design (commit 27f941c), later
+  replaced after a warm-path measurement (``warm_ticks.py``);
 * ``after``: the model reading the whole round after the session
   (``interview.attribution@1`` through
   :meth:`~orchestrator.application.live_judgement.LiveJudge.attribute_round`).
@@ -47,6 +49,7 @@ from orchestrator.application.live_judgement import (
     LiveJudge,
     replayed_tracker,
 )
+from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.ports import CancelToken, Document
 from orchestrator.application.replay import transcript_to_events
@@ -162,49 +165,21 @@ def rules_way(plan: InterviewPlan, round_: Dict[str, Any]
     return tracked(replayed_tracker(transcript(round_), plan))
 
 
-def live_way(plan: InterviewPlan, round_: Dict[str, Any], reasoner: Any,
-             deadline_ms: int) -> Tuple[Pairs, Concepts]:
-    """The rules plus ``suggester.interview@3`` after each candidate final.
+def live_way(plan: InterviewPlan, round_: Dict[str, Any], reasoner: Any
+             ) -> Tuple[Pairs, Concepts]:
+    """The rules plus the live page's tick call after each candidate final.
 
-    As the live page: the request carries the last :data:`WINDOW` lines,
-    the speakers' roles and the pending concepts
-    (:meth:`TopicTracker.focus_points`); the reply's ticks go to
-    :meth:`TopicTracker.suggested`.
+    Exactly as the live page: a :class:`LiveTicker` (``interview.ticks@1``,
+    the last :data:`WINDOW` lines, the pending concepts of
+    :meth:`TopicTracker.focus_points`), run inline here.
     """
     roles = {"S1": "interviewer", "S2": "candidate"}
     topics = TopicTracker(plan, topic_states(plan, []), roles,
                           lambda message: None)
-    window: List[Dict[str, Any]] = []
+    ticker = LiveTicker(reasoner, topics, roles, lambda job: job())
     for event in transcript_to_events(transcript(round_), roles):
         topics.on_event(event)
-        u = event.utterance
-        if event.type != "final" or u is None:
-            continue
-        window = (window + [{"id": u.id, "speaker": u.speaker,
-                             "text": u.text}])[-WINDOW:]
-        payload = topics.focus_points()
-        if roles[u.speaker] != "candidate" or not payload:
-            continue
-        request: Document = {
-            "schema": "reasoner.request.v1",
-            "request_id": f"set-{round_['id']}-{u.id}",
-            "role": "suggester", "model": "haiku",
-            "template": "suggester.interview@3", "language": "es",
-            "context": {"session": {"id": f"set-{round_['id']}",
-                                    "type": "entrevista"},
-                        "speaker_roles": roles, "window": list(window),
-                        "focus": u.id},
-            "retrieved": [], "payload": payload,
-            "constraints": {"max_suggestions": 1, "mode": "pincelada",
-                            "deadline_ms": deadline_ms},
-        }
-        try:
-            response = reasoner.reason(request, CancelToken())
-        except Exception:  # noqa: BLE001 - counted as no tick
-            continue
-        data = response.get("data")
-        if response.get("status") == "ok" and isinstance(data, dict):
-            topics.suggested(payload, data)
+        ticker.on_event(event)
     return tracked(topics)
 
 
@@ -318,9 +293,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--no-live", action="store_true",
                         help="skip the suggester calls (``live``)")
     parser.add_argument("--timeout", type=float, default=240.0)
-    parser.add_argument("--live-deadline-ms", type=int, default=60000,
-                        help="deadline of a suggester call here (a cold "
-                             "process; the live page's is 1800 ms warm)")
     args = parser.parse_args(argv)
     reasoner: Any = Fake() if args.fake else Counting(args.timeout)
     plan, rounds, note = load()
@@ -332,8 +304,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             round_, rules_way(plan, round_))})
         if not args.no_live:
             rows["live"].append({"round": round_["id"], **compare(
-                round_, live_way(plan, round_, reasoner,
-                                 args.live_deadline_ms))})
+                round_, live_way(plan, round_, reasoner))})
         for run in range(1, args.repeats + 1):
             rows["after"].append({"round": round_["id"], "run": run,
                                   **compare(round_, after_way(

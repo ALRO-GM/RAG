@@ -179,7 +179,7 @@
     },
     "SheetPoint": {
       "additionalProperties": false,
-      "description": "One concept of a slot after the interview (#258).\n\n``treated``: the candidate talked about it; ``pending``: not yet;\n``unknown``: they said they do not know it. ``quote`` and\n``utterance`` are the words that settled it. ``judgement`` (#259):\nhow accurate what they said about it was, for a treated concept\nthe report judged.\n``by`` (#268): who decided the status: the word ``rules`` during the session, a ``live_model`` call during the session (the AI interviewer's slot filler, the live page's suggestion call) or the model reading the whole round ``after_session``; absent or null on sheets written before it.",
+      "description": "One concept of a slot after the interview (#258).\n\n``treated``: the candidate talked about it; ``pending``: not yet;\n``unknown``: they said they do not know it. ``quote`` and\n``utterance`` are the words that settled it. ``judgement`` (#259):\nhow accurate what they said about it was, for a treated concept\nthe report judged.\n``by`` (#268): who decided the status: the word ``rules`` during the session, a ``live_model`` call during the session (the AI interviewer's slot filler, the live page's tick call) or the model reading the whole round ``after_session``; absent or null on sheets written before it.",
       "properties": {
         "id": {
           "title": "Id",

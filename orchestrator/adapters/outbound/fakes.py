@@ -190,6 +190,8 @@ class FakeReasoner:
             data = _fake_judged(payload)
         elif template == "interview.attribution@1":
             data = _fake_attribution(payload)
+        elif template == "interview.ticks@1":
+            data = {"points": []}
         else:
             score = {"filled": 80, "partial": 45, "unknown": 0,
                      "skipped": 10}

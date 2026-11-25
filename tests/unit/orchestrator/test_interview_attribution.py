@@ -14,13 +14,11 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
-from orchestrator.adapters.outbound.jsonl_sink import MemorySink
-from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
 )
-from orchestrator.application.live_assist import LiveAssist
+from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.live_judgement import (
     ATTRIBUTION_TEMPLATE,
     LiveJudge,
@@ -54,7 +52,6 @@ from orchestrator.domain.interview_attribution import (
     read_attribution,
 )
 from orchestrator.domain.next_round import topic_states
-from tests.unit.orchestrator.fixtures import product
 from tests.unit.orchestrator.test_candidate import final
 from tests.unit.orchestrator.test_interview_usecases import Store
 
@@ -652,56 +649,92 @@ def test_the_rules_ticks_say_so() -> None:
     assert topics.points["s2"][0].by == "rules"
 
 
-def test_the_assist_sends_the_payload_and_passes_the_data_on() -> None:
-    class Ticking(FakeReasoner):
-        def reason(self, request: Document, cancel: CancelToken) -> Document:
-            answer = super().reason(request, cancel)
-            answer["data"] = {"points": [
-                {"id": "s2.p1", "utterance": request["context"]["focus"]}]}
-            return answer
+class Ticks(FakeReasoner):
+    """Ticks the first listed concept; can fail or answer garbage."""
 
-    reasoner = Ticking()
-    assist = LiveAssist(product(), FakeKnowledge(), reasoner, MemorySink(),
-                        _Clock(), InlineExecutor(),
-                        {"a": "agent", "c": "customer"})
-    got: List[Tuple[Document, Document]] = []
-    sent = {"label": "", "points": [{"id": "s2.p1", "text": "X"}]}
-    assist.payload = lambda: sent
-    assist.on_data = lambda payload, data: got.append((payload, data))
-    assist.on_event(final("u1", "c", "Una frase bastante larga del cliente.",
-                          seq=1))
-    assist.finish()
-    assert reasoner.requests[0]["payload"] == sent
-    assert got == [(sent, {"points": [
-        {"id": "s2.p1", "utterance": "u1"}]})]
+    def __init__(self, answer: str = "ok") -> None:
+        super().__init__()
+        self.answer = answer
+        self.ticks: List[Document] = []
 
-    def broken(payload: Document, data: Document) -> None:
-        raise ValueError("bad")
-
-    assist.on_data = broken
-    assist.on_event(final("u2", "c", "Otra frase bastante larga del cliente.",
-                          seq=2))
-    assist.finish()
-    assert isinstance(assist.sink, MemorySink)
-    assert assist.sink.records[-1].status == "ok"  # the call stands
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        if request.get("template") != "interview.ticks@1":
+            return super().reason(request, cancel)
+        self.ticks.append(request)
+        if self.answer == "down":
+            raise ReasonerUnavailable("connection refused")
+        if self.answer == "timeout":
+            return {"status": "timeout", "error": {"kind": "timeout"}}
+        if self.answer == "garbage":
+            return {"status": "ok", "data": {"points": {"x": [1]}}}
+        first = request["payload"]["points"][0]["id"]
+        return {"status": "ok", "data": {"points": [
+            {"id": first, "utterance": request["context"]["focus"]}]}}
 
 
-def test_the_live_interview_product_uses_the_ticking_suggester() -> None:
+class Later:
+    """A runner that keeps the jobs until the test runs them."""
+
+    def __init__(self) -> None:
+        self.jobs: List[Any] = []
+
+    def start(self, job: Any) -> None:
+        self.jobs.append(job)
+
+    def run(self) -> None:
+        while self.jobs:
+            self.jobs.pop(0)()
+
+
+def test_the_ticker_ticks_beside_the_suggestions_one_call_at_a_time(
+) -> None:
+    topics, _ = tracker()
+    reasoner, runner = Ticks(), Later()
+    ticker = LiveTicker(reasoner, topics, topics.roles, runner.start)
+    for event in (final("u1", "S1", "¿Qué sabes de zapatillas de running?"),
+                  final("u2", "S2", "Miro cómo apoya el pie."),
+                  final("u3", "S2", "Y lo blandita que es."),
+                  final("u4", "S2", "Y el hueco delante.")):
+        topics.on_event(event)
+        ticker.on_event(event)
+    assert len(runner.jobs) == 1  # one in flight; u3 replaced by u4
+    assert ticker.stale == 1
+    runner.run()
+    assert [r["context"]["focus"] for r in reasoner.ticks] == ["u2", "u4"]
+    request = reasoner.ticks[0]
+    assert request["template"] == "interview.ticks@1"
+    assert request["role"] == "structured"
+    assert request["constraints"] == {"deadline_ms": 20000}
+    assert request["payload"]["points"][0]["id"] == "s2.p1"
+    points = {p.id: p for p in topics.points["s2"]}
+    assert points["p1"].by == "live_model" and points["p1"].utterance == "u2"
+    assert points["p2"].by == "live_model" and points["p2"].utterance == "u4"
+    assert ticker.calls == 2 and ticker.failed == 0
+    ticker.on_event(final("u5", "S1", "Vale."))  # the interviewer: no call
+    assert runner.jobs == []
+
+
+@pytest.mark.parametrize("answer", ["down", "timeout", "garbage"])
+def test_a_failed_tick_ticks_nothing_and_logs_no_words(
+    answer: str, caplog: pytest.LogCaptureFixture,
+) -> None:
+    topics, _ = tracker()
+    ticker = LiveTicker(Ticks(answer), topics, topics.roles,
+                        lambda job: job())
+    with caplog.at_level(logging.INFO):
+        for event in (final("u1", "S1", "¿Qué sabes de zapatillas?"),
+                      final("u2", "S2", "Miro cómo apoya el pie al correr.")):
+            topics.on_event(event)
+            ticker.on_event(event)
+    assert all(p.status == "pending" for p in topics.points["s2"])
+    assert "apoya" not in caplog.text
+    assert ticker.failed == (0 if answer == "garbage" else 1)
+
+
+def test_the_live_interview_product_keeps_the_measured_suggester() -> None:
     text = (ROOT / "config" / "products"
             / "live_assist.interview.yaml").read_text("utf-8")
-    assert 'template: "suggester.interview@3"' in text
-
-
-class _Clock:
-    def __init__(self) -> None:
-        self.t = 0.0
-
-    def now(self) -> float:
-        self.t += 0.01
-        return self.t
-
-    def sleep(self, seconds: float) -> None:
-        self.t += seconds
+    assert 'template: "suggester.interview@2"' in text
 
 
 # ---- the rejudge command ----------------------------------------------------
