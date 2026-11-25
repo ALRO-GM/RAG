@@ -186,7 +186,10 @@ it. Not measured on real interviews.
   to come back to the topic because the answer looked incomplete by word
   rules, **not a rating** and not «below the required level». Word
   overlap only: a question in other words is missed, and a long answer
-  counts as covered without anyone judging it.
+  counts as covered without anyone judging it. A slot with concepts
+  (#258) is followed concept by concept instead: done when none is
+  pending and one was treated; the topic being asked shows what is still
+  to cover (`docs/live/VOICEBOT_INTERVIEWER.md` §4.1).
 
 **The next round** (`orchestrator/domain/next_round.py`): each slot is
 `weak`, `revisit`, `open` (never covered) or `covered`, the newest round
