@@ -40,10 +40,12 @@ import ipaddress
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
+from orchestrator.application.event_follow import ResumingEvents
 from orchestrator.adapters.outbound.fakes import (
     FakeKnowledge,
     FakeReasoner,
@@ -466,7 +468,9 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         from orchestrator.adapters.outbound.ws_events import WsEvents
 
         transcriber = HttpTranscriber(args.transcriber_url, code)
-        events = WsEvents(args.transcriber_url, code)
+        # #264: a dropped event stream is reopened where it was.
+        events = ResumingEvents(WsEvents(args.transcriber_url, code),
+                                time.sleep, time.monotonic)
     log_dir: Path = args.log_dir
 
     def log(session_id: str, product: str) -> SuggestionSink:

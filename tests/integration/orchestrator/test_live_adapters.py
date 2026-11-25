@@ -129,6 +129,12 @@ def test_events_are_followed_until_a_normal_close() -> None:
     got = list(events.follow("s-1", CancelToken()))
     assert got == [{"seq": 0}, {"seq": 1}]
     assert seen[0]["url"] == "wss://host:8770/api/live/s-1/events"
+    again: List[Dict[str, Any]] = []
+    resumed = WsEvents("https://host:8770/", "c0de", opener=opener(
+        FakeSocket([closed(1000)]), again))
+    assert list(resumed.follow("s-1", CancelToken(), from_seq=7)) == []
+    assert again[0]["url"] == \
+        "wss://host:8770/api/live/s-1/events?from_seq=7"
     assert seen[0]["additional_headers"] == {"X-Access-Code": "c0de"}
     assert socket.closed
 

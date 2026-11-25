@@ -61,8 +61,8 @@ class PacedEvents(FakeEvents):
             self.sessions.clock.sleep(0.5)
             bot.tick()
 
-    def follow(self, session_id: str, stop: CancelToken
-               ) -> Iterator[Document]:
+    def follow(self, session_id: str, stop: CancelToken,
+               from_seq: int = 0) -> Iterator[Document]:
         assert self.sessions is not None
         for document in self.documents:
             self._tick(session_id, self.gap_s)

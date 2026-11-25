@@ -162,6 +162,9 @@ DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
 CANDIDATE_CHARS = 80
 TICK_S = 0.1
 DEMO_STOP_S = 3.0
+STOP_DRAIN_S = 15.0
+"""Longest wait, after the transcriber stopped a live session, for its
+last events to be read before the follower is cancelled (#264)."""
 """Longest wait for a playing demo to stop before a new one starts."""
 STOP_POLL_S = 0.05
 """Seconds between two turn-taking ticks of an interview (#213)."""
@@ -224,6 +227,9 @@ class _Session:
     judge: Optional[LiveJudge] = None
     accuracy: Optional[Document] = None
     """How accurate the round's answers were (#259), when judged."""
+    followed: threading.Event = field(default_factory=threading.Event)
+    """Set once the follower of a live session has read its last event
+    (#264: a stop waits for it, so the last finals are not lost)."""
 
     @property
     def assist_mode(self) -> Optional[str]:
@@ -877,6 +883,7 @@ class LiveSessions:
                 failed = str(exc)
             finally:
                 handler.finish()
+                session.followed.set()
                 session.error = failed
                 judging = (session.judge is not None
                            and session.topics is not None)
@@ -981,6 +988,10 @@ class LiveSessions:
                 self.transcriber.stop(session_id)
             except TranscriberUnavailable:
                 pass
+            # #264: the transcriber's stop returns once its session has
+            # ended; the events still on their way (the last finals,
+            # session_ended) reach the trackers and the judgement first.
+            session.followed.wait(STOP_DRAIN_S)
         session.stop_token.cancel()
         return session.view()
 

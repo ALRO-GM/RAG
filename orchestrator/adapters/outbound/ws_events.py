@@ -4,7 +4,9 @@
 server sends every event as one JSON text message, past ones first, and
 closes with 1000 after the last. The access code goes in the
 ``X-Access-Code`` header. The socket is read with a short timeout so a
-stop asked by the orchestrator is noticed within ``poll`` seconds.
+stop asked by the orchestrator is noticed within ``poll`` seconds. A
+stream can start at any event (``?from_seq=``): the orchestrator resumes
+a dropped one there (:mod:`orchestrator.application.event_follow`).
 """
 
 import json
@@ -55,12 +57,16 @@ class WsEvents:
         return f"{self.root}/api/live/{session_id}/events"
 
     def follow(
-        self, session_id: str, stop: CancelToken
+        self, session_id: str, stop: CancelToken, from_seq: int = 0,
     ) -> Iterator[Document]:
-        """Yield the events until the stream closes or ``stop`` is set."""
+        """Yield the events from ``from_seq`` until the stream closes or
+        ``stop`` is set."""
+        url = self.url(session_id)
+        if from_seq > 0:
+            url += f"?from_seq={int(from_seq)}"
         try:
             socket = self.opener(
-                self.url(session_id),
+                url,
                 additional_headers={ACCESS_HEADER: self.code},
                 open_timeout=10,
             )

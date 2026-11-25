@@ -14,6 +14,7 @@ from orchestrator.application.ports import (
     TranscriberUnavailable,
 )
 from orchestrator.application.replay import transcript_to_events
+from orchestrator.application import sessions as sessions_module
 from orchestrator.application.sessions import (
     LiveSessions,
     SessionError,
@@ -114,8 +115,8 @@ class FakeEvents:
         self.fail = fail
         self.followed: List[str] = []
 
-    def follow(self, session_id: str, stop: CancelToken
-               ) -> Iterator[Document]:
+    def follow(self, session_id: str, stop: CancelToken,
+               from_seq: int = 0) -> Iterator[Document]:
         self.followed.append(session_id)
         if self.fail:
             raise TranscriberUnavailable("closed 4404")
@@ -285,7 +286,11 @@ def test_live_failures_are_reported() -> None:
     assert view["state"] == "failed" and view["error"] == "closed 4404"
 
 
-def test_stopping_a_live_session_asks_the_transcriber() -> None:
+def test_stopping_a_live_session_asks_the_transcriber(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # the follower is held here: no wait for its last events (#264)
+    monkeypatch.setattr(sessions_module, "STOP_DRAIN_S", 0.0)
     runner = InlineRunner(hold=True)
     transcriber = FakeTranscriber()
     live = sessions(runner=runner, transcriber=transcriber,
