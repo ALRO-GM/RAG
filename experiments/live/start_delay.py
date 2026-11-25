@@ -56,7 +56,9 @@ async def run(url: str, code: str, wav: Path, seconds: float,
                 await audio.send(frames[first:first + per_chunk])
                 await asyncio.sleep(CHUNK_S)
             await audio.send(json.dumps({"type": "stop"}))
-            await audio.recv()
+            # acks may come first (#263): read until the server says stopped
+            while json.loads(await audio.recv()).get("type") != "stopped":
+                pass
         info = (await client.get(f"{url}/api/live/sessions/{session}")).json()
         events: List[Dict[str, Any]] = []
         async with websockets.connect(

@@ -13,6 +13,7 @@ from websockets.frames import Close
 from orchestrator.adapters.inbound import cli
 from orchestrator.adapters.outbound.fs_transcripts import DirTranscripts
 from orchestrator.adapters.outbound.http_transcriber import (
+    STOP_TIMEOUT,
     HttpTranscriber,
     read_code,
 )
@@ -268,3 +269,27 @@ def test_tts_choices(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     tts = cli.build_tts(args, products)
     assert isinstance(tts, PiperTts)
     tts.close()
+
+
+def test_a_stop_waits_longer_than_the_transcriber_may_take() -> None:
+    """#263: the transcriber's stop lets the source send what it holds
+    (``stop_drain_seconds``) and then waits for the end (60 s); the
+    orchestrator's client must not give up first."""
+    import inspect
+
+    from transcriber.application.live_session import LiveSessions
+    from transcriber.domain.live_session import LiveServiceSettings
+
+    worst = LiveServiceSettings().stop_drain_seconds + inspect.signature(
+        LiveSessions.stop).parameters["timeout"].default
+    assert STOP_TIMEOUT > worst
+    waited: List[Any] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        waited.append(request.extensions["timeout"]["read"])
+        return httpx.Response(200, json={})
+
+    port = HttpTranscriber("http://tr", "c", client=client(handler))
+    port.stop("s")
+    port.start({})
+    assert waited == [STOP_TIMEOUT, 40.0]

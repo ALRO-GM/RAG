@@ -26,6 +26,12 @@ def read_code(path: Path) -> Optional[str]:
     return code or None
 
 
+STOP_TIMEOUT = 90.0
+"""Seconds a stop may take: the transcriber lets the source send what it
+holds (``stop_drain_seconds``, 15) and then waits up to 60 s for the
+end (#263); the client must not give up first."""
+
+
 class HttpTranscriber:
     """Start and stop live sessions on the transcriber.
 
@@ -49,10 +55,14 @@ class HttpTranscriber:
         self.timeout = timeout
         self.client = client or httpx.Client()
 
-    def _post(self, url: str, body: Optional[Document]) -> Document:
+    def _post(
+        self, url: str, body: Optional[Document],
+        timeout: Optional[float] = None,
+    ) -> Document:
         try:
             response = self.client.post(
-                url, json=body, headers=self.headers, timeout=self.timeout
+                url, json=body, headers=self.headers,
+                timeout=timeout or self.timeout,
             )
         except httpx.HTTPError as exc:
             raise TranscriberUnavailable(type(exc).__name__) from exc
@@ -75,8 +85,11 @@ class HttpTranscriber:
         return self._post(self.base, body)
 
     def stop(self, session_id: str) -> None:
-        """Stop a live session."""
-        self._post(f"{self.base}/{session_id}/stop", None)
+        """Stop a live session (waits longer: see :data:`STOP_TIMEOUT`)."""
+        self._post(
+            f"{self.base}/{session_id}/stop", None,
+            max(self.timeout, STOP_TIMEOUT),
+        )
 
     def rename(self, session_id: str, speaker: str, name: str) -> None:
         """Name a speaker of a live session (for its hand-off)."""

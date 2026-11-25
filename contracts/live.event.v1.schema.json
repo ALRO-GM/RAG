@@ -242,12 +242,18 @@
             "gpu_degraded",
             "asr_behind",
             "source_lost",
+            "source_back",
             "quota",
             "other"
           ]
         },
         "message": {
           "type": "string"
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "#263: how long the condition lasted (source_back: the time the audio source was away)"
         }
       }
     },

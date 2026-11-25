@@ -14,7 +14,8 @@ from orchestrator.application.ports import (
 )
 from orchestrator.application.replay import default_roles, transcript_to_events
 from orchestrator.domain.config import ProductConfig
-from orchestrator.domain.events import LiveEvent
+from orchestrator.domain.events import LiveEvent, Timings
+from orchestrator.domain.triggers import is_late
 from tests.unit.orchestrator.fixtures import product, transcript
 
 
@@ -210,3 +211,33 @@ def test_default_roles_by_order() -> None:
         "a": "agent", "c": "customer"}
     assert default_roles(product("voicebot"), transcript()) == {
         "a": "user", "c": "user"}
+
+
+def late(event: LiveEvent, lag_ms: float) -> LiveEvent:
+    """``event`` as if its speech had been heard ``lag_ms`` late."""
+    if event.type != "final":
+        return event
+    return event.model_copy(update={"timings": Timings(lag_ms=lag_ms)})
+
+
+def test_speech_heard_late_asks_for_no_suggestion_but_stays_known() -> None:
+    a = assist()
+    for event in events():
+        a.on_event(late(event, 60_000.0))
+    a.finish()
+    assert isinstance(a.sink, MemorySink)
+    assert a.sink.records == []
+    assert a.skips["late"] == 2
+    assert len(a._window) == len([e for e in events() if e.type == "final"])
+    on_time = assist()
+    for event in events():
+        on_time.on_event(late(event, 9_000.0))
+    on_time.finish()
+    assert isinstance(on_time.sink, MemorySink)
+    assert len(on_time.sink.records) == 2
+
+
+def test_the_late_rule_can_be_turned_off() -> None:
+    assert not is_late(late(events()[1], 60_000.0), None)
+    assert is_late(late(events()[1], 10_001.0))
+    assert not is_late(events()[0])

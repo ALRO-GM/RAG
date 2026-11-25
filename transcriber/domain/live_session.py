@@ -15,6 +15,13 @@ messages; no I/O:
   16 kHz (two channels interleaved) into one float array per channel.
 * :class:`AudioBacklog`: how much audio waits for the recogniser; the
   socket stops reading when it is full (backpressure).
+* :func:`gap_samples`, :func:`gap_room` and :func:`align_samples`: the
+  silence that keeps the stream time on the wall clock when a source
+  lost audio, its microphone paused, or a new page takes a session over
+  (#263).
+* :class:`PaceWatch`: tells when audio arrives at the pace of speech
+  again, so the timings can be put back on the wall clock (#263).
+* :func:`source_grace`: how long a session waits for a lost source.
 """
 
 from typing import List, Literal, Optional
@@ -276,6 +283,122 @@ class AudioBacklog:
         return False
 
 
+MAX_GAP_SECONDS = 4 * 3600.0
+"""Longest silence one ``gap`` message may ask for (#263)."""
+
+
+def gap_samples(samples: object) -> int:
+    """Return the samples of silence a ``gap`` message asks for.
+
+    ``samples`` comes from the client's JSON. Raises
+    :class:`InvalidInputError` unless it is a whole number from 0 to
+    :data:`MAX_GAP_SECONDS` of audio.
+    """
+    if isinstance(samples, bool) or not isinstance(samples, int) \
+            or samples < 0 or samples > MAX_GAP_SECONDS * SAMPLE_RATE:
+        raise InvalidInputError(
+            "a gap is a whole number of samples, at most"
+            f" {MAX_GAP_SECONDS:g} s"
+        )
+    return samples
+
+
+GAP_SLACK_SECONDS = 120.0
+"""How far a ``gap`` may take the stream past the wall clock (#263).
+
+Generous: a page's clock may step forward after a sleep, and its first
+audio may reach the server late; it still stops hours of silence."""
+
+
+def gap_room(
+    elapsed: Optional[float], received: int,
+    slack: float = GAP_SLACK_SECONDS,
+) -> int:
+    """Return the most samples of silence a ``gap`` may put in now.
+
+    A session that took ``received`` samples over ``elapsed`` seconds
+    (``None``: no audio yet) may not run more than ``slack`` seconds
+    ahead of the wall clock: a client cannot push hours of silence.
+    """
+    wall = (elapsed or 0.0) + slack
+    return max(int(wall * SAMPLE_RATE) - received, 0)
+
+
+def align_samples(elapsed: float, received: int, held: object) -> int:
+    """Return the silence that puts a session's stream back on the clock.
+
+    ``elapsed`` seconds have passed since the session took audio,
+    ``received`` samples (per channel) were taken and the client still
+    holds ``held`` samples it is about to send (a page that reattached
+    after a reload, #263). The missing audio is unknown: it becomes
+    silence, so later speech keeps its wall-clock time. Never negative.
+    """
+    pending = gap_samples(held)
+    due = int(round(max(elapsed, 0.0) * SAMPLE_RATE))
+    return max(due - received - pending, 0)
+
+
+class PaceWatch:
+    """Tell when a session's audio arrives at the pace of speech (#263).
+
+    After a pause of the microphone (a suspended tab, a laptop asleep)
+    the stream time of later audio is behind the wall clock and every
+    timing would say it is late. Once ``steady`` pieces in a row came
+    with the queue empty, each between ``low`` and ``high`` times its
+    own length after the one before (real time: neither a burst nor a
+    slow resend of held audio), the audio is on time again and the
+    timings may be re-anchored. The session also never re-anchors while
+    a returned source still resends what it held (#263 review).
+    """
+
+    def __init__(
+        self, steady: int = 30, low: float = 0.9, high: float = 1.1,
+    ) -> None:
+        """Start with no piece seen."""
+        self.steady = steady
+        self.low = low
+        self.high = high
+        self._last: Optional[float] = None
+        self._run = 0
+
+    def observe(self, samples: int, arrived: float, idle: bool) -> bool:
+        """Count one piece; tell whether the audio is on pace now.
+
+        ``arrived`` is when it came (monotonic) and ``idle`` whether
+        nothing else waited behind it.
+        """
+        length = samples / SAMPLE_RATE
+        paced = (
+            idle and self._last is not None
+            and self.low * length <= arrived - self._last <= self.high * length
+        )
+        self._last = arrived
+        self._run = self._run + 1 if paced else 0
+        return self._run >= self.steady
+
+    def reset(self) -> None:
+        """Forget the pieces seen (the source went away)."""
+        self._last = None
+        self._run = 0
+
+
+GOING_AWAY = 1001
+"""WebSocket close code of a page being closed or left."""
+
+
+def source_grace(
+    close_code: Optional[int], grace: float, gone_grace: float
+) -> float:
+    """Return how long to wait for a source whose socket closed.
+
+    A page that said it was going away (``1001``: the tab closed) is
+    unlikely to come back: ``gone_grace``; anything else (a dropped
+    connection) gets ``grace``. The codes the public tunnel really
+    delivers were not checked (#263).
+    """
+    return gone_grace if close_code == GOING_AWAY else grace
+
+
 GpuChoice = Literal["wait", "gpu", "cpu"]
 """What a live session does after asking for the GPU (§7 steps 3-4)."""
 
@@ -314,9 +437,14 @@ class LiveServiceSettings(BaseModel):
     ``queue_seconds`` of audio may wait for the recogniser
     before the socket pushes back; ``behind_seconds`` waiting gives an
     ``asr_behind`` warning. ``max_sessions`` run at once (one GPU);
-    ``kept_sessions`` ended ones stay readable. ``feed_timeout`` is how
-    long a full queue may block a socket before the audio is refused;
-    a session without audio for ``idle_seconds`` stops by itself.
+    ``kept_sessions`` ended ones stay readable. A full queue blocks the
+    socket (the browser keeps the audio); a connected source is never
+    refused for it (#263). A session without audio for
+    ``idle_seconds`` stops by itself; one whose source went away
+    without a stop waits ``source_grace_seconds`` for it to come back
+    (#263), ``source_gone_seconds`` when its page said it was leaving
+    (close 1001). A stop asked over HTTP lets a connected source finish
+    sending for up to ``stop_drain_seconds`` first.
     A diarized mono session asks for ``diarize_need_mib`` more GPU
     memory (Sortformer and the voice encoder) and names its voices
     with ``diarization``; a two-party one checks the employee's voice
@@ -338,7 +466,12 @@ class LiveServiceSettings(BaseModel):
     max_sessions: int = Field(default=1, ge=1)
     kept_sessions: int = Field(default=8, ge=0)
     feed_timeout: float = Field(default=30.0, gt=0)
+    """Unused since #263 (a full queue never refuses audio); kept so
+    existing settings files still load."""
     idle_seconds: float = Field(default=120.0, gt=0)
+    source_grace_seconds: float = Field(default=600.0, gt=0)
+    source_gone_seconds: float = Field(default=120.0, gt=0)
+    stop_drain_seconds: float = Field(default=15.0, ge=0)
     diarize_need_mib: int = Field(default=1500, ge=0)
     diarization: MonoDiarizationSettings = MonoDiarizationSettings()
     voice_check: VoiceCheckSettings = VoiceCheckSettings()

@@ -38,6 +38,23 @@ class Skip:
     reason: str
 
 
+LATE_MS = 10_000.0
+"""Speech heard this late (``timings.lag_ms``) gets no suggestion (#263)."""
+
+
+def is_late(event: LiveEvent, limit_ms: Optional[float] = LATE_MS) -> bool:
+    """Tell whether ``event`` reports speech heard over ``limit_ms`` late.
+
+    After a lost connection the audio that was held arrives late: a
+    suggestion about it would come too late to help, but every tracker
+    still takes it (#263). ``None`` never calls anything late.
+    """
+    timings = event.timings
+    if limit_ms is None or timings is None or timings.lag_ms is None:
+        return False
+    return timings.lag_ms > limit_ms
+
+
 def words(text: str) -> int:
     """Count the words of ``text``."""
     return len(text.split())
