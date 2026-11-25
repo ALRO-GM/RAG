@@ -180,8 +180,39 @@ def test_an_edited_plan_compares_on_the_points_that_still_exist() -> None:
     view = interview_view(offer(revision=1, extra=[added]), sheet)
     assert view.plan_changed and view.not_asked == ["s4"]
     assert view.figure == 70.0  # s4 left out, s9 dropped
-    assert view.missing_required == ["s4"]  # no evidence: not covered
+    assert view.missing_required == [] and view.unasked_required == ["s4"]
+    assert not view.covers_required  # no evidence on s4
     assert [p.id for p in view.points] == ["s1", "s2", "s3", "s4"]
+
+
+def test_saving_the_plan_never_changes_a_live_figure_by_itself() -> None:
+    """Review of #271: a live report keeps only the slots it judged."""
+    reached = live("ra", [slot("s1", status="filled",
+                               judgement=judged("solid"))])
+    both = live("rb", [
+        slot("s1", status="filled", judgement=judged("solid")),
+        slot("s2", status="filled", judgement=judged("correct_basic"))])
+    before = [interview_view(offer(), r) for r in (reached, both)]
+    after = [interview_view(offer(revision=1), r) for r in (reached, both)]
+    assert [v.figure for v in before] == [v.figure for v in after] == [
+        55.0, 85.0]
+    assert [p.state for p in after[0].points] == [
+        "solid", "not_treated", "not_treated"]
+    assert [v.session_id for v in ordered(after)] == ["rb", "ra"]
+    # With the revision's slot ids kept, a point really added later is
+    # «no preguntado»; a point of that revision never reached is not.
+    added = Slot(id="s4", label="Latte art", level="minimo", weight=2,
+                 questions=["¿Haces latte art?"])
+    listed = {**reached, "plan_slots": ["s1", "s2", "s3"]}
+    view = interview_view(offer(revision=2, extra=[added]), listed)
+    assert [p.state for p in view.points] == [
+        "solid", "not_treated", "not_treated", "not_asked"]
+    assert view.figure == 55.0
+    assert view.missing_required == ["s2"]
+    assert view.unasked_required == ["s4"]
+    # An older live report without the list: never «no preguntado».
+    old = interview_view(offer(revision=2, extra=[added]), reached)
+    assert old.not_asked == [] and old.points[3].state == "not_treated"
 
 
 def test_an_unreadable_slot_is_left_out_and_counts_nothing() -> None:
@@ -244,7 +275,8 @@ def test_without_a_figure_a_row_goes_last_and_ties_go_by_date_then_name(
         Slot(id="s1", label="Algo", level="deseable",
              questions=["¿Algo?"]),
         Slot(id="s2", label="Otro", level="minimo", questions=["¿Otro?"])])
-    blank = interview_view(plan, {"session_id": "a", "plan_revision": 3})
+    blank = interview_view(plan, {"session_id": "a", "plan_revision": 3,
+                                  "plan_slots": ["s9"]})
     assert blank.figure is None and blank.plan_changed
     old = interview_view(plan, live("b", [], candidate="Zoe",
                                     finished_at="2026-11-01T09:00:00"))
@@ -272,7 +304,7 @@ def test_the_board_joins_a_persons_interviews_and_orders_the_rows() -> None:
     store.save_result("cafe", live("r-ana", [
         slot("s1", status="filled", judgement=judged("correct_basic")),
         slot("s2", status="filled", judgement=judged("correct_basic"))],
-        candidate="Ana Ruiz", candidate_id=ana.id,
+        candidate="Ana R.", candidate_id=ana.id,
         finished_at="2026-11-24T10:00:00", attribution="rules"))
     store.save_result("cafe", ai_sheet("vb-2", candidate="Luis Gil"))
     store.save_result("cafe", {"session_id": "vb-3", "kind": "ai"})
@@ -285,6 +317,7 @@ def test_the_board_joins_a_persons_interviews_and_orders_the_rows() -> None:
     assert board["required"] == ["s1", "s2"] and board["desirable"] == ["s3"]
     assert board["interviews"] == 4 and board["truncated"] is False
     people = board["people"]
+    # The file's current name, not the one stored with the report.
     assert [p["name"] for p in people] == ["Ana Ruiz", "Luis Gil", None]
     assert [p["position"] for p in people] == [1, 2, 3]
     first = people[0]
@@ -297,6 +330,8 @@ def test_the_board_joins_a_persons_interviews_and_orders_the_rows() -> None:
     assert people[1]["latest"]["owned"] is False
     assert people[1]["person"] == "session:vb-2"
     assert people[2]["latest"]["figure"] == 0.0
+    row = plans.list()[0]
+    assert (row["people"], row["interviews"]) == (3, 4)
 
 
 def test_the_board_is_bounded_and_the_list_counts_each_kind(

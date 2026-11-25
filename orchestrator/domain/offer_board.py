@@ -31,16 +31,22 @@ stored sheet and the **current** plan:
   required (``minimo``) point without a value counts 0, any other is
   left out (the rule of :func:`~orchestrator.domain.interview.suitability`).
   For an AI sheet whose plan was not edited since, this **is** its
-  stored ``suitability``. Points added to the plan after the interview
-  are «no preguntado»: left out of its figure. Points removed from the
-  plan drop out.
+  stored ``suitability``. A point is «no preguntado» (left out of the
+  figure) only when it was not in the plan revision the interview was
+  made with (the report's ``plan_slots``; an AI sheet keeps every slot
+  of its revision); a point of that revision the report has no answer
+  to is not treated. An older live report without ``plan_slots``
+  never has «no preguntado» points, so saving the plan (a new revision)
+  never changes its figure unless a weight or a level changed. Points
+  removed from the plan drop out.
 
 * **Order** (:func:`ordered`): figure, highest first; on the same figure,
-  the person who covers every required point first, then fewer required
-  points not covered, then the latest interview, then the name. So a
-  person missing a required point never comes before someone who covers
-  them all with the same or a better figure. Rows without a figure go
-  last. Nobody is left out or cut off.
+  fewer required points without evidence of coverage (not covered, or
+  not asked because they were added later: each counts one), then the
+  latest interview, then the name. So a person missing a required point
+  never comes before someone who covers them all with the same or a
+  better figure. Rows without a figure go last. Nobody is left out or
+  cut off.
 
 A point is **covered** when the answer was judged ``solid``,
 ``correct_basic``, ``to_verify`` or ``unclear``, or answered without a
@@ -57,7 +63,9 @@ never a decision, never shown to the candidate. Plain data: no I/O.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any, Dict, List, Literal, Mapping, Optional, Sequence, Set, Tuple,
+)
 
 from pydantic import ValidationError
 
@@ -140,6 +148,7 @@ class InterviewView:
     stored_suitability: Optional[float]
     points: List[PointResult]
     missing_required: List[str]
+    unasked_required: List[str]
     not_asked: List[str]
     accuracy: Dict[str, int]
     to_check: int
@@ -150,7 +159,7 @@ class InterviewView:
     @property
     def covers_required(self) -> bool:
         """Whether every required point of the current plan is covered."""
-        return not self.missing_required
+        return not self.missing_required and not self.unasked_required
 
 
 def _slot(raw: object) -> Optional[SheetSlot]:
@@ -298,6 +307,25 @@ def _text(value: object) -> Optional[str]:
     return value if isinstance(value, str) and value else None
 
 
+def _revision_slots(
+    sheet: Mapping[str, Any], kind: str, slots: Mapping[str, SheetSlot],
+) -> Optional[Set[str]]:
+    """The slot ids of the plan revision the interview was made with.
+
+    The report's ``plan_slots`` when it has them; else, for an AI sheet
+    (which keeps every slot of its plan), the slots it has; else
+    ``None``: unknown (an older live report keeps only the slots it
+    judged), so a missing point counts as not treated, never as added
+    later.
+    """
+    listed = sheet.get("plan_slots")
+    if isinstance(listed, list):
+        return {x for x in listed if isinstance(x, str)}
+    if kind == "ai" and slots:
+        return set(slots)
+    return None
+
+
 def interview_view(
     plan: InterviewPlan, sheet: Mapping[str, Any], owned: bool = False,
 ) -> InterviewView:
@@ -312,17 +340,19 @@ def interview_view(
             slots[found.id] = found
     revision = _int(sheet.get("plan_revision"))
     changed = revision != plan.revision
-    points = [point_result(s.id, slots.get(s.id), kind,
-                           s.level == "minimo") for s in plan.slots]
-    if not changed:
-        # The same revision: a point missing from the report (a live round
-        # that never reached it) was asked of nobody, so it is not treated.
-        points = [PointResult(id=p.id, state="not_treated",
-                              value=(float(LABEL_VALUE["not_treated"])
-                                     if kind == "live" and s.level ==
-                                     "minimo" else None))
-                  if p.state == "not_asked" else p
-                  for p, s in zip(points, plan.slots)]
+    known = _revision_slots(sheet, kind, slots)
+    points: List[PointResult] = []
+    for s in plan.slots:
+        result = point_result(s.id, slots.get(s.id), kind,
+                              s.level == "minimo")
+        if result.state == "not_asked" and (known is None or s.id in known):
+            # In the plan the interview was made with, but the report has
+            # no answer to it: a live round that never reached it.
+            result = PointResult(
+                id=s.id, state="not_treated",
+                value=(float(LABEL_VALUE["not_treated"])
+                       if kind == "live" and s.level == "minimo" else None))
+        points.append(result)
     required = {s.id for s in plan.slots if s.level == "minimo"}
     used = [slots[s.id] for s in plan.slots if s.id in slots]
     if kind == "live":
@@ -346,7 +376,10 @@ def interview_view(
                             and not isinstance(stored, bool) else None),
         points=points,
         missing_required=[p.id for p in points
-                          if p.id in required and p.state not in COVERED],
+                          if p.id in required and p.state not in COVERED
+                          and p.state != "not_asked"],
+        unasked_required=[p.id for p in points if p.id in required
+                          and p.state == "not_asked"],
         not_asked=[p.id for p in points if p.state == "not_asked"],
         accuracy=_accuracy(used),
         to_check=len(checks) if isinstance(checks, list) else 0,
@@ -369,11 +402,14 @@ def order_key(view: InterviewView) -> Tuple[Any, ...]:
     """The default order of the offer page (best figure first, #271).
 
     Figure, highest first (none last); on the same figure, fewer
-    required points not covered; then the latest interview; then the
-    name and the session id, so the order is total and stable.
+    required points without evidence of coverage (not covered, or not
+    asked because they were added to the plan later: both count one);
+    then the latest interview; then the name and the session id, so the
+    order is total and stable.
     """
     return (view.figure is None, -(view.figure or 0.0),
-            len(view.missing_required), -_when(view),
+            len(view.missing_required) + len(view.unasked_required),
+            -_when(view),
             fold(view.candidate or ""), view.session_id)
 
 

@@ -25,7 +25,7 @@ import threading
 from datetime import datetime
 from typing import Callable, Dict, List, Optional, Set
 
-from orchestrator.application.interview import PlanError, PlanStore
+from orchestrator.application.interview import FileIndex, PlanError, PlanStore
 from orchestrator.application.ports import (
     CandidateStore,
     CoreQuestionSource,
@@ -272,33 +272,31 @@ class CandidateBook:
         profile of the role cannot be read, every report counts as in a
         file: its rounds are unknown, so none is offered for deletion.
         """
+        return self.files(plan_id).owned
+
+    def person_of(self, plan_id: str) -> Callable[[Document], Optional[str]]:
+        """Tell, for the reports of a role, whose file each is in (#271)."""
+        return self.files(plan_id).person
+
+    def files(self, plan_id: str) -> FileIndex:
+        """The files of a role, read once, for its reports (#271).
+
+        ``owned`` is :meth:`owns`'s rule; ``person`` gives the profile id
+        the report names, else the profile one of whose rounds is the
+        report's session (older sheets name no profile), else ``None``;
+        ``names`` the current name of each readable file.
+        """
         try:
             ids = set(self.store.ids(plan_id))
             readable = self.store.list(plan_id)
         except KeyError:
-            return lambda report: False
+            return FileIndex()
         unknown = len(ids) > len(readable)
-        sessions = {r.session_id for p in readable for r in p.rounds}
+        by_session = {r.session_id: p.id for p in readable for r in p.rounds}
 
         def owned(report: Document) -> bool:
             return unknown or report.get("candidate_id") in ids or \
-                report.get("session_id") in sessions
-
-        return owned
-
-    def person_of(self, plan_id: str) -> Callable[[Document], Optional[str]]:
-        """Tell, for the reports of a role, whose file each is in (#271).
-
-        The profile id the report names, else the profile one of whose
-        rounds is the report's session (older sheets name no profile);
-        ``None`` when it is in no file. The offer page joins a person's
-        interviews into one row with it.
-        """
-        try:
-            readable = self.store.list(plan_id)
-        except KeyError:
-            return lambda report: None
-        by_session = {r.session_id: p.id for p in readable for r in p.rounds}
+                report.get("session_id") in by_session
 
         def person(report: Document) -> Optional[str]:
             named = report.get("candidate_id")
@@ -306,7 +304,8 @@ class CandidateBook:
                 return named
             return by_session.get(str(report.get("session_id") or ""))
 
-        return person
+        return FileIndex(owned=owned, person=person,
+                         names={p.id: p.name for p in readable})
 
     def delete_unowned_report(self, plan_id: str, session_id: str) -> Document:
         """Delete a stored report that belongs to no candidate's file.

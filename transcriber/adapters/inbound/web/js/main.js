@@ -100,6 +100,10 @@ const ctx = {
     if (location.hash === hash) route();
     else location.hash = hash;
   },
+  /** A view that knows better names than the address (a plan's title) puts them in the breadcrumbs. */
+  setCrumbs(items) {
+    setCrumbs(items);
+  },
   fail(error, retry) {
     blocking(error, retry ?? route);
   },
@@ -135,7 +139,7 @@ async function route() {
   stopCurrent();
   const mine = ++token;
   app.replaceChildren();
-  app.classList.remove("wide");
+  app.classList.remove("wide", "full");
   setCrumbs(crumbsFor(location.hash, t));
   markCurrent();
   syncLogout();

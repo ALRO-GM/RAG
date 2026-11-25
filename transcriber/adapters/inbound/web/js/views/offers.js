@@ -28,6 +28,23 @@ import { clonePlan, planErrors, planForSave, reportHref } from "../lib/interview
 import { judgeTag, planEditorBody, shortDate } from "./interview.js";
 import { candidateBlock } from "./candidate.js";
 
+/** `key` with `{n}`, or its `_one` variant when `n` is 1 (the dictionaries' plural rule). */
+function plural(key, n, params = {}) {
+  return t(n === 1 ? `${key}_one` : key, { n, ...params });
+}
+
+/** «N puntos: R imprescindibles, D deseables», each count in its own number. */
+function pointsLine(total, required, desirable) {
+  return t("of.row_points", {
+    total: plural("of.n_points", total), required: plural("of.n_required", required), desirable: plural("of.n_desirable", desirable),
+  });
+}
+
+/** Wide screens show the filters open; on a phone they start folded. */
+function wideScreen() {
+  return globalThis.matchMedia?.("(min-width: 48rem)")?.matches ?? true;
+}
+
 /** Keep the table's state in the address without drawing the page again. */
 function keepInAddress(hash) {
   try {
@@ -81,11 +98,12 @@ function offerCards(plans, closed) {
     h("div", { class: "row wrap of-card-head" },
       h("h2", {}, h("a", { href: offerHref(p.id) }, p.title)),
       stateTag(p.state)),
-    h("p", { class: "meta" }, t("of.row_points", {
-      total: p.slots ?? 0, required: p.minimums ?? 0, desirable: p.desirables ?? Math.max(0, (p.slots ?? 0) - (p.minimums ?? 0)),
-    })),
+    h("p", { class: "meta" }, pointsLine(p.slots ?? 0, p.minimums ?? 0, p.desirables ?? Math.max(0, (p.slots ?? 0) - (p.minimums ?? 0)))),
     h("p", { class: "meta" }, p.interviews
-      ? [t("of.row_interviews", { n: p.interviews, ai: p.interviews_ai ?? p.interviews, live: p.interviews_live ?? 0 }),
+      ? [t("of.row_interviews", {
+        people: plural("of.n_people", p.people ?? p.interviews), interviews: plural("of.n_interviews", p.interviews),
+        ai: p.interviews_ai ?? p.interviews, live: p.interviews_live ?? 0,
+      }),
         p.last_interview ? [" · ", t("of.row_last", { date: shortDate(p.last_interview) })] : null]
       : t("of.row_none")),
     p.created_at ? h("p", { class: "meta" }, t("of.row_created", { date: shortDate(p.created_at) })) : null)));
@@ -100,7 +118,7 @@ function stateTag(state) {
 
 /** `#/offers/<plan>?…`: one offer and the people interviewed from it. */
 export async function offerView(ctx, root, [planId, query] = []) {
-  root.classList.add("wide");
+  root.classList.add("wide", "full");
   const id = decodeURIComponent(planId ?? "");
   let board;
   try {
@@ -109,11 +127,12 @@ export async function offerView(ctx, root, [planId, query] = []) {
     if (error?.kind === "unauthorized") throw error;
     root.append(pageHead(t("of.title")), emptyState({
       iconName: "file", title: t("of.missing_title"),
-      body: error?.code === "not_found" ? t("of.missing") : describeError(error),
+      body: error?.code === "not_found" ? t("of.not_found") : describeError(error),
       action: h("a", { class: "button", href: "#/offers" }, t("of.back")),
     }));
     return null;
   }
+  ctx.setCrumbs?.([{ label: t("nav.offers"), href: "#/offers" }, { label: board.plan.title, href: null }]);
   const page = h("div", { class: "stack" });
   root.append(page);
   const reload = async () => {
@@ -151,7 +170,7 @@ export function offerPage(ctx, board, state, reload = () => {}) {
       onCancel: () => { fill(editor); edit.setAttribute("aria-expanded", "false"); },
     }));
   });
-  const position = h("button", { type: "button", class: closed ? "" : "ghost" }, t(closed ? "iv.reopen_position" : "iv.close_position"));
+  const position = h("button", { type: "button" }, t(closed ? "iv.reopen_position" : "iv.close_position"));
   position.addEventListener("click", async () => {
     if (!closed) {
       const yes = await openDialog({
@@ -175,7 +194,7 @@ export function offerPage(ctx, board, state, reload = () => {}) {
     h("p", { class: "row wrap of-head-meta" }, stateTag(plan.state), " ",
       h("span", { class: "meta" }, [
         t("of.minutes", { minutes: plan.minutes }),
-        t("of.row_points", { total: plan.slots.length, required, desirable: plan.slots.length - required }),
+        pointsLine(plan.slots.length, required, plan.slots.length - required),
         t("of.revision", { n: plan.revision ?? 0 }),
       ].join(" · "))),
     closed ? h("p", { class: "notice", role: "status" }, t("iv.closed_notice")) : null,
@@ -257,7 +276,17 @@ export function peopleSection(ctx, board, initial, { onState = () => {}, onDelet
   const status = h("p", { class: "meta of-status", role: "status", "aria-live": "polite" });
 
   const search = h("input", { id: "of-search", type: "search", value: state.q, maxLength: 80, autocomplete: "off" });
-  search.addEventListener("input", () => change({ q: search.value }));
+  // Typing redraws the table at once; the status line is said after a pause (or on Enter / leaving the field).
+  let pause = null;
+  search.addEventListener("input", () => {
+    change({ q: search.value }, { announce: false });
+    clearTimeout(pause);
+    pause = setTimeout(announce, 400);
+  });
+  search.addEventListener("change", () => {
+    clearTimeout(pause);
+    announce();
+  });
   const kind = h("select", { id: "of-kind" }, KINDS.map((k) => h("option", { value: k, selected: k === state.kind }, t(`of.kind.${k}`))));
   kind.addEventListener("change", () => change({ kind: kind.value }));
   const point = h("select", { id: "of-point" },
@@ -292,11 +321,27 @@ export function peopleSection(ctx, board, initial, { onState = () => {}, onDelet
     change({ q: "", kind: "all", point: "", state: "any" });
   });
 
-  function change(fields) {
+  const filterBox = h("details", { class: "of-filter-box", open: wideScreen() });
+  const filterSummary = h("summary", {});
+  const active = () => [(state.q ?? "").trim(), state.kind !== "all", state.point && state.state !== "any"].filter(Boolean).length;
+  const syncSummary = () => { filterSummary.textContent = active() ? plural("of.filters_active", active()) : t("of.filters_title"); };
+
+  function change(fields, { announce: say = true } = {}) {
     state = { ...state, ...fields };
     clear.hidden = !filtering(state);
+    syncSummary();
     onState(state);
     draw();
+    if (say) announce();
+  }
+
+  function announce() {
+    const shown = visibleRows(rows, state);
+    const sortName = columnName(state.sort, pointColumns(board, state.cols));
+    status.textContent = rows.length ? [
+      t("of.count", { shown: shown.length, total: rows.length }),
+      t(state.dir === "asc" ? "of.sorted_asc" : "of.sorted_desc", { column: sortName }),
+    ].join(" ") : "";
   }
 
   function draw() {
@@ -308,24 +353,23 @@ export function peopleSection(ctx, board, initial, { onState = () => {}, onDelet
         onDelete,
       })
       : emptyState({ iconName: "inbox", title: t("of.no_people_title"), body: t("of.no_people") })));
-    const sortName = columnName(state.sort, columns);
-    status.textContent = rows.length ? [
-      t("of.count", { shown: shown.length, total: rows.length }),
-      t(state.dir === "asc" ? "of.sorted_asc" : "of.sorted_desc", { column: sortName }),
-    ].join(" ") : "";
   }
 
   draw();
-  return h("section", { class: "stack of-people", "aria-labelledby": "of-people-title" },
-    h("h2", { id: "of-people-title" }, t("of.people_title")),
-    howOrdered(),
-    rows.length ? h("div", { class: "row wrap of-filters", role: "search", "aria-label": t("of.filters") },
+  announce();
+  syncSummary();
+  fill(filterBox, filterSummary,
+    h("div", { class: "row wrap of-filters", role: "search", "aria-label": t("of.filters") },
       h("div", { class: "field" }, h("label", { for: "of-search" }, t("of.search")), search),
       h("div", { class: "field" }, h("label", { for: "of-kind" }, t("of.kind")), kind),
       h("div", { class: "field" }, h("label", { for: "of-point" }, t("of.point")), point),
       h("div", { class: "field" }, h("label", { for: "of-point-state" }, t("of.point_state")), pointState),
-      clear) : null,
-    chooser,
+      clear),
+    chooser);
+  return h("section", { class: "stack of-people", "aria-labelledby": "of-people-title" },
+    h("h2", { id: "of-people-title" }, t("of.people_title")),
+    howOrdered(),
+    rows.length ? filterBox : null,
     status,
     tableBox,
     board.truncated ? h("p", { class: "notice", role: "status" }, t("of.truncated", { n: board.interviews })) : null,
@@ -370,16 +414,16 @@ function figureCell(r) {
   return h("td", { class: "of-figure" },
     h("span", { class: "of-figure-value" }, r.figure === null ? "–" : decimal(r.figure, 1)),
     h("span", { class: "of-small" }, t(`of.basis.${r.basis ?? "labels"}`)),
-    r.missing.length
-      ? h("span", { class: "tag of-flag is-missing" }, icon("alert"), t("of.missing", { n: r.missing.length }))
-      : h("span", { class: "of-small" }, t("of.covers_all")),
+    r.missing.length ? h("span", { class: "tag of-flag is-missing" }, icon("alert"), t("of.missing", { n: r.missing.length })) : null,
+    r.unasked.length ? h("span", { class: "tag of-flag is-missing" }, icon("alert"), t("of.unasked", { n: r.unasked.length })) : null,
+    r.missing.length || r.unasked.length ? null : h("span", { class: "of-small" }, t("of.covers_all")),
     r.planChanged ? h("span", { class: "tag of-flag" }, t("of.plan_changed")) : null,
     r.lessReliable ? h("span", { class: "tag of-flag" }, t("of.less_reliable")) : null);
 }
 
 function personRow(plan, r, columns, onDelete) {
   const others = r.others.length ? h("details", { class: "of-others" },
-    h("summary", {}, t("of.others", { n: r.others.length })),
+    h("summary", {}, plural("of.others", r.others.length)),
     h("ul", {}, r.others.map((o) => h("li", {},
       h("a", { href: reportHref(plan.id, o.session_id) }, t(`iv.kind.${o.kind === "live" ? "live" : "ai"}`)),
       " · ", shortDate(o.finished_at),
@@ -390,8 +434,12 @@ function personRow(plan, r, columns, onDelete) {
     links.push(h("span", { class: "tag" }, t("iv.no_file")));
     if (onDelete) links.push(h("button", { type: "button", class: "small danger", onClick: () => onDelete(r) }, t("iv.delete_report")));
   }
-  return h("tr", { class: r.missing.length ? "of-row is-missing" : "of-row" },
-    h("th", { scope: "row" }, h("span", { class: "of-name" }, r.name || t("of.no_name")), others),
+  // The person cell also opens the report and the file, so they stay in reach when the table scrolls.
+  const quick = h("span", { class: "of-quick" },
+    h("a", { href: reportHref(plan.id, r.session) }, t("of.report_short")),
+    r.owned && r.candidateId ? [" · ", h("a", { href: personHref(plan.id, r.candidateId) }, t("of.file_short"))] : null);
+  return h("tr", { class: r.missing.length || r.unasked.length ? "of-row is-missing" : "of-row" },
+    h("th", { scope: "row" }, h("span", { class: "of-name" }, r.name || t("of.no_name")), quick, others),
     h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), h("span", { class: "of-small" }, shortDate(r.finished))),
     figureCell(r),
     columns.map((c) => pointCell(r.points.get(c.id), c, plan, r)),
@@ -414,7 +462,7 @@ function pointCell(point, column, plan, row) {
   return h("td", { class: `of-point${column.required && !["solid", "correct_basic", "to_verify", "unclear", "answered"].includes(state) ? " is-gap" : ""}` },
     word,
     typeof point?.score === "number" ? h("span", { class: "of-small" }, t("of.score", { score: point.score })) : null,
-    point?.concepts ? h("span", { class: "of-small" }, t("of.concepts", { treated: point.treated ?? 0, total: point.concepts })) : null,
+    point?.concepts ? h("span", { class: "of-small" }, plural("of.concepts", point.concepts, { treated: point.treated ?? 0, total: point.concepts })) : null,
     evidence);
 }
 
@@ -437,6 +485,14 @@ export async function personFileView(ctx, root, [planId, candidateId] = []) {
     }));
     return null;
   }
+  let title = plan;
+  try {
+    title = (await ctx.api.interviewPlan(plan))?.title ?? plan;
+  } catch {
+    // the breadcrumb keeps the plan's id
+  }
+  ctx.setCrumbs?.([{ label: t("nav.offers"), href: "#/offers" }, { label: title, href: offerHref(plan) },
+    { label: profile.name ?? id, href: null }]);
   root.append(pageHead(profile.name ?? t("of.person_title"), { lead: t("of.person_lead") }),
     candidateBlock(profile, { api: ctx.api, onDeleted: () => ctx.navigate(offerHref(plan)) }),
     h("p", {}, h("a", { href: offerHref(plan) }, t("of.back_offer"))));

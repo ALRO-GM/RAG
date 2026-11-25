@@ -124,7 +124,7 @@ export function boardRows(board) {
       figure: typeof latest.figure === "number" ? latest.figure : null, basis: latest.figure_basis ?? null,
       planChanged: Boolean(latest.plan_changed), lessReliable: Boolean(latest.less_reliable),
       points: new Map((latest.points ?? []).map((p) => [p.id, p])),
-      missing: latest.missing_required ?? [], notAsked: latest.not_asked ?? [],
+      missing: latest.missing_required ?? [], unasked: latest.unasked_required ?? [], notAsked: latest.not_asked ?? [],
       accuracy: latest.accuracy ?? {}, toCheck: latest.to_check ?? 0,
       others: person.others ?? [],
     };
@@ -168,7 +168,9 @@ function sortValue(row, key) {
 export function visibleRows(rows, state) {
   const shown = rows.filter((row) => rowMatches(row, state));
   if (state.sort === "fit") {
-    return shown.sort((a, b) => (state.dir === "asc" ? b.position - a.position : a.position - b.position));
+    // Rows without a figure stay last in both directions.
+    const none = (r) => (r.figure === null ? 1 : 0);
+    return shown.sort((a, b) => none(a) - none(b) || (state.dir === "asc" ? b.position - a.position : a.position - b.position));
   }
   return shown.sort((a, b) => compareValues(sortValue(a, state.sort), sortValue(b, state.sort), state.dir) || a.position - b.position);
 }

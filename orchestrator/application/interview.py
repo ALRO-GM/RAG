@@ -29,7 +29,7 @@ Scores are for the recruiter only: nothing here is ever spoken.
 import logging
 import threading
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import (
     TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol, Set, Tuple,
@@ -121,6 +121,21 @@ PLAIN_REPORT = "interview.report@1"
 FILLER_DEADLINE_MS = 6000
 ANSWER_SO_FAR = 400
 """Characters of a stuck answer a hint is given (its end)."""
+
+
+@dataclass(frozen=True)
+class FileIndex:
+    """The candidate files of a role, read once (#271).
+
+    Without a candidate book a report is in the file it names, and no
+    file name is known.
+    """
+
+    owned: Callable[[Document], bool] = (
+        lambda report: bool(report.get("candidate_id")))
+    person: Callable[[Document], Optional[str]] = (
+        lambda report: _text_or_none(report.get("candidate_id")))
+    names: Dict[str, str] = field(default_factory=dict)
 
 
 class PlanError(Exception):
@@ -249,12 +264,10 @@ class InterviewPlanner:
             lambda plan_id: lambda report: bool(report.get("candidate_id")))
         """Which reports of a role are in a candidate's file (the
         candidate book's rule when there is one)."""
-        self.person_of: Callable[
-            [str], Callable[[Document], Optional[str]]] = (
-            lambda plan_id: lambda report: _text_or_none(
-                report.get("candidate_id")))
-        """Whose file a report of a role is in (a profile id; ``None``:
-        none), the candidate book's rule when there is one (#271)."""
+        self.files: Callable[[str], FileIndex] = lambda plan_id: FileIndex()
+        """The candidate files of a role, read once (#271): which
+        reports are in a file, whose, and each file's name (the
+        candidate book's when there is one)."""
 
     # ---- queries ------------------------------------------------------
 
@@ -262,12 +275,16 @@ class InterviewPlanner:
         """The plans, newest first, as short rows.
 
         Each row also says (#271) how many points are desirable, how
-        many interviews of each kind were stored and when the last one
-        ended, for the offers page.
+        many people were interviewed (one per candidate file; a report
+        in no file is one person), how many interviews of each kind were
+        stored and when the last one ended, for the offers page.
         """
         rows: List[Document] = []
         for p in self.store.list():
             results = self.store.results(p.id)
+            person = self.files(p.id).person
+            people = {person(r) or f"session:{r.get('session_id')}"
+                      for r in results}
             ends = [str(r.get("finished_at")) for r in results
                     if isinstance(r.get("finished_at"), str)]
             live = sum(1 for r in results if r.get("kind") == "live")
@@ -283,6 +300,7 @@ class InterviewPlanner:
                 "updated_at": p.updated_at.isoformat() if p.updated_at
                 else None, "state": p.state,
                 "interviews": len(results),
+                "people": len(people),
                 "interviews_ai": len(results) - live,
                 "interviews_live": live,
                 "last_interview": max(ends) if ends else None,
@@ -342,31 +360,37 @@ class InterviewPlanner:
         figure each, the state of each point, the accuracy counts and
         the statements worth checking. A person's interviews (AI and
         live, every round) make one row, shown by the latest; rows are
-        in :func:`~orchestrator.domain.offer_board.order_key` order. At
-        most :data:`~orchestrator.domain.offer_board.MAX_REPORTS`
-        reports are read (``truncated`` says when more exist). Derived
-        on read: nothing is stored.
+        in :func:`~orchestrator.domain.offer_board.order_key` order. The
+        store reads every report of the plan (small JSON files, one pass);
+        what is computed and returned is bounded to the
+        :data:`~orchestrator.domain.offer_board.MAX_REPORTS` most recent
+        (``truncated`` says when there were more). The candidate files
+        are listed once. Derived on read: nothing is stored. A person
+        with a file is named by the file's current name.
         """
         plan = self._load(plan_id)
-        owned = self.owns(plan_id)
-        person_of = self.person_of(plan_id)
-        stored = self.store.results(plan_id)
+        files = self.files(plan_id)
+        stored = sorted(self.store.results(plan_id),
+                        key=lambda r: str(r.get("finished_at") or ""),
+                        reverse=True)
         reports = stored[:MAX_REPORTS]
         people: Dict[str, List[InterviewView]] = {}
         for sheet in reports:
-            view = interview_view(plan, sheet, owned(sheet))
-            person = person_of(sheet)
+            view = interview_view(plan, sheet, files.owned(sheet))
+            person = files.person(sheet)
             key = (f"file:{person}" if person
                    else f"session:{view.session_id}")
             people.setdefault(key, []).append(view)
         rows: List[Tuple[InterviewView, Document]] = []
         for key, views in people.items():
             latest, *others = latest_first(views)
+            candidate_id = key[5:] if key.startswith("file:") else None
             rows.append((latest, {
                 "person": key,
-                "candidate_id": key[5:] if key.startswith("file:") else None,
-                "name": next((v.candidate for v in [latest, *others]
-                              if v.candidate), None),
+                "candidate_id": candidate_id,
+                "name": files.names.get(candidate_id or "") or next(
+                    (v.candidate for v in [latest, *others]
+                     if v.candidate), None),
                 "latest": asdict(latest),
                 "others": [
                     {k: getattr(v, k) for k in (
@@ -860,7 +884,7 @@ class InterviewWiring:
         self.positions = PositionCloser(self.store)
         if self.candidates is not None:
             self.planner.owns = self.candidates.owns
-            self.planner.person_of = self.candidates.person_of
+            self.planner.files = self.candidates.files
 
 
 @dataclass(frozen=True)
@@ -1261,6 +1285,7 @@ class InterviewDirector:
             finished_at=self.now(), to_check=to_check, judge=judge,
             candidate_id=self.candidate_id,
             report_error=self.report_error,
+            plan_slots=[s.id for s in self.plan.slots],
         )
 
     def _texts(self) -> Dict[str, str]:

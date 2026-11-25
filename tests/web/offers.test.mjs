@@ -247,7 +247,7 @@ test("every state is said in words; gaps, word-rule reports and edited plans are
     const [ana, angel, bea] = rows.map((r) => r.text());
     assert.ok(ana.includes(es["iv.judge.solid"]) && ana.includes("puntuación 90") && ana.includes(es["of.covers_all"]));
     assert.ok(ana.includes(es["of.basis.scores"]) && ana.includes("82,5"));
-    assert.ok(ana.includes("1 entrevistas más") || ana.includes(es["of.others"].replace("{n}", "1")));
+    assert.ok(ana.includes("1 entrevista más") && !ana.includes("1 entrevistas"));
     assert.ok(angel.includes(es["iv.judge.unclear"]) && angel.includes("1 de 2 conceptos") && angel.includes(es["of.less_reliable"]));
     assert.ok(angel.includes(es["of.basis.labels"]));
     assert.ok(bea.includes(es["iv.judge.wrong"]) && bea.includes("Imprescindibles sin cubrir: 1") && bea.includes(es["of.plan_changed"]));
@@ -256,8 +256,11 @@ test("every state is said in words; gaps, word-rule reports and edited plans are
     const evidence = byTag(rows[0], "DETAILS").find((d) => d.text().includes(es["of.evidence"]));
     assert.ok(evidence.text().includes("uso arábica y robusta") && evidence.text().includes("Correcto y concreto."));
     assert.ok(byTag(evidence, "A")[0].href === "#/interview-report/cafe/vb-1");
-    const files = byTag(section, "A").filter((a) => a.href.includes("/person/")).map((a) => a.href);
+    const files = [...new Set(byTag(section, "A").filter((a) => a.href.includes("/person/")).map((a) => a.href))];
     assert.deepEqual(files, ["#/offers/cafe/person/ana-ruiz", "#/offers/cafe/person/ángel-soto"].map((h) => h.replace("ángel", "%C3%A1ngel")));
+    // The person cell itself reaches the report and the file (the table may scroll sideways).
+    const head = byTag(rows[0], "TH")[0];
+    assert.deepEqual(byTag(head, "A").map((a) => a.href).slice(0, 2), ["#/interview-report/cafe/vb-1", "#/offers/cafe/person/ana-ruiz"]);
   });
 });
 
@@ -266,7 +269,7 @@ test("sorting, searching and filtering redraw the table, announce it and keep th
     const states = [];
     const section = peopleSection({}, board(), parseQuery(""), { onState: (s) => states.push(queryString(s)) });
     const status = section.all().find((n) => n.attributes?.role === "status");
-    assert.match(status.textContent, /Se ven 3 de 3 personas\. Ordenado por «Cifra \(borrador\)», de mayor a menor\./);
+    assert.equal(status.textContent, "Personas a la vista: 3 de 3. Ordenado por «Cifra (borrador)», de mayor a menor.");
     const sortBy = (key) => byTag(section, "TH").find((th) => th.attributes["data-key"] === key);
     byTag(sortBy("name"), "BUTTON")[0].fire("click");
     assert.equal(sortBy("name").attributes["aria-sort"], "ascending");
@@ -279,7 +282,12 @@ test("sorting, searching and filtering redraw the table, announce it and keep th
     const search = section.all().find((n) => n.id === "of-search");
     search.value = "bea";
     search.fire("input");
-    assert.match(status.textContent, /Se ven 1 de 3 personas/);
+    assert.equal(bodyRows(byTag(section, "TABLE")[0]).length, 1, "the table follows each keystroke");
+    assert.doesNotMatch(status.textContent, /1 de 3/, "the status waits for a pause");
+    search.fire("change");
+    assert.match(status.textContent, /Personas a la vista: 1 de 3/);
+    const summary = section.all().find((n) => n.tagName === "SUMMARY" && n.text().startsWith("Filtros"));
+    assert.equal(summary.textContent, "Filtros (1 activo)");
     const kind = section.all().find((n) => n.id === "of-kind");
     search.value = "";
     search.fire("input");
@@ -324,7 +332,7 @@ test("a filter that matches nobody says so; an offer without interviews explains
 test("the list of offers: cards, the closed switch and the first-time explanation", async () => {
   await withDom("es", async ({ offersPage }) => {
     const plans = [
-      { id: "cafe", title: "Barista", state: "open", slots: 3, minimums: 2, desirables: 1, interviews: 4, interviews_ai: 2,
+      { id: "cafe", title: "Barista", state: "open", slots: 3, minimums: 2, desirables: 1, interviews: 4, people: 3, interviews_ai: 2,
         interviews_live: 2, last_interview: "2026-11-25T10:00:00", created_at: "2026-11-02T10:00:00" },
       { id: "tienda", title: "Dependienta", state: "closed", slots: 2, minimums: 1, desirables: 1, interviews: 0 },
     ];
@@ -332,7 +340,8 @@ test("the list of offers: cards, the closed switch and the first-time explanatio
     const page = offersPage(plans, { onClosed: (on) => { asked = on; } });
     const text = page.text();
     assert.ok(text.includes("Barista") && !text.includes("Dependienta"));
-    assert.ok(text.includes("3 puntos: 2 imprescindibles, 1 deseables") && text.includes("4 entrevistas: 2 con IA, 2 en directo"));
+    assert.ok(text.includes("3 puntos: 2 imprescindibles, 1 deseable"), text);
+    assert.ok(text.includes("3 personas entrevistadas · 4 entrevistas: 2 con IA, 2 en directo"));
     assert.ok(text.includes(es["of.state.open"]) && text.includes(es["of.show_closed"].replace("{n}", "1")));
     assert.equal(byTag(page, "A").find((a) => a.text() === "Barista").href, "#/offers/cafe");
     assert.equal(byTag(page, "A").find((a) => a.text().includes(es["of.new"])).href, "#/voicebot/interview");
@@ -404,5 +413,45 @@ test("the voice-bot page's saved plans lead to «Ofertas» instead of a comparis
     assert.ok(links.includes("#/offers"), "the saved plans point to «Ofertas»");
     assert.ok(links.includes("#/offers/cafe"), "the review links to the offer's people");
     assert.ok(!root.text().includes("Comparar candidatos"));
+  });
+});
+
+test("plurals: one of a thing reads in the singular", async () => {
+  await withDom("es", async ({ offersPage }) => {
+    const text = offersPage([{ id: "x", title: "Uno", state: "open", slots: 1, minimums: 1, desirables: 0, interviews: 1, people: 1,
+      interviews_ai: 1, interviews_live: 0 }]).text();
+    assert.ok(text.includes("1 punto: 1 imprescindible, 0 deseables"), text);
+    assert.ok(text.includes("1 persona entrevistada · 1 entrevista: 1 con IA, 0 en directo"), text);
+  });
+  for (const key of ["of.n_points", "of.n_required", "of.n_desirable", "of.n_people", "of.n_interviews", "of.others", "of.concepts",
+    "of.filters_active"]) {
+    assert.ok(es[`${key}_one`] && en[`${key}_one`], key);
+  }
+});
+
+test("sorting the figure lowest first still leaves rows without a figure last", () => {
+  const b = board();
+  b.people.push({ person: "session:z", name: "Zoe", position: 4, latest: { session_id: "z", figure: null, points: [] }, others: [] });
+  const rows = boardRows(b);
+  assert.deepEqual(visibleRows(rows, { ...parseQuery(""), dir: "asc" }).map((r) => r.name), ["Bea Gil", "Ángel Soto", "Ana Ruiz", "Zoe"]);
+  assert.equal(visibleRows(rows, parseQuery("")).at(-1).name, "Zoe");
+});
+
+test("a required point added after the interview is marked apart from one not covered", async () => {
+  await withDom("es", async ({ peopleSection }) => {
+    const b = board();
+    b.people[0].latest.unasked_required = ["s2"];
+    const row = bodyRows(byTag(peopleSection({}, b, parseQuery("")), "TABLE")[0])[0].text();
+    assert.ok(row.includes("Imprescindibles no preguntados: 1") && !row.includes("Imprescindibles sin cubrir"));
+    assert.ok(!row.includes(es["of.covers_all"]));
+  });
+});
+
+test("the offer page names the plan in the breadcrumbs, not its id", async () => {
+  await withDom("es", async ({ offerView }) => {
+    const crumbs = [];
+    const root = new FakeElement("main");
+    await offerView({ api: { planBoard: async () => board() }, setCrumbs: (items) => crumbs.push(items) }, root, ["cafe", ""]);
+    assert.deepEqual(crumbs[0], [{ label: "Ofertas", href: "#/offers" }, { label: "Barista", href: null }]);
   });
 });

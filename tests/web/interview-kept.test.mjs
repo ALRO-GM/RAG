@@ -156,7 +156,7 @@ test("a report without a person's file says so and can be deleted from the offer
     buttons[0].listeners.click[0]();
     assert.deepEqual(asked, ["vb-1"]);
     const files = card.all().filter((n) => n.tagName === "A" && n.href.startsWith("#/offers/"));
-    assert.deepEqual(files.map((n) => n.href), ["#/offers/dev/person/ana-ruiz"]);
+    assert.deepEqual([...new Set(files.map((n) => n.href))], ["#/offers/dev/person/ana-ruiz"]);
     const onlyFiled = peopleSection({}, board([people[1]], []), parseQuery("")).text();
     assert.ok(!onlyFiled.includes(es["iv.retention_no_file"]));
     assert.ok(reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention_no_file"]));

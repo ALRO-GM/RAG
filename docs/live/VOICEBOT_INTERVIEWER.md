@@ -884,8 +884,10 @@ required points, and where its questions can be edited.
 navigation entry «Ofertas» after «Asistente de voz»):
 
 - `#/offers`: the open positions as cards (title, state, «N puntos: R
-  imprescindibles, D deseables», interviews with AI and live, the last
-  interview's date, the creation date); «Mostrar también los puestos
+  imprescindibles, D deseables», the people interviewed (one per
+  candidate file; a report in no file is one person) and the
+  interviews with AI and live, the last interview's date, the creation
+  date; singular forms for one); «Mostrar también los puestos
   cerrados (n)» (`?closed=1`); «Nueva oferta» opens the existing
   creation flow (`#/voicebot/interview`: the voice-bot page with the
   interviewer chosen). With no plan yet it explains how to create the
@@ -897,13 +899,17 @@ navigation entry «Ofertas» after «Asistente de voz»):
   existing `PUT` with the revision it was based on, so it makes a new
   revision and a stale edit gets 409), «Hacer una entrevista con IA»
   (`#/voicebot/interview/<plan>`, hidden when the position is closed),
-  the draft notice and «Cómo se ordena», then the table.
+  the draft notice and «Cómo se ordena», then the table. The page uses
+  the full content width; the breadcrumbs show the plan's title (and,
+  on the file, the person's name), not the ids.
 - `#/offers/<plan>/person/<id>`: the person's file (core answers,
   reports, deletion), the block the analysis page already shows.
 
 **The table.** A `<table>` with a caption, column headers
 (`scope="col"`) and the person as the row header (sticky on narrow
-screens; the table scrolls inside its box, the page does not). One row
+screens; the table scrolls inside its box, the page does not; header
+labels wrap; the person cell itself links «Informe» and «Ficha», so
+they stay in reach when the table scrolls sideways). One row
 per person: all the interviews of one file (AI and live, every round)
 make one row, shown by the latest, with «N entrevistas más» opening the
 others' reports; a report in no file is a row of its own (no grouping
@@ -922,11 +928,17 @@ A→Z; second click flips); search by name (accents ignored); filter by
 the kind of interview and by one required point's result («Sólida o
 correcta básica», «Cubierto», «Por comprobar o no se puede valorar»,
 «Con un error o sin responder a lo preguntado», «Sin tratar, no lo
-conoce o no preguntado»). A `role="status"` line announces how many
-people are shown and the order. The state goes to the address with
+conoce o no preguntado»). The search and filters sit in a «Filtros»
+disclosure, open on wide screens and closed on a phone, whose summary
+counts the filters on («Filtros (1 activo)»). A `role="status"` line
+announces how many people are shown and the order: at once for a sort
+or a filter, and for the search after a 400 ms pause or when the field
+is left (the table itself follows each keystroke). The state goes to the address with
 `history.replaceState` (no reload). Status is never colour alone: a row
-missing a required point says «Imprescindibles sin cubrir: n» (with an
-icon), and the tinted cells also carry their word. Nobody is hidden
+missing a required point says «Imprescindibles sin cubrir: n» (asked
+and not covered) or «Imprescindibles no preguntados: n» (added to the
+plan after the interview), each with an icon, and the tinted cells also
+carry their word. Nobody is hidden
 unless the person sets a filter.
 
 **One comparable figure per interview** (`orchestrator/domain/offer_board.py`),
@@ -959,8 +971,10 @@ unless the person sets a filter.
   any human ordering: not measured.
 
 **Order and ties** (`order_key`): the figure, highest first; on the
-same figure, fewer required points not covered first (so «covers every
-required point» before «misses one»); then the most recent interview;
+same figure, fewer required points without evidence of coverage first
+— not covered and not asked (added later) each count one, so «covers
+every required point» comes before «misses one»; then the most recent
+interview;
 then the name and the session id. A person missing a required point
 therefore never comes before someone who covers them all with the same
 or a better figure. Rows without a figure (nothing to count) go last.
@@ -972,14 +986,28 @@ interview. No cut-off, no label such as «apto», nothing hidden by
 default.
 
 **Edited plans.** Every report keeps the `plan_revision` it was made
-with; the plan store keeps only the latest plan. On read: points removed
-from the plan drop out; a point the report does not have is «no
-preguntado» when the plan changed after the interview (left out of the
-figure; when required it counts as not covered, since there is no
-evidence) and «no tratado» when the revision is the same (a live round
-that never reached it). The row says «plan cambiado después». Editing
-re-orders the table at once: weights and levels are always the current
-plan's. Nothing is stored or cached: the table is derived on every read.
+with, and from #271 also `plan_slots`, the slot ids of that revision
+(`interview.sheet.v1`, additive): a live report stores only the slots
+it judged, so without the list a point the round never reached could
+not be told from a point added later. The plan store keeps only the
+latest plan. On read:
+
+- points removed from the plan drop out;
+- a point the report has no answer to is «no tratado» when it was in
+  the interview's revision (its `plan_slots`; an AI sheet keeps every
+  slot of its revision, so its own slots tell), and «no preguntado»
+  only when it was not (added later): left out of the figure and
+  marked «Imprescindibles no preguntados» when required;
+- an older live report without `plan_slots` never has «no preguntado»
+  points: a missing point is «no tratado» even after the plan changed.
+
+So saving the plan (a new revision, even a title edit) never changes a
+figure by itself; changing a weight or a level re-orders the table at
+once, since they are always the current plan's. The row says «plan
+cambiado después» when the revision differs. Nothing is stored or
+cached: the table is derived on every read. (Found in review: before
+`plan_slots`, any save turned a live round's unreached points into «no
+preguntado» and raised its figure; a test now covers it.)
 
 **Less reliable reports.** A live report whose answers were attributed
 to the points by the session's word rules (`attribution: "rules"`, or
@@ -1002,7 +1030,8 @@ the rest; 404 for an unknown plan) returns `interview.board.v1`:
                                     "score", "label", "treated",
                                     "concepts", "quote", "reason",
                                     "utterance"}],
-                        "missing_required", "not_asked", "accuracy",
+                        "missing_required", "unasked_required",
+                        "not_asked", "accuracy",
                         "to_check", "less_reliable", "attribution",
                         "owned"},
              "others": [{"session_id", "kind", "finished_at", "figure",
@@ -1011,13 +1040,17 @@ the rest; 404 for an unknown plan) returns `interview.board.v1`:
  "interviews": 12, "truncated": false}
 ```
 
-It reads the stored reports through the existing `PlanStore` port in
-one pass (no call per row), at most 500 (`MAX_REPORTS`; `truncated`
-says when there are more). Which file a report is in comes from the
-candidate book (`person_of`: the profile it names, or the profile one
-of whose rounds is its session). `GET /interview/plans` adds, per plan,
-`desirables`, `created_at`, `interviews_ai`, `interviews_live` and
-`last_interview`.
+The store reads every report of the plan through the existing
+`PlanStore` port in one pass (small JSON files; no call per row); what
+is computed and returned is bounded to the 500 most recent
+(`MAX_REPORTS`; `truncated` says when there were more, and the page
+says «Se muestran las N entrevistas guardadas más recientes.»). The
+candidate files of the role are listed once per request
+(`CandidateBook.files`: which reports are in a file, whose — the
+profile the report names, or the profile one of whose rounds is its
+session — and each file's current name, which names the row).
+`GET /interview/plans` adds, per plan, `desirables`, `created_at`,
+`people`, `interviews_ai`, `interviews_live` and `last_interview`.
 
 **Where the old entry points go.** The voice-bot plan review's
 «Comparar candidatos de esta oferta» became «Ver las personas

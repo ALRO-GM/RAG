@@ -123,3 +123,14 @@ test("the audit tells text from class lists and identifiers", () => {
   assert.equal(looksLikeText("save the file", classes), true);
   assert.deepEqual(literals('h("p", {}, "Hola") // "no"\n/* "tampoco" */ `a ${x} b`'), ["p", "Hola", "a   b"]);
 });
+
+test("no dictionary repeats a key (an object literal would hide the first one)", () => {
+  for (const name of ["es.js", "en.js"]) {
+    const source = readFileSync(join(WEB, "js", "i18n", name), "utf8");
+    const keys = [...source.matchAll(/^\s*"([^"\n]+)"\s*:/gm)].map((m) => m[1]);
+    assert.ok(keys.length > 1000, `${name}: ${keys.length} keys read`);
+    const seen = new Set();
+    const repeated = keys.filter((k) => (seen.has(k) ? true : (seen.add(k), false)));
+    assert.deepEqual(repeated, [], name);
+  }
+});

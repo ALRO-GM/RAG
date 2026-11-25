@@ -366,6 +366,7 @@ class LiveJudge:
             judge=self.template, finished_at=self.now(),
             attribution=attribution,  # type: ignore[arg-type]
             attribution_error=error,
+            plan_slots=[s.id for s in self.plan.slots],
         )
         book = self.wiring.candidates
         try:

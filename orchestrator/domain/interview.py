@@ -645,6 +645,12 @@ class Sheet(_Strict):
     attribution_error: Optional[str] = Field(default=None, max_length=300)
     """Why the model's attribution was not used (its status and error
     kind, never the candidate's words)."""
+    plan_slots: Optional[List[str]] = None
+    """The slot ids of the plan revision the interview was made with
+    (#271): a live report keeps only the slots it judged, so a point of
+    the plan that is not in ``slots`` but is here was asked of nobody
+    (not treated), and one that is in neither was added to the plan
+    later (not asked). ``None``: written before it."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:
