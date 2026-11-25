@@ -49,6 +49,7 @@ stops without touching it.
 import argparse
 import asyncio
 import difflib
+import itertools
 import json
 import random
 import re
@@ -57,7 +58,7 @@ import unicodedata
 import wave
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import httpx
 from websockets.asyncio.client import ClientConnection, connect
@@ -82,13 +83,21 @@ SCENARIOS: Dict[str, str] = {
     "c": "one 60 s drop",
     "d": "two drops: 3 s, then 10 s",
     "e": "network down for the last 10 s and 3 s after: stop with 10 s held",
+    "f": "one 3 s drop while the voices alternate quickly (--alt-at)",
+    "r": "the services restarted at --restart-at (#264 recovery)",
+    "t": "baseline, then «Terminar» with the services guard polled (#264)",
 }
+ACTIVE = ("starting", "running")
+"""Live session states that hold the one session slot."""
 
 
-def faults_for(name: str, seconds: float) -> List[Tuple[float, float]]:
+def faults_for(name: str, seconds: float, alt_at: float = 32.5
+               ) -> List[Tuple[float, float]]:
     """Return the (stream second, outage seconds) faults of a scenario."""
-    if name == "a":
+    if name in ("a", "r", "t"):
         return []
+    if name == "f":
+        return [(alt_at, 3.0)]
     if name == "b":
         return [(30.0, 3.0)]
     if name == "c":
@@ -180,6 +189,7 @@ class Link:
     ws: Optional[ClientConnection] = None
     ready: bool = False
     ended: Optional[str] = None
+    ended_at: Optional[float] = None
     stopping: bool = False
     down_until: float = 0.0
     attempt: int = 0
@@ -319,6 +329,7 @@ class Link:
                     if message.get("code") in (
                             "not_found", "wrong_state", "replaced"):
                         self.ended = str(message.get("code"))
+                        self.ended_at = time.monotonic()
         except ConnectionClosed:
             pass
         finally:
@@ -443,7 +454,7 @@ async def follow_events(
         except ConnectionClosed as exc:
             code_seen = exc.rcvd.code if exc.rcvd else 1006
             closes.append(code_seen)
-            if code_seen == 1000:
+            if code_seen in (1000, 4401, 4404, 4409):
                 return
         except InvalidStatus as exc:
             closes.append(f"http_{exc.response.status_code}")
@@ -500,13 +511,15 @@ def read_wav(path: Path) -> Tuple[int, bytes, float]:
 
 
 async def capture(link: Link, frames: bytes, faults: Sequence[
-        Tuple[float, float]]) -> float:
+        Tuple[float, float]], hooks: Sequence[Tuple[float, Callable[
+            [], None]]] = ()) -> float:
     """Feed the wav to the link in real time, firing the faults.
 
     Returns the monotonic time of stream second 0.
     """
     per_piece = int(RATE * PIECE_S) * link.frame
     todo = sorted(faults)
+    calls = sorted(hooks, key=lambda h: h[0])
     t0 = time.monotonic()
     for number, first in enumerate(range(0, len(frames), per_piece)):
         await asyncio.sleep(max(0.0, t0 + (number + 1) * PIECE_S
@@ -516,15 +529,146 @@ async def capture(link: Link, frames: bytes, faults: Sequence[
         while todo and todo[0][0] <= stream_s:
             at, seconds = todo.pop(0)
             link.drop(seconds, at)
+        while calls and calls[0][0] <= stream_s:
+            calls.pop(0)[1]()
     return t0
 
 
 async def busy(client: httpx.AsyncClient, base: str) -> List[str]:
-    """Return the ids of the live sessions not ended (another's or ours)."""
+    """Return the ids of the live sessions running (another's or ours)."""
     answer = await client.get(f"{base}/api/live/sessions")
     answer.raise_for_status()
     return [s["session_id"] for s in answer.json()["sessions"]
-            if s.get("state") != "ended"]
+            if s.get("state") in ACTIVE]
+
+
+async def gpu_sampler(samples: List[int]) -> None:
+    """Sample the GPU's used memory (MiB) every 2 s until cancelled."""
+    while True:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "nvidia-smi", "--query-gpu=memory.used",
+                "--format=csv,noheader,nounits",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL)
+            out, _ = await proc.communicate()
+            samples.append(int(out.split()[0]))
+        except (OSError, ValueError, IndexError):
+            pass
+        await asyncio.sleep(2.0)
+
+
+Span = Tuple[float, float, str]
+"""A final's start, end (stream seconds) and speaker label."""
+
+
+def overlap(a: Span, b: Tuple[float, float]) -> float:
+    """Return the seconds a span shares with ``b``."""
+    return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+
+
+def same_speaker_share(spans: Sequence[Span], base: Sequence[Span]
+                       ) -> Optional[float]:
+    """Share of finals whose label equals the overlapping baseline final's.
+
+    Each final is matched to the baseline final it shares most time
+    with; finals overlapping none count as different.
+    """
+    if not spans or not base:
+        return None
+    same = 0
+    for span in spans:
+        best = max(base, key=lambda b: overlap(span, (b[0], b[1])))
+        if overlap(span, (best[0], best[1])) > 0 and best[2] == span[2]:
+            same += 1
+    return round(same / len(spans), 3)
+
+
+def script_speaker_share(spans: Sequence[Span],
+                         reference: Sequence[Dict[str, Any]]
+                         ) -> Optional[float]:
+    """Share of finals whose label maps to the script's speaker.
+
+    Labels are mapped to the script's speakers by the best one-to-one
+    assignment (labels are arbitrary: S1, S2, a name…); each final's
+    true speaker is the script sentence it shares most time with.
+    """
+    pairs: List[Tuple[str, str]] = []
+    for span in spans:
+        best = max(reference,
+                   key=lambda u: overlap(span, (u["start"], u["end"])))
+        if overlap(span, (best["start"], best["end"])) > 0:
+            pairs.append((span[2], str(best["speaker"])))
+    if not spans:
+        return None
+    labels = sorted({p[0] for p in pairs})
+    truths = sorted({p[1] for p in pairs})
+    best_hits = 0
+    for order in itertools.permutations(truths, min(len(truths),
+                                                    len(labels))):
+        mapping = dict(zip(labels, order))
+        hits = sum(1 for label, truth in pairs
+                   if mapping.get(label) == truth)
+        best_hits = max(best_hits, hits)
+    return round(best_hits / len(spans), 3)
+
+
+async def guard_loop(script: Path, seconds: float,
+                     seen: List[Tuple[float, int]]) -> None:
+    """Run the services guard every 0.5 s for ``seconds``: (time, exit)."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        proc = await asyncio.create_subprocess_exec(
+            "python3", str(script), stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL)
+        seen.append((time.monotonic(), await proc.wait()))
+        await asyncio.sleep(0.5)
+
+
+async def restart_services(
+    client: httpx.AsyncClient, base: str, session: str,
+    args: argparse.Namespace, record: Dict[str, Any],
+) -> None:
+    """Restart the services with the owner's script, if only ours runs.
+
+    Before: the live sessions, the orchestrator's sessions and the
+    services guard must show nothing but ``session``; otherwise nothing
+    is restarted and ``record["refused"]`` says why. After: the time
+    until the transcriber answers again.
+    """
+    record["asked_at"] = time.monotonic()
+    live = (await client.get(f"{base}/api/live/sessions")).json()
+    others = [s["session_id"] for s in live["sessions"]
+              if s.get("state") in ACTIVE and s["session_id"] != session]
+    orch = (await client.get(f"{base}/api/assist/sessions")).json()
+    others += [s.get("session_id") for s in orch.get("sessions", [])
+               if s.get("state") not in ("ended", "failed")
+               and s.get("session_id") != session]
+    guard = await asyncio.create_subprocess_exec(
+        "python3", str(args.guard), stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL)
+    said, _ = await guard.communicate()
+    record["guard_exit_before"] = guard.returncode
+    record["guard_names_ours"] = session in said.decode("utf-8", "replace")
+    if others:
+        record["refused"] = f"{len(others)} other session(s) running"
+        return
+    proc = await asyncio.create_subprocess_exec(
+        str(args.restart_cmd), "restart", stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL)
+    record["restart_exit"] = await proc.wait()
+    record["restart_cmd_s"] = round(time.monotonic() - record["asked_at"], 2)
+    while time.monotonic() - record["asked_at"] < 600:
+        try:
+            answer = await client.get(f"{base}/api/live/sessions",
+                                      timeout=5)
+            if answer.status_code == 200:
+                record["transcriber_answers_after_s"] = round(
+                    time.monotonic() - record["asked_at"], 2)
+                return
+        except httpx.HTTPError:
+            pass
+        await asyncio.sleep(1.0)
 
 
 def phase_lags(
@@ -576,9 +720,11 @@ def transcript_summary(value: Any) -> Any:
 
 async def run_scenario(
     name: str, args: argparse.Namespace, code: str,
-    reference_words: List[str], baseline_words: Optional[List[str]],
-) -> Tuple[Dict[str, Any], List[str]]:
-    """Run one scenario; return its numbers and its words (in memory)."""
+    reference_words: List[str], baseline: Optional["Heard"],
+    reference: Sequence[Dict[str, Any]],
+) -> Tuple[Dict[str, Any], "Heard"]:
+    """Run one scenario; return its numbers and what it heard (memory)."""
+    baseline_words = None if baseline is None else baseline.words
     channels, frames, seconds = read_wav(args.wav)
     if args.max_seconds:
         seconds = min(seconds, args.max_seconds)
@@ -592,19 +738,20 @@ async def run_scenario(
         "base": base, "wav_seconds": round(seconds, 1),
         "channels": channels,
         "faults": [{"at_s": a, "seconds": s}
-                   for a, s in faults_for(name, seconds)],
+                   for a, s in faults_for(name, seconds, args.alt_at)],
     }
+    nothing = Heard([], [])
     async with httpx.AsyncClient(timeout=60, headers=headers) as client:
         others = await busy(client, base)
         if others:
             result["aborted"] = "busy: another live session is running"
-            return result, []
+            return result, nothing
         made = await client.post(f"{base}/api/assist/sessions", json={
             "product": args.product, "audio": args.audio,
             "session_id": session})
         if made.status_code >= 400:
             result["aborted"] = f"start refused: {made.status_code}"
-            return result, []
+            return result, nothing
         started = time.monotonic()
         link = Link(f"{base_ws}/api/live/{session}/audio", code, channels)
         events: List[Tuple[float, Dict[str, Any]]] = []
@@ -616,28 +763,98 @@ async def run_scenario(
         feeder = asyncio.create_task(follow_feed(
             client, base, session, feed, feed_reconnects))
         runner = asyncio.create_task(link.run())
+        gpu: List[int] = []
+        sampler = asyncio.create_task(gpu_sampler(gpu))
+        restart: Dict[str, Any] = {}
+        side: List["asyncio.Task[None]"] = []
+        guard_seen: List[Tuple[float, int]] = []
+        hooks: List[Tuple[float, Callable[[], None]]] = []
+        if name == "r":
+            hooks.append((args.restart_at, lambda: side.append(
+                asyncio.create_task(restart_services(
+                    client, base, session, args, restart)))))
         t0 = started
+        stop_sent = stop_back = finish_at = None
         try:
             await asyncio.wait_for(link.first_ready.wait(), 180)
-            t0 = await capture(link, frames, faults_for(name, seconds))
-            finish = await link.finish()
+            if args.skip_voice:
+                skipped = await client.post(
+                    f"{base}/api/live/sessions/{session}/voice",
+                    json={"action": "skip"})
+                result["voice_skip_status"] = skipped.status_code
+            t0 = await capture(link, frames,
+                               faults_for(name, seconds, args.alt_at), hooks)
+            if side:
+                await asyncio.wait(side, timeout=600)
+            finish_at = time.monotonic()
+            if name == "t":
+                side.append(asyncio.create_task(guard_loop(
+                    args.guard, 60.0, guard_seen)))
+            finish = await asyncio.wait_for(link.finish(), 300)
             await asyncio.wait([runner], timeout=10)
-            stop = await client.post(
-                f"{base}/api/assist/sessions/{session}/stop", timeout=120)
-            result["http_stop_status"] = stop.status_code
+            stop_sent = time.monotonic()
+            try:
+                stop = await client.post(
+                    f"{base}/api/assist/sessions/{session}/stop",
+                    timeout=120)
+                result["http_stop_status"] = stop.status_code
+            except httpx.HTTPError as exc:
+                result["http_stop_status"] = type(exc).__name__
+            stop_back = time.monotonic()
             await asyncio.wait([follower, feeder], timeout=120)
+            if side:
+                await asyncio.wait(side, timeout=120)
         finally:
-            for task in (runner, follower, feeder):
+            for task in (runner, follower, feeder, sampler, *side):
                 task.cancel()
             if session in await busy(client, base):
                 await client.post(
                     f"{base}/api/assist/sessions/{session}/stop",
                     timeout=120)
                 result["cleanup_stop"] = True
-        info = (await client.get(f"{base}/api/live/sessions/{session}")
-                ).json()
-        orch = (await client.get(f"{base}/api/assist/sessions/{session}")
-                ).json()
+        info = await handed_over(client, base, session)
+        orch_answer = await client.get(
+            f"{base}/api/assist/sessions/{session}")
+        orch = orch_answer.json() if orch_answer.status_code == 200 else {
+            "status": orch_answer.status_code}
+        following = await client.post(f"{base}/api/assist/sessions", json={
+            "product": args.product, "audio": args.audio,
+            "session_id": f"{session}-next"}) if name == "r" else None
+        if following is not None:
+            result["next_session_start_status"] = following.status_code
+            if following.status_code < 400:
+                await client.post(
+                    f"{base}/api/assist/sessions/{session}-next/stop",
+                    timeout=120)
+    if restart:
+        asked = restart.pop("asked_at", None)
+        restart["at_stream_s"] = args.restart_at
+        if asked is not None and link.ended_at is not None:
+            restart["asked_to_audio_refused_s"] = round(
+                link.ended_at - asked, 2)
+        result["restart"] = restart
+    result["link_ended"] = link.ended
+    if guard_seen and finish_at is not None:
+        busy_times = [at for at, code_ in guard_seen if code_ == 3]
+        result["guard"] = {
+            "polls": len(guard_seen),
+            "exit_codes": sorted({c for _, c in guard_seen}),
+            "first_poll_after_finish_s": round(
+                guard_seen[0][0] - finish_at, 2),
+            "busy_until_after_finish_s": (
+                round(max(busy_times) - finish_at, 2)
+                if busy_times else None),
+            "free_from_after_finish_s": next(
+                (round(at - finish_at, 2) for at, c in guard_seen
+                 if c == 0 and at > max(busy_times or [0.0])), None),
+            "stop_request_s": (None if stop_sent is None or stop_back is None
+                               else round(stop_back - stop_sent, 2)),
+            "finish_to_stop_answered_s": (
+                None if stop_back is None
+                else round(stop_back - finish_at, 2)),
+        }
+    result["gpu_mib"] = {"n": len(gpu), "min": min(gpu, default=None),
+                         "max": max(gpu, default=None)}
     assert link.first_ready_at is not None
     finals: Dict[str, Tuple[float, Dict[str, Any]]] = {}
     partial_times: List[float] = []
@@ -660,8 +877,17 @@ async def run_scenario(
                      key=lambda f: (f[1]["utterance"].get("start", 0),
                                     f[1]["utterance"].get("channel") or 0))
     said: List[str] = []
+    spans: List[Span] = []
+    per_final: List[Tuple[float, int]] = []
     for _, event in ordered:
-        said.extend(words(str(event["utterance"].get("text", ""))))
+        utterance = event["utterance"]
+        heard = words(str(utterance.get("text", "")))
+        said.extend(heard)
+        per_final.append((float(utterance.get("end", 0)), len(heard)))
+        spans.append((float(utterance.get("start", 0)),
+                      float(utterance.get("end", 0)),
+                      str(utterance.get("speaker")
+                          or utterance.get("channel"))))
     first_drop = link.drops[0].dropped_at if link.drops else None
     live_again = link.drops[-1].live_at if link.drops else None
     drops: List[Dict[str, Any]] = []
@@ -728,6 +954,11 @@ async def run_scenario(
         "similarity_to_baseline": (None if baseline_words is None
                                    else similarity(said, baseline_words)),
         "similarity_to_script": similarity(said, reference_words),
+        "speaker_labels": len({sp[2] for sp in spans}),
+        "same_speaker_as_baseline": (
+            None if baseline is None
+            else same_speaker_share(spans, baseline.spans)),
+        "speaker_matches_script": script_speaker_share(spans, reference),
         "partials": len(partial_times),
         "partials_after_last_ready": (
             sum(1 for t in partial_times
@@ -743,7 +974,75 @@ async def run_scenario(
             orch, dict) else None,
         "transcript": transcript_summary(info.get("transcript")),
     })
-    return result, said
+    if name == "r" and args.live_dir is not None:
+        result["kept_transcript"] = kept_transcript(
+            args.live_dir / session / "transcript.json", reference_words,
+            baseline, args.restart_at)
+    return result, Heard(said, spans, per_final)
+
+
+@dataclass
+class Heard:
+    """What a session heard, kept in memory only (never written)."""
+
+    words: List[str]
+    spans: List[Span]
+    per_final: List[Tuple[float, int]] = field(default_factory=list)
+
+
+async def handed_over(client: httpx.AsyncClient, base: str, session: str,
+                      wait_s: float = 120.0) -> Dict[str, Any]:
+    """Return the session once its hand-over is done (or ``wait_s``).
+
+    Publishing happens after the end (#264): the summary says
+    ``published`` once it is done; a restart may first make the
+    transcriber unreachable or the session unknown for a while.
+    """
+    end = time.monotonic() + wait_s
+    info: Dict[str, Any] = {}
+    while time.monotonic() < end:
+        try:
+            answer = await client.get(f"{base}/api/live/sessions/{session}",
+                                      timeout=10)
+            if answer.status_code == 200:
+                info = answer.json()
+                summary = info.get("transcript") or {}
+                if info.get("state") not in ACTIVE and (
+                        summary.get("published")
+                        or summary.get("publish_state") == "given_up"):
+                    return info
+        except httpx.HTTPError:
+            pass
+        await asyncio.sleep(2.0)
+    return info
+
+
+def kept_transcript(path: Path, script: List[str],
+                    baseline: Optional[Heard], until_s: float
+                    ) -> Dict[str, Any]:
+    """Count the kept transcript's sentences and words (no text out).
+
+    Compared with the baseline's finals that ended before ``until_s``
+    (the moment of the restart).
+    """
+    if not path.exists():
+        return {"exists": False}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    utterances = data.get("utterances", [])
+    kept = [w for u in utterances for w in words(str(u.get("text", "")))]
+    out: Dict[str, Any] = {
+        "exists": True, "utterances": len(utterances), "words": len(kept),
+        "last_end_s": max((float(u.get("end", 0)) for u in utterances),
+                          default=None),
+    }
+    if baseline is not None:
+        before = [n for end, n in baseline.per_final if end <= until_s]
+        out["baseline_finals_before_restart"] = len(before)
+        out["baseline_words_before_restart"] = sum(before)
+        head = sum(before)
+        out["similarity_to_baseline_head"] = similarity(
+            kept, baseline.words[:head])
+    return out
 
 
 async def run(args: argparse.Namespace) -> Dict[str, Any]:
@@ -757,12 +1056,12 @@ async def run(args: argparse.Namespace) -> Dict[str, Any]:
         "base": args.base, "product": args.product, "audio": args.audio,
         "wav": args.wav.name, "script_words": len(script),
         "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "runs": []}
-    baseline: Optional[List[str]] = None
+    baseline: Optional[Heard] = None
     for name in args.scenarios.split(","):
-        result, said = await run_scenario(name, args, code, script,
-                                          baseline)
-        if name == "a" and said:
-            baseline = said
+        result, heard = await run_scenario(
+            name, args, code, script, baseline, reference["utterances"])
+        if name == "a" and heard.words:
+            baseline = heard
         out["runs"].append(result)
         print(json.dumps({k: result.get(k) for k in (
             "scenario", "aborted", "samples_equal", "end_reason",
@@ -791,6 +1090,18 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=None)
     parser.add_argument("--pause", type=float, default=5.0,
                         help="seconds between sessions")
+    parser.add_argument("--alt-at", type=float, default=32.5,
+                        help="stream second of scenario f's drop")
+    parser.add_argument("--skip-voice", action="store_true",
+                        help="skip the one-microphone voice check (#249)")
+    parser.add_argument("--restart-at", type=float, default=40.0,
+                        help="stream second of scenario r's restart")
+    parser.add_argument("--restart-cmd", type=Path,
+                        default=Path.home() / ".local/bin/ragputin-servicios")
+    parser.add_argument("--guard", type=Path,
+                        default=Path("infra/live_guard.py"))
+    parser.add_argument("--live-dir", type=Path, default=None,
+                        help="the transcriber's live logs (scenario r)")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     result = asyncio.run(run(args))

@@ -1,0 +1,152 @@
+{
+ "base": "http://127.0.0.1:8770",
+ "product": "live_assist.interview",
+ "audio": "mic",
+ "wav": "interview-check.mono.wav",
+ "script_words": 325,
+ "started": "2026-11-25T22:40:28+0100",
+ "runs": [
+  {
+   "scenario": "t",
+   "what": "baseline, then \u00abTerminar\u00bb with the services guard polled (#264)",
+   "session": "smoke-t-1795642828",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 40.0,
+   "channels": 1,
+   "faults": [],
+   "http_stop_status": 200,
+   "link_ended": null,
+   "guard": {
+    "polls": 113,
+    "exit_codes": [
+     0,
+     3
+    ],
+    "first_poll_after_finish_s": 0.01,
+    "busy_until_after_finish_s": 2.65,
+    "free_from_after_finish_s": 3.18,
+    "stop_request_s": 2.47,
+    "finish_to_stop_answered_s": 2.73
+   },
+   "gpu_mib": {
+    "n": 53,
+    "min": 1054,
+    "max": 3393
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 11,
+   "rejected_events": 0,
+   "captured_samples": 640000,
+   "received_samples": 640000,
+   "samples_equal": true,
+   "sent_samples": 640000,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.98,
+   "finish": {
+    "pending_at_finish_s": 1.0,
+    "wait_for_acks_s": 0.25,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 5,
+    "partial": 28,
+    "final": 11,
+    "speaker_update": 7,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [],
+   "finals": 11,
+   "words": 95,
+   "similarity_to_baseline": null,
+   "similarity_to_script": 0.433,
+   "speaker_labels": 2,
+   "same_speaker_as_baseline": null,
+   "speaker_matches_script": 1.0,
+   "partials": 28,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 11,
+      "p50": 876,
+      "p90": 917,
+      "max": 933
+     },
+     "client_lag_ms": {
+      "n": 11,
+      "p50": 1035,
+      "p90": 3514,
+      "max": 3566
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 59,
+   "feed_suggestions": 1,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 11,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  }
+ ],
+ "finished": "2026-11-25T22:42:20+0100"
+}
