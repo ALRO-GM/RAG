@@ -126,7 +126,7 @@ function setup(extra = {}) {
     id: "entrevista-1", code: "c0de",
     onLink: (l) => links.push(l), onProblem: (k) => problems.push(k),
     deps: {
-      WebSocket: FakeSocket, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
+      openSocket: (url) => new FakeSocket(url), setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
       now: clock.now, random: () => 0.5, Capture: FakeCapture, location: { protocol: "https:", host: "x.example" },
     },
     ...extra,

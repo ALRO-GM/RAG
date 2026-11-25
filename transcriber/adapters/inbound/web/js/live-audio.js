@@ -46,7 +46,7 @@ export class LiveAudio {
    *   onLink     ({ state, pendingSeconds, everOpen }) on every change:
    *              state "connecting" | "open" | "lost" | "ended"
    *   echoCancellation  the browser's echo cancellation (voice bot only)
-   *   deps       { WebSocket, setTimeout, clearTimeout, random, now,
+   *   deps       { openSocket, setTimeout, clearTimeout, random, now,
    *              Capture, location } (tests)
    * `muted` (settable) sends silence instead of the microphone, so the
    * transcriber still hears time pass and closes the sentence (push-to-talk).
@@ -60,7 +60,7 @@ export class LiveAudio {
     this.onProblem = onProblem;
     this.onLink = onLink;
     this.deps = {
-      WebSocket: globalThis.WebSocket,
+      openSocket: (url) => new WebSocket(url),
       setTimeout: (...a) => globalThis.setTimeout(...a),
       clearTimeout: (...a) => globalThis.clearTimeout(...a),
       random: Math.random,
@@ -121,10 +121,10 @@ export class LiveAudio {
   _connect() {
     this._timers.retry = null;
     if (this.stopping || this.ended) return;
-    const { WebSocket: Socket, location: loc } = this.deps;
+    const { openSocket, location: loc } = this.deps;
     let socket;
     try {
-      socket = new Socket(audioUrl(loc, this.id));
+      socket = openSocket(audioUrl(loc, this.id));
     } catch {
       this._lost();
       return;
