@@ -253,6 +253,9 @@ class LiveSession:
         """Samples (per channel) taken so far, silence included (#263)."""
         self.gap_seconds = 0.0
         """Seconds of silence put in for audio the source lost."""
+        self.silences: List[Tuple[int, int]] = []
+        """Where that silence lies in the stream, ``[start, end)`` in
+        samples: the parts a recovery may fill (#265)."""
         self.end_reason: Optional[EndReason] = None
         self.compute: Optional[str] = None
         self.handed_over = threading.Event()
@@ -328,6 +331,7 @@ class LiveSession:
                 )
                 count = min(count, gap_room(elapsed, self.received))
         left = count
+        start = self.received
         while left > 0:
             piece = min(left, SAMPLE_RATE)
             self._take(
@@ -336,6 +340,8 @@ class LiveSession:
             left -= piece
         with self._room:
             self.gap_seconds += count / SAMPLE_RATE
+            if count:
+                self.silences.append((start, start + count))
         return count
 
     def align(self, held: object, source: Optional[int] = None) -> int:
@@ -853,6 +859,17 @@ class LiveSessions:
         session.wait(timeout)
         return session
 
+    def busy(self, session_id: str) -> bool:
+        """Tell whether ``session_id`` is still on here (#265).
+
+        On, or ended and still handing its transcript over: a recovery
+        of its audio waits until then.
+        """
+        with self._lock:
+            session = self._sessions.get(session_id)
+        return session is not None and (
+            session.active or not session.handed_over.is_set())
+
     def list(self) -> List[LiveSession]:
         """Return the known sessions, oldest first."""
         with self._lock:
@@ -1044,7 +1061,11 @@ class LiveSessions:
         self._mark()  # ended, still handing over
         session.record_extra = {"end_reason": session.end_reason,
                                 "error": error,
-                                "ended_at": self._p.clock.now().isoformat()}
+                                "ended_at": self._p.clock.now().isoformat(),
+                                # #265: what a recovery may fill.
+                                "received_samples": session.received,
+                                "silences": [list(s)
+                                             for s in session.silences]}
         self._handover.record(
             self.facts(session), state.value, transcript=session.transcript,
             **session.record_extra,

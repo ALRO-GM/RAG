@@ -41,6 +41,7 @@ from transcriber.domain.live_diarization import (
     MAX_SLOTS,
     MonoDiarizationSettings,
 )
+from transcriber.domain.live_recovery import RecoverySettings
 from transcriber.domain.models import SESSION_ID_PATTERN
 from transcriber.domain.voice_check import VoiceCheckSettings
 
@@ -475,3 +476,5 @@ class LiveServiceSettings(BaseModel):
     diarize_need_mib: int = Field(default=1500, ge=0)
     diarization: MonoDiarizationSettings = MonoDiarizationSettings()
     voice_check: VoiceCheckSettings = VoiceCheckSettings()
+    recovery: RecoverySettings = RecoverySettings()
+    """Audio recovered after an outage (#265)."""

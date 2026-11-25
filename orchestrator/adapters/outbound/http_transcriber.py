@@ -91,6 +91,17 @@ class HttpTranscriber:
             max(self.timeout, STOP_TIMEOUT),
         )
 
+    def discard_recovery(self, session_id: str) -> None:
+        """Delete the recovered audio kept for a session (#265)."""
+        try:
+            response = self.client.delete(
+                f"{self.base}/{session_id}/recovery", headers=self.headers,
+                timeout=self.timeout)
+        except httpx.HTTPError as exc:
+            raise TranscriberUnavailable(type(exc).__name__) from exc
+        if response.status_code >= 400 and response.status_code != 404:
+            raise TranscriberUnavailable(f"{response.status_code} error")
+
     def rename(self, session_id: str, speaker: str, name: str) -> None:
         """Name a speaker of a live session (for its hand-off)."""
         self._post(f"{self.base}/{session_id}/speakers/{speaker}",

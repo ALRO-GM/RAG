@@ -49,6 +49,13 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``POST /sessions/{id}/stop``; ``POST /sessions/{id}/rejudge``: judge
   an ended live round again when its judgement failed (#262; 202, the
   result comes in the session's ``accuracy``).
+- ``POST /sessions/{id}/recovered`` ``{"transcript": transcript.v1}``:
+  the transcriber recovered audio the round lost (#265); every
+  indicator is computed again from the merged transcript
+  (:class:`~orchestrator.application.recovered_round.RecoveredRound`)
+  and the summary (numbers and states) is answered. Deleting a
+  candidate's file also asks the transcriber to delete any recovered
+  audio of their rounds.
 - ``POST /sessions/{id}/mode`` ``{"mode": "pincelada"|"guiado"}``,
   ``POST /sessions/{id}/speakers/{speaker}`` ``{"name"}`` and
   ``POST /sessions/{id}/mandatory/{item}`` ``{"confirm": true}``: switch
@@ -83,6 +90,10 @@ from starlette.concurrency import run_in_threadpool
 
 from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.interview import PlanError
+from orchestrator.application.recovered_round import (
+    RecoveredRound,
+    forget_recovery,
+)
 from orchestrator.application.sessions import LiveSessions, SessionError
 
 STATUS = {
@@ -92,6 +103,8 @@ STATUS = {
     "plan_closed": 409, "delete_failed": 500,
 }
 MAX_BODY = 16 * 1024
+RECOVERED_BODY = 8 * 1024 * 1024
+"""Largest merged transcript the transcriber sends (#265)."""
 MAX_PLAN_BODY = 96 * 1024
 """Largest plan body (a job offer of 12 000 characters, JSON-escaped)."""
 
@@ -362,9 +375,17 @@ def create_app(
     async def delete_candidate(
         plan_id: str, candidate_id: str
     ) -> Dict[str, Any]:
-        """Delete a candidate's profile."""
+        """Delete a candidate's profile (and any recovered audio, #265)."""
+        rounds = await run_in_threadpool(
+            book().get, plan_id, candidate_id
+        )
         found: Dict[str, Any] = await run_in_threadpool(
             book().delete, plan_id, candidate_id
+        )
+        await run_in_threadpool(
+            forget_recovery, sessions.transcriber,
+            [str(r.get("session_id")) for r in rounds.get("rounds") or []
+             if r.get("session_id")],
         )
         return found
 
@@ -456,6 +477,20 @@ def create_app(
     async def stop(session_id: str) -> Dict[str, Any]:
         """Stop a session."""
         return await run_in_threadpool(sessions.stop, session_id)
+
+    @app.post("/sessions/{session_id}/recovered")
+    async def recovered(session_id: str, request: Request) -> Dict[str, Any]:
+        """The transcriber recovered lost audio: rebuild the round."""
+        data = await body(request, RECOVERED_BODY)
+        transcript = data.get("transcript")
+        if not isinstance(transcript, dict):
+            raise SessionError("invalid_request", "a transcript is needed")
+        try:
+            found: Dict[str, Any] = await run_in_threadpool(
+                RecoveredRound(sessions).rebuild, session_id, transcript)
+        except ValueError as exc:
+            raise SessionError("invalid_request", str(exc)) from exc
+        return found
 
     @app.post("/sessions/{session_id}/rejudge", status_code=202)
     async def rejudge(session_id: str) -> Dict[str, Any]:

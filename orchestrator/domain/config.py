@@ -151,11 +151,21 @@ class Ui(_Strict):
 
 
 class Privacy(_Strict):
-    """What is kept."""
+    """What is kept.
+
+    ``store_audio``: the audio is kept as a recording (never for a live
+    product). ``buffer_audio_on_outage`` (#265): during a live session,
+    the audio the server has not acknowledged yet is kept in the
+    browser (and, once sent, on the server) only until it is
+    transcribed, at most ``buffer_max_hours`` after the session
+    started; off, nothing is kept beyond the page's memory.
+    """
 
     store_audio: bool = False
     store_text_days: Optional[int] = Field(default=None, ge=0)
     banner: Optional[str] = None
+    buffer_audio_on_outage: bool = False
+    buffer_max_hours: int = Field(default=48, ge=1, le=168)
 
 
 class Handoff(_Strict):

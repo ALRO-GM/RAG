@@ -1036,6 +1036,16 @@ def create_app(
         from transcriber.adapters.inbound.live_ws import add_live_routes
 
         add_live_routes(app, api, c.live, admit_code, limits.json_max_bytes)
+    if c.live_recovery is not None:
+        from transcriber.adapters.inbound.live_recovery_api import (
+            add_recovery_routes,
+        )
+
+        add_recovery_routes(
+            api, c.live_recovery,
+            c.settings.live.recovery.chunk_max_bytes,
+            limits.json_max_bytes,
+        )
     if c.knowledge_media is not None and c.rag_token is not None:
         from transcriber.adapters.inbound.knowledge_media_api import (
             knowledge_media_router,
