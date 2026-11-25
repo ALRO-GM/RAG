@@ -299,3 +299,17 @@ def test_a_stop_waits_longer_than_the_transcriber_may_take() -> None:
     port.stop("s")
     port.start({})
     assert waited == [STOP_TIMEOUT, 40.0]
+
+
+def test_a_drop_without_a_close_frame_is_not_the_end() -> None:
+    """#264 review: a TCP reset or a ping timeout (no close frame) must
+    be resumed, not taken for the end of the session."""
+    from websockets.exceptions import ConnectionClosedError
+
+    socket = FakeSocket(['{"seq": 0}', ConnectionClosedError(None, None)])
+    events = WsEvents("http://h", "c", opener=opener(socket, []))
+    got: List[Dict[str, Any]] = []
+    with pytest.raises(TranscriberUnavailable, match="abnormally"):
+        for document in events.follow("s", CancelToken()):
+            got.append(document)
+    assert got == [{"seq": 0}]

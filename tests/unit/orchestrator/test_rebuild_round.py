@@ -114,12 +114,10 @@ def test_a_round_is_rebuilt_from_a_live_log_too() -> None:
     assert rebuilt.finals == 2 and "topics" in rebuilt.parts
 
 
-def test_the_rebuild_command_prints_numbers_and_keeps_the_hand_off(
-    tmp_path: Any, capsys: Any,
-) -> None:
+def setup_files(tmp_path: Any) -> Any:
+    """A plan, Ana's file with round r9, and r9's transcript."""
     import json
 
-    from orchestrator.adapters.inbound.cli import main
     from orchestrator.adapters.outbound.fs_candidates import (
         JsonCandidateStore,
     )
@@ -136,27 +134,107 @@ def test_the_rebuild_command_prints_numbers_and_keeps_the_hand_off(
     JsonCandidateStore(tmp_path / "interview").save(ana)
     path = tmp_path / "r9.transcript.v1.json"
     path.write_text(json.dumps(transcript()), "utf-8")
-    common = ["--interview-dir", str(tmp_path / "interview"),
-              "--handoff-dir", str(tmp_path / "handoff"),
-              "--reasoner", "fake", "--knowledge", "fake",
-              "--rag-token-file", str(tmp_path / "none")]
+    return ana, path
+
+
+def common(tmp_path: Any) -> List[str]:
+    return ["--interview-dir", str(tmp_path / "interview"),
+            "--handoff-dir", str(tmp_path / "handoff"),
+            "--reasoner", "fake", "--knowledge", "fake",
+            "--rag-token-file", str(tmp_path / "none")]
+
+
+def test_the_rebuild_command_prints_numbers_and_merges_the_hand_off(
+    tmp_path: Any, capsys: Any,
+) -> None:
+    import json
+
+    from orchestrator.adapters.inbound.cli import main
+
+    ana, path = setup_files(tmp_path)
+    handoff = tmp_path / "handoff" / "r9.live_assist.interview.handoff.json"
+    handoff.parent.mkdir()
+    handoff.write_text(json.dumps({
+        "session_id": "r9", "product": "live_assist.interview",
+        "assist_mode": "guiado", "employee": {"id": "e1", "name": "Eva"},
+        "names": {"S2": "Ana Ruiz"}, "renames": [{"speaker": "S2"}],
+        "mandatory": {"said": ["x"]}}))
     code = main(["rebuild-round", "r9", "--transcript", str(path),
-                 "--plan", "dev", "--candidate", ana.id, *common])
+                 "--plan", "dev", "--candidate", ana.id, *common(tmp_path)])
     out = capsys.readouterr().out
     assert code == 0
     printed = json.loads(out)
     assert printed["parts"] == ["topics", "judgement"]
     assert printed["saved"] is True and printed["finals"] == 4
     assert SECRET not in out and "Ana" not in out
-    handoff = json.loads((tmp_path / "handoff"
-                          / "r9.live_assist.interview.handoff.json")
-                         .read_text())
-    assert handoff["rebuilt"] is True and SECRET not in json.dumps(handoff)
+    kept = json.loads(handoff.read_text())
+    assert kept["rebuilt"] is True and SECRET not in json.dumps(kept)
+    assert kept["assist_mode"] == "guiado" and kept["names"] == {
+        "S2": "Ana Ruiz"}, "what the live round kept stays"
+    assert kept["mandatory"] == {"said": ["x"]}, "not recomputed: kept"
+    assert kept["accuracy"]["state"] == "ready"
+    again = main(["rebuild-round", "r9", "--transcript", str(path),
+                  "--plan", "dev", "--candidate", ana.id,
+                  *common(tmp_path)])
+    assert again == 2, "a stored report is replaced only with --force"
+    forced = main(["rebuild-round", "r9", "--transcript", str(path),
+                   "--plan", "dev", "--candidate", ana.id, "--force",
+                   *common(tmp_path)])
+    assert forced == 0
+
+
+def test_the_rebuild_command_keeps_the_safeguards(tmp_path: Any) -> None:
+    import json
+
+    from orchestrator.adapters.inbound.cli import main
+
+    ana, path = setup_files(tmp_path)
+    args = common(tmp_path)
+
+    def run(*more: str) -> int:
+        return main(["rebuild-round", *more, *args])
+
+    other = tmp_path / "r8.transcript.v1.json"
+    other.write_text(json.dumps(transcript("r8")), "utf-8")
+    assert run("r8", "--transcript", str(other), "--plan", "dev",
+               "--candidate", ana.id) == 2, "not one of the rounds"
+    assert run("r9", "--transcript", str(path), "--plan", "dev") == 2, \
+        "no unowned report"
+    assert run("r9", "--transcript", str(path), "--plan", "dev",
+               "--no-judge") == 0
+    assert run("r9", "--transcript", str(path), "--plan", "dev",
+               "--candidate", "nobody") == 2
+    assert run("../x", "--transcript", str(path)) == 2
+    assert not (tmp_path / "handoff" / "..").joinpath(
+        "x.live_assist.interview.handoff.json").exists()
+    assert run("zz", "--transcript", str(path)) == 2
+    assert run("r9", "--transcript", str(path), "--plan", "nope") == 2
     log = tmp_path / "events.jsonl"
     log.write_text("not json\n", "utf-8")
-    assert main(["rebuild-round", "r9", "--events", str(log), *common]) == 2
-    other = main(["rebuild-round", "zz", "--transcript", str(path), *common])
-    assert other == 2
-    nope = main(["rebuild-round", "r9", "--transcript", str(path),
-                 "--plan", "nope", *common])
-    assert nope == 2
+    assert run("r9", "--events", str(log)) == 2
+    foreign = {"schema": "live.event.v1", "session_id": "r7", "seq": 0,
+               "type": "turn_end", "at": "2026-11-25T10:00:00Z",
+               "stream_time": 1.0}
+    log.write_text(json.dumps(foreign) + "\n", "utf-8")
+    assert run("r9", "--events", str(log)) == 2, "a log of another session"
+
+
+def test_a_report_that_was_not_saved_exits_1(tmp_path: Any) -> None:
+    import argparse
+
+    from orchestrator.adapters.inbound.round_cli import run_round
+    from orchestrator.adapters.outbound.fakes import FakeKnowledge
+    from tests.unit.orchestrator.test_interview_kept import Judge
+
+    ana, path = setup_files(tmp_path)
+    args = argparse.Namespace(
+        session="r9", transcript=path, events=None, plan="dev",
+        candidate=ana.id, no_judge=False, force=False,
+        interview_dir=tmp_path / "interview",
+        handoff_dir=tmp_path / "handoff", model="haiku")
+    printed: List[str] = []
+    code = run_round(args, product("live_assist.interview"),
+                     Judge(status="timeout"), FakeKnowledge([]),
+                     out=printed.append)
+    assert code == 1
+    assert '"saved": false' in printed[0]

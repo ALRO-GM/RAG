@@ -214,8 +214,12 @@ class MemoryLiveLog:
             raise OSError("disk full")
         self.sessions[session_id] = dict(document)
 
-    def unfinished(self) -> List[str]:
-        return sorted(k for k in self.events if k not in self.transcripts)
+    def recorded(self) -> List[str]:
+        return list(reversed(list(self.sessions)))
+
+    def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
+        found = self.transcripts.get(session_id)
+        return dict(found) if found is not None else None
 
     def read_events(self, session_id: str) -> List[Dict[str, Any]]:
         return [dict(e) for e in self.events.get(session_id, [])]

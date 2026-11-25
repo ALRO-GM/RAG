@@ -186,31 +186,40 @@ def test_a_missing_check_is_logged(
     assert "not contract-checked" in caplog.text
 
 
-def test_the_session_record_and_the_unfinished_sessions(
+def test_the_session_record_and_the_recorded_sessions(
     tmp_path: Path,
 ) -> None:
-    """#264: ``session.json`` is private; a session with events and no
-    transcript is unfinished; a line cut by a crash is skipped."""
+    """#264: ``session.json`` is private; only sessions with a record
+    are listed, newest first; a line cut by a crash is skipped."""
+    import os
+
     log = JsonlLiveLog(tmp_path)
-    assert log.unfinished() == []
+    assert log.recorded() == []
     log.append("a", {"seq": 0})
-    log.append("b", {"seq": 0})
-    log.save_transcript("b", {"schema": "transcript.v1"})
+    log.append("old", {"seq": 0})  # kept before #264: no record
     log.save_session("a", {"session_id": "a", "state": "running"})
+    log.save_session("b", {"session_id": "b", "state": "ended"})
+    os.utime(log.directory("a") / "session.json", (1, 1))
+    log.save_transcript("b", {"schema": "transcript.v1"})
     log.close("a")
     with (log.directory("a") / "events.jsonl").open("a") as stream:
         stream.write('{"seq": 1, "cut')
-    assert log.unfinished() == ["a"]
+    assert log.recorded() == ["b", "a"]
     assert log.read_events("a") == [{"seq": 0}]
     assert log.read_session("a") == {"session_id": "a", "state": "running"}
-    assert log.read_session("b") is None
+    assert log.read_session("old") is None
+    assert log.read_transcript("b") == {"schema": "transcript.v1"}
+    assert log.read_transcript("a") is None
     path = log.directory("a") / "session.json"
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     path.write_text("[1]")
     with pytest.raises(ValueError):
         log.read_session("a")
+    (log.directory("b") / "transcript.json").write_text("[1]")
+    with pytest.raises(ValueError):
+        log.read_transcript("b")
     (tmp_path / "live" / "stray-file").write_text("x")
-    assert log.unfinished() == ["a"]
+    assert sorted(log.recorded()) == ["a", "b"]
 
 
 def test_the_live_marker_is_private_and_gone_when_nothing_is_on(

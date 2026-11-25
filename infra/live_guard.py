@@ -10,9 +10,10 @@ holds in memory. Two signals, either is enough:
   alive;
 * the transcriber's live marker (``$XDG_RUNTIME_DIR/ragputin/
   live-active.json``), which also covers a session waiting for its audio
-  source to come back after a lost connection (#263): such a session
-  may not hold the lease (it may run on the CPU). A marker whose
-  process is gone is stale.
+  source to come back after a lost connection (#263), and one that has
+  ended but is still handing its transcript over to the RAG: such a
+  session may not hold the lease. A marker whose process is gone is
+  stale.
 
 Exit status 0: nothing is running; 3: an interview is running; 2: the
 files could not be read (the script then refuses too). It prints one
@@ -103,10 +104,12 @@ def describe(sessions: Sequence[Dict[str, Any]], leased: bool) -> str:
                 " reservada para el directo).")
     parts = []
     for session in sessions:
-        waiting = session.get("source") == "lost"
-        parts.append(f"{session.get('id', '?')}"
-                     + (" (esperando a que vuelva el audio)"
-                        if waiting else ""))
+        note = ""
+        if session.get("state") == "handing_over":
+            note = " (terminada; enviando su transcripción)"
+        elif session.get("source") == "lost":
+            note = " (esperando a que vuelva el audio)"
+        parts.append(f"{session.get('id', '?')}{note}")
     return "Entrevista en directo en marcha: " + ", ".join(parts) + "."
 
 

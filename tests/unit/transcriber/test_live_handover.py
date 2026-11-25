@@ -10,6 +10,8 @@ is rebuilt from ``events.jsonl`` and ``session.json`` and handed over
 import threading
 from typing import Any, Dict, List
 
+import pytest
+
 from tests.unit.transcriber.live_fakes import (
     MemoryLiveLog,
     RecordingAnalysis,
@@ -20,8 +22,9 @@ from tests.unit.transcriber.live_fakes import (
 )
 from tests.unit.transcriber.test_live_sessions import WAIT, Harness, speech
 from transcriber.adapters.outbound.system_clock import SystemClock
-from transcriber.application.live_handover import HandOver, facts_of
+from transcriber.application.live_handover import HandOver
 from transcriber.application.live_session import LiveState
+from transcriber.domain.errors import NotFoundError, PublishError
 from transcriber.domain.live_session import (
     ChannelSpeaker,
     Handoff,
@@ -153,28 +156,103 @@ def test_a_restart_rebuilds_and_hands_over_what_a_dead_process_left() -> None:
     assert again.live.recover() == [], "once only: it has a transcript now"
 
 
-def test_recovery_skips_running_sessions_and_reads_old_logs_without_record(
+def test_recovery_skips_running_sessions_and_never_touches_old_logs(
 ) -> None:
+    """#264 review: a log kept before the record existed is left as it
+    is (no transcript made, not listed); a running session is skipped."""
     log = MemoryLiveLog()
     run_and_lose(log, "old")
     del log.sessions["old"]  # kept before #264: no record
     harness = Harness(device="cpu", log=log, publisher=RecordingPublisher())
     running = harness.live.start(LiveSessionRequest(session_id="busy"))
-    log.events["busy"] = [{"type": "session_started", "seq": 0}]
-    assert harness.live.recover() == ["old"]
-    assert log.transcripts["old"]["utterances"]
-    assert "busy" not in log.transcripts
-    facts = facts_of("old", log.events["old"], None)
-    assert facts.request.handoff.transcript_v1 is False, \
-        "without a record nobody asked to publish it: kept here only"
+    assert harness.live.recover() == []
+    assert "old" not in log.transcripts
+    with pytest.raises(NotFoundError):
+        harness.live.get("old")
     harness.live.stop("busy", WAIT)
     del running
+
+
+def test_a_malformed_event_never_stops_a_start_and_the_rest_recover(
+) -> None:
+    """A line that is JSON but not a usable event (a final without its
+    utterance) makes that one session unrecoverable, logged; the others
+    are handed over and the start goes on."""
+    log = MemoryLiveLog()
+    run_and_lose(log, "good")
+    run_and_lose(log, "bad")
+    log.events["bad"].append({"type": "final", "seq": 99})
+    harness = Harness(device="cpu", log=log, publisher=RecordingPublisher())
+    assert harness.live.recover() == ["good"]
+    assert "bad" not in log.transcripts
+
+
+def test_recovery_is_bounded_per_start_newest_first() -> None:
+    log = MemoryLiveLog()
+    for name in ("s1", "s2", "s3"):
+        run_and_lose(log, name)
+    publisher = RecordingPublisher()
+    handover = HandOver(log, publisher, RecordingAnalysis(), SystemClock(),
+                        "9.9")
+    first = handover.recover(limit=2)
+    assert [h.session_id for h in first] == ["s3", "s2"]
+    for handed in first:
+        handover.finish(handed)
+    second = handover.recover(limit=2)
+    assert [h.session_id for h in second] == ["s1"]
+    handover.finish(second[0])
+    assert handover.recover(limit=2) == []
+    assert len(publisher.documents) == 3
+
+
+def test_a_kept_but_unpublished_transcript_is_published_at_the_next_start(
+) -> None:
+    """The process died after keeping the transcript and before the RAG
+    had it: the next start publishes it (the RAG replaces by id)."""
+    log = MemoryLiveLog()
+    harness = Harness(device="cpu", log=log,
+                      publisher=RecordingPublisher(PublishError("down")))
+    run_session_logged(harness, "unsent")
+    assert log.sessions["unsent"]["transcript"]["published"] is False
+    publisher, analysis = RecordingPublisher(), RecordingAnalysis()
+    again = Harness(device="cpu", log=log, publisher=publisher,
+                    analysis=analysis)
+    assert again.live.recover() == ["unsent"]
+    session = again.live.get("unsent")
+    assert session.wait_handed_over(WAIT)
+    assert publisher.documents == [log.transcripts["unsent"]]
+    assert analysis.started == ["unsent"]
+    record = log.sessions["unsent"]
+    assert record["transcript"]["published"] is True
+    assert record["state"] == "ended" and record["end_reason"] == "stop"
+    assert again.live.recover() == [], "published now: nothing more"
+
+
+def run_session_logged(harness: Harness, session_id: str) -> None:
+    """One session that heard speech, ended and handed over."""
+    session = harness.live.start(LiveSessionRequest(
+        session_id=session_id, handoff=ASKED))
+    for message in chunks_of(speech(), 3200):
+        session.feed(message)
+    harness.live.stop(session_id, WAIT)
+    assert session.wait_handed_over(WAIT)
+
+
+def test_the_record_says_what_the_publish_did() -> None:
+    log = MemoryLiveLog()
+    harness = Harness(device="cpu", log=log, publisher=RecordingPublisher(),
+                      analysis=RecordingAnalysis())
+    run_session_logged(harness, "p")
+    assert log.sessions["p"]["transcript"]["published"] is True
+    assert log.sessions["p"]["end_reason"] == "stop"
 
 
 def test_a_record_that_cannot_be_read_is_left_alone() -> None:
     log = MemoryLiveLog()
     run_and_lose(log, "bad")
     log.sessions["bad"]["request"] = {"session_id": "../x"}
+    log.sessions["other"] = dict(log.sessions["bad"],
+                                 request={"session_id": "zz"})
     handover = HandOver(log, None, None, SystemClock(), "9.9")
     assert handover.recover() == []
     assert "bad" not in log.transcripts
@@ -256,3 +334,39 @@ def test_a_marker_that_cannot_be_written_never_stops_a_session() -> None:
     session = harness.live.start(LiveSessionRequest(session_id="b"))
     harness.live.stop("b", WAIT)
     assert session.state == LiveState.ENDED
+
+
+def test_a_session_stays_announced_until_its_transcript_is_handed_over(
+) -> None:
+    from dataclasses import replace
+
+    gate = threading.Event()
+
+    class SlowPublisher(RecordingPublisher):
+        def publish(self, document: Any) -> None:
+            gate.wait(WAIT)
+            super().publish(document)
+
+    marker = MemoryMarker()
+    harness = Harness(device="cpu", publisher=SlowPublisher())
+    harness.live._p = replace(harness.live._p, marker=marker)
+    session = harness.live.start(LiveSessionRequest(
+        session_id="h", handoff=Handoff(transcript_v1=True)))
+    for message in chunks_of(pcm(bursts([(0.2, 1.6)], 2.6)), 3200):
+        session.feed(message)
+    harness.live.stop("h", WAIT)
+    assert session.state == LiveState.ENDED
+    handing = [{"id": "h", "state": "handing_over", "source": "none"}]
+    for _ in range(200):
+        if marker.marks[-1] == handing:
+            break
+        threading.Event().wait(0.01)
+    assert marker.marks[-1] == handing, \
+        "the services guard still sees it while the RAG gets it"
+    gate.set()
+    assert session.wait_handed_over(WAIT)
+    for _ in range(200):
+        if marker.marks[-1] == []:
+            break
+        threading.Event().wait(0.01)
+    assert marker.marks[-1] == []

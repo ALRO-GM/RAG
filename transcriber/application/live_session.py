@@ -257,6 +257,8 @@ class LiveSession:
         self.compute: Optional[str] = None
         self.handed_over = threading.Event()
         """Set once the transcript is kept and published (or not asked)."""
+        self.record_extra: Dict[str, Any] = {}
+        """What the end added to the record (kept on later writes)."""
         self.on_change: Callable[[], None] = lambda: None
         """Told when the source connects or goes (the live marker)."""
         self._audio: "queue.Queue[Queued]" = queue.Queue()
@@ -705,7 +707,9 @@ class LiveSessions:
             session.speakers = renamed(session.speakers, speaker, name)
         except ValueError as exc:
             raise InvalidInputError(str(exc)) from exc
-        self._handover.record(self.facts(session), session.state.value)
+        self._handover.record(self.facts(session), session.state.value,
+                              transcript=session.transcript,
+                              **session.record_extra)
         return session
 
     def source_connected(self) -> bool:
@@ -727,10 +731,14 @@ class LiveSessions:
         with self._lock:
             sessions = list(self._sessions.values())
         try:
+            # A session that ended stays until its transcript is handed
+            # over: a restart then would lose the publish (#264).
             marker.mark([
-                {"id": s.id, "state": s.state.value,
+                {"id": s.id,
+                 "state": s.state.value if s.active else "handing_over",
                  "source": s.source_state}
-                for s in sessions if s.active
+                for s in sessions
+                if s.active or not s.handed_over.is_set()
             ])
         except OSError:
             LOG.exception("The live marker was not written")
@@ -754,32 +762,37 @@ class LiveSessions:
         with self._lock:
             running = list(self._sessions)
         done = self._handover.recover(skip=running)
-        for handed in done:
-            self._adopt(handed)
-        if done:
+        adopted = [(h, self._adopt(h)) for h in done]
+        if adopted:
+            self._mark()  # handing over: the services guard waits
+
             def publish_all() -> None:
-                for handed in done:
-                    self._handover.publish(handed)
+                for handed, session in adopted:
+                    try:
+                        self._handover.finish(handed)
+                    except Exception:  # noqa: BLE001 - go on with the rest
+                        LOG.exception("Live session %s: not published",
+                                      handed.session_id)
+                    finally:
+                        session.handed_over.set()
+                        self._mark()
 
             threading.Thread(
                 target=publish_all, name="live-recover", daemon=True,
             ).start()
         return [h.session_id for h in done]
 
-    def _adopt(self, handed: Handed) -> None:
+    def _adopt(self, handed: Handed) -> LiveSession:
         """List a recovered session (ended, with its summary)."""
-        record = self._p.log.read_session(handed.session_id) \
-            if self._p.log is not None else None
-        request = (LiveSessionRequest.model_validate(record["request"])
-                   if record and record.get("request")
+        facts = handed.facts
+        request = (facts.request if facts is not None
                    else LiveSessionRequest(session_id=handed.session_id))
         session = LiveSession(request, self._s, [], self._p.timer.monotonic)
         session.transcript = handed.summary
         session.end_reason = "restart"
         session.finished(LiveState.RECOVERED, None)
-        session.handed_over.set()
         with self._lock:
-            self._sessions.setdefault(session.id, session)
+            return self._sessions.setdefault(session.id, session)
 
     def voice(
         self, session_id: str, action: str, utterance: Optional[str] = None,
@@ -1009,16 +1022,25 @@ class LiveSessions:
                 self._p.log.close(session.id)
         handed = self._keep(session, failed=state == LiveState.FAILED)
         session.finished(state, error)
-        self._mark()
+        self._mark()  # ended, still handing over
+        session.record_extra = {"end_reason": session.end_reason,
+                                "error": error}
         self._handover.record(
-            self.facts(session), state.value, end_reason=session.end_reason,
-            error=error, transcript=session.transcript,
+            self.facts(session), state.value, transcript=session.transcript,
+            **session.record_extra,
         )
         try:
             if handed is not None:
-                self._handover.publish(handed)
+                # The record is written again with the publish's result;
+                # until then the session stays in the live marker (#264).
+                handed.state = state.value
+                handed.extra = dict(session.record_extra)
+                self._handover.finish(handed)
+        except Exception:  # noqa: BLE001 - logged; the session has ended
+            LOG.exception("Live session %s: hand-over failed", session.id)
         finally:
             session.handed_over.set()
+            self._mark()
 
     def _say_failed(
         self, session: LiveSession, engine: Optional[LiveEngine],

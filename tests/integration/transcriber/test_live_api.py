@@ -535,3 +535,39 @@ def test_a_restarted_service_rebuilds_a_live_session_it_lost(
         assert record["state"] == "recovered"
     finally:
         again.runner.close(WAIT)
+
+
+def test_recovery_never_stops_a_start_and_old_logs_stay_as_they_are(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#264 review: an old live log (no record) is not touched; a broken
+    one is logged; even a recovery that raises lets the service start."""
+    from transcriber.application.live_session import LiveSessions
+    from transcriber.bootstrap import start_container
+
+    settings = TranscriberSettings(data_dir=tmp_path / "data",
+                                   runtime="fake")
+    old = settings.data_dir / "live" / "old-1"
+    old.mkdir(parents=True)
+    (old / "events.jsonl").write_text('{"type": "final", "seq": 0}\n')
+    broken = settings.data_dir / "live" / "broken-1"
+    broken.mkdir(parents=True)
+    (broken / "events.jsonl").write_text('{"type": "final", "seq": 0}\n')
+    (broken / "session.json").write_text(json.dumps({
+        "session_id": "broken-1", "state": "running",
+        "request": {"session_id": "broken-1"}}))
+    container = start_container(settings)
+    try:
+        assert not (old / "transcript.json").exists()
+        assert not (broken / "transcript.json").exists()
+        assert container.live is not None
+        assert [s.id for s in container.live.list()] == []
+    finally:
+        container.runner.close(WAIT)
+
+    def explode(self: Any) -> Any:
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(LiveSessions, "recover", explode)
+    again = start_container(settings)
+    again.runner.close(WAIT)

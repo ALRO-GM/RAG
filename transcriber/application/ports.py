@@ -891,8 +891,12 @@ class LiveLog(Protocol):
         """
         ...
 
-    def unfinished(self) -> List[str]:
-        """Return the sessions that have events but no transcript."""
+    def recorded(self) -> List[str]:
+        """Return the sessions that have a record, newest first."""
+        ...
+
+    def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return a session's kept transcript, or ``None`` without one."""
         ...
 
     def read_events(self, session_id: str) -> List[Dict[str, Any]]:

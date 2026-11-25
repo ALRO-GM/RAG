@@ -79,7 +79,14 @@ class WsEvents:
                 except TimeoutError:
                     continue
                 except ConnectionClosed as exc:
-                    if exc.rcvd is not None and exc.rcvd.code != 1000:
+                    if exc.rcvd is None:
+                        # No close frame: a reset, a ping timeout (1006).
+                        # The session goes on; the stream is resumed
+                        # (#264 review), not taken for its end.
+                        raise TranscriberUnavailable(
+                            "closed abnormally (no close frame)"
+                        ) from exc
+                    if exc.rcvd.code != 1000:
                         raise TranscriberUnavailable(
                             f"closed {exc.rcvd.code}: {exc.rcvd.reason}"
                         ) from exc

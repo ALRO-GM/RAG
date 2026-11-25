@@ -1124,10 +1124,14 @@ def start_container(
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)
     if container.live is not None:
-        # #264: live sessions a stopped process left without a transcript.
-        for session_id in container.live.recover():
-            LOG.warning("Live session %s was rebuilt from its log after a"
-                        " restart", session_id)
+        # #264: live sessions a stopped process left without their
+        # hand-over. Never a reason not to start.
+        try:
+            for session_id in container.live.recover():
+                LOG.warning("Live session %s is handed over again after a"
+                            " restart", session_id)
+        except Exception:  # noqa: BLE001 - the service must start
+            LOG.exception("Live sessions were not recovered")
     if container.knowledge_media is not None:
         cleared = container.knowledge_media.clear()
         if cleared:

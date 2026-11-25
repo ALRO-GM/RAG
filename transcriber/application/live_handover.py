@@ -11,8 +11,14 @@ start request asked for it. It is used three ways:
   or anything else): what was heard until then is still handed over,
   marked ``partial`` in the session's summary;
 * at startup (:meth:`HandOver.recover`): a session a stopped process left
-  with events but no transcript is rebuilt from ``events.jsonl`` and the
-  small ``session.json`` record, handed over, and marked ``recovered``.
+  with a ``session.json`` record (it started after #264) and either no
+  transcript (rebuilt from ``events.jsonl``, marked ``recovered``) or a
+  transcript it was asked to publish and had not (published again; the
+  RAG replaces a transcript of the same session). Sessions logged before
+  the record existed are never touched. At most :data:`RECOVER_LIMIT`
+  per start, newest first; a session that cannot be read or rebuilt is
+  logged (its id and the error's type) and left as it is: recovery never
+  stops a start.
 
 Publishing happens after the session has ended (#264), so a stop never
 waits for the RAG. The session record holds the start request, the
@@ -40,6 +46,8 @@ from transcriber.domain.models import Pipeline
 LOG = logging.getLogger(__name__)
 LIFECYCLE = logging.getLogger("transcriber.live.lifecycle")
 
+RECOVER_LIMIT = 20
+"""Most sessions handed over again per start (the rest wait, counted)."""
 SESSION_SCHEMA = "live.session.record"
 """The internal record kept as ``session.json`` (not a public contract)."""
 
@@ -61,6 +69,11 @@ class Handed:
     handoff_v1: bool = False
     post_call: bool = False
     utterances: int = 0
+    facts: Optional["SessionFacts"] = None
+    state: str = "ended"
+    """The record's state to write once published."""
+    extra: Dict[str, Any] = field(default_factory=dict)
+    """More of the record to keep when it is written again."""
 
 
 @dataclass
@@ -137,7 +150,7 @@ class HandOver:
             facts.session_id, document, summary,
             handoff_v1=handoff.transcript_v1,
             post_call=handoff.run_post_call,
-            utterances=len(transcript.utterances),
+            utterances=len(transcript.utterances), facts=facts,
         )
 
     def publish(self, handed: Handed) -> None:
@@ -193,32 +206,66 @@ class HandOver:
             LOG.exception("The record of live session %s was not kept",
                           facts.session_id)
 
-    def recover(self, skip: Sequence[str] = ()) -> List[Handed]:
-        """Rebuild the sessions a stopped process left unfinished.
+    def recover(
+        self, skip: Sequence[str] = (), limit: int = RECOVER_LIMIT,
+    ) -> List[Handed]:
+        """Find what a stopped process left without its hand-over.
 
-        Each one with events but no transcript gets its transcript from
-        ``events.jsonl`` and ``session.json`` (or, without the record,
-        from the events alone), kept and published as at a normal end,
-        and its record says ``recovered``. ``skip``: ids that are still
-        running here. Returns what was handed over (to publish).
+        Only sessions with a record (started after #264), newest first,
+        at most ``limit`` (the rest are counted in the log and wait for
+        the next start). Without a transcript, it is rebuilt from the
+        events and kept (``recovered``); with one that was to be
+        published and was not, it is published again. ``skip``: ids
+        still running here. Never raises: a session that cannot be read
+        or rebuilt is logged and left as it is. Returns what is to be
+        published (:meth:`publish`, then :meth:`record`).
         """
         if self._log is None:
             return []
+        try:
+            ids = [i for i in self._log.recorded() if i not in skip]
+        except Exception as exc:  # noqa: BLE001 - never stop a start
+            LOG.warning("Live sessions cannot be listed for recovery (%s)",
+                        type(exc).__name__)
+            return []
         done: List[Handed] = []
-        for session_id in self._log.unfinished():
-            if session_id in skip:
-                continue
+        waiting = 0
+        for session_id in ids:
             try:
-                events = self._log.read_events(session_id)
-                record = self._log.read_session(session_id)
-                facts = facts_of(session_id, events, record)
-            except (OSError, ValueError) as exc:
-                LOG.warning("Live session %s cannot be recovered: %s",
-                            session_id, exc)
+                handed = self._recover_one(session_id, len(done) < limit)
+            except Exception as exc:  # noqa: BLE001 - one bad log only
+                LOG.warning("Live session %s cannot be recovered (%s)",
+                            session_id, type(exc).__name__)
                 continue
+            if handed is True:
+                waiting += 1
+            elif isinstance(handed, Handed):
+                done.append(handed)
+        if waiting:
+            LOG.warning("%d more live session(s) to recover wait for the"
+                        " next start", waiting)
+        return done
+
+    def _recover_one(self, session_id: str, room: bool) -> Any:
+        """One session: a :class:`Handed`, ``True`` (to do, no room
+        left), or ``None`` (nothing to do)."""
+        assert self._log is not None
+        record = self._log.read_session(session_id)
+        if record is None:
+            return None
+        document = self._log.read_transcript(session_id)
+        summary = record.get("transcript") or {}
+        handoff = (record.get("request") or {}).get("handoff") or {}
+        if document is None:
+            if not room:
+                return True
+            events = self._log.read_events(session_id)
             if not events:
-                continue
+                return None
+            facts = facts_of(session_id, record)
             handed = self.keep(facts, events, mark="recovered")
+            handed.state = "recovered"
+            handed.extra = {"end_reason": "restart"}
             self.record(facts, "recovered", end_reason="restart",
                         transcript=handed.summary)
             LIFECYCLE.info(
@@ -226,48 +273,59 @@ class HandOver:
                 " %d utterances", session_id, len(events),
                 handed.utterances,
             )
-            done.append(handed)
-        return done
-
-
-def facts_of(
-    session_id: str, events: Sequence[Mapping[str, Any]],
-    record: Optional[Mapping[str, Any]],
-) -> SessionFacts:
-    """What a dead session's transcript is assembled from.
-
-    From its ``session.json`` record when there is one; else from the
-    events alone (the speakers of ``session_started``), as for a session
-    kept before the record existed. Raises ``ValueError`` for a record
-    that does not hold a valid request.
-    """
-    if record is not None:
-        request = LiveSessionRequest.model_validate(record.get("request"))
-        speakers = [
-            LiveSpeaker(id=str(s["id"]), channel=s.get("channel"),
-                        role=str(s.get("role") or "unknown"),
-                        name=s.get("name"),
-                        enrolled=bool(s.get("enrolled")))
-            for s in record.get("speakers") or []
-        ]
-        return SessionFacts(
-            session_id, request, speakers,
-            int(record.get("channels") or request.channels),
-            record.get("model"), record.get("compute"),
-            record.get("diarizer"),
+            return handed
+        utterances = len(document.get("utterances") or [])
+        if not handoff.get("transcript_v1") or summary.get("published") \
+                or not utterances:
+            return None
+        if not room:
+            return True
+        facts = facts_of(session_id, record)
+        state = str(record.get("state") or "ended")
+        LIFECYCLE.info("Live session %s: its transcript was not published;"
+                       " publishing it again", session_id)
+        return Handed(
+            session_id, document,
+            {"utterances": utterances, "published": False,
+             "analysis": None, "error": None,
+             **{k: v for k, v in summary.items()
+                if k in ("partial", "recovered")}},
+            handoff_v1=True, post_call=bool(handoff.get("run_post_call")),
+            utterances=utterances, facts=facts,
+            state="recovered" if state in ("starting", "running")
+            else state,
+            extra={k: record[k] for k in ("end_reason", "error")
+                   if k in record},
         )
-    started = next((e for e in events
-                    if e.get("type") == "session_started"), None)
-    listed = (started or {}).get("speakers") or []
+
+    def finish(self, handed: Handed) -> None:
+        """Publish ``handed`` and write its record with the result."""
+        self.publish(handed)
+        if handed.facts is not None:
+            self.record(handed.facts, handed.state,
+                        transcript=handed.summary, **handed.extra)
+
+
+def facts_of(session_id: str, record: Mapping[str, Any]) -> SessionFacts:
+    """What a dead session's transcript is assembled from: its record.
+
+    Raises ``ValueError`` for a record that does not hold a valid
+    request.
+    """
+    request = LiveSessionRequest.model_validate(record.get("request"))
+    if request.session_id != session_id:
+        raise ValueError("the record is of another session")
     speakers = [
         LiveSpeaker(id=str(s["id"]), channel=s.get("channel"),
-                    role=str(s.get("role") or "unknown"), name=s.get("name"))
-        for s in listed
+                    role=str(s.get("role") or "unknown"),
+                    name=s.get("name"), enrolled=bool(s.get("enrolled")))
+        for s in record.get("speakers") or []
     ]
-    channels = int(((started or {}).get("source") or {}).get("channels")
-                   or 1)
-    request = LiveSessionRequest(session_id=session_id, channels=channels)
-    return SessionFacts(session_id, request, speakers, channels)
+    return SessionFacts(
+        session_id, request, speakers,
+        int(record.get("channels") or request.channels),
+        record.get("model"), record.get("compute"), record.get("diarizer"),
+    )
 
 
 def parse_time(text: Optional[str]) -> Optional[datetime]:

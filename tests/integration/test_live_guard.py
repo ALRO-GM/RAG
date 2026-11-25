@@ -187,3 +187,14 @@ def test_units_restart_on_failure() -> None:
     text = (ROOT / "infra" / "ragputin-servicios").read_text()
     assert "-p Restart=on-failure -p RestartSec=2" in text
     assert "/home/" not in text, "no one's home folder in the repository"
+
+
+def test_a_session_handing_its_transcript_over_is_still_on(
+    tmp_path: Path,
+) -> None:
+    write(tmp_path / "ragputin" / "live-active.json", {
+        "pid": 4242, "sessions": [
+            {"id": "live-2", "state": "handing_over", "source": "none"}]})
+    assert guard.check(env(tmp_path), NOW, alive) == (
+        3, "Entrevista en directo en marcha: live-2 (terminada; enviando"
+           " su transcripción).")

@@ -100,15 +100,27 @@ class JsonlLiveLog:
             json.dump(document, stream, ensure_ascii=False, indent=1)
         os.replace(temporary, folder / SESSION_FILE)
 
-    def unfinished(self) -> List[str]:
-        """Return the sessions with events and no transcript, by name."""
+    def recorded(self) -> List[str]:
+        """Return the sessions with a record, newest record first."""
         if not self.root.is_dir():
             return []
-        return sorted(
-            folder.name for folder in self.root.iterdir()
-            if folder.is_dir() and (folder / EVENTS_FILE).is_file()
-            and not (folder / TRANSCRIPT_FILE).exists()
-        )
+        found = [
+            (path.stat().st_mtime, folder.name)
+            for folder in self.root.iterdir()
+            if folder.is_dir()
+            for path in [folder / SESSION_FILE] if path.is_file()
+        ]
+        return [name for _, name in sorted(found, reverse=True)]
+
+    def read_transcript(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return the kept transcript, or ``None`` without one."""
+        path = self.directory(session_id) / TRANSCRIPT_FILE
+        if not path.is_file():
+            return None
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(document, dict):
+            raise ValueError(f"{path} is not a JSON object")
+        return document
 
     def read_events(self, session_id: str) -> List[Dict[str, Any]]:
         """Return the logged events; a line cut by a crash is skipped."""
