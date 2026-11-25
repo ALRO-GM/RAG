@@ -545,10 +545,12 @@ def test_a_failing_topic_tracker_never_stops_the_suggestions(
 
 
 class NoJudge(AskingReasoner):
-    """Answers everything but the report of a live round."""
+    """Answers everything but the report of a live round (while down)."""
+
+    down = True
 
     def reason(self, request: Document, cancel: CancelToken) -> Document:
-        if request.get("template") == "interview.report@2":
+        if request.get("template") == "interview.report@2" and self.down:
             raise ReasonerUnavailable("down")
         return super().reason(request, cancel)
 
@@ -646,3 +648,46 @@ def test_a_round_is_judged_after_it_ends_and_the_file_has_no_words() -> None:
     assert judged["label"] == "correct_basic" and judged["utterance"]
     assert "quote" not in judged and "reason" not in judged
     assert "Trabajé" not in json.dumps(kept.records[-1], ensure_ascii=False)
+
+
+def test_a_closed_position_starts_no_interview() -> None:
+    """#262: closing refuses new rounds, AI or live; reopening allows."""
+    store = MemoryCandidates()
+    live = wired(conversation("r1", []), None, store)
+    assert live.interview is not None
+    live.interview.positions.close("plan-1")
+    with pytest.raises(SessionError) as refused:
+        live.start_live("live_assist.interview", "stereo", session_id="r1",
+                        plan="plan-1", candidate="Lucía Marín")
+    assert refused.value.code == "plan_closed"
+    live.interview.positions.reopen("plan-1")
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert live.get("r1")["state"] == "ended"
+
+
+def test_a_failed_round_is_judged_again_and_kept() -> None:
+    """#262: «Reintentar» judges the round again and stores the report."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    reasoner = NoJudge()
+    live = wired(conversation("r1", round_lines(one)), reasoner, store)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert live.get("r1")["accuracy"]["state"] == "failed"
+    assert live.interview is not None
+    assert live.interview.store.results("plan-1") == []
+    with pytest.raises(SessionError):
+        live.rejudge("nope")
+    reasoner.down = False
+    view = live.rejudge("r1")
+    assert view["accuracy"]["state"] == "ready"
+    assert live.get("r1")["accuracy"]["saved"] is True
+    kept = live.interview.store.results("plan-1")
+    assert [k["kind"] for k in kept] == ["live"]
+    assert kept[0]["candidate_id"] == live.get("r1")["candidate_id"]
+    with pytest.raises(SessionError) as again:
+        live.rejudge("r1")
+    assert again.value.code == "wrong_state"

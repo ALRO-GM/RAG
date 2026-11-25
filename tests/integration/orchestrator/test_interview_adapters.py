@@ -150,3 +150,55 @@ def test_without_interview_wiring_the_routes_say_unavailable() -> None:
     sessions.tts = FakeTts()
     web = TestClient(create_app(sessions))
     assert web.get("/interview/plans").status_code == 503
+
+
+def test_stored_reports_are_owner_only_and_deleted_one_by_one(
+    tmp_path: Path,
+) -> None:
+    """#262: a report is read or deleted by session id; files are 600."""
+    store = JsonPlanStore(tmp_path)
+    plan = example()
+    store.save(plan)
+    store.save_result(plan.id, {"session_id": "r1", "kind": "live"})
+    path = tmp_path / "results" / plan.id / "r1.json"
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert (tmp_path / "plans" / f"{plan.id}.json").stat().st_mode \
+        & 0o777 == 0o600
+    assert store.result(plan.id, "r1")["kind"] == "live"
+    with pytest.raises(KeyError):
+        store.result(plan.id, "r2")
+    with pytest.raises(KeyError):
+        store.result(plan.id, "../r1")
+    (tmp_path / "results" / plan.id / "odd.json").write_text("[1]")
+    with pytest.raises(ValueError):
+        store.result(plan.id, "odd")
+    assert store.delete_result(plan.id, "r1") is True
+    assert store.delete_result(plan.id, "r1") is False
+    assert not path.exists()
+
+
+def test_the_position_routes(tmp_path: Path) -> None:
+    sessions = live([])
+    web = TestClient(create_app(sessions))
+    plan = web.post("/interview/plans", json={"offer": OFFER}).json()
+    closed = web.post(f"/interview/plans/{plan['id']}/close")
+    assert closed.status_code == 200 and closed.json()["state"] == "closed"
+    rows = web.get("/interview/plans").json()["plans"]
+    assert rows[0]["state"] == "closed"
+    refused = web.post("/sessions", json={
+        "product": "voicebot.interview", "audio": "mic",
+        "plan": plan["id"], "candidate": "Ana"})
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "plan_closed"
+    assert web.get(f"/interview/plans/{plan['id']}/results/r1"
+                   ).status_code == 404
+    assert sessions.interview is not None
+    sessions.interview.store.save_result(
+        plan["id"], {"session_id": "r1", "kind": "live"})
+    report = web.get(f"/interview/plans/{plan['id']}/results/r1")
+    assert report.status_code == 200 and report.json()["kind"] == "live"
+    opened = web.post(f"/interview/plans/{plan['id']}/reopen")
+    assert opened.json()["state"] == "open"
+    assert opened.json()["closure"]["reopened_at"]
+    assert web.post("/interview/plans/nope/close").status_code == 404
+    assert web.post("/sessions/nope/rejudge").status_code == 404

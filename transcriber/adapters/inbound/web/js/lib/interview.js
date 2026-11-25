@@ -217,6 +217,11 @@ export class InterviewState {
   }
 }
 
+/** Where a stored interview report opens (#262). */
+export function reportHref(planId, sessionId) {
+  return `#/interview-report/${encodeURIComponent(planId)}/${encodeURIComponent(sessionId)}`;
+}
+
 /** The comparison of the candidates of one plan: one row each, slots in plan order. */
 export function comparisonRows(results) {
   const plan = results?.plan ?? { slots: [] };
@@ -224,7 +229,7 @@ export function comparisonRows(results) {
   return (results?.candidates ?? []).map((row) => {
     const byId = new Map((row.slots ?? []).map((s) => [s.id, s]));
     return {
-      session: row.session_id, candidate: row.candidate, suitability: row.suitability ?? null,
+      session: row.session_id, kind: row.kind === "live" ? "live" : "ai", candidate: row.candidate, suitability: row.suitability ?? null,
       finished: row.finished_at, closedBy: row.closed_by, stale: (row.plan_revision ?? 0) !== (plan.revision ?? 0),
       slots: order.map((id) => byId.get(id) ?? { id, score: null, status: "empty" }),
     };

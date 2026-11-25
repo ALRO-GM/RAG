@@ -22,7 +22,11 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   draft a plan with the planner), ``GET``/``PUT /interview/plans/{id}``
   (the recruiter's edit, with the ``revision`` it was based on; 409 when
   older) and ``GET /interview/plans/{id}/results`` (the candidates
-  interviewed from it, for the comparison view).
+  interviewed from it, for the comparison view); ``GET
+  /interview/plans/{id}/results/{session}``: one stored interview report
+  in full (#262); ``POST /interview/plans/{id}/close`` and ``/reopen``:
+  close or reopen the position (closing deletes nothing; a closed
+  position starts no interview, 409 ``plan_closed``).
 - ``GET``/``POST /interview/plans/{id}/candidates`` (``{"name"}``),
   ``GET``/``DELETE /interview/plans/{id}/candidates/{candidate}``,
   ``PUT``/``DELETE /interview/plans/{id}/candidates/{candidate}/answers/
@@ -38,7 +42,9 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
   (``speed`` 1 is real time, ``null`` as fast as the services answer).
   With ``{"demo": id}`` it plays a scripted demo instead (its own
   product and conversation; prepared suggestions, no model call).
-- ``POST /sessions/{id}/stop``.
+- ``POST /sessions/{id}/stop``; ``POST /sessions/{id}/rejudge``: judge
+  an ended live round again when its judgement failed (#262; 202, the
+  result comes in the session's ``accuracy``).
 - ``POST /sessions/{id}/mode`` ``{"mode": "pincelada"|"guiado"}``,
   ``POST /sessions/{id}/speakers/{speaker}`` ``{"name"}`` and
   ``POST /sessions/{id}/mandatory/{item}`` ``{"confirm": true}``: switch
@@ -79,6 +85,7 @@ STATUS = {
     "not_found": 404, "busy": 409, "wrong_state": 409,
     "invalid_request": 422, "transcriber": 502, "unavailable": 503,
     "unauthorized": 401, "conflict": 409, "offer": 502,
+    "plan_closed": 409, "delete_failed": 500,
 }
 MAX_BODY = 16 * 1024
 MAX_PLAN_BODY = 96 * 1024
@@ -269,6 +276,36 @@ def create_app(
         )
         return found
 
+    @app.get("/interview/plans/{plan_id}/results/{session_id}")
+    async def plan_report(plan_id: str, session_id: str) -> Dict[str, Any]:
+        """One stored interview report of a plan, in full."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            planner().report, plan_id, session_id
+        )
+        return found
+
+    def positions() -> Any:
+        wiring = sessions.interview
+        if wiring is None:
+            raise SessionError("unavailable", "no interview plans here")
+        return wiring.positions
+
+    @app.post("/interview/plans/{plan_id}/close")
+    async def close_plan(plan_id: str) -> Dict[str, Any]:
+        """Close the position (no new interviews; nothing is deleted)."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            positions().close, plan_id
+        )
+        return found
+
+    @app.post("/interview/plans/{plan_id}/reopen")
+    async def reopen_plan(plan_id: str) -> Dict[str, Any]:
+        """Open the position again."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            positions().reopen, plan_id
+        )
+        return found
+
     def book() -> Any:
         wiring = sessions.interview
         if wiring is None or wiring.candidates is None:
@@ -398,6 +435,11 @@ def create_app(
     async def stop(session_id: str) -> Dict[str, Any]:
         """Stop a session."""
         return await run_in_threadpool(sessions.stop, session_id)
+
+    @app.post("/sessions/{session_id}/rejudge", status_code=202)
+    async def rejudge(session_id: str) -> Dict[str, Any]:
+        """Judge an ended live round again (#262, «Reintentar»)."""
+        return await run_in_threadpool(sessions.rejudge, session_id)
 
     @app.post("/sessions/{session_id}/mode")
     async def mode(session_id: str, request: Request) -> Dict[str, Any]:

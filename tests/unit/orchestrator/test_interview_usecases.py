@@ -64,6 +64,22 @@ class Store:
     def results(self, plan_id: str) -> List[Document]:
         return list(self.sheets.get(plan_id, []))
 
+    def result(self, plan_id: str, session_id: str) -> Document:
+        for sheet in self.sheets.get(plan_id, []):
+            if sheet.get("session_id") == session_id:
+                return sheet
+        raise KeyError(session_id)
+
+    fail_delete = False
+
+    def delete_result(self, plan_id: str, session_id: str) -> bool:
+        if self.fail_delete:
+            raise OSError("disk busy")
+        kept = self.sheets.get(plan_id, [])
+        left = [s for s in kept if s.get("session_id") != session_id]
+        self.sheets[plan_id] = left
+        return len(left) != len(kept)
+
 
 class Offers:
     def __init__(self, fail: bool = False) -> None:

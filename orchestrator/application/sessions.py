@@ -913,6 +913,39 @@ class LiveSessions:
                                   "session": session.view()})
             session.feed.close()
 
+    def rejudge(self, session_id: str) -> Document:
+        """Judge an ended live round again («Reintentar», #262).
+
+        Only for a round with a role's plan whose judgement failed (or
+        never came); it runs on the runner and the page reads the result
+        in the session's view (``accuracy``).
+        """
+        session = self._find(session_id)
+        if session.judge is None or session.topics is None:
+            raise SessionError("wrong_state", "this round is not judged")
+        if session.state == "running":
+            raise SessionError("wrong_state", "the round is still running")
+        state = (session.accuracy or {}).get("state")
+        if state in ("reporting", "ready"):
+            raise SessionError("wrong_state", f"the judgement is {state}")
+        session.accuracy = {"state": "reporting"}
+        self.runner.start(lambda: self._judge_again(session))
+        return session.view()
+
+    def _judge_again(self, session: _Session) -> None:
+        """Run «Reintentar»: as at the end of the round, feed closed."""
+        judge, topics = session.judge, session.topics
+        try:
+            if judge is not None and topics is not None:
+                session.accuracy = judge.judge(topics)
+                if session.accuracy is not None and session.handoff:
+                    session.handoff = {**session.handoff,
+                                       "accuracy": session.accuracy}
+                    self._write_handoff(session)
+        except Exception:  # noqa: BLE001 - logged, shown as failed
+            LOG.exception("accuracy: round %s not judged again", session.id)
+            session.accuracy = {"state": "failed", "saved": False}
+
     def barge_in(self, session_id: str, by: str = "vad") -> Document:
         """The user spoke over the voice bot: stop its turn and playback."""
         session = self._find(session_id)
@@ -1207,7 +1240,8 @@ class LiveSessions:
         reasoner = session.product.reasoner
         session.judge = LiveJudge(
             plan, wiring, session.id, session.feed.publish,
-            reasoner.model if reasoner else "haiku")
+            reasoner.model if reasoner else "haiku",
+            candidate=profile.name, candidate_id=profile.id)
         goal = focus_goal(plan.title, states, len(profile.rounds),
                           session.product.language)
         session.goal = goal
@@ -1249,13 +1283,20 @@ class LiveSessions:
         return {"type": "entrevista", "goal": session.goal}
 
     def _check_plan(self, plan_id: str) -> Document:
-        """Check the interview plan exists."""
+        """Check the interview plan exists and its position is open.
+
+        A closed position (#262) starts no interview, AI or live.
+        """
         if self.interview is None:
             raise SessionError("unavailable", "no interview plans here")
         try:
-            return self.interview.planner.get(plan_id)
+            found = self.interview.planner.get(plan_id)
         except PlanError as exc:
             raise SessionError("not_found", str(exc)) from exc
+        if found.get("state") == "closed":
+            raise SessionError("plan_closed",
+                               f"the position {plan_id!r} is closed")
+        return found
 
     def _director(
         self, session: _Session, output: "_BotFeed"
@@ -1284,6 +1325,7 @@ class LiveSessions:
             core_open=session.core.open if session.core else None,
             on_core=session.core.expect if session.core else None,
             knowledge=wiring.planner.knowledge,
+            candidate_id=session.core.profile.id if session.core else None,
         )
 
     def _listen(self, session: _Session, bot: VoiceBot) -> None:

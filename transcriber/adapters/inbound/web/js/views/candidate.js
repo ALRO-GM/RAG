@@ -14,6 +14,8 @@ import { describeError } from "../errors.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
 import { openDialog, toast } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
+import { shortDate } from "./interview.js";
+import { reportHref } from "../lib/interview.js";
 
 /**
  * «Confirmar datos»: the proposals read from the conversation, each with
@@ -112,7 +114,7 @@ export function candidateBlock(profile, { api = null, onDeleted = null } = {}) {
   async function remove() {
     const yes = await openDialog({
       title: t("cand.delete_title", { name: current.name }),
-      content: [h("p", {}, t("cand.delete_body"))],
+      content: [h("p", {}, t("cand.delete_body", { reports: (current.reports ?? []).length }))],
       confirm: t("cand.delete"),
       danger: true,
     });
@@ -143,6 +145,7 @@ export function candidateBlock(profile, { api = null, onDeleted = null } = {}) {
           : row.proposed ? t("cand.proposed", { value: row.proposal }) : t("cand.pending")),
       ])),
       confirmStep(current, { api, onChange: (changed) => { current = changed; draw(); } }),
+      reportList(current.reports),
       moreInfo(t("cand.more_hint"), () => [
         h("ul", { class: "stack sf-cand-details" }, rows.map(detail)),
         h("p", { class: "hint" }, t("cand.privacy")),
@@ -153,4 +156,18 @@ export function candidateBlock(profile, { api = null, onDeleted = null } = {}) {
 
   draw();
   return box;
+}
+
+/**
+ * The candidate's stored interview reports (#262), newest first: kind, date
+ * and a link that opens each one in full. Kept until the file is deleted.
+ */
+export function reportList(reports) {
+  if (!reports?.length) return null;
+  return h("div", { class: "stack tight sf-cand-reports" },
+    h("h3", {}, t("cand.reports_title")),
+    h("ul", {}, reports.map((r) => h("li", {},
+      h("a", { href: reportHref(r.plan_id, r.session_id) }, t(`iv.kind.${r.kind === "live" ? "live" : "ai"}`)),
+      " · ", h("span", { class: "meta" }, shortDate(r.finished_at))))),
+    h("p", { class: "hint" }, t("iv.retention")));
 }

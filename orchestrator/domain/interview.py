@@ -175,6 +175,19 @@ class PlanSource(_Strict):
     chars: int = Field(default=0, ge=0)
 
 
+PlanState = Literal["open", "closed"]
+
+
+class Closure(_Strict):
+    """One time the position was closed (#262).
+
+    Closing deletes nothing: it only stops new interviews from the plan.
+    """
+
+    closed_at: datetime
+    reopened_at: Optional[datetime] = None
+
+
 class PlannerInfo(_Strict):
     """How the plan was drafted."""
 
@@ -205,6 +218,12 @@ class InterviewPlan(_Strict):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     slots: List[Slot] = Field(min_length=1, max_length=MAX_SLOTS)
+    state: PlanState = "open"
+    """Open, or closed: the position was filled or dropped (#262); a
+    closed plan starts no interview. A plan stored before this field
+    loads as open."""
+    closures: List[Closure] = Field(default_factory=list)
+    """Every time it was closed (and reopened)."""
 
     @model_validator(mode="after")
     def _unique(self) -> "InterviewPlan":
@@ -425,7 +444,7 @@ def edited_plan(
             f"plan {current.id} is at revision {current.revision}"
         )
     keep = {"schema", "id", "source", "planner", "created_at",
-            "updated_at", "revision"}
+            "updated_at", "revision", "state", "closures"}
     merged = {
         **{k: v for k, v in document.items() if k not in keep},
         "schema": PLAN_SCHEMA, "id": current.id,
@@ -433,6 +452,8 @@ def edited_plan(
         "planner": current.planner.model_dump(mode="json"),
         "created_at": current.created_at, "updated_at": now,
         "revision": current.revision + 1,
+        "state": current.state,
+        "closures": [c.model_dump(mode="json") for c in current.closures],
     }
     plan = InterviewPlan.model_validate(merged)
     for slot in plan.slots:
@@ -588,6 +609,12 @@ class Sheet(_Strict):
     minimums_covered: bool = False
     turns_to_minimums: Optional[int] = None
     slots: List[SheetSlot] = Field(default_factory=list)
+    kind: Literal["ai", "live"] = "ai"
+    """Who held the interview (#262): the AI interviewer (a scored
+    sheet), or a person on the live page (the judgement of the answers,
+    never a score)."""
+    candidate_id: Optional[str] = None
+    """The candidate profile of the round, when there is one."""
     filler: str = "heuristic"
     candidate: Optional[str] = Field(default=None, max_length=80)
     suitability: Optional[float] = Field(default=None, ge=0.0, le=100.0)
@@ -649,3 +676,25 @@ def counts(slots: List[SheetSlot]) -> Dict[str, int]:
             "above": sum(1 for s in slots if s.above),
             "unknown": sum(1 for s in slots if s.status == "unknown"),
             "skipped": sum(1 for s in slots if s.status == "skipped")}
+
+
+def closed_plan(plan: InterviewPlan, now: datetime) -> InterviewPlan:
+    """The plan marked closed (already closed: as it is)."""
+    if plan.state == "closed":
+        return plan
+    return plan.model_copy(update={
+        "state": "closed",
+        "closures": [*plan.closures, Closure(closed_at=now)],
+        "updated_at": now,
+    })
+
+
+def reopened_plan(plan: InterviewPlan, now: datetime) -> InterviewPlan:
+    """The plan open again."""
+    if plan.state == "open":
+        return plan
+    closures = list(plan.closures)
+    if closures:
+        closures[-1] = closures[-1].model_copy(update={"reopened_at": now})
+    return plan.model_copy(update={"state": "open", "closures": closures,
+                                   "updated_at": now})

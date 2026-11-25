@@ -352,6 +352,20 @@ export class Api {
   /** The candidates interviewed from a plan, for the comparison. */
   planResults(id) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(id)}/results`); }
 
+  /** One stored interview report of a plan, in full (#262). */
+  planReport(planId, sessionId) {
+    return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/results/${encodeURIComponent(sessionId)}`);
+  }
+
+  /** Close the position: no new interviews; nothing is deleted (#262). */
+  closePlan(id) { return this.request("POST", `/assist/interview/plans/${encodeURIComponent(id)}/close`, { json: {} }); }
+
+  /** Open the position again (#262). */
+  reopenPlan(id) { return this.request("POST", `/assist/interview/plans/${encodeURIComponent(id)}/reopen`, { json: {} }); }
+
+  /** Judge an ended live round again when its judgement failed (#262). */
+  rejudgeLive(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/rejudge`, { json: {} }); }
+
   // ---- candidates of a role and their core answers (#235) ----
 
   /** The candidates of a role (plan): { candidates: [profile view], questions, retention_days }. */

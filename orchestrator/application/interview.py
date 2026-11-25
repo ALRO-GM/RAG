@@ -62,9 +62,11 @@ from orchestrator.domain.interview import (
     SheetSlot,
     Slot,
     counts,
+    closed_plan,
     edited_plan,
     fallback_plan,
     plan_from_draft,
+    reopened_plan,
     suitability,
 )
 from orchestrator.domain.interview_agenda import (
@@ -143,6 +145,17 @@ class PlanStore(Protocol):
 
     def results(self, plan_id: str) -> List[Document]:
         """The sheets of a plan's interviews, newest first."""
+        ...
+
+    def result(self, plan_id: str, session_id: str) -> Document:
+        """One stored report of a plan (``KeyError`` when there is none)."""
+        ...
+
+    def delete_result(self, plan_id: str, session_id: str) -> bool:
+        """Delete one stored report; ``False`` when it was not there.
+
+        Raises ``OSError`` when it cannot be deleted.
+        """
         ...
 
 
@@ -231,7 +244,7 @@ class InterviewPlanner:
              "minimums": sum(1 for s in p.slots if s.level == "minimo"),
              "revision": p.revision,
              "updated_at": p.updated_at.isoformat() if p.updated_at
-             else None,
+             else None, "state": p.state,
              "interviews": len(self.store.results(p.id))}
             for p in self.store.list()
         ]
@@ -239,6 +252,15 @@ class InterviewPlanner:
     def get(self, plan_id: str) -> Document:
         """One plan."""
         return self._load(plan_id).to_contract()
+
+    def report(self, plan_id: str, session_id: str) -> Document:
+        """One stored interview report of a plan, in full (#262)."""
+        self._load(plan_id)
+        try:
+            return self.store.result(plan_id, session_id)
+        except (KeyError, ValueError) as exc:
+            raise PlanError("not_found",
+                            f"no report {session_id!r}") from exc
 
     def results(self, plan_id: str) -> Document:
         """The candidates interviewed for a plan, for the comparison view.
@@ -251,6 +273,7 @@ class InterviewPlanner:
         for sheet in self.store.results(plan_id):
             rows.append({
                 "session_id": sheet.get("session_id"),
+                "kind": "live" if sheet.get("kind") == "live" else "ai",
                 "candidate": sheet.get("candidate"),
                 "finished_at": sheet.get("finished_at"),
                 "suitability": sheet.get("suitability"),
@@ -660,6 +683,54 @@ def read_report(
 # ---- one interview -----------------------------------------------------
 
 
+class PositionCloser:
+    """Close or reopen a position (a plan), #262.
+
+    Closing deletes nothing: the plan is marked closed, so no interview
+    (AI or live) can start from it, and lists show it closed; it can be
+    reopened. The interview reports stay in the candidates' files until
+    a person deletes a candidate's file (:meth:`CandidateBook.delete`).
+
+    Args:
+        store: The plans.
+        now: Wall-clock time.
+    """
+
+    def __init__(
+        self, store: PlanStore, now: Callable[[], datetime] = datetime.now,
+    ):
+        """Wire the store."""
+        self.store = store
+        self.now = now
+        self._lock = threading.Lock()
+
+    def close(self, plan_id: str) -> Document:
+        """Mark the position closed."""
+        with self._lock:
+            plan = closed_plan(self._load(plan_id), self.now())
+            self.store.save(plan)
+        return self._view(plan)
+
+    def reopen(self, plan_id: str) -> Document:
+        """Open the position again."""
+        with self._lock:
+            plan = reopened_plan(self._load(plan_id), self.now())
+            self.store.save(plan)
+        return self._view(plan)
+
+    def _load(self, plan_id: str) -> InterviewPlan:
+        try:
+            return self.store.load(plan_id)
+        except (KeyError, ValueError) as exc:
+            raise PlanError("not_found", f"no plan {plan_id!r}") from exc
+
+    @staticmethod
+    def _view(plan: InterviewPlan) -> Document:
+        last = plan.closures[-1] if plan.closures else None
+        return {"plan_id": plan.id, "state": plan.state,
+                "closure": last.model_dump(mode="json") if last else None}
+
+
 @dataclass
 class InterviewWiring:
     """What the live sessions need to run interviews.
@@ -677,6 +748,10 @@ class InterviewWiring:
     handoff: Optional[InterviewHandoff] = None
     candidates: Optional["CandidateBook"] = None
     """The candidate profiles (#235; ``None``: not kept)."""
+
+    def __post_init__(self) -> None:
+        """One closer for the positions (it serialises closings)."""
+        self.positions = PositionCloser(self.store)
 
 
 @dataclass(frozen=True)
@@ -713,6 +788,8 @@ class InterviewDirector:
             when the model words the question its own way.
         knowledge: Where the judge's chunks come from (#259; ``None``:
             the judge uses general knowledge).
+        candidate_id: The candidate's profile (#262), kept in the sheet
+            so the candidate's file lists it.
     """
 
     def __init__(
@@ -733,6 +810,7 @@ class InterviewDirector:
         core_open: Optional[Callable[[], List[CoreQuestion]]] = None,
         on_core: Optional[Callable[[Optional[str]], None]] = None,
         knowledge: Optional[KnowledgePort] = None,
+        candidate_id: Optional[str] = None,
     ):
         """Start the agenda; nothing has been said yet."""
         self.plan = plan
@@ -762,6 +840,7 @@ class InterviewDirector:
         self.core_target: Optional[str] = None
         self.on_core = on_core
         self.knowledge = knowledge
+        self.candidate_id = candidate_id
         self.deferred_close: Optional[str] = None
         """Why the agenda closed while the salary question was asked."""
         self._lock = threading.Lock()
@@ -1065,6 +1144,7 @@ class InterviewDirector:
             candidate=self.candidate, suitability=suitability(slots),
             summary=summary, other_skills=others, scorer=scorer,
             finished_at=self.now(), to_check=to_check, judge=judge,
+            candidate_id=self.candidate_id,
         )
 
     def _texts(self) -> Dict[str, str]:

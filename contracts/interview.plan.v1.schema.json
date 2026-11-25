@@ -2,8 +2,37 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "interview.plan.v1",
   "title": "Interview plan of an AI interview (#208)",
-  "description": "What an AI job interview has to cover: slots made from a job offer (requirements and rubric competencies) with question ideas, the evidence wanted, a level (minimo/deseable/opcional), an importance weight 1-5 and, added compatibly (#258), 0-6 concrete points (concepts) a complete answer talks about. Drafted by interview.planner@1 or @2 (with points), edited by the recruiter (revision grows by one per save). Producer: orchestrator (data/interview/plans). See docs/live/VOICEBOT_INTERVIEWER.md.",
+  "description": "What an AI job interview has to cover: slots made from a job offer (requirements and rubric competencies) with question ideas, the evidence wanted, a level (minimo/deseable/opcional), an importance weight 1-5 and, added compatibly (#258), 0-6 concrete points (concepts) a complete answer talks about. Drafted by interview.planner@1 or @2 (with points), edited by the recruiter (revision grows by one per save). Added compatibly (#262): state, open or closed (a closed position starts no interview; absent means open), and closures, when it was closed and reopened; closing deletes nothing. Producer: orchestrator (data/interview/plans). See docs/live/VOICEBOT_INTERVIEWER.md.",
   "$defs": {
+    "Closure": {
+      "additionalProperties": false,
+      "description": "One time the position was closed (#262).\n\nClosing deletes nothing: it only stops new interviews from the plan.",
+      "properties": {
+        "closed_at": {
+          "format": "date-time",
+          "title": "Closed At",
+          "type": "string"
+        },
+        "reopened_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reopened At"
+        }
+      },
+      "required": [
+        "closed_at"
+      ],
+      "title": "Closure",
+      "type": "object"
+    },
     "PlanSource": {
       "additionalProperties": false,
       "description": "Where the job offer came from (its text is not kept here).",
@@ -335,6 +364,22 @@
       "maxItems": 12,
       "minItems": 1,
       "title": "Slots",
+      "type": "array"
+    },
+    "state": {
+      "default": "open",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "closures": {
+      "items": {
+        "$ref": "#/$defs/Closure"
+      },
+      "title": "Closures",
       "type": "array"
     }
   },

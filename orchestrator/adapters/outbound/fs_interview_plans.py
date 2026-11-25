@@ -3,8 +3,10 @@
 ``<dir>/plans/<plan id>.json`` holds the current revision of each
 ``interview.plan.v1``; ``<dir>/results/<plan id>/<session id>.json``
 the ``interview.sheet.v1`` of every interview held from it (the
-comparison view reads them). Ids are checked against fixed patterns
-before a path is built; writes go through a temporary file.
+comparison view reads them): the AI interviewer's sheets and the
+live-page reports (#262). Ids are checked against fixed patterns
+before a path is built; writes go through a temporary file created
+with mode 600, so every file is readable by its owner only.
 """
 
 import json
@@ -92,3 +94,27 @@ class JsonPlanStore:
         found.sort(key=lambda d: str(d.get("finished_at") or ""),
                    reverse=True)
         return found
+
+    def _result_path(self, plan_id: str, session_id: str) -> Path:
+        if not SESSION_ID.fullmatch(session_id):
+            raise KeyError(session_id)
+        return self._results(plan_id) / f"{session_id}.json"
+
+    def result(self, plan_id: str, session_id: str) -> Dict[str, Any]:
+        """One stored report (``KeyError`` when there is none)."""
+        path = self._result_path(plan_id, session_id)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise KeyError(session_id) from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"report {session_id} is not an object")
+        return data
+
+    def delete_result(self, plan_id: str, session_id: str) -> bool:
+        """Delete one stored report (``False`` when it was not there)."""
+        try:
+            self._result_path(plan_id, session_id).unlink()
+        except FileNotFoundError:
+            return False
+        return True

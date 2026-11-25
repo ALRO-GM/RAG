@@ -215,6 +215,12 @@ def smoke(reasoner: Any) -> Dict[str, Any]:
         def results(self, plan_id: str) -> List[Document]:
             return []
 
+        def result(self, plan_id: str, session_id: str) -> Document:
+            raise KeyError(session_id)
+
+        def delete_result(self, plan_id: str, session_id: str) -> bool:
+            return False
+
     planner = InterviewPlanner(
         Plans(), FakeKnowledge([]), reasoner, None,
         lambda: InterviewSection(), new_id=lambda: "smoke-plan",
