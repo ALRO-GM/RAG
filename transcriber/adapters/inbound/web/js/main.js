@@ -25,7 +25,7 @@ import { callReportView } from "./views/call-report.js";
 import { interviewReportView } from "./views/interview-report.js";
 import { offersView, offerView, personFileView } from "./views/offers.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
-import { crumbsFor } from "./lib/shell.js";
+import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -100,10 +100,6 @@ const ctx = {
     if (location.hash === hash) route();
     else location.hash = hash;
   },
-  /** A view that knows better names than the address (a plan's title) puts them in the breadcrumbs. */
-  setCrumbs(items) {
-    setCrumbs(items);
-  },
   fail(error, retry) {
     blocking(error, retry ?? route);
   },
@@ -147,7 +143,10 @@ async function route() {
   const { view, params } = resolve(location.hash);
   showSkeleton();
   try {
-    const done = await view(ctx, app, params);
+    // A view that knows better names than the address (a plan's title) puts
+    // them in the breadcrumbs, only while it is still the current page.
+    const page = { ...ctx, setCrumbs: crumbsWhileCurrent(() => mine === token, setCrumbs) };
+    const done = await view(page, app, params);
     if (mine !== token) done?.();
     else cleanup = done ?? null;
   } catch (error) {

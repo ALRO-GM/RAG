@@ -275,16 +275,19 @@ class InterviewPlanner:
         """The plans, newest first, as short rows.
 
         Each row also says (#271) how many points are desirable, how
-        many people were interviewed (one per candidate file; a report
-        in no file is one person), how many interviews of each kind were
+        many people were interviewed (one per candidate file a report
+        names; any other report is one person; no file is opened), how
+        many interviews of each kind were
         stored and when the last one ended, for the offers page.
         """
         rows: List[Document] = []
         for p in self.store.list():
             results = self.store.results(p.id)
-            person = self.files(p.id).person
-            people = {person(r) or f"session:{r.get('session_id')}"
-                      for r in results}
+            # Without opening the candidate files: a report names its
+            # file, or counts as one person (an older AI sheet that is a
+            # round of a file but names none is counted apart).
+            people = {_text_or_none(r.get("candidate_id"))
+                      or f"session:{r.get('session_id')}" for r in results}
             ends = [str(r.get("finished_at")) for r in results
                     if isinstance(r.get("finished_at"), str)]
             live = sum(1 for r in results if r.get("kind") == "live")

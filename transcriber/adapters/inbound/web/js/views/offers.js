@@ -338,10 +338,12 @@ export function peopleSection(ctx, board, initial, { onState = () => {}, onDelet
   function announce() {
     const shown = visibleRows(rows, state);
     const sortName = columnName(state.sort, pointColumns(board, state.cols));
-    status.textContent = rows.length ? [
+    const text = rows.length ? [
       t("of.count", { shown: shown.length, total: rows.length }),
       t(state.dir === "asc" ? "of.sorted_asc" : "of.sorted_desc", { column: sortName }),
     ].join(" ") : "";
+    // The same words again (a pause, then leaving the field) are not said twice.
+    if (status.textContent !== text) status.textContent = text;
   }
 
   function draw() {

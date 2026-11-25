@@ -197,7 +197,8 @@ def test_the_fallback_plan_has_generic_points() -> None:
         for s in competencies)
 
 
-def test_an_edit_keeps_points_and_refuses_protected_or_repeated() -> None:
+def test_an_edit_keeps_points_refuses_protected_renumbers_repeated(
+) -> None:
     plan = make([item("Material de running", points=["Drop"])])
     document = plan.to_contract()
     document["slots"][0]["points"] = [{"id": "p1", "text": "Drop"},
@@ -210,8 +211,9 @@ def test_an_edit_keeps_points_and_refuses_protected_or_repeated() -> None:
     with pytest.raises(ValueError, match="protected"):
         edited_plan(edited, document, NOW)
     document["slots"][0]["points"][2] = {"id": "p1", "text": "Otra"}
-    with pytest.raises(ValueError, match="unique"):
-        edited_plan(edited, document, NOW)
+    # A repeated id is given a fresh one by the server (#271).
+    assert [p.id for p in edited_plan(edited, document, NOW).slots[0]
+            .points] == ["p1", "p2", "p3"]
     document["slots"][0]["points"] = [
         {"id": f"p{i}", "text": f"c{i}"} for i in range(1, 8)]
     with pytest.raises(ValueError):

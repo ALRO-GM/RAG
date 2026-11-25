@@ -36,9 +36,12 @@ stored sheet and the **current** plan:
   made with (the report's ``plan_slots``; an AI sheet keeps every slot
   of its revision); a point of that revision the report has no answer
   to is not treated. An older live report without ``plan_slots``
-  never has «no preguntado» points, so saving the plan (a new revision)
-  never changes its figure unless a weight or a level changed. Points
-  removed from the plan drop out.
+  never has «no preguntado» points: a point added to the plan after it
+  counts as not treated there (10 when required). So saving the plan
+  (a new revision) never changes a figure unless a weight or a level
+  changed. Points removed from the plan drop out; ids are never reused
+  (``retired_slots``), so a new point never inherits a removed one's
+  answers.
 
 * **Order** (:func:`ordered`): figure, highest first; on the same figure,
   fewer required points without evidence of coverage (not covered, or
@@ -308,7 +311,7 @@ def _text(value: object) -> Optional[str]:
 
 
 def _revision_slots(
-    sheet: Mapping[str, Any], kind: str, slots: Mapping[str, SheetSlot],
+    sheet: Mapping[str, Any], kind: str,
 ) -> Optional[Set[str]]:
     """The slot ids of the plan revision the interview was made with.
 
@@ -321,8 +324,13 @@ def _revision_slots(
     listed = sheet.get("plan_slots")
     if isinstance(listed, list):
         return {x for x in listed if isinstance(x, str)}
-    if kind == "ai" and slots:
-        return set(slots)
+    raw = sheet.get("slots")
+    ids = {str(item.get("id")) for item in (raw if isinstance(raw, list)
+                                            else [])
+           if isinstance(item, dict) and item.get("id")}
+    if kind == "ai" and ids:
+        # Every stored slot, readable or not: an unreadable one was asked.
+        return ids
     return None
 
 
@@ -340,7 +348,7 @@ def interview_view(
             slots[found.id] = found
     revision = _int(sheet.get("plan_revision"))
     changed = revision != plan.revision
-    known = _revision_slots(sheet, kind, slots)
+    known = _revision_slots(sheet, kind)
     points: List[PointResult] = []
     for s in plan.slots:
         result = point_result(s.id, slots.get(s.id), kind,

@@ -166,3 +166,14 @@ export function moveSelection(index, step, length) {
 export function paletteShortcut(platform) {
   return /mac|iphone|ipad|ipod/i.test(String(platform ?? "")) ? "⌘ K" : "Ctrl K";
 }
+
+/**
+ * A breadcrumb setter for one page: it writes only while that page is still
+ * the current one (`isCurrent`), so a late answer from the page the person
+ * left never overwrites the next page's breadcrumbs.
+ */
+export function crumbsWhileCurrent(isCurrent, set) {
+  return (items) => {
+    if (isCurrent()) set(items);
+  };
+}

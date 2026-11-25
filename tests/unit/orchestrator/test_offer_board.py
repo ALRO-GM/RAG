@@ -13,8 +13,10 @@ from orchestrator.application.interview import InterviewWiring
 from orchestrator.domain.candidate import Round, new_profile
 from orchestrator.domain.interview import (
     InterviewPlan,
+    Point,
     SheetSlot,
     Slot,
+    edited_plan,
     suitability,
 )
 from orchestrator.domain.offer_board import (
@@ -331,7 +333,9 @@ def test_the_board_joins_a_persons_interviews_and_orders_the_rows() -> None:
     assert people[1]["person"] == "session:vb-2"
     assert people[2]["latest"]["figure"] == 0.0
     row = plans.list()[0]
-    assert (row["people"], row["interviews"]) == (3, 4)
+    # The list opens no file: the older AI sheet that names no file counts
+    # apart (the table joins it to Ana through her rounds).
+    assert (row["people"], row["interviews"]) == (4, 4)
 
 
 def test_the_board_is_bounded_and_the_list_counts_each_kind(
@@ -362,3 +366,92 @@ def test_without_a_book_only_a_named_file_joins_rows() -> None:
     people = planner(store=store).board("cafe")["people"]
     assert sorted(p["person"] for p in people) == ["file:eva",
                                                    "session:r3"]
+
+
+# ---- ids are never reused (re-review of #271) -------------------------------
+
+def test_a_removed_point_id_is_never_given_to_a_new_point() -> None:
+    plan = InterviewPlan(id="cafe", title="Barista", slots=[
+        Slot(id="s1", label="Tipos de café", level="minimo", weight=4,
+             questions=["¿Qué cafés conoces?"]),
+        Slot(id="s2", label="Atención en barra", level="minimo", weight=4,
+             questions=["¿Cómo atiendes la barra?"]),
+        Slot(id="s3", label="Inglés", level="deseable", weight=2,
+             questions=["¿Qué nivel de inglés tienes?"])])
+    report = live("r1", [
+        slot("s1", status="filled", judgement=judged("solid")),
+        slot("s2", status="filled", judgement=judged("correct_basic")),
+        slot("s3", "deseable", 2, status="filled",
+             judgement=judged("wrong"))], plan_slots=["s1", "s2", "s3"])
+    before = interview_view(plan, report)
+    document = plan.to_contract()
+    # «Inglés» removed and «Latte art» added in one save: the page never
+    # proposes an id the saved plan has (here any new id); the server
+    # gives the next id after every one ever used.
+    document["slots"] = [*document["slots"][:2], {
+        "id": "s9", "label": "Latte art", "level": "minimo", "weight": 3,
+        "questions": ["¿Haces latte art?"]}]
+    edited = edited_plan(plan, document, NOW)
+    assert [s.id for s in edited.slots] == ["s1", "s2", "s4"]
+    assert edited.retired_slots == ["s3"]
+    after = interview_view(edited, report)
+    assert after.points[2].state == "not_asked"
+    assert after.unasked_required == ["s4"] and after.missing_required == []
+    assert before.figure == round((4 * 100 + 4 * 70 + 2 * 0) / 10, 1)
+    assert after.figure == round((4 * 100 + 4 * 70) / 8, 1)
+    # A hand-made save that reuses a retired id is given a fresh one.
+    again = edited.to_contract()
+    again["slots"].append({"id": "s3", "label": "Caja", "level": "deseable",
+                           "questions": ["¿Has llevado caja?"]})
+    third = edited_plan(edited, again, NOW)
+    assert [s.id for s in third.slots] == ["s1", "s2", "s4", "s5"]
+    assert third.retired_slots == ["s3"]
+
+
+def test_a_removed_concept_id_is_never_given_to_a_new_concept() -> None:
+    plan = InterviewPlan(id="cafe", title="Barista", slots=[
+        Slot(id="s1", label="Tipos de café", level="minimo",
+             questions=["¿Qué cafés conoces?"],
+             points=[Point(id="p1", text="molienda"),
+                     Point(id="p2", text="temperatura")])])
+    document = plan.to_contract()
+    document["slots"][0]["points"] = [{"id": "p1", "text": "molienda"},
+                                      {"id": "p2", "text": "tueste"}]
+    document["slots"][0]["points"][1]["id"] = "p9"  # an id never used
+    edited = edited_plan(plan, document, NOW)
+    assert [p.id for p in edited.slots[0].points] == ["p1", "p3"]
+    assert edited.slots[0].retired_points == ["p2"]
+    again = edited.to_contract()
+    again["slots"][0]["points"].append({"id": "p2", "text": "presión"})
+    third = edited_plan(edited, again, NOW)
+    assert [p.id for p in third.slots[0].points] == ["p1", "p3", "p4"]
+    # A plan stored before these fields loads with none.
+    old = plan.to_contract()
+    old.pop("retired_slots")
+    for s in old["slots"]:
+        s.pop("retired_points")
+    assert InterviewPlan.model_validate(old).retired_slots == []
+
+
+def test_an_unreadable_ai_slot_still_counts_as_asked() -> None:
+    sheet = ai_sheet()
+    sheet["slots"][1] = {"id": "s2", "status": "nonsense"}
+    view = interview_view(offer(), sheet)
+    assert view.points[1].state == "not_treated"  # asked, not readable
+    assert view.not_asked == []
+    assert view.figure == round(4 * 80 / 8, 1)  # s2 required: counts 0
+
+
+def test_the_plans_list_counts_people_without_opening_files() -> None:
+    store = Store()
+    store.save(offer())
+    store.save_result("cafe", live("r1", [], candidate_id="eva"))
+    store.save_result("cafe", live("r2", [], candidate_id="eva"))
+    store.save_result("cafe", live("r3", []))
+    plans = planner(store=store)
+
+    def no_files(plan_id: str) -> Any:
+        raise AssertionError("the list must not open the files")
+
+    plans.files = no_files
+    assert plans.list()[0]["people"] == 2

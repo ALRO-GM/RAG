@@ -455,3 +455,50 @@ test("the offer page names the plan in the breadcrumbs, not its id", async () =>
     assert.deepEqual(crumbs[0], [{ label: "Ofertas", href: "#/offers" }, { label: "Barista", href: null }]);
   });
 });
+
+test("ids are never reused: a point added after a removal gets a new one, concepts too", async () => {
+  const { addSlot, removeSlot, editSlot, clonePlan } = await import("../../transcriber/adapters/inbound/web/js/lib/interview.js");
+  const plan = clonePlan({ ...board().plan, retired_slots: ["s7"] });
+  removeSlot(plan, "s3");
+  assert.deepEqual(plan.retired_slots, ["s7", "s3"]);
+  assert.equal(addSlot(plan), "s8", "after every id the plan ever had");
+  const fresh = clonePlan({ ...board().plan });
+  removeSlot(fresh, "s3");
+  assert.equal(addSlot(fresh), "s4", "never the removed s3");
+  const slot = fresh.slots[0];
+  slot.points = [{ id: "p1", text: "molienda" }, { id: "p2", text: "temperatura" }];
+  editSlot(fresh, slot.id, { points: ["molienda"] });
+  assert.deepEqual(slot.retired_points, ["p2"]);
+  editSlot(fresh, slot.id, { points: ["molienda", "tueste"] });
+  assert.deepEqual(slot.points.map((p) => p.id), ["p1", "p3"], "across saves too (retired_points)");
+});
+
+test("a late answer from the page left behind does not touch the next page's breadcrumbs", async () => {
+  const { crumbsWhileCurrent } = await import("../../transcriber/adapters/inbound/web/js/lib/shell.js");
+  let current = 1;
+  const written = [];
+  const forPage1 = crumbsWhileCurrent(() => current === 1, (items) => written.push(items));
+  forPage1(["a"]);
+  current = 2;
+  forPage1(["late"]);
+  assert.deepEqual(written, [["a"]]);
+});
+
+test("the status line is not rewritten with the same words", async () => {
+  await withDom("es", async ({ peopleSection }) => {
+    const section = peopleSection({}, board(), parseQuery(""));
+    const status = section.all().find((n) => n.attributes?.role === "status");
+    let writes = 0;
+    let value = status.textContent;
+    Object.defineProperty(status, "textContent", { get: () => value, set: (v) => { writes += 1; value = v; } });
+    const search = section.all().find((n) => n.id === "of-search");
+    search.fire("change");
+    search.fire("change");
+    assert.equal(writes, 0, "nothing changed: nothing said");
+    search.value = "ana";
+    search.fire("input");
+    search.fire("change");
+    search.fire("change");
+    assert.equal(writes, 1);
+  });
+});

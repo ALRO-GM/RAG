@@ -30,9 +30,13 @@ export function clonePlan(plan) {
   return JSON.parse(JSON.stringify(plan));
 }
 
+const idNumber = (id) => Number(String(id ?? "").slice(1)) || 0;
+
+// The id after every slot id the plan ever had (#271): its slots and the
+// retired ones, so a point added later never takes a removed point's id and
+// its earlier answers (the server applies the same rule).
 function nextId(plan) {
-  const used = new Set(plan.slots.map((s) => s.id));
-  for (let i = 1; ; i += 1) if (!used.has(`s${i}`)) return `s${i}`;
+  return `s${Math.max(0, ...plan.slots.map((s) => idNumber(s.id)), ...(plan.retired_slots ?? []).map(idNumber)) + 1}`;
 }
 
 /** Add an empty slot (deseable, weight 3); returns its id, or null when full. */
@@ -48,12 +52,13 @@ export function addSlot(plan) {
 
 /** Remove a slot. */
 export function removeSlot(plan, id) {
+  if (plan.slots.some((s) => s.id === id)) plan.retired_slots = [...(plan.retired_slots ?? []), id];
   plan.slots = plan.slots.filter((s) => s.id !== id);
 }
 
-// The lowest `p<n>` not taken (ids go up to p99 in the contract).
-function lowestFree(current, kept) {
-  const taken = new Set([...(current ?? []).map((p) => p.id), ...kept.filter(Boolean)]);
+// The lowest `p<n>` never used (ids go up to p99 in the contract).
+function lowestFree(current, kept, retired) {
+  const taken = new Set([...(current ?? []).map((p) => p.id), ...kept.filter(Boolean), ...retired]);
   for (let i = 1; ; i += 1) if (!taken.has(`p${i}`)) return `p${i}`;
 }
 
@@ -61,14 +66,14 @@ function lowestFree(current, kept) {
  * The concepts of a slot from the editor's lines (one per line): trimmed,
  * cut to POINT_CHARS, empty and repeated ones dropped, at most MAX_POINTS.
  * A concept whose text did not change keeps its id; new ones get ids after
- * the highest id the slot has now, so within one edit a removed concept's
- * id is not given to a new one. Across saves an id freed earlier can be
- * given again (the plan keeps no history of ids); a sheet keeps each
- * concept's text, so an older interview still reads right.
+ * the highest id the slot has now or ever had (`retired`, the slot's
+ * `retired_points`, #271), so a removed concept's id is never given to a
+ * new one, within an edit or across saves (the server applies the same
+ * rule).
  */
-export function pointsFromLines(current, lines) {
+export function pointsFromLines(current, lines, retired = []) {
   const before = new Map((current ?? []).map((p) => [p.text, p.id]));
-  const highest = Math.max(0, ...(current ?? []).map((p) => Number(String(p.id).slice(1)) || 0));
+  const highest = Math.max(0, ...(current ?? []).map((p) => idNumber(p.id)), ...retired.map(idNumber));
   const texts = [];
   for (const line of lines ?? []) {
     const text = String(line).replace(/\s+/g, " ").trim().slice(0, POINT_CHARS).trim();
@@ -80,7 +85,7 @@ export function pointsFromLines(current, lines) {
     let id = before.get(text);
     if (!id) {
       next += 1;
-      id = next > 99 ? lowestFree(current, given) : `p${next}`;
+      id = next > 99 ? lowestFree(current, given, retired) : `p${next}`;
       given.push(id);
     }
     return { id, text };
@@ -91,6 +96,7 @@ export function pointsFromLines(current, lines) {
 export function editSlot(plan, id, fields) {
   const slot = plan.slots.find((s) => s.id === id);
   if (!slot) return;
+  const previous = slot.points ?? [];
   Object.assign(slot, fields);
   if ("competency" in fields) {
     slot.competency = COMPETENCIES.includes(fields.competency) ? fields.competency : null;
@@ -99,7 +105,13 @@ export function editSlot(plan, id, fields) {
   }
   if ("weight" in fields) slot.weight = Math.max(1, Math.min(5, Math.round(Number(fields.weight) || 3)));
   if ("questions" in fields) slot.questions = fields.questions.map((q) => q.trim()).filter(Boolean).slice(0, 4);
-  if ("points" in fields) slot.points = pointsFromLines(slot.points, fields.points);
+  if ("points" in fields) {
+    const points = pointsFromLines(previous, fields.points, slot.retired_points ?? []);
+    const kept = new Set(points.map((p) => p.id));
+    const gone = previous.map((p) => p.id).filter((x) => !kept.has(x));
+    if (gone.length) slot.retired_points = [...(slot.retired_points ?? []), ...gone];
+    slot.points = points;
+  }
 }
 
 /** Tick or untick "imprescindible": minimo, or back to deseable. */

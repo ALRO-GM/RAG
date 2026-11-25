@@ -255,6 +255,14 @@
           "maxItems": 6,
           "title": "Points",
           "type": "array"
+        },
+        "retired_points": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Retired Points",
+          "type": "array",
+          "description": "Ids of concepts removed from this slot by an edit (#271): never given to a new concept. Kept by the server."
         }
       },
       "required": [
@@ -381,6 +389,14 @@
       },
       "title": "Closures",
       "type": "array"
+    },
+    "retired_slots": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Retired Slots",
+      "type": "array",
+      "description": "Ids of slots removed by an edit (#271): never given to a new slot, so earlier interviews' answers are never read as answers to a point added later. Kept by the server."
     }
   },
   "required": [

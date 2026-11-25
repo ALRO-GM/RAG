@@ -999,7 +999,18 @@ latest plan. On read:
   only when it was not (added later): left out of the figure and
   marked «Imprescindibles no preguntados» when required;
 - an older live report without `plan_slots` never has «no preguntado»
-  points: a missing point is «no tratado» even after the plan changed.
+  points: a missing point is «no tratado» even after the plan changed,
+  so a point really added after it counts as not treated there (10 when
+  required, in the figure and the tie rule);
+- ids are never reused (re-review of #271): the plan keeps
+  `retired_slots` (slot ids removed by an edit) and each slot
+  `retired_points`; the server gives any slot or concept whose id is not
+  one of the current plan's (a new one, or a hand-made save reusing a
+  removed id) the next id after every id the plan ever used, and the
+  page proposes ids the same way. Within one save the server cannot tell
+  a renamed point from a replaced one that kept the id: the page never
+  proposes an id the saved plan has, and a renamed point keeps its id
+  and its answers on purpose;
 
 So saving the plan (a new revision, even a title edit) never changes a
 figure by itself; changing a weight or a level re-orders the table at
