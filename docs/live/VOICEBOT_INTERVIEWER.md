@@ -307,12 +307,11 @@ line is one `role="status"` node whose text changes, and the list is
 redrawn inside a disclosure that keeps its state, so that a screen
 reader can announce the change; not tried with a screen reader). The pending
 concepts of the topic being asked also go into the **goal of the
-existing suggester call** (`suggester.interview@2`, «Tema en curso: …;
-conceptos aún sin tratar: B y C.»), so the suggestions steer to them
-with no extra model call. Which concepts were treated is decided by the
-rules, not by the suggester: its reply is read only for the contract's
-suggestion fields (anything else is dropped on purpose), so returning
-concepts from it would need a change of `reasoner.response.v1`. The
+existing suggester call** («Tema en curso: …; conceptos aún sin tratar:
+B y C.»), so the suggestions steer to them with no extra model call.
+Since #268 a separate call beside the suggestions (`interview.ticks@1`,
+§6.3) also ticks concepts: the rules above still tick what they can, and
+the model adds what the last answer treated in other words. The
 scripted interview (`#/live/demo`, `entrevista-lucia.demo.json`) ticks
 its topics' concepts by prepared lines (`asked_by`, `points[].covered_by`;
 the spoken lines are unchanged), and leaves «Pruebas de integración»
@@ -642,7 +641,9 @@ uv run --no-sync python -m orchestrator interview rejudge <session> \
 
 It reads `data/transcripts/<session>.transcript.v1.json` (the stored
 transcript of the session; speakers carry `role`), replays it through
-the topic tracker, judges it with the same code and stores the full
+the topic tracker, has the model attribute the whole round (§6.3;
+`--attribution rules` keeps the rules of the replay), judges it with
+the same code and stores the full
 report under the same session id, so it appears in «Comparar
 candidatos» and in the candidate's file. It refuses (exit 2) when the
 transcript is of another session, when the session is not one of the
@@ -653,11 +654,12 @@ can differ when the live round revised a final after the tracker read
 it, or when roles were changed during the session. By default it asks the running
 RAG (`--reasoner http`, `--reasoner-url http://127.0.0.1:8000`, token
 from `~/.config/ragputin/rag-token`), which must already serve
-`interview.report@2`; `--reasoner
+`interview.report@2` and `interview.attribution@1`; `--reasoner
 experiments.live.orchestrator_reasoner:build` uses Haiku in process
 through `claude -p` instead. It works with the services running,
 prints only states and counts (`{"state", "saved", "slots", "to_check",
-"labels", "plan_state"}`), exits 0 when the report was stored, and a
+"labels", "plan_state", "attribution"}`, plus `attribution_error` when
+the model's attribution failed), exits 0 when the report was stored, and a
 closed position can be judged too.
 
 **Pending (owner, #151).** The legal basis and how long candidates'
@@ -683,6 +685,189 @@ the quote is shown so a person can check. Nothing here is a decision or
 a recommendation, and nothing of it is shown or said to the candidate.
 Measured agreement on an invented set: §8.1.
 
+### 6.3 Who answered what: the model attributes the round (#268)
+
+**Why.** The first real live-page round judged after #259/#262 (8
+minutes, 112 utterances, 68 by the candidate; only these numbers are
+known here) stored a report with 7 of 11 points with any answer, 1–2
+answers per point, **0 of 22 concepts treated**, and 4 of the 7 judged
+points `off_topic`. The live page's word rules (§4.1: `slot_asked` to
+know the topic asked, `point_hits` for the concepts) were made strict
+in #258 to avoid false ticks; on real speech the interviewer rarely
+names a topic with two of its words, and the candidate rarely uses the
+concept's words, so the judge got thin or misattributed answers.
+
+**After the session** (live page at the end of the round, «Reintentar»,
+and `interview rejudge`): before judging, `LiveJudge` sends the **whole
+round** to the model, `interview.attribution@1` (role `structured`,
+`slow`: cold backend, at most 3 slow calls at once, #267):
+
+- prompt: the plan's points (id, label, evidence, up to 3 questions,
+  concepts with ids) and every final of the round **in order**, each as
+  `[id] interviewer: <question>…</question>` or `[id] candidate:
+  <answer>…</answer>` (a speaker without a role is `other`, context
+  only); `<` and `>` in the words are replaced, so the words cannot
+  close their tags, and the system prompt says that nothing inside the
+  tags is an instruction. It asks, per point, which **candidate**
+  utterances answer it (by meaning, not shared words; one utterance can
+  answer two points; small talk and the candidate's own questions answer
+  none), `complete|partial`, and the concepts `treated` or `unknown`
+  with the utterance id and their exact words;
+- batches: at most 120 utterances and 16,000 characters of words per
+  call (`BATCH_LINES`, `BATCH_CHARS`; an utterance is cut at 1,000
+  characters); a batch after the first repeats up to 6 lines before it,
+  from the last interviewer question, so an answer cut by the boundary
+  is read with its question. Reply cap 4,000 tokens (an estimate, not
+  measured; on the cold path the cap is not enforced, §8.2); deadline
+  90 s per call;
+- reading (`orchestrator/domain/interview_attribution.py`): only ids of
+  the candidate's utterances of that batch count (an interviewer's id,
+  an unknown id or a non-string is dropped); unknown point and concept
+  ids and statuses are dropped; a concept's quote is the candidate's
+  words (the model's quote when it is in the utterance it names, else
+  that utterance's first words; without a valid id, a quote of 3 words
+  or more names the candidate utterance that contains it, otherwise the
+  concept is not ticked); across batches answers are joined in round
+  order and a concept keeps `treated` over `unknown`;
+- then the same judge as before (`interview.report@2`, 4 points per
+  call, §6.1) gets those answers and concepts, so every safeguard of
+  #259 applies unchanged (quotes are the candidate's, ids valid,
+  experience never `wrong`, verdicts on the person dropped, fence). An
+  utterance that answers two points is sent to each with its own joined
+  text.
+
+**Cost for an 8-minute round** like the one above: the attribution is
+1 call when its 112 utterances hold at most 16,000 characters (2
+otherwise; the real round's length in characters is not known here),
+plus the judge's `ceil(answered points / 4)` calls, at most 3 for 11
+points: **2 to 5 Haiku calls** in all, instead of 1 to 3. How long the
+attribution of a long round takes was not measured (the invented rounds
+of §8.3 have 10–13 utterances).
+
+**When it fails or gives nothing usable.** The round is judged with
+the rules' attribution of the session, as before, and the report says
+so (`attribution: "rules"`, `attribution_error`, never words) when:
+
+- any attribution call fails (time-out, quota, unreachable reasoner:
+  the status and error kind, e.g. `timeout: timeout`, `unavailable`);
+- a reply cannot be read, or its `slots` is not a list (`unreadable`);
+- every id it gave was dropped, e.g. ids in another form
+  (`ids_unknown`); ids wrapped in brackets or with stray spaces
+  («[t3.s0]», « t3.s0 ») are read, numbers are not;
+- it attributed nothing at all (`empty`).
+
+The log has, per batch, how many entries the reply gave, how many were
+kept and dropped, and whether `slots` was a list: counts only. Only
+when the rules found nothing answered either is no report stored; the
+page then gets `{"type": "accuracy", "state": "empty",
+"attribution_error": …}` (it stops waiting) and `interview rejudge`
+prints `nothing_answered` with that reason.
+
+**What the session ticked is kept.** A concept the rules or the live
+model ticked during the session (backed by the candidate's words) that
+the model's reading after the session left pending is kept, with who
+decided it (`rules` or `live_model`), and its utterance then also
+answers the point; it is not dropped silently. The model's reading only
+adds to the session's ticks, never removes one.
+
+**During the session.** The first design put the ticks into the
+existing suggestion call (`suggester.interview@3`: `@2` plus the pending
+concepts and a `treated` list in its reply). Measured on the warm path
+(§8.4) it made that call miss the 1.8 s deadline far more often (9 of 15
+replies within 1.8 s, against 14 of 15 for `@2`), and a missed deadline
+loses the turn's suggestions, not only the ticks. The rule set in
+advance was to use `@3` only if it lost at most 1 of 15 against `@2`;
+it lost 5, so the live product keeps `suggester.interview@2` and `@3`
+was removed.
+
+The ticks are instead a **separate, spaced call beside the
+suggestions** (`LiveTicker`, `orchestrator/application/live_ticks.py`,
+template `interview.ticks@1`). One call covers **every candidate final
+since the previous call**: the conversation from the line before the
+first of them (at most 30 lines), the speakers' roles, those finals'
+ids («Answers», at most 12) and the pending concepts
+(`TopicTracker.focus_points`: all those of the topic the rules think is
+asked, then at most 4 of other topics, at most 9; on real speech the
+rules often never see which topic is asked). The model replies
+`{"treated": [{"id": "s2.p1", "about": "<answer id>"}]}`, ids only; a
+tick must name one of the candidate's answers asked about (without
+`about`, the last of them), whose first words are the quote.
+
+- **Spacing:** two calls are at least `tick_every_s` apart (the
+  product's `interview` section, **30 s by default**; `0` turns the calls
+  off). The first candidate final is asked about at once; the next ones
+  wait and go together. At most one call is in flight. No call is made
+  when the round ends: the after-session attribution reads it all.
+- **Cost bound:** at most `round seconds / tick_every_s + 1` Haiku calls
+  a round, each a cold process: **at most about 17 for an 8-minute
+  round** at the default (16 intervals plus the first), and fewer when
+  the candidate is silent for longer than the interval. The first design
+  (one call per candidate final) would have been up to about 68 for the
+  real round of above.
+- **Never in the way:** it runs on the session's runner and on the
+  reasoner's **cold** backend (the template is `slow`, one `claude -p`
+  process per call), so it can neither delay a suggestion nor take or
+  displace the warm process the suggestions use; and it **yields**
+  (`Template.yields`, `YIELDING_CALLS` = 1): it takes one of the 3 slow
+  slots only when more slots are free than calls are waiting for one,
+  and at most one tick call holds one. So it never goes before a waiting
+  planner, report or attribution call; a slow call that arrives after a
+  tick started, when the other two slots are busy too, may wait for it,
+  at most its 20 s deadline. A tick that finds no slot is not made
+  (error kind `busy`, counted as skipped) and ticks nothing.
+- **Stops with the round:** at `session_ended` (and when the session
+  ends) the ticker stops: no new call, a waiting one is not made, and a
+  call already in flight finishes but its answer is ignored.
+- **Counted:** the session view and the hand-off record have `ticks`:
+  `{"calls", "failed", "skipped", "ticked"}` (numbers only); when every
+  tick call of a round failed or was skipped, the orchestrator logs a
+  warning.
+- **Late speech** (a final heard over 10 s late after a reconnect, #263)
+  gets no suggestion but is still ticked, in the next call.
+- A failed, late or malformed reply ticks nothing; its finals are not
+  asked again; the log has the status only, never words.
+
+How long a tick call takes, and its precision, were **not measured**
+(the cold `@3` calls of §8.3 took 3.1–5.8 s; with the 30 s spacing a
+tick appears up to about half a minute after the answer).
+
+**Ticks are hints, and a line can steer them.** What the candidate says
+is fenced and the prompt says it is never an instruction, but a
+candidate's line can still make the model tick concepts (for example by
+naming them). Such a tick is bounded (at most 6 per reply, only
+concepts listed as pending), tied to a real utterance of the candidate,
+and shown as decided by the model; it is a hint for the interviewer
+about what was talked about, never a judgement, and the after-session
+judge still reads the words themselves.
+
+**Who decided each tick.** Every concept of a sheet now says `by`:
+`rules` (the word rules during the session), `live_model` (a model call
+during the session: the live tick call, or the AI interviewer's slot
+filler) or `after_session` (the model reading the whole round); a live
+sheet says `attribution: "after_session" | "rules"` for its answers.
+The report shows it in words under «Precisión de las respuestas» («Qué
+respuestas corresponden a cada punto y qué conceptos se trataron lo
+decidió el modelo leyendo la ronda completa tras la sesión») and next
+to each concept («marcado por el modelo al leer la ronda completa tras
+la sesión»). Older sheets have neither and show nothing new. Nothing of
+it is shown or said to the candidate.
+
+**Redo an older round** with the new attribution (after the services
+were restarted, so the RAG serves `interview.attribution@1`):
+
+```sh
+CUDA_VISIBLE_DEVICES= uv run --no-sync python -m orchestrator interview rejudge <session> \
+    --plan <plan id> --candidate <candidate id> --force
+```
+
+`--force` replaces the stored report; `--reasoner
+experiments.live.orchestrator_reasoner:build` uses Haiku in process
+instead of the running RAG.
+`python -m orchestrator rebuild-round` (#264) attributes the replayed
+round the same way before judging it, takes the same `--attribution
+model|rules`, and prints the `attribution` it used (and
+`attribution_error` when the model's was not used).
+
 ## 7. Settings («Ajustes», group «Entrevistador de IA»)
 
 | Step | Options (first is the default) |
@@ -700,6 +885,11 @@ Measured agreement on an invented set: §8.1.
 The turn-taking values are the owner's (issue #213), not measured with
 real candidates; they are also fields of the product's `interview`
 section (`InterviewSection`), which the saved settings replace.
+
+The live page's concept-tick spacing (#268, §6.3) is
+`interview.tick_every_s` of the product's config (30 s by default, `0`
+turns the calls off); it is not in «Ajustes», and
+`live_assist.interview` has no `interview` section, so it uses 30 s.
 
 `voicebot.reasoner_model` and `voicebot.voice` apply to the interviewer
 too. The time budget of each plan is edited in its review.
@@ -818,8 +1008,10 @@ model):
 |---|---|---|---|
 | `interview.planner@2` (plan from an offer) | 120 s | cold, min(120, 180) s | 150 s (`PLANNER_TIMEOUT_S`) |
 | `interview.report@2` (AI interviewer's report; each live-judgement batch; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`, was 100 s) |
+| `interview.attribution@1` (each live round's attribution, #268; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `interview.slots@2` (slot filler) | 6 s | warm, min(6, 10) s | 120 s (same client) |
 | `interviewer@2` (voice bot) | 4 s | warm, min(4, 10) s | 10 s (default) |
+| `interview.ticks@1` (live concept ticks, #268; yields: only a free slow slot, at most 1) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
 
 The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow
@@ -847,6 +1039,73 @@ reason too (the plan review already showed it).
 §8.1: no call has gone through the running service with this fix. The
 owner's session is to make one real, text-only check after deploy (a
 report or a rejudge through the service).
+
+### 8.3 Who answered what, on an invented spoken set (#268)
+
+`experiments/interview/attribution.py` on
+`experiments/interview/attribution_set.json`: three invented live-page
+rounds of one running-shop plan (10–13 utterances each, 20 expected
+(utterance, point) pairs, 22 concepts expected treated and 1 unknown),
+written in spoken Spanish with hesitations, paraphrase and answers that
+do not use the concepts' words, plus one candidate line that tries to
+instruct the model. Haiku through `claude -p` in process, sequential,
+2026-11-25; result `experiments/interview/attribution_results.json`
+(28 calls, all `ok`; a first run of 3 calls was stopped to change the
+suggester's payload and is not counted). **Synthetic**: the set and its
+expected answers were written by a model for this purpose; agreement
+with the writer's intent is not accuracy on real interviews.
+
+| Way | Pairs precision | Pairs recall | Concepts treated precision | Concepts treated recall |
+|---|---|---|---|---|
+| rules (live page, no model) | 3/6 = 0.50 | 3/20 = 0.15 | 0 ticked | 0/22 = 0.00 |
+| live: rules + `suggester.interview@3` per candidate final (first design, replaced: §8.4) | 3/6 = 0.50 (the rules') | 0.15 | 20/20 = 1.00 | 20/22 = 0.91 |
+| after: `interview.attribution@1`, 2 runs per round | 40/46 = 0.87 | 40/40 = 1.00 | 43/46 = 0.93 | 43/44 = 0.98 |
+
+- The rules ticked no concept of the set, as in the real round of §6.3,
+  and attributed 6 pairs, 3 right; they also attributed the
+  instruction-like line to the topic being asked (the rules attribute
+  every candidate line after a question). The model's attribution never
+  used that line (0 of 6 runs) and found the 1 `unknown` concept in both
+  runs.
+- All 6 unexpected pairs (2 and 4 in its two runs) and all 3 unexpected
+  ticks (2 and 1) were in round B, where several answers touch two
+  points and the expected attribution is most debatable; the one missed
+  concept was in round C, first run.
+- Wall time per call, cold process: attribution 7.0–10.2 s (median
+  9.0 s) for 10–13 utterances; suggester `@3` 3.1–5.8 s (median 4.0 s).
+  The suggester's time is a cold process's with a 60 s deadline, not the
+  warm live path's 1.8 s (§8.4). A long round's attribution time was not
+  measured.
+- The `live` row is the first design (`@3`, the ticks inside the
+  suggester's reply). The design that replaced it (`interview.ticks@1`,
+  a separate call with a shorter concept list) was **not** measured on
+  this set: it asks the same question of the same model, so similar
+  ticks are expected, but that is not a measurement.
+
+### 8.4 The ticks inside the suggester's reply, on the warm path (#268)
+
+`experiments/interview/warm_ticks.py`, result
+`experiments/interview/warm_ticks_results.json`, 2026-11-25: the first
+15 candidate finals of the set of §8.3, each sent once to
+`suggester.interview@2` and once to the compact `suggester.interview@3`
+(concept ids only in the reply, at most 9 concepts listed; templates of
+commit 810f51b), sequentially, in process on the same warm backend the
+RAG uses (`ClaudeCodeStream`, Haiku, effort `low`), each template on
+its own warmed backend with one uncounted first call; 32 calls, text
+only, the owner's subscription. The calls had 10 s so the full reply
+time is seen; "within 1.8 s" is computed from it. No retrieved chunks
+for either. Synthetic set.
+
+| Template | Within 1.8 s | Time to full reply (median / p90 / max) | Output tokens (median / p90 / max) | Over the cap |
+|---|---|---|---|---|
+| `suggester.interview@2` | 14/15 | 1,167 / 1,769 / 1,826 ms | 66 / 71 / 200 | 0 |
+| `suggester.interview@3` | 9/15 | 1,767 / 2,059 / 2,774 ms | 174 / 293 / 357 | 0 |
+
+Output tokens include Haiku's hidden thinking (the process cap is the
+template's 240 plus 300 for it). `@3` gave a suggestion in all 15 and
+ticked something in 10. Decision (§6.3): keep `@2`; tick with a separate
+cold call. An earlier, longer `@3` (24 concepts, `{"id", "about"}` per
+tick) used 264–705 output tokens on the cold path of §8.3.
 
 ## 9. How to run the test (owner)
 
@@ -897,6 +1156,15 @@ estimate from that count, not measured). `post_call: on` adds the analysis's cal
   «pasamos» detection are Spanish word lists; English interviews are not
   handled yet. The concept rules miss synonyms and paraphrases and can
   still tick a concept from its own words used in another sense (§4.1).
+- The model's attribution after a live round (§6.3) was measured only on
+  three short invented rounds (§8.3); its precision on real speech and
+  its time on a long round are not measured, nor are the live tick
+  call's time and precision. When it fails, the report falls back to
+  the rules and says so.
+- Warm-ups (`suggester.interview@2` is now warmed at service start)
+  share one warm backend per model: the first live call drops processes
+  warmed for other templates, so warming several templates helps only
+  the first one used (existing design, not changed here).
 - Bot utterance times in the transcript come from the orchestrator's
   clock (session start ≈ transcriber stream start). A turn dropped
   because the candidate went on talking does not move the agenda if

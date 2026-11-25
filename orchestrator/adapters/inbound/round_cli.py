@@ -22,6 +22,10 @@ stored report is replaced only with ``--force``; a judged round needs
 ``--candidate`` (an unowned report is never stored). With ``--events``
 the log must be of that session. Exit 1 when the report was not saved.
 
+Before the judgement the model attributes the round's answers to the
+plan's points, as at the end of a live round (#268; ``--attribution
+rules`` keeps the rules of the replay); the summary says which
+(``attribution``, and ``attribution_error`` when not the model).
 It prints only numbers and states, never the conversation's words.
 """
 
@@ -98,6 +102,12 @@ def add_round_parser(
     parser.add_argument("--knowledge-url", default="http://127.0.0.1:8000")
     parser.add_argument("--rag-token-file", type=Path, default=RAG_TOKEN_FILE)
     parser.add_argument("--model", default="haiku")
+    parser.add_argument("--attribution", choices=("model", "rules"),
+                        default="model",
+                        help="who attributes the answers to the points "
+                             "before the judgement: the model reading the "
+                             "whole round (default, #268) or the word "
+                             "rules of the replay")
     parser.add_argument("--fake-delay-ms", type=float, default=0.0)
 
 
@@ -193,7 +203,8 @@ def run_round(
         rounds=profile.rounds if profile is not None else (),
         candidate=profile.name if profile is not None else None,
         candidate_id=profile.id if profile is not None else None,
-        model=args.model, judge=judging)
+        model=args.model, judge=judging,
+        attribute=getattr(args, "attribution", "model") == "model")
     handoff = args.handoff_dir / (f"{args.session}.{product.product}"
                                   ".handoff.json")
     record = read_record(handoff) or {

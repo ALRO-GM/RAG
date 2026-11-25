@@ -28,6 +28,7 @@ from src.domain.errors import (
     ModelTimeoutError,
     OutputTooLongError,
     QuotaExhaustedError,
+    SlotBusyError,
 )
 from src.domain.reasoning.roles import (
     Backend,
@@ -138,6 +139,9 @@ class MeteredModel:
 SLOW_CALLS = 3
 """Slow template calls (planner, report) running at once on the cold
 backend (#267); more wait, within their own deadline."""
+YIELDING_CALLS = 1
+"""Of those, most that may be ``yields`` calls (#268: the live concept
+ticks), which never wait for a slot."""
 
 
 class Reasoner:
@@ -170,7 +174,10 @@ class Reasoner:
         self.live_models = live_models or models
         self.ledger = ledger
         self.clock = clock
-        self._slow = threading.BoundedSemaphore(max(slow_calls, 1))
+        self._slots = threading.Condition()
+        self._free = max(slow_calls, 1)
+        self._waiting = 0
+        self._yielding = 0
 
     def confirm(
         self,
@@ -268,7 +275,8 @@ class Reasoner:
                     deadline = min(deadline or SLOW_MAX_S, SLOW_MAX_S)
                     text = self._slow_call(
                         chat, template.system(request),
-                        template.user(request), cap, deadline, on_text)
+                        template.user(request), cap, deadline, on_text,
+                        template.yields)
                 else:
                     text = chat.complete(
                         template.system(request), template.user(request),
@@ -295,6 +303,9 @@ class Reasoner:
             )
         except ModelAuthError as exc:
             status, error = "auth", ErrorInfo(kind="auth", message=str(exc))
+        except SlotBusyError as exc:
+            status = "error"
+            error = ErrorInfo(kind="busy", message=str(exc))
         except ModelTimeoutError as exc:
             status = "timeout"
             error = ErrorInfo(kind="timeout", message=str(exc))
@@ -325,24 +336,48 @@ class Reasoner:
     def _slow_call(
         self, chat: MeteredModel, system: str, user: str, cap: int,
         deadline: float, on_text: Optional[Callable[[str], None]],
+        yields: bool = False,
     ) -> str:
         """A slow template's call, at most :data:`SLOW_CALLS` at once.
 
         The wait for a free slot counts against the deadline; a call that
         cannot get one in time is a time-out, as if the model were late.
+        A ``yields`` call never waits and never goes before a waiting
+        call: it takes a slot only when more slots are free than calls
+        are waiting for one, and at most :data:`YIELDING_CALLS` run at
+        once; otherwise it fails at once with :class:`SlotBusyError`.
         """
         began = self.clock()
-        if not self._slow.acquire(timeout=max(deadline, 0.0)):
-            raise ModelTimeoutError(
-                f"No free slot for a slow call within {deadline:g} s.")
+        with self._slots:
+            if yields:
+                if (self._yielding >= YIELDING_CALLS
+                        or self._free <= self._waiting):
+                    raise SlotBusyError("No free slow slot: the call yields.")
+                self._yielding += 1
+            else:
+                self._waiting += 1
+                try:
+                    got = self._slots.wait_for(lambda: self._free > 0,
+                                               timeout=max(deadline, 0.0))
+                finally:
+                    self._waiting -= 1
+                if not got:
+                    raise ModelTimeoutError(
+                        f"No free slot for a slow call within {deadline:g} "
+                        "s.")
+            self._free -= 1
         try:
-            left = deadline - (self.clock() - began)
+            left = deadline if yields else deadline - (self.clock() - began)
             if left <= 0:
                 raise ModelTimeoutError(
                     f"No free slot for a slow call within {deadline:g} s.")
             return chat.complete(system, user, cap, left, on_text)
         finally:
-            self._slow.release()
+            with self._slots:
+                self._free += 1
+                if yields:
+                    self._yielding -= 1
+                self._slots.notify()
 
     def _judge(
         self, chat: MeteredModel, request: ReasonRequest

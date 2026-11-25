@@ -523,6 +523,24 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
                         "tratar: Dónde y en qué puesto y Tareas que hacía.")
     assert goals[-1] is None  # nothing left of it: no goal (first round)
     assert live.get("r1")["goal"] is None
+    # #268: the suggestions keep their template; the ticks are a call of
+    # their own, beside them, with the pending concepts (the topic asked
+    # first).
+    asked = [r for r in reasoner.requests if r.get("role") == "suggester"]
+    assert {r["template"] for r in asked} == {"suggester.interview@2"}
+    assert all("payload" not in r for r in asked)
+    ticked = [r for r in reasoner.requests
+              if r.get("template") == "interview.ticks@1"]
+    assert len(ticked) == 2  # one per candidate final
+    ticker = live._find("r1").ticker
+    assert ticker is not None and ticker.stopped  # ended with the round
+    assert live.get("r1")["ticks"]["calls"] == 2
+    assert live.get("r1")["handoff"]["ticks"]["calls"] == 2
+    sent = ticked[0]["payload"]
+    assert sent["label"] == one.label
+    assert sent["points"][:2] == [
+        {"id": f"{one.id}.{p.id}", "text": p.text, "topic": one.label}
+        for p in one.points if p.text != "Cuánto tiempo"]
 
 
 def test_a_failing_topic_tracker_never_stops_the_suggestions(
@@ -608,13 +626,17 @@ def test_a_failed_or_empty_live_judgement_never_breaks_the_end() -> None:
 
 
 class FirstInline:
-    """Runs the session's own job inline and holds the later ones."""
+    """Runs the session's own job inline and holds the later ones (the
+    live ticks' calls, #268, run inline too: they are not the judge)."""
 
     def __init__(self) -> None:
         self.ran = False
         self.held: List[Any] = []
 
     def start(self, job: Any) -> None:
+        if "LiveTicker" in getattr(job, "__qualname__", ""):
+            job()
+            return
         if self.ran:
             self.held.append(job)
             return

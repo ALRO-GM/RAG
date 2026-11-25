@@ -188,6 +188,10 @@ class FakeReasoner:
             data = _fake_fill(payload, points=template.endswith("@2"))
         elif template == "interview.report@2":
             data = _fake_judged(payload)
+        elif template == "interview.attribution@1":
+            data = _fake_attribution(payload)
+        elif template == "interview.ticks@1":
+            data = {"points": []}
         else:
             score = {"filled": 80, "partial": 45, "unknown": 0,
                      "skipped": 10}
@@ -310,6 +314,49 @@ def _fake_fill(payload: Document, points: bool) -> Document:
             for h in point_hits(answer, concepts)
         ]
     return {"slots": [item]}
+
+
+def _words(text: str) -> "set[str]":
+    """Lower-case words of five letters or more (the fake's topic words)."""
+    return {w.strip("¿?¡!.,;:") for w in text.lower().split()
+            if len(w.strip("¿?¡!.,;:")) >= 5}
+
+
+def _fake_attribution(payload: Document) -> Document:
+    """The fake attribution (#268): each answer to the point last asked.
+
+    An interviewer line asks the point sharing most words (five letters
+    or more) with its label and questions; each candidate line after it
+    answers that point, and the rules say which concepts it treats.
+    """
+    slots = [s for s in payload.get("slots") or [] if isinstance(s, dict)]
+    topic = {str(s.get("id")): _words(" ".join(
+        [str(s.get("label")), *map(str, s.get("questions") or [])]))
+        for s in slots}
+    found: Dict[str, Document] = {}
+    asked: Optional[Document] = None
+    for line in payload.get("round") or []:
+        if not isinstance(line, dict):
+            continue
+        text = str(line.get("text") or "")
+        if line.get("role") == "interviewer":
+            heard = _words(text)
+            best = max(slots, default=None,
+                       key=lambda s: len(heard & topic[str(s.get("id"))]))
+            if best is not None and heard & topic[str(best.get("id"))]:
+                asked = best
+        elif line.get("role") == "candidate" and asked is not None:
+            item = found.setdefault(str(asked.get("id")), {
+                "id": asked.get("id"), "answers": [], "status": "partial",
+                "points": []})
+            item["answers"].append(line.get("id"))
+            concepts = [Point.model_validate(p)
+                        for p in asked.get("points") or []]
+            item["points"] += [
+                {"id": h.point, "status": h.status,
+                 "utterance": line.get("id"), "quote": h.quote}
+                for h in point_hits(text, concepts)]
+    return {"slots": list(found.values())}
 
 
 def _fake_judged(payload: Document) -> Document:

@@ -1689,6 +1689,9 @@ details.tech, details.controls { margin: 1rem 0; }
 .iv-judge-why { margin: 2px 0 0; }
 .iv-judge-why q { font-style: italic; }
 .iv-basis { color: var(--faint); }
+/* #268: who decided a concept (rules, a model during or after the session). */
+.iv-point-by { color: var(--faint); }
+.iv-attribution { margin: 4px 0 8px; }
 .iv-checks ul { margin: 0; padding-left: var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
 .iv-report-gate { display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-start; }
 .sf-cand-reports ul { margin: 0; padding-left: var(--s-4); }

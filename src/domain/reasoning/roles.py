@@ -164,7 +164,9 @@ class Latency(_Strict):
 class ErrorInfo(_Strict):
     """Why a call failed."""
 
-    kind: Literal["quota", "auth", "transient", "timeout", "invalid_output"]
+    kind: Literal[
+        "quota", "auth", "transient", "timeout", "invalid_output", "busy",
+    ]
     message: str
     resets_at: Optional[str] = None
 

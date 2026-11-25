@@ -1,0 +1,492 @@
+{
+ "schema": "attribution-run.v1",
+ "synthetic": true,
+ "model": "haiku (claude -p)",
+ "started": "2026-11-25T20:03:01",
+ "set": "attribution_set.json",
+ "note": "Invented for #268: three short live-page rounds of a running-shop job, written in spoken Spanish (hesitations, false starts, paraphrase, answers that do not repeat the question's words, answers that come late or answer a point nobody named, small talk, a question from the candidate and one line that tries to instruct the model). No real person's words. expected lists, per point, the candidate utterances that answer it and the concepts treated or said to be unknown; it is the writer's intent, not a ground truth measured on real interviews.",
+ "repeats_after": 2,
+ "summary": {
+  "rules": {
+   "pairs": {
+    "tp": 3,
+    "got": 6,
+    "want": 20,
+    "precision": 0.5,
+    "recall": 0.15
+   },
+   "treated": {
+    "tp": 0,
+    "got": 0,
+    "want": 22,
+    "precision": null,
+    "recall": 0.0
+   },
+   "unknown": {
+    "tp": 1,
+    "got": 2,
+    "want": 1
+   },
+   "injection_line_used": 1,
+   "failed_calls": 0
+  },
+  "live": {
+   "pairs": {
+    "tp": 3,
+    "got": 6,
+    "want": 20,
+    "precision": 0.5,
+    "recall": 0.15
+   },
+   "treated": {
+    "tp": 20,
+    "got": 20,
+    "want": 22,
+    "precision": 1.0,
+    "recall": 0.909
+   },
+   "unknown": {
+    "tp": 1,
+    "got": 2,
+    "want": 1
+   },
+   "injection_line_used": 1,
+   "failed_calls": 0
+  },
+  "after": {
+   "pairs": {
+    "tp": 40,
+    "got": 46,
+    "want": 40,
+    "precision": 0.87,
+    "recall": 1.0
+   },
+   "treated": {
+    "tp": 43,
+    "got": 46,
+    "want": 44,
+    "precision": 0.935,
+    "recall": 0.977
+   },
+   "unknown": {
+    "tp": 2,
+    "got": 2,
+    "want": 2
+   },
+   "injection_line_used": 0,
+   "failed_calls": 0
+  }
+ },
+ "rows": {
+  "rules": [
+   {
+    "round": "A",
+    "pairs": {
+     "tp": 0,
+     "got": 0,
+     "want": 7
+    },
+    "treated": {
+     "tp": 0,
+     "got": 0,
+     "want": 10
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "B",
+    "pairs": {
+     "tp": 1,
+     "got": 2,
+     "want": 6
+    },
+    "treated": {
+     "tp": 0,
+     "got": 0,
+     "want": 5
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 1,
+     "want": 0
+    },
+    "injection_line_used": 1
+   },
+   {
+    "round": "C",
+    "pairs": {
+     "tp": 2,
+     "got": 4,
+     "want": 7
+    },
+    "treated": {
+     "tp": 0,
+     "got": 0,
+     "want": 7
+    },
+    "unknown": {
+     "tp": 1,
+     "got": 1,
+     "want": 1
+    },
+    "injection_line_used": 0
+   }
+  ],
+  "live": [
+   {
+    "round": "A",
+    "pairs": {
+     "tp": 0,
+     "got": 0,
+     "want": 7
+    },
+    "treated": {
+     "tp": 10,
+     "got": 10,
+     "want": 10
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "B",
+    "pairs": {
+     "tp": 1,
+     "got": 2,
+     "want": 6
+    },
+    "treated": {
+     "tp": 4,
+     "got": 4,
+     "want": 5
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 1,
+     "want": 0
+    },
+    "injection_line_used": 1
+   },
+   {
+    "round": "C",
+    "pairs": {
+     "tp": 2,
+     "got": 4,
+     "want": 7
+    },
+    "treated": {
+     "tp": 6,
+     "got": 6,
+     "want": 7
+    },
+    "unknown": {
+     "tp": 1,
+     "got": 1,
+     "want": 1
+    },
+    "injection_line_used": 0
+   }
+  ],
+  "after": [
+   {
+    "round": "A",
+    "run": 1,
+    "pairs": {
+     "tp": 7,
+     "got": 7,
+     "want": 7
+    },
+    "treated": {
+     "tp": 10,
+     "got": 10,
+     "want": 10
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "A",
+    "run": 2,
+    "pairs": {
+     "tp": 7,
+     "got": 7,
+     "want": 7
+    },
+    "treated": {
+     "tp": 10,
+     "got": 10,
+     "want": 10
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "B",
+    "run": 1,
+    "pairs": {
+     "tp": 6,
+     "got": 8,
+     "want": 6
+    },
+    "treated": {
+     "tp": 5,
+     "got": 7,
+     "want": 5
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "B",
+    "run": 2,
+    "pairs": {
+     "tp": 6,
+     "got": 10,
+     "want": 6
+    },
+    "treated": {
+     "tp": 5,
+     "got": 6,
+     "want": 5
+    },
+    "unknown": {
+     "tp": 0,
+     "got": 0,
+     "want": 0
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "C",
+    "run": 1,
+    "pairs": {
+     "tp": 7,
+     "got": 7,
+     "want": 7
+    },
+    "treated": {
+     "tp": 6,
+     "got": 6,
+     "want": 7
+    },
+    "unknown": {
+     "tp": 1,
+     "got": 1,
+     "want": 1
+    },
+    "injection_line_used": 0
+   },
+   {
+    "round": "C",
+    "run": 2,
+    "pairs": {
+     "tp": 7,
+     "got": 7,
+     "want": 7
+    },
+    "treated": {
+     "tp": 7,
+     "got": 7,
+     "want": 7
+    },
+    "unknown": {
+     "tp": 1,
+     "got": 1,
+     "want": 1
+    },
+    "injection_line_used": 0
+   }
+  ]
+ },
+ "calls": [
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3392,
+   "output_tokens": 447
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 5803,
+   "output_tokens": 705
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3196,
+   "output_tokens": 330
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3944,
+   "output_tokens": 507
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3063,
+   "output_tokens": 264
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3363,
+   "output_tokens": 320
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4007,
+   "output_tokens": 402
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4603,
+   "output_tokens": 413
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4211,
+   "output_tokens": 454
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 6955,
+   "output_tokens": 1607
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 7717,
+   "output_tokens": 1774
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4017,
+   "output_tokens": 482
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4031,
+   "output_tokens": 489
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3906,
+   "output_tokens": 435
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4205,
+   "output_tokens": 568
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4054,
+   "output_tokens": 444
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3796,
+   "output_tokens": 456
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4622,
+   "output_tokens": 618
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 9887,
+   "output_tokens": 1868
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 9723,
+   "output_tokens": 1909
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3412,
+   "output_tokens": 380
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4717,
+   "output_tokens": 605
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 3418,
+   "output_tokens": 446
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4304,
+   "output_tokens": 522
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4369,
+   "output_tokens": 530
+  },
+  {
+   "template": "suggester.interview@3",
+   "status": "ok",
+   "wall_ms": 4110,
+   "output_tokens": 497
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 10200,
+   "output_tokens": 1881
+  },
+  {
+   "template": "interview.attribution@1",
+   "status": "ok",
+   "wall_ms": 8266,
+   "output_tokens": 1661
+  }
+ ]
+}

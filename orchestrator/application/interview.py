@@ -620,7 +620,8 @@ def _point_hits(
         ):
             continue
         hits.append(PointHit(pid, status,
-                             _said(item.get("quote"), text, plain)))
+                             _said(item.get("quote"), text, plain),
+                             "live_model"))
     return tuple(hits)
 
 

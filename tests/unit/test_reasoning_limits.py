@@ -24,6 +24,10 @@ from orchestrator.application.interview import (
     REPORT_DEADLINE_MS,
     REPORT_TIMEOUT_S,
 )
+from orchestrator.application.live_judgement import (
+    ATTRIBUTION_DEADLINE_MS,
+    ATTRIBUTION_TEMPLATE,
+)
 from orchestrator.domain.config import InterviewSection
 from src.adapters.outbound.claude_code_stream import ClaudeCodeStream
 from src.config import SkillsSettings
@@ -54,6 +58,9 @@ def test_slow_templates_fit_the_cold_path_and_every_hop_waits_for_them(
     for template, deadline_ms, client_s in (
         (section.planner_template, PLANNER_DEADLINE_MS, PLANNER_TIMEOUT_S),
         (section.report_template, REPORT_DEADLINE_MS, REPORT_TIMEOUT_S),
+        # #268: the live round's attribution goes through the report's
+        # client (the live judgement's reasoner).
+        (ATTRIBUTION_TEMPLATE, ATTRIBUTION_DEADLINE_MS, REPORT_TIMEOUT_S),
     ):
         assert get_template(template, "structured").slow, template
         assert deadline_ms / 1000.0 <= min(SLOW_MAX_S, cold_s), template

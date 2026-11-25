@@ -65,7 +65,10 @@ class RebuiltRound:
     ``revisit`` are the plan's slots (ids); ``mandatory`` is the
     hand-off's account of the checklist; ``avoid`` the flags;
     ``accuracy`` the judgement (``None`` when not asked or nothing was
-    answered). Each is ``None`` when that part did not run.
+    answered); ``attribution`` who attributed the answers to the points
+    (``after_session``: the model reading the whole round, #268; or
+    ``rules``) and ``attribution_error`` why not the model. Each is
+    ``None`` when that part did not run.
     """
 
     session_id: str
@@ -76,6 +79,8 @@ class RebuiltRound:
     mandatory: Optional[Document] = None
     avoid: Optional[List[Document]] = None
     accuracy: Optional[Document] = None
+    attribution: Optional[str] = None
+    attribution_error: Optional[str] = None
     parts: List[str] = field(default_factory=list)
 
     def summary(self) -> Document:
@@ -90,6 +95,9 @@ class RebuiltRound:
             "avoid_flags": len(self.avoid or []),
             "accuracy": (self.accuracy or {}).get("state"),
             "saved": bool((self.accuracy or {}).get("saved")),
+            "attribution": self.attribution,
+            **({"attribution_error": self.attribution_error}
+               if self.attribution_error else {}),
         }
 
 
@@ -129,6 +137,7 @@ class RoundRebuild:
         model: str = "haiku",
         judge: bool = True,
         publish: Publish = lambda message: None,
+        attribute: bool = True,
     ) -> RebuiltRound:
         """Replay ``events`` (in order) and return what the round says.
 
@@ -138,6 +147,9 @@ class RoundRebuild:
         topics and, with ``judge`` and the wiring, the judgement, which
         stores the report for ``candidate_id``. ``rounds``: the
         candidate's earlier rounds (the order of the topics).
+        ``attribute``: the model attributes the round's answers before
+        the judgement, as at the end of a live round (#268); ``False``
+        keeps the rules' attribution of the replay.
         """
         result = RebuiltRound(session_id)
         roles_map = dict(roles)
@@ -186,11 +198,23 @@ class RoundRebuild:
         if topics is not None:
             result.covered, result.revisit = topics.result()
             if judge and self.wiring is not None and plan is not None:
+                told: List[Document] = []
+
+                def tell(message: Document) -> None:
+                    told.append(message)
+                    publish(message)
+
                 result.accuracy = LiveJudge(
-                    plan, self.wiring, session_id, publish, model,
+                    plan, self.wiring, session_id, tell, model,
                     candidate=candidate, candidate_id=candidate_id,
+                    attribute=attribute,
                 ).judge(topics)
                 result.parts.append("judgement")
+                found = result.accuracy or next(
+                    (m for m in reversed(told) if m.get("type") ==
+                     "accuracy" and m.get("state") == "empty"), {})
+                result.attribution = found.get("attribution")
+                result.attribution_error = found.get("attribution_error")
         return result
 
 

@@ -9,9 +9,15 @@ and judged with the same template; the full report is stored with the
 plan's results (``<interview dir>/results/<plan>/<session>.json``), so
 it shows in «Comparar candidatos» and in the candidate's file (#262).
 
+Before judging, the model attributes the whole round's answers and
+concepts to the plan's points (``interview.attribution@1``, #268), so
+an older round judged with the rules' attribution can be redone with
+``--force``; ``--attribution rules`` keeps the rules of the replay.
+
 The reasoner is the one the orchestrator uses: ``http`` (default) asks
 the running RAG on ``--reasoner-url`` with the token of
-``--rag-token-file``, which must already have ``interview.report@2``;
+``--rag-token-file``, which must already have ``interview.report@2`` and
+``interview.attribution@1``;
 ``module:factory`` builds another adapter, e.g.
 ``experiments.live.orchestrator_reasoner:build`` (Haiku in process
 through ``claude -p``, the owner's subscription). It works with the
@@ -23,7 +29,7 @@ belongs to the candidate's file.
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from orchestrator.adapters.outbound.files import load_transcript
 from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
@@ -70,6 +76,11 @@ def add_interview_parser(
     again.add_argument("--knowledge-url", default="http://127.0.0.1:8000")
     again.add_argument("--rag-token-file", type=Path, default=RAG_TOKEN_FILE)
     again.add_argument("--model", default="haiku")
+    again.add_argument("--attribution", choices=("model", "rules"),
+                       default="model",
+                       help="who attributes the answers to the points: "
+                            "the model reading the whole round (default) "
+                            "or the word rules of the replay")
     again.add_argument("--force", action="store_true",
                        help="judge a session that is not one of the "
                             "candidate's rounds, or replace a stored report")
@@ -117,17 +128,27 @@ def run_interview(
                                     / "core-questions.json"),
         lambda plan_id: plan_id == plan.id, plans=store)
     wiring = InterviewWiring(planner, store, reasoner, candidates=book)
+    told: List[Dict[str, Any]] = []
     result = rejudge(transcript, plan, wiring, args.model, profile.name,
-                     profile.id)
-    print(json.dumps(summary(result, plan.state), ensure_ascii=False))
+                     profile.id, publish=told.append,
+                     attribute=args.attribution == "model")
+    print(json.dumps(summary(result, plan.state, told), ensure_ascii=False))
     return 0 if result is not None and result.get("saved") else 1
 
 
-def summary(result: Any, plan_state: str) -> Dict[str, Any]:
-    """What the command prints: states and counts, no words."""
+def summary(result: Any, plan_state: str,
+            told: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """What the command prints: states and counts, no words.
+
+    ``told``: the feed messages of the run; when nothing was answered,
+    the last one says why the model's attribution was not used.
+    """
     if result is None:
+        why = next((m.get("attribution_error") for m in reversed(told or [])
+                    if m.get("attribution_error")), None)
         return {"state": "nothing_answered", "saved": False,
-                "plan_state": plan_state}
+                "plan_state": plan_state,
+                **({"attribution_error": why} if why else {})}
     labels: Dict[str, int] = {}
     for slot in result.get("slots") or []:
         for key, n in (slot.get("accuracy") or {}).items():
@@ -136,4 +157,7 @@ def summary(result: Any, plan_state: str) -> Dict[str, Any]:
             "judge": result.get("judge") or LIVE_JUDGE_TEMPLATE,
             "slots": len(result.get("slots") or []),
             "to_check": len(result.get("to_check") or []),
-            "labels": labels, "plan_state": plan_state}
+            "labels": labels, "plan_state": plan_state,
+            "attribution": result.get("attribution"),
+            **({"attribution_error": result["attribution_error"]}
+               if result.get("attribution_error") else {})}

@@ -130,7 +130,7 @@
         "object",
         "null"
       ],
-      "description": "structured: the one JSON object the template asks for (interview.planner@1: an interview plan draft, @2 with the concrete points of each slot; interview.slots@1: the slots an answer covers, @2 also the points each answer treats, #258; interview.report@2: scores plus a judgement of how accurate each answer and treated concept was and the statements worth checking, #259). Added compatibly (#208)."
+      "description": "structured: the one JSON object the template asks for (interview.planner@1: an interview plan draft, @2 with the concrete points of each slot; interview.slots@1: the slots an answer covers, @2 also the points each answer treats, #258; interview.report@2: scores plus a judgement of how accurate each answer and treated concept was and the statements worth checking, #259; interview.attribution@1: which candidate utterances answer each point and which concepts were treated, #268). interview.ticks@1 (#268): {\"points\": [{\"id\": \"<slot id>.<concept id>\", \"utterance\": candidate utterance id}]}, the pending concepts the last candidate answer treated. Added compatibly (#208)."
     },
     "model": {
       "type": "string",
@@ -211,8 +211,10 @@
             "auth",
             "transient",
             "timeout",
-            "invalid_output"
-          ]
+            "invalid_output",
+            "busy"
+          ],
+          "description": "busy (#268): a call that gives way (interview.ticks@1) found no free slow slot and was not made"
         },
         "message": {
           "type": "string"

@@ -63,6 +63,7 @@ from orchestrator.application.live_judgement import (
     LiveJudge,
     without_words,
 )
+from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
@@ -225,6 +226,7 @@ class _Session:
     topics: Optional[TopicTracker] = None
     goal: Optional[str] = None
     judge: Optional[LiveJudge] = None
+    ticker: Optional[LiveTicker] = None
     accuracy: Optional[Document] = None
     """How accurate the round's answers were (#259), when judged."""
     followed: threading.Event = field(default_factory=threading.Event)
@@ -265,6 +267,7 @@ class _Session:
             "goal": self.goal,
             "avoid": self.avoid.view() if self.avoid else None,
             "demo": self.demo, "accuracy": self.accuracy,
+            "ticks": self.ticker.view() if self.ticker else None,
         }
 
 
@@ -291,6 +294,11 @@ class _Handler:
             except Exception:  # noqa: BLE001 - logged, the call goes on
                 LOG.exception("topics: event %s not followed",
                               event.seq)
+        if self.session.ticker is not None:
+            try:
+                self.session.ticker.on_event(event)
+            except Exception:  # noqa: BLE001 - logged, the call goes on
+                LOG.exception("ticks: event %s not followed", event.seq)
         self.assist.on_event(event)
         if self.session.tracker is not None:
             self.session.tracker.on_event(event)
@@ -1273,14 +1281,17 @@ class LiveSessions:
                           session.product.language)
         session.goal = goal
 
-    @staticmethod
-    def _follow_concepts(session: _Session, assist: _Assistant) -> None:
+    def _follow_concepts(self, session: _Session,
+                         assist: _Assistant) -> None:
         """Give the suggestions the concepts still to treat (#258).
 
         The concepts of the topic being asked that are still pending go
         into the goal of the suggester's next requests (its existing
         call: no extra model call). The request's session is replaced
         whole, never changed in place, as a call may be reading it.
+        Beside the suggestions, a :class:`LiveTicker` (#268) asks the
+        model which pending concepts each candidate final treated, on
+        its own call that never delays or drops a suggestion.
         """
         topics = session.topics
         if topics is None or not isinstance(assist, LiveAssist):
@@ -1297,6 +1308,16 @@ class LiveSessions:
             assist.session = about
 
         topics.on_focus = on_focus
+        wiring = self.interview
+        every = (session.product.interview or InterviewSection()
+                 ).tick_every_s
+        if wiring is not None and every > 0:
+            reasoner = session.product.reasoner
+            session.ticker = LiveTicker(
+                wiring.reasoner, topics, session.roles, self.runner.start,
+                reasoner.model if reasoner else "haiku",
+                session.product.language, every_s=every,
+                clock=self.clock.now, sleep=self.clock.sleep)
 
     @staticmethod
     def _about(session: _Session) -> Dict[str, Optional[str]]:
@@ -1512,6 +1533,8 @@ class LiveSessions:
         ``keep_feed``: leave the feed open (a round still being judged
         closes it when done).
         """
+        if session.ticker is not None:
+            session.ticker.stop()  # #268 review: no tick after the round
         if isinstance(session.assist, LiveAssist):
             self._hand_off(session)
         with self._lock:
@@ -1540,6 +1563,8 @@ class LiveSessions:
             "names": dict(session.names), "renames": list(session.renames),
             "mandatory": tracker.summary() if tracker else None,
         }
+        if session.ticker is not None:
+            record["ticks"] = session.ticker.view()  # numbers only
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
         self._write_handoff(session)

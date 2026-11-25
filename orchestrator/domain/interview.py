@@ -71,6 +71,11 @@ MAX_SLOTS = 12
 MAX_POINTS, POINT_CHARS = 6, 80
 """Concepts per slot, and characters per concept (#258)."""
 PointStatus = Literal["treated", "pending", "unknown"]
+DecidedBy = Literal["rules", "live_model", "after_session"]
+"""Who decided a concept's status (#268): the word rules during the
+session; a model call during the session (the AI interviewer's slot
+filler, the live page's tick call); or the model reading the
+whole round after the session."""
 POINT_STATUSES: Tuple[PointStatus, ...] = ("treated", "pending", "unknown")
 MIN_MINUTES, MAX_MINUTES = 5, 90
 LABEL_CHARS, QUESTION_CHARS, EVIDENCE_CHARS = 120, 300, 300
@@ -519,7 +524,8 @@ class SheetPoint(_Strict):
     ``unknown``: they said they do not know it. ``quote`` and
     ``utterance`` are the words that settled it. ``judgement`` (#259):
     how accurate what they said about it was, for a treated concept
-    the report judged.
+    the report judged. ``by`` (#268): who decided the status
+    (:data:`DecidedBy`; ``None`` on sheets written before it).
     """
 
     id: str
@@ -528,6 +534,7 @@ class SheetPoint(_Strict):
     quote: str = Field(default="", max_length=QUOTE_CHARS)
     utterance: Optional[str] = None
     judgement: Optional[Judgement] = None
+    by: Optional[DecidedBy] = None
 
 
 class SheetSlot(_Strict):
@@ -629,6 +636,15 @@ class Sheet(_Strict):
     """Why the model did not score or judge it (#267): the reasoner's
     status and error kind, never the candidate's words; the scores are
     then the coarse estimate from each slot's status."""
+    attribution: Optional[Literal["rules", "after_session"]] = None
+    """Who said which utterances answer each point of a live round
+    (#268): the model reading the whole round after the session
+    (``after_session``), or the word rules of the session (``rules``:
+    the model was not asked or failed). ``None``: an AI interviewer's
+    sheet, or one written before it."""
+    attribution_error: Optional[str] = Field(default=None, max_length=300)
+    """Why the model's attribution was not used (its status and error
+    kind, never the candidate's words)."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:

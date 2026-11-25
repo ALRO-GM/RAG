@@ -238,3 +238,47 @@ def test_a_report_that_was_not_saved_exits_1(tmp_path: Any) -> None:
                      out=printed.append)
     assert code == 1
     assert '"saved": false' in printed[0]
+
+
+def test_a_rebuilt_round_is_attributed_by_the_model_or_the_rules(
+    tmp_path: Any, capsys: Any,
+) -> None:
+    """#268: rebuild-round attributes the round like the end of a live
+    round and rejudge, says which, and accepts --attribution rules."""
+    import json
+
+    from orchestrator.adapters.inbound.cli import main
+
+    store = Store()
+    store.save(plan())
+    events, roles = events_of_transcript(kept())
+    rebuilt = RoundRebuild(InlineExecutor(), wiring=wiring(store, Judge())
+                           ).rebuild("r9", events, roles, plan=plan(),
+                                     candidate_id=None)
+    assert rebuilt.attribution == "after_session"
+    assert rebuilt.summary()["attribution"] == "after_session"
+    rules = RoundRebuild(InlineExecutor(), wiring=wiring(Store(), Judge())
+                         ).rebuild("r9", events, roles, plan=plan(),
+                                   attribute=False)
+    assert rules.attribution == "rules"
+    assert "attribution_error" not in rules.summary()
+
+    class Down(Judge):
+        def reason(self, request: Document, cancel: Any) -> Document:
+            if request.get("template") == "interview.attribution@1":
+                return {"status": "timeout",
+                        "error": {"kind": "timeout", "message": "late"}}
+            return super().reason(request, cancel)
+
+    failed = RoundRebuild(InlineExecutor(), wiring=wiring(Store(), Down())
+                          ).rebuild("r9", events, roles, plan=plan())
+    assert failed.attribution == "rules"
+    assert failed.summary()["attribution_error"] == "timeout: timeout"
+
+    ana, path = setup_files(tmp_path)
+    for choice, expected in (("model", "after_session"), ("rules", "rules")):
+        code = main(["rebuild-round", "r9", "--transcript", str(path),
+                     "--plan", "dev", "--candidate", ana.id, "--force",
+                     "--attribution", choice, *common(tmp_path)])
+        printed = json.loads(capsys.readouterr().out)
+        assert code == 0 and printed["attribution"] == expected

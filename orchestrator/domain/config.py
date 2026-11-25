@@ -181,7 +181,8 @@ class InterviewSection(_Strict):
     ``turn_silence_s`` ends an answer, ``think_s`` is kept after a
     question, ``max_wait_s`` before re-asking or ending an unfinished
     answer, ``stuck_s`` before a hint; ``backchannel`` is ``voice``,
-    ``visual`` or ``off``.
+    ``visual`` or ``off``. ``tick_every_s`` spaces the live page's
+    concept-tick calls (#268).
     """
 
     corpus: str = "interview.generic"
@@ -205,6 +206,12 @@ class InterviewSection(_Strict):
     max_wait_s: float = Field(default=10.0, ge=5.0, le=20.0)
     stuck_s: float = Field(default=7.0, ge=4.0, le=15.0)
     backchannel: Literal["voice", "visual", "off"] = "voice"
+    tick_every_s: float = Field(default=30.0, ge=0.0, le=600.0)
+    """Live page with a role's plan (#268): least seconds between two
+    calls that ask the model which pending concepts the candidate's
+    answers since the previous call treated (one call covers them all;
+    ``0`` turns the calls off and leaves the word rules alone). At the
+    default, at most about two calls a minute."""
 
 
 VOICEBOTS = ("voicebot", "voicebot.interview")
