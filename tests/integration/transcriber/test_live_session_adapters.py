@@ -184,3 +184,30 @@ def test_a_missing_check_is_logged(
     )
     assert live._p.check is None
     assert "not contract-checked" in caplog.text
+
+
+def test_the_session_record_and_the_unfinished_sessions(
+    tmp_path: Path,
+) -> None:
+    """#264: ``session.json`` is private; a session with events and no
+    transcript is unfinished; a line cut by a crash is skipped."""
+    log = JsonlLiveLog(tmp_path)
+    assert log.unfinished() == []
+    log.append("a", {"seq": 0})
+    log.append("b", {"seq": 0})
+    log.save_transcript("b", {"schema": "transcript.v1"})
+    log.save_session("a", {"session_id": "a", "state": "running"})
+    log.close("a")
+    with (log.directory("a") / "events.jsonl").open("a") as stream:
+        stream.write('{"seq": 1, "cut')
+    assert log.unfinished() == ["a"]
+    assert log.read_events("a") == [{"seq": 0}]
+    assert log.read_session("a") == {"session_id": "a", "state": "running"}
+    assert log.read_session("b") is None
+    path = log.directory("a") / "session.json"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    path.write_text("[1]")
+    with pytest.raises(ValueError):
+        log.read_session("a")
+    (tmp_path / "live" / "stray-file").write_text("x")
+    assert log.unfinished() == ["a"]

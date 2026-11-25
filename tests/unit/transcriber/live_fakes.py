@@ -185,6 +185,7 @@ class MemoryLiveLog:
         self.events: Dict[str, List[Dict[str, Any]]] = {}
         self.transcripts: Dict[str, Dict[str, Any]] = {}
         self.attribution: Dict[str, List[Dict[str, Any]]] = {}
+        self.sessions: Dict[str, Dict[str, Any]] = {}
         self.closed: List[str] = []
         self.fail = fail
 
@@ -207,6 +208,21 @@ class MemoryLiveLog:
 
     def close(self, session_id: str) -> None:
         self.closed.append(session_id)
+
+    def save_session(self, session_id: str, document: Any) -> None:
+        if self.fail:
+            raise OSError("disk full")
+        self.sessions[session_id] = dict(document)
+
+    def unfinished(self) -> List[str]:
+        return sorted(k for k in self.events if k not in self.transcripts)
+
+    def read_events(self, session_id: str) -> List[Dict[str, Any]]:
+        return [dict(e) for e in self.events.get(session_id, [])]
+
+    def read_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        found = self.sessions.get(session_id)
+        return dict(found) if found is not None else None
 
 
 class SchemaCheck:

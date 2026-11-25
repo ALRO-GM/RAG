@@ -1094,7 +1094,8 @@ def start_container(
     ``settings.data_dir`` (the service) may call it: a session failed
     here is assumed to have no live job. The knowledge library's
     transcriptions left by a stopped process are deleted (the RAG sends
-    the file again).
+    the file again). Live sessions left with events but no transcript
+    are rebuilt from their logs and handed over (#264).
     """
     container = build_container(settings)
     if container.diarizer is not None:
@@ -1117,6 +1118,11 @@ def start_container(
     recovery = container.recover_sessions()
     for session_id in recovery.damaged:
         LOG.warning("Session %s cannot be read; left as it is", session_id)
+    if container.live is not None:
+        # #264: live sessions a stopped process left without a transcript.
+        for session_id in container.live.recover():
+            LOG.warning("Live session %s was rebuilt from its log after a"
+                        " restart", session_id)
     if container.knowledge_media is not None:
         cleared = container.knowledge_media.clear()
         if cleared:

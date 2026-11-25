@@ -881,6 +881,28 @@ class LiveLog(Protocol):
         """Close the session's log (no more events)."""
         ...
 
+    def save_session(
+        self, session_id: str, document: Mapping[str, Any]
+    ) -> None:
+        """Keep the session's small record (``session.json``, #264).
+
+        The start request, speakers, names, model and state: what a
+        restart needs to rebuild the transcript. No audio.
+        """
+        ...
+
+    def unfinished(self) -> List[str]:
+        """Return the sessions that have events but no transcript."""
+        ...
+
+    def read_events(self, session_id: str) -> List[Dict[str, Any]]:
+        """Return a session's logged events (unreadable lines skipped)."""
+        ...
+
+    def read_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return a session's record, or ``None`` when it has none."""
+        ...
+
 
 class EventCheck(Protocol):
     """Checks an event against its contract (``contracts/``)."""
