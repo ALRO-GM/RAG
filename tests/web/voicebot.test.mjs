@@ -153,6 +153,7 @@ test("push-to-talk sends silence of the same length while the button is up", asy
   const audio = new LiveAudio({ id: "voz-1", code: "c", echoCancellation: true });
   assert.equal(audio.echoCancellation, true);
   audio.socket = { readyState: 1, bufferedAmount: 0, send: (piece) => sent.push(piece) };
+  audio.ready = true; // the server said ready (#263: no audio before it)
   audio.muted = true;
   audio._send(new Uint8Array(3200).fill(7));
   audio.muted = false;

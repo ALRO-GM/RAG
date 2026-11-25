@@ -416,9 +416,12 @@ export class Api {
    * gets each { id, event, data }. Resolves "end" when the session is
    * over, "closed" when the connection ended first (call again with the
    * last id to resume). A fetch stream is used so the access code
-   * travels in the header, as on every other call.
+   * travels in the header, as on every other call. `onOpen` is called
+   * once the stream answers (#263: the page is connected again); with
+   * no byte for `idleMs` (keepalives count) the read gives up and
+   * resolves "idle", so a dead connection is retried.
    */
-  async followLive(id, { after = 0, signal, onItem }) {
+  async followLive(id, { after = 0, signal, onItem, onOpen = () => {}, idleMs = 0 }) {
     const code = this.getCode();
     if (!code) throw new ApiFailure({ status: 401, kind: "unauthorized", code: "unauthorized" });
     const url = `/api/assist/sessions/${encodeURIComponent(id)}/suggestions/stream?after=${Number(after) || 0}`;
@@ -441,12 +444,25 @@ export class Api {
       const { kind, waitSeconds } = classifyFailure(response.status, response.headers.get("Retry-After"));
       throw new ApiFailure({ status: response.status, kind, waitSeconds, code: typeof info.code === "string" ? info.code : null });
     }
+    onOpen();
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    const IDLE = Symbol("idle");
+    const read = () => {
+      if (!idleMs) return reader.read();
+      let timer = null;
+      const quiet = new Promise((resolve) => { timer = setTimeout(() => resolve(IDLE), idleMs); });
+      return Promise.race([reader.read(), quiet]).finally(() => clearTimeout(timer));
+    };
     try {
       for (;;) {
-        const { value, done } = await reader.read();
+        const got = await read();
+        if (got === IDLE) {
+          reader.cancel?.().catch?.(() => {});
+          return "idle";
+        }
+        const { value, done } = got;
         if (done) return "closed";
         buffer += decoder.decode(value, { stream: true });
         const { items, rest } = parseSse(buffer);
