@@ -23,7 +23,11 @@ from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
 )
-from orchestrator.application.ports import CancelToken, Document
+from orchestrator.application.ports import (
+    CancelToken,
+    Document,
+    ReasonerUnavailable,
+)
 from orchestrator.application.sessions import LiveSessions, SessionError
 from orchestrator.domain.config import InterviewSection
 from tests.unit.orchestrator.fixtures import product, transcript
@@ -534,3 +538,64 @@ def test_a_failing_topic_tracker_never_stops_the_suggestions(
     reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
     assert any(r.get("role") == "suggester" for r in reasoner.requests)
     assert live.get("r1")["state"] == "ended"
+
+
+class NoJudge(AskingReasoner):
+    """Answers everything but the report of a live round."""
+
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        if request.get("template") == "interview.report@2":
+            raise ReasonerUnavailable("down")
+        return super().reason(request, cancel)
+
+
+def round_lines(one: Any) -> List[List[str]]:
+    return [
+        ["S1", f"Hablemos de {one.label}. {one.questions[0]}"],
+        ["S2", "Trabajé de dependienta en una tienda de deportes, "
+               "atendiendo clientes durante dos años."],
+    ]
+
+
+def test_a_live_round_ends_with_a_draft_judgement_of_its_answers() -> None:
+    """#259: the live page's end result judges the answers, once."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    live = wired(conversation("r1", round_lines(one)), AskingReasoner(),
+                 store)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    found = [m for m in messages(live, "r1") if m["type"] == "accuracy"]
+    assert [m["state"] for m in found] == ["reporting", "ready"]
+    ready = found[-1]
+    assert [s["id"] for s in ready["slots"]] == [one.id]  # only answered
+    assert ready["slots"][0]["judgement"]["label"] == "correct_basic"
+    assert "score" not in ready["slots"][0]  # the live page never scores
+    reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
+    judged = [r for r in reasoner.requests
+              if r.get("template") == "interview.report@2"]
+    assert len(judged) == 1
+    handoff = live.get("r1")["handoff"]
+    assert handoff["accuracy"]["state"] == "ready"
+    assert live.get("r1")["accuracy"]["slots"][0]["id"] == one.id
+
+
+def test_a_failed_or_empty_live_judgement_never_breaks_the_end() -> None:
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    down = wired(conversation("r1", round_lines(one)), NoJudge(), store)
+    down.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert [m["state"] for m in messages(down, "r1")
+            if m["type"] == "accuracy"] == ["reporting", "failed"]
+    assert down.get("r1")["state"] == "ended"
+    quiet = wired(conversation("r2", [["S1", "Buenos días."]]),
+                  AskingReasoner(), store)
+    quiet.start_live("live_assist.interview", "stereo", session_id="r2",
+                     plan="plan-1", candidate="Lucía Marín")
+    assert not [m for m in messages(quiet, "r2") if m["type"] == "accuracy"]
+    assert quiet.get("r2")["accuracy"] is None

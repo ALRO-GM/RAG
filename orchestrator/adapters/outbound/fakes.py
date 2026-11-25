@@ -7,7 +7,8 @@ retrieved chunk in ``cites``), and can sleep to imitate a service's
 latency. It also plays the AI interviewer's templates (#208): the
 planner drafts a plan from the offer's bullet lines, the slot filler
 fills the slot asked when the answer has twelve words or more, the
-report scores the slots by status, and ``interviewer@1`` words each
+report scores the slots by status (``@2`` also judges every answer
+``correct_basic``), and ``interviewer@1`` words each
 step with fixed phrases. Their ``@2`` versions (#258) add the concepts
 of each slot: the planner gives generic ones, the filler marks those
 the rules of :func:`~orchestrator.domain.interview_points.point_hits`
@@ -185,6 +186,8 @@ class FakeReasoner:
                               points=template.endswith("@2"))
         elif template in ("interview.slots@1", "interview.slots@2"):
             data = _fake_fill(payload, points=template.endswith("@2"))
+        elif template == "interview.report@2":
+            data = _fake_judged(payload)
         else:
             score = {"filled": 80, "partial": 45, "unknown": 0,
                      "skipped": 10}
@@ -307,6 +310,40 @@ def _fake_fill(payload: Document, points: bool) -> Document:
             for h in point_hits(answer, concepts)
         ]
     return {"slots": [item]}
+
+
+def _fake_judged(payload: Document) -> Document:
+    """The fake report ``@2``: scores by status, answers ``correct_basic``.
+
+    Each answered slot and treated concept is judged on its first
+    answer; nothing is listed to check.
+    """
+    score = {"filled": 80, "partial": 45, "unknown": 0, "skipped": 10}
+    slots: List[Document] = []
+    for slot in payload.get("slots") or []:
+        if not isinstance(slot, dict) or slot.get("status") == "empty":
+            continue
+        answers = slot.get("answers") or []
+        first = answers[0] if answers else {}
+        said: Document = {
+            "label": "correct_basic", "kind": "fact",
+            "utterance": first.get("utterance"),
+            "quote": " ".join(str(first.get("text") or "").split()[:12]),
+            "reason": "Juicio de prueba (sin modelo).", "cites": [],
+        }
+        slots.append({
+            "id": slot.get("id"),
+            "score": score.get(str(slot.get("status")), 0),
+            "above": False, "confidence": 0.5,
+            "notes": "Puntuación de prueba (sin modelo).",
+            "judgement": said if answers else None,
+            "points": [{"id": p.get("id"), **said}
+                       for p in slot.get("points") or []
+                       if isinstance(p, dict) and p.get("status") == "treated"
+                       and answers],
+        })
+    return {"slots": slots, "to_check": [], "other_skills": [],
+            "summary": "Resumen de prueba generado sin modelo."}
 
 
 _FAKE_POINTS = ["Dónde y en qué puesto", "Cuánto tiempo", "Tareas que hacía"]

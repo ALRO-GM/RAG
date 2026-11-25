@@ -193,7 +193,7 @@ class InterviewSection(_Strict):
         default="interview.slots@2", pattern=r"^[a-z_.]+@[0-9]+$"
     )
     report_template: str = Field(
-        default="interview.report@1", pattern=r"^[a-z_.]+@[0-9]+$"
+        default="interview.report@2", pattern=r"^[a-z_.]+@[0-9]+$"
     )
     filler: Literal["haiku", "heuristic"] = "haiku"
     max_probes: int = Field(default=1, ge=0, le=3)

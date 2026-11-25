@@ -37,7 +37,7 @@ import {
   ClipPlayer, clipsOf, createAudioContext, lineToPlay, readSound, voicesNoteKey, webAudioOutput, writeSound,
 } from "../lib/demo-voices.js";
 import { coreCount, coreRows } from "../lib/candidate.js";
-import { pointMark } from "./interview.js";
+import { accuracyBlock, pointMark } from "./interview.js";
 import { demoCardExtras, pickDemo, resultLink } from "../lib/call-demo.js";
 import { ConnectionWatch, WATCH, needsOf } from "../lib/connection.js";
 import { pingOnce, servicesOnce, watchLoop } from "../connection.js";
@@ -1069,11 +1069,28 @@ export async function liveView(ctx, root, [sub, which] = []) {
         found.quote ? h("q", {}, found.quote) : null));
     }
 
+    // The draft judgement of a round's answers (#259): one report call when a
+    // round with a role's plan ends; for the interviewer, never the candidate.
+    function accuracyPart() {
+      const found = state.accuracy;
+      if (!found) return null;
+      if (found.state === "reporting") return h("p", { class: "notice info", role: "status" }, t("live.accuracy_reporting"));
+      if (found.state === "failed") return h("p", { class: "notice", role: "status" }, t("live.accuracy_failed"));
+      return accuracyBlock(found);
+    }
+
+    let accuracyKey = null;
+    let accuracyNode = null;
     function drawSummary() {
       const handoff = state.handoff;
       const mandatory = handoff?.mandatory;
+      const key = JSON.stringify([lang, state.accuracy]);
+      if (key !== accuracyKey) {
+        accuracyKey = key;
+        accuracyNode = accuracyPart();
+      }
       if (!handoff || state.state === "running") {
-        fill(summary);
+        fill(summary, accuracyNode);
         return;
       }
       const missing = mandatory?.missing ?? [];
@@ -1087,7 +1104,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
           : h("p", { class: "notice info" }, t("live.summary_all"))) : null,
         mandatory?.ticked?.length ? h("p", { class: "hint" }, t("live.summary_ticked", { n: mandatory.ticked.length })) : null,
         names.length ? h("p", { class: "hint" }, t("live.summary_names"), " ",
-          names.map(([s, n]) => `${n} (${roleText(state.roleOf(s))})`).join(", ")) : null));
+          names.map(([s, n]) => `${n} (${roleText(state.roleOf(s))})`).join(", ")) : null,
+        accuracyNode));
     }
 
     // ---- the stream and the actions

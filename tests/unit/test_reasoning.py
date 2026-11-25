@@ -449,3 +449,29 @@ def test_the_interviewer_v2_names_the_concepts_of_the_step() -> None:
                      payload={"action": "ask", "topic": "Caja"}))
     assert "Concepts" not in model.calls[1][1]
     assert model.calls[1][0] == system  # one warm pool for every step
+
+
+# ---- accuracy of the answers (#259) -------------------------------------
+
+def test_the_report_v2_judges_answers_and_concepts() -> None:
+    model = FakeChatModel(['{"slots": [], "to_check": []}'])
+    reasoner(model).reason(interview_request(
+        "interview.report@2", title="Dependiente", summary="Tienda",
+        slots=[{"id": "s1", "label": "Running", "level": "minimo",
+                "status": "filled", "evidence": "-",
+                "answers": [{"utterance": "u1", "text": "El drop es..."},
+                            "junk"],
+                "points": [{"id": "p1", "text": "Drop",
+                            "status": "treated"}],
+                "chunks": [{"id": "shop:c1", "text": "El drop mide..."}]},
+               "junk"],
+        other=""))
+    system, user, cap = model.calls[0]
+    for words in ("solid", "correct_basic", "wrong", "off_topic", "unclear",
+                  "to_verify", "one or two minutes", "never wrong",
+                  "never say that someone lies", "to_check", "cites"):
+        assert words in system, words
+    assert "  answer [u1] El drop es..." in user
+    assert "  concept [p1] Drop (treated)" in user
+    assert "  chunk [shop:c1] El drop mide..." in user
+    assert cap == 4000

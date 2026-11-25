@@ -15,9 +15,11 @@
   the
   :class:`~orchestrator.domain.interview_agenda.Agenda` decides the next
   step; the coverage goes to the page (``{"type": "coverage"}``). When
-  the session ends it scores the slots against the offer
-  (``interview.report@1``, or a coarse estimate from each slot's
-  status), writes the ``interview.sheet.v1``, keeps it with the plan,
+  the session ends it scores the slots against the offer and judges how
+  accurate each answer and treated concept was (``interview.report@2``,
+  #259, with chunks of the plan's knowledge domain when it has one; or
+  a coarse estimate from each slot's status), writes the
+  ``interview.sheet.v1``, keeps it with the plan,
   and hands the ``transcript.v1`` (both voices) and the sheet to the
   post-call analysis (``{"type": "interview_result"}``).
 
@@ -49,7 +51,9 @@ from orchestrator.domain.interview import (
     QUOTE_CHARS,
     STATUS_CONFIDENCE,
     STATUS_SCORE,
+    CheckItem,
     InterviewPlan,
+    Judgement,
     OtherSkill,
     PlannerInfo,
     PlanSource,
@@ -70,6 +74,7 @@ from orchestrator.domain.interview_agenda import (
     heuristic_fill,
     quote,
 )
+from orchestrator.domain.interview_judgement import judge_slots
 from orchestrator.domain.interview_points import PointHit, point_hits
 from orchestrator.domain.interview_transcript import (
     BOT_ID,
@@ -93,6 +98,10 @@ OFFER_CHARS = 12000
 MIN_OFFER_CHARS = 40
 PLANNER_DEADLINE_MS = 120000
 REPORT_DEADLINE_MS = 90000
+JUDGE_CHUNKS = 3
+"""Knowledge chunks the judge gets per slot (#259)."""
+PLAIN_REPORT = "interview.report@1"
+"""The report template that scores without judging the answers."""
 FILLER_DEADLINE_MS = 6000
 ANSWER_SO_FAR = 400
 """Characters of a stuck answer a hint is given (its end)."""
@@ -693,6 +702,8 @@ class InterviewDirector:
         on_core: Told which core question each turn asks (``None``: the
             turn asks something else), so the answer can be read even
             when the model words the question its own way.
+        knowledge: Where the judge's chunks come from (#259; ``None``:
+            the judge uses general knowledge).
     """
 
     def __init__(
@@ -712,6 +723,7 @@ class InterviewDirector:
         now: Callable[[], datetime] = datetime.now,
         core_open: Optional[Callable[[], List[CoreQuestion]]] = None,
         on_core: Optional[Callable[[Optional[str]], None]] = None,
+        knowledge: Optional[KnowledgePort] = None,
     ):
         """Start the agenda; nothing has been said yet."""
         self.plan = plan
@@ -740,6 +752,7 @@ class InterviewDirector:
         self.core_asked: Set[str] = set()
         self.core_target: Optional[str] = None
         self.on_core = on_core
+        self.knowledge = knowledge
         self.deferred_close: Optional[str] = None
         """Why the agenda closed while the salary question was asked."""
         self._lock = threading.Lock()
@@ -993,10 +1006,20 @@ class InterviewDirector:
         others: List[OtherSkill] = []
         summary = ""
         scorer = "status"
-        data = self._report(slots)
+        to_check: List[CheckItem] = []
+        judge: Optional[str] = None
+        chunks = self._chunks(slots)
+        data = self._report(slots, chunks)
         if data is not None:
             slots, others, summary = read_report(data, slots)
             scorer = "haiku"
+            if self.config.report_template != PLAIN_REPORT:
+                slots, to_check = judge_slots(
+                    data, slots,
+                    {sid: [c["id"] for c in found]
+                     for sid, found in chunks.items()},
+                    self._texts())
+                judge = self.config.report_template
         else:
             slots = status_scores(slots)
         # Stopped while the salary question waited: the plan was covered.
@@ -1014,11 +1037,29 @@ class InterviewDirector:
             slots=slots, filler=self.filler.name,
             candidate=self.candidate, suitability=suitability(slots),
             summary=summary, other_skills=others, scorer=scorer,
-            finished_at=self.now(),
+            finished_at=self.now(), to_check=to_check, judge=judge,
         )
 
-    def _report(self, slots: List[SheetSlot]) -> Optional[Dict[str, Any]]:
-        """Ask the reasoner to score the slots (``None``: not scored)."""
+    def _texts(self) -> Dict[str, str]:
+        """The candidate's whole words per utterance id."""
+        return {s.ref: s.text for s in self.said
+                if s.speaker == CANDIDATE_ID and s.ref}
+
+    def _chunks(self, slots: List[SheetSlot]) -> Dict[str, List[Document]]:
+        """Chunks of the plan's knowledge domain for each answered slot."""
+        if self.config.report_template == PLAIN_REPORT:
+            return {}
+        return judge_chunks(self.knowledge, self.plan, slots, self._texts(),
+                            self.session_id)
+
+    def _report(
+        self, slots: List[SheetSlot],
+        chunks: Optional[Dict[str, List[Document]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Ask the reasoner to score (and judge) the slots.
+
+        ``None``: not scored.
+        """
         if not self.config.report or not any(s.answers for s in slots):
             return None
         quoted = {a.quote for s in slots for a in s.answers}
@@ -1026,27 +1067,11 @@ class InterviewDirector:
             s.text for s in self.said
             if s.speaker == CANDIDATE_ID and s.text not in quoted
         )
-        by_id = {s.id: s for s in self.plan.slots}
-        request: Document = {
-            "schema": "reasoner.request.v1",
-            "request_id": f"{self.session_id}-report"[-64:],
-            "role": "structured", "model": self.model,
-            "template": self.config.report_template,
-            "language": self.plan.language, "context": {"window": []},
-            "payload": {
-                "title": self.plan.title, "summary": self.plan.summary,
-                "slots": [
-                    {"id": s.id, "label": s.label, "level": s.level,
-                     "status": s.status,
-                     "evidence": by_id[s.id].evidence if s.id in by_id
-                     else "",
-                     "quotes": [a.quote for a in s.answers]}
-                    for s in slots
-                ],
-                "other": other[:3000],
-            },
-            "constraints": {"deadline_ms": REPORT_DEADLINE_MS},
-        }
+        request = report_request(
+            self.plan, slots, self._texts(), chunks or {}, other,
+            self.config.report_template, self.model,
+            f"{self.session_id}-report"[-64:],
+        )
         try:
             return _ok_data(self.reasoner.reason(request, CancelToken()))
         except ReasonerUnavailable:
@@ -1074,17 +1099,108 @@ class InterviewDirector:
         return handed
 
 
+def _ref(refs: Dict[str, str], utterance: Optional[str]) -> Optional[str]:
+    """One utterance id in the transcript's terms."""
+    return refs.get(utterance, utterance) if utterance else None
+
+
+def _judged(
+    judgement: Optional[Judgement], refs: Dict[str, str]
+) -> Optional[Judgement]:
+    """A judgement pointing at the transcript's utterance id."""
+    if judgement is None:
+        return None
+    return judgement.model_copy(update={
+        "utterance": _ref(refs, judgement.utterance)})
+
+
 def _with_refs(sheet: Sheet, refs: Dict[str, str]) -> Sheet:
-    """Point the sheet's answers and points at the transcript's ids."""
+    """Point the sheet's answers, points and judgements at the
+    transcript's ids."""
     slots = []
     for slot in sheet.slots:
         answers = [a.model_copy(update={
             "utterance": refs.get(a.utterance, a.utterance)
         }) for a in slot.answers]
         points = [p.model_copy(update={
-            "utterance": refs.get(p.utterance, p.utterance)
-            if p.utterance else None
+            "utterance": _ref(refs, p.utterance),
+            "judgement": _judged(p.judgement, refs),
         }) for p in slot.points]
-        slots.append(slot.model_copy(update={"answers": answers,
-                                             "points": points}))
-    return sheet.model_copy(update={"slots": slots})
+        slots.append(slot.model_copy(update={
+            "answers": answers, "points": points,
+            "judgement": _judged(slot.judgement, refs)}))
+    checks = [c.model_copy(update={"utterance": _ref(refs, c.utterance)})
+              for c in sheet.to_check]
+    return sheet.model_copy(update={"slots": slots, "to_check": checks})
+
+
+def judge_chunks(
+    knowledge: Optional[KnowledgePort], plan: InterviewPlan,
+    slots: List[SheetSlot], texts: Dict[str, str], request_id: str,
+) -> Dict[str, List[Document]]:
+    """Chunks of the plan's knowledge domain for each answered slot.
+
+    The plan's domain is the one its offer was uploaded to; a plan made
+    from pasted text has none, and then the judge uses its general
+    knowledge (an empty map). A failed query is the same.
+    """
+    domain = plan.source.domain if plan.source.kind == "document" else None
+    if knowledge is None or not domain:
+        return {}
+    found: Dict[str, List[Document]] = {}
+    for n, slot in enumerate(slots):
+        said = [texts.get(a.utterance, a.quote) for a in slot.answers]
+        if not said:
+            continue
+        text = " ".join([slot.label, *(p.text for p in slot.points),
+                         *said])[:1500]
+        query: Document = {
+            "schema": "knowledge.query.v1",
+            "request_id": f"{request_id}-j{n}"[-64:], "domain": domain,
+            "text": text, "language": plan.language, "top_k": JUDGE_CHUNKS,
+        }
+        try:
+            result = knowledge.query(query)
+        except KnowledgeUnavailable:
+            return {}
+        chunks = [{"id": str(c["id"]), "text": str(c["text"])[:600]}
+                  for c in (result.get("chunks") or [])[:JUDGE_CHUNKS]]
+        if chunks:
+            found[slot.id] = chunks
+    return found
+
+
+def report_request(
+    plan: InterviewPlan, slots: List[SheetSlot], texts: Dict[str, str],
+    chunks: Dict[str, List[Document]], other: str, template: str,
+    model: str, request_id: str,
+) -> Document:
+    """The report's ``reasoner.request.v1`` (``@1`` and ``@2`` fields).
+
+    ``quotes`` serve ``@1``; ``answers`` (utterance id and whole words),
+    ``points`` and ``chunks`` serve the judge of ``@2``.
+    """
+    by_id = {s.id: s for s in plan.slots}
+    return {
+        "schema": "reasoner.request.v1", "request_id": request_id,
+        "role": "structured", "model": model, "template": template,
+        "language": plan.language, "context": {"window": []},
+        "payload": {
+            "title": plan.title, "summary": plan.summary,
+            "slots": [
+                {"id": s.id, "label": s.label, "level": s.level,
+                 "status": s.status,
+                 "evidence": by_id[s.id].evidence if s.id in by_id else "",
+                 "quotes": [a.quote for a in s.answers],
+                 "answers": [{"utterance": a.utterance,
+                              "text": texts.get(a.utterance, a.quote)}
+                             for a in s.answers],
+                 "points": [{"id": p.id, "text": p.text,
+                             "status": p.status} for p in s.points],
+                 "chunks": chunks.get(s.id, [])}
+                for s in slots
+            ],
+            "other": other[:3000],
+        },
+        "constraints": {"deadline_ms": REPORT_DEADLINE_MS},
+    }

@@ -304,6 +304,7 @@ export class LiveState {
     this.mode = null; // assistance mode: pincelada | guiado
     this.checklist = null; // mandatory items: { items: [{ id, text, state }], remind_seconds }
     this.handoff = null; // the end-of-session record
+    this.accuracy = null; // a round's draft judgement of the answers (#259): { state, slots, to_check }
     this.notices = []; // { code, message } from the orchestrator
     this.avoid = []; // lines better avoided: { utterance, category, title, why, alternative, state }
     this.topics = null; // a demo's topics: [{ id, name, done }], else the script phases
@@ -346,6 +347,12 @@ export class LiveState {
         break;
       case "handoff":
         this.handoff = message.handoff ?? null;
+        if (message.handoff?.accuracy) this.accuracy = message.handoff.accuracy;
+        break;
+      case "accuracy":
+        if (["reporting", "ready", "failed"].includes(message.state)) {
+          this.accuracy = { state: message.state, slots: message.slots ?? [], to_check: message.to_check ?? [] };
+        }
         break;
       case "notice":
         this.notices.push({ code: message.code, message: message.message });

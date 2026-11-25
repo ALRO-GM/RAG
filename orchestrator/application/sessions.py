@@ -59,6 +59,7 @@ from typing import (
 
 from orchestrator.application.avoid import AvoidTracker
 from orchestrator.application.candidates import CoreTracker
+from orchestrator.application.live_judgement import LiveJudge
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
@@ -217,6 +218,9 @@ class _Session:
     core: Optional[CoreTracker] = None
     topics: Optional[TopicTracker] = None
     goal: Optional[str] = None
+    judge: Optional[LiveJudge] = None
+    accuracy: Optional[Document] = None
+    """How accurate the round's answers were (#259), when judged."""
 
     @property
     def assist_mode(self) -> Optional[str]:
@@ -251,7 +255,7 @@ class _Session:
             "candidate_id": self.core.profile.id if self.core else None,
             "goal": self.goal,
             "avoid": self.avoid.view() if self.avoid else None,
-            "demo": self.demo,
+            "demo": self.demo, "accuracy": self.accuracy,
         }
 
 
@@ -298,6 +302,15 @@ class _Handler:
             if self.session.topics is not None:
                 core.covered, core.revisit = self.session.topics.result()
             core.finish()
+        judge, topics = self.session.judge, self.session.topics
+        if judge is not None and topics is not None:
+            # One report call on the round's answers (#259); a failure
+            # never keeps the session from ending.
+            try:
+                self.session.accuracy = judge.judge(topics)
+            except Exception:  # noqa: BLE001 - logged, the end goes on
+                LOG.exception("accuracy: round %s not judged",
+                              self.session.id)
 
 
 class _FeedSink:
@@ -1167,6 +1180,10 @@ class LiveSessions:
                                       session.feed.publish,
                                       session.product.language)
         session.topics.start()
+        reasoner = session.product.reasoner
+        session.judge = LiveJudge(
+            plan, wiring, session.id, session.feed.publish,
+            reasoner.model if reasoner else "haiku")
         goal = focus_goal(plan.title, states, len(profile.rounds),
                           session.product.language)
         session.goal = goal
@@ -1242,6 +1259,7 @@ class LiveSessions:
             session.candidate, model,
             core_open=session.core.open if session.core else None,
             on_core=session.core.expect if session.core else None,
+            knowledge=wiring.planner.knowledge,
         )
 
     def _listen(self, session: _Session, bot: VoiceBot) -> None:
@@ -1423,6 +1441,8 @@ class LiveSessions:
             "names": dict(session.names), "renames": list(session.renames),
             "mandatory": tracker.summary() if tracker else None,
         }
+        if session.accuracy is not None:
+            record["accuracy"] = session.accuracy
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
         if self.handoff_sink is not None:
