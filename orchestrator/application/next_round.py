@@ -33,14 +33,17 @@ from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 from orchestrator.application.ports import Document
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.interview import (
+    Answer,
     InterviewPlan,
     SheetPoint,
+    SheetSlot,
     Slot,
     fold,
 )
 from orchestrator.domain.interview_agenda import heuristic_fill
 from orchestrator.domain.interview_points import (
     pending,
+    quote,
     point_hits,
     points_status,
     record_hit,
@@ -119,6 +122,9 @@ class TopicTracker:
             for s in plan.slots
         }
         self.focus: Optional[str] = None
+        self.answers: Dict[str, List[Tuple[str, str]]] = {}
+        """The candidate's answers to each slot asked (utterance, text),
+        for the judgement of the round (#259)."""
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -155,6 +161,9 @@ class TopicTracker:
 
         Called with the lock held.
         """
+        kept = self.answers.setdefault(slot.id, [])
+        kept[:] = [(u, t) for u, t in kept if u != utterance]
+        kept.append((utterance, text))
         states = self.points[slot.id]
         if states:
             changed = False
@@ -180,6 +189,31 @@ class TopicTracker:
             return None
         names = [p.text for p in pending(self.points[self.target.id])]
         return focus_line(self.target.label, names, self.language)
+
+    def sheet_slots(self) -> Tuple[List[SheetSlot], Dict[str, str]]:
+        """The round's slots as sheet slots, and the whole answers.
+
+        A slot covered is ``filled``, one asked and answered
+        ``partial``, the rest ``empty``; its answers and concepts are
+        those of this round. No score: the live page never scores.
+        """
+        with self._lock:
+            slots: List[SheetSlot] = []
+            texts: Dict[str, str] = {}
+            for slot in self.plan.slots:
+                said = self.answers.get(slot.id, [])
+                texts.update(dict(said))
+                status = ("filled" if slot.id in self.covered
+                          else "partial" if said else "empty")
+                slots.append(SheetSlot(
+                    id=slot.id, label=slot.label, level=slot.level,
+                    weight=slot.weight, competency=slot.competency,
+                    status=status,  # type: ignore[arg-type]
+                    answers=[Answer(utterance=u, quote=quote(t),
+                                    status="partial") for u, t in said],
+                    points=[p.model_copy() for p in self.points[slot.id]],
+                ))
+        return slots, texts
 
     def result(self) -> Tuple[List[str], List[str]]:
         """The covered slot ids and those to revisit, of this round."""

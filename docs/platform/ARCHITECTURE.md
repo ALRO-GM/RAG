@@ -67,7 +67,7 @@ knowledge: {domains: [interview.backend], top_k: 4, filters_from: [script_phase]
 reasoner: {role: suggester, model: haiku, template: suggester.interview@1, deadline_ms: 1800, max_inflight: 1}
 trigger: {on: final, speaker_roles: [candidate], min_words: 4, debounce_ms: 300, cancel_stale: true}
 ui: {kind: live_page}
-privacy: {store_audio: false, store_text_days: 30, banner: interview_ai_notice@1}
+privacy: {store_audio: false, store_text_days: 30, banner: interview_ai_notice@2}
 handoff: {transcript_v1: true, run_post_call: false}
 ```
 
@@ -153,7 +153,7 @@ repository.
 
 | Topic | Design rule |
 |---|---|
-| AI Act, recruitment = high-risk (Annex III 4(a)) | The suggester helps the interviewer: next question from the script, uncovered phases, facts from the domain knowledge. It never scores, ranks or labels the candidate live. Post-call assessment of candidates (P1) stays an aid for a trained human (ESTADO §1) and is high-risk: it needs the owner's decision (T-48) before any real use. Check the current application dates: the Digital Omnibus proposal would delay Annex III obligations |
+| AI Act, recruitment = high-risk (Annex III 4(a)) | The suggester helps the interviewer: next question from the script, uncovered phases, facts from the domain knowledge. It never scores, ranks or labels the candidate live. Post-call assessment of candidates (P1) stays an aid for a trained human (ESTADO §1) and is high-risk: it needs the owner's decision (T-48) before any real use. The same holds for the draft judgement of how accurate the answers were (#259: AI interviewer report and the end of a live-page round with a role's plan), which judges answers, never the person, and is never shown to the candidate; the candidate notice is `interview_ai_notice@2`, which says an analysis may be drafted afterwards and reviewed by a person. Check the current application dates: the Digital Omnibus proposal would delay Annex III obligations |
 | Emotion recognition in the workplace is prohibited (Art. 5(1)(f)); covers candidates and the agents themselves | No prosody, emotion or stress inference from voice for anyone. Interviews: no emotion or state signals about the candidate at all. Support: only *expressed customer signals* from text (§8.1) |
 | Transparency | Notice to the candidate or customer before the call (versioned like the existing consent notice); banner on the live page |
 | Biometrics (GDPR Art. 9) | Stereo mode needs no voiceprint of the other party. Mono mode uses voiceprints only of enrolled, consenting people |

@@ -91,8 +91,12 @@ When the newest answered suggestion quotes a `complaint`,
 customer's own words, a banner says so with the quote, and the quoted
 customer line and that suggestion are outlined. The signals are the
 text-only ones of LV-14 (`docs/platform/ORCHESTRATOR.md`); interviews
-never show signals, ratings or emotions about the candidate, and the
-page refuses to draw them there too.
+never show signals, ratings or emotions about the candidate during the
+call, and the page refuses to draw them there too. After a round with a
+role's plan, the end result shows a draft of how accurate the answers
+were (#259, `docs/live/VOICEBOT_INTERVIEWER.md` §6.1): a judgement of
+answers for the interviewer, never of the person, and never shown to
+the candidate.
 
 ## Hand-off record
 

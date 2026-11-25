@@ -61,9 +61,11 @@ function lowestFree(current, kept) {
 /**
  * The concepts of a slot from the editor's lines (one per line): trimmed,
  * cut to POINT_CHARS, empty and repeated ones dropped, at most MAX_POINTS.
- * A concept whose text did not change keeps its id; new ones get ids
- * after the highest ever given in this slot, so a removed concept's id is
- * never reused for another one.
+ * A concept whose text did not change keeps its id; new ones get ids after
+ * the highest id the slot has now, so within one edit a removed concept's
+ * id is not given to a new one. Across saves an id freed earlier can be
+ * given again (the plan keeps no history of ids); a sheet keeps each
+ * concept's text, so an older interview still reads right.
  */
 export function pointsFromLines(current, lines) {
   const before = new Map((current ?? []).map((p) => [p.text, p.id]));

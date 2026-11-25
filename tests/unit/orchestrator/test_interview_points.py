@@ -117,6 +117,12 @@ NON_ANSWERS = [
     ("Horario o turnos", "Esta tarde no puedo"),
     ("Resultado", "al final se hace"),
     ("Dónde trabajó y en qué puesto", "Estuve pensando en eso"),
+    ("Dónde trabajó y en qué puesto", "No tengo trabajo de eso"),
+    ("Dónde trabajó y en qué puesto", "Trabajo de lo que salga"),
+    ("Fecha de incorporación", "Me gustaría empezar a aprender"),
+    ("Lo que hizo él o ella", "un porqué no te sé dar"),
+    ("Cuánto tiempo", "Uf, un año de esos complicados"),
+    ("Cuánto tiempo", "Llevo dos semanas buscando"),
 ]
 
 
@@ -149,3 +155,14 @@ def test_the_documented_limits_of_the_rules() -> None:
     assert not names_point("Amortiguación y drop", "la amortiguación")
     # A word of the concept used in another sense still ticks it.
     assert names_point("Tipos de pisada", "dejé una pisada en el suelo mojado")
+
+
+def test_the_cues_still_read_real_answers() -> None:
+    """The tightened cues of the #258 re-review keep the plain answers."""
+    assert names_point("Cuánto tiempo", "estuve tres años allí")
+    assert names_point("Cuánto tiempo", "llevo dos años trabajando en caja")
+    assert names_point("Cuánto tiempo", "tengo cinco años de experiencia")
+    assert names_point("Fecha de incorporación", "podría empezar el lunes")
+    assert names_point("Fecha de incorporación", "me incorporo de inmediato")
+    assert names_point("Dónde trabajó y en qué puesto",
+                       "trabajaba de camarera en un bar")

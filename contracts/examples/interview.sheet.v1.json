@@ -28,7 +28,7 @@
           "status": "complete"
         }
       ],
-      "score": 85,
+      "score": 75,
       "above": false,
       "notes": "Dos años en tienda, cubre lo pedido.",
       "confidence": 0.7,
@@ -39,23 +39,58 @@
           "text": "Dónde y en qué tienda",
           "status": "treated",
           "quote": "Estuve dos años en una tienda de deportes",
-          "utterance": "t1.s0"
+          "utterance": "t1.s0",
+          "judgement": {
+            "label": "to_verify",
+            "reason": "Es experiencia propia: no se puede comprobar en la entrevista.",
+            "quote": "Estuve dos años en una tienda de deportes",
+            "utterance": "t1.s0",
+            "basis": "general",
+            "cites": []
+          }
         },
         {
           "id": "p2",
           "text": "Cuánto tiempo",
           "status": "treated",
           "quote": "dos años",
-          "utterance": "t1.s0"
+          "utterance": "t1.s0",
+          "judgement": {
+            "label": "to_verify",
+            "reason": "Es experiencia propia: no se puede comprobar en la entrevista.",
+            "quote": "dos años",
+            "utterance": "t1.s0",
+            "basis": "general",
+            "cites": []
+          }
         },
         {
           "id": "p3",
           "text": "Tareas con clientes",
           "status": "treated",
           "quote": "atendiendo en sala y en caja",
-          "utterance": "t1.s0"
+          "utterance": "t1.s0",
+          "judgement": {
+            "label": "to_verify",
+            "reason": "Es experiencia propia: no se puede comprobar en la entrevista.",
+            "quote": "atendiendo en sala y en caja",
+            "utterance": "t1.s0",
+            "basis": "general",
+            "cites": []
+          }
         }
-      ]
+      ],
+      "judgement": {
+        "label": "correct_basic",
+        "reason": "Explica qué hacía en sala y en caja, sin entrar en cómo resolvía consultas difíciles.",
+        "quote": "atendiendo en sala y en caja",
+        "utterance": "t1.s0",
+        "basis": "general",
+        "cites": []
+      },
+      "accuracy": {
+        "to_verify": 3
+      }
     },
     {
       "id": "s2",
@@ -84,7 +119,8 @@
           "text": "Turnos rotativos",
           "status": "treated",
           "quote": "Sí, más o menos puedo",
-          "utterance": "t3.s0"
+          "utterance": "t3.s0",
+          "judgement": null
         },
         {
           "id": "p2",
@@ -93,7 +129,18 @@
           "quote": "",
           "utterance": null
         }
-      ]
+      ],
+      "judgement": {
+        "label": "unclear",
+        "reason": "La respuesta es demasiado corta para valorar si cubre los sábados.",
+        "quote": "Sí, más o menos puedo",
+        "utterance": "t3.s0",
+        "basis": "general",
+        "cites": []
+      },
+      "accuracy": {
+        "not_treated": 1
+      }
     },
     {
       "id": "s3",
@@ -132,7 +179,10 @@
           "quote": "De zapatillas no sé mucho",
           "utterance": "t5.s0"
         }
-      ]
+      ],
+      "accuracy": {
+        "does_not_know": 3
+      }
     },
     {
       "id": "s4",
@@ -171,7 +221,10 @@
           "quote": "",
           "utterance": null
         }
-      ]
+      ],
+      "accuracy": {
+        "not_treated": 3
+      }
     },
     {
       "id": "s5",
@@ -210,7 +263,10 @@
           "quote": "",
           "utterance": null
         }
-      ]
+      ],
+      "accuracy": {
+        "not_treated": 3
+      }
     }
   ],
   "filler": "haiku",
@@ -224,5 +280,15 @@
     }
   ],
   "scorer": "haiku",
-  "finished_at": "2026-11-21T10:00:00"
+  "finished_at": "2026-11-21T10:00:00",
+  "judge": "interview.report@2",
+  "to_check": [
+    {
+      "slot": "s2",
+      "quote": "Sí, más o menos puedo",
+      "utterance": "t3.s0",
+      "why": "vague",
+      "note": "Preguntar qué sábados y qué turnos puede cubrir."
+    }
+  ]
 }

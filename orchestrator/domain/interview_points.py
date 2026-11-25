@@ -75,8 +75,8 @@ _PAST = re.compile(
 )
 """First-person past verbs (on the unfolded text: «expliqué», «decidí»)."""
 _NOT_PAST = frozenset(
-    "aquí allí ahí así qué café bebé comité esquí maní rubí jabalí "
-    "colibrí también".split()
+    "aquí allí ahí así qué porqué café bebé comité esquí maní rubí "
+    "jabalí colibrí también".split()
 )
 """Words ending in «é»/«í» that are not past verbs."""
 _RESULT = (
@@ -95,14 +95,20 @@ _CUES: Tuple[Tuple[Pattern[str], Pattern[str]], ...] = tuple(
          r"hace \w+ (anos?|meses))\b"),
         (r"\b(resultado|como acabo|como termino)\b", _RESULT),
         (r"\b(cuanto tiempo|duracion|anos de)\b",
-         rf"\b{_NUMBER} (anos?|meses|semanas)\b"),
+         rf"\b((durante|estuve|trabaje|trabajaba|he estado|he trabajado|"
+         rf"pase)( \w+){{0,3}} {_NUMBER} (anos?|meses|semanas)|"
+         rf"llevo {_NUMBER} (anos?|meses|semanas) (trabajando|en|con|"
+         rf"como)|{_NUMBER} (anos?|meses|semanas) (trabajando|de "
+         rf"experiencia|en (la|el|una?) \w+))\b"),
         (r"\b(horario|turnos?)\b",
          r"\b(horarios?|turnos?|(de|por las) (mananas|tardes|noches)|"
          r"fines? de semana|sabados|domingos|festivos|jornada)\b"),
         (r"\b(incorporacion|empezar)\b",
-         r"\b(empezar|incorpor\w*|inmediat\w*|desde ya|en \w+ semanas?)\b"),
+         r"\b((empezar|incorporarme) (en|el|la|ya|manana|a partir|de "
+         r"inmediato|cuando (querais|necesiteis))|incorporacion inmediata|"
+         r"de inmediato|inmediatamente|desde ya)\b"),
         (r"\b(donde|puesto|empresa)\b",
-         r"\b((trabaje|trabajaba|he trabajado|trabajo) (de|como|en)|"
+         r"\b((trabaje|trabajaba|he trabajado) (de|como|en)|"
          r"estuve( \w+){0,3} en (un|una|el|la|caja))\b"),
         (r"\b(tareas|funciones)\b",
          r"\b(me encargaba|me encargue|me ocupaba|atendia|mis tareas|"

@@ -10,6 +10,6 @@ reasoner: {role: conversational, model: haiku, template: "interviewer@2", deadli
 trigger: {on: final, speaker_roles: [candidate], min_words: 1, debounce_ms: 0, cancel_stale: true}
 tts: {kind: piper, voice: es_ES-davefx-medium, engine: pocket, pocket_voice: lola}
 ui: {kind: speaker}
-privacy: {store_audio: false, store_text_days: 30, banner: "interview_ai_notice@1"}
+privacy: {store_audio: false, store_text_days: 30, banner: "interview_ai_notice@2"}
 handoff: {transcript_v1: true, run_post_call: false}
 interview: {corpus: interview.generic, filler: haiku, max_probes: 1, minutes: 20, report: true, post_call: false}

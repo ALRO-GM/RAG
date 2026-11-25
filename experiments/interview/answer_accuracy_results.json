@@ -1,0 +1,1441 @@
+{
+ "schema": "answer-accuracy-run.v1",
+ "template": "interview.report@2",
+ "model": "haiku (claude -p)",
+ "started": "2026-11-25T03:24:17",
+ "set": "answer_accuracy_set.json",
+ "note": "Invented for #259 by the implementing model, not anyone's words. Each answer was written to show one label: solid (correct, beyond the surface for a one- or two-minute answer), correct_basic (correct but superficial), wrong (contains something incorrect) or off_topic (does not answer the question). Synthetic: it measures agreement with the writer's intent, not accuracy on real interviews.",
+ "summary": {
+  "answers": 36,
+  "repeats": 3,
+  "judgements": 108,
+  "agree": 106,
+  "rate": 0.981,
+  "per_label": {
+   "solid": {
+    "n": 27,
+    "agree": 26,
+    "rate": 0.963,
+    "got": {
+     "solid": 26,
+     "wrong": 1
+    }
+   },
+   "correct_basic": {
+    "n": 27,
+    "agree": 27,
+    "rate": 1.0,
+    "got": {
+     "correct_basic": 27
+    }
+   },
+   "wrong": {
+    "n": 27,
+    "agree": 27,
+    "rate": 1.0,
+    "got": {
+     "wrong": 27
+    }
+   },
+   "off_topic": {
+    "n": 27,
+    "agree": 26,
+    "rate": 0.963,
+    "got": {
+     "off_topic": 26,
+     "to_verify": 1
+    }
+   }
+  },
+  "stability": {
+   "same": 34,
+   "varies": 2
+  },
+  "wrong_listed_to_check": 27
+ },
+ "rows": [
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "No responde a la pregunta sobre pronadora, neutra y supinadora.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s2",
+   "got": "wrong",
+   "reason": "La pronación es el giro del pie hacia dentro al apoyar, no un apoyo de punta; la supinación es el giro hacia fuera.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s3",
+   "got": "solid",
+   "reason": "Define el drop correctamente, explica cómo cambia la carga en el tendón de Aquiles y el gemelo y recomienda un cambio progresivo.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s4",
+   "got": "off_topic",
+   "reason": "Habla de sus gustos al correr y no define el drop.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s5",
+   "got": "correct_basic",
+   "reason": "Es correcto pero superficial: no menciona medir el pie, dejar holgura delante ni probar con trote.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "El drop es la diferencia de altura entre talón y puntera, no el peso; el peso no depende de él.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Explica los tres tipos de pisada con su consecuencia en la zapatilla y el método de observación en cinta o desgaste.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "Las definiciones son correctas pero no describen el apoyo ni la zapatilla adecuada.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s9",
+   "got": "off_topic",
+   "reason": "No responde a cómo ayudar a elegir la talla.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s10",
+   "got": "solid",
+   "reason": "Procedimiento completo y correcto: medir ambos pies por la tarde, holgura de un dedo, prueba con calcetín de correr y trote.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "La definición es correcta pero no explica sus efectos ni su uso.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s12",
+   "got": "wrong",
+   "reason": "Lo habitual es elegir medio número o un número más que la de calle, porque el pie se hincha y se alarga al correr; una talla apretada puede causar ampollas y daño en uñas.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "No responde a qué es un índice ni cuándo usarlo; habla de la preferencia por Python frente a Java.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s2",
+   "got": "solid",
+   "reason": "Es correcta y añade la condición de hashabilidad (clave de diccionario), más allá de la definición básica.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s3",
+   "got": "wrong",
+   "reason": "Una prueba unitaria la escribe el desarrollador para verificar una función o clase aislada; la de integración comprueba que varias partes funcionan juntas, no la hace el equipo de sistemas al instalar.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Es correcta y cubre dobles, velocidad y el tipo de fallo que detecta cada prueba, con un ejemplo concreto.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s5",
+   "got": "solid",
+   "reason": "Es correcta y va más allá de la definición: indica cuándo indexar, el coste de escritura y espacio, y cómo comprobar el uso con EXPLAIN.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s6",
+   "got": "off_topic",
+   "reason": "No responde qué es una prueba unitaria ni en qué se diferencia de una de integración.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s7",
+   "got": "wrong",
+   "reason": "Las tuplas no se ordenan automáticamente; su diferencia principal es la inmutabilidad, y no son más lentas por ese motivo (suelen ser algo más eficientes).",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s8",
+   "got": "off_topic",
+   "reason": "Habla de la organización del trabajo en equipo, no de la diferencia entre listas y tuplas.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s9",
+   "got": "correct_basic",
+   "reason": "Es correcta pero superficial, sin mencionar aislamiento, dobles ni qué tipo de fallo detecta cada una.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "Un índice es una estructura auxiliar para localizar filas más rápido, no una copia de seguridad; la recuperación de datos corresponde a backups o al registro de transacciones.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "Es correcta pero superficial: no explica la estructura ni los costes de escritura o espacio.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s12",
+   "got": "correct_basic",
+   "reason": "Es correcta pero superficial; es la diferencia básica, sin mencionar usos ni consecuencias.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s1",
+   "got": "correct_basic",
+   "reason": "Es correcto en lo esencial, pero no detalla el orden de servicio ni cómo se gestiona cuando los platos llegan en momentos distintos.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s2",
+   "got": "off_topic",
+   "reason": "Habla de motivación general por la hostelería y no del procedimiento ante una alergia.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s3",
+   "got": "correct_basic",
+   "reason": "Es un procedimiento correcto pero incompleto, porque falta la contaminación cruzada y la comprobación de alérgenos en el plato servido.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Recoge el procedimiento completo y correcto para alergias, incluida la contaminación cruzada y la confirmación al servir, dentro de lo que cabe en una respuesta corta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s5",
+   "got": "off_topic",
+   "reason": "Describe la carga de trabajo en verano y no contesta sobre temperatura ni forma de servir el vino tinto.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Da rangos de temperatura correctos según tipo de vino y el protocolo completo de presentación y servicio, con detalle suficiente para el tiempo disponible.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "correct_basic",
+   "run": 1,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "Es correcta en la idea general, pero no concreta la temperatura ni la proporción de llenado que se pedían.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s9",
+   "got": "wrong",
+   "reason": "Es incorrecto: cualquier cantidad de fruto seco puede provocar una reacción y retirarlo por encima no elimina restos ni contaminación; lo correcto es no servir el plato sin confirmar que está libre de frutos secos.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "wrong",
+   "run": 1,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "Es incorrecto: el vino tinto se sirve a temperaturas de unos 14 a 18 grados, no a 4, que es propio de blancos espumosos o cervezas.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "solid",
+   "run": 1,
+   "slot": "s11",
+   "got": "solid",
+   "reason": "Describe correctamente el orden de servicio, el lado de servicio y la retirada conjunta, con detalle adecuado para la pregunta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "off_topic",
+   "run": 1,
+   "slot": "s12",
+   "got": "off_topic",
+   "reason": "Trata de preferencias de horario y no del orden de servicio en una mesa de varios comensales.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "Habla de ventas por color y no define pronación, neutra ni supinación.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s2",
+   "got": "wrong",
+   "reason": "La pronación es el giro del pie hacia dentro y la supinación hacia fuera, no una diferencia entre apoyo de punta y de talón.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s3",
+   "got": "solid",
+   "reason": "Define el drop como diferencia de altura en milímetros, da rangos típicos y explica el efecto en el apoyo y el tendón, con una recomendación de transición progresiva.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s4",
+   "got": "off_topic",
+   "reason": "Es una afición personal que no responde a la pregunta sobre el drop.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s5",
+   "got": "correct_basic",
+   "reason": "El procedimiento es correcto pero superficial, porque para correr faltan medir los pies y valorar el espacio delantero y el trote.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "El drop es la diferencia de altura entre talón y puntera, no el peso, y su relación con la amortiguación no es la descrita.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Explica las tres pisadas con la dirección correcta del movimiento, el tipo de calzado indicado para cada una y un método práctico de observación.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "La definición es correcta pero superficial, sin explicar cómo se manifiesta ni qué calzado conviene.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s9",
+   "got": "off_topic",
+   "reason": "Describe una acción comercial y no explica cómo elegir la talla.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s10",
+   "got": "solid",
+   "reason": "Explica el procedimiento completo de medición y prueba para correr, con criterios correctos de espacio y momento del día.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "La definición es correcta pero no menciona unidades ni consecuencias para el apoyo.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s12",
+   "got": "wrong",
+   "reason": "En running suele elegirse la misma talla o medio número más que la de calle para dejar espacio al pie, que se hincha al correr; además contradice u10.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "No responde a qué es un índice ni cuándo usarlo.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s2",
+   "got": "solid",
+   "reason": "Distingue mutabilidad, indica que la tupla puede ser clave si sus elementos son inmutables y da un criterio de uso correcto.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s3",
+   "got": "wrong",
+   "reason": "Las pruebas unitarias son tests automáticos que verifican funciones o clases aisladas; las de integración verifican varias piezas juntas, no quién las ejecuta.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Define ambos tipos de prueba con ejemplos correctos y explica las diferencias de velocidad y de qué detecta cada una.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s5",
+   "got": "solid",
+   "reason": "Describe correctamente la estructura, el uso en filtros y claves foráneas, el coste de escritura y la verificación con EXPLAIN.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s6",
+   "got": "off_topic",
+   "reason": "No responde a la diferencia entre prueba unitaria y de integración.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s7",
+   "got": "wrong",
+   "reason": "Las tuplas no se ordenan (conservan el orden de inserción) y la diferencia de rendimiento no se debe a ordenación; la diferencia clave es la inmutabilidad.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s8",
+   "got": "off_topic",
+   "reason": "No responde a la diferencia entre lista y tupla en Python.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s9",
+   "got": "correct_basic",
+   "reason": "Es correcta a nivel general, pero no menciona aislamiento, dobles ni herramientas, por lo que queda en lo superficial.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "Un índice es una estructura auxiliar para localizar filas más rápido, no un respaldo; las copias de seguridad son un mecanismo distinto.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "Es correcta pero superficial: no indica en qué columnas usarlos ni sus costes.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s12",
+   "got": "correct_basic",
+   "reason": "Es correcta pero superficial: señala la mutabilidad sin ampliar a usos ni a la hashabilidad.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s1",
+   "got": "correct_basic",
+   "reason": "Servir a todos a la vez y recoger al final es aceptable, pero no explica el protocolo de orden entre comensales.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s2",
+   "got": "off_topic",
+   "reason": "Expresa afinidad por el trato con clientes, pero no describe qué hacer ante una alergia.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s3",
+   "got": "correct_basic",
+   "reason": "Avisar a cocina y recomendar platos sin frutos secos es correcto, aunque superficial.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Describe correctamente el protocolo de alergias y lo expone con los matices que caben en la respuesta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s5",
+   "got": "off_topic",
+   "reason": "Habla de la carga de trabajo en verano, no de la temperatura ni del servicio del vino tinto.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "No se debe retirar cada plato al terminar su comensal; se espera a que todos hayan terminado.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Las temperaturas, la presentación y el llenado de la copa son correctos y con detalle suficiente para la respuesta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "correct_basic",
+   "run": 2,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "Servir algo fresco y no llenar mucho la copa es correcto, pero sin concretar la temperatura.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s9",
+   "got": "wrong",
+   "reason": "Quitar el fruto seco visible no elimina trazas ni aceite del plato; debe prepararse sin frutos secos.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "wrong",
+   "run": 2,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "El tinto se sirve entre 14 y 18 ºC; 4 ºC es temperatura de cerveza, no de vino tinto.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "solid",
+   "run": 2,
+   "slot": "s11",
+   "got": "wrong",
+   "reason": "El servicio se hace por la izquierda y la retirada por la derecha; dejar el plato por la derecha es incorrecto.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "off_topic",
+   "run": 2,
+   "slot": "s12",
+   "got": "off_topic",
+   "reason": "Habla de su preferencia de turno, no del orden de servicio en mesa.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "No responde a la diferencia entre pisada pronadora, neutra y supinadora.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s2",
+   "got": "wrong",
+   "reason": "La pronación es el giro hacia dentro del pie tras el apoyo y la supinación el apoyo por el borde exterior; no se definen por la punta o el talón.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s3",
+   "got": "solid",
+   "reason": "Definición correcta y efectos de drop alto y bajo explicados con el detalle adecuado para el tiempo disponible.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s4",
+   "got": "to_verify",
+   "reason": "No responde a la pregunta; es una afirmación personal no verificable en una entrevista.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s5",
+   "got": "correct_basic",
+   "reason": "Procedimiento razonable pero superficial; no menciona medir el pie ni el espacio delante de los dedos.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "El drop es la diferencia de altura entre talón y puntera, no el peso ni la amortiguación directa.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Describe correctamente los tres tipos, la zapatilla indicada para cada uno y cómo verlo en el desgaste.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "pisada",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "Definición correcta y breve de los tres tipos, sin indicar qué zapatilla corresponde a cada uno.",
+   "checked": true
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s9",
+   "got": "off_topic",
+   "reason": "No responde a cómo ayudar al cliente a elegir la talla.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s10",
+   "got": "solid",
+   "reason": "Procedimiento de talla completo y correcto, con matices sobre distancias largas.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "drop",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "Definición correcta pero superficial para la pregunta.",
+   "checked": false
+  },
+  {
+   "job": "running",
+   "question": "talla",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s12",
+   "got": "wrong",
+   "reason": "En running se suele elegir igual o medio número más que la de calle para dejar espacio a los dedos; medio número menos puede causar presión y daño en las uñas.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s1",
+   "got": "off_topic",
+   "reason": "Habla de preferencia entre lenguajes y no responde qué es un índice ni cuándo usarlo.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s2",
+   "got": "solid",
+   "reason": "Es correcto que la tupla es inmutable y que solo es hashable si sus elementos también lo son, con un criterio de uso razonable.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s3",
+   "got": "wrong",
+   "reason": "Una prueba unitaria es un test automatizado que comprueba una unidad de código aislada, y la de integración comprueba cómo encajan varias partes; no las ejecuta el usuario ni el equipo de sistemas.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Describe correctamente la prueba unitaria con dobles y la de integración con piezas reales, y su diferencia de velocidad y de fallos detectados.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s5",
+   "got": "solid",
+   "reason": "Es correcto y cubre el funcionamiento, los criterios de uso, el coste de escritura y la comprobación con EXPLAIN, más allá de la definición básica.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s6",
+   "got": "off_topic",
+   "reason": "Habla de objetivos profesionales y no responde qué es una prueba unitaria ni en qué se diferencia de una de integración.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s7",
+   "got": "wrong",
+   "reason": "Las tuplas no se ordenan al crearse; la diferencia clave es que son inmutables, y en general son ligeramente más eficientes, no más lentas.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s8",
+   "got": "off_topic",
+   "reason": "Describe procesos de trabajo de equipo y no contesta qué diferencia hay entre lista y tupla.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "tests",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s9",
+   "got": "correct_basic",
+   "reason": "La distinción básica es correcta, pero no menciona aislamiento, dobles ni el coste de cada tipo de prueba.",
+   "checked": false
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "Un índice es una estructura auxiliar que acelera la búsqueda de filas y no sustituye ni respalda los datos de la tabla.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "indice",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s11",
+   "got": "correct_basic",
+   "reason": "El propósito es correcto, pero la respuesta no explica la estructura ni los criterios de uso ni los costes.",
+   "checked": true
+  },
+  {
+   "job": "backend",
+   "question": "tupla",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s12",
+   "got": "correct_basic",
+   "reason": "La diferencia de mutabilidad es correcta, pero se queda en la definición sin matices de uso.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s1",
+   "got": "correct_basic",
+   "reason": "Es correcto como práctica informal, pero no indica el orden protocolario (invitados primero, anfitrión al final) ni cómo se colocan los platos.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s2",
+   "got": "off_topic",
+   "reason": "La respuesta habla de motivación y no describe ningún procedimiento ante un cliente alérgico.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s3",
+   "got": "correct_basic",
+   "reason": "Es correcto pero superficial: falta registrar la alergia en la comanda, evitar la contaminación cruzada y confirmar el plato al servir.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s4",
+   "got": "solid",
+   "reason": "Procedimiento completo y correcto, con prevención de contaminación cruzada y no recomendar platos dudosos, en el tiempo de una respuesta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s5",
+   "got": "off_topic",
+   "reason": "No responde a la pregunta sobre temperatura ni forma de servir un vino tinto.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s6",
+   "got": "wrong",
+   "reason": "",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s7",
+   "got": "solid",
+   "reason": "Temperaturas, presentación, lado de servicio y llenado de la copa son correctos y van más allá de lo superficial; el uso de la cubitera para un tinto es discutible.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "correct_basic",
+   "run": 3,
+   "slot": "s8",
+   "got": "correct_basic",
+   "reason": "Es correcto pero vago: la pregunta pedía temperatura y no se da ningún valor.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "alergia",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s9",
+   "got": "wrong",
+   "reason": "Retirar el fruto seco por encima no elimina el alérgeno (trazas, aceites, contaminación); el plato no debe servirse como libre de frutos secos.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "vino",
+   "expected": "wrong",
+   "run": 3,
+   "slot": "s10",
+   "got": "wrong",
+   "reason": "Un tinto se sirve entre unos 14 y 18 ºC; a 4 ºC se pierden aromas y el sabor se vuelve áspero.",
+   "checked": true
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "solid",
+   "run": 3,
+   "slot": "s11",
+   "got": "solid",
+   "reason": "Describe el protocolo de servicio con precisión, incluido el lado de servicio y la retirada conjunta, en el tiempo de una respuesta.",
+   "checked": false
+  },
+  {
+   "job": "sala",
+   "question": "orden",
+   "expected": "off_topic",
+   "run": 3,
+   "slot": "s12",
+   "got": "off_topic",
+   "reason": "No responde a la pregunta sobre el orden de servicio en una mesa de varios comensales.",
+   "checked": false
+  }
+ ],
+ "smoke": {
+  "planner": {
+   "status": "ok",
+   "error": null,
+   "slots": [
+    {
+     "label": "Experiencia en atención al cliente",
+     "level": "minimo",
+     "kind": "requirement",
+     "points": [
+      "año mínimo en comercio",
+      "tipo de clientela atendida",
+      "tareas concretas realizadas",
+      "trato directo con el público"
+     ]
+    },
+    {
+     "label": "Conocimiento de zapatillas de running",
+     "level": "minimo",
+     "kind": "requirement",
+     "points": [
+      "tipos de pisada: neutra, pronadora, supinadora",
+      "amortiguación según peso y kilometraje",
+      "drop y su efecto en la carrera",
+      "cómo elegir la talla",
+      "probar al final del día",
+      "espacio para el dedo gordo"
+     ]
+    },
+    {
+     "label": "Manejo de caja y TPV",
+     "level": "minimo",
+     "kind": "requirement",
+     "points": [
+      "cobros en efectivo y tarjeta",
+      "devoluciones y cambios",
+      "cierre de caja al final del turno",
+      "errores de cobro y cómo corregirlos"
+     ]
+    },
+    {
+     "label": "Disponibilidad para turnos rotativos y sábados",
+     "level": "minimo",
+     "kind": "requirement",
+     "points": [
+      "turnos rotativos",
+      "sábados incluidos",
+      "jornada completa",
+      "franjas horarias no disponibles"
+     ]
+    },
+    {
+     "label": "Inglés básico para turistas",
+     "level": "deseable",
+     "kind": "requirement",
+     "points": [
+      "nivel básico de inglés",
+      "vocabulario de tallas y producto",
+      "atención a turistas",
+      "recursos para comunicarse"
+     ]
+    },
+    {
+     "label": "Comunicación clara con el cliente",
+     "level": "minimo",
+     "kind": "competency",
+     "points": [
+      "situación concreta con cliente",
+      "explicación sencilla de algo técnico",
+      "comprobación de comprensión",
+      "resultado para el cliente"
+     ]
+    },
+    {
+     "label": "Escucha activa para asesorar",
+     "level": "minimo",
+     "kind": "competency",
+     "points": [
+      "situación concreta con cliente",
+      "preguntas para entender la necesidad",
+      "ajuste de la recomendación",
+      "resultado para el cliente"
+     ]
+    },
+    {
+     "label": "Iniciativa para mantener la tienda",
+     "level": "opcional",
+     "kind": "competency",
+     "points": [
+      "situación concreta del lugar de trabajo",
+      "acción propia sin que la pidan",
+      "resultado medible o visible"
+     ]
+    }
+   ]
+  },
+  "filler": {
+   "fallbacks": 0,
+   "answers": [
+    {
+     "answer": "Miro la pisada en la cinta y si es pronadora busco estabilidad.",
+     "expected_points": [
+      "p1"
+     ],
+     "fills": [
+      {
+       "slot": "s1",
+       "status": "complete",
+       "quote": "Miro la pisada en la cinta y si es pronadora busco estabilidad.",
+       "points": [
+        {
+         "id": "p1",
+         "status": "treated",
+         "quote": "si es pronadora"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "answer": "El drop es la diferencia entre talón y puntera; la amortiguación depende de la espuma y del peso del corredor.",
+     "expected_points": [
+      "p2"
+     ],
+     "fills": [
+      {
+       "slot": "s1",
+       "status": "partial",
+       "quote": "El drop es la diferencia entre talón y puntera; la amortiguación depende de la espuma y del peso del corredor.",
+       "points": [
+        {
+         "id": "p2",
+         "status": "treated",
+         "quote": "El drop es la diferencia entre talón y puntera"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "answer": "Dejo un dedo de margen delante y que se la pruebe con su calcetín.",
+     "expected_points": [
+      "p3"
+     ],
+     "fills": [
+      {
+       "slot": "s1",
+       "status": "complete",
+       "quote": "Dejo un dedo de margen delante y que se la pruebe con su calcetín.",
+       "points": [
+        {
+         "id": "p3",
+         "status": "treated",
+         "quote": "Dejo un dedo de margen delante"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "answer": "La pisada sí la sé ver, pero lo del drop no lo conozco.",
+     "expected_points": [
+      "p1",
+      "p2"
+     ],
+     "fills": [
+      {
+       "slot": "s1",
+       "status": "partial",
+       "quote": "La pisada sí la sé ver, pero lo del drop no lo conozco.",
+       "points": [
+        {
+         "id": "p1",
+         "status": "treated",
+         "quote": "La pisada sí la sé ver"
+        },
+        {
+         "id": "p2",
+         "status": "unknown",
+         "quote": "lo del drop no lo conozco"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "answer": "Me gusta mucho el ambiente de las tiendas de deporte.",
+     "expected_points": [],
+     "fills": []
+    },
+    {
+     "answer": "Pues eso, lo normal, ayudar al cliente.",
+     "expected_points": [],
+     "fills": [
+      {
+       "slot": "s1",
+       "status": "partial",
+       "quote": "Pues eso, lo normal, ayudar al cliente.",
+       "points": []
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "calls": [
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 34336,
+   "output_tokens": 8415
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 24868,
+   "output_tokens": 6086
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 34164,
+   "output_tokens": 7900
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 29127,
+   "output_tokens": 7014
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 26811,
+   "output_tokens": 6356
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 36111,
+   "output_tokens": 8811
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 36132,
+   "output_tokens": 8882
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 22838,
+   "output_tokens": 5413
+  },
+  {
+   "template": "interview.report@2",
+   "status": "ok",
+   "wall_ms": 43268,
+   "output_tokens": 10758
+  },
+  {
+   "template": "interview.planner@2",
+   "status": "ok",
+   "wall_ms": 9197,
+   "output_tokens": 1970
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 3613,
+   "output_tokens": 406
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 4256,
+   "output_tokens": 601
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 4114,
+   "output_tokens": 528
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 3488,
+   "output_tokens": 392
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 2137,
+   "output_tokens": 9
+  },
+  {
+   "template": "interview.slots@2",
+   "status": "ok",
+   "wall_ms": 2356,
+   "output_tokens": 56
+  }
+ ]
+}

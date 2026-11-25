@@ -7,6 +7,7 @@ asks the open core questions (not the one with blanks) and never the
 answered ones.
 """
 
+import json
 from typing import Any, Dict, List, Optional
 
 import pytest
@@ -16,6 +17,7 @@ from orchestrator.adapters.outbound.fakes import (
     FakeReasoner,
     FakeTts,
 )
+from orchestrator.adapters.outbound.jsonl_sink import MemoryHandoff
 from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.candidates import CandidateBook
 from orchestrator.application.next_round import TopicTracker
@@ -23,7 +25,11 @@ from orchestrator.application.interview import (
     InterviewPlanner,
     InterviewWiring,
 )
-from orchestrator.application.ports import CancelToken, Document
+from orchestrator.application.ports import (
+    CancelToken,
+    Document,
+    ReasonerUnavailable,
+)
 from orchestrator.application.sessions import LiveSessions, SessionError
 from orchestrator.domain.config import InterviewSection
 from tests.unit.orchestrator.fixtures import product, transcript
@@ -89,7 +95,8 @@ def conversation(session: str, lines: List[List[str]]) -> List[Document]:
 
 
 def wired(documents: List[Document], reasoner: Any = None,
-          store: Optional[MemoryCandidates] = None
+          store: Optional[MemoryCandidates] = None,
+          runner: Any = None, handoff: Any = None,
           ) -> LiveSessions:
     plans = Store()
     reasoner = reasoner or FakeReasoner()
@@ -105,10 +112,11 @@ def wired(documents: List[Document], reasoner: Any = None,
         {"live_assist.interview": product("live_assist.interview"),
          "live_assist.support": product()},
         knowledge, reasoner, Transcripts({"t": transcript()}), Clock(),
-        InlineRunner(), InlineExecutor, FakeTranscriber(),
+        runner or InlineRunner(), InlineExecutor, FakeTranscriber(),
         FakeEvents(documents),
         interview=InterviewWiring(planner, plans, reasoner, Handoff(),
                                   book),
+        handoff=handoff,
     )
 
 
@@ -534,3 +542,107 @@ def test_a_failing_topic_tracker_never_stops_the_suggestions(
     reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
     assert any(r.get("role") == "suggester" for r in reasoner.requests)
     assert live.get("r1")["state"] == "ended"
+
+
+class NoJudge(AskingReasoner):
+    """Answers everything but the report of a live round."""
+
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        if request.get("template") == "interview.report@2":
+            raise ReasonerUnavailable("down")
+        return super().reason(request, cancel)
+
+
+def round_lines(one: Any) -> List[List[str]]:
+    return [
+        ["S1", f"Hablemos de {one.label}. {one.questions[0]}"],
+        ["S2", "Trabajé de dependienta en una tienda de deportes, "
+               "atendiendo clientes durante dos años."],
+    ]
+
+
+def test_a_live_round_ends_with_a_draft_judgement_of_its_answers() -> None:
+    """#259: the live page's end result judges the answers, once."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    live = wired(conversation("r1", round_lines(one)), AskingReasoner(),
+                 store)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    found = [m for m in messages(live, "r1") if m["type"] == "accuracy"]
+    assert [m["state"] for m in found] == ["reporting", "ready"]
+    ready = found[-1]
+    assert [s["id"] for s in ready["slots"]] == [one.id]  # only answered
+    assert ready["slots"][0]["judgement"]["label"] == "correct_basic"
+    assert "score" not in ready["slots"][0]  # the live page never scores
+    reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
+    judged = [r for r in reasoner.requests
+              if r.get("template") == "interview.report@2"]
+    assert len(judged) == 1
+    handoff = live.get("r1")["handoff"]
+    assert handoff["accuracy"]["state"] == "ready"
+    assert live.get("r1")["accuracy"]["slots"][0]["id"] == one.id
+
+
+def test_a_failed_or_empty_live_judgement_never_breaks_the_end() -> None:
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    down = wired(conversation("r1", round_lines(one)), NoJudge(), store)
+    down.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert [m["state"] for m in messages(down, "r1")
+            if m["type"] == "accuracy"] == ["reporting", "failed"]
+    assert down.get("r1")["state"] == "ended"
+    quiet = wired(conversation("r2", [["S1", "Buenos días."]]),
+                  AskingReasoner(), store)
+    quiet.start_live("live_assist.interview", "stereo", session_id="r2",
+                     plan="plan-1", candidate="Lucía Marín")
+    assert not [m for m in messages(quiet, "r2") if m["type"] == "accuracy"]
+    assert quiet.get("r2")["accuracy"] is None
+
+
+class FirstInline:
+    """Runs the session's own job inline and holds the later ones."""
+
+    def __init__(self) -> None:
+        self.ran = False
+        self.held: List[Any] = []
+
+    def start(self, job: Any) -> None:
+        if self.ran:
+            self.held.append(job)
+            return
+        self.ran = True
+        job()
+
+
+def test_a_round_is_judged_after_it_ends_and_the_file_has_no_words() -> None:
+    """#259 review: judging never keeps the session running."""
+    store = MemoryCandidates()
+    probe = wired(conversation("r0", []), None, store)
+    assert probe.interview is not None
+    one = probe.interview.store.load("plan-1").ordered()[0]
+    runner, kept = FirstInline(), MemoryHandoff()
+    live = wired(conversation("r1", round_lines(one)), AskingReasoner(),
+                 store, runner, lambda session, product: kept)
+    live.start_live("live_assist.interview", "stereo", session_id="r1",
+                    plan="plan-1", candidate="Lucía Marín")
+    assert live.get("r1")["state"] == "ended"  # not running while judged
+    assert live.get("r1")["accuracy"] is None and len(runner.held) == 1
+    early, finished = live.feed("r1").read(0, 0.01)
+    assert not finished  # the feed waits for the judgement
+    assert not [m for _, m in early if m["type"] == "accuracy"]
+    assert "accuracy" not in kept.records[-1]
+    runner.held.pop()()
+    found = [m for m in messages(live, "r1") if m["type"] == "accuracy"]
+    assert [m["state"] for m in found] == ["reporting", "ready"]
+    assert live.get("r1")["handoff"]["accuracy"]["state"] == "ready"
+    stored = kept.records[-1]["accuracy"]
+    judged = stored["slots"][0]["judgement"]
+    assert judged["label"] == "correct_basic" and judged["utterance"]
+    assert "quote" not in judged and "reason" not in judged
+    assert "Trabajé" not in json.dumps(kept.records[-1], ensure_ascii=False)

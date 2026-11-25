@@ -335,6 +335,64 @@ export function coveragePanel(state) {
     slots.some((s) => s.points?.length) ? h("p", { class: "hint" }, t("iv.points_note")) : null);
 }
 
+// ---- the accuracy of the answers (#259) -----------------------------------------
+
+/** A judgement's label as a tag (a word, never the colour alone). */
+export function judgeTag(label) {
+  return h("span", { class: `tag iv-judge is-${label}` }, t(`iv.judge.${label}`));
+}
+
+function judgementText(j) {
+  if (!j) return null;
+  const basis = j.basis === "documents" ? t("iv.basis.documents", { ids: (j.cites ?? []).join(", ") }) : t("iv.basis.general");
+  return h("p", { class: "meta iv-judge-why" },
+    j.quote ? [h("q", {}, j.quote), " "] : null,
+    j.reason ? [j.reason, " "] : null,
+    h("span", { class: "iv-basis" }, `(${basis})`));
+}
+
+function countsLine(accuracy) {
+  const parts = Object.entries(accuracy ?? {}).filter(([, n]) => n > 0)
+    .map(([key, n]) => t("iv.judge_count", { n, label: t(`iv.judge.${key}`) }));
+  return parts.length ? h("p", { class: "meta" }, parts.join(" · ")) : null;
+}
+
+/**
+ * The draft judgement of how accurate the answers were: per point its
+ * judgement and its concepts' (quote, reason, basis), then «Afirmaciones que
+ * conviene comprobar», under a visible note that it is a model's draft.
+ * `result`: { slots, to_check } of a sheet (AI interviewer) or of a live round.
+ */
+export function accuracyBlock(result) {
+  const judged = (result?.slots ?? []).some((s) => s.judgement || s.points?.some((p) => p.judgement));
+  const checks = result?.to_check ?? [];
+  // Older sheets and status-only scores were never judged: no empty section.
+  if (!result?.judge && !judged && !checks.length) return null;
+  const slots = (result?.slots ?? []).filter((s) => s.judgement || s.points?.some((p) => p.judgement || p.status !== "pending"));
+  if (!slots.length && !checks.length) return null;
+  return h("section", { class: "iv-accuracy", "aria-label": t("iv.judge_title") },
+    h("h3", {}, t("iv.judge_title")),
+    h("p", { class: "draft-notice", role: "note" }, t("iv.judge_note")),
+    h("ol", { class: "iv-skills" }, slots.map((s) => h("li", { class: "iv-skill" },
+      h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label),
+        s.judgement ? judgeTag(s.judgement.label) : null),
+      countsLine(s.accuracy),
+      judgementText(s.judgement),
+      s.points?.length ? h("ul", { class: "iv-point-list" }, s.points.map((p) => {
+        const label = p.judgement ? p.judgement.label : p.status === "pending" ? "not_treated" : p.status === "unknown" ? "does_not_know" : null;
+        return h("li", { class: "iv-point" },
+          h("span", { class: "iv-point-text" }, p.text), " ",
+          label ? judgeTag(label) : h("span", { class: "iv-point-status" }, t("iv.point.treated")),
+          judgementText(p.judgement));
+      })) : null))),
+    checks.length ? h("div", { class: "iv-checks" },
+      h("h3", {}, t("iv.to_check_title")),
+      h("p", { class: "hint" }, t("iv.to_check_hint")),
+      h("ul", {}, checks.map((c) => h("li", {},
+        h("q", {}, c.quote), " ", h("span", { class: "tag" }, t(`iv.check.${c.why}`)),
+        c.note ? [" ", h("span", { class: "meta" }, c.note)] : null)))) : null);
+}
+
 // ---- after: the report ----------------------------------------------------------
 
 /**
@@ -390,7 +448,8 @@ export function reportCard(result) {
       sheet.summary ? h("p", { class: "iv-summary" }, sheet.summary) : null),
     h("h3", {}, t("iv.by_skill")),
     h("ol", { class: "iv-skills" }, figures.byWeight.map((s) => h("li", { class: "iv-skill" },
-      h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label), levelTag(s.level)),
+      h("div", { class: "row wrap iv-skill-head" }, h("span", { class: "iv-skill-label" }, s.label), levelTag(s.level),
+        s.judgement ? judgeTag(s.judgement.label) : null),
       h("div", { class: "row iv-skill-bar" }, scoreBar(s.score),
         h("span", { class: "iv-score" }, s.score === null || s.score === undefined ? "–" : String(s.score))),
       s.points?.length ? h("p", { class: "meta" }, t("iv.points_line", { done: pointCounts(s.points).treated, all: s.points.length })) : null))),
@@ -399,7 +458,21 @@ export function reportCard(result) {
         h("a", { href: `#/analysis/${encodeURIComponent(sheet.session_id)}` }, t("iv.open_analysis"))]
       : t("iv.handoff.none", { error: handoff.error ?? "" })),
     h("p", { class: "sf-draft" }, t("sf.iv_draft_short")),
+    accuracyBlock(sheet),
     more);
+}
+
+/**
+ * The end of an AI interview on the page where the candidate just spoke
+ * (#259 review): only that it ended and a button for the interviewer; the
+ * report (scores and the judgement of the answers) is drawn after the click.
+ */
+export function reportBehindClick(result) {
+  const box = h("section", { class: "card iv-report-gate", "aria-label": t("iv.report") });
+  const open = h("button", { type: "button", class: "primary", onClick: () => fill(box, reportCard(result)) },
+    t("iv.report_open"));
+  fill(box, h("h2", {}, t("iv.report_ended")), h("p", { class: "hint" }, t("iv.report_private")), open);
+  return box;
 }
 
 function tile(value, label, kind) {

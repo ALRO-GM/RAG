@@ -14,6 +14,7 @@ from orchestrator.application.interview import (
     OfferUnavailable,
     PlanError,
     ReasonerFiller,
+    judge_chunks,
     read_fills,
     read_report,
     status_scores,
@@ -25,7 +26,9 @@ from orchestrator.application.ports import (
 )
 from orchestrator.domain.config import InterviewSection
 from orchestrator.domain.interview import (
+    Answer,
     InterviewPlan,
+    PlanSource,
     Point,
     SheetSlot,
     Slot,
@@ -321,8 +324,11 @@ def test_a_directed_interview_from_opening_to_the_sheet() -> None:
     assert sheet["schema"] == "interview.sheet.v1"
     assert sheet["candidate"] == "Ana" and sheet["scorer"] == "haiku"
     assert [s["status"] for s in sheet["slots"]] == ["filled", "unknown"]
-    assert [s["score"] for s in sheet["slots"]] == [80, 0]
-    assert sheet["suitability"] == 40.0
+    # The fake judge says correct_basic: the score is capped at 75 (#259).
+    assert [s["score"] for s in sheet["slots"]] == [75, 0]
+    assert sheet["slots"][0]["judgement"]["label"] == "correct_basic"
+    assert sheet["judge"] == "interview.report@2"
+    assert sheet["suitability"] == 37.5
     assert sheet["minimums_covered"] and sheet["turns_to_minimums"] == 2
     assert result["handoff"] == {"transcript": True, "analysis": "started",
                                  "error": None}
@@ -496,3 +502,129 @@ def test_the_interviewer_is_told_the_points_and_the_sheet_keeps_them() -> None:
     assert points[0]["utterance"] == ids[answer]
     assert points[1]["utterance"] == ids[more]
     assert points[2]["utterance"] is None
+
+
+# ---- accuracy of the answers (#259) -------------------------------------
+
+def test_the_judge_reads_the_plan_s_documents_when_it_has_them() -> None:
+    plan = InterviewPlan(
+        id="plan-1", title="Dependiente/a", slots=[running()],
+        source=PlanSource(kind="document", domain="tienda",
+                          document="oferta.pdf"))
+    knowledge = FakeKnowledge([{"id": "tienda:c1",
+                                "text": "El drop es la diferencia de "
+                                        "altura entre talón y puntera"}])
+    reasoner = FakeReasoner()
+    boss = InterviewDirector(
+        plan, "vb-1", InterviewSection(max_probes=0), HeuristicFiller(),
+        reasoner, Output(), Clock(), Store(), None, False, "Ana",
+        now=lambda: NOW, knowledge=knowledge)
+    boss.plan_turn("", None, CancelToken())
+    answer = "El drop es la diferencia de altura entre talón y puntera."
+    boss.heard("u1", answer, 3.0, 6.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    request = [r for r in reasoner.requests
+               if r.get("template") == "interview.report@2"][0]
+    slot = request["payload"]["slots"][0]
+    assert slot["chunks"][0]["id"] == "tienda:c1"
+    assert slot["answers"] == [{"utterance": "u1", "text": answer}]
+    assert knowledge.queries[0]["domain"] == "tienda"
+    judged = result["sheet"]["slots"][0]["judgement"]
+    assert judged["label"] == "correct_basic" and judged["basis"] == "general"
+
+
+def test_a_pasted_offer_or_the_plain_report_has_no_chunks() -> None:
+    knowledge = FakeKnowledge([{"id": "c1", "text": "drop"}],
+                              everything=True)
+    plan = InterviewPlan(id="plan-1", title="T", slots=[running()])
+    assert judge_chunks(knowledge, plan, [], {}, "r") == {}
+    plain = director()
+    plain.config = InterviewSection(report_template="interview.report@1")
+    assert plain._chunks([]) == {}
+    assert knowledge.queries == []
+
+
+def finished_sheet(monkeypatch: pytest.MonkeyPatch, broken: str) -> Document:
+    """A short interview whose report step ``broken`` raises."""
+    import orchestrator.application.interview as module
+
+    def boom(*args: Any, **kwargs: Any) -> Any:
+        raise TypeError("odd reply")
+
+    monkeypatch.setattr(module, broken, boom)
+    boss = director()
+    boss.plan_turn("", None, CancelToken())
+    answer = "Estuve dos años en caja en un supermercado del barrio"
+    boss.heard("u1", answer, 3.0, 7.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    sheet: Document = result["sheet"]
+    return sheet
+
+
+def test_a_judgement_that_fails_keeps_the_plain_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review of #259: the end of the interview never breaks on it."""
+    sheet = finished_sheet(monkeypatch, "judge_slots")
+    assert sheet["scorer"] == "haiku" and sheet["judge"] is None
+    assert sheet["slots"][0]["score"] == 80  # the model's, not capped
+    assert sheet["to_check"] == []
+
+
+def test_a_report_that_cannot_be_read_gives_status_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sheet = finished_sheet(monkeypatch, "read_report")
+    assert sheet["scorer"] == "status" and sheet["judge"] is None
+    assert sheet["slots"][0]["scored_by"] == "status"
+
+
+class OddKnowledge:
+    """A knowledge service answering with chunks of the wrong shape."""
+
+    def __init__(self, result: Any) -> None:
+        self.result = result
+
+    def query(self, query: Document) -> Any:
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+def test_chunks_of_the_wrong_shape_are_skipped() -> None:
+    """Re-review of #259: odd chunks never stop the end of an interview."""
+    plan = InterviewPlan(
+        id="plan-1", title="T", slots=[running()],
+        source=PlanSource(kind="document", domain="tienda"))
+    slot = SheetSlot(id="s1", label="Running", level="minimo",
+                     answers=[Answer(utterance="u1", quote="El drop",
+                                     status="partial")])
+    for odd in ({"chunks": [{"text": "x"}]}, {"chunks": "abc"},
+                {"chunks": [1, None, {"id": 3, "text": "x"}]}, ["x"],
+                {"chunks": None}):
+        assert judge_chunks(OddKnowledge(odd), plan, [slot], {}, "r") == {}
+    good = {"chunks": [{"id": "c1", "text": "El drop"}, {"id": "c2"}]}
+    assert judge_chunks(OddKnowledge(good), plan, [slot], {}, "r") == {
+        "s1": [{"id": "c1", "text": "El drop"}]}
+
+
+def test_a_failing_chunk_lookup_still_ends_the_interview() -> None:
+    plan = InterviewPlan(
+        id="plan-1", title="T", slots=[running()],
+        source=PlanSource(kind="document", domain="tienda"))
+    boss = InterviewDirector(
+        plan, "vb-1", InterviewSection(max_probes=0), HeuristicFiller(),
+        FakeReasoner(), Output(), Clock(), Store(), None, False, "Ana",
+        now=lambda: NOW, knowledge=OddKnowledge(RuntimeError("odd")))
+    boss.plan_turn("", None, CancelToken())
+    answer = "Conozco los tipos de pisada de cada cliente."
+    boss.heard("u1", answer, 3.0, 6.0)
+    boss.plan_turn(answer, "u1", CancelToken())
+    result = boss.finish()
+    assert result is not None
+    judged = result["sheet"]["slots"][0]["judgement"]
+    assert judged["basis"] == "general"

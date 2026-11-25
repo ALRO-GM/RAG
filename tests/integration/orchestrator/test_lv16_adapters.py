@@ -103,6 +103,13 @@ def test_the_hand_off_is_written_as_json(tmp_path: Path) -> None:
     sink.write({"session_id": "s", "names": {"S1": "Ána"}})
     written = json.loads((tmp_path / "logs" / "s.handoff.json").read_text())
     assert written["names"] == {"S1": "Ána"}
+    # Only its owner reads it (#259 review), also when rewritten.
+    path = tmp_path / "logs" / "s.handoff.json"
+    assert path.stat().st_mode & 0o777 == 0o600
+    path.chmod(0o644)
+    sink.write({"session_id": "s", "accuracy": {"state": "ready"}})
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert json.loads(path.read_text())["accuracy"] == {"state": "ready"}
 
 
 def test_a_name_is_sent_to_the_transcriber() -> None:

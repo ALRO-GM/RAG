@@ -459,13 +459,46 @@ class Answer(_Strict):
     status: Literal["complete", "partial"]
 
 
+JudgeLabel = Literal[
+    "solid", "correct_basic", "wrong", "off_topic", "unclear", "to_verify",
+]
+"""How accurate an answer was (#259): ``solid`` correct and beyond the
+surface for the time available; ``correct_basic`` correct but
+superficial; ``wrong`` contains something incorrect; ``off_topic`` does
+not answer what was asked; ``unclear`` cannot be judged from what was
+said; ``to_verify`` a claim about the candidate's own experience, which
+cannot be checked from the interview (never ``wrong``)."""
+JUDGE_LABELS: Tuple[JudgeLabel, ...] = (
+    "solid", "correct_basic", "wrong", "off_topic", "unclear", "to_verify",
+)
+REASON_CHARS = 300
+Basis = Literal["documents", "general"]
+
+
+class Judgement(_Strict):
+    """A model's judgement of one answer, for the recruiter (#259).
+
+    ``basis`` says what it rests on: retrieved ``documents`` of the
+    plan's knowledge domain (``cites``), or the model's ``general``
+    knowledge. A draft: the model can be wrong about facts.
+    """
+
+    label: JudgeLabel
+    reason: str = Field(default="", max_length=REASON_CHARS)
+    quote: str = Field(default="", max_length=QUOTE_CHARS)
+    utterance: Optional[str] = None
+    basis: Basis = "general"
+    cites: List[str] = Field(default_factory=list)
+
+
 class SheetPoint(_Strict):
     """One concept of a slot after the interview (#258).
 
-    ``treated``: the candidate talked about it (not how well: that is
-    not judged here); ``pending``: not yet; ``unknown``: they said they
-    do not know it. ``quote`` and ``utterance`` are the words that
-    settled it.
+    ``treated``: the candidate talked about it; ``pending``: not yet;
+    ``unknown``: they said they do not know it. ``quote`` and
+    ``utterance`` are the words that settled it. ``judgement`` (#259):
+    how accurate what they said about it was, for a treated concept
+    the report judged.
     """
 
     id: str
@@ -473,6 +506,7 @@ class SheetPoint(_Strict):
     status: PointStatus = "pending"
     quote: str = Field(default="", max_length=QUOTE_CHARS)
     utterance: Optional[str] = None
+    judgement: Optional[Judgement] = None
 
 
 class SheetSlot(_Strict):
@@ -502,6 +536,29 @@ class SheetSlot(_Strict):
     scored_by: Optional[Literal["model", "status"]] = None
     points: List[SheetPoint] = Field(default_factory=list)
     """The slot's concepts and whether each was treated (#258)."""
+    judgement: Optional[Judgement] = None
+    """How accurate the answers to the slot were (#259)."""
+    accuracy: Dict[str, int] = Field(default_factory=dict)
+    """Counts of the slot's judgements and concept statuses (#259):
+    the labels plus ``not_treated`` and ``does_not_know``."""
+
+
+CheckWhy = Literal["wrong", "contradiction", "vague"]
+
+
+class CheckItem(_Strict):
+    """A statement that is worth checking (#259): a prompt, not a verdict.
+
+    ``why``: it looks incorrect, it contradicts another answer of the
+    same interview, or it is confident but vague where specifics were
+    asked.
+    """
+
+    slot: Optional[str] = None
+    quote: str = Field(min_length=1, max_length=QUOTE_CHARS)
+    utterance: Optional[str] = None
+    why: CheckWhy
+    note: str = Field(default="", max_length=REASON_CHARS)
 
 
 class OtherSkill(_Strict):
@@ -537,6 +594,10 @@ class Sheet(_Strict):
     summary: str = Field(default="", max_length=1200)
     other_skills: List[OtherSkill] = Field(default_factory=list)
     scorer: Optional[str] = None
+    to_check: List[CheckItem] = Field(default_factory=list)
+    """«Afirmaciones que conviene comprobar» (#259)."""
+    judge: Optional[str] = None
+    """The template that judged the answers (none: not judged)."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:
