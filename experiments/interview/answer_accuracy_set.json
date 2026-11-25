@@ -1,0 +1,90 @@
+{
+  "schema": "answer-accuracy-set.v1",
+  "note": "Invented for #259 by the implementing model, not anyone's words. Each answer was written to show one label: solid (correct, beyond the surface for a one- or two-minute answer), correct_basic (correct but superficial), wrong (contains something incorrect) or off_topic (does not answer the question). Synthetic: it measures agreement with the writer's intent, not accuracy on real interviews.",
+  "jobs": [
+    {
+      "id": "running",
+      "title": "Dependiente/a de tienda de running",
+      "summary": "Atención en sala de una tienda especializada en running: asesorar sobre zapatillas y material.",
+      "questions": [
+        {"id": "drop", "label": "Qué es el drop de una zapatilla",
+         "question": "¿Qué es el drop de una zapatilla de running?",
+         "answers": {
+           "solid": "El drop es la diferencia de altura entre el talón y la puntera, en milímetros. Uno alto, de 10 o 12, descarga el tendón de Aquiles y favorece entrar de talón; uno bajo, de 0 a 4, obliga a apoyar más con el medio pie y carga más el gemelo, así que el cambio tiene que ser progresivo.",
+           "correct_basic": "Es la diferencia de altura entre el talón y la parte delantera de la zapatilla.",
+           "wrong": "El drop es el peso de la zapatilla; cuanto más drop tiene, más pesa y más amortigua.",
+           "off_topic": "Me gusta mucho correr, sobre todo por la montaña los fines de semana."}},
+        {"id": "pisada", "label": "Tipos de pisada",
+         "question": "¿Qué diferencia hay entre una pisada pronadora, neutra y supinadora?",
+         "answers": {
+           "solid": "En la pisada neutra el pie apoya por fuera y rueda hacia dentro lo justo. En la pronadora se hunde demasiado hacia dentro y conviene una zapatilla con estabilidad; en la supinadora el apoyo se queda en el borde exterior y se busca más amortiguación y flexibilidad. Lo miro en la cinta o en el desgaste de una zapatilla vieja.",
+           "correct_basic": "La pronadora es cuando el pie se va hacia dentro y la supinadora cuando se va hacia fuera; la neutra es la normal.",
+           "wrong": "La pronadora es cuando apoyas con la punta del pie y la supinadora cuando apoyas con el talón.",
+           "off_topic": "Las zapatillas que más se venden en la tienda son las de colores claros."}},
+        {"id": "talla", "label": "Cómo elegir la talla",
+         "question": "¿Cómo ayudas a un cliente a elegir la talla de una zapatilla de running?",
+         "answers": {
+           "solid": "Mido los dos pies, mejor a última hora porque se hinchan, y dejo alrededor de un dedo de espacio delante del dedo más largo para que no toque al bajar. Le pido que se la pruebe con el calcetín de correr y que trote un poco; para distancias largas a veces conviene medio número más.",
+           "correct_basic": "Le pregunto su número de siempre y le pido que se la pruebe y camine un poco por la tienda.",
+           "wrong": "Hay que coger siempre la zapatilla de running medio número menos que la de calle, para que vaya bien apretada y el pie no se mueva.",
+           "off_topic": "Le ofrezco la tarjeta de cliente y le explico los descuentos que tenemos."}}
+      ]
+    },
+    {
+      "id": "backend",
+      "title": "Desarrollador/a backend junior (Python)",
+      "summary": "Mantener la API de pedidos de una tienda online en Python con PostgreSQL y tests automáticos.",
+      "questions": [
+        {"id": "indice", "label": "Índices en bases de datos",
+         "question": "¿Qué es un índice en una base de datos y cuándo lo usarías?",
+         "answers": {
+           "solid": "Es una estructura, normalmente un árbol B, que permite encontrar filas sin recorrer toda la tabla. Lo pongo en columnas por las que filtro o uno mucho, como una clave foránea, sabiendo que cada índice ralentiza las escrituras y ocupa espacio; compruebo con EXPLAIN que la consulta lo usa.",
+           "correct_basic": "Un índice sirve para que las búsquedas en una tabla sean más rápidas.",
+           "wrong": "Un índice es una copia de seguridad de la tabla que la base de datos usa si se corrompen los datos.",
+           "off_topic": "Prefiero programar en Python antes que en Java porque me parece más legible."}},
+        {"id": "tupla", "label": "Listas y tuplas en Python",
+         "question": "¿Qué diferencia hay entre una lista y una tupla en Python?",
+         "answers": {
+           "solid": "La lista es mutable y la tupla no: una tupla no se puede cambiar después de crearla, así que puede ser clave de un diccionario si sus elementos también son inmutables. Uso tuplas para registros fijos, como unas coordenadas, y listas para colecciones que crecen.",
+           "correct_basic": "La lista se puede modificar y la tupla no.",
+           "wrong": "La tupla es como una lista pero que se ordena sola al crearla, y por eso es más lenta.",
+           "off_topic": "Para organizarnos usamos tableros de tareas y una reunión corta cada mañana."}},
+        {"id": "tests", "label": "Pruebas unitarias y de integración",
+         "question": "¿Qué es una prueba unitaria y qué la diferencia de una de integración?",
+         "answers": {
+           "solid": "Una prueba unitaria comprueba una función o una clase aislada, sustituyendo lo externo, como la base de datos, por dobles; es rápida y dice exactamente qué se rompió. La de integración junta varias piezas reales, por ejemplo la API con una base de datos de prueba, y detecta fallos en cómo encajan, aunque es más lenta.",
+           "correct_basic": "La unitaria prueba una parte pequeña del código y la de integración prueba varias partes juntas.",
+           "wrong": "La prueba unitaria es la que hace el usuario final cuando usa la aplicación, y la de integración la hace el equipo de sistemas al instalarla.",
+           "off_topic": "Me gustaría crecer en la empresa y llegar a liderar un equipo algún día."}}
+      ]
+    },
+    {
+      "id": "sala",
+      "title": "Camarero/a de sala",
+      "summary": "Servicio de sala en un restaurante: comandas, servicio de bebidas y platos, atención a alérgenos.",
+      "questions": [
+        {"id": "vino", "label": "Servicio del vino tinto",
+         "question": "¿A qué temperatura y cómo se sirve un vino tinto?",
+         "answers": {
+           "solid": "Un tinto joven va mejor a unos 14 o 16 grados y uno con crianza a 16 o 18; si el comedor está caliente lo refresco unos minutos en la cubitera. Se presenta la botella con la etiqueta hacia el cliente, se sirve por la derecha y sin llenar la copa más de un tercio.",
+           "correct_basic": "El tinto se sirve un poco fresco, no muy frío, y sin llenar mucho la copa.",
+           "wrong": "El vino tinto se sirve siempre muy frío, a unos cuatro grados, igual que la cerveza.",
+           "off_topic": "En verano la terraza se llena mucho y hay que ir muy rápido."}},
+        {"id": "alergia", "label": "Clientes con alergias",
+         "question": "¿Qué haces si un cliente te dice que es alérgico a los frutos secos?",
+         "answers": {
+           "solid": "Lo anoto en la comanda y se lo digo en persona a cocina, porque también hay que evitar la contaminación cruzada con utensilios y superficies. Consulto la información de alérgenos de cada plato y, si no estoy seguro de alguno, no lo recomiendo; al servir confirmo que es el plato preparado sin frutos secos.",
+           "correct_basic": "Se lo digo a cocina y le recomiendo platos que no lleven frutos secos.",
+           "wrong": "Si el plato lleva solo un poco de fruto seco no pasa nada: se lo quito por encima antes de servirlo y listo.",
+           "off_topic": "Me encanta el trato con la gente y por eso me gusta tanto la hostelería."}},
+        {"id": "orden", "label": "Orden de servicio en la mesa",
+         "question": "¿En qué orden se sirve y se recoge en una mesa de varios comensales?",
+         "answers": {
+           "solid": "Se sirve primero a las personas invitadas y al final a quien invita; la comida, si se sirve emplatada, se deja por la derecha y se recoge también por la derecha, y no se retira ningún plato hasta que todos han terminado, salvo que alguien lo pida.",
+           "correct_basic": "Se intenta servir a todos a la vez y se recoge cuando han terminado todos.",
+           "wrong": "Se empieza siempre por el anfitrión y se retira cada plato en cuanto esa persona termina, aunque los demás sigan comiendo.",
+           "off_topic": "Prefiero el turno de mañana porque por las tardes estudio inglés."}}
+      ]
+    }
+  ]
+}
