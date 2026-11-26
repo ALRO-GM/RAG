@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from transcriber.domain.gpu_lease import AckFile, LeaseFile
 from transcriber.domain.diarization import Diarization
 from transcriber.domain.live import Hypothesis
+from transcriber.domain.live_recovery import RecoveryJob
 from transcriber.domain.models import (
     ConsentRecord,
     Session,
@@ -855,7 +856,8 @@ class FreeGpuMemory(Protocol):
 class LiveLog(Protocol):
     """Where a live session's events are kept (``jsonl_live_log``).
 
-    Text only: no audio is ever written (§8, minimisation).
+    Text only: no audio is ever written here (§8, minimisation; the
+    audio an outage lost goes to :class:`RecoveryStore`, #265).
     """
 
     def append(self, session_id: str, event: Mapping[str, Any]) -> None:
@@ -944,4 +946,113 @@ class ServiceProbe(Protocol):
 
         Never raises: a failure to reach the service is ``False``.
         """
+        ...
+
+
+class RecoveryStore(Protocol):
+    """The temporary store of recovered live audio (#265).
+
+    Its own place under the data directory (never «Sesiones»), files
+    private to the user. It holds each session's job state (no audio,
+    no words), the uploaded PCM chunks until their transcription
+    succeeds, and a few text documents the job works on (the live
+    transcript before the merge, the recovered parts' transcripts),
+    deleted when the job ends.
+    """
+
+    def ids(self) -> List[str]:
+        """Return the sessions with a job or with audio."""
+        ...
+
+    def load(self, session_id: str) -> Optional[RecoveryJob]:
+        """Return the session's job, or ``None``."""
+        ...
+
+    def save(self, job: RecoveryJob) -> None:
+        """Write the job's state (atomically)."""
+        ...
+
+    def put_chunk(self, session_id: str, number: int, data: bytes) -> None:
+        """Keep one chunk of PCM (replacing the same number)."""
+        ...
+
+    def wav(
+        self, session_id: str, chunks: Mapping[str, Sequence[int]],
+        part: Tuple[int, int], spans: Sequence[Tuple[int, int]],
+        channels: int, channel: Optional[int],
+    ) -> bytes:
+        """A 16 kHz mono WAV of ``part`` (``[start, end)`` in samples).
+
+        Only the samples inside ``spans`` are kept (the rest of the
+        part is silence); ``channel`` picks one channel of a stereo
+        upload. The caller bounds the part's length.
+        """
+        ...
+
+    def missing(self, session_id: str, numbers: Sequence[str]) -> List[str]:
+        """The chunk numbers among ``numbers`` whose file is gone."""
+        ...
+
+    def audio_bytes(self) -> int:
+        """Return the bytes of audio kept for every session."""
+        ...
+
+    def delete_audio(self, session_id: str) -> int:
+        """Delete the session's audio; return the files deleted."""
+        ...
+
+    def save_text(
+        self, session_id: str, name: str, document: Mapping[str, Any],
+    ) -> None:
+        """Keep a working document of the job (``live``, ``part-0``…)."""
+        ...
+
+    def read_text(
+        self, session_id: str, name: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Return a working document, or ``None``."""
+        ...
+
+    def delete_texts(self, session_id: str) -> None:
+        """Delete the job's working documents (its state stays)."""
+        ...
+
+    def delete(self, session_id: str) -> None:
+        """Delete everything kept for the session."""
+        ...
+
+
+class RecoveryTranscriber(Protocol):
+    """The batch pipeline over the recovery's own repository (#265)."""
+
+    def submit(
+        self, part_id: str, wav: bytes, language: str,
+        num_speakers: Optional[int], expected: Optional[List[str]],
+    ) -> None:
+        """Queue the transcription of one part (replacing an old one)."""
+        ...
+
+    def status(self, part_id: str) -> Tuple[str, float]:
+        """``(state, fraction)``: ``queued``, ``running``, ``done``,
+        ``failed`` or ``lost`` (no job for it: a restart)."""
+        ...
+
+    def transcript(self, part_id: str) -> Optional[Dict[str, Any]]:
+        """Return the part's ``transcript.v1`` once done."""
+        ...
+
+    def forget(self, part_id: str) -> None:
+        """Delete the part and its audio (absent: nothing)."""
+        ...
+
+    def ids(self) -> List[str]:
+        """The parts kept (to sweep those of no job)."""
+        ...
+
+
+class RoundRebuilder(Protocol):
+    """The orchestrator's rebuild of a round from its transcript (#265)."""
+
+    def rebuild(self, session_id: str, transcript: Mapping[str, Any]) -> None:
+        """Recompute the round's indicators; raise TranscriberError."""
         ...

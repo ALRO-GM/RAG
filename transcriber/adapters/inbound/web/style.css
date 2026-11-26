@@ -1737,3 +1737,9 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .iv-checks ul { margin: 0; padding-left: var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
 .iv-report-gate { display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-start; }
 .sf-cand-reports ul { margin: 0; padding-left: var(--s-4); }
+
+/* #265: audio of an interview kept in this browser, to send after it. */
+.lv-recovery { display: grid; gap: var(--s-3); }
+.lv-recovery-row { display: grid; gap: var(--s-2); border-top: 1px solid var(--line); padding-top: var(--s-3); }
+.lv-recovery-row:first-of-type { border-top: 0; padding-top: 0; }
+.lv-recovery-row p { margin: 0; }

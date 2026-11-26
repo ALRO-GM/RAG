@@ -136,3 +136,12 @@ class CorpusAccessError(TranscriberError):
 
 class PasswordError(TranscriberError):
     """The password cannot be set or its stored hash cannot be used."""
+
+
+class SessionRunningError(StateError):
+    """A live session is still on: its lost audio is sent afterwards
+    (#265)."""
+
+
+class NotBufferedError(StateError):
+    """The session's product keeps no audio during an outage (#265)."""

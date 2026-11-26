@@ -16,6 +16,7 @@ import { openDialog, toast } from "../ui.js";
 import { moreInfo } from "./summary-first.js";
 import { shortDate } from "./interview.js";
 import { reportHref } from "../lib/interview.js";
+import { roundRecoveries } from "./live-recovery.js";
 
 /**
  * «Confirmar datos»: the proposals read from the conversation, each with
@@ -78,6 +79,9 @@ export function confirmStep(profile, { api, onChange }) {
 export function candidateBlock(profile, { api = null, onDeleted = null } = {}) {
   const box = h("section", { class: "card sf-candidate", "aria-labelledby": "sf-candidate-title" });
   let current = profile;
+  // #265: rounds whose lost audio is being (or was) recovered.
+  const recoveries = h("div", { class: "stack tight" });
+  roundRecoveries(api, profile.rounds, recoveries).catch(() => {});
 
   async function act(job) {
     try {
@@ -146,6 +150,7 @@ export function candidateBlock(profile, { api = null, onDeleted = null } = {}) {
       ])),
       confirmStep(current, { api, onChange: (changed) => { current = changed; draw(); } }),
       reportList(current.reports),
+      recoveries,
       moreInfo(t("cand.more_hint"), () => [
         h("ul", { class: "stack sf-cand-details" }, rows.map(detail)),
         h("p", { class: "hint" }, t("cand.privacy")),

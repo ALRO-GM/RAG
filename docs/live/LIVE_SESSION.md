@@ -14,7 +14,7 @@ throttled like every other route.
 
 | Route | Body / messages | Answer |
 |---|---|---|
-| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms", "diarize"?, "enrolled"?, "parties"?}` | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
+| `POST /api/live/sessions` | `{"session_id", "channels": 1\|2, "speakers": [{"channel", "id", "role", "name"?}], "product"?, "handoff": {"transcript_v1", "run_post_call"}, "language": "es"\|null, "hang_ms": 300–700, "partial_every_ms", "diarize"?, "enrolled"?, "parties"?, "buffer_audio"?, "buffer_max_hours"?}` (the last two: #265, the product's leave to keep unsent audio) | 201 session (`state`, `device`, `model`, `speakers`, `audio`, `events`); 409 `wrong_state` (id in use) or `busy` (one session at a time); 422 invalid body |
 | `GET /api/live/sessions`, `GET /api/live/sessions/{id}` | — | the sessions / one session, with `finals`, `rejected_events`, `transcript` (`utterances`, `published`, `analysis`, `error`) |
 | `POST /api/live/sessions/{id}/stop` | — | the session after its end |
 | `POST /api/live/sessions/{id}/speakers/{speaker}` | `{"name"}` (1–80 characters) | the session; the hand-off's `transcript.v1` lists the name (LV-16); 409 once the session ended |
@@ -90,14 +90,16 @@ sustituye.» A page that goes back to a session it did not start never
 ends it when its own microphone fails («No se pudo usar el micrófono en
 esta página; la sesión sigue en marcha.»).
 
-The audio held during an outage lives only in the page's memory and is
-dropped as soon as it is acknowledged, so the notice «No se guarda el
-audio» stays true. Still lost: a closed tab, a crashed browser or a
-reload (the page's memory goes with it; the reattached page fills that
-time with silence), an outage longer than the grace, audio the 30 min
-outbox had to let go, what «Terminar ya» or the 60 s cap gives up, and
-whatever the voice assistant held at its «Terminar» (persistent local
-recording is a follow-up).
+The audio held during an outage lives in the page's memory and is
+dropped as soon as it is acknowledged. Without the outage buffer of
+#265 (below) still lost: a closed tab, a crashed browser or a reload
+(the page's memory goes with it; the reattached page fills that time
+with silence), an outage longer than the grace, audio the 30 min outbox
+had to let go, and what «Terminar ya» or the 60 s cap gives up. With it
+(products `live_assist.interview` and `live_assist.support`) all of
+these are kept in the browser and recovered after the session; the
+voice assistant never buffers (its «Terminar» still drops what it
+held).
 
 The transcriber's own log (`transcriber serve`'s output) has one line
 per live session start, end with its reason (`stop`, `idle`,
@@ -255,7 +257,8 @@ image); a reload was not tried.
   `contracts/live.event.v1.schema.json` (jsonschema) before it is sent;
   one that fails is logged and dropped (`rejected_events`). Events are
   written to `<data_dir>/live/<id>/events.jsonl` (mode 600, directory
-  700). No audio is ever written.
+  700). No audio is ever written there (the outage buffer of #265 has
+  its own folder, below).
 - **GPU (LV-8).** On the real runtime the session writes the GPU lease
   (`need_mib` 2200, §5 stereo), then polls every 0.5 s: GPU when the
   image worker's ack is there and `nvidia-smi` reports ≥ `need_mib`
@@ -293,4 +296,242 @@ image); a reload was not tried.
   the session's `transcript.error`, not raised.
 
 Not done here: keeping the audio for a batch
-re-run, the live page itself.
+re-run (only an outage's lost audio is kept, until transcribed, #265),
+the live page itself.
+
+## Long outages: kept in the browser, recovered afterwards (#265)
+
+A short outage costs nothing (#263). For a long one, a closed or
+crashed tab, or a connection that only returns after the interview, the
+page keeps what the server has not acknowledged in the browser and
+sends it after the session; the server transcribes it with the batch
+pipeline, puts it in the transcript in place of the gap and computes
+every indicator again.
+
+### Where audio can remain, and for how long (exact)
+
+Only for products with `privacy.buffer_audio_on_outage` (on for
+`live_assist.interview` and `live_assist.support`, `buffer_max_hours:
+48`; off for every other product; a deployment turns it off in the
+product file, and the transcriber's own switch is
+`live.recovery.enabled`). The orchestrator passes the product's leave
+in the start request (`buffer_audio`, `buffer_max_hours`), the
+transcriber keeps it in the session's record and refuses any upload for
+a session without it (409). The page reads it from `page.buffer`.
+
+1. **The page's memory** (#263): every 100 ms piece not acknowledged,
+   at most 30 min. Gone at the acknowledgement or when the tab closes.
+2. **The browser's disk** (IndexedDB `ragputin-live-audio`). A
+   connected session whose backlog is 3 s or less writes **nothing**.
+   Audio is written only while the audio link is down, while more than
+   3 s wait for their acknowledgement, and at «Terminar» or when the tab
+   is hidden or closed (`pagehide`) if something is still unacknowledged
+   then. Each chunk is deleted as soon as the server acknowledges all of
+   it (unless part of it became silence on the server: it is kept for
+   the recovery), all of a session once the server accepted the closed
+   upload (only the chunks the server holds), at once on «Descartar».
+   Past the expiry (session start + `buffer_max_hours`, 48 h) it is
+   deleted by a sweep that runs **only while a page of the app is open
+   in that browser**: when it loads, each time it becomes visible again,
+   and every 10 minutes. **If nobody opens the app in that browser
+   again, the expired audio stays on that browser's disk until the
+   browser evicts the site's data or someone clears it**: the web gives
+   a page no way to run when it is not open. A tab that crashes keeps
+   up to the last 5 s written; what was not yet written is lost.
+3. **The server** (`<data_dir>/live-recovery/<session>/audio/*.pcm`,
+   folder 700, files 600, git-ignored data dir) from the upload until
+   the transcription succeeds (then deleted at once), the job ends or
+   fails, or its expiry: the sooner of the upload's start plus
+   `live.recovery.ttl_hours` (24 h), the session's start plus
+   `buffer_max_hours`, and the page's own expiry; swept at start and
+   every hour while the transcriber runs (a stopped transcriber deletes
+   it at its next start). Also deleted at once on «Descartar» and when
+   the candidate's file is deleted. While transcribed, one WAV per part
+   also lives in `<data_dir>/live-recovery-batch/` and goes with it;
+   batch parts of no job are swept too.
+4. **Text, not audio**: the recovered parts' transcripts and the live
+   transcript before the merge, in `<data_dir>/live-recovery/<session>/
+   text/`, until the job ends (a process that stopped in between leaves
+   them for the next sweep, which deletes the texts of every ended
+   job); `recovery.json` (no audio, no words) stays as the page's status
+   until «Descartar».
+
+Nothing is put in «Sesiones», nothing is published as audio, and
+deletions are logged as counts.
+
+### What happens in each case
+
+| Case | What the page does | What is recovered |
+|---|---|---|
+| The connection returns during the interview | resends from the server's count (#263); while it was down the audio was also written to IndexedDB; what its 30 min memory let go was sent as a gap and stays in IndexedDB | after the session, the gaps |
+| The connection returns only after «Terminar» | «Terminar» waits as before; with the buffer the line says «Sin conexión: lo pendiente está guardado en este navegador y se enviará después de la entrevista. Puedes esperar o terminar ya.» and the button «Terminar ya: se enviará después». Ending then writes everything held, marks the session ended here, tries the stop (offline it fails: the page ends the session itself) and says «La entrevista ha terminado. {n} s de audio que no llegaron a enviarse quedan guardados en este navegador: envíalos desde «En directo» para completar la entrevista.» The server's session ends by itself after its grace (`source_lost`) | everything after the last acknowledged sample |
+| The tab was closed or crashed and reopened | a reattached page goes on (its new chunks numbered after the old ones); the old page's chunks were never sent (the server filled that time with silence on `align`) | after the session, that silence |
+| The connection never returns | the audio waits in the browser; see 2 above for when it goes | nothing |
+
+On the next visit to «En directo» the start form shows «Audio pendiente
+de entrevistas» with one line per session: «Hay {min} min de la
+entrevista del {fecha} sin enviar.», «Enviar» and «Descartar» (asks
+first: «¿Descartar el audio sin enviar?» «Se borra ahora de este
+navegador y del servidor. Lo que no se envió no se podrá añadir a la
+entrevista.»). A session that is still on is not offered for sending:
+«Esta entrevista sigue en marcha: vuelve a ella y el audio pendiente se
+enviará desde allí.» with «Volver a la sesión» (the server refuses an
+upload or a close for a session still on, 409). The end of a session
+that kept audio shows the same card. Sending says «Enviando el audio
+pendiente ({n} %)», then follows the job in a `role="status"` line
+(text, not colour): «Pendiente de analizar» → «Analizando ({n} %)» →
+«Completado ({n} min recuperados)», «Completado ({n} min recuperados,
+sin identificar quién habla)», «Completado: el audio enviado no tenía
+conversación que añadir», or «No se pudo recuperar». {n} is the speech
+the merged sentences cover, not the length of the gap. A full server
+answers 413: «El servidor no tiene sitio para este audio ahora. Sigue
+guardado en este navegador; inténtalo más tarde.» A closed upload that
+lacks some of the chunks still here (they arrived late) deletes here
+only what the server holds and says «Esta entrevista ya se completó con
+el audio enviado antes; lo que queda en este navegador llegó tarde y no
+se puede añadir. Puedes descartarlo.» Recoveries moving on the server
+(or ended in the last 2 h) are listed on the same card; the candidate's
+file lists its rounds' recoveries («Audio recuperado de las rondas»).
+
+### Upload protocol (transcriber, behind the access code)
+
+| Route | Body | Answer |
+|---|---|---|
+| `PUT /api/live/sessions/{id}/recovery/chunks/{n}?offset=&channels=` | raw PCM s16le 16 kHz (`channels` interleaved, 1 from the browser), from stream sample `offset` | the job; a chunk sent again replaces itself (resumable, idempotent). 404 for a session this service never ran; 409 `session_running` while the session is still on, `not_buffered` for a product without the leave, `wrong_state` once closed; 400 for audio past the product's limit counted from the session's start (`buffer_max_hours`, else `live.recovery.ttl_hours`: the page goes on recording offline long after the server ended the session, which waits for a lost source only 10 min), odd bytes, negative numbers, other channels than the first chunk's; 413 past 1 MiB per chunk, 512 MiB per session, 2 GiB in all, 8192 chunks |
+| `POST /api/live/sessions/{id}/recovery/close` | `{"count", "expires_at"?}` | the job, `queued`; 409 while chunks are missing or the session is still on; `expires_at` may only bring the expiry closer |
+| `GET /api/live/sessions/{id}/recovery` | — | `{session_id, state, progress, seconds, minutes, chunks, added, unidentified, failed_step, error, expires_at, audio_deleted, updated_at}`; the page resumes from `chunks` |
+| `DELETE /api/live/sessions/{id}/recovery` | — | 204; everything kept for the session is deleted now, also while a step runs |
+| `GET /api/live/recoveries` | — | every job, newest first |
+
+Ids are checked against the session id pattern before any path is
+built; one session's chunks live in its own folder, so an id cannot
+write into another's. The page sends a chunk three times at most (1, 2,
+4 s apart). A chunk refused as such (400) does not strand the rest: the
+others are sent, the upload is closed with what the server accepted,
+and the page says «{n} s del audio guardado no se pudieron añadir (fuera
+del plazo en que se puede guardar) y se han borrado de este navegador.»
+A 413 stops the upload (the audio stays; «El servidor no tiene sitio…»),
+`not_buffered` says «Este producto no guarda audio durante un corte:
+este audio no se puede enviar. Puedes descartarlo.», and
+`session_running` for a session this browser ended offline (the link
+came back within the server's 10 min grace) first stops that session,
+then sends (the stop is retried while its hand-over finishes), but only
+when nobody sends its audio now (`GET /api/live/sessions/{id}` says
+`source` is not `connected`; unknown counts as connected); a page that
+goes back to the session clears the «ended here» mark, so «Enviar» in
+another tab never stops an interview that goes on. For any other
+session still on, «Volver a la sesión».
+
+### The job (`transcriber/application/live_recovery.py`)
+
+`uploading → queued → transcribing → merging → publishing → analysing →
+rejudging → done | failed`, written to `recovery.json` by a thread of
+`transcriber serve` (`RecoveryWorker`, every 5 s).
+
+- **Crash safety.** State is written after every step and always
+  before anything is deleted: when the transcription is done the parts'
+  transcripts are saved and the job is written as `merging` (audio
+  marked deleted) before the audio goes. A crash anywhere either redoes
+  the step from what is on disk or, finding the audio gone, goes on
+  from the saved texts; with neither it fails as `audio_lost` and never
+  says «Completado». Tested with a crash injected after each write of
+  the whole state machine (store, log and batch writes: 18 distinct
+  crash points reached), each followed by a restart.
+- **Retries.** A real failure waits 30 s, then 120 s, and fails the job
+  at the third try (`failed_step`, `error`: an exception's type,
+  `MemoryError` included, never words). A batch job that a restart lost
+  (no runner job for it) is submitted again **without** counting a try,
+  at most 20 times. A failed job never blocks a live session.
+- `queued` waits while the live session is still on or handing over.
+  The spans to recover are the uploaded audio inside the silence the
+  server put in (`silences`, written to `session.json` as it happens, so
+  a crash keeps the gaps before it; one record write at a time, and a
+  write for a silence that comes after the end is skipped, so the end's
+  record is never overwritten) or after its last sample
+  (`received_samples`, written at the end; for a session cut by a crash,
+  the last event's stream time). Spans less than 30 s apart share one
+  part and a contiguous span longer than 30 min is cut into 30 min
+  parts (a sentence said across a cut is transcribed in two pieces);
+  each part is one WAV per channel, never one array across a long gap.
+  Building one part takes at most about 86 MB (16-bit samples and a
+  one-byte mask per sample of 30 min); at most 200 parts. Nothing left: `done`, with
+  «no conversation to add».
+- `transcribing`: the batch pipeline of the recovery's own repository,
+  on the service's job runner, so the batch GPU lease is honoured: it
+  waits while a live session holds the GPU. Mono not diarized: one
+  voice; diarized: the session's `enrolled` people as expected speakers
+  and two voices for a two-party session; stereo: one voice per
+  channel. **Services guard**: while one of its parts is running (holds
+  the GPU) the session is in the live marker as `recovering`, so
+  `ragputin-servicios stop|restart` refuses (it is the one moment a
+  restart costs real work: the transcription is redone; the guard says
+  «Recuperando el audio de una entrevista: transcribiendo (<id>).»).
+  Uploading,
+  queued, merging and the later steps do not count: a restart there
+  costs nothing (state and audio are on disk). The marker is updated on
+  each 5 s round, so a part that starts running is announced within 5 s.
+- `merging` (`transcriber/domain/live_recovery.py`, deterministic, from
+  the live transcript as it was before the first merge): a live
+  sentence whose midpoint falls in a recovered span is dropped (it was
+  heard over silence); a recovered sentence, moved by its part's
+  offset, is kept only when its midpoint falls in a recovered span (what
+  the server heard counts once); both in time order (live first on a
+  tie), regrouped into turns, ids renumbered. Speakers: a stereo part
+  takes its channel's speaker; mono without diarization the one voice;
+  diarized, an enrolled person the batch pipeline recognised keeps their
+  id, and with two parties every other voice is the other party once
+  the employee is recognised. Otherwise the voices are `R1`, `R2`…
+  (role unknown; `R1-1`, `R2-1`… when the job has several parts, since
+  each part is transcribed on its own), never guessed: **their sentences enter the transcript
+  but feed no indicator** (no topic, concept, mandatory item, line to
+  avoid or judged answer), and the page says «sin identificar quién
+  habla». The live session's own voice reference (the voice check) is
+  kept in memory only and is gone by then, so it cannot be used.
+- `publishing` / `analysing`: as the start request asked (the RAG
+  replaces a transcript of the same session; the post-call analysis is
+  started again with `restart`).
+- `rejudging`: `POST <orchestrator>/sessions/{id}/recovered` with the
+  merged transcript; the orchestrator replays it through the topics and
+  concepts, mandatory items and lines to avoid, attributes and judges
+  the answers again (`RecoveredRound` over `RoundRebuild`), replacing the
+  stored report in the plan's results and the candidate's file; a
+  session it still knows gets the judgement in its view and hand-off
+  record.
+
+External work (the batch submission, the RAG, the orchestrator) runs
+outside the service's lock: an upload, «Descartar» or a sweep never
+waits for it, and a discard during a step wins: the discard mark is
+checked before each external call (submitting, saving the merged
+transcript, publishing, the analysis, the rebuild), so a step already
+running never goes on with a discarded session.
+
+### Notice
+
+The owner decided (2026-11-26) the wording: in the notices read to the
+other person, «No se guarda el audio» / "No audio is kept" becomes «El
+audio se borra en cuanto se transcribe.» / "The audio is deleted as soon
+as it is transcribed." and nothing else changes: `interview_ai_notice@3`
+(products `live_assist.interview`, `voicebot.interview`),
+`support_ai_notice@2` (`live_assist.support`) and `voicebot.notice`.
+The voice bots never buffer (their pages keep nothing beyond memory),
+and the new sentence is as true for them as the old one, so they use the
+same wording; `voicebot.notice` has no version id in the repository (it
+is not a banner id), so its text changed in place.
+`interview_ai_notice@1`, `@2` and `support_ai_notice@1` stay in the
+dictionaries for old records. The sentence holds on every path except
+one, said above: audio in a browser where the app is never opened again
+after the session waits for that browser to clear it. Legal basis and
+retention remain the owner's decision (#151); this is not legal advice.
+
+### Not measured
+
+Everything above was tested with the fake runtime, a fake IndexedDB,
+fake sockets and temporary directories; no GPU run was made. Not
+measured: the quality of the re-transcription of recovered audio and of
+the speaker mapping (mono two-party sessions in particular), how long
+the batch pipeline takes per recovered minute, a real browser's
+IndexedDB quota and write speed during an hour-long outage, whether
+`pagehide` writes complete when a real tab closes (the last few seconds
+may be lost), and the orchestrator's rebuild time with the real
+reasoner. The thresholds (3 s backlog, 5 s chunks, 10 min sweep, 30 s
+join, 30 min parts) are chosen, not measured.

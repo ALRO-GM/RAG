@@ -26,6 +26,7 @@ import { interviewReportView } from "./views/interview-report.js";
 import { offersView, offerView, personFileView } from "./views/offers.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
+import { installSweeps } from "./lib/live-store.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -67,6 +68,7 @@ function adoptCode() {
 const codeListeners = new Set();
 
 adoptCode();
+installSweeps(); // #265: interview audio kept in this browser past its expiry goes at load, on return and every 10 min
 
 const app = document.getElementById("app");
 const api = new Api(readCode);

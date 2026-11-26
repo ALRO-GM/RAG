@@ -221,3 +221,20 @@ def test_a_session_handing_its_transcript_over_is_still_on(
     assert guard.check(env(tmp_path), NOW, alive) == (
         3, "Entrevista en directo en marcha: live-2 (terminada; enviando"
            " su transcripción).")
+
+
+def test_a_recovery_that_is_transcribing_is_named_as_such(
+    tmp_path: Path,
+) -> None:
+    """#265: the one moment a recovery holds the GPU refuses a restart."""
+    write(tmp_path / "ragputin" / "live-active.json", {
+        "pid": 4242, "sessions": [
+            {"id": "live-1", "state": "recovering", "source": "none"}]})
+    status, line = guard.check(env(tmp_path), NOW, alive)
+    assert status == 3
+    assert line == ("Recuperando el audio de una entrevista: transcribiendo"
+                    " (live-1).")
+    both = guard.describe([{"id": "a", "state": "running"},
+                           {"id": "b", "state": "recovering"}], False)
+    assert both == ("Entrevista en directo en marcha: a. Recuperando el"
+                    " audio de una entrevista: transcribiendo (b).")

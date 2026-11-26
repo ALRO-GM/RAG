@@ -56,6 +56,12 @@ from transcriber.adapters.outbound.fake_models import (
 )
 from transcriber.adapters.outbound.gpu_free_memory import NvidiaSmiFreeMemory
 from transcriber.adapters.outbound.jsonl_live_log import JsonlLiveLog
+from transcriber.adapters.outbound.fs_recovery_store import (
+    FileSystemRecoveryStore,
+)
+from transcriber.adapters.outbound.http_round_rebuilder import (
+    HttpRoundRebuilder,
+)
 from transcriber.adapters.outbound.fs_live_marker import (
     FileLiveMarker,
     marker_path,
@@ -78,6 +84,7 @@ from transcriber.adapters.outbound.http_pipeline_settings import (
 from transcriber.adapters.outbound.http_analysis_judge import (
     HttpAnalysisJudge,
 )
+from transcriber.adapters.inbound.recovery_worker import RecoveryWorker
 from transcriber.adapters.inbound.live_assist_proxy import (
     DEFAULT_URL as DEFAULT_ORCHESTRATOR_URL,
     URL_VARIABLE as ORCHESTRATOR_URL_VARIABLE,
@@ -191,6 +198,10 @@ from transcriber.application.live import (
 )
 from transcriber.application.live_diarization import (
     LiveNaming, MonoAttributor, PartyPlan,
+)
+from transcriber.application.live_recovery import LiveRecovery
+from transcriber.application.live_recovery_batch import (
+    BatchRecoveryTranscriber,
 )
 from transcriber.application.live_session import LivePorts, LiveSessions
 from transcriber.application.publish import PublishTranscript
@@ -336,6 +347,8 @@ class TranscriberContainer:
     ``/internal/knowledge-media`` (``None``: no RAG linked)."""
     services: Optional[CheckServices] = None
     """The live page's connection check of the services (#247)."""
+    live_recovery: Optional[LiveRecovery] = None
+    """The lost audio of live sessions, recovered afterwards (#265)."""
 
     def release_models(self) -> None:
         """Unload the speech, voice, overlap and name models (after a
@@ -957,11 +970,72 @@ def build_container(
             voiceprints, cpu_only=lambda: live_cpu_only(pipeline.current()),
         ),
     )
-    return replace(container, services=build_services(
-        environment, container.live is not None,
-        publisher.base_url
-        if isinstance(publisher, HttpTranscriptPublisher) else None,
-    ))
+    return replace(
+        container,
+        services=build_services(
+            environment, container.live is not None,
+            publisher.base_url
+            if isinstance(publisher, HttpTranscriptPublisher) else None,
+        ),
+        live_recovery=build_live_recovery(
+            container, environment, transcribe_media,
+        ),
+    )
+
+
+RECOVERY_BATCH_DIR = "live-recovery-batch"
+"""Folder of the recovery's batch repository, under the data dir."""
+
+
+def build_live_recovery(
+    container: TranscriberContainer,
+    environ: Mapping[str, str],
+    pipeline: Callable[[SessionRepository, SessionLocks], TranscribeSession],
+) -> Optional[LiveRecovery]:
+    """Return the recovery of live sessions' lost audio (#265).
+
+    Its own store (``<data_dir>/live-recovery``) and batch repository
+    (``<data_dir>/live-recovery-batch``), never «Sesiones»; the
+    service's job runner and models; the RAG and the orchestrator when
+    transcripts go to a RAG over HTTP. ``None`` without live sessions
+    or with ``live.recovery.enabled`` off.
+    """
+    settings = container.settings
+    live = container.live
+    if live is None or not settings.live.recovery.enabled:
+        return None
+    repository = FileSystemSessionRepository(
+        settings.data_dir / RECOVERY_BATCH_DIR
+    )
+    locks = ThreadSessionLocks()
+    transcribe = pipeline(repository, locks)
+    batch = BatchRecoveryTranscriber(
+        repository, locks,
+        ImportRecording(repository, locks,
+                        container.recogniser.supported_languages),
+        QueueTranscription(repository, container.voiceprints,
+                           container.runner, transcribe, locks),
+        container.runner,
+    )
+    publisher = container.publisher
+    linked = isinstance(publisher, HttpTranscriptPublisher)
+    orchestrator = (environ.get(ORCHESTRATOR_URL_VARIABLE)
+                    or DEFAULT_ORCHESTRATOR_URL)
+    return LiveRecovery(
+        FileSystemRecoveryStore(settings.data_dir),
+        JsonlLiveLog(settings.data_dir), batch, container.clock,
+        settings.live.recovery, running=live.busy,
+        publisher=publisher,
+        analysis=(
+            HttpSessionAnalysis(publisher.base_url, publisher.bearer_token)
+            if isinstance(publisher, HttpTranscriptPublisher) else None
+        ),
+        rebuilder=(
+            HttpRoundRebuilder(orchestrator, settings.rag_token_file)
+            if linked else None
+        ),
+        busy=live.recovering,
+    )
 
 
 def build_services(
@@ -1132,6 +1206,16 @@ def start_container(
                             " restart", session_id)
         except Exception:  # noqa: BLE001 - the service must start
             LOG.exception("Live sessions were not recovered")
+    if container.live_recovery is not None:
+        # #265: expired audio goes at once; the jobs go on where a
+        # stopped process left them.
+        worker = RecoveryWorker(
+            container.live_recovery,
+            container.settings.live.recovery.tick_seconds,
+            container.settings.live.recovery.sweep_seconds,
+        )
+        worker.start()
+        atexit.register(worker.stop)
     if container.knowledge_media is not None:
         cleared = container.knowledge_media.clear()
         if cleared:

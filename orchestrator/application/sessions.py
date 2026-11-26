@@ -409,6 +409,9 @@ def page_info(config: ProductConfig, roles: Mapping[str, str]) -> Document:
         "modes": list(MODES) if modes else [],
         "kind": config.ui.kind if config.ui else None,
         "banner": config.privacy.banner,
+        # #265: whether the page keeps unsent audio during an outage.
+        "buffer": {"on": config.privacy.buffer_audio_on_outage,
+                   "max_hours": config.privacy.buffer_max_hours},
         "signals": bool(reasoner and reasoner.expressed_signals),
         "script_phases": list(config.ui.script_phases) if config.ui else [],
         "roles": dict(roles),
@@ -1399,6 +1402,15 @@ class LiveSessions:
 
         ticker.start(loop)
 
+    def find(self, session_id: str) -> Optional[_Session]:
+        """The session this process still knows, or ``None`` (#265)."""
+        with self._lock:
+            return self._sessions.get(session_id)
+
+    def write_handoff(self, session: _Session) -> None:
+        """Write a session's hand-off record again (#265)."""
+        self._write_handoff(session)
+
     def _find(self, session_id: str) -> _Session:
         with self._lock:
             session = self._sessions.get(session_id)
@@ -1801,6 +1813,10 @@ def transcriber_body(
         "speakers": speakers, "product": config.product,
         "language": config.language, "handoff": handoff,
     }
+    if config.privacy.buffer_audio_on_outage:
+        # #265: the transcriber accepts the page's unsent audio only then.
+        body["buffer_audio"] = True
+        body["buffer_max_hours"] = config.privacy.buffer_max_hours
     if (diarized(config) if diarize is None else diarize) \
             and channels == 1:
         body["diarize"] = True

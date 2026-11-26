@@ -161,7 +161,10 @@ def test_products_say_what_the_page_shows() -> None:
     assert shown["live_assist.support"]["signals"] is True
     assert shown["live_assist.interview"]["signals"] is False
     assert shown["live_assist.interview"]["script_phases"][0] == "opening"
-    assert shown["live_assist.support"]["banner"] == "support_ai_notice@1"
+    assert shown["live_assist.support"]["banner"] == "support_ai_notice@2"
+    # #265: the products the browser's microphone serves keep unsent audio.
+    assert shown["live_assist.interview"]["buffer"] == {
+        "on": True, "max_hours": 48}
     assert shown["live_assist.support"]["live"] is False
     assert live.list_transcripts() == [{"id": "t"}]
 

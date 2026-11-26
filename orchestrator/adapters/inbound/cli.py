@@ -645,7 +645,8 @@ def run_serve(args: argparse.Namespace) -> int:
           f"live: {live}; token: {'yes' if token else 'no'})", flush=True)
     voices = sessions.demos if isinstance(
         sessions.demos, DemoVoiceLibrary) else None
-    uvicorn.run(create_app(sessions, token, demo_voices=voices),
+    uvicorn.run(create_app(sessions, token, demo_voices=voices,
+                           round_executor=InlineExecutor()),
                 host=args.host,
                 port=args.port, log_level="warning")
     return 0

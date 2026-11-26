@@ -24,8 +24,11 @@
 // a connection has sent everything held it says {"type": "caught_up"}.
 // The microphone is obtained before the socket claims the session's audio,
 // so a denied microphone never takes another browser's place. «Terminar» (finish) waits until the
-// server has everything before it says stop. The outbox lives only in
-// memory: the audio is never stored.
+// server has everything before it says stop. The outbox lives in memory;
+// when the product allows it (#265) a LocalRecording (lib/live-store.js)
+// mirrors what is not acknowledged yet to IndexedDB, so a long outage, a
+// closed tab or a «Terminar» without connection loses nothing: it is sent
+// after the session and deleted here as soon as the server has it.
 
 import { Capture } from "./capture.js";
 import { Outbox, backoffMs } from "./lib/live-link.js";
@@ -42,6 +45,7 @@ const SETTLE_MS = 500; // a suspected pause waits this long for a burst of queue
 const FINISH_CAP_MS = 60000; // «Terminar» waits at most this long while connected
 const FINISH_TICK_MS = 250;
 const STOPPED_WAIT_MS = 5000; // the server's "stopped" after our stop
+const KEEP_BACKLOG_S = 3; // #265: connected, audio is kept in the browser only past this backlog
 
 /** The socket address of a session's audio, on this page's host. */
 export function audioUrl(loc, id) {
@@ -60,12 +64,15 @@ export class LiveAudio {
    *   onLink     ({ state, pendingSeconds, everOpen }) on every change:
    *              state "connecting" | "open" | "lost" | "ended"
    *   echoCancellation  the browser's echo cancellation (voice bot only)
+   *   recording  a LocalRecording (#265) that keeps the unacknowledged
+   *              audio in this browser, or null
    *   deps       { openSocket, setTimeout, clearTimeout, random, now,
    *              Capture, location } (tests)
    * `muted` (settable) sends silence instead of the microphone, so the
    * transcriber still hears time pass and closes the sentence (push-to-talk).
    */
-  constructor({ id, code, onLevel = () => {}, onProblem = () => {}, onLink = () => {}, echoCancellation = false, deps = {} }) {
+  constructor({ id, code, onLevel = () => {}, onProblem = () => {}, onLink = () => {}, echoCancellation = false, recording = null, deps = {} }) {
+    this.recording = recording;
     this.id = id;
     this.echoCancellation = echoCancellation;
     this.muted = false;
@@ -128,7 +135,10 @@ export class LiveAudio {
 
   /** What the page shows of the link. */
   get link() {
-    return { state: this.state, pendingSeconds: this.outbox.pendingSeconds, everOpen: this.everOpen };
+    const link = { state: this.state, pendingSeconds: this.outbox.pendingSeconds, everOpen: this.everOpen };
+    // #265: what is held is also kept in this browser (nothing is lost by ending now).
+    if (this.recording) link.keeping = !this.recording.failed;
+    return link;
   }
 
   _setState(state) {
@@ -182,6 +192,7 @@ export class LiveAudio {
     if (message?.type === "ready") this._ready(socket, message);
     else if (message?.type === "ack") {
       this.outbox.ack(Number(message.samples));
+      this.recording?.ack(Number(message.samples));
       this.onLink(this.link);
       this._finishCheck();
     } else if (message?.type === "gap_clamped") this._clamped(message);
@@ -226,6 +237,18 @@ export class LiveAudio {
     this._first = null;
     this._pump();
     this._finishCheck();
+    this._mirror();
+  }
+
+  /** Keep what is not acknowledged in this browser (#265), once the offsets are the server's. */
+  _mirror(force = false) {
+    if (!this.recording || !this.everOpen) return Promise.resolve();
+    const pending = this.outbox.pendingSeconds;
+    // A healthy session writes nothing to the browser's disk: only a link
+    // that is down, or a backlog of more than a few seconds, is kept; a
+    // forced write («Terminar», a hidden tab) only when something waits.
+    if (force ? pending <= 0 : this.state === "open" && pending <= KEEP_BACKLOG_S) return Promise.resolve();
+    return this.recording.mirror(this.outbox, { limit: this._hold?.at ?? Infinity, force });
   }
 
   /** Close a socket that went silent while audio waits for its ack. */
@@ -263,6 +286,7 @@ export class LiveAudio {
 
   _lost() {
     this._setState(this.everOpen ? "lost" : "connecting");
+    this._mirror(true);
     const wait = backoffMs(this.attempt, this.deps.random);
     this.attempt += 1;
     this._timers.retry = this.deps.setTimeout(() => this._connect(), wait);
@@ -295,6 +319,7 @@ export class LiveAudio {
     this.outbox.push(piece);
     this._keepOnClock(piece.length / 2, offset);
     this._pump();
+    this._mirror();
     this.onLink(this.link);
   }
 
@@ -359,6 +384,7 @@ export class LiveAudio {
   _clamped({ at, asked, samples }) {
     if (![at, asked, samples].every(Number.isFinite)) return;
     const delta = this.outbox.clamp(at, asked, samples);
+    this.recording?.shift(at + asked, delta);
     if (this.sendAt >= at + asked) this.sendAt += delta;
     this.onLink(this.link);
   }
@@ -370,6 +396,8 @@ export class LiveAudio {
     const { gap, pieces } = this.outbox.from(this.sendAt);
     const holdAt = this._hold?.at ?? Infinity; // a suspected pause is not sent yet
     if (gap > 0) {
+      // Audio the outbox let go becomes silence there: its copy here stays for the recovery (#265).
+      this.recording?.keep(this.sendAt, this.sendAt + gap);
       socket.send(JSON.stringify({ type: "gap", samples: gap }));
       this.sendAt += gap;
     }
@@ -404,7 +432,9 @@ export class LiveAudio {
    * «Terminar» (#263): stop the microphone, then wait until the server has
    * everything still held (reconnecting meanwhile), at most `capMs` of
    * connected time; `endNow()` stops waiting. Then say stop and wait for
-   * the server's "stopped". Resolves { lostSeconds }: what never arrived.
+   * the server's "stopped". Resolves { lostSeconds, keptSeconds }: what
+   * never arrived, and of it what stays in this browser to be sent after
+   * the session (#265; then nothing is lost).
    */
   async finish({ capMs = FINISH_CAP_MS } = {}) {
     try {
@@ -414,6 +444,7 @@ export class LiveAudio {
     }
     this._flush();
     this._settle();
+    if (this.recording) await this._mirror(true);
     if (!this.ended && this.everOpen && this.outbox.pendingSeconds > 0) {
       await new Promise((resolve) => {
         this._finish = { resolve, openMs: 0, capMs };
@@ -421,12 +452,32 @@ export class LiveAudio {
         this._finishCheck();
       });
     }
-    const lostSeconds = this.outbox.pendingSeconds;
+    let lostSeconds = this.outbox.pendingSeconds;
+    if (!this.recording) {
+      await this._sayStop();
+      return { lostSeconds };
+    }
+    let keptSeconds = 0;
+    if (lostSeconds > 0) {
+      this._settle();
+      await this._mirror(true);
+      if (!this.recording.failed) {
+        keptSeconds = lostSeconds;
+        lostSeconds = 0;
+        if (this.state !== "open") await this.recording.endLocally(this.deps.now());
+      }
+    }
     await this._sayStop();
-    return { lostSeconds };
+    return { lostSeconds, keptSeconds };
   }
 
-  /** Stop waiting in `finish()`: what is still held is lost. */
+  /** Write what is held to this browser now (the tab is being hidden or closed). */
+  keepNow() {
+    if (this.recording && this.outbox.pendingSeconds <= 0) return this.recording.forgetIfEmpty();
+    return this._mirror(true);
+  }
+
+  /** Stop waiting in `finish()`: what is still held is lost (or kept here, #265). */
   endNow() {
     this._finishDone();
   }

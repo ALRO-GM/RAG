@@ -425,6 +425,9 @@ def facts_of(session_id: str, record: Mapping[str, Any]) -> SessionFacts:
         session_id, request, speakers,
         int(record.get("channels") or request.channels),
         record.get("model"), record.get("compute"), record.get("diarizer"),
+        # #265: kept when the record is written again.
+        extra={k: record[k] for k in ("started_at", "silences")
+               if k in record},
     )
 
 
