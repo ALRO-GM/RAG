@@ -1034,6 +1034,7 @@ def build_live_recovery(
             HttpRoundRebuilder(orchestrator, settings.rag_token_file)
             if linked else None
         ),
+        busy=live.recovering,
     )
 
 

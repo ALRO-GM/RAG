@@ -88,8 +88,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from orchestrator.adapters.outbound.runtime import InlineExecutor
 from orchestrator.application.demo_voices import DemoVoiceLibrary
+from orchestrator.application.ports import Executor
 from orchestrator.application.interview import PlanError
 from orchestrator.application.recovered_round import (
     RecoveredRound,
@@ -115,6 +115,7 @@ def create_app(
     token: Optional[str] = None,
     keepalive: float = 15.0,
     demo_voices: Optional[DemoVoiceLibrary] = None,
+    round_executor: Optional[Executor] = None,
 ) -> FastAPI:
     """Build the API over ``sessions``.
 
@@ -124,6 +125,8 @@ def create_app(
         keepalive: Seconds between SSE comments when nothing happens.
         demo_voices: The scripted examples' rendered clips (``None``:
             no example is heard).
+        round_executor: Runs a recovered round's checks (#265; inline,
+            from the composition root); ``None``: the route answers 503.
     """
     app = FastAPI(
         title="Orchestrator", docs_url=None, redoc_url=None,
@@ -482,13 +485,15 @@ def create_app(
     @app.post("/sessions/{session_id}/recovered")
     async def recovered(session_id: str, request: Request) -> Dict[str, Any]:
         """The transcriber recovered lost audio: rebuild the round."""
+        if round_executor is None:
+            raise SessionError("unavailable", "no round rebuild here")
         data = await body(request, RECOVERED_BODY)
         transcript = data.get("transcript")
         if not isinstance(transcript, dict):
             raise SessionError("invalid_request", "a transcript is needed")
         try:
             found: Dict[str, Any] = await run_in_threadpool(
-                RecoveredRound(sessions, InlineExecutor()).rebuild,
+                RecoveredRound(sessions, round_executor).rebuild,
                 session_id, transcript)
         except ValueError as exc:
             raise SessionError("invalid_request", str(exc)) from exc

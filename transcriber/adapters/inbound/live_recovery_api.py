@@ -7,8 +7,10 @@ Routes (under ``/api``, behind the access code like every other):
     interleaved, default 1), starting at stream sample ``offset``. A
     chunk sent again replaces itself (resumable, idempotent). ``413``
     past the size limits (one chunk, one session, every session), ``404``
-    for a session this service never ran, ``409`` once the upload is
-    closed. Answers the job.
+    for a session this service never ran, ``409`` while the session is
+    still on, for a product that keeps no audio, or once the upload is
+    closed; ``400`` for audio past the time the session lasted. Answers
+    the job.
 ``POST /api/live/sessions/{id}/recovery/close``
     ``{"count": n, "expires_at"?}``: every chunk was sent; the job is
     queued (``409`` while chunks are missing). Answers the job.
@@ -69,8 +71,10 @@ def add_recovery_routes(
 
     @api.get("/live/sessions/{session_id}/recovery")
     async def status(session_id: str) -> Dict[str, Any]:
-        """Where the session's recovery is."""
-        return recovery.status(session_id)
+        """Where the session's recovery is (read off the event loop)."""
+        found: Dict[str, Any] = await run_in_threadpool(
+            recovery.status, session_id)
+        return found
 
     @api.delete("/live/sessions/{session_id}/recovery", status_code=204)
     async def discard(session_id: str) -> Response:

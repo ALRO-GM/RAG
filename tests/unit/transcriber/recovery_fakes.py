@@ -6,7 +6,7 @@ decoded and no words of a real person appear anywhere.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from transcriber.domain.live_recovery import RecoveryJob
 from transcriber.domain.models import (
@@ -89,10 +89,14 @@ class MemoryRecoveryStore:
         self.chunks.setdefault(session_id, {})[number] = data
 
     def wav(self, session_id: str, chunks: Mapping[str, Sequence[int]],
-            spans: Sequence[Tuple[int, int]], channels: int,
-            channel: Optional[int]) -> bytes:
-        self.wavs.append((session_id, list(spans), channel))
+            part: Tuple[int, int], spans: Sequence[Tuple[int, int]],
+            channels: int, channel: Optional[int]) -> bytes:
+        self.wavs.append((session_id, tuple(part), channel))
         return b"RIFF-fake"
+
+    def missing(self, session_id: str, numbers: Sequence[str]) -> List[str]:
+        have = self.chunks.get(session_id, {})
+        return [n for n in numbers if int(n) not in have]
 
     def audio_bytes(self) -> int:
         return sum(len(d) for c in self.chunks.values() for d in c.values())
@@ -133,22 +137,38 @@ class ScriptedTranscriber:
         self.forgotten: List[str] = []
         self.plan: List[Tuple[str, float]] = []
         self.fail_next = 0
+        self.done: Set[str] = set()
+        self.lost: Set[str] = set()
 
     def submit(self, part_id: str, wav: bytes, language: str,
                num_speakers: Optional[int],
                expected: Optional[List[str]]) -> None:
         channel = None if part_id.endswith("-m") else int(part_id[-1])
         self.parts[part_id] = channel
+        self.done.discard(part_id)
+        self.lost.discard(part_id)
         self.submitted.append((part_id, language, num_speakers, expected))
 
+    def ids(self) -> List[str]:
+        return sorted(self.parts)
+
+    def restart(self) -> None:
+        """The process stopped: jobs not done are lost, done ones stay."""
+        for part in list(self.parts):
+            if part not in self.done:
+                self.lost.add(part)
+
     def status(self, part_id: str) -> Tuple[str, float]:
-        if part_id not in self.parts:
+        if part_id not in self.parts or part_id in self.lost:
             return "lost", 0.0
+        if part_id in self.done:
+            return "done", 1.0
         if self.fail_next:
             self.fail_next -= 1
             return "failed", 0.0
         if self.plan:
             return self.plan.pop(0)
+        self.done.add(part_id)
         return "done", 1.0
 
     def transcript(self, part_id: str) -> Optional[Dict[str, Any]]:
@@ -157,6 +177,8 @@ class ScriptedTranscriber:
         return self.results[self.parts[part_id]].to_contract()
 
     def forget(self, part_id: str) -> None:
+        self.done.discard(part_id)
+        self.lost.discard(part_id)
         if self.parts.pop(part_id, "absent") != "absent":
             self.forgotten.append(part_id)
 

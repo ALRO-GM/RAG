@@ -111,39 +111,44 @@ class FileSystemRecoveryStore:
 
     def wav(
         self, session_id: str, chunks: Mapping[str, Sequence[int]],
-        spans: Sequence[Tuple[int, int]], channels: int,
-        channel: Optional[int],
+        part: Tuple[int, int], spans: Sequence[Tuple[int, int]],
+        channels: int, channel: Optional[int],
     ) -> bytes:
-        """A mono 16 kHz WAV of the chunks inside ``spans`` (see port).
+        """A mono 16 kHz WAV of ``part`` (see the port).
 
-        It starts at the first span; samples outside every span, and
-        time no chunk covers, are silence. The tail span ends at the
-        last uploaded sample.
+        Samples outside ``spans``, and time no chunk covers, are
+        silence. Only the chunks that overlap the part are read; the
+        caller bounds the part's length (one recovered group).
         """
-        ends = [int(o) + int(n) for o, n in chunks.values()]
-        if not spans or not ends:
-            return _wav(np.zeros(0, dtype=np.int16))
-        start = spans[0][0]
-        stop = min(max(ends), max(end for _, end in spans))
+        start, stop = part
         length = max(stop - start, 0)
         out = np.zeros(length, dtype=np.int16)
         keep = np.zeros(length, dtype=bool)
         for a, b in spans:
-            keep[max(a - start, 0):max(min(b, stop) - start, 0)] = True
-        for number, (offset, samples) in sorted(
-                chunks.items(), key=lambda item: int(item[1][0])):
+            lo, hi = max(a, start) - start, min(b, stop) - start
+            if hi > lo:
+                keep[lo:hi] = True
+        for number, (offset, samples) in chunks.items():
+            begin = int(offset) - start
+            if begin >= length or begin + int(samples) <= 0:
+                continue
             data = self._chunk(session_id, int(number))
             pcm = np.frombuffer(data[:len(data) - len(data) % (2 * channels)],
                                 dtype="<i2").reshape(-1, channels)
             mono = pcm[:, channel] if channel is not None and channels == 2 \
                 else pcm.mean(axis=1).astype(np.int16) if channels == 2 \
                 else pcm[:, 0]
-            begin = int(offset) - start
             lo, hi = max(begin, 0), min(begin + len(mono), length)
             if hi > lo:
                 out[lo:hi] = mono[lo - begin:hi - begin]
         out[~keep] = 0
         return _wav(out)
+
+    def missing(self, session_id: str, numbers: Sequence[str]) -> List[str]:
+        """The chunk numbers among ``numbers`` whose file is gone."""
+        folder = self._folder(session_id) / AUDIO_DIR
+        return [n for n in numbers
+                if not (folder / f"{int(n)}.pcm").is_file()]
 
     def audio_bytes(self) -> int:
         """Return the bytes of every chunk kept."""

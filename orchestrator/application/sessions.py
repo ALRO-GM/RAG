@@ -1813,6 +1813,10 @@ def transcriber_body(
         "speakers": speakers, "product": config.product,
         "language": config.language, "handoff": handoff,
     }
+    if config.privacy.buffer_audio_on_outage:
+        # #265: the transcriber accepts the page's unsent audio only then.
+        body["buffer_audio"] = True
+        body["buffer_max_hours"] = config.privacy.buffer_max_hours
     if (diarized(config) if diarize is None else diarize) \
             and channels == 1:
         body["diarize"] = True

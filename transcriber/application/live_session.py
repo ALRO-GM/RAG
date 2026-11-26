@@ -67,6 +67,7 @@ from typing import (
     Literal,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
 )
@@ -255,7 +256,13 @@ class LiveSession:
         """Seconds of silence put in for audio the source lost."""
         self.silences: List[Tuple[int, int]] = []
         """Where that silence lies in the stream, ``[start, end)`` in
-        samples: the parts a recovery may fill (#265)."""
+        samples: the parts a recovery may fill (#265). Written to the
+        record as it happens, so a crash keeps them."""
+        self.started_at: Optional[str] = None
+        """When the session started (wall clock, ISO; #265 bounds a
+        recovery's offsets with it)."""
+        self.on_silence: Callable[[], None] = lambda: None
+        """Told when silence was put in (the record is written again)."""
         self.end_reason: Optional[EndReason] = None
         self.compute: Optional[str] = None
         self.handed_over = threading.Event()
@@ -342,6 +349,8 @@ class LiveSession:
             self.gap_seconds += count / SAMPLE_RATE
             if count:
                 self.silences.append((start, start + count))
+        if count:
+            self.on_silence()
         return count
 
     def align(self, held: object, source: Optional[int] = None) -> int:
@@ -655,6 +664,8 @@ class LiveSessions:
             ports.log, ports.publisher, ports.analysis, ports.clock, version,
         )
         self._sessions: Dict[str, LiveSession] = {}
+        self._recovering: Set[str] = set()
+        """Recoveries whose transcription holds the GPU now (#265)."""
         self._lock = threading.Lock()
         self._marking = threading.Lock()
 
@@ -684,6 +695,8 @@ class LiveSessions:
             target=self._work, args=(session,),
             name=f"live-{request.session_id}", daemon=True,
         )
+        session.started_at = self._p.clock.now().isoformat()
+        session.on_silence = lambda: self._record_now(session)
         worker.start()
         session.on_change = self._mark
         self._mark()
@@ -738,11 +751,29 @@ class LiveSessions:
         with self._marking:  # one snapshot written at a time, in order
             with self._lock:
                 sessions = list(self._sessions.values())
-            self._write_marker(marker, sessions)
+                recovering = sorted(self._recovering)
+            self._write_marker(marker, sessions, recovering)
+
+    def recovering(self, session_id: str, on: bool) -> None:
+        """A recovery's transcription holds the GPU (or stopped, #265).
+
+        While it does, the session is in the live marker (state
+        ``recovering``), so the services guard refuses a restart: it
+        is the one moment a restart costs real work.
+        """
+        with self._lock:
+            changed = (session_id in self._recovering) != on
+            if on:
+                self._recovering.add(session_id)
+            else:
+                self._recovering.discard(session_id)
+        if changed:
+            self._mark()
 
     @staticmethod
     def _write_marker(
         marker: LiveMarker, sessions: Sequence[LiveSession],
+        recovering: Sequence[str] = (),
     ) -> None:
         """Write the snapshot (under the marking lock: newest wins)."""
         try:
@@ -754,18 +785,34 @@ class LiveSessions:
                  "source": s.source_state}
                 for s in sessions
                 if s.active or not s.handed_over.is_set()
-            ])
+            ] + [{"id": i, "state": "recovering", "source": "none"}
+                 for i in recovering])
         except OSError:
             LOG.exception("The live marker was not written")
 
     @staticmethod
     def facts(session: LiveSession) -> SessionFacts:
-        """What ``session``'s transcript and record are made of."""
+        """What ``session``'s transcript and record are made of.
+
+        The record also keeps the start time and the silence put in so
+        far (#265: what a recovery may fill, also after a crash).
+        """
         return SessionFacts(
             session.id, session.request, list(session.speakers),
             session.channels, session.model, session.compute,
             session.diarizer,
+            extra={"started_at": session.started_at,
+                   "silences": [list(s) for s in session.silences]},
         )
+
+    def _record_now(self, session: LiveSession) -> None:
+        """Write the record again (silence was put in); never raises."""
+        try:
+            self._handover.record(
+                self.facts(session), session.state.value,
+                transcript=session.transcript, **session.record_extra)
+        except Exception:  # noqa: BLE001 - the audio must go on
+            LOG.exception("Live session %s: record not written", session.id)
 
     def recover(self) -> List[str]:
         """Rebuild the sessions a stopped process left unfinished (#264).
@@ -1063,9 +1110,7 @@ class LiveSessions:
                                 "error": error,
                                 "ended_at": self._p.clock.now().isoformat(),
                                 # #265: what a recovery may fill.
-                                "received_samples": session.received,
-                                "silences": [list(s)
-                                             for s in session.silences]}
+                                "received_samples": session.received}
         self._handover.record(
             self.facts(session), state.value, transcript=session.transcript,
             **session.record_extra,

@@ -978,14 +978,19 @@ class RecoveryStore(Protocol):
 
     def wav(
         self, session_id: str, chunks: Mapping[str, Sequence[int]],
-        spans: Sequence[Tuple[int, int]], channels: int,
-        channel: Optional[int],
+        part: Tuple[int, int], spans: Sequence[Tuple[int, int]],
+        channels: int, channel: Optional[int],
     ) -> bytes:
-        """A 16 kHz mono WAV from ``spans[0]`` to the last span's end.
+        """A 16 kHz mono WAV of ``part`` (``[start, end)`` in samples).
 
-        Only the samples inside ``spans`` are kept (the rest is
-        silence); ``channel`` picks one channel of a stereo upload.
+        Only the samples inside ``spans`` are kept (the rest of the
+        part is silence); ``channel`` picks one channel of a stereo
+        upload. The caller bounds the part's length.
         """
+        ...
+
+    def missing(self, session_id: str, numbers: Sequence[str]) -> List[str]:
+        """The chunk numbers among ``numbers`` whose file is gone."""
         ...
 
     def audio_bytes(self) -> int:
@@ -1038,6 +1043,10 @@ class RecoveryTranscriber(Protocol):
 
     def forget(self, part_id: str) -> None:
         """Delete the part and its audio (absent: nothing)."""
+        ...
+
+    def ids(self) -> List[str]:
+        """The parts kept (to sweep those of no job)."""
         ...
 
 

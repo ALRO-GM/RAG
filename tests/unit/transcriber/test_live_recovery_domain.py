@@ -13,6 +13,7 @@ from tests.unit.transcriber.recovery_fakes import T0, transcript
 from transcriber.domain.live import LiveSpeaker
 from transcriber.domain.live_recovery import (
     END,
+    group_spans,
     MAX_TRIES,
     RecoveredPart,
     RecoveryJob,
@@ -26,6 +27,13 @@ from transcriber.domain.live_recovery import (
 from transcriber.domain.models import Speaker
 
 S = 16000
+
+
+def test_close_spans_share_a_part_and_far_ones_do_not() -> None:
+    assert group_spans([(0, S), (10 * S, 11 * S), (100 * S, 101 * S)]) == [
+        (0, 11 * S), (100 * S, 101 * S)]
+    assert group_spans([(0, S), (2 * S, 3 * S)], longest=2 * S) == [
+        (0, S), (2 * S, 3 * S)]
 
 
 def test_spans_are_sorted_joined_and_intersected() -> None:
@@ -121,7 +129,7 @@ def test_the_merge_puts_the_recovered_sentences_in_the_gap() -> None:
     assert [u.id for u in merged.transcript.utterances] == [
         "t0.s0", "t1.s0", "t2.s0", "t3.s0", "t4.s0", "t5.s0"]
     assert merged.added == 3 and merged.dropped == 1
-    assert merged.seconds == 36.0
+    assert merged.seconds == 14.5, "the speech added, not the gap"
     assert merged.transcript.session.duration == 55.0
     # Run twice, the same result: the merge is deterministic.
     again = merge_recovered(live, [RecoveredPart(batch, 10 * S, names)],
@@ -141,7 +149,8 @@ def test_unknown_recovered_voices_are_listed_with_their_role() -> None:
         [(5 * S, END)], {"cand": "candidate"})
     roles = {s.id: s.role for s in merged.transcript.speakers}
     assert roles == {"ana": "interviewer", "cand": "candidate", "R1": None}
-    assert merged.seconds == 0.0  # an open tail counts no fixed length
+    assert merged.seconds == 2.0
+    assert merged.unidentified, "R1 feeds no indicator: said so"
 
 
 def test_ties_keep_the_live_sentence_first() -> None:

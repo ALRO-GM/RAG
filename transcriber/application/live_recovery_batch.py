@@ -90,3 +90,7 @@ class BatchRecoveryTranscriber:
         with self._locks.hold(part_id):
             if self._sessions.get(part_id) is not None:
                 self._sessions.delete(part_id)
+
+    def ids(self) -> List[str]:
+        """The parts kept in the recovery's repository."""
+        return list(self._sessions.ids())

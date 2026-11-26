@@ -15,6 +15,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 from orchestrator.adapters.inbound.http_server import create_app
+from orchestrator.adapters.outbound.fakes import FakeKnowledge
+from orchestrator.adapters.outbound.runtime import InlineExecutor
+from orchestrator.application.sessions import LiveSessions
+from tests.unit.orchestrator.fixtures import product
+from tests.unit.orchestrator.test_sessions import (
+    Clock,
+    InlineRunner,
+    SignalReasoner,
+    Transcripts,
+)
 from orchestrator.adapters.outbound.http_transcriber import HttpTranscriber
 from orchestrator.application.ports import TranscriberUnavailable
 from orchestrator.adapters.outbound.fs_candidates import JsonCandidateStore
@@ -32,7 +42,15 @@ from transcriber.domain.errors import PublishError
 
 
 def test_a_recovered_transcript_rebuilds_its_round() -> None:
-    web = app()
+    assert app().post("/sessions/r9/recovered",
+                      json={"transcript": transcript("r9")},
+                      headers=AUTH).status_code == 503, "no executor given"
+    sessions = LiveSessions(
+        {"live_assist.interview": product("live_assist.interview")},
+        FakeKnowledge(), SignalReasoner(), Transcripts({}), Clock(),
+        InlineRunner(), InlineExecutor)
+    web = TestClient(create_app(sessions, "tok",
+                                round_executor=InlineExecutor()))
     answer = web.post("/sessions/r9/recovered",
                       json={"transcript": transcript("r9")}, headers=AUTH)
     assert answer.status_code == 200, answer.text

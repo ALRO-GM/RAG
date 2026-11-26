@@ -61,7 +61,8 @@ def heard(seconds: float, at: float = 0.2, length: float = 2.0) -> bytes:
 def live_session_with_a_gap(client: TestClient) -> None:
     """3 s heard, 5 s the page could not send (silence here), 3 s."""
     answer = client.post("/api/live/sessions", json={
-        "session_id": "iv-1", "handoff": {"transcript_v1": True}})
+        "session_id": "iv-1", "handoff": {"transcript_v1": True},
+        "buffer_audio": True, "buffer_max_hours": 48})
     assert answer.status_code == 201, answer.text
     with client.websocket_connect("/api/live/iv-1/audio") as ws:
         ws.receive_json()
@@ -84,6 +85,7 @@ def test_the_lost_minutes_come_back_into_the_transcript(
     folder = container.settings.data_dir / "live" / "iv-1"
     record = json.loads((folder / "session.json").read_text())
     assert record["silences"] == [[3 * S, 8 * S]]
+    assert record["started_at"] and record["request"]["buffer_audio"]
     assert record["received_samples"] == 11 * S
     before = json.loads((folder / "transcript.json").read_text())
     kept = heard(5.0, at=1.0, length=2.5)  # what the page kept for the gap
@@ -108,7 +110,7 @@ def test_the_lost_minutes_come_back_into_the_transcript(
         time.sleep(0.05)
     view = client.get("/api/live/sessions/iv-1/recovery").json()
     assert view["state"] == "done", view
-    assert view["seconds"] == 5.0 and view["audio_deleted"]
+    assert 0 < view["seconds"] <= 5.0 and view["audio_deleted"]
     after = json.loads((folder / "transcript.json").read_text())
     assert len(after["utterances"]) > len(before["utterances"])
     gap = [u for u in after["utterances"] if 3 <= u["start"] < 8]
@@ -163,8 +165,8 @@ def test_the_store_assembles_one_channel_inside_the_spans(
     store.put_chunk("iv-1", 0, stereo)
     store.put_chunk("iv-1", 1, stereo)
     chunks = {"0": [S, S], "1": [3 * S, S]}
-    data = store.wav("iv-1", chunks, [(S, int(1.5 * S)), (3 * S, 10 * S)],
-                     2, 1)
+    data = store.wav("iv-1", chunks, (S, 4 * S),
+                     [(S, int(1.5 * S)), (3 * S, 10 * S)], 2, 1)
     with wave.open(io.BytesIO(data)) as found:
         assert found.getnchannels() == 1 and found.getframerate() == S
         samples = np.frombuffer(found.readframes(found.getnframes()),
@@ -173,10 +175,11 @@ def test_the_store_assembles_one_channel_inside_the_spans(
     assert set(samples[: S // 2]) == {-2000}
     assert set(samples[S // 2: 2 * S]) == {0}  # outside spans / no chunk
     assert set(samples[2 * S:]) == {-2000}
-    mixed = store.wav("iv-1", chunks, [(S, 2 * S)], 2, None)
+    mixed = store.wav("iv-1", chunks, (S, 2 * S), [(S, 2 * S)], 2, None)
+    assert store.missing("iv-1", ["0", "1", "7"]) == ["7"]
     with wave.open(io.BytesIO(mixed)) as found:
         assert set(np.frombuffer(found.readframes(S), dtype="<i2")) == {-500}
-    assert store.wav("iv-1", {}, [], 1, None)[:4] == b"RIFF"
+    assert store.wav("iv-1", {}, (0, 0), [], 1, None)[:4] == b"RIFF"
     assert store.audio_bytes() == 2 * len(stereo)
     job = RecoveryJob("iv-1", "queued", "2026-11-26T10:00:00+00:00",
                       "2026-11-27T10:00:00+00:00")

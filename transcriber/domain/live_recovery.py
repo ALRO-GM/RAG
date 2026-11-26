@@ -73,6 +73,10 @@ RECOVERED_PREFIX = "R"
 
 Span = Tuple[int, int]
 """``[start, end)`` in samples."""
+JOIN_SAMPLES = 30 * SAMPLE_RATE
+"""Recovered spans closer than this are transcribed together."""
+MAX_PART_SAMPLES = 2 * 3600 * SAMPLE_RATE
+"""The longest part transcribed at once (two hours)."""
 
 
 def merge_spans(spans: Sequence[Span]) -> List[Span]:
@@ -114,6 +118,27 @@ def recovered_spans(
     """
     needed = merge_spans(list(silences) + [(max(received, 0), END)])
     return intersect(uploaded, needed)
+
+
+def group_spans(
+    spans: Sequence[Span], join: int = JOIN_SAMPLES,
+    longest: int = MAX_PART_SAMPLES,
+) -> List[Span]:
+    """Group recovered spans into the parts transcribed one by one.
+
+    Spans less than ``join`` apart share one part (the silence between
+    them is short); a part never grows past ``longest`` samples, so the
+    audio built for it is bounded by what was uploaded and never spans
+    a long gap.
+    """
+    groups: List[Span] = []
+    for start, end in merge_spans(spans):
+        if groups and start - groups[-1][1] < join \
+                and end - groups[-1][0] <= longest:
+            groups[-1] = (groups[-1][0], end)
+        else:
+            groups.append((start, end))
+    return groups
 
 
 def seconds_of(spans: Sequence[Span]) -> float:
@@ -200,7 +225,12 @@ class Merged:
     added: int = 0
     dropped: int = 0
     seconds: float = 0.0
+    """Seconds of speech the added sentences cover (what was recovered
+    and merged, not the length of the gaps)."""
     speakers: List[str] = field(default_factory=list)
+    unidentified: bool = False
+    """Some added sentences are of voices that could not be told
+    (``R1``…): they are in the transcript but feed no indicator."""
 
 
 def merge_recovered(
@@ -250,14 +280,17 @@ def merge_recovered(
             ))
     duration = max([live.session.duration]
                    + [u.end for u in utterances])
+    speech = seconds_of([(round(u.start * SAMPLE_RATE),
+                          round(u.end * SAMPLE_RATE)) for u in added])
     transcript = Transcript(
         session=live.session.model_copy(update={"duration": duration}),
         speakers=speakers, utterances=utterances, pipeline=live.pipeline,
     )
     return Merged(
-        transcript, added=len(added), dropped=dropped,
-        seconds=seconds_of([s for s in spans if s[1] < END]),
+        transcript, added=len(added), dropped=dropped, seconds=speech,
         speakers=sorted({u.speaker for u in added}),
+        unidentified=any(u.speaker not in listed and u.speaker not in roles
+                         for u in added),
     )
 
 
@@ -287,6 +320,9 @@ class RecoveryJob:
     failed_step: Optional[str] = None
     error: Optional[str] = None
     audio_deleted: bool = False
+    unidentified: bool = False
+    restarts: int = 0
+    """Times a restart lost the batch job (not a failed try)."""
     meta: Dict[str, Any] = field(default_factory=dict)
     updated_at: Optional[str] = None
 
@@ -360,6 +396,7 @@ class RecoveryJob:
             "minutes": round(self.seconds / 60, 1),
             "chunks": sorted(int(n) for n in self.chunks),
             "added": self.added, "failed_step": self.failed_step,
+            "unidentified": self.unidentified,
             "error": self.error, "expires_at": self.expires_at,
             "audio_deleted": self.audio_deleted,
             "updated_at": self.updated_at,

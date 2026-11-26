@@ -146,6 +146,11 @@ class LiveSessionRequest(BaseModel):
     diarize: bool = False
     enrolled: Optional[List[str]] = Field(default=None, max_length=50)
     parties: Optional[Parties] = None
+    buffer_audio: bool = False
+    """The product lets the page keep unsent audio during an outage and
+    send it afterwards (#265); without it a recovery is refused."""
+    buffer_max_hours: Optional[int] = Field(default=None, ge=1, le=168)
+    """At most this long after the start such audio is kept (#265)."""
 
     @model_validator(mode="after")
     def _every_channel_once(self) -> "LiveSessionRequest":
