@@ -1,0 +1,753 @@
+{
+ "base": "http://127.0.0.1:8770",
+ "product": "live_assist.interview",
+ "audio": "mic",
+ "wav": "interview-check.mono.wav",
+ "script_words": 325,
+ "started": "2026-11-25T22:22:19+0100",
+ "runs": [
+  {
+   "scenario": "a",
+   "what": "baseline, no fault",
+   "session": "smoke-a-1795641739",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 151.2,
+   "channels": 1,
+   "faults": [],
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 79,
+    "min": 832,
+    "max": 3578
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 37,
+   "rejected_events": 0,
+   "captured_samples": 2419939,
+   "received_samples": 2419939,
+   "samples_equal": true,
+   "sent_samples": 2419939,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.96,
+   "finish": {
+    "pending_at_finish_s": 0.15,
+    "wait_for_acks_s": 1.0,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 5,
+    "partial": 95,
+    "final": 37,
+    "speaker_update": 21,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [],
+   "finals": 37,
+   "words": 335,
+   "similarity_to_baseline": null,
+   "similarity_to_script": 0.912,
+   "speaker_labels": 2,
+   "same_speaker_as_baseline": null,
+   "speaker_matches_script": 1.0,
+   "partials": 95,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 37,
+      "p50": 887,
+      "p90": 937,
+      "max": 1028
+     },
+     "client_lag_ms": {
+      "n": 37,
+      "p50": 1056,
+      "p90": 3539,
+      "max": 8100
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 181,
+   "feed_suggestions": 16,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 37,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "b",
+   "what": "one 3 s drop mid-speech",
+   "session": "smoke-b-1795641903",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 151.2,
+   "channels": 1,
+   "faults": [
+    {
+     "at_s": 30.0,
+     "seconds": 3.0
+    }
+   ],
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 79,
+    "min": 1279,
+    "max": 3828
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 37,
+   "rejected_events": 0,
+   "captured_samples": 2419939,
+   "received_samples": 2419939,
+   "samples_equal": true,
+   "sent_samples": 2419939,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.68,
+   "finish": {
+    "pending_at_finish_s": 0.65,
+    "wait_for_acks_s": 0.5,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 30.0,
+     "outage_s": 3.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 3,
+     "drop_to_ready_s": 3.54,
+     "ready_after_network_back_s": 0.54,
+     "backlog_at_ready_s": 3.6,
+     "ready_to_caught_up_sent_s": 0.03,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 4.6,
+     "first_partial_after_ready_s": 1.73
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 478400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 5,
+    "partial": 91,
+    "final": 37,
+    "speaker_update": 21,
+    "warning": 2,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 30.0
+    },
+    {
+     "code": "source_back",
+     "seconds": 3.529,
+     "at_s": 33.5
+    }
+   ],
+   "finals": 37,
+   "words": 335,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.912,
+   "speaker_labels": 2,
+   "same_speaker_as_baseline": 1.0,
+   "speaker_matches_script": 1.0,
+   "partials": 91,
+   "partials_after_last_ready": 73,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 8,
+      "p50": 891,
+      "p90": 916,
+      "max": 920
+     },
+     "client_lag_ms": {
+      "n": 8,
+      "p50": 1026,
+      "p90": 3532,
+      "max": 3568
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 2,
+      "p50": 1280,
+      "p90": 1728,
+      "max": 1840
+     },
+     "client_lag_ms": {
+      "n": 2,
+      "p50": 1552,
+      "p90": 1918,
+      "max": 2010
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 27,
+      "p50": 886,
+      "p90": 949,
+      "max": 1026
+     },
+     "client_lag_ms": {
+      "n": 27,
+      "p50": 1074,
+      "p90": 4401,
+      "max": 8089
+     }
+    }
+   },
+   "feed_items": 179,
+   "feed_suggestions": 16,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 37,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "c",
+   "what": "one 60 s drop",
+   "session": "smoke-c-1795642067",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 151.2,
+   "channels": 1,
+   "faults": [
+    {
+     "at_s": 20.0,
+     "seconds": 60.0
+    }
+   ],
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 79,
+    "min": 1489,
+    "max": 3798
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 37,
+   "rejected_events": 0,
+   "captured_samples": 2419939,
+   "received_samples": 2419939,
+   "samples_equal": true,
+   "sent_samples": 2419939,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.72,
+   "finish": {
+    "pending_at_finish_s": 0.45,
+    "wait_for_acks_s": 0.75,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 20.0,
+     "outage_s": 60.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 11,
+     "drop_to_ready_s": 63.79,
+     "ready_after_network_back_s": 3.79,
+     "backlog_at_ready_s": 63.8,
+     "ready_to_caught_up_sent_s": 0.1,
+     "ready_to_live_s": 7.01,
+     "catch_up_x_realtime": 10.1,
+     "first_partial_after_ready_s": 12.18
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 318400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 5,
+    "partial": 46,
+    "final": 37,
+    "speaker_update": 22,
+    "warning": 3,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    "idle",
+    "idle",
+    "idle",
+    "idle",
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 20.0
+    },
+    {
+     "code": "source_back",
+     "seconds": 63.783,
+     "at_s": 84.0
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 84.1
+    }
+   ],
+   "finals": 37,
+   "words": 335,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.912,
+   "speaker_labels": 2,
+   "same_speaker_as_baseline": 1.0,
+   "speaker_matches_script": 1.0,
+   "partials": 46,
+   "partials_after_last_ready": 36,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 6,
+      "p50": 882,
+      "p90": 918,
+      "max": 918
+     },
+     "client_lag_ms": {
+      "n": 6,
+      "p50": 1032,
+      "p90": 3543,
+      "max": 3570
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 16,
+      "p50": 31734,
+      "p90": 55746,
+      "max": 61778
+     },
+     "client_lag_ms": {
+      "n": 16,
+      "p50": 31827,
+      "p90": 55895,
+      "max": 61892
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 15,
+      "p50": 895,
+      "p90": 952,
+      "max": 977
+     },
+     "client_lag_ms": {
+      "n": 15,
+      "p50": 1102,
+      "p90": 5308,
+      "max": 7368
+     }
+    }
+   },
+   "feed_items": 129,
+   "feed_suggestions": 9,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 37,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "f",
+   "what": "one 3 s drop while the voices alternate quickly (--alt-at)",
+   "session": "smoke-f-1795642232",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 151.2,
+   "channels": 1,
+   "faults": [
+    {
+     "at_s": 41.9,
+     "seconds": 3.0
+    }
+   ],
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 79,
+    "min": 1117,
+    "max": 3468
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 37,
+   "rejected_events": 0,
+   "captured_samples": 2419939,
+   "received_samples": 2419939,
+   "samples_equal": true,
+   "sent_samples": 2419939,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.77,
+   "finish": {
+    "pending_at_finish_s": 0.85,
+    "wait_for_acks_s": 0.25,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 41.9,
+     "outage_s": 3.0,
+     "held_at_drop_s": 0.9,
+     "connect_attempts": 3,
+     "drop_to_ready_s": 3.42,
+     "ready_after_network_back_s": 0.42,
+     "backlog_at_ready_s": 3.5,
+     "ready_to_caught_up_sent_s": 0.02,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 4.5,
+     "first_partial_after_ready_s": 1.16
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 668800
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 5,
+    "partial": 95,
+    "final": 37,
+    "speaker_update": 21,
+    "warning": 3,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 41.9
+    },
+    {
+     "code": "source_back",
+     "seconds": 3.417,
+     "at_s": 45.3
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 45.3
+    }
+   ],
+   "finals": 37,
+   "words": 335,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.912,
+   "speaker_labels": 2,
+   "same_speaker_as_baseline": 1.0,
+   "speaker_matches_script": 1.0,
+   "partials": 95,
+   "partials_after_last_ready": 65,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 10,
+      "p50": 881,
+      "p90": 913,
+      "max": 928
+     },
+     "client_lag_ms": {
+      "n": 10,
+      "p50": 1041,
+      "p90": 3519,
+      "max": 3559
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 1,
+      "p50": 844,
+      "p90": 844,
+      "max": 844
+     },
+     "client_lag_ms": {
+      "n": 1,
+      "p50": 1035,
+      "p90": 1035,
+      "max": 1035
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 26,
+      "p50": 887,
+      "p90": 954,
+      "max": 1026
+     },
+     "client_lag_ms": {
+      "n": 26,
+      "p50": 1072,
+      "p90": 4855,
+      "max": 8091
+     }
+    }
+   },
+   "feed_items": 184,
+   "feed_suggestions": 16,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 37,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  }
+ ],
+ "finished": "2026-11-25T22:33:15+0100"
+}

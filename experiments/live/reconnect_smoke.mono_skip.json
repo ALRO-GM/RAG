@@ -1,0 +1,328 @@
+{
+ "base": "http://127.0.0.1:8770",
+ "product": "live_assist.interview",
+ "audio": "mic",
+ "wav": "sim-entrevista-backend.mono.wav",
+ "script_words": 305,
+ "started": "2026-11-25T22:33:15+0100",
+ "runs": [
+  {
+   "scenario": "a",
+   "what": "baseline, no fault",
+   "session": "smoke-a-1795642395",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 141.8,
+   "channels": 1,
+   "faults": [],
+   "voice_skip_status": 200,
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 74,
+    "min": 1101,
+    "max": 3448
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 34,
+   "rejected_events": 0,
+   "captured_samples": 2269394,
+   "received_samples": 2269394,
+   "samples_equal": true,
+   "sent_samples": 2269394,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.59,
+   "finish": {
+    "pending_at_finish_s": 0.74,
+    "wait_for_acks_s": 0.25,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 2,
+    "partial": 89,
+    "final": 34,
+    "speaker_update": 23,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [],
+   "finals": 34,
+   "words": 315,
+   "similarity_to_baseline": null,
+   "similarity_to_script": 0.91,
+   "speaker_labels": 1,
+   "same_speaker_as_baseline": null,
+   "speaker_matches_script": 0.559,
+   "partials": 89,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 34,
+      "p50": 886,
+      "p90": 933,
+      "max": 994
+     },
+     "client_lag_ms": {
+      "n": 34,
+      "p50": 1076,
+      "p90": 3274,
+      "max": 8269
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 181,
+   "feed_suggestions": 26,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 34,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  },
+  {
+   "scenario": "b",
+   "what": "one 3 s drop mid-speech",
+   "session": "smoke-b-1795642550",
+   "base": "http://127.0.0.1:8770",
+   "wav_seconds": 141.8,
+   "channels": 1,
+   "faults": [
+    {
+     "at_s": 30.0,
+     "seconds": 3.0
+    }
+   ],
+   "voice_skip_status": 200,
+   "http_stop_status": 200,
+   "link_ended": null,
+   "gpu_mib": {
+    "n": 75,
+    "min": 1090,
+    "max": 3443
+   },
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 34,
+   "rejected_events": 0,
+   "captured_samples": 2269394,
+   "received_samples": 2269394,
+   "samples_equal": true,
+   "sent_samples": 2269394,
+   "resent_samples": 0,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.61,
+   "finish": {
+    "pending_at_finish_s": 0.14,
+    "wait_for_acks_s": 1.0,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [
+    {
+     "at_stream_s": 30.0,
+     "outage_s": 3.0,
+     "held_at_drop_s": 1.0,
+     "connect_attempts": 3,
+     "drop_to_ready_s": 3.66,
+     "ready_after_network_back_s": 0.66,
+     "backlog_at_ready_s": 3.7,
+     "ready_to_caught_up_sent_s": 0.02,
+     "ready_to_live_s": 1.0,
+     "catch_up_x_realtime": 4.7,
+     "first_partial_after_ready_s": 1.7
+    }
+   ],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "network_down",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 478400
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "voice_check": 2,
+    "partial": 85,
+    "final": 34,
+    "speaker_update": 23,
+    "warning": 3,
+    "session_ended": 1
+   },
+   "events_socket_closes": [
+    1000
+   ],
+   "warnings": [
+    {
+     "code": "source_lost",
+     "seconds": null,
+     "at_s": 30.0
+    },
+    {
+     "code": "source_back",
+     "seconds": 3.654,
+     "at_s": 33.7
+    },
+    {
+     "code": "asr_behind",
+     "seconds": null,
+     "at_s": 33.7
+    }
+   ],
+   "finals": 34,
+   "words": 315,
+   "similarity_to_baseline": 1.0,
+   "similarity_to_script": 0.91,
+   "speaker_labels": 1,
+   "same_speaker_as_baseline": 1.0,
+   "speaker_matches_script": 0.559,
+   "partials": 85,
+   "partials_after_last_ready": 67,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 7,
+      "p50": 882,
+      "p90": 921,
+      "max": 921
+     },
+     "client_lag_ms": {
+      "n": 7,
+      "p50": 1044,
+      "p90": 2197,
+      "max": 3587
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 1,
+      "p50": 2412,
+      "p90": 2412,
+      "max": 2412
+     },
+     "client_lag_ms": {
+      "n": 1,
+      "p50": 2622,
+      "p90": 2622,
+      "max": 2622
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 26,
+      "p50": 890,
+      "p90": 941,
+      "max": 993
+     },
+     "client_lag_ms": {
+      "n": 26,
+      "p50": 1086,
+      "p90": 4853,
+      "max": 8272
+     }
+    }
+   },
+   "feed_items": 180,
+   "feed_suggestions": 26,
+   "feed_reconnects": 0,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 34,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  }
+ ],
+ "finished": "2026-11-25T22:38:25+0100"
+}

@@ -1,0 +1,141 @@
+{
+ "base": "https://rag.peer4u.app",
+ "product": "live_assist.support",
+ "audio": "stereo",
+ "wav": "sim-soporte-lumbre.stereo.wav",
+ "script_words": 320,
+ "started": "2026-11-25T21:18:46+0100",
+ "runs": [
+  {
+   "scenario": "a",
+   "what": "baseline, no fault",
+   "session": "smoke-a-1795637926",
+   "base": "https://rag.peer4u.app",
+   "wav_seconds": 108.2,
+   "channels": 2,
+   "faults": [],
+   "http_stop_status": 200,
+   "device": "cuda",
+   "model": "large-v3-turbo",
+   "end_reason": "stop",
+   "state": "ended",
+   "source_at_end": "none",
+   "error_present": false,
+   "server_finals": 31,
+   "rejected_events": 0,
+   "captured_samples": 1730897,
+   "received_samples": 1730897,
+   "samples_equal": true,
+   "sent_samples": 1732497,
+   "resent_samples": 1600,
+   "gap_clamped": 0,
+   "ready_after_start_s": 5.95,
+   "finish": {
+    "pending_at_finish_s": 0.38,
+    "wait_for_acks_s": 0.75,
+    "lost_at_finish_s": 0.0,
+    "said_stop": true,
+    "stopped_seen": true
+   },
+   "drops": [],
+   "audio_sockets": [
+    {
+     "result": "ok",
+     "close_code": 1006,
+     "close_by_server": false,
+     "refusal": null,
+     "received_samples_at_ready": 0
+    },
+    {
+     "result": "connect_failed:InvalidStatus",
+     "close_code": null,
+     "close_by_server": null,
+     "refusal": null,
+     "received_samples_at_ready": null
+    },
+    {
+     "result": "ok",
+     "close_code": 1000,
+     "close_by_server": true,
+     "refusal": null,
+     "received_samples_at_ready": 1248000
+    }
+   ],
+   "event_kinds": {
+    "session_started": 1,
+    "partial": 57,
+    "final": 21
+   },
+   "events_socket_closes": [],
+   "warnings": [],
+   "finals": 21,
+   "words": 208,
+   "similarity_to_baseline": null,
+   "similarity_to_script": 0.754,
+   "partials": 57,
+   "partials_after_last_ready": 0,
+   "lags": {
+    "before": {
+     "lag_ms": {
+      "n": 21,
+      "p50": 750,
+      "p90": 783,
+      "max": 802
+     },
+     "client_lag_ms": {
+      "n": 21,
+      "p50": 935,
+      "p90": 1103,
+      "max": 2215
+     }
+    },
+    "catch_up": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    },
+    "after": {
+     "lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     },
+     "client_lag_ms": {
+      "n": 0,
+      "p50": null,
+      "p90": null,
+      "max": null
+     }
+    }
+   },
+   "feed_items": 132,
+   "feed_suggestions": 13,
+   "feed_reconnects": 1,
+   "orchestrator_state": "ended",
+   "transcript": {
+    "keys": [
+     "analysis",
+     "error",
+     "published",
+     "utterances"
+    ],
+    "utterances": 31,
+    "published": true,
+    "analysis": null,
+    "error": null
+   }
+  }
+ ],
+ "finished": "2026-11-25T21:22:46+0100",
+ "note": "Timed to straddle the tunnel's 21:20 reset; it happened at 21:20:10, stream second 78 (transcriber log: source lost at 78.0 s, close 1005; source back after 1.5 s; 0.0 s silence). This run used the first version of the script, whose events socket had no idle timeout: it hung half open after the reset, so 'finals', 'words', 'warnings', 'event_kinds' and 'lags' only cover the events before second 78. The server's own count is 'server_finals' (31) and the hand-off has 31 utterances. The events follower now reopens a socket silent for 15 s."
+}
