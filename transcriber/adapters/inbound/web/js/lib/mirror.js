@@ -7,7 +7,8 @@
 // changed (delta): per changed element its whole attribute set, per changed
 // text its text, per element whose children changed the list of its
 // children (a known child by number, a new one serialised whole). A delta
-// says how things ARE, not what happened, so applying it twice or after a
+// says how things ARE, not what happened (attributes: only those that
+// changed since the last delta, plus the names removed), so applying it twice or after a
 // lost intermediate state gives the same page: a slow viewer can skip
 // states, and anything a viewer cannot place makes it ask for the whole
 // page again. Form values, checked boxes and open dialogs are properties,
@@ -107,6 +108,7 @@ export class MirrorSource {
     this.dirtyKids = new Set();
     this.removed = new Set();
     this.lastProps = new Map(); // id -> JSON of the props last sent
+    this.lastAttrs = new Map(); // id -> the attributes last sent
     this.visited = null;
   }
 
@@ -139,6 +141,7 @@ export class MirrorSource {
       this.ids.delete(node);
       this.nodes.delete(id);
       this.lastProps.delete(id);
+      this.lastAttrs.delete(id);
     }
     for (const child of node.childNodes ?? []) this._forget(child);
   }
@@ -152,7 +155,9 @@ export class MirrorSource {
     const id = this._assign(node);
     this.visited?.add(id);
     if (node.nodeType === TEXT) return [id, this._text(node)];
-    const out = [id, tagOf(node), attributesOf(node, this.scrub), mirroredChildren(node).map((c) => this.serialize(c))];
+    const attrs = attributesOf(node, this.scrub);
+    this.lastAttrs.set(id, attrs);
+    const out = [id, tagOf(node), attrs, mirroredChildren(node).map((c) => this.serialize(c))];
     if (node.namespaceURI === SVG_NS) out.push("s");
     return out;
   }
@@ -189,6 +194,7 @@ export class MirrorSource {
       if (!this.visited.has(id)) {
         this.nodes.delete(id);
         this.ids.delete(node);
+        this.lastAttrs.delete(id);
       }
     }
     this.visited = null;
@@ -219,7 +225,20 @@ export class MirrorSource {
     const attrs = [];
     for (const el of this.dirtyAttrs) {
       const id = this.ids.get(el);
-      if (id !== undefined && el.isConnected) attrs.push([id, attributesOf(el, this.scrub)]);
+      if (id === undefined || !el.isConnected) continue;
+      const now = attributesOf(el, this.scrub);
+      const before = this.lastAttrs.get(id) ?? {};
+      const set = {};
+      let changed = false;
+      for (const [name, value] of Object.entries(now)) {
+        if (before[name] !== value) {
+          set[name] = value;
+          changed = true;
+        }
+      }
+      const gone = Object.keys(before).filter((name) => !(name in now));
+      this.lastAttrs.set(id, now);
+      if (changed || gone.length) attrs.push(gone.length ? [id, set, gone] : [id, set]);
     }
     const texts = [];
     for (const node of this.dirtyText) {
@@ -367,10 +386,10 @@ export class MirrorView {
       for (const old of [...parent.childNodes]) if (!keep.has(old)) gone.push(old);
       setChildren(parent, wanted);
     }
-    for (const [id, attrs] of body.a ?? []) {
+    for (const [id, set, gone = []] of body.a ?? []) {
       const el = this.nodes.get(id);
       if (!el) throw new RangeError(`unknown node ${id}`);
-      setAttributes(el, attrs);
+      changeAttributes(el, set, gone);
     }
     for (const [id, text] of body.t ?? []) {
       const node = this.nodes.get(id);
@@ -395,6 +414,24 @@ export function setAttributes(el, attrs) {
   }
   for (const [name, value] of Object.entries(attrs)) {
     if (el.getAttribute(name) === value) continue;
+    if (name === "style" && el.style) el.style.cssText = value;
+    else {
+      try {
+        el.setAttribute(name, value);
+      } catch {
+        // a name the browser refuses: left out
+      }
+    }
+  }
+}
+
+/** Set the attributes of `set` and remove those named in `gone` (a delta's change). */
+export function changeAttributes(el, set, gone = []) {
+  for (const name of gone) {
+    if (name === "style" && el.style) el.style.cssText = "";
+    el.removeAttribute(name);
+  }
+  for (const [name, value] of Object.entries(set)) {
     if (name === "style" && el.style) el.style.cssText = value;
     else {
       try {

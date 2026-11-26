@@ -4,7 +4,9 @@
 //   and accept (the server checks the same).
 // - ShareLink: the socket to the relay (/api/share) with the access code
 //   as first message, then host / join, and — after a dropped link — resume
-//   with the token the server gave, with the backoff of #263 (0.5 → 8 s):
+//   with the token the server gave, with a backoff like #263's but capped
+//   at BACKOFF_MAX_MS = 1 s (a presentation cannot wait 8 s; a retry costs
+//   one small message):
 //   a tunnel reset of a few seconds resynchronises by itself, nobody types
 //   the password again. A ping every PING_MS; no message for SILENT_MS means
 //   the link is dead even if the socket did not say so (a tunnel can do
@@ -13,6 +15,13 @@
 // - statusKey: the one line each device shows about the link.
 
 import { backoffMs } from "./live-link.js";
+
+export const BACKOFF_MAX_MS = 1000;
+
+/** The wait before reconnection `attempt` (0, 1, …): 0.5, 1, 1, 1… s, ±20 % jitter. */
+export function shareBackoffMs(attempt, random = Math.random) {
+  return Math.min(backoffMs(attempt, random), Math.round(BACKOFF_MAX_MS * (0.8 + 0.4 * random())));
+}
 
 export const PIN_DIGITS = 4;
 export const NAME_MAX = 40;
@@ -213,7 +222,7 @@ export class ShareLink {
     if (this.stopped) return;
     this._set("lost");
     this.timers.clearTimeout(this.retry);
-    this.retry = this.timers.setTimeout(() => this._connect(), backoffMs(this.attempt++, this.random));
+    this.retry = this.timers.setTimeout(() => this._connect(), shareBackoffMs(this.attempt++, this.random));
   }
 
   _raw(message) {

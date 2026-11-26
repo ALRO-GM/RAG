@@ -348,6 +348,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     root.classList.add("share-hosting");
     const observer = new MutationObserver((records) => s?.source.record(records));
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+    s.observer = observer;
     const rootObserver = new MutationObserver(() => { if (s) s.rootDirty = true; });
     rootObserver.observe(root, { attributes: true });
     const dark = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
@@ -426,6 +427,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
 
   function hostTick() {
     if (!s || s.role !== "host") return;
+    s.source.record(s.observer.takeRecords()); // nothing pending is left out
     const delta = s.source.delta();
     if (s.link.state !== "open") return; // a snapshot follows the reconnection
     if (delta) sendBody(delta);
