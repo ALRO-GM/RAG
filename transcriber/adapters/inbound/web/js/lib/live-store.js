@@ -165,6 +165,11 @@ export class LocalRecording {
       if (earlier) {
         this.meta = { ...this.meta, started_at: earlier.started_at, expires_at: earlier.expires_at };
         this.opened = true;
+        if (earlier.ended_locally) {
+          // A page went back to the session: it is no longer ended here,
+          // so «Enviar» elsewhere must never stop it.
+          await this.backend.put("sessions", { ...earlier, ended_locally: false, ended_at: null });
+        }
       }
     } catch (error) {
       this._fail(error);
@@ -384,6 +389,21 @@ export function installSweeps({ backend = new IdbBackend(), target = globalThis,
 
 const RETRY_MS = [1000, 2000, 4000];
 
+/**
+ * Whether nobody sends the session's audio now (its source is not
+ * connected): only then may a page that ended it offline stop it. Unknown
+ * counts as connected (never stop an interview someone went back to).
+ */
+async function sourceGone(api, id) {
+  if (!api.liveSource) return false;
+  try {
+    const info = await api.liveSource(id);
+    return Boolean(info?.source) && info.source !== "connected";
+  } catch {
+    return false;
+  }
+}
+
 /** Why the server refused a recovery upload, for the page: a code. */
 function refusal(error) {
   if (error?.code === "session_running") return "running";
@@ -443,9 +463,10 @@ export async function uploadRecording({ backend, api, id, onProgress = () => {},
           break;
         } catch (error) {
           const why = refusal(error);
-          if (why === "running" && meta.ended_locally && api.stopLive && !stopped) {
-            // Ended here offline while the server still waits for it:
-            // stop it now that there is a connection, then send.
+          if (why === "running" && meta.ended_locally && api.stopLive && !stopped
+              && await sourceGone(api, id)) {
+            // Ended here offline while the server still waits for its
+            // source (nobody went back to it): stop it now, then send.
             stopped = true;
             await api.stopLive(id).catch(() => {});
             attempt = -1;

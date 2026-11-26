@@ -423,12 +423,40 @@ test("a session ended here offline that the server still waits for is stopped, t
   const api = fakeApi({ state: null, fail: { 0: [running, running] } });
   const stops = [];
   api.stopLive = async (id) => { stops.push(id); };
+  api.liveSource = async () => ({ source: "lost" });
   const waits = [];
   const view = await uploadRecording({ backend, api, id: "iv-1", wait: async (ms) => waits.push(ms) });
   assert.equal(view.state, "queued");
   assert.deepEqual(stops, ["iv-1"]);
   assert.deepEqual(waits, [1000], "its hand-over was finishing");
   assert.equal(api.calls.filter((c) => c[0] === "put").length, 3);
+});
+
+test("«Enviar» never stops an interview another tab went back to", async () => {
+  const backend = new IdbBackend(new FakeIndexedDB());
+  await keptSession(backend, 1);
+  await backend.put("sessions", { ...(await backend.get("sessions", "iv-1")), ended_locally: true });
+  for (const source of [{ source: "connected" }, null]) {
+    const running = Object.assign(new Error("on"), { status: 409, code: "session_running" });
+    const api = fakeApi({ state: null, fail: { 0: [running] } });
+    const stops = [];
+    api.stopLive = async (id) => { stops.push(id); };
+    api.liveSource = source ? async () => source : async () => { throw new Error("unreachable"); };
+    await assert.rejects(uploadRecording({ backend, api, id: "iv-1", wait: async () => {} }), (e) => e.code === "running");
+    assert.deepEqual(stops, [], "its microphone is connected (or unknown): never stopped");
+  }
+  assert.equal((await backend.all("index")).length, 1, "the audio stays");
+});
+
+test("a page that goes back to a session clears its «ended here» mark", async () => {
+  const backend = new IdbBackend(new FakeIndexedDB());
+  await keptSession(backend, 1);
+  await backend.put("sessions", { ...(await backend.get("sessions", "iv-1")), ended_locally: true, ended_at: "x" });
+  const back = await new LocalRecording({ backend, meta: sessionMeta({ id: "iv-1" }) }).open();
+  assert.equal(back.opened, true);
+  const stored = await backend.get("sessions", "iv-1");
+  assert.equal(stored.ended_locally, false);
+  assert.equal(stored.ended_at, null);
 });
 
 test("a closed upload deletes here only what the server holds; late chunks are said", async () => {

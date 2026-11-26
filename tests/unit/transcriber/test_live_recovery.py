@@ -652,3 +652,49 @@ def held(log: Optional[MemoryLiveLog]) -> int:
 
 def test_the_helpers_count() -> None:
     assert held(None) == 0 and held(MemoryLiveLog()) == 0
+
+
+@pytest.mark.parametrize("step", ["publishing", "rejudging"])
+def test_a_step_already_running_stops_at_a_discard(step: str) -> None:
+    """«Descartar» while a step reads what it needs: it never goes on to
+    publish or to ask for the rebuild."""
+    world = World()
+    world.upload()
+    for _ in range(8):
+        if world.recovery.status("iv-1")["state"] == step:
+            break
+        world.recovery.tick()
+    assert world.recovery.status("iv-1")["state"] == step
+    read = world.log.read_transcript
+
+    def discard_meanwhile(session_id: str) -> Any:
+        found = read(session_id)
+        world.recovery.discard("iv-1")
+        return found
+
+    world.log.read_transcript = discard_meanwhile  # type: ignore
+    published = len(world.publisher.documents)
+    world.recovery.tick()
+    assert len(world.publisher.documents) == published
+    assert published == (0 if step == "publishing" else 1)
+    assert world.rebuilder.asked == []
+    assert world.store.ids() == []
+
+
+def test_unidentified_voices_are_numbered_per_part() -> None:
+    """Two parts each with voices nobody could tell: R1-1 and R2-1 (one
+    id never names two people from two parts)."""
+    world = World()
+    two_party(world)
+    world.log.sessions["iv-1"]["silences"] = [[1 * S, 3 * S],
+                                              [100 * S, 102 * S]]
+    world.log.sessions["iv-1"]["received_samples"] = 200 * S
+    world.batch.results[None] = transcript([("S1", 0.2, 0.9, "algo")])
+    world.recovery.put_chunk("iv-1", 0, 1 * S, SECOND)
+    world.recovery.put_chunk("iv-1", 1, 100 * S, SECOND)
+    world.recovery.close("iv-1", 2)
+    assert world.run() == "done"
+    added = [u["speaker"] for u in world.log.transcripts["iv-1"]
+             ["utterances"] if u["text"] == "algo"]
+    assert added == ["R1-1", "R2-1"]
+    assert world.recovery.status("iv-1")["unidentified"]

@@ -175,6 +175,7 @@ def speaker_map(
     diarized: bool,
     channel: Optional[int] = None,
     parties: Optional[Tuple[str, str]] = None,
+    prefix: str = RECOVERED_PREFIX,
 ) -> Dict[str, str]:
     """Map the batch transcript's speakers to the live session's.
 
@@ -182,6 +183,10 @@ def speaker_map(
     ``heard`` the batch speakers; ``live`` the session's voices;
     ``channel`` the channel a stereo part came from; ``parties`` the
     (employee, other) pair of a two-party session. See the module.
+    ``prefix`` starts the ids of voices that could not be told apart:
+    each part is transcribed on its own, so a job of several parts gives
+    each part its own prefix (``R1-``, ``R2-``…) and one id never names
+    two people from two parts.
     """
     ids = [s.id for s in heard]
     for utterance in utterances:
@@ -209,7 +214,7 @@ def speaker_map(
             result[i] = mapped[i]
         else:
             anonymous += 1
-            result[i] = f"{RECOVERED_PREFIX}{anonymous}"
+            result[i] = f"{prefix}{anonymous}"
     return result
 
 

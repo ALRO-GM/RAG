@@ -415,8 +415,12 @@ A 413 stops the upload (the audio stays; «El servidor no tiene sitio…»),
 este audio no se puede enviar. Puedes descartarlo.», and
 `session_running` for a session this browser ended offline (the link
 came back within the server's 10 min grace) first stops that session,
-then sends (the stop is retried while its hand-over finishes); for any
-other session still on, «Volver a la sesión».
+then sends (the stop is retried while its hand-over finishes), but only
+when nobody sends its audio now (`GET /api/live/sessions/{id}` says
+`source` is not `connected`; unknown counts as connected); a page that
+goes back to the session clears the «ended here» mark, so «Enviar» in
+another tab never stops an interview that goes on. For any other
+session still on, «Volver a la sesión».
 
 ### The job (`transcriber/application/live_recovery.py`)
 
@@ -477,7 +481,8 @@ rejudging → done | failed`, written to `recovery.json` by a thread of
   diarized, an enrolled person the batch pipeline recognised keeps their
   id, and with two parties every other voice is the other party once
   the employee is recognised. Otherwise the voices are `R1`, `R2`…
-  (role unknown), never guessed: **their sentences enter the transcript
+  (role unknown; `R1-1`, `R2-1`… when the job has several parts, since
+  each part is transcribed on its own), never guessed: **their sentences enter the transcript
   but feed no indicator** (no topic, concept, mandatory item, line to
   avoid or judged answer), and the page says «sin identificar quién
   habla». The live session's own voice reference (the voice check) is
@@ -495,7 +500,10 @@ rejudging → done | failed`, written to `recovery.json` by a thread of
 
 External work (the batch submission, the RAG, the orchestrator) runs
 outside the service's lock: an upload, «Descartar» or a sweep never
-waits for it, and a discard during a step wins.
+waits for it, and a discard during a step wins: the discard mark is
+checked before each external call (submitting, saving the merged
+transcript, publishing, the analysis, the rebuild), so a step already
+running never goes on with a discarded session.
 
 ### Notice
 

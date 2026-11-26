@@ -491,14 +491,22 @@ class LiveRecovery:
                     self._forget_parts(session_id, job)
         return (job.state, job.tries, job.progress, job.restarts) != before
 
-    def _persist(self, job: RecoveryJob) -> None:
-        """Write the job, unless it was discarded (or replaced by a new
-        job of the same session) meanwhile."""
+    def _check_alive(self, job: RecoveryJob) -> None:
+        """Raise :class:`_Discarded` when the job was discarded (or
+        replaced) meanwhile: checked before every external call, so a
+        step already running never goes on to submit, merge, publish or
+        rebuild a discarded session."""
         with self._lock:
             current = self._store.load(job.session_id)
             if self._generation(job) in self._discarded or current is None \
                     or self._generation(current) != self._generation(job):
                 raise _Discarded()
+
+    def _persist(self, job: RecoveryJob) -> None:
+        """Write the job, unless it was discarded (or replaced by a new
+        job of the same session) meanwhile."""
+        with self._lock:
+            self._check_alive(job)
             self._store.save(job)
 
     def _step(self, job: RecoveryJob) -> None:
@@ -621,6 +629,7 @@ class LiveRecovery:
                 enrolled = request.get("enrolled")
                 speakers = 2 if request.get("parties") else None
                 expected = list(enrolled) if enrolled is not None else None
+            self._check_alive(job)
             self._transcriber.submit(part["id"], wav, language, speakers,
                                      expected)
         job.state = "transcribing"  # the tries go on counting
@@ -692,18 +701,21 @@ class LiveRecovery:
                 if isinstance(parties, dict) else None)
         spans = [(int(a), int(b)) for a, b in job.meta.get("spans") or []]
         parts: List[RecoveredPart] = []
-        for n, part in enumerate(self._parts(job)):
+        listed = self._parts(job)
+        for n, part in enumerate(listed):
             document = self._store.read_text(job.session_id, f"part-{n}")
             if document is None:
                 raise ValueError("a recovered part is missing")
             batch = Transcript.from_contract(document)
             names = speaker_map(
                 batch.utterances, batch.speakers, speakers, job.channels,
-                bool(request.get("diarize")), part["channel"], pair)
+                bool(request.get("diarize")), part["channel"], pair,
+                prefix=f"R{n + 1}-" if len(listed) > 1 else "R")
             parts.append(RecoveredPart(batch, int(part["start"]), names))
         merged = merge_recovered(
             Transcript.from_contract(live), parts, spans,
             {s.id: s.role for s in speakers})
+        self._check_alive(job)
         self._log.save_transcript(job.session_id,
                                   merged.transcript.to_contract())
         job.seconds = merged.seconds
@@ -729,6 +741,7 @@ class LiveRecovery:
             document = self._log.read_transcript(job.session_id)
             if document is None:
                 raise ValueError("no transcript")
+            self._check_alive(job)
             self._publisher.publish(document)
         job.move("analysing", self._clock.now())
 
@@ -737,6 +750,7 @@ class LiveRecovery:
         handoff = self._handoff(job)
         if handoff.get("transcript_v1") and handoff.get("run_post_call") \
                 and job.added and self._analysis is not None:
+            self._check_alive(job)
             self._analysis.start(job.session_id, True, False)
         job.move("rejudging", self._clock.now())
 
@@ -746,6 +760,7 @@ class LiveRecovery:
             document = self._log.read_transcript(job.session_id)
             if document is None:
                 raise ValueError("no transcript")
+            self._check_alive(job)
             self._rebuilder.rebuild(job.session_id, document)
         job.move("done", self._clock.now())
         self._persist(job)
