@@ -12,6 +12,8 @@ from typing import Callable, Dict, Mapping, Optional, Tuple
 from src.application.knowledge.ports import (
     DocumentExtractor,
     ExtractedDocument,
+    Progress,
+    StoredFile,
 )
 
 Choice = Tuple[bool, str]
@@ -60,10 +62,13 @@ class ChosenExtractor:
                 self._built[key] = self._build(*key)
             return self._built[key]
 
-    def verify(self, data: bytes, document_type: str) -> None:
+    def verify(self, source: StoredFile, document_type: str) -> None:
         """Check the file with the reader chosen now."""
-        self.current().verify(data, document_type)
+        self.current().verify(source, document_type)
 
-    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
+    def extract(
+        self, source: StoredFile, document_type: str,
+        progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
         """Extract the file with the reader chosen now."""
-        return self.current().extract(data, document_type)
+        return self.current().extract(source, document_type, progress)

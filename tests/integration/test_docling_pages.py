@@ -8,6 +8,7 @@ import pytest
 
 from src.adapters.outbound import docling_pages
 from src.adapters.outbound.docling_pages import DoclingPages
+from tests.knowledge_samples import as_file
 
 BUILT: List[Tuple[bool, bool, str]] = []
 CONVERTED: List[Any] = []
@@ -67,7 +68,7 @@ class FakeConverter:
 
     def convert(self, stream: Any, **kwargs: Any) -> Any:
         """Record the call and return the fake document."""
-        CONVERTED.append((stream.name, kwargs))
+        CONVERTED.append((str(stream), kwargs))
         return types.SimpleNamespace(document=FakeDocument())
 
 
@@ -116,27 +117,29 @@ def fake_docling(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_requested_pages_come_back_as_markdown() -> None:
     """A page range is converted once and only the wanted pages kept."""
     reader = DoclingPages()
-    found = reader.read_pages(b"%PDF", "pdf", [2, 3], True)
+    source = as_file(b"%PDF")
+    found = reader.read_pages(source, "pdf", [2, 3], True)
     assert {n: c.markdown for n, c in found.items()} == {
         2: "text of page 2", 3: "text of page 3"}
     assert all(c.figures == () for c in found.values())
-    assert CONVERTED[0][0] == "document.pdf"
+    assert CONVERTED[0][0] == source.path  # by path: never read whole
     assert CONVERTED[0][1] == {"page_range": (2, 3)}
 
 
 def test_images_and_whole_documents_have_no_page_range() -> None:
     """Without a page list everything is converted."""
-    found = DoclingPages().read_pages(b"x", "png", None, True)
+    source = as_file(b"x")
+    found = DoclingPages().read_pages(source, "png", None, True)
     assert sorted(found) == [1, 2, 3]
-    assert CONVERTED[0] == ("document.png", {})
+    assert CONVERTED[0] == (source.path, {})
 
 
 def test_converters_are_built_once_per_mode() -> None:
     """OCR on and off are two converters, each built a single time."""
     reader = DoclingPages()
-    reader.read_pages(b"x", "pdf", [1], False)
-    reader.read_pages(b"x", "pdf", [2], False)
-    reader.read_pages(b"x", "pdf", [3], True)
+    reader.read_pages(as_file(b"x"), "pdf", [1], False)
+    reader.read_pages(as_file(b"x"), "pdf", [2], False)
+    reader.read_pages(as_file(b"x"), "pdf", [3], True)
     assert BUILT == [(False, False, "cpu"), (True, False, "cpu")]
 
 
@@ -144,11 +147,11 @@ def test_gpu_only_while_the_gate_is_free() -> None:
     """Free card: CUDA; lease taken: the CPU converter, GPU one dropped."""
     gate = Gate(True)
     reader = DoclingPages(gate)
-    reader.read_pages(b"x", "pdf", [1], False)
+    reader.read_pages(as_file(b"x"), "pdf", [1], False)
     gate.is_free = False
-    reader.read_pages(b"x", "pdf", [2], False)
+    reader.read_pages(as_file(b"x"), "pdf", [2], False)
     gate.is_free = True
-    reader.read_pages(b"x", "pdf", [3], False)
+    reader.read_pages(as_file(b"x"), "pdf", [3], False)
     assert BUILT == [(False, False, "cuda"), (False, False, "cpu"),
                      (False, False, "cuda")]
 
@@ -176,7 +179,9 @@ def test_availability_checks(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_figures_are_returned_as_png_without_the_tiny_ones() -> None:
     """Asked for figures, a page gives its big pictures as PNG bytes."""
     reader = DoclingPages()
-    found = reader.read_pages(b"%PDF", "pdf", [1, 2], False, figures=True)
+    found = reader.read_pages(
+        as_file(b"%PDF"), "pdf", [1, 2], False, figures=True
+    )
     assert found[1].figures == ()
     [picture] = found[2].figures
     assert picture.startswith(b"\x89PNG")

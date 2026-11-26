@@ -17,8 +17,10 @@ from src.adapters.outbound.fs_document_store import (
 from src.adapters.outbound.fs_domain_catalogue import (
     FileSystemDomainCatalogue,
 )
+from src.adapters.outbound.fs_upload_area import FileSystemUploadArea
 from src.adapters.outbound.thread_job_queue import ThreadJobQueue
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.uploads import DocumentUploads
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
 from src.bootstrap import KnowledgeIndexFactory, utc_now
@@ -47,7 +49,11 @@ def make_app(
 ) -> App:
     """Build the routes over ``extractor`` in a temporary directory."""
     monkeypatch.chdir(tmp_path)
-    k = KnowledgeSettings(max_upload_bytes=200_000)
+    k = KnowledgeSettings(
+        max_pdf_bytes=200_000, max_video_bytes=200_000,
+        max_audio_bytes=200_000, max_document_bytes=200_000,
+        min_free_bytes=0,
+    )
     library: KnowledgeLibrary
     registry = DomainIndexRegistry(
         FileSystemDomainCatalogue(k.domains_dir, k.data_dir),
@@ -58,9 +64,14 @@ def make_app(
     queue = ThreadJobQueue()
     library = KnowledgeLibrary(
         registry, FileSystemDocumentStore(k.data_dir), extractor, queue,
-        k.max_upload_bytes, utc_now,
+        k.upload_limits, utc_now,
     )
-    routes = KnowledgeRoutes(KnowledgeQueryService(registry), library)
+    uploads = DocumentUploads(
+        library, FileSystemUploadArea(k.data_dir), k.min_free_bytes
+    )
+    routes = KnowledgeRoutes(
+        KnowledgeQueryService(registry), library, uploads=uploads
+    )
     return knowledge_client(tmp_path, registry, routes), queue
 
 
@@ -135,8 +146,9 @@ def test_upload_index_relabel_and_delete(app: App) -> None:
     assert document["status"] == "queued"
     assert document["name"] == "Manual devoluciones.docx"
     assert document["type"] == "docx"
-    assert set(document) == {"id", "name", "type", "size", "pages", "chunks",
-                             "status", "error", "metadata", "uploaded_at"}
+    assert set(document) == {"id", "name", "type", "size", "pages",
+                             "pages_done", "chunks", "status", "error",
+                             "metadata", "uploaded_at"}
     assert set(document["metadata"]) == {"category", "intent",
                                          "script_phase", "tags"}
     queue.join()

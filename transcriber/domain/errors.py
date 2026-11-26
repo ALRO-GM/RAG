@@ -89,6 +89,10 @@ class LimitReachedError(TranscriberError):
     """A usage limit refuses the request now; it can be tried later."""
 
 
+class NoSpaceError(TranscriberError):
+    """The disk would not hold a file (plus the margin kept free)."""
+
+
 class StorageError(TranscriberError):
     """Stored data cannot be read back (a damaged or foreign file)."""
 

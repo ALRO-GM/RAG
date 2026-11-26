@@ -68,6 +68,7 @@ from transcriber.adapters.inbound.live_assist_proxy import (
 from transcriber.application.connection import NOT_SET_UP, SERVICES
 from transcriber.application.knowledge import (
     JSON_BODY_BYTES,
+    PIECE_BYTES,
     UPLOAD_BODY_BYTES,
 )
 from transcriber.application.ports import (
@@ -89,6 +90,7 @@ from transcriber.domain.errors import (
     ModelLoadError,
     NotBufferedError,
     NotFoundError,
+    NoSpaceError,
     RagUnavailableError,
     SampleRejectedError,
     SessionRunningError,
@@ -120,6 +122,7 @@ ERROR_CODES: Tuple[Tuple[Type[TranscriberError], int, str], ...] = (
     (AnalysisUnavailableError, 503, "analysis_unavailable"),
     (RagUnavailableError, 503, "rag_unavailable"),
     (LimitReachedError, 429, "limit_reached"),
+    (NoSpaceError, 507, "insufficient_storage"),
     (StorageError, 500, "storage_error"),
     (ContractError, 500, "contract_error"),
 )
@@ -285,14 +288,15 @@ def domain_error(exc: TranscriberError) -> JSONResponse:
     """Map a domain error to its status and stable code.
 
     Server-side failures (5xx) answer a generic message: their text may
-    name stored files; it is logged instead.
+    name stored files; it is logged instead. A full disk (``507``) says
+    what to do: its message names no file.
     """
     for kind, status, code in ERROR_CODES:
         if isinstance(exc, kind):
             break
     else:
         status, code = 500, "transcriber_error"
-    if status >= 500:
+    if status >= 500 and not isinstance(exc, NoSpaceError):
         LOG.warning("%s: %s", type(exc).__name__, exc)
         return error_response(status, code, SERVER_MESSAGE)
     extra: Dict[str, Any] = {}
@@ -1066,10 +1070,13 @@ def create_app(
         from transcriber.adapters.inbound.knowledge_media_api import (
             knowledge_media_router,
         )
+        from transcriber.bootstrap import knowledge_media_incoming
 
         app.include_router(knowledge_media_router(
             c.knowledge_media, c.rag_token, refuse,
-            limits.client_ip_header, limits.upload_max_bytes,
+            limits.client_ip_header, limits.knowledge_media_max_bytes,
+            knowledge_media_incoming(c.settings.data_dir),
+            limits.knowledge_media_min_free_bytes,
         ))
     app.include_router(api)
     app.include_router(playback)
@@ -1145,12 +1152,63 @@ def mount_knowledge(api: APIRouter, c: TranscriberContainer) -> None:
     async def upload_knowledge_document(
         domain_id: str, request: Request
     ) -> Any:
-        """Upload a file (multipart ``file`` + optional ``metadata``)."""
+        """Upload a small file (multipart ``file`` + optional
+        ``metadata``); larger ones go in pieces (below)."""
         body = await read_body(request, UPLOAD_BODY_BYTES)
         return await run_in_threadpool(
             k.upload, domain_id, body,
             request.headers.get("content-type", ""),
         )
+
+    @api.get("/knowledge/limits")
+    async def knowledge_limits() -> Any:
+        """The largest file of each kind and the piece size (#282)."""
+        return await run_in_threadpool(k.limits)
+
+    @api.post("/knowledge/domains/{domain_id}/uploads", status_code=201)
+    async def start_knowledge_upload(domain_id: str, request: Request) -> Any:
+        """Announce a file to send in pieces."""
+        body = await read_body(request, JSON_BODY_BYTES)
+        return await run_in_threadpool(k.start_upload, domain_id, body)
+
+    @api.get("/knowledge/domains/{domain_id}/uploads/{upload_id}")
+    async def knowledge_upload_status(domain_id: str, upload_id: str) -> Any:
+        """How much of an upload arrived (to resume after a cut)."""
+        return await run_in_threadpool(k.upload_status, domain_id, upload_id)
+
+    @api.put(
+        "/knowledge/domains/{domain_id}/uploads/{upload_id}/pieces/{offset}"
+    )
+    async def put_knowledge_piece(
+        domain_id: str, upload_id: str, offset: int, request: Request
+    ) -> Any:
+        """Forward one piece (raw body, at most ``PIECE_BYTES``)."""
+        data = await read_body(request, PIECE_BYTES)
+        return await run_in_threadpool(
+            k.put_piece, domain_id, upload_id, offset, data
+        )
+
+    @api.post(
+        "/knowledge/domains/{domain_id}/uploads/{upload_id}/complete",
+        status_code=202,
+    )
+    async def complete_knowledge_upload(
+        domain_id: str, upload_id: str
+    ) -> Any:
+        """Turn the received file into a document."""
+        return await run_in_threadpool(
+            k.complete_upload, domain_id, upload_id
+        )
+
+    @api.delete(
+        "/knowledge/domains/{domain_id}/uploads/{upload_id}", status_code=204
+    )
+    async def cancel_knowledge_upload(
+        domain_id: str, upload_id: str
+    ) -> Response:
+        """Cancel an upload."""
+        await run_in_threadpool(k.cancel_upload, domain_id, upload_id)
+        return Response(status_code=204)
 
     @api.patch("/knowledge/domains/{domain_id}/documents/{doc_id}")
     async def relabel_knowledge_document(

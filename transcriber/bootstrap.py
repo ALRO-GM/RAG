@@ -1083,8 +1083,14 @@ def build_knowledge_media(
         repository, locks, ImportRecording(repository, locks, languages),
         QueueTranscription(repository, voiceprints, runner, transcribe, locks),
         TranscriptionStatus(repository, runner),
-        settings.api.upload_formats,
+        settings.api.upload_formats, AvAudioDecoder().duration,
     )
+
+
+def knowledge_media_incoming(data_dir: Path) -> Path:
+    """Return where knowledge-media files are written while they arrive
+    (beside the jobs, on their disk, so they are moved in)."""
+    return data_dir / KNOWLEDGE_MEDIA_DIR / "incoming"
 
 
 def with_recogniser(
@@ -1217,10 +1223,17 @@ def start_container(
         worker.start()
         atexit.register(worker.stop)
     if container.knowledge_media is not None:
+        from transcriber.adapters.inbound.knowledge_media_api import (
+            clear_incoming,
+        )
+
         cleared = container.knowledge_media.clear()
+        cleared += clear_incoming(
+            knowledge_media_incoming(container.settings.data_dir)
+        )
         if cleared:
-            LOG.info("Deleted %d knowledge-media job(s) left by a stopped"
-                     " service.", cleared)
+            LOG.info("Deleted %d knowledge-media job(s) or partial file(s)"
+                     " left by a stopped service.", cleared)
     return container
 
 

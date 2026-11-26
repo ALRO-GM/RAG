@@ -26,11 +26,16 @@ from transcriber.adapters.outbound.http_knowledge import (
     HttpKnowledge,
     detail_of,
 )
-from transcriber.application.knowledge import KnowledgeAccess
+from transcriber.application.knowledge import (
+    PIECE_BYTES,
+    UPLOAD_BODY_BYTES,
+    KnowledgeAccess,
+)
 from transcriber.bootstrap import build_container
 from transcriber.config import TranscriberSettings
 from transcriber.domain.errors import (
     InvalidInputError,
+    NoSpaceError,
     NotFoundError,
     PublishError,
     RagUnavailableError,
@@ -94,7 +99,8 @@ def test_the_adapter_forwards_with_the_token(
 @pytest.mark.parametrize("status, error", [
     (400, InvalidInputError), (422, InvalidInputError),
     (404, NotFoundError), (409, StateError), (413, TooLargeError),
-    (415, UnsupportedMediaError), (401, RagUnavailableError),
+    (415, UnsupportedMediaError), (507, NoSpaceError),
+    (401, RagUnavailableError),
     (500, RagUnavailableError), (302, RagUnavailableError),
 ])
 def test_refusals_keep_the_rag_message(
@@ -293,6 +299,115 @@ def test_end_to_end_upload_through_the_transcriber(
         )
         assert image.status_code == 415  # the RAG here has no OCR group
         assert "OCR" in image.json()["message"]
+    finally:
+        server.should_exit = True
+        thread.join(5)
+
+
+UP = "/api/knowledge/domains/acme/uploads/" + "a" * 32
+
+
+def test_piece_routes_check_ids_and_forward(tmp_path: Path) -> None:
+    """#282: the upload routes forward bounded requests, ids checked."""
+    port = FakeKnowledge()
+    api = client(tmp_path, port)
+    routes = [
+        ("GET", "/api/knowledge/limits", 200),
+        ("POST", "/api/knowledge/domains/acme/uploads", 201),
+        ("GET", UP, 200),
+        ("PUT", f"{UP}/pieces/0", 200),
+        ("POST", f"{UP}/complete", 202),
+        ("DELETE", UP, 204),
+    ]
+    for method, path, _ in routes:
+        assert api.request(method, path).status_code == 401
+    assert port.calls == []
+    for method, path, status in routes:
+        answer = api.request(method, path, headers=AUTH, content=b"{}")
+        assert answer.status_code == status, (path, answer.text)
+    upload = "domains/acme/uploads/" + "a" * 32
+    assert port.calls == [
+        ("GET", "limits", None, None),
+        ("POST", "domains/acme/uploads", b"{}", "application/json"),
+        ("GET", upload, None, None),
+        ("PUT", f"{upload}/pieces/0", b"{}", "application/octet-stream"),
+        ("POST", f"{upload}/complete", None, None),
+        ("DELETE", upload, None, None),
+    ]
+    for bad in ("/api/knowledge/domains/acme/uploads/nope",
+                "/api/knowledge/domains/Bad/uploads/" + "a" * 32):
+        assert api.get(bad, headers=AUTH).status_code == 400
+    assert api.put(f"{UP}/pieces/-1", headers=AUTH,
+                   content=b"x").status_code == 400
+    too_big = api.put(f"{UP}/pieces/0", headers=AUTH,
+                      content=b"x" * (PIECE_BYTES + 1))
+    assert too_big.status_code == 413
+    whole = api.post("/api/knowledge/domains/acme/documents", headers={
+        **AUTH, "content-length": str(UPLOAD_BODY_BYTES + 1)}, content=b"x")
+    assert whole.status_code == 413
+    assert len(port.calls) == 6, "nothing refused reached the RAG"
+
+
+def test_pieces_through_the_transcriber_to_the_rag(
+    tmp_path: Path, rag_app: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Web → transcriber → real RAG app, in pieces, with a resume."""
+    from src.adapters.outbound.fs_upload_area import FileSystemUploadArea
+
+    rag_client, queue = rag_app
+    port = free_port()
+    server = uvicorn.Server(uvicorn.Config(
+        rag_client.app, host="127.0.0.1", port=port, log_level="warning",
+    ))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        for _ in range(100):
+            if server.started:
+                break
+            time.sleep(0.05)
+        container = build_container(TranscriberSettings(
+            data_dir=tmp_path / "data", runtime="fake",
+        ))
+        container = dataclasses.replace(container, knowledge=KnowledgeAccess(
+            HttpKnowledge(f"http://127.0.0.1:{port}", lambda: RAG_TOKEN)
+        ))
+        web = TestClient(create_app(container, CODE))
+        assert web.post("/api/knowledge/domains", headers=AUTH, json={
+            "id": "acme", "title": "Acme", "language": "es",
+        }).status_code == 201
+        limits = web.get("/api/knowledge/limits", headers=AUTH).json()
+        assert limits["piece_bytes"] == PIECE_BYTES
+        data = make_docx()
+        base = "/api/knowledge/domains/acme/uploads"
+        upload = web.post(base, headers=AUTH, json={
+            "name": "Manual.docx", "size": len(data),
+            "metadata": {"intent": "refund"},
+        }).json()
+        url = f"{base}/{upload['id']}"
+        half = len(data) // 2
+        assert web.put(f"{url}/pieces/0", headers=AUTH,
+                       content=data[:half]).status_code == 200
+        gap = web.put(f"{url}/pieces/{half + 1}", headers=AUTH,
+                      content=data[half + 1:])
+        assert (gap.status_code, gap.json()["code"]) == (409, "wrong_state")
+        received = web.get(url, headers=AUTH).json()["received"]
+        assert received == half
+        assert web.put(f"{url}/pieces/{received}", headers=AUTH,
+                       content=data[received:]).status_code == 200
+        done = web.post(f"{url}/complete", headers=AUTH)
+        assert done.status_code == 202, done.text
+        queue.join()
+        [document] = web.get("/api/knowledge/domains/acme/documents",
+                             headers=AUTH).json()
+        assert document["status"] == "indexed"
+        monkeypatch.setattr(FileSystemUploadArea, "free_bytes",
+                            lambda self: 10)
+        full = web.post(base, headers=AUTH, json={
+            "name": "b.docx", "size": 100})
+        assert (full.status_code, full.json()["code"]) == \
+            (507, "insufficient_storage")
+        assert "espacio" in full.json()["message"]
     finally:
         server.should_exit = True
         thread.join(5)

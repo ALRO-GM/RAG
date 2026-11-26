@@ -18,6 +18,8 @@ it without transcribing again.
 
 import logging
 import threading
+import time
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
 
 from src.application.knowledge.media import MediaTranscription
@@ -26,6 +28,7 @@ from src.application.knowledge.ports import (
     DocumentStore,
     ExtractedDocument,
     JobQueue,
+    StoredFile,
 )
 from src.application.knowledge.registry import DomainIndexRegistry
 from src.domain.errors import (
@@ -40,7 +43,7 @@ from src.domain.knowledge.documents import (
     DocumentMetadata,
     KnowledgeDocument,
     detect_type,
-    document_id,
+    document_id_of,
     document_text,
     is_media,
     metadata_errors,
@@ -49,17 +52,36 @@ from src.domain.knowledge.documents import (
 from src.domain.knowledge.domains import DomainManifest, DomainSummary
 from src.domain.knowledge.media import MEDIA_TYPES, media_job_id
 from src.domain.knowledge.sources import split_front_matter
+from src.domain.knowledge.uploads import UploadLimits, limit_kind, too_large
 
 LOG = logging.getLogger(__name__)
 
 SNIFF_BYTES = 4096
 """Bytes of an upload read to decide its type."""
 
+PROGRESS_SECONDS = 2.0
+"""Least time between two saves of a document's pages read so far."""
+
 NO_TRANSCRIBER = (
     "El audio y el vídeo necesitan el servicio de transcripción, que no "
     "está enlazado. / Audio and video need the transcription service, "
     "which is not linked."
 )
+
+
+@dataclass(frozen=True)
+class ReceivedFile:
+    """A file received for a domain, before it is accepted.
+
+    ``head`` is its start (at least :data:`SNIFF_BYTES` when it is that
+    long) and ``sha256`` the hex digest of all its bytes, both computed
+    while it was read in pieces.
+    """
+
+    name: str
+    source: StoredFile
+    head: bytes
+    sha256: str
 
 
 class KnowledgeLibrary:
@@ -70,11 +92,13 @@ class KnowledgeLibrary:
         store: Where uploads, records and extracted text are kept.
         extractor: Turns an upload into Markdown.
         queue: Runs the extraction and indexing jobs in order.
-        max_upload_bytes: Largest file accepted.
+        limits: Largest file accepted of each kind.
         now: Returns the current time as ISO 8601 text.
         media: Transcribes audio and video files (``None``: refused).
         media_queue: Runs the transcriptions, one at a time, apart from
             ``queue`` (required with ``media``).
+        clock: A monotonic clock in seconds (how often progress is
+            saved).
     """
 
     def __init__(
@@ -83,10 +107,11 @@ class KnowledgeLibrary:
         store: DocumentStore,
         extractor: DocumentExtractor,
         queue: JobQueue,
-        max_upload_bytes: int,
+        limits: UploadLimits,
         now: Callable[[], str],
         media: Optional[MediaTranscription] = None,
         media_queue: Optional[JobQueue] = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         """Wire the ports."""
         if media is not None and media_queue is None:
@@ -95,10 +120,11 @@ class KnowledgeLibrary:
         self.store = store
         self.extractor = extractor
         self.queue = queue
-        self.max_upload_bytes = max_upload_bytes
+        self.limits = limits
         self.now = now
         self.media = media
         self.media_queue = media_queue
+        self.clock = clock
         self._lock = threading.RLock()
 
     # Domains ------------------------------------------------------------
@@ -174,40 +200,51 @@ class KnowledgeLibrary:
         if errors:
             raise InvalidInputError("; ".join(errors) + ".")
 
-    def upload(
+    def check_metadata(
+        self, domain_id: str, metadata: DocumentMetadata
+    ) -> DomainManifest:
+        """Return the domain's manifest; refuse metadata outside it."""
+        manifest = self.registry.manifest(domain_id)
+        self._check_metadata(manifest, metadata)
+        return manifest
+
+    def check_kind(self, document_type: str) -> None:
+        """Refuse audio and video when no transcriber is linked."""
+        if document_type in MEDIA_TYPES and self.media is None:
+            raise UnsupportedDocumentError(NO_TRANSCRIBER)
+
+    def accept(
         self,
         domain_id: str,
-        filename: str,
-        data: bytes,
+        received: ReceivedFile,
         metadata: DocumentMetadata,
     ) -> KnowledgeDocument:
-        """Accept a file for the domain; it is processed in the background.
+        """Keep a received file as a document; it is processed in the
+        background.
 
-        Refuses empty and oversized files (``TooLargeError``), types
-        not recognised from the content (``UnsupportedDocumentError``;
-        audio and video too when no transcriber is linked), metadata
-        outside the vocabularies and a file already uploaded
-        (``BusyError``).
+        Refuses empty files and files over their kind's limit
+        (``TooLargeError``), types not recognised from the content
+        (``UnsupportedDocumentError``; audio and video too when no
+        transcriber is linked), metadata outside the vocabularies and a
+        file already uploaded (``BusyError``). The file is moved into
+        the store only when it is accepted.
         """
         manifest = self.registry.manifest(domain_id)
-        if not data:
+        size = received.source.size
+        if size <= 0:
             raise InvalidInputError("El archivo está vacío. / Empty file.")
-        if len(data) > self.max_upload_bytes:
-            raise TooLargeError(
-                f"El archivo supera {self.max_upload_bytes} bytes. / The "
-                f"file is larger than {self.max_upload_bytes} bytes."
-            )
-        name = sanitise_filename(filename)
-        kind = detect_type(name, data[:SNIFF_BYTES])
-        if kind in MEDIA_TYPES:
-            if self.media is None:
-                raise UnsupportedDocumentError(NO_TRANSCRIBER)
-        else:
-            self.extractor.verify(data, kind)
+        name = sanitise_filename(received.name)
+        kind = detect_type(name, received.head[:SNIFF_BYTES])
+        which = limit_kind(kind, received.head)
+        if size > self.limits.of(which):
+            raise TooLargeError(too_large(which, self.limits.of(which), size))
+        self.check_kind(kind)
+        if kind not in MEDIA_TYPES:
+            self.extractor.verify(received.source, kind)
         self._check_metadata(manifest, metadata)
         document = KnowledgeDocument(
-            id=document_id(name, data), name=name, type=kind,
-            size=len(data), metadata=metadata, uploaded_at=self.now(),
+            id=document_id_of(name, received.sha256), name=name, type=kind,
+            size=size, metadata=metadata, uploaded_at=self.now(),
         )
         with self._lock:
             try:
@@ -219,7 +256,7 @@ class KnowledgeLibrary:
                     f"Este archivo ya está subido como {existing.name!r}. "
                     f"/ This file is already uploaded as {existing.name!r}."
                 )
-            self.store.save_original(manifest.id, document, data)
+            self.store.keep_original(manifest.id, document, received.source)
             self.store.save(manifest.id, document)
         self._queue_processing(manifest.id, document.id)
         return document
@@ -354,8 +391,10 @@ class KnowledgeLibrary:
         current metadata).
         """
         if not is_media(document):
-            data = self.store.original(domain_id, document)
-            return self.extractor.extract(data, document.type)
+            return self.extractor.extract(
+                self.store.original(domain_id, document), document.type,
+                self._progress(domain_id, document.id),
+            )
         try:
             text = self.store.read_text(domain_id, document.id)
         except NotFoundError:
@@ -365,6 +404,35 @@ class KnowledgeLibrary:
             ) from None
         start = split_front_matter(document.id, text).body_start
         return ExtractedDocument(text[start:])
+
+    def _progress(
+        self, domain_id: str, doc_id: str
+    ) -> Callable[[int, int], None]:
+        """Return what records the pages read so far in the document's row.
+
+        Saved at most every :data:`PROGRESS_SECONDS` (and on the last
+        page), only while the document is still being processed.
+        """
+        last = [float("-inf")]
+
+        def report(done: int, total: int) -> None:
+            """Save ``done`` of ``total`` pages."""
+            now = self.clock()
+            if done < total and now - last[0] < PROGRESS_SECONDS:
+                return
+            last[0] = now
+            with self._lock:
+                try:
+                    current = self.store.get(domain_id, doc_id)
+                except (RagError, OSError):
+                    return
+                if current.status != "processing":
+                    return
+                self.store.save(domain_id, current.model_copy(update={
+                    "pages": total, "pages_done": done,
+                }))
+
+        return report
 
     def _reindex(self, domain_id: str) -> None:
         """Re-index a domain after a deletion (errors are logged)."""
@@ -426,7 +494,8 @@ class KnowledgeLibrary:
                 return
             if current.status == "queued":
                 return
-            update = {"status": status, "error": error, "chunks": chunks}
+            update = {"status": status, "error": error, "chunks": chunks,
+                      "pages_done": None}
             if pages is not None or status == "failed":
                 update["pages"] = pages
             self.store.save(domain_id, current.model_copy(update=update))

@@ -138,13 +138,11 @@ def test_a_video_file_is_read(client: TestClient) -> None:
     (sound_file(tone(0.5, level=0.0), 16000, "wav"), {},
      "No speech recognised"),
     (b"RIFF this is not a wav file at all", {}, "decode:"),
-    (sound_file(tone(130.0), 16000, "wav"), {"max_seconds": 120},
-     "lasts 3 min; the limit is 2 min"),
 ])
 def test_failures_end_the_job_with_a_reason(
     client: TestClient, data: bytes, params: Dict[str, Any], reason: str,
 ) -> None:
-    """Silence, an unreadable file and a too long recording fail."""
+    """Silence and an unreadable file fail."""
     assert submit(client, data, **params).status_code == 202
     view = wait(client)
     assert view["state"] == "failed"
@@ -227,3 +225,87 @@ def test_the_service_start_deletes_what_a_stopped_one_left(
         assert again.knowledge_media._sessions.ids() == []
     finally:
         again.runner.close(WAIT)
+
+
+def test_too_long_is_refused_before_decoding(
+    container: TranscriberContainer, client: TestClient,
+) -> None:
+    """The header says it is longer than the limit: refused at once,
+    nothing kept (#282)."""
+    data = sound_file(tone(130.0), 16000, "wav")
+    refused = submit(client, data, max_seconds=120)
+    assert refused.status_code == 400
+    assert "lasts 3 min; the limit is 2 min" in refused.json()["message"]
+    assert client.get(f"{ROUTE}/{JOB}", headers=BEARER).status_code == 404
+    incoming = container.settings.data_dir / "knowledge-media" / "incoming"
+    assert list(incoming.iterdir()) == []
+
+
+def test_a_large_body_is_streamed_to_disk_and_moved(
+    container: TranscriberContainer, client: TestClient,
+) -> None:
+    """The file is written as it arrives (mode 600) and moved into the
+    job; over the limit is 413 and a full disk 507, nothing left."""
+    import stat
+
+    assert submit(client, two_voices()).status_code == 202
+    stored = container.settings.data_dir / "knowledge-media" / "sessions"
+    imported = next((stored / JOB).glob("imported.*"))
+    assert stat.S_IMODE(imported.stat().st_mode) == 0o600
+    incoming = container.settings.data_dir / "knowledge-media" / "incoming"
+    assert list(incoming.iterdir()) == []
+    assert wait(client)["state"] == "done"
+    limit = container.settings.api.knowledge_media_max_bytes
+    big = {**BEARER, "content-length": str(limit + 1)}
+    assert client.put(f"{ROUTE}/{OTHER}", headers=big, content=b"x",
+                      params={"format": "wav", "language": "es"}
+                      ).status_code == 413
+    assert list(incoming.iterdir()) == []
+
+
+def test_small_limit_full_disk_and_leftovers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A body streamed past the limit is cut off (its file deleted); a
+    disk without room is 507; a restart deletes half-received files."""
+    import shutil
+    from types import SimpleNamespace
+
+    from transcriber.adapters.inbound.knowledge_media_api import (
+        clear_incoming,
+    )
+
+    small = TranscriberSettings.model_validate({
+        **settings(tmp_path).model_dump(mode="json"),
+        "api": {"knowledge_media_max_bytes": 1000,
+                "knowledge_media_min_free_bytes": 0},
+    })
+    monkeypatch.setenv("TRANSCRIBER_PUBLISH_TOKEN", TOKEN)
+    built = build_container(small, environ={
+        "TRANSCRIBER_PUBLISH_TOKEN": TOKEN})
+    try:
+        web = TestClient(create_app(built, CODE))
+        incoming = built.settings.data_dir / KNOWLEDGE_MEDIA_DIR / "incoming"
+        streamed = web.put(
+            f"{ROUTE}/{JOB}", headers=BEARER,
+            content=iter([b"x" * 600, b"x" * 600]),
+            params={"format": "wav", "language": "es"},
+        )
+        assert streamed.status_code == 413
+        assert list(incoming.iterdir()) == []
+        real = shutil.disk_usage
+        monkeypatch.setattr(
+            shutil, "disk_usage",
+            lambda path: SimpleNamespace(free=-1, total=real(path).total),
+        )
+        full = submit(web, b"RIFF....")
+        assert (full.status_code, full.json()["code"]) == \
+            (507, "insufficient_storage")
+        monkeypatch.setattr(shutil, "disk_usage", real)
+        (incoming / "left-over").write_bytes(b"half")
+        again = start_container(small)
+        again.runner.close(WAIT)
+        assert list(incoming.iterdir()) == []
+        assert clear_incoming(tmp_path / "none") == 0
+    finally:
+        built.runner.close(WAIT)

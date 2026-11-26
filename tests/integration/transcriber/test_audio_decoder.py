@@ -1,5 +1,7 @@
 """The PyAV/libsndfile decoder on generated recordings of every kind."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -129,3 +131,32 @@ def test_other_sample_rates() -> None:
     )
     assert audio.sample_rate == 8000
     assert audio.samples.shape[0] == 8000
+
+
+def test_a_recording_is_decoded_from_its_file(tmp_path: Path) -> None:
+    """#282: a large recording is read by path; the same samples."""
+    for kind, data in (
+        ("wav", sound_file(tone(1.0), RATE, "wav")),
+        ("mp4", mp4_aac(tone(1.0, rate=44100, hz=220.0))),
+    ):
+        path = tmp_path / f"r.{kind}"
+        path.write_bytes(data)
+        by_path = AvAudioDecoder().decode(
+            RecordedAudio(b"", kind, path=str(path))
+        ).samples
+        assert np.allclose(by_path, decode(data, kind))
+    with pytest.raises(InvalidInputError, match="empty"):
+        AvAudioDecoder().decode(RecordedAudio(b"", "wav"))
+
+
+def test_the_length_is_read_from_the_header(tmp_path: Path) -> None:
+    """Known without decoding; ``None`` for what cannot be read."""
+    decoder = AvAudioDecoder()
+    wav = RecordedAudio(sound_file(tone(3.0), RATE, "wav"), "wav")
+    length = decoder.duration(wav)
+    assert length is not None and abs(length - 3.0) < 0.05
+    video = tmp_path / "v.mp4"
+    video.write_bytes(mp4_aac(tone(2.0, rate=44100, hz=220.0)))
+    length = decoder.duration(RecordedAudio(b"", "mp4", path=str(video)))
+    assert length is not None and abs(length - 2.0) < 0.2
+    assert decoder.duration(RecordedAudio(b"not audio", "wav")) is None

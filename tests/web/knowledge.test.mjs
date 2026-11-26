@@ -5,7 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ACCEPT, CATEGORIES, KnowledgeModel, MEDIA_EXTENSIONS, MEDIA_MAX_BYTES, MAX_BYTES, POLL_MS, checkFile, clockText,
+  ACCEPT, CATEGORIES, KnowledgeModel, MEDIA_EXTENSIONS, POLL_MS, checkFile, clockText,
   cleanMetadata, countByStatus, extensionOf, formatBytes, isDomainId, isMedia, listOf, timeRange, needsPolling, parseTags, queryBody, requestId, serviceMissing, slugify, sortDocuments,
 } from "../../transcriber/adapters/inbound/web/js/lib/knowledge.js";
 import { Api, ApiFailure } from "../../transcriber/adapters/inbound/web/js/api.js";
@@ -19,22 +19,27 @@ test("the eight document formats and four image formats are accepted, others and
   assert.equal(checkFile({ name: "x.exe", size: 10 }), "type");
   assert.equal(checkFile({ name: "noext", size: 10 }), "type");
   assert.equal(checkFile({ name: "a.pdf", size: 0 }), "empty");
-  assert.equal(checkFile({ name: "a.pdf", size: 11 }, 10), "size");
+  assert.equal(checkFile({ name: "a.pdf", size: 11 }, { pdf: 10 }), "size");
+  assert.equal(checkFile({ name: "a.pdf", size: 11 }), null, "without the server's limits only the server checks");
   assert.equal(extensionOf("Informe.Final.PDF"), "pdf");
   for (const ext of [".pdf", ".docx", ".odt", ".txt", ".md", ".html", ".csv", ".xlsx", ".png", ".jpg", ".tiff", ".webp"]) assert.ok(ACCEPT.includes(ext), ext);
   for (const type of ["image/png", "image/jpeg", "image/tiff", "image/webp"]) assert.ok(ACCEPT.includes(type), type);
 });
 
-test("audio and video are accepted (the transcriber's formats), with their own size limit", () => {
+test("audio and video are accepted (the transcriber's formats), with the server's limits by kind", () => {
+  const limits = { pdf: 500, video: 1000, audio: 200, document: 100 };
   assert.deepEqual(MEDIA_EXTENSIONS, ["wav", "flac", "ogg", "opus", "mp3", "m4a", "mp4", "aac", "webm", "mov", "3gp", "amr", "wma"]);
   for (const name of ["clase.MP3", "b.m4a", "c.wav", "d.mp4", "e.mov", "f.webm", "g.3gp"]) {
     assert.equal(checkFile({ name, size: 10 }), null, name);
     assert.ok(isMedia(name), name);
   }
   assert.equal(checkFile({ name: "x.aiff", size: 10 }), "type");
-  assert.equal(checkFile({ name: "clase.mp4", size: MAX_BYTES + 1 }), null);
-  assert.equal(checkFile({ name: "clase.mp4", size: MEDIA_MAX_BYTES + 1 }), "size");
-  assert.equal(checkFile({ name: "a.pdf", size: MAX_BYTES + 1 }), "size");
+  assert.equal(checkFile({ name: "clase.mp4", size: 1000 }, limits), null);
+  assert.equal(checkFile({ name: "clase.mp4", size: 1001 }, limits), "size");
+  assert.equal(checkFile({ name: "clase.mp3", size: 201 }, limits), "size");
+  assert.equal(checkFile({ name: "a.pdf", size: 500 }, limits), null);
+  assert.equal(checkFile({ name: "a.pdf", size: 501 }, limits), "size");
+  assert.equal(checkFile({ name: "a.docx", size: 101 }, limits), "size");
   assert.ok(!isMedia("a.pdf"));
   for (const type of ["audio/*", "video/*", ".mp3", ".mp4", ".wma"]) assert.ok(ACCEPT.includes(type), type);
 });

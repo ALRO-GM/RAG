@@ -8,12 +8,13 @@ indexing and search services are built by the composition root
 
 from dataclasses import dataclass
 from typing import (
-    Any, Callable, Dict, List, Optional, Protocol, Sequence, Tuple,
+    Any, Callable, Dict, Iterator, List, Optional, Protocol, Sequence, Tuple,
 )
 
 from src.application.ports import IndexSnapshot
 from src.domain.knowledge.documents import KnowledgeDocument
 from src.domain.knowledge.domains import DomainManifest
+from src.domain.knowledge.uploads import PartialUpload
 from src.domain.models import Chunk, IndexReport, ScoredChunk
 
 
@@ -104,6 +105,74 @@ class DomainIndexes(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class StoredFile:
+    """A file an adapter keeps on disk: where it is and its size.
+
+    The use cases pass it from one port to another without opening it;
+    only adapters read it, in pieces (a 1 GB video is never held in
+    memory).
+    """
+
+    path: str
+    size: int
+
+
+Progress = Callable[[int, int], None]
+"""Told ``(done, total)`` pages while a long document is read."""
+
+
+class UploadArea(Protocol):
+    """Files being received in pieces, until they become documents.
+
+    Raises ``NotFoundError`` for an upload it does not have.
+    """
+
+    def create(self, upload: PartialUpload) -> None:
+        """Keep a new upload's record and an empty file for its bytes."""
+        ...
+
+    def load(self, upload_id: str) -> PartialUpload:
+        """Return an upload's record."""
+        ...
+
+    def save(self, upload: PartialUpload) -> None:
+        """Replace an upload's record."""
+        ...
+
+    def write(self, upload_id: str, offset: int, data: bytes) -> None:
+        """Write ``data`` at ``offset`` of the upload's file."""
+        ...
+
+    def head(self, upload_id: str, size: int) -> bytes:
+        """Return the first ``size`` bytes of the upload's file."""
+        ...
+
+    def read(self, upload_id: str) -> Iterator[bytes]:
+        """Yield the upload's bytes in pieces, from the start."""
+        ...
+
+    def file(self, upload_id: str) -> StoredFile:
+        """Return the upload's file (to verify it or keep it)."""
+        ...
+
+    def discard(self, upload_id: str) -> None:
+        """Delete an upload's file and record (absent: nothing)."""
+        ...
+
+    def drop_file(self, upload_id: str) -> None:
+        """Delete only the upload's file (the record stays)."""
+        ...
+
+    def ids(self) -> List[str]:
+        """Return the ids of every upload kept."""
+        ...
+
+    def free_bytes(self) -> int:
+        """Return the free space of the disk the uploads are on."""
+        ...
+
+
 class DocumentStore(Protocol):
     """Uploaded documents of a domain: records, originals, text."""
 
@@ -119,14 +188,20 @@ class DocumentStore(Protocol):
         """Create or replace a document's record."""
         ...
 
-    def save_original(
-        self, domain_id: str, document: KnowledgeDocument, data: bytes
+    def keep_original(
+        self, domain_id: str, document: KnowledgeDocument, source: StoredFile
     ) -> None:
-        """Keep the uploaded bytes of a document."""
+        """Keep a received file as the document's original.
+
+        The file is moved (renamed on the same disk), not copied; it is
+        no longer where it was.
+        """
         ...
 
-    def original(self, domain_id: str, document: KnowledgeDocument) -> bytes:
-        """Return the uploaded bytes of a document."""
+    def original(
+        self, domain_id: str, document: KnowledgeDocument
+    ) -> StoredFile:
+        """Return the document's original (``NotFoundError`` if gone)."""
         ...
 
     def write_text(self, domain_id: str, document_id: str, text: str) -> str:
@@ -161,12 +236,18 @@ class ExtractedDocument:
 class DocumentExtractor(Protocol):
     """Turn an uploaded file into Markdown text."""
 
-    def verify(self, data: bytes, document_type: str) -> None:
+    def verify(self, source: StoredFile, document_type: str) -> None:
         """Check the file's inside (``UnsupportedDocumentError``)."""
         ...
 
-    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
-        """Return the text of ``data`` (``InvalidInputError`` if none)."""
+    def extract(
+        self, source: StoredFile, document_type: str,
+        progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
+        """Return the text of ``source`` (``InvalidInputError`` if none).
+
+        ``progress`` is told the pages read so far of a long document.
+        """
         ...
 
 
@@ -198,10 +279,10 @@ class PageLayoutReader(Protocol):
     """Read pages of a PDF or image as Markdown, with OCR and tables."""
 
     def read_pages(
-        self, data: bytes, kind: str, pages: Optional[Sequence[int]],
+        self, source: StoredFile, kind: str, pages: Optional[Sequence[int]],
         ocr: bool, figures: bool = False,
     ) -> Dict[int, PageContent]:
-        """Return each page (1-based) of ``data``.
+        """Return each page (1-based) of the file ``source``.
 
         ``pages`` limits a PDF to those pages (all when ``None``, as for
         images); ``ocr`` turns text recognition on for bitmaps;
@@ -255,10 +336,13 @@ class MediaTranscriber(Protocol):
     """
 
     def submit(
-        self, job_id: str, data: bytes, file_format: str, language: str,
-        max_seconds: float,
+        self, job_id: str, source: StoredFile, file_format: str,
+        language: str, max_seconds: float,
     ) -> MediaJob:
-        """Start transcribing ``data`` as job ``job_id``."""
+        """Start transcribing the file ``source`` as job ``job_id``.
+
+        The file is sent in a stream, never read whole into memory.
+        """
         ...
 
     def status(self, job_id: str) -> MediaJob:

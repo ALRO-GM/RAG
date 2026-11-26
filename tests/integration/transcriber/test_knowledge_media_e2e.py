@@ -28,11 +28,14 @@ from src.adapters.outbound.http_media_transcriber import (
     message_of,
     refusal,
 )
+from src.adapters.outbound.fs_upload_area import FileSystemUploadArea
 from src.adapters.outbound.thread_job_queue import ThreadJobQueue
 from src.application.knowledge.library import KnowledgeLibrary
 from src.application.knowledge.media import UNREACHABLE, MediaTranscription
+from src.application.knowledge.ports import StoredFile
 from src.application.knowledge.query import KnowledgeQueryService
 from src.application.knowledge.registry import DomainIndexRegistry
+from src.application.knowledge.uploads import DocumentUploads
 from src.bootstrap import KnowledgeIndexFactory, utc_now
 from src.config import KnowledgeSettings, Settings
 from src.domain.errors import (
@@ -52,6 +55,7 @@ from tests.integration.test_knowledge_upload_api import (
 )
 from tests.integration.test_transcript_ingest import AUTH
 from tests.integration.transcriber.audio import scene, sound_file
+from tests.knowledge_samples import as_file
 from tests.integration.transcriber.test_knowledge_proxy import free_port
 from transcriber.adapters.inbound.http_api import create_app
 from transcriber.bootstrap import TranscriberContainer, build_container
@@ -96,7 +100,10 @@ def rag(
 ) -> App:
     """The RAG's knowledge routes, its audio and video sent to ``url``."""
     monkeypatch.chdir(tmp_path)
-    k = KnowledgeSettings(max_upload_bytes=5_000_000, max_media_seconds=60)
+    k = KnowledgeSettings(
+        max_audio_bytes=5_000_000, max_video_bytes=5_000_000,
+        max_document_bytes=5_000_000, max_media_seconds=60, min_free_bytes=0,
+    )
     library: KnowledgeLibrary
     registry = DomainIndexRegistry(
         FileSystemDomainCatalogue(k.domains_dir, k.data_dir),
@@ -107,7 +114,7 @@ def rag(
     queue, media_queue = ThreadJobQueue(), ThreadJobQueue("media")
     library = KnowledgeLibrary(
         registry, FileSystemDocumentStore(k.data_dir), DocumentExtractors(),
-        queue, k.max_upload_bytes, utc_now,
+        queue, k.upload_limits, utc_now,
         MediaTranscription(
             HttpMediaTranscriber(url, lambda: TOKEN, timeout=10),
             k.max_media_seconds, poll_seconds=0.05, max_wait_seconds=30,
@@ -115,7 +122,12 @@ def rag(
         ),
         media_queue,
     )
-    routes = KnowledgeRoutes(KnowledgeQueryService(registry), library)
+    uploads = DocumentUploads(
+        library, FileSystemUploadArea(k.data_dir), k.min_free_bytes
+    )
+    routes = KnowledgeRoutes(
+        KnowledgeQueryService(registry), library, uploads=uploads
+    )
     return knowledge_client(tmp_path, registry, routes), queue, media_queue, k
 
 
@@ -231,11 +243,15 @@ def test_the_adapter_maps_the_answers(transcriber: Served) -> None:
         port.status(job)
     port.forget(job)  # absent: nothing to do
     with pytest.raises(UnsupportedDocumentError, match="exe"):
-        port.submit(job, b"x", "exe", "es", 60)
+        port.submit(job, as_file(b"x"), "exe", "es", 60)
     with pytest.raises(InvalidInputError):
         port.status("not-a-job")
     with pytest.raises(ServiceUnavailableError, match="401"):
         HttpMediaTranscriber(url, lambda: "wrong").status(job)
+    with pytest.raises(NotFoundError, match="missing"):
+        port.submit(job, StoredFile("/nonexistent/x.wav", 3), "wav", "es",
+                    60)
+    assert isinstance(refusal(507, "no room"), InvalidInputError)
     assert isinstance(refusal(409, "running"), BusyError)
     assert str(refusal(500, "")) == "The transcriber answered 500."
     assert message_of(b"\xff") == "" and message_of(b'{"message": 1}') == ""

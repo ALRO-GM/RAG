@@ -16,8 +16,10 @@ session holds the GPU lease).
 import io
 import json
 import sys
+import tempfile
 import time
 import zlib
+from pathlib import Path
 from typing import Any, Dict, List
 
 from PIL import Image, ImageDraw, ImageFont
@@ -27,6 +29,7 @@ from src.adapters.outbound.docling_pages import DoclingPages
 from src.adapters.outbound.document_extractors import DocumentExtractors
 from src.adapters.outbound.florence_captioner import FlorenceCaptioner
 from src.adapters.outbound.gpu_lease_file import FileGpuGate, lease_directory
+from src.application.knowledge.ports import StoredFile
 
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -215,7 +218,10 @@ def main() -> None:
     pdf = pdf_with_figures(texts, [bar_chart(), flow_diagram()])
     extractor = DocumentExtractors(DoclingPages(gate), captioner=florence)
     started = time.perf_counter()
-    found = extractor.extract(pdf, "pdf")
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "figures.pdf"
+        path.write_bytes(pdf)
+        found = extractor.extract(StoredFile(str(path), len(pdf)), "pdf")
     report["pdf_with_two_figures"] = {
         "seconds": round(time.perf_counter() - started, 2),
         "text": found.text,

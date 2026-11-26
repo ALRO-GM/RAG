@@ -4,17 +4,19 @@ The transcriber listens on this machine; its ``/internal/knowledge-media``
 routes take the RAG's own bearer token (the one the transcriber
 publishes with) and are not forwarded through the tunnel
 (``docs/KNOWLEDGE.md`` §8). Requests never follow a redirect (the token
-would go with it) and the token never appears in a message.
+would go with it) and the token never appears in a message. A recording
+is streamed from its file (``Content-Length`` set, a block at a time),
+never read whole into memory.
 """
 
 import json
 import socket
 import urllib.error
 import urllib.request
-from typing import Any, Callable, Dict, Optional
+from typing import IO, Any, Callable, Dict, Optional, Union
 from urllib.parse import quote, urlencode
 
-from src.application.knowledge.ports import MediaJob
+from src.application.knowledge.ports import MediaJob, StoredFile
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
@@ -57,7 +59,7 @@ def refusal(status: int, message: str) -> RagError:
     kinds = {
         400: InvalidInputError, 422: InvalidInputError,
         404: NotFoundError, 409: BusyError, 413: InvalidInputError,
-        415: UnsupportedDocumentError,
+        415: UnsupportedDocumentError, 507: InvalidInputError,
     }
     kind = kinds.get(status)
     if kind is None:
@@ -102,10 +104,15 @@ class HttpMediaTranscriber:
         self.timeout = timeout
 
     def _call(
-        self, method: str, job_id: str, body: Optional[bytes] = None,
+        self, method: str, job_id: str,
+        body: Union[None, bytes, IO[bytes]] = None,
         query: Optional[Dict[str, str]] = None,
+        length: Optional[int] = None,
     ) -> Any:
-        """Send one request; return the JSON answered (``None``: empty)."""
+        """Send one request; return the JSON answered (``None``: empty).
+
+        ``body`` may be an open file of ``length`` bytes, sent in blocks.
+        """
         url = self.url + quote(job_id, safe="")
         if query:
             url += "?" + urlencode(query)
@@ -113,6 +120,8 @@ class HttpMediaTranscriber:
                    "Authorization": f"Bearer {self._token()}"}
         if body is not None:
             headers["Content-Type"] = "application/octet-stream"
+        if length is not None:
+            headers["Content-Length"] = str(length)
         request = urllib.request.Request(
             url, data=body, method=method, headers=headers
         )
@@ -143,14 +152,22 @@ class HttpMediaTranscriber:
             ) from None
 
     def submit(
-        self, job_id: str, data: bytes, file_format: str, language: str,
-        max_seconds: float,
+        self, job_id: str, source: StoredFile, file_format: str,
+        language: str, max_seconds: float,
     ) -> MediaJob:
-        """Start transcribing ``data`` as job ``job_id``."""
-        return job_of(self._call("PUT", job_id, data, {
+        """Start transcribing the file ``source`` as job ``job_id``."""
+        query = {
             "format": file_format, "language": language,
             "max_seconds": f"{max_seconds:g}",
-        }))
+        }
+        try:
+            handle = open(source.path, "rb")
+        except OSError:
+            raise NotFoundError("The recording's file is missing.") from None
+        with handle:
+            return job_of(self._call(
+                "PUT", job_id, handle, query, length=source.size
+            ))
 
     def status(self, job_id: str) -> MediaJob:
         """Return the job (with its transcript once done)."""

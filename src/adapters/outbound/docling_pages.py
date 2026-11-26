@@ -17,9 +17,10 @@ returned) when the device changes.
 import importlib
 import io
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from src.application.knowledge.ports import GpuGate, PageContent
+from src.application.knowledge.ports import GpuGate, PageContent, StoredFile
 
 LOG = logging.getLogger(__name__)
 
@@ -77,26 +78,25 @@ class DoclingPages:
         return "cpu"
 
     def read_pages(
-        self, data: bytes, kind: str, pages: Optional[Sequence[int]],
+        self, source: StoredFile, kind: str, pages: Optional[Sequence[int]],
         ocr: bool, figures: bool = False,
     ) -> Dict[int, PageContent]:
         """Return each requested page (1-based): Markdown, figures if asked.
 
+        The file is given to Docling by its path (it opens the PDF and
+        renders only the pages asked for; a stream would be read whole).
         Figures are the pictures Docling found, as PNG, without the tiny
         ones (icons, rules).
         """
-        from docling.datamodel.base_models import DocumentStream
-
         device = self.pick_device()
         converter = self._converter(ocr, figures, device)
-        name = "document." + ("pdf" if kind == "pdf" else kind)
-        stream = DocumentStream(name=name, stream=io.BytesIO(data))
+        path = Path(source.path)
         if pages:
             result = converter.convert(
-                stream, page_range=(min(pages), max(pages))
+                path, page_range=(min(pages), max(pages))
             )
         else:
-            result = converter.convert(stream)
+            result = converter.convert(path)
         wanted = set(pages) if pages else None
         found: Dict[int, PageContent] = {}
         document = result.document

@@ -28,7 +28,7 @@ export class Api {
     this.fetchFn = fetchFn;
   }
 
-  async request(method, path, { query, json, body, contentType, auth = true, text = false, raw = false } = {}) {
+  async request(method, path, { query, json, body, contentType, auth = true, text = false, raw = false, signal } = {}) {
     const headers = {};
     if (auth) {
       const code = this.getCode();
@@ -53,10 +53,11 @@ export class Api {
     }
     let response;
     try {
-      response = await this.fetchFn(url, {
-        method, headers, body: payload, cache: "no-store", credentials: "same-origin",
-      });
+      const init = { method, headers, body: payload, cache: "no-store", credentials: "same-origin" };
+      if (signal) init.signal = signal;
+      response = await this.fetchFn(url, init);
     } catch {
+      if (signal?.aborted) throw new ApiFailure({ status: null, kind: "aborted", code: "aborted" });
       throw new ApiFailure({ status: null, kind: "unavailable", code: "network" });
     }
     if (response.ok) {
@@ -259,6 +260,36 @@ export class Api {
     form.append("file", file, file.name);
     if (metadata) form.append("metadata", JSON.stringify(metadata));
     return this.request("POST", `/knowledge/domains/${encodeURIComponent(id)}/documents`, { body: form });
+  }
+
+  /** The largest file of each kind ({ pdf, video, audio, document } in bytes), piece_bytes, max_media_seconds. */
+  knowledgeLimits() { return this.request("GET", "/knowledge/limits"); }
+
+  /** Announce a large file to send in pieces: { name, size, metadata } -> the upload ({ id, received, ... }). */
+  startKnowledgeUpload(id, upload) {
+    return this.request("POST", `/knowledge/domains/${encodeURIComponent(id)}/uploads`, { json: upload });
+  }
+
+  /** How much of an upload arrived (to go on after a cut). */
+  knowledgeUploadStatus(id, upload) {
+    return this.request("GET", `/knowledge/domains/${encodeURIComponent(id)}/uploads/${encodeURIComponent(upload)}`);
+  }
+
+  /** Send one piece (a Blob slice) at byte `offset`; `signal` cancels it. */
+  putKnowledgePiece(id, upload, offset, piece, { signal } = {}) {
+    return this.request("PUT", `/knowledge/domains/${encodeURIComponent(id)}/uploads/${encodeURIComponent(upload)}/pieces/${Number(offset)}`, {
+      body: piece, contentType: "application/octet-stream", signal,
+    });
+  }
+
+  /** Turn a fully sent upload into a document (queued). */
+  completeKnowledgeUpload(id, upload) {
+    return this.request("POST", `/knowledge/domains/${encodeURIComponent(id)}/uploads/${encodeURIComponent(upload)}/complete`);
+  }
+
+  /** Cancel an upload; what arrived is deleted. */
+  cancelKnowledgeUpload(id, upload) {
+    return this.request("DELETE", `/knowledge/domains/${encodeURIComponent(id)}/uploads/${encodeURIComponent(upload)}`);
   }
 
   /** Change a document's metadata { category, intent, script_phase, tags }. */

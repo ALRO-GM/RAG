@@ -5,10 +5,18 @@
 // --test can run it against a fake backend.
 //
 // API (proxied by the transcriber under /api/knowledge/…):
+//   GET /knowledge/limits (the largest file of each kind, the piece size),
 //   GET/POST /knowledge/domains, DELETE /knowledge/domains/{id},
 //   GET/POST /knowledge/domains/{id}/documents (multipart: file + metadata JSON),
+//   POST /knowledge/domains/{id}/uploads, GET/DELETE …/uploads/{up},
+//   PUT …/uploads/{up}/pieces/{offset}, POST …/uploads/{up}/complete (#282),
 //   PATCH/DELETE /knowledge/domains/{id}/documents/{doc},
 //   POST /knowledge/query (knowledge.query.v1 -> knowledge.result.v1).
+//
+// A file up to one piece (limits.piece_bytes) goes in one request; a larger
+// one in pieces (PieceUpload): progress, a calm retry after a cut that goes
+// on from what the server already has, and cancel. The limits are the
+// server's; the page keeps no copy of the numbers.
 
 /** Audio and video formats: what is said in them is transcribed (KN-3a);
  * the transcriber's recording formats. */
@@ -30,14 +38,15 @@ export const ACCEPT = [
   "image/png", "image/jpeg", "image/tiff", "image/webp", "audio/*", "video/*",
 ].join(",");
 
-/** Largest file sent (the server keeps its own, possibly smaller, limit). */
-export const MAX_BYTES = 100 * 1024 * 1024;
+/** Media types that may hold video (the server gives them the video limit
+ * when the content is a video container); the other media are audio. */
+export const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "3gp"];
 
-/** Largest audio or video file sent: the RAG's own upload limit (200 MiB). */
-export const MEDIA_MAX_BYTES = 200 * 1024 * 1024;
+/** Waits before trying a piece again after a cut (then the last one, again). */
+export const RETRY_MS = [1000, 2000, 5000, 10000, 20000, 30000];
 
-/** Longest recording the RAG accepts (knowledge.max_media_seconds), in minutes. */
-export const MEDIA_MAX_MINUTES = 120;
+/** Tries of one piece before the upload is shown as failed (≈ 15 min of cuts). */
+export const MAX_TRIES = 40;
 
 /** The dialogue-act categories a chunk may be filed under (CONTRACTS.md §2). */
 export const CATEGORIES = [
@@ -67,13 +76,43 @@ export function isMedia(name) {
   return MEDIA_EXTENSIONS.includes(extensionOf(name));
 }
 
+/** Which server limit a file name falls under: "pdf", "video", "audio" or "document". */
+export function limitKind(name) {
+  const ext = extensionOf(name);
+  if (ext === "pdf") return "pdf";
+  if (VIDEO_EXTENSIONS.includes(ext)) return "video";
+  if (MEDIA_EXTENSIONS.includes(ext)) return "audio";
+  return "document";
+}
+
 /** Why `file` cannot be sent ("type", "empty", "size") or null when it can.
- * Audio and video may be as large as MEDIA_MAX_BYTES. */
-export function checkFile(file, maxBytes = MAX_BYTES, mediaMaxBytes = MEDIA_MAX_BYTES) {
+ * `limits` are the server's ({ pdf, video, audio, document } bytes); without
+ * them only the server checks the size. */
+export function checkFile(file, limits = null) {
   if (!EXTENSIONS.includes(extensionOf(file?.name))) return "type";
   if (!(file.size > 0)) return "empty";
-  if (file.size > (isMedia(file.name) ? mediaMaxBytes : maxBytes)) return "size";
+  const limit = Number(limits?.[limitKind(file.name)]);
+  if (Number.isFinite(limit) && limit > 0 && file.size > limit) return "size";
   return null;
+}
+
+/** A limit for people: whole units when round ("500 MB", "1 GB"). */
+export function limitText(bytes, lang = "es") {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = n;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(value)} ${units[unit]}`;
+}
+
+/** Whole percent of `sent` out of `total` (0 for an empty total). */
+export function percentOf(sent, total) {
+  return total > 0 ? Math.min(100, Math.floor((sent / total) * 100)) : 0;
 }
 
 /** Seconds as the server writes them in a transcript: "03:12", "1:02:05". */
@@ -198,6 +237,160 @@ export function serviceMissing(error) {
   return error?.status === 404;
 }
 
+/** What a cancelled upload rejects with (`kind` "aborted", as the API's). */
+export class UploadCancelled extends Error {
+  constructor() {
+    super("cancelled");
+    this.kind = "aborted";
+    this.code = "aborted";
+    this.status = null;
+  }
+}
+
+/** A failure worth trying again after a wait (a cut, a restart): not a refusal. */
+function retryable(error) {
+  if (error?.status === 507) return false; // no room: waiting will not help
+  return error?.kind === "unavailable" || error?.kind === "server" || error?.kind === "rate";
+}
+
+/**
+ * One file sent in pieces of `pieceBytes`, resumable. `onProgress` gets
+ * { sent, total, retrying, finishing } after every change. A cut (network,
+ * 5xx) waits RETRY_MS, asks the server what it holds and goes on from there;
+ * a 409 (the server holds something else) realigns the same way; any other
+ * refusal ends it with that error. `cancel()` stops it and deletes what the
+ * server received. `uploadId` (a previous try's) resumes that upload.
+ */
+export class PieceUpload {
+  constructor(api, { domain, file, metadata, pieceBytes, timer, onProgress = () => {}, uploadId = null }) {
+    this.api = api;
+    this.domain = domain;
+    this.file = file;
+    this.metadata = metadata;
+    this.pieceBytes = Math.max(1, Number(pieceBytes) || 1);
+    this.timer = timer;
+    this.onProgress = onProgress;
+    this.uploadId = uploadId;
+    this.sent = 0;
+    this.retrying = false;
+    this.finishing = false;
+    this.cancelled = false;
+    this.controller = null;
+    this.wake = null;
+  }
+
+  report() {
+    this.onProgress({ sent: this.sent, total: this.file.size, retrying: this.retrying, finishing: this.finishing });
+  }
+
+  /** Wait `ms` on the injected timer; cancel() ends the wait at once. */
+  pause(ms) {
+    return new Promise((resolve) => {
+      const handle = this.timer.set(() => { this.wake = null; resolve(); }, ms);
+      this.wake = () => { this.timer.clear(handle); this.wake = null; resolve(); };
+    });
+  }
+
+  checkCancelled() {
+    if (this.cancelled) throw new UploadCancelled();
+  }
+
+  /**
+   * Run `call` until it succeeds; a retryable failure waits, then `onCut`
+   * (when given) realigns before trying again; with `onCut` a 409 (the
+   * server holds something else) realigns at once, three times at most in
+   * a row. Other failures are thrown.
+   */
+  async withRetries(call, onCut = null) {
+    let conflicts = 0;
+    for (let attempt = 0; ; attempt += 1) {
+      this.checkCancelled();
+      try {
+        const result = await call();
+        if (this.retrying) {
+          this.retrying = false;
+          this.report();
+        }
+        return result;
+      } catch (error) {
+        this.checkCancelled();
+        const realign = onCut !== null && error?.status === 409 && conflicts < 3;
+        if (!(retryable(error) || realign) || attempt + 1 >= MAX_TRIES) throw error;
+        if (realign) {
+          conflicts += 1;
+        } else {
+          conflicts = 0;
+          this.retrying = true;
+          this.report();
+          await this.pause(RETRY_MS[Math.min(attempt, RETRY_MS.length - 1)]);
+          this.checkCancelled();
+        }
+        if (onCut !== null) {
+          try {
+            await onCut();
+          } catch (again) {
+            this.checkCancelled();
+            if (!retryable(again)) throw again;
+          }
+        }
+      }
+    }
+  }
+
+  /** Ask the server how much it holds and go on from there. */
+  async realign() {
+    const status = await this.api.knowledgeUploadStatus(this.domain, this.uploadId);
+    this.sent = Math.min(Number(status?.received) || 0, this.file.size);
+    this.report();
+  }
+
+  /** Send the piece that starts at what the server holds. */
+  async sendPiece() {
+    const start = this.sent;
+    const piece = this.file.slice(start, Math.min(start + this.pieceBytes, this.file.size));
+    this.controller = typeof AbortController === "function" ? new AbortController() : null;
+    try {
+      return await this.api.putKnowledgePiece(this.domain, this.uploadId, start, piece, { signal: this.controller?.signal });
+    } finally {
+      this.controller = null;
+    }
+  }
+
+  /** Send the whole file; resolves with the document, rejects with the reason. */
+  async run() {
+    if (this.uploadId) {
+      await this.withRetries(() => this.realign());
+    } else {
+      const upload = await this.withRetries(() => this.api.startKnowledgeUpload(this.domain, {
+        name: this.file.name, size: this.file.size, metadata: this.metadata,
+      }));
+      this.uploadId = upload.id;
+    }
+    this.report();
+    while (this.sent < this.file.size) {
+      const view = await this.withRetries(() => this.sendPiece(), () => this.realign());
+      if (view && Number.isFinite(Number(view.received))) this.sent = Math.min(Number(view.received), this.file.size);
+      this.report();
+    }
+    this.finishing = true;
+    this.report();
+    return this.withRetries(() => this.api.completeKnowledgeUpload(this.domain, this.uploadId));
+  }
+
+  /** Stop and delete what the server holds of it. */
+  async cancel() {
+    this.cancelled = true;
+    this.controller?.abort();
+    this.wake?.();
+    if (!this.uploadId) return;
+    try {
+      await this.api.cancelKnowledgeUpload(this.domain, this.uploadId);
+    } catch {
+      // the server sweeps what nobody finishes
+    }
+  }
+}
+
 /**
  * The page's state and actions. `api` has the knowledge methods of
  * js/api.js; `timer` is { set(fn, ms), clear(handle) }; `onChange` runs
@@ -219,7 +412,8 @@ export class KnowledgeModel {
       domain: null, // the selected domain's id
       documents: [],
       documentsError: null,
-      uploads: [], // { key, name, size, state: waiting|uploading|rejected|failed, reason, error }
+      uploads: [], // { key, name, size, state: waiting|uploading|rejected|failed, reason, error, sent, retrying, finishing }
+      limits: null, // the server's { pdf, video, audio, document, piece_bytes, max_media_seconds }, once read
       search: { running: false, result: null, error: null },
     };
   }
@@ -233,8 +427,19 @@ export class KnowledgeModel {
     return this.state.domains.find((d) => d.id === this.state.domain) ?? null;
   }
 
+  /** Read the server's limits (kept null when they cannot be read: the server still checks). */
+  async loadLimits() {
+    if (typeof this.api.knowledgeLimits !== "function") return;
+    try {
+      this.state.limits = await this.api.knowledgeLimits();
+    } catch {
+      this.state.limits = null;
+    }
+  }
+
   /** Load the domains and select `wanted` (or the first). */
   async load(wanted = null) {
+    await this.loadLimits();
     try {
       this.state.domains = listOf(await this.api.knowledgeDomains(), "domains");
       this.state.status = "ready";
@@ -323,11 +528,13 @@ export class KnowledgeModel {
     const domain = this.state.domain;
     if (!domain) return;
     for (const file of files) {
-      const reason = checkFile(file);
+      const reason = checkFile(file, this.state.limits);
+      const kind = limitKind(file.name);
       this.uploadKey += 1;
       this.state.uploads.push({
         key: this.uploadKey, file, domain, metadata: cleanMetadata(metadata), name: file.name, size: file.size,
-        state: reason ? "rejected" : "waiting", reason, error: null,
+        state: reason ? "rejected" : "waiting", reason, error: null, kind, limit: this.state.limits?.[kind] ?? null,
+        sent: 0, retrying: false, finishing: false, uploadId: null, piece: null,
       });
     }
     this.changed();
@@ -340,16 +547,25 @@ export class KnowledgeModel {
     try {
       for (let next = this.nextWaiting(); next; next = this.nextWaiting()) {
         next.state = "uploading";
+        next.retrying = false;
         this.changed();
         try {
-          const doc = await this.api.uploadKnowledgeDocument(next.domain, next.file, next.metadata);
+          const doc = await this.send(next);
           this.state.uploads = this.state.uploads.filter((u) => u !== next);
           if (next.domain === this.state.domain && doc && doc.id && !this.state.documents.some((d) => d.id === doc.id)) {
             this.state.documents = sortDocuments([...this.state.documents, doc]);
           }
         } catch (error) {
-          next.state = "failed";
-          next.error = error;
+          if (error?.kind === "aborted") {
+            this.state.uploads = this.state.uploads.filter((u) => u !== next);
+          } else {
+            next.state = "failed";
+            next.error = error;
+          }
+        } finally {
+          next.piece = null;
+          next.retrying = false;
+          next.finishing = false;
         }
         this.changed();
       }
@@ -363,6 +579,49 @@ export class KnowledgeModel {
     return this.state.uploads.find((u) => u.state === "waiting") ?? null;
   }
 
+  /**
+   * Send one queued file: in one request up to one piece (or when the
+   * server's limits are unknown), else in pieces with progress and resume.
+   */
+  async send(item) {
+    const pieceBytes = Number(this.state.limits?.piece_bytes);
+    if (!(pieceBytes > 0) || item.size <= pieceBytes || typeof this.api.startKnowledgeUpload !== "function") {
+      return this.api.uploadKnowledgeDocument(item.domain, item.file, item.metadata);
+    }
+    item.piece = new PieceUpload(this.api, {
+      domain: item.domain, file: item.file, metadata: item.metadata, pieceBytes, timer: this.timer, uploadId: item.uploadId,
+      onProgress: ({ sent, retrying, finishing }) => {
+        Object.assign(item, { sent, retrying, finishing, uploadId: item.piece?.uploadId ?? item.uploadId });
+        this.changed();
+      },
+    });
+    try {
+      return await item.piece.run();
+    } finally {
+      item.uploadId = item.piece?.uploadId ?? item.uploadId;
+    }
+  }
+
+  /** Cancel a waiting or uploading file (what the server received is deleted). */
+  async cancelUpload(key) {
+    const item = this.state.uploads.find((u) => u.key === key);
+    if (!item) return;
+    if (item.piece) {
+      await item.piece.cancel();
+      return; // drain() drops it once the cancelled upload rejects
+    }
+    if (item.state === "uploading") return; // one request: it is nearly done
+    this.state.uploads = this.state.uploads.filter((u) => u !== item);
+    if (item.uploadId) {
+      try {
+        await this.api.cancelKnowledgeUpload(item.domain, item.uploadId);
+      } catch {
+        // the server sweeps what nobody finishes
+      }
+    }
+    this.changed();
+  }
+
   /** Try a failed upload again. */
   async retryUpload(key) {
     const item = this.state.uploads.find((u) => u.key === key && u.state === "failed");
@@ -373,9 +632,13 @@ export class KnowledgeModel {
     await this.drain();
   }
 
-  /** Forget a rejected or failed upload. */
+  /** Forget a rejected or failed upload (what the server holds of it is deleted). */
   dismissUpload(key) {
+    const item = this.state.uploads.find((u) => u.key === key && u.state !== "uploading");
     this.state.uploads = this.state.uploads.filter((u) => u.key !== key || u.state === "uploading");
+    if (item?.uploadId && typeof this.api.cancelKnowledgeUpload === "function") {
+      this.api.cancelKnowledgeUpload(item.domain, item.uploadId).catch(() => {});
+    }
     this.changed();
   }
 

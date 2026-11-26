@@ -116,16 +116,48 @@ _WORDS = TypeAdapter(List[Word])
 T = TypeVar("T")
 
 
+INLINE_BYTES = 64 * 1024 * 1024
+"""Largest stored recording read into memory; a larger one (a video of
+the knowledge library) is handed over by its path (#282)."""
+HASH_BLOCK = 1024 * 1024
+"""Bytes read at a time to hash a large recording."""
+
+
+def file_sha256(path: Path) -> str:
+    """Return the SHA-256 of a file, read a block at a time."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(HASH_BLOCK), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def move_into(source: Path, target: Path) -> None:
+    """Move ``source`` to ``target``: a rename, or a copy across disks."""
+    try:
+        os.replace(source, target)
+    except OSError:
+        tmp = target.with_name(f".{target.name}.tmp")
+        shutil.copyfile(source, tmp)
+        tmp.replace(target)
+        source.unlink(missing_ok=True)
+
+
 class FileSystemSessionRepository:
     """Sessions, their audio, words and transcripts under ``root``."""
 
-    def __init__(self, root: Path, blocks: Blocks = pcm16_blocks) -> None:
+    def __init__(
+        self, root: Path, blocks: Blocks = pcm16_blocks,
+        inline_bytes: int = INLINE_BYTES,
+    ) -> None:
         """Keep sessions under ``root / "sessions"`` (created on write).
 
-        ``blocks`` decodes stored audio for the player's rendering.
+        ``blocks`` decodes stored audio for the player's rendering;
+        recordings over ``inline_bytes`` are handed over by path.
         """
         self.root = Path(root) / "sessions"
         self._blocks = blocks
+        self.inline_bytes = inline_bytes
         self._lock = threading.RLock()
         self._render_locks: Dict[str, threading.Lock] = {}
 
@@ -306,8 +338,10 @@ class FileSystemSessionRepository:
     ) -> None:
         """Store a whole recording (an imported file) as ``imported.<ext>``.
 
-        Raw PCM (the recorder's own format) or a format that is not a
-        short lowercase extension is an :class:`InvalidInputError`.
+        A recording given as a file is moved in (renamed on the same
+        disk), never read. Raw PCM (the recorder's own format) or a
+        format that is not a short lowercase extension is an
+        :class:`InvalidInputError`.
         """
         kind = recording.format.lower().lstrip(".")
         if kind in RECORDER_FORMATS or not re.fullmatch(
@@ -324,17 +358,20 @@ class FileSystemSessionRepository:
             ):
                 old.unlink()
             (directory / CHUNKS_FILE).unlink(missing_ok=True)
-            atomic_write(
-                directory / f"{IMPORTED_STEM}.{kind}", recording.data
-            )
+            target = directory / f"{IMPORTED_STEM}.{kind}"
+            if recording.path is not None:
+                move_into(Path(recording.path), target)
+            else:
+                atomic_write(target, recording.data)
 
     def recording(self, session_id: str) -> RecordedAudio:
         """Return the stored audio of the session.
 
         While the session is ``recording``, the PCM received so far
         (a FLAC beside it is stale); otherwise the encoded or imported
-        file, or the PCM if there is none. :class:`NotFoundError`
-        without any audio.
+        file, or the PCM if there is none. A file larger than
+        ``inline_bytes`` is handed over by its path (with its digest),
+        not read into memory. :class:`NotFoundError` without any audio.
         """
         directory = self._existing(session_id)
         current = self.get(session_id)
@@ -343,6 +380,11 @@ class FileSystemSessionRepository:
         )
         stored = None if recording else self._stored_audio(directory)
         if stored is not None:
+            if stored.stat().st_size > self.inline_bytes:
+                return RecordedAudio(
+                    b"", stored.suffix[1:], path=str(stored),
+                    sha256=file_sha256(stored),
+                )
             return RecordedAudio(stored.read_bytes(), stored.suffix[1:])
         pcm = directory / PCM_FILE
         if pcm.is_file():

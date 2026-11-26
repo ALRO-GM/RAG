@@ -4,8 +4,12 @@ No binary fixture is committed: each test builds the file it needs.
 """
 
 import io
+import os
+import tempfile
 import zipfile
 from typing import Sequence
+
+from src.application.knowledge.ports import StoredFile
 
 
 def make_pdf(pages: Sequence[str]) -> bytes:
@@ -131,3 +135,18 @@ HTML = """<!doctype html><html><head><title>Ayuda</title>
 <h2>Horario</h2><ul><li>Lunes a viernes</li><li>9 a 18 h</li></ul>
 <table><tr><th>Canal</th><th>Tiempo</th></tr>
 <tr><td>Email</td><td>24 h</td></tr></table></body></html>"""
+
+
+_FILES = tempfile.TemporaryDirectory(prefix="knowledge-samples-")
+"""Where :func:`as_file` writes (deleted when the tests end)."""
+
+
+def as_file(data: bytes) -> StoredFile:
+    """Write ``data`` to a new temporary file; return it as a port gives it.
+
+    The extractors and readers take files by path (#282).
+    """
+    descriptor, path = tempfile.mkstemp(dir=_FILES.name)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(data)
+    return StoredFile(path, len(data))

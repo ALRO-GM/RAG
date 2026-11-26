@@ -5,22 +5,37 @@ asks the transcriber (behind the access code) and this use case
 forwards the request after checking every id that goes into the path,
 so nothing else reaches the RAG. Bodies are passed as they are (JSON
 or the multipart upload); the RAG validates them.
+
+A large file is sent in pieces (#282): each piece is one bounded
+request here and one to the RAG, so the transcriber never holds more
+than :data:`PIECE_BYTES` of an upload; a file in one request is only
+accepted up to :data:`SINGLE_UPLOAD_BYTES` (the page uses it for small
+files). The limits of each kind are the RAG's (``GET limits``).
 """
 
 import re
 from typing import Any, Optional
 
 from transcriber.application.ports import KnowledgePort
-from transcriber.domain.errors import InvalidInputError, RagUnavailableError
+from transcriber.domain.errors import (
+    InvalidInputError,
+    RagUnavailableError,
+    TooLargeError,
+)
 
 DOMAIN_ID_PATTERN = r"[a-z0-9][a-z0-9._-]{0,63}"
 """Domain ids (the RAG's ``knowledge.query.v1`` pattern)."""
 DOCUMENT_ID_PATTERN = r"[a-z0-9][a-z0-9-]{0,79}"
 """Ids the RAG gives uploaded documents."""
-MAX_UPLOAD_BYTES = 200 * 1024 * 1024
-"""Largest file the RAG accepts (its ``max_upload_bytes``)."""
-UPLOAD_BODY_BYTES = MAX_UPLOAD_BYTES + 1024 * 1024
-"""Largest upload request: the file plus the multipart envelope."""
+UPLOAD_ID_PATTERN = r"[0-9a-f]{32}"
+"""Ids the RAG gives uploads in progress."""
+PIECE_BYTES = 8 * 1024 * 1024
+"""Largest piece of an upload: the RAG's (``src/domain/knowledge/
+uploads.py``); well under the tunnel container's 64 MiB."""
+SINGLE_UPLOAD_BYTES = PIECE_BYTES
+"""Largest file sent in one request; larger ones go in pieces."""
+UPLOAD_BODY_BYTES = SINGLE_UPLOAD_BYTES + 1024 * 1024
+"""Largest one-request upload: the file plus the multipart envelope."""
 JSON_BODY_BYTES = 64 * 1024
 """Largest JSON body forwarded (domain, metadata, query)."""
 
@@ -62,6 +77,11 @@ class KnowledgeAccess:
         """Check a document id."""
         return checked(doc_id, DOCUMENT_ID_PATTERN, "document id")
 
+    def _upload(self, domain_id: str, upload_id: str) -> str:
+        """Return the RAG path of an upload, both ids checked."""
+        upload = checked(upload_id, UPLOAD_ID_PATTERN, "upload id")
+        return f"domains/{self._domain(domain_id)}/uploads/{upload}"
+
     def domains(self) -> Any:
         """Return the RAG's list of domains."""
         return self._port().call("GET", "domains")
@@ -88,6 +108,47 @@ class KnowledgeAccess:
             "POST", f"domains/{self._domain(domain_id)}/documents", body,
             content_type,
         )
+
+    def limits(self) -> Any:
+        """Return the largest file of each kind and the piece size."""
+        return self._port().call("GET", "limits")
+
+    def start_upload(self, domain_id: str, body: bytes) -> Any:
+        """Announce a file to send in pieces (``{"name", "size",
+        "metadata"}``)."""
+        return self._port().call(
+            "POST", f"domains/{self._domain(domain_id)}/uploads", body,
+            "application/json",
+        )
+
+    def upload_status(self, domain_id: str, upload_id: str) -> Any:
+        """Return how much of an upload arrived."""
+        return self._port().call("GET", self._upload(domain_id, upload_id))
+
+    def put_piece(
+        self, domain_id: str, upload_id: str, offset: int, data: bytes
+    ) -> Any:
+        """Forward one piece of at most :data:`PIECE_BYTES` at ``offset``."""
+        if offset < 0:
+            raise InvalidInputError("The offset cannot be negative.")
+        if len(data) > PIECE_BYTES:
+            raise TooLargeError(
+                f"A piece may not be larger than {PIECE_BYTES} bytes."
+            )
+        return self._port().call(
+            "PUT", f"{self._upload(domain_id, upload_id)}/pieces/{offset}",
+            data, "application/octet-stream",
+        )
+
+    def complete_upload(self, domain_id: str, upload_id: str) -> Any:
+        """Turn a fully received upload into a document."""
+        return self._port().call(
+            "POST", f"{self._upload(domain_id, upload_id)}/complete"
+        )
+
+    def cancel_upload(self, domain_id: str, upload_id: str) -> None:
+        """Cancel an upload; what arrived is deleted."""
+        self._port().call("DELETE", self._upload(domain_id, upload_id))
 
     def relabel(self, domain_id: str, doc_id: str, body: bytes) -> Any:
         """Replace a document's metadata (``{"metadata": {...}}``)."""

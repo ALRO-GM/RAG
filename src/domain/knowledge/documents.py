@@ -94,6 +94,9 @@ class KnowledgeDocument(BaseModel):
     type: str
     size: int
     pages: Optional[int] = None
+    pages_done: Optional[int] = None
+    """Pages read so far while a long document is extracted (``None``
+    otherwise); with ``pages`` the row shows «N of M pages»."""
     chunks: int = 0
     status: DocumentStatus = "queued"
     error: Optional[str] = None
@@ -216,9 +219,17 @@ def document_id(name: str, data: bytes) -> str:
     The same file uploaded twice gets the same id, so a duplicate is
     noticed; the slug keeps ids readable in chunk ids and paths.
     """
+    return document_id_of(name, hashlib.sha256(data).hexdigest())
+
+
+def document_id_of(name: str, sha256: str) -> str:
+    """Return a document's id from its name and the SHA-256 of its bytes.
+
+    The same id as :func:`document_id` for the same bytes: a file read
+    in pieces (a large upload) keeps the id it always had.
+    """
     stem = name.rsplit(".", 1)[0] if "." in name else name
-    digest = hashlib.sha256(data).hexdigest()[:8]
-    return f"{(slug(stem)[:64].strip('-') or 'doc')}-{digest}"
+    return f"{(slug(stem)[:64].strip('-') or 'doc')}-{sha256[:8]}"
 
 
 def is_media(document: KnowledgeDocument) -> bool:

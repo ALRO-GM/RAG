@@ -19,6 +19,7 @@ from make_scans import PARAGRAPHS, render_page
 from ocr_bench import Gate, split_pages, text_pdf
 from src.adapters.outbound.docling_pages import DoclingPages
 from src.adapters.outbound.document_extractors import DocumentExtractors
+from src.application.knowledge.ports import StoredFile
 
 try:
     from pypdf import PdfReader, PdfWriter
@@ -53,14 +54,14 @@ def main() -> None:
     work, scanned = Path(sys.argv[1]), int(sys.argv[2])
     work.mkdir(parents=True, exist_ok=True)
     path = build(work, scanned, 200)
-    data = path.read_bytes()
+    size = path.stat().st_size
     extractor = DocumentExtractors(DoclingPages(Gate(False)))
     started = time.perf_counter()
-    found = extractor.extract(data, "pdf")
+    found = extractor.extract(StoredFile(str(path), size), "pdf")
     seconds = time.perf_counter() - started
     pages = split_pages(found.text)
     print(json.dumps({
-        "pdf_mb": round(len(data) / 1e6, 1), "pages": found.pages,
+        "pdf_mb": round(size / 1e6, 1), "pages": found.pages,
         "scanned_pages": scanned, "pages_with_text": len(pages),
         "seconds": round(seconds, 1),
         "pages_per_minute": round((found.pages or 0) / seconds * 60, 1),
