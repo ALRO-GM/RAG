@@ -405,7 +405,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     sync();
     connection.check();
     // #265: audio of an earlier interview that never reached the server waits here.
-    recoveryCard(ctx).then((card) => {
+    recoveryCard(ctx, { onBack: (kept) => reattach({ id: kept.id, audio: "mic", page: "live" }) }).then((card) => {
       if (card && !closed && formError.isConnected) formError.after(card);
     }).catch(() => {});
   }

@@ -209,7 +209,7 @@ def test_a_crash_at_any_step_boundary_never_loses_the_recovered_speech(
         assert world.log.transcripts["iv-1"] == expected, at
         assert view["seconds"] == 2.5 and view["added"] == 1, at
         assert world.store.chunks == {} and not world.batch.parts, at
-    assert crashes >= 10, "the crash points really were reached"
+    assert crashes == 18, "every write of the job is a crash point"
 
 
 def test_audio_gone_without_its_texts_fails_honestly() -> None:

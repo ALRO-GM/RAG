@@ -141,7 +141,12 @@ the product config's `privacy.buffer_audio_on_outage` (bool, default
 false) and `privacy.buffer_max_hours` (1–168, default 48); the
 orchestrator's session view and product list carry `page.buffer`
 (`{"on", "max_hours"}`); the transcriber's internal `session.json`
-record gains `received_samples` and `silences`; the orchestrator gains
+record gains `started_at`, `silences` (written as they happen) and
+`received_samples` (at the end); the transcriber's start request gains
+`buffer_audio` and `buffer_max_hours` (the orchestrator sends them from
+the product; without `buffer_audio` a recovery upload is refused); the
+recovery view has `unidentified` (voices of the recovered audio that
+could not be told apart); the orchestrator gains
 `POST /sessions/{id}/recovered`. See `docs/live/LIVE_SESSION.md`
 «Long outages».
 

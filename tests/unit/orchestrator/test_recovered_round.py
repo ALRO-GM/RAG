@@ -127,3 +127,13 @@ def test_the_session_view_says_whether_the_page_keeps_audio() -> None:
 
     info: Dict[str, Any] = page_info(product("live_assist.interview"), {})
     assert set(info["buffer"]) == {"on", "max_hours"}
+
+
+def test_the_transcriber_hears_the_products_leave_to_keep_audio() -> None:
+    from orchestrator.application.sessions import transcriber_body
+
+    speakers = [{"channel": 0, "id": "S1", "role": "interviewer"}]
+    body = transcriber_body(product("live_assist.interview"), "s", speakers)
+    assert body["buffer_audio"] is True and body["buffer_max_hours"] == 48
+    voice = transcriber_body(product("voicebot.interview"), "v", speakers)
+    assert "buffer_audio" not in voice

@@ -45,6 +45,7 @@ const SETTLE_MS = 500; // a suspected pause waits this long for a burst of queue
 const FINISH_CAP_MS = 60000; // «Terminar» waits at most this long while connected
 const FINISH_TICK_MS = 250;
 const STOPPED_WAIT_MS = 5000; // the server's "stopped" after our stop
+const KEEP_BACKLOG_S = 3; // #265: connected, audio is kept in the browser only past this backlog
 
 /** The socket address of a session's audio, on this page's host. */
 export function audioUrl(loc, id) {
@@ -242,6 +243,11 @@ export class LiveAudio {
   /** Keep what is not acknowledged in this browser (#265), once the offsets are the server's. */
   _mirror(force = false) {
     if (!this.recording || !this.everOpen) return Promise.resolve();
+    const pending = this.outbox.pendingSeconds;
+    // A healthy session writes nothing to the browser's disk: only a link
+    // that is down, or a backlog of more than a few seconds, is kept; a
+    // forced write («Terminar», a hidden tab) only when something waits.
+    if (force ? pending <= 0 : this.state === "open" && pending <= KEEP_BACKLOG_S) return Promise.resolve();
     return this.recording.mirror(this.outbox, { limit: this._hold?.at ?? Infinity, force });
   }
 
@@ -467,6 +473,7 @@ export class LiveAudio {
 
   /** Write what is held to this browser now (the tab is being hidden or closed). */
   keepNow() {
+    if (this.recording && this.outbox.pendingSeconds <= 0) return this.recording.forgetIfEmpty();
     return this._mirror(true);
   }
 

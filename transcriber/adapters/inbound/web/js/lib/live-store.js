@@ -2,28 +2,35 @@
 // has not acknowledged is mirrored to this browser's IndexedDB, so a closed
 // or crashed tab, a connection that only returns after «Terminar», or an
 // outage longer than the page's 30 min memory still has it. Only when the
-// product allows it (privacy.buffer_audio_on_outage), only until the server
-// has it, at most `buffer_max_hours` after the session started.
+// product allows it (privacy.buffer_audio_on_outage), only while the link
+// is down or more than a few seconds wait for their ack (a healthy session
+// writes nothing), only until the server has it, at most
+// `buffer_max_hours` after the session started.
 //
-// Format: database "ragputin-live-audio", two stores:
+// Format: database "ragputin-live-audio" (version 2), three stores:
 //   sessions  { id, product, plan, candidate_id, employee, channels,
-//               started_at, expires_at, ended_locally, ended_at, chunks,
-//               samples }  — no audio, no words, no names
-//   chunks    { key: "<id>|<seq, 8 digits>", session, seq, offset,
-//               samples, bytes }  — 16-bit PCM at 16 kHz, `channels`
-//               interleaved; one chunk is at most 5 s (160 KB mono), and
-//               only the part not yet acknowledged is written
+//               started_at, expires_at, ended_locally, ended_at }
+//               — no audio, no words, no names
+//   chunks    { key: "<id>|<seq, 8 digits>", bytes } — 16-bit PCM at
+//               16 kHz, `channels` interleaved; at most 5 s (160 KB mono)
+//   index     { key, session, seq, offset, samples } — the same rows
+//               without the audio, written in the same transaction, so
+//               what waits is counted from the rows themselves
 // A chunk is deleted as soon as the server acknowledges everything in it,
 // unless part of it became silence on the server (the page could not send
 // it in time): that one is kept for the recovery upload. Expired sessions
-// and their chunks are swept at every page load. A write the browser
-// refuses (no room) is reported, never swallowed.
+// and stray rows are swept when any page of the app loads, every time it
+// becomes visible and every 10 minutes while it is open. A write the
+// browser refuses (no room) is reported, never swallowed.
 
 export const DB_NAME = "ragputin-live-audio";
+export const DB_VERSION = 2;
 export const SAMPLE_RATE = 16000;
 export const CHUNK_SECONDS = 5;
 export const DEFAULT_MAX_HOURS = 48;
+export const SWEEP_EVERY_MS = 10 * 60 * 1000;
 const CHUNK_SAMPLES = CHUNK_SECONDS * SAMPLE_RATE;
+const STORES = { sessions: "id", chunks: "key", index: "key" };
 
 /** The key of chunk `seq` of session `id` (sorts by session, then order). */
 export function chunkKey(id, seq) {
@@ -37,6 +44,14 @@ function request(req) {
   });
 }
 
+function done(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? Object.assign(new Error("aborted"), { name: "AbortError" }));
+  });
+}
+
 /** IndexedDB through a small promise interface (`factory` is `indexedDB`). */
 export class IdbBackend {
   constructor(factory = globalThis.indexedDB) {
@@ -47,11 +62,12 @@ export class IdbBackend {
   async db() {
     if (this._db) return this._db;
     if (!this.factory) throw Object.assign(new Error("no IndexedDB"), { name: "NotSupportedError" });
-    const open = this.factory.open(DB_NAME, 1);
+    const open = this.factory.open(DB_NAME, DB_VERSION);
     open.onupgradeneeded = () => {
       const db = open.result;
-      if (!db.objectStoreNames.contains("sessions")) db.createObjectStore("sessions", { keyPath: "id" });
-      if (!db.objectStoreNames.contains("chunks")) db.createObjectStore("chunks", { keyPath: "key" });
+      for (const [name, keyPath] of Object.entries(STORES)) {
+        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath });
+      }
     };
     this._db = await request(open);
     return this._db;
@@ -80,6 +96,18 @@ export class IdbBackend {
   async all(name) {
     return request((await this._store(name, "readonly")).getAll());
   }
+
+  /** Several writes, all or none: [["put", store, value] | ["delete", store, key]]. */
+  async write(operations) {
+    const names = [...new Set(operations.map((o) => o[1]))];
+    const tx = (await this.db()).transaction(names, "readwrite");
+    const finished = done(tx);
+    for (const [kind, name, value] of operations) {
+      if (kind === "put") tx.objectStore(name).put(value);
+      else tx.objectStore(name).delete(value);
+    }
+    return finished;
+  }
 }
 
 /** What a failed write means for the page: "quota" (no room) or "storage". */
@@ -101,9 +129,12 @@ export function sessionMeta(session, { now = Date.now(), maxHours = DEFAULT_MAX_
     expires_at: new Date(started + maxHours * 3600 * 1000).toISOString(),
     ended_locally: false,
     ended_at: null,
-    chunks: 0,
-    samples: 0,
   };
+}
+
+/** The index rows of session `id`. */
+async function rowsOf(backend, id) {
+  return (await backend.all("index")).filter((row) => row.session === id);
 }
 
 /**
@@ -121,17 +152,20 @@ export class LocalRecording {
     this.seq = 0;
     this.persistedEnd = null; // offsets before it were looked at
     this.failed = null; // "quota" | "storage" once a write failed
+    this.opened = false; // the session record was written
     this._chain = Promise.resolve();
   }
 
-  /** Write the session record; chunks of an earlier page keep their numbers. */
+  /** Read what an earlier page of the session left; the record is written with the first chunk. */
   async open() {
     try {
-      const known = (await this.backend.keys("chunks")).filter((k) => String(k).startsWith(`${this.meta.id}|`));
-      this.seq = known.reduce((top, k) => Math.max(top, Number(String(k).split("|")[1]) + 1), 0);
+      const rows = await rowsOf(this.backend, this.meta.id);
+      this.seq = rows.reduce((top, r) => Math.max(top, r.seq + 1), 0);
       const earlier = await this.backend.get("sessions", this.meta.id);
-      if (earlier) this.meta = { ...this.meta, started_at: earlier.started_at, expires_at: earlier.expires_at, chunks: earlier.chunks ?? 0, samples: earlier.samples ?? 0 };
-      await this.backend.put("sessions", this.meta);
+      if (earlier) {
+        this.meta = { ...this.meta, started_at: earlier.started_at, expires_at: earlier.expires_at };
+        this.opened = true;
+      }
     } catch (error) {
       this._fail(error);
     }
@@ -156,19 +190,24 @@ export class LocalRecording {
     return this._chain;
   }
 
-  /** Seconds of audio kept in this browser for the session. */
+  /** Seconds of audio this page wrote and still keeps. */
   get keptSeconds() {
-    return (this.meta.samples ?? 0) / SAMPLE_RATE;
+    let samples = 0;
+    for (const chunk of this.index.values()) samples += chunk.samples;
+    return samples / SAMPLE_RATE;
   }
 
   /**
    * Write what `outbox` holds before `limit` (a suspected pause is not
    * final yet) and the server has not acknowledged, in chunks of at most
-   * 5 s; only once 5 s are waiting, unless `force`.
+   * 5 s; only once 5 s are waiting, unless `force`. The caller decides
+   * when there is anything to keep (a link down, a backlog, «Terminar»).
    */
   mirror(outbox, { limit = Infinity, force = false } = {}) {
     const end = Math.min(outbox.end, limit);
-    if (this.persistedEnd === null) this.persistedEnd = Math.max(outbox.acked, outbox.start);
+    if (this.persistedEnd === null || this.persistedEnd < outbox.acked) {
+      this.persistedEnd = Math.max(this.persistedEnd ?? 0, outbox.acked, outbox.start);
+    }
     if (end - this.persistedEnd < (force ? 1 : CHUNK_SAMPLES)) return this._chain;
     const from = this.persistedEnd;
     const groups = [];
@@ -189,6 +228,12 @@ export class LocalRecording {
       group.samples += piece.samples;
       group.parts.push(piece.bytes);
     }
+    if (!groups.length) return this._chain;
+    const operations = [];
+    if (!this.opened) {
+      operations.push(["put", "sessions", { ...this.meta }]);
+      this.opened = true;
+    }
     for (const g of groups) {
       const bytes = new Uint8Array(g.parts.reduce((n, p) => n + p.length, 0));
       let at = 0;
@@ -199,32 +244,24 @@ export class LocalRecording {
       const seq = this.seq;
       this.seq += 1;
       this.index.set(seq, { offset: g.offset, samples: g.samples, kept: false });
-      this.meta.chunks += 1;
-      this.meta.samples += g.samples;
-      this._then(() => this.backend.put("chunks", {
-        key: chunkKey(this.meta.id, seq), session: this.meta.id, seq, offset: g.offset, samples: g.samples, bytes,
-      }));
+      const key = chunkKey(this.meta.id, seq);
+      operations.push(["put", "chunks", { key, bytes }],
+        ["put", "index", { key, session: this.meta.id, seq, offset: g.offset, samples: g.samples }]);
     }
-    if (groups.length) this._then(() => this.backend.put("sessions", { ...this.meta }));
-    return this._chain;
+    return this._then(() => this.backend.write(operations));
   }
 
   /** The server took everything before `samples`: its chunks go. */
   ack(samples) {
-    const gone = [];
+    const operations = [];
     for (const [seq, chunk] of this.index) {
-      if (!chunk.kept && chunk.offset + chunk.samples <= samples) gone.push(seq);
-    }
-    if (!gone.length) return this._chain;
-    for (const seq of gone) {
-      const chunk = this.index.get(seq);
+      if (chunk.kept || chunk.offset + chunk.samples > samples) continue;
       this.index.delete(seq);
-      this.meta.chunks -= 1;
-      this.meta.samples -= chunk.samples;
-      this._then(() => this.backend.delete("chunks", chunkKey(this.meta.id, seq)));
+      const key = chunkKey(this.meta.id, seq);
+      operations.push(["delete", "chunks", key], ["delete", "index", key]);
     }
-    this._then(() => this.backend.put("sessions", { ...this.meta }));
-    return this._chain;
+    if (!operations.length) return this._chain;
+    return this._then(() => this.backend.write(operations));
   }
 
   /** [from, to) became silence on the server: its chunks stay for the recovery. */
@@ -243,8 +280,8 @@ export class LocalRecording {
       chunk.offset += delta;
       const key = chunkKey(this.meta.id, seq);
       this._then(async () => {
-        const stored = await this.backend.get("chunks", key);
-        if (stored) await this.backend.put("chunks", { ...stored, offset: chunk.offset });
+        const stored = await this.backend.get("index", key);
+        if (stored) await this.backend.put("index", { ...stored, offset: chunk.offset });
       });
     }
     return this._chain;
@@ -254,62 +291,71 @@ export class LocalRecording {
   endLocally(now = Date.now()) {
     this.meta.ended_locally = true;
     this.meta.ended_at = new Date(now).toISOString();
+    if (!this.opened) return this._chain; // nothing was written: nothing waits
     return this._then(() => this.backend.put("sessions", { ...this.meta }));
   }
 
-  /** The session ended with everything acknowledged: nothing is kept. */
+  /** Nothing of the session waits here (all acknowledged): nothing is kept. */
   async forgetIfEmpty() {
     await this.flushed();
-    if ((this.meta.chunks ?? 0) > 0) return false;
-    await discardRecording(this.backend, this.meta.id).catch(() => {});
+    try {
+      if ((await rowsOf(this.backend, this.meta.id)).length) return false;
+      await discardRecording(this.backend, this.meta.id);
+    } catch {
+      return true;
+    }
     return true;
   }
 }
 
-/** The sessions whose audio waits in this browser, oldest first. */
+/** The sessions whose audio waits in this browser, oldest first, counted from the rows. */
 export async function pendingRecordings(backend, now = Date.now()) {
+  const rows = await backend.all("index");
+  const samples = new Map();
+  for (const row of rows) samples.set(row.session, (samples.get(row.session) ?? 0) + (row.samples ?? 0));
   const sessions = await backend.all("sessions");
   return sessions
-    .filter((s) => (s.chunks ?? 0) > 0 && Date.parse(s.expires_at) > now)
+    .filter((s) => samples.get(s.id) > 0 && Date.parse(s.expires_at) > now)
     .sort((a, b) => String(a.started_at).localeCompare(String(b.started_at)))
-    .map((s) => ({ ...s, minutes: Math.max(Math.round((s.samples ?? 0) / SAMPLE_RATE / 60), 1) }));
+    .map((s) => ({
+      ...s, samples: samples.get(s.id), chunks: rows.filter((r) => r.session === s.id).length,
+      minutes: Math.max(Math.round(samples.get(s.id) / SAMPLE_RATE / 60), 1),
+    }));
 }
 
-/** Delete everything kept for session `id`. */
-export async function discardRecording(backend, id) {
-  for (const key of await backend.keys("chunks")) {
-    if (String(key).startsWith(`${id}|`)) await backend.delete("chunks", key);
-  }
-  await backend.delete("sessions", id);
+/** Delete everything kept for session `id` (or only chunks `keys`). */
+export async function discardRecording(backend, id, keys = null) {
+  const rows = keys ?? (await rowsOf(backend, id)).map((r) => r.key);
+  const operations = rows.flatMap((key) => [["delete", "chunks", key], ["delete", "index", key]]);
+  if (!keys) operations.push(["delete", "sessions", id]);
+  if (operations.length) await backend.write(operations);
 }
 
 /**
- * Delete what is past its expiry, and chunks without a session (at every
- * page load). Returns { sessions, chunks } deleted (counts only).
+ * Delete what is past its expiry, and rows of no session. The rows are
+ * read before the sessions, so a session another tab is creating at the
+ * same time is never taken for a stray. Returns { sessions, chunks }
+ * deleted (counts only).
  */
 export async function sweepExpired(backend, now = Date.now()) {
+  const keys = [...new Set([...(await backend.keys("index")), ...(await backend.keys("chunks"))])];
   const sessions = await backend.all("sessions");
   const alive = new Set();
   let gone = 0;
   for (const s of sessions) {
-    if (!(Date.parse(s.expires_at) > now)) {
+    if (Date.parse(s.expires_at) > now) {
+      alive.add(s.id);
+    } else {
       await backend.delete("sessions", s.id);
       gone += 1;
-    } else {
-      alive.add(s.id);
     }
   }
-  let chunks = 0;
-  for (const key of await backend.keys("chunks")) {
-    if (!alive.has(String(key).split("|")[0])) {
-      await backend.delete("chunks", key);
-      chunks += 1;
-    }
-  }
-  return { sessions: gone, chunks };
+  const stray = keys.filter((key) => !alive.has(String(key).split("|")[0]));
+  if (stray.length) await backend.write(stray.flatMap((key) => [["delete", "chunks", key], ["delete", "index", key]]));
+  return { sessions: gone, chunks: stray.length };
 }
 
-/** The sweep at page load: never throws (a browser without IndexedDB has nothing). */
+/** One sweep that never throws (a browser without IndexedDB has nothing). */
 export async function sweepAtLoad(backend = new IdbBackend(), now = Date.now()) {
   try {
     return await sweepExpired(backend, now);
@@ -318,61 +364,100 @@ export async function sweepAtLoad(backend = new IdbBackend(), now = Date.now()) 
   }
 }
 
+/**
+ * Sweep now, whenever the page becomes visible again, and every 10 min
+ * while it is open (any page of the app). Returns a function that stops.
+ */
+export function installSweeps({ backend = new IdbBackend(), target = globalThis, everyMs = SWEEP_EVERY_MS, now = () => Date.now() } = {}) {
+  const sweep = () => sweepAtLoad(backend, now());
+  sweep();
+  const onVisible = () => {
+    if (target.document?.visibilityState !== "hidden") sweep();
+  };
+  target.addEventListener?.("visibilitychange", onVisible);
+  const timer = target.setInterval?.(sweep, everyMs);
+  return () => {
+    target.removeEventListener?.("visibilitychange", onVisible);
+    if (timer !== undefined) target.clearInterval?.(timer);
+  };
+}
+
 const RETRY_MS = [1000, 2000, 4000];
 
 /**
  * Send session `id`'s kept audio to the server (resumable: the chunks the
- * server already has are skipped), close the upload, then delete it here.
+ * server already has are skipped), close the upload, then delete here
+ * exactly the chunks the server holds.
  *   api       { recoveryStatus(id), putRecoveryChunk(id, seq, offset, bytes, channels), closeRecovery(id, body) }
  *   onProgress(fraction)
- * Resolves the server's job view. A refusal for room (413) or anything
- * after three tries is thrown, the audio stays here.
+ * Resolves the server's job view. A refusal for room (413), a session
+ * still on (409, code "running") or a closed upload missing some of these
+ * chunks (code "closed") is thrown, and the audio stays here.
  */
 export async function uploadRecording({ backend, api, id, onProgress = () => {}, wait = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   const meta = await backend.get("sessions", id);
   if (!meta) throw Object.assign(new Error("nothing kept"), { code: "not_found" });
+  const rows = (await rowsOf(backend, id)).sort((a, b) => a.seq - b.seq);
   let have = new Set();
   try {
     const status = await api.recoveryStatus(id);
-    if (status?.state && status.state !== "uploading") {
-      await discardRecording(backend, id);
-      return status;
-    }
     have = new Set(status?.chunks ?? []);
+    if (status?.state && status.state !== "uploading") {
+      // Closed already: only what it holds may go from here.
+      const held = rows.filter((r) => have.has(r.seq)).map((r) => r.key);
+      await discardRecording(backend, id, held);
+      if (held.length === rows.length) {
+        await discardRecording(backend, id);
+        return status;
+      }
+      throw Object.assign(new Error("closed"), { code: "closed" });
+    }
   } catch (error) {
-    if (error?.status !== 404) throw error;
+    if (error?.code === "closed" || error?.status !== 404) throw error;
   }
-  const keys = (await backend.keys("chunks")).filter((k) => String(k).startsWith(`${id}|`)).sort();
-  let done = 0;
-  for (const key of keys) {
-    const chunk = await backend.get("chunks", key);
-    if (chunk && !have.has(chunk.seq)) {
+  let sent = 0;
+  for (const row of rows) {
+    if (!have.has(row.seq)) {
+      const chunk = await backend.get("chunks", row.key);
+      if (!chunk) throw Object.assign(new Error("chunk gone"), { code: "storage" });
       for (let attempt = 0; ; attempt += 1) {
         try {
-          await api.putRecoveryChunk(id, chunk.seq, chunk.offset, chunk.bytes, meta.channels ?? 1);
+          await api.putRecoveryChunk(id, row.seq, row.offset, chunk.bytes, meta.channels ?? 1);
           break;
         } catch (error) {
-          if (error?.status === 413 || error?.status === 404 || error?.status === 409 || error?.kind === "unauthorized" || attempt >= RETRY_MS.length) throw error;
+          if (error?.status === 409) throw Object.assign(error, { code: "running" });
+          if (error?.status === 413 || error?.status === 404 || error?.status === 400 || error?.kind === "unauthorized" || attempt >= RETRY_MS.length) throw error;
           await wait(RETRY_MS[attempt]);
         }
       }
     }
-    done += 1;
-    onProgress(done / keys.length);
+    sent += 1;
+    onProgress(sent / rows.length);
   }
-  const view = await api.closeRecovery(id, { count: keys.length, expires_at: meta.expires_at });
-  await discardRecording(backend, id);
+  let view;
+  try {
+    view = await api.closeRecovery(id, { count: rows.length, expires_at: meta.expires_at });
+  } catch (error) {
+    if (error?.status === 409 && error?.code === "wrong_state") throw Object.assign(error, { code: "running" });
+    throw error;
+  }
+  await discardRecording(backend, id, rows.map((r) => r.key));
+  if (!(await rowsOf(backend, id)).length) await backend.delete("sessions", id);
   return view;
 }
 
 /**
  * The line of a recovery job for the interviewer: { key, params } for t(),
  * or null. «Pendiente de analizar» → «Analizando (n %)» → «Completado
- * (n min recuperados)» / «No se pudo recuperar».
+ * (n min recuperados)» (or «…, sin identificar quién habla») / «No se pudo
+ * recuperar».
  */
 export function recoveryLine(view) {
   if (!view?.state) return null;
-  if (view.state === "done") return { key: "live.recovery.done", params: { n: formatMinutes(view.seconds) } };
+  if (view.state === "done" && !(view.added > 0)) return { key: "live.recovery.done_nothing", params: {} };
+  if (view.state === "done") {
+    return { key: view.unidentified ? "live.recovery.done_unidentified" : "live.recovery.done", params: { n: formatMinutes(view.seconds) } };
+  }
   if (view.state === "failed") return { key: "live.recovery.failed", params: {} };
   if (view.state === "uploading" || view.state === "queued") return { key: "live.recovery.pending", params: {} };
   const pct = Math.round(Math.min(Math.max(view.state === "transcribing" ? (view.progress ?? 0) * 0.8 : 0.9, 0), 0.99) * 100);

@@ -37,7 +37,7 @@ export function recoveryText(view) {
  *   only   a session id: just that session (the end of a session)
  *   deps   { backend, confirm, wait, now } (tests)
  */
-export async function recoveryCard(ctx, { only = null, deps = {} } = {}) {
+export async function recoveryCard(ctx, { only = null, onBack = null, deps = {} } = {}) {
   const backend = deps.backend ?? new IdbBackend();
   const confirm = deps.confirm ?? ((options) => openDialog(options));
   const wait = deps.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -63,7 +63,12 @@ export async function recoveryCard(ctx, { only = null, deps = {} } = {}) {
   }
   if (!local.length && !shown.length) return null;
   const card = h("section", { class: "card lv-recovery" }, h("h2", {}, t("live.recovery.title")));
-  for (const kept of local) card.append(localRow(ctx, kept, { backend, confirm, wait }));
+  for (const kept of local) {
+    // A session still on is gone back to, never sent from here (its audio
+    // would arrive after the upload closed and be lost).
+    const running = await stillRunning(ctx, kept.id);
+    card.append(running && onBack ? backRow(kept, onBack) : localRow(ctx, kept, { backend, confirm, wait }));
+  }
   for (const job of shown) card.append(remoteRow(ctx, job, { wait }));
   return card;
 }
@@ -93,6 +98,29 @@ function remoteRow(ctx, job, { wait }) {
   return row;
 }
 
+async function stillRunning(ctx, id) {
+  try {
+    return (await ctx.api.liveSession(id))?.state === "running";
+  } catch {
+    return false;
+  }
+}
+
+function backRow(kept, onBack) {
+  return h("div", { class: "lv-recovery-row" },
+    h("p", {}, t("live.recovery.banner", { min: kept.minutes, date: dateText(kept.started_at) })),
+    h("p", { class: "hint", role: "status" }, t("live.recovery.still_on")),
+    h("div", { class: "row tight" },
+      h("button", { type: "button", class: "primary", onClick: () => onBack(kept) }, t("live.busy.back"))));
+}
+
+function failureText(error) {
+  if (error?.status === 413) return t("live.recovery.no_room");
+  if (error?.code === "running") return t("live.recovery.still_on");
+  if (error?.code === "closed") return t("live.recovery.late");
+  return describeError(error);
+}
+
 function localRow(ctx, kept, { backend, confirm, wait }) {
   const status = h("p", { class: "hint", role: "status" });
   const send = h("button", { type: "button", class: "primary" }, t("live.recovery.send"));
@@ -115,7 +143,7 @@ function localRow(ctx, kept, { backend, confirm, wait }) {
       follow(ctx, kept.id, status, wait);
     } catch (error) {
       if (error?.kind === "unauthorized") return ctx.fail?.(error);
-      status.textContent = error?.status === 413 ? t("live.recovery.no_room") : describeError(error);
+      status.textContent = failureText(error);
       send.disabled = false;
       discard.disabled = false;
     }
