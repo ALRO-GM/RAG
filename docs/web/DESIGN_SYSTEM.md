@@ -113,8 +113,9 @@ system → light → dark and remembers the choice in `localStorage`
   within its section and, when `isAdminRoute` says the route belongs to
   the area (`ADMIN_PARTS`: admin, settings, enrol, knowledge, lab), puts
   «Administración» (`#/admin`) in front, except on `#/admin` itself.
-  Top bar with menu button, breadcrumbs (from the route), "Ir a…" button
-  and theme button; a bottom tab bar on phones (Inicio, Sesiones, En
+  Top bar with menu button, breadcrumbs (from the route), "Ir a…" button,
+  «Compartir pantalla» (`#share-open`, #278, `docs/web/SCREEN_SHARE.md`;
+  never mirrored: `data-share-skip`) and theme button; a bottom tab bar on phones (Inicio, Sesiones, En
   directo, Más). A loading skeleton shows if a page takes more than 180 ms.
 - **Components** (`style.css` §5, helpers in `js/ui.js`): buttons (primary,
   default, ghost, danger, small, big), inputs, cards, badges/status chips,
