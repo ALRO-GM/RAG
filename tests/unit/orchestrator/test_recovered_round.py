@@ -51,6 +51,9 @@ class Book:
     def owns(self, *args: Any) -> bool:
         return True
 
+    def files(self, plan_id: str) -> Any:
+        return None
+
     def keep_report(self, plan_id: str, candidate_id: str,
                     save: Any) -> bool:
         save()
