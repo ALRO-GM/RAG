@@ -40,7 +40,7 @@ test("every admin tool is named and described in both languages and reachable fr
     assert.ok(admin.includes(tool.href), `${tool.href} in the Administración group`);
   }
   assert.equal(admin[0], "#/admin", "the service status opens the area");
-  assert.deepEqual(work, ["#/", "#/sessions", "#/live", "#/voicebot"]);
+  assert.deepEqual(work, ["#/", "#/sessions", "#/live", "#/voicebot", "#/offers"]);
   assert.match(group, /role="group"/);
   assert.match(group, /aria-labelledby="nav-admin-title"/);
 });

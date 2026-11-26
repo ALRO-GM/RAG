@@ -12,6 +12,7 @@ the only thing two services share: neither imports the other's code.
 | `reasoner.request.v1`, `reasoner.response.v1` | orchestrator | `src/` (`POST /reason`) |
 | `tts.request.v1` | orchestrator | Piper adapter |
 | `interview.plan.v1`, `interview.sheet.v1` | orchestrator (`data/interview/`, AI interviewer #208) | web (via the transcriber), orchestrator |
+| `interview.board.v1` (no schema file: derived on read by `orchestrator/domain/offer_board.py`, `GET /interview/plans/{id}/board`, #271) | orchestrator | web «Ofertas» (via the transcriber) |
 | `interview.candidate.v1` (no schema file: the pydantic model `orchestrator/domain/candidate.py` is its definition) | orchestrator (`data/interview/candidates/`, #235) | web (via the transcriber), orchestrator |
 | `settings.v1` | `src/` (`GET/PUT /settings`, `data/settings.json`; the web saves it through the transcriber) | `transcriber/`, orchestrator, `src/` analysis and knowledge (read at job/session start) |
 

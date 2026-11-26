@@ -299,6 +299,7 @@ main {
   padding: var(--s-5) var(--s-4) var(--s-10);
 }
 main.wide { max-width: 64rem; }
+main.wide.full { max-width: none; }
 
 /* Phone tab bar: the four places used most. */
 .bottom-nav {
@@ -1358,11 +1359,52 @@ details.tech, details.controls { margin: 1rem 0; }
 .iv-skill-bar { gap: var(--s-2); align-items: center; }
 .iv-score { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 2rem; text-align: right; }
 .iv-gaps { margin: 0; padding-left: var(--s-4); }
-.iv-compare-wrap { overflow-x: auto; }
-.iv-compare { border-collapse: collapse; font-size: var(--fs-sm); min-width: 100%; }
-.iv-compare th, .iv-compare td { border-bottom: 1px solid var(--line); padding: var(--s-2); text-align: left; white-space: nowrap; vertical-align: middle; }
-.iv-th { display: inline-block; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
-.iv-comparison:empty, .iv-result:empty { display: none; }
+.iv-result:empty { display: none; }
+
+/* ---- «Ofertas» (#/offers, #271) ------------------------------------------ */
+.of-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.of-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--s-3); }
+.of-card { display: flex; flex-direction: column; gap: var(--s-1); }
+.of-card.is-closed { background: var(--surface-2); }
+.of-card-head { justify-content: space-between; align-items: center; gap: var(--s-2); }
+.of-card-head h2 { margin: 0; font-size: var(--fs-lg); }
+.of-card p { margin: 0; }
+.of-state.is-open { color: var(--done); }
+.of-state.is-closed { color: var(--muted); }
+.of-head-meta { align-items: center; gap: var(--s-2); margin: 0; }
+.of-editor:empty { display: none; }
+.of-edit { display: flex; flex-direction: column; gap: var(--s-3); }
+.of-how summary { cursor: pointer; font-weight: 600; }
+.of-how ul { margin: var(--s-2) 0 0; padding-left: var(--s-5); display: flex; flex-direction: column; gap: var(--s-1); }
+.of-filters { align-items: flex-end; gap: var(--s-3); }
+.of-filters .field { min-width: min(100%, 12rem); }
+.of-columns summary { cursor: pointer; }
+.of-columns fieldset { border: 0; padding: var(--s-2) 0 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0 var(--s-4); }
+.of-status { margin: 0; }
+.of-people { gap: var(--s-3); }
+.of-table-wrap { max-height: none; }
+table.data.of-table th, table.data.of-table td { text-align: left; vertical-align: top; white-space: normal; min-width: 6.5rem; }
+table.data.of-table thead th { white-space: normal; max-width: 11rem; }
+table.data.of-table thead button.sort { text-align: left; white-space: normal; }
+table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--surface); min-width: 9rem; }
+.of-row.is-missing th[scope="row"] { box-shadow: inset 3px 0 0 var(--avoid-dot); }
+.of-name { display: block; font-weight: 600; }
+.of-quick { display: block; font-size: var(--fs-xs); font-weight: 400; }
+.of-filter-box > summary { cursor: pointer; font-weight: 600; }
+.of-filter-box[open] > summary { margin-bottom: var(--s-2); }
+.of-filter-box { display: flex; flex-direction: column; gap: var(--s-2); }
+.of-small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+.of-figure-value { display: block; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.of-flag { margin-top: 2px; gap: 4px; }
+.of-flag .icon { width: 0.9rem; height: 0.9rem; }
+.of-flag.is-missing { background: var(--avoid-bg); color: var(--avoid); }
+.of-point.is-gap { background: color-mix(in srgb, var(--avoid-bg) 45%, transparent); }
+.of-point-state.is-answered { background: var(--sunken); }
+.of-evidence summary { cursor: pointer; font-size: var(--fs-xs); color: var(--accent); }
+.of-evidence p { margin: var(--s-1) 0; white-space: normal; max-width: 22rem; }
+.of-others summary { cursor: pointer; font-size: var(--fs-xs); color: var(--accent); }
+.of-others ul { margin: var(--s-1) 0 0; padding-left: var(--s-4); font-size: var(--fs-xs); }
+.of-links { display: flex; flex-direction: column; gap: var(--s-1); align-items: flex-start; }
 
 /* ---- «Ajustes» (#/settings) ------------------------------------------- */
 .settings .presets { border: 0; padding: 0; margin: 0; min-width: 0; }

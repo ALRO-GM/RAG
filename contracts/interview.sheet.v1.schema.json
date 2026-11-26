@@ -642,6 +642,22 @@
       "title": "Attribution Error",
       "description": "Why the model's attribution was not used: its status and error kind, never the candidate's words."
     },
+    "plan_slots": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plan Slots",
+      "description": "The slot ids of the plan revision the interview was made with (#271): a point of the plan in this list but not in slots was not treated; one in neither was added to the plan later (not asked). Null: written before it."
+    },
     "finished_at": {
       "anyOf": [
         {

@@ -257,6 +257,9 @@ def test_a_rebuilt_round_is_attributed_by_the_model_or_the_rules(
                                      candidate_id=None)
     assert rebuilt.attribution == "after_session"
     assert rebuilt.summary()["attribution"] == "after_session"
+    stored = store.result("dev", "r9")
+    assert stored["attribution"] == "after_session"
+    assert stored["plan_slots"] == [s.id for s in plan().slots]  # #271
     rules = RoundRebuild(InlineExecutor(), wiring=wiring(Store(), Judge())
                          ).rebuild("r9", events, roles, plan=plan(),
                                    attribute=False)

@@ -28,7 +28,7 @@ export const ADMIN_PARTS = new Set(["admin", "settings", "enrol", "knowledge", "
  * "#/sessions", "#/lab/x" -> "#/lab".
  */
 export function sectionOf(hash) {
-  const first = String(hash ?? "").replace(/^#?\/?/, "").split("/")[0];
+  const first = routePath(hash).split("/")[0];
   if (!first) return "#/";
   if (SESSION_PARTS.has(first)) return "#/sessions";
   return `#/${first}`;
@@ -36,7 +36,12 @@ export function sectionOf(hash) {
 
 /** Whether `hash` is a page of the Administración area. */
 export function isAdminRoute(hash) {
-  return ADMIN_PARTS.has(String(hash ?? "").replace(/^#?\/?/, "").split("/")[0]);
+  return ADMIN_PARTS.has(routePath(hash).split("/")[0]);
+}
+
+/** The path of an app hash without "#/" and without its query ("#/offers/x?sort=s1" -> "offers/x"). */
+function routePath(hash) {
+  return String(hash ?? "").replace(/^#?\/?/, "").split("?")[0];
 }
 
 /**
@@ -66,14 +71,14 @@ export function currentHref(hrefs, pathname, hash) {
  */
 export function crumbsFor(hash, t) {
   const trail = sectionCrumbs(hash, t);
-  const head = String(hash ?? "").replace(/^#?\/?/, "").split("/")[0];
+  const head = routePath(hash).split("/")[0];
   // Every page of the Administración area but its overview starts from it.
   return isAdminRoute(hash) && head !== "admin" ? [{ label: t("nav.admin"), href: "#/admin" }, ...trail] : trail;
 }
 
 /** The breadcrumbs of a route within its own section (crumbsFor adds the area). */
 function sectionCrumbs(hash, t) {
-  const parts = String(hash ?? "").replace(/^#?\/?/, "").split("/").filter(Boolean).map(safeDecode);
+  const parts = routePath(hash).split("/").filter(Boolean).map(safeDecode);
   const sessions = { label: t("nav.sessions"), href: "#/sessions" };
   const here = (label) => ({ label, href: null });
   const [head, a, b, c] = parts;
@@ -86,6 +91,12 @@ function sectionCrumbs(hash, t) {
     case "live": return [here(t("nav.live"))];
     case "voicebot": return a === "demo" ? [{ label: t("nav.voicebot"), href: "#/voicebot" }, here(t("vdemo.crumb"))] : [here(t("nav.voicebot"))];
     case "call-report": return [here(t("report.title"))];
+    case "offers": {
+      const offers = { label: t("nav.offers"), href: "#/offers" };
+      if (!a) return [here(t("nav.offers"))];
+      if (b === "person") return [offers, { label: a, href: `#/offers/${encodeURIComponent(a)}` }, here(c ?? "")];
+      return [offers, here(a)];
+    }
     case "settings": return [here(t("nav.settings"))];
     case "s": return [sessions, here(a ?? "")];
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];
@@ -154,4 +165,15 @@ export function moveSelection(index, step, length) {
 /** "⌘ K" on Apple devices, "Ctrl K" elsewhere. */
 export function paletteShortcut(platform) {
   return /mac|iphone|ipad|ipod/i.test(String(platform ?? "")) ? "⌘ K" : "Ctrl K";
+}
+
+/**
+ * A breadcrumb setter for one page: it writes only while that page is still
+ * the current one (`isCurrent`), so a late answer from the page the person
+ * left never overwrites the next page's breadcrumbs.
+ */
+export function crumbsWhileCurrent(isCurrent, set) {
+  return (items) => {
+    if (isCurrent()) set(items);
+  };
 }

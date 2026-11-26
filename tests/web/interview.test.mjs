@@ -1,10 +1,11 @@
 // The AI interviewer's pure logic (#208): the topics, editing a plan, the
-// live coverage from the feed, the report's figures and the comparison.
+// live coverage from the feed and the report's figures (the comparison of
+// candidates moved to the offer page, #271: offers.test.mjs).
 // Nothing here depends on the browser's language: the logic has no text.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  INTERVIEW, InterviewState, addSlot, clonePlan, comparisonRows, editSlot, planCounts, planErrors,
+  INTERVIEW, InterviewState, addSlot, clonePlan, editSlot, planCounts, planErrors,
   planForSave, removeSlot, reportFigures, scoreClass, setEssential, speakerProducts,
 } from "../../transcriber/adapters/inbound/web/js/lib/interview.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -95,18 +96,6 @@ test("the report's figures and score classes", () => {
   assert.equal(figures.skipped, 1);
   assert.deepEqual(figures.byWeight.map((s) => s.id), ["s2", "s1", "s3", "s4"]);
   assert.equal(reportFigures(null).total, 0);
-});
-
-test("candidates are compared slot by slot in plan order", () => {
-  const rows = comparisonRows({ plan: plan(), candidates: [
-    { session_id: "a", candidate: "Ana", suitability: 80, plan_revision: 2, slots: [{ id: "s2", score: 60 }] },
-    { session_id: "b", suitability: null, plan_revision: 1 },
-  ] });
-  assert.equal(rows[0].candidate, "Ana");
-  assert.deepEqual(rows[0].slots.map((s) => s.score), [null, 60]);
-  assert.equal(rows[0].stale, false);
-  assert.equal(rows[1].stale, true);
-  assert.deepEqual(comparisonRows(null), []);
 });
 
 test("every error, level, status and competency has a text in both languages", () => {

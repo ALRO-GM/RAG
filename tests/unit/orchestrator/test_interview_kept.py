@@ -201,6 +201,7 @@ def test_a_live_report_is_kept_in_full_with_the_plan() -> None:
     assert result is not None and result["saved"] is True
     kept = Sheet.model_validate(store.result("dev", "r1"))
     assert kept.kind == "live" and kept.candidate_id == "ana-ruiz"
+    assert kept.plan_slots == ["s1", "s2"]  # the revision's points (#271)
     assert kept.suitability is None and all(s.score is None
                                             for s in kept.slots)
     assert kept.slots[0].judgement is not None
@@ -279,6 +280,7 @@ def test_a_round_is_judged_again_from_its_transcript() -> None:
     kept = store.result("dev", "r9")
     assert kept["kind"] == "live" and len(kept["slots"]) == 2
     assert kept["candidate_id"] == "ana-ruiz"
+    assert kept["plan_slots"] == ["s1", "s2"]  # #271
 
 
 def test_the_rejudge_command_prints_numbers_only(

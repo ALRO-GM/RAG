@@ -25,7 +25,7 @@ Plain data and validation: no I/O.
 import re
 import unicodedata
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -152,6 +152,10 @@ class Slot(_Strict):
     weight: int = Field(default=DEFAULT_WEIGHT, ge=MIN_WEIGHT, le=MAX_WEIGHT)
     points: List[Point] = Field(default_factory=list, max_length=MAX_POINTS)
     """The concepts to be treated (#258); none: the slot works as before."""
+    retired_points: List[str] = Field(default_factory=list)
+    """Ids of concepts removed from this slot by an edit (#271): never
+    given to a new concept, so an earlier interview's concept is never
+    read as a different one. Kept by the server."""
 
     @model_validator(mode="after")
     def _valid(self) -> "Slot":
@@ -229,6 +233,11 @@ class InterviewPlan(_Strict):
     loads as open."""
     closures: List[Closure] = Field(default_factory=list)
     """Every time it was closed (and reopened)."""
+    retired_slots: List[str] = Field(default_factory=list)
+    """Ids of slots removed by an edit (#271): never given to a new
+    slot, so an earlier interview's answers to a removed point are
+    never read as answers to a point added later. Kept by the server;
+    a plan stored before it loads with none."""
 
     @model_validator(mode="after")
     def _unique(self) -> "InterviewPlan":
@@ -442,16 +451,21 @@ def edited_plan(
 
     The edit carries the ``revision`` it was based on; an older one is
     refused (two people editing). Id, source, planner and creation time
-    are kept; the revision grows by one.
+    are kept; the revision grows by one. Ids are the server's (#271): a
+    new slot or concept, or one reusing a removed id, gets the next id
+    after every id the plan ever used, and removed ids are recorded in
+    ``retired_slots`` / ``retired_points``.
     """
     if document.get("revision") != current.revision:
         raise StaleRevision(
             f"plan {current.id} is at revision {current.revision}"
         )
     keep = {"schema", "id", "source", "planner", "created_at",
-            "updated_at", "revision", "state", "closures"}
+            "updated_at", "revision", "state", "closures", "retired_slots"}
+    slots, retired = _renumbered(current, document.get("slots"))
     merged = {
         **{k: v for k, v in document.items() if k not in keep},
+        "slots": slots, "retired_slots": retired,
         "schema": PLAN_SCHEMA, "id": current.id,
         "source": current.source.model_dump(mode="json"),
         "planner": current.planner.model_dump(mode="json"),
@@ -471,6 +485,92 @@ def edited_plan(
     if not any(s.level == "minimo" for s in plan.slots):
         raise ValueError("mark at least one slot as minimo")
     return plan
+
+
+def _number(item_id: str) -> int:
+    """The number of an ``s<n>`` / ``p<n>`` id (0 when it has none)."""
+    digits = item_id[1:]
+    return int(digits) if digits.isdigit() else 0
+
+
+def _fresh(prefix: str, used: List[str], limit: int) -> str:
+    """The next id after every one ever used (``ValueError`` when full)."""
+    taken = {_number(x) for x in used}
+    number = max(taken, default=0) + 1
+    if number > limit:
+        number = next((n for n in range(1, limit + 1) if n not in taken), 0)
+        if not number:
+            raise ValueError(f"no {prefix} id left")
+    return f"{prefix}{number}"
+
+
+def _renumbered(
+    current: InterviewPlan, raw: object,
+) -> Tuple[object, List[str]]:
+    """The edit's slots with server-given ids for anything new (#271).
+
+    A slot whose id is one of the current plan's keeps it; any other
+    slot (new, or reusing a removed point's id) gets the next id after
+    every id the plan ever used, so a point added later never inherits
+    an earlier interview's answers. The same holds for the concepts of
+    each kept slot. Returns the slots and the ids retired so far
+    (the current ones plus those this edit removes).
+    """
+    if not isinstance(raw, list):
+        return raw, list(current.retired_slots)
+    before = {s.id: s for s in current.slots}
+    used = [*before, *current.retired_slots]
+    out: List[object] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            out.append(item)
+            continue
+        slot = dict(item)
+        old = before.get(str(slot.get("id")))
+        if old is None:
+            slot["id"] = _fresh("s", used, 999)
+            used.append(slot["id"])
+            slot["retired_points"] = []
+            if "points" in slot:
+                slot["points"] = _renumbered_points([], [], slot["points"])
+        else:
+            if "points" in slot:
+                slot["points"] = _renumbered_points(
+                    [p.id for p in old.points], list(old.retired_points),
+                    slot["points"])
+            given = slot.get("points")
+            kept = {p.get("id") for p in (
+                given if isinstance(given, list) else [])
+                if isinstance(p, dict)}
+            slot["retired_points"] = [*old.retired_points, *(
+                p.id for p in old.points if p.id not in kept)]
+        out.append(slot)
+    kept_ids = {s.get("id") for s in out if isinstance(s, dict)}
+    retired = [*current.retired_slots,
+               *(sid for sid in before if sid not in kept_ids)]
+    return out, retired
+
+
+def _renumbered_points(
+    current: List[str], retired: List[str], raw: object,
+) -> object:
+    """A slot's concepts with fresh ids for the new ones (#271)."""
+    if not isinstance(raw, list):
+        return raw
+    used = [*current, *retired]
+    out: List[object] = []
+    seen: Set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            out.append(item)
+            continue
+        point = dict(item)
+        if point.get("id") not in current or point.get("id") in seen:
+            point["id"] = _fresh("p", used, 99)
+            used.append(point["id"])
+        seen.add(str(point["id"]))
+        out.append(point)
+    return out
 
 
 class StaleRevision(ValueError):
@@ -645,6 +745,12 @@ class Sheet(_Strict):
     attribution_error: Optional[str] = Field(default=None, max_length=300)
     """Why the model's attribution was not used (its status and error
     kind, never the candidate's words)."""
+    plan_slots: Optional[List[str]] = None
+    """The slot ids of the plan revision the interview was made with
+    (#271): a live report keeps only the slots it judged, so a point of
+    the plan that is not in ``slots`` but is here was asked of nobody
+    (not treated), and one that is in neither was added to the plan
+    later (not asked). ``None``: written before it."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:

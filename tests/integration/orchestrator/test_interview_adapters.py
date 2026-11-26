@@ -133,6 +133,9 @@ def test_the_plan_routes(tmp_path: Path) -> None:
                     json={"offer": "x"}).status_code == 422
     results = web.get(f"/interview/plans/{plan['id']}/results").json()
     assert results["candidates"] == []
+    board = web.get(f"/interview/plans/{plan['id']}/board").json()
+    assert board["people"] == [] and board["plan"]["id"] == plan["id"]
+    assert web.get("/interview/plans/plan-x/board").status_code == 404
     big = web.post("/interview/plans", content=b"x" * (100 * 1024))
     assert big.status_code == 422
     started = web.post("/sessions", json={
@@ -197,6 +200,9 @@ def test_the_position_routes(tmp_path: Path) -> None:
         plan["id"], {"session_id": "r1", "kind": "live"})
     report = web.get(f"/interview/plans/{plan['id']}/results/r1")
     assert report.status_code == 200 and report.json()["kind"] == "live"
+    board = web.get(f"/interview/plans/{plan['id']}/board").json()
+    assert [p["latest"]["session_id"] for p in board["people"]] == ["r1"]
+    assert board["plan"]["state"] == "closed"
     opened = web.post(f"/interview/plans/{plan['id']}/reopen")
     assert opened.json()["state"] == "open"
     assert opened.json()["closure"]["reopened_at"]

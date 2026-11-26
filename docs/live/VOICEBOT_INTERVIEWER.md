@@ -421,10 +421,12 @@ revisar por una persona» notice, the suitability in a coloured ring,
 tiles (cumple / carencias / por encima / no lo conoce / saltados), a
 bar per slot (green ≥ 70, amber ≥ 40, red below; heaviest first) with
 the note, confidence and quotes, the gaps, the other skills, the facts
-of the run and the link to the analysis. «Comparar candidatos de esta
-oferta» lists the interviews of the plan (`GET
-/interview/plans/{id}/results`): suitability and one bar per slot,
-best first, marked when the plan was edited after the interview.
+of the run and the link to the analysis. The people interviewed from a
+plan are compared on the offer's own page, «Ofertas» (§6.4, #271),
+which replaced «Comparar candidatos de esta oferta»; the plan review
+links to it («Ver las personas entrevistadas»). `GET
+/interview/plans/{id}/results` (suitability and per-slot scores) stays
+for other readers.
 
 Screenshots (fakes, no model): plan review, live coverage and report
 in the session's scratchpad (`interviewer/plan.png`, `coverage.png`,
@@ -575,7 +577,8 @@ judgement stores nothing, and
   utterance that said them, not at the first utterance of a joined
   answer part. Only one judgement of a round runs at a time.
 
-**Where it opens.** «Comparar candidatos de esta oferta» lists both
+**Where it opens.** The offer's page in «Ofertas» (§6.4; before #271,
+«Comparar candidatos de esta oferta») lists both
 kinds with their kind («Entrevista con IA» / «Entrevista en directo»),
 date and «Abrir el informe» (`#/interview-report/<plan>/<session>`, the
 full report; a live one shows the judgement block, no score). The
@@ -593,7 +596,7 @@ ficha de la persona hasta que la borres.»; one without a file (an AI
 interview held without a candidate profile, or a report whose profile
 is gone) says «Sin ficha de persona: se conserva con el puesto hasta
 que lo borres aquí.» and has «Borrar este informe» (with confirmation)
-in «Comparar candidatos» (`DELETE
+on the offer's page (`DELETE
 /interview/plans/{id}/results/{session}`, refused with 409 for a report
 that is in a file).
 
@@ -603,7 +606,7 @@ candidatura»: the confirmation says how many reports go with it; if one
 cannot be deleted the file is kept, so deleting again finishes it). A
 candidate file with reports never expires by days
 (`CANDIDATE_PROFILE.md`). Reports without a file are deleted one by one
-from «Comparar candidatos»; nothing deletes them by time.
+from the offer's page; nothing deletes them by time.
 
 **Closing a position.** «Cerrar el puesto» on the plan review (with a
 confirmation) only marks the plan `state: "closed"` and records when
@@ -644,8 +647,8 @@ transcript of the session; speakers carry `role`), replays it through
 the topic tracker, has the model attribute the whole round (§6.3;
 `--attribution rules` keeps the rules of the replay), judges it with
 the same code and stores the full
-report under the same session id, so it appears in «Comparar
-candidatos» and in the candidate's file. It refuses (exit 2) when the
+report under the same session id, so it appears on the offer's page
+and in the candidate's file. It refuses (exit 2) when the
 transcript is of another session, when the session is not one of the
 candidate's rounds, or when a report of that session is already stored;
 `--force` judges it anyway and replaces the stored report. The rebuilt
@@ -867,6 +870,227 @@ instead of the running RAG.
 round the same way before judging it, takes the same `--attribution
 model|rules`, and prints the `attribution` it used (and
 `attribution_error` when the model's was not used).
+
+### 6.4 «Ofertas»: the people of an offer, ordered by a draft figure (#271)
+
+**Why.** The plans used to live inside the voice-bot page («Asistente
+de voz» → «Entrevista de trabajo con IA» → «O abre un plan guardado» →
+«Comparar candidatos de esta oferta»). The owner wanted a page of its
+own for the open positions, where entering one shows the people
+interviewed for it, best fit first, searchable and sortable by the
+required points, and where its questions can be edited.
+
+**Pages** (`js/views/offers.js`, pure parts in `js/lib/offers.js`; a
+navigation entry «Ofertas» after «Asistente de voz»):
+
+- `#/offers`: the open positions as cards (title, state, «N puntos: R
+  imprescindibles, D deseables», the people interviewed (one per
+  candidate file; a report in no file is one person) and the
+  interviews with AI and live, the last interview's date, the creation
+  date; singular forms for one); «Mostrar también los puestos
+  cerrados (n)» (`?closed=1`); «Nueva oferta» opens the existing
+  creation flow (`#/voicebot/interview`: the voice-bot page with the
+  interviewer chosen). With no plan yet it explains how to create the
+  first one.
+- `#/offers/<plan>?sort=…&dir=…&q=…&kind=…&point=…&state=…&cols=…`: the
+  header (title, summary, state with «Cerrar el puesto» / «Reabrir el
+  puesto», minutes, points, revision), «Editar las preguntas» (the same
+  plan editor as the voice-bot review, `planEditorBody`; saving is the
+  existing `PUT` with the revision it was based on, so it makes a new
+  revision and a stale edit gets 409), «Hacer una entrevista con IA»
+  (`#/voicebot/interview/<plan>`, hidden when the position is closed),
+  the draft notice and «Cómo se ordena», then the table. The page uses
+  the full content width; the breadcrumbs show the plan's title (and,
+  on the file, the person's name), not the ids.
+- `#/offers/<plan>/person/<id>`: the person's file (core answers,
+  reports, deletion), the block the analysis page already shows.
+
+**The table.** A `<table>` with a caption, column headers
+(`scope="col"`) and the person as the row header (sticky on narrow
+screens; the table scrolls inside its box, the page does not; header
+labels wrap; the person cell itself links «Informe» and «Ficha», so
+they stay in reach when the table scrolls sideways). One row
+per person: all the interviews of one file (AI and live, every round)
+make one row, shown by the latest, with «N entrevistas más» opening the
+others' reports; a report in no file is a row of its own (no grouping
+by name). Columns: person, kind and date, «Cifra (borrador)» with how
+it was computed and its marks, one column per required (`minimo`)
+point (desirable ones through «Más columnas»), «Precisión de las
+respuestas» (solid / basic / wrong / off topic / not treated counts),
+«Conviene comprobar» (how many statements) and «Abrir» (the report;
+the person's file, or «sin ficha» with «Borrar este informe»). A point
+cell says the result in words (the judgement label, «respondido, sin
+valorar», «saltado», «no preguntado»), the AI score when there is one,
+«n de m conceptos» and «Evidencia» (a `<details>` with the quote, the
+reason and a link to the report). Sorting: each sortable header is a
+button with `aria-sort` on its `<th>` (first click: highest first, names
+A→Z; second click flips); search by name (accents ignored); filter by
+the kind of interview and by one required point's result («Sólida o
+correcta básica», «Cubierto», «Por comprobar o no se puede valorar»,
+«Con un error o sin responder a lo preguntado», «Sin tratar, no lo
+conoce o no preguntado»). The search and filters sit in a «Filtros»
+disclosure, open on wide screens and closed on a phone, whose summary
+counts the filters on («Filtros (1 activo)»). A `role="status"` line
+announces how many people are shown and the order: at once for a sort
+or a filter, and for the search after a 400 ms pause or when the field
+is left (the table itself follows each keystroke). The state goes to the address with
+`history.replaceState` (no reload). Status is never colour alone: a row
+missing a required point says «Imprescindibles sin cubrir: n» (asked
+and not covered) or «Imprescindibles no preguntados: n» (added to the
+plan after the interview), each with an icon, and the tinted cells also
+carry their word. Nobody is hidden
+unless the person sets a filter.
+
+**One comparable figure per interview** (`orchestrator/domain/offer_board.py`),
+0–100, computed on read from the stored report and the **current** plan:
+
+- *AI interview*: each point's stored `score` (the model's, already
+  capped by the accuracy judgement of §6.1; or the status estimate when
+  the model failed, #267). The row says «con las puntuaciones del
+  modelo» or «estimada por el estado (el modelo falló)».
+- *Live interview* (never scored): each point's value is
+  `base × (0.5 + 0.5 × treated / concepts)` (the factor is 1 for a point
+  without concepts), where `base` is the value of the point's judgement:
+  `solid` 100, `correct_basic` 70, `to_verify` 50, `unclear` 40,
+  `off_topic` 5, `wrong` 0 (without a judgement of the point: the mean
+  of its judged concepts' values, else 40 when it was answered); at most
+  50 when a treated concept was judged `wrong` (the cap of §6.1); 10
+  when the candidate said they do not know it or skipped it. The row
+  says «con las valoraciones (en directo no se puntúa)».
+- *Overall*: Σ weight·value / Σ weight over the current plan's points
+  that the interview asked, with the current plan's weights and levels.
+  A required point without a value counts 0 for an AI interview (the
+  suitability rule) and is worth 10 («no tratado») in a live one; a
+  desirable point without an answer is left out. So, for live points,
+  solid > basic > to verify ≥ unclear > not treated > off topic ≥ wrong.
+  For an AI sheet whose plan was not edited since, the figure **is** its
+  stored `suitability` (a test checks it).
+- The two kinds come from different measures (a model's 0–100 score
+  against the offer, or fixed values of the judgement labels): the page
+  says so in «Cómo se ordena» and on each row. Not validated against
+  any human ordering: not measured.
+
+**Order and ties** (`order_key`): the figure, highest first; on the
+same figure, fewer required points without evidence of coverage first
+— not covered and not asked (added later) each count one, so «covers
+every required point» comes before «misses one»; then the most recent
+interview;
+then the name and the session id. A person missing a required point
+therefore never comes before someone who covers them all with the same
+or a better figure. Rows without a figure (nothing to count) go last.
+A point is *covered* when its answer was judged `solid`,
+`correct_basic`, `to_verify` or `unclear`, or answered without a
+judgement; not when it was `wrong`, `off_topic`, not known, skipped, not
+treated or not asked. A person's row is placed by their latest
+interview. No cut-off, no label such as «apto», nothing hidden by
+default.
+
+**Edited plans.** Every report keeps the `plan_revision` it was made
+with, and from #271 also `plan_slots`, the slot ids of that revision
+(`interview.sheet.v1`, additive): a live report stores only the slots
+it judged, so without the list a point the round never reached could
+not be told from a point added later. The plan store keeps only the
+latest plan. On read:
+
+- points removed from the plan drop out;
+- a point the report has no answer to is «no tratado» when it was in
+  the interview's revision (its `plan_slots`; an AI sheet keeps every
+  slot of its revision, so its own slots tell), and «no preguntado»
+  only when it was not (added later): left out of the figure and
+  marked «Imprescindibles no preguntados» when required;
+- an older live report without `plan_slots` never has «no preguntado»
+  points: a missing point is «no tratado» even after the plan changed,
+  so a point really added after it counts as not treated there (10 when
+  required, in the figure and the tie rule);
+- ids are never reused (re-review of #271): the plan keeps
+  `retired_slots` (slot ids removed by an edit) and each slot
+  `retired_points`; the server gives any slot or concept whose id is not
+  one of the current plan's (a new one, or a hand-made save reusing a
+  removed id) the next id after every id the plan ever used, and the
+  page proposes ids the same way. Within one save the server cannot tell
+  a renamed point from a replaced one that kept the id: the page never
+  proposes an id the saved plan has, and a renamed point keeps its id
+  and its answers on purpose. Concept ids in plans edited between #258
+  and this change may already have been renumbered by an old page bug
+  (`editSlot` read the ids after overwriting them, so each concept edit
+  numbered them again from `p1`); this has no effect on the board,
+  which reads each sheet's own concepts and texts;
+
+So saving the plan (a new revision, even a title edit) never changes a
+figure by itself; changing a weight or a level re-orders the table at
+once, since they are always the current plan's. The row says «plan
+cambiado después» when the revision differs. Nothing is stored or
+cached: the table is derived on every read. (Found in review: before
+`plan_slots`, any save turned a live round's unreached points into «no
+preguntado» and raised its figure; a test now covers it.)
+
+**Less reliable reports.** A live report whose answers were attributed
+to the points by the session's word rules (`attribution: "rules"`, or
+none: written before #268) is marked «menos fiable: reglas de palabras».
+
+**Server.** `GET /interview/plans/{id}/board` (proxied as
+`/api/assist/interview/plans/{id}/board`, behind the access code like
+the rest; 404 for an unknown plan) returns `interview.board.v1`:
+
+```
+{"schema": "interview.board.v1", "plan": <interview.plan.v1>,
+ "required": ["s1", …], "desirable": ["s3", …],
+ "people": [{"person": "file:<candidate id>" | "session:<id>",
+             "candidate_id", "name", "position": 1,
+             "latest": {"session_id", "kind": "ai"|"live", "finished_at",
+                        "candidate", "candidate_id", "plan_revision",
+                        "plan_changed", "figure", "figure_basis":
+                        "scores"|"status"|"labels", "stored_suitability",
+                        "points": [{"id", "state", "value", "basis",
+                                    "score", "label", "treated",
+                                    "concepts", "quote", "reason",
+                                    "utterance"}],
+                        "missing_required", "unasked_required",
+                        "not_asked", "accuracy",
+                        "to_check", "less_reliable", "attribution",
+                        "owned"},
+             "others": [{"session_id", "kind", "finished_at", "figure",
+                         "figure_basis", "plan_changed",
+                         "less_reliable"}]}],
+ "interviews": 12, "truncated": false}
+```
+
+The store reads every report of the plan through the existing
+`PlanStore` port in one pass (small JSON files; no call per row); what
+is computed and returned is bounded to the 500 most recent
+(`MAX_REPORTS`; `truncated` says when there were more, and the page
+says «Se muestran las N entrevistas guardadas más recientes.»). The
+candidate files of the role are listed once per request
+(`CandidateBook.files`: which reports are in a file, whose — the
+profile the report names, or the profile one of whose rounds is its
+session — and each file's current name, which names the row).
+`GET /interview/plans` adds, per plan, `desirables`, `created_at`,
+`people`, `interviews_ai`, `interviews_live` and `last_interview`.
+`people` is counted without opening any candidate file (one per
+`candidate_id` a report names, plus one per report that names none), so
+it can differ from the table's rows: an older AI sheet linked to a file
+only by its rounds counts apart on the offer card but joins that
+person's row in the table. The report stored by `rebuild-round` and
+`rejudge` (#262, #268) also carries `plan_slots`: those of the plan
+they are given, the current one.
+
+**Where the old entry points go.** The voice-bot plan review's
+«Comparar candidatos de esta oferta» became «Ver las personas
+entrevistadas» (`#/offers/<plan>`), and «O abre un plan guardado» says
+that every offer is in «Ofertas». Deleting a report in no file moved
+with it. Opening a saved plan and starting an interview stay on the
+voice-bot page.
+
+**Wording and limits.** The page says, where the order is shown, that it
+is a draft computed from what a model judged in short interviews, for a
+person to review before any decision, that it leaves nobody out and is
+never shown to candidates. Ordering candidates with an AI system is a
+high-risk use under the EU AI Act (Annex III 4(a)): this page is on the
+list the lawyer must review (`docs/platform/ARCHITECTURE.md` §8), and the
+legal basis and retention remain the owner's open decision (#151); this
+is not legal advice. The figure's values (100, 70, 50, 40, 10, 5, 0 and
+the concept factor) are a design choice, not fitted or validated on
+data.
 
 ## 7. Settings («Ajustes», group «Entrevistador de IA»)
 
@@ -1127,8 +1351,8 @@ tick) used 264–705 output tokens on the cold path of §8.3.
    a question to the interviewer.
 6. At the end, once the candidate is no longer in front of the screen,
    press «Ver el informe — solo para quien entrevista» and read the
-   report; «Comparar candidatos de esta oferta»
-   after the second interview with the same plan. With
+   report; «Ofertas» → the offer, after the second interview with the
+   same plan (§6.4). With
    `interview.post_call: on` the analysis starts by itself; otherwise
    start it from the session.
 7. Turn-taking (#213): pause for 2–5 s in the middle of an answer

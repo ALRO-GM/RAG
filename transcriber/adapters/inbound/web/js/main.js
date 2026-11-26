@@ -23,8 +23,9 @@ import { liveView } from "./views/live.js";
 import { voicebotView } from "./views/voicebot.js";
 import { callReportView } from "./views/call-report.js";
 import { interviewReportView } from "./views/interview-report.js";
+import { offersView, offerView, personFileView } from "./views/offers.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
-import { crumbsFor } from "./lib/shell.js";
+import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -83,7 +84,10 @@ const ROUTES = [
   [/^#\/help\/analysis(?:\/([^/]+))?$/, helpAnalysisView],
   [/^#\/knowledge(?:\/([^/]+))?$/, knowledgeView],
   [/^#\/live(?:\/(demo)(?:\/(support))?)?$/, liveView],
-  [/^#\/voicebot(?:\/(demo))?$/, voicebotView],
+  [/^#\/voicebot(?:\/(demo|interview)(?:\/([^/]+))?)?$/, voicebotView],
+  [/^#\/offers(?:\?(.*))?$/, offersView],
+  [/^#\/offers\/([^/?]+)\/person\/([^/?]+)$/, personFileView],
+  [/^#\/offers\/([^/?]+)(?:\?(.*))?$/, offerView],
   [/^#\/call-report\/([^/]+)$/, callReportView],
   [/^#\/interview-report\/([^/]+)\/([^/]+)$/, interviewReportView],
   [/^#\/settings$/, settingsView],
@@ -131,7 +135,7 @@ async function route() {
   stopCurrent();
   const mine = ++token;
   app.replaceChildren();
-  app.classList.remove("wide");
+  app.classList.remove("wide", "full");
   setCrumbs(crumbsFor(location.hash, t));
   markCurrent();
   syncLogout();
@@ -139,7 +143,10 @@ async function route() {
   const { view, params } = resolve(location.hash);
   showSkeleton();
   try {
-    const done = await view(ctx, app, params);
+    // A view that knows better names than the address (a plan's title) puts
+    // them in the breadcrumbs, only while it is still the current page.
+    const page = { ...ctx, setCrumbs: crumbsWhileCurrent(() => mine === token, setCrumbs) };
+    const done = await view(page, app, params);
     if (mine !== token) done?.();
     else cleanup = done ?? null;
   } catch (error) {

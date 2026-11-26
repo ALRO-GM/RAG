@@ -1,10 +1,12 @@
 // Interview reports kept in the candidate's file and positions closed (#262):
-// the comparison lists both kinds and opens each report, the stored report
-// page, the candidate's list of reports, the live end summary's link, and
-// the texts of closing (which deletes nothing). Language pinned; stand-in DOM.
+// the offer page (#271, which replaced «Comparar candidatos») lists both kinds
+// and opens each report, the stored report page, the candidate's list of
+// reports, the live end summary's link, and the texts of closing (which
+// deletes nothing). Language pinned; stand-in DOM.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { comparisonRows, reportHref } from "../../transcriber/adapters/inbound/web/js/lib/interview.js";
+import { reportHref } from "../../transcriber/adapters/inbound/web/js/lib/interview.js";
+import { boardRows, parseQuery } from "../../transcriber/adapters/inbound/web/js/lib/offers.js";
 import { LiveState } from "../../transcriber/adapters/inbound/web/js/lib/live.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
@@ -18,11 +20,21 @@ const LIVE = {
   to_check: [],
 };
 
-test("the comparison knows the kind of each report and where it opens", () => {
-  const rows = comparisonRows({ plan: { id: "dev", revision: 0, slots: [{ id: "s1" }] }, candidates: [
-    { session_id: "r1", kind: "live", candidate: "Ana", finished_at: "2", suitability: null, slots: [{ id: "s1", status: "partial", score: null }] },
-    { session_id: "vb 2", candidate: "Luis", finished_at: "1", suitability: 70, slots: [] },
-  ] });
+/** A board (GET …/board) of invented people: `latest` per person. */
+function board(people, slots = [{ id: "s1", label: "Bases de datos", level: "minimo" }]) {
+  return {
+    plan: { id: "dev", title: "Backend", revision: 0, slots, state: "open", minutes: 20 },
+    required: slots.filter((s) => s.level === "minimo").map((s) => s.id),
+    people: people.map((latest, i) => ({ person: `p${i}`, name: latest.candidate ?? null, candidate_id: latest.candidate_id ?? null,
+      position: i + 1, latest: { points: [], missing_required: [], accuracy: {}, to_check: 0, ...latest }, others: [] })),
+  };
+}
+
+test("the offer page knows the kind of each report and where it opens", () => {
+  const rows = boardRows(board([
+    { session_id: "r1", kind: "live", candidate: "Ana", finished_at: "2", figure: 40 },
+    { session_id: "vb 2", candidate: "Luis", finished_at: "1", figure: 70 },
+  ]));
   assert.deepEqual(rows.map((r) => r.kind), ["live", "ai"]);
   assert.equal(reportHref("dev", "vb 2"), "#/interview-report/dev/vb%202");
 });
@@ -107,16 +119,15 @@ test("a stored live report opens with its judgement, kind, date and retention", 
   });
 });
 
-test("the comparison opens every report; the candidate's file lists theirs", async () => {
+test("the offer page opens every report; the candidate's file lists theirs", async () => {
   await withDom("es", async () => {
-    const { comparisonCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const { peopleSection } = await import("../../transcriber/adapters/inbound/web/js/views/offers.js");
     const { reportList } = await import("../../transcriber/adapters/inbound/web/js/views/candidate.js");
-    const card = comparisonCard({ plan: { id: "dev", revision: 0, slots: [{ id: "s1", label: "Bases de datos" }] }, candidates: [
-      { session_id: "r1", kind: "live", candidate: "Ana Ruiz", finished_at: "2026-11-25T10:30:00", suitability: null,
-        plan_revision: 0, slots: [{ id: "s1", status: "partial", score: null }] }] });
+    const card = peopleSection({}, board([{ session_id: "r1", kind: "live", candidate: "Ana Ruiz", finished_at: "2026-11-25T10:30:00",
+      figure: 40, figure_basis: "labels", points: [{ id: "s1", state: "correct_basic", value: 70 }] }]), parseQuery(""));
     const text = card.text();
-    assert.ok(text.includes(es["iv.kind.live"]) && text.includes(es["iv.open_report"]) && text.includes(es["iv.no_score_live"]));
-    const link = card.all().find((n) => n.tagName === "A");
+    assert.ok(text.includes(es["iv.kind.live"]) && text.includes(es["iv.open_report"]) && text.includes(es["of.basis.labels"]));
+    const link = card.all().find((n) => n.tagName === "A" && n.href.startsWith("#/interview-report/"));
     assert.equal(link.href, "#/interview-report/dev/r1");
     assert.equal(reportList([]), null);
     const list = reportList([{ session_id: "r1", kind: "live", plan_id: "dev", finished_at: "2026-11-25T10:30:00" },
@@ -127,24 +138,26 @@ test("the comparison opens every report; the candidate's file lists theirs", asy
   });
 });
 
-test("a report without a person's file says so and can be deleted from the comparison", async () => {
+test("a report without a person's file says so and can be deleted from the offer page", async () => {
   assert.equal(es["iv.retention_no_file"], "Sin ficha de persona: se conserva con el puesto hasta que lo borres aquí.");
   assert.equal(es["iv.delete_report_body"], "Se borra el informe de esta entrevista, con sus citas y valoraciones. No se puede deshacer.");
   await withDom("es", async () => {
-    const { comparisonCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const { peopleSection } = await import("../../transcriber/adapters/inbound/web/js/views/offers.js");
     const { reportPage } = await import("../../transcriber/adapters/inbound/web/js/views/interview-report.js");
     const asked = [];
-    const results = { plan: { id: "dev", revision: 0, slots: [] }, candidates: [
-      { session_id: "vb-1", candidate: "Sin ficha", finished_at: "2026-11-20T09:00:00", suitability: 50, plan_revision: 0, slots: [] },
-      { session_id: "r1", kind: "live", candidate: "Ana Ruiz", candidate_id: "ana-ruiz", plan_revision: 0, slots: [] }] };
-    const card = comparisonCard(results, { onDelete: (row) => asked.push(row.session) });
+    const people = [
+      { session_id: "vb-1", candidate: "Sin ficha", finished_at: "2026-11-20T09:00:00", figure: 50, owned: false },
+      { session_id: "r1", kind: "live", candidate: "Ana Ruiz", candidate_id: "ana-ruiz", owned: true }];
+    const card = peopleSection({}, board(people, []), parseQuery(""), { onDelete: (row) => asked.push(row.session) });
     const text = card.text();
     assert.ok(text.includes(es["iv.retention"]) && text.includes(es["iv.retention_no_file"]) && text.includes(es["iv.no_file"]));
-    const buttons = card.all().filter((n) => n.tagName === "BUTTON");
+    const buttons = card.all().filter((n) => n.tagName === "BUTTON" && n.className.includes("danger"));
     assert.equal(buttons.length, 1, "only the report without a file has a delete button");
     buttons[0].listeners.click[0]();
     assert.deepEqual(asked, ["vb-1"]);
-    const onlyFiled = comparisonCard({ ...results, candidates: [results.candidates[1]] }).text();
+    const files = card.all().filter((n) => n.tagName === "A" && n.href.startsWith("#/offers/"));
+    assert.deepEqual([...new Set(files.map((n) => n.href))], ["#/offers/dev/person/ana-ruiz"]);
+    const onlyFiled = peopleSection({}, board([people[1]], []), parseQuery("")).text();
     assert.ok(!onlyFiled.includes(es["iv.retention_no_file"]));
     assert.ok(reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention_no_file"]));
     assert.ok(!reportPage({ ...LIVE, candidate_id: null }).text().includes(es["iv.retention"]));
@@ -157,15 +170,15 @@ test("the page follows the server's rule of which reports are in a file", async 
   state.apply({ type: "accuracy", state: "ready", saved: false, why: "no_file", slots: [], to_check: [] });
   assert.equal(state.accuracy.why, "no_file");
   await withDom("es", async () => {
-    const { comparisonCard } = await import("../../transcriber/adapters/inbound/web/js/views/interview.js");
+    const { peopleSection } = await import("../../transcriber/adapters/inbound/web/js/views/offers.js");
     const { reportPage } = await import("../../transcriber/adapters/inbound/web/js/views/interview-report.js");
-    const results = { plan: { id: "dev", revision: 0, slots: [] }, candidates: [
+    const people = [
       // An old AI sheet: no candidate_id, but its session is a round of a file.
-      { session_id: "vb-old", candidate: "Ana", owned: true, plan_revision: 0, slots: [] },
+      { session_id: "vb-old", candidate: "Ana", owned: true },
       // A report whose file is gone.
-      { session_id: "r1", kind: "live", candidate: "Luis", candidate_id: "gone", owned: false, plan_revision: 0, slots: [] }] };
-    const card = comparisonCard(results, { onDelete: () => {} });
-    const deletable = card.all().filter((n) => n.tagName === "BUTTON");
+      { session_id: "r1", kind: "live", candidate: "Luis", candidate_id: "gone", owned: false }];
+    const card = peopleSection({}, board(people, []), parseQuery(""), { onDelete: () => {} });
+    const deletable = card.all().filter((n) => n.tagName === "BUTTON" && n.className.includes("danger"));
     assert.equal(deletable.length, 1);
     const rows = card.all().filter((n) => n.tagName === "TR").slice(1);
     assert.ok(rows[1].text().includes(es["iv.no_file"]) && !rows[0].text().includes(es["iv.no_file"]));

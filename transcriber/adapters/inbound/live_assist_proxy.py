@@ -14,7 +14,8 @@ Only the orchestrator's own routes exist here (``products``,
 ``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; a scripted
 demo's ``report``, ``voicebot``, ``voices`` and one rendered line clip,
 ``voices/<line>.wav`` (#254, never cached); the AI
-interviewer's ``interview/plans``, one plan and its ``results``; the
+interviewer's ``interview/plans``, one plan, its ``results`` and its
+``board`` (the offer page's table, #271); the
 candidates of a role, one candidate, their answers to the core questions
 and the candidate of a session, #235), and
 session, speaker and item ids are checked; the stream is passed through
@@ -47,6 +48,7 @@ ALLOWED = re.compile(
     rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
     rf"|interview/plans|interview/plans/{_ID}"
     rf"|interview/plans/{_ID}/results|interview/plans/{_ID}/results/{_ID}"
+    rf"|interview/plans/{_ID}/board"
     rf"|interview/plans/{_ID}/(?:close|reopen)"
     rf"|interview/plans/{_ID}/candidates"
     rf"|interview/plans/{_ID}/candidates/{_ID}"
@@ -233,6 +235,11 @@ def add_live_assist_proxy(
     ) -> Response:
         """The candidates interviewed from a plan."""
         return await forward(f"interview/plans/{plan_id}/results", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/board")
+    async def assist_plan_board(plan_id: str, request: Request) -> Response:
+        """The offer page's table: the people interviewed, best first."""
+        return await forward(f"interview/plans/{plan_id}/board", request)
 
     @api.get("/assist/interview/plans/{plan_id}/results/{session_id}")
     async def assist_plan_report(
