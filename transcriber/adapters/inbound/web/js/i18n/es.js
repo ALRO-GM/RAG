@@ -1344,6 +1344,8 @@ export const es = {
   "live.recovery.done_nothing": "Completado: el audio enviado no tenía conversación que añadir",
   "live.recovery.still_on": "Esta entrevista sigue en marcha: vuelve a ella y el audio pendiente se enviará desde allí.",
   "live.recovery.late": "Esta entrevista ya se completó con el audio enviado antes; lo que queda en este navegador llegó tarde y no se puede añadir. Puedes descartarlo.",
+  "live.recovery.refused": "{n} s del audio guardado no se pudieron añadir (fuera del plazo en que se puede guardar) y se han borrado de este navegador.",
+  "live.recovery.not_buffered": "Este producto no guarda audio durante un corte: este audio no se puede enviar. Puedes descartarlo.",
   "live.recovery.failed": "No se pudo recuperar",
   "live.recovery.no_room": "El servidor no tiene sitio para este audio ahora. Sigue guardado en este navegador; inténtalo más tarde.",
   "live.recovery.server_later": "Borrado de este navegador. No se pudo avisar al servidor: lo que tenga de esta entrevista se borrará solo al caducar.",

@@ -51,3 +51,20 @@ def test_a_recovery_holding_the_gpu_is_in_the_marker() -> None:
     assert len(marker.marks) == count
     harness.live.recovering("iv-1", False)
     assert marker.marks[-1] == []
+
+
+def test_a_late_write_for_a_silence_never_overwrites_the_end() -> None:
+    """A write for a silence that comes after the end is skipped, so the
+    record keeps its final state and count (the next start would
+    otherwise hand the session over again)."""
+    harness = Harness(device="cpu")
+    session = harness.live.start(LiveSessionRequest(
+        session_id="h", buffer_audio=True))
+    assert session.wait_ready(WAIT)
+    session.feed(b"\x00\x00" * S)
+    harness.live.stop("h", WAIT)
+    assert session.wait_handed_over(WAIT)
+    final = dict(harness.log.sessions["h"])
+    harness.live._record_now(session)  # late: the session has ended
+    assert harness.log.sessions["h"] == final
+    assert final["received_samples"] == S and final["state"] != "running"

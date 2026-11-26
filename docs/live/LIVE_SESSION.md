@@ -351,8 +351,10 @@ a session without it (409). The page reads it from `page.buffer`.
    batch parts of no job are swept too.
 4. **Text, not audio**: the recovered parts' transcripts and the live
    transcript before the merge, in `<data_dir>/live-recovery/<session>/
-   text/`, until the job ends; `recovery.json` (no audio, no words)
-   stays as the page's status until «Descartar».
+   text/`, until the job ends (a process that stopped in between leaves
+   them for the next sweep, which deletes the texts of every ended
+   job); `recovery.json` (no audio, no words) stays as the page's status
+   until «Descartar».
 
 Nothing is put in «Sesiones», nothing is published as audio, and
 deletions are logged as counts.
@@ -395,7 +397,7 @@ file lists its rounds' recoveries («Audio recuperado de las rondas»).
 
 | Route | Body | Answer |
 |---|---|---|
-| `PUT /api/live/sessions/{id}/recovery/chunks/{n}?offset=&channels=` | raw PCM s16le 16 kHz (`channels` interleaved, 1 from the browser), from stream sample `offset` | the job; a chunk sent again replaces itself (resumable, idempotent). 404 for a session this service never ran; 409 while the session is still on, for a product without the leave, or once closed; 400 for audio past the time the session lasted (its record's start to end, plus 10 min) or past 24 h, odd bytes, negative numbers, other channels than the first chunk's; 413 past 1 MiB per chunk, 512 MiB per session, 2 GiB in all, 8192 chunks |
+| `PUT /api/live/sessions/{id}/recovery/chunks/{n}?offset=&channels=` | raw PCM s16le 16 kHz (`channels` interleaved, 1 from the browser), from stream sample `offset` | the job; a chunk sent again replaces itself (resumable, idempotent). 404 for a session this service never ran; 409 `session_running` while the session is still on, `not_buffered` for a product without the leave, `wrong_state` once closed; 400 for audio past the product's limit counted from the session's start (`buffer_max_hours`, else `live.recovery.ttl_hours`: the page goes on recording offline long after the server ended the session, which waits for a lost source only 10 min), odd bytes, negative numbers, other channels than the first chunk's; 413 past 1 MiB per chunk, 512 MiB per session, 2 GiB in all, 8192 chunks |
 | `POST /api/live/sessions/{id}/recovery/close` | `{"count", "expires_at"?}` | the job, `queued`; 409 while chunks are missing or the session is still on; `expires_at` may only bring the expiry closer |
 | `GET /api/live/sessions/{id}/recovery` | — | `{session_id, state, progress, seconds, minutes, chunks, added, unidentified, failed_step, error, expires_at, audio_deleted, updated_at}`; the page resumes from `chunks` |
 | `DELETE /api/live/sessions/{id}/recovery` | — | 204; everything kept for the session is deleted now, also while a step runs |
@@ -404,7 +406,17 @@ file lists its rounds' recoveries («Audio recuperado de las rondas»).
 Ids are checked against the session id pattern before any path is
 built; one session's chunks live in its own folder, so an id cannot
 write into another's. The page sends a chunk three times at most (1, 2,
-4 s apart), never after a 400, 404, 409 or 413.
+4 s apart). A chunk refused as such (400) does not strand the rest: the
+others are sent, the upload is closed with what the server accepted,
+and the page says «{n} s del audio guardado no se pudieron añadir (fuera
+del plazo en que se puede guardar) y se han borrado de este navegador.»
+A 413 stops the upload (the audio stays; «El servidor no tiene sitio…»),
+`not_buffered` says «Este producto no guarda audio durante un corte:
+este audio no se puede enviar. Puedes descartarlo.», and
+`session_running` for a session this browser ended offline (the link
+came back within the server's 10 min grace) first stops that session,
+then sends (the stop is retried while its hand-over finishes); for any
+other session still on, «Volver a la sesión».
 
 ### The job (`transcriber/application/live_recovery.py`)
 
@@ -429,11 +441,16 @@ rejudging → done | failed`, written to `recovery.json` by a thread of
 - `queued` waits while the live session is still on or handing over.
   The spans to recover are the uploaded audio inside the silence the
   server put in (`silences`, written to `session.json` as it happens, so
-  a crash keeps the gaps before it) or after its last sample
+  a crash keeps the gaps before it; one record write at a time, and a
+  write for a silence that comes after the end is skipped, so the end's
+  record is never overwritten) or after its last sample
   (`received_samples`, written at the end; for a session cut by a crash,
   the last event's stream time). Spans less than 30 s apart share one
-  part; each part is one WAV per channel, bounded by its span (at most
-  2 h), never one array across a long gap. Nothing left: `done`, with
+  part and a contiguous span longer than 30 min is cut into 30 min
+  parts (a sentence said across a cut is transcribed in two pieces);
+  each part is one WAV per channel, never one array across a long gap.
+  Building one part takes at most about 86 MB (16-bit samples and a
+  one-byte mask per sample of 30 min); at most 200 parts. Nothing left: `done`, with
   «no conversation to add».
 - `transcribing`: the batch pipeline of the recovery's own repository,
   on the service's job runner, so the batch GPU lease is honoured: it
@@ -443,7 +460,9 @@ rejudging → done | failed`, written to `recovery.json` by a thread of
   channel. **Services guard**: while one of its parts is running (holds
   the GPU) the session is in the live marker as `recovering`, so
   `ragputin-servicios stop|restart` refuses (it is the one moment a
-  restart costs real work: the transcription is redone). Uploading,
+  restart costs real work: the transcription is redone; the guard says
+  «Recuperando el audio de una entrevista: transcribiendo (<id>).»).
+  Uploading,
   queued, merging and the later steps do not count: a restart there
   costs nothing (state and audio are on disk). The marker is updated on
   each 5 s round, so a part that starts running is announced within 5 s.
@@ -507,4 +526,4 @@ IndexedDB quota and write speed during an hour-long outage, whether
 `pagehide` writes complete when a real tab closes (the last few seconds
 may be lost), and the orchestrator's rebuild time with the real
 reasoner. The thresholds (3 s backlog, 5 s chunks, 10 min sweep, 30 s
-join, 10 min offset slack) are chosen, not measured.
+join, 30 min parts) are chosen, not measured.

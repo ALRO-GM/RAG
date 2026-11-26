@@ -43,7 +43,6 @@ from transcriber.domain.models import Speaker
 
 S = 16000
 SECOND = b"\x01\x00" * S  # one second of invented mono PCM
-PART = part_id("iv-1", None, 0)
 
 
 def record(**more: Any) -> Dict[str, Any]:
@@ -125,7 +124,9 @@ def test_the_whole_job_fills_the_gap_and_recomputes_everything() -> None:
     assert view["audio_deleted"] and view["progress"] == 1.0
     assert not view["unidentified"]
     assert world.store.chunks == {} and world.store.texts == {}
-    assert world.batch.submitted == [(PART, "es", 1, [])]
+    generation = world.store.jobs["iv-1"]["meta"]["generation"]
+    assert world.batch.submitted == [
+        (part_id("iv-1", None, 0, generation), "es", 1, [])]
     assert world.store.wavs == [("iv-1", (4 * S, 8 * S), None)]
 
 
@@ -263,12 +264,68 @@ def test_absurd_offsets_are_refused_before_anything_is_kept() -> None:
     with pytest.raises(InvalidInputError):
         world.recovery.put_chunk("iv-1", 0, 2 ** 33, b"\x00" * 20)
     with pytest.raises(InvalidInputError):
-        # past the session's ten seconds plus the slack
-        world.recovery.put_chunk("iv-1", 0, 700 * S, SECOND)
+        # past the product's 48 h from the session's start
+        world.recovery.put_chunk("iv-1", 0, 48 * 3600 * S, SECOND)
     with pytest.raises(InvalidInputError):
         world.recovery.put_chunk("iv-1", 0, -1, SECOND)
-    world.recovery.put_chunk("iv-1", 0, 600 * S, SECOND)  # inside the slack
+    # Long after the server ended the session (the page went on offline).
+    world.recovery.put_chunk("iv-1", 0, 45 * 60 * S, SECOND)
     assert world.store.audio_bytes() == len(SECOND)
+
+
+def test_a_long_contiguous_span_is_cut_into_bounded_parts() -> None:
+    world = World()
+    world.log.sessions["iv-1"] = record(silences=[], received_samples=0)
+    world.store.put_chunk("iv-1", 0, b"")  # the fake keeps no real audio
+    job = world.recovery.put_chunk("iv-1", 0, 0, SECOND)
+    assert job["state"] == "uploading"
+    stored = world.store.load("iv-1")
+    assert stored is not None
+    stored.chunks = {"0": [0, 70 * 60 * S]}  # one span of 70 minutes
+    world.store.save(stored)
+    world.recovery.close("iv-1", 1)
+    world.recovery.tick()
+    assert [w[1] for w in world.store.wavs] == [
+        (0, 30 * 60 * S), (30 * 60 * S, 60 * 60 * S),
+        (60 * 60 * S, 70 * 60 * S)]
+
+
+def test_the_texts_of_an_ended_job_are_swept() -> None:
+    """A process that stopped between the end and deleting the working
+    copies leaves them: the sweep deletes them."""
+    world = World()
+    world.upload()
+    world.run()
+    world.store.texts["iv-1"] = {"live": {"a": 1}, "part-0": {"b": 2}}
+    world.recovery.sweep()
+    assert "iv-1" not in world.store.texts
+    assert world.recovery.status("iv-1")["state"] == "done"
+
+
+def test_an_old_step_never_overwrites_a_new_job_of_the_session() -> None:
+    """Discard while a step runs, then a new upload of the same session:
+    the old step's result is dropped and only its own parts go."""
+    world = World()
+    world.upload()
+    entered, release = threading.Event(), threading.Event()
+    submit = world.batch.submit
+
+    def slow_submit(*args: Any) -> None:
+        submit(*args)
+        entered.set()
+        release.wait(5)
+
+    world.batch.submit = slow_submit  # type: ignore[method-assign,assignment]
+    stepping = threading.Thread(target=world.recovery.tick)
+    stepping.start()
+    assert entered.wait(5)
+    world.recovery.discard("iv-1")
+    world.recovery.put_chunk("iv-1", 0, 4 * S, SECOND)  # a new job
+    release.set()
+    stepping.join(5)
+    view = world.recovery.status("iv-1")
+    assert view["state"] == "uploading" and view["chunks"] == [0]
+    assert world.batch.parts == {}, "the old generation's part went"
 
 
 def test_parts_never_span_a_long_gap() -> None:
@@ -533,6 +590,7 @@ def test_sweep_deletes_batch_parts_of_no_job_and_unreadable_jobs() -> None:
     with pytest.raises(InvalidInputError):
         check_session("a/b")
     assert part_id("iv-1", 0).endswith("-0-c0")
+    assert part_id("iv-1", 0, 0, "a") != part_id("iv-1", 0, 0, "b")
 
 
 def test_a_discard_during_a_step_wins() -> None:

@@ -52,38 +52,40 @@ class FakeIndexedDB {
   }
 
   _transaction(names) {
+    // Like IndexedDB: the requests run in order when the transaction
+    // runs; their results and the commit come together at its end (so a
+    // later transaction sees them), all or none.
     const self = this;
-    const staged = names.map((n) => [n, new Map(this.stores.get(n).rows)]);
-    const copies = new Map(staged);
+    const copies = new Map(names.map((n) => [n, new Map(this.stores.get(n).rows)]));
     const tx = { error: null };
-    let failed = null;
-    const pending = [];
-    const finish = () => {
+    const queued = [];
+    setTimeout(() => {
+      let failed = null;
+      for (const r of queued) {
+        try {
+          r.result = r.work();
+        } catch (error) {
+          failed = error;
+          r.error = error;
+          break;
+        }
+      }
       if (failed) {
+        for (const r of queued) if (r.error) r.onerror?.();
         tx.error = failed;
         tx.onerror?.();
         return;
       }
       for (const [name, rows] of copies) self.stores.get(name).rows = rows;
+      for (const r of queued) r.onsuccess?.();
       tx.oncomplete?.();
-    };
-    setTimeout(() => setTimeout(finish, 0), 0);
+    }, 0);
     tx.objectStore = (name) => {
       const { keyPath } = self.stores.get(name);
       const rows = copies.get(name);
       const req = (work) => {
-        const r = {};
-        pending.push(r);
-        setTimeout(() => {
-          try {
-            r.result = work();
-            r.onsuccess?.();
-          } catch (error) {
-            failed = error;
-            r.error = error;
-            r.onerror?.();
-          }
-        }, 0);
+        const r = { work };
+        queued.push(r);
         return r;
       };
       return {
@@ -388,11 +390,45 @@ test("a full server or a session still on is said, not retried, and the audio st
   await keptSession(backend, 2);
   const full = fakeApi({ state: null, fail: { 0: [Object.assign(new Error("full"), { status: 413 })] } });
   await assert.rejects(uploadRecording({ backend, api: full, id: "iv-1", wait: async () => {} }), (e) => e.status === 413);
-  const on = fakeApi({ state: null, fail: { 0: [Object.assign(new Error("on"), { status: 409, code: "wrong_state" })] } });
+  const on = fakeApi({ state: null, fail: { 0: [Object.assign(new Error("on"), { status: 409, code: "session_running" })] } });
   await assert.rejects(uploadRecording({ backend, api: on, id: "iv-1", wait: async () => {} }), (e) => e.code === "running");
-  const closing = fakeApi({ state: null, closeError: Object.assign(new Error("on"), { status: 409, code: "wrong_state" }) });
+  const off = fakeApi({ state: null, fail: { 0: [Object.assign(new Error("off"), { status: 409, code: "not_buffered" })] } });
+  await assert.rejects(uploadRecording({ backend, api: off, id: "iv-1", wait: async () => {} }), (e) => e.code === "not_buffered");
+  const closing = fakeApi({ state: null, closeError: Object.assign(new Error("on"), { status: 409, code: "session_running" }) });
   await assert.rejects(uploadRecording({ backend, api: closing, id: "iv-1" }), (e) => e.code === "running");
   assert.equal((await backend.all("index")).length, 2);
+});
+
+test("a chunk refused as such does not strand the rest: the others are sent and closed", async () => {
+  const backend = new IdbBackend(new FakeIndexedDB());
+  await keptSession(backend, 3);
+  const api = fakeApi({ state: null, fail: { 1: [Object.assign(new Error("late"), { status: 400 })] } });
+  const view = await uploadRecording({ backend, api, id: "iv-1", wait: async () => {} });
+  assert.equal(view.state, "queued");
+  assert.equal(view.refused_seconds, 1);
+  assert.deepEqual(api.calls.at(-1), ["close", { count: 2, expires_at: "2026-11-28T10:00:00.000Z" }]);
+  assert.deepEqual(await backend.all("index"), [], "the refused one is deleted too: it can never be added");
+  await keptSession(backend, 1);
+  const none = fakeApi({ state: null, fail: { 0: [Object.assign(new Error("late"), { status: 400 })] } });
+  const nothing = await uploadRecording({ backend, api: none, id: "iv-1", wait: async () => {} });
+  assert.deepEqual(nothing, { state: "refused", refused_seconds: 1 });
+  assert.ok(!none.calls.some((c) => c[0] === "close"), "nothing to close");
+});
+
+test("a session ended here offline that the server still waits for is stopped, then sent", async () => {
+  const backend = new IdbBackend(new FakeIndexedDB());
+  await keptSession(backend, 1);
+  await backend.put("sessions", { ...(await backend.get("sessions", "iv-1")), ended_locally: true });
+  const running = Object.assign(new Error("on"), { status: 409, code: "session_running" });
+  const api = fakeApi({ state: null, fail: { 0: [running, running] } });
+  const stops = [];
+  api.stopLive = async (id) => { stops.push(id); };
+  const waits = [];
+  const view = await uploadRecording({ backend, api, id: "iv-1", wait: async (ms) => waits.push(ms) });
+  assert.equal(view.state, "queued");
+  assert.deepEqual(stops, ["iv-1"]);
+  assert.deepEqual(waits, [1000], "its hand-over was finishing");
+  assert.equal(api.calls.filter((c) => c[0] === "put").length, 3);
 });
 
 test("a closed upload deletes here only what the server holds; late chunks are said", async () => {

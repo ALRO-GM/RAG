@@ -1344,6 +1344,8 @@ export const en = {
   "live.recovery.done_nothing": "Completed: the audio sent had no conversation to add",
   "live.recovery.still_on": "This interview is still on: go back to it and the pending audio will be sent from there.",
   "live.recovery.late": "This interview was already completed with the audio sent before; what is left in this browser arrived late and cannot be added. You can discard it.",
+  "live.recovery.refused": "{n} s of the kept audio could not be added (outside the time it may be kept) and have been deleted from this browser.",
+  "live.recovery.not_buffered": "This product keeps no audio during an outage: this audio cannot be sent. You can discard it.",
   "live.recovery.failed": "Could not be recovered",
   "live.recovery.no_room": "The server has no room for this audio now. It is still kept in this browser; try again later.",
   "live.recovery.server_later": "Deleted from this browser. The server could not be told: whatever it has of this interview will be deleted when it expires.",

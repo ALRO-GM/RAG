@@ -115,8 +115,9 @@ function backRow(kept, onBack) {
 }
 
 function failureText(error) {
-  if (error?.status === 413) return t("live.recovery.no_room");
+  if (error?.code === "no_room" || error?.status === 413) return t("live.recovery.no_room");
   if (error?.code === "running") return t("live.recovery.still_on");
+  if (error?.code === "not_buffered") return t("live.recovery.not_buffered");
   if (error?.code === "closed") return t("live.recovery.late");
   return describeError(error);
 }
@@ -139,6 +140,10 @@ function localRow(ctx, kept, { backend, confirm, wait }) {
         onProgress: (fraction) => { status.textContent = t("live.recovery.sending", { n: Math.round(fraction * 100) }); },
       });
       buttons.remove();
+      if (view?.refused_seconds) {
+        row.append(h("p", { class: "hint" }, t("live.recovery.refused", { n: Math.round(view.refused_seconds) })));
+      }
+      if (view?.state === "refused") return null;
       status.textContent = recoveryText(view);
       follow(ctx, kept.id, status, wait);
     } catch (error) {

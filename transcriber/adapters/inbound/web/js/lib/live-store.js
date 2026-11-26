@@ -384,15 +384,30 @@ export function installSweeps({ backend = new IdbBackend(), target = globalThis,
 
 const RETRY_MS = [1000, 2000, 4000];
 
+/** Why the server refused a recovery upload, for the page: a code. */
+function refusal(error) {
+  if (error?.code === "session_running") return "running";
+  if (error?.code === "not_buffered") return "not_buffered";
+  if (error?.status === 413) return "no_room";
+  return null;
+}
+
 /**
  * Send session `id`'s kept audio to the server (resumable: the chunks the
  * server already has are skipped), close the upload, then delete here
  * exactly the chunks the server holds.
- *   api       { recoveryStatus(id), putRecoveryChunk(id, seq, offset, bytes, channels), closeRecovery(id, body) }
+ *   api       { recoveryStatus(id), putRecoveryChunk(id, seq, offset, bytes, channels),
+ *               closeRecovery(id, body), stopLive?(id) }
  *   onProgress(fraction)
- * Resolves the server's job view. A refusal for room (413), a session
- * still on (409, code "running") or a closed upload missing some of these
- * chunks (code "closed") is thrown, and the audio stays here.
+ * A chunk the server refuses as such (400: outside the time the
+ * session's audio may be kept) is skipped, the rest is sent and closed,
+ * and the refused ones are deleted here: the view says how many seconds
+ * (`refused_seconds`). A session this browser ended offline that the
+ * server still holds is stopped first (`stopLive`), then sent. Thrown,
+ * with the audio kept here: no room on the server (code "no_room"), a
+ * session still on ("running"), a product that keeps no audio
+ * ("not_buffered"), a closed upload missing some of these chunks
+ * ("closed"), anything else after three tries.
  */
 export async function uploadRecording({ backend, api, id, onProgress = () => {}, wait = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   const meta = await backend.get("sessions", id);
@@ -415,7 +430,9 @@ export async function uploadRecording({ backend, api, id, onProgress = () => {},
   } catch (error) {
     if (error?.code === "closed" || error?.status !== 404) throw error;
   }
+  let stopped = false;
   let sent = 0;
+  const refused = [];
   for (const row of rows) {
     if (!have.has(row.seq)) {
       const chunk = await backend.get("chunks", row.key);
@@ -425,8 +442,25 @@ export async function uploadRecording({ backend, api, id, onProgress = () => {},
           await api.putRecoveryChunk(id, row.seq, row.offset, chunk.bytes, meta.channels ?? 1);
           break;
         } catch (error) {
-          if (error?.status === 409) throw Object.assign(error, { code: "running" });
-          if (error?.status === 413 || error?.status === 404 || error?.status === 400 || error?.kind === "unauthorized" || attempt >= RETRY_MS.length) throw error;
+          const why = refusal(error);
+          if (why === "running" && meta.ended_locally && api.stopLive && !stopped) {
+            // Ended here offline while the server still waits for it:
+            // stop it now that there is a connection, then send.
+            stopped = true;
+            await api.stopLive(id).catch(() => {});
+            attempt = -1;
+            continue;
+          }
+          if (why === "running" && stopped && attempt < RETRY_MS.length) {
+            await wait(RETRY_MS[attempt]); // its hand-over is finishing
+            continue;
+          }
+          if (why) throw Object.assign(error, { code: why });
+          if (error?.status === 400) {
+            refused.push(row);
+            break;
+          }
+          if (error?.status === 404 || error?.kind === "unauthorized" || attempt >= RETRY_MS.length) throw error;
           await wait(RETRY_MS[attempt]);
         }
       }
@@ -434,16 +468,21 @@ export async function uploadRecording({ backend, api, id, onProgress = () => {},
     sent += 1;
     onProgress(sent / rows.length);
   }
-  let view;
-  try {
-    view = await api.closeRecovery(id, { count: rows.length, expires_at: meta.expires_at });
-  } catch (error) {
-    if (error?.status === 409 && error?.code === "wrong_state") throw Object.assign(error, { code: "running" });
-    throw error;
+  const accepted = rows.filter((r) => !refused.includes(r));
+  let view = { state: "refused" };
+  if (accepted.length) {
+    try {
+      view = await api.closeRecovery(id, { count: accepted.length, expires_at: meta.expires_at });
+    } catch (error) {
+      const why = refusal(error);
+      if (why) throw Object.assign(error, { code: why });
+      throw error;
+    }
   }
   await discardRecording(backend, id, rows.map((r) => r.key));
   if (!(await rowsOf(backend, id)).length) await backend.delete("sessions", id);
-  return view;
+  const refusedSeconds = refused.reduce((n, r) => n + r.samples, 0) / SAMPLE_RATE;
+  return refused.length ? { ...view, refused_seconds: refusedSeconds } : view;
 }
 
 /**

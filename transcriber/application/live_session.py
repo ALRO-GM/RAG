@@ -263,6 +263,9 @@ class LiveSession:
         recovery's offsets with it)."""
         self.on_silence: Callable[[], None] = lambda: None
         """Told when silence was put in (the record is written again)."""
+        self.record_lock = threading.Lock()
+        """One write of the record at a time: a write for a silence never
+        lands after the end's (#265)."""
         self.end_reason: Optional[EndReason] = None
         self.compute: Optional[str] = None
         self.handed_over = threading.Event()
@@ -806,11 +809,18 @@ class LiveSessions:
         )
 
     def _record_now(self, session: LiveSession) -> None:
-        """Write the record again (silence was put in); never raises."""
+        """Write the record again (silence was put in); never raises.
+
+        Skipped once the session has ended: the end's record (with its
+        final state and count) is never overwritten by a late write.
+        """
         try:
-            self._handover.record(
-                self.facts(session), session.state.value,
-                transcript=session.transcript, **session.record_extra)
+            with session.record_lock:
+                if not session.active or session.end_reason is not None:
+                    return
+                self._handover.record(
+                    self.facts(session), session.state.value,
+                    transcript=session.transcript, **session.record_extra)
         except Exception:  # noqa: BLE001 - the audio must go on
             LOG.exception("Live session %s: record not written", session.id)
 
@@ -1106,15 +1116,16 @@ class LiveSessions:
         handed = self._keep(session, failed=state == LiveState.FAILED)
         session.finished(state, error)
         self._mark()  # ended, still handing over
-        session.record_extra = {"end_reason": session.end_reason,
-                                "error": error,
-                                "ended_at": self._p.clock.now().isoformat(),
-                                # #265: what a recovery may fill.
-                                "received_samples": session.received}
-        self._handover.record(
-            self.facts(session), state.value, transcript=session.transcript,
-            **session.record_extra,
-        )
+        with session.record_lock:
+            session.record_extra = {
+                "end_reason": session.end_reason, "error": error,
+                "ended_at": self._p.clock.now().isoformat(),
+                # #265: what a recovery may fill.
+                "received_samples": session.received}
+            self._handover.record(
+                self.facts(session), state.value,
+                transcript=session.transcript, **session.record_extra,
+            )
         try:
             if handed is not None:
                 # The record is written again with the publish's result;

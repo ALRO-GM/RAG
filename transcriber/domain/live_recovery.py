@@ -75,8 +75,11 @@ Span = Tuple[int, int]
 """``[start, end)`` in samples."""
 JOIN_SAMPLES = 30 * SAMPLE_RATE
 """Recovered spans closer than this are transcribed together."""
-MAX_PART_SAMPLES = 2 * 3600 * SAMPLE_RATE
-"""The longest part transcribed at once (two hours)."""
+MAX_PART_SAMPLES = 30 * 60 * SAMPLE_RATE
+"""The longest part transcribed at once (30 min). Building its audio
+takes at most about 86 MB (16-bit samples plus a one-byte mask per
+sample); a longer contiguous span is cut into parts of this length (a
+sentence said across a cut is transcribed in two pieces)."""
 
 
 def merge_spans(spans: Sequence[Span]) -> List[Span]:
@@ -127,12 +130,18 @@ def group_spans(
     """Group recovered spans into the parts transcribed one by one.
 
     Spans less than ``join`` apart share one part (the silence between
-    them is short); a part never grows past ``longest`` samples, so the
-    audio built for it is bounded by what was uploaded and never spans
-    a long gap.
+    them is short); no part is longer than ``longest`` samples: a longer
+    contiguous span is cut at that length. So the audio built for one
+    part is bounded (:data:`MAX_PART_SAMPLES`) whatever was uploaded.
     """
-    groups: List[Span] = []
+    pieces: List[Span] = []
     for start, end in merge_spans(spans):
+        while end - start > longest:
+            pieces.append((start, start + longest))
+            start += longest
+        pieces.append((start, end))
+    groups: List[Span] = []
+    for start, end in pieces:
         if groups and start - groups[-1][1] < join \
                 and end - groups[-1][0] <= longest:
             groups[-1] = (groups[-1][0], end)

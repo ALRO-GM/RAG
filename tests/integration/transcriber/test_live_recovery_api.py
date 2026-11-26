@@ -230,3 +230,63 @@ def test_the_worker_sweeps_then_ticks_and_survives_errors() -> None:
     worker.start()
     time.sleep(0.05)
     worker.stop()
+
+
+def test_offline_minutes_after_the_server_ended_the_session_come_back(
+    tmp_path: Path,
+) -> None:
+    """The ticket's main case: the link is lost for good, the server
+    ends the session after its grace, the page records 40 more minutes
+    offline and «Terminar» ends it there; later every chunk is accepted,
+    the job completes and the transcript has the offline part after the
+    live part."""
+    from transcriber.domain.live_session import LiveServiceSettings
+
+    built = build_container(TranscriberSettings(
+        data_dir=tmp_path / "data", runtime="fake",
+        live=LiveServiceSettings(source_grace_seconds=0.3,
+                                 source_gone_seconds=0.3)))
+    try:
+        client = TestClient(create_app(built, CODE), headers=AUTH)
+        answer = client.post("/api/live/sessions", json={
+            "session_id": "iv-2", "handoff": {"transcript_v1": True},
+            "buffer_audio": True, "buffer_max_hours": 48})
+        assert answer.status_code == 201, answer.text
+        with client.websocket_connect("/api/live/iv-2/audio") as ws:
+            ws.receive_json()
+            for message in chunks_of(heard(3.0), 3200):
+                ws.send_bytes(message)
+            time.sleep(0.5)  # the recogniser hears it before the cut
+        # The socket is gone without a stop: the server waits its grace.
+        assert built.live is not None
+        assert built.live.get("iv-2").wait_handed_over(WAIT)
+        record = json.loads((built.settings.data_dir / "live" / "iv-2"
+                             / "session.json").read_text())
+        assert record["end_reason"] == "source_lost"
+        # What the page kept offline: minutes 31 and 45 of the interview.
+        for n, minute in enumerate((31, 45)):
+            put = client.put(
+                f"/api/live/sessions/iv-2/recovery/chunks/{n}",
+                params={"offset": minute * 60 * S}, content=heard(5.0))
+            assert put.status_code == 200, put.text
+        closed = client.post("/api/live/sessions/iv-2/recovery/close",
+                             json={"count": 2})
+        assert closed.status_code == 200, closed.text
+        recovery = built.live_recovery
+        assert recovery is not None
+        deadline = time.monotonic() + WAIT
+        while recovery.status("iv-2")["state"] not in ("done", "failed"):
+            assert time.monotonic() < deadline
+            recovery.tick()
+            time.sleep(0.05)
+        view = recovery.status("iv-2")
+        assert view["state"] == "done", view
+        merged = json.loads((built.settings.data_dir / "live" / "iv-2"
+                             / "transcript.json").read_text())
+        starts = [u["start"] for u in merged["utterances"]]
+        assert starts == sorted(starts)
+        assert any(s < 3 for s in starts), "the live part"
+        assert any(31 * 60 <= s < 31 * 60 + 5 for s in starts)
+        assert any(45 * 60 <= s < 45 * 60 + 5 for s in starts)
+    finally:
+        built.runner.close(WAIT)

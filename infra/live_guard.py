@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Tell whether a live interview is running on this machine (#264).
 
+A recovery whose transcription holds the GPU (#265, state
+``recovering`` in the marker) counts too and is described as such.
+
 ``ragputin-servicios stop|restart`` asks this before it stops anything:
 a restart under a running interview loses everything the live session
 holds in memory. Two signals, either is enough:
@@ -102,6 +105,21 @@ def describe(sessions: Sequence[Dict[str, Any]], leased: bool) -> str:
     if not sessions:
         return ("Entrevista en directo en marcha (la tarjeta gráfica está"
                 " reservada para el directo).")
+    live = [s for s in sessions if s.get("state") != "recovering"]
+    recovering = [str(s.get("id", "?")) for s in sessions
+                  if s.get("state") == "recovering"]
+    lines = []
+    if live:
+        lines.append(_live_line(live))
+    if recovering:
+        # #265: the audio a long outage kept is being transcribed.
+        lines.append("Recuperando el audio de una entrevista:"
+                     " transcribiendo (" + ", ".join(recovering) + ").")
+    return " ".join(lines)
+
+
+def _live_line(sessions: Sequence[Dict[str, Any]]) -> str:
+    """The line for the live sessions that are on."""
     parts = []
     for session in sessions:
         note = ""

@@ -58,6 +58,7 @@ import hashlib
 import logging
 import re
 import threading
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set
 
@@ -72,13 +73,14 @@ from transcriber.application.ports import (
 )
 from transcriber.domain.errors import (
     InvalidInputError,
+    NotBufferedError,
     NotFoundError,
+    SessionRunningError,
     StateError,
     TooLargeError,
 )
 from transcriber.domain.live import LiveSpeaker
 from transcriber.domain.live_recovery import (
-    MAX_PART_SAMPLES,
     RecoveredPart,
     RecoveryJob,
     RecoverySettings,
@@ -96,9 +98,6 @@ MAX_CHUNK_NUMBER = 999_999
 """Largest chunk number accepted (the page numbers them from 0)."""
 LIVE_TEXT = "live"
 """The live transcript as it was before the first merge."""
-SLACK_SECONDS = 600.0
-"""Audio may reach this far past what the session's record says it
-lasted (the page's clock and the server's are not the same)."""
 MAX_RESTARTS = 20
 """Restarts that may lose a recovery's batch job before it fails."""
 MAX_PARTS = 200
@@ -116,9 +115,17 @@ def check_session(session_id: str) -> str:
     return session_id
 
 
-def part_id(session_id: str, channel: Optional[int], group: int = 0) -> str:
-    """The id of one part in the recovery's repository (short, safe)."""
-    digest = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:24]
+def part_id(
+    session_id: str, channel: Optional[int], group: int = 0,
+    generation: str = "",
+) -> str:
+    """The id of one part in the recovery's repository (short, safe).
+
+    ``generation`` tells apart the parts of a job discarded and the
+    parts of a new job of the same session.
+    """
+    digest = hashlib.sha256(
+        f"{session_id}/{generation}".encode("utf-8")).hexdigest()[:24]
     side = "m" if channel is None else f"c{channel}"
     return f"rc-{digest}-{group}-{side}"
 
@@ -186,30 +193,38 @@ class LiveRecovery:
     # ---- the upload ----------------------------------------------------
 
     def _new_job(self, session_id: str, channels: int) -> RecoveryJob:
-        """A job for an ended session that allows it, with its bounds."""
+        """A job for an ended session that allows it, with its bounds.
+
+        Audio may lie anywhere from the session's start to the product's
+        limit (``buffer_max_hours``, else ``ttl_hours``): the page goes
+        on recording offline long after the server ended the session
+        (a lost source is waited for only 10 minutes), so the server's
+        own end is no bound. Memory stays bounded by the byte limits and
+        the parts' length.
+        """
         record = self._log.read_session(session_id)
         if record is None:
             raise NotFoundError(f"No live session {session_id} to recover.")
         request = record.get("request") or {}
         if not request.get("buffer_audio"):
-            raise StateError(
+            raise NotBufferedError(
                 "This session's product keeps no audio during an outage.")
         now = self._clock.now()
         expires = now + timedelta(hours=self._settings.ttl_hours)
         started = _time(record.get("started_at"))
         hours = request.get("buffer_max_hours")
-        if started is not None and isinstance(hours, int) and hours > 0:
+        if not isinstance(hours, int) or hours <= 0:
+            hours = None
+        if started is not None and hours is not None:
             expires = min(expires, started + timedelta(hours=hours))
-        ended = _time(record.get("ended_at")) or now
-        lasted = (ended - started).total_seconds() \
-            if started is not None else None
-        limit = int(((lasted or 0.0) + SLACK_SECONDS) * SAMPLE_RATE) \
-            if lasted is not None else None
+        span = float(hours) if hours is not None \
+            else self._settings.ttl_hours
         job = RecoveryJob(
             session_id, "uploading", now.isoformat(), expires.isoformat(),
             channels=channels, updated_at=now.isoformat(),
         )
-        job.meta["max_end"] = limit
+        job.meta["max_end"] = int(span * 3600 * SAMPLE_RATE)
+        job.meta["generation"] = uuid.uuid4().hex
         return job
 
     def put_chunk(
@@ -243,10 +258,10 @@ class LiveRecovery:
                 f"A chunk is at most {self._settings.chunk_max_bytes}"
                 " bytes.")
         samples = len(data) // frame
-        if offset < 0 or offset + samples > MAX_PART_SAMPLES * 12:
+        if offset < 0:
             raise InvalidInputError("Invalid chunk offset.")
         if self._running(session_id):
-            raise StateError(
+            raise SessionRunningError(
                 f"Live session {session_id} is still on: go back to it.")
         with self._lock:
             job = self._store.load(session_id)
@@ -260,7 +275,8 @@ class LiveRecovery:
             limit = job.meta.get("max_end")
             if isinstance(limit, int) and offset + samples > limit:
                 raise InvalidInputError(
-                    "The chunk lies past the end of the session.")
+                    "The chunk lies past the time this session's audio may"
+                    " be kept.")
             key = str(number)
             old = job.chunks.get(key)
             old_bytes = old[1] * frame if old else 0
@@ -275,7 +291,6 @@ class LiveRecovery:
                     > self._settings.total_max_bytes:
                 raise TooLargeError(
                     "There is no room left for recovered audio.")
-            self._discarded.discard(session_id)
             self._store.put_chunk(session_id, number, data)
             job.chunks[key] = [offset, samples]
             job.bytes += len(data) - old_bytes
@@ -297,7 +312,7 @@ class LiveRecovery:
         """
         check_session(session_id)
         if self._running(session_id):
-            raise StateError(
+            raise SessionRunningError(
                 f"Live session {session_id} is still on: go back to it.")
         with self._lock:
             job = self._require(session_id)
@@ -348,8 +363,8 @@ class LiveRecovery:
         with self._lock:
             job = self._store.load(session_id)
             found = job is not None or session_id in self._store.ids()
-            if session_id in self._stepping:
-                self._discarded.add(session_id)
+            if job is not None and session_id in self._stepping:
+                self._discarded.add(self._generation(job))
             self._forget_parts(session_id, job)
             self._store.delete(session_id)
         self._busy(session_id, False)
@@ -405,6 +420,10 @@ class LiveRecovery:
                     job.audio_deleted = True
                     self._store.save(job)
                 self._forget_parts(session_id, job)
+                if job.final:
+                    # Working copies a process left when it stopped
+                    # between the end and their deletion.
+                    self._store.delete_texts(session_id)
             stray = [p for p in self._transcriber.ids()
                      if p.startswith("rc-") and p not in live_parts
                      and not any(p in self._part_ids_of(s)
@@ -440,6 +459,12 @@ class LiveRecovery:
                             session_id, type(exc).__name__)
         return moved
 
+    @staticmethod
+    def _generation(job: RecoveryJob) -> str:
+        """The job's own token (a job discarded and made again for the
+        same session is another generation)."""
+        return str(job.meta.get("generation") or "")
+
     def _tick_one(self, session_id: str) -> bool:
         """One step of one job, the external work outside the lock."""
         with self._lock:
@@ -449,7 +474,6 @@ class LiveRecovery:
             if job is None or not job.due(self._clock.now()):
                 return False
             self._stepping.add(session_id)
-            self._discarded.discard(session_id)
         before = (job.state, job.tries, job.progress, job.restarts)
         try:
             self._step(job)
@@ -459,16 +483,21 @@ class LiveRecovery:
         finally:
             with self._lock:
                 self._stepping.discard(session_id)
-                if session_id in self._discarded:
-                    self._discarded.discard(session_id)
+                generation = self._generation(job)
+                if generation in self._discarded:
+                    # Discarded while it ran: only this generation's own
+                    # parts go (a newer job of the session is left alone).
+                    self._discarded.discard(generation)
                     self._forget_parts(session_id, job)
-                    self._store.delete(session_id)
         return (job.state, job.tries, job.progress, job.restarts) != before
 
     def _persist(self, job: RecoveryJob) -> None:
-        """Write the job, unless it was discarded meanwhile."""
+        """Write the job, unless it was discarded (or replaced by a new
+        job of the same session) meanwhile."""
         with self._lock:
-            if job.session_id in self._discarded:
+            current = self._store.load(job.session_id)
+            if self._generation(job) in self._discarded or current is None \
+                    or self._generation(current) != self._generation(job):
                 raise _Discarded()
             self._store.save(job)
 
@@ -572,7 +601,8 @@ class LiveRecovery:
         channels: List[Optional[int]] = \
             [None] if job.channels == 1 else [0, 1]
         parts: List[Dict[str, Any]] = [
-            {"id": part_id(job.session_id, channel, n), "channel": channel,
+            {"id": part_id(job.session_id, channel, n,
+                           self._generation(job)), "channel": channel,
              "start": start, "end": end}
             for n, (start, end) in enumerate(groups) for channel in channels
         ]
