@@ -60,6 +60,12 @@ ends the session; an abandoned one (the device gone) ends after it.
 MAX_LIFETIME_SECONDS = 12 * 3600.0
 """No shared session lasts longer than this, active or not."""
 
+HOST_ATTEMPT_RATE = 6 / 60.0
+"""Shares a client may try per second on average (6 a minute)."""
+
+HOST_ATTEMPT_BURST = 6.0
+"""Shares a client may try at once: names cannot be probed quickly."""
+
 MAX_WRONG_PINS = 20
 """Wrong passwords a session takes before it is ended."""
 

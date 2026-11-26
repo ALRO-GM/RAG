@@ -16,6 +16,7 @@ import { h, fill } from "./dom.js";
 import { t } from "./i18n.js";
 import { icon } from "./ui.js";
 import { WakeLock } from "./device.js";
+import { WIDE_QUERY, actingAs } from "./shell.js";
 import {
   ACTIONABLE, MirrorSource, MirrorView, elementScrollOf, elementScrollTo, pointerAt, scrollOf, scrollTo,
 } from "./lib/mirror.js";
@@ -514,7 +515,8 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     // Numbers of another page load name other nodes: such an action is dropped.
     if (body.ep !== s.source.epoch) return;
     try {
-      applyAction(from, body);
+      // Layout-dependent controls (the menu button) act as on the device that pressed them.
+      actingAs(body.wide === undefined ? null : body.wide === 1, () => applyAction(from, body));
     } catch {
       // an action the page cannot take (a file field, a node gone): nothing happens
     }
@@ -600,7 +602,8 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     Object.assign(s, { bar, frame, box, area, pointer, doc, viewButton, soundButton, view: s.view ?? "own" });
     // A field being typed in here keeps what was typed: the sharing device's
     // echo of an older value never overwrites it (HOLD_MS after the last key).
-    s.mirror = new MirrorView({ doc, hold: (id) => id === s?.typing?.node && performance.now() - s.typing.at < HOLD_MS });
+    s.typing = new Map(); // node -> when it was last typed in here
+    s.mirror = new MirrorView({ doc, hold: (id) => performance.now() - (s?.typing?.get(id) ?? -1e9) < HOLD_MS });
     s.player = new SoundPlayer({
       context: () => {
         s.audio ??= new (globalThis.AudioContext ?? globalThis.webkitAudioContext)();
@@ -746,7 +749,10 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
 
   function send(body) {
     if (!s?.sends || !s.epoch) return;
-    const message = { type: "in", body: { ...body, ep: s.epoch } };
+    // The layout of this device's view of the page (its own, or the sharing device's).
+    const view = s.doc?.defaultView;
+    const wide = view?.matchMedia ? (view.matchMedia(WIDE_QUERY).matches ? 1 : 0) : undefined;
+    const message = { type: "in", body: { ...body, ep: s.epoch, wide } };
     if (tooLarge(message, (s.limits?.viewer_message_bytes ?? 16384) - 256)) return;
     s.link.send(message);
   }
@@ -774,12 +780,16 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       if (node === null || !s?.sends) return;
       const type = String(el.type ?? "").toLowerCase();
       if (type === "checkbox" || type === "radio") return; // the click carries it
-      s.typing = { node, at: performance.now() };
-      clearTimeout(s.typingTimer);
-      s.typingTimer = setTimeout(() => {
-        if (!s?.mirror || performance.now() - s.typing.at < HOLD_MS) return;
+      // Each field has its own hold: typing in two fields in a row loses nothing.
+      s.typing.set(node, performance.now());
+      s.typingTimers ??= new Map();
+      clearTimeout(s.typingTimers.get(node));
+      s.typingTimers.set(node, setTimeout(() => {
+        if (!s?.mirror || performance.now() - (s.typing.get(node) ?? 0) < HOLD_MS) return;
+        s.typing.delete(node);
+        s.typingTimers.delete(node);
         s.mirror.release(node);
-      }, HOLD_MS + 50);
+      }, HOLD_MS + 50));
       send({ k: "val", node, v: String(el.value ?? "").slice(0, MAX_VALUE) });
     };
     on("input", value);

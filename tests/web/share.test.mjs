@@ -703,3 +703,25 @@ test("an <audio> muted because its sound went elsewhere is unmuted when the soun
   assert.equal(Media.prototype.play, original);
   assert.deepEqual(sent, ["media", "media"]);
 });
+
+test("typing in two fields within the hold keeps both: each field has its own hold", () => {
+  const d = devices();
+  const first = el(d.host, "input", { type: "search" });
+  const second = el(d.host, "input", { type: "text" });
+  d.page.appendChild(first);
+  d.page.appendChild(second);
+  sync(d);
+  const typedAt = new Map();
+  let now = 0;
+  d.view.hold = (id) => now - (typedAt.get(id) ?? -1e9) < 1200;
+  const [a, b] = [first, second].map((f) => d.view.nodeById(d.source.idOf(f)));
+  a.value = "Ana";
+  typedAt.set(d.source.idOf(first), now);
+  now = 400;
+  b.value = "Bar";
+  typedAt.set(d.source.idOf(second), now);
+  first.value = "An"; // an older echo of the first field
+  second.value = "Ba";
+  sync(d);
+  assert.deepEqual([a.value, b.value], ["Ana", "Bar"]);
+});

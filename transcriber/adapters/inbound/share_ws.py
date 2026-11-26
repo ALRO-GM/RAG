@@ -151,7 +151,7 @@ async def _hello(
             secret = await run_in_threadpool(relay.secret, message.get("pin"))
             device, token = relay.host(
                 message.get("name"), message.get("pin"),
-                message.get("label"), secret,
+                message.get("label"), secret, client,
             )
             return device, token
         if kind == "join":

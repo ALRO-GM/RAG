@@ -43,6 +43,8 @@ from typing import (
 
 from transcriber.domain.errors import TranscriberError
 from transcriber.domain.screen_share import (
+    HOST_ATTEMPT_BURST,
+    HOST_ATTEMPT_RATE,
     HOST_BURST,
     HOST_MESSAGE_BYTES,
     HOST_RATE,
@@ -256,6 +258,7 @@ class ShareRelay:
         self._iterations = iterations
         self._shares: Dict[str, Share] = {}
         self._tokens: Dict[bytes, Device] = {}
+        self._host_attempts: Dict[str, TokenBucket] = {}
         self.dropped_inputs = 0
 
     # ---- opening ----------------------------------------------------
@@ -268,18 +271,22 @@ class ShareRelay:
 
     def host(
         self, name: object, pin: object, label: object,
-        secret: Optional[Tuple[bytes, bytes]] = None,
+        secret: Optional[Tuple[bytes, bytes]] = None, client: str = "",
     ) -> Tuple[Device, str]:
         """Open a shared session; return the host device and its token.
 
         Names are unique among open sessions (``name_taken``): a second
         session with the same name could not be told apart by a join.
         ``secret`` is :meth:`secret`'s answer when it was computed off
-        the event loop.
+        the event loop. Each ``client`` may try
+        :data:`~transcriber.domain.screen_share.HOST_ATTEMPT_BURST` shares
+        at once and 6 a minute (``too_many_attempts``), so names in use
+        cannot be probed quickly.
         """
         key = normalise_name(name)
         check_pin(pin)
         self.sweep()
+        self._count_host_attempt(client)
         if any(s.key == key for s in self._shares.values()):
             raise ShareRefused("name_taken", "a shared session has that name")
         if len(self._shares) >= MAX_SESSIONS:
@@ -295,6 +302,19 @@ class ShareRelay:
         self._shares[share.id] = share
         LOG.info("Shared session opened (%d open)", len(self._shares))
         return device, token
+
+    def _count_host_attempt(self, client: str) -> None:
+        """Spend one of ``client``'s share attempts or refuse."""
+        if len(self._host_attempts) > 10000:
+            self._host_attempts.clear()
+        bucket = self._host_attempts.setdefault(
+            client, TokenBucket(HOST_ATTEMPT_RATE, HOST_ATTEMPT_BURST)
+        )
+        if not bucket.take(self._now()):
+            raise ShareRefused(
+                "too_many_attempts", "too many shares tried",
+                1.0 / HOST_ATTEMPT_RATE,
+            )
 
     def locked(self, name: object, client: str) -> None:
         """Raise ``too_many_attempts`` while the client or the name waits."""

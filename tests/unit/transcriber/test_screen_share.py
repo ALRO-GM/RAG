@@ -259,9 +259,9 @@ def test_a_session_is_full_after_the_maximum_of_devices(clock: Clock) -> None:
 def test_the_server_holds_a_bounded_number_of_sessions(clock: Clock) -> None:
     relay, _, _ = relay_with(clock)
     for i in range(rules.MAX_SESSIONS):
-        relay.host(f"Sala {i}", "1234", "x")
+        relay.host(f"Sala {i}", "1234", "x", client=f"ip-{i}")
     with pytest.raises(ShareRefused) as caught:
-        relay.host("Sala extra", "1234", "x")
+        relay.host("Sala extra", "1234", "x", client="ip-z")
     assert caught.value.code == "busy"
 
 
@@ -605,3 +605,22 @@ def test_a_page_change_dropped_for_rate_makes_the_devices_resync(
     assert viewer.stale
     assert {"type": "need_snapshot", "device": viewer.id} in messages(
         host_box)
+
+
+def test_a_client_cannot_probe_names_by_sharing_quickly(clock: Clock) -> None:
+    relay, _, _ = relay_with(clock)
+    relay.host("Sala", "1234", "Tablet", client="ip-a")
+    codes = []
+    for i in range(int(rules.HOST_ATTEMPT_BURST) + 2):
+        try:
+            device, _ = relay.host("Sala", "1234", "x", client="ip-b")
+            relay._end(device.share, "stopped")
+        except ShareRefused as exc:
+            codes.append(exc.code)
+    assert codes[-2:] == ["too_many_attempts", "too_many_attempts"]
+    assert codes.count("name_taken") == int(rules.HOST_ATTEMPT_BURST)
+    relay.host("Otra", "1234", "x", client="ip-c")  # another client is free
+    clock.now += 10.5
+    with pytest.raises(ShareRefused) as caught:
+        relay.host("Sala", "1234", "x", client="ip-b")
+    assert caught.value.code == "name_taken", "one attempt back every 10 s"

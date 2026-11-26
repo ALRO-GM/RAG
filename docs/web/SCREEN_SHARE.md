@@ -122,6 +122,24 @@ works), on the
 «Compartir pantalla» panel, on a file field or a password field does
 nothing; a forwarded Escape never closes the panel.
 
+**Controls that depend on the layout.** Every action carries the layout
+of the joined device's view (`wide`: the app's 64 rem breakpoint, in its
+own view or the sharing device's), and the sharing device applies it as
+that layout (`actingAs` in `js/shell.js`). So the menu button pressed on a
+tablet joined in its own layout opens the drawer (`nav-open`, which the
+tablet's mirror shows at tablet width) and never folds the desktop
+sidebar that shares (`nav-collapsed`); the scrim, a link and Escape close
+it. The other viewport checks in the pages, all harmless: «Ofertas» opens
+its filters at first on a screen from 48 rem (`views/offers.js`
+`wideScreen`, the sharing device's width decides, they can be folded from
+any device), the bottom bar and the phone menu are shown by CSS only, and
+dialogs are sized by CSS in each device's own frame.
+
+Each field being typed in has its own hold, so typing in two fields in a
+row loses nothing. Each client may try 6 shares at once and then one
+every 10 s (`too_many_attempts`), so the unique names cannot be probed
+quickly.
+
 **Who sends.** Each device in the panel has a switch «Envía acciones»
 (`role="switch"`). Default: the sharing device sends, joined devices
 only watch. Only the sharing device changes it, for any device including
