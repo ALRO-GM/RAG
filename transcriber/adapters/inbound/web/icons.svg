@@ -35,5 +35,7 @@
   <symbol id="i-status" viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><rect x="2.5" y="4" width="13" height="9.5" rx="2"/><path d="M6 17.5h5.5"/><rect x="14.5" y="9" width="7" height="11" rx="1.5"/><path d="M17.5 17.5h1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.5"/></symbol>
 </svg>

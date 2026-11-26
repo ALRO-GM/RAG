@@ -27,6 +27,7 @@ import { offersView, offerView, personFileView } from "./views/offers.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
 import { installSweeps } from "./lib/live-store.js";
+import { installShare } from "./share.js";
 
 const CODE_KEY = "transcriber.code";
 let memoryCode = null;
@@ -74,6 +75,7 @@ const app = document.getElementById("app");
 const api = new Api(readCode);
 let cleanup = null;
 let token = 0;
+let share = null;
 
 const ROUTES = [
   [/^#?\/?$/, homeView],
@@ -134,6 +136,7 @@ function stopCurrent() {
 }
 
 async function route() {
+  if (share?.viewing()) return; // #278: this device shows the shared one; its own pages wait
   stopCurrent();
   const mine = ++token;
   app.replaceChildren();
@@ -225,8 +228,19 @@ setLeaveGuard(() => false);
 translateStatic(document);
 // A new language redraws the current view (the switch is off while recording).
 const languageSwitch = document.querySelector(".top .lang");
-installLanguageSwitch(languageSwitch, () => route());
-installShell({ onLanguage: () => route() });
+installLanguageSwitch(languageSwitch, () => { share?.relabel(); route(); });
+installShell({ onLanguage: () => { share?.relabel(); route(); } });
+// #278 «Compartir pantalla»: a joined device pauses its own application while it shows the shared one.
+share = installShare({
+  api, readCode, isBusy,
+  pause: () => {
+    stopCurrent();
+    token += 1;
+    app.replaceChildren();
+    hideSkeleton();
+  },
+  resume: () => route(),
+});
 let lastHash = location.hash;
 let reverting = false;
 window.addEventListener("hashchange", () => {

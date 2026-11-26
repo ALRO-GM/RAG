@@ -93,6 +93,7 @@ const ALLOWED = new Map([
   ["js/shell.js", ["Español", "English", "Enter", "Escape"]],
   ["js/views/voicebot.js", ["Enter"]],
   ["js/views/live.js", ["Enter", "Escape"]],
+  ["js/share.js", ["Escape"]],
   ["js/views/lab-progress.js", ["no speech in the audio"]],
 ]);
 
