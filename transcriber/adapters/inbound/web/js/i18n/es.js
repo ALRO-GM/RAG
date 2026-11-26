@@ -2468,4 +2468,6 @@ export const es = {
   "share.status.host_away": "el dispositivo que comparte se está reconectando",
   "share.sound_here": "Activar el sonido aquí",
   "share.frame_title": "Pantalla compartida «{name}»",
+  "share.sound_here_host": "El sonido sale por este dispositivo, el que comparte.",
+  "share.error.name_taken": "Ya hay una sesión compartida con ese nombre. Elige otro.",
 };

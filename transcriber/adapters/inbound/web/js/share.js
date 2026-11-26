@@ -15,6 +15,7 @@
 import { h, fill } from "./dom.js";
 import { t } from "./i18n.js";
 import { icon } from "./ui.js";
+import { WakeLock } from "./device.js";
 import {
   ACTIONABLE, MirrorSource, MirrorView, elementScrollOf, elementScrollTo, pointerAt, scrollOf, scrollTo,
 } from "./lib/mirror.js";
@@ -29,6 +30,17 @@ const POINTER_HIDE_MS = 2500;
 const LOCAL_SCROLL_MS = 700;
 const RESYNC_MS = 2000;
 const KEEP_KEY = "ragputin.share";
+/** A field typed in on a joined device keeps its own value this long after the last key (the echo is older). */
+const HOLD_MS = 1200;
+/** Longest value a joined device sends for a field (its messages are at most 16 KB). */
+const MAX_VALUE = 4000;
+/**
+ * «El sonido sale por» (#278 stage 2): the code to play the sound on a
+ * joined device exists (share-sound.js) but was never run in a browser
+ * with real voices, so the choice is not offered: the sound comes out of
+ * the sharing device.
+ */
+const SOUND_CHOICE = false;
 const BLOCKED = ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick", "contextmenu", "keydown", "keyup",
   "keypress", "beforeinput", "wheel", "touchstart", "touchmove", "touchend", "dragstart"];
 
@@ -213,7 +225,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       h("p", { class: "hint" }, t("share.join_how")),
       rosterList(),
       h("p", { class: "hint" }, t("share.order_rule")),
-      field("share-sound", t("share.sound"), sound),
+      SOUND_CHOICE ? field("share-sound", t("share.sound"), sound) : h("p", { class: "hint" }, t("share.sound_here_host")),
       stop);
   }
 
@@ -247,6 +259,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       keep({ role: s.role, token: s.link.token, name: s.name, view: s.view });
       s.me = detail.device;
       s.opened = true;
+      s.limits = detail.limits ?? s.limits;
       if (s.role === "host") sendSnapshot(null);
       else if (!s.frame) buildStage();
       if (panel.open && s.formError) panel.close();
@@ -268,6 +281,13 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     drawIndicator();
   }
 
+  /** Keep the screen on while in a shared session (the presenter's device must not sleep). */
+  function keepAwake(state) {
+    const lock = new WakeLock();
+    lock.request().catch?.(() => {});
+    state.cleanup.push(() => { lock.release(); });
+  }
+
   function announce(text) {
     const live = h("div", { class: "toast", role: "status" }, text);
     const host = document.getElementById("toasts") ?? document.body;
@@ -286,7 +306,10 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       s.sends = Boolean(me?.sends);
       s.hostOnline = Boolean(message.devices.find((d) => d.host)?.online);
       s.soundHere = message.sound === s.me;
-      if (s.role === "host") syncHostBlock();
+      if (s.role === "host") {
+        syncHostBlock();
+        if (message.sound === s.me) s.bridge?.restore(); // the sound is back here
+      }
       else syncViewerInert();
       if (!s.soundHere) s.player?.stop();
       drawIndicator();
@@ -345,6 +368,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     const source = new MirrorSource({ doc: document, scrub });
     s = { role: "host", name, pin, link: null, source, cleanup: [], formError: error, sends: true, roster: null, state: "connecting" };
     s.link = makeLink({ type: "host", name, pin, label }, token, onMessage);
+    keepAwake(s);
     root.classList.add("share-hosting");
     const observer = new MutationObserver((records) => s?.source.record(records));
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
@@ -382,16 +406,17 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     };
     document.addEventListener("pointermove", onPointer, true);
     document.addEventListener("pointerdown", onPointer, true);
-    const removeBridge = installSoundBridge({
+    const bridge = installSoundBridge({
       win: globalThis,
       remote: () => Boolean(s?.roster && s.roster.sound !== s.me),
       send: (body) => { if (s?.roster) s.link.send({ type: "m", to: s.roster.sound, body }); },
     });
     const timer = setInterval(hostTick, TICK_MS);
+    s.bridge = bridge;
     s.cleanup.push(() => observer.disconnect(), () => rootObserver.disconnect(), () => dark?.removeEventListener?.("change", onScheme),
       () => document.removeEventListener("scroll", onScroll, true), () => document.removeEventListener("focusin", onFocus, true),
       () => document.removeEventListener("pointermove", onPointer, true), () => document.removeEventListener("pointerdown", onPointer, true),
-      removeBridge, () => clearInterval(timer), () => setHostBlock(false));
+      bridge.uninstall, () => clearInterval(timer), () => setHostBlock(false));
     fill(pill, h("button", { type: "button", class: "share-pill-button", onClick: () => openPanel() },
       icon("share"), h("span", { class: "share-status", role: "status" })));
     pill.hidden = false;
@@ -399,8 +424,26 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     s.link.start();
   }
 
+  function tooLarge(message, limit) {
+    const text = JSON.stringify(message);
+    if (text.length * 3 <= limit) return false;
+    return new TextEncoder().encode(text).length > limit;
+  }
+
+  /**
+   * Send a body of the sharing device. One larger than the relay takes is
+   * never sent (the relay would close the link): a change is replaced by
+   * the whole page, a whole page too large is skipped and tried again.
+   */
   function sendBody(body, extra = {}) {
-    return s?.link.send({ type: "m", ...extra, body });
+    if (!s) return false;
+    const message = { type: "m", ...extra, body };
+    if (tooLarge(message, (s.limits?.host_message_bytes ?? 4194304) - 1024)) {
+      if (body.k !== "s") s.needFull = true;
+      else s.retryFull = Date.now() + 5000;
+      return false;
+    }
+    return s.link.send(message);
   }
 
   function viewport() {
@@ -418,7 +461,9 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
 
   function sendSnapshot(to) {
     if (!s || s.link.state !== "open") return;
+    s.snapshotting = true;
     hostTick(); // what changed so far goes first, to everyone up to date
+    s.snapshotting = false;
     const snap = s.source.snapshot();
     const body = { k: "s", ...snap, root: rootState(), ...viewport(), sc: scrollOf(document, (n) => s.source.idOf(n)), es: elementScrolls(), f: s.source.idOf(document.activeElement) };
     s.lastViewport = `${body.vw}x${body.vh}`;
@@ -431,6 +476,12 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     const delta = s.source.delta();
     if (s.link.state !== "open") return; // a snapshot follows the reconnection
     if (delta) sendBody(delta);
+    if (!s.snapshotting && (s.needFull || (s.retryFull && Date.now() > s.retryFull)) && s.link.state === "open") {
+      s.needFull = false;
+      s.retryFull = 0;
+      sendSnapshot(null);
+      return;
+    }
     if (s.rootDirty) {
       s.rootDirty = false;
       sendBody({ k: "r", ...rootState() });
@@ -460,6 +511,16 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
   }
 
   function applyRemote(from, body) {
+    // Numbers of another page load name other nodes: such an action is dropped.
+    if (body.ep !== s.source.epoch) return;
+    try {
+      applyAction(from, body);
+    } catch {
+      // an action the page cannot take (a file field, a node gone): nothing happens
+    }
+  }
+
+  function applyAction(from, body) {
     if (body.k === "pt") {
       placeHostMarker(body);
       sendBody({ ...body, who: from });
@@ -509,6 +570,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     if (s) return;
     s = { role: "viewer", name, link: null, cleanup: [], formError: error, sends: false, roster: null, state: "connecting", view, hostOnline: true };
     s.link = makeLink({ type: "join", name, pin, label }, token, onMessage);
+    keepAwake(s);
     s.link.start(); // the application stops here only once the join is accepted (buildStage)
   }
 
@@ -536,7 +598,9 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     doc.head.append(sheet);
     doc.documentElement.className = "mirror-doc";
     Object.assign(s, { bar, frame, box, area, pointer, doc, viewButton, soundButton, view: s.view ?? "own" });
-    s.mirror = new MirrorView({ doc });
+    // A field being typed in here keeps what was typed: the sharing device's
+    // echo of an older value never overwrites it (HOLD_MS after the last key).
+    s.mirror = new MirrorView({ doc, hold: (id) => id === s?.typing?.node && performance.now() - s.typing.at < HOLD_MS });
     s.player = new SoundPlayer({
       context: () => {
         s.audio ??= new (globalThis.AudioContext ?? globalThis.webkitAudioContext)();
@@ -611,6 +675,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     try {
       switch (body.k) {
         case "s":
+          s.epoch = body.e ?? null;
           s.mirror.apply(body);
           setRoot(body);
           setViewport(body);
@@ -680,7 +745,10 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
   }
 
   function send(body) {
-    if (s?.sends) s.link.send({ type: "in", body });
+    if (!s?.sends || !s.epoch) return;
+    const message = { type: "in", body: { ...body, ep: s.epoch } };
+    if (tooLarge(message, (s.limits?.viewer_message_bytes ?? 16384) - 256)) return;
+    s.link.send(message);
   }
 
   function wireFrame(doc) {
@@ -706,7 +774,13 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       if (node === null || !s?.sends) return;
       const type = String(el.type ?? "").toLowerCase();
       if (type === "checkbox" || type === "radio") return; // the click carries it
-      send({ k: "val", node, v: String(el.value ?? "") });
+      s.typing = { node, at: performance.now() };
+      clearTimeout(s.typingTimer);
+      s.typingTimer = setTimeout(() => {
+        if (!s?.mirror || performance.now() - s.typing.at < HOLD_MS) return;
+        s.mirror.release(node);
+      }, HOLD_MS + 50);
+      send({ k: "val", node, v: String(el.value ?? "").slice(0, MAX_VALUE) });
     };
     on("input", value);
     on("change", value);

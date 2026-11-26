@@ -19,8 +19,9 @@ The server answers ``{"type": "welcome", "device", "host", "token",
 message types are in ``docs/web/SCREEN_SHARE.md``. Refusals send
 ``{"type": "error", "code", "message", "retry_after"}`` and close with
 ``4400`` (invalid input), ``4401`` (no valid access code), ``4403``
-(full or too many sessions), ``4404`` (no session with that name and
-password: the same for both), ``4408`` (no hello in time), ``4410``
+(full, too many sessions, or a name already in use when sharing),
+``4404`` (no session with that name and password: the same for both),
+``4408`` (no hello in time), ``4410``
 (the session ended, or this device was removed), ``4413`` (message
 too large) or ``4429`` (too many wrong passwords). ``4409`` closes a
 connection that a newer one of the same device replaced.
@@ -34,6 +35,7 @@ import logging
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from fastapi import FastAPI, WebSocket
+from fastapi.concurrency import run_in_threadpool
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from transcriber.adapters.inbound.live_ws import Admit, authenticate
@@ -51,6 +53,7 @@ from transcriber.domain.screen_share import (
     PIN_DIGITS,
     RESUME_SECONDS,
     VIEWER_MESSAGE_BYTES,
+    check_pin,
 )
 
 LOG = logging.getLogger(__name__)
@@ -66,6 +69,7 @@ CLOSE_CODES = {
     "unauthorized": 4401,
     "full": 4403,
     "busy": 4403,
+    "name_taken": 4403,
     "no_match": 4404,
     "timeout": 4408,
     "ended": 4410,
@@ -140,15 +144,24 @@ async def _hello(
         return None
     kind = message.get("type")
     try:
+        # The password's hashing runs in the thread pool, the relay's
+        # state is only touched here, on the event loop.
         if kind == "host":
+            check_pin(message.get("pin"))
+            secret = await run_in_threadpool(relay.secret, message.get("pin"))
             device, token = relay.host(
-                message.get("name"), message.get("pin"), message.get("label")
+                message.get("name"), message.get("pin"),
+                message.get("label"), secret,
             )
             return device, token
         if kind == "join":
+            relay.locked(message.get("name"), client)
+            checked = await run_in_threadpool(
+                relay.check, message.get("name"), message.get("pin")
+            )
             device, token = relay.join(
                 message.get("name"), message.get("pin"),
-                message.get("label"), client,
+                message.get("label"), client, checked,
             )
             return device, token
         if kind == "resume":

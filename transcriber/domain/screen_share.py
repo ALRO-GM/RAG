@@ -42,16 +42,20 @@ MAX_VIEWERS = 4
 MAX_SESSIONS = 8
 """Shared sessions open at the same time on one server."""
 
-RESUME_SECONDS = 120.0
+RESUME_SECONDS = 600.0
 """A device whose link dropped keeps its place (no password) this long.
 
-Long enough for the tunnel's hourly reset (a few seconds) and a Wi-Fi
-that comes back; when the sharing device stays away longer the shared
-session ends.
+Ten minutes: the tunnel's hourly reset (a few seconds), a Wi-Fi that
+comes back, and the presenter's device that sleeps or switches app for a
+while. When the sharing device stays away longer the shared session ends.
 """
 
 IDLE_SECONDS = 3600.0
-"""A shared session where nothing changed for this long ends."""
+"""A shared session whose sharing device sent nothing for this long ends.
+
+Its page pings every 15 s while it is connected, so a static slide never
+ends the session; an abandoned one (the device gone) ends after it.
+"""
 
 MAX_LIFETIME_SECONDS = 12 * 3600.0
 """No shared session lasts longer than this, active or not."""
