@@ -9,12 +9,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  MASK, MirrorSource, MirrorView, attributesOf, elementScrollOf, elementScrollTo, pointerAt, propsOf, setChildren, skipped,
+  MASK, MirrorSource, MirrorView, actionable, attributesOf, elementScrollOf, elementScrollTo, pointerAt, propsOf, setChildren, skipped,
 } from "../../transcriber/adapters/inbound/web/js/lib/mirror.js";
 import {
   BACKOFF_MAX_MS, FINAL_CODES, ShareLink, shareBackoffMs, cleanLabel, deviceKind, endedKey, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
 } from "../../transcriber/adapters/inbound/web/js/lib/share.js";
-import { SoundPlayer, sameOriginApi } from "../../transcriber/adapters/inbound/web/js/share-sound.js";
+import { SoundPlayer, installSoundBridge, sameOriginApi } from "../../transcriber/adapters/inbound/web/js/share-sound.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
 import { en } from "../../transcriber/adapters/inbound/web/js/i18n/en.js";
 
@@ -574,4 +574,154 @@ test("the sound device plays the clips the sharing device sends, and stops them"
   assert.deepEqual(started, [[10.5, 0]]);
   player.handle({ k: "stop", play: 5 });
   assert.deepEqual(stopped, [1]);
+});
+
+// ---- review fixes (#278) ----------------------------------------------------------------------
+
+test("typing on a joined device at 150–300 ms loses nothing: an older echo never overwrites the field", async () => {
+  // The sharing device's page: a search field that the joined device types into.
+  const host = new Doc();
+  const field = el(host, "input", { type: "search" });
+  host.body.appendChild(field);
+  host.take();
+  const source = new MirrorSource({ doc: host });
+  const viewer = new Doc();
+  let typing = null;
+  const HOLD = 1200;
+  let clock = 0;
+  const view = new MirrorView({ doc: viewer, hold: (id) => id === typing?.node && clock - typing.at < HOLD });
+  view.apply(JSON.parse(JSON.stringify(source.snapshot())));
+  const id = source.idOf(field);
+  const mine = view.nodeById(id);
+  // A one-way delay of 75–150 ms, in order (a socket keeps order).
+  const wire = [];
+  const later = (at, fn) => wire.push({ at, fn });
+  const run = (until) => {
+    wire.sort((a, b) => a.at - b.at);
+    while (wire.length && wire[0].at <= until) {
+      const next = wire.shift();
+      clock = Math.max(clock, next.at);
+      next.fn();
+    }
+    clock = until;
+  };
+  let last = 0;
+  for (const [i, ch] of [..."abcdef"].entries()) {
+    run(i * 60); // a key every 60 ms
+    mine.value += ch; // the browser types it here at once
+    typing = { node: id, at: clock };
+    const value = mine.value;
+    const reach = Math.max(last, clock + 75 + (i % 2) * 75);
+    last = reach;
+    later(reach, () => {
+      source.applyInput({ k: "val", node: id, v: value }, win);
+      source.record(host.take());
+      const delta = source.delta();
+      const echo = JSON.parse(JSON.stringify(delta));
+      later(clock + 75 + ((i + 1) % 2) * 75, () => view.apply(echo));
+    });
+  }
+  run(5 * 60 + 400);
+  assert.equal(mine.value, "abcdef", "no echo while typing went backwards");
+  assert.equal(field.value, "abcdef", "the sharing device has every key");
+  run(5 * 60 + HOLD + 100);
+  view.release(id);
+  assert.equal(mine.value, "abcdef");
+});
+
+test("a held echo is put back once typing stopped, if the sharing device changed it", () => {
+  const d = devices();
+  const field = el(d.host, "input", { type: "search" });
+  d.page.appendChild(field);
+  sync(d);
+  const id = d.source.idOf(field);
+  let holding = true;
+  d.view.hold = () => holding;
+  field.value = "otra cosa"; // the page itself changed it (a reset)
+  sync(d);
+  assert.equal(d.view.nodeById(id).value, "", "held while typing");
+  holding = false;
+  d.view.release(id);
+  assert.equal(d.view.nodeById(id).value, "otra cosa");
+});
+
+test("snapshots carry an epoch: a page load numbers nodes anew", () => {
+  const first = new MirrorSource({ doc: new Doc() });
+  const second = new MirrorSource({ doc: new Doc() });
+  assert.ok(first.snapshot().e && first.epoch !== second.epoch);
+});
+
+test("hidden, disabled, panel and file controls cannot be acted on from a joined device", () => {
+  const d = devices();
+  const hidden = el(d.host, "div", { hidden: "" }, el(d.host, "button", {}, "Borrar"));
+  const disabled = el(d.host, "input", { type: "search" });
+  disabled.disabled = true;
+  const file = el(d.host, "input", { type: "file" });
+  const panel = el(d.host, "dialog", { "data-share-skip": "" });
+  panel.open = true;
+  panel.setAttribute("open", "");
+  let closed = 0;
+  panel.close = () => { closed += 1; };
+  const clicks = [];
+  hidden.childNodes[0].addEventListener("click", () => clicks.push(1));
+  for (const node of [hidden, disabled, file]) d.page.appendChild(node);
+  d.host.body.appendChild(panel);
+  sync(d);
+  const button = hidden.childNodes[0];
+  assert.equal(actionable(button), false);
+  assert.equal(d.source.applyInput({ k: "click", node: d.source.idOf(button) }, win), false);
+  assert.equal(d.source.applyInput({ k: "val", node: d.source.idOf(disabled), v: "x" }, win), false);
+  assert.equal(d.source.applyInput({ k: "val", node: d.source.idOf(file), v: "C:/x" }, win), false);
+  assert.equal(d.source.applyInput({ k: "click" }, win), false, "no node: nothing");
+  d.source.applyInput({ k: "key", key: "Escape" }, win);
+  assert.deepEqual([clicks, closed, disabled.value], [[], 0, ""], "the share panel stays open");
+});
+
+test("an <audio> muted because its sound went elsewhere is unmuted when the sound comes back", () => {
+  class Media {
+    constructor() { this.dataset = {}; this.muted = false; this.src = "/api/sessions/s1/audio"; this.currentTime = 0; }
+    addEventListener() {}
+  }
+  Media.prototype.play = function play() { return Promise.resolve(); };
+  const original = Media.prototype.play;
+  let remote = true;
+  const sent = [];
+  const bridge = installSoundBridge({
+    win: { HTMLMediaElement: Media, location: { href: "https://x.test/", origin: "https://x.test" } },
+    remote: () => remote, send: (body) => sent.push(body.k),
+  });
+  const audio = new Media();
+  audio.play();
+  assert.equal(audio.muted, true);
+  remote = false;
+  audio.play();
+  assert.equal(audio.muted, false, "back on this device: heard again");
+  remote = true;
+  audio.play();
+  bridge.uninstall();
+  assert.equal(audio.muted, false, "sharing ended: never left muted");
+  assert.equal(Media.prototype.play, original);
+  assert.deepEqual(sent, ["media", "media"]);
+});
+
+test("typing in two fields within the hold keeps both: each field has its own hold", () => {
+  const d = devices();
+  const first = el(d.host, "input", { type: "search" });
+  const second = el(d.host, "input", { type: "text" });
+  d.page.appendChild(first);
+  d.page.appendChild(second);
+  sync(d);
+  const typedAt = new Map();
+  let now = 0;
+  d.view.hold = (id) => now - (typedAt.get(id) ?? -1e9) < 1200;
+  const [a, b] = [first, second].map((f) => d.view.nodeById(d.source.idOf(f)));
+  a.value = "Ana";
+  typedAt.set(d.source.idOf(first), now);
+  now = 400;
+  b.value = "Bar";
+  typedAt.set(d.source.idOf(second), now);
+  first.value = "An"; // an older echo of the first field
+  second.value = "Ba";
+  sync(d);
+  assert.deepEqual([a.value, b.value], ["Ana", "Bar"]);
 });

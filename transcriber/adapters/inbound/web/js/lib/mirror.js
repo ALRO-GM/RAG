@@ -61,6 +61,18 @@ function mirroredChildren(node) {
   return [...(node.childNodes ?? [])].filter((child) => !skipped(child));
 }
 
+/**
+ * Whether a joined device may act on `el`: not hidden or inert, enabled,
+ * and not part of the «Compartir pantalla» panel. Whether it is laid out
+ * here is not asked: a joined device in its own layout acts on controls
+ * that only its layout shows (the phone menu, the bottom bar), which the
+ * sharing device has but does not display.
+ */
+export function actionable(el) {
+  if (!el || el.nodeType !== ELEMENT) return false;
+  return !(el.disabled || el.closest?.("[hidden],[inert],[data-share-skip],fieldset[disabled]"));
+}
+
 /** The attributes of `el` that viewers get, cleaned. */
 export function attributesOf(el, scrub = (s) => s) {
   const tag = tagOf(el);
@@ -110,6 +122,9 @@ export class MirrorSource {
     this.lastProps = new Map(); // id -> JSON of the props last sent
     this.lastAttrs = new Map(); // id -> the attributes last sent
     this.visited = null;
+    // Numbers restart with every page load: actions carry the epoch they were
+    // numbered in, and an action of another epoch is dropped (applyRemote).
+    this.epoch = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   }
 
   idOf(node) {
@@ -198,7 +213,7 @@ export class MirrorSource {
       }
     }
     this.visited = null;
-    return { tree, p: this.props(true), n: this.count };
+    return { tree, p: this.props(true), n: this.count, e: this.epoch };
   }
 
   /** Take MutationObserver records. */
@@ -270,13 +285,16 @@ export class MirrorSource {
     if (body?.node && (!el || !el.isConnected)) return false;
     switch (body?.k) {
       case "click": {
+        if (!el || !actionable(el)) return false;
         el.focus?.({ preventScroll: true });
         if (typeof el.click === "function") el.click();
         else el.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
         return true;
       }
       case "val": {
-        if (!FORM_TAGS.has(tagOf(el))) return false;
+        if (!el || !FORM_TAGS.has(tagOf(el)) || !actionable(el) || el.readOnly) return false;
+        const type = String(el.type ?? "").toLowerCase();
+        if (type === "file" || type === "password") return false;
         if (body.c !== undefined) el.checked = Boolean(body.c);
         else el.value = String(body.v ?? "");
         el.dispatchEvent(new win.Event("input", { bubbles: true }));
@@ -284,9 +302,11 @@ export class MirrorSource {
         return true;
       }
       case "focus":
-        el?.focus?.({ preventScroll: true });
-        return Boolean(el);
+        if (!el || !actionable(el)) return false;
+        el.focus?.({ preventScroll: true });
+        return true;
       case "key":
+        if (el && !actionable(el)) return false;
         return this._key(body, el, win);
       default:
         return false;
@@ -303,7 +323,8 @@ export class MirrorSource {
     target.dispatchEvent(new win.KeyboardEvent("keyup", init));
     if (!go) return true;
     if (init.key === "Escape") {
-      const open = [...(this.doc.querySelectorAll?.("dialog[open]") ?? [])].pop();
+      // Never the «Compartir pantalla» panel: only this device closes it.
+      const open = [...(this.doc.querySelectorAll?.("dialog[open]") ?? [])].filter((d) => !d.closest?.("[data-share-skip]")).pop();
       if (open && open.dispatchEvent(new win.Event("cancel", { cancelable: true }))) open.close?.();
     } else if (init.key === "Enter" && tagOf(target) === "input" && target.form) {
       // With a submit button the joined device already sent its click (implicit submission).
@@ -315,8 +336,16 @@ export class MirrorSource {
 
 /** A joined device's side: builds and updates the mirror in `doc` (an iframe's document). */
 export class MirrorView {
-  constructor({ doc }) {
+  /**
+   * `hold(id)` says whether the value of node `id` is being typed here
+   * now: an echo of the sharing device then must not overwrite it (it is
+   * older than what was typed since); the held props are kept and put
+   * back by release(id) once typing stopped, if they still differ.
+   */
+  constructor({ doc, hold = () => false }) {
     this.doc = doc;
+    this.hold = hold;
+    this.held = new Map();
     this.nodes = new Map();
     this.ids = new WeakMap();
   }
@@ -399,8 +428,24 @@ export class MirrorView {
     for (const node of gone) if (!node.isConnected) this._forget(node);
     for (const [id, props] of Object.entries(body.p ?? {})) {
       const el = this.nodes.get(Number(id));
-      if (el) setProps(el, props);
+      if (!el) continue;
+      if ("v" in props && this.hold(Number(id))) {
+        this.held.set(Number(id), props);
+        const { v: _typedHere, ...rest } = props;
+        setProps(el, rest);
+      } else {
+        this.held.delete(Number(id));
+        setProps(el, props);
+      }
     }
+  }
+
+  /** Put back the last value the sharing device sent for `id`, held while typing. */
+  release(id) {
+    const props = this.held.get(id);
+    this.held.delete(id);
+    const el = this.nodes.get(id);
+    if (props && el) setProps(el, props);
   }
 }
 

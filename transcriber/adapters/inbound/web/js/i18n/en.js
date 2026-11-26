@@ -2468,4 +2468,6 @@ export const en = {
   "share.status.host_away": "the sharing device is reconnecting",
   "share.sound_here": "Turn sound on here",
   "share.frame_title": "Shared screen «{name}»",
+  "share.sound_here_host": "Sound plays on this device, the sharing one.",
+  "share.error.name_taken": "A shared session with that name is already open. Choose another.",
 };

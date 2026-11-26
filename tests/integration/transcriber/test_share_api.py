@@ -159,8 +159,19 @@ def test_unknown_name_and_wrong_password_close_alike_then_lock(
             assert closed_with(ws) == 4429
 
 
+def test_a_name_in_use_is_refused_when_sharing(client: TestClient) -> None:
+    with client.websocket_connect("/api/share") as host:
+        hello(host, type="host", name="Sala", pin="1357", label="Tablet")
+        with client.websocket_connect("/api/share") as other:
+            error = hello(other, type="host", name="sala", pin="2468",
+                          label="Otro")
+            assert error["code"] == "name_taken"
+            assert closed_with(other) == 4403
+
+
 @pytest.mark.parametrize("message,code", [
     ({"type": "join", "name": "Sala", "pin": "12"}, 4400),
+    ({"type": "host", "name": "Sala", "pin": "12"}, 4400),
     ({"type": "dance"}, 4400),
     ({"type": "resume", "token": "nope"}, 4410),
 ])

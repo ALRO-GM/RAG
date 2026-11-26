@@ -33,7 +33,8 @@ function fromBase64(text) {
 /**
  * Catch the sharing device's sounds. `remote()` tells whether they go to
  * another device now; `send(body)` sends a body to that device. Returns
- * the uninstall function.
+ * { restore, uninstall }: restore() unmutes the <audio> elements muted
+ * here (the sound came back), uninstall() restores and removes the catch.
  */
 export function installSoundBridge({ win = globalThis, remote, send }) {
   const Base = win.BaseAudioContext ?? win.AudioContext;
@@ -43,7 +44,18 @@ export function installSoundBridge({ win = globalThis, remote, send }) {
   const clips = new WeakMap(); // AudioBuffer -> { id, bytes }
   const sentClips = new Set();
   const playing = new WeakMap(); // source -> play id
+  const muted = new Set(); // <audio> elements muted here because their sound went elsewhere
+  const followed = new WeakSet(); // <audio> elements whose pause/seek/end are told
   let next = 1;
+
+  /** Unmute what was muted here (the sound is back on this device, or sharing ended). */
+  function restore() {
+    for (const el of muted) {
+      el.muted = el.dataset.shareMuted === "was";
+      delete el.dataset.shareMuted;
+    }
+    muted.clear();
+  }
 
   if (Base?.prototype?.decodeAudioData) {
     const decode = Base.prototype.decodeAudioData;
@@ -101,19 +113,34 @@ export function installSoundBridge({ win = globalThis, remote, send }) {
         if (!this.dataset.shareMuted) {
           this.dataset.shareMuted = this.muted ? "was" : "1";
           this.muted = true;
+          muted.add(this);
+        }
+        if (!followed.has(this)) {
+          followed.add(this);
           const tell = (op) => () => send({ k: "media", op, src, t: this.currentTime });
-          this.addEventListener("pause", tell("pause"));
-          this.addEventListener("seeked", tell("seek"));
-          this.addEventListener("ended", tell("pause"));
+          const later = (op) => { const fn = tell(op); return () => { if (remote() && this.dataset.shareMuted) fn(); }; };
+          this.addEventListener("pause", later("pause"));
+          this.addEventListener("seeked", later("seek"));
+          this.addEventListener("ended", later("pause"));
         }
         send({ k: "media", op: "play", src, t: this.currentTime });
+      } else if (this.dataset.shareMuted) {
+        this.muted = this.dataset.shareMuted === "was";
+        delete this.dataset.shareMuted;
+        muted.delete(this);
       }
       return play.apply(this, args);
     };
     undo.push(() => { Media.prototype.play = play; });
   }
 
-  return () => { for (const fn of undo.reverse()) fn(); };
+  return {
+    restore,
+    uninstall: () => {
+      restore();
+      for (const fn of undo.reverse()) fn();
+    },
+  };
 }
 
 /** The path of `url` when it is an /api/ address of this origin, else null. */

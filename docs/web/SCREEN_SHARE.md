@@ -105,6 +105,41 @@ on the joined device itself*. If it may send, it sends
 | `{k: "sc", same, w | e}` | the joined device scrolls | the sharing device scrolls (by offset in the same layout, by anchor or fraction in another) |
 | `{k: "pt", node, fx, fy, down}` | pointer moves (at most 20 per second) and touches | drawn on the sharing device and passed to the other devices |
 
+**Typing on a joined device.** The joined device's field shows each key
+at once; the sharing device's echo of the value comes back 150–300 ms
+later and is older than what has been typed since. So the value of the
+field being typed in is *held* for 1.2 s after the last key (the echo's
+other properties still apply) and put back afterwards if the sharing
+device changed it (`MirrorView` `hold` / `release`). Without it, typing
+«abcdef» at that latency ended as «abf» (`tests/web/share.test.mjs`).
+
+**Numbers belong to one page load.** The snapshot carries an epoch
+(`e`); every action carries it back (`ep`), and the sharing device drops
+an action of another epoch (its page was reloaded and numbered anew).
+An action on a hidden, inert or disabled control (by attribute: a control
+only the joined device's own layout shows, such as the phone menu, still
+works), on the
+«Compartir pantalla» panel, on a file field or a password field does
+nothing; a forwarded Escape never closes the panel.
+
+**Controls that depend on the layout.** Every action carries the layout
+of the joined device's view (`wide`: the app's 64 rem breakpoint, in its
+own view or the sharing device's), and the sharing device applies it as
+that layout (`actingAs` in `js/shell.js`). So the menu button pressed on a
+tablet joined in its own layout opens the drawer (`nav-open`, which the
+tablet's mirror shows at tablet width) and never folds the desktop
+sidebar that shares (`nav-collapsed`); the scrim, a link and Escape close
+it. The other viewport checks in the pages, all harmless: «Ofertas» opens
+its filters at first on a screen from 48 rem (`views/offers.js`
+`wideScreen`, the sharing device's width decides, they can be folded from
+any device), the bottom bar and the phone menu are shown by CSS only, and
+dialogs are sized by CSS in each device's own frame.
+
+Each field being typed in has its own hold, so typing in two fields in a
+row loses nothing. Each client may try 6 shares at once and then one
+every 10 s (`too_many_attempts`), so the unique names cannot be probed
+quickly.
+
 **Who sends.** Each device in the panel has a switch «Envía acciones»
 (`role="switch"`). Default: the sharing device sends, joined devices
 only watch. Only the sharing device changes it, for any device including
@@ -147,9 +182,14 @@ tamaño»), also in the panel; it is remembered for the tab.
 The microphone and every audio capture stay on the device that opened
 them (only the sharing device runs the application; a joined device's
 own application is paused while it shows the mirror, and a device that
-is recording cannot join). The sound plays on **one** device, chosen by
-the sharing device in the panel («El sonido sale por», default the
-sharing device). When it is a joined device (`js/share-sound.js`):
+is recording cannot join). **The sound comes out of the sharing
+device.** For sound on the projector, share from the computer on the
+HDMI and join from the tablet with «Envía acciones» on.
+
+Choosing another device for the sound («El sonido sale por») is written
+but **not offered** (`SOUND_CHOICE = false` in `js/share.js`): that path
+was never run in a browser with real voices. What it does when turned on
+(`js/share-sound.js`):
 
 - Web Audio (the scripted examples' voices, the voice bot): the bytes
   given to `decodeAudioData` are kept; when such a buffer starts, the
@@ -211,13 +251,17 @@ passwords. The page stops retrying on all of them.
 |---|---|
 | Who can share or join | only a device inside the application: the socket needs the access code first, throttled like every route |
 | Password | 4 digits; kept as PBKDF2-SHA256, 50 000 rounds (about 8 ms here), random 16-byte salt per session; never logged, never sent back |
-| Names | compared trimmed, one space, without case; not enumerable: «no such name» and «wrong password» are the same answer (`no_match`, 4404) and cost the same time (a hash is computed for unknown names too); two sessions may have the same name (a join matches name *and* password) |
+| Names | compared trimmed, one space, without case; not enumerable: «no such name» and «wrong password» are the same answer (`no_match`, 4404) and cost the same time (a hash is computed for unknown names too); names are unique among open sessions (sharing with a name in use is refused: «Ya hay una sesión compartida con ese nombre. Elige otro.», 4403) |
 | Wrong passwords per client | 5 within 15 min lock the client 1 min, doubled at every further lock up to 1 h |
-| Wrong passwords per name | the same, counted for names that do not exist too |
+| Wrong passwords per name | the same, counted for names that do not exist too; a right password clears only that client's own count, never the name's (so one cannot reset the lock of a name by joining a session of one's own) |
+| Hashing | off the event loop (thread pool); the relay's state is only touched on the loop |
 | Wrong passwords, all clients | 30 within 1 h lock every join for 15 min |
 | Wrong passwords per session | 20 end the session (the sharing device is told to share again with a new password): whoever tries has at most a 20 in 10 000 (0.2 %) chance per session |
-| Expiry | when the sharing device leaves; when it has been away 2 min; after 60 min without any change or action; after 12 h in any case |
-| A device away | keeps its place 2 min (`resume` with its token, no password); then it must join again |
+| Expiry | when the sharing device leaves; when it has been away 10 min; after 60 min without any message of the sharing device (its page pings every 15 s, so a static slide never ends the session while the device is connected); after 12 h in any case |
+| A device away | keeps its place 10 min (`resume` with its token, no password): the tunnel's reset, a Wi-Fi drop, a device that slept or switched app; then it must join again |
+| Screen lock | every device in a shared session holds a screen wake lock (`js/device.js` `WakeLock`, re-acquired when the page is shown again); the guide also says to turn auto-lock off |
+| Resync | at most one pending per device (a `resync` while one is on its way is ignored); a message of the sharing device dropped for rate marks every device behind, so each gets the whole page again |
+| Oversized messages | never sent: a change too large for the relay is replaced by the whole page; a page too large is retried 5 s later; a joined device's value is cut to 4 000 characters |
 | Devices | at most 4 joined per session; at most 8 sessions on the server |
 | Message size | 4 MB from the sharing device, 16 KB from a joined device (larger: closed, 4413) |
 | Message rate | sharing device 60/s average, bursts of 120; joined device 40/s, bursts of 80; the excess is dropped |
@@ -231,7 +275,7 @@ The link is the reconnecting socket of #263, with a backoff capped at 1 s
 (0.5, 1, 1, 1… s ±20 %: a presentation cannot wait 8 s, and a retry is
 one small message), a ping every 15 s and a link silent for 40 s treated
 as dead (a tunnel can drop without closing). A device that comes back
-within 2 min sends its token (`resume`), never the password; the sharing
+within 10 min sends its token (`resume`), never the password; the sharing
 device then sends its whole page again, a joined device asks for it. In
 the meantime each device keeps working on its own: the sharing device
 runs the application as always (its changes are not queued: the snapshot

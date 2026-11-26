@@ -1,74 +1,112 @@
 # Presentar con dos dispositivos
 
-Una tableta en la mano y un ordenador conectado al proyector por HDMI.
-La tableta maneja la aplicación y el proyector muestra lo mismo. No es
-vídeo: la aplicación funciona en la tableta y el proyector recibe la
-página tal cual. Los dos van por internet, a través de rag.peer4u.app. No
-hace falta que estén en la misma red: el wifi del lugar, datos móviles o
-una mezcla sirven igual. Cómo funciona por dentro: [`SCREEN_SHARE.md`](SCREEN_SHARE.md).
+Un ordenador conectado al proyector por HDMI y una tableta en la mano.
+Los dos muestran la misma aplicación. No es vídeo: la aplicación funciona
+en **un** dispositivo, el que comparte, y el otro recibe la página tal
+cual. Los dos van por internet a través de rag.peer4u.app. Pueden estar en
+redes distintas: el wifi del lugar, datos móviles o una mezcla. Cómo
+funciona por dentro: [`SCREEN_SHARE.md`](SCREEN_SHARE.md).
 
-## Antes de la presentación (5 minutos)
+**Regla de oro:** el sonido y el micrófono son siempre los del
+dispositivo que comparte.
 
-1. En los **dos** dispositivos, abre la aplicación y entra (enlace con
-   `#k=` o contraseña).
-2. En la **tableta**, abre «En directo», empieza la entrevista de ejemplo
-   y escucha una voz. Así el navegador de la tableta ya tiene permiso para
-   el sonido. Si vas a usar el micrófono, acéptalo aquí una vez.
-3. Conecta el altavoz o el sonido de la sala a la **tableta**. Las voces
-   suenan en el dispositivo que comparte.
-4. En el proyector, pon el navegador a pantalla completa (F11).
+## Elige una de las dos formas
 
-## Empezar
+| | A. El ordenador comparte, la tableta maneja | B. La tableta comparte, el ordenador mira |
+|---|---|---|
+| Comparte | el ordenador del proyector | la tableta |
+| Se une | la tableta, con «Envía acciones» activado | el ordenador, solo mira |
+| Sonido y micrófono | los del ordenador (los altavoces de la sala) | los de la tableta |
+| Cuándo | **recomendada** si el público tiene que oír las voces de los ejemplos | si el sonido no importa o la tableta va al altavoz |
 
-1. **Tableta**: pulsa el botón de las dos pantallas, arriba a la
-   derecha («Compartir pantalla»), y luego «Compartir». Deja el nombre
-   («Presentación») o pon otro. Apunta la contraseña de 4 cifras que
-   aparece. Pulsa «Empezar a compartir». Abajo a la izquierda verás
-   «Compartiendo «Presentación» · dispositivos unidos: 0».
-2. **Ordenador del proyector**: pulsa «Compartir pantalla», luego
-   «Unirse». Escribe el mismo nombre y las 4 cifras y pulsa «Unirse». La
-   pantalla pasa a mostrar la tableta. Arriba pone «Viendo «Presentación»
-   · solo ves».
-3. En la barra de arriba del proyector eliges cómo se ve:
-   - «Ver a mi tamaño» (vista de este dispositivo): la aplicación con el
-     diseño de escritorio, a todo el ancho del proyector. Recomendado.
-   - «Ver como el que comparte»: la pantalla de la tableta tal cual,
-     escalada para que quepa.
+### A. El ordenador comparte y la tableta maneja (recomendada)
 
-Por defecto solo la tableta envía acciones. El proyector solo mira y no
-se puede cambiar nada desde él: así nadie toca algo sin querer. Las
-pulsaciones del presentador se ven en el proyector como un círculo
-discreto.
+1. **Ordenador**: pulsa el botón de las dos pantallas, arriba a la
+   derecha («Compartir pantalla»), y luego «Compartir». Pon un nombre
+   (por ejemplo «Presentación») y apunta la contraseña de 4 cifras. Pulsa
+   «Empezar a compartir».
+2. **Tableta**: «Compartir pantalla», «Unirse», el mismo nombre y las 4
+   cifras, «Unirse».
+3. **Ordenador**: toca el indicador de abajo a la izquierda («Compartiendo
+   …») y activa «Envía acciones» en la fila de la tableta. Si quieres que
+   nadie toque el ordenador sin querer, desactiva también «Envía acciones»
+   en la fila del ordenador. Cierra el panel.
+4. **Tableta**: en la barra de arriba elige cómo la ves. «Ver a mi tamaño»
+   muestra el diseño de tableta. «Ver como el que comparte» muestra el
+   escritorio del proyector, en pequeño. Desde ahora todo se maneja desde
+   la tableta: tocar, desplazarse, escribir con el teclado de la pantalla,
+   elegir en los desplegables, ordenar y filtrar la tabla de una oferta y
+   empezar los ejemplos. Lo que tocas se marca en el proyector con un
+   círculo discreto.
 
-## Durante la presentación
+### B. La tableta comparte y el ordenador mira
 
-- Todo lo que hagas en la tableta aparece en el proyector: páginas,
-  menús, tablas, formularios, la entrevista y la llamada de ejemplo.
-- Si quieres manejar la aplicación desde el ordenador, toca el indicador
-  de la tableta y activa «Envía acciones» en la fila del ordenador. Si los
-  dos envían acciones, se aplican en el orden en que llegan.
-- Para terminar: en la tableta, toca el indicador y luego «Dejar de
-  compartir». El proyector vuelve a su propia aplicación.
+1. **Tableta**: «Compartir pantalla», «Compartir», nombre y contraseña,
+   «Empezar a compartir».
+2. **Ordenador**: «Compartir pantalla», «Unirse», el mismo nombre y las 4
+   cifras. Arriba elige «Ver a mi tamaño» para el diseño de escritorio a
+   todo el ancho del proyector, o «Ver como el que comparte» para ver la
+   pantalla de la tableta tal cual.
+3. El ordenador solo mira: desde él no se puede cambiar nada.
+
+## Antes de empezar (lista de comprobación)
+
+- [ ] Los **dos** dispositivos han entrado en la aplicación antes
+      (enlace con `#k=` o contraseña).
+- [ ] **Bloqueo automático de pantalla desactivado** en la tableta y en el
+      ordenador (Ajustes → Pantalla). La aplicación pide al navegador que
+      no apague la pantalla, pero no todos los navegadores lo cumplen.
+- [ ] En el dispositivo que comparte, abre «En directo», empieza la
+      entrevista de ejemplo y comprueba que se oyen las voces. Así el
+      navegador ya tiene permiso para el sonido. Si vas a usar el
+      micrófono, acéptalo aquí una vez.
+- [ ] Haz la prueba completa: comparte, únete, toca algo desde la tableta
+      y míralo en el proyector.
+- [ ] Prueba un corte: apaga el wifi de la tableta 5 segundos y vuelve a
+      encenderlo. Las dos pantallas deben recuperarse solas.
+- [ ] Para el momento clave, evita el minuto **:20** de cada hora. El
+      enlace público del servidor se corta unos segundos a esa hora. Se
+      recupera solo, pero mejor que no coincida.
+- [ ] En el proyector, pon el navegador a pantalla completa (F11).
 
 ## Si se va la conexión
 
 - No hagas nada. Cada dispositivo indica «sin conexión, se reconecta
-  solo» y se vuelve a conectar sin pedir la contraseña. La tableta sigue
-  funcionando normalmente. Al volver la conexión, el proyector muestra el
-  estado actual. Un corte de 3–5 s se recupera en 4–6 s (medido).
-- El túnel del servidor se corta unos segundos una vez por hora. Es lo
-  mismo: se recupera solo.
-- Si el corte dura más de 2 minutos, la sesión compartida se cierra.
-  Vuelve a compartir con una contraseña nueva y únete otra vez.
-- Si se recarga la página del proyector, vuelve sola a la sesión, sin
-  contraseña, mientras siga abierta.
-- Sin wifi en el lugar: comparte los datos del móvil con los dos
-  dispositivos. Consumo medido: unos 55 KB por minuto en una página
-  normal y unos 170 KB por minuto durante la entrevista de ejemplo.
+  solo» y vuelve sin pedir la contraseña. El que comparte sigue
+  funcionando normalmente. Al volver la conexión, el otro muestra el
+  estado actual. En una simulación del enlace público, un corte de 3–5 s
+  se recuperó en 4–6 s. No está medido en rag.peer4u.app real.
+- Si el dispositivo que comparte se bloquea o cambia de aplicación, el
+  otro indica «el dispositivo que comparte se está reconectando». Tienes
+  **10 minutos** para volver sin perder la sesión.
+- Si se recarga la página del dispositivo unido, vuelve sola a la sesión,
+  sin contraseña.
+- Si pasan más de 10 minutos, la sesión se cierra. Vuelve a compartir y
+  únete otra vez.
+- Sin wifi en el lugar: comparte los datos de un móvil con los dos
+  dispositivos. Consumo medido en la simulación: unos 55 KB por minuto en
+  una página normal y unos 170 KB por minuto durante la entrevista de
+  ejemplo.
 
-## Lo que no se comparte
+## Lo que no se ve en el otro dispositivo
 
-El micrófono y el sonido se quedan en la tableta. El código de acceso,
-las contraseñas y lo que guarda cada navegador no se envían. El panel
-«Compartir pantalla» tampoco aparece en el proyector. Nada de lo que
+La lista abierta de un desplegable solo se ve en el dispositivo donde se
+toca; el otro ve el resultado al elegir. Las ventanitas propias del
+navegador (avisos de «¿Seguro que…?», el permiso del micrófono) solo
+aparecen en el dispositivo que comparte. Si la tableta maneja (forma A), esos
+avisos salen en el **ordenador** y hay que contestarlos allí. Los abren
+estas acciones; mejor evitarlas durante la presentación:
+
+- «Cerrar sesión» mientras se graba, y salir de una página que está
+  grabando.
+- En «Sesiones»: volver a procesar o borrar una sesión.
+- En una transcripción: unir a dos personas.
+- En «Registrar voz»: retirar el permiso de clonar la voz u olvidar una
+  voz.
+- En un análisis: cancelar o volver a empezar.
+- Empezar una sesión con micrófono por primera vez (el permiso del
+  navegador).
+
+Tampoco se comparten nunca el código de acceso, las contraseñas, lo que
+guarda cada navegador ni el panel «Compartir pantalla». Nada de lo que
 pasa por el servidor se guarda ni se anota.

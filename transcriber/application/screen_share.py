@@ -43,6 +43,8 @@ from typing import (
 
 from transcriber.domain.errors import TranscriberError
 from transcriber.domain.screen_share import (
+    HOST_ATTEMPT_BURST,
+    HOST_ATTEMPT_RATE,
     HOST_BURST,
     HOST_MESSAGE_BYTES,
     HOST_RATE,
@@ -97,7 +99,8 @@ class ShareRefused(TranscriberError):
     Codes: ``invalid_input``, ``no_match`` (no such name or a wrong
     password: the same answer on purpose), ``too_many_attempts`` (with
     ``retry_after`` seconds), ``full``, ``busy`` (too many sessions on
-    the server), ``ended`` (nothing to resume).
+    the server), ``name_taken`` (a session open with that name),
+    ``ended`` (nothing to resume).
     """
 
     def __init__(
@@ -255,25 +258,44 @@ class ShareRelay:
         self._iterations = iterations
         self._shares: Dict[str, Share] = {}
         self._tokens: Dict[bytes, Device] = {}
+        self._host_attempts: Dict[str, TokenBucket] = {}
         self.dropped_inputs = 0
 
     # ---- opening ----------------------------------------------------
 
-    def host(
-        self, name: object, pin: object, label: object
-    ) -> Tuple[Device, str]:
-        """Open a shared session; return the host device and its token."""
-        key = normalise_name(name)
+    def secret(self, pin: object) -> Tuple[bytes, bytes]:
+        """A new salt and the password's hash (slow: run it off the loop)."""
         code = check_pin(pin)
+        salt = self._new_salt()
+        return salt, hash_pin(code, salt, self._iterations)
+
+    def host(
+        self, name: object, pin: object, label: object,
+        secret: Optional[Tuple[bytes, bytes]] = None, client: str = "",
+    ) -> Tuple[Device, str]:
+        """Open a shared session; return the host device and its token.
+
+        Names are unique among open sessions (``name_taken``): a second
+        session with the same name could not be told apart by a join.
+        ``secret`` is :meth:`secret`'s answer when it was computed off
+        the event loop. Each ``client`` may try
+        :data:`~transcriber.domain.screen_share.HOST_ATTEMPT_BURST` shares
+        at once and 6 a minute (``too_many_attempts``), so names in use
+        cannot be probed quickly.
+        """
+        key = normalise_name(name)
+        check_pin(pin)
         self.sweep()
+        self._count_host_attempt(client)
+        if any(s.key == key for s in self._shares.values()):
+            raise ShareRefused("name_taken", "a shared session has that name")
         if len(self._shares) >= MAX_SESSIONS:
             raise ShareRefused("busy", "too many shared sessions open")
         now = self._now()
-        salt = self._new_salt()
+        salt, digest = secret if secret is not None else self.secret(pin)
         share = Share(
             id=self._new_id(), key=key, name=" ".join(str(name).split()),
-            salt=salt, digest=hash_pin(code, salt, self._iterations),
-            created=now, active=now,
+            salt=salt, digest=digest, created=now, active=now,
         )
         device, token = self._add(share, label, host=True)
         share.host_id = share.sound = device.id
@@ -281,32 +303,69 @@ class ShareRelay:
         LOG.info("Shared session opened (%d open)", len(self._shares))
         return device, token
 
-    def join(
-        self, name: object, pin: object, label: object, client: str
-    ) -> Tuple[Device, str]:
-        """Join the session called ``name`` with ``pin``.
+    def _count_host_attempt(self, client: str) -> None:
+        """Spend one of ``client``'s share attempts or refuse."""
+        if len(self._host_attempts) > 10000:
+            self._host_attempts.clear()
+        bucket = self._host_attempts.setdefault(
+            client, TokenBucket(HOST_ATTEMPT_RATE, HOST_ATTEMPT_BURST)
+        )
+        if not bucket.take(self._now()):
+            raise ShareRefused(
+                "too_many_attempts", "too many shares tried",
+                1.0 / HOST_ATTEMPT_RATE,
+            )
 
-        Raises :class:`ShareRefused`: ``no_match`` alike for an unknown
-        name and a wrong password, ``too_many_attempts`` while the
-        client or the name is locked.
-        """
+    def locked(self, name: object, client: str) -> None:
+        """Raise ``too_many_attempts`` while the client or the name waits."""
         key = normalise_name(name)
-        code = check_pin(pin)
-        self.sweep()
         for limiter, which in ((self._clients, client), (self._names, key)):
             wait, _ = limiter.retry_after(which)
             if wait > 0:
                 raise ShareRefused(
                     "too_many_attempts", "too many wrong passwords", wait
                 )
+
+    def check(self, name: object, pin: object) -> Dict[str, bool]:
+        """Which open sessions called ``name`` ``pin`` opens (slow: hashes).
+
+        Only reads; meant to run off the event loop before :meth:`join`.
+        For a name no session has, a hash is computed all the same.
+        """
+        key = normalise_name(name)
+        code = check_pin(pin)
+        shares = [s for s in list(self._shares.values()) if s.key == key]
+        if not shares:
+            hash_pin(code, b"\0" * 16, self._iterations)
+        return {
+            s.id: pin_matches(code, s.salt, s.digest, self._iterations)
+            for s in shares
+        }
+
+    def join(
+        self, name: object, pin: object, label: object, client: str,
+        checked: Optional[Dict[str, bool]] = None,
+    ) -> Tuple[Device, str]:
+        """Join the session called ``name`` with ``pin``.
+
+        Raises :class:`ShareRefused`: ``no_match`` alike for an unknown
+        name and a wrong password, ``too_many_attempts`` while the
+        client or the name is locked. ``checked`` is :meth:`check`'s
+        answer when the hashing ran off the event loop. A right
+        password clears the client's own failures, never the name's
+        (one's own session must not reset the lock of another's name).
+        """
+        key = normalise_name(name)
+        check_pin(pin)
+        self.sweep()
+        self.locked(name, client)
+        if checked is None:
+            checked = self.check(name, pin)
         candidates = [s for s in self._shares.values() if s.key == key]
         found: Optional[Share] = None
         for share in candidates:
-            if pin_matches(code, share.salt, share.digest, self._iterations):
+            if checked.get(share.id):
                 found = share
-        if not candidates:
-            # The same work as a real check: the time tells nothing.
-            hash_pin(code, b"\0" * 16, self._iterations)
         if found is None:
             self._clients.failed(client)
             self._names.failed(key)
@@ -317,7 +376,6 @@ class ShareRelay:
             LOG.info("Shared session: a wrong name or password")
             raise ShareRefused("no_match", "no shared session matches")
         self._clients.succeeded(client)
-        self._names.succeeded(key)
         if len(found.viewers()) >= MAX_VIEWERS:
             raise ShareRefused("full", "the shared session is full")
         device, token = self._add(found, label, host=False)
@@ -408,8 +466,16 @@ class ShareRelay:
         share = device.share
         if share.ended or device.share.devices.get(device.id) is not device:
             return
+        if device.host:
+            share.active = self._now()  # its ping too: a static slide lives
         if not device.bucket.take(self._now()):
             device.dropped += 1
+            if device.host:
+                # A change of its page may be lost: the devices catch up.
+                for viewer in share.viewers():
+                    if not viewer.stale:
+                        viewer.stale, viewer.asked = True, False
+                        self._ask(viewer)
             return
         try:
             message = json.loads(text)
@@ -421,11 +487,12 @@ class ShareRelay:
         if kind == "ping":
             self._send(device, {"type": "pong"})
         elif kind == "m" and device.host:
-            share.active = self._now()
             self._from_host(share, message, text)
         elif kind == "in" and not device.host:
             self._from_viewer(device, message)
         elif kind == "resync" and not device.host:
+            if device.stale and device.asked:
+                return  # a snapshot is already on its way
             device.stale, device.asked = True, False
             self._ask(device)
         elif kind == "watch":
@@ -556,7 +623,7 @@ class ShareRelay:
         """End what expired; return how many sessions are still open.
 
         A session ends after :data:`MAX_LIFETIME_SECONDS`, after
-        :data:`IDLE_SECONDS` without a change or an action, or when its
+        :data:`IDLE_SECONDS` without any message of its host, or when its
         host has been away for :data:`RESUME_SECONDS`; a joined device
         away that long loses its place.
         """

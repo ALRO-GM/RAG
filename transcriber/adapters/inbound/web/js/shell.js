@@ -12,7 +12,32 @@ import { currentHref, moveSelection, nextTheme, paletteShortcut, rankCommands, s
 const THEME_KEY = "transcriber.theme";
 const NAV_KEY = "transcriber.nav";
 const root = document.documentElement;
-const wide = () => globalThis.matchMedia?.("(min-width: 64rem)").matches ?? true;
+/** The app's breakpoint between the phone/tablet layout (drawer) and the desktop one (sidebar). */
+export const WIDE_QUERY = "(min-width: 64rem)";
+// «Compartir pantalla» (#278): while an action of a joined device is applied
+// here, the layout that counts is the one of the device that pressed it
+// (a tablet's menu button opens the drawer, it never folds this sidebar).
+let actingWide = null;
+const wide = () => actingWide ?? globalThis.matchMedia?.(WIDE_QUERY).matches ?? true;
+
+/** Whether the layout that counts now is the desktop one (see actingAs). */
+export function isWide() {
+  return wide();
+}
+
+/**
+ * Run `fn` as if this page had the layout of the device that acted:
+ * `isWide` true (desktop) or false (drawer); null or undefined: this page's own.
+ */
+export function actingAs(isWide, fn) {
+  const before = actingWide;
+  actingWide = typeof isWide === "boolean" ? isWide : null;
+  try {
+    return fn();
+  } finally {
+    actingWide = before;
+  }
+}
 
 function remember(key, value) {
   try {
@@ -209,7 +234,7 @@ export function installShell({ onLanguage = () => {} } = {}) {
   document.getElementById("sidebar")?.addEventListener("click", (event) => {
     if (event.target.closest?.("a")) setDrawer(false);
   });
-  globalThis.matchMedia?.("(min-width: 64rem)").addEventListener?.("change", () => setDrawer(false));
+  globalThis.matchMedia?.(WIDE_QUERY).addEventListener?.("change", () => setDrawer(false));
 
   document.getElementById("theme-toggle")?.addEventListener("click", () => setTheme(nextTheme(currentTheme())));
   syncThemeButton();

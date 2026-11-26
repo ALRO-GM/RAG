@@ -259,9 +259,9 @@ def test_a_session_is_full_after_the_maximum_of_devices(clock: Clock) -> None:
 def test_the_server_holds_a_bounded_number_of_sessions(clock: Clock) -> None:
     relay, _, _ = relay_with(clock)
     for i in range(rules.MAX_SESSIONS):
-        relay.host(f"Sala {i}", "1234", "x")
+        relay.host(f"Sala {i}", "1234", "x", client=f"ip-{i}")
     with pytest.raises(ShareRefused) as caught:
-        relay.host("Sala extra", "1234", "x")
+        relay.host("Sala extra", "1234", "x", client="ip-z")
     assert caught.value.code == "busy"
 
 
@@ -515,7 +515,9 @@ def test_odd_messages_are_ignored(clock: Clock) -> None:
     send(relay, viewer, type="ping")
     assert messages(viewer_box) == [{"type": "pong"}]
     assert messages(host_box) == []
+    send(relay, host, type="m", snap=True, body={})
     send(relay, viewer, type="resync")
+    send(relay, viewer, type="resync")  # one is already pending
     assert types(host_box) == ["need_snapshot"]
 
 
@@ -530,3 +532,95 @@ def test_resuming_an_unknown_or_ended_token_is_refused(clock: Clock) -> None:
     relay._end(host.share, "stopped")
     relay.attach(host, late)
     assert late.closed == (CLOSE_ENDED, "ended")
+
+
+def test_names_are_unique_among_open_sessions(clock: Clock) -> None:
+    relay, _, _ = relay_with(clock)
+    relay.host("Sala", "1234", "Tablet")
+    with pytest.raises(ShareRefused) as caught:
+        relay.host(" sala ", "5678", "Otro")
+    assert caught.value.code == "name_taken"
+
+
+def test_a_right_password_never_resets_the_lock_of_the_name(
+    clock: Clock,
+) -> None:
+    relay, clients, names = relay_with(clock, limit=3)
+    host, _ = relay.host("Sala", "4821", "Tablet")
+    for pin in ["0000", "0001"]:
+        with pytest.raises(ShareRefused):
+            relay.join("Sala", pin, "x", "ip-a")
+    relay.join("Sala", "4821", "x", "ip-a")
+    assert names.failures == {"sala": 2}, "the name keeps its count"
+    assert "ip-a" not in clients.failures, "the client's own count goes"
+
+
+def test_the_checks_can_run_apart_from_the_join(clock: Clock) -> None:
+    relay, _, _ = relay_with(clock)
+    salt, digest = relay.secret("1234")
+    host, _ = relay.host("Sala", "1234", "Tablet", (salt, digest))
+    assert relay.check("sala", "1234") == {host.share.id: True}
+    assert relay.check("sala", "9999") == {host.share.id: False}
+    assert relay.check("otra", "1234") == {}
+    viewer, _ = relay.join("Sala", "1234", "x", "ip-a",
+                           relay.check("Sala", "1234"))
+    assert viewer.share is host.share
+    with pytest.raises(ShareRefused):
+        relay.join("Sala", "1234", "x", "ip-a", {host.share.id: False})
+
+
+def test_a_connected_sharing_device_keeps_a_static_page_alive(
+    clock: Clock,
+) -> None:
+    relay, _, _ = relay_with(clock)
+    host, host_box, viewer, viewer_box = joined(relay)
+    for _ in range(int(rules.IDLE_SECONDS // 15) + 10):
+        clock.now += 15
+        send(relay, host, type="ping")
+        relay.sweep()
+    assert relay.open_sessions() == 1
+
+
+def test_the_sharing_device_may_be_away_ten_minutes(clock: Clock) -> None:
+    assert rules.RESUME_SECONDS == 600
+    relay, _, _ = relay_with(clock)
+    host, host_box, viewer, viewer_box = joined(relay)
+    relay.detach(host, host_box)
+    roster = [m for m in messages(viewer_box) if m["type"] == "roster"][-1]
+    assert [d["online"] for d in roster["devices"]] == [False, True]
+    clock.now += 590
+    relay.sweep()
+    assert relay.open_sessions() == 1
+
+
+def test_a_page_change_dropped_for_rate_makes_the_devices_resync(
+    clock: Clock,
+) -> None:
+    relay, _, _ = relay_with(clock)
+    host, host_box, viewer, viewer_box = joined(relay)
+    send(relay, host, type="m", snap=True, body={})
+    host_box.take()
+    for _ in range(int(rules.HOST_BURST) + 1):
+        send(relay, host, type="m", body={"k": "d"})
+    assert viewer.stale
+    assert {"type": "need_snapshot", "device": viewer.id} in messages(
+        host_box)
+
+
+def test_a_client_cannot_probe_names_by_sharing_quickly(clock: Clock) -> None:
+    relay, _, _ = relay_with(clock)
+    relay.host("Sala", "1234", "Tablet", client="ip-a")
+    codes = []
+    for i in range(int(rules.HOST_ATTEMPT_BURST) + 2):
+        try:
+            device, _ = relay.host("Sala", "1234", "x", client="ip-b")
+            relay._end(device.share, "stopped")
+        except ShareRefused as exc:
+            codes.append(exc.code)
+    assert codes[-2:] == ["too_many_attempts", "too_many_attempts"]
+    assert codes.count("name_taken") == int(rules.HOST_ATTEMPT_BURST)
+    relay.host("Otra", "1234", "x", client="ip-c")  # another client is free
+    clock.now += 10.5
+    with pytest.raises(ShareRefused) as caught:
+        relay.host("Sala", "1234", "x", client="ip-b")
+    assert caught.value.code == "name_taken", "one attempt back every 10 s"

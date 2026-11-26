@@ -81,7 +81,7 @@ export function statusKey({ state, host, hostOnline = true }) {
 
 /** The i18n key of a refusal (the server's error code). */
 export function refusalKey(code) {
-  const known = ["no_match", "too_many_attempts", "full", "busy", "invalid_input", "ended", "unauthorized"];
+  const known = ["no_match", "too_many_attempts", "full", "busy", "name_taken", "invalid_input", "ended", "unauthorized"];
   return `share.error.${known.includes(code) ? code : "other"}`;
 }
 
