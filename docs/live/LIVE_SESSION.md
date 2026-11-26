@@ -50,6 +50,11 @@ through it dies. A short outage must cost nothing:
 | Suggestions | `orchestrator/domain/triggers.py` `LATE_MS` = 10 s | a final heard more than 10 s late asks for no suggestion (skip reason `late`); topics, concepts, mandatory items and avoid hints still take it |
 | Stop | `live.stop_drain_seconds` = 15 | a stop asked over HTTP lets a connected source send what it holds for up to 15 s (until its own `stop` or its socket closes) instead of refusing that audio; then it waits up to 60 s for the end, so the orchestrator's client waits 90 s for a stop (`STOP_TIMEOUT`; other calls keep 40 s) |
 
+«Compartir pantalla» (#278, `docs/web/SCREEN_SHARE.md`) never touches
+this: only the sharing device runs the live page and owns the audio
+socket; a joined device shows a mirror of it and runs no live code, so it
+can never reattach or take the source over.
+
 The page (`#/live`) shows one line under the header, text not colour:
 a sentence in a `role="status"` region that changes only with the
 state (a screen reader hears it once) and the seconds beside it,

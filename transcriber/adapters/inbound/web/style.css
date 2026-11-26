@@ -1743,3 +1743,53 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .lv-recovery-row { display: grid; gap: var(--s-2); border-top: 1px solid var(--line); padding-top: var(--s-3); }
 .lv-recovery-row:first-of-type { border-top: 0; padding-top: 0; }
 .lv-recovery-row p { margin: 0; }
+
+/* ---- «Compartir pantalla» (#278) ------------------------------------------ */
+/* The panel, the indicator and the joined device's stage are never mirrored
+   (data-share-skip). The mirror itself is an <iframe> whose <html> has
+   .mirror-doc: the same stylesheet, the sharing device's classes. */
+
+.share-panel { width: min(34rem, calc(100vw - 2rem)); }
+.share-panel > .share-head, .share-panel > .stack { padding: var(--s-5); }
+.share-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); padding-bottom: 0 !important; }
+.share-head h2 { margin: 0; }
+.icon-button.share-close { flex: none; }
+.share-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-md); background: var(--sunken); align-self: flex-start; }
+.share-tabs [role="tab"] { min-height: 2.25rem; border: 0; background: none; box-shadow: none; color: var(--muted); font-weight: 600; }
+.share-tabs [role="tab"][aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.hint.share-error { color: var(--danger); min-height: 1.2em; }
+.share-pin-value { font-family: var(--mono); font-size: var(--fs-lg); letter-spacing: 0.2em; }
+#share-pin { width: 7rem; font-family: var(--mono); letter-spacing: 0.2em; }
+.share-devices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); }
+.share-device { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); padding: var(--s-3); }
+.share-device + .share-device { border-top: 1px solid var(--line); }
+.share-device > div:first-child { flex: 1 1 12rem; }
+.share-switch { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--target); }
+.field.share-views label { font-weight: 500; min-height: 2.5rem; }
+
+/* The indicator on the sharing device: a small pill, fixed, out of the layout. */
+.share-pill { position: fixed; z-index: 70; left: var(--s-3); bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 64rem) { .share-pill { bottom: var(--s-3); } }
+.share-pill-button { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 2.5rem; padding: 0 var(--s-3); border-radius: var(--r-full, 999px); background: var(--accent); color: var(--accent-text); border: 0; box-shadow: var(--shadow-md); font-size: var(--fs-sm); font-weight: 600; max-width: calc(100vw - 2rem); }
+.share-pill.is-lost .share-pill-button { background: var(--warn-bg); color: var(--warn-text); }
+
+/* The pointer of whoever acts, drawn on the other devices. */
+.share-pointer { position: fixed; z-index: 80; left: 0; top: 0; width: 1.6rem; height: 1.6rem; margin: -0.8rem 0 0 -0.8rem; border-radius: 50%; border: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 25%, transparent); pointer-events: none; transition: transform 60ms linear; }
+.share-pointer.is-down { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.share-stage .share-pointer { position: absolute; }
+
+/* A joined device: its own application is hidden, the stage takes the screen. */
+.share-viewing .shell, .share-viewing .bottom-nav, .share-viewing .toasts > :not([data-share-skip]), .share-viewing .skip-link { display: none !important; }
+.share-stage { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; background: var(--sunken); }
+.share-bar-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); min-height: 2.75rem; padding: var(--s-1) var(--s-3); background: var(--surface); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+.share-bar-top .share-status { flex: 1 1 12rem; font-weight: 600; }
+.share-bar-top.is-lost { background: var(--warn-bg); color: var(--warn-text); }
+.share-bar-actions { margin-left: auto; }
+.share-area { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.share-box { position: relative; overflow: hidden; background: var(--bg); }
+.share-frame { display: block; border: 0; transform-origin: 0 0; background: var(--bg); }
+.share-watch .share-frame { cursor: default; }
+
+/* Inside the mirror. */
+.mirror-doc .share-focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mirror-doc dialog:not([open]) { display: none; }

@@ -187,6 +187,9 @@ def test_every_relative_import_exists() -> None:
     assert missing == []
 
 
+SHARE_SOCKET_MODULE = "js/share.js"
+"""«Compartir pantalla» (#278): its socket to ``/api/share``; the code
+goes in the first message (``js/lib/share.js``), never in the address."""
 SOCKET_MODULE = "js/live-audio.js"
 """The one module allowed a WebSocket: the live page's microphone goes
 to the transcriber's audio socket (``docs/live/LIVE_SESSION.md``)."""
@@ -203,7 +206,7 @@ def test_javascript_stays_csp_friendly() -> None:
         ):
             code = line.split("//")[0] if "//" in line and "://" not in line \
                 else line
-            if name == SOCKET_MODULE:
+            if name in (SOCKET_MODULE, SHARE_SOCKET_MODULE):
                 code = re.sub(r"\bnew WebSocket\(", "", code)
             for pattern, what in FORBIDDEN_JS:
                 if pattern.search(code):
@@ -211,13 +214,17 @@ def test_javascript_stays_csp_friendly() -> None:
     assert found == []
 
 
-def test_only_the_live_microphone_opens_a_socket() -> None:
+def test_only_the_live_microphone_and_the_share_open_a_socket() -> None:
     users = sorted(
         path.relative_to(WEB).as_posix() for path in web_files()
         if path.suffix == ".js"
         and "WebSocket" in path.read_text(encoding="utf-8")
     )
-    assert users == [SOCKET_MODULE]
+    assert users == [SOCKET_MODULE, SHARE_SOCKET_MODULE]
+    link = (WEB / "js" / "lib" / "share.js").read_text(encoding="utf-8")
+    assert "access_code: this.code" in link
+    share = (WEB / SHARE_SOCKET_MODULE).read_text(encoding="utf-8")
+    assert "new WebSocket(url)" in share and "socketUrl(location)" in share
     text = (WEB / SOCKET_MODULE).read_text(encoding="utf-8")
     # The code goes in the first message, never in the socket's address.
     assert "access_code: this.code" in text
