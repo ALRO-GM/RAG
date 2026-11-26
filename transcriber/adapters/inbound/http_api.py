@@ -1040,6 +1040,18 @@ def create_app(
         from transcriber.adapters.inbound.live_ws import add_live_routes
 
         add_live_routes(app, api, c.live, admit_code, limits.json_max_bytes)
+    from transcriber.adapters.inbound.share_ws import (
+        add_share_routes,
+        share_relay,
+    )
+
+    add_share_routes(
+        app, share_relay(now), admit_code,
+        lambda socket: client_key(
+            socket.client.host if socket.client is not None else None,
+            socket.headers, limits.client_ip_header,
+        ),
+    )
     if c.live_recovery is not None:
         from transcriber.adapters.inbound.live_recovery_api import (
             add_recovery_routes,
