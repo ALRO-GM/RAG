@@ -104,7 +104,7 @@ function panel(title, how, plot, ...legends) {
 }
 
 function detailBox() {
-  return e("p", { class: "detail", role: "status", "aria-live": "polite" }, "Seleccione una barra o un punto para ver su detalle.");
+  return e("p", { class: "detail", role: "status", "aria-live": "polite" }, "Selecciona una barra o un punto para ver su detalle.");
 }
 
 // ---------------------------------------------------------------- chart 1
