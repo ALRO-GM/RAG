@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   BASES, KINDS, SCHEMA, WHERE, callCost, citedSources, competitorsOf, digitsFor, isBilingual,
-  isCompetitionData, ragRows, textOf,
+  isCompetitionData, maximumLibraries, promptBase, ragMaxRows, ragRows, textOf,
 } from "../../transcriber/adapters/inbound/web/js/lib/competition.js";
 import { ADMIN_TOOLS } from "../../transcriber/adapters/inbound/web/js/lib/home.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -62,6 +62,16 @@ test("every competitor has a purpose, a price with its basis, its limits, where 
     }
   }
   for (const kind of KINDS) assert.ok(competitorsOf(data.competitors, kind).length > 0, kind);
+  const byName = Object.fromEntries(data.competitors.map((c) => [c.name, c]));
+  assert.match(byName.Metaview.price.es, /precio no comprobado/, "a tab the tool could not read is not «sin precio público»");
+  assert.match(byName.Five9.price.es, /usuario simultáneo.*cargos por uso/);
+  assert.match(byName.PolyAI.price.es, /telefonía no incluida/);
+  assert.match(byName.Twilio.price.es, /puede cambiar/);
+  for (const key of ["comp.table.note"]) {
+    assert.match(es[key], /Sin precio público/);
+    assert.match(es[key], /Precio no comprobado/);
+    assert.match(es[key], /EE\. UU\..*no se comprobaron en euros ni para España/);
+  }
 });
 
 test("no third-party estimate or aggregator figure is published as a price", () => {
@@ -93,6 +103,11 @@ test("about our system: the audio stays, the text goes out; one live session; sy
   assert.match(data.privacy.es, /Claude \(Anthropic\)/);
   assert.match(data.privacy.en, /Claude \(Anthropic\)/);
   assert.doesNotMatch(RAW, /todo (es |funciona en )?local|everything (is |runs )?local/i);
+  const allEs = [RAW, ...Object.entries(es).filter(([k]) => k.startsWith("comp.")).map(([, v]) => v)].join(" ");
+  assert.doesNotMatch(allEs, /funcionan en la nube|«En la nube»|"En la nube"|runs in the cloud/i, "no blanket claim about where others run");
+  assert.doesNotMatch(allEs, /servicios externos|outside services|not sent outside/i, "outside services are AI services, said so");
+  assert.doesNotMatch(allEs, /idioma secundario|secondary language/, "no unverified claim about competitors' Spanish");
+  assert.match(es["comp.col.runs"], /según su página/);
   assert.equal(data.ours.runs, "mixed");
   assert.match(data.ours.users.es, /Una sesión en directo a la vez/);
   assert.ok(data.models.some((m) => m.where === "external"), "the outside model is named");
@@ -116,31 +131,50 @@ test("a call costs the list price, five times more above the long-prompt step", 
   assert.ok(near(callCost(price, 100_001, 1000), (100_001 * 0.5 + 1000 * 2.5) / 1e6), "one token more: everything at 5 times");
 });
 
-test("the estimate: what is sent today against the whole library (docs/web/COMPETITION_PAGE.md)", () => {
+test("the estimate on the sample libraries: the measured prompt against the whole library (docs/web/COMPETITION_PAGE.md)", () => {
   const rows = ragRows(data.rag);
-  assert.deepEqual(rows.map((r) => r.id), ["with", "support", "interview", "large"]);
+  assert.deepEqual(rows.map((r) => r.id), ["with", "support", "interview"]);
   const near = (a, b) => Math.abs(a - b) < 1e-9;
-  const [withRag, support, interview, large] = rows;
+  const [withRag, support, interview] = rows;
+  assert.equal(promptBase(data.rag), 1500);
   assert.equal(withRag.tokens, 1750);
   assert.ok(near(withRag.cost, 0.22), withRag.cost);
   assert.equal(support.tokens, 4600);
   assert.ok(near(support.cost, 0.505), support.cost);
   assert.equal(interview.tokens, 13800);
   assert.ok(near(interview.cost, 1.425), interview.cost);
-  assert.equal(large.tokens, 259000);
-  assert.ok(large.long);
-  assert.ok(near(large.cost, 129.725), large.cost);
-  assert.ok(near(large.ratio, 259000 / 1750));
   for (const row of rows.slice(1)) assert.ok(row.tokens > withRag.tokens && row.cost > withRag.cost, row.id);
   assert.equal(digitsFor(0.22), 2);
   assert.equal(digitsFor(12.3), 1);
   assert.equal(digitsFor(129.7), 0);
 });
 
+test("the large library is a maximum, with the same piece size on both sides and on its own scale", () => {
+  const libs = maximumLibraries(data.rag);
+  assert.deepEqual(libs.map((l) => l.id), ["large"]);
+  assert.equal(data.rag.top_k, 4, "config/products/live_assist.*.yaml: top_k 4");
+  const [withRag, without] = ragMaxRows(data.rag, libs[0]);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  assert.equal(withRag.tokens, 1500 + 4 * 1000 / 4);
+  assert.ok(near(withRag.cost, 0.295), withRag.cost);
+  assert.equal(without.tokens, 259000);
+  assert.ok(without.long);
+  assert.ok(near(without.cost, 129.725), without.cost);
+  assert.ok(near(without.ratio, 259000 / 2500));
+  assert.match(es["comp.rag.max"], /Como máximo: si cada trozo fuese de \{chars\} caracteres/);
+  assert.match(en["comp.rag.max"], /At most/);
+});
+
 test("the estimate is labelled as such and says what is not measured", () => {
   assert.match(VIEW, /t\("comp\.estimate"\)/);
   assert.equal(es["comp.estimate"], "Estimación");
   assert.match(es["comp.rag.assume"], /no está medida/);
+  assert.match(es["comp.rag.assume"], /unos \{n\} tokens de respuesta/);
+  assert.doesNotMatch(es["comp.rag.assume"], /hasta/);
+  assert.match(es["comp.rag.with"], /medida en la prueba de latencia/);
+  assert.match(es["comp.rag.acts"], /\{model\}/);
+  assert.doesNotMatch(es["comp.rag.acts"], /[Úú]nico/);
+  assert.match(es["comp.rag.acts"], /no usa hoy/);
   assert.match(en["comp.rag.assume"], /not measured/);
   assert.match(es["comp.rag.without_time"], /no está medido/);
 });

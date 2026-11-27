@@ -9,7 +9,9 @@
 
 import { h } from "../dom.js";
 import { decimal, lang, t } from "../i18n.js";
-import { KINDS, competitorsOf, digitsFor, ragRows, textOf } from "../lib/competition.js";
+import {
+  KINDS, competitorsOf, digitsFor, maximumLibraries, ragMaxRows, ragRows, textOf,
+} from "../lib/competition.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -96,22 +98,39 @@ function bar(fraction, cls) {
     s("rect", { x: 0, y: 0, width: w, height: 10, class: cls }));
 }
 
-function withWithout(data) {
-  const rag = data.rag;
-  const rows = ragRows(rag);
-  const max = Math.max(...rows.map((r) => r.tokens));
-  const list = h("ul", { class: "comp-bars", "aria-label": t("comp.rag.chart") }, rows.map((row) => {
-    const label = row.id === "with" ? t("comp.rag.with") : t("comp.rag.without", { what: tx(row.label) });
-    const times = row.id === "with" ? null : t("comp.rag.times", { n: decimal(row.ratio, row.ratio < 10 ? 1 : 0) });
-    return h("li", { class: row.id === "with" ? "is-with" : "is-without" },
+/** A list of bars on one scale: [{ label, row, first }]. */
+function barList(rag, items, title) {
+  const max = Math.max(...items.map((item) => item.row.tokens));
+  return h("ul", { class: "comp-bars", "aria-label": title }, items.map(({ label, row, first }) => {
+    const times = first ? null : t("comp.rag.times", { n: decimal(row.ratio, row.ratio < 10 ? 1 : 0) });
+    return h("li", { class: first ? "is-with" : "is-without" },
       h("p", { class: "comp-bar-label" }, h("strong", {}, label)),
-      bar(row.tokens / max, row.id === "with" ? "fill-with" : "fill-without"),
+      bar(row.tokens / max, first ? "fill-with" : "fill-without"),
       h("p", { class: "comp-bar-values" },
         h("span", {}, t("comp.rag.tokens", { n: whole(row.tokens) })),
         times ? h("span", { class: "comp-times" }, times) : null,
         h("span", {}, t("comp.rag.cost", { cost: usd(row.cost), n: whole(rag.answers) })),
         row.long ? h("span", { class: "comp-long" }, t("comp.rag.long", { n: whole(rag.price.long_prompt_tokens) })) : null));
   }));
+}
+
+function withWithout(data) {
+  const rag = data.rag;
+  const rows = ragRows(rag);
+  const samples = barList(rag, rows.map((row, i) => ({
+    row, first: i === 0,
+    label: i === 0 ? t("comp.rag.with") : t("comp.rag.without", { what: tx(row.label) }),
+  })), t("comp.rag.chart"));
+  const large = maximumLibraries(rag).map((lib) => {
+    const [withRow, withoutRow] = ragMaxRows(rag, lib);
+    return h("div", { class: "comp-max" },
+      h("h3", {}, tx(lib.label)),
+      h("p", { class: "hint" }, t("comp.rag.max", { chars: whole(rag.piece_chars), k: rag.top_k })),
+      barList(rag, [
+        { row: withRow, first: true, label: t("comp.rag.max_with", { k: rag.top_k }) },
+        { row: withoutRow, first: false, label: t("comp.rag.max_without") },
+      ], tx(lib.label)));
+  });
   const tiles = h("div", { class: "comp-tiles" },
     h("div", { class: "comp-tile" },
       h("p", { class: "comp-big" }, t("comp.rag.search_ms", { lo: rag.search_ms[0], hi: rag.search_ms[1] })),
@@ -125,16 +144,19 @@ function withWithout(data) {
   const acts = rag.acts;
   return section("rag", "comp.h.rag", "comp.rag.lead",
     h("p", {}, h("span", { class: "badge warn" }, t("comp.estimate"))),
-    list,
+    h("h3", {}, t("comp.rag.h.samples")),
+    samples,
+    large,
     tiles,
     h("p", { class: "hint comp-assume" }, t("comp.rag.assume", {
       model: rag.price.model, in: decimal(rag.price.input_per_mtok, 2), out: decimal(rag.price.output_per_mtok, 2),
       n: whole(rag.output_tokens), long: whole(rag.price.long_prompt_tokens),
     })),
     acts ? h("p", { class: "hint" }, t("comp.rag.acts", {
-      n: acts.sentences, without: decimal(acts.without * 100, 0), with: decimal(acts.with * 100, 0),
+      model: acts.model, n: acts.sentences, without: decimal(acts.without * 100, 0), with: decimal(acts.with * 100, 0),
+      used: decimal(acts.in_use * 100, 0), m: whole(acts.in_use_sentences),
     })) : null,
-    sourceLine(data, [rag.price.source, rag.prompt_source, rag.timing_source, "page_doc"]));
+    sourceLine(data, [rag.price.source]));
 }
 
 const WHERE_KEY = { local: "comp.where.local", external: "comp.where.external", both: "comp.where.both" };
@@ -157,41 +179,41 @@ const RUNS_KEY = { cloud: "comp.runs.cloud", mixed: "comp.runs.mixed" };
 
 function competitorRow(data, c) {
   const source = data.sources[c.source];
-  const name = h("th", { scope: "row" },
+  const name = h("th", { scope: "row", role: "rowheader" },
     h("span", { class: "comp-name" }, c.name),
     source ? h("span", { class: "comp-seen" },
       sourceLink(data, c.source, c.basis === "marketplace" ? t("comp.seen.market") : t("comp.seen.page")),
       " ", t("comp.seen.on", { date: day(source.seen) })) : null);
-  return h("tr", { class: c.basis === "none" ? "is-unpriced" : null },
+  return h("tr", { role: "row", class: c.basis === "none" ? "is-unpriced" : null },
     name,
-    h("td", { "data-label": t("comp.col.price") }, tx(c.price)),
-    h("td", { "data-label": t("comp.col.users") }, tx(c.users)),
-    h("td", { "data-label": t("comp.col.runs") }, h("span", { class: "comp-runs is-cloud" }, t(RUNS_KEY[c.runs] ?? "comp.runs.cloud"))));
+    h("td", { role: "cell", "data-label": t("comp.col.price") }, tx(c.price)),
+    h("td", { role: "cell", "data-label": t("comp.col.users") }, tx(c.users)),
+    h("td", { role: "cell", "data-label": t("comp.col.runs") }, h("span", { class: "comp-runs is-cloud" }, t(RUNS_KEY[c.runs] ?? "comp.runs.cloud"))));
 }
 
 function market(data) {
   const groups = KINDS.map((kind) => {
     const rows = competitorsOf(data.competitors, kind);
     if (rows.length === 0) return null;
-    return h("tbody", {},
-      h("tr", { class: "comp-group" }, h("th", { colspan: 4, scope: "colgroup" }, t(`comp.kind.${kind}`))),
+    return h("tbody", { role: "rowgroup" },
+      h("tr", { role: "row", class: "comp-group" }, h("th", { role: "rowheader", colspan: 4, scope: "colgroup" }, t(`comp.kind.${kind}`))),
       rows.map((c) => competitorRow(data, c)));
   });
   const ours = data.ours;
-  const oursBody = h("tbody", { class: "comp-ours" },
-    h("tr", {},
-      h("th", { scope: "row" }, h("span", { class: "comp-name" }, tx(ours.name)), h("span", { class: "comp-seen" }, t("comp.ours.what"))),
-      h("td", { "data-label": t("comp.col.price") }, tx(ours.price)),
-      h("td", { "data-label": t("comp.col.users") }, tx(ours.users)),
-      h("td", { "data-label": t("comp.col.runs") }, h("span", { class: "comp-runs is-mixed" }, t(RUNS_KEY[ours.runs] ?? "comp.runs.mixed")))));
+  const oursBody = h("tbody", { role: "rowgroup", class: "comp-ours" },
+    h("tr", { role: "row" },
+      h("th", { scope: "row", role: "rowheader" }, h("span", { class: "comp-name" }, tx(ours.name)), h("span", { class: "comp-seen" }, t("comp.ours.what"))),
+      h("td", { role: "cell", "data-label": t("comp.col.price") }, tx(ours.price)),
+      h("td", { role: "cell", "data-label": t("comp.col.users") }, tx(ours.users)),
+      h("td", { role: "cell", "data-label": t("comp.col.runs") }, h("span", { class: "comp-runs is-mixed" }, t(RUNS_KEY[ours.runs] ?? "comp.runs.mixed")))));
   const table = h("div", { class: "comp-table-wrap" },
-    h("table", { class: "comp-table" },
+    h("table", { role: "table", class: "comp-table" },
       h("caption", {}, t("comp.table.caption")),
-      h("thead", {}, h("tr", {},
-        h("th", { scope: "col" }, t("comp.col.company")),
-        h("th", { scope: "col" }, t("comp.col.price")),
-        h("th", { scope: "col" }, t("comp.col.users")),
-        h("th", { scope: "col" }, t("comp.col.runs")))),
+      h("thead", { role: "rowgroup" }, h("tr", { role: "row" },
+        h("th", { role: "columnheader", scope: "col" }, t("comp.col.company")),
+        h("th", { role: "columnheader", scope: "col" }, t("comp.col.price")),
+        h("th", { role: "columnheader", scope: "col" }, t("comp.col.users")),
+        h("th", { role: "columnheader", scope: "col" }, t("comp.col.runs")))),
       groups, oursBody));
   const strengths = h("ul", { class: "comp-cards" }, data.strengths.map((item) => h("li", { class: "comp-card" },
     h("h4", {}, icon("check"), tx(item.title)),
@@ -211,7 +233,7 @@ function content(data) {
     h("div", { class: "comp-two" },
       h("div", { class: "comp-uses is-yes" },
         h("h3", {}, t("comp.content.today")),
-        h("ul", {}, data.content_today.map((item) => h("li", {}, tx(item), " ", sourceLink(data, item.source, t("comp.more")))))),
+        h("ul", {}, data.content_today.map((item) => h("li", {}, tx(item))))),
       h("div", { class: "comp-uses is-planned" },
         h("h3", {}, t("comp.content.planned")),
         h("ul", {}, data.content_planned.map((item) => h("li", {}, tx(item)))))),

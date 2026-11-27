@@ -139,6 +139,10 @@
   "voicebot": {
    "label": "docs/live/VOICEBOT.md",
    "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/VOICEBOT.md"
+  },
+  "live_assist_config": {
+   "label": "config/products/live_assist.*.yaml",
+   "url": "https://github.com/ALRO-GM/RAG/tree/main/config/products"
   }
  },
  "steps": [
@@ -278,17 +282,26 @@
     "tokens": 257500,
     "source": "query_latency",
     "label": {
-     "es": "Biblioteca de 1.030 trozos (como la de la prueba de búsqueda)",
-     "en": "A library of 1,030 pieces (like the one in the search test)"
-    }
+     "es": "Biblioteca grande (máximo): 1.030 trozos, como la de la prueba de búsqueda",
+     "en": "Large library (maximum): 1,030 pieces, like the one in the search test"
+    },
+    "maximum": true
    }
   ],
   "acts": {
    "source": "acts",
    "sentences": 140,
    "without": 0.743,
-   "with": 0.864
-  }
+   "with": 0.864,
+   "model": "Claude",
+   "in_use": 0.731,
+   "in_use_sentences": 1534
+  },
+  "top_k": 4,
+  "top_k_source": "live_assist_config",
+  "piece_chars": 1000,
+  "chars_per_token": 4,
+  "output_source": "haiku_latency"
  },
  "models": [
   {
@@ -408,8 +421,8 @@
    "source": "talkdesk",
    "runs": "cloud",
    "price": {
-    "es": "85–225 USD por usuario y mes. Su copiloto de IA se contrata aparte, sin precio publicado",
-    "en": "85–225 USD per user per month. Its AI copilot is an add-on with no published price"
+    "es": "De 85 USD (solo canales digitales) a 225 USD por usuario y mes; con voz, desde 105. Su copiloto de IA se contrata aparte, sin precio publicado",
+    "en": "From 85 USD (digital channels only) to 225 USD per user per month; with voice, from 105. Its AI copilot is an add-on with no published price"
    },
    "users": {
     "es": "Por usuario. Plan Express: 25 licencias, sin permanencia",
@@ -438,8 +451,8 @@
    "source": "five9",
    "runs": "cloud",
    "price": {
-    "es": "119–159 USD por puesto y mes; IA: 3.000 minutos por puesto más consumo",
-    "en": "119–159 USD per seat per month; AI: 3,000 minutes per seat plus usage"
+    "es": "119–159 USD por usuario simultáneo y mes; puede haber cargos por uso. IA: 3.000 minutos por puesto más consumo",
+    "en": "119–159 USD per concurrent user per month; usage-based charges may apply. AI: 3,000 minutes per seat plus usage"
    },
    "users": {
     "es": "Mínimo de 50 puestos",
@@ -453,8 +466,8 @@
    "source": "twilio",
    "runs": "cloud",
    "price": {
-    "es": "Copiloto (en pruebas): 0,035 USD por minuto de voz. Flex: desde 1 USD por hora activa o 150 USD por usuario y mes",
-    "en": "Copilot (beta): 0.035 USD per voice minute. Flex: from 1 USD per active hour or 150 USD per user per month"
+    "es": "Copiloto (en pruebas, precio que puede cambiar): 0,035 USD por minuto de voz. Flex: desde 1 USD por hora activa o 150 USD por usuario y mes",
+    "en": "Copilot (beta, price may change): 0.035 USD per voice minute. Flex: from 1 USD per active hour or 150 USD per user per month"
    },
    "users": {
     "es": "Pago por uso o por usuario",
@@ -483,8 +496,8 @@
    "source": "observe",
    "runs": "cloud",
    "price": {
-    "es": "828 USD por agente (el anuncio dice «Cost/12 months» y no aclara el periodo)",
-    "en": "828 USD per agent (the listing says «Cost/12 months» and leaves the period unclear)"
+    "es": "828 USD por agente. El anuncio dice «por agente y mes» pero muestra el importe como coste de 12 meses: no queda claro",
+    "en": "828 USD per agent. The listing says «per agent per month» but shows the amount as a 12-month cost: it is unclear"
    },
    "users": {
     "es": "Por agente; contratos de 12, 24 o 36 meses, sin reembolso",
@@ -528,8 +541,8 @@
    "source": "metaview",
    "runs": "cloud",
    "price": {
-    "es": "Notas y entrevistador de IA: sin precio público. Su agente para buscar candidatos: 0, 100 o 300 USD por usuario y mes",
-    "en": "Notes and AI interviewer: no public price. Its candidate-sourcing agent: 0, 100 or 300 USD per user per month"
+    "es": "Entrevistador de IA: sin precio público. Notas y revisión de candidaturas: precio no comprobado. Agente para buscar candidatos: 0, 100 o 300 USD por usuario y mes",
+    "en": "AI interviewer: no public price. Notes and application review: price not checked. Candidate-sourcing agent: 0, 100 or 300 USD per user per month"
    },
    "users": {
     "es": "Por usuario",
@@ -573,8 +586,8 @@
    "source": "polyai",
    "runs": "cloud",
    "price": {
-    "es": "API: 0,02 USD por minuto conectado más el texto procesado. Plataforma completa: por presupuesto",
-    "en": "API: 0.02 USD per connected minute plus the text processed. Full platform: by quote"
+    "es": "API: 0,02 USD por minuto conectado más el texto procesado, telefonía no incluida. Plataforma completa: por presupuesto",
+    "en": "API: 0.02 USD per connected minute plus the text processed, telephony not included. Full platform: by quote"
    },
    "users": {
     "es": "10 llamadas a la vez (API)",
@@ -602,12 +615,12 @@
  "strengths": [
   {
    "title": {
-    "es": "La voz no va a servicios externos",
-    "en": "The voice is not sent outside"
+    "es": "La voz no va a ningún servicio de IA externo",
+    "en": "The voice goes to no outside AI service"
    },
    "body": {
-    "es": "Se pasa a texto en un servidor propio con una tarjeta gráfica de consumo. Todas las empresas de la tabla funcionan en la nube.",
-    "en": "It becomes text on your own server with a consumer graphics card. Every company in the table runs in the cloud."
+    "es": "Se pasa a texto en un servidor propio con una tarjeta gráfica de consumo. Según sus páginas, las empresas de la tabla se ofrecen como servicio en la nube.",
+    "en": "It becomes text on your own server with a consumer graphics card. According to their pages, the companies in the table are offered as a cloud service."
    },
    "source": "live_asr"
   },
@@ -628,8 +641,8 @@
     "en": "One system for everything"
    },
    "body": {
-    "es": "Entrevistas, llamadas de atención y asistente de voz usan los mismos documentos.",
-    "en": "Interviews, support calls and the voice assistant use the same documents."
+    "es": "Entrevistas, llamadas de atención y asistente de voz usan el mismo motor y la misma biblioteca de documentos.",
+    "en": "Interviews, support calls and the voice assistant use the same engine and the same document library."
    }
   },
   {
@@ -638,8 +651,8 @@
     "en": "Spanish from Spain first"
    },
    "body": {
-    "es": "Pensado para el español; en casi todos los competidores revisados es un idioma secundario.",
-    "en": "Designed for Spanish; for almost every competitor reviewed it is a secondary language."
+    "es": "El español de España es el primer idioma del sistema; la pantalla también está en inglés.",
+    "en": "Spanish from Spain is the system's first language; the screens are also in English."
    }
   },
   {
@@ -734,7 +747,7 @@
     "en": "Speech acts with our own model"
    },
    "body": {
-    "es": "Afinar un modelo como Qwen3 para reconocer el tipo de cada frase con más precisión. Punto de partida medido: el modelo pequeño afinado que se usa hoy acierta el 73 % y un modelo general de 8B, el 55 % (frases sintéticas).",
+    "es": "Afinar un modelo como Qwen3 para reconocer el tipo de cada frase con más precisión. Punto de partida medido: el modelo pequeño afinado que se usa hoy acierta el 73 % y un modelo general de 8B, el 55 % (frases sintéticas).",
     "en": "Fine-tune a model such as Qwen3 to recognise the type of each sentence more precisely. Measured starting point: the small fine-tuned model used today is right 73% of the time and a general 8B model 55% (synthetic sentences)."
    },
    "source": "acts"
@@ -745,8 +758,8 @@
     "en": "The whole analysis on your own server"
    },
    "body": {
-    "es": "Afinar un modelo propio para el análisis y la ayuda en directo, sin depender de servicios externos: también el texto se quedaría en el servidor propio.",
-    "en": "Fine-tune our own model for the analysis and the live help, with no outside services: the text would stay on your server too."
+    "es": "Afinar un modelo propio para el análisis y la ayuda en directo, sin depender de servicios de IA externos: también el texto se quedaría en el servidor propio.",
+    "en": "Fine-tune our own model for the analysis and the live help, with no outside AI services: the text would stay on your server too."
    }
   },
   {

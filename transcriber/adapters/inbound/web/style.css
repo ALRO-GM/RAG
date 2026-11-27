@@ -1847,7 +1847,6 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .comp-uses.is-yes li::before { background: var(--accent); }
 .comp-uses.is-planned { border-style: dashed; }
 .comp-uses.is-planned li::before { background: transparent; border: 2px solid var(--faint); width: 0.45rem; height: 0.45rem; }
-.comp-uses a { font-size: var(--fs-sm); white-space: nowrap; }
 
 .comp-bars { list-style: none; padding: 0; margin: var(--s-3) 0 var(--s-4); display: flex; flex-direction: column; gap: var(--s-4); }
 .comp-bars li { margin: 0; }
@@ -1933,3 +1932,6 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .comp-foot { margin: var(--s-8) 0 var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--line); }
 .comp :is(.comp-flow, .comp-models, .comp-cards, .comp-gaps, .comp-road) > li { max-width: none; }
 .comp-table .is-unpriced td:nth-of-type(1)::before { font-style: normal; }
+.comp-max { margin: var(--s-6) 0 0; padding-top: var(--s-2); }
+.comp-max h3 { margin: 0 0 var(--s-1); }
+.comp-max > .hint { font-size: var(--fs-sm); margin: 0 0 var(--s-2); }
