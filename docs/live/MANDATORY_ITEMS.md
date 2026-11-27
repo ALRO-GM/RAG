@@ -68,13 +68,13 @@ check + the feed (the orchestrator's part is negligible). Measured
 | Part | Measured | How |
 |---|---|---|
 | speech end → final | p50 591–753 ms, p90 739–966 ms | `LIVE_MEASURES.md` (real transcriber, synthetic audio, three runs) |
-| orchestrator: final → checklist published, first sentence of the session | p50 7.6 µs, p90 8.0 µs (500 runs) | the script's `orchestrator` part: a port that answers at once, inline executor |
-| RAG check, **CPU**, in process | first check 5,313 ms (model load + examples); then p50 640 ms, p90 749 ms (90 checks of the 18 interview lines of `experiments/live/lv16/mandatory_lines.json`) | the script's `rag` part: `MandatoryItems.check` with the knowledge model |
+| orchestrator: final → checklist published, first sentence of the session | p50 7.6 µs, p90 7.9–8.0 µs (500 runs, two runs) | the script's `orchestrator` part: a port that answers at once, inline executor |
+| RAG check, **CPU**, in process | first check 3,848–5,313 ms (model load + examples); then p50 384–640 ms, p90 749–759 ms (90 checks of the 18 interview lines of `experiments/live/lv16/mandatory_lines.json`, two runs) | the script's `rag` part: `MandatoryItems.check` with the knowledge model |
 | RAG check on the running service (GPU) | **not measured** | it needs the running services |
 
 So on the CPU path an item said in the first sentence is ticked about
-1.2–1.5 s after the speech ends once warm; without the warm-up the
-first sentence after a RAG start would have paid the 5 s cold check.
+1–1.4 s after the speech ends once warm (p50); without the warm-up the
+first sentence after a RAG start would have paid the 4–5 s cold check.
 (An earlier run of the same measurement gave 6,213 ms, 549 / 774 ms and
 5.3 / 5.7 µs: the machine was busy with other work both times.)
 

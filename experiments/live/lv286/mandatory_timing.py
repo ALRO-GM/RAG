@@ -21,6 +21,7 @@ service on the GPU is not measured here. Run::
 import argparse
 import json
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from orchestrator.adapters.outbound.runtime import InlineExecutor
@@ -28,6 +29,8 @@ from orchestrator.application.mandatory import MandatoryTracker
 from orchestrator.domain.events import LiveEvent
 
 RUNS = 500
+ROOT = Path(__file__).resolve().parents[3]
+LINES = ROOT / "experiments" / "live" / "lv16" / "mandatory_lines.json"
 
 
 class Instant:
@@ -83,12 +86,20 @@ def orchestrator_part() -> Dict[str, float]:
 
 def rag_part() -> Dict[str, Any]:
     """Milliseconds of the RAG's check on the CPU, in this process."""
-    from experiments.live.lv16.mandatory_threshold import LINES, manifest
+    import yaml
+
     from src.adapters.outbound.minilm_embedder import (
         SentenceTransformerEmbedder,
     )
     from src.application.knowledge.mandatory import MandatoryItems
     from src.config import KnowledgeSettings
+    from src.domain.knowledge.domains import DomainManifest
+
+    def manifest(domain_id: str) -> DomainManifest:
+        """A seed domain's manifest (as the LV-16 threshold script)."""
+        path = ROOT / "knowledge" / "domains" / domain_id / "manifest.yaml"
+        return DomainManifest.model_validate(
+            yaml.safe_load(path.read_text(encoding="utf-8")))
 
     settings = KnowledgeSettings()
     checker = MandatoryItems(manifest, SentenceTransformerEmbedder(
