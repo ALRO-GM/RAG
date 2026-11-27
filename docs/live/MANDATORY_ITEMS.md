@@ -87,3 +87,17 @@ sentences (no held-out set), two domains, Spanish only. A false "said"
 hides an item that was not said, so a deployment with real legal items
 should re-measure on its own sentences and may prefer a higher
 threshold; the manual tick (confirmed and logged) covers the misses.
+
+## Where the block sits (#287)
+
+On the live page «Lo que hay que decir» is the **first block of the side
+area**, above «Temas del puesto», in every layout (desktop, tablet, phone),
+in the scripted demo and in the «Compartir pantalla» mirror (they all draw
+the same page). The DOM order is the visual order, so keyboard and screen
+readers read it first. While something is pending it is open with a red
+border; once everything is said it folds into one calm line, «Todo lo
+obligatorio está dicho», that can be reopened (it is a disclosure; the
+employee's own open/closed choice is kept until the state changes). The
+manual tick stays. Support sessions use the same code and the same order:
+the block only exists when the session has mandatory items, so nothing
+else moves.

@@ -1221,6 +1221,11 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-count { font-variant-numeric: tabular-nums; }
 .lv-empty { padding: var(--s-2) 0; }
 .lv-ring { width: 0.55rem; height: 0.55rem; border-radius: 50%; border: 1.5px solid var(--faint); flex: none; }
+.lv-tosay { border-color: var(--danger); border-width: 2px; }
+.lv-tosay > summary { list-style: none; cursor: pointer; min-height: 44px; align-items: center; }
+.lv-tosay > summary::-webkit-details-marker { display: none; }
+.lv-tosay.is-done { border-width: 1px; border-color: var(--line); padding-block: var(--s-1); color: var(--muted); }
+.lv-tosay.is-done > summary { min-height: 44px; }
 .lv-tosay.remind { border-color: var(--accent); box-shadow: 0 0 0 3px var(--active); }
 .lv-note { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--warn-bg); color: var(--warn-text); }
 .lv-more { color: var(--muted); font-size: var(--fs-md); }

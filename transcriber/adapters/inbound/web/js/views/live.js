@@ -514,7 +514,16 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const topics = h("section", { class: "lv-row", hidden: true });
     const coreRow = h("section", { class: "lv-row lv-core", hidden: true });
     const confirmBox = h("div", {}); // «Confirmar datos» once the session ends
-    const checklist = h("section", { class: "lv-row lv-tosay", hidden: true });
+    // «Lo que hay que decir» (#287): the first block of the side, above the topics.
+    const checklist = h("details", { class: "lv-row lv-tosay", hidden: true });
+    const checklistTitle = h("h3", {});
+    const checklistCount = h("span", { class: "meta" });
+    const checklistHead = h("summary", { class: "lv-row-head" }, checklistTitle, checklistCount); // kept: it holds the focus
+    const checklistBody = h("div", { class: "lv-tosay-body" });
+    checklist.append(checklistHead, checklistBody);
+    let checklistOpen = null; // null: follow the state; true/false: the employee's own choice
+    let checklistDone = null;
+    checklist.addEventListener("toggle", () => { if (checklistDone !== null) checklistOpen = checklist.open; });
     const historyBody = h("div", { class: "lv-history" });
     const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
     const status = h("div", { class: "row wrap live-status", role: "status" });
@@ -553,7 +562,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const summary = h("div", {});
     const recoveryBox = h("div", {}); // #265: audio kept here, to send after the session
     const side = h("aside", { class: "lv-side" },
-      h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, checklist, history, options, summary,
+      checklist, h("h2", { class: "lv-label" }, t("live.now")), discomfort, nowCard, confirmBox, topics, coreRow, history, options, summary,
       recoveryBox);
 
     // Errors and one-time notices stay in sight, under the header; only the choices are in «Opciones».
@@ -1034,9 +1043,14 @@ export async function liveView(ctx, root, [sub, which] = []) {
       if (!items.length) return;
       const pending = state.pendingItems();
       checklist.classList.toggle("remind", remind && pending.length > 0);
-      fill(checklist,
-        h("div", { class: "lv-row-head" }, h("h3", {}, t("live.to_say")),
-          h("span", { class: "meta" }, pending.length ? t("live.to_say_count", { n: pending.length }) : t("live.to_say_done"))),
+      // Pending: open and prominent. Everything said: one calm line, reopenable.
+      const done = pending.length === 0;
+      if (done !== checklistDone) { checklistDone = done; checklistOpen = null; }
+      checklist.classList.toggle("is-done", done);
+      checklist.open = checklistOpen ?? !done;
+      checklistTitle.textContent = done ? t("live.mandatory_done") : t("live.mandatory_title");
+      checklistCount.textContent = done ? "" : t("live.to_say_count", { n: pending.length });
+      fill(checklistBody,
         remind && pending.length ? h("p", { class: "hint", role: "status" }, t("live.to_say_remind", { items: pending.map((i) => i.text).join(" · ") })) : null,
         h("div", { class: "lv-chips" }, items.map((item) => (item.state === "pending" && state.state === "running"
           ? h("button", { type: "button", class: "lv-chip is-button", title: t("live.mandatory_tick"), onClick: () => tick(item) },
