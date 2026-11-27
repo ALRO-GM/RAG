@@ -244,6 +244,9 @@ def test_the_interviewer_marks_a_concept_by_hand_and_undoes_only_that(
     assert published[-1]["next"]["topic"] != "s3"
     assert track.mark_asked("s3", "p3", True, 43.0)["asked"]["at"] == 42.0
     assert track.mark_asked("s3", "p3", False, 44.0)["asked"] is None
+    # Marked again at once (no event in between): marked again.
+    assert track.mark_asked("s3", "p3", True, 44.0)["asked"]["at"] == 44.0
+    assert track.mark_asked("s3", "p3", False, 44.0)["asked"] is None
     # A mark by the rules is never undone by hand.
     assert track.mark_asked("s2", "p1", False, 45.0)["asked"]["by"] == \
         "rules"

@@ -308,14 +308,15 @@ class TopicTracker:
     def _mark(self, slot: str, point: str, mark: PointAsked) -> bool:
         """Record one question about a concept; tell whether it changed.
 
-        The first mark stays; each line counts once in ``asked_times``.
-        Lock held.
+        The first mark stays; each line counts once in ``asked_times``
+        (a mark by hand has no line: each counts). Lock held.
         """
         key = f"{slot}.{point}"
-        line = (mark.utterance or f"hand@{mark.at}", key)
-        if line in self._asked_lines:
-            return False
-        self._asked_lines.add(line)
+        if mark.utterance is not None:
+            line = (mark.utterance, key)
+            if line in self._asked_lines:
+                return False
+            self._asked_lines.add(line)
         self.asked_times[key] = self.asked_times.get(key, 0) + 1
         self.asked[slot].setdefault(point, mark)
         return True
