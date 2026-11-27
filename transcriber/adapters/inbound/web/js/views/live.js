@@ -515,15 +515,18 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const coreRow = h("section", { class: "lv-row lv-core", hidden: true });
     const confirmBox = h("div", {}); // «Confirmar datos» once the session ends
     // «Lo que hay que decir» (#287): the first block of the side, above the topics.
-    const checklist = h("details", { class: "lv-row lv-tosay", hidden: true });
+    const checklist = h("section", { class: "lv-row lv-tosay", hidden: true });
+    const checklistFold = h("details", { class: "lv-fold" });
+    const checklistRemind = h("p", { class: "hint", role: "status", hidden: true }); // outside the fold: never hidden
     const checklistTitle = h("h3", {});
     const checklistCount = h("span", { class: "meta" });
     const checklistHead = h("summary", { class: "lv-row-head" }, checklistTitle, checklistCount); // kept: it holds the focus
     const checklistBody = h("div", { class: "lv-tosay-body" });
-    checklist.append(checklistHead, checklistBody);
+    checklistFold.append(checklistHead, checklistBody);
+    checklist.append(checklistFold, checklistRemind);
     let checklistOpen = null; // null: follow the state; true/false: the employee's own choice
     let checklistDone = null;
-    checklist.addEventListener("toggle", () => { if (checklistDone !== null) checklistOpen = checklist.open; });
+    checklistFold.addEventListener("toggle", () => { if (checklistDone !== null) checklistOpen = checklistFold.open; });
     const historyBody = h("div", { class: "lv-history" });
     const history = h("details", { class: "lv-more" }, h("summary", {}, t("live.history")), historyBody);
     const status = h("div", { class: "row wrap live-status", role: "status" });
@@ -576,7 +579,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const linkNode = h("p", { class: "notice", hidden: true }, linkText, " ", linkCount, " ", finishNow);
     let audioLink = null;
     let finishing = false; // «Terminar» waits for what is still held
-    root.append(header, voiceNote, note.node, linkNode, alerts, h("div", { class: "lv-body" }, talk, side));
+    root.append(header, voiceNote, note.node, linkNode, alerts, h("div", { class: "lv-body" }, side, talk));
 
     let drawing = false;
     let reconnecting = false;
@@ -1047,15 +1050,19 @@ export async function liveView(ctx, root, [sub, which] = []) {
       const done = pending.length === 0;
       if (done !== checklistDone) { checklistDone = done; checklistOpen = null; }
       checklist.classList.toggle("is-done", done);
-      checklist.open = checklistOpen ?? !done;
+      checklistFold.open = checklistOpen ?? !done;
       checklistTitle.textContent = done ? t("live.mandatory_done") : t("live.mandatory_title");
       checklistCount.textContent = done ? "" : t("live.to_say_count", { n: pending.length });
+      const remindNow = remind && pending.length > 0;
+      checklistRemind.hidden = !remindNow;
+      checklistRemind.textContent = remindNow ? t("live.to_say_remind", { items: pending.map((i) => i.text).join(" · ") }) : "";
+      const focused = checklistBody.contains(document.activeElement) ? document.activeElement.dataset.item : null;
       fill(checklistBody,
-        remind && pending.length ? h("p", { class: "hint", role: "status" }, t("live.to_say_remind", { items: pending.map((i) => i.text).join(" · ") })) : null,
         h("div", { class: "lv-chips" }, items.map((item) => (item.state === "pending" && state.state === "running"
-          ? h("button", { type: "button", class: "lv-chip is-button", title: t("live.mandatory_tick"), onClick: () => tick(item) },
+          ? h("button", { type: "button", class: "lv-chip is-button", "data-item": item.id, title: t("live.mandatory_tick"), onClick: () => tick(item) },
             h("span", { class: "lv-ring", "aria-hidden": "true" }), item.text)
           : chip(item.state !== "pending", item.text, item.state === "ticked" ? "ticked" : "")))));
+      if (focused) checklistBody.querySelector(`[data-item="${CSS.escape(focused)}"]`)?.focus(); // keep the keyboard place
     }
 
     async function tick(item) {

@@ -17,8 +17,19 @@ test("the side lists the mandatory block first, before the topics", () => {
   assert.ok(order.indexOf("checklist") < order.indexOf("topics"));
 });
 
-test("no CSS rule reorders the block away from the DOM order", () => {
-  assert.doesNotMatch(CSS, /\.lv-tosay[^{]*\{[^}]*\border\s*:/);
+test("the side comes before the conversation in the DOM (stacked layouts read it first)", () => {
+  assert.match(VIEW, /h\("div", \{ class: "lv-body" \}, side, talk\)/);
+});
+
+test("no CSS rule reorders the containers or the block away from the DOM order", () => {
+  for (const sel of ["lv-body", "lv-talk", "lv-side", "lv-tosay", "lv-fold", "lv-row"]) {
+    const rules = [...CSS.matchAll(new RegExp(`[^{}]*\\.${sel}\\b[^{}]*\\{[^}]*\\}`, "g"))].map((m) => m[0]);
+    for (const rule of rules) assert.doesNotMatch(rule, /[\s;{]order\s*:/, rule);
+  }
+});
+
+test("the reminder line is outside the folding part", () => {
+  assert.match(VIEW, /checklist\.append\(checklistFold, checklistRemind\)/);
 });
 
 test("the block collapses to one calm line, in both languages", () => {

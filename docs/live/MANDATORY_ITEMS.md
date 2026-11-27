@@ -93,8 +93,12 @@ threshold; the manual tick (confirmed and logged) covers the misses.
 On the live page «Lo que hay que decir» is the **first block of the side
 area**, above «Temas del puesto», in every layout (desktop, tablet, phone),
 in the scripted demo and in the «Compartir pantalla» mirror (they all draw
-the same page). The DOM order is the visual order, so keyboard and screen
-readers read it first. While something is pending it is open with a red
+the same page). The DOM order is the visual order in every layout (the side is
+before the conversation in the DOM; the two columns of wide screens are
+placed with grid areas, not `order`), so keyboard and screen readers read
+it first. The reminder line (item names, `role=status`) sits outside the
+fold, so a folded block never hides an unsaid item; the folded line shows
+a chevron that turns when open. While something is pending it is open with a red
 border; once everything is said it folds into one calm line, «Todo lo
 obligatorio está dicho», that can be reopened (it is a disclosure; the
 employee's own open/closed choice is kept until the state changes). The
