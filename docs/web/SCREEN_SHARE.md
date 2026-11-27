@@ -205,6 +205,49 @@ was never run in a browser with real voices. What it does when turned on
 Not exercised end to end in the two-browser check: the throwaway stack
 has no rendered voices and no voice-bot TTS (see «What was measured»).
 
+## Pages that are documents of their own (#284)
+
+«Estudio» (`study.html`) and «Investigación» (`research.html`) are not
+routes of the application (`index.html`): going there, or back, loads
+another document, so the sharing device's page, its socket and its
+`MirrorSource` are gone. Each of the two pages installs the same component
+(`js/page-share.js` → `installShare` of `js/share.js`, the same button
+`#share-open`, panel and indicator), so on a page change the sharing
+device does exactly what a reload does: the new page finds the share
+kept in this tab (`sessionStorage`, role and resume token) and the access
+code the application kept in the same tab (`transcriber.code`), resumes
+(`resume` with the token, never the name or password) and sends its
+whole page with a new epoch. A joined device does nothing: it keeps
+showing the last page (its indicator says «el dispositivo que comparte
+se está reconectando» while the relay sees the sharing device away) and
+replaces it with the snapshot of the new page (body, its classes, scroll,
+theme, language). Actions numbered on the old page carry the old epoch
+and are dropped.
+
+| What | How on those pages |
+|---|---|
+| Start, manage, stop sharing; join | the same button, panel and indicator as in the application |
+| A joined device that may send | goes there and back through the sidebar (and the bottom bar's «Más», which opens it), follows the page's table of contents (in-page anchors), scrolls, opens the data tables (`<details>`), types in the reference search, chooses in its filters |
+| Charts | both pages draw their charts as inline SVG (`js/views/study.js`, `js/research/main.js`), which is mirrored as DOM like the rest; no `<canvas>` on these pages (nor in the application), so nothing needs a special path |
+| Without the access code in this tab | (the page opened directly, not from the application) the panel shows the relay's refusal: «Vuelve a entrar en la aplicación y prueba otra vez.» |
+
+Every other way out of the document:
+
+| Way out | What happens |
+|---|---|
+| `index.html` ↔ `study.html` ↔ `research.html` by their links (also «Ir a…»; the browser's back and forward buttons load the pages the same way, but were not exercised in the check) | the session goes on (above) |
+| A link to another site (the references of «Investigación», the sources of «Estudio») clicked on a **joined** device | opened on that device, in a new tab; never sent to the sharing device (and the sharing device drops such a click if one arrives) |
+| The same link clicked on the **sharing** device while sharing | opened in a new tab there, so the shared page stays |
+| Opening an application page in a new tab of the sharing device (middle click, «Abrir en una pestaña nueva») | the browser copies this tab's `sessionStorage`, so the new tab resumes the share and the relay closes the old tab's link (`4409`, replaced): **avoid it while sharing** |
+| Closing the tab, or typing another address | the sharing device is away; the session ends after 10 min unless the same tab comes back |
+
+The resume token stays where it was: this tab's `sessionStorage` on the
+sharing device, never in the DOM (so never mirrored), sent only in the
+socket's `resume` message, kept by the relay as a SHA-256 hash and valid
+while the device is away at most 10 min. A device without it cannot take
+the sharing device's place (`resume` with another token: refused,
+`ended`); the relay still stores nothing.
+
 ## The relay: `WS /api/share`
 
 `transcriber/adapters/inbound/share_ws.py` (adapter),
@@ -311,6 +354,20 @@ Screenshots of both at the same moments:
 | A watch-only device clicks a link | nothing happened on the sharing device |
 | The sharing device set to only watch | its own click did nothing; the joined device navigated it |
 | Remove the joined device | it was told («El dispositivo que comparte te ha quitado de la sesión.») and its own application came back |
+
+Page changes (#284, 2026-11-27, the same throwaway stack and stand-in
+with 75–150 ms each way; the tablet shares, the desktop joins;
+screenshots of both at the same moments in
+`~/.local/share/ragputin/demo-shots/share-284/`, `01`–`13`):
+
+| Measure | Result |
+|---|---|
+| The sharing device goes app → «Estudio» → «Investigación» → app; the joined device shows the new page complete (its data loaded, the charts drawn) | 1.29 / 1.35 / 0.88 s after the click; the old page stays shown meanwhile; its indicator never showed «se está reconectando» (polled every ~50 ms) |
+| The same trip from the joined device with «Envía acciones» (sidebar links clicked inside the mirror) | 0.78 / 0.92 / 0.82 s |
+| On «Estudio»: scroll (window, both ways, also the joined device's mouse wheel) and a data table opened | followed on the other device (scroll 3720 / 3497 px: anchor-based in the joined device's own layout) |
+| On «Investigación»: the contents link «Gráficos» / «Estudios y enlaces», the reference search typed on the joined device | the sharing device went to the anchor; 33 / 33 rows shown on both; 40 SVG charts on both |
+| A reference link (another site) clicked on the joined device | opened in a new tab of the joined device; the sharing device stayed on `research.html#estudios` with one tab |
+| Join from `study.html` (the device's own «Estudio»), open the panel and stop sharing from `research.html` | joined, mirror shown; after stopping, the joined device got its own «Estudio» back |
 
 Per extra joined device the sharing device sends the same again (the
 relay fans out). Not measured: real rag.peer4u.app round trips (the relay

@@ -28,8 +28,8 @@ import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from
 import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
 import { installSweeps } from "./lib/live-store.js";
 import { installShare } from "./share.js";
+import { CODE_KEY } from "./page-share.js";
 
-const CODE_KEY = "transcriber.code";
 let memoryCode = null;
 
 function readCode() {

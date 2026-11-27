@@ -137,6 +137,48 @@ def test_a_dropped_link_comes_back_without_the_password(
             until(host, "need_snapshot")
 
 
+def wait_host(ws: WebSocketTestSession, online: bool) -> None:
+    """Read rosters until one shows the sharing device ``online`` or not."""
+    for _ in range(10):
+        roster = until(ws, "roster")
+        if [d["online"] for d in roster["devices"] if d["host"]] == [online]:
+            return
+    raise AssertionError(f"the sharing device never became online={online}")
+
+
+def test_the_sharing_device_changes_page_and_keeps_the_session(
+    client: TestClient,
+) -> None:
+    """#284: study.html / research.html are other documents: going there
+    closes the sharing device's socket, and the next page resumes it with
+    the token its tab kept. The joined device stays joined, is told the
+    sharing device is away and back, and gets the new page; nobody types
+    the password again. Without the token nobody can take its place."""
+    with client.websocket_connect("/api/share") as viewer:
+        with client.websocket_connect("/api/share") as host:
+            token = hello(host, type="host", name="Sala Dos", pin="2468",
+                          label="Tablet")["token"]
+            joined = hello(viewer, type="join", name="Sala Dos",
+                           pin="2468", label="Proyector")
+            until(host, "need_snapshot")
+        # The page unloads: the socket closes; the joined device hears it.
+        wait_host(viewer, False)
+        with client.websocket_connect("/api/share") as other:
+            refused = hello(other, type="resume", token="not-the-token")
+            assert refused["code"] == "ended"
+        with client.websocket_connect("/api/share") as host:
+            back = hello(host, type="resume", token=token)
+            assert back["type"] == "welcome" and back["host"] is True
+            asked = until(host, "need_snapshot")
+            assert asked["device"] == joined["device"]
+            host.send_text(json.dumps({
+                "type": "m", "snap": True, "to": joined["device"],
+                "body": {"k": "s", "e": "next-page"}}))
+            wait_host(viewer, True)
+            page = until(viewer, "m")
+            assert page["body"] == {"k": "s", "e": "next-page"}
+
+
 def test_unknown_name_and_wrong_password_close_alike_then_lock(
     client: TestClient,
 ) -> None:

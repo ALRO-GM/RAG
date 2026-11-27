@@ -387,3 +387,22 @@ def test_every_page_links_to_the_study(page: str) -> None:
     header.feed((WEB / page).read_text(encoding="utf-8"))
     links = {link.get("href"): link for link in header.links}
     assert links["study.html"].get("data-i18n") == "nav.study"
+
+
+@pytest.mark.parametrize(
+    "page,module",
+    [("study.html", "js/study.js"), ("research.html", "js/research/main.js")],
+)
+def test_the_standalone_pages_carry_the_share(page: str, module: str) -> None:
+    """#284: «Compartir pantalla» on the pages that are other documents:
+    the same button as the application's, the same component installed."""
+    html = (WEB / page).read_text(encoding="utf-8")
+    app = (WEB / "index.html").read_text(encoding="utf-8")
+    button = re.search(r'<button[^>]*id="share-open"[^>]*>', app)
+    assert button and button.group(0) in html
+    text = (WEB / module).read_text(encoding="utf-8")
+    assert "installPageShare()" in text and "share?.relabel()" in text
+    shared = (WEB / "js" / "page-share.js").read_text(encoding="utf-8")
+    assert "installShare(" in shared
+    main = (WEB / "js" / "main.js").read_text(encoding="utf-8")
+    assert 'import { CODE_KEY } from "./page-share.js";' in main

@@ -12,7 +12,7 @@ import {
   MASK, MirrorSource, MirrorView, actionable, attributesOf, elementScrollOf, elementScrollTo, pointerAt, propsOf, setChildren, skipped,
 } from "../../transcriber/adapters/inbound/web/js/lib/mirror.js";
 import {
-  BACKOFF_MAX_MS, FINAL_CODES, ShareLink, shareBackoffMs, cleanLabel, deviceKind, endedKey, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
+  BACKOFF_MAX_MS, FINAL_CODES, ShareLink, shareBackoffMs, cleanLabel, deviceKind, endedKey, externalUrl, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
 } from "../../transcriber/adapters/inbound/web/js/lib/share.js";
 import { SoundPlayer, installSoundBridge, sameOriginApi } from "../../transcriber/adapters/inbound/web/js/share-sound.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -475,6 +475,33 @@ test("a dropped link reconnects with backoff and resumes with its token, no pass
   assert.equal(l.token, "tok");
   assert.deepEqual([0, 1, 2, 3, 9].map((n) => shareBackoffMs(n, () => 0.5)), [500, 1000, 1000, 1000, BACKOFF_MAX_MS],
     "never more than 1 s between tries: a tunnel reset of a few seconds costs a few seconds");
+});
+
+test("#284: the next page of the sharing device resumes with the kept token, no password", () => {
+  // study.html / research.html are other documents: the page that loads
+  // builds a new link with the token its tab kept (sessionStorage).
+  const states = [];
+  const l = link(states, []);
+  l.token = "kept-token";
+  l.start();
+  FakeSocket.all[0].open();
+  assert.deepEqual(FakeSocket.all[0].sent, [
+    { type: "auth", access_code: "a-long-enough-access-code" }, { type: "resume", token: "kept-token" }],
+    "the hello (name and password) is never sent again");
+  FakeSocket.all[0].receive({ type: "welcome", device: "d1", host: true });
+  assert.equal(l.state, "open");
+  assert.equal(l.token, "kept-token", "a resume keeps the token it had");
+});
+
+test("#284: a link to another site is told apart from the pages of this one", () => {
+  const base = "https://site.example/research.html#marco";
+  for (const own of ["index.html#/", "#resumen", "study.html", "/research.html", "https://site.example/index.html#/live", "", null, "javascript:void(0)"]) {
+    assert.equal(externalUrl(own, base), null, String(own));
+  }
+  assert.equal(externalUrl("https://doi.org/10.1/x", base), "https://doi.org/10.1/x");
+  assert.equal(externalUrl("//other.example/a", base), "https://other.example/a");
+  assert.equal(externalUrl("http://site.example/", base), "http://site.example/", "another scheme is another origin");
+  assert.equal(externalUrl("mailto:someone@example.org", base), "mailto:someone@example.org");
 });
 
 test("a silent link is reopened; a final refusal stops it with its reason", () => {
