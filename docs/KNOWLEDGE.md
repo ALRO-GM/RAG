@@ -102,7 +102,7 @@ those.
 | `GET /knowledge/domains/{id}/documents/{doc}/text` | — | `200` `{"id","name","text","chars"}` (extracted text, front matter cut; the interview planner reads job offers this way, #208); `409` not indexed yet; `404` |
 | `POST /knowledge/query` | `knowledge.query.v1` | `200` `knowledge.result.v1`; `404` unknown domain or no index yet |
 
-Document: `{"id","name","type","size","pages","chunks","status","error",
+Document: `{"id","name","type","size","pages","pages_done","chunks","status","error",
 "metadata":{"category","intent","script_phase","tags"},"uploaded_at"}`;
 `status` is `queued`, `processing`, `indexed` or `failed` (then `error`
 says why, in Spanish and English). Poll the list to follow it. One
@@ -111,8 +111,8 @@ background worker extracts, chunks and embeds one document at a time
 documents left `queued`/`processing` by a restart are queued again
 when the server starts.
 
-Upload checks, before anything is stored: at most 200 MiB
-(`max_upload_bytes`, `413`); type decided by the first bytes and the
+Upload checks, before anything is stored: the limit of the file's kind
+(`413`, table below); type decided by the first bytes and the
 extension (`415`: wrong signature, legacy `.doc`/`.xls`, unknown
 extension, a ZIP that is not the announced DOCX/ODT/XLSX or unpacks
 beyond 300 MB); metadata against the vocabularies (`422`); the same
@@ -123,7 +123,132 @@ before any path is built. RAG errors are `{"detail": "..."}`; the
 transcriber answers `{"code", "message"}` with the RAG's message and
 the same status (`payload_too_large` 413, `unsupported_media_type`
 415, `invalid_input` 400 for the RAG's 400/422, `not_found`,
-`wrong_state` 409, `rag_unavailable` 503).
+`wrong_state` 409, `rag_unavailable` 503, `insufficient_storage` 507).
+
+### 4.1 Large files: limits by kind, pieces, memory and disk (#282)
+
+**Limits by kind** (`KnowledgeSettings`, served by `GET
+/knowledge/limits` so the page keeps no copy of the numbers):
+
+| Kind | Setting | Default | Decided by |
+|---|---|---|---|
+| PDF | `max_pdf_bytes` | 500 MiB | `%PDF-` in the first KiB |
+| video | `max_video_bytes` | 1 GiB | `.mp4`/`.webm`/`.mov`/`.3gp` **and** content starting as a video container (ISO media `ftyp`/`moov`…, Matroska/WebM); an MP3 renamed `.mp4` gets the audio limit |
+| audio | `max_audio_bytes` | 200 MiB | any other audio type |
+| any other document | `max_document_bytes` | 100 MiB | DOCX, ODT, XLSX, CSV, HTML, MD, TXT, images |
+
+The old single `max_upload_bytes` (200 MiB for everything) is gone;
+a config file that still sets it is ignored. A refused file says the
+real limit of its kind: «Los PDF pueden ocupar hasta 500 MB; este ocupa
+612 MB. / PDF files may be up to 500 MB; this one is 612 MB.».
+
+**Upload in pieces** (the page does it for every file larger than one
+piece; the single multipart request stays for small files and the API's
+other callers, with the same checks):
+
+| Method and path | Body | Answer |
+|---|---|---|
+| `GET /knowledge/limits` | — | `{"pdf","video","audio","document","piece_bytes","max_media_seconds"}` |
+| `POST /knowledge/domains/{id}/uploads` | `{"name","size","metadata"}` | `201` upload `{"id","domain","name","type","size","received","piece_bytes","document"}`; refused at once (`415` type by name, `413` size over the kind's limit, `422` metadata, `507` no room) |
+| `PUT …/uploads/{up}/pieces/{offset}` | raw bytes, at most `piece_bytes` (8 MiB) | `200` upload; `409` when `offset` is past `received` (ask the status, go on from `received`); a piece already received is accepted again without writing; `422` past the announced size; `413` piece too big, or the content's kind has a smaller limit; `415` content not matching the name (checked as soon as the first 4 KiB arrive; the upload is deleted) |
+| `GET …/uploads/{up}` | — | `200` upload (`received` = bytes on disk, from the start) |
+| `POST …/uploads/{up}/complete` | — | `202` document `queued`; again: the same document (an answer lost); `409` while bytes are missing; a refused file (duplicate, broken container) is deleted |
+| `DELETE …/uploads/{up}` | — | `204`, what arrived is deleted |
+
+The upload id is 32 random hex characters; the transcriber forwards
+every route under `/api/knowledge/…` behind the access code, one
+bounded request each. 8 MiB is well under the tunnel container's
+64 MiB (`docs/DEPLOYMENT.md`) and its Caddy's 260 MiB body limit: no
+proxy setting changes. The page shows bytes sent and percent, says
+calmly that the connection dropped and it goes on by itself, waits 1,
+2, 5, 10, 20, 30 s… (40 tries, about a quarter of an hour), asks the
+server what arrived and resumes from there; «Reintentar» on a failed
+one also resumes, «Cancelar» deletes it on the server.
+
+**Bounded memory at every hop.** No process holds a whole upload:
+the transcriber forwards one piece (≤ 8 MiB) at a time; the RAG writes
+each piece at its offset (`pwrite`, `fsync`) into
+`data/knowledge/.uploads/<id>.part` (mode 600), sniffs the first 4 KiB,
+hashes the file 1 MiB at a time for the document id (the same SHA-256
+as before, so existing ids and duplicate detection are unchanged), moves
+it into `originals/` with a rename (same disk; a copy only across
+disks) and hands the readers its path: `pypdf` gets an open file (given
+a path it would read it whole), Docling gets the path and reads one
+batch of pages at a time, the figures of a batch are captioned and
+dropped before the next one, DOCX/ODT/XLSX are opened from the file.
+Text formats (CSV, HTML, MD, TXT, ≤ 100 MiB) are decoded whole, since
+their text is what is indexed. A recording is streamed to the
+transcriber (`Content-Length`, blocks), which writes it to
+`<data_dir>/knowledge-media/incoming` as it arrives, moves it into the
+job and decodes it from the file (a stored recording over 64 MiB is
+handed to the decoder by path with its streamed SHA-256). The decoded
+audio itself (16 kHz float32, about 230 MB per hour) is what the
+speech pipeline needs and is not bounded by this; the length limit is
+read from the container's header first, so a recording over
+`max_media_seconds` is refused before it is decoded.
+
+Measured on a synthetic 500 MB PDF and a 1 GB video: see §4.2.
+
+### 4.2 Measured: a 500 MB PDF and a 1 GB video end to end (#282)
+
+2026-11-27, workstation, **CPU only** (`CUDA_VISIBLE_DEVICES=`), both
+services' real HTTP routes in their own processes on other ports (the
+RAG's `/knowledge` routes with the real library, upload area, store,
+Docling extractors and MiniLM embedder; the transcriber's app with
+**fake speech models**, `runtime: fake`); a client played the page
+through the transcriber's `/api/knowledge/…`, 8 MiB pieces, with a
+connection cut in the middle of a piece (resumed from what the server
+held), a piece at a gap (`409`) and a piece sent twice (`200`, not
+written again). RSS sampled every 50 ms; "additional" is above each
+process's RSS just before the upload. Files generated under a temp
+folder and deleted afterwards.
+
+| File | Pieces | Upload (loopback) | Complete | Processing | Peak additional RSS while receiving | Peak additional RSS while processing |
+|---|---|---|---|---|---|---|
+| PDF, 502 273 040 B, 107 pages (text layer + a 2000×2000 noise JPEG each) | 61 | 2.3 s | 0.3 s | 66.4 s (Docling, CPU, no captions), «0/107 … 107/107» seen in the row | RAG +25.1 MiB, transcriber +21.4 MiB | RAG +3 055 MiB, transcriber +16.7 MiB |
+| MP4, 1 028 647 728 B, 10 min (lossless noise video at 1 fps + AAC tones) | 124 | 4.2 s | 0.6 s | 8.0 s (fake models) | RAG +26.9 MiB, transcriber +22.3 MiB | RAG +1 015 MiB, transcriber +152.9 MiB |
+
+Receiving stays within a few tens of MB in both processes whatever the
+file size. Processing is dominated by the models: the same 107 pages
+with 200×200 images (a 5.5 MB PDF) peak at 2 745 MiB in a process that
+only extracts, the 502 MB one at 3 297 MiB (both 57–63 s): the
+difference (≈ 550 MiB) is the larger pictures decoded within a batch
+of 20 pages, not the file; the RAG's +1 015 MiB on the video is the
+embedder loaded for the first index of that process (it stays
+resident: RSS 1.58 GB after the run); the transcriber's +153 MiB is
+10 minutes of decoded audio plus the fake pipeline. Not measured: the
+real speech models, the GPU, captions, a real tunnel (loopback only),
+and a recording near the 2 h limit (its decoded audio alone is about
+460 MB).
+
+**Disk.** An upload is refused before its first byte (`507`, «No hay
+espacio en el disco del servidor para este archivo… / The server's disk
+has no room…») when the free space, minus what the other uploads in
+progress still need, would not hold it plus `min_free_bytes` (1 GiB);
+a recording counts twice (the stored original and the transcriber's
+copy while it is transcribed). Each piece is refused too if writing it
+would leave less than half the margin (other programs fill the disk
+too). The transcriber refuses a recording whose `Content-Length` would
+leave less than `api.knowledge_media_min_free_bytes` (512 MiB) free.
+Only one extra copy of a large file exists at a time: the partial file
+becomes the original by a rename; the transcriber's copy is deleted
+once the transcript is read, as before.
+
+**Sweep.** A partial upload nobody sent to for `upload_ttl_hours`
+(24 h: a night's pause still resumes) is deleted when the RAG starts
+and every hour, and so is the record of a completed one; files the
+transcriber was receiving when it stopped are deleted when it starts.
+Nothing uploaded is logged; deletions are counted.
+
+**Long documents.** While a PDF is read with layout the document's row
+says «Leídas 40 de 107 páginas» (`pages_done` of `pages`, saved at
+most every 2 s; `null` once it ends). A restart mid-way queues it again
+(`recover()`) and it is read from the start: the pages already read are
+not kept (keeping them would need a per-page cache keyed by the OCR and
+caption choices, not done). Docling stops a batch after 900 s
+(`document_timeout`, per batch of `layout_batch_pages`, not per
+document); figures captioned per document stay capped at `max_figures`
+(200).
 
 ## 5. Formats and libraries
 
@@ -320,8 +445,8 @@ Saving the document's metadata again retries a failed recording.
 
 | Setting | Default | Checked |
 |---|---|---|
-| `max_upload_bytes` | 200 MiB (as every upload; the page sends audio and video up to 200 MiB, other documents up to 100 MB) | at upload, `413` |
-| `max_media_seconds` | 7200 (2 h) | by the transcriber after decoding, before any model runs: `failed` |
+| `max_audio_bytes` / `max_video_bytes` | 200 MiB / 1 GiB (§4.1) | at upload, `413` |
+| `max_media_seconds` | 7200 (2 h) | by the transcriber from the container's header when it says (refused when the file is handed over), else after decoding, before any model runs: `failed` |
 | `media_wait_seconds` | 21600 (6 h, queue included) | `failed` |
 | `media_poll_seconds` | 5 | — |
 | `transcriber_url` | `http://127.0.0.1:8770` (loopback only; `null` refuses audio and video with `415`) | — |

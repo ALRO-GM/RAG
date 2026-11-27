@@ -549,6 +549,7 @@ SAMPLES = {
     "plan_id": "plan-1", "candidate": "ana-ruiz",
     "question": "work_authorization",
     "demo_id": "llamada-lumbre", "part": "report", "clip": "t0.s0.wav",
+    "upload_id": "0" * 32, "offset": "0",
 }
 """A value for every path parameter the API has."""
 
