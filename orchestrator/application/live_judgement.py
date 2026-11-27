@@ -22,7 +22,7 @@ few answers on real speech, so before judging, the model reads the
 whole round (:meth:`TopicTracker.round_lines`: the interviewer's
 questions and the candidate's answers in order, fenced) with the plan's
 points and concepts and says which candidate utterances answer each
-point and which concepts were treated (``interview.attribution@1``,
+point and which concepts were treated (``interview.attribution@2``,
 read by :mod:`orchestrator.domain.interview_attribution`): one call per
 batch of at most 120 utterances / 16,000 characters. The judge then
 gets those answers, and the stored report marks each concept the model
@@ -31,6 +31,18 @@ ticked ``by: "after_session"`` and the round ``attribution:
 be read) the round falls back to the rules' attribution of the session,
 as before, with ``attribution: "rules"`` and the reason (status and
 error kind, never words) in ``attribution_error``.
+
+**Coverage** (#286). The stored report also keeps, per topic of the
+plan, its level and, per concept, whether its question was asked
+(when, by whom, the interviewer's words) and whether the candidate
+treated it (``coverage``, :func:`~orchestrator.domain.
+interview_coverage.settled`): the session's marks (rules, the tick
+call, by hand), the model's after-session reading for what the session
+missed, and marks made by hand kept from an earlier report of the same
+round (a rebuild or ``rejudge`` replays only the words). Every topic is
+there, also one never answered, so «preguntado, sin respuesta» is told
+apart from «no preguntado». The figure of the offer board does not
+use it.
 """
 
 import logging
@@ -54,8 +66,10 @@ from orchestrator.domain.interview import (
     CheckItem,
     InterviewPlan,
     Judgement,
+    PointAsked,
     Sheet,
     SheetSlot,
+    TopicCoverage,
     fold,
 )
 from orchestrator.domain.events import Transcript
@@ -63,6 +77,7 @@ from orchestrator.domain.interview_attribution import (
     CANDIDATE,
     Attribution,
     RoundLine,
+    asked_marks,
     attributed_slots,
     batches,
     with_session_ticks,
@@ -71,13 +86,15 @@ from orchestrator.domain.interview_attribution import (
     round_payload,
     used_ids,
 )
+from orchestrator.domain.interview_coverage import hand_marks, settled
 from orchestrator.domain.interview_judgement import MAX_CHECKS, judge_slots
 from orchestrator.domain.next_round import topic_states
 from orchestrator.domain.interview_points import quote
 
 LOG = logging.getLogger(__name__)
 LIVE_JUDGE_TEMPLATE = "interview.report@2"
-ATTRIBUTION_TEMPLATE = "interview.attribution@1"
+ATTRIBUTION_TEMPLATE = "interview.attribution@2"
+"""Since #286 it also says which concepts the interviewer asked."""
 ATTRIBUTION_DEADLINE_MS = 90000
 """Deadline of one attribution call (a slow template, #267)."""
 JUDGE_BATCH = 4
@@ -161,6 +178,7 @@ class LiveJudge:
         """
         lines = topics.round_lines()
         found, why = None, None
+        hand = self._hand_marks()
         if self.attribute and any(line.role == CANDIDATE for line in lines):
             self.publish({"type": "accuracy", "state": "reporting"})
             found, why = self.attribute_round(lines)
@@ -171,11 +189,25 @@ class LiveJudge:
                 slots = with_session_ticks(
                     attributed_slots(self.plan, found, texts), session,
                     texts)
+                coverage = settled(
+                    self.plan.slots, topics.facts(), topics.reached(),
+                    slots, texts, asked_marks(found, lines), hand)
                 return self.judge_slots(slots, texts, "after_session",
-                                        announced=True)
+                                        announced=True, coverage=coverage)
         slots, texts = topics.sheet_slots()
+        coverage = settled(self.plan.slots, topics.facts(),
+                           topics.reached(), slots, texts, {}, hand)
         return self.judge_slots(slots, texts, "rules", why,
-                                announced=why is not None)
+                                announced=why is not None,
+                                coverage=coverage)
+
+    def _hand_marks(self) -> Dict[str, Dict[str, PointAsked]]:
+        """Marks made by hand in the round's stored report, if any (#286)."""
+        try:
+            return hand_marks(self.wiring.store.result(
+                self.plan.id, self.session_id))
+        except Exception:  # noqa: BLE001 - none stored, or unreadable
+            return {}
 
     def attribute_round(
         self, lines: List[RoundLine],
@@ -225,7 +257,8 @@ class LiveJudge:
                 totals[key] = totals.get(key, 0) + value
             totals["batches"] = totals.get("batches", 0) + 1
         result = merged(found, [line.id for line in lines])
-        if not used_ids(result):
+        if not used_ids(result) and not any(s.asked
+                                            for s in result.values()):
             why = ("unreadable" if totals.get("shaped", 0) < len(parts)
                    else "ids_unknown" if totals.get("given") else "empty")
             LOG.warning("attribution %s: nothing usable (%s), rules used",
@@ -243,6 +276,7 @@ class LiveJudge:
         self, slots: List[SheetSlot], texts: Dict[str, str],
         attribution: str = "rules", why: Optional[str] = None,
         announced: bool = False,
+        coverage: Optional[List[TopicCoverage]] = None,
     ) -> Optional[Document]:
         """Judge the answered slots in batches, keep and publish it.
 
@@ -255,7 +289,8 @@ class LiveJudge:
         words) and ``{"state": "failed"}`` is published. ``attribution``
         says who attributed the answers (``after_session`` or
         ``rules``; ``why``: why not the model); ``announced``: the
-        ``reporting`` state was already published.
+        ``reporting`` state was already published; ``coverage`` (#286)
+        goes with the report.
         """
         originals = {s.id: [(a.utterance, texts.get(a.utterance) or a.quote)
                             for a in s.answers] for s in slots}
@@ -285,7 +320,7 @@ class LiveJudge:
         judged, checks = to_originals(judged, checks, originals)
         utterances = len({k.split(PART_MARK)[0] for k in texts})
         saved, lost = self._keep(judged, checks, utterances, attribution,
-                                 why)
+                                 why, coverage)
         result = {
             "state": "ready", "judge": self.template,
             "plan_id": self.plan.id, "title": self.plan.title,
@@ -300,6 +335,8 @@ class LiveJudge:
                 for s in judged
             ],
             "to_check": [c.model_dump(mode="json") for c in checks],
+            **({"coverage": [c.model_dump(mode="json") for c in coverage]}
+               if coverage is not None else {}),
         }
         self.publish({"type": "accuracy", **result})
         return result
@@ -350,7 +387,9 @@ class LiveJudge:
 
     def _keep(self, judged: List[SheetSlot], checks: List[CheckItem],
               utterances: int, attribution: str = "rules",
-              error: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+              error: Optional[str] = None,
+              coverage: Optional[List[TopicCoverage]] = None,
+              ) -> Tuple[bool, Optional[str]]:
         """Store the full report with the plan's results (#262).
 
         Returns whether it was stored and, if not, why: ``no_file`` (the
@@ -367,6 +406,7 @@ class LiveJudge:
             attribution=attribution,  # type: ignore[arg-type]
             attribution_error=error,
             plan_slots=[s.id for s in self.plan.slots],
+            coverage=coverage,
         )
         book = self.wiring.candidates
         try:

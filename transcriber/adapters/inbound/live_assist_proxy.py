@@ -10,7 +10,8 @@ dependency), and the orchestrator's bearer token is added on the way
 Only the orchestrator's own routes exist here (``products``,
 ``transcripts``, ``sessions``, one session, its ``replay``, ``stop``,
 ``barge-in`` (the voice bot), ``mode``, ``speakers/{id}``,
-``mandatory/{item}`` (LV-16), ``suggestions/stream`` and
+``mandatory/{item}`` (LV-16), ``points/{topic}/{point}`` (#286),
+``suggestions/stream`` and
 ``voicebot/sample``, the «Escuchar ejemplo» WAV of «Ajustes»; a scripted
 demo's ``report``, ``voicebot``, ``voices`` and one rendered line clip,
 ``voices/<line>.wav`` (#254, never cached); the AI
@@ -45,7 +46,8 @@ ALLOWED = re.compile(
     rf"|sessions|sessions/{_ID}|voicebot/sample"
     rf"|sessions/{_ID}/(?:replay|stop|rejudge|barge-in|mode"
     rf"|suggestions/stream"
-    rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}})"
+    rf"|speakers/{_ID}|mandatory/[a-z0-9][a-z0-9_.-]{{0,47}}"
+    rf"|points/s[0-9]{{1,3}}/p[0-9]{{1,2}})"
     rf"|interview/plans|interview/plans/{_ID}"
     rf"|interview/plans/{_ID}/results|interview/plans/{_ID}/results/{_ID}"
     rf"|interview/plans/{_ID}/board"
@@ -196,6 +198,14 @@ def add_live_assist_proxy(
     ) -> Response:
         """Tick a mandatory item by hand (after confirming)."""
         return await forward(f"sessions/{session_id}/mandatory/{item}",
+                             request)
+
+    @api.post("/assist/sessions/{session_id}/points/{topic}/{point}")
+    async def assist_mark_asked(
+        session_id: str, topic: str, point: str, request: Request
+    ) -> Response:
+        """Mark a concept's question as asked by hand, or undo it (#286)."""
+        return await forward(f"sessions/{session_id}/points/{topic}/{point}",
                              request)
 
     @api.post("/assist/voicebot/sample")

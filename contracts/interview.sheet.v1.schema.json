@@ -408,6 +408,151 @@
       ],
       "title": "SheetSlot",
       "type": "object"
+    },
+    "PointAsked": {
+      "additionalProperties": false,
+      "description": "When and how a concept's question was asked in a live round (#286).\n\n``at``: seconds from the start of the session (the interviewer's\nline; ``None`` when unknown, as for a mark by hand without a line).\n``utterance`` and ``quote``: the interviewer's line and its first\nwords (none for a mark by hand).",
+      "properties": {
+        "by": {
+          "enum": [
+            "rules",
+            "live_model",
+            "hand",
+            "after_session"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        },
+        "utterance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Utterance"
+        },
+        "quote": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "title": "PointAsked",
+      "type": "object"
+    },
+    "PointCoverage": {
+      "additionalProperties": false,
+      "description": "One concept of a topic: was it asked, and did the candidate treat it.\n\nThe two facts are separate (#286): a concept whose question was\nasked counts as covered even when the answer was poor or absent;\n``status`` is the candidate's side, as in :class:`SheetPoint`.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "treated",
+            "pending",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "asked": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAsked"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "PointCoverage",
+      "type": "object"
+    },
+    "TopicCoverage": {
+      "additionalProperties": false,
+      "description": "How far one topic of the plan was covered in a live round (#286).\n\n``level`` only grows during the session; ``concepts`` the topic's\nconcepts, ``asked`` how many were asked, ``treated`` how many the\ncandidate treated or said they do not know, ``covered`` how many\nwere asked or treated, ``words`` how many words the candidate said\nin answers to it.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "level": {
+          "default": "none",
+          "enum": [
+            "none",
+            "named",
+            "treated",
+            "well_treated"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "concepts": {
+          "default": 0,
+          "title": "Concepts",
+          "type": "integer"
+        },
+        "asked": {
+          "default": 0,
+          "title": "Asked",
+          "type": "integer"
+        },
+        "treated": {
+          "default": 0,
+          "title": "Treated",
+          "type": "integer"
+        },
+        "covered": {
+          "default": 0,
+          "title": "Covered",
+          "type": "integer"
+        },
+        "words": {
+          "default": 0,
+          "title": "Words",
+          "type": "integer"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/PointCoverage"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "TopicCoverage",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -657,6 +802,22 @@
       "default": null,
       "title": "Plan Slots",
       "description": "The slot ids of the plan revision the interview was made with (#271): a point of the plan in this list but not in slots was not treated; one in neither was added to the plan later (not asked). Null: written before it."
+    },
+    "coverage": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/TopicCoverage"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coverage",
+      "description": "How far each topic of the plan was covered in a live round (#286): its level (none, named, treated, well_treated; it only grows) and counts, and per concept whether its question was asked (by rules, live_model, hand or after_session; when, in seconds from the start; the interviewer's line and words) and whether the candidate treated it. Null: an AI interviewer's sheet, or a live report written before it."
     },
     "finished_at": {
       "anyOf": [

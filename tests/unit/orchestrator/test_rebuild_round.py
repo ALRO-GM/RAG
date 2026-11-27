@@ -268,7 +268,7 @@ def test_a_rebuilt_round_is_attributed_by_the_model_or_the_rules(
 
     class Down(Judge):
         def reason(self, request: Document, cancel: Any) -> Document:
-            if request.get("template") == "interview.attribution@1":
+            if request.get("template") == "interview.attribution@2":
                 return {"status": "timeout",
                         "error": {"kind": "timeout", "message": "late"}}
             return super().reason(request, cancel)

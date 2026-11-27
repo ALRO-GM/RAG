@@ -56,6 +56,15 @@ A point is **covered** when the answer was judged ``solid``,
 judgement; not when it was ``wrong``, ``off_topic``, not known, skipped,
 not treated or not asked.
 
+**Coverage** (#286). A live report with ``coverage`` gives each point
+its level reached (``coverage``: none, named, treated, well_treated) and
+how many of its concepts the interviewer asked (``asked``), so the page
+tells «se preguntó, sin respuesta» from «no se llegó a preguntar» (the
+interviewer's gap, not the candidate's). The **figure does not change**:
+it rests on the candidate's answers and their judgement, and a concept
+asked but not answered was not treated either way; ``None`` on both
+fields for AI sheets and reports written before it.
+
 Live reports whose answers were attributed to the points by the word
 rules (#268: ``attribution`` ``rules``, or none: written before it) are
 marked **less reliable**.
@@ -64,7 +73,7 @@ A draft from a model and short interviews, for a person to review:
 never a decision, never shown to the candidate. Plain data: no I/O.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import (
     Any, Dict, List, Literal, Mapping, Optional, Sequence, Set, Tuple,
@@ -75,6 +84,7 @@ from pydantic import ValidationError
 from orchestrator.domain.interview import (
     InterviewPlan,
     SheetSlot,
+    TopicCoverage,
     fold,
 )
 from orchestrator.domain.interview_judgement import (
@@ -133,6 +143,11 @@ class PointResult:
     quote: str = ""
     reason: str = ""
     utterance: Optional[str] = None
+    asked: Optional[int] = None
+    """Concepts of the point the interviewer asked (#286); ``None``: the
+    report does not say."""
+    coverage: Optional[str] = None
+    """The level the point reached in a live round (#286), or ``None``."""
 
 
 @dataclass(frozen=True)
@@ -334,6 +349,19 @@ def _revision_slots(
     return None
 
 
+def _coverage(sheet: Mapping[str, Any]) -> Dict[str, TopicCoverage]:
+    """A live report's coverage by point id (#286; empty when none)."""
+    raw = sheet.get("coverage")
+    found: Dict[str, TopicCoverage] = {}
+    for item in raw if isinstance(raw, list) else []:
+        try:
+            topic = TopicCoverage.model_validate(item)
+        except ValidationError:
+            continue
+        found.setdefault(topic.id, topic)
+    return found
+
+
 def interview_view(
     plan: InterviewPlan, sheet: Mapping[str, Any], owned: bool = False,
 ) -> InterviewView:
@@ -349,6 +377,7 @@ def interview_view(
     revision = _int(sheet.get("plan_revision"))
     changed = revision != plan.revision
     known = _revision_slots(sheet, kind)
+    covered = _coverage(sheet)
     points: List[PointResult] = []
     for s in plan.slots:
         result = point_result(s.id, slots.get(s.id), kind,
@@ -360,6 +389,9 @@ def interview_view(
                 id=s.id, state="not_treated",
                 value=(float(LABEL_VALUE["not_treated"])
                        if kind == "live" and s.level == "minimo" else None))
+        if s.id in covered:
+            result = replace(result, asked=covered[s.id].asked,
+                             coverage=covered[s.id].level)
         points.append(result)
     required = {s.id for s in plan.slots if s.level == "minimo"}
     used = [slots[s.id] for s in plan.slots if s.id in slots]

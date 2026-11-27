@@ -3,8 +3,11 @@
 The word rules of the topic tracker tick few concepts on real speech.
 :class:`LiveTicker` asks the model which of the pending concepts
 (:meth:`TopicTracker.focus_points`) the candidate's answers talked
-about (template ``interview.ticks@1``) and gives the reply to
-:meth:`TopicTracker.suggested`, which ticks them ``by: "live_model"``.
+about (template ``interview.ticks@2``; ``@1`` before #286) and gives
+the reply to :meth:`TopicTracker.suggested`, which ticks them ``by:
+"live_model"``. Since #286 the same reply also says which concepts an
+interviewer's question in the window asked (``asked``), marked asked
+``by: "live_model"``: no extra call.
 
 **Bounded cost.** One call covers **every candidate final since the
 previous call**, and two calls are at least ``every_s`` apart (the
@@ -44,7 +47,8 @@ from orchestrator.application.ports import (
 from orchestrator.domain.events import LiveEvent
 
 LOG = logging.getLogger(__name__)
-TICKS_TEMPLATE = "interview.ticks@1"
+TICKS_TEMPLATE = "interview.ticks@2"
+"""Since #286 the same call also says which concepts a question asked."""
 TICKS_DEADLINE_MS = 20000
 """Deadline of one tick call: a cold process start (2–5 s) and a short
 reply; a late tick is of no use to the interviewer."""

@@ -65,6 +65,9 @@ from orchestrator.application.live_judgement import (
 )
 from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.next_round import TopicTracker
+from orchestrator.domain.interview_coverage import (
+    without_words as coverage_without_words,
+)
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
 from orchestrator.application.interview import (
@@ -1577,6 +1580,11 @@ class LiveSessions:
         }
         if session.ticker is not None:
             record["ticks"] = session.ticker.view()  # numbers only
+        if session.topics is not None:
+            # #286: each topic's level and each concept asked / treated,
+            # ids and times only (no words).
+            record["coverage"] = coverage_without_words(
+                session.topics.coverage())
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
         self._write_handoff(session)
@@ -1646,6 +1654,28 @@ class LiveSessions:
                                         round(self.clock.now(), 3))
         except TickRefused as exc:
             raise SessionError("invalid_request", str(exc)) from exc
+
+    def mark_asked(self, session_id: str, topic: str, point: str,
+                   asked: bool) -> Document:
+        """Mark a concept's question as asked by hand, or undo it (#286).
+
+        Recorded ``by: "hand"`` with the session's time; undoing
+        removes only a mark made by hand.
+        """
+        session = self._running(session_id)
+        if session.topics is None:
+            raise SessionError("not_found", "this session has no topics")
+        try:
+            return session.topics.mark_asked(topic, point, asked,
+                                             self._stream_seconds(session))
+        except KeyError as exc:
+            raise SessionError("not_found", "no such concept") from exc
+
+    @staticmethod
+    def _stream_seconds(session: _Session) -> float:
+        """The session's time now: its latest event (seconds)."""
+        topics = session.topics
+        return topics.stream_time if topics is not None else 0.0
 
     def _running(self, session_id: str) -> _Session:
         session = self._find(session_id)

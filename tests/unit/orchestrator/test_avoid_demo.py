@@ -251,6 +251,30 @@ def test_the_demo_replays_its_script_without_any_model_call() -> None:
         "treated", "treated", "pending"]
     assert all(p["status"] == "treated" for p in last["python_apis"]["points"])
     assert [i for i, t in last.items() if t.get("current")] == ["teamwork"]
+    # #286: levels by the live rule, concepts asked apart from treated,
+    # and the next concept to ask.
+    levels = {i: t["coverage"]["level"] for i, t in last.items()}
+    assert levels == {"python_apis": "well_treated",
+                      "databases": "well_treated", "experience": "treated",
+                      "testing": "treated", "teamwork": "treated"}
+    integration = last["testing"]["points"][2]
+    assert integration["status"] == "pending"
+    assert integration["asked"]["by"] == "rules"  # asked, no answer
+    assert last["databases"]["points"][1]["asked"] is None  # not asked
+    assert topics[0][0]["coverage"]["level"] == "none"
+    order = ["none", "named", "treated", "well_treated"]
+    for before, after in zip(topics, topics[1:]):
+        for a, b in zip(before, after):
+            assert order.index(b["coverage"]["level"]) >= order.index(
+                a["coverage"]["level"])
+    proposals = [m["next"] for m in messages if m["type"] == "topics"]
+    assert proposals[0]["topic"] == "python_apis"
+    assert proposals[-1] == {
+        "topic": "testing", "topic_name": "Pruebas automáticas",
+        "point": "integration", "text": "Pruebas de integración",
+        "question": "Volviendo a pruebas de integración: ¿me lo puedes "
+                    "concretar un poco más, con un ejemplo?",
+        "again": True}
     asked = [next(t["id"] for t in ts if t.get("current"))
              for ts in topics[1:]]
     assert asked[0] == "python_apis" and "testing" in asked

@@ -22,7 +22,13 @@ reply defensively and merges them:
   listed with no valid answer and no concept is left out;
 * across batches the answers are joined (in round order) and a
   concept keeps its strongest status (``treated`` over ``unknown``),
-  as :func:`~orchestrator.domain.interview_points.record_hit` does.
+  as :func:`~orchestrator.domain.interview_points.record_hit` does;
+* since #286 (template ``interview.attribution@2``) a point may also
+  list the concepts the **interviewer asked** (``asked``: concept id
+  and the interviewer's utterance id): only an interviewer's line of
+  that batch counts, the earliest one is kept, and
+  :func:`asked_marks` turns them into asked marks ``by:
+  "after_session"``.
 
 "Treated" only means the candidate talked about it; how accurate it
 was is the judge's work (``interview.report@2``), and nothing here is
@@ -36,6 +42,7 @@ from orchestrator.domain.interview import (
     QUOTE_CHARS,
     Answer,
     InterviewPlan,
+    PointAsked,
     PointStatus,
     SheetPoint,
     SheetSlot,
@@ -71,6 +78,8 @@ class RoundLine:
     id: str
     role: str
     text: str
+    start: Optional[float] = None
+    """Seconds from the start of the session (``None``: not known)."""
 
 
 @dataclass
@@ -89,6 +98,8 @@ class SlotFound:
     answers: List[str] = field(default_factory=list)
     complete: bool = False
     points: Dict[str, PointFound] = field(default_factory=dict)
+    asked: Dict[str, str] = field(default_factory=dict)
+    """Concept id → the interviewer's utterance that asked it (#286)."""
 
 
 Attribution = Dict[str, SlotFound]
@@ -203,6 +214,7 @@ def read_attribution(
     """
     candidate = {line.id: line.text for line in lines
                  if line.role == CANDIDATE}
+    interviewer = {line.id for line in lines if line.role == INTERVIEWER}
     order = {line.id: n for n, line in enumerate(lines)}
     known = {s.id: {p.id for p in s.points} for s in plan.slots}
     found: Attribution = {}
@@ -231,7 +243,18 @@ def read_attribution(
                 continue
             counts["kept"] += 1
             _keep_point(slot.points, *read)
-        if not slot.answers and not slot.points:
+        asked = item.get("asked")
+        for raw_asked in asked if isinstance(asked, list) else []:
+            if not isinstance(raw_asked, dict):
+                continue
+            counts["given"] += 1
+            pid, by = _id(raw_asked.get("id")), _id(raw_asked.get("by"))
+            if pid in known[sid] and by in interviewer and (
+                    pid not in slot.asked
+                    or order[by] < order[slot.asked[pid]]):
+                counts["kept"] += 1
+                slot.asked[pid] = by
+        if not slot.answers and not slot.points and not slot.asked:
             del found[sid]
     if stats is not None:
         for key, value in counts.items():
@@ -260,7 +283,32 @@ def merged(parts: Sequence[Attribution],
             into.complete = into.complete or slot.complete
             for pid, point in slot.points.items():
                 _keep_point(into.points, pid, point)
+            for pid, by in slot.asked.items():
+                if pid not in into.asked or at.get(by, len(at)) < at.get(
+                        into.asked[pid], len(at)):
+                    into.asked[pid] = by
     return found
+
+
+def asked_marks(
+    found: Attribution, lines: Sequence[RoundLine],
+) -> Dict[str, Dict[str, PointAsked]]:
+    """The concepts the model says were asked, as asked marks (#286).
+
+    Slot id → concept id → ``by: "after_session"``, with the
+    interviewer's line, its start and its first words.
+    """
+    by_id = {line.id: line for line in lines}
+    marks: Dict[str, Dict[str, PointAsked]] = {}
+    for sid, slot in found.items():
+        for pid, uid in slot.asked.items():
+            line = by_id.get(uid)
+            if line is None:
+                continue
+            marks.setdefault(sid, {})[pid] = PointAsked(
+                by="after_session", at=line.start, utterance=uid,
+                quote=quote(line.text))
+    return marks
 
 
 def attributed_slots(
