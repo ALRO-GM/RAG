@@ -213,6 +213,16 @@ class KnowledgeLibrary:
         if document_type in MEDIA_TYPES and self.media is None:
             raise UnsupportedDocumentError(NO_TRANSCRIBER)
 
+    def find(
+        self, domain_id: str, filename: str, sha256: str
+    ) -> Optional[KnowledgeDocument]:
+        """Return the document of ``filename`` with these bytes, if kept."""
+        name = sanitise_filename(filename)
+        try:
+            return self.store.get(domain_id, document_id_of(name, sha256))
+        except NotFoundError:
+            return None
+
     def accept(
         self,
         domain_id: str,

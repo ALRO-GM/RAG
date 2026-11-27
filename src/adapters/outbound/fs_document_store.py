@@ -43,11 +43,16 @@ def check_document_id(value: str) -> str:
     return value
 
 
-def write_atomically(path: Path, data: bytes) -> None:
-    """Write ``data`` to ``path`` through a temporary file and a rename."""
+def write_atomically(path: Path, data: bytes, mode: int = 0o666) -> None:
+    """Write ``data`` to ``path`` through a temporary file and a rename.
+
+    The file is created with ``mode`` (less the umask) from the start.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp")
-    with open(tmp, "wb") as handle:
+    tmp.unlink(missing_ok=True)  # a leftover would keep its old mode
+    descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(descriptor, "wb") as handle:
         handle.write(data)
         handle.flush()
         os.fsync(handle.fileno())

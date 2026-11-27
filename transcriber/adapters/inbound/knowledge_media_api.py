@@ -25,7 +25,7 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.concurrency import run_in_threadpool
@@ -40,6 +40,8 @@ from transcriber.application.knowledge_media import (
 from transcriber.domain.errors import NoSpaceError, PublishError
 
 PREFIX = "/internal/knowledge-media"
+WRITE_BYTES = 1024 * 1024
+"""Bytes gathered from the body before one write to disk (in a thread)."""
 
 Refuse = Callable[[Optional[str], Mapping[str, str]], None]
 """Counts a failed credential of a client and raises (``401``/``429``)."""
@@ -89,12 +91,22 @@ async def receive_file(
                          0o600)
     try:
         with os.fdopen(descriptor, "wb") as handle:
+            pending: List[bytes] = []
+            held = 0
             async for part in request.stream():
                 size += len(part)
                 if size > limit:
                     raise ApiError(413, "payload_too_large",
                                    f"The body is larger than {limit} bytes.")
-                handle.write(part)
+                pending.append(part)
+                held += len(part)
+                if held >= WRITE_BYTES:
+                    # the disk is written off the event loop (live sessions
+                    # are served by the same loop)
+                    await run_in_threadpool(handle.write, b"".join(pending))
+                    pending, held = [], 0
+            if pending:
+                await run_in_threadpool(handle.write, b"".join(pending))
     except BaseException:
         target.unlink(missing_ok=True)
         raise

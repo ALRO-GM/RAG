@@ -45,6 +45,10 @@ export const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "3gp"];
 /** Waits before trying a piece again after a cut (then the last one, again). */
 export const RETRY_MS = [1000, 2000, 5000, 10000, 20000, 30000];
 
+/** Piece size used when the server's limits could not be read (the server
+ * still refuses a bigger piece, and checks every size limit itself). */
+export const DEFAULT_PIECE_BYTES = 8 * 1024 * 1024;
+
 /** Tries of one piece before the upload is shown as failed (≈ 15 min of cuts). */
 export const MAX_TRIES = 40;
 
@@ -274,13 +278,16 @@ export class PieceUpload {
     this.sent = 0;
     this.retrying = false;
     this.finishing = false;
+    this.restarted = false;
     this.cancelled = false;
     this.controller = null;
     this.wake = null;
   }
 
   report() {
-    this.onProgress({ sent: this.sent, total: this.file.size, retrying: this.retrying, finishing: this.finishing });
+    this.onProgress({
+      sent: this.sent, total: this.file.size, retrying: this.retrying, finishing: this.finishing, restarted: this.restarted,
+    });
   }
 
   /** Wait `ms` on the injected timer; cancel() ends the wait at once. */
@@ -359,8 +366,17 @@ export class PieceUpload {
   /** Send the whole file; resolves with the document, rejects with the reason. */
   async run() {
     if (this.uploadId) {
-      await this.withRetries(() => this.realign());
-    } else {
+      try {
+        await this.withRetries(() => this.realign());
+      } catch (error) {
+        if (error?.status !== 404) throw error;
+        // the server no longer has it (swept, or refused): start again
+        this.uploadId = null;
+        this.sent = 0;
+        this.restarted = true;
+      }
+    }
+    if (!this.uploadId) {
       const upload = await this.withRetries(() => this.api.startKnowledgeUpload(this.domain, {
         name: this.file.name, size: this.file.size, metadata: this.metadata,
       }));
@@ -584,21 +600,26 @@ export class KnowledgeModel {
    * server's limits are unknown), else in pieces with progress and resume.
    */
   async send(item) {
-    const pieceBytes = Number(this.state.limits?.piece_bytes);
-    if (!(pieceBytes > 0) || item.size <= pieceBytes || typeof this.api.startKnowledgeUpload !== "function") {
+    if (!this.state.limits) await this.loadLimits(); // they may be readable now
+    const served = Number(this.state.limits?.piece_bytes);
+    const pieceBytes = served > 0 ? served : DEFAULT_PIECE_BYTES;
+    if (item.size <= pieceBytes || typeof this.api.startKnowledgeUpload !== "function") {
       return this.api.uploadKnowledgeDocument(item.domain, item.file, item.metadata);
     }
     item.piece = new PieceUpload(this.api, {
       domain: item.domain, file: item.file, metadata: item.metadata, pieceBytes, timer: this.timer, uploadId: item.uploadId,
-      onProgress: ({ sent, retrying, finishing }) => {
-        Object.assign(item, { sent, retrying, finishing, uploadId: item.piece?.uploadId ?? item.uploadId });
+      onProgress: ({ sent, retrying, finishing, restarted }) => {
+        Object.assign(item, { sent, retrying, finishing, restarted, uploadId: item.piece?.uploadId ?? item.uploadId });
         this.changed();
       },
     });
     try {
       return await item.piece.run();
+    } catch (error) {
+      if (error?.status === 404) item.piece.uploadId = null; // gone on the server: a retry starts over
+      throw error;
     } finally {
-      item.uploadId = item.piece?.uploadId ?? item.uploadId;
+      item.uploadId = item.piece ? item.piece.uploadId : item.uploadId;
     }
   }
 

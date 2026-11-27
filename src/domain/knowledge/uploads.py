@@ -147,9 +147,10 @@ class PartialUpload(BaseModel):
     ``received`` bytes are on disk, from the start; ``checked`` says
     the content's type was checked against the name (once its first
     bytes arrived); ``touched`` is when a piece last arrived (seconds
-    since the epoch), for the sweep; ``document`` is the document it
-    became once completed (kept so a repeated completion answers the
-    same).
+    since the epoch), for the sweep; ``sha256`` the digest of the whole
+    file, recorded before it is moved into the store; ``document`` is the
+    document it became once completed (kept so a repeated completion
+    answers the same).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -163,6 +164,7 @@ class PartialUpload(BaseModel):
     metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
     checked: bool = False
     touched: float = 0.0
+    sha256: Optional[str] = None
     document: Optional[KnowledgeDocument] = None
 
     @property

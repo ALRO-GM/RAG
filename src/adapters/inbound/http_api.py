@@ -915,6 +915,30 @@ def mount_library(
         return Response(status_code=204)
 
 
+def bounded(request: Request, limit: int) -> Request:
+    """Return ``request`` whose body is refused (413) past ``limit`` bytes.
+
+    Counted as it arrives, so a body without ``Content-Length`` (chunked)
+    cannot be spooled without end either.
+    """
+    receive = request.receive
+    seen = [0]
+
+    async def counted() -> Any:
+        """Pass a message on, counting the body bytes."""
+        message = await receive()
+        if message.get("type") == "http.request":
+            seen[0] += len(message.get("body", b""))
+            if seen[0] > limit:
+                raise HTTPException(status_code=413, detail=(
+                    f"El archivo supera {limit} bytes. / The file is "
+                    f"larger than {limit} bytes."
+                ))
+        return message
+
+    return Request(request.scope, counted)
+
+
 def mount_uploads(
     app: FastAPI, uploads: DocumentUploads, guard: List[Any]
 ) -> None:
@@ -955,8 +979,10 @@ def mount_uploads(
 
         ``202`` with the document, status ``queued``: extraction,
         chunking and embedding run in the background. The multipart is
-        spooled to a temporary file by the server, then read a piece at
-        a time; large files are better sent in pieces (below).
+        spooled to a temporary file by the server (in the system's temp
+        folder; its body counted as it arrives and refused past the
+        largest limit), then read a piece at a time; large files are
+        better sent in pieces (below).
         """
         largest = library.limits.largest
         declared = request.headers.get("content-length", "")
@@ -972,7 +998,7 @@ def mount_uploads(
             raise HTTPException(status_code=422,
                                 detail="Send multipart/form-data.")
         try:
-            form = await request.form(
+            form = await bounded(request, largest + MULTIPART_OVERHEAD).form(
                 max_files=1, max_fields=4,
                 max_part_size=KNOWLEDGE_JSON_MAX_BYTES,
             )

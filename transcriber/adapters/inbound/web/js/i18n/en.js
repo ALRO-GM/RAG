@@ -1200,6 +1200,7 @@ export const en = {
   "kn.upload.progress": "{sent} of {total} ({percent}%)",
   "kn.upload.finishing": "Checking the file…",
   "kn.upload.retrying": "The connection dropped. We carry on from where it stopped as soon as it is back; nothing to do.",
+  "kn.upload.restarted": "The server no longer had what was sent (it is deleted after a day); sending it again from the start.",
   "kn.upload.resume_hint": "Trying again carries on from what already arrived, without starting over.",
   "kn.upload.cancel_named": "Cancel the upload of {name}",
   "kn.pages_done": "{done} of {total} pages read",

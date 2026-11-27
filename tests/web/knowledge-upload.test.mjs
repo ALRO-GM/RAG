@@ -5,7 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  KnowledgeModel, MAX_TRIES, PieceUpload, RETRY_MS, UploadCancelled, limitKind, limitText, percentOf,
+  DEFAULT_PIECE_BYTES, KnowledgeModel, MAX_TRIES, PieceUpload, RETRY_MS, UploadCancelled, limitKind, limitText, percentOf,
 } from "../../transcriber/adapters/inbound/web/js/lib/knowledge.js";
 import { Api, ApiFailure } from "../../transcriber/adapters/inbound/web/js/api.js";
 import { setLanguage, t } from "../../transcriber/adapters/inbound/web/js/i18n.js";
@@ -69,7 +69,7 @@ class FakeServer {
 
   async startKnowledgeUpload(domain, { name, size, metadata }) {
     this.calls.push(`start ${name}`);
-    if (size > LIMITS[limitKind(name)]) {
+    if (size > (this.limits ?? LIMITS)[limitKind(name)]) {
       throw new ApiFailure({ status: 413, kind: "client", code: "payload_too_large", message: "too large" });
     }
     this.next += 1;
@@ -321,14 +321,51 @@ test("cancel drops a waiting file, stops one in pieces and deletes what the serv
   await model.cancelUpload(999);
 });
 
-test("without the server's limits the page sends everything in one request", async () => {
+test("without the server's limits a large file still goes in pieces (the server checks the size)", async () => {
   const server = new FakeServer();
-  server.knowledgeLimits = async () => { throw CUT(); };
+  let asked = 0;
+  server.knowledgeLimits = async () => { asked += 1; throw CUT(); };
+  server.limits = { ...LIMITS, pdf: 10 * DEFAULT_PIECE_BYTES };
   const model = new KnowledgeModel(server, { timer: manualClock() });
   await model.load("hr");
   assert.equal(model.state.limits, null);
-  await model.addFiles([blobFile("big.pdf", 150)]);
-  assert.deepEqual(server.calls, ["single big.pdf"]);
+  const big = blobFile("big.pdf", DEFAULT_PIECE_BYTES + 10);
+  await model.addFiles([blobFile("small.md", 10), big]);
+  assert.equal(asked, 3, "the limits are asked for again before each file");
+  assert.deepEqual(server.calls.filter((c) => !c.startsWith("put")), ["single small.md", "start big.pdf", "complete"]);
+  assert.deepEqual(server.calls.filter((c) => c.startsWith("put")), ["put 0", `put ${DEFAULT_PIECE_BYTES}`]);
+  assert.equal(model.state.uploads.length, 0);
+});
+
+test("an upload the server no longer has (swept, refused) starts again on retry", async () => {
+  const server = new FakeServer();
+  const clock = manualClock();
+  const model = new KnowledgeModel(server, { timer: clock });
+  await model.load("hr");
+  server.script = ["ok", ...Array(MAX_TRIES).fill("cut")];
+  const adding = model.addFiles([blobFile("big.pdf", 150)]);
+  for (let i = 0; i < MAX_TRIES + 2; i += 1) {
+    await settle();
+    await clock.fire();
+  }
+  await adding;
+  const [item] = model.state.uploads;
+  const gone = item.uploadId;
+  server.uploads.delete(gone); // swept after 24 h
+  server.calls = [];
+  const seen = [];
+  model.onChange = (s) => { for (const u of s.uploads) if (u.restarted) seen.push("restarted"); };
+  await model.retryUpload(item.key);
+  assert.deepEqual(server.calls.filter((c) => c !== "limits"), ["status", "start big.pdf", "put 0", "put 64", "put 128", "complete"]);
+  assert.ok(seen.length, "the row says it starts again");
+  assert.equal(model.state.uploads.length, 0);
+
+  // a 404 in the middle (the upload deleted meanwhile) fails, and the retry starts over
+  server.putKnowledgePiece = async () => { throw new ApiFailure({ status: 404, kind: "client", code: "not_found" }); };
+  await model.addFiles([blobFile("other.pdf", 150)]);
+  const [failed] = model.state.uploads;
+  assert.equal(failed.state, "failed");
+  assert.equal(failed.uploadId, null, "nothing left to resume");
 });
 
 // ---- the messages, in both languages -----------------------------------------------
@@ -349,6 +386,7 @@ test("the messages say the real limit of the kind, the progress and the retry ca
     assert.equal(t("kn.reject.size_audio", { limit: "200 MB", size: "300 MB" }), "Audio files may be up to 200 MB; this one is 300 MB.");
     assert.equal(t("kn.upload.progress", { sent: "64 MB", total: "1 GB", percent: 6 }), "64 MB of 1 GB (6%)");
     assert.match(t("kn.upload.retrying"), /carry on from where it stopped/);
+    assert.match(t("kn.upload.restarted"), /from the start/);
     assert.equal(t("kn.upload.finishing"), "Checking the file…");
     assert.equal(t("kn.err_space"), "The server's disk has no room for this file.");
   } finally {

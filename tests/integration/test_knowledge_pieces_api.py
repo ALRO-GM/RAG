@@ -193,6 +193,8 @@ def test_the_area_on_disk(tmp_path: Path) -> None:
     area.create(upload)
     part = tmp_path / UPLOADS_DIR / f"{upload.id}.part"
     assert stat.S_IMODE(part.stat().st_mode) == 0o600
+    record = tmp_path / UPLOADS_DIR / f"{upload.id}.json"
+    assert stat.S_IMODE(record.stat().st_mode) == 0o600
     area.write(upload.id, 0, b"abc")
     area.write(upload.id, 3, b"def")
     assert area.head(upload.id, 4) == b"abcd"
@@ -251,3 +253,34 @@ def test_the_store_moves_and_copies_across_disks(
     assert Path(kept.path).read_bytes() == b"pdf" and kept.size == 3
     assert not source.exists()
     assert stat.S_IMODE(Path(kept.path).stat().st_mode) == 0o600
+
+
+def test_one_request_without_length_is_bounded(
+    app: App, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A chunked multipart body (no Content-Length) is cut off past the
+    largest limit plus the envelope, not spooled without end."""
+    client, _ = app
+    create(client)
+    boundary = "b0undary"
+    head = (
+        f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
+        f"filename=\"a.txt\"\r\nContent-Type: text/plain\r\n\r\n"
+    ).encode()
+
+    def body() -> Any:
+        """The multipart, 300 000 bytes of file a block at a time."""
+        yield head
+        for _ in range(300):
+            yield b"x" * 1000
+        yield f"\r\n--{boundary}--\r\n".encode()
+
+    small = {**AUTH, "content-type": f"multipart/form-data; boundary="
+             f"{boundary}"}
+    monkeypatch.setattr(
+        "src.adapters.inbound.http_api.MULTIPART_OVERHEAD", 1000
+    )
+    refused = client.post("/knowledge/domains/acme/documents",
+                          headers=small, content=body())
+    assert refused.status_code == 413, refused.text
+    assert documents(client) == []

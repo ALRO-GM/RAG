@@ -331,6 +331,8 @@ class FakeUploadArea:
     def file(self, upload_id: str) -> StoredFile:
         """Return the file."""
         part = self._part(upload_id)
+        if not part.is_file():
+            raise NotFoundError(f"No upload {upload_id!r}.")
         return StoredFile(str(part), part.stat().st_size)
 
     def discard(self, upload_id: str) -> None:

@@ -68,6 +68,10 @@ LOG = logging.getLogger(__name__)
 
 UPLOAD_TTL_SECONDS = 24 * 3600.0
 """How long an upload nobody sends to is kept (a night's pause)."""
+STALE_SECONDS = 30 * 60.0
+"""After this long without a piece an upload stops reserving disk (a
+later piece reserves it again), and one that never got a byte (an answer
+to ``start`` lost, a page closed) is swept."""
 
 
 class DocumentUploads:
@@ -78,6 +82,7 @@ class DocumentUploads:
         area: Where the pieces are written.
         min_free_bytes: Disk always left free (the margin).
         ttl_seconds: How long an untouched upload is kept.
+        stale_seconds: See :data:`STALE_SECONDS`.
         clock: Seconds since the epoch (tests pass a fake).
         new_id: Returns a new upload id (tests pass a fake).
     """
@@ -88,6 +93,7 @@ class DocumentUploads:
         area: UploadArea,
         min_free_bytes: int,
         ttl_seconds: float = UPLOAD_TTL_SECONDS,
+        stale_seconds: float = STALE_SECONDS,
         clock: Callable[[], float] = time.time,
         new_id: Callable[[], str] = lambda: uuid.uuid4().hex,
     ) -> None:
@@ -96,6 +102,7 @@ class DocumentUploads:
         self.area = area
         self.min_free_bytes = min_free_bytes
         self.ttl_seconds = ttl_seconds
+        self.stale_seconds = stale_seconds
         self.clock = clock
         self.new_id = new_id
         self._lock = threading.RLock()
@@ -103,14 +110,18 @@ class DocumentUploads:
     # Disk ---------------------------------------------------------------
 
     def _reserved(self) -> int:
-        """Return the disk still promised to the uploads in progress."""
+        """Return the disk still promised to the uploads in progress.
+
+        An upload without a piece for ``stale_seconds`` promises nothing.
+        """
         total = 0
+        stale = self.clock() - self.stale_seconds
         for upload_id in self.area.ids():
             try:
                 upload = self.area.load(upload_id)
             except RagError:
                 continue
-            if upload.document is None:
+            if upload.document is None and upload.touched >= stale:
                 total += space_needed(upload.type, upload.size) - \
                     upload.received
         return total
@@ -258,9 +269,17 @@ class DocumentUploads:
                     f"Faltan {upload.size - upload.received} bytes. / "
                     f"{upload.size - upload.received} bytes are missing."
                 )
+            if upload.sha256 is not None:
+                kept = self._accepted(domain_id, upload)
+                if kept is not None:
+                    return kept
             digest = hashlib.sha256()
             for piece in self.area.read(upload.id):
                 digest.update(piece)
+            # The digest is recorded first: if the process stops after the
+            # file was moved into the store, completing again finds it.
+            upload = upload.model_copy(update={"sha256": digest.hexdigest()})
+            self.area.save(upload)
             received = ReceivedFile(
                 upload.name, self.area.file(upload.id),
                 self.area.head(upload.id, SNIFF_BYTES), digest.hexdigest(),
@@ -272,11 +291,39 @@ class DocumentUploads:
             except RagError:
                 self.area.discard(upload.id)
                 raise
-            self.area.drop_file(upload.id)
-            self.area.save(upload.model_copy(update={
-                "document": document, "touched": self.clock(),
-            }))
-            return document
+            return self._done(upload, document)
+
+    def _done(
+        self, upload: PartialUpload, document: KnowledgeDocument
+    ) -> KnowledgeDocument:
+        """Record the document an upload became; drop its file."""
+        self.area.drop_file(upload.id)
+        self.area.save(upload.model_copy(update={
+            "document": document, "touched": self.clock(),
+        }))
+        return document
+
+    def _accepted(
+        self, domain_id: str, upload: PartialUpload
+    ) -> Optional[KnowledgeDocument]:
+        """Return the document an interrupted completion already made.
+
+        Only when the upload's file is gone (moved into the store) and
+        the document of its name and digest exists.
+        """
+        try:
+            self.area.file(upload.id)
+            return None  # the file is still here: complete it normally
+        except NotFoundError:
+            pass
+        assert upload.sha256 is not None
+        document = self.library.find(domain_id, upload.name, upload.sha256)
+        if document is None:
+            raise NotFoundError(
+                "La subida se perdió; vuelve a subir el archivo. / The "
+                "upload was lost; upload the file again."
+            )
+        return self._done(upload, document)
 
     def receive(
         self,
@@ -326,8 +373,10 @@ class DocumentUploads:
     # Housekeeping -------------------------------------------------------
 
     def sweep(self) -> int:
-        """Delete the uploads untouched for ``ttl_seconds``; count them."""
+        """Delete the uploads untouched for ``ttl_seconds``, and those
+        that never got a byte in ``stale_seconds``; count them."""
         deadline = self.clock() - self.ttl_seconds
+        stale = self.clock() - self.stale_seconds
         count = 0
         with self._lock:
             for upload_id in self.area.ids():
@@ -337,7 +386,10 @@ class DocumentUploads:
                     )
                 except RagError:
                     upload = None
-                if upload is None or upload.touched < deadline:
+                if upload is None or upload.touched < deadline or (
+                    upload.received == 0 and upload.document is None
+                    and upload.touched < stale
+                ):
                     self.area.discard(upload_id)
                     count += 1
         if count:

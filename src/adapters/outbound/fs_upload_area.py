@@ -74,9 +74,8 @@ class FileSystemUploadArea:
         """Replace an upload's record."""
         write_atomically(
             self._record(upload.id),
-            upload.model_dump_json().encode("utf-8"),
+            upload.model_dump_json().encode("utf-8"), mode=0o600,
         )
-        os.chmod(self._record(upload.id), 0o600)
 
     def write(self, upload_id: str, offset: int, data: bytes) -> None:
         """Write ``data`` at ``offset`` and flush it to disk."""

@@ -238,6 +238,7 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
         })
         : null,
       inPieces && item.retrying ? h("p", { class: "hint", role: "status" }, t("kn.upload.retrying")) : null,
+      inPieces && item.restarted ? h("p", { class: "hint", role: "status" }, t("kn.upload.restarted")) : null,
       item.state === "failed" && item.uploadId ? h("p", { class: "hint" }, t("kn.upload.resume_hint")) : null,
       why ? h("p", { class: "error" }, why) : null,
       cancellable

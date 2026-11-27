@@ -3,7 +3,7 @@
 import hashlib
 import itertools
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import pytest
 
@@ -155,14 +155,25 @@ def test_messages_say_the_real_limit() -> None:
     assert space_needed("mp4", 10) == 20 and space_needed("pdf", 10) == 10
 
 
-def test_streamed_hash_gives_the_old_id() -> None:
-    """Existing documents keep their ids; duplicates are still found."""
-    data = b"same bytes" * 1000
+@pytest.mark.parametrize("name, data, expected", [
+    ("Guía.pdf", b"same bytes" * 1000, "guia-cabd2a98"),
+    ("Manual devoluciones.docx", b"PK\x03\x04x",
+     "manual-devoluciones-6e094881"),
+    ("...", b"", "doc-e3b0c442"),
+])
+def test_streamed_hash_gives_the_old_id(
+    name: str, data: bytes, expected: str,
+) -> None:
+    """Existing documents keep their ids; duplicates are still found.
+
+    ``expected`` was computed with ``document_id`` as it was before #282
+    (``origin/main``, c5d0501), not with the code under test.
+    """
     digest = hashlib.sha256()
     for start in range(0, len(data), 7):
         digest.update(data[start:start + 7])
-    assert document_id_of("Guía.pdf", digest.hexdigest()) == \
-        document_id("Guía.pdf", data)
+    assert document_id_of(name, digest.hexdigest()) == expected
+    assert document_id(name, data) == expected
     with pytest.raises(InvalidInputError):
         check_upload_id("../../x")
 
@@ -375,3 +386,66 @@ def test_sweep_deletes_abandoned_uploads(setup: Setup) -> None:
     assert setup.uploads.sweep() == 0
     assert not list(setup.area.root.glob("*.part"))
     assert old.id not in setup.area.ids()
+
+
+def test_the_transcriber_forwards_pieces_of_the_rag_size() -> None:
+    """The transcriber's cap on a forwarded piece (and on a single
+    request) cannot drift from the RAG's piece size."""
+    from transcriber.application import knowledge as forwarding
+
+    assert forwarding.PIECE_BYTES == PIECE_BYTES
+    assert forwarding.SINGLE_UPLOAD_BYTES == PIECE_BYTES
+
+
+def test_stale_uploads_stop_reserving_and_empty_ones_go_sooner(
+    tmp_path: Path,
+) -> None:
+    """An answer to ``start`` lost: after 30 min the orphan promises no
+    disk and, with no byte, is swept; one with progress keeps 24 h."""
+    setup = Setup(tmp_path, free=1800, min_free=1000)
+    orphan = setup.start("a.pdf", 500)
+    with pytest.raises(NoSpaceError):
+        setup.start("b.pdf", 400)
+    setup.clock.now += 1801
+    started = setup.start("b.pdf", 400)  # the orphan no longer counts
+    setup.uploads.put("acme", started.id, 0, PDF[:300])
+    setup.clock.now += 1801
+    assert setup.uploads.sweep() == 1
+    assert setup.area.ids() == [started.id], "progress: kept for the TTL"
+    assert orphan.id not in setup.area.ids()
+
+
+def test_a_completion_cut_after_the_move_is_found_again(
+    setup: Setup,
+) -> None:
+    """The process stopped after the file went into the store but before
+    the upload recorded it: completing again returns that document."""
+    upload = setup.start("a.md", len(TEXT))
+    setup.send(upload, TEXT, 50)
+    save = setup.area.save
+    calls = []
+
+    def stop_after_the_digest(record: PartialUpload) -> None:
+        """Save the digest, then fail as if the process stopped."""
+        calls.append(record)
+        if record.document is not None:
+            raise RuntimeError("stopped")
+        save(record)
+
+    area: Any = setup.area
+    area.save = stop_after_the_digest
+    with pytest.raises(RuntimeError):
+        setup.uploads.complete("acme", upload.id)
+    area.save = save
+    stored = setup.area.load(upload.id)
+    assert stored.sha256 is not None and stored.document is None
+    document = setup.uploads.complete("acme", upload.id)
+    assert document.id == document_id("a.md", TEXT)
+    assert setup.area.load(upload.id).document == document
+    lost = setup.start("b.md", len(TEXT))
+    setup.send(lost, TEXT[::-1], 50)
+    setup.area.save(setup.area.load(lost.id).model_copy(
+        update={"sha256": "0" * 64}))
+    setup.area.drop_file(lost.id)
+    with pytest.raises(NotFoundError, match="lost"):
+        setup.uploads.complete("acme", lost.id)

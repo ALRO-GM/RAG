@@ -144,7 +144,11 @@ real limit of its kind: «Los PDF pueden ocupar hasta 500 MB; este ocupa
 
 **Upload in pieces** (the page does it for every file larger than one
 piece; the single multipart request stays for small files and the API's
-other callers, with the same checks):
+other callers, with the same checks). Through the transcriber
+(`/api/knowledge/…/documents`, what the page uses) a single request is
+capped at one piece, 8 MiB plus 1 MiB of envelope (`413` above); the
+RAG's own route keeps the per-kind limits. A test keeps the
+transcriber's piece size equal to the RAG's.
 
 | Method and path | Body | Answer |
 |---|---|---|
@@ -152,7 +156,7 @@ other callers, with the same checks):
 | `POST /knowledge/domains/{id}/uploads` | `{"name","size","metadata"}` | `201` upload `{"id","domain","name","type","size","received","piece_bytes","document"}`; refused at once (`415` type by name, `413` size over the kind's limit, `422` metadata, `507` no room) |
 | `PUT …/uploads/{up}/pieces/{offset}` | raw bytes, at most `piece_bytes` (8 MiB) | `200` upload; `409` when `offset` is past `received` (ask the status, go on from `received`); a piece already received is accepted again without writing; `422` past the announced size; `413` piece too big, or the content's kind has a smaller limit; `415` content not matching the name (checked as soon as the first 4 KiB arrive; the upload is deleted) |
 | `GET …/uploads/{up}` | — | `200` upload (`received` = bytes on disk, from the start) |
-| `POST …/uploads/{up}/complete` | — | `202` document `queued`; again: the same document (an answer lost); `409` while bytes are missing; a refused file (duplicate, broken container) is deleted |
+| `POST …/uploads/{up}/complete` | — | `202` document `queued`; again: the same document (an answer lost, or the RAG stopped right after moving the file: the digest is recorded first, so the document is found again); `409` while bytes are missing; a refused file (duplicate, broken container) is deleted |
 | `DELETE …/uploads/{up}` | — | `204`, what arrived is deleted |
 
 The upload id is 32 random hex characters; the transcriber forwards
@@ -177,7 +181,11 @@ a path it would read it whole), Docling gets the path and reads one
 batch of pages at a time, the figures of a batch are captioned and
 dropped before the next one, DOCX/ODT/XLSX are opened from the file.
 Text formats (CSV, HTML, MD, TXT, ≤ 100 MiB) are decoded whole, since
-their text is what is indexed. A recording is streamed to the
+their text is what is indexed. The RAG's own one-request route (the
+API's other callers) is spooled by the web framework to the system's
+temp folder before the checks; its body is counted as it arrives and
+refused past the largest limit plus 1 MiB, with or without
+`Content-Length` (the disk check of the temp folder is not done). A recording is streamed to the
 transcriber (`Content-Length`, blocks), which writes it to
 `<data_dir>/knowledge-media/incoming` as it arrives, moves it into the
 job and decodes it from the file (a stored recording over 64 MiB is
@@ -201,7 +209,9 @@ connection cut in the middle of a piece (resumed from what the server
 held), a piece at a gap (`409`) and a piece sent twice (`200`, not
 written again). RSS sampled every 50 ms; "additional" is above each
 process's RSS just before the upload. Files generated under a temp
-folder and deleted afterwards.
+folder and deleted afterwards. The commands are in
+`experiments/knowledge/large_upload_*.py` (how to run them:
+`large_upload_client.py`'s docstring).
 
 | File | Pieces | Upload (loopback) | Complete | Processing | Peak additional RSS while receiving | Peak additional RSS while processing |
 |---|---|---|---|---|---|---|
@@ -236,7 +246,10 @@ once the transcript is read, as before.
 
 **Sweep.** A partial upload nobody sent to for `upload_ttl_hours`
 (24 h: a night's pause still resumes) is deleted when the RAG starts
-and every hour, and so is the record of a completed one; files the
+and every hour, and so is the record of a completed one. An upload
+without a piece for 30 minutes stops reserving disk (its next piece
+reserves it again), and one that never received a byte (the answer to
+its start lost, the page closed) is deleted after those 30 minutes; files the
 transcriber was receiving when it stopped are deleted when it starts.
 Nothing uploaded is logged; deletions are counted.
 
