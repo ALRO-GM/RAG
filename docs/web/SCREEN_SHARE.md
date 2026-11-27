@@ -237,6 +237,7 @@ Every other way out of the document:
 |---|---|
 | `index.html` ↔ `study.html` ↔ `research.html` by their links (also «Ir a…»; the browser's back and forward buttons load the pages the same way, but were not exercised in the check) | the session goes on (above) |
 | A link to another site (the references of «Investigación», the sources of «Estudio») clicked on a **joined** device | opened on that device, in a new tab; never sent to the sharing device (and the sharing device drops such a click if one arrives) |
+| What counts as «this site» (#288) | only a same-origin `http`/`https` address; `mailto:`, `tel:`, `ftp:`, `sms:` and app schemes are opened by the device clicked, in a new tab; `javascript:`, `data:`, `blob:` (and `file:`, `about:`, `vbscript:`) are never opened nor forwarded |
 | The same link clicked on the **sharing** device while sharing | opened in a new tab there, so the shared page stays |
 | Opening an application page in a new tab of the sharing device (middle click, «Abrir en una pestaña nueva») | the browser copies this tab's `sessionStorage`, so the new tab resumes the share and the relay closes the old tab's link (`4409`, replaced): **avoid it while sharing** |
 | Closing the tab, or typing another address | the sharing device is away; the session ends after 10 min unless the same tab comes back |
@@ -358,7 +359,7 @@ Screenshots of both at the same moments:
 Page changes (#284, 2026-11-27, the same throwaway stack and stand-in
 with 75–150 ms each way; the tablet shares, the desktop joins;
 screenshots of both at the same moments in
-`~/.local/share/ragputin/demo-shots/share-284/`, `01`–`13`):
+`~/.local/share/ragputin/demo-shots/share-284/`, `01`–`13`, except `06` and `08`, which were not taken):
 
 | Measure | Result |
 |---|---|

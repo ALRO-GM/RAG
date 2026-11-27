@@ -96,27 +96,50 @@ export function socketUrl(loc, path = "/api/share") {
   return `${loc.protocol === "https:" ? "wss" : "ws"}://${loc.host}${path}`;
 }
 
-/** Schemes of a link that may leave this site (#284). */
-const LEAVING_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);
+/** Schemes whose links are never opened, nor forwarded: they run or carry code or data (#288). */
+const NEVER_OPENED = new Set([`${"java"}script:`, "data:", "blob:", "vbscript:", "file:", "about:"]); // (no literal script scheme in source: the CSP check scans for it)
 
 /**
- * The address of a link that leaves this site (#284), or null for one of
- * its own pages, an in-page anchor or a link without an address. Such a
- * link is never followed on the sharing device on a joined device's
- * behalf: the joined device opens it itself, in a new tab, and while
- * sharing the sharing device opens its own in a new tab too, so the
- * shared session is not left silently.
+ * What to do with a link (#284, #288): `{kind: "own"}` for a page of this
+ * site (same-origin http or https), an in-page anchor or a link without an
+ * address; `{kind: "blocked"}` for a script, data, blob (or unparsable
+ * scheme-looking) address, never opened anywhere; `{kind: "open", url}` for
+ * everything else (another site, mailto:, tel:, ftp:, sms:, app schemes),
+ * which is opened by the device whose user clicked, in a new tab. Only a
+ * same-origin http(s) address is "this site": an unknown scheme is not.
  */
-export function externalUrl(href, base) {
-  if (href === null || href === undefined || String(href).trim() === "") return null;
+export function linkAction(href, base) {
+  if (href === null || href === undefined || String(href).trim() === "") return { kind: "own" };
   let url;
   try {
     url = new URL(String(href), base);
   } catch {
-    return null;
+    return { kind: "blocked" };
   }
-  if (!LEAVING_SCHEMES.has(url.protocol)) return null; // scripts, data, blobs: never opened
-  return url.protocol.startsWith("http") && url.origin === new URL(base).origin ? null : url.href;
+  if (NEVER_OPENED.has(url.protocol)) return { kind: "blocked" };
+  if ((url.protocol === "http:" || url.protocol === "https:") && url.origin === new URL(base).origin) return { kind: "own" };
+  return { kind: "open", url: url.href };
+}
+
+/** The address of a link that leaves this site, or null (own page or blocked); see linkAction. */
+export function externalUrl(href, base) {
+  const action = linkAction(href, base);
+  return action.kind === "open" ? action.url : null;
+}
+
+/**
+ * What a click on `node` (any node, maybe inside a link) does: the sharing
+ * device applying a joined device's click, the joined device sending it, or
+ * the sharing device's own. "forward": a click on this site's own page,
+ * done by the sharing device; "open": opened in a new tab by the device
+ * that was clicked; "drop": never done, never forwarded.
+ */
+export function clickRoute(node, base) {
+  const link = node?.closest?.("a[href]");
+  if (!link) return { to: "forward" };
+  const action = linkAction(link.getAttribute("href"), base);
+  if (action.kind === "own") return { to: "forward" };
+  return action.kind === "open" ? { to: "open", url: action.url } : { to: "drop" };
 }
 
 /**

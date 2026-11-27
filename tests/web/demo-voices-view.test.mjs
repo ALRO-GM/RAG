@@ -82,8 +82,22 @@ const DATA = {
   exchanges: [{ user: "Hola", bot: "Buenas", cites: ["s1"] }],
 };
 
-async function settle(until, rounds = 400) {
-  for (let i = 0; i < rounds && !until(); i += 1) await new Promise((r) => setImmediate(r));
+// The page paces its lines with timers, which a burst of setImmediate rounds
+// can outrun on a loaded machine (a fixed round count then gave up before the
+// timer fired). So every round lets one real timer tick pass, and a wait for a
+// condition is bounded by wall-clock time, only to keep a real failure from
+// hanging: the condition decides, never a count.
+const REAL_TIMEOUT = globalThis.setTimeout;
+const tick = () => new Promise((r) => REAL_TIMEOUT(r, 1));
+
+async function settle(until, deadlineMs = 10000) {
+  const end = Date.now() + deadlineMs;
+  while (!until() && Date.now() < end) await tick();
+}
+
+/** Let `rounds` ticks pass, for «nothing more happens» checks. */
+async function idle(rounds) {
+  for (let i = 0; i < rounds; i += 1) await tick();
 }
 
 test("the voice example sounds only after the click, through Web Audio, line by line", async () => {
@@ -117,7 +131,7 @@ test("the voice example sounds only after the click, through Web Audio, line by 
     };
     const root = new FakeElement("main");
     const close = await voiceDemoView(ctx, root, "llamada-lumbre");
-    await settle(() => false, 5);
+    await idle(5);
     const note = root.all((e) => e.className.includes("vd-voices"))[0];
     assert.equal(note.textContent, es["dvoice.stock"]);
     assert.equal(note.attributes.role, "status");
@@ -133,11 +147,11 @@ test("the voice example sounds only after the click, through Web Audio, line by 
     box.checked = false;
     box.dispatch("change");
     start.dispatch("click");
-    await settle(() => false, 50);
+    await idle(50);
     await settle(() => !start.hidden);
     assert.equal(log.filter((x) => x.startsWith("start")).length, 2, "muted: nothing more plays");
     close();
-    await settle(() => log.includes("close"), 20);
+    await settle(() => log.includes("close"));
     assert.ok(log.includes("close"));
   } finally {
     i18n.setLanguage(language);

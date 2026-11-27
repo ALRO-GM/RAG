@@ -21,7 +21,7 @@ import {
   ACTIONABLE, MirrorSource, MirrorView, elementScrollOf, elementScrollTo, pointerAt, scrollOf, scrollTo,
 } from "./lib/mirror.js";
 import {
-  ShareLink, cleanLabel, deviceKind, endedKey, externalUrl, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
+  ShareLink, cleanLabel, clickRoute, deviceKind, endedKey, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
 } from "./lib/share.js";
 import { SoundPlayer, installSoundBridge } from "./share-sound.js";
 
@@ -61,12 +61,6 @@ function kept() {
   } catch {
     return null;
   }
-}
-
-/** The address of the link at `node` when it leaves this site (#284), else null. */
-function leavingUrl(node) {
-  const link = node?.closest?.("a[href]");
-  return link ? externalUrl(link.getAttribute("href"), location.href) : null;
 }
 
 /** The theme the sharing device shows, resolved (a joined device may follow another system theme). */
@@ -417,10 +411,10 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     // page (and the shared session with it) stays.
     const onLinkClick = (event) => {
       if (!s || !event.isTrusted || event.defaultPrevented || event.button !== 0) return;
-      const url = leavingUrl(event.target);
-      if (!url) return;
+      const route = clickRoute(event.target, location.href);
+      if (route.to === "forward") return;
       event.preventDefault();
-      globalThis.open(url, "_blank", "noopener,noreferrer");
+      if (route.to === "open") globalThis.open(route.url, "_blank", "noopener,noreferrer");
     };
     document.addEventListener("click", onLinkClick);
     const bridge = installSoundBridge({
@@ -549,8 +543,8 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
         const el = s.source.nodeById(entry[0]);
         if (el) elementScrollTo(el, entry, body.same === 1);
       }
-    } else if (body.k === "click" && leavingUrl(s.source.nodeById(body.node))) {
-      // #284: never leave for another site on a joined device's behalf (it opened the link itself).
+    } else if (body.k === "click" && clickRoute(s.source.nodeById(body.node), location.href).to !== "forward") {
+      // #284, #288: never leave for another site (or follow a script or unknown scheme) on a joined device's behalf.
     } else {
       s.source.applyInput(body, globalThis);
     }
@@ -789,9 +783,9 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       if (!s?.sends) return;
       const target = event.target?.closest?.(ACTIONABLE) ?? event.target;
       // #284: a link to another site opens here, in a new tab; the sharing device stays where it is.
-      const away = leavingUrl(event.target);
-      if (away) {
-        globalThis.open(away, "_blank", "noopener,noreferrer");
+      const route = clickRoute(event.target, location.href);
+      if (route.to !== "forward") {
+        if (route.to === "open") globalThis.open(route.url, "_blank", "noopener,noreferrer");
         return;
       }
       const node = idOf(target);
