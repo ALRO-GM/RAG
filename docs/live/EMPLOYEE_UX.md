@@ -137,8 +137,10 @@ first there), light and dark.
   at least 60 % of the content words (4 letters or more) of its
   example (or of a guided sentence): words, not meaning.
 - **Topics**: a demo's job topics, else the product's script phases
-  (done once a suggestion was about the phase). **Por decir**: the
-  mandatory items as chips; a pending one is ticked by clicking it
+  (done once a suggestion was about the phase). **«Lo que hay que decir»** (#287; first block of the side, above the
+  topics, see MANDATORY_ITEMS.md): the
+  mandatory items as chips, folded into «Todo lo obligatorio está dicho»
+  once all are said; a pending one is ticked by clicking it
   (confirmation, logged as before). Every `remind_seconds` the row is
   highlighted for 3 s with what is missing: no toast any more.
 - **Under disclosures**: «Sugerencias anteriores y de dónde salen»
