@@ -383,6 +383,12 @@ export class Api {
     return this.request("POST", `/live/sessions/${encodeURIComponent(id)}/voice`, { json: body });
   }
 
+  /** Mark a concept's question as asked by hand, or undo it (#286). */
+  markAsked(id, topic, point, asked = true) {
+    return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/points/${encodeURIComponent(topic)}/${encodeURIComponent(point)}`,
+      { json: { asked } });
+  }
+
   /** Tick a mandatory item by hand, after the person confirmed it was said. */
   tickMandatory(id, item) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/mandatory/${encodeURIComponent(item)}`, { json: { confirm: true } });

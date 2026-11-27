@@ -164,10 +164,11 @@ def counts(level: CoverageLevel) -> bool:
 
 
 def topic_coverage(slot_id: str, facts: TopicFacts,
-                   reached: CoverageLevel = "none") -> TopicCoverage:
+                   reached: CoverageLevel = "none",
+                   label: str = "") -> TopicCoverage:
     """The topic's coverage record, its level at least ``reached``."""
     return TopicCoverage(
-        id=slot_id, level=higher(reached, topic_level(facts)),
+        id=slot_id, label=label, level=higher(reached, topic_level(facts)),
         concepts=len(facts.points),
         asked=sum(1 for p in facts.points if p.asked is not None),
         treated=sum(1 for p in facts.points if p.status != "pending"),
@@ -341,7 +342,8 @@ def settled(
             mark = (old.asked or hand.get(slot.id, {}).get(p.id)
                     or model_asked.get(slot.id, {}).get(p.id))
             points.append(PointCoverage(
-                id=p.id, status=status.get(p.id, old.status), asked=mark))
+                id=p.id, text=p.text, status=status.get(p.id, old.status),
+                asked=mark))
         now = TopicFacts(
             named=got.named, asked=got.asked or any(
                 x.asked for x in points),
@@ -351,7 +353,8 @@ def settled(
                                       and done.status == "filled"),
             points=points)
         found.append(topic_coverage(slot.id, now,
-                                    reached.get(slot.id, "none")))
+                                    reached.get(slot.id, "none"),
+                                    slot.label))
     return found
 
 

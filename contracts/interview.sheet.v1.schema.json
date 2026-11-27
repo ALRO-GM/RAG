@@ -468,6 +468,12 @@
           "title": "Id",
           "type": "string"
         },
+        "text": {
+          "default": "",
+          "maxLength": 80,
+          "title": "Text",
+          "type": "string"
+        },
         "status": {
           "default": "pending",
           "enum": [
@@ -502,6 +508,12 @@
       "properties": {
         "id": {
           "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
           "type": "string"
         },
         "level": {

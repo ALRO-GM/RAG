@@ -678,6 +678,8 @@ class PointCoverage(_Strict):
     """
 
     id: str
+    text: str = Field(default="", max_length=POINT_CHARS)
+    """The concept's words in the plan when the round was held."""
     status: PointStatus = "pending"
     asked: Optional[PointAsked] = None
 
@@ -693,6 +695,8 @@ class TopicCoverage(_Strict):
     """
 
     id: str
+    label: str = Field(default="", max_length=LABEL_CHARS)
+    """The topic's label in the plan when the round was held."""
     level: CoverageLevel = "none"
     concepts: int = 0
     asked: int = 0

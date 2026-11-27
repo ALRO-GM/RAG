@@ -465,7 +465,23 @@ function pointCell(point, column, plan, row) {
     word,
     typeof point?.score === "number" ? h("span", { class: "of-small" }, t("of.score", { score: point.score })) : null,
     point?.concepts ? h("span", { class: "of-small" }, plural("of.concepts", point.concepts, { treated: point.treated ?? 0, total: point.concepts })) : null,
+    askedNote(point, state),
     evidence);
+}
+
+/**
+ * #286: whether the interviewer asked (a live report with coverage): a point
+ * not treated says «se preguntó, sin respuesta» or «no se llegó a preguntar»
+ * (the interview's gap, not the person's); otherwise how many concepts were
+ * asked. Nothing for reports without it. The figure does not change.
+ */
+function askedNote(point, state) {
+  if (typeof point?.asked !== "number") return null;
+  if (state === "not_treated") {
+    const asked = point.asked > 0 || ["named", "treated", "well_treated"].includes(point.coverage);
+    return h("span", { class: "of-small" }, t(asked ? "of.asked_no_answer" : "of.never_asked"));
+  }
+  return point.concepts ? h("span", { class: "of-small" }, t("of.asked", { n: point.asked })) : null;
 }
 
 // ---- #/offers/<plan>/person/<id> ------------------------------------------------

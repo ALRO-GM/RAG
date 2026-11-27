@@ -481,7 +481,7 @@ class TopicTracker:
             answers=len(texts),
             words=sum(len(t.split()) for t in texts.values()),
             complete=slot.id in self.covered,
-            points=[PointCoverage(id=p.id, status=p.status,
+            points=[PointCoverage(id=p.id, text=p.text, status=p.status,
                                   asked=marks.get(p.id))
                     for p in self.points[slot.id]],
         )
@@ -502,7 +502,8 @@ class TopicTracker:
         found: Dict[str, TopicCoverage] = {}
         for slot in self.plan.slots:
             got = topic_coverage(slot.id, self._facts(slot),
-                                 self.levels.get(slot.id, "none"))
+                                 self.levels.get(slot.id, "none"),
+                                 slot.label)
             self.levels[slot.id] = got.level
             found[slot.id] = got
         return found

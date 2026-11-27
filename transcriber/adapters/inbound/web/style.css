@@ -1730,6 +1730,33 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .iv-point q { font-style: italic; color: var(--muted); }
 .lv-points { display: flex; flex-direction: column; gap: var(--s-2); }
 .lv-focus { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--active); color: var(--text); font-size: var(--fs-md); }
+
+/* #286: a topic's coverage level: a ring that fills (empty, a third, two
+   thirds, full) and a green that deepens; the words go with it (title and
+   a screen-reader text), so colour is never the only sign. Coverage, not
+   the quality of the answers. */
+.cov-ring { flex: none; }
+.cov-ring-track { fill: none; stroke: var(--line-strong); stroke-width: 2; }
+.cov-ring.is-none .cov-ring-track { stroke-dasharray: 2 2.4; }
+.cov-ring-fill { fill: none; stroke: var(--green-9); stroke-width: 3; stroke-linecap: round; }
+.cov-ring-full { fill: var(--green-9); stroke: var(--green-11); stroke-width: 1.5; }
+.cov-chip.is-named { background: var(--green-3); color: var(--text); border-color: color-mix(in srgb, var(--green-9) 30%, transparent); }
+.cov-chip.is-treated { background: color-mix(in srgb, var(--green-9) 22%, var(--surface)); color: var(--text); border-color: color-mix(in srgb, var(--green-9) 55%, transparent); }
+.cov-chip.is-well_treated { background: color-mix(in srgb, var(--green-9) 42%, var(--surface)); color: var(--text); border-color: var(--green-11); font-weight: 600; }
+.cov-chip.is-well_treated .cov-ring-full { fill: var(--green-11); }
+.cov-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cov-point.is-asked_answered .iv-point-mark, .cov-point.is-treated .iv-point-mark { color: var(--ok); }
+.cov-point.is-asked .iv-point-mark { color: var(--green-9); }
+.cov-point.is-asked_unknown .iv-point-mark, .cov-point.is-unknown .iv-point-mark { color: var(--danger); }
+.cov-mark { min-height: 2rem; }
+.cov-next { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-2); }
+.cov-next p { margin: 0; }
+.cov-next-head { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
+.cov-next-question { font-size: var(--fs-md); color: var(--text); }
+.cov-summary, .cov-note { margin: 0; }
+.cov-report { display: flex; flex-direction: column; gap: var(--s-3); }
+.cov-report h3 { margin: 0; }
+.cov-report .iv-skill-head { align-items: center; }
 .lv-point-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
 .lv-point-topics > li.is-current > strong { color: var(--accent-ink); }
 /* Accuracy of the answers (#259): the label is a word; colour only adds to it. */
