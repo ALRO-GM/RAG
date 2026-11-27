@@ -188,7 +188,7 @@ people.
    enrolment, when the employee has one, still names their slot (0.95,
    as before) unless the employee said that voice is not theirs; only
    the employee's own voiceprint can do that.
-4. **Corrections.** «Esta soy yo» / «Esta no soy yo» on a line pins
+4. **Corrections.** «Soy yo» / «No soy yo» on a line pins
    that line and its slot to the side chosen: the slot's earlier lines
    are revised (`speaker_update`) and its later ones follow.
 5. **Skip.** Without the check (skipped, short, failed) the session
@@ -274,7 +274,7 @@ Thresholds, on the shipped simulation:
   The first version shipped it at 0.97; that was the idealised
   simulation's +0.001 at 5 s. With it off, an employee whom Sortformer
   splits in two slots has the second one shown as the other person
-  until «Esta soy yo».
+  until «Soy yo».
 - `purity` 0.8 (as the naming): 0.0 and 0.5 give the same on CALLHOME
   and −0.012 (3 s), +0.001 (5 s), 0 (8 s) on AMI; kept.
 

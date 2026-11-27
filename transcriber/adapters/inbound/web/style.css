@@ -1550,7 +1550,7 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 
 /* ---- the candidate across rounds (#235) -------------------------------------
    «Preguntas comunes» on the live page: the lv-row of the topics, its open
-   questions as quiet outlined chips. «Datos de la candidata» on the result
+   questions as quiet outlined chips. «Datos de la candidatura» on the result
    page: a definition list, one line per core question, the details and the
    corrections under «Más información». */
 .lv-role-box { border-top: 1px solid var(--line); padding-top: var(--s-3); }

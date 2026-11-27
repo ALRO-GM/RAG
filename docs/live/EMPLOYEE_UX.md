@@ -28,7 +28,7 @@ Haiku) and `MANDATORY_ITEMS.md` (the similarity threshold).
     enrolment if any, everyone else the other party); a check too short
     (under 3 s of speech within 20 s) says so under the header.
   - **Corrections.** On every line of a running two-party session a
-    small «Esta soy yo» (on the other party's lines) or «Esta no soy yo»
+    small «Soy yo» (on the other party's lines) or «No soy yo»
     (on the employee's) corrects that voice from then on and its earlier
     lines, and keeps that line on the chosen side (`POST
     /api/live/sessions/{id}/voice`, straight to the transcriber). A line
@@ -54,7 +54,7 @@ the candidate's answers to the core questions are read from the
 conversation as proposals, which the employee confirms, edits or
 discards in «Confirmar datos» when the session ends (or on the result
 page); confirmed ones are kept for the next rounds, shown as a
-«Preguntas comunes» row on the page and as «Datos de la candidata» on
+«Preguntas comunes» row on the page and as «Datos de la candidatura» on
 the result page. Later rounds start from the topics earlier ones left
 below the level, to revisit or open. The header shows a quiet talk-time
 bar (you / the other person) on every live page:

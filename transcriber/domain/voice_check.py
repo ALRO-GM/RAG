@@ -17,7 +17,7 @@ Plain rules, no I/O:
 * :class:`PartySides`: which side each diarizer slot is on: one slot
   per person, the one whose voice is nearest to the check's (the slot
   that spoke the check stands in until voices can be compared); the
-  corrections of the employee («Esta soy yo» / «Esta no soy yo») pin a
+  corrections of the employee («Soy yo» / «No soy yo») pin a
   slot to a side.
 
 The reference lives in memory only: it is never written and never

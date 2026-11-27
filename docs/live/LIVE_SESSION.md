@@ -416,7 +416,7 @@ others are sent, the upload is closed with what the server accepted,
 and the page says «{n} s del audio guardado no se pudieron añadir (fuera
 del plazo en que se puede guardar) y se han borrado de este navegador.»
 A 413 stops the upload (the audio stays; «El servidor no tiene sitio…»),
-`not_buffered` says «Este producto no guarda audio durante un corte:
+`not_buffered` says «Este tipo de conversación no guarda el audio durante un corte:
 este audio no se puede enviar. Puedes descartarlo.», and
 `session_running` for a session this browser ended offline (the link
 came back within the server's 10 min grace) first stops that session,

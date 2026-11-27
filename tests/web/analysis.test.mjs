@@ -25,7 +25,7 @@ test("the judge is read and chosen through the transcriber, with the code", asyn
 test("the quota line says available, used up (with when it comes back) or unknown", () => {
   assert.equal(quotaLine(t, { claude_quota: "available" }), es["analysis.quota_available"]);
   assert.equal(quotaLine(t, { claude_quota: "exhausted", quota_resets: "3pm" }),
-    `${es["analysis.quota_exhausted"]} Vuelve: 3pm.`);
+    `${es["analysis.quota_exhausted"]} Vuelve a estar disponible: 3pm.`);
   assert.equal(quotaLine(t, { claude_quota: "exhausted" }), es["analysis.quota_exhausted"]);
   assert.equal(quotaLine(t, { claude_quota: "weird" }), es["analysis.quota_unknown"]);
   assert.equal(quotaLine(t, null), es["analysis.quota_unknown"]);
@@ -45,7 +45,7 @@ test("a reset given as a moment is shown in local time, in both languages", () =
   const en = resetText(status, "en-GB");
   assert.equal(es, new Date(status.quota_resets_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }));
   assert.ok(!es.includes("T14:00") && !en.includes("T14:00"), "not the raw timestamp");
-  assert.ok(quotaLine(t, status, "es-ES").endsWith(`Vuelve: ${es}.`));
+  assert.ok(quotaLine(t, status, "es-ES").endsWith(`Vuelve a estar disponible: ${es}.`));
   assert.equal(resetText({ quota_resets_at: "not a date", quota_resets: "3pm" }, "es-ES"), "3pm");
   assert.equal(resetText({}, "es-ES"), "");
 });
