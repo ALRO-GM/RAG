@@ -85,6 +85,9 @@ test("every new text exists in Spanish and English, and the count says which lev
   }
   assert.ok(es["live.topics_count"].includes("tratados o bien tratados"));
   assert.ok(en["live.topics_count"].includes("treated or well treated"));
+  // Script phases (support) keep the old words.
+  assert.equal(es["live.phases_count"], "{done} de {all} cubiertos");
+  assert.equal(en["live.phases_count"], "{done} of {all} covered");
   // No verdict wording: the level is coverage, never the answers' quality.
   assert.ok(es["cov.level_note"].includes("no si las respuestas son buenas"));
   for (const key of keys) assert.ok(!/candidato bueno|buen candidato|good candidate/i.test(es[key] + en[key]), key);
@@ -174,9 +177,10 @@ test("a concept says asked and treated apart, and can be marked by hand while li
       "iv-point cov-point is-pending"]);
     assert.ok(rows[0].text().includes("preguntado y respondido"));
     assert.ok(rows[1].text().includes("preguntado, sin respuesta aún") && rows[1].text().includes("marcado a mano"));
+    assert.ok(rows[0].text().includes("por las palabras"), "who marked it is said");
     assert.ok(rows[2].text().includes("aún no preguntado"));
     const buttons = rows.map((r) => r.all().find((n) => n.tagName === "BUTTON") ?? null);
-    assert.equal(buttons[0], null, "a mark by the rules is not undone by hand");
+    assert.equal(buttons[0].text(), "Deshacer «preguntado»", "a mark by the rules can be undone too");
     assert.equal(buttons[1].attributes["aria-pressed"], "true");
     assert.equal(buttons[1].text(), "Deshacer «preguntado»");
     assert.equal(buttons[2].text(), "Ya lo he preguntado");

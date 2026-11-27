@@ -47,7 +47,8 @@ export function topicChip(chip, name, extra = "") {
 /** A concept's line on the live page: its mark, words, state and, while running, «Ya lo he preguntado». */
 export function pointRow(point, { lang = "es", running = false, onMark = null, ended = false } = {}) {
   const state = pointState(point);
-  const button = running && onMark && (!point.asked || point.asked.by === "hand")
+  // Any mark can be undone by the person (rules, model or hand): a wrong one must not hide a gap.
+  const button = running && onMark
     ? h("button", {
       type: "button", class: "small cov-mark", "aria-pressed": point.asked ? "true" : "false",
       onClick: () => onMark(point, !point.asked),
@@ -58,7 +59,7 @@ export function pointRow(point, { lang = "es", running = false, onMark = null, e
     h("span", { class: "iv-point-text" }, localized(point, "text", lang)),
     // Once the session ended the words are the report's («sin respuesta», «no preguntado»: no «aún»).
     " ", h("span", { class: "iv-point-status" }, t(`${ended ? "cov.report" : "cov.point"}.${state}`)),
-    point.asked?.by === "hand" ? [" ", h("span", { class: "meta" }, t("cov.by.hand"))] : null,
+    point.asked ? [" ", h("span", { class: "meta" }, t(`cov.by.${point.asked.by}`))] : null,
     button ? [" ", button] : null);
 }
 

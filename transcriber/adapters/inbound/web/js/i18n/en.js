@@ -1458,6 +1458,7 @@ export const en = {
   "live.topics": "Topics of the role",
   "live.topics_phases": "Parts of the interview",
   "live.topics_count": "{done} of {all} treated or well treated",
+  "live.phases_count": "{done} of {all} covered",
   "live.to_say": "To say",
   "live.to_say_count": "{n} pending",
   "live.to_say_done": "All said",

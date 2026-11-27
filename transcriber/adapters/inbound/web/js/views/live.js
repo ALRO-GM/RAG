@@ -991,7 +991,9 @@ export async function liveView(ctx, root, [sub, which] = []) {
       const rounds = chips.some((c) => ["weak", "revisit", "covered"].includes(c.earlier));
       const leveled = chips.some((c) => levelOf(c));
       topics.querySelector("h3").textContent = rounds ? t("live.topics_next") : state.topics ? t("live.topics") : t("live.topics_phases");
-      topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: coveredCount(chips), all: chips.length });
+      // Levels (#286) count from «tratado»; script phases (support, interviews without a plan) keep their own words.
+      topics.querySelector(".lv-count").textContent = t(chips.some((c) => levelOf(c)) ? "live.topics_count" : "live.phases_count",
+        { done: coveredCount(chips), all: chips.length });
       topics.querySelector(".cov-note").hidden = !leveled;
       const news = levelChanges(levelsSeen, chips).map(({ chip: c, level }) => t("cov.announce", {
         name: localized(c, "name", lang), level: t(`cov.level.${level}`) }));

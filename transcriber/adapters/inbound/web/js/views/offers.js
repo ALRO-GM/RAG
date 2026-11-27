@@ -477,10 +477,8 @@ function pointCell(point, column, plan, row) {
  */
 function askedNote(point, state) {
   if (typeof point?.asked !== "number") return null;
-  if (state === "not_treated") {
-    const asked = point.asked > 0 || ["named", "treated", "well_treated"].includes(point.coverage);
-    return h("span", { class: "of-small" }, t(asked ? "of.asked_no_answer" : "of.never_asked"));
-  }
+  // «Se preguntó» only with a mark of a question; a topic merely mentioned was not asked.
+  if (state === "not_treated") return h("span", { class: "of-small" }, t(point.asked > 0 ? "of.asked_no_answer" : "of.never_asked"));
   return point.concepts ? h("span", { class: "of-small" }, t("of.asked", { n: point.asked })) : null;
 }
 
