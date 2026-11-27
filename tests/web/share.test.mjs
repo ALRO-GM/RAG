@@ -12,7 +12,7 @@ import {
   MASK, MirrorSource, MirrorView, actionable, attributesOf, elementScrollOf, elementScrollTo, pointerAt, propsOf, setChildren, skipped,
 } from "../../transcriber/adapters/inbound/web/js/lib/mirror.js";
 import {
-  BACKOFF_MAX_MS, FINAL_CODES, ShareLink, shareBackoffMs, cleanLabel, deviceKind, endedKey, externalUrl, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
+  BACKOFF_MAX_MS, FINAL_CODES, ShareLink, shareBackoffMs, cleanLabel, clickRoute, deviceKind, endedKey, externalUrl, linkAction, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
 } from "../../transcriber/adapters/inbound/web/js/lib/share.js";
 import { SoundPlayer, installSoundBridge, sameOriginApi } from "../../transcriber/adapters/inbound/web/js/share-sound.js";
 import { es } from "../../transcriber/adapters/inbound/web/js/i18n/es.js";
@@ -495,13 +495,58 @@ test("#284: the next page of the sharing device resumes with the kept token, no 
 
 test("#284: a link to another site is told apart from the pages of this one", () => {
   const base = "https://site.example/research.html#marco";
-  for (const own of ["index.html#/", "#resumen", "study.html", "/research.html", "https://site.example/index.html#/live", "", null, "javascript:void(0)"]) {
+  for (const own of ["index.html#/", "#resumen", "study.html", "/research.html", "https://site.example/index.html#/live", "", null]) {
     assert.equal(externalUrl(own, base), null, String(own));
   }
   assert.equal(externalUrl("https://doi.org/10.1/x", base), "https://doi.org/10.1/x");
   assert.equal(externalUrl("//other.example/a", base), "https://other.example/a");
   assert.equal(externalUrl("http://site.example/", base), "http://site.example/", "another scheme is another origin");
   assert.equal(externalUrl("mailto:someone@example.org", base), "mailto:someone@example.org");
+});
+
+test("#288: only a same-origin http(s) address is this site; scripts and data are blocked; other schemes are opened", () => {
+  const base = "https://site.example/research.html";
+  for (const own of ["study.html", "#x", "https://site.example/a?b=1", "", "  ", null, undefined]) {
+    assert.deepEqual(linkAction(own, base), { kind: "own" }, String(own));
+  }
+  for (const bad of ["javascript:void(0)", "JavaScript:alert(1)", "data:text/html,hi", "blob:https://site.example/uuid", "vbscript:x", "file:///etc/passwd"]) {
+    assert.deepEqual(linkAction(bad, base), { kind: "blocked" }, bad);
+    assert.equal(externalUrl(bad, base), null, bad);
+  }
+  for (const [href, url] of [
+    ["ftp://files.example/a.txt", "ftp://files.example/a.txt"],
+    ["sms:+34600000000", "sms:+34600000000"],
+    ["spotify:track:1", "spotify:track:1"],
+    ["tel:+34600000000", "tel:+34600000000"],
+    ["mailto:a@b.org", "mailto:a@b.org"],
+    ["https://other.example/x", "https://other.example/x"],
+    ["http://site.example/x", "http://site.example/x"],
+  ]) {
+    assert.deepEqual(linkAction(href, base), { kind: "open", url }, href);
+  }
+});
+
+function linkNode(href) {
+  return { closest: (sel) => (sel === "a[href]" && href !== undefined ? { getAttribute: () => href } : null) };
+}
+
+test("#288: the sharing device drops a joined device's click on a link that is not this site's, and does the others", () => {
+  const base = "https://site.example/index.html";
+  assert.deepEqual(clickRoute(linkNode(undefined), base), { to: "forward" }, "not in a link");
+  assert.deepEqual(clickRoute(null, base), { to: "forward" }, "no node");
+  assert.deepEqual(clickRoute(linkNode("study.html"), base), { to: "forward" }, "own page");
+  for (const away of ["ftp://x.example/f", "sms:+34600000000", "https://other.example/", "mailto:a@b.org"]) {
+    assert.equal(clickRoute(linkNode(away), base).to, "open", away);
+  }
+  for (const bad of ["javascript:void(0)", "data:text/plain,x", "blob:https://site.example/u"]) {
+    assert.deepEqual(clickRoute(linkNode(bad), base), { to: "drop" }, bad);
+  }
+});
+
+test("#288: a joined device opens an external link itself, with the address the sharing device would have followed", () => {
+  const base = "https://site.example/index.html";
+  assert.deepEqual(clickRoute(linkNode("ftp://x.example/f"), base), { to: "open", url: "ftp://x.example/f" });
+  assert.deepEqual(clickRoute(linkNode("//cdn.example/a"), base), { to: "open", url: "https://cdn.example/a" });
 });
 
 test("a silent link is reopened; a final refusal stops it with its reason", () => {
