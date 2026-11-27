@@ -1130,8 +1130,8 @@ what the page showed):
 | Level | Rule |
 |---|---|
 | `none` («sin mencionar») | nothing yet |
-| `named` («nombrado») | either speaker mentioned the topic (`slot_asked` on any line), or one of its concepts was asked |
-| `treated` («tratado») | a concept treated or said unknown, or the topic's completion rule met; a topic without concepts also when it was asked and answered |
+| `named` («nombrado») | either speaker mentioned the topic (`slot_asked` on any line) |
+| `treated` («tratado») | at least one of its concepts covered — asked (whatever the answer), or treated / said unknown by the candidate — or the topic's completion rule met; a topic without concepts also when it was asked. A topic whose concepts were all asked and none answered is «tratado» |
 | `well_treated` («bien tratado») | every concept covered (asked or treated), at least half treated by the candidate, and at least `WELL_WORDS` = 25 words of answers to it (about ten seconds of speech); a topic without concepts: its completion rule and 25 words |
 
 «{done} de {all} tratados o bien tratados»: a topic counts from

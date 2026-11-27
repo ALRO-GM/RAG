@@ -17,12 +17,12 @@ the conversation, never about how good the answers were:
 
   =================  ==================================================
   ``none``           not mentioned yet
-  ``named``          either speaker mentioned it, or one of its
-                     concepts was asked
-  ``treated``        the candidate answered it: a concept treated (or
-                     said unknown), or the topic's own completion rule
-                     met; a topic without concepts also when it was
-                     asked and an answer to it was heard
+  ``named``          either speaker mentioned it
+  ``treated``        at least one of its concepts covered (asked, or
+                     treated / said unknown by the candidate), or the
+                     topic's own completion rule met; a topic without
+                     concepts also when it was asked. A concept asked
+                     counts even when the answer was poor or absent
   ``well_treated``   every concept covered (asked or treated), at least
                      half of them treated by the candidate, and at
                      least :data:`WELL_WORDS` words of answers to it;
@@ -144,10 +144,9 @@ def topic_level(facts: TopicFacts) -> CoverageLevel:
             else facts.complete)
     if facts.words >= WELL_WORDS and full:
         return "well_treated"
-    if treated or facts.complete or (
-            not total and facts.asked and facts.answers):
+    if covered or facts.complete or (not total and facts.asked):
         return "treated"
-    if facts.named or facts.asked or covered:
+    if facts.named or facts.asked:
         return "named"
     return "none"
 

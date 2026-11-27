@@ -142,8 +142,12 @@ def facts(points: Given, **kw: Any) -> TopicFacts:
 @pytest.mark.parametrize("given,level", [
     (facts([]), "none"),
     (facts([], named=True), "named"),
-    (facts([(None, "yes")]), "named"),                   # asked, no answer
-    (facts([(None, "yes"), (None, None)], asked=True, answers=1), "named"),
+    (facts([(None, None)], asked=True), "named"),         # topic asked only
+    # A concept asked counts as covered, whatever the answer (#286).
+    (facts([(None, "yes")]), "treated"),                 # asked, no answer
+    (facts([(None, "yes"), (None, None)], asked=True, answers=1),
+     "treated"),
+    (facts([(None, "yes"), (None, "yes")], words=99), "treated"),  # 0 treated
     (facts([("treated", None), (None, None)], answers=1, words=40),
      "treated"),                                          # not all covered
     (facts([("treated", None), (None, "yes")], answers=1,
@@ -153,6 +157,7 @@ def facts(points: Given, **kw: Any) -> TopicFacts:
     (facts([("treated", None), (None, "yes"), (None, "yes")], answers=1,
            words=99), "treated"),                         # 1 of 3 treated
     (facts([], asked=True, answers=1, words=3), "treated"),
+    (facts([], asked=True), "treated"),  # no concepts: asked is enough
     (facts([], asked=True, answers=2, words=WELL_WORDS, complete=True),
      "well_treated"),
 ])
@@ -211,13 +216,15 @@ def test_the_round_records_asked_and_treated_and_levels() -> None:
     # Asked, the answer treated nothing: covered, but not by the candidate.
     p1 = s2.points[0]
     assert p1.asked is not None and p1.status == "pending"
-    assert s2.level == "named" and s2.covered == 1 and s2.treated == 0
+    # The asked concept counts for the level: «tratado», never stuck at
+    # «nombrado» (#286).
+    assert s2.level == "treated" and s2.covered == 1 and s2.treated == 0
     assert s3.level == "treated" and s3.asked == 1 and s3.treated == 2
     assert cover["s4"].level == "none" and cover["s4"].asked == 0
     last = published[-1]
     assert last["next"]["topic"] == "s3" and last["next"]["point"] == "p3"
     topic = next(t for t in last["topics"] if t["id"] == "s2")
-    assert topic["coverage"] == {"level": "named", "concepts": 3,
+    assert topic["coverage"] == {"level": "treated", "concepts": 3,
                                  "asked": 1, "treated": 0, "covered": 1}
     assert topic["points"][0]["asked"] == {"by": "rules", "at": 10.0}
     assert topic["points"][1]["asked"] is None
@@ -364,7 +371,7 @@ def test_a_rejudge_keeps_the_marks_made_by_hand() -> None:
     judge(store, FakeReasoner(), attribute=False)
     again = {c["id"]: c for c in stored(store)["coverage"]}
     assert again["s5"]["points"][0]["asked"]["by"] == "hand"
-    assert again["s5"]["level"] == "named"
+    assert again["s5"]["level"] == "treated"
 
 
 def test_the_hand_off_coverage_has_no_words() -> None:
@@ -386,7 +393,7 @@ def test_the_board_figure_does_not_change_with_coverage() -> None:
                                     if k != "coverage"})
     assert with_it.figure == without.figure
     by_id = {p.id: p for p in with_it.points}
-    assert by_id["s2"].asked == 2 and by_id["s2"].coverage == "named"
+    assert by_id["s2"].asked == 2 and by_id["s2"].coverage == "treated"
     assert by_id["s4"].asked == 0 and by_id["s4"].coverage == "none"
     assert all(p.asked is None and p.coverage is None
                for p in without.points)
