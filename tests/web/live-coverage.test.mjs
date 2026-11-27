@@ -183,8 +183,10 @@ test("a concept says asked and treated apart, and can be marked by hand while li
     buttons[2].listeners.click[0]();
     buttons[1].listeners.click[0]();
     assert.deepEqual(marked, [["p3", true], ["p2", false]]);
-    const ended = pointRow(TOPICS[0].points[2], { running: false, onMark });
+    const ended = pointRow(TOPICS[0].points[2], { running: false, onMark, ended: true });
     assert.ok(!ended.all().some((n) => n.tagName === "BUTTON"), "no marks once the session ended");
+    assert.ok(ended.text().includes("no preguntado") && !ended.text().includes("aún"), "no «aún» after the end");
+    assert.ok(pointRow(TOPICS[0].points[1], { ended: true }).text().includes("preguntado, sin respuesta"));
   });
   await withDom("en", ({ pointRow }) => {
     const row = pointRow(TOPICS[0].points[0], { lang: "en" });

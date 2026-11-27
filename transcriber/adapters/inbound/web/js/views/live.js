@@ -958,7 +958,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
       fill(pointsList, withPoints.map((c) => h("li", { class: c.current ? "is-current" : "" },
         h("strong", {}, name(c, "name")),
         h("ul", { class: "iv-point-list" }, c.points.map((p) => (c.coverage
-          ? pointRow(p, { lang, running, onMark: (point, asked) => markAsked(c.id, point, asked) })
+          ? pointRow(p, { lang, running, ended: state.state !== "running", onMark: (point, asked) => markAsked(c.id, point, asked) })
           : h("li", { class: `iv-point is-${p.status}` },
             pointMark(p.status),
             h("span", { class: "iv-point-text" }, name(p, "text")),

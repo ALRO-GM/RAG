@@ -45,7 +45,7 @@ export function topicChip(chip, name, extra = "") {
 }
 
 /** A concept's line on the live page: its mark, words, state and, while running, «Ya lo he preguntado». */
-export function pointRow(point, { lang = "es", running = false, onMark = null } = {}) {
+export function pointRow(point, { lang = "es", running = false, onMark = null, ended = false } = {}) {
   const state = pointState(point);
   const button = running && onMark && (!point.asked || point.asked.by === "hand")
     ? h("button", {
@@ -56,7 +56,8 @@ export function pointRow(point, { lang = "es", running = false, onMark = null } 
   return h("li", { class: `iv-point cov-point is-${state}` },
     h("span", { class: "iv-point-mark", "aria-hidden": "true" }, mark(state)),
     h("span", { class: "iv-point-text" }, localized(point, "text", lang)),
-    " ", h("span", { class: "iv-point-status" }, t(`cov.point.${state}`)),
+    // Once the session ended the words are the report's («sin respuesta», «no preguntado»: no «aún»).
+    " ", h("span", { class: "iv-point-status" }, t(`${ended ? "cov.report" : "cov.point"}.${state}`)),
     point.asked?.by === "hand" ? [" ", h("span", { class: "meta" }, t("cov.by.hand"))] : null,
     button ? [" ", button] : null);
 }
