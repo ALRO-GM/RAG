@@ -258,6 +258,10 @@ def test_the_interview_demo_is_unchanged_by_the_support_one() -> None:
     assert said == [["t0.s0", None], ["t0.s0", "t10.s0"]]
     handoff = next(m["handoff"] for m in messages if m["type"] == "handoff")
     assert handoff["mandatory"]["missing"] == []
+    levels = [t["level"] for t in handoff["coverage"]]
+    assert levels == ["well_treated", "well_treated", "treated", "treated",
+                      "treated"]
+    assert "Lucía" not in json.dumps(handoff["coverage"])  # no words
 
 
 # ---- the report and the voice example --------------------------------------

@@ -42,6 +42,7 @@ from orchestrator.domain.interview_coverage import (
     TopicRef,
     next_proposal,
     topic_coverage,
+    without_words,
 )
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.mandatory import Checklist, ChecklistItem
@@ -269,4 +270,11 @@ class ScriptedAssist:
                 "session_id": self.session_id, "demo": True,
                 "product": self.script.product,
                 "mandatory": self.checklist.summary(),
+                # #286: the topics' levels and concepts asked, as a live
+                # round's hand-off (ids and times, no words).
+                **({"coverage": without_words([
+                    topic_coverage(t.id, self._facts(t),
+                                   self.levels.get(t.id, "none"), t.name)
+                    for t in self.script.topics])}
+                   if self.script.topics else {}),
             }})

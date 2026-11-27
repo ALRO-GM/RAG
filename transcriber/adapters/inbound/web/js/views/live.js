@@ -944,7 +944,9 @@ export async function liveView(ctx, root, [sub, which] = []) {
       // Once the session ended there is nothing left to propose.
       const next = state.state === "running" ? state.next : null;
       fill(nextBox, nextLine(next, chips, lang));
-      const line = next || !focus ? ""
+      // With levels (#286) the hint is the proposal: nothing once it ended.
+      const leveled = chips.some((c) => c.coverage);
+      const line = next || !focus || (leveled && state.state !== "running") ? ""
         : focus.pending.length
           ? t("live.points_missing", { topic: name(focus, "name"), list: focus.pending.map((p) => name(p, "text")).join(", ") })
           : t("live.points_done", { topic: name(focus, "name") });
