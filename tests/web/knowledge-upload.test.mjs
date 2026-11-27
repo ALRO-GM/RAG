@@ -377,7 +377,7 @@ test("the messages say the real limit of the kind, the progress and the retry ca
       "Los PDF pueden ocupar hasta 500 MB; este ocupa 612 MB.");
     assert.equal(t("kn.reject.size_video", { limit: "1 GB", size: "1,2 GB" }), "Los vídeos pueden ocupar hasta 1 GB; este ocupa 1,2 GB.");
     assert.equal(t("kn.upload.progress", { sent: "64 MB", total: "1 GB", percent: 6 }), "64 MB de 1 GB (6 %)");
-    assert.match(t("kn.upload.retrying"), /Seguimos desde donde se quedó/);
+    assert.match(t("kn.upload.retrying"), /La subida seguirá desde donde se quedó/);
     assert.equal(t("kn.pages_done", { done: 40, total: 1200 }), "Leídas 40 de 1200 páginas");
     assert.match(t("kn.drop_limits_media", { pdf: "500 MB", video: "1 GB", audio: "200 MB", document: "100 MB", minutes: 120 }),
       /^Hasta 500 MB por PDF, 1 GB por vídeo, 200 MB por audio y 100 MB por cualquier otro documento; las grabaciones, de 120 minutos/);

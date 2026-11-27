@@ -1,4 +1,4 @@
-// «Datos de la candidata» (#235): the candidate's answers to the core
+// «Datos de la candidatura» (#235): the candidate's answers to the core
 // questions on a session's result page. Compact first (one line per
 // question, the answer, «Por confirmar» or «Pendiente»); then «Confirmar
 // datos» when the conversation left proposals (confirm, edit or discard

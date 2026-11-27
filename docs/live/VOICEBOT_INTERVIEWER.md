@@ -582,7 +582,7 @@ judgement stores nothing, and
 kinds with their kind («Entrevista con IA» / «Entrevista en directo»),
 date and «Abrir el informe» (`#/interview-report/<plan>/<session>`, the
 full report; a live one shows the judgement block, no score). The
-candidate's file («Datos de la candidata») lists their reports by kind
+candidate's file («Datos de la candidatura») lists their reports by kind
 and date with the same link: a report belongs to the file when it names
 the profile (`candidate_id`) or its session is one of the profile's
 rounds (older sheets name no profile). The live end summary links to

@@ -171,7 +171,7 @@ torchaudio 2.11.1, its C libraries moved aside) runs the orchestrator.
 
 ## 6. Integration: two natural voices behind the TTS port
 
-**Choices** (`settings.v1`, group *Bot de voz*; checked by the RAG's
+**Choices** (`settings.v1`, group *Asistente de voz*; checked by the RAG's
 allow-list `src/domain/pipeline_settings.py`, the transcriber's shape
 check and `orchestrator/domain/live_choices.py`):
 

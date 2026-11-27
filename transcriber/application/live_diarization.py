@@ -29,7 +29,7 @@ sentences of the session are the employee's by definition; their audio
 session's reference of the employee's voice, and the slot that spoke
 them is the employee's. Every slot's voice is then compared with that
 reference (:class:`~transcriber.domain.voice_check.PartySides`); the
-employee's corrections («Esta soy yo» / «Esta no soy yo») pin a slot
+employee's corrections («Soy yo» / «No soy yo») pin a slot
 and the sentence to a side. The scores and decisions are kept per
 session as numbers and ids (:meth:`MonoAttributor.diagnosis`).
 """

@@ -194,7 +194,7 @@ def test_skipping_keeps_the_old_way_and_corrections_still_work() -> None:
     requests = Requests()
     requests.at = [(0.0, "skip", "", False), (14.5, "mine", "t0.s2", True)]
     events, _ = run(TALK, ScriptedDiarizer(lag=1.0), requests=requests)
-    # «Esta soy yo» on the second low-tone sentence: that voice (slot 0)
+    # «Soy yo» on the second low-tone sentence: that voice (slot 0)
     # is the employee's from then on, and its earlier sentence too.
     assert speakers(events) == ["ana", "S2", "ana", "S2"]
 
@@ -370,7 +370,7 @@ def test_another_person_s_voiceprint_never_makes_the_employee() -> None:
 
 
 def test_a_correction_before_its_frames_moves_the_voice_later() -> None:
-    # Frames lag 4 s: when «Esta soy yo» arrives the line has no slot
+    # Frames lag 4 s: when «Soy yo» arrives the line has no slot
     # yet; once its frames come, its voice (slot 1) follows, so the
     # later high-tone line is the employee's too.
     requests = Requests()

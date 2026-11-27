@@ -716,7 +716,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
       }, label);
     }
 
-    // «Esta soy yo» / «Esta no soy yo» (#249): corrects that voice from now on and its earlier lines.
+    // «Soy yo» / «No soy yo» (#249): corrects that voice from now on and its earlier lines.
     // Named with its line (aria-describedby: the line's text); after a
     // correction the header's quiet voice chip (role status) says so once.
     function correctButton(u, fix) {

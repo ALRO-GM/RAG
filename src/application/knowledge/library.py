@@ -64,8 +64,8 @@ PROGRESS_SECONDS = 2.0
 
 NO_TRANSCRIBER = (
     "El audio y el vídeo necesitan el servicio de transcripción, que no "
-    "está enlazado. / Audio and video need the transcription service, "
-    "which is not linked."
+    "está conectado. / Audio and video need the transcription service, "
+    "which is not connected."
 )
 
 

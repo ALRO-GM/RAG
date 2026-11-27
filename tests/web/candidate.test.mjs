@@ -1,5 +1,5 @@
 // The candidate across rounds (#235): the answers in words, the rows of the
-// «Datos de la candidata» block and the live row, the `core` feed message,
+// «Datos de la candidatura» block and the live row, the `core` feed message,
 // the job reading only for the candidate, and the block drawn in a
 // stand-in DOM (compact first, corrections and deletion inside).
 import test from "node:test";
@@ -139,7 +139,7 @@ async function withDom(fn) {
   }
 }
 
-test("«Datos de la candidata»: compact first, «Confirmar datos» for proposals, corrections inside «Más información»", async () => {
+test("«Datos de la candidatura»: compact first, «Confirmar datos» for proposals, corrections inside «Más información»", async () => {
   await withDom(async () => {
     const { setLanguage } = await import("../../transcriber/adapters/inbound/web/js/i18n.js");
     setLanguage("es");

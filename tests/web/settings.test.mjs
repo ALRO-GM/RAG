@@ -369,7 +369,7 @@ test("a sample the voice service could not make says why in plain words (#253)",
   for (const [failure, expected] of [
     [{ kind: "unavailable", status: 503, code: "unavailable", message: "nothing was said" }, /No se pudo reproducir el ejemplo\. No se ha podido generar ninguna voz \(nothing was said\)\./],
     [{ kind: "unavailable", status: 502, code: "orchestrator_unavailable", message: "ReadTimeout" }, /ha tardado demasiado/],
-    [{ kind: "unavailable", status: 502, code: "orchestrator_unavailable", message: "ConnectError" }, /El servicio del bot de voz no responde/],
+    [{ kind: "unavailable", status: 502, code: "orchestrator_unavailable", message: "ConnectError" }, /El servicio del asistente de voz no responde/],
   ]) {
     const { root, button } = await samplePage(async () => { throw Object.assign(new Error(failure.message), failure); });
     const browser = fakeAudio([]);

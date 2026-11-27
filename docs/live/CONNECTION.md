@@ -108,7 +108,7 @@ they are measured behind «Más información».
 One piece of advice, by priority: no answer at all (`offline`: check the
 Wi-Fi or the cable); the public server answers but not the processing
 server (`server`: «El servidor de procesamiento no responde: avisa a
-administración.»); transcription or assistant down; a slow or lossy
+quien lo administra.»); transcription or assistant down; a slow or lossy
 link, attributed to the device's network when `/healthz` is slow too
 (`local`: closer to the router, cable, close downloads) and to the link
 otherwise (`link`: try again in a minute, then tell the administrator);

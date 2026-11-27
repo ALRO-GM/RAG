@@ -44,7 +44,7 @@
    "title": "Máquina frente a humanos (correlaciones)",
    "statistic": "r, ρ de Spearman, G e ICC de un observador",
    "measures": "acuerdo máquina–humano junto al acuerdo humano–humano del mismo estudio",
-   "how": "Todos son coeficientes de tipo correlación (0 a 1). Compare cada barra de máquina solo con la barra humana del mismo estudio, como hacen sus autores."
+   "how": "Todos son coeficientes de tipo correlación (0 a 1). Compara cada barra de máquina solo con la barra humana del mismo estudio, como hacen sus autores."
   },
   {
    "id": "auroc",

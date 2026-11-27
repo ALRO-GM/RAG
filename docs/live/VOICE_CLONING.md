@@ -11,7 +11,7 @@ work adds no notice.
 
 ## 1. Piper controls on «Ajustes»
 
-New steps of `settings.v1` (group *Bot de voz*, read by the
+New steps of `settings.v1` (group *Asistente de voz*, read by the
 orchestrator when a voice-bot session starts; `docs/SETTINGS.md`):
 
 | Step | Piper flag | Accepted | Default |

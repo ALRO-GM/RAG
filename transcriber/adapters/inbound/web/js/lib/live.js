@@ -488,8 +488,8 @@ export class LiveState {
   }
 
   /**
-   * The correction a line offers (#249): "mine" («Esta soy yo») on the other
-   * person's lines, "not_mine" («Esta no soy yo») on the employee's, or null
+   * The correction a line offers (#249): "mine" («Soy yo») on the other
+   * person's lines, "not_mine" («No soy yo») on the employee's, or null
    * when the session cannot be corrected (no voice check, not running,
    * a partial line).
    */

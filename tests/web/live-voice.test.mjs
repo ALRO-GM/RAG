@@ -1,7 +1,7 @@
 // #249 on the live page without a browser: the employee's voice check of a
 // one-microphone session («Preséntate…» → «Reconociendo tu voz…» → «Voz
-// reconocida»), the lines the attribution is not sure of, the «Esta soy yo» /
-// «Esta no soy yo» corrections and their API call. Texts are checked with the
+// reconocida»), the lines the attribution is not sure of, the «Soy yo» /
+// «No soy yo» corrections and their API call. Texts are checked with the
 // language set explicitly (CI's Node picks English by itself).
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -110,9 +110,9 @@ test("the voice check's texts exist in both languages and read in the language s
   setLanguage("es");
   assert.equal(t("live.voice.listening"), "Preséntate para que reconozca tu voz");
   assert.equal(t("live.voice.chip_recognised"), "Voz reconocida");
-  assert.equal(t("live.voice.mine"), "Esta soy yo");
-  assert.equal(t("live.voice.not_mine"), "Esta no soy yo");
+  assert.equal(t("live.voice.mine"), "Soy yo");
+  assert.equal(t("live.voice.not_mine"), "No soy yo");
   setLanguage("en");
-  assert.equal(t("live.voice.mine"), "This is me");
+  assert.equal(t("live.voice.mine"), "That's me");
   setLanguage("es");
 });

@@ -154,7 +154,7 @@ it. Not measured on real interviews.
   page shows the proposals of this candidate: each with «Confirmar»,
   «Editar» (type the answer) and «Descartar», and «Confirmar los N» for
   all at once (`POST .../candidates/{id}/confirm`, `{"questions"?}`).
-  The same step is on the result page, in «Datos de la candidata».
+  The same step is on the result page, in «Datos de la candidatura».
 - **Live page.** A quiet row «Preguntas comunes · N de 5 respondidas»
   under the topics: confirmed answers as done chips with their answer,
   proposals as dotted chips «… · por confirmar», open ones as dashed
@@ -170,7 +170,7 @@ it. Not measured on real interviews.
   that question. Confirmed ones are never asked. The work mode/location
   question has blanks («[modalidad] en [ciudad]») the plan cannot fill,
   so the bot leaves it to a person.
-- **Result page.** `#/analysis/<session>` shows «Datos de la candidata»
+- **Result page.** `#/analysis/<session>` shows «Datos de la candidatura»
   under the overview when the orchestrator knows the session's candidate
   (`GET /interview/candidates/by-session/{session}`): one line per core
   question (answer, «Por confirmar: …» or «Pendiente»), the number of
