@@ -16,6 +16,7 @@ from orchestrator.adapters.outbound.fakes import FakeReasoner
 from orchestrator.application.live_judgement import (
     ATTRIBUTION_TEMPLATE,
     LiveJudge,
+    rejudge,
     replayed_tracker,
 )
 from orchestrator.application.next_round import TopicTracker
@@ -71,8 +72,9 @@ SESSION = "cov-1"
 # s1 asked and answered at length, s2 asked with no answer, s3 asked and
 # answered in part, the rest never reached.
 ROUND: List[Tuple[str, str, str]] = [
-    ("q1", "S1", "Hola, gracias por venir. ¿Dónde trabajaste antes y "
-                 "cuánto tiempo?"),
+    ("q1", "S1", "Hola, gracias por venir. Sobre tu experiencia de "
+                 "atención al cliente: ¿dónde trabajaste antes y cuánto "
+                 "tiempo?"),
     ("c1", "S2", "Estuve tres años en una zapatería del barrio, atendiendo "
                  "clientes, reponiendo el género y preparando los pedidos "
                  "que llegaban cada semana al almacén de la tienda."),
@@ -590,3 +592,122 @@ def test_a_second_question_seen_only_by_the_model_counts() -> None:
         {"id": "s2.p1", "utterance": "q9"}]})
     assert track.asked_times["s2.p1"] == 2
     assert track.asked["s2"]["p1"].utterance == "q2"  # the first stays
+
+
+# ---- second review (#286) -------------------------------------------------
+
+def test_an_undone_mark_never_comes_back_on_a_rejudge() -> None:
+    store = Store()
+    judge(store, FakeReasoner(), attribute=False)
+    kept = json.loads(json.dumps(stored(store)))
+    store.sheets.clear()
+    s2 = next(t for t in kept["coverage"] if t["id"] == "s2")
+    mark = s2["points"][0]["asked"]
+    assert mark["utterance"] == "q2"
+    s2["points"][0]["undone"], s2["points"][0]["asked"] = [mark], None
+    s2["level"] = "named"
+    store.save_result("set-running", kept)
+    rejudge(transcript(), the_plan(), wiring(store, FakeReasoner()),
+            attribute=False)
+    again = {c["id"]: c for c in stored(store)["coverage"]}
+    point = again["s2"]["points"][0]
+    assert point["asked"] is None
+    assert [u["utterance"] for u in point["undone"]] == ["q2"]
+    assert again["s2"]["level"] == "named"
+
+
+AGAIN_PLAN = InterviewPlan.model_validate({
+    **the_plan().model_dump(mode="json"),
+    "slots": [s.model_dump(mode="json") for s in the_plan().slots
+              if s.id == "s3"]})
+
+
+def test_otra_vez_is_published_once_the_answer_misses_it() -> None:
+    track, published = tracker(AGAIN_PLAN)
+    say(track, [
+        ("q1", "S1", "¿Cobras con tarjeta y efectivo?"),
+        ("c1", "S2", "Sí, cobraba con tarjeta y en efectivo."),
+        ("q2", "S1", "¿Y el cierre de caja?"),
+        ("c2", "S2", "Al cerrar cuadraba la caja cada noche con el cierre."),
+        ("q3", "S1", "¿Y devoluciones, cómo las hacías?"),
+    ])
+    assert published[-1]["next"] is None  # asked, not answered yet
+    say(track, [("c3", "S2", "Me gusta mucho el fútbol los domingos.")])
+    last = published[-1]
+    assert last["type"] == "topics" and last["next"]["again"] is True
+    assert last["next"]["point"] == "p3"
+
+
+def test_a_generic_concept_needs_its_own_topic_and_moves_nothing() -> None:
+    track, _ = tracker()
+    say(track, [("q1", "S1", "¿Cobras con tarjeta y efectivo?")])
+    assert track.target is not None and track.target.id == "s3"
+    say(track, [("q2", "S1", "¿Cuánto tiempo tardas en cuadrar la caja?"),
+                ("q3", "S1", "¿Dónde te gustaría trabajar?")])
+    assert track.asked["s1"] == {}
+    assert track.target.id == "s3"
+    # Within its own topic (named in the line), it is asked.
+    say(track, [("q4", "S1", "Sobre tu experiencia en atención al cliente: "
+                             "¿cuánto tiempo estuviste?")])
+    assert "p2" in track.asked["s1"]
+
+
+@pytest.mark.parametrize("text,point,asked", [
+    ("Dime tu nombre, la pisada es importante.", "Tipos de pisada",
+     False),
+    ("Tell me your name, unit testing is key here.", "Unit testing", False),
+    ("Cuéntame tu nombre y luego te explico la pisada.", "Tipos de pisada",
+     False),
+    ("La empresa usa Docker, ¿qué opinas?", "Docker", False),
+    ("Y la pisada, ¿qué tipos conoces?", "Tipos de pisada", True),
+    ("Sobre la pisada: ¿qué tipos conoces?", "Tipos de pisada", True),
+    ("En cuanto a la pisada, ¿qué sabes?", "Tipos de pisada", True),
+    ("Háblame de Kubernetes, por favor.", "Kubernetes", True),
+])
+def test_a_request_is_its_own_clause_and_a_lead_in_goes_with_it(
+        text: str, point: str, asked: bool) -> None:
+    assert asks_point(point, text) is asked
+
+
+def relabel(track: TopicTracker, uid: str, speaker: str, seq: int) -> None:
+    event = final(uid, speaker, "", seq=seq)
+    track.on_event(event.model_copy(update={"type": "speaker_update"}))
+
+
+def test_a_relabel_gives_what_a_replay_gives() -> None:
+    line = ("Sobre la disponibilidad de horario, ¿dónde trabajaste antes?")
+    replay, _ = tracker()
+    say(replay, [("q1", "S1", line)])
+    live, _ = tracker()
+    say(live, [("q1", "S2", line)])
+    relabel(live, "q1", "S1", 1)
+    assert live.asked == replay.asked
+    assert live.target is not None and replay.target is not None
+    assert live.target.id == replay.target.id == "s5"
+    assert live.asked_topics == replay.asked_topics
+    assert live.reached() == replay.reached()
+    # And back to the candidate: no mark, no topic asked, the level of a
+    # replay with the candidate's line.
+    other, _ = tracker()
+    say(other, [("q1", "S2", "Cuéntame qué tipos de pisada conoces.")])
+    live2, _ = tracker()
+    say(live2, [("q1", "S1", "Cuéntame qué tipos de pisada conoces.")])
+    assert live2.reached()["s2"] == "treated"
+    relabel(live2, "q1", "S2", 1)
+    assert live2.asked == other.asked
+    assert live2.target is None and other.target is None
+    assert live2.reached() == other.reached()
+
+
+def test_an_undo_names_its_mark_and_a_retry_does_nothing() -> None:
+    track, _ = tracker()
+    say(track, ROUND[:4])
+    track.mark_asked("s3", "p2", True, 18.0)
+    say(track, [("q5", "S1", "¿Y cómo haces el cierre de caja?")])
+    hand = ("hand", 18.0)
+    assert track.mark_asked("s3", "p2", False, mark=hand)["asked"][
+        "utterance"] == "q5"
+    # The same undo again (a retry): the rules' mark stays.
+    assert track.mark_asked("s3", "p2", False, mark=hand)["asked"][
+        "utterance"] == "q5"
+    assert track.asked["s3"]["p2"].by == "rules"

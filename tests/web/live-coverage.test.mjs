@@ -238,3 +238,15 @@ test("the report tells «preguntado, sin respuesta» from «no preguntado»", as
     assert.equal(summaryLine([]), null);
   });
 });
+
+test("the board says «se preguntó» only for a point really asked (#286 review)", async () => {
+  await withDom("es", async () => {
+    const { askedNote } = await import("../../transcriber/adapters/inbound/web/js/views/offers.js");
+    const text = (point) => askedNote(point, "not_treated").text();
+    assert.equal(text({ asked: 1, concepts: 3, coverage: "treated" }), "se preguntó, sin respuesta");
+    assert.equal(text({ asked: 0, concepts: 3, coverage: "named" }), "no se llegó a preguntar", "only mentioned");
+    assert.equal(text({ asked: 0, concepts: 0, coverage: "treated" }), "se preguntó, sin respuesta", "no concepts: its level");
+    assert.equal(text({ asked: 0, concepts: 0, coverage: "named" }), "no se llegó a preguntar");
+    assert.equal(askedNote({ asked: null }, "not_treated"), null, "older reports: nothing");
+  });
+});

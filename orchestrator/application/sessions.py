@@ -1658,19 +1658,23 @@ class LiveSessions:
             raise SessionError("invalid_request", str(exc)) from exc
 
     def mark_asked(self, session_id: str, topic: str, point: str,
-                   asked: bool) -> Document:
+                   asked: bool,
+                   mark: Optional[Tuple[str, Optional[float]]] = None,
+                   ) -> Document:
         """Mark a concept's question as asked by hand, or undo it (#286).
 
         Recorded ``by: "hand"`` at the time of the click in stream
-        time; undoing removes the mark shown, whoever made it, and is
-        recorded (``undone``).
+        time; undoing removes the mark ``mark`` names (``(by, at)``),
+        whoever made it, and is recorded (``undone``); a repeat is a
+        no-op.
         """
         session = self._running(session_id)
         if session.topics is None:
             raise SessionError("not_found", "this session has no topics")
         try:
             # Dated at the click, in stream time (the tracker's clock).
-            return session.topics.mark_asked(topic, point, asked)
+            return session.topics.mark_asked(topic, point, asked,
+                                             mark=mark)
         except KeyError as exc:
             raise SessionError("not_found", "no such concept") from exc
 

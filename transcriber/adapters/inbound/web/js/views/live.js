@@ -967,7 +967,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
 
     async function markAsked(topic, point, asked) {
       try {
-        await ctx.api.markAsked(session.id, topic, point.id, asked);
+        await ctx.api.markAsked(session.id, topic, point.id, asked, asked ? null : point.asked);
       } catch (error) {
         toast(t("cov.mark_failed", { error: liveError(error) }), { error: true });
       }

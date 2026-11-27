@@ -475,10 +475,12 @@ function pointCell(point, column, plan, row) {
  * (the interview's gap, not the person's); otherwise how many concepts were
  * asked. Nothing for reports without it. The figure does not change.
  */
-function askedNote(point, state) {
+export function askedNote(point, state) {
   if (typeof point?.asked !== "number") return null;
   // «Se preguntó» only with a mark of a question; a topic merely mentioned was not asked.
-  if (state === "not_treated") return h("span", { class: "of-small" }, t(point.asked > 0 ? "of.asked_no_answer" : "of.never_asked"));
+  // A point without concepts was asked when its level reached «tratado» (asked counts concepts only).
+  const asked = point.concepts ? point.asked > 0 : ["treated", "well_treated"].includes(point.coverage);
+  if (state === "not_treated") return h("span", { class: "of-small" }, t(asked ? "of.asked_no_answer" : "of.never_asked"));
   return point.concepts ? h("span", { class: "of-small" }, t("of.asked", { n: point.asked })) : null;
 }
 

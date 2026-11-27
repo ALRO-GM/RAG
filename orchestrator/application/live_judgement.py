@@ -215,17 +215,11 @@ class LiveJudge:
     def _earlier(self) -> Dict[str, TopicCoverage]:
         """The coverage kept earlier for this round (#286 review).
 
-        The stored report of the same session when there is one (a
-        rejudge or a rebuild replays only the words: marks by hand or by
-        the live model, undone marks and the level reached would be
-        lost), else the coverage given (the hand-off's), else nothing.
+        :func:`kept_coverage`: the stored report of the same session,
+        else the coverage given (the hand-off's), else nothing.
         """
-        try:
-            found = earlier_coverage(self.wiring.store.result(
-                self.plan.id, self.session_id))
-        except Exception:  # noqa: BLE001 - none stored, or unreadable
-            found = {}
-        return found or dict(self.earlier or {})
+        return kept_coverage(self.wiring, self.plan.id, self.session_id,
+                             self.earlier)
 
     def attribute_round(
         self, lines: List[RoundLine],
@@ -583,8 +577,22 @@ def merged_slots(
     return found, joined
 
 
+def kept_coverage(
+    wiring: InterviewWiring, plan_id: str, session_id: str,
+    fallback: Optional[Mapping[str, TopicCoverage]] = None,
+) -> Dict[str, TopicCoverage]:
+    """The coverage kept for a round (#286): its stored report's, else
+    ``fallback`` (the hand-off's), else nothing."""
+    try:
+        found = earlier_coverage(wiring.store.result(plan_id, session_id))
+    except Exception:  # noqa: BLE001 - none stored, or unreadable
+        found = {}
+    return found or dict(fallback or {})
+
+
 def replayed_tracker(
     transcript: Transcript, plan: InterviewPlan,
+    earlier: Optional[Mapping[str, TopicCoverage]] = None,
 ) -> TopicTracker:
     """The topic tracker of a round rebuilt from its ``transcript.v1``.
 
@@ -596,6 +604,8 @@ def replayed_tracker(
     roles = {s.id: s.role or "unknown" for s in transcript.speakers}
     topics = TopicTracker(plan, topic_states(plan, []), roles,
                           lambda message: None)
+    if earlier:
+        topics.seed_undone(earlier)  # an undone mark is never redone
     for event in transcript_to_events(transcript, roles):
         topics.on_event(event)
     return topics
@@ -624,8 +634,9 @@ def rejudge(
     to a point of the plan.
     """
     roles = {s.id: s.role or "unknown" for s in transcript.speakers}
-    topics = replayed_tracker(transcript, plan)
     session_id = next(transcript_to_events(transcript, roles)).session_id
+    topics = replayed_tracker(transcript, plan,
+                              kept_coverage(wiring, plan.id, session_id))
     judge = LiveJudge(plan, wiring, session_id, publish, model,
                       candidate=candidate, candidate_id=candidate_id,
                       now=now, attribute=attribute)

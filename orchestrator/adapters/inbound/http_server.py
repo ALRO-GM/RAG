@@ -85,7 +85,7 @@ other services of the workstation.
 import asyncio
 import json
 import secrets
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional, Tuple
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -99,6 +99,7 @@ from orchestrator.application.recovered_round import (
     forget_recovery,
 )
 from orchestrator.application.sessions import LiveSessions, SessionError
+from orchestrator.domain.interview import ASKED_BY
 
 STATUS = {
     "not_found": 404, "busy": 409, "wrong_state": 409,
@@ -535,13 +536,28 @@ def create_app(
     async def mark_asked(
         session_id: str, topic: str, point: str, request: Request
     ) -> Dict[str, Any]:
-        """Mark a concept's question as asked by hand (``asked``, #286)."""
+        """Mark a concept asked by hand, or undo a mark (``asked``, #286).
+
+        ``{"asked": true}`` or ``{"asked": false, "mark": {"by", "at"}}``.
+        """
         data = await body(request)
         asked = data.get("asked")
         if not isinstance(asked, bool):
             raise SessionError("invalid_request",
                                "asked must be true or false")
-        return sessions.mark_asked(session_id, topic, point, asked)
+        mark = data.get("mark")
+        undo: Optional[Tuple[str, Optional[float]]] = None
+        if not asked:
+            # The undo names the mark it undoes (a retry is a no-op).
+            at = mark.get("at") if isinstance(mark, dict) else None
+            if not isinstance(mark, dict) or mark.get("by") not in \
+                    ASKED_BY or not (at is None or (
+                        isinstance(at, (int, float))
+                        and not isinstance(at, bool))):
+                raise SessionError("invalid_request",
+                                   "an undo names its mark {by, at}")
+            undo = (str(mark["by"]), None if at is None else float(at))
+        return sessions.mark_asked(session_id, topic, point, asked, undo)
 
     @app.post("/sessions/{session_id}/barge-in")
     async def barge_in(session_id: str) -> Dict[str, Any]:

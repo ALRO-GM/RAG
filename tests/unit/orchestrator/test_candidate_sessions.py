@@ -879,8 +879,14 @@ def test_the_interviewer_marks_a_concept_asked_through_the_api() -> None:
     marked = web.post(path, json={"asked": True})
     assert marked.status_code == 200
     assert marked.json()["asked"]["by"] == "hand"
-    undone = web.post(path, json={"asked": False})
+    mark = marked.json()["asked"]
+    undo = {"asked": False, "mark": {"by": "hand", "at": mark["at"]}}
+    undone = web.post(path, json=undo)
     assert undone.json()["asked"] is None
+    # #286 review: the undo names its mark; a retry does nothing, and an
+    # undo without a mark is refused.
+    assert web.post(path, json=undo).json()["asked"] is None
+    assert web.post(path, json={"asked": False}).status_code == 422
     assert web.post(f"/sessions/r9/points/{slot.id}/p99",
                     json={"asked": True}).status_code == 404
     # #286 review: only a real boolean.

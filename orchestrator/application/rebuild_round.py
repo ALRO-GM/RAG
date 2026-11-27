@@ -38,7 +38,7 @@ from typing import (
 
 from orchestrator.application.avoid import AvoidTracker
 from orchestrator.application.interview import InterviewWiring
-from orchestrator.application.live_judgement import LiveJudge
+from orchestrator.application.live_judgement import LiveJudge, kept_coverage
 from orchestrator.application.mandatory import MandatoryTracker
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.ports import (
@@ -167,6 +167,10 @@ class RoundRebuild:
                 plan, topic_states(plan, list(rounds)), roles_map, publish,
                 product.language if product is not None else "es",
             )
+            # #286 review: a mark the interviewer undid is never redone.
+            topics.seed_undone(kept_coverage(
+                self.wiring, plan.id, session_id, earlier)
+                if self.wiring is not None else dict(earlier or {}))
             trackers.append(topics)
             result.parts.append("topics")
         checklist: Optional[MandatoryTracker] = None

@@ -1110,7 +1110,7 @@ candidate. Code: `orchestrator/domain/interview_coverage.py` (rules),
 
 | Fact | Live (during the session) | After the session |
 |---|---|---|
-| **asked** — the interviewer's question was about it | the word rules, conservative (#286 review): the concept must be named **inside a question clause** — between «¿» and «?»; or a sentence ending in «?» whose last comma part starts with a question word (speech recognition may drop the «¿»); or a clause starting with a request («cuéntame…», «háblame de…»). Tag questions («¿vale?», «¿no?», «¿verdad?»), clauses saying a topic will not be discussed («no vamos a hablar de…») and statements with a question word («como te decía…», «cuando entres…») never count; a question without «?» or request is missed (the model and the button catch it). The concept is named by its distinctive words: all its stems (one or two), or at least half and two of them (three or more) with one that is not generic; a stem shared with common verbs and nouns («trabajar», «experiencia», «tiempo») never identifies a concept alone. The line's best match across topics wins (the topic the line names, if any); a tie goes to the topic being asked, else nothing is marked; only the line naming the topic or an unambiguous match moves the topic being asked. The tick call `interview.ticks@2` reads a question in other words (`live_model`, same call and spacing as before, ≥ 30 s apart, only concepts still pending; a second question it reads counts too). «Ya lo he preguntado» marks by hand (`hand`, dated at the click in stream time). **Any mark can be undone** with the same button, whoever made it: the undo is recorded (`undone`), the same line never marks it again, and another source of the same concept, if any, is shown next. A line relabelled to another speaker loses or gains its marks, as a replay would. | `interview.attribution@2` reads the whole round and adds the concepts the session missed (`after_session`, earliest interviewer line), never on a line the interviewer undid; the session's marks stay as they were. A rebuild or `interview rejudge` replays only the words, so every mark (by hand, by the live model), every undone mark and the level reached are carried over from the round's earlier stored report, or from its hand-off when there is none |
+| **asked** — the interviewer's question was about it | the word rules, conservative (#286 review): the concept must be named **inside a question clause** — between «¿» and «?»; or a sentence ending in «?» whose last comma part starts with a question word (speech recognition may drop the «¿»); or the comma part starting with a request («cuéntame…», «háblame de…»), up to a clause joined to it («… y luego te explico…»). A short lead-in naming what the question is about goes with it («Sobre la pisada: ¿qué tipos conoces?», «Y la pisada, ¿qué tipos…?», «En cuanto a la pisada, ¿qué sabes?»). Tag questions («¿vale?», «¿no?», «¿verdad?»), clauses saying a topic will not be discussed («no vamos a hablar de…») and statements with a question word («como te decía…», «cuando entres…») never count; a question without «?» or request is missed (the model and the button catch it). The concept is named by its distinctive words: all its stems (one or two), or at least half and two of them (three or more) with one that is not generic; a stem shared with common verbs and nouns («trabajar», «experiencia», «tiempo») never identifies a concept alone, and a concept made only of such words («Cuánto tiempo», «Dónde trabajó») is looked for only in the topic being asked or named in the line, never names a topic and never moves the topic being asked. The line's best match across topics wins (the topic the line names, if any); a tie goes to the topic being asked, else nothing is marked; only the line naming the topic or an unambiguous match moves the topic being asked. The tick call `interview.ticks@2` reads a question in other words (`live_model`, same call and spacing as before, ≥ 30 s apart, only concepts still pending; a second question it reads counts too). «Ya lo he preguntado» marks by hand (`hand`, dated at the click in stream time). **Any mark can be undone** with the same button, whoever made it: the request names the mark it undoes (`{"by", "at"}`, so a retry does nothing), the undo is recorded (`undone`), the same line never marks it again (also in a later rebuild or `rejudge`), and another source of the same concept, if any, is shown next. A line relabelled to another speaker is computed again as if it had arrived with that speaker: its marks, the topic it asked, the topic being asked and the levels of the topics it touched. | `interview.attribution@2` reads the whole round and adds the concepts the session missed (`after_session`, earliest interviewer line), never on a line the interviewer undid; the session's marks stay as they were. A rebuild or `interview rejudge` replays only the words, so every mark (by hand, by the live model), every undone mark and the level reached are carried over from the round's earlier stored report, or from its hand-off when there is none |
 | **treated** — the candidate talked about it (or said they do not know it) | as since #258 / #268 | as since #268 |
 
 A concept asked counts as **covered** even when the answer was poor or
@@ -1185,14 +1185,19 @@ twice, never.
   point not treated: the second is the interviewer's gap, not the
   candidate's.
 
-`POST /sessions/{id}/points/{topic}/{point}` `{"asked": true|false}`
-(the page: `POST /api/assist/sessions/{id}/points/{topic}/{point}`)
-marks by hand or undoes a mark by hand; 404 for an unknown concept, 409
-once the session ended.
+`POST /sessions/{id}/points/{topic}/{point}` with `{"asked": true}` or
+`{"asked": false, "mark": {"by", "at"}}` (the page: `POST
+/api/assist/sessions/{id}/points/{topic}/{point}`) marks by hand or
+undoes the mark named; 422 unless `asked` is a boolean and an undo names
+its mark, 404 for an unknown concept, 409 once the session ended. The
+offer board says «se preguntó, sin respuesta» for a point not treated
+only when one of its concepts was asked (a point without concepts: when
+its level reached «tratado»).
 
 **A RAG not restarted with the orchestrator.** When the reasoner refuses
-`interview.ticks@2` or `interview.attribution@2` (HTTP 422: it does not
-know the template yet), the orchestrator falls back to the `@1` revision
+`interview.ticks@2` or `interview.attribution@2` because it does not know
+the template yet (HTTP 422 whose detail says «Unknown … template»; any
+other 422 stays an error), the orchestrator falls back to the `@1` revision
 (treated concepts only; no asked concepts from the model) and logs it
 once per session; ticks and the attribution go on.
 

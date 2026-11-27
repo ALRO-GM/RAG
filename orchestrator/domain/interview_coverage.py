@@ -113,32 +113,68 @@ def _words(text: str) -> str:
     return " ".join(re.findall(r"[a-z0-9+#]+", fold(text)))
 
 
+_TOPIC_LEAD = re.compile(
+    r"^(y |e |and )?(sobre|en cuanto a|respecto a|con respecto a|"
+    r"acerca de|en relacion con|about|as for|regarding|on)\b"
+)
+"""A lead-in that names what the question after it is about («Sobre la
+pisada: ¿qué tipos conoces?», «En cuanto a la pisada, ¿qué sabes?»)."""
+_SHORT_LEAD = re.compile(r"^(y |e |and )?(el|la|los|las|lo de|the)\b")
+"""A short lead-in of a noun alone («Y la pisada, ¿qué tipos…?»)."""
+_JOINED = re.compile(r"\s(?:y luego|y despues|y ahora|y te|and then|"
+                     r"and i)\s")
+"""Where a request is joined to a clause of its own («Cuéntame tu
+nombre y luego te explico la pisada»)."""
+
+
+def _lead(before: str) -> str:
+    """The lead-in just before a question in the same sentence, or ""."""
+    lead = re.split(r"[.!?;]", before)[-1].strip(" ,:")
+    words = _words(lead).split()
+    if not words:
+        return ""
+    if _TOPIC_LEAD.match(" ".join(words)) and len(words) <= 7:
+        return lead
+    if _SHORT_LEAD.match(" ".join(words)) and len(words) <= 3:
+        return lead
+    return ""
+
+
 def question_clauses(text: str) -> List[str]:
     """The clauses of an interviewer's line that ask something (#286).
 
     Conservative: a clause between «¿» and «?»; else a sentence ending
     in «?» whose last comma part starts with a question word (speech
-    recognition may drop the «¿»); else a clause that starts with a
-    request («cuéntame…», «háblame de…»). Tag questions («¿vale?»,
-    «¿no?») and clauses saying a topic will not be discussed are not
-    questions. A statement with a question word («como te decía…»,
-    «cuando entres…») never is: a missed question is left to the model
-    and the interviewer's button, a false one would hide a gap.
+    recognition may drop the «¿»); else the comma part that starts with
+    a request («cuéntame…», «háblame de…»), up to a clause joined to it
+    («… y luego te explico…»). A short lead-in naming what the question
+    is about goes with it («Sobre la pisada: ¿qué tipos conoces?»). Tag
+    questions («¿vale?», «¿no?») and clauses saying a topic will not be
+    discussed are not questions. A statement with a question word
+    («como te decía…», «cuando entres…») never is: a missed question is
+    left to the model and the interviewer's button, a false one would
+    hide a gap.
     """
     found: List[str] = []
     rest = text
     for match in re.finditer(r"¿([^?¿]*)\?", text):
-        found.append(match.group(1))
+        question = match.group(1)
+        if not _TAG.match(_words(question)):
+            lead = _lead(text[:match.start()])
+            found.append(f"{lead} {question}" if lead else question)
         rest = rest.replace(match.group(0), " . ")
     for sentence in re.findall(r"[^.;:!?¿]*\?", rest):
-        last = sentence.split(",")[-1]
+        parts_ = sentence.split(",")
+        last = parts_[-1]
         if _INTERROGATIVE.match(_words(last)):
-            found.append(last.rstrip("?"))
+            lead = _lead(",".join(parts_[:-1]))
+            found.append(f"{lead} {last.rstrip('?')}" if lead
+                         else last.rstrip("?"))
     rest = re.sub(r"[^.;:!?¿]*\?", " . ", rest)
     for sentence in _CLAUSE_END.split(rest):
         for piece in sentence.split(","):
             if _REQUEST.match(_words(piece)):
-                found.append(sentence[sentence.index(piece):])
+                found.append(_JOINED.split(fold(piece))[0])
                 break
     return [c for c in found
             if _words(c) and not _TAG.match(_words(c))
@@ -199,6 +235,14 @@ def point_score(point: str, clause: str) -> float:
     return 0.0
 
 
+def generic_only(point: str) -> bool:
+    """Whether every stem of ``point`` is generic («Cuánto tiempo»,
+    «Dónde trabajó»): any interview's questions name them, so the rules
+    tie such a concept only to the topic being asked (#286 review)."""
+    stems = asked_stems(point)
+    return bool(stems) and all(s in _GENERIC for s in stems)
+
+
 def asks_point(point: str, text: str) -> bool:
     """Tell whether an interviewer's line asks about the concept ``point``.
 
@@ -233,25 +277,35 @@ def asked_concepts(
     (:func:`point_score`); the topic with the best concept wins. A tie
     between topics goes to the topic being asked (``current``) when it
     is one of them, else nothing is marked (ambiguous: plans repeat
-    concepts across topics).
+    concepts across topics). A concept made only of generic words
+    (:func:`generic_only`) is looked for only in ``current`` and never
+    makes the match ``clear``.
     """
     clauses = question_clauses(text)
     if not clauses:
         return None
     best: Dict[str, float] = {}
     hits: Dict[str, List[str]] = {}
+    distinct: Set[str] = set()
     for topic in topics:
         for pid, ptext in topic.points:
+            weak = generic_only(ptext)
+            if weak and topic.id != current:
+                continue  # generic words: only within the topic asked
             score = max(point_score(ptext, c) for c in clauses)
             if score > 0:
                 hits.setdefault(topic.id, []).append(pid)
                 best[topic.id] = max(best.get(topic.id, 0.0), score)
+                if not weak:
+                    distinct.add(topic.id)
     if not best:
         return None
     top = max(best.values())
     leaders = [t for t, v in best.items() if v == top]
     if len(leaders) == 1:
-        return AskedMatch(leaders[0], tuple(hits[leaders[0]]), True)
+        # Only distinctive words may move the topic being asked.
+        return AskedMatch(leaders[0], tuple(hits[leaders[0]]),
+                          leaders[0] in distinct)
     if current in leaders:
         return AskedMatch(str(current), tuple(hits[str(current)]), False)
     return None
@@ -495,10 +549,14 @@ def settled(
             undone = [*now.undone, *(u for u in then.undone
                                      if u not in now.undone)]
             gone = {u.utterance for u in undone if u.utterance}
-            model = model_asked.get(slot.id, {}).get(p.id)
-            if model is not None and model.utterance in gone:
-                model = None
-            mark = now.asked or then.asked or model
+            # A mark the interviewer undid never comes back: a replay has
+            # no undos, so the rules may mark that line again (#286
+            # review); the same holds for an earlier or the model's mark.
+            mark = next((m for m in (now.asked, then.asked,
+                                     model_asked.get(slot.id, {}).get(p.id))
+                         if m is not None and m not in undone
+                         and not (m.utterance and m.utterance in gone)),
+                        None)
             points.append(PointCoverage(
                 id=p.id, text=p.text, status=status.get(p.id, now.status),
                 asked=mark, undone=undone))

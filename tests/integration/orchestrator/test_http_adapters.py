@@ -99,9 +99,19 @@ def test_reasoner_failures(response: httpx.Response) -> None:
 def test_a_refused_request_is_told_apart() -> None:
     """#286 review: an unknown template revision (HTTP 422)."""
     http = HttpReasoner("http://x", client=client(
-        lambda r: httpx.Response(422, json={"detail": "Unknown template"})))
+        lambda r: httpx.Response(422, json={
+            "detail": "Unknown structured template 'interview.ticks@2'; "
+                      "known: interview.ticks@1."})))
     with pytest.raises(ReasonerRejected):
         http.reason(REQUEST, CancelToken())
+    # Any other 422 stays an ordinary failure (no fallback).
+    for other in ({"detail": "deadline_ms too large"}, {"detail": [1]},
+                  "x"):
+        http = HttpReasoner("http://x", client=client(
+            lambda r, body=other: httpx.Response(422, json=body)))
+        with pytest.raises(ReasonerUnavailable) as raised:
+            http.reason(REQUEST, CancelToken())
+        assert not isinstance(raised.value, ReasonerRejected)
 
 
 def ndjson(*items: Dict[str, Any]) -> bytes:

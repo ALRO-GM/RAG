@@ -383,10 +383,13 @@ export class Api {
     return this.request("POST", `/live/sessions/${encodeURIComponent(id)}/voice`, { json: body });
   }
 
-  /** Mark a concept's question as asked by hand, or undo it (#286). */
-  markAsked(id, topic, point, asked = true) {
+  /**
+   * Mark a concept's question as asked by hand, or undo the mark `mark`
+   * ({ by, at }, as shown) — a retry of the same undo does nothing (#286).
+   */
+  markAsked(id, topic, point, asked = true, mark = null) {
     return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/points/${encodeURIComponent(topic)}/${encodeURIComponent(point)}`,
-      { json: { asked } });
+      { json: asked ? { asked } : { asked, mark: { by: mark?.by ?? null, at: mark?.at ?? null } } });
   }
 
   /** Tick a mandatory item by hand, after the person confirmed it was said. */

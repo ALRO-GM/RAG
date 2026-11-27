@@ -7,6 +7,7 @@ reply ends; a service without that route (404/405) is asked with
 """
 
 import json
+import re
 from typing import Callable, Iterator, Optional
 
 import httpx
@@ -61,8 +62,8 @@ class HttpReasoner:
                 self.url, json=request, headers=self.headers,
                 timeout=self.timeout,
             )
-            if response.status_code == 422:
-                raise ReasonerRejected("422")
+            if response.status_code == 422 and _unknown_template(response):
+                raise ReasonerRejected("unknown template")
             response.raise_for_status()
             body = response.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -133,3 +134,17 @@ class HttpReasoner:
             elif kind == "error":
                 raise ReasonerUnavailable(str(item.get("message", "error")))
         raise ReasonerUnavailable("the stream ended without a response")
+
+
+def _unknown_template(response: httpx.Response) -> bool:
+    """Whether a 422 says the template is unknown (#286 review).
+
+    The RAG's detail reads «Unknown structured template …» for a
+    revision it does not know; any other 422 stays an error as before.
+    """
+    try:
+        detail = response.json().get("detail")
+    except (ValueError, AttributeError):
+        return False
+    return isinstance(detail, str) and bool(
+        re.match(r"Unknown (\w+ )?template\b", detail))

@@ -55,7 +55,8 @@ import threading
 import time
 from functools import lru_cache
 from typing import (
-    Callable, Dict, FrozenSet, List, Optional, Sequence, Set, Tuple,
+    Callable, Dict, FrozenSet, List, Mapping, Optional, Sequence, Set,
+    Tuple,
 )
 
 from orchestrator.application.ports import Document
@@ -79,6 +80,7 @@ from orchestrator.domain.interview_coverage import (
     TopicFacts,
     TopicRef,
     asked_concepts,
+    generic_only,
     next_proposal,
     point_covered,
     topic_coverage,
@@ -133,8 +135,11 @@ def slot_asked(text: str, slots: Sequence[Slot]) -> Optional[Slot]:
     best: Optional[Slot] = None
     best_n = 0
     for slot in slots:
+        # A concept made only of generic words («Cuánto tiempo») names
+        # no topic (#286 review): any interview's questions say them.
         label, topic = _slot_words(slot.label, tuple(slot.questions),
-                                   tuple(p.text for p in slot.points))
+                                   tuple(p.text for p in slot.points
+                                         if not generic_only(p.text)))
         shared = len(heard & topic)
         needed = 1 if len(label) == 1 and heard & label else 2
         if shared >= needed and shared > best_n:
@@ -188,6 +193,10 @@ class TopicTracker:
         self.named: Set[str] = set()
         """Topics either speaker mentioned (#286)."""
         self.asked_topics: Set[str] = set()
+        self.asking: Dict[str, Tuple[float, str]] = {}
+        """Interviewer line id → (start, topic) of each line that asked a
+        topic (named it, or asked its concepts unambiguously): what a
+        speaker relabel recomputes (#286 review)."""
         """Topics the interviewer asked about (#286)."""
         self.asked: Dict[str, Dict[str, PointAsked]] = {
             s.id: {} for s in plan.slots}
@@ -232,13 +241,7 @@ class TopicTracker:
                 if u.id in self.lines:
                     _, text, start = self.lines[u.id]
                     self.lines[u.id] = (u.speaker, text, start)
-                    # Its marks follow its new speaker (#286 review), as
-                    # a replay of the corrected round would give.
-                    changed = self._forget_line(u.id)
-                    if self.roles.get(u.speaker) == INTERVIEWER:
-                        self._asked_points(u.id, text, start, None)
-                        changed = changed or self._newly_asked
-                        self._newly_asked = False
+                    changed = self._relabel(u.id, u.speaker, text, start)
             if changed:
                 self._publish()
                 self._tell_focus()
@@ -267,13 +270,17 @@ class TopicTracker:
                     self.target = asked
                     self.touched.add(asked.id)
                     self.asked_topics.add(asked.id)
+                    self.asking[u.id] = (u.start, asked.id)
                 changed = changed or self._newly_asked
                 self._newly_asked = False
             elif role == CANDIDATE and self.target is not None:
+                before = len(self.answered)
                 for key in self.sources:
                     if key.startswith(f"{self.target.id}{POINT_MARK}") \
                             and self.sources[key]:
                         self.answered.add(key)
+                # «Otra vez» may be due now (#286 review): publish it.
+                changed = changed or len(self.answered) != before
                 changed = self._answer(self.target, u.id, u.text) or changed
         if changed:
             self._publish()
@@ -320,8 +327,9 @@ class TopicTracker:
         ``_newly_asked`` when a mark changed. Lock held.
         """
         refs = ([TopicRef.of(named)] if named is not None else self.refs)
-        match = asked_concepts(
-            text, refs, self.target.id if self.target else None)
+        current = (named.id if named is not None
+                   else self.target.id if self.target else None)
+        match = asked_concepts(text, refs, current)
         if match is None:
             return None
         for pid in match.points:
@@ -361,17 +369,74 @@ class TopicTracker:
             self.asked[slot].pop(point, None)
             self.answered.discard(key)
 
-    def _forget_line(self, uid: str) -> bool:
-        """Drop the marks a line made (it changed speaker). Lock held."""
-        changed = False
+    def _forget_line(self, uid: str) -> Set[str]:
+        """Drop the marks a line made; return their topics. Lock held."""
+        topics: Set[str] = set()
         for key, found in self.sources.items():
             kept = [m for m in found if m.utterance != uid]
             if len(kept) != len(found):
                 found[:] = kept
                 slot, _, point = key.partition(POINT_MARK)
                 self._refresh(slot, point)
-                changed = True
-        return changed
+                topics.add(slot)
+        return topics
+
+    def _relabel(self, uid: str, speaker: str, text: str,
+                 start: float) -> bool:
+        """A line changed speaker: recompute it as a replay would (#286).
+
+        Its marks, the topic it asked and the topic being asked are
+        computed again as if the line had arrived with its new speaker
+        (the topic being asked then is the one of the latest asking
+        line before it); the levels of the topics it touched are
+        computed again from the facts. Lock held.
+        """
+        affected = self._forget_line(uid)
+        old = self.asking.pop(uid, None)
+        if old is not None:
+            affected.add(old[1])
+        if self.roles.get(speaker) == INTERVIEWER:
+            earlier = [v for k, v in self.asking.items() if v[0] < start]
+            then = max(earlier)[1] if earlier else None
+            keep = self.target
+            self.target = next((s for s in self.plan.slots if s.id == then),
+                               None)
+            named = slot_asked(text, self.plan.slots)
+            first = self._asked_points(uid, text, start, named)
+            self.target = keep
+            asked = named or first
+            if asked is not None:
+                self.asking[uid] = (start, asked.id)
+                affected.add(asked.id)
+            affected |= {t for t, ps in self.asked.items() if any(
+                m.utterance == uid for m in ps.values())}
+            self._newly_asked = False
+        self.asked_topics = {t for _, t in self.asking.values()}
+        latest = max(self.asking.values()) if self.asking else None
+        self.target = (next(s for s in self.plan.slots if s.id == latest[1])
+                       if latest is not None else None)
+        for slot in self.plan.slots:
+            if slot.id in affected:
+                self.levels[slot.id] = topic_coverage(
+                    slot.id, self._facts(slot), "none").level
+        return bool(affected) or old is not None
+
+    def seed_undone(self, earlier: Mapping[str, TopicCoverage]) -> None:
+        """Take the undone marks of an earlier report of the round (#286).
+
+        Called before a replay, so the rules never mark again a line the
+        interviewer undid during the session.
+        """
+        with self._lock:
+            for topic in earlier.values():
+                if topic.id not in self.asked:
+                    continue
+                for point in topic.points:
+                    if point.undone:
+                        key = f"{topic.id}{POINT_MARK}{point.id}"
+                        kept = self.undone.setdefault(key, [])
+                        kept.extend(u for u in point.undone
+                                    if u not in kept)
 
     def stream_now(self) -> float:
         """The session's time now: the latest event's plus what passed."""
@@ -381,15 +446,20 @@ class TopicTracker:
             return self.stream_time + max(self.clock() - self.seen_at, 0.0)
 
     def mark_asked(self, slot: str, point: str, asked: bool,
-                   at: Optional[float] = None) -> Document:
+                   at: Optional[float] = None,
+                   mark: Optional[Tuple[str, Optional[float]]] = None,
+                   ) -> Document:
         """The interviewer marks a concept as asked, or undoes a mark.
 
         ``asked`` true adds a mark by hand when none is shown. ``asked``
-        false undoes the mark shown, whoever made it (rules, model or
-        hand): it is recorded in ``undone`` and its line is never marked
-        again; another source of the same concept, if any, is shown
-        next. An undo is a correction by the person, so the topic's
-        level is computed again and may go down (#286 review). ``at``:
+        false undoes the mark ``mark`` names (``(by, at)``, as the page
+        saw it; ``None``: the mark shown), whoever made it (rules, model
+        or hand): it is recorded in ``undone`` and its line is never
+        marked again; another source of the same concept, if any, is
+        shown next. Both are idempotent: a repeated request (a retry)
+        finds nothing to do. An undo is a correction by the person, so
+        the topic's level is computed again and may go down (#286
+        review). ``at``:
         stream seconds (default: now). Raises ``KeyError`` for a concept
         the plan does not have. Returns ``{"topic", "point", "asked"}``.
         """
@@ -404,7 +474,15 @@ class TopicTracker:
                 changed = self._mark(slot, point,
                                      PointAsked(by="hand", at=when))
             elif not asked and point in marks:
-                gone = self.sources[key].pop(0)
+                found_at = next((n for n, m in enumerate(self.sources[key])
+                                 if mark is None or (m.by == mark[0] and (
+                                     m.at == (None if mark[1] is None
+                                              else round(mark[1], 3))))),
+                                None)
+                if found_at is None:
+                    return {"topic": slot, "point": point,
+                            "asked": marks[point].model_dump(mode="json")}
+                gone = self.sources[key].pop(found_at)
                 self.undone.setdefault(key, []).append(gone)
                 self._refresh(slot, point)
                 target = next(s for s in self.plan.slots if s.id == slot)
