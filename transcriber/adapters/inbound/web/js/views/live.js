@@ -52,6 +52,7 @@ import { coverageBlock, nextLine, pointRow, summaryLine, topicChip } from "./cov
 import { coveredCount, levelChanges, levelOf } from "../lib/coverage.js";
 import { recoveryCard } from "./live-recovery.js";
 import { IdbBackend, LocalRecording, sessionMeta } from "../lib/live-store.js";
+import { generalId, isGeneral, listUsedText, listsOf, rememberList, rememberedList } from "../lib/mandatory.js";
 
 const RETRY_MS = 2000;
 const TICK_MS = 1000;
@@ -65,6 +66,7 @@ const FEED_IDLE_MS = 40000; // #263: no byte of the stream for this long (keepal
 function liveError(error) {
   if (error?.code === "orchestrator_unavailable") return t("live.unavailable_body");
   if (error?.code === "transcriber") return t("live.err_transcriber");
+  if (error?.code === "list_too_big") return t("mi.err.too_big"); // #294: the general list grew since
   return describeError(error);
 }
 
@@ -234,6 +236,44 @@ export async function liveView(ctx, root, [sub, which] = []) {
       h("div", { class: "field" }, h("label", { for: "live-plan" }, t("live.plan")), planSelect),
       h("div", { class: "field" }, h("label", { for: "live-candidate" }, t("live.candidate")), candidateSelect),
       nameField, candidateHint);
+    // #294: the list of «Lo que hay que decir» of a support call («Campaña u
+    // oferta»), remembered in this browser; an interview uses its offer's list.
+    const listSelect = h("select", { id: "live-list" }, h("option", { value: generalId("support") }, t("mi.general_name")));
+    const listBox = h("div", { class: "stack tight lv-list-box", hidden: true },
+      h("div", { class: "field" }, h("label", { for: "live-list" }, t("live.list")), listSelect),
+      h("p", { class: "hint" }, t("live.list_hint"), " ", h("a", { href: "#/mandatory" }, t("live.list_edit"))));
+    const planListHint = h("p", { class: "hint", hidden: true });
+    roleBox.append(planListHint);
+    let listsLoaded = false;
+
+    async function loadLists() {
+      if (listsLoaded) return;
+      listsLoaded = true;
+      try {
+        const { own } = listsOf(await ctx.api.mandatoryLists(), "support");
+        listSelect.append(...own.map((l) => h("option", { value: l.id }, l.name)));
+        listSelect.value = rememberedList("support", [{ id: generalId("support") }, ...own]);
+      } catch (error) {
+        if (error?.kind === "unauthorized") ctx.fail(error);
+      }
+    }
+
+    function listChoice() {
+      return listBox.hidden || isGeneral(listSelect.value) ? {} : { mandatory_list: listSelect.value };
+    }
+
+    async function showPlanList() {
+      planListHint.hidden = true;
+      if (!planSelect.value || !ctx.api.offerMandatory) return;
+      try {
+        const used = await ctx.api.offerMandatory(planSelect.value);
+        planListHint.textContent = t("live.plan_list", { name: used?.list ? used.name ?? used.list : t("mi.general_name") });
+        planListHint.hidden = false;
+      } catch {
+        // the hint stays hidden; the session still uses the offer's list
+      }
+    }
+
     let plansLoaded = false;
 
     async function loadPlans() {
@@ -305,6 +345,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
       replay.disabled = !transcripts.length;
       roleBox.hidden = kind !== "interview" || !product?.live;
       if (!roleBox.hidden) loadPlans();
+      listBox.hidden = kind !== "support" || !product?.live || !ctx.api.mandatoryLists;
+      if (!listBox.hidden) loadLists();
     }
 
     async function begin(mode) {
@@ -335,7 +377,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
         let session;
         if (mode === "live") {
           session = await ctx.api.startLive({
-            product, audio: audioSelect.value, session_id: newSessionId("live"), employee: employee(), ...roleChoice(),
+            product, audio: audioSelect.value, session_id: newSessionId("live"), employee: employee(), ...roleChoice(), ...listChoice(),
           });
         } else {
           session = await ctx.api.startReplay(newSessionId("demo"), {
@@ -372,6 +414,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
     for (const select of [productSelect, audioSelect]) select.addEventListener("change", () => connection.redraw());
     employeeSelect.addEventListener("change", sync);
     planSelect.addEventListener("change", loadCandidates);
+    planSelect.addEventListener("change", showPlanList);
+    listSelect.addEventListener("change", () => rememberList("support", listSelect.value));
     candidateSelect.addEventListener("change", syncRole);
     const field = (input, key) => h("div", { class: "field" }, h("label", { for: input.id }, t(key)), input);
     const scripted = pickDemo(demos);
@@ -397,7 +441,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
         h("section", { class: "card lv-new" },
           h("h2", {}, t("live.new")),
           field(productSelect, "live.product"), banner,
-          field(employeeSelect, "live.employee"), employeeHint, roleBox,
+          field(employeeSelect, "live.employee"), employeeHint, roleBox, listBox,
           field(audioSelect, "live.audio"), liveHint, start),
         h("details", { class: "card lv-recorded" },
           h("summary", {}, t("live.recorded_title")),
@@ -524,6 +568,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const checklistCount = h("span", { class: "meta" });
     const checklistHead = h("summary", { class: "lv-row-head" }, checklistTitle, checklistCount); // kept: it holds the focus
     const checklistBody = h("div", { class: "lv-tosay-body" });
+    const checklistList = h("p", { class: "meta lv-tosay-list" }); // #294: which list, which version
     checklistFold.append(checklistHead, checklistBody);
     checklist.append(checklistFold, checklistRemind);
     let checklistOpen = null; // null: follow the state; true/false: the employee's own choice
@@ -1095,7 +1140,8 @@ export async function liveView(ctx, root, [sub, which] = []) {
       checklistRemind.hidden = !remindNow;
       checklistRemind.textContent = remindNow ? t("live.to_say_remind", { items: pending.map((i) => i.text).join(" · ") }) : "";
       const focused = checklistBody.contains(document.activeElement) ? document.activeElement.dataset.item : null;
-      fill(checklistBody,
+      checklistList.textContent = listUsedText(state.checklist?.list, t) ?? "";
+      fill(checklistBody, checklistList.textContent ? checklistList : null,
         h("div", { class: "lv-chips" }, items.map((item) => (item.state === "pending" && state.state === "running"
           ? h("button", { type: "button", class: "lv-chip is-button", "data-item": item.id, title: t("live.mandatory_tick"), onClick: () => tick(item) },
             h("span", { class: "lv-ring", "aria-hidden": "true" }), item.text)
@@ -1267,6 +1313,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
             h("ul", {}, missing.map((m) => h("li", {}, m.text))))
           : h("p", { class: "notice info" }, t("live.summary_all"))) : null,
         mandatory?.ticked?.length ? h("p", { class: "hint" }, t("live.summary_ticked", { n: mandatory.ticked.length })) : null,
+        mandatory?.list ? h("p", { class: "hint" }, t("live.summary_list", { list: listUsedText(mandatory.list, t) })) : null,
         names.length ? h("p", { class: "hint" }, t("live.summary_names"), " ",
           names.map(([s, n]) => `${n} (${roleText(state.roleOf(s))})`).join(", ")) : null,
         summaryLine(handoff.coverage), // #286: topics per level, concepts asked

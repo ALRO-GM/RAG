@@ -80,6 +80,11 @@ from orchestrator.application.interview import (
 )
 from orchestrator.application.live_assist import LiveAssist
 from orchestrator.application.mandatory import MandatoryTracker, TickRefused
+from orchestrator.application.mandatory_lists import (
+    ListError,
+    MandatoryLists,
+    SessionList,
+)
 from orchestrator.application.ports import (
     AvoidPort,
     CancelToken,
@@ -141,6 +146,7 @@ from orchestrator.domain.live_choices import (
     voice_choices,
 )
 from orchestrator.domain.mandatory import EMPLOYEE_ROLES
+from orchestrator.domain.mandatory_lists import is_general, kind_of_roles
 from orchestrator.domain.voices import (
     VoicePlan,
     VoiceProfile,
@@ -163,6 +169,8 @@ PERSON_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
 MAX_NAME = 60
 """Longest name a speaker can be given."""
 DOMAIN_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
+LIST_REF = r"[a-z0-9][a-z0-9.-]{0,63}"
+"""An owner's list id, or a general list's (``general.<kind>``)."""
 CANDIDATE_CHARS = 80
 TICK_S = 0.1
 DEMO_STOP_S = 3.0
@@ -222,6 +230,8 @@ class _Session:
     names: Dict[str, str] = field(default_factory=dict)
     renames: List[Document] = field(default_factory=list)
     tracker: Optional[MandatoryTracker] = None
+    mandatory_list: Optional[SessionList] = None
+    """The list of «Lo que hay que decir» the session uses (#294)."""
     handoff: Optional[Document] = None
     avoid: Optional[AvoidTracker] = None
     demo: Optional[Document] = None
@@ -471,6 +481,8 @@ class LiveSessions:
         avoid: The check of interview questions better avoided (LV-17;
             ``None``: no check).
         demos: The scripted demos (LV-17; ``None``: none).
+        lists: The owner's lists of «Lo que hay que decir» (#294;
+            ``None``: every session uses its domain's list).
     """
 
     def __init__(
@@ -502,8 +514,10 @@ class LiveSessions:
         tick_s: float = TICK_S,
         avoid: Optional[AvoidPort] = None,
         demos: Optional[DemoScripts] = None,
+        lists: Optional[MandatoryLists] = None,
     ):
         """Wire the ports; no session yet."""
+        self.lists = lists
         self.products = {
             name: config for name, config in products.items()
             if config.is_live and config.ui is not None
@@ -763,6 +777,7 @@ class LiveSessions:
         plan: Optional[str] = None, domain: Optional[str] = None,
         candidate: Optional[str] = None,
         candidate_id: Optional[str] = None,
+        mandatory_list: Optional[str] = None,
     ) -> Document:
         """Start a live session on the transcriber and follow it.
 
@@ -776,6 +791,9 @@ class LiveSessions:
         may name a plan too (the role, #235): with ``candidate_id`` (a
         candidate of that role) or ``candidate`` (a new one) the
         session keeps the candidate's answers to the core questions.
+        ``mandatory_list`` (#294) is the list of «Lo que hay que decir»
+        chosen at the start (a support call); an interview with a plan
+        uses the job offer's list.
         """
         choices = self.settings.current() if self.settings else None
         config = self._topic(self._product(product, choices), domain)
@@ -826,6 +844,7 @@ class LiveSessions:
                           if speaker else None)
         if plan is not None:
             self._check_plan(plan)
+        chosen = self._session_list(config, mandatory_list, plan)
         profile = self._candidate(plan, candidate, candidate_id)
         made = profile if profile is not None and not candidate_id else None
         self._stop_demos()  # a demo never keeps a real session waiting
@@ -837,6 +856,7 @@ class LiveSessions:
             raise
         session.audio = audio
         session.plan = plan
+        session.mandatory_list = chosen
         if candidate:
             session.candidate = " ".join(candidate.split())[:CANDIDATE_CHARS]
         if profile is not None and self.interview is not None \
@@ -1337,6 +1357,23 @@ class LiveSessions:
             return {}
         return {"type": "entrevista", "goal": session.goal}
 
+    def _session_list(
+        self, config: ProductConfig, list_id: Optional[str],
+        plan: Optional[str],
+    ) -> Optional[SessionList]:
+        """Return the list of «Lo que hay que decir» a session uses."""
+        if list_id is not None and not re.fullmatch(LIST_REF, list_id):
+            raise SessionError("invalid_request", "invalid list id")
+        kind = list_kind(config) if config.tts is None else None
+        if self.lists is None:
+            if list_id is not None and not is_general(list_id):
+                raise SessionError("unavailable", "no lists here")
+            return SessionList(kind, None) if kind else None
+        try:
+            return self.lists.for_session(kind, list_id, plan)
+        except ListError as exc:
+            raise SessionError(exc.code, str(exc)) from exc
+
     def _check_plan(self, plan_id: str) -> Document:
         """Check the interview plan exists and its position is open.
 
@@ -1509,10 +1546,13 @@ class LiveSessions:
         session.assist = assist
         knowledge = session.product.knowledge
         if self.mandatory is not None and knowledge is not None:
+            kind = list_kind(session.product)
             tracker = MandatoryTracker(
                 self.mandatory, knowledge.domains[0], session.roles,
                 session.feed.publish, self.executor(),
                 warm=session.mode == "live",
+                chosen=session.mandatory_list or (
+                    SessionList(kind, None) if kind else None),
             )
             session.tracker = tracker
             tracker.start()
@@ -1580,6 +1620,10 @@ class LiveSessions:
             "names": dict(session.names), "renames": list(session.renames),
             "mandatory": tracker.summary() if tracker else None,
         }
+        listed = (record["mandatory"] or {}).get("list")
+        if session.judge is not None and listed:
+            # #294: the round's report names the list it used.
+            session.judge.mandatory_list = dict(listed)
         if session.ticker is not None:
             record["ticks"] = session.ticker.view()  # numbers only
         if session.topics is not None:
@@ -1860,6 +1904,16 @@ def transcriber_body(
     if config.asr.partial_every_ms:
         body["partial_every_ms"] = config.asr.partial_every_ms
     return body
+
+
+def list_kind(config: ProductConfig) -> Optional[str]:
+    """The kind of list of «Lo que hay que decir» a product uses (#294).
+
+    ``support`` for an agent's call, ``interview`` for an interviewer's;
+    ``None`` for anything else (a voice bot's user).
+    """
+    return kind_of_roles(
+        [ch.role for _, ch in sorted(config.source.channels.items())])
 
 
 def employee_role(config: ProductConfig) -> str:

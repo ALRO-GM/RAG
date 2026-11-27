@@ -23,7 +23,10 @@ file is sent in pieces with resume (``…/uploads``, #282) and
 ``GET /knowledge/limits`` says the largest file of each kind;
 ``GET /knowledge/domains/{id}/mandatory`` gives a domain's mandatory
 script items and ``POST /knowledge/mandatory`` tells which of them an
-employee's sentence says (LV-16); ``POST /knowledge/interview/avoid``
+employee's sentence says (LV-16; with ``{"list", "text"}`` the list
+comes with the sentence, and ``POST /knowledge/mandatory/review``
+``{"list"}`` names the examples close to another item's, #294);
+``POST /knowledge/interview/avoid``
 lists the protected topics an interviewer's question touches (LV-17).
 These routes need a bearer token,
 compared in constant time; when no token is configured they are not
@@ -660,12 +663,38 @@ def mount_mandatory(
             raise HTTPException(status_code=422, detail="body is not JSON")
         domain = data.get("domain") if isinstance(data, dict) else None
         text = data.get("text") if isinstance(data, dict) else None
+        listed = data.get("list") if isinstance(data, dict) else None
+        if isinstance(listed, dict) and isinstance(text, str):
+            # #294: an owner's list sent with the sentence.
+            try:
+                found = await run_in_threadpool(
+                    mandatory.check_list, listed, text)
+            except RagError as exc:
+                raise analysis_error(exc)
+            return JSONResponse(dict(found))
         if not isinstance(domain, str) or not isinstance(text, str):
             raise HTTPException(
                 status_code=422, detail="domain and text are required"
             )
         try:
             found = await run_in_threadpool(mandatory.check, domain, text)
+        except RagError as exc:
+            raise analysis_error(exc)
+        return JSONResponse(dict(found))
+
+    @app.post("/knowledge/mandatory/review", dependencies=guard)
+    async def mandatory_review(request: Request) -> JSONResponse:
+        """``{"list"}``: the examples close to another item's (#294)."""
+        body = await read_body(request, KNOWLEDGE_QUERY_MAX_BYTES)
+        try:
+            data = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="body is not JSON")
+        listed = data.get("list") if isinstance(data, dict) else None
+        if not isinstance(listed, dict):
+            raise HTTPException(status_code=422, detail="list is required")
+        try:
+            found = await run_in_threadpool(mandatory.review, listed)
         except RagError as exc:
             raise analysis_error(exc)
         return JSONResponse(dict(found))

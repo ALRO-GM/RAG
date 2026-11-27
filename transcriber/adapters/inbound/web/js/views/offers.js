@@ -27,6 +27,8 @@ import {
 import { clonePlan, planErrors, planForSave, reportHref } from "../lib/interview.js";
 import { judgeTag, planEditorBody, shortDate } from "./interview.js";
 import { candidateBlock } from "./candidate.js";
+import { offerListCard } from "./mandatory.js";
+import { listUsedText } from "../lib/mandatory.js";
 
 /** `key` with `{n}`, or its `_one` variant when `n` is 1 (the dictionaries' plural rule). */
 function plural(key, n, params = {}) {
@@ -199,6 +201,7 @@ export function offerPage(ctx, board, state, reload = () => {}) {
       ].join(" · "))),
     closed ? h("p", { class: "notice", role: "status" }, t("iv.closed_notice")) : null,
     editor,
+    offerListCard(ctx, plan), // #294: the list of «Lo que hay que decir» of the offer's interviews
     peopleSection(ctx, board, state, {
       onState: (next) => keepInAddress(offerHref(plan.id, next)),
       onDelete: async (row) => {
@@ -442,7 +445,8 @@ function personRow(plan, r, columns, onDelete) {
     r.owned && r.candidateId ? [" · ", h("a", { href: personHref(plan.id, r.candidateId) }, t("of.file_short"))] : null);
   return h("tr", { class: r.missing.length || r.unasked.length ? "of-row is-missing" : "of-row" },
     h("th", { scope: "row" }, h("span", { class: "of-name" }, r.name || t("of.no_name")), quick, others),
-    h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), h("span", { class: "of-small" }, shortDate(r.finished))),
+    h("td", {}, h("span", { class: "tag" }, t(`iv.kind.${r.kind}`)), h("span", { class: "of-small" }, shortDate(r.finished)),
+      r.mandatoryList ? h("span", { class: "of-small" }, listUsedText(r.mandatoryList, t)) : null),
     figureCell(r),
     columns.map((c) => pointCell(r.points.get(c.id), c, plan, r)),
     h("td", { class: "of-accuracy" }, accuracyParts(r.accuracy).map((p) => h("span", { class: "of-small" },

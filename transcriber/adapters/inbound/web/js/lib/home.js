@@ -23,6 +23,7 @@ export const ADMIN_TOOLS = [
   { id: "settings", href: "#/settings", icon: "settings" },
   { id: "enrol", href: "#/enrol", icon: "enrol" },
   { id: "knowledge", href: "#/knowledge", icon: "knowledge" },
+  { id: "mandatory", href: "#/mandatory", icon: "check" },
   { id: "lab", href: "#/lab", icon: "lab" },
   { id: "study", href: "study.html", icon: "study" },
   { id: "research", href: "research.html", icon: "research" },

@@ -68,6 +68,7 @@ from orchestrator.domain.interview import (
     CheckItem,
     InterviewPlan,
     Judgement,
+    ListUsed,
     Sheet,
     SheetSlot,
     TopicCoverage,
@@ -180,6 +181,9 @@ class LiveJudge:
         self.candidate_id = candidate_id
         self.now = now
         self.attribute = attribute
+        self.mandatory_list: Optional[Document] = None
+        """The list of «Lo que hay que decir» the round used (#294),
+        set when the round ends; kept with the report."""
 
     def judge(self, topics: TopicTracker) -> Optional[Document]:
         """Attribute and judge the round (``None``: nothing answered).
@@ -433,6 +437,8 @@ class LiveJudge:
             attribution_error=error,
             plan_slots=[s.id for s in self.plan.slots],
             coverage=coverage,
+            mandatory_list=ListUsed.model_validate(self.mandatory_list)
+            if self.mandatory_list else None,
         )
         book = self.wiring.candidates
         try:

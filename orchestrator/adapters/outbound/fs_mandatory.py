@@ -5,7 +5,8 @@ list comes from ``knowledge/domains/<id>/manifest.yaml`` and a sentence
 is compared with each ``must_say`` example by the cosine of their word
 counts instead of the RAG's embedding model, so the measured threshold
 of ``docs/live/MANDATORY_ITEMS.md`` does not hold here: this adapter
-uses its own (:data:`WORD_THRESHOLD`).
+uses its own (:data:`WORD_THRESHOLD`). An owner's list sent with the
+sentence (#294) is checked the same way.
 """
 
 import math
@@ -58,7 +59,10 @@ class FileMandatory:
 
     def check(self, domain: str, text: str) -> Document:
         """Return each item's word cosine to ``text`` (closest one said)."""
-        listed = self._list(domain)
+        return {"domain": domain, **self.check_list(self._list(domain), text)}
+
+    def check_list(self, listed: Document, text: str) -> Document:
+        """Return each item's word cosine to ``text``, for a sent list."""
         said = _words(text)
         scores: List[Dict[str, Any]] = [
             {"id": item["id"], "score": round(max(
@@ -69,8 +73,27 @@ class FileMandatory:
         top = max((s["score"] for s in scores), default=0.0)
         for s in scores:
             s["said"] = s["score"] >= WORD_THRESHOLD and s["score"] == top
-        return {"domain": domain, "version": listed.get("version", 0),
+        return {"version": listed.get("version", 0),
                 "threshold": WORD_THRESHOLD, "items": scores}
+
+    def review(self, listed: Document) -> Document:
+        """Return the examples whose word cosine to another item's
+        example reaches :data:`WORD_THRESHOLD` (closest other item)."""
+        owners = [(str(item["id"]), str(e))
+                  for item in listed.get("items") or []
+                  for e in item.get("must_say") or []]
+        close: List[Dict[str, Any]] = []
+        for item, example in owners:
+            others = [(_cosine(_words(example), _words(e)), other, e)
+                      for other, e in owners if other != item]
+            if not others:
+                continue
+            score, other, other_example = max(others, key=lambda o: o[0])
+            if score >= WORD_THRESHOLD:
+                close.append({"item": item, "example": example,
+                              "other": other, "other_example": other_example,
+                              "score": round(score, 4)})
+        return {"threshold": WORD_THRESHOLD, "close": close}
 
     def _list(self, domain: str) -> Dict[str, Any]:
         """Return the manifest's ``mandatory`` block ({} when none)."""

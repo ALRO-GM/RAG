@@ -21,7 +21,7 @@ export function nextTheme(current) {
 const SESSION_PARTS = new Set(["sessions", "s", "analysis", "help", "record"]);
 
 /** Routes of the Administración area (besides its own overview, #/admin). */
-export const ADMIN_PARTS = new Set(["admin", "settings", "enrol", "knowledge", "lab"]);
+export const ADMIN_PARTS = new Set(["admin", "settings", "enrol", "knowledge", "mandatory", "lab"]);
 
 /**
  * The section of an app hash: "" -> "#/" (the home), "#/s/abc" ->
@@ -102,6 +102,7 @@ function sectionCrumbs(hash, t) {
     case "analysis": return [sessions, { label: a ?? "", href: `#/s/${encodeURIComponent(a ?? "")}` }, here(t("nav.analysis"))];
     case "help": return [sessions, here(t("help.title"))];
     case "knowledge": return a ? [{ label: t("nav.knowledge"), href: "#/knowledge" }, here(a)] : [here(t("nav.knowledge"))];
+    case "mandatory": return a ? [{ label: t("nav.mandatory"), href: "#/mandatory" }, here(a)] : [here(t("nav.mandatory"))];
     case "lab": {
       const lab = { label: t("nav.lab"), href: "#/lab" };
       if (!a) return [here(t("nav.lab"))];

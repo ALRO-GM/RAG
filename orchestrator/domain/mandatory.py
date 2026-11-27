@@ -7,7 +7,8 @@ it (``said``: a final sentence of theirs matched it, with the utterance
 and the similarity) or ticks it by hand after confirming (``ticked``:
 logged with the moment, never silent). Nothing dismisses an item
 otherwise. At the end the hand-off lists what was said, ticked and
-left unsaid. Plain data: no I/O.
+left unsaid, and (#294) which list the session used. Plain data: no
+I/O.
 """
 
 from typing import Any, Dict, List, Literal, Mapping, Optional
@@ -44,6 +45,9 @@ class Checklist(BaseModel):
     remind_seconds: int = 45
     items: List[ChecklistItem] = Field(default_factory=list)
     ticks: List[Dict[str, Any]] = Field(default_factory=list)
+    list: Optional[Dict[str, Any]] = None
+    """The list the session uses (#294): id, name, version, mode; the
+    general list names its domain. ``None``: not recorded."""
 
     @classmethod
     def from_list(cls, listed: Mapping[str, Any]) -> "Checklist":
@@ -97,6 +101,7 @@ class Checklist(BaseModel):
 
         return {
             "domain": self.domain, "version": self.version,
+            **({"list": dict(self.list)} if self.list else {}),
             "said": ids("said"), "ticked": ids("ticked"),
             "missing": [{"id": i.id, "text": i.text}
                         for i in self.items if i.state == "pending"],

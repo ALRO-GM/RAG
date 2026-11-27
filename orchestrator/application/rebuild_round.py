@@ -40,6 +40,7 @@ from orchestrator.application.avoid import AvoidTracker
 from orchestrator.application.interview import InterviewWiring
 from orchestrator.application.live_judgement import LiveJudge, kept_coverage
 from orchestrator.application.mandatory import MandatoryTracker
+from orchestrator.application.mandatory_lists import SessionList
 from orchestrator.application.next_round import TopicTracker
 from orchestrator.application.ports import (
     AvoidPort,
@@ -143,6 +144,7 @@ class RoundRebuild:
         publish: Publish = lambda message: None,
         attribute: bool = True,
         earlier: Optional[Mapping[str, TopicCoverage]] = None,
+        chosen: Optional[SessionList] = None,
     ) -> RebuiltRound:
         """Replay ``events`` (in order) and return what the round says.
 
@@ -156,7 +158,8 @@ class RoundRebuild:
         the judgement, as at the end of a live round (#268); ``False``
         keeps the rules' attribution of the replay. ``earlier``: the
         round's coverage kept in its hand-off (#286), used when no report
-        of the round is stored.
+        of the round is stored. ``chosen``: the list of «Lo que hay que
+        decir» the session used (#294; ``None``: the domain's).
         """
         result = RebuiltRound(session_id)
         roles_map = dict(roles)
@@ -178,7 +181,7 @@ class RoundRebuild:
         if self.mandatory is not None and knowledge is not None:
             checklist = MandatoryTracker(
                 self.mandatory, knowledge.domains[0], roles_map, publish,
-                self.executor,
+                self.executor, chosen=chosen,
             )
             checklist.start()
             if checklist.active:
@@ -215,11 +218,15 @@ class RoundRebuild:
                     told.append(message)
                     publish(message)
 
-                result.accuracy = LiveJudge(
+                judge_ = LiveJudge(
                     plan, self.wiring, session_id, tell, model,
                     candidate=candidate, candidate_id=candidate_id,
                     attribute=attribute, earlier=earlier,
-                ).judge(topics)
+                )
+                # #294 review: the rebuilt report names its list too.
+                listed = (result.mandatory or {}).get("list")
+                judge_.mandatory_list = dict(listed) if listed else None
+                result.accuracy = judge_.judge(topics)
                 result.parts.append("judgement")
                 found = result.accuracy or next(
                     (m for m in reversed(told) if m.get("type") ==

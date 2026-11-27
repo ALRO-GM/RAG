@@ -401,3 +401,39 @@ def test_a_stop_waits_for_the_whole_chain_behind_it() -> None:
              headers=auth)
     assert waits["/sessions/live-1/stop"] == STOP_TIMEOUT
     assert waits["/sessions/live-1/mode"] == TIMEOUT
+
+
+def test_the_list_routes_are_forwarded() -> None:
+    """#294: the owner's lists of «Lo que hay que decir»."""
+    seen: List[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"lists": []})
+
+    web = app_with(httpx.MockTransport(handler), None)
+    head = {"X-Access-Code": "code"}
+    big = {"name": "x", "items": [{"text": "ñ" * 300}] * 60}
+    assert web.post("/api/assist/mandatory/lists", json=big,
+                    headers=head).status_code == 200
+    web.get("/api/assist/mandatory/lists", headers=head)
+    web.post("/api/assist/mandatory/review", json={}, headers=head)
+    web.get("/api/assist/mandatory/lists/general.support", headers=head)
+    web.put("/api/assist/mandatory/lists/verano", json={}, headers=head)
+    web.delete("/api/assist/mandatory/lists/verano", headers=head)
+    web.get("/api/assist/interview/plans/plan-1/mandatory", headers=head)
+    web.put("/api/assist/interview/plans/plan-1/mandatory",
+            json={"list": None}, headers=head)
+    assert [(r.method, r.url.path) for r in seen] == [
+        ("POST", "/mandatory/lists"), ("GET", "/mandatory/lists"),
+        ("POST", "/mandatory/review"),
+        ("GET", "/mandatory/lists/general.support"),
+        ("PUT", "/mandatory/lists/verano"),
+        ("DELETE", "/mandatory/lists/verano"),
+        ("GET", "/interview/plans/plan-1/mandatory"),
+        ("PUT", "/interview/plans/plan-1/mandatory"),
+    ]
+    assert len(seen[0].content) > 16 * 1024
+    assert not ALLOWED.match("mandatory/lists/../x")
+    assert not ALLOWED.match("mandatory/lists/Verano")
+    assert web.get("/api/assist/mandatory/lists").status_code == 401

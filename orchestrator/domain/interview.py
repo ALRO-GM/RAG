@@ -769,6 +769,27 @@ class OtherSkill(_Strict):
     quote: str = Field(default="", max_length=QUOTE_CHARS)
 
 
+class ListUsed(_Strict):
+    """The list of «Lo que hay que decir» a live round used (#294)."""
+
+    id: str = Field(max_length=72)
+    name: Optional[str] = Field(default=None, max_length=80)
+    general: bool = False
+    version: int = Field(default=0, ge=0)
+    mode: Optional[Literal["add", "replace"]] = None
+    domain: Optional[str] = Field(default=None, max_length=64)
+    instead_of: Optional["ListLost"] = None
+    """A recovered round whose recorded list version was gone: the
+    general list stood in for this one."""
+
+
+class ListLost(_Strict):
+    """The list and version a round recorded, no longer readable."""
+
+    id: Optional[str] = Field(default=None, max_length=72)
+    version: Optional[int] = None
+
+
 class Sheet(_Strict):
     """``interview.sheet.v1``: the plan's slots after the interview."""
 
@@ -831,6 +852,10 @@ class Sheet(_Strict):
     treated it. ``None``: an AI interviewer's sheet, or a live report
     written before it (then whether a pending concept was asked is not
     known)."""
+    mandatory_list: Optional[ListUsed] = None
+    """The list of «Lo que hay que decir» of a live round and its
+    version (#294; an edit of the list later never changes it).
+    ``None``: an AI interviewer's sheet, or one written before it."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:

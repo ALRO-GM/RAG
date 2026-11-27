@@ -86,6 +86,12 @@ class FakeMandatory:
             {"id": "aviso-datos", "score": 0.2, "said": False},
         ]}
 
+    def check_list(self, listed: Document, text: str) -> Document:
+        return self.check(str(listed.get("domain")), text)
+
+    def review(self, listed: Document) -> Document:
+        return {"close": []}
+
 
 def final(uid: str, speaker: str, text: str,
           kind: str = "final") -> LiveEvent:

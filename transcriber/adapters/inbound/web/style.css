@@ -1965,3 +1965,31 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .comp-max { margin: var(--s-6) 0 0; padding-top: var(--s-2); }
 .comp-max h3 { margin: 0 0 var(--s-1); }
 .comp-max > .hint { font-size: var(--fs-sm); margin: 0 0 var(--s-2); }
+
+/* «Lo que hay que decir» (#294): the owner's lists, their editor, the offer's
+   choice and the list a live session uses. */
+.mi-kind { margin-top: var(--s-4); }
+.mi-kind-head { justify-content: space-between; }
+.mi-kind-head h2 { margin: 0; }
+.mi-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--s-3); }
+.mi-card h3 { margin: 0; font-size: var(--fs-md); }
+.mi-card p { margin: 0; }
+.mi-card.is-general { border-style: dashed; }
+.mi-edit { max-width: 48rem; }
+.mi-mode label.check { align-items: flex-start; }
+.mi-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.mi-item fieldset { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s-3); margin: 0; min-width: 0; }
+.mi-item legend { font-weight: 600; padding: 0 var(--s-1); }
+.mi-examples { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-1); }
+.card .row.mi-example { flex-wrap: nowrap; }
+.mi-example input { flex: 1 1 auto; min-width: 0; }
+.card .row.mi-example button { flex: 0 0 auto; }
+.mi-examples-ro { margin: var(--s-1) 0 0; color: var(--muted); }
+.mi-item-actions { justify-content: flex-end; }
+.mi-error-list { margin: 0; padding-left: var(--s-5); }
+.mi-status:empty, .mi-warnings:empty, .mi-errors:empty { display: none; }
+.mi-offer { max-width: 48rem; }
+.mi-offer-row { align-items: flex-end; }
+.lv-list-box { margin-top: var(--s-2); }
+.lv-tosay-list { font-size: var(--fs-sm); margin-bottom: var(--s-1); }
+.mi-edit button[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }

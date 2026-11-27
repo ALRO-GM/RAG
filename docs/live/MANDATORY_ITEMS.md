@@ -135,3 +135,87 @@ employee's own open/closed choice is kept until the state changes). The
 manual tick stays. Support sessions use the same code and the same order:
 the block only exists when the session has mandatory items, so nothing
 else moves.
+
+## Lists the owner defines (#294)
+
+The manifests' lists above are the **general list** of each product
+(«Lista general»: `support.demo` for support calls, `interview.generic`
+for interviews). The owner can define more lists from the web
+(«Administración › Lo que hay que decir», `#/mandatory`; owner's guide:
+[`DEFINE_MANDATORY.md`](DEFINE_MANDATORY.md)), for the kind of call being
+made: one per call-centre campaign or commercial offer (`support`) and
+one per job offer (`interview`). The general lists stay read-only there
+and can be copied as a starting point.
+
+| Part | Where |
+|---|---|
+| A list: id, name, kind, `add` / `replace`, version, items (`id`, `text`, `phase`: `opening` / `during` / `closing`, `must_say`: 1–6 examples); at most 20 items, 300 characters per text, 200 lists; ids are made by the server from the text | `orchestrator/domain/mandatory_lists.py` |
+| Stored outside the repository, like the plans: `<dir>/lists/<id>.json` (current) and `<dir>/lists/<id>/v<version>.json` (every version), `<dir>/offers/<plan>.json` (the list of a job offer); files of mode 600. Deleting a list removes its current file and frees its offers; its versions stay, so a recovered round still reads the list it used, and its id is never given to another list (a new «Verano» after a deleted one is `verano-2`); deleted lists never show on the lists page | `orchestrator/adapters/outbound/fs_mandatory_lists.py`, `serve --mandatory-dir` (default `data/mandatory`) |
+| Create, copy, edit (names the version it was based on: 409 when older), delete, review; the offers' choice; the list of a new session | `orchestrator/application/mandatory_lists.py`, routes `/mandatory/...` and `/interview/plans/{id}/mandatory` (same bearer token; on the web behind the access code, through `/api/assist/...`) |
+
+**Which list a session uses.** A support call uses the list chosen on the
+live page's start form («Campaña u oferta», remembered in that browser;
+default: the general list). A live interview started with a job offer
+uses the offer's list (chosen on the offer's page), else the general
+list. The list is read when the session starts: an edit made while it
+runs applies to the next session.
+
+**Adds or replaces.** A list **adds** its items to the general list by
+default, so the data-protection notice is not lost by accident. A list
+that **replaces** lists only its own items. A copy of the general list
+adds too: the items it copied keep the general ids, and an item with a
+general item's id takes that item's place, so nothing is listed twice.
+Only a copied item keeps a general id: a new item gets an id made from
+its text that is never one of the general list's (an item titled
+«Desistimiento» does not replace the general legal item of that id).
+
+**Size.** A save is refused, with a plain reason, when the list together
+with the general list would have more than 30 items (the RAG's bound),
+an item more than 12 examples, or a body that with a 2,000-character
+sentence would pass the RAG's 64 KB limit; a session started with such a
+list (the general list grew since) is refused the same way. A save reads
+the general list for that and to reserve its ids: when it cannot be
+read, nothing is saved (`unavailable`). Saves, creates and deletes run
+one at a time.
+
+**The check is the same.** The tracker still reads the domain's list
+(its threshold, 0.575, and `remind_seconds` are kept: they belong to the
+check, not to one list), combines it with the owner's list and sends the
+combination with every sentence: `POST /knowledge/mandatory {"list",
+"text"}` (the RAG checks it like a domain's list, with the closest-item
+rule; the vectors of the last 16 lists sent are kept). With
+`--knowledge fake` the word-count check does the same over the sent
+list. The general list alone is still checked by domain, as before.
+
+**What is recorded.** The checklist, the hand-off record
+(`mandatory.list`) and the end-of-session summary name the list used:
+`{"id", "name", "general", "version", "mode", "domain"}` (the general
+list: its id `general.<kind>`, domain and version). A live interview's
+stored report keeps it too (`interview.sheet.v1` `mandatory_list`, an
+optional field added in #294), and the offer page's table shows it per
+round. A later edit never changes what an old session recorded. A
+recovered round (#265) is checked again with the list the session used:
+the session's own while the orchestrator still has it in memory, else
+the list and version its stored report names, read again at that version
+(each version is kept). When that version is gone the general list
+stands in and the record says so (`mandatory_list.instead_of`). The
+rebuilt report names its list too. The offline `rebuild-round` command
+still uses the general list (a follow-up). The interview report page
+shows the list and version.
+
+**Warnings, never a block.** Saving or «Revisar los ejemplos» returns:
+examples of fewer than five words (few words match badly), and examples
+whose cosine to an example of **another** item of the list the session
+would check reaches the threshold (`POST /knowledge/mandatory/review`,
+the same embedding model; with `add` the general items count too): a
+sentence says at most one item, the closest, so such an example could
+tick the other one. Both are **heuristics, not measurements**: the five
+words and the use of the item threshold between two examples were not
+measured, and the threshold itself was measured on the seed lists only
+(above). Without the RAG only the short examples are checked and the
+page says so.
+
+Out of scope of #294: **the AI interviewer (`voicebot.interview`) does
+not use these lists** (it has no «Lo que hay que decir» at all), so an
+offer's list applies to live-page interviews only; no model writes or
+proposes items.

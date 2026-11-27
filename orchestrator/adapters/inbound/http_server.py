@@ -14,9 +14,17 @@ Routes (JSON unless said otherwise; ``docs/platform/ORCHESTRATOR.md``):
 - ``GET /sessions``, ``GET /sessions/{id}``.
 - ``POST /sessions`` ``{"product", "audio": "stereo"|"mic",
   "session_id"?, "employee"?: {"id", "name"}, "plan"?, "domain"?,
-  "candidate"?}``: start a live session on the transcriber (``plan``:
-  the interview plan of a ``voicebot.interview`` session; ``domain``:
-  the topic of a voice bot).
+  "candidate"?, "mandatory_list"?}``: start a live session on the
+  transcriber (``plan``: the interview plan of a ``voicebot.interview``
+  session; ``domain``: the topic of a voice bot; ``mandatory_list``: the
+  list of «Lo que hay que decir» chosen for a support call, #294).
+- ``GET``/``POST /mandatory/lists`` (``{"name", "kind", "mode"?,
+  "items"}``, or ``{"from", "name"}`` for a copy), ``GET``/``PUT``/
+  ``DELETE /mandatory/lists/{id}`` (the edit names the ``version`` it
+  was based on; 409 when older), ``POST /mandatory/review`` (warnings
+  of a list being edited) and ``GET``/``PUT
+  /interview/plans/{id}/mandatory`` (``{"list": id | null}``: the list
+  a job offer uses): the owner's lists of «Lo que hay que decir» (#294).
 - ``GET /interview/plans``, ``POST /interview/plans`` (``{"offer" |
   "document": {"domain", "id"}, "title"?, "role_type"?, "minutes"?}``:
   draft a plan with the planner), ``GET``/``PUT /interview/plans/{id}``
@@ -94,6 +102,7 @@ from starlette.concurrency import run_in_threadpool
 from orchestrator.application.demo_voices import DemoVoiceLibrary
 from orchestrator.application.ports import Executor
 from orchestrator.application.interview import PlanError
+from orchestrator.application.mandatory_lists import ListError, MandatoryLists
 from orchestrator.application.recovered_round import (
     RecoveredRound,
     forget_recovery,
@@ -105,11 +114,13 @@ STATUS = {
     "not_found": 404, "busy": 409, "wrong_state": 409,
     "invalid_request": 422, "transcriber": 502, "unavailable": 503,
     "unauthorized": 401, "conflict": 409, "offer": 502,
-    "plan_closed": 409, "delete_failed": 500,
+    "plan_closed": 409, "delete_failed": 500, "list_too_big": 422,
 }
 MAX_BODY = 16 * 1024
 RECOVERED_BODY = 8 * 1024 * 1024
 """Largest merged transcript the transcriber sends (#265)."""
+MAX_LIST_BODY = 96 * 1024
+"""Largest list body (20 items of 6 examples of 300 characters)."""
 MAX_PLAN_BODY = 96 * 1024
 """Largest plan body (a job offer of 12 000 characters, JSON-escaped)."""
 
@@ -142,6 +153,14 @@ def create_app(
         request: Request, exc: SessionError
     ) -> JSONResponse:
         """Answer a refused request with its stable code."""
+        return JSONResponse(
+            {"code": exc.code, "message": str(exc)},
+            status_code=STATUS.get(exc.code, 400),
+        )
+
+    @app.exception_handler(ListError)
+    async def list_error(request: Request, exc: ListError) -> JSONResponse:
+        """Answer a refused list request with its stable code."""
         return JSONResponse(
             {"code": exc.code, "message": str(exc)},
             status_code=STATUS.get(exc.code, 400),
@@ -254,7 +273,60 @@ def create_app(
             data.get("employee"),
             _optional(data, "plan"), _optional(data, "domain"),
             _optional(data, "candidate"), _optional(data, "candidate_id"),
+            _optional(data, "mandatory_list"),
         )
+
+    def lists() -> MandatoryLists:
+        if sessions.lists is None:
+            raise SessionError("unavailable", "no lists here")
+        return sessions.lists
+
+    @app.get("/mandatory/lists")
+    async def mandatory_lists() -> Dict[str, Any]:
+        """The lists of «Lo que hay que decir» (#294)."""
+        return await run_in_threadpool(lists().overview)
+
+    @app.post("/mandatory/lists", status_code=201)
+    async def new_list(request: Request) -> Dict[str, Any]:
+        """Make a list, or a copy of one (``{"from", "name"}``)."""
+        data = await body(request, MAX_LIST_BODY)
+        return await run_in_threadpool(lists().create, data)
+
+    @app.post("/mandatory/review")
+    async def review_list(request: Request) -> Dict[str, Any]:
+        """The warnings of a list being edited (saved or not)."""
+        data = await body(request, MAX_LIST_BODY)
+        return await run_in_threadpool(lists().review, data)
+
+    @app.get("/mandatory/lists/{list_id}")
+    async def show_list(list_id: str) -> Dict[str, Any]:
+        """One list in full."""
+        return await run_in_threadpool(lists().get, list_id)
+
+    @app.put("/mandatory/lists/{list_id}")
+    async def edit_list(list_id: str, request: Request) -> Dict[str, Any]:
+        """Save an edit (a new version; 409 when based on an older one)."""
+        data = await body(request, MAX_LIST_BODY)
+        return await run_in_threadpool(lists().update, list_id, data)
+
+    @app.delete("/mandatory/lists/{list_id}")
+    async def delete_list(list_id: str) -> Dict[str, Any]:
+        """Delete an owner's list."""
+        return await run_in_threadpool(lists().delete, list_id)
+
+    @app.get("/interview/plans/{plan_id}/mandatory")
+    async def offer_list(plan_id: str) -> Dict[str, Any]:
+        """The list a job offer uses (``list`` null: the general)."""
+        return await run_in_threadpool(lists().offer, plan_id)
+
+    @app.put("/interview/plans/{plan_id}/mandatory")
+    async def assign_list(plan_id: str, request: Request) -> Dict[str, Any]:
+        """Make a job offer use a list (``{"list": id | null}``)."""
+        data = await body(request)
+        chosen = data.get("list")
+        if chosen is not None and not isinstance(chosen, str):
+            raise SessionError("invalid_request", "list must be an id")
+        return await run_in_threadpool(lists().assign, plan_id, chosen)
 
     def planner() -> Any:
         wiring = sessions.interview

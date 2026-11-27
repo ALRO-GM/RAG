@@ -15,6 +15,7 @@ from orchestrator.domain.candidate import CandidateProfile, CoreQuestion
 from orchestrator.domain.demo import DemoScript
 from orchestrator.domain.demo_voices import DemoVoice, DemoVoiceManifest
 from orchestrator.domain.events import LiveEvent, Transcript
+from orchestrator.domain.mandatory_lists import OwnerList
 from orchestrator.domain.records import SuggestionRecord, TurnRecord
 from orchestrator.domain.speech import SpeechChunk
 from orchestrator.domain.voices import EngineVoice, VoiceProfile
@@ -285,6 +286,68 @@ class MandatoryPort(Protocol):
         Raises:
             MandatoryUnavailable: The sentence could not be checked.
         """
+        ...
+
+    def check_list(self, listed: Document, text: str) -> Document:
+        """Like :meth:`check`, against a whole list sent with the text.
+
+        ``listed`` has the shape of :meth:`items` (#294: the list a
+        session uses, the general one with an owner's list).
+
+        Raises:
+            MandatoryUnavailable: The sentence could not be checked.
+        """
+        ...
+
+    def review(self, listed: Document) -> Document:
+        """Return ``close: [{"item", "example", "other",
+        "other_example", "score"}]``: the examples of ``listed`` that
+        come close to an example of another of its items (#294).
+
+        Raises:
+            MandatoryUnavailable: The list could not be checked.
+        """
+        ...
+
+
+class MandatoryListStore(Protocol):
+    """The owner's lists of «Lo que hay que decir» (#294)."""
+
+    def list(self) -> List[OwnerList]:
+        """Return every readable list (current versions)."""
+        ...
+
+    def load(self, list_id: str, version: Optional[int] = None) -> OwnerList:
+        """Return a list, its current or an earlier ``version``.
+
+        Raises:
+            KeyError: There is no such list (or version).
+        """
+        ...
+
+    def save(self, owned: OwnerList) -> None:
+        """Keep ``owned`` as the current version (earlier ones stay)."""
+        ...
+
+    def delete(self, list_id: str) -> bool:
+        """Delete a list (its versions stay readable by
+        :meth:`load` with a version); tell whether it existed."""
+        ...
+
+    def taken(self) -> List[str]:
+        """Return every id ever used, deleted lists' too (never reused)."""
+        ...
+
+    def offer_list(self, plan_id: str) -> Optional[str]:
+        """Return the id of the list a job offer uses (``None``: general)."""
+        ...
+
+    def assign(self, plan_id: str, list_id: Optional[str]) -> None:
+        """Make a job offer use ``list_id`` (``None``: the general list)."""
+        ...
+
+    def offers(self) -> Dict[str, str]:
+        """Return every job offer with a list: plan id → list id."""
         ...
 
 

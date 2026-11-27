@@ -435,6 +435,33 @@ export class Api {
   /** Judge an ended live round again when its judgement failed (#262). */
   rejudgeLive(id) { return this.request("POST", `/assist/sessions/${encodeURIComponent(id)}/rejudge`, { json: {} }); }
 
+  // ---- «Lo que hay que decir»: the owner's lists (#294) ----
+
+  /** Every list (the general ones first), the offers' choice, the moments and the bounds. */
+  mandatoryLists() { return this.request("GET", "/assist/mandatory/lists"); }
+
+  /** One list in full (a general list is read-only). */
+  mandatoryList(id) { return this.request("GET", `/assist/mandatory/lists/${encodeURIComponent(id)}`); }
+
+  /** Make a list: { name, kind, mode?, items }, or a copy: { from, name }. */
+  createMandatoryList(body) { return this.request("POST", "/assist/mandatory/lists", { json: body }); }
+
+  /** Save an edit (with the version it was based on; 409 when older). */
+  saveMandatoryList(id, body) { return this.request("PUT", `/assist/mandatory/lists/${encodeURIComponent(id)}`, { json: body }); }
+
+  deleteMandatoryList(id) { return this.request("DELETE", `/assist/mandatory/lists/${encodeURIComponent(id)}`); }
+
+  /** The warnings of a list being edited (saved or not). */
+  reviewMandatoryList(body) { return this.request("POST", "/assist/mandatory/review", { json: body }); }
+
+  /** The list a job offer uses: { plan, list, name } (list null: the general one). */
+  offerMandatory(planId) { return this.request("GET", `/assist/interview/plans/${encodeURIComponent(planId)}/mandatory`); }
+
+  /** Make a job offer use a list (null: the general one). */
+  setOfferMandatory(planId, listId) {
+    return this.request("PUT", `/assist/interview/plans/${encodeURIComponent(planId)}/mandatory`, { json: { list: listId } });
+  }
+
   // ---- candidates of a role and their core answers (#235) ----
 
   /** The candidates of a role (plan): { candidates: [profile view], questions, retention_days }. */

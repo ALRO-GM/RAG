@@ -83,3 +83,37 @@ def test_the_routes_need_the_token(client: TestClient) -> None:
         "/knowledge/domains/legal.demo/mandatory").status_code == 401
     assert client.get("/knowledge/domains/nope/mandatory",
                       headers=AUTH).status_code == 404
+
+
+SENT = {"version": 2, "threshold": 0.6, "items": [
+    {"id": "tarifa", "text": "Precio", "must_say": [
+        "la tarifa cuesta veinte euros al mes"]},
+    {"id": "copia", "text": "Copia", "must_say": [
+        "la tarifa cuesta veinte euros al mes"]},
+]}
+
+
+def test_a_list_sent_with_the_sentence(client: TestClient) -> None:
+    said = client.post("/knowledge/mandatory", headers=AUTH, json={
+        "list": SENT, "text": "La tarifa cuesta veinte euros al mes."})
+    assert said.status_code == 200
+    assert said.json()["version"] == 2
+    # Two items with the same example tie: the rule says both.
+    assert [i["said"] for i in said.json()["items"]] == [True, True]
+    bad = client.post("/knowledge/mandatory", headers=AUTH, json={
+        "list": {"items": []}, "text": "hola"})
+    assert bad.status_code == 400
+
+
+def test_the_review_of_a_list(client: TestClient) -> None:
+    found = client.post("/knowledge/mandatory/review", headers=AUTH,
+                        json={"list": SENT})
+    assert found.status_code == 200
+    assert {c["item"] for c in found.json()["close"]} == {"tarifa", "copia"}
+    for body in (b"not json", b'{"list": 3}'):
+        assert client.post("/knowledge/mandatory/review", headers=AUTH,
+                           content=body).status_code == 422
+    assert client.post("/knowledge/mandatory/review", headers=AUTH,
+                       json={"list": {"items": []}}).status_code == 400
+    assert client.post("/knowledge/mandatory/review",
+                       json={"list": SENT}).status_code == 401
