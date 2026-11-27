@@ -936,13 +936,15 @@ export async function liveView(ctx, root, [sub, which] = []) {
       const focus = state.topicFocus();
       const withPoints = chips.filter((c) => c.points?.length);
       const running = state.state === "running" && session.mode === "live";
-      const key = JSON.stringify([lang, focus?.id, running, state.next, withPoints.map((c) => [c.id, c.current, c.points.map((p) => [p.status, p.asked?.by])])]);
+      const key = JSON.stringify([lang, focus?.id, running, state.state, state.next, withPoints.map((c) => [c.id, c.current, c.points.map((p) => [p.status, p.asked?.by])])]);
       if (key === pointsKey) return;
       pointsKey = key;
-      box.hidden = !withPoints.length && !state.next;
+      box.hidden = !withPoints.length && !(state.state === "running" && state.next);
       const name = (item, field) => localized(item, field, lang);
-      fill(nextBox, nextLine(state.next, chips, lang));
-      const line = state.next || !focus ? ""
+      // Once the session ended there is nothing left to propose.
+      const next = state.state === "running" ? state.next : null;
+      fill(nextBox, nextLine(next, chips, lang));
+      const line = next || !focus ? ""
         : focus.pending.length
           ? t("live.points_missing", { topic: name(focus, "name"), list: focus.pending.map((p) => name(p, "text")).join(", ") })
           : t("live.points_done", { topic: name(focus, "name") });
